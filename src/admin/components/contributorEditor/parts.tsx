@@ -52,8 +52,23 @@ export function Prose({ label, hint, aside, id, minRows = 3, className = '', val
   useLayoutEffect(() => {
     const node = ref.current;
     if (!node) return;
-    node.style.height = 'auto';
-    node.style.height = `${node.scrollHeight + 2}px`;
+    const fit = () => {
+      // A field inside a closed sheet measures nothing; leave it to its rows
+      // until it is shown, or it would be pinned two pixels tall.
+      if (!node.offsetParent) return;
+      node.style.height = 'auto';
+      node.style.height = `${node.scrollHeight + 2}px`;
+    };
+    fit();
+    if (typeof ResizeObserver === 'undefined') return;
+    let width = node.clientWidth;
+    const observer = new ResizeObserver(() => {
+      if (node.clientWidth === width) return;
+      width = node.clientWidth;
+      fit();
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
   }, [value]);
   return (
     <div className={className}>

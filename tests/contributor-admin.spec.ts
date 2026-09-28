@@ -78,23 +78,26 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
 
     await page.getByRole('button', { name: 'Edit Publishing Fixture' }).click();
     await expect(page.getByRole('dialog', { name: 'Edit contributor' })).toBeVisible();
-    await expect(page.getByLabel('Beginnings')).toHaveValue(fixture.beginnings);
-    await expect(page.getByLabel('Current practice updated')).toHaveValue('2026-07-13T09:45');
-    await page.getByLabel('Closing').fill('Updated synthetic closing.');
+    await expect(page.getByLabel('Where it began')).toHaveValue(fixture.beginnings);
+    await expect(page.getByLabel('Now updated')).toHaveValue('2026-07-13T09:45');
+    await page.getByTestId('row-words').click();
+    await page.getByLabel('Closing line').fill('Updated synthetic closing.');
     await page.getByRole('button', { name: 'Save changes' }).click();
     await expect(page.getByRole('dialog', { name: 'Edit contributor' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Edit Publishing Fixture' }).click();
-    await page.getByRole('button', { name: 'Unpublish' }).click();
+    await page.getByTestId('row-behind').click();
+    await page.getByRole('button', { name: 'Unpublish', exact: true }).click();
     await expect(page.getByRole('dialog', { name: 'Edit contributor' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Edit Publishing Fixture' }).getByText('Draft')).toBeVisible();
 
     await page.getByRole('button', { name: 'Create contributor' }).click();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
     await page.getByLabel('Page address').fill('new-fixture');
-    await page.getByLabel('Display name').fill('New Fixture');
+    await page.getByLabel('Name', { exact: true }).fill('New Fixture');
     await page.getByRole('button', { name: 'Publish contributor' }).click();
-    await expect(page.getByText('Beginnings is required before publication.')).toBeVisible();
-    await page.getByLabel('Beginnings').fill('Synthetic beginnings for the publishing test.');
+    await expect(page.getByText('Where it began is needed before the page can be published.')).toBeVisible();
+    // Publishing without it opens the part that is missing.
+    await page.getByLabel('Where it began').fill('Synthetic beginnings for the publishing test.');
     await page.getByRole('button', { name: 'Publish contributor' }).click();
     // Once created the panel is renamed Edit contributor while it saves, so wait for any dialog to close.
     await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -184,9 +187,13 @@ test('retries a partially failed create as an update and preserves the current t
   await page.goto('/admin/contributors');
   await page.getByRole('button', { name: 'Create contributor' }).last().click();
   await page.getByLabel('Page address').fill('resumable-writer');
-  await page.getByLabel('Display name').fill('Resumable Writer');
-  await page.getByLabel('Beginnings').fill('Fixture beginnings.');
-  await page.getByLabel('Current practice updated').fill('2026-07-13T09:45');
+  await page.getByLabel('Name', { exact: true }).fill('Resumable Writer');
+  await page.getByTestId('row-words').click();
+  await page.getByLabel('Where it began').fill('Fixture beginnings.');
+  await page.keyboard.press('Escape');
+  await page.getByTestId('row-behind').click();
+  await page.getByText(/Kept, not on the page yet/).click();
+  await page.getByLabel('Now updated').fill('2026-07-13T09:45');
   await page.getByRole('button', { name: 'Publish contributor' }).click();
   await expect(page.getByRole('alert')).toContainText('publish failed');
   await page.getByRole('button', { name: 'Publish contributor' }).click();
@@ -220,6 +227,7 @@ test('an unpublished profile can be deleted for good, after a second, explicit y
   await page.goto('/admin/contributors');
   await page.getByRole('button', { name: 'Edit Placeholder Writer' }).click();
   const dialog = page.getByRole('dialog', { name: 'Edit contributor' });
+  await dialog.getByTestId('row-behind').click();
   await dialog.getByRole('button', { name: 'Delete this profile' }).click();
   await expect(dialog.getByText(/Delete Placeholder Writer for good\?/)).toBeVisible();
   // Keep it is the escape, on the left; nothing is sent.
@@ -236,6 +244,7 @@ test('a published profile offers no delete, only the instruction to unpublish fi
   await page.goto('/admin/contributors');
   await page.getByRole('button', { name: 'Edit Publishing Fixture' }).click();
   const dialog = page.getByRole('dialog', { name: 'Edit contributor' });
+  await dialog.getByTestId('row-behind').click();
   await expect(dialog.getByText('Unpublish it first. A published page can only be taken down, not deleted.')).toBeVisible();
   await expect(dialog.getByRole('button', { name: 'Delete this profile' })).toHaveCount(0);
 });

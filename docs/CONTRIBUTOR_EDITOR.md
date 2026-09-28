@@ -6,18 +6,35 @@ better. We need a whole new style." This is the one written place for the screen
 style rules. When a line on the screen is corrected, the rule here changes in the
 same commit.
 
-## The idea
+## The idea: the card and the rest
 
-The editor is a proof of the public page at `/people/:slug`, not a form about it.
-You set the page in the type it will be read in, and the page is always beside
-you (desktop) or at the top of the sheet (phone), updating as you type.
+Chosen 2026-09-28 from four directions (mockups: https://claude.ai/artifact/JsN5LuYQ7nzhuD7davHNNe).
+Adrian: "to add or edit contributors is quite a huge process ... a bit overwhelming".
+The old screen opened eight sections and about thirty fields at once. Now:
 
-- The name is typed in the display serif at cover size. The prose is typed in Lora
-  at reading size. What you see while typing is what the reader sees.
-- Sections carry the public page's own words where the page has them (In my words,
-  Hands on, Reach me), so the editor and the page map onto each other.
-- Photos are placed, not linked: drop, paste, pick or take one, watch it arrive,
-  then tap where the face is. The crop shown is the crop the page will make.
+- **The card** holds only what the cover needs: the portrait with its focal point
+  and crops, name, page address (new people only), role, place, name in their own
+  script, and the line under the name as it will read. A new person saves from a
+  name alone.
+- **The rows** are every other part of the page, one line each: In my words, Hands on,
+  Reach me, Where they belong, Behind the page. Each says what is in it ("4 of 8",
+  "WeChat", "Needed to publish") and opens on its own in a sheet: from the right on a
+  wide screen, from the bottom on a phone. On a wide screen the rows sit under the
+  fields, beside the photo, so the whole card and its rows fit one laptop screen.
+- **Sheets stay mounted while closed**, so an upload in flight or a pasted photo keeps
+  landing. They sit between the header and the footer, so Save is always in reach.
+  Escape closes the sheet first, then the editor. Focus goes to the sheet's X and
+  back to the row.
+- **Behind the page** holds what no reader sees: the fixed address, pronouns, private
+  contact, their sign-in, unpublish and delete. The ten stored fields that neither
+  the page nor the directory reads (business name, active since, portrait caption,
+  the Now stamp and its date, pouring today, where to find, the voice clip) sit
+  under a fold that says so. If one of them starts rendering, move it out of the
+  fold in the same commit.
+- Publishing without Where it began opens In my words, rather than naming the field
+  and leaving you to find it.
+- Labels use the page's own words: Now, Where it began, Who taught them, Closing line,
+  Place, Own script, Their sign-in.
 
 ## What this screen will NOT use
 

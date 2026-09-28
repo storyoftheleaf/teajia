@@ -11,17 +11,20 @@ import {
   type ContributorLinkPlatform,
   type ContributorWrite,
 } from '../../types';
-import { ACTION, Count, LABEL, LINE_SANS, Line, Prose, QUIET, Section } from './contributorEditor/parts';
+import { ACTION, Count, LABEL, LINE_SANS, Line, Prose, QUIET } from './contributorEditor/parts';
 import { PhotoPlace, type Crop } from './contributorEditor/PhotoPlace';
 import { GalleryPlace, GALLERY_IMAGE_LIMIT } from './contributorEditor/GalleryPlace';
-import { PageProof } from './contributorEditor/PageProof';
+import { EditorRow, EditorSheet, KeptFold, type SheetId } from './contributorEditor/CardParts';
 import { imagesFrom } from './contributorEditor/photoUpload';
+import { ownLine } from '../../components/people/profileFormat';
+import { mediaUrl } from '../../lib/mediaUrl';
 
-// The contributor editor. It is a proof of /people/:slug rather than a form
-// about it: the name is typed in the cover's serif, the prose in the page's
-// Lora, photos are placed and given a focal point, and the cover beside the
-// fields (above them on a phone) redraws as you type. Style rules, and the
-// list of what this screen deliberately does not use: docs/CONTRIBUTOR_EDITOR.md.
+// The contributor editor: the card and the rest. One short card holds what
+// the cover needs (portrait, name, role, place, the line under the name).
+// Every other part of the page is one row that says what is there, and opens
+// on its own in a sheet over the card. Fields no reader sees sit behind the
+// page, under a fold that says so. Style rules, and the list of what this
+// screen deliberately does not use: docs/CONTRIBUTOR_EDITOR.md.
 
 function linkPlatformLabel(platform: ContributorLinkPlatform): string {
   switch (platform) {
@@ -120,6 +123,8 @@ function reviewValue(value: unknown): string {
   return String(value);
 }
 
+const MISSING_BEGINNINGS = 'Where it began is needed before the page can be published.';
+
 function statusWord(contributor: AdminContributor | null): string {
   if (!contributor) return 'Not saved';
   if (contributor.has_pending_draft) return 'In review';
@@ -147,6 +152,9 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
   const [reviewerNote, setReviewerNote] = useState('');
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
+  const [sheet, setSheet] = useState<SheetId | null>(null);
+  const sheetRef = useRef<SheetId | null>(null);
+  const sheetOpener = useRef<HTMLElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
@@ -154,6 +162,23 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
   const takeGallery = useRef<((files: File[]) => void) | null>(null);
   const isNew = !persistedContributor;
   const uploading = Object.values(busy).some(Boolean);
+
+  // One part of the page open at a time. Focus goes to the sheet's close X
+  // and comes back to the row that opened it.
+  const openSheet = useCallback((id: SheetId, from?: HTMLElement | null) => {
+    sheetOpener.current = from ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
+    sheetRef.current = id;
+    setSheet(id);
+    window.setTimeout(() => document.getElementById(`sheet-${id}-close`)?.focus(), 0);
+  }, []);
+  const closeSheet = useCallback(() => {
+    sheetRef.current = null;
+    setSheet(null);
+    const opener = sheetOpener.current;
+    window.setTimeout(() => opener?.focus(), 0);
+  }, []);
+  const closeSheetRef = useRef(closeSheet);
+  closeSheetRef.current = closeSheet;
 
   useEffect(() => {
     returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -184,14 +209,19 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && sheetRef.current) {
+        event.preventDefault();
+        closeSheetRef.current();
+        return;
+      }
       if (event.key === 'Escape' && !saving) {
         event.preventDefault();
         onClose();
         return;
       }
       if (event.key !== 'Tab' || !dialogRef.current) return;
-      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]):not([tabindex="-1"]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'))
-        .filter(node => node.offsetParent !== null || node === document.activeElement);
+      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]):not([tabindex="-1"]), textarea:not([disabled]), select:not([disabled]), summary, a[href], [tabindex]:not([tabindex="-1"])'))
+        .filter(node => !node.closest('[inert]') && (node.offsetParent !== null || node === document.activeElement));
       if (!focusable.length) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -224,8 +254,8 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
   const validate = (publishing: boolean) => {
     if (uploading) return 'A photo is still arriving. Save once it has landed.';
     if (isNew && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(form.id?.trim() ?? '')) return 'The page address takes lowercase letters, numbers and hyphens.';
-    if (!form.display_name?.trim()) return 'Display name is required.';
-    if ((form.closing?.length ?? 0) > 200) return 'Closing must be 200 characters or fewer.';
+    if (!form.display_name?.trim()) return 'A name is needed before it can be saved.';
+    if ((form.closing?.length ?? 0) > 200) return 'The closing line must be 200 characters or fewer.';
     for (const link of form.links ?? []) {
       if (!(CONTRIBUTOR_LINK_PLATFORMS as readonly string[]).includes(link.platform)) return 'Choose a platform for every link.';
       if (!link.value?.trim()) return `Every link needs its ${linkValueLabel(link.platform).toLowerCase()}.`;
@@ -242,14 +272,19 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
       if (!image.image_url?.trim()) return 'Every gallery photo needs an image.';
       if ((image.caption?.length ?? 0) > 280) return 'A gallery caption must be 280 characters or fewer.';
     }
-    if (publishing && !form.beginnings?.trim()) return 'Beginnings is required before publication.';
+    if (publishing && !form.beginnings?.trim()) return MISSING_BEGINNINGS;
     return null;
   };
 
   const persist = async (publishing = false) => {
     const approvingPendingDraft = publishing && !isNew && persistedContributor?.has_pending_draft === true;
     const validation = approvingPendingDraft ? null : validate(publishing);
-    if (validation) { setError(validation); return; }
+    if (validation) {
+      setError(validation);
+      // Take them to the part that is missing, rather than naming it and leaving them to find it.
+      if (validation === MISSING_BEGINNINGS && sheetRef.current !== 'words') openSheet('words', null);
+      return;
+    }
     setSaving(true); setError(null);
     try {
       if (approvingPendingDraft) {
@@ -365,6 +400,23 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
   const pending = persistedContributor?.has_pending_draft === true;
   const published = persistedContributor?.is_published === 1;
   const slug = persistedContributor?.id ?? form.id ?? '';
+  const coverLine = ownLine(form);
+
+  // What each row says is there, in words a reader of the list can act on.
+  const wordParts = [
+    form.now_text?.trim() && 'now',
+    form.beginnings?.trim() && 'where it began',
+    form.inspirations?.trim() && 'who taught them',
+    form.closing?.trim() && 'a closing line',
+  ].filter(Boolean) as string[];
+  const wordsDescription = wordParts.length
+    ? `${wordParts[0].charAt(0).toUpperCase()}${wordParts[0].slice(1)}${wordParts.length > 1 ? `, ${wordParts.slice(1).join(', ')}` : ''}`
+    : 'What they do now, where it began, the closing line';
+  const linkWords = links.map(link => link.platform === 'other' && link.label ? link.label : linkPlatformLabel(link.platform));
+  const belongWords = associations.map(association => association.public_role ? `${association.account_name}, ${association.public_role.toLowerCase()}` : association.account_name);
+  const avatarState = !form.avatar_url
+    ? (form.portrait_url ? 'Taken from the portrait' : 'None yet')
+    : form.avatar_url === form.portrait_url ? 'Same as the portrait' : 'Its own photo';
 
   return (
     <>
@@ -380,29 +432,21 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
         <header className="flex h-14 shrink-0 items-center gap-3 border-b border-tea-border px-3 sm:px-6">
           <button ref={closeButtonRef} type="button" onClick={onClose} disabled={saving} aria-label="Close" className="tap-target rounded-md p-2 text-tea-text-sec hover:text-tea-text disabled:opacity-50"><X size={18} strokeWidth={1.5} /></button>
           <p className="min-w-0 truncate font-display text-ui-20 text-tea-text">{form.display_name?.trim() || (isNew ? 'A new person' : persistedContributor?.display_name)}</p>
-          <p className="ml-auto shrink-0 font-sans text-ui-10 uppercase tracking-caps text-tea-text-sec">{statusWord(persistedContributor)}</p>
+          <div className="ml-auto flex shrink-0 items-center gap-5">
+            {published && slug && (
+              <span className="hidden sm:inline"><a href={`/people/${encodeURIComponent(slug)}`} target="_blank" rel="noreferrer" className="tap-target font-sans text-ui-12 text-tea-text-sec underline decoration-tea-border underline-offset-4 hover:text-tea-text">Open the page</a></span>
+            )}
+            <p className="font-sans text-ui-10 uppercase tracking-caps text-tea-text-sec">{statusWord(persistedContributor)}</p>
+          </div>
         </header>
 
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <div className="mx-auto grid w-full max-w-[1120px] gap-x-16 px-6 sm:px-10 lg:grid-cols-[minmax(0,1fr)_342px]">
-            <div className="pt-6 lg:order-2 lg:pt-10">
-              <div className="lg:sticky lg:top-10">
-                <PageProof form={form} galleryCount={galleryImages.length} linkCount={links.length} slug={slug} published={published} />
-              </div>
-            </div>
-
-            <div className="min-w-0 max-w-[640px] pb-nav-gap-lg pt-10 lg:order-1 lg:pb-16">
-              <h2 className="font-display text-[40px] font-light leading-[1.05] text-tea-text sm:text-[48px]">{isNew ? 'Create contributor' : 'Edit contributor'}</h2>
-              <p className="mt-3 max-w-[52ch] font-body text-ui-15 italic leading-relaxed text-tea-text-sec">
-                {isNew
-                  ? 'A person’s page, set in the type it will be read in. Nothing is public until you publish it.'
-                  : published ? 'Changes show on the public page once saved.' : 'This page is a draft. Nobody can read it until it is published.'}
-              </p>
-
+        <div className="relative flex-1 min-h-0">
+          <div className="h-full overflow-y-auto" inert={sheet ? true : undefined}>
+            <div className="mx-auto w-full max-w-[920px] px-6 pb-nav-gap-lg pt-8 sm:px-10 lg:pb-16 lg:pt-10">
               {pending && persistedContributor && (
-                <div className="mt-8 border-l border-tea-gold/40 pl-5">
+                <div className="mb-10 border-l border-tea-gold/40 pl-5">
                   <p className="font-display text-ui-20 text-tea-text">Submitted changes awaiting review</p>
-                  <p className="mt-1 max-w-[52ch] font-body text-ui-14 leading-relaxed text-tea-text-sec">The editor below holds the live profile only. Approving publishes this exact draft; editorial saving is unavailable during review.</p>
+                  <p className="mt-1 max-w-[52ch] font-body text-ui-14 leading-relaxed text-tea-text-sec">The card below holds the live profile only. Approving publishes this exact draft; editorial saving is unavailable during review.</p>
                   {persistedContributor.draft_diff && (
                     <dl className="mt-4">
                       <div className="grid grid-cols-2 gap-4 border-b border-tea-border pb-2">
@@ -423,20 +467,39 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
                 </div>
               )}
 
-              {error && <p role="alert" className="mt-6 border-l-2 border-tea-error pl-4 font-body text-ui-15 leading-relaxed text-tea-text">{error}</p>}
+              {/* The card: what the cover needs, and nothing else. */}
+              <div className="grid gap-x-10 gap-y-8 md:grid-cols-[minmax(0,360px)_minmax(0,1fr)]" data-testid="contributor-card">
+                <div className="min-w-0" data-testid="section-portrait">
+                  <PhotoPlace
+                    name="Portrait"
+                    testId="photo-portrait"
+                    url={form.portrait_url}
+                    focus={form.portrait_focus}
+                    onChange={setPortrait}
+                    crops={PORTRAIT_CROPS}
+                    purpose="A photo of them at work fills the cover best. Tall or wide both work."
+                    emptyHeight={300}
+                    onBusy={portraitBusy}
+                    takeRef={takePortrait}
+                  />
+                  <button type="button" data-testid="row-avatar" aria-haspopup="dialog" onClick={event => openSheet('avatar', event.currentTarget)} className="mt-5 flex min-h-11 w-full items-baseline justify-between gap-3 border-t border-tea-border pt-3 text-left">
+                    <span className="font-sans text-ui-13 text-tea-text-sec">Small round photo</span>
+                    <span className="font-body text-ui-13 italic text-tea-text-dim">{avatarState}</span>
+                  </button>
+                </div>
 
-              <div className="mt-10">
-                <Section id="c-name" title="The name" note="How the cover introduces them.">
+                <div className="min-w-0 space-y-6">
                   <Line
-                    label="Display name"
+                    label="Name"
+                    id="f-name"
                     value={form.display_name ?? ''}
                     onChange={event => setName(event.target.value)}
                     placeholder="Their name"
                     autoComplete="off"
-                    inputClassName="w-full rounded-none border-0 border-b border-tea-border bg-transparent px-0 py-1 font-display text-[34px] font-light leading-tight text-tea-text placeholder:text-tea-text-dim/60 focus:border-tea-gold focus:outline-none focus:ring-0 sm:text-[40px]"
+                    inputClassName="w-full rounded-none border-0 border-b border-tea-border bg-transparent px-0 py-1 font-display text-[34px] font-light leading-tight text-tea-text placeholder:text-tea-text-dim/60 focus:border-tea-gold focus:outline-none focus:ring-0 sm:text-[38px]"
                   />
-                  {isNew ? (
-                    <div className="mt-5">
+                  {isNew && (
+                    <div>
                       <label htmlFor="f-page-address" className={LABEL}>Page address</label>
                       <div className="mt-1 flex min-w-0 items-baseline border-b border-tea-border focus-within:border-tea-gold">
                         <span className="shrink-0 font-sans text-ui-14 text-tea-text-dim">teajia.com/people/</span>
@@ -451,228 +514,239 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
                           onChange={event => { setSlugTouched(true); setField('id', event.target.value.toLowerCase()); }}
                         />
                       </div>
-                      <p className="mt-1.5 font-sans text-ui-12 text-tea-text-dim">Fixed once saved. Lowercase words joined by hyphens.</p>
+                      <p className="mt-1.5 font-sans text-ui-12 text-tea-text-dim">Follows the name. Fixed once saved.</p>
                     </div>
-                  ) : (
-                    <p className="mt-3 font-sans text-ui-13 text-tea-text-sec">teajia.com/people/<span className="text-tea-text">{slug}</span></p>
                   )}
-                  <div className="mt-6 grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-                    <Line label="Name, own script" value={form.chinese_name ?? ''} onChange={event => setField('chinese_name', event.target.value)} inputClassName={`${LINE_SANS} font-body text-ui-17`} />
-                    <Line label="Business name" value={form.business_name ?? ''} onChange={event => setField('business_name', event.target.value)} placeholder="If they trade under another" />
-                    <Line label="Role" value={form.role ?? ''} onChange={event => setField('role', event.target.value)} placeholder="Tea master, writer, host" />
-                    <Line label="Location" value={form.location_line ?? ''} onChange={event => setField('location_line', event.target.value)} placeholder="City, country" />
-                    <Line label="Pronouns" value={form.pronouns ?? ''} onChange={event => setField('pronouns', event.target.value)} />
-                    <Line label="Active since" value={form.active_since ?? ''} onChange={event => setField('active_since', event.target.value)} placeholder="The year they began" inputMode="numeric" />
+                  <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
+                    <Line label="Role" id="f-role" value={form.role ?? ''} onChange={event => setField('role', event.target.value)} placeholder="Tea master, writer, host" />
+                    <Line label="Place" id="f-place" value={form.location_line ?? ''} onChange={event => setField('location_line', event.target.value)} placeholder="City, country" />
                   </div>
-                </Section>
-
-                <div>
-                  <Section id="c-portrait" title="The portrait" note="The cover of their page. Set the focal point on the face and every crop keeps it." testId="section-portrait">
-                    <PhotoPlace
-                      name="Portrait"
-                      testId="photo-portrait"
-                      url={form.portrait_url}
-                      focus={form.portrait_focus}
-                      onChange={setPortrait}
-                      crops={PORTRAIT_CROPS}
-                      purpose="A photo of them at work fills the cover best. Tall or wide both work."
-                      emptyHeight={300}
-                      onBusy={portraitBusy}
-                      takeRef={takePortrait}
-                    />
-                    <Line className="mt-6" label="Portrait caption" value={form.portrait_caption ?? ''} onChange={event => setField('portrait_caption', event.target.value)} placeholder="Optional. Where and when it was taken." />
-
-                    <div className="mt-10">
-                      <p className="font-display text-ui-20 text-tea-text">The small photo</p>
-                      <p className="mt-1 max-w-[52ch] font-body text-ui-14 italic leading-relaxed text-tea-text-sec">Stands in for the portrait when there is none, and anywhere a small round face is shown.</p>
-                      <div className="mt-4">
-                        <PhotoPlace
-                          name="Avatar"
-                          testId="photo-avatar"
-                          url={form.avatar_url}
-                          focus={form.avatar_focus}
-                          onChange={setAvatar}
-                          crops={AVATAR_CROPS}
-                          purpose="A face, close. It is shown round."
-                          emptyHeight={180}
-                          onBusy={avatarBusy}
-                          extraActions={form.portrait_url && form.avatar_url !== form.portrait_url
-                            ? <button type="button" onClick={() => setAvatar({ url: form.portrait_url || null, focus: form.portrait_focus ?? null })} className={ACTION}>Use the portrait</button>
-                            : null}
-                        />
-                      </div>
-                    </div>
-                  </Section>
-                </div>
-
-                <Section id="c-words" title="In my words" note="Written in the first person. The cover takes its one line from the first sentence of what they are doing now.">
-                  <div className="space-y-7">
-                    <Prose label="Beginnings" value={form.beginnings ?? ''} onChange={event => setField('beginnings', event.target.value)} placeholder="Where it began for them." minRows={4} hint="Needed before the page can be published." />
-                    <Prose label="Current practice" value={form.now_text ?? ''} onChange={event => setField('now_text', event.target.value)} placeholder="What they are doing now." />
-                    <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-                      <Line label="Current stamp" value={form.now_stamp ?? ''} onChange={event => setField('now_stamp', event.target.value)} placeholder="A season or a month" />
-                      <Line label="Current practice updated" type="datetime-local" value={form.now_updated_at?.slice(0, 16) ?? ''} onChange={event => setField('now_updated_at', event.target.value)} />
-                    </div>
-                    <Prose label="Inspirations" value={form.inspirations ?? ''} onChange={event => setField('inspirations', event.target.value)} placeholder="Who and what taught them." />
-                    <Prose label="Closing" value={form.closing ?? ''} maxLength={200} minRows={2} onChange={event => setField('closing', event.target.value)} placeholder="The last line of the page." aside={<Count value={form.closing?.length ?? 0} max={200} />} />
-                    <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-                      <Line label="Voice clip URL" type="url" value={form.voice_clip_url ?? ''} onChange={event => setField('voice_clip_url', event.target.value)} placeholder="https://" hint="A recording in their own voice. Not on the page yet." />
-                      <Line label="Voice clip caption" value={form.voice_clip_caption ?? ''} onChange={event => setField('voice_clip_caption', event.target.value)} />
-                    </div>
-                  </div>
-                </Section>
-
-                <div>
-                  <Section id="c-gallery" title="Hands on" note={`Photos of them at work, laid out as the page lays them out. Up to ${GALLERY_IMAGE_LIMIT}.`} testId="section-gallery">
-                    <GalleryPlace images={galleryImages} update={updateGallery} onBusy={galleryBusy} takeRef={takeGallery} />
-                  </Section>
-                </div>
-
-                <Section id="c-reach" title="Reach me" note="Where a reader can find them. Each becomes a row at the foot of the page.">
+                  <Line label="Own script" id="f-own-script" value={form.chinese_name ?? ''} onChange={event => setField('chinese_name', event.target.value)} placeholder="Optional. Shown under the name." inputClassName={`${LINE_SANS} font-body text-ui-17`} />
                   <div>
-                    {links.length === 0 && <p className="font-body text-ui-15 italic text-tea-text-dim">No ways to reach them yet.</p>}
-                    {links.map((link, index) => (
-                      <div key={index} className="border-b border-tea-border py-5 first:pt-0">
-                        <div role="radiogroup" aria-label={`Link ${index + 1} platform`} className="flex flex-wrap items-baseline gap-x-5">
-                          {CONTRIBUTOR_LINK_PLATFORMS.map(platform => {
-                            const on = link.platform === platform;
-                            return (
-                              <label key={platform} className={`tap-target inline-flex min-h-11 cursor-pointer items-center border-b font-display text-ui-17 transition-colors ${on ? 'border-tea-gold text-tea-text' : 'border-transparent text-tea-text-sec hover:text-tea-text'}`}>
-                                <input type="radio" className="sr-only" name={`link-${index}-platform`} value={platform} checked={on} onChange={() => updateLink(index, { platform })} />
-                                {linkPlatformLabel(platform)}
-                              </label>
-                            );
-                          })}
-                          <button type="button" aria-label={`Remove link ${index + 1}`} onClick={() => setField('links', links.filter((_, position) => position !== index))} className={`${QUIET} ml-auto`}>Remove</button>
-                        </div>
-                        <Line
-                          className="mt-2"
-                          id={`f-link-${index}-value`}
-                          label={linkValueLabel(link.platform)}
-                          aria-label={`Link ${index + 1} value`}
-                          value={link.value}
-                          onChange={event => updateLink(index, { value: event.target.value })}
-                          placeholder={link.platform === 'website' ? 'https://' : link.platform === 'instagram' ? '@handle' : ''}
-                          inputMode={link.platform === 'website' ? 'url' : undefined}
-                          autoCapitalize="none"
-                        />
-                        {link.platform === 'wechat' && (
-                          <div className="mt-5">
-                            <p className={LABEL}>QR code, optional</p>
-                            <div className="mt-2 max-w-[320px]">
-                              <PhotoPlace
-                                name="QR image"
-                                testId={`photo-qr-${index}`}
-                                url={link.qr_image_url}
-                                focus={null}
-                                onChange={next => updateLink(index, { qr_image_url: next.url })}
-                                crops={[]}
-                                purpose="A screenshot of their WeChat QR, so a reader can scan it."
-                                emptyHeight={160}
-                                onBusy={markBusy(`qr-${index}`)}
-                              />
-                            </div>
-                          </div>
-                        )}
-                        {link.platform === 'other' && (
-                          <Line className="mt-4" id={`f-link-${index}-label`} label="Label, optional" value={link.label ?? ''} onChange={event => updateLink(index, { label: event.target.value })} placeholder="How this link is described" />
-                        )}
-                      </div>
-                    ))}
-                    <button type="button" onClick={() => setField('links', [...links, { platform: 'website', value: '', qr_image_url: null }])} className={`${ACTION} mt-4`}>Add link</button>
+                    <p className={LABEL}>Line under the name</p>
+                    <button type="button" aria-haspopup="dialog" onClick={event => openSheet('words', event.currentTarget)} className="mt-1 block min-h-11 w-full border-b border-tea-border py-2 text-left font-body text-ui-15 italic leading-relaxed transition-colors hover:border-tea-gold">
+                      {coverLine
+                        ? <span className="text-tea-text">{coverLine}</span>
+                        : <span className="text-tea-text-dim">Comes from what they are doing now. Write it in In my words.</span>}
+                    </button>
                   </div>
-                </Section>
-
-                <Section id="c-pouring" title="Pouring today" note="Which tea they are pouring now. Kept here, not yet shown on the public page.">
-                  <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-                    <Line label="Product ID" value={form.pouring_today_product_id ?? ''} onChange={event => setField('pouring_today_product_id', event.target.value)} autoCapitalize="none" />
-                    <Line label="Pouring note" value={form.pouring_today_note ?? ''} onChange={event => setField('pouring_today_note', event.target.value)} />
-                  </div>
-                </Section>
-
-                <Section id="c-belong" title="Where they belong" note="A tea master is one person across Teajia. Their master account is their home for stock and selection; other shops are guest or collaborating places.">
-                  <div className="space-y-7">
-                    {associations.length > 0 && (
-                      <ul>
-                        {associations.map((association, index) => {
-                          const editable = canEditContributorAssociation(association.account_id, activeAccountId, platformRole);
-                          return (
-                            <li key={association.account_id} className="border-b border-tea-border py-4 first:pt-0">
-                              <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-                                <div className="min-w-0">
-                                  <p className="font-display text-ui-20 text-tea-text">{association.account_name}</p>
-                                  <p className="font-body text-ui-13 italic text-tea-text-sec">{availableAccounts.find(item => item.id === association.account_id)?.account_kind === 'master' ? 'Tea Master operational home' : 'Guest or collaborating practice'}</p>
-                                </div>
-                                <div className="flex flex-wrap gap-x-5">
-                                  <button type="button" aria-label={`Move ${association.account_name} up`} disabled={!editable || index === 0} onClick={() => moveAssociation(index, index - 1)} className={QUIET}>Earlier</button>
-                                  <button type="button" aria-label={`Move ${association.account_name} down`} disabled={!editable || index === associations.length - 1} onClick={() => moveAssociation(index, index + 1)} className={QUIET}>Later</button>
-                                  <button type="button" aria-label={`Remove ${association.account_name}`} disabled={!editable} onClick={() => { setAssociations(current => current.filter(item => item.account_id !== association.account_id)); setAssociationsDirty(true); }} className={QUIET}>Remove</button>
-                                </div>
-                              </div>
-                              <div className="mt-2 grid gap-x-8 gap-y-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-                                <Line id={`f-role-${association.account_id}`} label="Public role" disabled={!editable} value={association.public_role ?? ''} onChange={event => updateAssociation(association.account_id, { public_role: event.target.value || null })} placeholder="Tea Master, guest curator, writer" />
-                                <label className="tap-target flex min-h-11 cursor-pointer items-center gap-3 font-sans text-ui-13 text-tea-text-sec"><input type="checkbox" disabled={!editable} checked={association.is_host} onChange={event => updateAssociation(association.account_id, { is_host: event.target.checked })} className="h-4 w-4 accent-tea-gold" /> Host profile</label>
-                              </div>
-                              {!editable && <p className="mt-2 font-sans text-ui-12 text-tea-text-dim">Read only while another account is active.</p>}
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
-                    <div className="flex flex-wrap items-end gap-x-6 gap-y-2">
-                      <div className="min-w-0 flex-1">
-                        <label htmlFor="f-add-account" className={LABEL}>Add an account</label>
-                        <select id="f-add-account" value={newAssociationId} onChange={event => setNewAssociationId(event.target.value)} className={`mt-1 ${LINE_SANS}`}>
-                          <option value="">Choose an account</option>
-                          {availableAccounts.filter(item => canEditContributorAssociation(item.id, activeAccountId, platformRole) && !associations.some(association => association.account_id === item.id)).map(item => <option key={item.id} value={item.id}>{item.name}{item.account_kind === 'master' ? ' · Tea Master home' : ''}</option>)}
-                        </select>
-                      </div>
-                      <button type="button" onClick={addAssociation} disabled={!newAssociationId} className={ACTION}>Add association</button>
-                    </div>
-                    <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-                      <div>
-                        <label htmlFor="f-private-contact" className={LABEL}>Private contact</label>
-                        <select id="f-private-contact" className={`mt-1 ${LINE_SANS}`} value={contactId} onFocus={loadCustomers} onChange={event => setContactId(event.target.value)}>
-                          <option value="">No linked contact</option>
-                          {contactId && !customers.some(customer => customer.id === contactId) && <option value={contactId}>{contributor?.contact_name || 'Linked contact'}</option>}
-                          {customers.map(customer => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
-                        </select>
-                      </div>
-                      <Line label="Linked user ID" value={form.user_id ?? ''} onChange={event => setField('user_id', event.target.value)} autoCapitalize="none" hint="The sign-in that may edit this page themselves." />
-                    </div>
-                    <Prose label="Where to find" value={form.where_to_find_text ?? ''} onChange={event => setField('where_to_find_text', event.target.value)} minRows={2} placeholder="Their shop, their table, the days they pour." hint="Kept here, not yet shown on the public page." />
-                  </div>
-                </Section>
-
-                {!isNew && persistedContributor && (
-                  <Section id="c-delete" title="Delete this profile" note="For a placeholder or a page that should never have existed. It cannot be undone." testId="section-delete">
-                    {persistedContributor.is_published === 1 ? (
-                      <p className="font-body text-ui-15 leading-relaxed text-tea-text-sec">Unpublish it first. A published page can only be taken down, not deleted.</p>
-                    ) : confirmingDelete ? (
-                      <div className="border-l-2 border-tea-error pl-4" role="alertdialog" aria-labelledby="delete-confirm-text">
-                        <p id="delete-confirm-text" className="max-w-[52ch] font-body text-ui-15 leading-relaxed text-tea-text">
-                          Delete {persistedContributor.display_name} for good? The page, its photos, links and drafts go with it, and it cannot be brought back.
-                        </p>
-                        <div className="mt-3 flex items-center justify-between gap-4">
-                          <button type="button" onClick={() => setConfirmingDelete(false)} disabled={saving} className="tap-target min-h-11 font-sans text-ui-14 text-tea-text-sec hover:text-tea-text">Keep it</button>
-                          <button type="button" onClick={deleteForGood} disabled={saving} className="tap-target inline-flex min-h-11 items-center border-b border-tea-error font-display text-ui-17 text-tea-error disabled:opacity-50">{saving ? 'Deleting…' : 'Delete for good'}</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <button type="button" onClick={() => setConfirmingDelete(true)} className={QUIET}>Delete this profile</button>
-                    )}
-                  </Section>
-                )}
+                  {/* The rest of the page: one row each, opened on its own. */}
+                  <nav className="mt-10" aria-label="The rest of the page">
+                    <EditorRow id="words" title="In my words" description={wordsDescription} state={form.beginnings?.trim() ? 'Written' : 'Needed to publish'} needed={!form.beginnings?.trim()} onOpen={openSheet} />
+                    <EditorRow
+                      id="hands"
+                      title="Hands on"
+                      description={`Photographs of them at work, up to ${GALLERY_IMAGE_LIMIT}`}
+                      state={galleryImages.length ? `${galleryImages.length} of ${GALLERY_IMAGE_LIMIT}` : 'Not yet'}
+                      thumbs={galleryImages.slice(0, 3).map(image => mediaUrl(image.image_url)).filter((src): src is string => Boolean(src))}
+                      onOpen={openSheet}
+                    />
+                    <EditorRow id="reach" title="Reach me" description={linkWords.length ? linkWords.join(', ') : 'A website, Instagram or WeChat, at the foot of the page'} state={links.length ? `${links.length} ${links.length === 1 ? 'way' : 'ways'}` : 'Not yet'} onOpen={openSheet} />
+                    <EditorRow id="belong" title="Where they belong" description={belongWords.length ? belongWords.join('; ') : 'Their home shop, and any they host or guest at'} state={associations.length ? (associations.some(item => item.is_host) ? 'Hosts' : 'Linked') : 'Not yet'} onOpen={openSheet} />
+                    <EditorRow id="behind" title="Behind the page" description={isNew ? 'Pronouns, private contact, their sign-in' : 'Address, pronouns, sign-in, unpublish and delete'} state="Not shown" onOpen={openSheet} />
+                  </nav>
+                </div>
               </div>
+
             </div>
           </div>
+
+          <EditorSheet id="words" title="In my words" note="Written in the first person. The page prints two passages here: the rest of Now, then Where it began." open={sheet === 'words'} onClose={closeSheet}>
+            <div className="space-y-7">
+              <Prose label="Now" id="f-now" value={form.now_text ?? ''} onChange={event => setField('now_text', event.target.value)} placeholder="What they are doing now." minRows={4} hint="Its first sentence is the line under their name." />
+              <Prose label="Where it began" id="f-where-it-began" value={form.beginnings ?? ''} onChange={event => setField('beginnings', event.target.value)} placeholder="Where it began for them." minRows={4} hint="Needed before the page can be published." />
+              <Prose label="Who taught them" id="f-who-taught-them" value={form.inspirations ?? ''} onChange={event => setField('inspirations', event.target.value)} placeholder="Who and what taught them." hint="Shown when Now is a single sentence or one of the two above is empty." />
+              <Prose label="Closing line" id="f-closing-line" value={form.closing ?? ''} maxLength={200} minRows={2} onChange={event => setField('closing', event.target.value)} placeholder="The last line of the page." aside={<Count value={form.closing?.length ?? 0} max={200} />} />
+            </div>
+          </EditorSheet>
+
+          <EditorSheet id="hands" title="Hands on" note="Photographs of them at work, laid out as the page lays them out." open={sheet === 'hands'} onClose={closeSheet}>
+            <div data-testid="section-gallery">
+              <GalleryPlace images={galleryImages} update={updateGallery} onBusy={galleryBusy} takeRef={takeGallery} />
+            </div>
+          </EditorSheet>
+
+          <EditorSheet id="avatar" title="Small round photo" note="Stands in for the portrait when there is none, and anywhere a small round face is shown." open={sheet === 'avatar'} onClose={closeSheet}>
+            <PhotoPlace
+              name="Avatar"
+              testId="photo-avatar"
+              url={form.avatar_url}
+              focus={form.avatar_focus}
+              onChange={setAvatar}
+              crops={AVATAR_CROPS}
+              purpose="A face, close. It is shown round."
+              emptyHeight={180}
+              onBusy={avatarBusy}
+              extraActions={form.portrait_url && form.avatar_url !== form.portrait_url
+                ? <button type="button" onClick={() => setAvatar({ url: form.portrait_url || null, focus: form.portrait_focus ?? null })} className={ACTION}>Use the portrait</button>
+                : null}
+            />
+          </EditorSheet>
+
+          <EditorSheet id="reach" title="Reach me" note="Where a reader can find them. Each becomes a row at the foot of the page." open={sheet === 'reach'} onClose={closeSheet}>
+            <div>
+              {links.length === 0 && <p className="font-body text-ui-15 italic text-tea-text-dim">No ways to reach them yet.</p>}
+              {links.map((link, index) => (
+                <div key={index} className="border-b border-tea-border py-5 first:pt-0">
+                  <div role="radiogroup" aria-label={`Link ${index + 1} platform`} className="flex flex-wrap items-baseline gap-x-5">
+                    {CONTRIBUTOR_LINK_PLATFORMS.map(platform => {
+                      const on = link.platform === platform;
+                      return (
+                        <label key={platform} className={`tap-target inline-flex min-h-11 cursor-pointer items-center border-b font-display text-ui-17 transition-colors ${on ? 'border-tea-gold text-tea-text' : 'border-transparent text-tea-text-sec hover:text-tea-text'}`}>
+                          <input type="radio" className="sr-only" name={`link-${index}-platform`} value={platform} checked={on} onChange={() => updateLink(index, { platform })} />
+                          {linkPlatformLabel(platform)}
+                        </label>
+                      );
+                    })}
+                    <button type="button" aria-label={`Remove link ${index + 1}`} onClick={() => setField('links', links.filter((_, position) => position !== index))} className={`${QUIET} ml-auto`}>Remove</button>
+                  </div>
+                  <Line
+                    className="mt-2"
+                    id={`f-link-${index}-value`}
+                    label={linkValueLabel(link.platform)}
+                    aria-label={`Link ${index + 1} value`}
+                    value={link.value}
+                    onChange={event => updateLink(index, { value: event.target.value })}
+                    placeholder={link.platform === 'website' ? 'https://' : link.platform === 'instagram' ? '@handle' : ''}
+                    inputMode={link.platform === 'website' ? 'url' : undefined}
+                    autoCapitalize="none"
+                  />
+                  {link.platform === 'wechat' && (
+                    <div className="mt-5">
+                      <p className={LABEL}>QR code, optional</p>
+                      <div className="mt-2 max-w-[320px]">
+                        <PhotoPlace
+                          name="QR image"
+                          testId={`photo-qr-${index}`}
+                          url={link.qr_image_url}
+                          focus={null}
+                          onChange={next => updateLink(index, { qr_image_url: next.url })}
+                          crops={[]}
+                          purpose="A screenshot of their WeChat QR, so a reader can scan it."
+                          emptyHeight={160}
+                          onBusy={markBusy(`qr-${index}`)}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {link.platform === 'other' && (
+                    <Line className="mt-4" id={`f-link-${index}-label`} label="Label, optional" value={link.label ?? ''} onChange={event => updateLink(index, { label: event.target.value })} placeholder="How this link is described" />
+                  )}
+                </div>
+              ))}
+              <button type="button" onClick={() => setField('links', [...links, { platform: 'website', value: '', qr_image_url: null }])} className={`${ACTION} mt-4`}>Add a way to reach them</button>
+            </div>
+          </EditorSheet>
+
+          <EditorSheet id="belong" title="Where they belong" note="A tea master is one person across Teajia. Their master account is their home for stock and selection; other shops are guest or collaborating places." open={sheet === 'belong'} onClose={closeSheet}>
+            <div className="space-y-7">
+              {associations.length > 0 && (
+                <ul>
+                  {associations.map((association, index) => {
+                    const editable = canEditContributorAssociation(association.account_id, activeAccountId, platformRole);
+                    return (
+                      <li key={association.account_id} className="border-b border-tea-border py-4 first:pt-0">
+                        <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+                          <div className="min-w-0">
+                            <p className="font-display text-ui-20 text-tea-text">{association.account_name}</p>
+                            <p className="font-body text-ui-13 italic text-tea-text-sec">{availableAccounts.find(item => item.id === association.account_id)?.account_kind === 'master' ? 'Tea Master operational home' : 'Guest or collaborating practice'}</p>
+                          </div>
+                          <div className="flex flex-wrap gap-x-5">
+                            <button type="button" aria-label={`Move ${association.account_name} up`} disabled={!editable || index === 0} onClick={() => moveAssociation(index, index - 1)} className={QUIET}>Earlier</button>
+                            <button type="button" aria-label={`Move ${association.account_name} down`} disabled={!editable || index === associations.length - 1} onClick={() => moveAssociation(index, index + 1)} className={QUIET}>Later</button>
+                            <button type="button" aria-label={`Remove ${association.account_name}`} disabled={!editable} onClick={() => { setAssociations(current => current.filter(item => item.account_id !== association.account_id)); setAssociationsDirty(true); }} className={QUIET}>Remove</button>
+                          </div>
+                        </div>
+                        <div className="mt-2 grid gap-x-8 gap-y-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                          <Line id={`f-role-${association.account_id}`} label="Public role" disabled={!editable} value={association.public_role ?? ''} onChange={event => updateAssociation(association.account_id, { public_role: event.target.value || null })} placeholder="Tea Master, guest curator, writer" />
+                          <label className="tap-target flex min-h-11 cursor-pointer items-center gap-3 font-sans text-ui-13 text-tea-text-sec"><input type="checkbox" disabled={!editable} checked={association.is_host} onChange={event => updateAssociation(association.account_id, { is_host: event.target.checked })} className="h-4 w-4 accent-tea-gold" /> Host profile</label>
+                        </div>
+                        {!editable && <p className="mt-2 font-sans text-ui-12 text-tea-text-dim">Read only while another account is active.</p>}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              <div className="flex flex-wrap items-end gap-x-6 gap-y-2">
+                <div className="min-w-0 flex-1">
+                  <label htmlFor="f-add-account" className={LABEL}>Add a shop</label>
+                  <select id="f-add-account" value={newAssociationId} onChange={event => setNewAssociationId(event.target.value)} className={`mt-1 ${LINE_SANS}`}>
+                    <option value="">Choose a shop</option>
+                    {availableAccounts.filter(item => canEditContributorAssociation(item.id, activeAccountId, platformRole) && !associations.some(association => association.account_id === item.id)).map(item => <option key={item.id} value={item.id}>{item.name}{item.account_kind === 'master' ? ' · Tea Master home' : ''}</option>)}
+                  </select>
+                </div>
+                <button type="button" onClick={addAssociation} disabled={!newAssociationId} className={ACTION}>Add</button>
+              </div>
+            </div>
+          </EditorSheet>
+
+          <EditorSheet id="behind" title="Behind the page" note="Nothing here is printed on the page." open={sheet === 'behind'} onClose={closeSheet}>
+            <div className="space-y-7">
+              {!isNew && <p className="font-sans text-ui-13 text-tea-text-sec">teajia.com/people/<span className="text-tea-text">{slug}</span></p>}
+              <Line label="Pronouns" id="f-pronouns" value={form.pronouns ?? ''} onChange={event => setField('pronouns', event.target.value)} placeholder="she/her, he/him, they/them" hint="Not printed. The page uses them when it speaks of this person." />
+              <div>
+                <label htmlFor="f-private-contact" className={LABEL}>Private contact</label>
+                <select id="f-private-contact" className={`mt-1 ${LINE_SANS}`} value={contactId} onFocus={loadCustomers} onChange={event => setContactId(event.target.value)}>
+                  <option value="">No linked contact</option>
+                  {contactId && !customers.some(customer => customer.id === contactId) && <option value={contactId}>{contributor?.contact_name || 'Linked contact'}</option>}
+                  {customers.map(customer => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
+                </select>
+              </div>
+              <Line label="Their sign-in" id="f-their-sign-in" value={form.user_id ?? ''} onChange={event => setField('user_id', event.target.value)} autoCapitalize="none" placeholder="The account that may edit this page" hint="They can then send changes for you to approve." />
+
+              <KeptFold count={10}>
+                <Line label="Business name" id="f-business-name" value={form.business_name ?? ''} onChange={event => setField('business_name', event.target.value)} placeholder="If they trade under another" />
+                <Line label="Active since" id="f-active-since" value={form.active_since ?? ''} onChange={event => setField('active_since', event.target.value)} placeholder="The year they began" inputMode="numeric" />
+                <Line label="Portrait caption" id="f-portrait-caption" value={form.portrait_caption ?? ''} onChange={event => setField('portrait_caption', event.target.value)} placeholder="Where and when it was taken" />
+                <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
+                  <Line label="Now stamp" id="f-now-stamp" value={form.now_stamp ?? ''} onChange={event => setField('now_stamp', event.target.value)} placeholder="A season or a month" />
+                  <Line label="Now updated" id="f-now-updated" type="datetime-local" value={form.now_updated_at?.slice(0, 16) ?? ''} onChange={event => setField('now_updated_at', event.target.value)} />
+                </div>
+                <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
+                  <Line label="Product ID" id="f-product-id" value={form.pouring_today_product_id ?? ''} onChange={event => setField('pouring_today_product_id', event.target.value)} autoCapitalize="none" hint="Pouring today" />
+                  <Line label="Pouring note" id="f-pouring-note" value={form.pouring_today_note ?? ''} onChange={event => setField('pouring_today_note', event.target.value)} />
+                </div>
+                <Prose label="Where to find" id="f-where-to-find" value={form.where_to_find_text ?? ''} onChange={event => setField('where_to_find_text', event.target.value)} minRows={2} placeholder="Their shop, their table, the days they pour." />
+                <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
+                  <Line label="Voice clip URL" id="f-voice-clip-url" type="url" value={form.voice_clip_url ?? ''} onChange={event => setField('voice_clip_url', event.target.value)} placeholder="https://" />
+                  <Line label="Voice clip caption" id="f-voice-clip-caption" value={form.voice_clip_caption ?? ''} onChange={event => setField('voice_clip_caption', event.target.value)} />
+                </div>
+              </KeptFold>
+
+              {!isNew && persistedContributor && (
+                <div className="border-t border-tea-border pt-6" data-testid="section-delete">
+                  {published && !pending && (
+                    <div className="mb-6">
+                      <button type="button" onClick={unpublish} disabled={saving} className={QUIET}>Unpublish</button>
+                      <p className="mt-1 font-sans text-ui-12 text-tea-text-dim">Takes the page down. It stays here as a draft.</p>
+                    </div>
+                  )}
+                  {persistedContributor.is_published === 1 ? (
+                    <p className="font-body text-ui-15 leading-relaxed text-tea-text-sec">Unpublish it first. A published page can only be taken down, not deleted.</p>
+                  ) : confirmingDelete ? (
+                    <div className="border-l-2 border-tea-error pl-4" role="alertdialog" aria-labelledby="delete-confirm-text">
+                      <p id="delete-confirm-text" className="max-w-[52ch] font-body text-ui-15 leading-relaxed text-tea-text">
+                        Delete {persistedContributor.display_name} for good? The page, its photos, links and drafts go with it, and it cannot be brought back.
+                      </p>
+                      <div className="mt-3 flex items-center justify-between gap-4">
+                        <button type="button" onClick={() => setConfirmingDelete(false)} disabled={saving} className="tap-target min-h-11 font-sans text-ui-14 text-tea-text-sec hover:text-tea-text">Keep it</button>
+                        <button type="button" onClick={deleteForGood} disabled={saving} className="tap-target inline-flex min-h-11 items-center border-b border-tea-error font-display text-ui-17 text-tea-error disabled:opacity-50">{saving ? 'Deleting…' : 'Delete for good'}</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => setConfirmingDelete(true)} className={`${QUIET} text-tea-error`}>Delete this profile</button>
+                  )}
+                </div>
+              )}
+            </div>
+          </EditorSheet>
         </div>
 
+        {error && <p role="alert" className="shrink-0 border-t border-tea-error/40 bg-tea-bg px-5 py-3 font-body text-ui-15 leading-relaxed text-tea-text sm:px-8">{error}</p>}
         <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-tea-border bg-tea-bg px-5 pt-2 pb-nav-gap sm:px-8 lg:pb-2">
           <button type="button" onClick={onClose} disabled={saving} className="tap-target min-h-11 px-2 font-sans text-ui-14 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Cancel</button>
           <div className="flex min-w-0 items-center justify-end gap-x-5">
             {uploading && <span className="hidden font-sans text-ui-12 text-tea-text-dim sm:inline" role="status">A photo is arriving</span>}
-            {!isNew && published && !pending && <button type="button" onClick={unpublish} disabled={saving} className={QUIET}>Unpublish</button>}
             {pending && <button type="button" onClick={() => setRequestingChanges(current => !current)} disabled={saving} className={QUIET}>Request changes</button>}
             {!pending && (isNew || !published) && <button type="button" onClick={() => persist(true)} disabled={saving || uploading} className={ACTION} aria-label="Publish contributor"><span className="sm:hidden">Publish</span><span className="hidden sm:inline">Publish contributor</span></button>}
             {pending && <button type="button" aria-label="Approve submitted changes" onClick={() => persist(true)} disabled={saving} className="tap-target min-h-11 rounded-md cta-solid px-5 font-sans text-ui-14 disabled:opacity-50">{saving ? 'Approving…' : <><span className="sm:hidden">Approve</span><span className="hidden sm:inline">Approve submitted changes</span></>}</button>}
