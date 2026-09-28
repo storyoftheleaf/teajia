@@ -53,6 +53,16 @@ const saveDraft = () => page.getByRole('button', { name: 'Save draft' });
 const textOf = async (locator: ReturnType<Page['locator']>) => (await locator.allTextContents()).join(' ');
 
 describe('QuickInvoiceModal linked sales behavior', () => {
+  it('holds a second create when the first invoice response is lost', async () => {
+    await open({ prefill: { customerName: 'Buyer', items: [{ name: 'Custom tea', quantity: 5, unit: 'g', price: 2 }] } });
+    await page.evaluate(() => (window as any).quickInvoiceTest.loseInvoiceResponse());
+    await saveDraft().click();
+    await page.getByText('The invoice may have saved. Check Orders for this customer before starting another invoice.').waitFor();
+    expect(await saveDraft().isDisabled()).toBe(true);
+    expect(await page.getByRole('button', { name: 'Save + Share' }).isDisabled()).toBe(true);
+    expect(await page.evaluate(() => (window as any).quickInvoiceTest.invoiceCalls().length)).toBe(1);
+  }, 15_000);
+
   it('fetches on open and renders only verified active tea suggestions with truthful Teaware copy', async () => {
     await open();
     await expect.poll(() => textOf(page.getByRole('status'))).toContain('Checking eligible sales inventory');

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Plus, Trash2, Search, FileDown, Loader2, RotateCcw, Phone, Mail, MessageCircle, AtSign, Send, Lock, Hash, MessagesSquare } from 'lucide-react';
 import Fuse from 'fuse.js';
-import { api, AUTH_TOKEN_CHANGED_EVENT, isTokenScopedToAccount } from '../../lib/api';
+import { api, ApiError, AUTH_TOKEN_CHANGED_EVENT, isTokenScopedToAccount } from '../../lib/api';
 import type { EligibleSalesProduct } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { isTeaType } from '../../wisdom/vocabulary';
@@ -162,6 +162,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [saving, setSaving] = useState(false);
   const [savedInvoice, setSavedInvoice] = useState<SavedInvoice | null>(null);
+  const [creationUnconfirmed, setCreationUnconfirmed] = useState(false);
   const savedInvoiceRef = useRef<SavedInvoice | null>(null);
   const [shareError, setShareError] = useState<string | null>(null);
   const [loadingRepeat, setLoadingRepeat] = useState(false);
@@ -222,6 +223,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
     if (!isOpen) return;
     savedInvoiceRef.current = null;
     setSavedInvoice(null);
+    setCreationUnconfirmed(false);
     setShareError(null);
     // Apply prefill if provided, otherwise reset to defaults
     if (prefill) {
@@ -429,7 +431,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
   });
 
   const handleSave = async (withPdf = false) => {
-    if (saving || savedInvoiceRef.current) return;
+    if (saving || savedInvoiceRef.current || creationUnconfirmed) return;
     if (!customerQuery.trim()) {
       showToast('Add a customer name', 'error');
       return;
@@ -450,7 +452,13 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
       const { invoice, lineItems: items } = buildPayload();
       created = await api.invoices.create(invoice, items);
     } catch (err: any) {
-      showToast(`Invoice creation failed: ${err.message}`, 'error');
+      const confirmedRefusal = err instanceof ApiError && err.status >= 400 && err.status < 500 && err.status !== 408 && err.status !== 429;
+      if (confirmedRefusal) {
+        showToast(`Invoice creation failed: ${err.message}`, 'error');
+      } else {
+        setCreationUnconfirmed(true);
+        showToast('Invoice save could not be confirmed. Check Orders for this customer before creating another invoice.', 'error');
+      }
       setSaving(false);
       return;
     }
@@ -948,17 +956,22 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
           </div>
 
           {/* Actions */}
+          {creationUnconfirmed && (
+            <p role="alert" className="mt-3 text-ui-14 text-tea-text-sec">
+              The invoice may have saved. Check Orders for this customer before starting another invoice.
+            </p>
+          )}
           <div className="flex items-center gap-4 mt-3">
             <button
               onClick={() => handleSave(false)}
-              disabled={saving}
+              disabled={saving || creationUnconfirmed}
               className="text-xs text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-40 shrink-0"
             >
               Save draft
             </button>
             <button
               onClick={() => handleSave(true)}
-              disabled={saving}
+              disabled={saving || creationUnconfirmed}
               className="flex-1 px-4 py-2.5 rounded-xl text-sm cta-solid active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {saving ? (
