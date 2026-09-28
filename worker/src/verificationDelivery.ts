@@ -8,6 +8,39 @@ export type VerificationDeliveryResult =
   | { delivered: true; providerMessageId: string }
   | { delivered: false; retryable: boolean; reason: 'provider_not_configured' | 'provider_unavailable' | 'provider_rejected' };
 
+type DeliveryFailure = Extract<VerificationDeliveryResult, { delivered: false }>;
+
+/**
+ * What the person asking for a code is told when it was not sent, in words.
+ *
+ * "We could not send the code" was true for all three reasons and useful for
+ * none: a shop with no email provider set up said the same thing as a provider
+ * having a bad minute, so the page offered "Try again" on a request that could
+ * never succeed. Not configured is the case that matters most, because it is
+ * permanent until someone sets the key, and it has to say so.
+ */
+export function deliveryFailureBody(failure: DeliveryFailure) {
+  if (failure.reason === 'provider_not_configured') {
+    return {
+      error: "Email codes are not switched on yet, so no code was sent.",
+      code: 'email_not_configured',
+      retryable: false,
+    };
+  }
+  if (failure.reason === 'provider_rejected') {
+    return {
+      error: 'The email service refused to send the code, so none was sent.',
+      code: 'email_rejected',
+      retryable: false,
+    };
+  }
+  return {
+    error: 'The email service did not answer, so no code was sent. Try again in a minute.',
+    code: 'email_unavailable',
+    retryable: failure.retryable,
+  };
+}
+
 export async function deliverVerificationCode(
   env: VerificationEmailEnv,
   input: { email: string; code: string; purpose: 'signin' | 'event' },

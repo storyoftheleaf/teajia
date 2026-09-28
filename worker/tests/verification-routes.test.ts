@@ -123,7 +123,7 @@ describe('purpose-aware verification routes', () => {
 
   it('persists no challenge when delivery fails and returns explicit retryability', async () => {
     const db = new VerificationDb(); vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 503 })));
-    expect(await api(db, 'request', { contact: 'member@example.com', purpose: 'signin' })).toEqual({ status: 503, body: { error: 'We could not send the code.', retryable: true } });
+    expect(await api(db, 'request', { contact: 'member@example.com', purpose: 'signin' })).toEqual({ status: 503, body: { error: 'The email service did not answer, so no code was sent. Try again in a minute.', code: 'email_unavailable', retryable: true } });
     expect(db.challenges).toEqual([]);
   });
 

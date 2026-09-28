@@ -57,10 +57,11 @@ const PIECE = {
  *  dead centre, so it stays centred at every plate shape. */
 const PIECE_PORTRAIT: PhotoVal = { url: '/home/porcelain-bowl.webp', crop: { scale: 1, x: 0.5, y: 0.5 } };
 
-/** The opener: the teapots laid out on the old wood, shot from above, upright.
- *  A site file under public/home, so it ships with the build and never waits
- *  on the API. */
-const TABLE_PHOTO = '/home/teapots-upright.webp';
+/** The opener: the teapots laid out on the old wood, shot from above, cropped
+ *  in to the pots and cups, with a sepia tint and film grain baked into the
+ *  file so it reads as old. A site file under public/home, so it ships with
+ *  the build and never waits on the API. */
+const TABLE_PHOTO = '/home/teapots-aged.webp';
 
 /** The consult plate: Adrian pouring at the table, from his own library. */
 const CONSULT_PHOTO = '/home/table.webp';
@@ -207,7 +208,7 @@ const HomeV2Page: React.FC = () => {
             alt="At the table"
             fill
             placeholderBg="var(--tea-surface)"
-            placeholder={<img src={TABLE_PHOTO} alt="" fetchPriority="high" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 50%' }} />}
+            placeholder={<img src={TABLE_PHOTO} alt="" fetchPriority="high" className="absolute inset-0 w-full h-full object-cover object-center lg:object-[50%_8%]" />}
           />
         </div>
       </section>

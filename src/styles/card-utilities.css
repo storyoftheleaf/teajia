@@ -4780,10 +4780,14 @@ body.cart-panel-open .commerce-dock {
   }
 }
 
+/* Name and origin sit together, centred on the save tile beside them.
+   space-between used to pin them to the tile's top and bottom edges,
+   which opened a 21px gap between two lines that belong to each other. */
 .tea-ledger-identity {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 2px;
   min-height: 52px;
 }
 

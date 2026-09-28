@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Icons } from '../components/Icons';
@@ -30,6 +30,24 @@ export default function SignInPage() {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotError, setForgotError] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
+  // One request per press. `loading` disables the button, but state lands a
+  // render late, so a second Enter or a password manager's own submit can slip
+  // in before it does. A ref is set the moment the first one starts.
+  const inFlight = useRef(false);
+
+  // What is in the boxes when the form is sent, not what React last heard.
+  // A password manager can fill an input without an event React listens for,
+  // so state keeps whatever was typed before and the request carries that:
+  // one refused sign-in, then a second that works once the state catches up.
+  // Reading the form itself makes the request match the screen.
+  const submitted = (e: React.FormEvent<HTMLFormElement>) => {
+    const form = new FormData(e.currentTarget);
+    const read = (name: string, fallback: string) => {
+      const value = form.get(name);
+      return typeof value === 'string' ? value : fallback;
+    };
+    return { identifier: read('identifier', identifier).trim(), password: read('password', password) };
+  };
 
   const handleForgotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,40 +63,64 @@ export default function SignInPage() {
     }
   };
 
-  const navigateAfterSignIn = () => navigate(safeReturnTo ?? state?.from ?? -1 as any);
+  // Back only when there is an in-app page to go back to. Opened straight
+  // from a link or a new tab, the sign-in page is the first entry, and going
+  // back left the person on this same form, signed in, looking locked out.
+  const navigateAfterSignIn = () => {
+    if (safeReturnTo ?? state?.from) return navigate(safeReturnTo ?? state!.from!);
+    const historyIndex = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+    return historyIndex > 0 ? navigate(-1) : navigate('/');
+  };
 
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (inFlight.current) return;
+    const entered = submitted(e);
+    setIdentifier(entered.identifier);
+    setPassword(entered.password);
+    inFlight.current = true;
     setError('');
     setLoading(true);
     try {
-      await auth.login(identifier.trim(), password);
+      await auth.login(entered.identifier, entered.password);
       navigateAfterSignIn();
     } catch (err: unknown) {
       setError((err as Error)?.message || 'Sign in failed. Please check your credentials.');
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
   };
 
-  const handleCodeRequest = async (e?: React.FormEvent) => {
+  const handleCodeRequest = async (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
+    if (inFlight.current) return;
+    const contact = e ? submitted(e).identifier : identifier.trim();
+    setIdentifier(contact);
+    inFlight.current = true;
     setError('');
     setRequestRetryable(false);
     setLoading(true);
     try {
-      await api.verify.requestCode(identifier.trim(), 'signin');
+      await api.verify.requestCode(contact, 'signin');
       setCodeSent(true);
     } catch (err: unknown) {
-      setError((err as Error)?.message || 'Could not send code. Try again.');
+      const message = (err as Error)?.message || 'Could not send code. Try again.';
+      // Not configured is permanent until the shop sets up email, so the
+      // page names the two ways in that do work instead of leaving a dead end.
+      const notConfigured = err instanceof ApiError && err.data?.code === 'email_not_configured';
+      setError(notConfigured ? `${message} Sign in with your password or Google instead.` : message);
       setRequestRetryable(!(err instanceof ApiError) || err.data?.retryable !== false);
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
   };
 
   const handleCodeConfirm = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (inFlight.current) return;
+    inFlight.current = true;
     setError('');
     setLoading(true);
     try {
@@ -88,6 +130,7 @@ export default function SignInPage() {
     } catch (err: unknown) {
       setError((err as Error)?.message || 'Incorrect code. Please try again.');
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
   };
@@ -128,15 +171,21 @@ export default function SignInPage() {
           </label>
           <input
             id="signin-identifier"
+            name="identifier"
             type={passwordMode ? 'text' : 'email'}
             value={identifier}
-            onChange={e => { setIdentifier(e.target.value); setError(''); }}
+            onChange={e => {
+              setIdentifier(e.target.value);
+              setError('');
+              // Correcting the address after a code went out starts over:
+              // that code belongs to the old address.
+              if (codeSent && !passwordMode) { setCodeSent(false); setCode(''); }
+            }}
             autoComplete={passwordMode ? 'username' : 'email'}
             className={inputClass}
             placeholder={passwordMode ? 'email or username' : 'you@example.com'}
             required
             autoFocus
-            readOnly={codeSent && !passwordMode}
           />
         </div>
 
@@ -146,6 +195,7 @@ export default function SignInPage() {
           <div className="relative">
             <input
               id="signin-password"
+              name="password"
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={e => setPassword(e.target.value)}
@@ -195,13 +245,26 @@ export default function SignInPage() {
               required
               autoFocus
             />
-            <button
-              type="button"
-              onClick={() => { setCodeSent(false); setCode(''); setError(''); }}
-              className="mt-2 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
-            >
-              Change email
-            </button>
+            <p className="mt-2 text-ui-13 text-tea-text-sec">
+              Sent to {identifier}. No email after a minute? Check spam, or send another.
+            </p>
+            <div className="mt-2 flex justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => { setCodeSent(false); setCode(''); setError(''); }}
+                className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
+              >
+                Change email
+              </button>
+              <button
+                type="button"
+                onClick={() => { setCode(''); void handleCodeRequest(); }}
+                disabled={loading}
+                className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-50"
+              >
+                Send a new code
+              </button>
+            </div>
           </div>
         )}
 

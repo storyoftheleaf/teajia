@@ -212,3 +212,30 @@ test('dialog traps focus, closes on Escape, and restores focus to its trigger', 
   await expect(dialog).toHaveCount(0);
   await expect(trigger).toBeFocused();
 });
+
+test('an unpublished profile can be deleted for good, after a second, explicit yes', async ({ page }) => {
+  await install(page, [{ ...fixture, id: 'placeholder-writer', display_name: 'Placeholder Writer', is_published: 0 }]);
+  const deletes: string[] = [];
+  page.on('request', request => { if (request.method() === 'DELETE') deletes.push(new URL(request.url()).pathname); });
+  await page.goto('/admin/contributors');
+  await page.getByRole('button', { name: 'Edit Placeholder Writer' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Edit contributor' });
+  await dialog.getByRole('button', { name: 'Delete this profile' }).click();
+  await expect(dialog.getByText(/Delete Placeholder Writer for good\?/)).toBeVisible();
+  // Keep it is the escape, on the left; nothing is sent.
+  await dialog.getByRole('button', { name: 'Keep it' }).click();
+  expect(deletes).toEqual([]);
+  await dialog.getByRole('button', { name: 'Delete this profile' }).click();
+  await dialog.getByRole('button', { name: 'Delete for good' }).click();
+  await expect(dialog).toHaveCount(0);
+  expect(deletes).toEqual(['/api/admin/contributors/placeholder-writer']);
+});
+
+test('a published profile offers no delete, only the instruction to unpublish first', async ({ page }) => {
+  await install(page);
+  await page.goto('/admin/contributors');
+  await page.getByRole('button', { name: 'Edit Publishing Fixture' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Edit contributor' });
+  await expect(dialog.getByText('Unpublish it first. A published page can only be taken down, not deleted.')).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Delete this profile' })).toHaveCount(0);
+});

@@ -986,7 +986,7 @@ const BoxedInput: React.FC<{ value: string; onChange: (v: string) => void; place
 );
 
 function FormsSection() {
-  const [name, setName] = useState('Adrian Stone');
+  const [name, setName] = useState('Mei Lin');
   const [email, setEmail] = useState('not-a-valid-email');
   const [query, setQuery] = useState('');
 
@@ -1368,7 +1368,7 @@ function IdentityCardSection() {
         <div className="bg-tea-surface border border-tea-border rounded-xl p-5 flex items-start gap-4">
           <div className="w-12 h-12 rounded-full bg-tea-elevated text-tea-text-sec font-display text-ui-15 flex items-center justify-center flex-shrink-0">AS</div>
           <div className="flex-1 min-w-0">
-            <h3 className="h3">Adrian Stone</h3>
+            <h3 className="h3">Mei Lin</h3>
             <p className="text-ui-13 text-tea-text-sec mt-0.5">adrian@teajia.com</p>
             <p className="text-ui-12 text-tea-text-dim mt-0.5">Member since March 2024</p>
             <div className="flex flex-wrap gap-1.5 mt-3">

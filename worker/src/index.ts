@@ -77,7 +77,7 @@ import {
   type ReservePartySeatsResult,
 } from './eventDomain';
 import { candidateToApi, impressionToApi, journalRowToNotes, parseCandidateInput } from './tastingNoteCuration';
-import { deliverVerificationCode } from './verificationDelivery';
+import { deliverVerificationCode, deliveryFailureBody } from './verificationDelivery';
 import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, type IncidentStatus } from './incidents';
 import {
   deleteWisdomVerification,
@@ -1781,7 +1781,12 @@ const handleLogin: Handler = async (request, env) => {
     if (error instanceof Error && error.message === 'Active platform account unavailable') {
       return json({ error: 'Platform account bootstrap failed', reason: 'platform_account_unavailable' }, 503);
     }
-    // Table may not exist yet — fall through to env-based auth
+    // A database that did not answer is not a wrong password. This used to
+    // fall through to the env-admin check and end in "Invalid credentials",
+    // so a correct password was refused on a bad moment and accepted on the
+    // next click, which reads as the site not trusting its own owner.
+    console.error('[auth] login lookup failed', error instanceof Error ? error.message : error);
+    return json({ error: 'Sign-in is unavailable for a moment. Try again shortly.', code: 'signin_unavailable' }, 503);
   }
 
   // Dev backdoor — only active when ENABLE_DEV_ADMIN=true
@@ -1848,7 +1853,12 @@ const handleLogin: Handler = async (request, env) => {
   }
 
   console.warn(`[auth] failed login: ip=${loginIp} identifier=${identifier}`);
-  return json({ error: 'Invalid credentials' }, 401);
+  // One sentence for both halves on purpose: saying which one was wrong tells
+  // a stranger which emails and usernames have accounts here.
+  return json({
+    error: 'That email or username and password do not match. Check both and try again.',
+    code: 'invalid_credentials',
+  }, 401);
 };
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9_.-]{3,32}$/;
@@ -8266,6 +8276,55 @@ const handleUpdateAdminContributor: Handler = async (request, env, params) => {
       gallery_images: await contributorGalleryImages(env, params.id),
     },
   });
+};
+
+// DELETE /api/admin/contributors/:id: remove a profile for good.
+//
+// Built 2026-09-28 for a placeholder writer (Chen Wei) that had outlived its
+// purpose. Deleting is permanent, so it refuses rather than guesses: a profile
+// can go only once it is unpublished and nothing else still points at it. Each
+// refusal names what is in the way, in words, so the next step is obvious.
+// What belongs only to the profile (its gallery, favourites, drafts, account
+// associations) goes with it, in one batch, and the deletion is logged.
+export async function contributorDeletionBlockers(db: D1Database, contributorId: string, row: Record<string, any>): Promise<string[]> {
+  const blockers: string[] = [];
+  if (row.is_published === 1) blockers.push('It is still published. Unpublish it first.');
+  if (row.user_id) blockers.push('It is linked to a member’s sign-in. Clear the linked user first.');
+  const count = async (sql: string, ...binds: unknown[]) =>
+    Number((await db.prepare(sql).bind(...binds).first<{ n: number }>())?.n ?? 0);
+  const articles = await count(
+    `SELECT COUNT(*) AS n FROM articles
+      WHERE author_id = ?1 OR pull_quote_subject = ?1
+         OR EXISTS (SELECT 1 FROM json_each(COALESCE(subject_ids, '[]')) WHERE value = ?1)`,
+    contributorId,
+  );
+  if (articles) blockers.push(`${articles === 1 ? 'An article names' : `${articles} articles name`} it as author or subject. Remove it from ${articles === 1 ? 'that article' : 'those articles'} first.`);
+  const hosting = row.face_of_account_id ? 1 : await count('SELECT COUNT(*) AS n FROM accounts WHERE host_contributor_id = ?', contributorId);
+  if (hosting) blockers.push('It is the host of a shop. Choose another host first.');
+  if (await count('SELECT COUNT(*) AS n FROM event_contributors WHERE contributor_id = ?', contributorId)) blockers.push('It is listed on an event. Remove it from the event first.');
+  if (await count('SELECT COUNT(*) AS n FROM payment_methods WHERE contributor_id = ?', contributorId)) blockers.push('It has payment details. Remove them first.');
+  if (await count(`SELECT COUNT(*) AS n FROM collection_publications WHERE target_type = 'person' AND target_id = ?`, contributorId)) blockers.push('A collection is published to it. Unpublish the collection first.');
+  if (await count('SELECT COUNT(*) AS n FROM contributor_user_link_conflicts WHERE kept_contributor_id = ?', contributorId)) blockers.push('Another profile’s sign-in record points at it.');
+  return blockers;
+}
+
+const handleDeleteAdminContributor: Handler = async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const row = await env.DB.prepare('SELECT * FROM contributors WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first<Record<string, any>>();
+  if (!row) return json({ error: 'Contributor not found' }, 404);
+  const blockers = await contributorDeletionBlockers(env.DB, params.id, row);
+  if (blockers.length) return json({ error: `This profile cannot be deleted yet. ${blockers.join(' ')}`, blockers }, 409);
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM contributor_gallery_images WHERE contributor_id = ?').bind(params.id),
+    env.DB.prepare('DELETE FROM profile_favorites WHERE contributor_id = ?').bind(params.id),
+    env.DB.prepare('DELETE FROM contributor_profile_drafts WHERE contributor_id = ?').bind(params.id),
+    env.DB.prepare('DELETE FROM contributor_user_link_conflicts WHERE contributor_id = ?').bind(params.id),
+    env.DB.prepare('DELETE FROM contributor_accounts WHERE contributor_id = ?').bind(params.id),
+    env.DB.prepare('DELETE FROM contributors WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId),
+    buildActivityLog(env, 'contributor_deleted', `Deleted the profile ${row.display_name} (${params.id})`, ctx.email, 'contributor', params.id, ctx.accountId),
+  ]);
+  return json({ deleted: params.id });
 };
 
 const setAdminContributorPublication = (published: boolean): Handler => async (request, env, params) => {
@@ -17422,7 +17481,12 @@ const handleVerifyRequest: Handler = async (request, env) => {
   const code = generateVerificationCode();
   const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString();
   const delivery = await deliverVerificationCode(env, { email: contact, code, purpose });
-  if (!delivery.delivered) return json({ error: 'We could not send the code.', retryable: delivery.retryable }, 503);
+  // DEV_RETURN_VERIFY_CODES carries on without delivery, exactly as signup
+  // does: the code is echoed below, so a local sandbox with no email provider
+  // can still walk the whole sign-in. Production never sets it.
+  if (!delivery.delivered && env.DEV_RETURN_VERIFY_CODES !== 'true') {
+    return json(deliveryFailureBody(delivery), 503);
+  }
 
   if (eventOwnerAccountId) {
     const customer = await env.DB.prepare(
@@ -17437,7 +17501,7 @@ const handleVerifyRequest: Handler = async (request, env) => {
   }
 
   const codeHash = await signVerificationCode(code, env.VERIFICATION_CODE_SECRET || env.JWT_SECRET);
-  const deliveredAt = new Date().toISOString();
+  const deliveredAt = delivery.delivered ? new Date().toISOString() : null;
   await env.DB.prepare(
     `INSERT INTO verification_challenges
      (id, contact_normalized, purpose, code_hash, expires_at, delivered_at)
@@ -28622,6 +28686,7 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/admin/contributors/:id', handleUpdateAdminContributor],
   ['POST', '/api/admin/contributors/:id/publish', setAdminContributorPublication(true)],
   ['POST', '/api/admin/contributors/:id/unpublish', setAdminContributorPublication(false)],
+  ['DELETE', '/api/admin/contributors/:id', handleDeleteAdminContributor],
   ['POST', '/api/admin/contributors/:id/request-changes', handleRequestContributorChanges],
   ['PUT', '/api/admin/contributors/:id/contact', handlePutAdminContributorContact],
   ['GET', '/api/admin/contributors/:id/accounts', handleGetContributorAccounts],

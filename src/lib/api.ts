@@ -4851,6 +4851,9 @@ export const api = {
     publishContributor: async (contributorId: string): Promise<{ contributor: AdminContributor }> => {
       return authedFetch(`${API_URL}/api/admin/contributors/${encodeURIComponent(contributorId)}/publish`, { method: 'POST' });
     },
+    deleteContributor: async (contributorId: string): Promise<{ deleted: string }> => {
+      return authedFetch(`${API_URL}/api/admin/contributors/${encodeURIComponent(contributorId)}`, { method: 'DELETE' });
+    },
     unpublishContributor: async (contributorId: string): Promise<{ contributor: AdminContributor }> => {
       return authedFetch(`${API_URL}/api/admin/contributors/${encodeURIComponent(contributorId)}/unpublish`, { method: 'POST' });
     },
