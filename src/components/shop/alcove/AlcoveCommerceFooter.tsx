@@ -2,9 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import type { InventoryItem } from '../../../types';
 import { Heart, Pencil, FlaskConical, Share } from 'lucide-react';
 import { fmtShopPrice, fmtShopPricePerGram } from '../../../utils/formatNumber';
-import { offeredSizes, quoteGrams, sellUnitOf, wholePieceOf } from '../../../lib/teaPricing';
+import { quoteGrams, sellUnitOf, wholePieceOf } from '../../../lib/teaPricing';
 import { useAppStore } from '../../../lib/store';
-import { TeaAmountChoices, type SegCell } from './TeaAmountChoices';
+import { AmountCellList, buildTeaAmountCells, TeaAmountList, type TeaAmountCell } from './TeaAmountList';
 
 interface StockStatus {
   label: string;
@@ -144,17 +144,6 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   variant = 'pinned',
 }) => {
   const isTea = item.category === 'tea';
-  /* "One box", "two boxes". Sealed tea is counted, not weighed, so the strip
-     says how many of the thing rather than how many grams, and the gram figure
-     moves to the caption where it belongs. */
-  const pluralUnit = (label: string) => {
-    const word = label.toLowerCase();
-    return /(s|x|z|ch|sh)$/.test(word) ? `${word}es` : `${word}s`;
-  };
-  const unitLabel = (count: number, label: string) => {
-    const spelled = ['', 'One', 'Two', 'Three', 'Four'][count] || String(count);
-    return `${spelled} ${count === 1 ? label.toLowerCase() : pluralUnit(label)}`;
-  };
   const isRail = variant === 'rail';
   const isDocked = variant === 'docked';
   /* A whole cake / brick / tuo earns a cell of its own, but only when the tea
@@ -191,96 +180,30 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
     setCustomMode(false);
   };
 
-  // Every figure a reader sees comes through here, so the ladder and the
-  // add-to-order total can never drift apart. An admin override formats
-  // against its own rate table and keeps that job.
-  const priceFor = (g: number) =>
-    formatPrice
-      ? formatPrice(pricePerGram, g)
-      : fmtShopPrice(quoteGrams(pricePerGram, g, { wholePieceGrams: wholePiece?.grams }).totalUsd);
-
-  /* The same figure, without the currency's name on the front. Same curve,
-     same call: this is priceFor with the label stripped, not a second way of
-     working out what a weight costs. */
-  const plainPriceFor = (g: number) =>
-    formatPlainTotal
-      ? formatPlainTotal(quoteGrams(pricePerGram, g, { wholePieceGrams: wholePiece?.grams }).totalUsd)
-      : priceFor(g);
-
-  // Which sizes this tea shows, and what each costs, both from one place.
-  const sizeQuotes = isTea
-    ? offeredSizes(pricePerGram, sliderMax, { wholePieceGrams: wholePiece?.grams, unitGrams: sellUnit?.grams })
-    : [];
-  const stripGrams = sizeQuotes.map(q => q.grams);
-  const customActive = customMode || (isTea && !stripGrams.includes(grams));
-
-  /* What each amount is FOR, in the words the design file uses. A price list
-     that says only "25 g" makes the reader do the arithmetic of their own
-     week; this says how long it lasts, which is the actual question. Keyed by
-     the standard sizes, so a tea with an unusual size simply shows no caption
-     rather than a wrong one. */
-  const SIZE_CAPTION: Record<number, string> = {
-    10: 'a few sittings',
-    25: 'enough to know it',
-    50: 'a fortnight of it',
-    100: 'a month',
-    200: 'a season',
-  };
-
-  const teaCells: SegCell[] = [
-    ...sizeQuotes.map(q => {
-      /* The piece's OWN cell, not merely an amount that carries no handling.
-         Two cakes are whole too now, and they are not "the cake": they would
-         take its key and its name, and React would be handed the same key
-         twice down one strip. */
-      const isWhole = wholePiece != null && q.grams === wholePiece.grams;
-      // How many sealed units this rung is, for the teas that come that way.
-      const units = sellUnit ? Math.round(q.grams / sellUnit.grams) : 0;
-      return {
-        key: isWhole ? 'whole-piece' : String(q.grams),
-        label: sellUnit
-          ? unitLabel(units, sellUnit.label)
-          : isWhole ? `The ${wholePiece!.label.toLowerCase()}` : `${q.grams}g`,
-        sub: plainPriceFor(q.grams),
-        subFull: priceFor(q.grams),
-        caption: sellUnit
-          ? `${q.grams}g, sealed${units === 1 ? ', the smallest amount there is' : ''}`
-          : isWhole
-            ? `${q.grams}g, unbroken, keeps ageing`
-            : SIZE_CAPTION[q.grams],
-        perGram: formatPerGram ? formatPerGram(q.perGramUsd) : undefined,
-        rate: formatRate ? formatRate(q.perGramUsd) : undefined,
-        chooseGrams: q.grams,
-        active: !customActive && grams === q.grams,
-        ariaLabel: isWhole
-          ? `One whole ${wholePiece!.label.toLowerCase()}, ${q.grams} grams`
-          : undefined,
-        onSelect: () => selectWeight(q.grams),
-      };
-    }),
-    {
-      key: 'custom',
-      label: customActive ? `${grams}g` : 'Other amount',
-      sub: customActive ? plainPriceFor(grams) : '',
-      subFull: customActive ? priceFor(grams) : '',
-      caption: sellUnit
-        ? `more than four, in whole ${pluralUnit(sellUnit.label)}`
-        : 'any weight, priced on the same curve',
-      active: customActive,
-      ariaLabel: sellUnit ? 'A larger number of units' : 'Custom amount, including sample sizes',
-      onSelect: () => setCustomMode(true),
+  const teaAmountProps = {
+    item, pricePerGram, maxGrams: sliderMax, selectedGrams: grams, customMode,
+    formatPrice, formatPerGram, formatRate, formatPlainTotal,
+    onChoose: (amount: number) => {
+      if (onChooseAmount) onChooseAmount(amount);
+      else selectWeight(amount);
+      setAmountsOpen(false);
     },
-  ];
+    onCustom: () => {
+      setCustomMode(true);
+      setAmountsOpen(false);
+    },
+  };
+  const teaCells = isTea ? buildTeaAmountCells(teaAmountProps) : [];
 
   // Teaware / non-tea presets are whole units ("pieces"), not grams. Same
   // segmented visual grammar, with the price as each cell's sub-line.
-  const teawareCells: SegCell[] = presets.map(p => ({
+  const teawareCells: TeaAmountCell[] = presets.map(p => ({
     key: String(p),
     label: p === 1 ? '1 piece' : `${p} pieces`,
     sub: formatPlainTotal ? formatPlainTotal(pricePerGram * p) : formatPrice ? formatPrice(pricePerGram, p) : fmtShopPrice(pricePerGram * p),
     subFull: formatPrice ? formatPrice(pricePerGram, p) : fmtShopPrice(pricePerGram * p),
     active: grams === p,
-    onSelect: () => setGrams(p),
+    onSelect: () => { setGrams(p); setAmountsOpen(false); },
   }));
 
   const cells = isTea ? teaCells : teawareCells;
@@ -421,24 +344,22 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
           {isRail || (isDocked && onChooseAmount) ? null : amountToggle}
 
           {amountsShown && (
-            <TeaAmountChoices
-              id={amountsId}
-              cells={cells}
-              variant={variant}
-              wholePieceLabel={wholePiece?.label}
-              inOrderGrams={inOrderGrams}
-              inOrderLabel={inOrderLabel}
-              showCurrency={Boolean(formatPlainTotal)}
-              onSelect={cell => {
-                if (navigator.vibrate) navigator.vibrate(8);
-                if (onChooseAmount && cell.chooseGrams != null) {
-                  onChooseAmount(cell.chooseGrams);
-                } else {
-                  cell.onSelect();
-                }
-                setAmountsOpen(false);
-              }}
-            />
+            isTea ? (
+              <TeaAmountList
+                {...teaAmountProps}
+                variant={variant}
+                id={amountsId}
+                inOrderLabel={inOrderGrams > 0 ? inOrderLabel : undefined}
+              />
+            ) : (
+              <AmountCellList
+                cells={teawareCells}
+                variant={variant}
+                id={amountsId}
+                showCurrency={!!formatPlainTotal}
+                inOrderLabel={inOrderGrams > 0 ? inOrderLabel : undefined}
+              />
+            )
           )}
         </div>
       )}

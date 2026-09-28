@@ -67,15 +67,9 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
     }
   }, [isOpen]);
 
-  // Cmd/Ctrl+K to open, Escape to close
+  // App owns the search shortcut. This dialog only handles Escape.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        if (isOpen) {
-          onClose();
-        }
-      }
       if (e.key === 'Escape' && isOpen) {
         e.preventDefault();
         onClose();

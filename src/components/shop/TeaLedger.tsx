@@ -22,6 +22,7 @@ interface TeaLedgerProps {
   favoriteIds: ReadonlySet<string>;
   onToggleFavorite: (itemId: string, event: MouseEvent) => void;
   onOpenProduct: (item: InventoryItem) => void;
+  onChooseAmount?: (item: InventoryItem) => void;
   isAdmin?: boolean;
   onAdminEdit?: (itemId: string) => void;
 }
@@ -87,6 +88,7 @@ export function TeaLedger({
   favoriteIds,
   onToggleFavorite,
   onOpenProduct,
+  onChooseAmount,
   isAdmin = false,
   onAdminEdit,
 }: TeaLedgerProps) {
@@ -143,6 +145,8 @@ export function TeaLedger({
               const origin = splitOrigin(item.origin || '');
               const lead = curatorLine(item);
               const tastingCount = tastingCounts.get(item.id) || 0;
+              const canQuickAdd = Boolean(onChooseAmount && purchase);
+              const PriceControl = canQuickAdd ? 'button' : 'div';
 
               return (
                 <div
@@ -258,7 +262,17 @@ export function TeaLedger({
                           the row the part that never changes. Stacked, the
                           column is about 20px narrower and the figures line up
                           as figures. */}
-                      <div className="min-w-[52px] whitespace-nowrap text-right">
+                      <PriceControl
+                        type={canQuickAdd ? 'button' : undefined}
+                        onClick={canQuickAdd ? event => {
+                          event.stopPropagation();
+                          onChooseAmount!(item);
+                        } : undefined}
+                        aria-label={canQuickAdd ? `Choose amount for ${item.name}` : undefined}
+                        title={canQuickAdd ? 'Choose amount' : undefined}
+                        aria-haspopup={canQuickAdd ? 'dialog' : undefined}
+                        className={`min-w-[52px] whitespace-nowrap text-right ${canQuickAdd ? 'tap-target flex-col items-end justify-center rounded hover:bg-tea-accent-sub focus-visible:outline focus-visible:outline-tea-gold' : ''}`}
+                      >
                         <div data-testid="grid-price" className="num w-full border-b border-tea-border pb-[3px] text-ui-16 font-medium tabular-nums text-tea-text">
                           {purchase ? formatPrice(purchase.totalUsd) : '\u2014'}
                         </div>
@@ -270,7 +284,7 @@ export function TeaLedger({
                             {stockNote}
                           </div>
                         )}
-                      </div>
+                      </PriceControl>
                     </div>
                   </div>
                 </div>

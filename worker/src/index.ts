@@ -121,10 +121,14 @@ import {
   inquiryRequestFingerprint, isValidTrackingToken, NEWSLETTER_MAX_EMAIL, NEWSLETTER_MAX_REQUEST_BYTES,
   normalizeCartInquiry, redactPublicInquiry, sha256Hex,
 } from './inquiryDomain';
+import { hasTeaAtlasTick, serveAtlas, withTeaAtlasTick } from './atlas';
 
 interface Env {
   DB: D1Database;
   MEDIA_BUCKET: R2Bucket;
+  // Tea Atlas (docs/TEA_ATLAS.md): the private library bucket. No public
+  // address; the only way in is serveAtlas, behind canReadTeaAtlas.
+  ATLAS_BUCKET?: R2Bucket;
   IMAGES?: ImagesBinding;
   AI?: {
     toMarkdown(input: { name: string; blob: Blob }): Promise<
@@ -19286,14 +19290,16 @@ const handleGetAccountAccess: Handler = async (request, env, params) => {
   if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
 
   const account = await env.DB.prepare(
-    'SELECT kind FROM accounts WHERE id = ?'
-  ).bind(params.id).first() as { kind: string } | null;
+    'SELECT kind, is_platform_owner FROM accounts WHERE id = ?'
+  ).bind(params.id).first() as { kind: string; is_platform_owner: number | null } | null;
   if (!account) return json({ error: 'Account not found' }, 404);
   const accountKind = (account.kind || 'location') as 'platform' | 'location' | 'master';
+  // The Tea Atlas tick is offered only on the platform account (docs/TEA_ATLAS.md).
+  const offersTeaAtlas = Number(account.is_platform_owner) === 1;
 
   const { results } = await env.DB.prepare(
     `SELECT am.user_id, am.role, am.permissions, am.status, am.joined_at, am.invited_at,
-            u.email, u.name, u.username
+            u.email, u.name, u.username, u.platform_role
      FROM account_members am
      LEFT JOIN users u ON u.id = am.user_id
      WHERE am.account_id = ?`
@@ -19312,6 +19318,10 @@ const handleGetAccountAccess: Handler = async (request, env, params) => {
       status: (row.status as string) || 'active',
       joined_at: (row.joined_at as string) || null,
       invited_at: (row.invited_at as string) || null,
+      ...(offersTeaAtlas ? {
+        tea_atlas: row.platform_role === 'platform_owner' || hasTeaAtlasTick(row.permissions as string | null),
+        tea_atlas_always: row.platform_role === 'platform_owner',
+      } : {}),
     }))
     .sort((a, b) => {
       const rDiff = rolePriority(a.role) - rolePriority(b.role);
@@ -19371,6 +19381,47 @@ const handleUpdateMemberBundles: Handler = async (request, env, params) => {
   }, params.id);
 
   return json({ success: true, bundles: newBundles });
+};
+
+// PUT /api/accounts/:id/members/:userId/tea-atlas — tick or untick Tea Atlas
+// for one person (docs/TEA_ATLAS.md). Members bundle, platform account only;
+// on any other account the capability does not exist, so the route is a 404.
+const handleUpdateMemberTeaAtlas: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'members');
+  if ('error' in ctx) return ctx.error;
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
+
+  const account = await env.DB.prepare('SELECT is_platform_owner FROM accounts WHERE id = ?')
+    .bind(params.id).first() as { is_platform_owner: number | null } | null;
+  if (!account || Number(account.is_platform_owner) !== 1) return json({ error: 'Not found' }, 404);
+
+  const body = await request.json().catch(() => null) as { granted?: unknown } | null;
+  if (typeof body?.granted !== 'boolean') return json({ error: 'granted must be true or false' }, 400);
+
+  const member = await env.DB.prepare(
+    `SELECT am.status, am.permissions, u.platform_role
+     FROM account_members am LEFT JOIN users u ON u.id = am.user_id
+     WHERE am.account_id = ? AND am.user_id = ?`
+  ).bind(params.id, params.userId).first() as { status: string; permissions: string | null; platform_role: string | null } | null;
+  if (!member || member.status !== 'active') return json({ error: 'Member not found or not active in this account' }, 404);
+  if (member.platform_role === 'platform_owner') {
+    return json({ error: 'The site owner always has Tea Atlas.' }, 400);
+  }
+
+  const before = hasTeaAtlasTick(member.permissions);
+  await env.DB.prepare('UPDATE account_members SET permissions = ? WHERE account_id = ? AND user_id = ?')
+    .bind(withTeaAtlasTick(member.permissions, body.granted), params.id, params.userId).run();
+
+  await logPlatformAction(env, 'member.tea_atlas_updated', ctx.userId, ctx.email, 'member', `${params.id}:${params.userId}`, {
+    action_type: 'TEA_ATLAS_ACCESS_CHANGED',
+    actor_user_id: ctx.userId,
+    target_user_id: params.userId,
+    account_id: params.id,
+    old_tea_atlas: before,
+    new_tea_atlas: body.granted,
+  }, params.id);
+
+  return json({ success: true, tea_atlas: body.granted });
 };
 
 // GET /api/accounts/:id/activity — per-account audit log.
@@ -20444,6 +20495,9 @@ const handleUpdateMemberPermissions: Handler = async (request, env, params) => {
   for (const [feature, enabled] of Object.entries(body)) {
     if (enabledFeatures.has(feature)) sanitised[feature] = Boolean(enabled);
   }
+  // This route rewrites the whole object; the Tea Atlas tick is not a feature
+  // it owns, so it is carried across rather than silently dropped.
+  if (hasTeaAtlasTick(prior?.permissions)) sanitised.tea_atlas = true;
 
   await env.DB.batch([
     env.DB.prepare('UPDATE account_members SET permissions = ? WHERE account_id = ? AND user_id = ?')
@@ -27932,6 +27986,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/accounts/:id/access', handleGetAccountAccess],
   ['GET', '/api/accounts/:id/activity', handleGetAccountActivity],
   ['PUT', '/api/accounts/:id/members/:userId/bundles', handleUpdateMemberBundles],
+  ['PUT', '/api/accounts/:id/members/:userId/tea-atlas', handleUpdateMemberTeaAtlas],
 
   // Platform admin
   ['GET',  '/api/platform/users', handlePlatformListUsers],
@@ -28839,6 +28894,20 @@ export default {
     }
     if (url.pathname === '/oauth/token') {
       return cors(await oauthToken(request, env), corsOrigin);
+    }
+
+    // Tea Atlas, the private library. Keys contain slashes, so it is handled
+    // here rather than through the route table. Anyone who may not read it,
+    // signed out or not, gets exactly the response an unknown route gets.
+    if (url.pathname.startsWith('/api/atlas/')) {
+      try {
+        const reader = await optionalAuthenticatedUser(request, env);
+        const served = await serveAtlas(request, env, url.pathname.slice('/api/atlas/'.length), reader?.userId ?? null);
+        return cors(served ?? json({ error: 'Not found' }, 404), corsOrigin);
+      } catch (err) {
+        console.error('Tea Atlas error:', err);
+        return cors(json({ error: 'Not found' }, 404), corsOrigin);
+      }
     }
 
     const match = matchRoute(request.method, url.pathname, routes);

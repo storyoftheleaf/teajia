@@ -45,8 +45,16 @@ export const CommandPalette = ({ onAddProduct, externalOpen, onOpenChange }: { o
   // Toggle the menu when ⌘K is pressed
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+      if (e.key === 'Escape' && open && !document.querySelector('[role="dialog"][aria-label="Search"]')) {
         e.preventDefault();
+        e.stopPropagation();
+        handleClose();
+        return;
+      }
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        if (document.querySelector('[role="dialog"][aria-label="Search"]')) return;
+        e.preventDefault();
+        e.stopPropagation();
         setOpen((prev) => {
           const next = !prev;
           if (!next) {
@@ -60,7 +68,7 @@ export const CommandPalette = ({ onAddProduct, externalOpen, onOpenChange }: { o
 
     document.addEventListener('keydown', down);
     return () => document.removeEventListener('keydown', down);
-  }, [onOpenChange]);
+  }, [onOpenChange, open]);
 
   const runCommand = (command: () => void) => {
     handleClose();

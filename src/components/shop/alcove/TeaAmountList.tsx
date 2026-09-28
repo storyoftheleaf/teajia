@@ -1,6 +1,27 @@
+import React from 'react';
+import type { InventoryItem } from '../../../types';
+import { fmtShopPrice } from '../../../utils/formatNumber';
+import { offeredSizes, quoteGrams, sellUnitOf, wholePieceOf } from '../../../lib/teaPricing';
 import { ShopCurrencyPicker } from '../ShopCurrencyPicker';
 
-export interface SegCell {
+export interface TeaAmountListProps {
+  item: InventoryItem;
+  pricePerGram: number;
+  maxGrams: number;
+  selectedGrams?: number;
+  customMode?: boolean;
+  formatPrice?: (pricePerGram: number, grams: number) => string;
+  formatPerGram?: (usdPerGram: number) => string;
+  formatRate?: (usdPerGram: number) => { value: string; unit: string };
+  formatPlainTotal?: (usd: number) => string;
+  inOrderLabel?: string;
+  onChoose: (grams: number) => void;
+  onCustom: () => void;
+  variant?: 'rail' | 'docked' | 'pinned' | 'picker';
+  id?: string;
+}
+
+export interface TeaAmountCell {
   key: string;
   label: string;
   /** The line total, bare, for the list that names its currency in its heading. */
@@ -26,31 +47,117 @@ export interface SegCell {
   onSelect: () => void;
 }
 
-interface TeaAmountChoicesProps {
-  id: string;
-  cells: SegCell[];
-  variant: 'pinned' | 'rail' | 'docked';
-  wholePieceLabel?: string;
-  inOrderGrams: number;
-  inOrderLabel: string;
-  showCurrency: boolean;
-  onSelect: (cell: SegCell) => void;
+/** Shared amount labels and quotes, also read by the product page's closed bar. */
+export function buildTeaAmountCells({
+  item, pricePerGram, maxGrams, selectedGrams: grams, customMode = false,
+  formatPrice, formatPerGram, formatRate, formatPlainTotal, onChoose, onCustom,
+}: TeaAmountListProps): TeaAmountCell[] {
+  /* "One box", "two boxes". Sealed tea is counted, not weighed, so the strip
+     says how many of the thing rather than how many grams, and the gram figure
+     moves to the caption where it belongs. */
+  const pluralUnit = (label: string) => {
+    const word = label.toLowerCase();
+    return /(s|x|z|ch|sh)$/.test(word) ? `${word}es` : `${word}s`;
+  };
+  const unitLabel = (count: number, label: string) => {
+    const spelled = ['', 'One', 'Two', 'Three', 'Four'][count] || String(count);
+    return `${spelled} ${count === 1 ? label.toLowerCase() : pluralUnit(label)}`;
+  };
+  const sellUnit = sellUnitOf(item.form, item.pieceWeightG, item.soldInWholeUnits);
+  const wholePiece = sellUnit ?? wholePieceOf(item.form, item.pieceWeightG);
+  // Every figure a reader sees comes through here, so the ladder and the
+  // add-to-order total can never drift apart. An admin override formats
+  // against its own rate table and keeps that job.
+  const priceFor = (g: number) =>
+    formatPrice
+      ? formatPrice(pricePerGram, g)
+      : fmtShopPrice(quoteGrams(pricePerGram, g, { wholePieceGrams: wholePiece?.grams }).totalUsd);
+
+  /* The same figure, without the currency's name on the front. Same curve,
+     same call: this is priceFor with the label stripped, not a second way of
+     working out what a weight costs. */
+  const plainPriceFor = (g: number) =>
+    formatPlainTotal
+      ? formatPlainTotal(quoteGrams(pricePerGram, g, { wholePieceGrams: wholePiece?.grams }).totalUsd)
+      : priceFor(g);
+
+  // Which sizes this tea shows, and what each costs, both from one place.
+  const sizeQuotes = offeredSizes(pricePerGram, maxGrams, { wholePieceGrams: wholePiece?.grams, unitGrams: sellUnit?.grams });
+  const stripGrams = sizeQuotes.map(q => q.grams);
+  const customActive = grams != null && (customMode || !stripGrams.includes(grams));
+
+  /* What each amount is FOR, in the words the design file uses. A price list
+     that says only "25 g" makes the reader do the arithmetic of their own
+     week; this says how long it lasts, which is the actual question. Keyed by
+     the standard sizes, so a tea with an unusual size simply shows no caption
+     rather than a wrong one. */
+  const SIZE_CAPTION: Record<number, string> = {
+    10: 'a few sittings',
+    25: 'enough to know it',
+    50: 'a fortnight of it',
+    100: 'a month',
+    200: 'a season',
+  };
+
+  return [
+    ...sizeQuotes.map(q => {
+      /* The piece's OWN cell, not merely an amount that carries no handling.
+         Two cakes are whole too now, and they are not "the cake": they would
+         take its key and its name, and React would be handed the same key
+         twice down one strip. */
+      const isWhole = wholePiece != null && q.grams === wholePiece.grams;
+      // How many sealed units this rung is, for the teas that come that way.
+      const units = sellUnit ? Math.round(q.grams / sellUnit.grams) : 0;
+      return {
+        key: isWhole ? 'whole-piece' : String(q.grams),
+        label: sellUnit
+          ? unitLabel(units, sellUnit.label)
+          : isWhole ? `The ${wholePiece!.label.toLowerCase()}` : `${q.grams}g`,
+        sub: plainPriceFor(q.grams),
+        subFull: priceFor(q.grams),
+        caption: sellUnit
+          ? `${q.grams}g, sealed${units === 1 ? ', the smallest amount there is' : ''}`
+          : isWhole
+            ? `${q.grams}g, unbroken, keeps ageing`
+            : SIZE_CAPTION[q.grams],
+        perGram: formatPerGram ? formatPerGram(q.perGramUsd) : undefined,
+        rate: formatRate ? formatRate(q.perGramUsd) : undefined,
+        chooseGrams: q.grams,
+        active: !customActive && grams === q.grams,
+        ariaLabel: isWhole
+          ? `One whole ${wholePiece!.label.toLowerCase()}, ${q.grams} grams`
+          : undefined,
+        onSelect: () => onChoose(q.grams),
+      };
+    }),
+    {
+      key: 'custom',
+      label: customActive ? `${grams}g` : 'Other amount',
+      sub: customActive ? plainPriceFor(grams!) : '',
+      subFull: customActive ? priceFor(grams!) : '',
+      caption: sellUnit
+        ? `more than four, in whole ${pluralUnit(sellUnit.label)}`
+        : 'any weight, priced on the same curve',
+      active: customActive,
+      ariaLabel: sellUnit ? 'A larger number of units' : 'Custom amount, including sample sizes',
+      onSelect: onCustom,
+    },
+  ];
 }
 
-/** The amount list shared by the product description and the shop ledger. */
-export function TeaAmountChoices({
-  id,
-  cells,
-  variant,
-  wholePieceLabel,
-  inOrderGrams,
-  inOrderLabel,
-  showCurrency,
-  onSelect,
-}: TeaAmountChoicesProps) {
+/** The existing list layout also renders the footer's counted teaware cells. */
+export function AmountCellList({
+  cells, wholePiece, variant = 'pinned', id, showCurrency, inOrderLabel,
+}: {
+  cells: TeaAmountCell[];
+  wholePiece?: { label: string };
+  variant?: TeaAmountListProps['variant'];
+  id?: string;
+  showCurrency?: boolean;
+  inOrderLabel?: string;
+}) {
   const isRail = variant === 'rail';
   const isDocked = variant === 'docked';
-
   return (
     <div
       id={id}
@@ -62,7 +169,7 @@ export function TeaAmountChoices({
          off by the screen. The bottom stays square because the bar is
          immediately under it. */
       className={
-        isRail
+        isRail || variant === 'picker'
           ? 'overflow-hidden rounded-t-[12px] border border-tea-border'
           : isDocked
             ? 'border-b border-tea-border px-3.5 pb-1 pt-1'
@@ -88,8 +195,8 @@ export function TeaAmountChoices({
             the bottom is rather than promising a discount that no
             longer arrives. */}
         <span className="min-w-0 font-sans text-ui-10 leading-[1.35] tracking-[0.02em] text-tea-text-dim">
-          {wholePieceLabel
-            ? `Quantity provides a lower price, down to one ${wholePieceLabel.toLowerCase()}.`
+          {wholePiece
+            ? `Quantity provides a lower price, down to one ${wholePiece.label.toLowerCase()}.`
             : 'Quantity provides a lower price.'}
         </span>
         {showCurrency && <ShopCurrencyPicker />}
@@ -98,7 +205,7 @@ export function TeaAmountChoices({
           the weight onto the line already there rather than starting a
           second one, so this is a running total and the reader can
           watch it move when they press Add. */}
-      {inOrderGrams > 0 && (
+      {inOrderLabel && (
         <p className="m-0 px-3.5 pb-2 font-sans text-ui-10 tracking-[0.02em] text-tea-gold-lt">
           {inOrderLabel} of this already in your order
         </p>
@@ -110,7 +217,10 @@ export function TeaAmountChoices({
           data-active={cell.active}
           aria-pressed={cell.active}
           aria-label={cell.ariaLabel}
-          onClick={() => onSelect(cell)}
+          onClick={() => {
+            if (navigator.vibrate) navigator.vibrate(8);
+            cell.onSelect();
+          }}
           className={`tap-target flex w-full items-baseline border-t border-tea-border text-left transition-colors ${
             isRail ? 'min-h-[40px] gap-2 px-3.5' : 'min-h-[44px] gap-3 px-3.5'
           } ${cell.active ? 'bg-tea-gold/8 shadow-[inset_0_0_0_1px_rgb(var(--tea-gold-rgb)/0.5)]' : 'hover:bg-tea-gold/6'}`}
@@ -172,4 +282,18 @@ export function TeaAmountChoices({
       ))}
     </div>
   );
+}
+
+export function TeaAmountList(props: TeaAmountListProps) {
+  const { item } = props;
+  const wholePiece = sellUnitOf(item.form, item.pieceWeightG, item.soldInWholeUnits)
+    ?? wholePieceOf(item.form, item.pieceWeightG);
+  return <AmountCellList
+    cells={buildTeaAmountCells(props)}
+    wholePiece={wholePiece}
+    variant={props.variant}
+    id={props.id}
+    showCurrency={!!props.formatPlainTotal}
+    inOrderLabel={props.inOrderLabel}
+  />;
 }

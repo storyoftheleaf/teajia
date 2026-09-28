@@ -365,7 +365,7 @@ export const EventDetail: React.FC = () => {
   const { data: tastingNotes = [] } = useTastingNotes(id!);
 
   useEffect(() => {
-    if (event && briefingCards === null) {
+    if (event) {
       setBriefingCards(event.briefingCards ?? []);
     }
   }, [event?.id]);
@@ -483,7 +483,7 @@ export const EventDetail: React.FC = () => {
   const overflowActive = OVERFLOW_TABS.some(t => t.key === activeTab);
 
   return (
-    <div className="p-6 max-w-3xl mx-auto overflow-x-hidden">
+    <div className="p-6 pb-nav-gap max-w-3xl mx-auto overflow-x-hidden">
       {/* Back button */}
       <button
         onClick={() => navigate('/admin/events')}
@@ -787,7 +787,7 @@ export const EventDetail: React.FC = () => {
                   type="button"
                   onClick={handleSaveBriefing}
                   disabled={savingBriefing}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="tap-target inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {savingBriefing ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
                   Save Briefing Cards
