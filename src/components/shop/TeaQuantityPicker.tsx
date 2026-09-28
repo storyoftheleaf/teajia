@@ -45,7 +45,9 @@ export function TeaQuantityPicker({ item, onAddToCart, onClose }: TeaQuantityPic
 
   return (
     <>
-      <Modal isOpen={!customMode} onClose={onClose} title={item.name} initialFocus="container">
+      {/* The page ground, not the lifted surface: this opens over the dark shop
+          list and reads as part of it rather than a lighter card laid on top. */}
+      <Modal isOpen={!customMode} onClose={onClose} title={item.name} initialFocus="container" className="!bg-tea-bg">
         <div className="px-4 pb-nav-gap">
           <p className={`${T.body} py-3 text-tea-text-sec`}>Choose an amount to add to your cart.</p>
           {available ? (

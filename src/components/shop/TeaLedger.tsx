@@ -3,9 +3,9 @@ import { Leaf } from 'lucide-react';
 import { TeaSaveTile } from './TeaSaveTile';
 import { getTeaLedgerTones } from '../../designTokens';
 import { teaPurchaseQuote } from '../../lib/shopPurchase';
+import { TeaWeighControl } from './TeaWeighControl';
 import { useTheme } from '../../context/ThemeContext';
 import type { InventoryItem } from '../../types';
-import { Icons } from '../Icons';
 
 export interface TeaLedgerGroup {
   type: string;
@@ -23,6 +23,7 @@ interface TeaLedgerProps {
   onToggleFavorite: (itemId: string, event: MouseEvent) => void;
   onOpenProduct: (item: InventoryItem) => void;
   onChooseAmount?: (item: InventoryItem) => void;
+  onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void;
   isAdmin?: boolean;
   onAdminEdit?: (itemId: string) => void;
 }
@@ -89,6 +90,7 @@ export function TeaLedger({
   onToggleFavorite,
   onOpenProduct,
   onChooseAmount,
+  onAddToCart,
   isAdmin = false,
   onAdminEdit,
 }: TeaLedgerProps) {
@@ -123,30 +125,16 @@ export function TeaLedger({
             )}
 
             {group.items.map(item => {
-              const isTeajiaFav = !!item.isFeatured;
               const isFavorite = favoriteIds.has(item.id);
               const purchase = teaPurchaseQuote(item, priceWeight);
               const stockG = item.stock_g ?? 0;
               const showType = activeType !== 'All' || specialFilter !== 'None';
               const rowTones = showType ? getTeaLedgerTones(item.type, theme) : tones;
-              // Stock state used to sit inline beside the name, where it
-              // competed with the product title on the same baseline. It reads
-              // as a qualifier on the price, so it lives under the price.
-              const stockNote: string | null = item.category === 'tea'
-                ? stockG <= 0
-                  ? 'Sold out'
-                  : stockG <= 50
-                    ? `${stockG}g left`
-                    : stockG <= 150
-                      ? 'Limited'
-                      : null
-                : null;
+              const soldOut = item.category === 'tea' && stockG <= 0;
 
               const origin = splitOrigin(item.origin || '');
               const lead = curatorLine(item);
               const tastingCount = tastingCounts.get(item.id) || 0;
-              const canQuickAdd = Boolean(onChooseAmount && purchase);
-              const PriceControl = canQuickAdd ? 'button' : 'div';
 
               return (
                 <div
@@ -185,7 +173,6 @@ export function TeaLedger({
                         <h3 className="min-w-0 break-words whitespace-normal font-display text-[18px] font-medium leading-tight text-tea-text lg:text-ui-20">
                           {item.name}
                         </h3>
-                        {isTeajiaFav && <Icons.Seal className="w-2.5 h-2.5 shrink-0 text-tea-gold" />}
                         {tastingCount > 0 && (
                           <span
                             className="inline-flex shrink-0 items-center gap-0.5 text-tea-green"
@@ -198,7 +185,7 @@ export function TeaLedger({
                           </span>
                         )}
                       </div>
-                      <div className="mt-1 flex min-w-0 flex-wrap items-center gap-y-1 font-sans text-ui-12 tracking-[0.02em] text-tea-text-sec">
+                      <div className="flex min-w-0 flex-wrap items-center gap-y-1 font-sans text-ui-12 tracking-[0.02em] text-tea-text-sec">
                         <span className="min-w-0 break-words">
                         {showType && (
                           <>
@@ -254,37 +241,23 @@ export function TeaLedger({
                       </p>
                     )}
 
-                    <div className="ml-auto flex shrink-0 items-center gap-3.5">
-                      {/* Price over its unit, divided by a hairline, rather than
-                          "$11 / 50g" run out on one line. Every row in the list
-                          carries the same unit, so spelling it inline repeated
-                          it down the whole column and made the widest thing in
-                          the row the part that never changes. Stacked, the
-                          column is about 20px narrower and the figures line up
-                          as figures. */}
-                      <PriceControl
-                        type={canQuickAdd ? 'button' : undefined}
-                        onClick={canQuickAdd ? event => {
-                          event.stopPropagation();
-                          onChooseAmount!(item);
-                        } : undefined}
-                        aria-label={canQuickAdd ? `Choose amount for ${item.name}` : undefined}
-                        title={canQuickAdd ? 'Choose amount' : undefined}
-                        aria-haspopup={canQuickAdd ? 'dialog' : undefined}
-                        className={`min-w-[52px] whitespace-nowrap text-right ${canQuickAdd ? 'tap-target flex-col items-end justify-center rounded hover:bg-tea-accent-sub focus-visible:outline focus-visible:outline-tea-gold' : ''}`}
-                      >
-                        <div data-testid="grid-price" className="num w-full border-b border-tea-border pb-[3px] text-ui-16 font-medium tabular-nums text-tea-text">
-                          {purchase ? formatPrice(purchase.totalUsd) : '\u2014'}
-                        </div>
-                        <div className="num flex items-center justify-end gap-1 pt-[3px] text-ui-10 tabular-nums text-tea-text-dim">
-                          {purchase ? `${purchase.grams}g` : 'Unavailable'}
-                        </div>
-                        {stockNote && (
-                          <div className="mt-0.5 text-ui-9 uppercase tracking-[0.1em] text-tea-gold-lt">
-                            {stockNote}
-                          </div>
-                        )}
-                      </PriceControl>
+                    <div className="ml-auto flex shrink-0 items-center self-center">
+                      {/* Price on top adds that amount to the cart; minus and
+                          plus step the weight and the price follows; Weigh
+                          itself opens every amount, custom sizes included. */}
+                      {purchase ? (
+                        <TeaWeighControl
+                          item={item}
+                          preferredGrams={priceWeight}
+                          formatPrice={formatPrice}
+                          onAddToCart={onAddToCart}
+                          onChooseAmount={onChooseAmount}
+                        />
+                      ) : (
+                        <span className="text-ui-11 uppercase tracking-[0.1em] text-tea-text-dim">
+                          {soldOut ? 'Sold out' : 'Unavailable'}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

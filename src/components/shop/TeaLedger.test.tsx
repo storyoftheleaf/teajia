@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import type { InventoryItem } from '../../types';
 import { TeaLedger } from './TeaLedger';
+import { TeaWeighControl, startingIndex, weighOptions } from './TeaWeighControl';
 
 vi.mock('../../context/ThemeContext', () => ({
   useTheme: () => ({ theme: 'dark' }),
@@ -40,17 +41,15 @@ function renderLedger(product: InventoryItem, isAdmin = false): string {
 }
 
 describe('TeaLedger year favorite control', () => {
-  it('keeps the shared stock-aware pack quote without offering a one-click purchase', () => {
+  it('keeps the shared stock-aware pack quote, capped at what is in stock', () => {
     const html = renderLedger(item({ price_per_gram: '0.21', stock_g: 30 }));
     expect(html).toContain('$9.00');
     expect(html).toContain('30g');
     expect(html).not.toContain('Add one');
-    expect(html).not.toContain('Add to cart');
   });
 
   it('declines to quote an unavailable tea', () => {
     const html = renderLedger(item({ stock_g: 0 }));
-    expect(html).toContain('Unavailable');
     expect(html).toContain('Sold out');
     expect(html).not.toContain('$');
   });
@@ -101,15 +100,25 @@ describe('catalogue quantity chooser', () => {
     expect(html).toContain('Choose amount for Red tea');
     expect(html).toContain('50g');
   });
-  it('opens the amount chooser without also opening the tea', () => {
-    const p = props();
+  it('hands the weigh control the amount chooser and the direct add', () => {
+    const p = { ...props(), onAddToCart: vi.fn() };
     const nodes = elements(TeaLedger(p));
-    const add = nodes.find(node => node.props['aria-label'] === 'Choose amount for Red tea')!;
-    const stopPropagation = vi.fn();
-    add.props.onClick({ stopPropagation });
-    expect(stopPropagation).toHaveBeenCalledOnce();
-    expect(p.onChooseAmount).toHaveBeenCalledWith(chooserItem);
-    expect(p.onOpenProduct).not.toHaveBeenCalled();
+    const control = nodes.find(node => node.type === TeaWeighControl)!;
+    expect(control.props.item).toBe(chooserItem);
+    expect(control.props.preferredGrams).toBe(50);
+    expect(control.props.onChooseAmount).toBe(p.onChooseAmount);
+    expect(control.props.onAddToCart).toBe(p.onAddToCart);
+  });
+  it('steps through the shop sizes the tea can actually be sold in', () => {
+    expect(weighOptions(chooserItem).map(o => o.grams)).toEqual([10, 25, 50, 100, 200]);
+    expect(weighOptions(item({ stock_g: 60 })).map(o => o.grams)).toEqual([10, 25, 50, 60]);
+    const sealed = item({ stock_g: 350, form: 'Box', pieceWeightG: 100, soldInWholeUnits: true } as Partial<InventoryItem>);
+    expect(weighOptions(sealed).map(o => o.grams)).toEqual([100, 200]);
+  });
+  it('starts on the weight the shop header is pricing at', () => {
+    const options = weighOptions(chooserItem);
+    expect(options[startingIndex(options, 50)].grams).toBe(50);
+    expect(options[startingIndex(options, 100)].grams).toBe(100);
   });
   it('does not let child keyboard events open the row', () => {
     const p = props();
