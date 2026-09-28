@@ -216,7 +216,7 @@ const LeadCover: React.FC = () => {
           <span style={{ fontStyle: 'italic', color: C.gold }}>and Tea</span>
         </div>
         <div style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 14, lineHeight: 1.5, color: 'var(--tj-read-taupe)', marginTop: 14, maxWidth: 330 }}>
-          A porcelain restorer on repair, patience, and how mending what we love mends us in return.
+          When we repair objects, we are also repairing ourselves.
         </div>
       </div>
     </Link>

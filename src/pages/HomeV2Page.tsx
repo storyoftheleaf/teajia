@@ -49,7 +49,7 @@ const PIECE = {
   slug: 'porcelain-and-tea',
   to: '/read/porcelain-and-tea',
   meta: 'The Lead · N°15',
-  dek: 'A porcelain restorer on repair, patience, and how mending what we love mends us in return.',
+  dek: 'When we repair objects, we are also repairing ourselves.',
 };
 
 /** The portrait Porcelain and Tea was built with, shipped as a site file
