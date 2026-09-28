@@ -145,6 +145,7 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
   const [error, setError] = useState<string | null>(null);
   const [requestingChanges, setRequestingChanges] = useState(false);
   const [reviewerNote, setReviewerNote] = useState('');
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
@@ -325,6 +326,14 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
     reordered.splice(nextIndex, 0, moved);
     setAssociations(reordered.map((item, position) => ({ ...item, display_order: position })));
     setAssociationsDirty(true);
+  };
+
+  const deleteForGood = async () => {
+    if (!persistedContributor || saving) return;
+    setSaving(true); setError(null);
+    try { await api.people.deleteContributor(persistedContributor.id); onSaved(); }
+    catch (caught: any) { setError(caught?.message || 'Could not delete this profile.'); setConfirmingDelete(false); }
+    finally { setSaving(false); }
   };
 
   const unpublish = async () => {
@@ -634,6 +643,26 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
                     <Prose label="Where to find" value={form.where_to_find_text ?? ''} onChange={event => setField('where_to_find_text', event.target.value)} minRows={2} placeholder="Their shop, their table, the days they pour." hint="Kept here, not yet shown on the public page." />
                   </div>
                 </Section>
+
+                {!isNew && persistedContributor && (
+                  <Section id="c-delete" title="Delete this profile" note="For a placeholder or a page that should never have existed. It cannot be undone." testId="section-delete">
+                    {persistedContributor.is_published === 1 ? (
+                      <p className="font-body text-ui-15 leading-relaxed text-tea-text-sec">Unpublish it first. A published page can only be taken down, not deleted.</p>
+                    ) : confirmingDelete ? (
+                      <div className="border-l-2 border-tea-error pl-4" role="alertdialog" aria-labelledby="delete-confirm-text">
+                        <p id="delete-confirm-text" className="max-w-[52ch] font-body text-ui-15 leading-relaxed text-tea-text">
+                          Delete {persistedContributor.display_name} for good? The page, its photos, links and drafts go with it, and it cannot be brought back.
+                        </p>
+                        <div className="mt-3 flex items-center justify-between gap-4">
+                          <button type="button" onClick={() => setConfirmingDelete(false)} disabled={saving} className="tap-target min-h-11 font-sans text-ui-14 text-tea-text-sec hover:text-tea-text">Keep it</button>
+                          <button type="button" onClick={deleteForGood} disabled={saving} className="tap-target inline-flex min-h-11 items-center border-b border-tea-error font-display text-ui-17 text-tea-error disabled:opacity-50">{saving ? 'Deleting…' : 'Delete for good'}</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button type="button" onClick={() => setConfirmingDelete(true)} className={QUIET}>Delete this profile</button>
+                    )}
+                  </Section>
+                )}
               </div>
             </div>
           </div>
