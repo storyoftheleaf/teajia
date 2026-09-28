@@ -950,9 +950,7 @@ export const SURFACE_TREATMENTS = {
  *   - Font: body italic
  *   - Color: --tea-text-sec
  *
- * DROP CAPS:
- *   - Font-size: 2.5em, weight: 700, float: left
- *   - Color: --tea-gold
+ * DROP CAPS: none. The site carries no drop caps (2026-09-28).
  *
  * ARTICLE BODY (.article-body):
  *   - Line-height: 1.85

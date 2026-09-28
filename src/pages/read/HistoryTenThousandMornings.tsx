@@ -520,7 +520,7 @@ const HistoryTenThousandMornings: React.FC = () => {
         {/* ── STANDFIRST ─────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(32px,5vw,60px) 24px clamp(20px,4vw,36px)' }}>
           <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
-            <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>N</span>
+            N
             o other drink has been with us so long, or changed its costume so often. Tea has been medicine,
             currency, a court's obsession, an empire's habit, and the cause of more than one revolution. Yet
             the leaf never changed, only the way each age chose to meet it. Here is that long morning, hour

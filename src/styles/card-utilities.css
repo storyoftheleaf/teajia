@@ -1912,51 +1912,8 @@ input[type="number"]::-webkit-outer-spin-button {
   animation: none;
 }
 
-/* ============================================
-   Drop Cap: Gold Treatment
-   Apply .drop-cap-gold to the article container.
-   Apply .drop-cap to opening paragraph of long-form prose
-   (Magazine, ContributorProfilePage). See DESIGN_SYSTEM.md §33.
-   ============================================ */
-
-.drop-cap::first-letter {
-  font-family: 'Cormorant Garamond', 'Cormorant Garamond Fallback', Georgia, serif;
-  font-size: 2.5em;
-  font-weight: 700;
-  float: left;
-  color: rgb(var(--tea-gold-rgb));
-  line-height: 1;
-  padding-right: 8px;
-  padding-top: 4px;
-}
-
-.drop-cap-gold::after {
-  content: '';
-  display: table;
-  clear: both;
-}
-
-.drop-cap-gold::first-letter,
-.drop-cap-gold p:first-child::first-letter {
-  initial-letter: 3;
-  color: var(--tea-gold, #a8874d);
-  font-weight: 600;
-  margin-right: 0.05em;
-  font-optical-sizing: auto;
-}
-
-/* Fallback for browsers without initial-letter support */
-@supports not (initial-letter: 3) {
-  .drop-cap-gold p:first-child::first-letter {
-    float: left;
-    font-size: calc(1.65em * 3);
-    line-height: 0.85;
-    margin-right: 0.06em;
-    margin-top: 0.04em;
-    color: var(--tea-gold, #a8874d);
-    font-weight: 600;
-  }
-}
+/* No drop caps anywhere on the site (Adrian, 2026-09-28). The .drop-cap and
+   .drop-cap-gold classes are gone; an opening paragraph is set like any other. */
 
 /* ============================================
    Reduced Motion Support

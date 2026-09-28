@@ -30,7 +30,7 @@ export default function AboutPage() {
 
       {/* What TeajiA is */}
       <section className="mb-16 md:mb-20 space-y-6">
-        <p className="body-prose first-letter:font-display first-letter:text-[3em] first-letter:leading-[0.9] first-letter:float-left first-letter:mr-2 first-letter:mt-1 first-letter:text-tea-readgold">
+        <p className="body-prose">
           TeajiA is a space for tea culture: the stories, the craft, the knowledge, and the people who carry it forward. It grew out of more than twenty years spent inside the world of Chinese tea: sourcing from farmers, learning from masters, and building relationships with the artisans who shape the vessels, the leaf, and the practice.
         </p>
         <p className="body-light">

@@ -190,7 +190,7 @@ const TeaHouseQuietHours: React.FC = () => {
         {/* ── STANDFIRST ────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(20px,4vw,44px)' }}>
           <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
-            <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>O</span>
+            O
             n a wide grey street in Brunswick, between a tyre shop and a bakery, there is a doorway most people walk straight past. Inside, the noise of Melbourne falls away. This is Quiet Hours, a tea house that began, improbably, with a homesick woman, a year in Bali, and a builder who had never finished a pot of tea in his life. I came to ask how a room gets made. It turns out it takes two very different people, talking past each other in the most productive way.
           </p>
         </section>
