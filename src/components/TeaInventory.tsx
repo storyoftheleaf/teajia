@@ -611,7 +611,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                  onClick={() => setShopSavedOnly(!shopSavedOnly)}
                  aria-pressed={shopSavedOnly}
                  title={shopSavedOnly ? 'Showing saved teas only. Show all teas' : 'Show saved teas only'}
-                 className={`ml-auto flex min-h-[44px] shrink-0 items-center text-ui-10 uppercase tracking-[0.15em] transition-colors sm:ml-1 sm:mr-6 ${
+                 className={`ml-auto flex min-h-[44px] shrink-0 items-center text-ui-10 uppercase tracking-[0.15em] transition-colors sm:ml-1 ${
                    shopSavedOnly ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
                  }`}
                >
@@ -620,7 +620,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
              </div>
 
              <div className="flex w-full min-w-0 items-center gap-4 pb-0.5 sm:w-auto sm:flex-1 sm:justify-end sm:pb-0">
-               <label className="flex min-w-0 flex-1 items-center gap-2 rounded-md bg-tea-surface px-3 py-1.5 sm:flex-none sm:w-[250px]">
+               <label className="flex min-w-0 flex-1 items-center gap-2 rounded-md bg-tea-surface px-3 py-1.5 sm:max-w-[250px]">
                  <Icons.Search className="w-3.5 h-3.5 shrink-0 text-tea-text-dim" aria-hidden="true" />
                  <input
                    type="search"
