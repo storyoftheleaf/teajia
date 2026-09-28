@@ -18,7 +18,9 @@ const MEDIA_HOST_PREFIX = 'https://media.teajia.co/';
 // heavy api module into this leaf util.
 const API_BASE = import.meta.env.PROD
   ? (typeof window !== 'undefined' ? window.location.origin : 'https://www.teajia.com')
-  : (import.meta.env.VITE_API_URL || '');
+  : (typeof __API_SAME_ORIGIN__ !== 'undefined' && __API_SAME_ORIGIN__ && typeof window !== 'undefined')
+    ? window.location.origin
+    : (import.meta.env.VITE_API_URL || '');
 
 export function mediaUrl(url: string): string;
 export function mediaUrl(url: string | null | undefined): string | undefined;

@@ -573,6 +573,9 @@ export function getApiOrigin(): string {
   if (import.meta.env.PROD) {
     return typeof window !== 'undefined' ? window.location.origin : 'https://www.teajia.com';
   }
+  if (typeof __API_SAME_ORIGIN__ !== 'undefined' && __API_SAME_ORIGIN__ && typeof window !== 'undefined') {
+    return window.location.origin;
+  }
   return (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 }
 

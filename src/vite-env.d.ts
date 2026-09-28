@@ -11,3 +11,5 @@ interface ImportMeta {
 }
 
 declare const __BUILD_ID__: string;
+/** True when the dev server forwards /api, so the browser calls its own origin. */
+declare const __API_SAME_ORIGIN__: boolean | undefined;

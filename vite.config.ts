@@ -1,5 +1,5 @@
 import path from 'path';
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import fs from 'fs';
@@ -37,10 +37,20 @@ export function teaReferenceProductionLeakGuard({
 
 export default defineConfig(({ command, mode }) => {
   const BUILD_ID = Date.now().toString(36);
+  // Every dev server forwards /api to the real API, and the browser calls its
+  // own origin. The worker's CORS list names only port 7777, so a preview on
+  // any other port that called the API directly had every request refused and
+  // showed the connection notice on every page. Same-origin works on any port.
+  // TEAJIA_API_PROXY wins; otherwise VITE_API_URL (from .env.local) is the target.
+  const env = loadEnv(mode, process.cwd(), '');
+  const apiProxyTarget = command === 'serve' && mode !== 'test'
+    ? (process.env.TEAJIA_API_PROXY || env.TEAJIA_API_PROXY || env.VITE_API_URL || '').replace(/\/+$/, '')
+    : '';
   return {
     base: '/',
     define: {
       __BUILD_ID__: JSON.stringify(BUILD_ID),
+      __API_SAME_ORIGIN__: JSON.stringify(Boolean(apiProxyTarget)),
     },
     server: {
       port: 7777,
@@ -51,8 +61,18 @@ export default defineConfig(({ command, mode }) => {
       // port 7777, so a second sandbox site on any other port cannot reach it
       // directly. Set TEAJIA_API_PROXY=http://localhost:8787 to route /api
       // through this server instead, which sidesteps CORS entirely.
-      proxy: process.env.TEAJIA_API_PROXY
-        ? { '/api': { target: process.env.TEAJIA_API_PROXY, changeOrigin: true } }
+      // A target that is this server itself (dev:test points VITE_API_URL at
+      // its own port) would forward forever; the marker header stops the
+      // second hop and lets the request fall through as it always did.
+      proxy: apiProxyTarget
+        ? {
+            '/api': {
+              target: apiProxyTarget,
+              changeOrigin: true,
+              headers: { 'x-teajia-dev-proxy': '1' },
+              bypass: req => (req.headers['x-teajia-dev-proxy'] ? req.url : undefined),
+            },
+          }
         : undefined,
       watch: {
         usePolling: true,
