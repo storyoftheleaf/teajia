@@ -179,6 +179,9 @@ const GroupBlock: React.FC<{ group: IndexGroup; isAdmin: boolean }> = ({ group, 
 // ── Lead cover (hover handled inline via React state) ────────────────────────
 const LeadCover: React.FC = () => {
   const [hovered, setHovered] = useState(false);
+  // The piece's own cover portrait sits above the words, never under them:
+  // words go on a photograph only where it has empty space, not over a person
+  // or the work.
   return (
     <Link
       to="/read/porcelain-and-tea"
@@ -186,35 +189,25 @@ const LeadCover: React.FC = () => {
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'flex-end',
-        minHeight: 'clamp(320px,40vw,400px)',
         border: `1px solid ${hovered ? 'rgb(var(--tj-read-gold-rgb) / 0.5)' : 'rgb(var(--tj-read-gold-rgb) / 0.24)'}`,
         overflow: 'hidden',
         textDecoration: 'none',
         color: 'inherit',
-        background: 'linear-gradient(158deg,#2a2620 0%,#1c1810 56%,var(--tj-read-bg) 100%)',
+        background: 'linear-gradient(160deg,var(--tj-read-card-from),var(--tj-read-card-to))',
         transition: 'border-color 240ms',
       }}
       onMouseOver={() => setHovered(true)}
       onMouseOut={() => setHovered(false)}
     >
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 64% 56% at 60% 28%, rgba(150,180,180,0.20), transparent 64%)' }} />
-      <svg viewBox="0 0 420 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.55 }}>
-        <g fill="none" stroke="rgb(var(--tj-read-gold-rgb) / 0.26)" strokeWidth="1">
-          <path d="M-20 110 C 120 84, 240 96, 460 56" />
-          <path d="M-20 170 C 120 142, 260 154, 460 110" />
-          <path d="M-20 230 C 140 198, 280 210, 460 164" />
-        </g>
-        <g fill="rgb(var(--tj-read-gold-rgb) / 0.42)">
-          <circle cx="150" cy="130" r="3" />
-          <circle cx="184" cy="138" r="3" />
-          <circle cx="218" cy="130" r="3" />
-          <circle cx="252" cy="140" r="3" />
-        </g>
-      </svg>
-      <div aria-hidden="true" style={{ position: 'absolute', right: -18, top: -30, fontFamily: F.cn, fontWeight: 200, fontSize: 230, lineHeight: 1, color: 'rgb(var(--tj-read-gold-rgb) / 0.08)' }}>茶</div>
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, rgb(var(--tj-read-bg-rgb) / 0.92), transparent 52%)' }} />
-      <div style={{ position: 'relative', padding: 'clamp(24px,3vw,32px)' }}>
+      <div style={{ position: 'relative', aspectRatio: '4/5', overflow: 'hidden', background: 'var(--tj-read-bg)' }}>
+        <img
+          src="/read/porcelain-and-tea/portrait.jpg"
+          alt="Shangyin Qiwu seated in his studio"
+          loading="lazy"
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 40%', transform: hovered ? 'scale(1.02)' : 'none', transition: 'transform 600ms cubic-bezier(0.22,0.61,0.36,1)' }}
+        />
+      </div>
+      <div style={{ position: 'relative', padding: 'clamp(22px,3vw,30px)' }}>
         <div style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.26em', textTransform: 'uppercase', color: C.gold, marginBottom: 14 }}>
           The Lead · N°15 · Conversations over tea
         </div>
