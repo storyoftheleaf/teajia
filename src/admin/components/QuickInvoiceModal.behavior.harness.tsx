@@ -18,6 +18,7 @@ type PendingRequest = {
 
 const requests: PendingRequest[] = [];
 const invoiceCalls: Array<{ invoice: unknown; items: unknown }> = [];
+let loseInvoiceResponse = false;
 const toasts: Array<{ message: string; type?: string }> = [];
 
 const product = (id: string, name: string, type: Product['type'] = 'Oolong', status: Product['status'] = 'Active'): Product => ({
@@ -60,6 +61,7 @@ Object.assign(api.rates, { list: async () => [] });
 Object.assign(api.invoices, {
   create: async (invoice: unknown, items: unknown) => {
     invoiceCalls.push({ invoice, items });
+    if (loseInvoiceResponse) throw new TypeError('Failed to fetch');
     return { id: 'invoice-1', invoice_number: 'INV-1' };
   },
 });
@@ -77,6 +79,7 @@ const testApi = {
   mount(options: { accountId?: string; prefill?: Record<string, unknown> } = {}) {
     requests.length = 0;
     invoiceCalls.length = 0;
+    loseInvoiceResponse = false;
     toasts.length = 0;
     setToken(tokenForAccount(options.accountId || 'account-a'));
     useAppStore.setState({ activeAccountId: options.accountId || 'account-a' });
@@ -101,6 +104,7 @@ const testApi = {
   resolveRequest(index: number, rows: EligibleSalesProduct[]) { requests[index]?.resolve(rows); },
   rejectRequest(index: number, message = 'Unavailable') { requests[index]?.reject(new Error(message)); },
   invoiceCalls() { return invoiceCalls; },
+  loseInvoiceResponse() { loseInvoiceResponse = true; },
   toasts() { return toasts; },
 };
 

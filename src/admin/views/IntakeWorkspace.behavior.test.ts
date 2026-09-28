@@ -79,6 +79,8 @@ describe('IntakeWorkspace cost refusal in plain words', () => {
     expect(await page.evaluate(() => (window as any).intakeWorkspaceTest.purchaseCalls().length)).toBe(1);
     expect(await page.evaluate(() => (window as any).intakeWorkspaceTest.abandonCalls())).toBe(0);
     await page.getByRole('button', { name: 'Clear all' }).click();
+    expect(await page.getByRole('button', { name: /Retry 1 purchase record/ }).isDisabled()).toBe(true);
+    await page.getByLabel('I checked Purchase Orders for these vendors and found no matching record.').check();
     await expect.poll(() => page.getByRole('button', { name: /Retry 1 purchase record/ }).isEnabled()).toBe(true);
     await page.getByRole('button', { name: /Retry 1 purchase record/ }).click();
     await expect.poll(() => page.evaluate(() => (window as any).intakeWorkspaceTest.purchaseCalls().length)).toBe(2);

@@ -64,6 +64,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
   const [committing, setCommitting] = useState(false);
   const [savePurchaseRecord, setSavePurchaseRecord] = useState(true);
   const [pendingPurchaseRecords, setPendingPurchaseRecords] = useState<Array<Parameters<typeof api.purchaseOrders.create>[0]>>([]);
+  const [purchaseRecordsChecked, setPurchaseRecordsChecked] = useState(false);
   const [shippingTotal, setShippingTotal] = useState<number>(0);
   const [shippingCurrency, setShippingCurrency] = useState<string>('');
   const [isDragging, setIsDragging] = useState(false);
@@ -361,7 +362,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
   }, [onRefresh, importId, navigate]);
 
   const retryPurchaseRecords = useCallback(async () => {
-    if (committing || pendingPurchaseRecords.length === 0) return;
+    if (committing || pendingPurchaseRecords.length === 0 || !purchaseRecordsChecked) return;
     setCommitting(true);
     try {
       for (let i = 0; i < pendingPurchaseRecords.length; i++) {
@@ -369,15 +370,17 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
           await api.purchaseOrders.create(pendingPurchaseRecords[i]);
         } catch (error: any) {
           setPendingPurchaseRecords(pendingPurchaseRecords.slice(i));
+          setPurchaseRecordsChecked(false);
           showToast(`Purchase record for ${pendingPurchaseRecords[i].vendor_name} was not confirmed: ${error?.message || 'request failed'}. Inventory items are already saved; retry purchase records only.`, 'error');
           return;
         }
       }
       setPendingPurchaseRecords([]);
+      setPurchaseRecordsChecked(false);
       showToast('Purchase records saved. Inventory items were already added.', 'success');
       await finishImport();
     } finally { setCommitting(false); }
-  }, [committing, pendingPurchaseRecords, showToast, finishImport]);
+  }, [committing, pendingPurchaseRecords, purchaseRecordsChecked, showToast, finishImport]);
 
   const commit = useCallback(async () => {
     if (included.length === 0 || committing || pendingPurchaseRecords.length > 0) return;
@@ -481,6 +484,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
           await api.purchaseOrders.create(purchaseRecords[i]);
         } catch (error: any) {
           setPendingPurchaseRecords(purchaseRecords.slice(i));
+          setPurchaseRecordsChecked(false);
           onRefresh?.();
           showToast(`Added ${inserted} inventory item${inserted !== 1 ? 's' : ''}, but the purchase record for ${purchaseRecords[i].vendor_name} was not confirmed: ${error?.message || 'request failed'}. Retry purchase records without adding the items again.`, 'error');
           return;
@@ -631,9 +635,14 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
       {hasContent && (
         <div className="flex-shrink-0 glass-panel border-t border-tea-border px-4 md:px-7 pt-3 pb-nav-gap">
           {pendingPurchaseRecords.length > 0 && (
-            <p role="alert" className="mb-3 text-ui-12 text-tea-text-sec">
-              Inventory items were added. {pendingPurchaseRecords.length} purchase record{pendingPurchaseRecords.length !== 1 ? 's are' : ' is'} still unconfirmed. Retry saves only those records; staged edits will not change the items already added.
-            </p>
+            <div role="alert" className="mb-3 space-y-2 text-ui-12 text-tea-text-sec">
+              <p>Inventory items were added. {pendingPurchaseRecords.length} purchase record{pendingPurchaseRecords.length !== 1 ? 's are' : ' is'} still unconfirmed. The request may have saved even if its response was lost.</p>
+              <p>Check Purchase Orders for {pendingPurchaseRecords.map(record => record.vendor_name).join(', ')} before retrying.</p>
+              <label className="inline-flex items-start gap-2 tap-target">
+                <input type="checkbox" checked={purchaseRecordsChecked} onChange={event => setPurchaseRecordsChecked(event.target.checked)} />
+                <span>I checked Purchase Orders for these vendors and found no matching record.</span>
+              </label>
+            </div>
           )}
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
             <div className="flex items-baseline gap-1.5">
@@ -657,7 +666,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
             <button
               type="button"
               onClick={pendingPurchaseRecords.length > 0 ? retryPurchaseRecords : commit}
-              disabled={committing || (pendingPurchaseRecords.length === 0 && counts.total === 0)}
+              disabled={committing || (pendingPurchaseRecords.length > 0 ? !purchaseRecordsChecked : counts.total === 0)}
               className="ml-auto pill-active text-ui-13 px-5 py-2 inline-flex items-center gap-2 disabled:opacity-50"
             >
               {committing
