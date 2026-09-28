@@ -24,8 +24,6 @@ interface TeaLedgerProps {
   onOpenProduct: (item: InventoryItem) => void;
   onChooseAmount?: (item: InventoryItem) => void;
   onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void;
-  isAdmin?: boolean;
-  onAdminEdit?: (itemId: string) => void;
 }
 
 /**
@@ -91,8 +89,6 @@ export function TeaLedger({
   onOpenProduct,
   onChooseAmount,
   onAddToCart,
-  isAdmin = false,
-  onAdminEdit,
 }: TeaLedgerProps) {
   const { theme } = useTheme();
 
@@ -225,27 +221,7 @@ export function TeaLedger({
                       </p>
                     )}
 
-                    <div className="ml-auto flex shrink-0 items-center gap-4">
-                      {/* Owners edit from here, on its own and clear of the
-                          name and region. It used to sit in the region line,
-                          where its 44px tap area stretched that line and
-                          pushed the region away from the name. */}
-                      {isAdmin && onAdminEdit && (
-                        <button
-                          type="button"
-                          className="relative text-ui-11 text-tea-text-dim transition-colors before:absolute before:-inset-3 before:content-[''] hover:text-tea-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
-                          onClick={event => {
-                            event.stopPropagation();
-                            onAdminEdit(item.id);
-                          }}
-                          onKeyDown={event => {
-                            if (event.key === 'Enter' || event.key === ' ') event.stopPropagation();
-                          }}
-                          aria-label={`Edit ${item.name}`}
-                        >
-                          Edit
-                        </button>
-                      )}
+                    <div className="ml-auto flex shrink-0 items-center">
                       {/* Price on top adds that amount to the cart; minus and
                           plus step the weight and the price follows; Weigh
                           itself opens every amount, custom sizes included. */}
