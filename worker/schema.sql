@@ -213,6 +213,9 @@ CREATE TABLE IF NOT EXISTS contributors (
     avatar_url TEXT,
     portrait_url TEXT,
     portrait_caption TEXT,
+    -- CSS object-position, "50% 30%"; NULL is the centre. Migration 0024.
+    portrait_focus TEXT,
+    avatar_focus TEXT,
     voice_clip_url TEXT,
     voice_clip_caption TEXT,
     pouring_today_product_id TEXT,
@@ -683,7 +686,9 @@ CREATE TABLE IF NOT EXISTS contributor_gallery_images (
   caption TEXT CHECK (caption IS NULL OR length(caption) <= 280),
   position INTEGER NOT NULL DEFAULT 0 CHECK (position >= 0),
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  -- CSS object-position, "50% 30%"; NULL is the centre. Migration 0024.
+  focus TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_contributor_gallery_images_contributor
   ON contributor_gallery_images(contributor_id, position);

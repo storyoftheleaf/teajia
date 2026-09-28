@@ -294,6 +294,8 @@ export interface ContributorGalleryImage {
   id?: string;
   image_url: string;
   caption: string | null;
+  /** The point kept in frame when the page crops it, as CSS object-position ("50% 30%"). Null is the centre. */
+  focus?: string | null;
   position?: number;
 }
 
@@ -307,6 +309,8 @@ export interface ContributorListItem {
   avatar_url?: string | null;
   /** First gallery image, then the portrait. Null means the identity mark fills the card. */
   card_image_url?: string | null;
+  /** That photo's focal point, as CSS object-position. */
+  card_image_focus?: string | null;
   /** One line in their own words, for the directory card. */
   own_line?: string | null;
   is_host?: boolean;
@@ -450,6 +454,9 @@ export interface ContributorProfile {
   avatar_url?: string | null;
   portrait_url?: string | null;
   portrait_caption?: string | null;
+  /** Focal points as CSS object-position ("50% 30%"); null is the centre. Migration 0024. */
+  portrait_focus?: string | null;
+  avatar_focus?: string | null;
   voice_clip_url?: string | null;
   voice_clip_caption?: string | null;
 
@@ -531,6 +538,8 @@ export interface ContributorWrite {
   avatar_url?: string | null;
   portrait_url?: string | null;
   portrait_caption?: string | null;
+  portrait_focus?: string | null;
+  avatar_focus?: string | null;
   voice_clip_url?: string | null;
   voice_clip_caption?: string | null;
   pouring_today_product_id?: string | null;

@@ -6,6 +6,7 @@ import { seedFromMigrations, tableInfo, schemaObjects } from './helpers/migrated
 import {
   normalizeContributorLinks,
   parseStoredContributorLinks,
+  normalizePhotoFocus,
   projectPublicGalleryImage,
 } from '../src/profileDomain';
 
@@ -35,7 +36,7 @@ describe('Lane A schema: business_name, contributor_gallery_images, typed links'
     try {
       const columns = tableInfo(db, 'contributor_gallery_images').map(c => c.name).sort();
       expect(columns).toEqual(
-        ['caption', 'contributor_id', 'created_at', 'id', 'image_url', 'position', 'updated_at'].sort(),
+        ['caption', 'contributor_id', 'created_at', 'focus', 'id', 'image_url', 'position', 'updated_at'].sort(),
       );
       const idColumn = tableInfo(db, 'contributor_gallery_images').find(c => c.name === 'id');
       expect(idColumn?.pk).toBe(1);
@@ -79,7 +80,7 @@ describe('Lane A schema: business_name, contributor_gallery_images, typed links'
     }
   });
 
-  it('applies migrations 0019 through 0021 to build the same business_name and gallery shape schema.sql describes', () => {
+  it('applies migrations 0019 through 0024 to build the same business_name and gallery shape schema.sql describes', () => {
     const canonical = canonicalDb();
     const { db: migrated } = seedFromMigrations();
     try {
@@ -256,7 +257,23 @@ describe('profileDomain: gallery image projection', () => {
       id: 'img-1',
       image_url: 'https://example.com/a.jpg',
       caption: 'Pouring tea',
+      focus: null,
       position: 0,
     });
+  });
+});
+
+describe('profileDomain: a photo focal point', () => {
+  it('keeps two percentages inside the photo and refuses anything the browser would silently ignore', () => {
+    expect(normalizePhotoFocus('50% 30%')).toEqual({ value: '50% 30%' });
+    expect(normalizePhotoFocus(' 27.66% 17.04% ')).toEqual({ value: '27.7% 17%' });
+    expect(normalizePhotoFocus('')).toEqual({ value: null });
+    expect(normalizePhotoFocus(null)).toEqual({ value: null });
+    expect(normalizePhotoFocus(undefined)).toEqual({});
+    expect(normalizePhotoFocus('center').error).toBeTruthy();
+    expect(normalizePhotoFocus('120% 10%').error).toBeTruthy();
+    expect(normalizePhotoFocus('50%').error).toBeTruthy();
+    expect(normalizePhotoFocus('50% 30%; background:red').error).toBeTruthy();
+    expect(normalizePhotoFocus(12).error).toBeTruthy();
   });
 });

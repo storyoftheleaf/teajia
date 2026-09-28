@@ -4822,7 +4822,7 @@ export const api = {
         body: JSON.stringify({ accounts }),
       });
     },
-    updateContributorGalleryImages: async (contributorId: string, images: Array<{ id?: string; image_url: string; caption: string | null }>): Promise<{ gallery_images: import('../types').ContributorGalleryImage[] }> => {
+    updateContributorGalleryImages: async (contributorId: string, images: Array<{ id?: string; image_url: string; caption: string | null; focus?: string | null }>): Promise<{ gallery_images: import('../types').ContributorGalleryImage[] }> => {
       return authedFetch(`${API_URL}/api/admin/contributors/${encodeURIComponent(contributorId)}/gallery-images`, {
         method: 'PUT',
         body: JSON.stringify({ gallery_images: images }),
