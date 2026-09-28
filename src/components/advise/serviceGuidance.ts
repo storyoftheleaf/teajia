@@ -43,7 +43,7 @@ export const SERVICE_GUIDANCE: Record<ServiceKey, {
       { id: 'startingPoint', prompt: 'What would you like to do?', options: ['Try tea together for the first time', 'Build a personal practice', 'Gather a group', 'Not sure yet'] },
       { id: 'priority', prompt: 'Where might it happen?', options: ['At the Bali studio', 'At my own venue', 'I am elsewhere', 'Not sure yet'] },
     ],
-    unsureAdvice: 'A simple first sit is enough to discover what you enjoy. If you already share tea with others, tell Adrian the group size and occasion; he can suggest a fitting format.',
+    unsureAdvice: 'A simple first sit is enough to discover what you enjoy. If you already share tea with others, tell Teajia the group size and occasion, and we can suggest a fitting format.',
   },
 };
 

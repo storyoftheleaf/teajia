@@ -99,7 +99,7 @@ describe('AdviseIndex, visitor', () => {
 
   it('explains who each service suits, the work, the outcome, and a first step', () => {
     expect(html.split('Who it suits.').length - 1).toBe(3);
-    expect(html.split('What Adrian does.').length - 1).toBe(3);
+    expect(html.split('What Teajia does.').length - 1).toBe(3);
     expect(html.split('What you leave with.').length - 1).toBe(3);
     expect(html.split('A place to begin.').length - 1).toBe(3);
     expect(html).toContain('You can leave regions and tea names undecided.');

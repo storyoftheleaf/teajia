@@ -12,7 +12,7 @@ test('failed inquiry remains editable and offers a populated email fallback', as
   await page.getByRole('button', { name: 'Start a conversation' }).first().click();
   await page.getByLabel('Your name').fill('Lin Chen');
   await page.getByLabel('your@email.com').fill('lin@example.com');
-  await page.getByLabel('Anything else you want Adrian to know? (optional)').fill('I would like a tea program for a small studio.');
+  await page.getByLabel('Anything else you want Teajia to know? (optional)').fill('I would like a tea program for a small studio.');
   await page.getByLabel('your@email.com').press('Enter');
 
   await expect(page.getByRole('alert')).toContainText('not delivered');
@@ -43,7 +43,7 @@ test('storage failure never claims that the inquiry draft was saved', async ({ p
   await page.getByRole('button', { name: 'Start a conversation' }).first().click();
   await page.getByLabel('Your name').fill('Mei');
   await page.getByLabel('your@email.com').fill('mei@example.com');
-  await page.getByLabel('Anything else you want Adrian to know? (optional)').fill('A small private tea gathering.');
+  await page.getByLabel('Anything else you want Teajia to know? (optional)').fill('A small private tea gathering.');
   await page.getByLabel('your@email.com').press('Enter');
 
   await expect(page.getByRole('alert')).toContainText('could not save your draft');
@@ -65,7 +65,7 @@ test('corrupt saved fields fall back safely without breaking interests or email 
   await expect(page.getByLabel('Tea sourcing')).toBeChecked();
   await page.getByLabel('Your name').fill('Ari');
   await page.getByLabel('your@email.com').fill('ari@example.com');
-  await page.getByLabel('Anything else you want Adrian to know? (optional)').fill('A guided tasting.');
+  await page.getByLabel('Anything else you want Teajia to know? (optional)').fill('A guided tasting.');
   await page.getByLabel('your@email.com').press('Enter');
 
   const fallback = page.getByRole('link', { name: 'email hello@teajia.com' });
