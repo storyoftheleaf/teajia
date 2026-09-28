@@ -3624,19 +3624,6 @@ input[type="number"]::-webkit-outer-spin-button {
   opacity: 0.28;
 }
 
-/* Film grain laid over a photograph, for the aged look on the home page's
-   opener. Live rather than baked into the file: grain in a compressed photo
-   turns to blocks. The small tile keeps each grain fine. */
-.photo-grain {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image: var(--alcove-grain);
-  background-size: 140px 140px;
-  mix-blend-mode: overlay;
-  opacity: 0.32;
-}
-
 /* The desk's navigation rail. The page's own ground lifted a few percent and
    one keyline on the right edge: that is the entire material. No blur, no
    paper, no shadow, no radius, so it reads as part of the page rather than an
