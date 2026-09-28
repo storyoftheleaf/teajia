@@ -51,8 +51,10 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
   const navigate = useNavigate();
   const go = (route: string) => { onClose(); navigate(route); };
 
+  // Same column as the sign-in and sign-up forms: the panel is full-screen,
+  // so without a cap the Sign in button stretched the whole desktop width.
   return (
-    <div>
+    <div className="w-full max-w-sm mx-auto">
       {/* ── Hero, the invitation ───────────────────────────────────── */}
       <div className="px-6 pt-8 pb-6">
         <p className="label-caps text-tea-text-dim mb-3">Teajia</p>
