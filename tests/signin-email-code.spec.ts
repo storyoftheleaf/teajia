@@ -48,6 +48,35 @@ test('password is the default non-Google sign-in path and email code remains ava
   });
 });
 
+test('a code sign-in opened straight from a link lands in the site, and the email can be corrected', async ({ page }) => {
+  const requested: string[] = [];
+  await page.route('**/api/verify/request', async route => {
+    requested.push(JSON.parse(route.request().postData() || '{}').contact);
+    await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ success: true }) });
+  });
+  await page.route('**/api/verify/confirm', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ token: jwt }),
+  }));
+
+  // The first entry in the tab: there is no in-app page to go back to.
+  await page.goto('/signin');
+  await page.getByRole('button', { name: 'Use email code instead' }).click();
+  await page.getByLabel('Email address').fill('membr@example.com');
+  await page.getByRole('button', { name: 'Email me a code' }).click();
+  await expect(page.getByLabel('Verification code')).toBeVisible();
+
+  // A typo spotted after sending: typing in the box starts over.
+  await page.getByLabel('Email address').fill('member@example.com');
+  await expect(page.getByLabel('Verification code')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Email me a code' }).click();
+  await page.getByRole('button', { name: 'Send a new code' }).click();
+  await expect.poll(() => requested).toEqual(['membr@example.com', 'member@example.com', 'member@example.com']);
+
+  await page.getByLabel('Verification code').fill('123456');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page).toHaveURL('/');
+});
+
 test('delivery failure keeps email editable and exposes retry', async ({ page }) => {
   let attempts = 0;
   await page.route('**/api/verify/request', async route => {

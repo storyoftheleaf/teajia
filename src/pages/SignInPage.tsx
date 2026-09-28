@@ -63,7 +63,14 @@ export default function SignInPage() {
     }
   };
 
-  const navigateAfterSignIn = () => navigate(safeReturnTo ?? state?.from ?? -1 as any);
+  // Back only when there is an in-app page to go back to. Opened straight
+  // from a link or a new tab, the sign-in page is the first entry, and going
+  // back left the person on this same form, signed in, looking locked out.
+  const navigateAfterSignIn = () => {
+    if (safeReturnTo ?? state?.from) return navigate(safeReturnTo ?? state!.from!);
+    const historyIndex = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+    return historyIndex > 0 ? navigate(-1) : navigate('/');
+  };
 
   const handlePasswordSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -167,13 +174,18 @@ export default function SignInPage() {
             name="identifier"
             type={passwordMode ? 'text' : 'email'}
             value={identifier}
-            onChange={e => { setIdentifier(e.target.value); setError(''); }}
+            onChange={e => {
+              setIdentifier(e.target.value);
+              setError('');
+              // Correcting the address after a code went out starts over:
+              // that code belongs to the old address.
+              if (codeSent && !passwordMode) { setCodeSent(false); setCode(''); }
+            }}
             autoComplete={passwordMode ? 'username' : 'email'}
             className={inputClass}
             placeholder={passwordMode ? 'email or username' : 'you@example.com'}
             required
             autoFocus
-            readOnly={codeSent && !passwordMode}
           />
         </div>
 
@@ -233,13 +245,26 @@ export default function SignInPage() {
               required
               autoFocus
             />
-            <button
-              type="button"
-              onClick={() => { setCodeSent(false); setCode(''); setError(''); }}
-              className="mt-2 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
-            >
-              Change email
-            </button>
+            <p className="mt-2 text-ui-13 text-tea-text-sec">
+              Sent to {identifier}. No email after a minute? Check spam, or send another.
+            </p>
+            <div className="mt-2 flex justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => { setCodeSent(false); setCode(''); setError(''); }}
+                className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
+              >
+                Change email
+              </button>
+              <button
+                type="button"
+                onClick={() => { setCode(''); void handleCodeRequest(); }}
+                disabled={loading}
+                className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-50"
+              >
+                Send a new code
+              </button>
+            </div>
           </div>
         )}
 
