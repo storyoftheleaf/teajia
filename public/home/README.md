@@ -12,6 +12,8 @@ The open item is in TODO.md.
 
 ## Real photographs (2026-09-28)
 
-`table.webp` (Adrian pouring, the opener) and `teapots.webp` (the consult
-plate, turned on its side) are Adrian's own, from his library, 2000px webp.
-The consult stand-in stays only because the Craft page still borrows it.
+`teapots-upright.webp` (the opener) and `table.webp` (Adrian pouring, the
+consult plate) are Adrian's own, from his library, 2000px webp.
+`porcelain-bowl.webp` is the story's gold-mended bowl, cropped with the bowl
+dead centre. The consult stand-in stays only because the Craft page still
+borrows it.

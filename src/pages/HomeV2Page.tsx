@@ -52,19 +52,18 @@ const PIECE = {
   dek: 'When we repair objects, we are also repairing ourselves.',
 };
 
-/** The gold-mended bowl from Porcelain and Tea, shipped as a site file with
- *  the story (see CraftRenewalPorcelain.tsx). Chosen by Adrian 2026-09-28: a
- *  piece of the porcelain rather than the restorer's portrait. The crop sits
- *  low so the bowl and its reflection fill the plate. */
-const PIECE_PORTRAIT: PhotoVal = { url: '/read/porcelain-and-tea/gold-mended-bowl.jpg', crop: { scale: 1, x: 0.5, y: 0.82 } };
+/** The gold-mended bowl from Porcelain and Tea, chosen by Adrian 2026-09-28
+ *  over the restorer's portrait. The file itself is cropped with the bowl
+ *  dead centre, so it stays centred at every plate shape. */
+const PIECE_PORTRAIT: PhotoVal = { url: '/home/porcelain-bowl.webp', crop: { scale: 1, x: 0.5, y: 0.5 } };
 
-/** Adrian pouring at the table, from his own library (2026-09-28). A site file
- *  under public/home, so it ships with the build and never waits on the API. */
-const TABLE_PHOTO = '/home/table.webp';
+/** The opener: the teapots laid out on the old wood, shot from above, upright.
+ *  A site file under public/home, so it ships with the build and never waits
+ *  on the API. */
+const TABLE_PHOTO = '/home/teapots-upright.webp';
 
-/** The consult plate: the teapots laid out on the old wood, shot from above and
- *  turned on its side so the rows run across the plate. */
-const CONSULT_PHOTO = '/home/teapots.webp';
+/** The consult plate: Adrian pouring at the table, from his own library. */
+const CONSULT_PHOTO = '/home/table.webp';
 
 /** Stand-ins until the real photographs exist, served from this site rather
  *  than hot-linked: the china-dependency scan refuses stock hosts under src/
@@ -208,7 +207,7 @@ const HomeV2Page: React.FC = () => {
             alt="At the table"
             fill
             placeholderBg="var(--tea-surface)"
-            placeholder={<img src={TABLE_PHOTO} alt="" fetchPriority="high" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 40%' }} />}
+            placeholder={<img src={TABLE_PHOTO} alt="" fetchPriority="high" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 50%' }} />}
           />
         </div>
       </section>
@@ -239,7 +238,7 @@ const HomeV2Page: React.FC = () => {
           body="Taiwan, China, Japan, Bali, and beyond. Tea for your practice, your collection, your space."
           meta="The consult"
           src={CONSULT_PHOTO}
-          crop={{ scale: 1, x: 0.6, y: 0.5 }}
+          crop={{ scale: 1, x: 0.5, y: 0.5 }}
         />
       </section>
 
@@ -247,7 +246,7 @@ const HomeV2Page: React.FC = () => {
           On wider screens the three meanings return to one editorial row. */}
       <section aria-label="The house" className={`${MOVEMENT} ${EDGE}`}>
         <div className="bg-tea-elevated px-6 sm:px-10 lg:px-16 pt-16 sm:pt-24 lg:pt-28 pb-12 sm:pb-16 lg:pb-20 flex flex-col items-center text-center">
-          <LogoText size="panel" color="var(--tea-text)" className="h-[clamp(96px,12vw,176px)] w-auto" />
+          <LogoText size="panel" color="var(--tea-text)" className="h-[clamp(67px,8.4vw,123px)] w-auto" />
           <p className={`${BODY} mt-6 max-w-[46ch] text-tea-text-sec`}>
             Teajia is a home for tea. A place to source, study, and share with those who gather around the leaf.
           </p>
