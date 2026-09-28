@@ -2,6 +2,8 @@ import { internationalWhatsAppNumber } from '../../src/lib/whatsappContact';
 
 /** Opted-in customer confirmations from the store’s existing business number. */
 export interface WhatsAppOrderEnv {
+  WHATSAPP_TRANSPORT?: string;
+  KAPSO_API_KEY?: string;
   WHATSAPP_CUSTOMER_CONFIRMATIONS_ENABLED?: string;
   WHATSAPP_ORDER_ACCOUNT_ID?: string;
   WHATSAPP_ACCESS_TOKEN?: string;
@@ -119,7 +121,12 @@ export async function getCustomerOrderNotificationSetupStatus(
   if (!account?.order_whatsapp_notifications_enabled) missing.push('account_opt_in');
   if (!env.WHATSAPP_ORDER_ACCOUNT_ID || env.WHATSAPP_ORDER_ACCOUNT_ID !== accountId) missing.push('account_allowlist');
   if (!validPhone(sender)) missing.push('account_whatsapp_number');
-  if (!env.WHATSAPP_ACCESS_TOKEN?.trim()) missing.push('WHATSAPP_ACCESS_TOKEN');
+  const transport = env.WHATSAPP_TRANSPORT ?? 'meta';
+  if (transport === 'kapso') {
+    if (!env.KAPSO_API_KEY?.trim()) missing.push('KAPSO_API_KEY');
+  } else if (transport === 'meta') {
+    if (!env.WHATSAPP_ACCESS_TOKEN?.trim()) missing.push('WHATSAPP_ACCESS_TOKEN');
+  } else missing.push('WHATSAPP_TRANSPORT');
   if (!/^\d+$/.test(env.WHATSAPP_PHONE_NUMBER_ID || '')) missing.push('WHATSAPP_PHONE_NUMBER_ID');
   if (!validPhone(env.WHATSAPP_SENDER_NUMBER)) missing.push('WHATSAPP_SENDER_NUMBER');
   if (!env.WHATSAPP_CUSTOMER_TEMPLATE_NAME?.trim()) missing.push('WHATSAPP_CUSTOMER_TEMPLATE_NAME');
@@ -251,12 +258,16 @@ export async function processPendingCustomerOrderNotifications(
     };
     let response: Response;
     try {
+      // Fixed provider hosts; a key is sent only to its explicitly selected transport.
+      // Kapso's WhatsApp proxy uses the same template body and message-ID response.
+      const kapso = env.WHATSAPP_TRANSPORT === 'kapso';
+      const endpoint = kapso ? 'https://api.kapso.ai/meta/whatsapp' : 'https://graph.facebook.com';
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (kapso) headers['X-API-Key'] = env.KAPSO_API_KEY!;
+      else headers.Authorization = `Bearer ${env.WHATSAPP_ACCESS_TOKEN}`;
       response = await fetcher(
-        `https://graph.facebook.com/${env.WHATSAPP_GRAPH_API_VERSION}/${env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
-        { method: 'POST', headers: {
-          Authorization: `Bearer ${env.WHATSAPP_ACCESS_TOKEN}`,
-          'Content-Type': 'application/json',
-        }, body: JSON.stringify(payload), signal: AbortSignal.timeout(10000) },
+        `${endpoint}/${env.WHATSAPP_GRAPH_API_VERSION}/${env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+        { method: 'POST', headers, body: JSON.stringify(payload), signal: AbortSignal.timeout(10000), redirect: 'error' },
       );
     } catch {
       // The provider may have accepted a request before the connection failed.

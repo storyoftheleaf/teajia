@@ -62,7 +62,98 @@ function row(db: SqliteD1, invoiceId = 'invoice-1') {
 
 afterEach(() => vi.restoreAllMocks());
 
+const kapsoEnv: WhatsAppOrderEnv = {
+  ...env, WHATSAPP_TRANSPORT: 'kapso', KAPSO_API_KEY: 'kapso-test-secret',
+  WHATSAPP_ACCESS_TOKEN: undefined, WHATSAPP_GRAPH_API_VERSION: 'v24.0',
+};
+
 describe('customer WhatsApp order outbox', () => {
+  it('uses the fixed Kapso proxy and its own key with the unchanged customer template', async () => {
+    const db = database();
+    await queue(db);
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ messages: [{ id: 'wamid.kapso' }] }), { status: 200 }));
+    const result = await processPendingCustomerOrderNotifications(db as unknown as D1Database, { ...kapsoEnv, WHATSAPP_ACCESS_TOKEN: 'must-not-leave-server' }, { fetcher: fetcher as typeof fetch });
+    expect(result.accepted).toBe(1);
+    expect(row(db)).toMatchObject({ state: 'accepted', provider_message_id: 'wamid.kapso', attempts: 1 });
+    const [url, init] = fetcher.mock.calls[0];
+    expect(url).toBe('https://api.kapso.ai/meta/whatsapp/v24.0/123456789/messages');
+    expect(init.headers).toEqual({ 'Content-Type': 'application/json', 'X-API-Key': 'kapso-test-secret' });
+    expect(init.redirect).toBe('error');
+    const payload = JSON.parse(init.body);
+    expect(payload.to).toBe('628111234567');
+    expect(payload.template.name).toBe('teajia_order_confirmation');
+    expect(payload.template.components[0].parameters.map((p: { text: string }) => p.text)).toEqual([
+      'TJ-ORDER-1', 'Customer Name', 'Denpasar', 'Rou Gui 25 g; estimated USD 25',
+      'https://teajia.com/order/privateordertoken000000000000000001',
+    ]);
+    await processPendingCustomerOrderNotifications(db as unknown as D1Database, kapsoEnv, { fetcher: fetcher as typeof fetch });
+    expect(fetcher).toHaveBeenCalledOnce();
+    db.close();
+  });
+
+  it('never falls back from a missing Kapso key or unknown transport to Meta credentials', async () => {
+    const db = database();
+    await queue(db);
+    const fetcher = vi.fn();
+    for (const settings of [
+      { ...env, WHATSAPP_TRANSPORT: 'kapso' },
+      { ...env, WHATSAPP_TRANSPORT: 'kapos', KAPSO_API_KEY: 'key' },
+    ]) {
+      await processPendingCustomerOrderNotifications(db as unknown as D1Database, settings, { fetcher: fetcher as typeof fetch });
+      expect(row(db)).toMatchObject({ state: 'config_required', attempts: 0 });
+    }
+    expect(fetcher).not.toHaveBeenCalled();
+    const ready = await getCustomerOrderNotificationSetupStatus(db as unknown as D1Database, kapsoEnv, ACCOUNT);
+    expect(ready.ready).toBe(true);
+    db.close();
+  });
+
+  it('keeps all account, sender, consent, and customer-link gates in front of Kapso', async () => {
+    const cases = [
+      { settings: { ...kapsoEnv, WHATSAPP_CUSTOMER_CONFIRMATIONS_ENABLED: undefined } },
+      { settings: { ...kapsoEnv, WHATSAPP_ORDER_ACCOUNT_ID: 'other_shop' } },
+      { settings: { ...kapsoEnv, WHATSAPP_SENDER_NUMBER: '+628999999999' } },
+      { settings: kapsoEnv, sql: "UPDATE accounts SET order_whatsapp_notifications_enabled=0" },
+      { settings: kapsoEnv, sql: "UPDATE order_whatsapp_outbox SET consent_at=NULL" },
+      { settings: kapsoEnv, sql: "UPDATE order_whatsapp_outbox SET recipient_number='+6281339712339'" },
+      { settings: kapsoEnv, sql: "UPDATE order_whatsapp_outbox SET invoice_url='https://teajia.com/admin/activity'" },
+      { settings: kapsoEnv, sql: "UPDATE order_whatsapp_outbox SET message_purpose='owner_notification'" },
+    ];
+    for (const item of cases) {
+      const db = database();
+      await queue(db);
+      if (item.sql) db.sqlite.exec(item.sql);
+      const fetcher = vi.fn();
+      await processPendingCustomerOrderNotifications(db as unknown as D1Database, item.settings, { fetcher: fetcher as typeof fetch });
+      expect(fetcher).not.toHaveBeenCalled();
+      expect(row(db).attempts).toBe(0);
+      db.close();
+    }
+  });
+
+  it('honors Kapso rate limits and holds rejected or ambiguous outcomes without automatic replay', async () => {
+    const cases = [
+      { response: () => new Response(JSON.stringify({ error: 'Rate limit exceeded' }), { status: 429, headers: { 'Retry-After': '120' } }), state: 'retry_scheduled' },
+      { response: () => new Response('Unauthorized', { status: 401 }), state: 'config_required' },
+      { response: () => new Response('Unavailable', { status: 503 }), state: 'review_required' },
+      { response: () => new Response('{}', { status: 200 }), state: 'review_required' },
+      { response: () => { throw new Error('Unknown connection outcome'); }, state: 'review_required' },
+    ];
+    for (const item of cases) {
+      const db = database();
+      await queue(db);
+      const fetcher = vi.fn(async () => item.response());
+      await processPendingCustomerOrderNotifications(db as unknown as D1Database, kapsoEnv, { fetcher: fetcher as typeof fetch });
+      expect(row(db)).toMatchObject({ state: item.state, attempts: 1 });
+      if (item.state === 'retry_scheduled') {
+        const next = Date.parse(`${row(db).next_attempt_at}Z`);
+        expect(next - Date.now()).toBeGreaterThan(118000);
+      }
+      await processPendingCustomerOrderNotifications(db as unknown as D1Database, kapsoEnv, { fetcher: fetcher as typeof fetch });
+      expect(fetcher).toHaveBeenCalledOnce();
+      db.close();
+    }
+  });
   it('adds customer fields without changing the meaning or state of existing owner rows', () => {
     const db = new SqliteD1('migrations', '0027');
     db.sqlite.exec(`INSERT INTO order_whatsapp_outbox

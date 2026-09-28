@@ -8,7 +8,7 @@ The confirmation goes **from the account’s business number to the customer**. 
 
 ## Configuration
 
-1. Complete Coexistence onboarding for the existing business number through an eligible provider. Obtain its production Phone Number ID and the server authorization required to send. The current transport sends to Meta Graph API; a provider that requires its own API needs a reviewed adapter before activation. Keep secrets in Infisical and Worker secrets, never in Vite variables, browser code, or account records.
+1. Complete Coexistence onboarding for the existing business number through an eligible provider. Obtain its production Phone Number ID and the server authorization required to send. The Worker supports direct Meta Graph API or the Kapso WhatsApp proxy. Select the transport explicitly for Kapso; it never falls back to another provider when its credentials are missing. Keep secrets in Infisical and Worker secrets, never in Vite variables, browser code, or account records.
 2. Obtain approval for a **UTILITY** customer confirmation template with exactly five body variables, in this order:
 
    ```text
@@ -26,17 +26,29 @@ The confirmation goes **from the account’s business number to the customer**. 
 
    | Variable | Value |
    | --- | --- |
+   | `WHATSAPP_TRANSPORT` | `kapso` for the Kapso project; `meta` or unset retains direct Graph API. Unknown values disable sending |
+   | `KAPSO_API_KEY` | Server-only Kapso project API key, required only for `kapso` |
    | `WHATSAPP_CUSTOMER_CONFIRMATIONS_ENABLED` | Leave unset while onboarding; `true` explicitly enables the customer flow |
    | `WHATSAPP_ORDER_ACCOUNT_ID` | Exact account allowed to send; initially `acc_teajia_bali` |
-   | `WHATSAPP_ACCESS_TOKEN` | Secret production Meta Graph API authorization for the connected account |
+   | `WHATSAPP_ACCESS_TOKEN` | Server-only production Meta Graph API authorization, required only for `meta` |
    | `WHATSAPP_PHONE_NUMBER_ID` | Production Phone Number ID for the existing business number |
    | `WHATSAPP_SENDER_NUMBER` | `+6281339712339`; must match that account’s saved `whatsapp_number` |
    | `WHATSAPP_CUSTOMER_TEMPLATE_NAME` | Actual approved five-variable customer utility template name |
    | `WHATSAPP_ORDER_TEMPLATE_LANGUAGE` | Actual approved language, such as `en_US` |
-   | `WHATSAPP_GRAPH_API_VERSION` | A supported Graph API version verified during setup |
+   | `WHATSAPP_GRAPH_API_VERSION` | A supported version verified during setup; Kapso’s current documented proxy version is `v24.0` |
 
    The old `WHATSAPP_ORDER_TEMPLATE_NAME` is deliberately not used. An old owner-alert template or test setup cannot activate this customer flow by accident.
 4. After verifying the connection and intended account, enable `accounts.order_whatsapp_notifications_enabled=1` for that account through an authorized operator operation. Both the account opt-in and exact allowlist are required, along with the new customer-flow enable switch. A customer number matching the sender is refused. Verify with mocked requests before an explicitly authorized real test.
+
+## Kapso transport
+
+The optional Kapso path uses the fixed endpoint `https://api.kapso.ai/meta/whatsapp/<version>/<phone-number-id>/messages` and authenticates with `X-API-Key: <KAPSO_API_KEY>`. It uses the same five-variable template payload and recognizes the documented `messages[0].id` receipt. No SDK, extra webhook, or conversation automation is installed. Keys are never shared between the two provider hosts, and redirects are refused.
+
+Kapso mode does not require `WHATSAPP_ACCESS_TOKEN`. It still requires the production Phone Number ID connected to **+6281339712339**, the matching account business number, exact account allowlist, account opt-in, valid consent and private customer link, approved template and language, and the separate customer-flow enable switch. Finish phone approval and verify template approval before setting that switch to `true`.
+
+HTTP 429 uses the existing bounded retry logic and honors `Retry-After`. An authentication or template rejection is held for operator repair. Network errors, 5xx, undocumented responses, and successful HTTP responses without a message ID are held for review instead of automatically resubmitted. A message ID means accepted by the API, not delivered to the customer or synchronized to the phone app.
+
+Verified against Kapso’s official [send endpoint](https://docs.kapso.ai/api/meta/whatsapp/messages/send-a-message), [authentication overview](https://docs.kapso.ai/api/introduction), [template examples](https://docs.kapso.ai/docs/whatsapp/templates/simple-text), and [429 handling](https://docs.kapso.ai/api/rate-limits). The endpoint is the WhatsApp proxy, not the Platform API. The template must use the positional variables shown above, not named parameters.
 
 ## Consent, order atomicity, and old rows
 
