@@ -12,7 +12,7 @@
 //   node scripts/atlas-web-sources.mjs --out <dir>            build only, to look at
 //   node scripts/atlas-web-sources.mjs --out <dir> --send     build, then send to the bucket
 //
-// Text only for now: pictures are a second pass.
+// Pictures follow the Add source page's rules (scripts/atlas-web-pictures.mjs).
 
 import { mkdirSync, readFileSync, readdirSync, writeFileSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -21,9 +21,11 @@ import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { extractPdf } from '../src/atlas/add/extract.ts';
-import { buildSourcePackage, suggestTopics } from '../src/atlas/add/buildPackage.ts';
+import { buildSourcePackage, issueIdFor, slug, suggestTopics } from '../src/atlas/add/buildPackage.ts';
 import { repairLigatures, wordCount } from '../src/atlas/add/text.ts';
 import { cleanWebBlocks, vocabularyOf } from './atlas-web-clean.mjs';
+import { choosePictures, look, rgbOf, worthLooking, writeJpeg } from './atlas-web-pictures.mjs';
+import { copyFileSync } from 'node:fs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const WISDOM = join(homedir(), 'Documents/Files/2 Areas/Brands/Teajia/Reference/Tea wisdom');
@@ -64,36 +66,93 @@ export function titleFromFile(file, match) {
   return { title, author };
 }
 
-async function readPdf(path, vocabulary) {
+/**
+ * Text and picture candidates from one PDF. Each candidate that passes the
+ * size and detail tests is written as a JPEG under `pictureDir`, once per
+ * pdf.js name, and listed per page with its look.
+ */
+async function readPdf(path, vocabulary, pictureDir) {
   const task = pdfjs.getDocument({ data: new Uint8Array(readFileSync(path)), verbosity: 0 });
   const pdf = await task.promise;
-  // Text only: every picture is left out for now.
-  const doc = await extractPdf(pdf, { ops: pdfjs.OPS, onPicture: () => false });
+  const pages = new Map();
+  const files = new Map();
+  const looks = new Map();
+  const doc = await extractPdf(pdf, {
+    ops: pdfjs.OPS,
+    onPicture: (page, ref, image) => {
+      if (!worthLooking(ref.width, ref.height)) return false;
+      if (!looks.has(ref.name)) {
+        const rgb = rgbOf(image);
+        const l = rgb ? look(rgb, ref.width, ref.height) : null;
+        if (!l || l.flat) {
+          looks.set(ref.name, null);
+        } else {
+          const file = join(pictureDir, `${ref.name}.jpg`);
+          writeJpeg(rgb, ref.width, ref.height, file);
+          files.set(ref.name, file);
+          looks.set(ref.name, l.print);
+        }
+      }
+      const print = looks.get(ref.name);
+      if (!print) return false;
+      const p = page.pageNumber - 1;
+      if (!pages.has(p)) pages.set(p, []);
+      pages.get(p).push({ name: ref.name, print });
+      return true;
+    },
+  });
   await task.destroy();
   // "di\u0000erent" → "different": the pair that makes a word Global Tea Hut uses.
-  return repairLigatures(doc, w => vocabulary.has(w));
+  return { doc: repairLigatures(doc, w => vocabulary.has(w)), pages, files };
 }
 
-/** Build one source from all its PDFs, in file-name order. */
-export async function buildWebSource(spec, files, topics, vocabulary) {
+/**
+ * Build one source from all its PDFs, in file-name order. Pictures are copied
+ * to `<out>/<source>/media/<issue>/…` and listed in `media`.
+ */
+export async function buildWebSource(spec, files, topics, vocabulary, out) {
+  const sourceId = slug(spec.details.name);
+  const issueId = issueIdFor(spec.details);
+  const read = [];
+  for (const [i, file] of files.entries()) {
+    read.push(await readPdf(join(WISDOM, file), vocabulary, join(out, sourceId, '_candidates', String(i))));
+  }
+  const chosen = choosePictures(read);
+
   const articles = [];
+  const media = [];
   let manifest = null;
-  for (const file of files) {
-    const doc = await readPdf(join(WISDOM, file), vocabulary);
+  for (const [i, file] of files.entries()) {
+    const { doc, files: jpegs } = read[i];
     const { title, author } = titleFromFile(file, spec.match);
-    const pkg = buildSourcePackage({ doc, details: spec.details, sections: [{ title, author, start: 0, topics: [] }], pictures: new Map(), topics });
+    const short = slug(title).slice(0, 48).replace(/-+$/, '');
+    const pictures = new Map();
+    for (const [p, names] of chosen[i]) {
+      pictures.set(p, names.map((name, n) => {
+        const src = `${issueId}/${short}-${String(p + 1).padStart(3, '0')}-${String(n).padStart(3, '0')}.jpg`;
+        const dest = join(out, sourceId, 'media', src);
+        mkdirSync(dirname(dest), { recursive: true });
+        copyFileSync(jpegs.get(name), dest);
+        media.push({ key: `media/${src}`, file: dest });
+        return src;
+      }));
+    }
+    const pkg = buildSourcePackage({ doc, details: spec.details, sections: [{ title, author, start: 0, topics: [] }], pictures, topics });
     const a = pkg.articles[0];
     const blocks = cleanWebBlocks(a.blocks, title);
+    const cover = blocks.find(b => b.t === 'img')?.src ?? null;
     let id = a.id;
     for (let n = 2; articles.some(x => x.id === id); n++) id = `${a.id}-${n}`;
-    articles.push({ ...a, id, order: articles.length, author, blocks, words: wordCount(blocks), topics: suggestTopics(title, blocks, topics) });
+    articles.push({ ...a, id, order: articles.length, author, blocks, cover, words: wordCount(blocks), topics: suggestTopics(title, blocks, topics) });
     manifest ??= pkg.manifest;
   }
+  // Only pictures the cleaned articles still show are sent.
+  const shown = new Set(articles.flatMap(a => a.blocks.filter(b => b.t === 'img').map(b => `media/${b.src}`)));
   const used = new Set(articles.flatMap(a => a.topics));
   manifest.sources[0].issues[0].articles = articles.map(a => a.id);
   manifest.topics = topics.filter(t => used.has(t.id)).map(t => ({ id: t.id, name: t.name, category: t.category, aliases: t.aliases ?? [] }));
   manifest.articles = articles.map(({ blocks: _b, ...meta }) => meta);
-  return { manifest, articles };
+  return { manifest, articles, media: media.filter(m => shown.has(m.key)) };
 }
 
 const BUCKET = 'teajia-atlas-private';
@@ -122,10 +181,18 @@ function send(out, built) {
   const got = wrangler(['r2', 'object', 'get', `${BUCKET}/added/sources.json`, '--file', regFile]);
   const registry = got.ok && existsSync(regFile) ? JSON.parse(readFileSync(regFile, 'utf8')) : { format: 1, sources: [] };
 
-  for (const { manifest, articles } of built) {
+  for (const { manifest, articles, media } of built) {
     const src = manifest.sources[0];
     if (pkgIds.has(src.id)) throw new Error(`${src.name}: the package already has a source with the id ${src.id}.`);
     const dir = join(out, src.id);
+    // Pictures before the articles that show them.
+    if (media.length) {
+      const pics = join(dir, 'bulk-media.json');
+      writeFileSync(pics, JSON.stringify(media));
+      if (!wrangler(['r2', 'bulk', 'put', BUCKET, '--filename', pics, '--content-type', 'image/jpeg', '--concurrency', '6', '--force'], { quiet: false }).ok) {
+        throw new Error(`${src.name}: the pictures did not all send. Run again.`);
+      }
+    }
     const list = join(dir, 'bulk.json');
     writeFileSync(list, JSON.stringify(articles.map(a => ({ key: `articles/${a.id}.json`, file: join(dir, 'articles', `${a.id}.json`) }))));
     const put = wrangler(['r2', 'bulk', 'put', BUCKET, '--filename', list, '--content-type', 'application/json', '--concurrency', '6', '--force'], { quiet: false });
@@ -134,7 +201,7 @@ function send(out, built) {
       throw new Error(`${src.name}: its record did not save. Run again.`);
     }
     if (!registry.sources.some(x => x.id === src.id)) registry.sources.push({ id: src.id, name: src.name, addedAt: new Date().toISOString() });
-    console.log(`✓ Sent ${src.name}: ${articles.length} articles`);
+    console.log(`✓ Sent ${src.name}: ${articles.length} articles, ${media.length} pictures`);
   }
   writeFileSync(regFile, JSON.stringify(registry));
   if (!wrangler(['r2', 'object', 'put', `${BUCKET}/added/sources.json`, '--file', regFile, '--content-type', 'application/json']).ok) {
@@ -160,14 +227,14 @@ async function main() {
   const built = [];
   for (const spec of WEB_SOURCES) {
     const files = pdfs.filter(f => spec.match.test(f));
-    const pkg = await buildWebSource(spec, files, topics, vocabulary);
+    const pkg = await buildWebSource(spec, files, topics, vocabulary, out);
     const src = pkg.manifest.sources[0];
     const dir = join(out, src.id);
     mkdirSync(join(dir, 'articles'), { recursive: true });
     writeFileSync(join(dir, 'manifest.json'), JSON.stringify(pkg.manifest, null, 1));
     for (const a of pkg.articles) writeFileSync(join(dir, 'articles', `${a.id}.json`), JSON.stringify(a));
     const words = pkg.articles.reduce((n, a) => n + a.words, 0);
-    console.log(`✓ ${src.name}: ${pkg.articles.length} articles, ${words.toLocaleString()} words → ${dir}`);
+    console.log(`✓ ${src.name}: ${pkg.articles.length} articles, ${words.toLocaleString()} words, ${pkg.media.length} pictures → ${dir}`);
     built.push(pkg);
   }
   if (args.includes('--send')) send(out, built);
