@@ -47,6 +47,7 @@ import { StoryEditProvider } from '../read/storyEdit';
 import EditablePhoto from '../read/EditablePhoto';
 import StoryEditorBar from '../read/StoryEditorBar';
 import { InquiryForm } from '../../components/advise/InquiryForm';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { adviseTestimonials } from '../../data/adviseTestimonials';
 import { ADVISE_STATE, type AdviseState } from './adviseLive';
 
@@ -69,6 +70,10 @@ type AdviseService = {
   dek: string;
   /** Preselect the block's own title opens the form with. */
   ask: string;
+  who: string;
+  work: string;
+  outcome: string;
+  next: string;
   quiet?: boolean;
   rows: AdviseSubRowData[];
 };
@@ -80,6 +85,10 @@ function buildAdviseServices(): AdviseService[] {
       title: 'Tea House Design & Curation',
       dek: 'From concept through opening. Design, curation, tea selection, training, and operations.',
       ask: 'Space design or tea integration',
+      who: 'For someone opening a tea house, or a hotel, retreat, or private space making tea part of its daily welcome.',
+      work: 'Adrian helps shape the concept and room, selects tea and teaware, then works through service, team training, and operating rhythm.',
+      outcome: 'A coherent place to share tea, with the people and practical systems to keep it working after opening.',
+      next: 'Start with the space you have or hope to create. A sketch of the idea is enough.',
       rows: [
         { key: 'for-your-space', title: 'For Your Space', dek: 'Hotels, studios, and teams.', verb: 'open', href: '/for-your-space' },
         { key: 'projects', title: 'Selected Projects', dek: 'Intaaya Resort, a private tea room, an office.', verb: 'open', href: '/advise?v=projects' },
@@ -90,6 +99,10 @@ function buildAdviseServices(): AdviseService[] {
       title: 'Tea Curation & Sourcing',
       dek: 'Direct sourcing from Taiwan, China, and trusted origins, for collectors, spaces, and communities.',
       ask: 'Tea sourcing',
+      who: 'For a collector looking for a considered direction, or a space that needs a tea selection people can return to.',
+      work: 'Adrian learns who will drink the tea, how it will be prepared, and the range you want to explore before sourcing and curating a selection.',
+      outcome: 'A tea collection or menu with a reason for every choice and a practical way to serve it.',
+      next: 'Tell us who the tea is for. You can leave regions and tea names undecided.',
       rows: [
         { key: 'sourcing-collection', title: 'For a Collection', dek: 'Rare and aged teas, found for you.', verb: 'ask', ask: 'Tea sourcing' },
         { key: 'sourcing-space', title: 'For a Space', dek: 'A menu sourced and kept in stock.', verb: 'ask', ask: 'Tea sourcing' },
@@ -101,6 +114,10 @@ function buildAdviseServices(): AdviseService[] {
       title: 'Sessions & Guidance',
       dek: 'In the Bali studio or wherever you are.',
       ask: 'A session or practice guidance',
+      who: 'For a first encounter with tea, a personal practice taking shape, or a group seeking a shared experience.',
+      work: 'Adrian guides the session around your experience and setting, from an open sit to practice setup or a private gathering.',
+      outcome: 'Time at the table that meets you where you are, and a clearer sense of how to continue with tea.',
+      next: 'Share the occasion, group size if relevant, and whether Bali or another setting suits you.',
       quiet: true,
       rows: [
         { key: 'open-sit', title: 'Open Sit', dek: 'Share tea at the studio. Event based or appointment.', verb: 'ask', ask: 'A session or practice guidance' },
@@ -214,6 +231,12 @@ const AdviseServiceBlock: React.FC<{
       <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 14, lineHeight: 1.55, color: 'var(--tj-read-taupe)', margin: '10px 0 0', maxWidth: 520 }}>
         {service.dek}
       </p>
+      <div className="mt-5 max-w-[560px] border-l border-tea-border pl-4 sm:pl-5 space-y-3">
+        <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}><span className="font-semibold text-tea-text">Who it suits.</span> {service.who}</p>
+        <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}><span className="font-semibold text-tea-text">What Adrian does.</span> {service.work}</p>
+        <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}><span className="font-semibold text-tea-text">What you leave with.</span> {service.outcome}</p>
+        <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}><span className="font-semibold text-tea-text">A place to begin.</span> {service.next}</p>
+      </div>
       <div className="tj-advise-subs">
         {visibleRows.map((row) => (
           <AdviseSubRow key={row.key} row={row} state={ADVISE_STATE[row.key] ?? 'draft'} isOwner={isOwner} onAsk={onAsk} />
