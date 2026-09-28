@@ -15,7 +15,7 @@
 // Pictures follow the Add source page's rules (scripts/atlas-web-pictures.mjs).
 
 import { mkdirSync, readFileSync, readdirSync, writeFileSync, existsSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -43,6 +43,33 @@ export const WEB_SOURCES = [
       year: '',
       issueLabel: 'Articles',
     },
+    // A picture saved on its own, as a one-picture article. The shop's menu
+    // links it as "Growing Regions of Chinese Tea". The province list printed
+    // on the map is copied out as text so search finds it.
+    pictures: [{
+      file: 'Chinese Tea Growing Regions.webp',
+      title: 'Chinese Tea Growing Regions',
+      heading: 'Major Tea Producing Regions of China & Taiwan',
+      // A map names each place once, too few times for the automatic tagging.
+      topics: ['terroir', 'yunnan', 'fujian', 'wuyi-mountains', 'guangxi', 'taiwan'],
+      lines: [
+        'Anhui: Huangshan Mao Feng, Lu’an Guapian, Hou Kui, Keemun',
+        'Fujian: Lapsang Souchong, Bai Mu Dan (White Peony), Silver Needle, Tie Guan Yin (Iron Buddha), Buddha of Mercy, Gun Yam, Chinese Oolong), Wuyi Cliff (Da Hong Pao, Big Red Robe), Dragon Pearl Jasmine',
+        'Guangdong: Dan Cong (Phoenix Oolong), Ying De Hong',
+        'Guangxi: Liu Bao',
+        'Henan: Xin Yang Mao Jian',
+        'Hubei: Yu Lu',
+        'Hunan: Yin Zhen (Silver Needle)',
+        'Jiangsu: Pi Lo Chun (Bi Lo Chung)',
+        'Jiangxi: Yun Wu',
+        'Shaanxi: Mao Jian',
+        'Shanxi: Mao Jian',
+        'Sichuan: Meng Ding',
+        'Taiwan: Taiwan Oolong (High Mountain, Dong Ding), Dong Fang Mei Ren, Oriental Beauty, Alishan, Lishan, Baozhong',
+        'Yunnan: Pu-Erh, Dian Hong (Golden Tips Red)',
+        'Zhejiang: Long Jing (Loong Jen, Dragon Well), Dragon Pearl Jasmine, Gunpowder Green',
+      ],
+    }],
   },
   {
     match: / — Ooika \(覆い香\)\.pdf$/,
@@ -146,6 +173,29 @@ export async function buildWebSource(spec, files, topics, vocabulary, out) {
     articles.push({ ...a, id, order: articles.length, author, blocks, cover, words: wordCount(blocks), topics: suggestTopics(title, blocks, topics) });
     manifest ??= pkg.manifest;
   }
+  // Pictures saved on their own become one-picture articles.
+  for (const pic of spec.pictures ?? []) {
+    const src = `${issueId}/${slug(pic.title).slice(0, 48)}-001-000.jpg`;
+    const dest = join(out, sourceId, 'media', src);
+    mkdirSync(dirname(dest), { recursive: true });
+    execFileSync('sips', ['-s', 'format', 'jpeg', '-s', 'formatOptions', '80', join(WISDOM, pic.file), '--out', dest], { stdio: 'ignore' });
+    media.push({ key: `media/${src}`, file: dest });
+    const blocks = [
+      { t: 'img', src },
+      { t: 'h', v: pic.heading },
+      ...pic.lines.map(v => ({ t: 'p', v })),
+    ];
+    articles.push({
+      id: slug(`${issueId} p00 ${pic.title}`).slice(0, 150), source: sourceId, issue: issueId, title: pic.title,
+      author: '', pages: '', order: 0,
+      topics: [...new Set([...(pic.topics ?? []), ...suggestTopics(pic.title, blocks, topics)])].filter(t => topics.some(x => x.id === t)),
+      words: wordCount(blocks), cover: src, blocks,
+    });
+  }
+  // Reading order: by title, the way the shop's saved pages are named.
+  articles.sort((a, b) => a.title.localeCompare(b.title, 'en'));
+  articles.forEach((a, i) => { a.order = i; });
+
   // Only pictures the cleaned articles still show are sent.
   const shown = new Set(articles.flatMap(a => a.blocks.filter(b => b.t === 'img').map(b => `media/${b.src}`)));
   const used = new Set(articles.flatMap(a => a.topics));
