@@ -163,6 +163,26 @@ rebuild it instead.
      are never sent twice).
 3. Nothing to deploy: the Worker serves whatever the bucket holds.
 
+## Adding many saved web pages as one source
+
+The Add source page makes one source per PDF. A shop's blog saved page by
+page is many PDFs that belong to one source, so it has its own script:
+`scripts/atlas-web-sources.mjs`. It runs the same reader and package builder
+as the page (`src/atlas/add/*`) in Node, one article per PDF, one issue
+("Articles") per source, then tidies each page (`scripts/atlas-web-clean.mjs`):
+the shop's menus, breadcrumbs, price tags, promotions, footer, comments and link
+addresses out; the "fi", "fl", "ff" pairs put back with `repairLigatures`
+checked against Global Tea Hut's vocabulary, and "Th" (U+E013 in The Chinese
+Tea Shop's font) put back. Pictures are not taken yet.
+
+- `node scripts/atlas-web-sources.mjs --out <dir>` builds, to read before sending.
+- `--send` records the sources exactly as the Add source page does (articles,
+  `added/<id>/manifest.json`, `added/sources.json`) and runs `atlas:upload`,
+  so they are in the index and search and survive every rebuild.
+- The sources it knows are listed at the top of the script (`WEB_SOURCES`): a
+  file-name pattern plus name, credit and subtitle. Added 2026-09-28: The
+  Chinese Tea Shop (27 articles, thechineseteashop.com) and Ooika (4, ooika.co).
+
 ## Adding a source in the admin
 
 The site owner can add a book, a magazine issue or a saved web article from a
