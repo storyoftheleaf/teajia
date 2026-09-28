@@ -127,7 +127,7 @@ export default function AtlasReaderPage() {
   ];
 
   return (
-    <AtlasFrame title={a.title} trail={trail} measure="read">
+    <AtlasFrame title={a.title} trail={trail} measure="read" here={{ issue: a.issue }}>
       <div className="xl:grid xl:grid-cols-[minmax(0,680px)_minmax(0,1fr)] xl:gap-x-20">
         <div className="min-w-0">
           <article>

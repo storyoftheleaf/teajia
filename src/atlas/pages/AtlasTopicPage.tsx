@@ -32,6 +32,7 @@ export default function AtlasTopicPage() {
       title={ready?.topic.name}
       trail={ready ? [{ label: ready.topic.category }] : []}
       measure="list"
+      here={{ topic: topicId }}
     >
       <AtlasLoadState load={load}>
         {({ topic, articles }) => {
@@ -39,18 +40,36 @@ export default function AtlasTopicPage() {
           return (
             <>
               <h1 className="font-display text-[34px] md:text-[46px] leading-[1.1] text-tea-text">{topic.name}</h1>
-              <p className="font-body text-ui-15 text-tea-text-sec mt-3 mb-10 md:mb-12">
-                {countLabel(articles.length, 'article', 'articles')}
-                {years.length > 1 ? `, ${years[0][0]} to ${years[years.length - 1][0]}` : ''}, oldest first.
+              <p className="font-body text-ui-15 text-tea-text-sec mt-3">
+                {countLabel(articles.length, 'article', 'articles')}, oldest first.
               </p>
+              {years.length > 1 && (
+                // Straight to a year, without scrolling through the ones before it.
+                <nav aria-label="Jump to a year" className="flex flex-wrap gap-x-4 gap-y-1 mt-3 mb-8 md:mb-10">
+                  {years.map(([year]) => (
+                    <a
+                      key={year}
+                      href={`#year-${year}`}
+                      onClick={e => {
+                        e.preventDefault();
+                        document.getElementById(`year-${year}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }}
+                      className="font-body text-ui-14 text-tea-text-sec tabular-nums hover:text-tea-text transition-colors"
+                    >
+                      {year}
+                    </a>
+                  ))}
+                </nav>
+              )}
               {years.map(([year, list]) => (
                 <section
                   key={year}
-                  aria-labelledby={`year-${year}`}
-                  className="md:grid md:grid-cols-[88px_minmax(0,1fr)] md:gap-x-8 border-t border-tea-border pt-3 md:pt-0 mb-8 md:mb-10"
+                  id={`year-${year}`}
+                  aria-labelledby={`year-${year}-label`}
+                  className="md:grid md:grid-cols-[88px_minmax(0,1fr)] md:gap-x-8 border-t border-tea-border pt-3 md:pt-0 mb-8 md:mb-10 scroll-mt-6"
                 >
                   <h2
-                    id={`year-${year}`}
+                    id={`year-${year}-label`}
                     className="font-display text-ui-26 leading-none text-tea-text-sec tabular-nums md:pt-4 md:sticky md:top-8 md:self-start"
                   >
                     {year}
