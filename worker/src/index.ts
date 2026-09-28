@@ -23112,10 +23112,16 @@ const handleGetPublicArticle: Handler = async (request, env, params) => {
 // nobody has flipped the flag yet; unpublishing an article never revokes
 // it (one-directional, matches "unpublishing turns bylines back to plain
 // text; articles stay").
+//
+// Except when somebody pressed Unpublish. That writes unpublished_at, and a
+// deliberate unpublish outranks the automatic rule: on 2026-09-28 Adrian
+// unpublished Chen Wei and the page stayed up, because Chen Wei is the named
+// author of five published articles. An explicit decision to take a person
+// down must take them down; publishing them again clears unpublished_at.
 const CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL =
-  `(c.is_published = 1 OR EXISTS (
+  `(c.is_published = 1 OR (c.unpublished_at IS NULL AND EXISTS (
       SELECT 1 FROM articles ar WHERE ar.author_id = c.id AND ar.status = 'published'
-    ))`;
+    )))`;
 
 function firstSentenceOf(text: unknown): string | null {
   if (typeof text !== 'string') return null;
@@ -23462,7 +23468,7 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     publicPaymentAvailability(env, slug),
   ]);
 
-  const effectivelyPublished = row.is_published === 1 || hasPublishedArticle;
+  const effectivelyPublished = row.is_published === 1 || (!row.unpublished_at && hasPublishedArticle);
 
   return json({
     id: row.id,
