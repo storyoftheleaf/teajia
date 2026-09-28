@@ -71,7 +71,7 @@ test('shop toolbar uses compact price controls with liked on the far right', asy
   await expect(toolbar.getByRole('button', { name: '100g' })).toBeVisible();
 
   const toolbarBox = await toolbar.boundingBox();
-  const likedBox = await toolbar.getByRole('button', { name: /show only liked teas/i }).boundingBox();
+  const likedBox = await toolbar.getByRole('button', { name: 'Saved', exact: true }).boundingBox();
   const sortBox = await toolbar.getByRole('button', { name: /^Featured$/ }).boundingBox();
 
   expect(toolbarBox).not.toBeNull();

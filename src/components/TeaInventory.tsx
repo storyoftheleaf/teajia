@@ -602,43 +602,20 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                  <Icons.ChevronDown className={`w-3 h-3 transition-transform ${openFilter === 'sort' ? 'rotate-180' : ''}`} aria-hidden="true" />
                </button>
 
-               {/* Liked, as the mark itself.
-                   It was the word LIKED at the end of the second line, which
-                   cost that line about 60px and put a filter down among the
-                   search field and the price basis, where it read as one more
-                   piece of chrome rather than as a filter that is either on or
-                   off. Up here it is the same heart the reader pressed on the
-                   tea, at the far end of the row the other filters are in, and
-                   it says its state three ways at once: filled, gold, and
-                   sitting on a gold wash. That is smaller than the word and
-                   easier to catch at a glance, which is the whole point of a
-                   filter you can leave switched on by accident. */}
+               {/* Saved, as a word. It was a bare heart, which read as a
+                   decoration rather than a control, and the tile on each tea
+                   says Save, not like. Same filter as before: on, it shows
+                   only the teas you saved; the word turns bronze while on. */}
                <button
                  type="button"
                  onClick={() => setShopSavedOnly(!shopSavedOnly)}
                  aria-pressed={shopSavedOnly}
-                 aria-label={shopSavedOnly ? 'Showing only liked teas. Show all teas' : 'Show only liked teas'}
-                 title={shopSavedOnly ? 'Showing liked teas only' : 'Show liked teas only'}
-                 /* The heart itself lands on the gutter, like the cart in the
-                    bar above it.
-
-                    It cannot be done the cart's way. The cart is a bare glyph,
-                    so pulling its 44px box right moves the glyph and nothing
-                    else; this one carries a visible gold chip when it is on,
-                    and pulling that right would hang the chip past the line
-                    instead. So the chip shrinks to hug the glyph and the tap
-                    area leaves the layout: `after` is an invisible 52px pad
-                    around a 28px control, which keeps the WCAG floor without
-                    the control being 44px wide on screen. The remaining 6px of
-                    chip padding is what the -mr-1.5 spends, so the heart's own
-                    right edge is the line and only the wash overhangs it. */
-                 className={`relative ml-auto -mr-1.5 inline-flex shrink-0 items-center justify-center rounded-md p-1.5 transition-colors after:absolute after:-left-3 after:-right-3 after:-top-3 after:-bottom-3 after:content-[''] sm:ml-1 ${
-                   shopSavedOnly
-                     ? 'bg-tea-gold/8 text-tea-gold'
-                     : 'text-tea-text-sec hover:text-tea-text'
+                 title={shopSavedOnly ? 'Showing saved teas only. Show all teas' : 'Show saved teas only'}
+                 className={`ml-auto flex min-h-[44px] shrink-0 items-center text-ui-10 uppercase tracking-[0.15em] transition-colors sm:ml-1 ${
+                   shopSavedOnly ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
                  }`}
                >
-                 <Icons.Heart className="w-4 h-4" filled={shopSavedOnly} aria-hidden="true" />
+                 Saved
                </button>
              </div>
 

@@ -5,7 +5,7 @@
 ## Soon
 
 - [ ] Replace the Google API key whose first 28 characters became the NAME of a live worker secret (printed in a chat on 2026-09-28, so treat it as exposed), then delete that secret and the one named "orders@teajia.com"; both look like values typed where a name belonged, and no code reads them _(band: you-required)_ _(effort: quick)_
-
+- [ ] Bring back the Teaware and Sets tabs on the shop once there is something to show in them; they are hidden, not deleted (`PAUSED_TABS` in the shop page), paused 2026-09-28 _(band: you-required)_ _(effort: quick)_
 - [ ] Gather the launch photographs: 24 places outside the shop, each with what to shoot, shape, size and whether a square fits; plus the shop's 20 teas and 117 teaware pieces at three squares each _(band: you-required)_ _(effort: deep)_ → Shot list: [Teajia Shot List](https://claude.ai/artifact/Xef4FpLupisCWaMptNCyMM), shop: [Teajia Shop Photos](https://claude.ai/artifact/N67p5t2KvCSHaSKFwgBcXE) → Plan: [launch-photo-upload.md](todo/plans/launch-photo-upload.md)
 - [ ] Craft: write the six brewing guides by tea type (green, white, oolong, black, pu'er, yellow) so the Brew group and the print card have a destination; an agent scaffolds the template and numbers from the products, Adrian writes the words _(band: you-required)_ _(effort: deep)_
 - [ ] Craft: decide which of the five finished draft essays go live as they are (Water Before Leaf, The Pot That Remembers, Earth Water Fire, Tea House, Before the Mist); each flips in articleLive.ts and appears in both Read and Craft _(band: you-required)_ _(effort: quick)_

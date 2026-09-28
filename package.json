@@ -9,7 +9,7 @@
     "atlas:upload": "node scripts/atlas-upload.mjs",
     "mcp:check": "infisical run --env=dev --path=/ -- node scripts/check-mcp-token.mjs",
     "mcp:call": "infisical run --env=dev --path=/ -- node scripts/mcp-call.mjs",
-    "dev:test": "VITE_API_URL=http://localhost:7777 vite",
+    "dev:test": "VITE_API_URL=http://localhost:7777 VITE_SHOP_SHOW_PAUSED_TABS=1 vite",
     "sandbox": "concurrently -n api,site -c magenta,cyan \"npm --prefix worker run sandbox\" \"npm run sandbox:site\"",
     "sandbox:site": "VITE_API_URL=http://localhost:8787 vite --port 7777",
     "sandbox:offline": "concurrently -n api,site -c magenta,cyan \"npm --prefix worker run sandbox:offline\" \"npm run sandbox:site\"",

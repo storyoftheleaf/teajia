@@ -158,7 +158,7 @@ export function TeaLedger({
                     }
                   }}
                 >
-                  <div className="flex items-start gap-2.5 py-3 md:py-4">
+                  <div className="flex items-center gap-2.5 py-3">
                     <TeaSaveTile
                       year={item.year}
                       name={item.name}
@@ -207,22 +207,6 @@ export function TeaLedger({
                           </>
                         )}
                         </span>
-                        {isAdmin && onAdminEdit && (
-                          <button
-                            type="button"
-                            className="tap-target ml-1 inline-flex shrink-0 items-center text-ui-10 text-tea-text-dim hover:text-tea-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
-                            onClick={event => {
-                              event.stopPropagation();
-                              onAdminEdit(item.id);
-                            }}
-                            onKeyDown={event => {
-                              if (event.key === 'Enter' || event.key === ' ') event.stopPropagation();
-                            }}
-                            aria-label={`Edit ${item.name}`}
-                          >
-                            Edit
-                          </button>
-                        )}
                       </div>
                     </div>
 
@@ -236,12 +220,32 @@ export function TeaLedger({
                         rather than to blank space. Desktop only: on a phone
                         the row stays focused on the title and origin. */}
                     {lead && (
-                      <p className="hidden min-w-0 flex-1 line-clamp-2 font-body text-ui-13 italic leading-relaxed text-tea-text-sec lg:block">
+                      <p className="hidden min-w-0 flex-1 line-clamp-2 pr-4 font-body text-ui-13 italic leading-relaxed text-tea-text-sec lg:block">
                         {lead}
                       </p>
                     )}
 
-                    <div className="ml-auto flex shrink-0 items-center self-center">
+                    <div className="ml-auto flex shrink-0 items-center gap-4">
+                      {/* Owners edit from here, on its own and clear of the
+                          name and region. It used to sit in the region line,
+                          where its 44px tap area stretched that line and
+                          pushed the region away from the name. */}
+                      {isAdmin && onAdminEdit && (
+                        <button
+                          type="button"
+                          className="relative text-ui-11 text-tea-text-dim transition-colors before:absolute before:-inset-3 before:content-[''] hover:text-tea-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
+                          onClick={event => {
+                            event.stopPropagation();
+                            onAdminEdit(item.id);
+                          }}
+                          onKeyDown={event => {
+                            if (event.key === 'Enter' || event.key === ' ') event.stopPropagation();
+                          }}
+                          aria-label={`Edit ${item.name}`}
+                        >
+                          Edit
+                        </button>
+                      )}
                       {/* Price on top adds that amount to the cart; minus and
                           plus step the weight and the price follows; Weigh
                           itself opens every amount, custom sizes included. */}
