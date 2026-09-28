@@ -6,6 +6,14 @@ The confirmation goes **from the account’s business number to the customer**. 
 
 **Production sending is disabled until provider onboarding, phone connection, and template approval are complete.** Meta’s test sender is not the existing business-number connection. Coexistence onboarding requires an eligible Solution Partner or Tech Provider; follow [Meta’s Business app onboarding documentation](https://developers.facebook.com/documentation/business-messaging/whatsapp/embedded-signup/onboarding-business-app-users). Do not replace or unregister the working Business phone app to use ordinary Cloud API registration.
 
+## Customer-started invoice conversation
+
+Checkout now defaults to **Chat in WhatsApp** when the store has a business number. This option does not ask the customer to type their own phone number. The website saves the pending request and draft invoice first, with `whatsapp_handoff: true` and an empty customer contact. The server only accepts this explicit mode for a website order with a valid WhatsApp number on that order's store. Handoff and automatic confirmation consent cannot be combined.
+
+The receipt offers **Continue in WhatsApp** with the saved reference, invoice number, pack quantities, estimated subtotal, approximate destination and private `/order/<token>` link. The customer must tap Send in WhatsApp; opening the link does not send a message. A computer user can scan a locally generated QR code carrying the invoice reference and private link into their phone's chat. No external QR service receives the private URL. The private order-status page also offers the order conversation after a reload and obtains the business number from the saved order's own store.
+
+No automatic message or outbox row is created for this route. It works independently of Meta template approval. The website does not learn the customer's WhatsApp number or verify that they pressed Send; the operator matches the incoming conversation using the existing invoice reference. The request and invoice remain saved if the customer closes WhatsApp. The phone-number and email reply routes remain available.
+
 ## Configuration
 
 1. Complete Coexistence onboarding for the existing business number through an eligible provider. Obtain its production Phone Number ID and the server authorization required to send. The Worker supports direct Meta Graph API or the Kapso WhatsApp proxy. Select the transport explicitly for Kapso; it never falls back to another provider when its credentials are missing. Keep secrets in Infisical and Worker secrets, never in Vite variables, browser code, or account records.

@@ -12,7 +12,7 @@ const PRODUCT = {
 };
 type SubmittedRequest = {
   tracking_token: string; ref_number: string; source: string; customer_location: string;
-  customer_contact: string; items_json: string; whatsapp_confirmation_consent?: boolean;
+  customer_contact: string; items_json: string; whatsapp_confirmation_consent?: boolean; whatsapp_handoff?: boolean;
   total_estimate_usd: number; currency: string;
 };
 async function json(route: Route, body: unknown, status = 200) {
@@ -147,7 +147,7 @@ test.describe('guest public checkout', () => {
     await expect(page.getByRole('radio', { name: 'Email reply', exact: true })).toBeChecked();
     await page.getByLabel('Delivery', { exact: true }).selectOption('bali-pickup');
     await expect(page.getByLabel('Your area in Bali', { exact: true })).toHaveCount(0);
-    await expect(page.getByRole('radio', { name: 'WhatsApp', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('radio', { name: 'WhatsApp number', exact: true })).toHaveCount(0);
     await page.screenshot({ path: testInfo.outputPath('checkout-light-form.png'), fullPage: true });
     await page.getByRole('button', { name: 'Place order request', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
@@ -213,7 +213,7 @@ test.describe('guest public checkout', () => {
     const requests = await prepare(page);
     await page.goto('/shop', { waitUntil: 'domcontentloaded' });
     await openCart(page);
-    await expect(page.getByRole('radio', { name: 'WhatsApp', exact: true })).toBeChecked();
+    await page.getByRole('radio', { name: 'WhatsApp number', exact: true }).check();
     await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
     await page.getByLabel('Your name', { exact: true }).fill('Guest Customer');
     await page.getByLabel('Your WhatsApp number', { exact: true }).fill('+6281234567890');
@@ -234,6 +234,7 @@ test.describe('guest public checkout', () => {
     await openCart(page);
     await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
     await page.getByLabel('Your name', { exact: true }).fill('Guest Customer');
+    await page.getByRole('radio', { name: 'WhatsApp number', exact: true }).check();
     const contact = page.getByLabel('Your WhatsApp number', { exact: true });
     await contact.fill('+628111234567');
     const consent = page.getByRole('checkbox', { name: /Send me a WhatsApp order confirmation/ });
@@ -255,6 +256,7 @@ test.describe('guest public checkout', () => {
     const requests = await prepare(page);
     await page.goto('/shop', { waitUntil: 'domcontentloaded' });
     await openCart(page);
+    await page.getByRole('radio', { name: 'WhatsApp number', exact: true }).check();
     await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
     await page.getByLabel('Your name', { exact: true }).fill('Guest Customer');
     await page.getByLabel('Your WhatsApp number', { exact: true }).fill('+6281234567890');
@@ -340,4 +342,62 @@ test.describe('guest public checkout', () => {
     expect(requests).toHaveLength(1);
     expect(await savedCart(page)).toHaveLength(0);
   });
+});
+
+test('saves an invoice without a phone number before offering the connected WhatsApp chat', async ({ page }, testInfo) => {
+  const requests = await prepare(page, { failFirst: true });
+  await page.goto('/shop');
+  await openCart(page);
+  await expect(page.getByRole('radio', { name: 'Chat in WhatsApp', exact: true })).toBeChecked();
+  await expect(page.getByLabel('Your WhatsApp number', { exact: true })).toHaveCount(0);
+  await page.getByLabel('Your name', { exact: true }).fill('Chat Customer');
+  await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
+  await page.getByRole('button', { name: 'Place order request', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Could not save');
+  await expect(page.getByRole('link', { name: 'Discuss this order on WhatsApp', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Place order request', exact: true }).click();
+  const handoff = page.getByRole('link', { name: 'Discuss this order on WhatsApp', exact: true });
+  await expect(handoff).toBeVisible();
+  expect(requests).toHaveLength(2);
+  expect(requests[1]).toMatchObject({ customer_contact: '', whatsapp_handoff: true, whatsapp_confirmation_consent: false });
+  expect(requests[1].tracking_token).toBe(requests[0].tracking_token);
+  const url = new URL((await handoff.getAttribute('href'))!);
+  expect(url.origin + url.pathname).toBe('https://wa.me/6281234567890');
+  const message = url.searchParams.get('text')!;
+  expect(message).toContain('Moonlight White: 2 × 25g');
+  expect(message).toContain('Ubud, Bali, Indonesia');
+  expect(message).toContain('Invoice: TJB-0001');
+  expect(message).toContain(`/order/${requests[1].tracking_token}`);
+  expect(message).not.toContain('/admin');
+  expect(await page.evaluate(() => (window as any).__checkoutPopupCalls)).toBe(0);
+  await page.getByText('Using a computer? Scan with your phone', { exact: true }).click();
+  await expect(page.getByRole('link', { name: 'Continue in WhatsApp', exact: true })).toBeInViewport();
+  await page.getByLabel('Scan to open WhatsApp with this invoice link').scrollIntoViewIfNeeded();
+  await expect(page.getByLabel('Scan to open WhatsApp with this invoice link')).toBeVisible();
+  await expect(page.getByText('One more step:', { exact: false })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('invoice-whatsapp-handoff.png'), fullPage: true });
+  expect(await page.getByRole('region', { name: 'Order request confirmation' }).evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
+  await expect.poll(() => savedCart(page)).toEqual([]);
+});
+
+test('reopens the saved invoice conversation from its private status page after reload', async ({ page }) => {
+  await prepare(page);
+  const token = 'q'.repeat(43);
+  await page.route(`**/api/inquiries/${token}`, route => json(route, {
+    ref_number: 'TJ-20260928-1234ABCD', invoice_number: 'TJB-0001',
+    order: { invoice_number: 'TJB-0001', status: 'Draft', shipping_destination: 'Ubud, Bali, Indonesia' },
+    contact: { whatsapp: '+6281234567890' }, items_json: JSON.stringify([CART_ITEM]),
+    total_estimate_usd: 16, currency: 'IDR', status: 'new', created_at: '2026-09-28T10:00:00Z',
+  }));
+  await page.goto(`/order/${token}`);
+  const link = page.getByRole('link', { name: 'Discuss this order on WhatsApp', exact: true });
+  await expect(link).toBeVisible();
+  const first = await link.getAttribute('href');
+  const message = new URL(first!).searchParams.get('text')!;
+  expect(message).toContain('Invoice: TJB-0001');
+  expect(message).toContain('Moonlight White: 2 × 25g');
+  expect(message).toContain('Delivery: Ubud, Bali, Indonesia');
+  expect(message).toContain(`/order/${token}`);
+  await page.reload();
+  await expect(link).toHaveAttribute('href', first!);
 });

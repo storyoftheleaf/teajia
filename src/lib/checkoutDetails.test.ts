@@ -20,6 +20,10 @@ describe('guest delivery and reply details', () => {
     expect(validateCheckoutDetails(customer, 'whatsapp').contact).toBeTruthy();
     expect(validateCheckoutDetails({ ...customer, contact: '+62 812 3456 7890' }, 'whatsapp')).toEqual({});
   });
+  it('needs no contact for an explicit WhatsApp chat handoff but still needs a destination', () => {
+    expect(validateCheckoutDetails({ ...customer, contact: '' }, 'whatsapp-chat')).toEqual({});
+    expect(validateCheckoutDetails({ ...customer, contact: '', location: '' }, 'whatsapp-chat').location).toBeTruthy();
+  });
   it('carries country and optional postcode for an overseas quote', () => {
     const overseas = { ...customer, delivery: 'international' as const, location: 'Perth' };
     expect(validateCheckoutDetails(overseas, 'website').country).toBeTruthy();

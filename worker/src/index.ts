@@ -14072,7 +14072,17 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
   const name = typeof nameValue === 'string' ? nameValue.trim() : '';
   const contact = typeof contactValue === 'string' ? contactValue.trim() : '';
 
-  if (!name || !contact) {
+  if (body.whatsapp_handoff !== undefined && typeof body.whatsapp_handoff !== 'boolean') {
+    return json({ error: 'WhatsApp handoff must be true or false.' }, 400);
+  }
+  const whatsappHandoff = body.whatsapp_handoff === true;
+  if (whatsappHandoff && source !== 'website') {
+    return json({ error: 'WhatsApp handoff is only available for website orders.' }, 400);
+  }
+  if (whatsappHandoff && body.whatsapp_confirmation_consent === true) {
+    return json({ error: 'Choose a WhatsApp handoff or an automatic confirmation, not both.' }, 400);
+  }
+  if (!name || (!contact && !whatsappHandoff)) {
     return json({ error: 'Name and contact are required' }, 400);
   }
   const nameError = inquiryFieldTooLong('Name', name, INQUIRY_MAX_NAME);
@@ -14080,7 +14090,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
   const contactError = inquiryFieldTooLong('Contact', contact, INQUIRY_MAX_CONTACT);
   if (contactError) return json({ error: contactError }, 400);
 
-  if (source === 'website' && !inquiryEmail(contact) && !inquiryPhone(contact)) {
+  if (source === 'website' && contact && !inquiryEmail(contact) && !inquiryPhone(contact)) {
     return json({ error: 'Enter a valid email or phone number so the store can reply.' }, 400);
   }
 
@@ -14143,6 +14153,13 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
 
     const accountId = await getPublicAccountIdBySlug(env, normalized.value.storeSlug);
     if (!accountId) return json({ error: 'Store not found' }, 404);
+    if (whatsappHandoff) {
+      const business = await env.DB.prepare('SELECT whatsapp_number FROM accounts WHERE id=?').bind(accountId).first<{ whatsapp_number: string | null }>();
+      const businessNumber = business?.whatsapp_number?.trim() || '';
+      if (!internationalWhatsAppNumber(businessNumber.startsWith('+') ? businessNumber : `+${businessNumber}`)) {
+        return json({ error: 'This store has not configured a valid WhatsApp number. Add your contact details to save an order instead.' }, 400);
+      }
+    }
     const tokenHash = await sha256Hex(normalized.value.trackingToken);
     const location = typeof body.customer_location === 'string' ? body.customer_location.trim() : '';
     const locationError = inquiryFieldTooLong('Location', location, INQUIRY_MAX_LOCATION);
@@ -14205,7 +14222,8 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
       const serverSubtotalUsd = roundUsd(lines.reduce((sum, line) => sum + line.quantity * line.price_at_sale, 0));
       const requestId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
       const invoiceId = crypto.randomUUID();
-      const requestMessage = [location ? `Shipping location: ${location}` : '', notes].filter(Boolean).join('\n\n') || null;
+      const handoffNote = whatsappHandoff ? 'Customer will start the WhatsApp chat; not yet contacted.' : '';
+      const requestMessage = [location ? `Shipping location: ${location}` : '', handoffNote, notes].filter(Boolean).join('\n\n') || null;
       const customerPhone = inquiryPhone(phoneCandidate) || inquiryPhone(contact);
       let invoiceNumber = '';
       let committed = false;
@@ -14223,7 +14241,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
               shipping_cost_usd,shipping_destination,source_inquiry_id,status,inventory_deducted,notes,payment_status)
              VALUES (?,?,?,?,?,?,0,?,?,'Draft',0,?,'unpaid')`
           ).bind(invoiceId, accountId, invoiceNumber, name, customerPhone, normalized.value.currency,
-            location || null, requestId, `From order request ${normalized.value.refNumber}. Reply to: ${contact}. ${notes ? `Customer note: ${notes}. ` : ''}Review prices and shipping before sending.`),
+            location || null, requestId, `From order request ${normalized.value.refNumber}. ${whatsappHandoff ? handoffNote : `Reply to: ${contact}.`} ${notes ? `Customer note: ${notes}. ` : ''}Review prices and shipping before sending.`),
           ...lines.map(line => env.DB.prepare(
             `INSERT INTO invoice_line_items
              (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale)
@@ -14270,11 +14288,13 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
         console.error('Website order batch failed:', lastError);
         return json({ error: 'Could not save the order. Please retry.' }, 500);
       }
-      const notification = processPendingCustomerOrderNotifications(env.DB, env, {
-        accountId, invoiceId, limit: 1,
-      }).catch(error => console.error('Customer order confirmation failed', error));
-      if (ctx?.waitUntil) ctx.waitUntil(notification);
-      else await notification;
+      if (whatsappRecipient) {
+        const notification = processPendingCustomerOrderNotifications(env.DB, env, {
+          accountId, invoiceId, limit: 1,
+        }).catch(error => console.error('Customer order confirmation failed', error));
+        if (ctx?.waitUntil) ctx.waitUntil(notification);
+        else await notification;
+      }
       const emailSent = await sendOrderRequestEmails(env, {
           accountId, source, customerName: name, contact, phone: customerPhone,
           location: location || null, itemsJson: normalized.value.itemsJson,
@@ -14430,7 +14450,8 @@ const handleGetInquiryByRef: Handler = async (_request, env, params) => {
   if (!isValidTrackingToken(token)) return json({ error: 'Not found' }, 404);
   const tokenHash = await sha256Hex(token);
   const row = await env.DB.prepare(
-    `SELECT ref_number, items, status, source, total_usd, currency, created_at, converted_invoice_id
+    `SELECT ref_number, items, status, source, total_usd, currency, created_at, converted_invoice_id,
+            (SELECT whatsapp_number FROM accounts WHERE accounts.id=inquiries.account_id) AS store_whatsapp_number
      FROM inquiries WHERE tracking_token_hash = ? LIMIT 1`
   ).bind(tokenHash).first() as any;
   if (!row) return json({ error: 'Not found' }, 404);
@@ -14500,6 +14521,7 @@ const handleGetInquiryByRef: Handler = async (_request, env, params) => {
     };
   }
   return json({ ...redactPublicInquiry(row), payment, journey, order,
+    contact: { whatsapp: row.store_whatsapp_number || null },
     invoice_id: order?.invoice_id ?? null,
     invoice_number: order?.invoice_number ?? null,
     shipping_destination: order?.shipping_destination ?? null,

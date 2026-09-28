@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search } from 'lucide-react';
 import { api } from '../lib/api';
+import { buildOrderMessage } from '../lib/whatsapp';
+import { resolveContactChannels } from '../lib/contact';
 import { useShopPrice } from '../components/shop/shopPrice';
 import { PayOrderAction } from '../components/shared/PayOrderAction';
 import { ReportPaymentAction } from '../components/shared/ReportPaymentAction';
@@ -106,6 +108,20 @@ const OrderStatusPage: React.FC = () => {
       maximumFractionDigits: 2,
     }).format(safe);
   };
+
+  const orderChat = inquiry && trackingToken ? resolveContactChannels({
+    whatsappNumber: inquiry.contact?.whatsapp,
+    message: buildOrderMessage({
+      type: 'inquiry', ref: inquiry.ref_number,
+      invoiceNumber: inquiry.order?.invoice_number || inquiry.invoice_number,
+      trackingUrl: `${window.location.origin}/order/${encodeURIComponent(trackingToken)}`,
+      customerLocation: inquiry.order?.shipping_destination || inquiry.shipping_destination,
+      items: items.map(item => ({ name: item.name, variant: item.variant, quantity: item.packGrams ?? item.quantityGrams,
+        packs: item.packs ?? 1, unit: item.category === 'tea' ? 'g' : ' pcs',
+        price: formatStoredUsd(Number(item.totalPrice)), total: formatStoredUsd(Number(item.totalPrice)) })),
+      subtotal: formatStoredUsd(Number(inquiry.total_estimate_usd)), total: formatStoredUsd(Number(inquiry.total_estimate_usd)),
+    }),
+  }).whatsapp : null;
 
   return (
     <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3 pb-nav-gap space-y-6">
@@ -233,6 +249,11 @@ const OrderStatusPage: React.FC = () => {
             <div className="flex justify-between gap-4"><dt className="text-tea-text-sec">Paid</dt><dd className="num text-tea-text">{formatStoredUsd(Number(inquiry.payment.paid_usd))}</dd></div>
             <div className="flex justify-between gap-4"><dt className="text-tea-text-sec">Balance</dt><dd className="num text-tea-text">{formatStoredUsd(Number(inquiry.payment.outstanding_usd))}</dd></div>
           </dl>}
+
+          {orderChat && <div className="mt-5 space-y-2">
+            <a className="checkout-tracking-link" href={orderChat.href} target="_blank" rel="noopener noreferrer">Discuss this order on WhatsApp</a>
+            <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}>Your order details and invoice link are filled in. Tap Send in WhatsApp so the tea house can reply.</p>
+          </div>}
 
           {/* The line that used to sit here promised a WhatsApp conversation
               about availability and pricing whatever had happened to the order,
