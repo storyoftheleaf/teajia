@@ -86,6 +86,8 @@ index/v1/issues/<issueId>.json          one issue, its articles in reading order
 index/v1/topics/<topicId>.json          one topic, every article carrying it, oldest first
 index/v1/search/catalog.json            every article: id, title, author, issue, issue label, topics, pages
 index/v1/search/text/<shard>.json       full-text index shard: { term: [article number gaps] }
+added/sources.json                      sources added from the admin, in the order added (never served to readers)
+added/<sourceId>/manifest.json          each one's format-1 manifest (never served to readers)
 _atlas-upload-state.json                upload bookkeeping (never served)
 manifest.json, README.md                copied by the other uploader (never served)
 ```
@@ -158,6 +160,70 @@ rebuild it instead.
      are never sent twice).
 3. Nothing to deploy: the Worker serves whatever the bucket holds.
 
+## Adding a source in the admin
+
+The site owner can add a book, a magazine issue or a saved web article from a
+PDF, without the `tea-atlas` scripts: **`/tea-atlas/add`**, linked from the
+Tea Atlas home page for the owner only. Code only, no AI.
+
+1. **Drop the PDF.** It is read in the browser with pdf.js
+   (`src/atlas/add/readPdf.ts`, `extract.ts`), because the Worker has 10 ms of
+   CPU per request and cannot run PDF tools. Text comes out as lines in reading
+   order (two magazine columns left first, drop caps joined back on), pictures
+   as true-colour JPEGs at most 1600 px (icons, thin strips, flat textures and
+   anything repeated on three or more pages left out, as `tea-atlas-media.py`
+   does). pdf.js decodes print-colour (CMYK) pictures itself, with the colour
+   profile and decoders served from `/vendor/pdfjs/` (copied from `pdfjs-dist`
+   by `scripts/pdfjs-assets-plugin.mjs`).
+2. **Proposed sections** (`split.ts`), first method that works: the PDF's own
+   bookmarks (a long part with no bookmarks inside is split by its large
+   headings); otherwise a contents page (`12 Title`, `p. 12 Title`,
+   `Title .... 12`, with "By ..." lines taken as the author); otherwise
+   headings printed much larger than the body text. A document with one title
+   and nothing else stays one article.
+3. **Check and fix.** Each section shows its title (editable), page range (the
+   start is editable), author, first lines, suggested topics and pictures.
+   Join a section into the one above, start a new one at any page, remove a
+   topic or add one, click a picture to leave it out. Topics are suggested by
+   the same rule `tea-atlas.py` uses: an alias mentioned three times, or named
+   in the title.
+4. **Publish.** `buildPackage.ts` writes the same format-1 shape as the
+   Global Tea Hut export (text rules ported from `tea-atlas.py`: running heads,
+   reflow, headings, 茶人 bylines; page markers are printed page numbers).
+   `publish.ts` sends, in order: pictures, articles, `added/<id>/manifest.json`
+   and `added/sources.json`, then the index files the new source changes, with
+   `home.json` last. The index is merged, not rebuilt (`mergeIndex.ts`): the
+   new source goes at the end of the reading order, so nothing published moves.
+   The merge produces byte for byte what `atlas-build.mjs` produces with the
+   source added, and a test holds the two side by side.
+
+**The door** is `/api/atlas-admin/...` (`worker/src/atlasAdmin.ts`): the site
+owner only (`canManageTeaAtlas`, which also requires `canReadTeaAtlas`);
+everyone else, readers with the tick included, gets the unknown-route 404,
+decided before the bucket is touched. It writes only the shapes above.
+`articles/` and `media/` are write-once (409 if the key exists), so it can
+never overwrite a file of the package or of an earlier source; a publish that
+stopped part way can simply be sent again. A new source's name must not match
+an existing source or issue.
+
+**Rebuilds keep added sources.** `npm run atlas:upload` downloads
+`added/sources.json`, each manifest and its articles, and builds the index
+with them after the package's sources (`buildAtlas(dir, { added })`). Their
+articles and pictures are already in the bucket and are not sent again. If the
+list cannot be read for any reason but "not there", the upload stops rather
+than drop them from the index.
+
+**Not yet:** an added source has no Obsidian notes (the `tea-atlas` scripts
+write those from the package; an admin-added source exists only in the
+bucket). Replacing or removing an added source is not built: publish under a
+new name. Adding one issue to an existing source (a new Global Tea Hut issue)
+goes through `tea-atlas`, not this tool.
+
+**Optional AI step, OFF.** `src/atlas/add/suggestSplits.ts` holds a clearly
+marked hook, `SUGGEST_SPLITS_WITH_AI = false`, for messy magazines: it would
+send only each page's first lines (about 2k tokens a document, never article
+text) and return page numbers and titles. It is not built and nothing calls it.
+
 ## Tests
 
 `worker/tests/tea-atlas-access.test.ts`: a signed-out visitor, a normal member,
@@ -165,3 +231,11 @@ a staff member with every bundle but no tick, a platform admin, and an owner of
 another shop all get the plain 404 on a page's data, the API and a picture; the
 site owner and a ticked member get 200. Also pins the grant route and that
 bundle edits keep the tick.
+
+`worker/tests/tea-atlas-add-source.test.ts`: the add-source door is the plain
+404 for a signed-out visitor, a ticked reader, staff with every bundle and a
+platform admin, and opens for the site owner; articles and pictures are
+write-once; merging a source into the index equals a full rebuild with it;
+and the splitting and text rules on small made-up pages (bookmarks, long
+parts, a magazine contents page, headings under a pull quote, a web article,
+drop caps and columns, hyphens and running heads, 茶人 bylines, ids, topics).

@@ -8,6 +8,9 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tokenize, shardFor, encodePostings } from '../src/atlas/searchText.ts';
+import {
+  CATALOG_FIELDS, articleCard, catalogRow, homeSource, issueSummary as summaryOf, searchableText, sourceHead, sourcePage,
+} from '../src/atlas/indexShapes.ts';
 
 export const INDEX_PREFIX = 'index/v1/';
 
@@ -35,20 +38,36 @@ function walk(dir, prefix = '') {
   return out;
 }
 
-const yearOf = issueId => (/^(\d{4})/.exec(issueId)?.[1] ?? 'Other');
-
-/** What a list of articles shows, without the blocks. */
-function articleCard(a) {
-  return {
-    id: a.id, title: a.title, author: a.author || '', pages: a.pages || '',
-    order: a.order, topics: a.topics || [], words: a.words || 0, cover: a.cover || null,
-  };
+/**
+ * Sources added from the admin (docs/TEA_ATLAS.md) live in the bucket, each as
+ * a one-source format-1 package: `added/<id>/manifest.json` plus its
+ * `articles/`. The upload script downloads them to `dir` so a rebuild keeps
+ * them: their sources follow the package's, in the order they were added.
+ * Their article and picture files are already in the bucket and are not sent.
+ */
+function withAdded(manifest, exportDir, added) {
+  const known = new Set(manifest.topics.map(t => t.id));
+  const dirOf = new Map(manifest.articles.map(a => [a.id, exportDir]));
+  const combined = { ...manifest, sources: [...manifest.sources], articles: [...manifest.articles] };
+  for (const { dir } of added) {
+    const extra = readJson(join(dir, 'manifest.json'));
+    if (extra.format !== 1) fail(`added source in ${dir} is format ${extra.format}, not format 1`);
+    combined.sources.push(...extra.sources);
+    for (const a of extra.articles) {
+      // A topic the package no longer has is dropped from the added article,
+      // rather than stopping every future upload.
+      combined.articles.push({ ...a, topics: (a.topics || []).filter(t => known.has(t)) });
+      dirOf.set(a.id, dir);
+    }
+  }
+  return { manifest: combined, dirOf };
 }
 
-export function buildAtlas(exportDir) {
+export function buildAtlas(exportDir, { added = [] } = {}) {
   if (!existsSync(join(exportDir, 'manifest.json'))) fail(`no manifest.json in ${exportDir}`);
-  const manifest = readJson(join(exportDir, 'manifest.json'));
-  if (manifest.format !== 1) fail(`format ${manifest.format} is not format 1`);
+  const own = readJson(join(exportDir, 'manifest.json'));
+  if (own.format !== 1) fail(`format ${own.format} is not format 1`);
+  const { manifest, dirOf } = withAdded(own, exportDir, added);
 
   const topicsById = new Map();
   for (const t of manifest.topics) {
@@ -80,11 +99,7 @@ export function buildAtlas(exportDir) {
   const objects = [];
   const put = (key, value) => objects.push({ key: INDEX_PREFIX + key, body: JSON.stringify(value), type: 'application/json' });
 
-  const issueCover = articles => articles.find(a => a.cover)?.cover ?? null;
-  const issueSummary = ({ issue, articles }) => ({
-    id: issue.id, label: issue.label, count: articles.length, cover: issueCover(articles),
-  });
-  const sourceHead = s => ({ id: s.id, name: s.name, kind: s.kind, subtitle: s.subtitle || '', credit: s.credit || s.name });
+  const issueSummary = ({ issue, articles }) => summaryOf(issue, articles);
 
   // Catalogue: the numbered list full-text postings point into.
   const catalog = [];
@@ -92,7 +107,7 @@ export function buildAtlas(exportDir) {
   for (const { issue, articles } of issues) {
     for (const a of articles) {
       numberOf.set(a.id, catalog.length);
-      catalog.push([a.id, a.title, a.author || '', issue.id, issue.label, a.topics || [], a.pages || '']);
+      catalog.push(catalogRow(a, issue));
     }
   }
 
@@ -110,17 +125,7 @@ export function buildAtlas(exportDir) {
   // home.json
   put('home.json', {
     format: 1,
-    sources: manifest.sources.map(s => {
-      const own = issues.filter(i => i.source.id === s.id);
-      return {
-        ...sourceHead(s),
-        issueCount: own.length,
-        articleCount: own.reduce((n, i) => n + i.articles.length, 0),
-        first: own[0]?.issue.label ?? '',
-        last: own[own.length - 1]?.issue.label ?? '',
-        cover: own.length ? issueCover(own[own.length - 1].articles) : null,
-      };
-    }),
+    sources: manifest.sources.map(s => homeSource(s, issues.filter(i => i.source.id === s.id))),
     topics: manifest.topics.map(t => ({
       id: t.id, name: t.name, category: t.category, aliases: t.aliases || [], count: topicArticles.get(t.id).length,
     })),
@@ -129,15 +134,7 @@ export function buildAtlas(exportDir) {
 
   // sources/<id>.json
   for (const s of manifest.sources) {
-    const own = issues.filter(i => i.source.id === s.id);
-    const years = [];
-    for (const i of own) {
-      const year = yearOf(i.issue.id);
-      let bucket = years[years.length - 1];
-      if (!bucket || bucket.year !== year) years.push(bucket = { year, issues: [] });
-      bucket.issues.push(issueSummary(i));
-    }
-    put(`sources/${s.id}.json`, { source: sourceHead(s), years });
+    put(`sources/${s.id}.json`, sourcePage(s, issues.filter(i => i.source.id === s.id)));
   }
 
   // issues/<id>.json, with neighbours inside the same source.
@@ -160,18 +157,19 @@ export function buildAtlas(exportDir) {
   }
 
   // Search: catalogue + inverted index shards.
-  put('search/catalog.json', { fields: ['id', 'title', 'author', 'issue', 'issueLabel', 'topics', 'pages'], rows: catalog });
+  put('search/catalog.json', { fields: CATALOG_FIELDS, rows: catalog });
 
   const postings = new Map(); // term -> Set(article number)
   const articleFiles = [];
   for (const { articles } of issues) {
     for (const a of articles) {
-      const path = join(exportDir, 'articles', `${a.id}.json`);
+      const dir = dirOf.get(a.id);
+      const path = join(dir, 'articles', `${a.id}.json`);
       if (!existsSync(path)) fail(`articles/${a.id}.json is missing`);
-      articleFiles.push({ key: `articles/${a.id}.json`, file: path, type: 'application/json' });
+      if (dir === exportDir) articleFiles.push({ key: `articles/${a.id}.json`, file: path, type: 'application/json' });
       const full = readJson(path);
       const n = numberOf.get(a.id);
-      const text = [a.title, a.author, ...(full.blocks || []).filter(b => b.t === 'p' || b.t === 'h' || b.t === 'aside').map(b => b.v)].join('\n');
+      const text = searchableText(a, full.blocks);
       for (const term of tokenize(text)) {
         let set = postings.get(term);
         if (!set) postings.set(term, set = new Set());

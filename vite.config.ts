@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import fs from 'fs';
 import { teaReferencePreviewPlugin } from './scripts/tea-reference-website-preview/vite-plugin.mjs';
+import { pdfjsAssetsPlugin } from './scripts/pdfjs-assets-plugin.mjs';
 
 const TEA_REFERENCE_PREVIEW_ONLY_MODULES = [
   '/src/pages/wisdom/PreviewWisdomHomePage.tsx',
@@ -65,6 +66,7 @@ export default defineConfig(({ command, mode }) => {
     plugins: [
       teaReferenceProductionLeakGuard({ command, mode }),
       react(),
+      pdfjsAssetsPlugin(),
       teaReferencePreviewPlugin({
         command,
         mode,

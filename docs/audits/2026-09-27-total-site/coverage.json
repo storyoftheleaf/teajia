@@ -1,0 +1,106 @@
+{
+  "baseline": "2a09630333a9fe1fb449c205b73e51d4af7f7f19",
+  "families": [
+    {
+      "family": "Storefront/search/filter/product/cart",
+      "examined": "Live desktop/mobile search, product, add, cart; shop fixtures; source",
+      "highest_risk_untested": "Actual final inquiry submission/WhatsApp delivery blocked by LIVE-01 and audit no-send boundary."
+    },
+    {
+      "family": "Store directories/Tea Masters/payments",
+      "examined": "Live directory/person shells; mobile identity/favorites/payment fixtures; source",
+      "highest_risk_untested": "Real linked recipient configuration and successful payment not read or exercised."
+    },
+    {
+      "family": "Auth/session/account/permissions",
+      "examined": "Local signed-in owner; email-code/account-panel fixtures; JWT/MCP source + worker tests",
+      "highest_risk_untested": "Real Google OAuth, email delivery, all roles in every admin module, concurrent session revocation."
+    },
+    {
+      "family": "Inventory/add/edit/stock/receiving",
+      "examined": "Real local catalogue at 1440/768/390; scroll measurements; movement/import/receipt fixtures; adapter failure repro",
+      "highest_risk_untested": "Real warehouse reconciliation; multi-operator receive/cancel conflicts; production shelf correction."
+    },
+    {
+      "family": "Currency/freight/markup",
+      "examined": "Shared arithmetic source/worker tests; local currency/settings; actual adapter repro",
+      "highest_risk_untested": "Real daily feed failure and production currency-provenance backlog."
+    },
+    {
+      "family": "Invoices/orders/customer money",
+      "examined": "Desktop/mobile order/payment fixtures; stale-edit and PDF failure fixtures; real Worker local invoice persistence",
+      "highest_risk_untested": "Real payment claims/fulfillment/delivery; native OS share cancellation not invoked."
+    },
+    {
+      "family": "Contacts/vendors/customer profiles",
+      "examined": "Source save/relationship/vendor contract review; local people shell",
+      "highest_risk_untested": "Mixed partial failure on a full real customer profile; live customer data deliberately not accessed."
+    },
+    {
+      "family": "Multi-store/network/access/wholesale",
+      "examined": "Operator multi-store fixtures; local network/access; authority source; pending cache repro",
+      "highest_risk_untested": "Full bilateral wholesale fulfillment with two real operators, ownership transfer end-to-end."
+    },
+    {
+      "family": "Curate/import/intake",
+      "examined": "Import/receipt-possession fixtures; source idempotency/finalization and partial-save traces",
+      "highest_risk_untested": "Interrupted multi-chunk intake and live provider/OCR/transcription behavior."
+    },
+    {
+      "family": "Events/venues/sessions/RSVP",
+      "examined": "Live public shells; local admin shells; event-to-article fixtures; public privacy D1 probes",
+      "highest_risk_untested": "Live RSVP/email/join-code delivery; every event control; ordinary briefing route-reuse concern."
+    },
+    {
+      "family": "Editorial/contributors/read",
+      "examined": "Live read pages; contributor publishing/event essay fixtures; actual article race fixture",
+      "highest_risk_untested": "Editorial quality and long-content pagination matrix; two-user editing conflicts."
+    },
+    {
+      "family": "Collections/sharing/inbound",
+      "examined": "Collection public/inbound fixtures; create/edit/publish source; hidden-item D1 probes",
+      "highest_risk_untested": "Lost-response person publication and actual cross-store acceptance delivery."
+    },
+    {
+      "family": "Wisdom/reference/catalog",
+      "examined": "Live taxonomy indexes; local admin shell; proposal/review/override source",
+      "highest_risk_untested": "Two-operator taxonomy review conflicts; preview-only Tea Reference revision mode not exercised."
+    },
+    {
+      "family": "Personal Journal/Favorites/Cellar/samples",
+      "examined": "Personal journey/account fixtures and direct-link shells",
+      "highest_risk_untested": "Complete authenticated production personal history, device/offline sync conflicts."
+    },
+    {
+      "family": "MCP/OAuth/API/security",
+      "examined": "362 literal REST route declarations inventoried; family-based auth/tenancy source; 1410 worker tests; targeted D1 probes",
+      "highest_risk_untested": "Not every endpoint/tool executed; no live mutation or exploit probes, exhaustive fuzzing, or penetration-test claim."
+    },
+    {
+      "family": "Platform/admin/tools/settings",
+      "examined": "Local route sweep including platform/audit/token/settings shells; selected source security checks",
+      "highest_risk_untested": "Actual privilege/ownership/token changes, provider credentials and production audit contents."
+    },
+    {
+      "family": "Responsive/accessibility/performance",
+      "examined": "Live 1440/390; admin 1440/768/390; focused keyboard/focus restoration tests; build output",
+      "highest_risk_untested": "Screen-reader audit, real touch hardware, network-throttled performance and all overlay combinations."
+    }
+  ],
+  "runtime_navigation_samples": 148,
+  "runtime_modes": {
+    "live-mobile": 24,
+    "local-admin-mobile": 50,
+    "live-desktop": 24,
+    "local-admin-desktop": 50
+  },
+  "route_declarations": 160,
+  "literal_rest_routes": 362,
+  "limitations": [
+    "The first 100 admin route samples used a stale sandbox missing freight schema; use focused-browser.json for corrected seven-route verification. Shell render is not journey completion.",
+    "Parameterized routes need fixture IDs; inventory does not mean each route was exercised.",
+    "All requested live mutations, messages, orders, deployments and source fixes were excluded."
+  ],
+  "route_inventory_file": "route-inventory.json",
+  "api_inventory_file": "api-inventory.json"
+}

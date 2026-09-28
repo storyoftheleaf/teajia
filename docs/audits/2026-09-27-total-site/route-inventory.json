@@ -1,0 +1,1122 @@
+[
+  {
+    "route": "/admin/*",
+    "component": "AdminApp",
+    "file": "src/App.tsx",
+    "line": 944,
+    "type": "admin-shell"
+  },
+  {
+    "route": "/",
+    "component": "Storefront | HomePage",
+    "file": "src/App.tsx",
+    "line": 960,
+    "type": "public"
+  },
+  {
+    "route": "/article/:slug",
+    "component": "ArticleRouteSwitch",
+    "file": "src/App.tsx",
+    "line": 994,
+    "type": "public"
+  },
+  {
+    "route": "/read",
+    "component": "ReadIndex",
+    "file": "src/App.tsx",
+    "line": 1002,
+    "type": "public"
+  },
+  {
+    "route": "/read/leaf-to-liquor",
+    "component": "LeafToLiquor",
+    "file": "src/App.tsx",
+    "line": 1005,
+    "type": "public"
+  },
+  {
+    "route": "/read/leaf-to-liquor/:template",
+    "component": "LeafToLiquor",
+    "file": "src/App.tsx",
+    "line": 1008,
+    "type": "public"
+  },
+  {
+    "route": "/read/rock-remembers",
+    "component": "RockRemembers",
+    "file": "src/App.tsx",
+    "line": 1011,
+    "type": "public"
+  },
+  {
+    "route": "/read/earth-water-fire",
+    "component": "EarthWaterFire",
+    "file": "src/App.tsx",
+    "line": 1014,
+    "type": "public"
+  },
+  {
+    "route": "/read/before-the-mist",
+    "component": "BeforeTheMist",
+    "file": "src/App.tsx",
+    "line": 1017,
+    "type": "public"
+  },
+  {
+    "route": "/read/atlas",
+    "component": "AtlasMapOfMountains",
+    "file": "src/App.tsx",
+    "line": 1021,
+    "type": "public"
+  },
+  {
+    "route": "/read/craft",
+    "component": "CraftPotThatRemembers",
+    "file": "src/App.tsx",
+    "line": 1024,
+    "type": "public"
+  },
+  {
+    "route": "/read/porcelain-and-tea",
+    "component": "CraftRenewalPorcelain",
+    "file": "src/App.tsx",
+    "line": 1027,
+    "type": "public"
+  },
+  {
+    "route": "/read/essay",
+    "component": "EssayLongWayToCup",
+    "file": "src/App.tsx",
+    "line": 1030,
+    "type": "public"
+  },
+  {
+    "route": "/read/field-notes",
+    "component": "FieldNotesTwoRoomsBali",
+    "file": "src/App.tsx",
+    "line": 1033,
+    "type": "public"
+  },
+  {
+    "route": "/read/field-study",
+    "component": "FieldStudyWaterBeforeLeaf",
+    "file": "src/App.tsx",
+    "line": 1036,
+    "type": "public"
+  },
+  {
+    "route": "/read/history",
+    "component": "HistoryTenThousandMornings",
+    "file": "src/App.tsx",
+    "line": 1039,
+    "type": "public"
+  },
+  {
+    "route": "/read/legend",
+    "component": "LegendImmortalsCliff",
+    "file": "src/App.tsx",
+    "line": 1042,
+    "type": "public"
+  },
+  {
+    "route": "/read/ritual",
+    "component": "RitualSevenSteeps",
+    "file": "src/App.tsx",
+    "line": 1045,
+    "type": "public"
+  },
+  {
+    "route": "/read/tasting",
+    "component": "TastingVocabularyOfTaste",
+    "file": "src/App.tsx",
+    "line": 1048,
+    "type": "public"
+  },
+  {
+    "route": "/read/tea-house",
+    "component": "TeaHouseQuietHours",
+    "file": "src/App.tsx",
+    "line": 1051,
+    "type": "public"
+  },
+  {
+    "route": "/craft",
+    "component": "LearnHub",
+    "file": "src/App.tsx",
+    "line": 1054,
+    "type": "public"
+  },
+  {
+    "route": "/learn",
+    "component": "Navigate",
+    "file": "src/App.tsx",
+    "line": 1060,
+    "type": "redirect"
+  },
+  {
+    "route": "/shop",
+    "component": "Shop",
+    "file": "src/App.tsx",
+    "line": 1061,
+    "type": "public"
+  },
+  {
+    "route": "/shop/product/:id",
+    "component": "ProductPage",
+    "file": "src/App.tsx",
+    "line": 1072,
+    "type": "public"
+  },
+  {
+    "route": "/advise",
+    "component": "AdvisePage",
+    "file": "src/App.tsx",
+    "line": 1083,
+    "type": "public"
+  },
+  {
+    "route": "/consult",
+    "component": "Navigate",
+    "file": "src/App.tsx",
+    "line": 1089,
+    "type": "redirect"
+  },
+  {
+    "route": "/for-your-space",
+    "component": "ForYourSpacePage",
+    "file": "src/App.tsx",
+    "line": 1090,
+    "type": "public"
+  },
+  {
+    "route": "/spaces",
+    "component": "SpacesPage",
+    "file": "src/App.tsx",
+    "line": 1097,
+    "type": "public"
+  },
+  {
+    "route": "/start",
+    "component": "StartHerePage",
+    "file": "src/App.tsx",
+    "line": 1104,
+    "type": "public"
+  },
+  {
+    "route": "/discover",
+    "component": "DiscoverPage",
+    "file": "src/App.tsx",
+    "line": 1111,
+    "type": "public"
+  },
+  {
+    "route": "/store-launch-playbook",
+    "component": "StoreLaunchPlaybookPage",
+    "file": "src/App.tsx",
+    "line": 1118,
+    "type": "public"
+  },
+  {
+    "route": "/stores/playbook",
+    "component": "Navigate",
+    "file": "src/App.tsx",
+    "line": 1125,
+    "type": "redirect"
+  },
+  {
+    "route": "/collection",
+    "component": "SharedCollection",
+    "file": "src/App.tsx",
+    "line": 1126,
+    "type": "public"
+  },
+  {
+    "route": "/wisdom",
+    "component": "WisdomHomePage",
+    "file": "src/App.tsx",
+    "line": 1135,
+    "type": "public"
+  },
+  {
+    "route": "/wisdom/cultivars",
+    "component": "CultivarIndexPage",
+    "file": "src/App.tsx",
+    "line": 1138,
+    "type": "public"
+  },
+  {
+    "route": "/wisdom/cultivar/:id",
+    "component": "CultivarPage",
+    "file": "src/App.tsx",
+    "line": 1141,
+    "type": "public"
+  },
+  {
+    "route": "/wisdom/regions",
+    "component": "RegionIndexPage",
+    "file": "src/App.tsx",
+    "line": 1144,
+    "type": "public"
+  },
+  {
+    "route": "/wisdom/region/:id",
+    "component": "RegionPage",
+    "file": "src/App.tsx",
+    "line": 1147,
+    "type": "public"
+  },
+  {
+    "route": "/wisdom/producers",
+    "component": "ProducerIndexPage",
+    "file": "src/App.tsx",
+    "line": 1150,
+    "type": "public"
+  },
+  {
+    "route": "/wisdom/producer/:id",
+    "component": "ProducerPage",
+    "file": "src/App.tsx",
+    "line": 1153,
+    "type": "public"
+  },
+  {
+    "route": "/wisdom/marks",
+    "component": "MarkIndexPage",
+    "file": "src/App.tsx",
+    "line": 1156,
+    "type": "public"
+  },
+  {
+    "route": "/wisdom/mark/:id",
+    "component": "MarkPage",
+    "file": "src/App.tsx",
+    "line": 1159,
+    "type": "public"
+  },
+  {
+    "route": "/wisdom/styles",
+    "component": "StyleIndexPage",
+    "file": "src/App.tsx",
+    "line": 1162,
+    "type": "public"
+  },
+  {
+    "route": "/wisdom/style/:id",
+    "component": "StylePage",
+    "file": "src/App.tsx",
+    "line": 1165,
+    "type": "public"
+  },
+  {
+    "route": "/wisdom/named",
+    "component": "NamedTeaIndexPage",
+    "file": "src/App.tsx",
+    "line": 1168,
+    "type": "public"
+  },
+  {
+    "route": "/wisdom/named/:id",
+    "component": "NamedTeaPage",
+    "file": "src/App.tsx",
+    "line": 1171,
+    "type": "public"
+  },
+  {
+    "route": "/wisdom/types",
+    "component": "TeaTypeIndexPage",
+    "file": "src/App.tsx",
+    "line": 1174,
+    "type": "public"
+  },
+  {
+    "route": "/wisdom/family/:id",
+    "component": "TeaFamilyPage",
+    "file": "src/App.tsx",
+    "line": 1177,
+    "type": "public"
+  },
+  {
+    "route": "/wisdom/type/:id",
+    "component": "TeaTypePage",
+    "file": "src/App.tsx",
+    "line": 1180,
+    "type": "public"
+  },
+  {
+    "route": "/about",
+    "component": "AboutPage",
+    "file": "src/App.tsx",
+    "line": 1183,
+    "type": "public"
+  },
+  {
+    "route": "/mcp",
+    "component": "McpPage",
+    "file": "src/App.tsx",
+    "line": 1184,
+    "type": "public"
+  },
+  {
+    "route": "/compass",
+    "component": "Navigate",
+    "file": "src/App.tsx",
+    "line": 1187,
+    "type": "redirect"
+  },
+  {
+    "route": "/account",
+    "component": "AccountRouteBridge",
+    "file": "src/App.tsx",
+    "line": 1188,
+    "type": "public"
+  },
+  {
+    "route": "/account/journal",
+    "component": "JournalPage",
+    "file": "src/App.tsx",
+    "line": 1189,
+    "type": "public"
+  },
+  {
+    "route": "/account/collection",
+    "component": "CollectionPage",
+    "file": "src/App.tsx",
+    "line": 1190,
+    "type": "public"
+  },
+  {
+    "route": "/account/cellar",
+    "component": "CellarPage",
+    "file": "src/App.tsx",
+    "line": 1191,
+    "type": "public"
+  },
+  {
+    "route": "/account/collections",
+    "component": "SharedCollectionsPage",
+    "file": "src/App.tsx",
+    "line": 1192,
+    "type": "public"
+  },
+  {
+    "route": "/account/journey",
+    "component": "AccountJourneyPage",
+    "file": "src/App.tsx",
+    "line": 1193,
+    "type": "public"
+  },
+  {
+    "route": "/signin",
+    "component": "SignInPage",
+    "file": "src/App.tsx",
+    "line": 1194,
+    "type": "public"
+  },
+  {
+    "route": "/signup",
+    "component": "SignUpPage",
+    "file": "src/App.tsx",
+    "line": 1195,
+    "type": "public"
+  },
+  {
+    "route": "/account/settings",
+    "component": "AccountSettingsPage",
+    "file": "src/App.tsx",
+    "line": 1196,
+    "type": "public"
+  },
+  {
+    "route": "/account/profile",
+    "component": "AccountProfilePage",
+    "file": "src/App.tsx",
+    "line": 1197,
+    "type": "public"
+  },
+  {
+    "route": "/account/orders",
+    "component": "OrderHistoryPage",
+    "file": "src/App.tsx",
+    "line": 1198,
+    "type": "public"
+  },
+  {
+    "route": "/account/orders/:id",
+    "component": "OrderDetailPage",
+    "file": "src/App.tsx",
+    "line": 1199,
+    "type": "public"
+  },
+  {
+    "route": "/account/samples",
+    "component": "SampleHistoryPage",
+    "file": "src/App.tsx",
+    "line": 1200,
+    "type": "public"
+  },
+  {
+    "route": "/account/docs",
+    "component": "DeveloperDocsPage",
+    "file": "src/App.tsx",
+    "line": 1201,
+    "type": "public"
+  },
+  {
+    "route": "/account/briefing",
+    "component": "BriefingPage",
+    "file": "src/App.tsx",
+    "line": 1202,
+    "type": "public"
+  },
+  {
+    "route": "/design/tabs",
+    "component": "TabStyleDemo",
+    "file": "src/App.tsx",
+    "line": 1203,
+    "type": "public"
+  },
+  {
+    "route": "/design/palette-preview",
+    "component": "PalettePreviewPage",
+    "file": "src/App.tsx",
+    "line": 1204,
+    "type": "public"
+  },
+  {
+    "route": "/design/article-editor",
+    "component": "ArticleEditorHarness",
+    "file": "src/App.tsx",
+    "line": 1205,
+    "type": "public"
+  },
+  {
+    "route": "/design/system",
+    "component": "DesignSystemShowcase",
+    "file": "src/App.tsx",
+    "line": 1206,
+    "type": "public"
+  },
+  {
+    "route": "/events",
+    "component": "EventsPage",
+    "file": "src/App.tsx",
+    "line": 1207,
+    "type": "public"
+  },
+  {
+    "route": "/event/:slug",
+    "component": "EventLanding",
+    "file": "src/App.tsx",
+    "line": 1208,
+    "type": "public"
+  },
+  {
+    "route": "/event/:slug/recap",
+    "component": "EventRecapPage",
+    "file": "src/App.tsx",
+    "line": 1209,
+    "type": "public"
+  },
+  {
+    "route": "/m/:magicToken",
+    "component": "GuestManagement",
+    "file": "src/App.tsx",
+    "line": 1210,
+    "type": "public"
+  },
+  {
+    "route": "/order/:ref",
+    "component": "OrderStatusPage",
+    "file": "src/App.tsx",
+    "line": 1211,
+    "type": "public"
+  },
+  {
+    "route": "/reset-password",
+    "component": "ResetPasswordPage",
+    "file": "src/App.tsx",
+    "line": 1212,
+    "type": "public"
+  },
+  {
+    "route": "/journey",
+    "component": "JourneyPage",
+    "file": "src/App.tsx",
+    "line": 1213,
+    "type": "public"
+  },
+  {
+    "route": "/passport/:token",
+    "component": "PassportPage",
+    "file": "src/App.tsx",
+    "line": 1214,
+    "type": "public"
+  },
+  {
+    "route": "/invite/:token",
+    "component": "GuestInviteClaimPage",
+    "file": "src/App.tsx",
+    "line": 1215,
+    "type": "public"
+  },
+  {
+    "route": "/s/:sampleId",
+    "component": "SamplePage",
+    "file": "src/App.tsx",
+    "line": 1216,
+    "type": "public"
+  },
+  {
+    "route": "/share/:token",
+    "component": "ShareCardPage",
+    "file": "src/App.tsx",
+    "line": 1217,
+    "type": "public"
+  },
+  {
+    "route": "/c/:slug",
+    "component": "PublicCollectionPage",
+    "file": "src/App.tsx",
+    "line": 1218,
+    "type": "public"
+  },
+  {
+    "route": "/me",
+    "component": "CenterPage",
+    "file": "src/App.tsx",
+    "line": 1219,
+    "type": "public"
+  },
+  {
+    "route": "/session/:id",
+    "component": "SessionPage",
+    "file": "src/App.tsx",
+    "line": 1220,
+    "type": "public"
+  },
+  {
+    "route": "/join",
+    "component": "JoinPage",
+    "file": "src/App.tsx",
+    "line": 1221,
+    "type": "public"
+  },
+  {
+    "route": "/join/:code",
+    "component": "JoinPage",
+    "file": "src/App.tsx",
+    "line": 1222,
+    "type": "public"
+  },
+  {
+    "route": "/t/:token",
+    "component": "TableCardPage",
+    "file": "src/App.tsx",
+    "line": 1223,
+    "type": "public"
+  },
+  {
+    "route": "/u/:slug",
+    "component": "ShelfPage",
+    "file": "src/App.tsx",
+    "line": 1225,
+    "type": "public"
+  },
+  {
+    "route": "/find-a-table",
+    "component": "FindATable",
+    "file": "src/App.tsx",
+    "line": 1226,
+    "type": "public"
+  },
+  {
+    "route": "/community",
+    "component": "Navigate",
+    "file": "src/App.tsx",
+    "line": 1234,
+    "type": "redirect"
+  },
+  {
+    "route": "/store/:slug",
+    "component": "Storefront",
+    "file": "src/App.tsx",
+    "line": 1235,
+    "type": "public"
+  },
+  {
+    "route": "/people/:slug",
+    "component": "ContributorProfilePage",
+    "file": "src/App.tsx",
+    "line": 1247,
+    "type": "public"
+  },
+  {
+    "route": "/people/:slug/favorites",
+    "component": "ProfileFavoritesPage",
+    "file": "src/App.tsx",
+    "line": 1254,
+    "type": "public"
+  },
+  {
+    "route": "/people/:slug/pay",
+    "component": "ProfilePaymentPage",
+    "file": "src/App.tsx",
+    "line": 1257,
+    "type": "public"
+  },
+  {
+    "route": "/people",
+    "component": "ContributorsIndexPage",
+    "file": "src/App.tsx",
+    "line": 1260,
+    "type": "public"
+  },
+  {
+    "route": "/*",
+    "component": "InlineNotFound",
+    "file": "src/App.tsx",
+    "line": 1268,
+    "type": "wildcard"
+  },
+  {
+    "route": "/admin/",
+    "component": "Navigate",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 502,
+    "type": "redirect"
+  },
+  {
+    "route": "/admin/home",
+    "component": "Navigate",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 503,
+    "type": "redirect"
+  },
+  {
+    "route": "/admin/compass",
+    "component": "CompassWithMode",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 506,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/compass-playbook",
+    "component": "CompassWithMode",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 513,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/compass-current",
+    "component": "CompassWithMode",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 520,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/capture",
+    "component": "DraftsView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 527,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/events",
+    "component": "EventsManager",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 543,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/events/:id",
+    "component": "EventDetail",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 544,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/tasting-events",
+    "component": "TastingEventsList",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 545,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/tasting-events/new",
+    "component": "TastingEventForm",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 546,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/tasting-events/:sessionId",
+    "component": "TastingControlRoom",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 547,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/tasting-events/:sessionId/live",
+    "component": "TastingControlRoom",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 548,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/venues",
+    "component": "VenueManager",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 549,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/samples",
+    "component": "Navigate",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 550,
+    "type": "redirect"
+  },
+  {
+    "route": "/admin/activity",
+    "component": "ActivityView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 553,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/activity-logs",
+    "component": "Navigate",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 554,
+    "type": "redirect"
+  },
+  {
+    "route": "/admin/people",
+    "component": "PeopleView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 555,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/people/:customerId",
+    "component": "CustomerProfilePage",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 556,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/contact-tags",
+    "component": "ContactTagsView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 557,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/stock",
+    "component": "InventoryView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 561,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/inventory",
+    "component": "Navigate",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 583,
+    "type": "redirect"
+  },
+  {
+    "route": "/admin/intake",
+    "component": "IntakeWorkspace",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 584,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/dashboard",
+    "component": "DashboardView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 585,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/vendors/:vendorId",
+    "component": "VendorProfileView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 586,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/products/:id/story",
+    "component": "ProductStoryView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 587,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/purchase-orders",
+    "component": "Navigate",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 588,
+    "type": "redirect"
+  },
+  {
+    "route": "/admin/team",
+    "component": "Navigate",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 589,
+    "type": "redirect"
+  },
+  {
+    "route": "/admin/launch-playbook",
+    "component": "Navigate",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 595,
+    "type": "redirect"
+  },
+  {
+    "route": "/admin/access",
+    "component": "AccessView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 596,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/access/platform",
+    "component": "PlatformAccessView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 597,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/currency",
+    "component": "CurrencyRatesView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 598,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/mcp-tokens",
+    "component": "MCPTokensView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 599,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/oauth-consent",
+    "component": "OAuthConsentView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 600,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/oauth-consent/:requestId",
+    "component": "OAuthConsentView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 601,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/tasting-notes",
+    "component": "CustomerNotesView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 602,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/wisdom",
+    "component": "WisdomView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 603,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/network",
+    "component": "NetworkLanding",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 605,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/network/catalog",
+    "component": "Navigate",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 607,
+    "type": "redirect"
+  },
+  {
+    "route": "/admin/network/suggestions",
+    "component": "Navigate",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 608,
+    "type": "redirect"
+  },
+  {
+    "route": "/admin/network/wholesale",
+    "component": "Navigate",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 609,
+    "type": "redirect"
+  },
+  {
+    "route": "/admin/network/adoptions",
+    "component": "Navigate",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 610,
+    "type": "redirect"
+  },
+  {
+    "route": "/admin/network/listings/:listingId",
+    "component": "PartnerListingEdit",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 612,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/network/wholesale/new",
+    "component": "WholesaleOrderDraft",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 613,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/network/wholesale/:orderId",
+    "component": "WholesaleOrderDraft",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 614,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/network/wholesale/:orderId/timeline",
+    "component": "WholesaleOrderTimeline",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 615,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/account-settings",
+    "component": "AccountSettingsView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 616,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/platform",
+    "component": "PlatformAdminView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 617,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/platform/audit-log",
+    "component": "PlatformAuditLogPage",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 618,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/platform/all-stock",
+    "component": "MovementStockView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 619,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/magazine",
+    "component": "MagazineView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 620,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/contributors",
+    "component": "ContributorsView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 621,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/collections",
+    "component": "CollectionsView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 622,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/collections/inbound/:pubId",
+    "component": "InboundCollectionView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 623,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/collections/:id",
+    "component": "CollectionEditView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 624,
+    "type": "protected"
+  },
+  {
+    "route": "/admin/catalog",
+    "component": "CatalogView",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 627,
+    "type": "redirect"
+  },
+  {
+    "route": "/admin/teaware",
+    "component": "Navigate",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 632,
+    "type": "redirect"
+  },
+  {
+    "route": "/admin/personal",
+    "component": "Navigate",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 633,
+    "type": "redirect"
+  },
+  {
+    "route": "/admin/customers",
+    "component": "Navigate",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 634,
+    "type": "redirect"
+  },
+  {
+    "route": "/admin/sources",
+    "component": "Navigate",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 635,
+    "type": "redirect"
+  },
+  {
+    "route": "/admin/orders",
+    "component": "Navigate",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 636,
+    "type": "redirect"
+  },
+  {
+    "route": "/admin/records",
+    "component": "Navigate",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 637,
+    "type": "redirect"
+  },
+  {
+    "route": "/admin/settings",
+    "component": "Navigate",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 642,
+    "type": "redirect"
+  },
+  {
+    "route": "/admin/*",
+    "component": "InlineNotFound",
+    "file": "src/admin/AdminApp.tsx",
+    "line": 644,
+    "type": "redirect"
+  }
+]

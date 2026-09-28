@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { SiteNotFound } from '../components/SiteNotFound';
+import { EmblemLoader } from '../components/shared/EmblemLoader';
 import AtlasHomePage from './pages/AtlasHomePage';
 import AtlasIssuePage from './pages/AtlasIssuePage';
 import AtlasReaderPage from './pages/AtlasReaderPage';
@@ -10,6 +11,9 @@ import AtlasTopicPage from './pages/AtlasTopicPage';
 
 // The Tea Atlas reader, loaded only after the server has said this person may
 // read it (AtlasGate). Routes are relative to /tea-atlas; docs/TEA_ATLAS.md.
+// "Add a source" is its own chunk (it carries pdf.js), fetched only by the
+// person who opens it; the server decides whether that person may use it.
+const AtlasAddSourcePage = lazy(() => import('./pages/AtlasAddSourcePage'));
 export default function AtlasApp() {
   return (
     <Routes>
@@ -19,6 +23,7 @@ export default function AtlasApp() {
       <Route path="read/:articleId" element={<AtlasReaderPage />} />
       <Route path="topic/:topicId" element={<AtlasTopicPage />} />
       <Route path="search" element={<AtlasSearchPage />} />
+      <Route path="add" element={<Suspense fallback={<EmblemLoader />}><AtlasAddSourcePage /></Suspense>} />
       <Route path="*" element={<SiteNotFound />} />
     </Routes>
   );

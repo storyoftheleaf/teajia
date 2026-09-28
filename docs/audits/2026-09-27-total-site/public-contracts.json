@@ -1,0 +1,69 @@
+{
+  "auditDate": "2026-09-27",
+  "scope": "source-only public frontend journey audit; browser/runtime verification owned by parent",
+  "findings": [
+    {
+      "id": "PUB-01",
+      "title": "Product links turn inventory outages into Not Found",
+      "severity": "P2",
+      "confidence": "high_source_logic_runtime_unverified",
+      "impact": "Valid shared product links appear removed during inventory API failures and have no retry action.",
+      "trace": [
+        { "file": "src/pages/ProductPage.tsx", "line": 90, "detail": "useInventory destructures inventory, isLoading, and refetch only." },
+        { "file": "src/pages/ProductPage.tsx", "line": 179, "detail": "Loading is handled, then any missing item becomes Not Found." },
+        { "file": "src/components/Shop.tsx", "line": 537, "detail": "Shop already has a separate error and retry state." }
+      ],
+      "smallestRemedy": "Branch on inventory query error and expose refetch; reserve Not Found for a successful query without the item.",
+      "runtimeProofNeeded": true
+    },
+    {
+      "id": "PUB-02",
+      "title": "Storefront product failures are presented as a store with no stock",
+      "severity": "P2",
+      "confidence": "high_source_logic_runtime_unverified",
+      "impact": "A failed store catalog request tells customers the merchant has not published inventory and offers no retry.",
+      "trace": [
+        { "file": "src/components/storefront/Storefront.tsx", "line": 56, "detail": "Products query captures data and isLoading but not error/refetch state." },
+        { "file": "src/components/storefront/Storefront.tsx", "line": 191, "detail": "Only loading is passed to StorefrontShopSection." },
+        { "file": "src/components/storefront/Storefront.tsx", "line": 256, "detail": "An empty list renders the stock-preparation message." }
+      ],
+      "smallestRemedy": "Pass the products query failure and refetch through, separating failure from successful empty inventory.",
+      "runtimeProofNeeded": true
+    },
+    {
+      "id": "PUB-03",
+      "title": "Find-a-table review badge always falls back to Verified",
+      "severity": "P2",
+      "confidence": "high_source_logic_parent_observed_400",
+      "impact": "The review query is rejected and directory rows display an unsupported status; the count cannot represent distinct teas per store.",
+      "trace": [
+        { "file": "src/components/storefront/FindATable.tsx", "line": 28, "detail": "Review query expects an object with reviews." },
+        { "file": "src/components/storefront/FindATable.tsx", "line": 30, "detail": "Query sends visibility only." },
+        { "file": "worker/src/index.ts", "line": 16780, "detail": "Worker requires tea_key, product_id, or source_sample_id and returns 400 without one." },
+        { "file": "src/components/storefront/FindATable.tsx", "line": 37, "detail": "Caller reads reviewsData.reviews, but worker returns a raw array." },
+        { "file": "src/components/storefront/FindATable.tsx", "line": 42, "detail": "Count increments per row; the computed tea key is discarded." },
+        { "file": "src/components/storefront/FindATable.tsx", "line": 219, "detail": "Zero count becomes the Verified badge." }
+      ],
+      "smallestRemedy": "Use a directory-level aggregate endpoint or remove the unsupported badge; distinct tea counting needs a defined aggregate contract.",
+      "runtimeProofNeeded": false,
+      "runtimeProof": "Parent browser pass observed GET /api/tea-reviews returning 400 on /find-a-table."
+    }
+  ],
+  "nonFindingConcern": {
+    "title": "Public shop makes an unnecessary protected admin products request",
+    "severity": "informational_request_noise",
+    "trace": [
+      { "file": "src/hooks/useAdminOverlay.ts", "line": 21, "detail": "Calls useProducts() without the computed admin enabled flag." },
+      { "file": "src/admin/hooks/useAdminData.ts", "line": 29, "detail": "useProducts defaults enabled to true." },
+      { "file": "src/context/InventoryContext.tsx", "line": 12, "detail": "Public inventory is supplied by the separate public-product hook." }
+    ],
+    "impact": "Unauthenticated /shop sends an unnecessary request that returns 401; the public catalog continues to load through its intended endpoint.",
+    "smallestRemedy": "Call useProducts({ enabled }) in useAdminOverlay."
+  },
+  "routeInventory": {
+    "file": "docs/audits/2026-09-27-total-site/route-inventory.json",
+    "routeCount": 160,
+    "publicDeclarations": 97,
+    "adminDeclarations": 63
+  }
+}

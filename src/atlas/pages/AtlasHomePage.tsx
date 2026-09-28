@@ -1,5 +1,6 @@
 import React from 'react';
 import { AtlasFrame, AtlasLoadState, AtlasSearchBox } from '../AtlasFrame';
+import { AtlasAddSourceLink } from '../AtlasAddSourceLink';
 import { TopicIndex } from '../AtlasIndex';
 import { useAtlasJson } from '../useAtlas';
 import type { AtlasHome } from '../types';
@@ -20,6 +21,7 @@ export default function AtlasHomePage() {
               <p className="font-body text-ui-14 text-tea-text-dim mt-2">
                 {home.totals.articles.toLocaleString()} articles, searchable to the word.
               </p>
+              <AtlasAddSourceLink className="inline-block mt-3" />
             </section>
 
             <section aria-labelledby="atlas-topics">
