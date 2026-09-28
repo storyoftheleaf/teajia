@@ -236,7 +236,7 @@ const RITUAL_COVER_PHOTO = '/api/media/site/2021-06-27_IMG_7745_Original_ehkz30.
 const COVERS: CoverSpec[] = [
   { to: '/discover', kicker: 'Tool', title: <>Discover <span style={{ fontStyle: 'italic', color: C.gold }}>your tea</span></>, line: 'A few quiet questions, and a first tea to brew tonight.', slot: 'cover-discover', placeholder: '/home/standin-tea.webp' },
   { to: '/read/ritual', kicker: 'Ritual', title: <>Seven <span style={{ fontStyle: 'italic', color: C.gold }}>Steeps</span></>, line: 'The same leaves, brewed seven ways.', slot: 'cover-ritual', placeholder: RITUAL_COVER_PHOTO },
-  { to: '/wisdom', kicker: 'Reference', title: <>The Tea <span style={{ fontStyle: 'italic', color: C.gold }}>Reference</span></>, line: 'Cultivars, regions, producers, styles, marks and named teas.', slot: 'cover-reference', placeholder: '/home/standin-piece.webp' },
+  { to: '/wisdom', kicker: 'Reference', title: <>The Tea <span style={{ fontStyle: 'italic', color: C.gold }}>Reference</span></>, line: 'Cultivars, regions, producers, styles, marks and named teas.', slot: 'cover-reference', placeholder: '/craft/tea-reference.jpg' },
   { to: '/craft?v=glossary', kicker: 'Terms', title: <>The <span style={{ fontStyle: 'italic', color: C.gold }}>Glossary</span></>, line: 'The language of tea, one word at a time. Start with today’s.' },
 ];
 
