@@ -792,19 +792,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} ${PAD.text} flex flex-col justify-start pt-20`} data-page-type="text" style={OPENTYPE}>
                         <div className="relative max-w-[640px] mx-auto w-full">
-                            <div className="drop-cap-gold">
-                                <span
-                                    className="float-left font-display font-bold mr-3 mt-0 text-tea-gold leading-none select-none"
-                                    style={{
-                                        fontSize: 'calc(21px * 3.5)',
-                                        lineHeight: '0.8',
-                                        marginRight: '0.12em',
-                                        marginTop: '0.06em',
-                                    }}
-                                    aria-hidden="true"
-                                >{content.charAt(0) || 'T'}</span>
-                                <EditableText value={content.slice(1)} onChange={isEditable ? (v) => updateContent(content.charAt(0) + v) : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="he story begins..." tag="p" readOnly={readOnly} />
-                            </div>
+                            <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="The story begins..." tag="p" readOnly={readOnly} />
                         </div>
                         <div className={getBottomTreatment(variant, theme.fadeBg)}></div>
                     </div>

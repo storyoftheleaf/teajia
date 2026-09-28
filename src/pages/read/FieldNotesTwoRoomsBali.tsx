@@ -106,7 +106,7 @@ const FieldNotesTwoRoomsBali: React.FC = () => {
         {/* ── STANDFIRST ────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(28px,5vw,52px)' }}>
           <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
-            <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>B</span>
+            B
             ali does not grow much tea of its own, yet it has become a place people come to <em style={{ fontStyle: 'italic', color: C.cream }}>learn</em> it, somewhere the climate and the culture both conspire toward unhurry. In the green hills above Ubud I found two rooms that brew it, a valley apart, and could not be more different. One is dark as the inside of a drum. One is open to the sky. I sat in both, for a long time, and took these notes.
           </p>
         </section>

@@ -223,7 +223,7 @@ const AtlasMapOfMountains: React.FC = () => {
         {/* ── STANDFIRST ─────────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(36px,6vw,72px) 24px clamp(28px,5vw,52px)' }}>
           <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: 'var(--tj-read-ink)', margin: 0 }}>
-            <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>T</span>
+            T
             he French call it <em style={{ fontStyle: 'italic', color: 'var(--tj-read-cream)' }}>terroir</em>; the Chinese have known it far longer. Altitude, mist, the mineral in the rock, the angle of the morning sun, a tea drinks all of it in before a single leaf is plucked. Move a famous bush a hundred miles and it makes a stranger. Here are the places that cannot be moved.
           </p>
         </section>

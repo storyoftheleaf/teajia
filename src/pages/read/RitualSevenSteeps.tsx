@@ -311,7 +311,7 @@ const RitualSevenSteeps: React.FC = () => {
         {/* STANDFIRST */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(48px,8vw,104px) 24px clamp(20px,4vw,44px)' }}>
           <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
-            <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>G</span>
+            G
             ongfu cha, "tea made with skill", turns brewing into a conversation. A small pot is packed generously with leaf, then filled and emptied in seconds, over and over. The Western mug asks one long question and accepts one answer. The gongfu table asks the same leaves seven questions, and listens to seven different replies. Pour with us.
           </p>
         </section>

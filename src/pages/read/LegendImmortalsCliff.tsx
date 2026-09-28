@@ -150,7 +150,7 @@ const LegendImmortalsCliff: React.FC = () => {
         {/* ── STANDFIRST ────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(28px,5vw,52px)' }}>
           <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
-            <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>H</span>
+            H
             igh on a sheer face in the Wuyi mountains, reached by a narrow path and a great deal of nerve, grows the most famous tea in China:{' '}
             <span style={{ fontFamily: F.cn, color: C.taupe }}>大红袍</span>
             , Dà Hóng Páo, "Big Red Robe." Not a garden of it. Not a hillside. Six individual bushes, more than three hundred and fifty years old, growing from a crack watered by a thread of mineral spring. Every Big Red Robe on earth descends from these six. They are, in the most literal sense, the mother trees.

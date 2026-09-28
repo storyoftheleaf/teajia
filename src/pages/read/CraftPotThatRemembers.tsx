@@ -158,7 +158,7 @@ const CraftPotThatRemembers: React.FC = () => {
         {/* ── STANDFIRST ────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(28px,5vw,52px)' }}>
           <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
-            <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>M</span>
+            M
             ost teapots are inert, glazed, sealed, forgetful. The little pots of Yixing are the opposite. Thrown from a rare unglazed stoneware called{' '}
             <span style={{ fontFamily: F.cn, color: C.taupe }}>紫砂</span>
             , zǐshā or "purple sand," they are faintly{' '}

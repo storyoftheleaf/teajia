@@ -126,7 +126,7 @@ const RockRemembers: React.FC = () => {
         {/* STANDFIRST */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(20px,4vw,44px)' }}>
           <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
-            <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>T</span>
+            T
             o reach Chén Wǔ you climb. Past the last teahouse, past the tour groups, up a path slick with morning mist, to a low stone room where a century of charcoal has soaked into the walls. He is sixty-one, narrow as a bamboo cane, and he does not stop tending the fire as we speak. Below us, the Wuyi cliffs fall away into cloud. This is where rock tea is made, and, he insists, where it must be made.
           </p>
         </section>

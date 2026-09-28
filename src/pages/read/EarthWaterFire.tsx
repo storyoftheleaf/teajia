@@ -145,7 +145,7 @@ const EarthWaterFire: React.FC = () => {
         {/* STANDFIRST */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(20px,4vw,44px)' }}>
           <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
-            <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>J</span>
+            J
             ingdezhen has made porcelain for a thousand years; the kilns here have never truly gone cold. In a workshop off a lane stacked with drying bowls, Lín Yùzhēn sits at a wheel her grandmother used, opening a lump of grey clay into the beginnings of a gaiwan. She is forty-three. Her hands are pale with slip. She does not look up as we sit down.
           </p>
         </section>

@@ -66,10 +66,10 @@ const Manuscript: React.FC = () => (
 
     {/* READING COLUMN */}
     <div style={{ maxWidth: 1080, margin: '0 auto', padding: '0 24px' }}>
-      {/* INTRO with drop cap */}
+      {/* INTRO */}
       <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(60px,9vw,120px) 0 clamp(20px,4vw,48px)' }}>
         <p style={{ fontFamily: F.body, fontSize: 'clamp(19px,2.3vw,23px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
-          <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5.1em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -2px 0' }}>E</span>
+          E
           very tea in the world, the grassy green of a Hangzhou spring, the honeyed dark of an aged Pu’er, the bright snap of a high Darjeeling, begins with the very same plant. <em style={{ fontStyle: 'italic', color: C.cream }}>Camellia sinensis</em>: an evergreen shrub, unremarkable to the passing eye. What separates one tea from another is not the leaf but what the maker chooses to do with it, and the precise moment they choose to stop.
         </p>
       </section>
@@ -352,7 +352,7 @@ const Folio: React.FC = () => (
     {/* BODY, two-column flow */}
     <section data-reveal style={{ padding: 'clamp(44px,6vw,72px) 0 0' }}>
       <div style={{ columns: '19em', columnGap: 'clamp(28px,4vw,52px)', fontFamily: F.body, fontSize: 16, lineHeight: 1.76, color: C.taupe }}>
-        <p style={{ margin: '0 0 18px' }}><span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '3.4em', lineHeight: 0.72, color: C.gold, margin: '6px 12px -2px 0' }}>E</span>very tea in the world, the grassy green of a Hangzhou spring, the honeyed dark of an aged Pu’er, begins with the same plant. <em style={{ color: C.ink }}>Camellia sinensis</em>, an evergreen shrub unremarkable to the passing eye. What separates one tea from another is not the leaf, but what the maker does with it.</p>
+        <p style={{ margin: '0 0 18px' }}>Every tea in the world, the grassy green of a Hangzhou spring, the honeyed dark of an aged Pu’er, begins with the same plant. <em style={{ color: C.ink }}>Camellia sinensis</em>, an evergreen shrub unremarkable to the passing eye. What separates one tea from another is not the leaf, but what the maker does with it.</p>
         <p style={{ margin: '0 0 18px' }}>Tea begins in the hands. In the high gardens of Yunnan and Fujian the spring flush is gathered leaf by leaf, two slender leaves and a single unopened bud, the most tender part of the plant. A skilled picker takes only what the season offers.</p>
         <p style={{ margin: '0 0 18px' }}>Once gathered, the leaf is laid out to wither. It is the quietest step, and the most important. Spread thin on bamboo trays, the leaf exhales its water into the air. As it loses moisture it gains aroma: grass becomes flower, flower becomes fruit.</p>
         <p style={{ margin: 0 }}>Then comes the decision that names the tea. Break the leaf’s surface and its enzymes meet the air; the green begins to brown, as a cut apple does. This is <em style={{ color: C.ink }}>oxidation</em>, and every category of tea is, in the end, a choice about where to halt it.</p>
