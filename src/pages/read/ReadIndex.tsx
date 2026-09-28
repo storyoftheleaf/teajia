@@ -179,7 +179,7 @@ const GroupBlock: React.FC<{ group: IndexGroup; isAdmin: boolean }> = ({ group, 
 // ── Lead cover (hover handled inline via React state) ────────────────────────
 const LeadCover: React.FC = () => {
   const [hovered, setHovered] = useState(false);
-  // The piece's own cover portrait sits above the words, never under them:
+  // A photograph from the piece sits above the words, never under them:
   // words go on a photograph only where it has empty space, not over a person
   // or the work.
   return (
@@ -201,10 +201,10 @@ const LeadCover: React.FC = () => {
     >
       <div style={{ position: 'relative', aspectRatio: '4/5', overflow: 'hidden', background: 'var(--tj-read-bg)' }}>
         <img
-          src="/read/porcelain-and-tea/portrait.jpg"
-          alt="Shangyin Qiwu seated in his studio"
+          src="/read/porcelain-and-tea/gold-mended-bowl.jpg"
+          alt="A dark tea bowl mended with gold, alone on a pale ground"
           loading="lazy"
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 40%', transform: hovered ? 'scale(1.02)' : 'none', transition: 'transform 600ms cubic-bezier(0.22,0.61,0.36,1)' }}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 88%', transform: hovered ? 'scale(1.02)' : 'none', transition: 'transform 600ms cubic-bezier(0.22,0.61,0.36,1)' }}
         />
       </div>
       <div style={{ position: 'relative', padding: 'clamp(22px,3vw,30px)' }}>
