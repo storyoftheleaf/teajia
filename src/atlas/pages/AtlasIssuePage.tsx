@@ -15,7 +15,6 @@ export default function AtlasIssuePage() {
       title={ready ? `${ready.source.name}, ${ready.issue.label}` : undefined}
       trail={ready ? [{ label: ready.source.name, to: `${ATLAS_ROOT}/source/${ready.source.id}` }] : []}
       measure="wide"
-      here={{ issue: issueId }}
     >
       <AtlasLoadState load={load}>
         {({ source, issue, prev, next, articles }) => (
