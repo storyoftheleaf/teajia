@@ -32,7 +32,7 @@ test('foreground API failure shows unstable wording when the site probe also fai
 
   await runNotesSync(page);
 
-  await expect(page.getByRole('alert')).toContainText('Connection is unstable. Retrying.');
+  await expect(page.getByRole('alert')).toContainText("Couldn't load everything. Check your connection.");
 });
 
 test('foreground API failure uses server wording and clears after recovery', async ({ page }) => {
@@ -51,7 +51,7 @@ test('foreground API failure uses server wording and clears after recovery', asy
   await page.goto(baseUrl);
 
   await runNotesSync(page);
-  await expect(page.getByRole('alert')).toContainText('The server is taking too long. Retrying.');
+  await expect(page.getByRole('alert')).toContainText('This is taking too long. Try again in a moment.');
 
   await page.route('**/api/notes', route => route.fulfill({
     status: 200,

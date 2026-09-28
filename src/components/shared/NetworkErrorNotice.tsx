@@ -8,8 +8,8 @@ import {
 
 const NETWORK_MESSAGES: Record<NetworkErrorKind, string> = {
   offline: "You're offline. Reconnect to keep going.",
-  unstable: 'Connection is unstable. Retrying.',
-  slow: 'The server is taking too long. Retrying.',
+  unstable: "Couldn't load everything. Check your connection.",
+  slow: 'This is taking too long. Try again in a moment.',
 };
 
 export const NetworkErrorNotice = () => {
