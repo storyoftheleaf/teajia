@@ -42,7 +42,7 @@ interface ProductTastingEditorialProps {
  * attributions, so they are set as attributions.
  */
 const SOURCE_LINE: Record<SensorySource, string> = {
-  owner: 'Tasted by Adrian',
+  owner: 'Tasted by Teajia',
   community: 'From the community',
   source: 'Source-described profile',
   common: 'Potential profile',

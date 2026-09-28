@@ -290,7 +290,7 @@ export function buildTastingPicksMessage(opts: {
   const lines: string[] = [];
   lines.push(`From ${opts.guestName} (${opts.guestEmail}) at ${title}`);
   lines.push('');
-  lines.push("At Adrian's tasting today, here's what I want:");
+  lines.push("At the Teajia tasting today, here's what I want:");
   lines.push('');
 
   opts.picks.forEach((p, i) => {

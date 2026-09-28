@@ -79,7 +79,7 @@ export default function SampleHistoryPage() {
           <Icons.Leaf className="w-8 h-8 text-tea-gold/40 mx-auto mb-3" />
           <p className="text-ui-16 text-tea-text mb-1">No samples yet</p>
           <p className="text-ui-12 text-tea-text-sec max-w-xs mx-auto">
-            Samples Adrian curates for you will appear here once they're sent.
+            Samples Teajia curates for you will appear here once they're sent.
           </p>
         </div>
       )}

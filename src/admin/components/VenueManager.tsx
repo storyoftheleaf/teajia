@@ -587,7 +587,7 @@ const NewVenueForm: React.FC<NewVenueFormProps> = ({ onSaved, onCancel }) => {
       <p className="label-caps text-tea-text-sec">New Venue</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="Venue Name *">
-          <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} placeholder="Adrian's Flat" autoFocus />
+          <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} placeholder="Studio Flat" autoFocus />
         </Field>
         <Field label="Area Hint">
           <input type="text" value={areaHint} onChange={e => setAreaHint(e.target.value)} className={inputClass} placeholder="Da'an District, Taipei" />

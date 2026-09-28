@@ -19,20 +19,20 @@ describe('the product page sensory slot', () => {
 
   it('a resolved tasting still links out and signs itself', () => {
     const out = html(<ProductTastingEditorial tasting={{ feeling: ['calm'] }} source="owner" />);
-    expect(out).toContain('Tasted by Adrian');
+    expect(out).toContain('Tasted by Teajia');
   });
 
   it('labels common terms as potential rather than owner tasting', () => {
     const out = html(<ProductTastingEditorial tasting={{ flavor: ['honey'] }} source="common" />);
     expect(out).toContain('Potential profile');
-    expect(out).not.toContain('Adrian');
+    expect(out).not.toContain('Teajia');
   });
 
   it('labels exact-lot terms as source-described rather than potential or owner', () => {
     const out = html(<ProductTastingEditorial tasting={{ flavor: ['honey'] }} source="source" />);
     expect(out).toContain('Source-described profile');
     expect(out).not.toContain('Potential profile');
-    expect(out).not.toContain('Adrian');
+    expect(out).not.toContain('Teajia');
   });
 
   it('renders nothing when it has neither', () => {

@@ -12,7 +12,7 @@ commercially, as long as you give appropriate credit. Attribute as:
 
   Teajia Tea Wisdom Base (teajia.com), CC BY 4.0.
 
-Carve-out: Adrian's own tea write-ups and tasting notes are NOT included in
+Carve-out: Teajia's own tea write-ups and tasting notes are NOT included in
 this dataset and remain his. This dataset is the shared research layer only,
 not the shop's own voice.
 

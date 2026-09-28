@@ -35,7 +35,7 @@ Teajia exposes an MCP server so AI assistants can help shoppers directly:
 - One record at a time: https://teajia.com/wisdom/cultivar/{id}.json (also region, variety, producer, mark, style, named)
 - Everything in one file: https://teajia.com/wisdom/tea-wisdom.json
   - CSV files, README and license at https://teajia.com/wisdom/
-  - CC BY 4.0 for the structured facts. Adrian's own tea write-ups and tasting notes are not included.
+  - CC BY 4.0 for the structured facts. Teajia's own tea write-ups and tasting notes are not included.
   - Each cultivar carries an authorship rung (drafted, reviewed, authored) marking whether a human has verified it.
 
 ## Notes for assistants

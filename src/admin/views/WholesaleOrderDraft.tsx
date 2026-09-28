@@ -784,7 +784,7 @@ export const WholesaleOrderDraft: React.FC = () => {
       {orderStatus === 'replied' && orderDetail?.order.supplier_notes && (
         <div className="mb-6 border-b border-tea-border pb-6">
           <p className="font-body italic text-ui-15 text-tea-text-sec leading-[1.7]">
-            {supplierName ?? 'Adrian'} replied:{' '}
+            {supplierName ?? 'Teajia'} replied:{' '}
             &ldquo;{orderDetail.order.supplier_notes}&rdquo;
           </p>
         </div>
@@ -817,7 +817,7 @@ export const WholesaleOrderDraft: React.FC = () => {
             <span className="font-body text-ui-14 text-tea-text-sec w-20 shrink-0">Supplier</span>
             <span className="font-body text-ui-14 text-tea-text">
               {supplierName ?? (
-                <span className="italic text-tea-text-sec">Adrian · Teajia Bali</span>
+                <span className="italic text-tea-text-sec">Teajia Bali</span>
               )}
             </span>
           </div>
@@ -917,7 +917,7 @@ export const WholesaleOrderDraft: React.FC = () => {
             value={buyerNotes}
             onChange={e => setBuyerNotes(e.target.value)}
             rows={5}
-            placeholder="Anything Adrian should know? Timing, packaging, sample requests."
+            placeholder="Anything Teajia should know? Timing, packaging, sample requests."
             aria-label="Note to supplier"
             className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body italic text-ui-15 leading-[1.7] py-1 resize-none transition-colors placeholder:text-tea-text-sec"
           />
@@ -975,7 +975,7 @@ export const WholesaleOrderDraft: React.FC = () => {
           ) : (
             <span className="font-body italic text-ui-13 text-tea-text-sec">
               Estimated by{' '}
-              {supplierName ?? 'Adrian'} on confirm
+              {supplierName ?? 'Teajia'} on confirm
             </span>
           )}
         </div>
@@ -1000,13 +1000,13 @@ export const WholesaleOrderDraft: React.FC = () => {
         {/* FX snapshot prose */}
         {fxSnapshot && (
           <p className="font-body italic text-ui-11 text-tea-text-sec leading-[1.6]">
-            {fxSnapshot}. This rate is locked when you submit. Adrian's
+            {fxSnapshot}. This rate is locked when you submit. Teajia's
             confirmation keeps it.
           </p>
         )}
         {!fxSnapshot && items.length > 0 && (
           <p className="font-body italic text-ui-11 text-tea-text-sec leading-[1.6]">
-            Currency snapshot: rates are locked when you submit. Adrian's
+            Currency snapshot: rates are locked when you submit. Teajia's
             confirmation keeps them.
           </p>
         )}
@@ -1037,7 +1037,7 @@ export const WholesaleOrderDraft: React.FC = () => {
               <div className="mb-4">
                 <p className="font-body text-ui-14 text-tea-text leading-[1.6] mb-3">
                   Submit this order to{' '}
-                  {supplierName ?? 'Adrian'} for{' '}
+                  {supplierName ?? 'Teajia'} for{' '}
                   {formatMoney(subtotal, orderCurrency)} + shipping?
                 </p>
                 <div className="flex items-center gap-6">
@@ -1100,7 +1100,7 @@ export const WholesaleOrderDraft: React.FC = () => {
                   }}
                   className="font-body text-ui-14 text-tea-text hover:text-tea-gold transition-colors disabled:text-tea-text-sec disabled:cursor-not-allowed group"
                 >
-                  Submit to {supplierName ?? 'Adrian'}
+                  Submit to {supplierName ?? 'Teajia'}
                   <span className="inline-block transition-transform group-hover:translate-x-0.5 ml-0.5">
                     {'→'}
                   </span>
@@ -1120,7 +1120,7 @@ export const WholesaleOrderDraft: React.FC = () => {
               }}
               className="font-body text-ui-14 text-tea-text hover:text-tea-gold transition-colors disabled:text-tea-text-sec disabled:cursor-not-allowed group w-full"
             >
-              Submit to {supplierName ?? 'Adrian'}
+              Submit to {supplierName ?? 'Teajia'}
               <span className="inline-block transition-transform group-hover:translate-x-0.5 ml-0.5">
                 {'→'}
               </span>

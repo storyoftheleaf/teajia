@@ -29,7 +29,7 @@ const FALLBACK_SPACES: Space[] = [
     description: 'A dedicated gongfu space for private sessions and small gatherings.',
     type: 'Private Tea Room',
     location: 'Ubud, Bali',
-    host: 'Adrian',
+    host: 'Teajia',
     status: 'active',
     isPrivate: true,
   },
@@ -39,17 +39,17 @@ const FALLBACK_SPACES: Space[] = [
     description: 'A second tea space at home, used for more intimate one-on-one sessions.',
     type: 'Private Tea Room',
     location: 'Ubud, Bali',
-    host: 'Adrian',
+    host: 'Teajia',
     status: 'by-appointment',
     isPrivate: true,
   },
   {
     id: 'teajia-studio',
     name: 'The Studio Tea Room',
-    description: "Tea space within Adrian's art studio, where tea and creative practice meet.",
+    description: "Tea space within the Teajia art studio, where tea and creative practice meet.",
     type: 'Studio',
     location: 'Ubud, Bali',
-    host: 'Adrian',
+    host: 'Teajia',
     status: 'by-appointment',
     isPrivate: false,
   },
@@ -100,7 +100,7 @@ export const SpacesPage: React.FC = () => {
   const spaces = apiSpaces && apiSpaces.length > 0 ? apiSpaces : FALLBACK_SPACES;
 
   const buildInquiryUrl = (spaceName: string) => {
-    const message = `Hi Adrian, I'd like to learn more about ${spaceName} and how to book a session.`;
+    const message = `Hi Teajia, I'd like to learn more about ${spaceName} and how to book a session.`;
     return buildWhatsAppUrl(WHATSAPP_NUMBER, message);
   };
 
