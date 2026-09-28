@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { canonicalUrlFor, isWorkerProxyPath, onRequest, resolveStaticReadMeta, STATIC_META } from './_middleware';
+import { canonicalUrlFor, isTeaAtlasPath, isWorkerProxyPath, onRequest, resolveStaticReadMeta, STATIC_META } from './_middleware';
 import { ARTICLE_LIVE, isReadPathPublic, isUngatedReadPath } from '../src/pages/read/articleLive';
 
 describe('Pages protocol proxy', () => {
@@ -158,5 +158,22 @@ describe('a draft does not claim its own URL as canonical', () => {
         expect(url, `${routePath} is a draft but still claims its own URL as canonical`).toBe('https://www.teajia.com/read');
       }
     }
+  });
+});
+
+describe('Tea Atlas pages are a 404 at the edge for everyone', () => {
+  it('serves the shell with a 404 status and noindex, whoever asks', async () => {
+    for (const path of ['/tea-atlas', '/tea-atlas/', '/tea-atlas/read/2012-02-p03-answering-some-puerh-questions', '/tea-atlas/search?q=puerh']) {
+      const next = vi.fn(async () => new Response('<html>SPA</html>', { headers: { 'content-type': 'text/html' } }));
+      const response = await onRequest({ request: new Request(`https://www.teajia.com${path}`), env: {}, next } as any);
+      expect(response.status, path).toBe(404);
+      expect(response.headers.get('x-robots-tag'), path).toContain('noindex');
+      expect(await response.text(), path).toBe('<html>SPA</html>');
+    }
+  });
+
+  it('leaves neighbouring paths alone', async () => {
+    expect(isTeaAtlasPath('/tea-atlas-other')).toBe(false);
+    expect(isTeaAtlasPath('/read/atlas')).toBe(false);
   });
 });

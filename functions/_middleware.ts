@@ -362,6 +362,10 @@ class HeadRewriter {
   }
 }
 
+export function isTeaAtlasPath(path: string): boolean {
+  return path === '/tea-atlas' || path.startsWith('/tea-atlas/');
+}
+
 export const onRequest: PagesFunction<Env> = async (context) => {
   const { request, next } = context;
   const url = new URL(request.url);
@@ -372,6 +376,19 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   // Only consider GET navigations to HTML; let assets/api pass straight through.
   if (request.method !== 'GET') return next();
+
+  // Tea Atlas (docs/TEA_ATLAS.md): a private library the edge cannot tell
+  // readers apart for, since the session lives in the browser. So every
+  // visitor gets the same shell with a 404 status: nothing indexes it,
+  // nothing previews it, and a stranger sees an ordinary "page not found".
+  // A reader's browser then asks the API, which is where access is decided.
+  if (isTeaAtlasPath(path)) {
+    const shell = await next();
+    const headers = new Headers(shell.headers);
+    headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+    headers.set('Cache-Control', 'no-store');
+    return new Response(shell.body, { status: 404, headers });
+  }
 
   let meta: Meta | null = resolveStaticReadMeta(path);
 

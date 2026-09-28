@@ -54,6 +54,12 @@ database_id = "2dbafe5c-10db-4ac6-9f17-4292b5beffc9"
 binding = "MEDIA_BUCKET"
 bucket_name = "teajia-media"
 
+# Tea Atlas, the private reading library (docs/TEA_ATLAS.md). Private bucket:
+# no r2.dev address, no custom domain. Filled by `npm run atlas:upload`.
+[[r2_buckets]]
+binding = "ATLAS_BUCKET"
+bucket_name = "teajia-atlas-private"
+
 [triggers]
 crons = ["0 * * * *"]
 

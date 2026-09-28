@@ -63,29 +63,39 @@ not have it until somebody ticks it for them.
 
 ## Storage
 
-**Bucket:** R2 `teajia-atlas`, bound to the Worker as `ATLAS_BUCKET`. Private:
-no `r2.dev` public URL, no custom domain. The Worker is the only door.
+**Bucket:** R2 `teajia-atlas-private`, bound to the Worker as `ATLAS_BUCKET`.
+Private: no `r2.dev` public URL, no custom domain (both uploaders refuse to run
+if either appears). The Worker is the only door.
 
 Metadata lives in R2 too, not D1: it is rebuilt wholesale from the package, it
 is read-only at runtime, and pre-split JSON files stream without being parsed,
 which keeps every request far under the free plan's 10 ms CPU.
 
 ```
-v1/home.json                        sources (with issues grouped by year) + topics with counts
-v1/sources/<sourceId>.json          one source and all its issues
-v1/issues/<issueId>.json            one issue, its articles in reading order, prev/next issue
-v1/topics/<topicId>.json            one topic, every article carrying it
-v1/articles/<articleId>.json        the article: metadata, blocks, "in this issue", prev/next, credit
-v1/search/catalog.json              every article's id, title, author, issue label, topics (title search)
-v1/search/text/<shard>.json         full-text index shard: { term: [article numbers] }
-v1/media/<issue>/<stem>.jpg         pictures, exactly as the package names them
-_state.json                         upload bookkeeping (never served)
+articles/<articleId>.json               the package's article, as built (metadata + blocks)
+media/<issue>/<stem>.jpg                the package's pictures, as built
+index/v1/home.json                      sources + topics with counts + totals
+index/v1/sources/<sourceId>.json        one source, its issues grouped by year
+index/v1/issues/<issueId>.json          one issue, its articles in reading order, prev/next issue
+index/v1/topics/<topicId>.json          one topic, every article carrying it, oldest first
+index/v1/search/catalog.json            every article: id, title, author, issue, issue label, topics, pages
+index/v1/search/text/<shard>.json       full-text index shard: { term: [article number gaps] }
+_atlas-upload-state.json                upload bookkeeping (never served)
+manifest.json, README.md                copied by the other uploader (never served)
 ```
+
+The package files keep the package's own names, so `npm run atlas:upload` and
+`~/builds/tea-atlas-upload.sh` write identical keys and either can fill the
+bucket. Only `atlas:upload` builds `index/v1/`. The reader shows "in this issue"
+and prev/next from the issue file, so article files are served untouched.
 
 - Article, issue and topic ids come straight from the package and must be unique
   package-wide (the build refuses otherwise).
 - An article's picture blocks keep the package's `src` (`<issue>/<stem>.jpg`);
   the app requests `/api/atlas/media/<src>`.
+- `/api/atlas/articles/<id>.json` and `/api/atlas/media/...` map to the same key;
+  `/api/atlas/home.json`, `sources/`, `issues/`, `topics/`, `search/` map under
+  `index/v1/`.
 - **Search.** Titles, authors and topics are searched from `catalog.json`
   (~1,500 rows, loaded once). Full text uses an inverted index split into shards
   by the first two characters of each term (`ab.json`; a term starting outside
@@ -98,7 +108,7 @@ _state.json                         upload bookkeeping (never served)
 **API** (Worker, all `GET`, all behind `canReadTeaAtlas`):
 
 ```
-/api/atlas/<path>     →  R2 key v1/<path>
+/api/atlas/<path>     →  R2 key (see the mapping under Storage)
 ```
 
 `<path>` must match one of the shapes above (`home.json`, `sources/…json`,
@@ -136,6 +146,10 @@ rebuild it instead.
    - `npm run atlas:upload -- --local` fills the local sandbox bucket instead
      (for `npm run sandbox`).
    - `--export <dir>` points at a different package.
+   - `--index-only` sends only the built index and search files (for when the
+     package files are already up, e.g. sent by `~/builds/tea-atlas-upload.sh`,
+     which writes the same `articles/` and `media/` keys; files its ledger records
+     are never sent twice).
 3. Nothing to deploy: the Worker serves whatever the bucket holds.
 
 ## Tests
