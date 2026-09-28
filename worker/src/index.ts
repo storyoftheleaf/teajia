@@ -22488,7 +22488,7 @@ const handleSubmitSessionVerdict: Handler = async (request, env, params) => {
   const { userId, claims, sessionRow } = gate;
 
   if (sessionRow.status === 'completed') {
-    return json({ error: 'Adrian closed the session', reason: 'session_completed' }, 409);
+    return json({ error: 'Teajia closed the session', reason: 'session_completed' }, 409);
   }
 
   const body = await request.json() as {

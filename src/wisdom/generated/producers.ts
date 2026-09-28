@@ -154,6 +154,6 @@ export const PRODUCERS: Producer[] = [
     "country": "China",
     "region": "Yunnan",
     "notableMarks": [],
-    "description": "Named only in one product's title (Xinghai Aged Sheng Cha). That product's write-up body is empty, so nothing beyond the name is confirmed by Adrian's own source material."
+    "description": "Named only in one product's title (Xinghai Aged Sheng Cha). That product's write-up body is empty, so nothing beyond the name is confirmed by Teajia's own source material."
   }
 ];
