@@ -105,15 +105,16 @@ function canShipNoChargeOrder(order: DbOrder): boolean {
 
 function notificationLabel(order: DbOrder): string | null {
   if (!order.source_inquiry_id) return null;
+  if (order.notification_purpose === 'owner_notification') return 'This order used the earlier owner-alert flow. No customer confirmation was requested.';
   switch (order.notification_status) {
     case 'config_required': return 'Automatic WhatsApp is not connected. The order is saved; contact the customer directly.';
-    case 'pending': return 'WhatsApp notification queued; delivery is not confirmed.';
-    case 'sending': return 'WhatsApp notification is being sent; delivery is not confirmed.';
-    case 'accepted': return 'WhatsApp accepted the notification; delivery is not confirmed.';
-    case 'retry_scheduled': return 'WhatsApp notification will be retried; delivery is not confirmed.';
+    case 'pending': return 'Customer WhatsApp confirmation queued; delivery is not confirmed.';
+    case 'sending': return 'Customer WhatsApp confirmation is being sent; delivery is not confirmed.';
+    case 'accepted': return 'WhatsApp accepted the customer confirmation; delivery is not confirmed.';
+    case 'retry_scheduled': return 'Customer WhatsApp confirmation will be retried; delivery is not confirmed.';
     case 'review_required':
     case 'failed': return 'Automatic notification needs attention. The order is saved; contact the customer directly.';
-    default: return 'Automatic notification delivery is not confirmed. The order is saved.';
+    default: return 'No automatic WhatsApp confirmation requested. The order is saved.';
   }
 }
 

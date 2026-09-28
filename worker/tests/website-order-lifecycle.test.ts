@@ -77,9 +77,9 @@ function ledger(db: SqliteD1, id: string) {
 }
 
 describe('website order lifecycle', () => {
-  it('atomically creates one server-priced Draft, request, and owner outbox without a payment method', async () => {
+  it('atomically creates one server-priced Draft, request, and customer outbox without a payment method', async () => {
     const db = seed();
-    const body = orderPayload('shop-a', '+628123456789', { total_estimate_usd: 0 });
+    const body = orderPayload('shop-a', '+628123456789', { total_estimate_usd: 0, whatsapp_confirmation_consent: true });
     const first = await create(db, body);
     expect(first.result).toMatchObject({ success: true, invoice_id: expect.any(String), invoice_number: expect.any(String) });
     const saved = invoice(db, first.result.invoice_id);
@@ -110,7 +110,7 @@ describe('website order lifecycle', () => {
     db.sqlite.exec(`CREATE TRIGGER reject_order_outbox BEFORE INSERT ON order_whatsapp_outbox
       BEGIN SELECT RAISE(ABORT, 'outbox unavailable'); END;`);
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect((await publicOrder(db, orderPayload())).status).toBe(500);
+    expect((await publicOrder(db, orderPayload('shop-a', '+628123456789', { whatsapp_confirmation_consent: true }))).status).toBe(500);
     expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM inquiries').get()).toEqual({ n: 0 });
     expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM invoices').get()).toEqual({ n: 0 });
     expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM order_whatsapp_outbox').get()).toEqual({ n: 0 });
@@ -374,7 +374,7 @@ describe('website order lifecycle', () => {
 
   it('does not allow one shop to edit, ship, or cancel another shop’s order', async () => {
     const db = seed();
-    const { result } = await create(db, orderPayload('shop-b'));
+    const { result } = await create(db, orderPayload('shop-b', '+628123456789', { whatsapp_confirmation_consent: true }));
     const id = result.invoice_id;
     expect(invoice(db, id).account_id).toBe('shop-b');
     expect((await admin(db, 'shop-a', `/api/invoices/${id}`, { shipping_cost_usd: 99 }, 'PUT')).status).toBe(404);

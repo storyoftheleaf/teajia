@@ -12,7 +12,7 @@ const PRODUCT = {
 };
 type SubmittedRequest = {
   tracking_token: string; ref_number: string; source: string; customer_location: string;
-  customer_contact: string; items_json: string;
+  customer_contact: string; items_json: string; whatsapp_confirmation_consent?: boolean;
   total_estimate_usd: number; currency: string;
 };
 async function json(route: Route, body: unknown, status = 200) {
@@ -221,9 +221,33 @@ test.describe('guest public checkout', () => {
     expect(requests).toHaveLength(1);
     expect(requests[0].source).toBe('website');
     expect(requests[0].customer_contact).toBe('+6281234567890');
+    expect(requests[0].whatsapp_confirmation_consent).toBe(false);
     await expect(page.getByText('Your request is saved with Teajia Bali.', { exact: true })).toBeInViewport({ ratio: 1 });
     await expect(page.getByText('Your order request and draft invoice are saved.', { exact: false })).toBeVisible();
     await expect.poll(() => savedCart(page)).toEqual([]);
+    expect(await page.evaluate(() => (window as any).__checkoutPopupCalls)).toBe(0);
+  });
+
+  test('requests an optional WhatsApp confirmation with explicit consent and no app handoff', async ({ page }, testInfo) => {
+    const requests = await prepare(page);
+    await page.goto('/shop', { waitUntil: 'domcontentloaded' });
+    await openCart(page);
+    await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
+    await page.getByLabel('Your name', { exact: true }).fill('Guest Customer');
+    const contact = page.getByLabel('Your WhatsApp number', { exact: true });
+    await contact.fill('+628111234567');
+    const consent = page.getByRole('checkbox', { name: /Send me a WhatsApp order confirmation/ });
+    await expect(consent).not.toBeChecked();
+    await consent.check();
+    await contact.fill('+628111234568');
+    await expect(consent).not.toBeChecked();
+    await consent.check();
+    await consent.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: testInfo.outputPath('whatsapp-consent.png'), animations: 'disabled' });
+    expect(await page.locator('#checkout-form').evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
+    await page.getByRole('button', { name: 'Place order request', exact: true }).click();
+    await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
+    expect(requests[0]).toMatchObject({ customer_contact: '+628111234568', whatsapp_confirmation_consent: true, source: 'website' });
     expect(await page.evaluate(() => (window as any).__checkoutPopupCalls)).toBe(0);
   });
 

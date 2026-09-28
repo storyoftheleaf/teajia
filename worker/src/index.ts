@@ -12,7 +12,8 @@ import {
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { shippingPerGramUsd, resolveShopFreightDefault } from './shippingRate';
 import { deductStockForPaidInvoice } from './orderLifecycle';
-import { buildOwnerOrderNotificationInsert, processPendingOwnerOrderNotifications } from './whatsappOrderNotifications';
+import { internationalWhatsAppNumber } from '../../src/lib/whatsappContact';
+import { buildCustomerOrderNotificationInsert, processPendingCustomerOrderNotifications } from './whatsappOrderNotifications';
 import { FX_FEED_CURRENCY_MAP, refreshedCurrencyName } from './exchangeRateFeed';
 import { SHOP_MARKUP_MULTIPLIER, CURATOR_FALLBACK_MARKUP } from './markup';
 import { costNeedsCurrency, createMissingCost, currencyStated, stampCostCurrencySource, canonicalizeCostCurrency, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
@@ -132,7 +133,8 @@ interface Env {
   WHATSAPP_ACCESS_TOKEN?: string;
   WHATSAPP_PHONE_NUMBER_ID?: string;
   WHATSAPP_SENDER_NUMBER?: string;
-  WHATSAPP_ORDER_TEMPLATE_NAME?: string;
+  WHATSAPP_CUSTOMER_CONFIRMATIONS_ENABLED?: string;
+  WHATSAPP_CUSTOMER_TEMPLATE_NAME?: string;
   WHATSAPP_ORDER_TEMPLATE_LANGUAGE?: string;
   WHATSAPP_GRAPH_API_VERSION?: string;
   MEDIA_BUCKET: R2Bucket;
@@ -5516,7 +5518,7 @@ const handleGetInvoices: Handler = async (request, env) => {
   const result = await env.DB.prepare(
     `SELECT i.*, COALESCE(t.line_total, 0) as computed_total,
        ev.title as source_event_title, ev.slug as source_event_slug,
-       ono.state AS notification_status
+       ono.state AS notification_status, ono.message_purpose AS notification_purpose
      FROM invoices i
      LEFT JOIN (
        SELECT invoice_id, SUM(quantity * price_at_sale) as line_total
@@ -14067,6 +14069,15 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
     return json({ error: 'Enter a valid email or phone number so the store can reply.' }, 400);
   }
 
+  if (body.whatsapp_confirmation_consent !== undefined && typeof body.whatsapp_confirmation_consent !== 'boolean') {
+    return json({ error: 'WhatsApp confirmation consent must be true or false.' }, 400);
+  }
+  const whatsappConsent = source === 'website' && body.whatsapp_confirmation_consent === true;
+  const whatsappRecipient = whatsappConsent ? internationalWhatsAppNumber(contact) : null;
+  if (whatsappConsent && !whatsappRecipient) {
+    return json({ error: 'Enter your WhatsApp number with + and country code to request a confirmation.' }, 400);
+  }
+
   let itemsStr: string;
   let totalUsd: number;
   let message: string | null;
@@ -14147,6 +14158,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
       : 'SELECT id, account_id, ref_number, request_fingerprint FROM inquiries WHERE tracking_token_hash = ? LIMIT 1'
     ).bind(tokenHash).first() as Record<string, any> | null;
     if (existing) {
+      // Consent belongs to the first saved request. Retrying never adds or retargets a message.
       if (existing.account_id !== accountId || existing.request_fingerprint !== requestFingerprint) {
         return json({ error: 'Tracking token conflict' }, 409);
       }
@@ -14163,6 +14175,12 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
     }
 
     if (source === 'website') {
+      if (whatsappRecipient) {
+        const business = await env.DB.prepare('SELECT whatsapp_number FROM accounts WHERE id=?').bind(accountId).first<{ whatsapp_number: string | null }>();
+        if (business?.whatsapp_number?.replace(/\D/g, '') === whatsappRecipient.slice(1)) {
+          return json({ error: 'Enter your own WhatsApp number, rather than the store’s number.' }, 400);
+        }
+      }
       let lines: Awaited<ReturnType<typeof pricedRequestLines>>;
       try {
         lines = await pricedRequestLines(env, accountId, normalized.value.items as Array<Record<string, any>>);
@@ -14204,12 +14222,13 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
           ).bind(requestId, accountId, name, contact, customerPhone, normalized.value.itemsJson,
             serverSubtotalUsd, normalized.value.currency, requestMessage,
             normalized.value.refNumber, tokenHash, requestFingerprint, invoiceId),
-          buildOwnerOrderNotificationInsert(env.DB, {
+          ...(whatsappRecipient ? [buildCustomerOrderNotificationInsert(env.DB, {
             accountId, invoiceId, orderRef: normalized.value.refNumber, customerName: name,
             customerContact: contact, deliveryLocation: location || null,
             orderSummary: `${lines.map(line => `${line.custom_name}, ${line.quantity} g`).join('; ')} · tea subtotal USD ${serverSubtotalUsd.toFixed(2)} (shipping pending)`,
-            invoiceUrl: `${appOrigin(env)}/admin/activity?tab=orders&search=${encodeURIComponent(invoiceNumber)}`,
-          }),
+            invoiceUrl: `${appOrigin(env)}/order/${encodeURIComponent(normalized.value.trackingToken)}`,
+            recipientNumber: whatsappRecipient, consentAt: new Date().toISOString(),
+          })] : []),
         ];
         try {
           await env.DB.batch(statements);
@@ -14236,9 +14255,9 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
         console.error('Website order batch failed:', lastError);
         return json({ error: 'Could not save the order. Please retry.' }, 500);
       }
-      const notification = processPendingOwnerOrderNotifications(env.DB, env, {
+      const notification = processPendingCustomerOrderNotifications(env.DB, env, {
         accountId, invoiceId, limit: 1,
-      }).catch(error => console.error('Owner order notification failed', error));
+      }).catch(error => console.error('Customer order confirmation failed', error));
       if (ctx?.waitUntil) ctx.waitUntil(notification);
       else await notification;
       const emailSent = await sendOrderRequestEmails(env, {
@@ -29362,9 +29381,9 @@ export default {
 
   async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
     try {
-      await processPendingOwnerOrderNotifications(env.DB, env, { limit: 10 });
+      await processPendingCustomerOrderNotifications(env.DB, env, { limit: 10 });
     } catch (error) {
-      console.error('Owner order notification retry failed', error);
+      console.error('Customer order confirmation retry failed', error);
     }
     /* Rates first, and on their own.
      *

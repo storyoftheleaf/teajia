@@ -71,9 +71,51 @@ async function trackedOrder(db: SqliteD1) {
 }
 
 describe('website order requests', () => {
+  it('saves email and phone orders without consent without queueing a WhatsApp send', async () => {
+    for (const customer_contact of ['guest@example.com', '+628123456789']) {
+      const db = seed();
+      expect((await create(db, payload({ customer_contact }))).status).toBe(201);
+      expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM invoices').get()).toEqual({ n: 1 });
+      expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM order_whatsapp_outbox').get()).toEqual({ n: 0 });
+      if (customer_contact.startsWith('+')) {
+        expect((await create(db, payload({ customer_contact, whatsapp_confirmation_consent: true }))).status).toBe(200);
+        expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM order_whatsapp_outbox').get()).toEqual({ n: 0 });
+      }
+    }
+  });
+
+  it('requires explicit boolean consent and a customer international number', async () => {
+    const db = seed();
+    for (const fields of [
+      { whatsapp_confirmation_consent: 'true', customer_contact: '+628123456789' },
+      { whatsapp_confirmation_consent: true, customer_contact: 'guest@example.com' },
+      { whatsapp_confirmation_consent: true, customer_contact: '08123456789' },
+      { whatsapp_confirmation_consent: true, customer_contact: '+6281339712339' },
+    ]) {
+      db.sqlite.exec("UPDATE accounts SET whatsapp_number='+6281339712339' WHERE id='shop'");
+      expect((await create(db, payload(fields))).status).toBe(400);
+    }
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM invoices').get()).toEqual({ n: 0 });
+  });
+
+  it('stores consent with a normalized customer recipient and private tracking link atomically', async () => {
+    const db = seed();
+    const body = payload({ customer_contact: '+62 812-3456-789', whatsapp_confirmation_consent: true });
+    expect((await create(db, body)).status).toBe(201);
+    const outbox = db.sqlite.prepare('SELECT * FROM order_whatsapp_outbox').get() as any;
+    expect(outbox).toMatchObject({ message_purpose: 'customer_confirmation', recipient_number: '+628123456789', state: 'config_required', attempts: 0 });
+    expect(outbox.consent_at).toBeTruthy();
+    expect(new URL(outbox.invoice_url).pathname).toBe(`/order/${TOKEN}`);
+    expect(outbox.invoice_url).not.toContain('/admin/');
+    expect((await create(db, body)).status).toBe(200);
+    expect((await create(db, { ...body, whatsapp_confirmation_consent: false })).status).toBe(200);
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM order_whatsapp_outbox').get()).toEqual({ n: 1 });
+    const tracked = await trackedOrder(db);
+    expect(tracked.order.invoice_id).toBe(outbox.invoice_id);
+  });
   it('accepts a phone contact even before the store publishes a payment method', async () => {
     const db = seed(false);
-    const response = await create(db, payload({ customer_contact: '+628123456789' }));
+    const response = await create(db, payload({ customer_contact: '+628123456789', whatsapp_confirmation_consent: true }));
     expect(response.status).toBe(201);
     const created = await response.json() as any;
     expect(created).toMatchObject({ success: true, invoice_id: expect.any(String) });

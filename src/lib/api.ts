@@ -3007,6 +3007,7 @@ export const api = {
       store_slug: string;
       customer_name: string;
       customer_contact: string;
+      whatsapp_confirmation_consent?: boolean;
       customer_location?: string;
       notes?: string;
       items_json: string;

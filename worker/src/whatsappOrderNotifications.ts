@@ -1,15 +1,18 @@
-/** Owner-only order notifications. Customer messaging is deliberately outside this module. */
+import { internationalWhatsAppNumber } from '../../src/lib/whatsappContact';
+
+/** Opted-in customer confirmations from the store’s existing business number. */
 export interface WhatsAppOrderEnv {
+  WHATSAPP_CUSTOMER_CONFIRMATIONS_ENABLED?: string;
   WHATSAPP_ORDER_ACCOUNT_ID?: string;
   WHATSAPP_ACCESS_TOKEN?: string;
   WHATSAPP_PHONE_NUMBER_ID?: string;
   WHATSAPP_SENDER_NUMBER?: string;
-  WHATSAPP_ORDER_TEMPLATE_NAME?: string;
+  WHATSAPP_CUSTOMER_TEMPLATE_NAME?: string;
   WHATSAPP_ORDER_TEMPLATE_LANGUAGE?: string;
   WHATSAPP_GRAPH_API_VERSION?: string;
 }
 
-export interface OwnerOrderNotificationInput {
+export interface CustomerOrderNotificationInput {
   accountId: string;
   invoiceId: string;
   orderRef: string;
@@ -18,9 +21,11 @@ export interface OwnerOrderNotificationInput {
   deliveryLocation?: string | null;
   orderSummary?: string | null;
   invoiceUrl: string;
+  recipientNumber: string;
+  consentAt: string;
 }
 
-type OutboxRow = OwnerOrderNotificationInput & {
+type OutboxRow = {
   id: string;
   account_id: string;
   invoice_id: string;
@@ -30,14 +35,17 @@ type OutboxRow = OwnerOrderNotificationInput & {
   delivery_location: string | null;
   order_summary: string | null;
   invoice_url: string;
+  message_purpose: string;
+  recipient_number: string | null;
+  consent_at: string | null;
   state: string;
   attempts: number;
 };
 
-export type OwnerOrderSetupStatus = {
+export type CustomerOrderSetupStatus = {
   ready: boolean;
   missing: string[];
-  recipient: string | null;
+  sender: string | null;
 };
 
 const MAX_ATTEMPTS = 5;
@@ -50,6 +58,14 @@ function validPhone(value: string | null | undefined): boolean {
   return /^\d{8,15}$/.test(digits(value));
 }
 
+function validCustomerOrderUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return (url.protocol === 'https:' || (url.protocol === 'http:' && url.hostname === 'localhost')) &&
+      !url.username && !url.password && !url.search && !url.hash && /^\/order\/[A-Za-z0-9_-]{32,128}$/.test(url.pathname);
+  } catch { return false; }
+}
+
 function validGraphVersion(value: string | undefined): boolean {
   return /^v\d+\.\d+$/.test(value || '');
 }
@@ -60,59 +76,61 @@ function shortTemplateValue(value: string | null | undefined, fallback: string, 
 }
 
 /** Include this statement in the same D1 batch as the order and invoice inserts. */
-export function buildOwnerOrderNotificationInsert(
+export function buildCustomerOrderNotificationInsert(
   db: D1Database,
-  input: OwnerOrderNotificationInput,
+  input: CustomerOrderNotificationInput,
 ): D1PreparedStatement {
   if (!input.accountId || !input.invoiceId || !input.orderRef || !input.customerName || !input.invoiceUrl) {
-    throw new Error('Missing owner order notification fields');
+    throw new Error('Missing customer order confirmation fields');
   }
-  const url = new URL(input.invoiceUrl);
-  if (url.protocol !== 'https:' && url.hostname !== 'localhost') {
-    throw new Error('Invoice URL must use HTTPS');
+  if (!internationalWhatsAppNumber(input.recipientNumber) || !input.consentAt || !Number.isFinite(Date.parse(input.consentAt))) {
+    throw new Error('Customer confirmation requires an international recipient and explicit consent');
   }
+  if (!validCustomerOrderUrl(input.invoiceUrl)) throw new Error('Customer confirmation requires a private order URL');
   return db.prepare(
     `INSERT OR IGNORE INTO order_whatsapp_outbox
        (id, account_id, invoice_id, order_ref, customer_name, customer_contact,
-        delivery_location, order_summary, invoice_url, state)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+        delivery_location, order_summary, invoice_url, message_purpose, recipient_number, consent_at, state)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'customer_confirmation', ?, ?, 'pending')`,
   ).bind(
     crypto.randomUUID(), input.accountId, input.invoiceId, input.orderRef,
     input.customerName, input.customerContact?.trim() || null,
     input.deliveryLocation?.trim() || null, input.orderSummary?.trim() || null, input.invoiceUrl,
+    internationalWhatsAppNumber(input.recipientNumber), input.consentAt,
   );
 }
 
-/** For a non-batched caller; use buildOwnerOrderNotificationInsert for atomic order creation. */
-export async function queueOwnerOrderNotification(db: D1Database, input: OwnerOrderNotificationInput): Promise<void> {
-  await buildOwnerOrderNotificationInsert(db, input).run();
+/** For a non-batched caller; use buildCustomerOrderNotificationInsert for atomic order creation. */
+export async function queueCustomerOrderNotification(db: D1Database, input: CustomerOrderNotificationInput): Promise<void> {
+  await buildCustomerOrderNotificationInsert(db, input).run();
 }
 
-export async function getOwnerOrderNotificationSetupStatus(
+export async function getCustomerOrderNotificationSetupStatus(
   db: D1Database,
   env: WhatsAppOrderEnv,
   accountId: string,
-): Promise<OwnerOrderSetupStatus> {
+): Promise<CustomerOrderSetupStatus> {
   const account = await db.prepare(
     'SELECT whatsapp_number, order_whatsapp_notifications_enabled FROM accounts WHERE id = ?',
   ).bind(accountId).first<{ whatsapp_number: string | null; order_whatsapp_notifications_enabled: number }>();
   const missing: string[] = [];
-  const recipient = account?.whatsapp_number ?? null;
+  const sender = account?.whatsapp_number ?? null;
+  if (env.WHATSAPP_CUSTOMER_CONFIRMATIONS_ENABLED !== 'true') missing.push('customer_confirmations_disabled');
   if (!account?.order_whatsapp_notifications_enabled) missing.push('account_opt_in');
   if (!env.WHATSAPP_ORDER_ACCOUNT_ID || env.WHATSAPP_ORDER_ACCOUNT_ID !== accountId) missing.push('account_allowlist');
-  if (!validPhone(recipient)) missing.push('account_whatsapp_number');
+  if (!validPhone(sender)) missing.push('account_whatsapp_number');
   if (!env.WHATSAPP_ACCESS_TOKEN?.trim()) missing.push('WHATSAPP_ACCESS_TOKEN');
   if (!/^\d+$/.test(env.WHATSAPP_PHONE_NUMBER_ID || '')) missing.push('WHATSAPP_PHONE_NUMBER_ID');
   if (!validPhone(env.WHATSAPP_SENDER_NUMBER)) missing.push('WHATSAPP_SENDER_NUMBER');
-  if (!env.WHATSAPP_ORDER_TEMPLATE_NAME?.trim()) missing.push('WHATSAPP_ORDER_TEMPLATE_NAME');
+  if (!env.WHATSAPP_CUSTOMER_TEMPLATE_NAME?.trim()) missing.push('WHATSAPP_CUSTOMER_TEMPLATE_NAME');
   if (!env.WHATSAPP_ORDER_TEMPLATE_LANGUAGE?.trim()) missing.push('WHATSAPP_ORDER_TEMPLATE_LANGUAGE');
   if (!validGraphVersion(env.WHATSAPP_GRAPH_API_VERSION)) missing.push('WHATSAPP_GRAPH_API_VERSION');
-  if (validPhone(recipient) && validPhone(env.WHATSAPP_SENDER_NUMBER) &&
-      digits(recipient) === digits(env.WHATSAPP_SENDER_NUMBER)) missing.push('sender_matches_recipient');
-  return { ready: missing.length === 0, missing, recipient: validPhone(recipient) ? recipient : null };
+  if (validPhone(sender) && validPhone(env.WHATSAPP_SENDER_NUMBER) &&
+      digits(sender) !== digits(env.WHATSAPP_SENDER_NUMBER)) missing.push('sender_must_match_business_number');
+  return { ready: missing.length === 0, missing, sender: validPhone(sender) ? sender : null };
 }
 
-export interface OwnerOrderProcessingResult {
+export interface CustomerOrderProcessingResult {
   examined: number;
   accepted: number;
   configRequired: number;
@@ -132,17 +150,17 @@ function retryDelaySeconds(response: Response, attempts: number): number {
  * Can run from the existing hourly scheduled handler or an authenticated admin action.
  * A request whose outcome is uncertain stays in review_required, never auto-resubmitted.
  */
-export async function processPendingOwnerOrderNotifications(
+export async function processPendingCustomerOrderNotifications(
   db: D1Database,
   env: WhatsAppOrderEnv,
   options: { limit?: number; fetcher?: typeof fetch; accountId?: string; invoiceId?: string } = {},
-): Promise<OwnerOrderProcessingResult> {
+): Promise<CustomerOrderProcessingResult> {
   if (options.invoiceId && !options.accountId) {
     throw new Error('An account ID is required to target an invoice notification');
   }
   const limit = Math.max(1, Math.min(25, Math.trunc(options.limit ?? 10)));
   const fetcher = options.fetcher ?? fetch;
-  const result: OwnerOrderProcessingResult = {
+  const result: CustomerOrderProcessingResult = {
     examined: 0, accepted: 0, configRequired: 0, retryScheduled: 0, reviewRequired: 0, failed: 0,
   };
   // A crashed Worker may have reached Meta. Never replay an expired claim blindly.
@@ -153,7 +171,7 @@ export async function processPendingOwnerOrderNotifications(
   ).run();
   const rows = await db.prepare(
     `SELECT id, account_id, invoice_id, order_ref, customer_name, customer_contact,
-            delivery_location, order_summary, invoice_url, state, attempts
+            delivery_location, order_summary, invoice_url, message_purpose, recipient_number, consent_at, state, attempts
       FROM order_whatsapp_outbox
       WHERE state IN ('pending', 'config_required', 'retry_scheduled')
         AND (next_attempt_at IS NULL OR next_attempt_at <= CURRENT_TIMESTAMP)
@@ -168,7 +186,22 @@ export async function processPendingOwnerOrderNotifications(
 
   for (const row of rows.results ?? []) {
     result.examined++;
-    const setup = await getOwnerOrderNotificationSetupStatus(db, env, row.account_id);
+    // Old owner alerts retain their meaning and must never become customer sends.
+    if (row.message_purpose !== 'customer_confirmation' || !row.consent_at ||
+        !internationalWhatsAppNumber(row.recipient_number) || !validCustomerOrderUrl(row.invoice_url)) {
+      await db.prepare(
+        `UPDATE order_whatsapp_outbox SET state = 'review_required', last_error = 'customer_confirmation_not_authorized',
+                updated_at = CURRENT_TIMESTAMP
+          WHERE id = ? AND state IN ('pending', 'config_required', 'retry_scheduled')`,
+      ).bind(row.id).run();
+      result.reviewRequired++;
+      continue;
+    }
+    const setup = await getCustomerOrderNotificationSetupStatus(db, env, row.account_id);
+    if (digits(row.recipient_number) === digits(setup.sender) || digits(row.recipient_number) === digits(env.WHATSAPP_SENDER_NUMBER)) {
+      setup.missing.push('customer_matches_sender');
+      setup.ready = false;
+    }
     if (!setup.ready) {
       await db.prepare(
         `UPDATE order_whatsapp_outbox SET state = 'config_required', last_error = ?,
@@ -202,15 +235,14 @@ export async function processPendingOwnerOrderNotifications(
     const payload = {
       messaging_product: 'whatsapp',
       recipient_type: 'individual',
-      to: digits(setup.recipient),
+      to: digits(row.recipient_number),
       type: 'template',
       template: {
-        name: env.WHATSAPP_ORDER_TEMPLATE_NAME,
+        name: env.WHATSAPP_CUSTOMER_TEMPLATE_NAME,
         language: { code: env.WHATSAPP_ORDER_TEMPLATE_LANGUAGE },
         components: [{ type: 'body', parameters: [
           { type: 'text', text: shortTemplateValue(row.order_ref, 'See invoice', 80) },
           { type: 'text', text: shortTemplateValue(row.customer_name, 'Not supplied', 80) },
-          { type: 'text', text: shortTemplateValue(row.customer_contact, 'Not supplied', 80) },
           { type: 'text', text: shortTemplateValue(row.delivery_location, 'Not supplied', 160) },
           { type: 'text', text: shortTemplateValue(row.order_summary, 'See invoice', 300) },
           { type: 'text', text: row.invoice_url },

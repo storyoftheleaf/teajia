@@ -217,6 +217,7 @@ export interface Invoice {
   tracking_number?: string | null;
   source_inquiry_id?: string | null;
   notification_status?: string | null;
+  notification_purpose?: string | null;
   fulfilled_at?: string | null;
   cancelled_at?: string | null;
   refund_required?: boolean | number;

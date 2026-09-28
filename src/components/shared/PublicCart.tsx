@@ -3,6 +3,7 @@ import type { CartItem as PublicCartItem } from '../../types';
 import type { Currency } from '../../admin/types';
 import { lineKeyOf, useAppStore } from '../../lib/store';
 import { buildOrderMessage } from '../../lib/whatsapp';
+import { internationalWhatsAppNumber } from '../../lib/whatsappContact';
 import { resolveContactChannels } from '../../lib/contact';
 import { useRates } from '../../admin/hooks/useAdminData';
 import { useShopPrice } from '../shop/shopPrice';
@@ -55,6 +56,7 @@ function requestIdentity(payloadKey: string) {
 export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, cart, onRemoveItem, onUpdateQuantity, onUpdatePacks, onAddItem, isOpen, whatsappNumber, contactEmail, checkoutState = 'ready', onRetryStore, onClose }) => {
   const isBaliStore = storeSlug === 'teajia-bali';
   const [details, setDetails] = useState(() => readCheckoutDetails(isBaliStore));
+  const [whatsappConsent, setWhatsappConsent] = useState(false);
   const [channelChoice, setChannelChoice] = useState<ReplyChannel | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
@@ -104,6 +106,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
   }, [placedOrder]);
 
   const updateDetail = (field: keyof CheckoutDetails, value: string) => {
+    if (field === 'contact') setWhatsappConsent(false);
     setDetails(previous => ({ ...previous, [field]: value }));
     setErrors(previous => ({ ...previous, [field]: '' }));
     setCheckoutError(null);
@@ -119,6 +122,9 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
     if (saving.current || placedOrder) return;
     if (unavailable) { setCheckoutError('We could not check the shop. Please retry.'); return; }
     const nextErrors = validateCheckoutDetails(details, channel);
+    const requestWhatsApp = channel === 'whatsapp' && whatsappConsent;
+    if (requestWhatsApp && !internationalWhatsAppNumber(details.contact)) nextErrors.contact = 'Include + and your country code, for example +62…';
+    if (requestWhatsApp && internationalWhatsAppNumber(details.contact)?.slice(1) === whatsappNumber?.replace(/\D/g, '')) nextErrors.contact = 'Enter your own WhatsApp number, rather than the store’s number.';
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
       requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
@@ -144,9 +150,10 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
     setCheckoutError(null);
     try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(identity)); } catch { /* Keep the identity in memory for retry. */ }
     try {
-      const result = await api.inquiries.create({ tracking_token: identity.trackingToken, ref_number: identity.ref, store_slug: storeSlug, customer_name: details.name.trim(), customer_contact: details.contact.trim(), customer_location: location, notes: details.notes.trim() || undefined, items_json: JSON.stringify(cart), total_estimate_usd: subtotal, currency: shopPrice.code, source: 'website' });
+      const result = await api.inquiries.create({ tracking_token: identity.trackingToken, ref_number: identity.ref, store_slug: storeSlug, customer_name: details.name.trim(), customer_contact: details.contact.trim(), whatsapp_confirmation_consent: requestWhatsApp, customer_location: location, notes: details.notes.trim() || undefined, items_json: JSON.stringify(cart), total_estimate_usd: subtotal, currency: shopPrice.code, source: 'website' });
       const request: RecentOrderRequest = { trackingToken: result.tracking_token, reference: result.ref_number, storeSlug, createdAt: new Date().toISOString() };
       const remembered = rememberRecentOrderRequest(request);
+      setWhatsappConsent(false);
       setPlacedOrder({ request, items: [...cart], total: shopPrice.total(subtotal), message, remembered, invoiceNumber: result.invoice_number });
       setRecentRequests(readRecentOrderRequests(storeSlug));
       setUndoItem(null);
@@ -227,13 +234,17 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
             <fieldset className="space-y-2 min-w-0">
               <legend className={`${T.h3} text-tea-text mb-2`}>How should we reply?</legend>
               <div className="flex flex-wrap gap-x-5 gap-y-1">
-                {channels.whatsapp && <label className="checkout-channel"><input type="radio" name="reply-channel" value="whatsapp" checked={channel === 'whatsapp'} onChange={() => { setChannelChoice('whatsapp'); setErrors({}); }} />WhatsApp</label>}
-                <label className="checkout-channel"><input type="radio" name="reply-channel" value="website" checked={channel === 'website'} onChange={() => { setChannelChoice('website'); setErrors({}); }} />Email reply</label>
+                {channels.whatsapp && <label className="checkout-channel"><input type="radio" name="reply-channel" value="whatsapp" checked={channel === 'whatsapp'} onChange={() => { setChannelChoice('whatsapp'); setWhatsappConsent(false); setErrors({}); }} />WhatsApp</label>}
+                <label className="checkout-channel"><input type="radio" name="reply-channel" value="website" checked={channel === 'website'} onChange={() => { setChannelChoice('website'); setWhatsappConsent(false); setErrors({}); }} />Email reply</label>
               </div>
               <p className={`${T.bodyLight} text-tea-text-sec`}>Your request is submitted here on the website. We’ll use this contact to reply; no message app opens.</p>
             </fieldset>
             {field('name', 'Your name', { autoComplete: 'name' })}
             {field('contact', channel === 'website' ? 'Your email address' : 'Your WhatsApp number', { type: channel === 'website' ? 'email' : 'tel', inputMode: channel === 'website' ? 'email' : 'tel', autoComplete: channel === 'website' ? 'email' : 'tel', placeholder: channel === 'whatsapp' ? '+62…' : 'you@example.com' })}
+            {channel === 'whatsapp' && <div className="space-y-1">
+              <label className="checkout-channel"><input type="checkbox" checked={whatsappConsent} onChange={event => setWhatsappConsent(event.target.checked)} />Send me a WhatsApp order confirmation from {storeName} (optional)</label>
+              <p className={`${T.bodyLight} text-tea-text-sec`}>I agree to receive a confirmation and replies about this order at this number. Automatic confirmations depend on availability; your order is saved even if a message does not arrive.</p>
+            </div>}
             <details className="border-t border-tea-border pt-3"><summary className="checkout-text-action">Add a note (optional)</summary><label htmlFor="checkout-notes" className="sr-only">Order note</label><textarea id="checkout-notes" value={details.notes} onChange={event => updateDetail('notes', event.target.value)} className="checkout-input mt-2" rows={3} /></details>
           </fieldset>
         </form>}
