@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { ATLAS_ROOT, AtlasFrame, AtlasLoadState, AtlasSearchBox } from '../AtlasFrame';
 import { AtlasImage } from '../AtlasImage';
 import { useAtlasJson } from '../useAtlas';
@@ -18,34 +17,34 @@ function byCategory(topics: AtlasTopic[]): Array<[string, AtlasTopic[]]> {
 export default function AtlasHomePage() {
   const load = useAtlasJson<AtlasHome>('home.json');
   return (
-    <AtlasFrame wide hideSearch>
+    <AtlasFrame measure="wide" hideSearch>
       <AtlasLoadState load={load}>
         {home => (
           <>
-            <section className="mb-12">
-              <h1 className={`${TYPOGRAPHY_CLASSES.h1} text-tea-text mb-2`}>Tea Atlas</h1>
-              <p className="text-tea-text-sec text-ui-15 mb-6">
-                A private reading library. {home.totals.articles.toLocaleString()} articles in {home.totals.issues} issues.
+            <section className="max-w-[720px] mb-16 md:mb-20">
+              <h1 className="font-display text-[40px] md:text-[56px] font-normal leading-[1.05] text-tea-text">A private reading library</h1>
+              <p className="font-body text-ui-15 md:text-ui-17 text-tea-text-sec mt-4 mb-8 md:mb-10">
+                {home.totals.articles.toLocaleString()} articles from {home.totals.issues} issues, searchable to the word.
               </p>
               <AtlasSearchBox large autoFocus />
             </section>
 
-            <section className="mb-12" aria-labelledby="atlas-sources">
-              <h2 id="atlas-sources" className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-dim mb-4`}>Sources</h2>
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <section className="mb-16 md:mb-20" aria-labelledby="atlas-sources">
+              <h2 id="atlas-sources" className="font-display text-ui-28 text-tea-text mb-5">Sources</h2>
+              <ul className="border-t border-tea-border">
                 {home.sources.map(s => (
-                  <li key={s.id}>
-                    <Link to={`${ATLAS_ROOT}/source/${s.id}`} className="group flex gap-4 items-start">
+                  <li key={s.id} className="border-b border-tea-border">
+                    <Link to={`${ATLAS_ROOT}/source/${s.id}`} className="group flex gap-5 md:gap-8 items-center py-5">
                       {s.cover && (
-                        <AtlasImage src={s.cover} alt="" eager className="w-24 shrink-0 rounded-[2px] overflow-hidden" />
+                        <AtlasImage src={s.cover} alt="" eager fit="cover" className="w-20 md:w-24 shrink-0" />
                       )}
                       <div className="min-w-0">
-                        <div className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text group-hover:text-tea-gold transition-colors`}>{s.name}</div>
-                        {s.subtitle && <div className="text-ui-13 text-tea-text-sec mt-0.5">{s.subtitle}</div>}
-                        <div className="text-ui-13 text-tea-text-sec mt-2">
+                        <div className="font-display text-ui-26 leading-[1.15] text-tea-text group-hover:text-tea-gold-lt transition-colors">{s.name}</div>
+                        {s.subtitle && <div className="font-body italic text-ui-15 text-tea-text-sec mt-1">{s.subtitle}</div>}
+                        <div className="font-body text-ui-14 text-tea-text-sec mt-3">
                           {s.issueCount} issues · {s.articleCount.toLocaleString()} articles
+                          {s.first && <span className="text-tea-text-dim"> · {s.first} to {s.last}</span>}
                         </div>
-                        {s.first && <div className="text-ui-12 text-tea-text-dim mt-0.5">{s.first} to {s.last}</div>}
                       </div>
                     </Link>
                   </li>
@@ -54,20 +53,24 @@ export default function AtlasHomePage() {
             </section>
 
             <section aria-labelledby="atlas-topics">
-              <h2 id="atlas-topics" className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-dim mb-4`}>Topics</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6">
+              <h2 id="atlas-topics" className="font-display text-ui-28 text-tea-text mb-6">Topics</h2>
+              {/* Columns rather than a grid, so short and long categories pack
+                  without leaving holes under the short ones. */}
+              <div className="columns-1 sm:columns-2 lg:columns-3 gap-x-12">
                 {byCategory(home.topics).map(([category, topics]) => (
-                  <div key={category}>
-                    <h3 className="font-display text-ui-17 text-tea-text mb-2">{category}</h3>
+                  <div key={category} className="break-inside-avoid mb-10">
+                    <h3 className="font-display text-ui-20 text-tea-text pb-2 border-b border-tea-border">{category}</h3>
                     <ul>
                       {topics.map(t => (
                         <li key={t.id}>
                           <Link
                             to={`${ATLAS_ROOT}/topic/${t.id}`}
-                            className="flex items-baseline justify-between gap-3 py-1 text-ui-14 text-tea-text-sec hover:text-tea-text transition-colors"
+                            className="group flex items-baseline justify-between gap-4 py-1.5 font-body text-ui-15 text-tea-text-sec hover:text-tea-text transition-colors"
                           >
                             <span>{t.name}</span>
-                            <span className="text-ui-12 text-tea-text-dim tabular-nums">{t.count}</span>
+                            <span className="text-ui-13 text-tea-text-dim tabular-nums group-hover:text-tea-text-sec transition-colors">
+                              <span className="sr-only">, </span>{t.count}<span className="sr-only"> articles</span>
+                            </span>
                           </Link>
                         </li>
                       ))}
