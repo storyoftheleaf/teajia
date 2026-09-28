@@ -1,83 +1,51 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { ATLAS_ROOT, AtlasFrame, AtlasLoadState, AtlasSearchBox } from '../AtlasFrame';
-import { AtlasImage } from '../AtlasImage';
 import { AtlasAddSourceLink } from '../AtlasAddSourceLink';
+import { IssueCalendar, TopicIndex } from '../AtlasIndex';
 import { useAtlasJson } from '../useAtlas';
-import type { AtlasHome, AtlasTopic } from '../types';
+import type { AtlasHome } from '../types';
 
-function byCategory(topics: AtlasTopic[]): Array<[string, AtlasTopic[]]> {
-  const groups = new Map<string, AtlasTopic[]>();
-  for (const t of topics) {
-    if (!groups.has(t.category)) groups.set(t.category, []);
-    groups.get(t.category)!.push(t);
-  }
-  return [...groups];
-}
-
+// The home page is an index, not a landing page: someone opening the Atlas
+// usually knows what they are after. Search first, then every topic and every
+// issue in view at once, so the thing wanted is one click away without a scroll.
 export default function AtlasHomePage() {
   const load = useAtlasJson<AtlasHome>('home.json');
   return (
-    <AtlasFrame wide hideSearch>
+    <AtlasFrame measure="wide" hideSearch hideIndex>
       <AtlasLoadState load={load}>
         {home => (
           <>
-            <section className="mb-12">
-              <h1 className={`${TYPOGRAPHY_CLASSES.h1} text-tea-text mb-2`}>Tea Atlas</h1>
-              <p className="text-tea-text-sec text-ui-15 mb-6">
-                A private reading library. {home.totals.articles.toLocaleString()} articles in {home.totals.issues} issues.
-              </p>
+            <h1 className="sr-only">Tea Atlas</h1>
+            <section className="max-w-[720px] mb-8 md:mb-12">
               <AtlasSearchBox large autoFocus />
-              <AtlasAddSourceLink className="inline-block mt-4" />
+              <p className="font-body text-ui-14 text-tea-text-dim mt-2">
+                {home.totals.articles.toLocaleString()} articles from {home.totals.issues} issues, searchable to the word.
+              </p>
+              <AtlasAddSourceLink className="inline-block mt-3" />
             </section>
 
-            <section className="mb-12" aria-labelledby="atlas-sources">
-              <h2 id="atlas-sources" className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-dim mb-4`}>Sources</h2>
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-x-14 gap-y-10">
+              <section aria-labelledby="atlas-topics" className="order-2 lg:order-1 min-w-0">
+                <h2 id="atlas-topics" className="font-display text-ui-26 text-tea-text mb-4">Topics</h2>
+                <TopicIndex topics={home.topics} className="columns-2 md:columns-3 gap-x-8" />
+              </section>
+
+              <section aria-labelledby="atlas-sources" className="order-1 lg:order-2 min-w-0">
+                <h2 id="atlas-sources" className="font-display text-ui-26 text-tea-text mb-4">Issues</h2>
                 {home.sources.map(s => (
-                  <li key={s.id}>
-                    <Link to={`${ATLAS_ROOT}/source/${s.id}`} className="group flex gap-4 items-start">
-                      {s.cover && (
-                        <AtlasImage src={s.cover} alt="" eager className="w-24 shrink-0 rounded-[2px] overflow-hidden" />
-                      )}
-                      <div className="min-w-0">
-                        <div className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text group-hover:text-tea-gold transition-colors`}>{s.name}</div>
-                        {s.subtitle && <div className="text-ui-13 text-tea-text-sec mt-0.5">{s.subtitle}</div>}
-                        <div className="text-ui-13 text-tea-text-sec mt-2">
-                          {s.issueCount} issues · {s.articleCount.toLocaleString()} articles
-                        </div>
-                        {s.first && <div className="text-ui-12 text-tea-text-dim mt-0.5">{s.first} to {s.last}</div>}
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            <section aria-labelledby="atlas-topics">
-              <h2 id="atlas-topics" className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-dim mb-4`}>Topics</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6">
-                {byCategory(home.topics).map(([category, topics]) => (
-                  <div key={category}>
-                    <h3 className="font-display text-ui-17 text-tea-text mb-2">{category}</h3>
-                    <ul>
-                      {topics.map(t => (
-                        <li key={t.id}>
-                          <Link
-                            to={`${ATLAS_ROOT}/topic/${t.id}`}
-                            className="flex items-baseline justify-between gap-3 py-1 text-ui-14 text-tea-text-sec hover:text-tea-text transition-colors"
-                          >
-                            <span>{t.name}</span>
-                            <span className="text-ui-12 text-tea-text-dim tabular-nums">{t.count}</span>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
+                  <div key={s.id} className="mb-8 last:mb-0">
+                    <p className="font-body text-ui-14 text-tea-text-dim mb-2">
+                      <Link to={`${ATLAS_ROOT}/source/${s.id}`} className="text-tea-text-sec underline decoration-tea-border underline-offset-4 hover:text-tea-text hover:decoration-tea-gold transition-colors">
+                        {s.name}
+                      </Link>
+                      {' · '}{s.issueCount} issues, {s.first} to {s.last}
+                    </p>
+                    <IssueCalendar sourceId={s.id} />
                   </div>
                 ))}
-              </div>
-            </section>
+              </section>
+            </div>
           </>
         )}
       </AtlasLoadState>

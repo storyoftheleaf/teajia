@@ -112,7 +112,7 @@ const IndexRow: React.FC<{ item: IndexItem; draft?: boolean }> = ({ item, draft 
       to={item.href}
       style={{
         display: 'grid',
-        gridTemplateColumns: '48px 1fr auto',
+        gridTemplateColumns: 'minmax(0, 1fr) auto',
         alignItems: 'baseline',
         gap: 16,
         padding: hovered ? '15px 6px 15px 14px' : '15px 6px',
@@ -122,13 +122,11 @@ const IndexRow: React.FC<{ item: IndexItem; draft?: boolean }> = ({ item, draft 
         opacity: draft ? 0.5 : 1,
         transition: 'padding-left 240ms, opacity 240ms',
       }}
+      className="tj-index-row"
       onMouseOver={() => setHovered(true)}
       onMouseOut={() => setHovered(false)}
     >
-      <span style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.06em', color: hovered ? 'var(--tj-gold-lt,var(--tj-gold-lt, var(--tj-read-gold-lt-default)))' : 'var(--tj-gold,var(--tj-gold, var(--tj-read-gold-default)))', paddingTop: 5, transition: 'color 240ms' }}>
-        {item.n}
-      </span>
-      <span>
+      <span style={{ minWidth: 0 }}>
         <span style={{ display: 'block', fontFamily: F.display, fontSize: 'clamp(22px,2.4vw,27px)', lineHeight: 1.08, color: hovered ? 'var(--tj-read-hover-ink)' : 'var(--tj-read-ink)', transition: 'color 240ms' }}>
           {item.title}
         </span>
@@ -136,7 +134,7 @@ const IndexRow: React.FC<{ item: IndexItem; draft?: boolean }> = ({ item, draft 
           {item.dek}
         </span>
       </span>
-      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5, paddingTop: 6 }}>
+      <span className="tj-index-rubric" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5, paddingTop: 6 }}>
         <span style={{ fontFamily: F.ui, fontSize: 9, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim, whiteSpace: 'nowrap' }}>
           {item.rubric}
         </span>

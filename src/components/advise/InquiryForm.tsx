@@ -7,6 +7,11 @@ import { useScrollLock } from '../../hooks/useScrollLock';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { fetchWithTimeout, getApiOrigin } from '../../lib/api';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
+import {
+  SERVICE_GUIDANCE, buildInquiryVision, guidanceAdvice, restoreGuidanceAnswers, serviceForInterest,
+  type GuidanceAnswers, type ServiceKey,
+} from './serviceGuidance';
 
 interface InquiryFormProps {
   isOpen: boolean;
@@ -39,9 +44,13 @@ export function restoreInquiryDraft(value: unknown, preselect?: string): Inquiry
     whatsapp: scalar('whatsapp'),
     vision: scalar('vision'),
     referral: scalar('referral'),
-    interests: Array.isArray(draft.interests) && draft.interests.every(item => typeof item === 'string')
-      ? draft.interests
-      : fallback.interests,
+    interests: (() => {
+      const saved = Array.isArray(draft.interests) && draft.interests.every(item => typeof item === 'string')
+        ? draft.interests as string[] : [];
+      if (!preselect) return saved;
+      const selectedService = serviceForInterest(preselect);
+      return [preselect, ...saved.filter(item => item !== preselect && (!selectedService || serviceForInterest(item) === selectedService || serviceForInterest(item) === null))];
+    })(),
   };
 }
 
@@ -60,6 +69,8 @@ export function inquiryMailto(data: InquiryFormData): string {
 
 export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, preselect }) => {
   const [formData, setFormData] = useState<InquiryFormData>(() => emptyInquiry(preselect));
+  const [service, setService] = useState<ServiceKey | null>(() => serviceForInterest(preselect));
+  const [guidanceAnswers, setGuidanceAnswers] = useState<GuidanceAnswers>({});
   const [submitted, setSubmitted] = useState(false);
   const [deliveryError, setDeliveryError] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
@@ -96,9 +107,19 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
       setDraftSaved(false);
       try {
         const restored = JSON.parse(localStorage.getItem('teajia_inquiry_draft') || 'null');
-        setFormData(restoreInquiryDraft(restored, preselect));
+        const draft = restored && typeof restored === 'object' && !Array.isArray(restored) ? restored as Record<string, unknown> : null;
+        const restoredForm = restoreInquiryDraft(restored, preselect);
+        const savedService = typeof draft?.guidanceService === 'string' && draft.guidanceService in SERVICE_GUIDANCE
+          ? draft.guidanceService as ServiceKey : null;
+        const chosenService = serviceForInterest(preselect) ?? savedService
+          ?? restoredForm.interests.map(interest => serviceForInterest(interest)).find(Boolean) ?? null;
+        setFormData(restoredForm);
+        setService(chosenService);
+        setGuidanceAnswers(draft?.guidanceService === chosenService ? restoreGuidanceAnswers(draft.guidanceAnswers, chosenService) : {});
       } catch {
         setFormData(emptyInquiry(preselect));
+        setService(serviceForInterest(preselect));
+        setGuidanceAnswers({});
       }
       setSheetDragY(0);
       requestAnimationFrame(() => setIsVisible(true));
@@ -153,11 +174,21 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
     }));
   };
 
+  const chooseService = (next: ServiceKey) => {
+    if (next === service) return;
+    setService(next);
+    setGuidanceAnswers({});
+    setFormData(prev => ({
+      ...prev,
+      interests: [SERVICE_GUIDANCE[next].interest, ...prev.interests.filter(item => serviceForInterest(item) === null)],
+    }));
+  };
+
   const [optionalOpen, setOptionalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const saveToLocalStorage = (entry: InquiryFormData & { timestamp: string }): boolean => {
+  const saveToLocalStorage = (entry: InquiryFormData & { timestamp: string; guidanceService: ServiceKey | null; guidanceAnswers: GuidanceAnswers }): boolean => {
     try {
       localStorage.setItem('teajia_inquiry_draft', JSON.stringify(entry));
       return true;
@@ -174,7 +205,8 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
     const newErrors: Record<string, string> = {};
     if (!formData.name.trim()) newErrors.name = 'Name is required';
     if (!formData.email.trim()) newErrors.email = 'Email is required';
-    if (!formData.vision.trim()) newErrors.vision = 'Please enter a message';
+    const vision = buildInquiryVision(service, guidanceAnswers, formData.vision);
+    if (!vision) newErrors.vision = 'Choose a service or add a short note';
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -183,14 +215,14 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
     setDeliveryError(false);
     setSubmitting(true);
 
-    const entry = { ...formData, timestamp: new Date().toISOString() };
+    const entry = { ...formData, timestamp: new Date().toISOString(), guidanceService: service, guidanceAnswers };
     const payload = {
       source: 'consult',
       name: formData.name,
       email: formData.email,
       whatsapp: formData.whatsapp,
       location: formData.location,
-      vision: formData.vision,
+      vision,
       interests: formData.interests,
       referral: formData.referral,
     };
@@ -233,7 +265,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
         onTouchMove={handleSheetTouchMove}
         onTouchEnd={handleSheetTouchEnd}
         className={`
-          w-full md:max-w-[520px] md:rounded-xl rounded-t-xl
+          w-full md:max-w-[620px] md:rounded-xl rounded-t-xl
           max-h-[90vh] md:max-h-[85vh] overflow-y-auto overscroll-contain
           bg-tea-bg
           transition-all ${reducedMotion ? '' : 'duration-250 ease-out'}
@@ -260,7 +292,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
           </button>
         </div>
 
-        <div className="px-8 pb-10 md:px-10 md:pb-12">
+        <div className="px-6 sm:px-8 md:px-10 pb-nav-gap-lg">
           {submitted ? (
             <div className="flex items-center justify-center min-h-[200px] animate-[fadeIn_0.4s_ease-out]">
               <p className="font-serif text-xl text-center text-tea-text">
@@ -269,9 +301,65 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="animate-[fadeIn_0.3s_ease-out]">
-              <p className="font-serif text-lg mb-8 text-tea-text">
-                Tell me what you're looking for.
-              </p>
+              <h2 className={`${TYPOGRAPHY_CLASSES.h2} mb-2 text-tea-text`}>Find a place to begin.</h2>
+              <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mb-7 text-tea-text-sec`}>A few choices help us make the first conversation useful. “Not sure yet” is a good answer.</p>
+
+              <fieldset className="mb-8">
+                <legend className={`${TYPOGRAPHY_CLASSES.label} mb-3 text-tea-text-dim`}>What brings you here?</legend>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {(Object.keys(SERVICE_GUIDANCE) as ServiceKey[]).map(key => (
+                    <button
+                      key={key}
+                      type="button"
+                      aria-pressed={service === key}
+                      onClick={() => chooseService(key)}
+                      className={`min-h-[52px] rounded-md border px-3 py-3 text-left text-ui-14 leading-snug transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold ${service === key ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-tea-border bg-tea-surface text-tea-text-sec hover:bg-tea-accent-sub'}`}
+                    >
+                      {SERVICE_GUIDANCE[key].title}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
+              {service && (
+                <section className="mb-8" aria-label={`${SERVICE_GUIDANCE[service].title} guidance`}>
+                  <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mb-6 text-tea-text-sec`}>{SERVICE_GUIDANCE[service].intro}</p>
+                  {SERVICE_GUIDANCE[service].questions.map(question => (
+                    <fieldset key={question.id} className="mb-6">
+                      <legend className={`${TYPOGRAPHY_CLASSES.label} mb-3 text-tea-text-dim`}>{question.prompt}</legend>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {question.options.map(option => (
+                          <button
+                            key={option}
+                            type="button"
+                            aria-pressed={guidanceAnswers[question.id] === option}
+                            onClick={() => setGuidanceAnswers(prev => ({ ...prev, [question.id]: option }))}
+                            className={`min-h-[44px] rounded-md border px-3 py-2 text-left text-ui-14 leading-snug transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold ${guidanceAnswers[question.id] === option ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-tea-border text-tea-text-sec hover:bg-tea-accent-sub'}`}
+                          >
+                            {option}
+                          </button>
+                        ))}
+                      </div>
+                    </fieldset>
+                  ))}
+                  <div className="rounded-md border border-tea-border bg-tea-accent-sub px-4 py-4" aria-live="polite">
+                    <p className={`${TYPOGRAPHY_CLASSES.label} mb-2 text-tea-text-dim`}>A useful starting point</p>
+                    <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}>{guidanceAdvice(service, guidanceAnswers)}</p>
+                  </div>
+                </section>
+              )}
+
+              <FloatingField
+                label="Anything else you want Adrian to know? (optional)"
+                type="textarea"
+                value={formData.vision}
+                onChange={v => setFormData(p => ({ ...p, vision: v }))}
+                autoComplete="off"
+                error={errors.vision}
+              />
+
+              <h3 className={`${TYPOGRAPHY_CLASSES.h3} mb-2 mt-9 text-tea-text`}>How can Adrian reach you?</h3>
+              <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mb-7 text-tea-text-sec`}>Your answers will travel with your message. A name and email are enough to continue.</p>
 
               {/* Required fields */}
               <FloatingField
@@ -292,16 +380,6 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
                 required
                 autoComplete="email"
                 error={errors.email}
-              />
-
-              <FloatingField
-                label="Tell me what you're envisioning (a few sentences is perfect)"
-                type="textarea"
-                value={formData.vision}
-                onChange={v => setFormData(p => ({ ...p, vision: v }))}
-                required
-                autoComplete="off"
-                error={errors.vision}
               />
 
               {/* Collapsible optional section */}
@@ -388,7 +466,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
                 {deliveryError && (
                   <div role="alert" className="mb-4 text-ui-14 leading-relaxed text-tea-text-sec">
                     Your message was not delivered. {draftSaved ? 'Your draft is saved on this device; ' : 'This browser could not save your draft; '}retry below or{' '}
-                    <a className="text-tea-text underline underline-offset-4 hover:text-tea-gold" href={inquiryMailto(formData)}>
+                    <a className="text-tea-text underline underline-offset-4 hover:text-tea-gold" href={inquiryMailto({ ...formData, vision: buildInquiryVision(service, guidanceAnswers, formData.vision) })}>
                       email hello@teajia.com
                     </a>.
                   </div>

@@ -23997,7 +23997,7 @@ const handleGetRevenueAnalytics: Handler = async (request, env) => {
        JOIN invoice_line_items ili ON ili.invoice_id = i.id
        WHERE i.status = 'Filled'
          AND i.account_id = ?
-         AND i.created_at >= datetime('now', '-26 weeks')
+         AND i.created_at >= datetime('now', '-182 days')
        GROUP BY week
        ORDER BY week ASC`
     ).bind(accountId).all(),

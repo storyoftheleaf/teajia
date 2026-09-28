@@ -189,10 +189,10 @@ export default function AtlasAddSourcePage() {
   };
 
   if (stage.name === 'shut') return <SiteNotFound />;
-  if (stage.name === 'asking') return <AtlasFrame title="Add a source" hideSearch><p className="text-tea-text-dim text-ui-14">Loading…</p></AtlasFrame>;
+  if (stage.name === 'asking') return <AtlasFrame title="Add a source" hideSearch hideIndex><p className="text-tea-text-dim text-ui-14">Loading…</p></AtlasFrame>;
 
   return (
-    <AtlasFrame title="Add a source" wide hideSearch>
+    <AtlasFrame title="Add a source" measure="wide" hideSearch hideIndex>
       <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mb-2`}>Add a source</h1>
 
       {stage.name === 'drop' && <DropZone onFile={onFile} error={stage.error} />}

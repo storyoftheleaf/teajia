@@ -429,6 +429,8 @@ export interface TeaLedgerTones {
   markBg: string;
   /** Vintage numerals, mixed to hold contrast on `markBg` in both themes. */
   markFg: string;
+  /** Filled save state, paired with tea-bg ink for small-label contrast. */
+  savedBg: string;
 }
 
 /**
@@ -453,6 +455,7 @@ export const getTeaLedgerTones = (
     wash: `rgba(${base[0]}, ${base[1]}, ${base[2]}, ${alpha})`,
     markBg: mix(base, ground.bg, 0.7),
     markFg: mix(base, ground.text, 0.5),
+    savedBg: mix(base, ground.text, 0.6),
   };
 };
 

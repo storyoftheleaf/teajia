@@ -1,33 +1,56 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { SiteNotFound } from '../../components/SiteNotFound';
 import { ATLAS_ROOT, AtlasFrame } from '../AtlasFrame';
 import { AtlasArticleRow } from '../AtlasArticleRow';
 import { AtlasImage } from '../AtlasImage';
 import { useAtlasJson } from '../useAtlas';
+import { pagesLabel, readingMinutes, tidyBlocks } from '../readerBlocks';
 import type { AtlasArticle, AtlasBlock, AtlasHome, AtlasIssue } from '../types';
+
+// The reading column: Lora at the magazine's own size and leading (the same
+// 17 to 18px on 1.8 the Read articles use), about 66 characters to a line.
+const CJK = /[\u3400-\u9fff\uf900-\ufaff]/;
+
+const BODY = 'font-body text-ui-17 md:text-[18px] leading-[1.8] text-tea-text';
 
 const Block: React.FC<{ block: AtlasBlock; issueLabel: string }> = ({ block, issueLabel }) => {
   switch (block.t) {
     case 'p':
-      return <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text mb-5`}>{block.v}</p>;
+      return <p className={`${BODY} mb-[1.1em]`}>{block.v}</p>;
     case 'h':
-      return <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text mt-10 mb-4`}>{block.v}</h2>;
+      return (
+        <h2 className="font-display text-[22px] md:text-ui-26 font-medium leading-[1.25] text-tea-text mt-12 mb-4 [text-wrap:balance]">
+          {block.v}
+        </h2>
+      );
     case 'aside':
-      return <p className="font-body italic text-ui-14 text-tea-text-sec mb-4 leading-[1.6]">{block.v}</p>;
+      // Bylines, pull lines and Chinese titles set small beside the text in
+      // print. Chinese is never slanted: it has no italic, only a faked one.
+      return (
+        <p className={`font-body text-ui-15 leading-[1.7] text-tea-text-sec my-6 ${CJK.test(block.v) ? 'tracking-[0.08em]' : 'italic'}`}>
+          {block.v}
+        </p>
+      );
     case 'img':
       return (
-        <figure className="my-8">
-          <AtlasImage src={block.src} alt={`Picture from ${issueLabel}`} className="rounded-[2px] overflow-hidden" />
+        <figure className="my-8 md:my-12">
+          <AtlasImage src={block.src} alt={`Picture from ${issueLabel}`} />
         </figure>
       );
     case 'page':
-      // The printed page this text starts on, so a reading can be cited.
+      // Where the printed page turns, so a passage can be cited. On a wide
+      // screen it sits in the left margin and never breaks the line of text;
+      // on a phone it is a small note at the right edge.
       return (
-        <div id={`page-${block.n}`} className="flex items-center gap-3 my-6" aria-label={`Printed page ${block.n}`}>
-          <span className="flex-1 border-t border-tea-border" />
-          <span className="text-ui-11 text-tea-text-dim tracking-[0.1em] uppercase">p. {block.n}</span>
+        <div
+          id={`page-${block.n}`}
+          aria-label={`Printed page ${block.n}`}
+          className="relative flex justify-end mt-5 mb-1 lg:m-0 lg:h-0 lg:block scroll-mt-24"
+        >
+          <span className="font-body text-ui-12 text-tea-text-dim tabular-nums lg:absolute lg:right-full lg:mr-10 lg:top-[0.45em] lg:whitespace-nowrap">
+            p.&nbsp;{block.n}
+          </span>
         </div>
       );
     default:
@@ -43,12 +66,19 @@ const Credit: React.FC<{ text: string }> = ({ text }) => {
   return (
     <>
       {before}
-      <a href={`https://${domain}`} target="_blank" rel="noopener noreferrer" className="underline decoration-tea-border hover:text-tea-text">
+      <a href={`https://${domain}`} target="_blank" rel="noopener noreferrer" className="underline decoration-tea-border underline-offset-4 hover:text-tea-text hover:decoration-tea-gold transition-colors">
         {domain}
       </a>
     </>
   );
 };
+
+const PrevNext: React.FC<{ side: 'prev' | 'next'; to: string; label: string; title: string }> = ({ side, to, label, title }) => (
+  <Link to={to} className={`group block min-w-0 py-2 ${side === 'next' ? 'sm:text-right sm:ml-auto' : ''}`}>
+    <span className="block font-body text-ui-13 text-tea-text-dim">{label}</span>
+    <span className="block font-display text-ui-20 leading-[1.3] text-tea-text group-hover:text-tea-gold-lt transition-colors mt-1">{title}</span>
+  </Link>
+);
 
 export default function AtlasReaderPage() {
   const { articleId = '' } = useParams();
@@ -59,18 +89,25 @@ export default function AtlasReaderPage() {
 
   useEffect(() => { window.scrollTo({ top: 0 }); }, [articleId]);
 
+  const blocks = useMemo(
+    () => (article.state === 'ready' ? tidyBlocks(article.data.blocks, article.data.title) : []),
+    [article],
+  );
+
   if (article.state === 'missing') return <SiteNotFound />;
   if (article.state === 'failed') {
-    return <AtlasFrame><p className="text-tea-text-sec text-ui-14 italic">Could not load this article. Try again in a moment.</p></AtlasFrame>;
+    return <AtlasFrame measure="read"><p className="font-body text-tea-text-sec text-ui-15 italic">Could not load this article. Try again in a moment.</p></AtlasFrame>;
   }
   if (article.state === 'loading') {
-    return <AtlasFrame><p className="text-tea-text-dim text-ui-14">Loading…</p></AtlasFrame>;
+    return <AtlasFrame measure="read"><p className="font-body text-tea-text-dim text-ui-15 italic">Opening…</p></AtlasFrame>;
   }
 
   const a = article.data;
   const iss = issue.state === 'ready' ? issue.data : null;
   const topicNames = new Map((home.state === 'ready' ? home.data.topics : []).map(t => [t.id, t.name]));
   const issueLabel = iss?.issue.label ?? a.issue;
+  const sourceName = iss?.source.name
+    ?? (home.state === 'ready' ? home.data.sources.find(s => s.id === a.source)?.name : undefined);
   const credit = iss?.source.credit
     ?? (home.state === 'ready' ? home.data.sources.find(s => s.id === a.source)?.credit : undefined)
     ?? 'Global Tea Hut, globalteahut.org';
@@ -78,66 +115,89 @@ export default function AtlasReaderPage() {
   const prev = idx > 0 ? iss!.articles[idx - 1] : null;
   const next = iss && idx >= 0 && idx < iss.articles.length - 1 ? iss.articles[idx + 1] : null;
 
-  return (
-    <AtlasFrame title={a.title}>
-      <article>
-        <header className="mb-10">
-          <div className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec`}>
-            {iss ? (
-              <>
-                <Link to={`${ATLAS_ROOT}/source/${iss.source.id}`} className="hover:text-tea-text transition-colors">{iss.source.name}</Link>
-                <span aria-hidden> · </span>
-                <Link to={`${ATLAS_ROOT}/issue/${a.issue}`} className="hover:text-tea-text transition-colors">{issueLabel}</Link>
-              </>
-            ) : issueLabel}
-          </div>
-          <h1 className={`${TYPOGRAPHY_CLASSES.h1} text-tea-text mt-3`}>{a.title}</h1>
-          <div className="text-ui-14 text-tea-text-sec mt-3">
-            {[a.author, a.pages && a.pages !== '0' ? `p. ${a.pages}` : ''].filter(Boolean).join(' · ')}
-          </div>
-          {a.topics.length > 0 && (
-            <ul className="flex flex-wrap gap-x-4 gap-y-1 mt-4" aria-label="Topics">
-              {a.topics.map(t => (
-                <li key={t}>
-                  <Link to={`${ATLAS_ROOT}/topic/${t}`} className="text-ui-13 text-tea-text-sec hover:text-tea-gold transition-colors">
-                    {topicNames.get(t) ?? t}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </header>
+  const byline = [
+    a.author,
+    pagesLabel(a.pages),
+    a.words > 0 ? `${readingMinutes(a.words)} min read` : '',
+  ].filter(Boolean).join(' · ');
 
-        <div>
-          {a.blocks.map((block, i) => <Block key={i} block={block} issueLabel={issueLabel} />)}
+  const trail = [
+    ...(sourceName ? [{ label: sourceName, to: `${ATLAS_ROOT}/source/${a.source}` }] : []),
+    { label: issueLabel, to: `${ATLAS_ROOT}/issue/${a.issue}` },
+  ];
+
+  return (
+    <AtlasFrame title={a.title} trail={trail} measure="read" here={{ issue: a.issue }}>
+      <div className="xl:grid xl:grid-cols-[minmax(0,680px)_minmax(0,1fr)] xl:gap-x-20">
+        <div className="min-w-0">
+          <article>
+            <header className="mb-12 md:mb-14">
+              <h1 className="font-display text-[34px] md:text-[46px] font-normal leading-[1.1] tracking-[0.005em] text-tea-text [text-wrap:balance]">
+                {a.title}
+              </h1>
+              {byline && <p className="font-body text-ui-15 text-tea-text-sec mt-4">{byline}</p>}
+            </header>
+
+            <div className="relative">
+              {blocks.map((block, i) => <Block key={i} block={block} issueLabel={issueLabel} />)}
+            </div>
+
+            <footer className="mt-14 pt-6 border-t border-tea-border">
+              <p className="font-body text-ui-14 italic text-tea-text-sec">
+                From <Credit text={credit} />, {issueLabel}.
+              </p>
+              {a.topics.length > 0 && (
+                <div className="mt-6">
+                  <h2 className="font-display text-ui-17 text-tea-text mb-2">Topics in this article</h2>
+                  <ul className="flex flex-wrap gap-x-5 gap-y-1.5" aria-label="Topics">
+                    {a.topics.map(t => (
+                      <li key={t}>
+                        <Link
+                          to={`${ATLAS_ROOT}/topic/${t}`}
+                          className="font-body text-ui-14 text-tea-text-sec underline decoration-tea-border underline-offset-4 hover:text-tea-text hover:decoration-tea-gold transition-colors"
+                        >
+                          {topicNames.get(t) ?? t}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </footer>
+          </article>
+
+          <nav className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-4 mt-12 pt-6 border-t border-tea-border" aria-label="Previous and next">
+            {prev
+              ? <PrevNext side="prev" to={`${ATLAS_ROOT}/read/${prev.id}`} label="Previous in this issue" title={prev.title} />
+              : iss?.prev
+                ? <PrevNext side="prev" to={`${ATLAS_ROOT}/issue/${iss.prev.id}`} label="Previous issue" title={iss.prev.label} />
+                : <span className="hidden sm:block" />}
+            {next
+              ? <PrevNext side="next" to={`${ATLAS_ROOT}/read/${next.id}`} label="Next in this issue" title={next.title} />
+              : iss?.next && <PrevNext side="next" to={`${ATLAS_ROOT}/issue/${iss.next.id}`} label="Next issue" title={iss.next.label} />}
+          </nav>
         </div>
 
-        <p className="mt-12 text-ui-13 text-tea-text-sec italic">
-          From <Credit text={credit} />.
-        </p>
-      </article>
-
-      <nav className="flex flex-wrap justify-between gap-4 mt-10 pt-6 border-t border-tea-border text-ui-14" aria-label="Previous and next">
-        {prev
-          ? <Link to={`${ATLAS_ROOT}/read/${prev.id}`} className="text-tea-text-sec hover:text-tea-text transition-colors">Previous: {prev.title}</Link>
-          : iss?.prev
-            ? <Link to={`${ATLAS_ROOT}/issue/${iss.prev.id}`} className="text-tea-text-sec hover:text-tea-text transition-colors">Previous issue: {iss.prev.label}</Link>
-            : <span />}
-        {next
-          ? <Link to={`${ATLAS_ROOT}/read/${next.id}`} className="text-tea-text-sec hover:text-tea-text transition-colors">Next: {next.title}</Link>
-          : iss?.next && <Link to={`${ATLAS_ROOT}/issue/${iss.next.id}`} className="text-tea-text-sec hover:text-tea-text transition-colors">Next issue: {iss.next.label}</Link>}
-      </nav>
-
-      {iss && (
-        <section className="mt-12" aria-labelledby="in-this-issue">
-          <h2 id="in-this-issue" className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-dim mb-2`}>In this issue</h2>
-          <ol>
-            {iss.articles.map(x => (
-              <AtlasArticleRow key={x.id} id={x.id} title={x.title} author={x.author} pages={x.pages} current={x.id === a.id} />
-            ))}
-          </ol>
-        </section>
-      )}
+        {iss && (
+          // Beside the text on a wide screen, so the issue stays in reach
+          // through a long read; after the article on anything narrower.
+          <aside className="mt-16 xl:mt-0" aria-labelledby="in-this-issue">
+            <div className="xl:sticky xl:top-8 xl:max-h-[calc(100vh-4rem)] xl:overflow-y-auto xl:pr-2">
+              <h2 id="in-this-issue" className="font-display text-ui-20 text-tea-text mb-1">
+                <Link to={`${ATLAS_ROOT}/issue/${a.issue}`} className="hover:text-tea-gold-lt transition-colors">
+                  In this issue
+                </Link>
+              </h2>
+              <p className="font-body text-ui-13 text-tea-text-dim mb-3">{issueLabel}</p>
+              <ol>
+                {iss.articles.map(x => (
+                  <AtlasArticleRow key={x.id} id={x.id} title={x.title} pages={x.pages} current={x.id === a.id} compact />
+                ))}
+              </ol>
+            </div>
+          </aside>
+        )}
+      </div>
     </AtlasFrame>
   );
 }
