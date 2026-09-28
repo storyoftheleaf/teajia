@@ -64,8 +64,10 @@ const PIECE_PORTRAIT: PhotoVal = { url: '/home/porcelain-bowl.webp', crop: { sca
  *  build and never waits on the API. */
 const TABLE_PHOTO = '/home/teapots-sepia.webp';
 
-/** The consult plate: Adrian pouring at the table, from his own library. */
-const CONSULT_PHOTO = '/home/table.webp';
+/** The consult plate: Adrian pouring at the table, from his own library,
+ *  cropped below the face to the hands, the pour and the cups. His call
+ *  (2026-09-28): the plate is about the practice, not about him. */
+const CONSULT_PHOTO = '/home/pour-hands.webp';
 
 /** Stand-ins until the real photographs exist, served from this site rather
  *  than hot-linked: the china-dependency scan refuses stock hosts under src/
@@ -243,7 +245,7 @@ const HomeV2Page: React.FC = () => {
           body="Taiwan, China, Japan, Bali, and beyond. Tea for your practice, your collection, your space."
           meta="The consult"
           src={CONSULT_PHOTO}
-          crop={{ scale: 1, x: 0.5, y: 0.5 }}
+          crop={{ scale: 1, x: 0.62, y: 0.45 }}
         />
       </section>
 
