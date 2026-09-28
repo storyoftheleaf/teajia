@@ -74,7 +74,7 @@ import {
   type ReservePartySeatsResult,
 } from './eventDomain';
 import { candidateToApi, impressionToApi, journalRowToNotes, parseCandidateInput } from './tastingNoteCuration';
-import { deliverVerificationCode } from './verificationDelivery';
+import { deliverVerificationCode, deliveryFailureBody } from './verificationDelivery';
 import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, type IncidentStatus } from './incidents';
 import {
   deleteWisdomVerification,
@@ -1767,7 +1767,12 @@ const handleLogin: Handler = async (request, env) => {
     if (error instanceof Error && error.message === 'Active platform account unavailable') {
       return json({ error: 'Platform account bootstrap failed', reason: 'platform_account_unavailable' }, 503);
     }
-    // Table may not exist yet — fall through to env-based auth
+    // A database that did not answer is not a wrong password. This used to
+    // fall through to the env-admin check and end in "Invalid credentials",
+    // so a correct password was refused on a bad moment and accepted on the
+    // next click, which reads as the site not trusting its own owner.
+    console.error('[auth] login lookup failed', error instanceof Error ? error.message : error);
+    return json({ error: 'Sign-in is unavailable for a moment. Try again shortly.', code: 'signin_unavailable' }, 503);
   }
 
   // Dev backdoor — only active when ENABLE_DEV_ADMIN=true
@@ -1834,7 +1839,12 @@ const handleLogin: Handler = async (request, env) => {
   }
 
   console.warn(`[auth] failed login: ip=${loginIp} identifier=${identifier}`);
-  return json({ error: 'Invalid credentials' }, 401);
+  // One sentence for both halves on purpose: saying which one was wrong tells
+  // a stranger which emails and usernames have accounts here.
+  return json({
+    error: 'That email or username and password do not match. Check both and try again.',
+    code: 'invalid_credentials',
+  }, 401);
 };
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9_.-]{3,32}$/;
@@ -16952,7 +16962,12 @@ const handleVerifyRequest: Handler = async (request, env) => {
   const code = generateVerificationCode();
   const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString();
   const delivery = await deliverVerificationCode(env, { email: contact, code, purpose });
-  if (!delivery.delivered) return json({ error: 'We could not send the code.', retryable: delivery.retryable }, 503);
+  // DEV_RETURN_VERIFY_CODES carries on without delivery, exactly as signup
+  // does: the code is echoed below, so a local sandbox with no email provider
+  // can still walk the whole sign-in. Production never sets it.
+  if (!delivery.delivered && env.DEV_RETURN_VERIFY_CODES !== 'true') {
+    return json(deliveryFailureBody(delivery), 503);
+  }
 
   if (eventOwnerAccountId) {
     const customer = await env.DB.prepare(
@@ -16967,7 +16982,7 @@ const handleVerifyRequest: Handler = async (request, env) => {
   }
 
   const codeHash = await signVerificationCode(code, env.VERIFICATION_CODE_SECRET || env.JWT_SECRET);
-  const deliveredAt = new Date().toISOString();
+  const deliveredAt = delivery.delivered ? new Date().toISOString() : null;
   await env.DB.prepare(
     `INSERT INTO verification_challenges
      (id, contact_normalized, purpose, code_hash, expires_at, delivered_at)

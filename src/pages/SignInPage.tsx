@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Icons } from '../components/Icons';
@@ -30,6 +30,24 @@ export default function SignInPage() {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotError, setForgotError] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
+  // One request per press. `loading` disables the button, but state lands a
+  // render late, so a second Enter or a password manager's own submit can slip
+  // in before it does. A ref is set the moment the first one starts.
+  const inFlight = useRef(false);
+
+  // What is in the boxes when the form is sent, not what React last heard.
+  // A password manager can fill an input without an event React listens for,
+  // so state keeps whatever was typed before and the request carries that:
+  // one refused sign-in, then a second that works once the state catches up.
+  // Reading the form itself makes the request match the screen.
+  const submitted = (e: React.FormEvent<HTMLFormElement>) => {
+    const form = new FormData(e.currentTarget);
+    const read = (name: string, fallback: string) => {
+      const value = form.get(name);
+      return typeof value === 'string' ? value : fallback;
+    };
+    return { identifier: read('identifier', identifier).trim(), password: read('password', password) };
+  };
 
   const handleForgotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,38 +65,55 @@ export default function SignInPage() {
 
   const navigateAfterSignIn = () => navigate(safeReturnTo ?? state?.from ?? -1 as any);
 
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (inFlight.current) return;
+    const entered = submitted(e);
+    setIdentifier(entered.identifier);
+    setPassword(entered.password);
+    inFlight.current = true;
     setError('');
     setLoading(true);
     try {
-      await auth.login(identifier.trim(), password);
+      await auth.login(entered.identifier, entered.password);
       navigateAfterSignIn();
     } catch (err: unknown) {
       setError((err as Error)?.message || 'Sign in failed. Please check your credentials.');
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
   };
 
-  const handleCodeRequest = async (e?: React.FormEvent) => {
+  const handleCodeRequest = async (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
+    if (inFlight.current) return;
+    const contact = e ? submitted(e).identifier : identifier.trim();
+    setIdentifier(contact);
+    inFlight.current = true;
     setError('');
     setRequestRetryable(false);
     setLoading(true);
     try {
-      await api.verify.requestCode(identifier.trim(), 'signin');
+      await api.verify.requestCode(contact, 'signin');
       setCodeSent(true);
     } catch (err: unknown) {
-      setError((err as Error)?.message || 'Could not send code. Try again.');
+      const message = (err as Error)?.message || 'Could not send code. Try again.';
+      // Not configured is permanent until the shop sets up email, so the
+      // page names the two ways in that do work instead of leaving a dead end.
+      const notConfigured = err instanceof ApiError && err.data?.code === 'email_not_configured';
+      setError(notConfigured ? `${message} Sign in with your password or Google instead.` : message);
       setRequestRetryable(!(err instanceof ApiError) || err.data?.retryable !== false);
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
   };
 
   const handleCodeConfirm = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (inFlight.current) return;
+    inFlight.current = true;
     setError('');
     setLoading(true);
     try {
@@ -88,6 +123,7 @@ export default function SignInPage() {
     } catch (err: unknown) {
       setError((err as Error)?.message || 'Incorrect code. Please try again.');
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
   };
@@ -128,6 +164,7 @@ export default function SignInPage() {
           </label>
           <input
             id="signin-identifier"
+            name="identifier"
             type={passwordMode ? 'text' : 'email'}
             value={identifier}
             onChange={e => { setIdentifier(e.target.value); setError(''); }}
@@ -146,6 +183,7 @@ export default function SignInPage() {
           <div className="relative">
             <input
               id="signin-password"
+              name="password"
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={e => setPassword(e.target.value)}
