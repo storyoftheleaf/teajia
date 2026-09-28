@@ -3634,6 +3634,13 @@ input[type="number"]::-webkit-outer-spin-button {
   border-right: 1px solid var(--tea-keyline);
 }
 
+/* The Manage column beside the rail sits one step DARKER than the page, so it
+   reads as its own band instead of melting into the rail, which is one step
+   lighter. Slight on purpose: tone, never effects. */
+.nav-manage-col {
+  background: color-mix(in srgb, rgb(var(--tea-bg-rgb)) 86%, black);
+}
+
 /* The rail's words sit close, 14px type on a 20px gap, which is the design
    Adrian picked off the canvas. `.tap-target` would make each word a 44px box
    and spread the column down the whole edge, so the hit area grows here by a
