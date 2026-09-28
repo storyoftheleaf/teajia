@@ -203,7 +203,6 @@ const HomeV2Page: React.FC = () => {
           </p>
         </div>
         <div className={`relative lg:col-start-3 min-h-[320px] sm:min-h-[60vh] lg:min-h-0 overflow-hidden bg-tea-surface ${PHOTO}`}>
-          <span className={`pointer-events-none absolute left-4 bottom-4 z-10 px-2 py-1 ${META} text-tea-text-sec`} style={{ background: 'rgb(var(--tea-bg-rgb) / 0.55)' }}>At the table, Bali</span>
           <EditablePhoto
             slot="table"
             alt="At the table"
@@ -294,7 +293,8 @@ const HomeV2Page: React.FC = () => {
           </nav>
         </div>
       </section>
-      <StoryEditorBar />
+      {/* The trigger sits tucked in the window's corner here, off the opener photograph. */}
+      <StoryEditorBar corner />
     </div>
     </StoryEditProvider>
   );
