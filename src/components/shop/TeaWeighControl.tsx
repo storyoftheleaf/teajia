@@ -75,7 +75,7 @@ export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart
   const stepClass = 'relative inline-flex h-6 w-6 before:absolute before:-inset-2.5 before:content-[\'\'] items-center justify-center rounded border border-tea-border text-ui-14 leading-none transition-colors disabled:cursor-default disabled:opacity-40 focus-visible:outline focus-visible:outline-tea-gold';
 
   return (
-    <div className="flex min-w-[108px] flex-col items-stretch gap-1.5">
+    <div className="flex w-[112px] flex-col items-stretch gap-1.5">
       <button
         type="button"
         disabled={!onAddToCart}
@@ -90,17 +90,16 @@ export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart
           addedTimer.current = setTimeout(() => setAdded(false), 1500);
         }}
         onKeyDown={stopKeys}
-        className="flex h-8 items-baseline justify-center gap-1.5 whitespace-nowrap rounded-md border border-tea-border px-1.5 pt-[7px] transition-colors enabled:hover:border-tea-gold enabled:hover:bg-tea-accent-sub focus-visible:outline focus-visible:outline-tea-gold"
+        className="flex h-8 items-baseline justify-center gap-1 whitespace-nowrap rounded-md border border-tea-border px-1 pt-[8px] transition-colors enabled:hover:border-tea-gold enabled:hover:bg-tea-accent-sub focus-visible:outline focus-visible:outline-tea-gold"
       >
         {added ? (
           <span className="text-ui-12 text-tea-gold-lt" aria-live="polite">Added</span>
         ) : (
           <>
-            <span data-testid="grid-price" className="num text-ui-13 font-medium tabular-nums text-tea-text">
+            <span data-testid="grid-price" className="num text-ui-12 font-medium tabular-nums text-tea-text">
               {formatPrice(current.totalUsd)}
             </span>
-            <span className="text-ui-13 text-tea-text-dim" aria-hidden="true">&ndash;</span>
-            <span className="num text-ui-13 tabular-nums text-tea-text-sec">{current.grams}g</span>
+            <span className="num text-ui-12 tabular-nums text-tea-text-dim">{current.grams}g</span>
           </>
         )}
       </button>
