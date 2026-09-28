@@ -34,9 +34,17 @@ on:
       - 'docs/**'
       - 'todo/**'
 
+# A run on main is never cancelled once it has started. Main takes a push
+# every few minutes and the sharded e2e takes longer than that, so with
+# cancel-in-progress on main each run was cut down by the next push: 51 of
+# the last 100 main runs ended cancelled (measured 2026-09-28), no verdict.
+# Now the running one finishes and GitHub keeps ONE waiting run per group; a
+# newer push replaces the waiting run before it starts, so the latest commit
+# is always tested next and the skipped commits cost no minutes. Pull
+# requests still cancel, because only a PR's newest commit matters.
 concurrency:
   group: playwright-${{ github.ref }}-${{ github.event_name == 'schedule' && 'nightly' || 'ci' }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   # Debt list, dated 2026-09-09. The first run of the full suite (this same
