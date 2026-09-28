@@ -2,6 +2,12 @@
 
 Finished work, moved here from TODO.md. Nothing is deleted; lineage is kept.
 
+## Tea Atlas sources and a green main (2026-09-28)
+
+- [x] Tea Atlas: run `npm run atlas:upload` once and confirm every source added from the admin stays in the rebuilt index _(band: agent-runnable)_ _(effort: quick)_ Done 2026-09-28: the rebuild listed and kept all four (The Book of Tea, The Chinese Tea Shop, Ooika, The Book of Tea (teapigs)), 1,667 articles in the index. The Chinese Tea Shop (27 articles, 69 pictures) and Ooika (4, 19) were added by `scripts/atlas-web-sources.mjs`, PR #329.
+- [x] Worker type ratchet red on main: re-based to the current line numbers in PR #329 (37 known errors, no drift). Split: keying the baseline on something that survives a line shift stays open in TODO.md.
+- [x] Colour rules red on main: the contributor editor's resting underline used gold; now the border colour, gold on hover only. PR #329.
+
 ## Tea names without their year (2026-09-24)
 
 - [x] Take the year out of the six stored tea names (1990 Bamboo Leaf Old Tea, 2004 Yiwu Raw Puerh, 1990 Ripe Puerh Brick, 80s Ginseng Puer, 1998 Small Tuo, 1993 Y562) so the admin matches the shop; the public site already hides it, this is a data migration and needs the before/after page first _(band: agent-runnable)_ _(effort: quick)_ Done 2026-09-24 in migration 0023, approved on the before/after page https://claude.ai/artifact/FFbq8fo78V4UidUK9isB9a.
