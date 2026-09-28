@@ -177,6 +177,9 @@ Tea Shop's font) put back. Pictures (`scripts/atlas-web-pictures.mjs`) follow
 the Add source page's rules, minus its near-plain test (a product photo on
 white fails it), plus one: a picture in three or more of a shop's articles is
 the shop's, not the article's. JPEGs are made with macOS `sips`.
+A picture saved on its own (not a PDF) is listed under the source's
+`pictures` and becomes a one-picture article; any text printed on it is copied
+out by hand into `lines` so search finds it, and it can carry topics directly.
 
 - `node scripts/atlas-web-sources.mjs --out <dir>` builds, to read before sending.
 - `--send` records the sources exactly as the Add source page does (articles,
@@ -184,7 +187,8 @@ the shop's, not the article's. JPEGs are made with macOS `sips`.
   so they are in the index and search and survive every rebuild.
 - The sources it knows are listed at the top of the script (`WEB_SOURCES`): a
   file-name pattern plus name, credit and subtitle. Added 2026-09-28: The
-  Chinese Tea Shop (27 articles, 69 pictures, thechineseteashop.com) and Ooika
+  Chinese Tea Shop (27 articles, 69 pictures, plus the growing-regions map,
+  thechineseteashop.com) and Ooika
   (4 articles, 19 pictures, ooika.co).
 
 ## Adding a source in the admin
