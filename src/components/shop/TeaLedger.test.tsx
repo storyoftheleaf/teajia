@@ -22,7 +22,7 @@ const item = (overrides: Partial<InventoryItem> = {}) => ({
   ...overrides,
 }) as InventoryItem;
 
-function renderLedger(product: InventoryItem, isAdmin = false): string {
+function renderLedger(product: InventoryItem): string {
   return renderToStaticMarkup(
     <TeaLedger
       groups={[{ type: 'Oolong', items: [product] }]}
@@ -34,8 +34,6 @@ function renderLedger(product: InventoryItem, isAdmin = false): string {
       favoriteIds={new Set(product.id === 'tea-1' && product.year === '1998' ? ['tea-1'] : [])}
       onToggleFavorite={() => {}}
       onOpenProduct={() => {}}
-      isAdmin={isAdmin}
-      onAdminEdit={isAdmin ? () => {} : undefined}
     />,
   );
 }
@@ -67,15 +65,15 @@ describe('TeaLedger year favorite control', () => {
     expect(html).not.toContain('Unsave A Very Long');
   });
 
-  it('keeps the year visible when saved and keeps owner editing in lower metadata', () => {
-    const html = renderLedger(item({ year: '1998' }), true);
+  it('keeps the year visible when saved, with no owner Edit on the list (it lives on the tea page)', () => {
+    const html = renderLedger(item({ year: '1998' }));
 
     expect(html).toContain('aria-label="Unsave A Very Long Tea Name That Must Wrap Without Being Cut Off"');
     expect(html).toContain('aria-pressed="true"');
     expect(html).toContain('title="Saved. Click to unsave"');
     expect(html).toContain('Saved</span>');
     expect(html).toContain('1998');
-    expect(html).toContain('aria-label="Edit A Very Long Tea Name That Must Wrap Without Being Cut Off"');
+    expect(html).not.toContain('aria-label="Edit ');
     expect(html).not.toContain('line-clamp-2');
   });
 

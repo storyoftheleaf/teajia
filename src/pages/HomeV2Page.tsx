@@ -58,13 +58,16 @@ const PIECE = {
 const PIECE_PORTRAIT: PhotoVal = { url: '/home/porcelain-bowl.webp', crop: { scale: 1, x: 0.5, y: 0.5 } };
 
 /** The opener: the teapots laid out on the old wood, shot from above, cropped
- *  in to the pots and cups, with a sepia tint and film grain baked into the
- *  file so it reads as old. A site file under public/home, so it ships with
- *  the build and never waits on the API. */
-const TABLE_PHOTO = '/home/teapots-aged.webp';
+ *  in to the pots and cups. A light sepia is baked into the file; the grain is
+ *  laid over it live (.photo-grain), because grain baked into a compressed
+ *  photo turns to blocks. A site file under public/home, so it ships with the
+ *  build and never waits on the API. */
+const TABLE_PHOTO = '/home/teapots-sepia.webp';
 
-/** The consult plate: Adrian pouring at the table, from his own library. */
-const CONSULT_PHOTO = '/home/table.webp';
+/** The consult plate: Adrian pouring at the table, from his own library,
+ *  cropped below the face to the hands, the pour and the cups. His call
+ *  (2026-09-28): the plate is about the practice, not about him. */
+const CONSULT_PHOTO = '/home/pour-hands.webp';
 
 /** Stand-ins until the real photographs exist, served from this site rather
  *  than hot-linked: the china-dependency scan refuses stock hosts under src/
@@ -208,7 +211,10 @@ const HomeV2Page: React.FC = () => {
             alt="At the table"
             fill
             placeholderBg="var(--tea-surface)"
-            placeholder={<img src={TABLE_PHOTO} alt="" fetchPriority="high" className="absolute inset-0 w-full h-full object-cover object-center lg:object-[50%_8%]" />}
+            placeholder={<>
+              <img src={TABLE_PHOTO} alt="" fetchPriority="high" className="absolute inset-0 w-full h-full object-cover object-center lg:object-[50%_8%]" />
+              <div aria-hidden className="photo-grain" />
+            </>}
           />
         </div>
       </section>
@@ -239,7 +245,7 @@ const HomeV2Page: React.FC = () => {
           body="Taiwan, China, Japan, Bali, and beyond. Tea for your practice, your collection, your space."
           meta="The consult"
           src={CONSULT_PHOTO}
-          crop={{ scale: 1, x: 0.5, y: 0.5 }}
+          crop={{ scale: 1, x: 0.62, y: 0.45 }}
         />
       </section>
 

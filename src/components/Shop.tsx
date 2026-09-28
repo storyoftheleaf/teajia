@@ -88,12 +88,20 @@ interface ShopProps {
 
 // Text only. Four glyphs above four words said nothing the words did not, and
 // the icon carried no state the active underline was not already carrying.
-const TABS = [
+const ALL_TABS = [
   { id: 'tea', label: 'Tea' },
   { id: 'teaware', label: 'Teaware' },
   { id: 'sets', label: 'Sets' },
   { id: 'collection', label: 'Liked' },
 ];
+
+// Teaware and Sets are paused until there is something to put in them
+// (Adrian, 2026-09-28; the reminder to bring them back is in TODO.md). They
+// are hidden, not deleted, and the browser test server shows them so the
+// specs that cover them keep running.
+const PAUSED_TABS = new Set(['teaware', 'sets']);
+const SHOW_PAUSED_TABS = import.meta.env.VITE_SHOP_SHOW_PAUSED_TABS === '1';
+const TABS = SHOW_PAUSED_TABS ? ALL_TABS : ALL_TABS.filter(tab => !PAUSED_TABS.has(tab.id));
 
 export const Shop: React.FC<ShopProps> = ({
   teaInventory,
@@ -116,7 +124,8 @@ export const Shop: React.FC<ShopProps> = ({
      switching tabs never adds a history step of its own. */
   const [activeTab, setActiveTabState] = useState<ShopTab>(() => {
     const fromUrl = new URLSearchParams(window.location.search).get('tab');
-    return fromUrl === 'teaware' || fromUrl === 'sets' || fromUrl === 'collection' ? fromUrl : 'tea';
+    const known = fromUrl === 'teaware' || fromUrl === 'sets' || fromUrl === 'collection';
+    return known && TABS.some(tab => tab.id === fromUrl) ? fromUrl : 'tea';
   });
   const [isAddingToCart, setIsAddingToCart] = useState<Record<string, boolean>>({});
   const [addedProductId, setAddedProductId] = useState<string | null>(null);

@@ -1,10 +1,24 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, RefreshCw, UsersRound } from 'lucide-react';
-import { api } from '../../lib/api';
+import { api, ApiError } from '../../lib/api';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { AdminContributor } from '../../types';
 import { ContributorEditorPanel } from '../components/ContributorEditorPanel';
+
+/**
+ * Why the list did not load, in a sentence that says what to do. It used to
+ * say only "Could not load contributors." whatever went wrong, which left a
+ * lapsed sign-in, the wrong shop and a network blip all looking the same.
+ */
+export function contributorsLoadError(error: unknown): string {
+  const status = error instanceof ApiError ? error.status : undefined;
+  if (status === 401) return 'Your sign-in has expired. Sign in again, then come back here.';
+  if (status === 403) return 'Tea Masters is looked after from a shop you own. Switch to that shop in Your Table, then retry.';
+  if (status && status >= 500) return 'The shop had a problem answering. Retry in a moment.';
+  if (!status) return 'The shop did not answer. Check the connection, then retry.';
+  return error instanceof Error ? error.message : 'Could not load contributors.';
+}
 
 export const ContributorsView: React.FC = () => {
   const queryClient = useQueryClient();
@@ -39,7 +53,7 @@ export const ContributorsView: React.FC = () => {
         {query.isLoading ? (
           <div aria-label="Loading contributors" className="mt-8 space-y-2">{[0, 1, 2].map(item => <div key={item} className="h-16 animate-pulse border-b border-tea-border bg-tea-surface/40" />)}</div>
         ) : query.isError ? (
-          <div className="py-20 text-center"><p className="text-ui-14 text-tea-text">Could not load contributors.</p><button type="button" onClick={() => query.refetch()} className="tap-target mt-3 text-ui-13 text-tea-gold hover:text-tea-gold-lt">Retry</button></div>
+          <div className="py-20 text-center"><p className="text-ui-14 text-tea-text">Could not load contributors.</p><p className="mx-auto mt-2 max-w-[44ch] text-ui-13 leading-relaxed text-tea-text-sec" data-testid="contributors-load-reason">{contributorsLoadError(query.error)}</p><button type="button" onClick={() => query.refetch()} className="tap-target mt-3 text-ui-13 text-tea-gold hover:text-tea-gold-lt">Retry</button></div>
         ) : contributors.length === 0 ? (
           <div className="py-20 text-center"><UsersRound size={28} className="mx-auto text-tea-text-dim" /><p className="mt-4 text-ui-14 text-tea-text">No tea masters yet.</p><p className="mt-1 text-ui-13 text-tea-text-sec">Create the first editorial identity when its voice and profile are ready.</p><button type="button" onClick={() => setSelected(null)} className="tap-target mt-5 text-ui-13 text-tea-gold hover:text-tea-gold-lt">Create contributor</button></div>
         ) : (

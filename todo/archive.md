@@ -2,6 +2,11 @@
 
 Finished work, moved here from TODO.md. Nothing is deleted; lineage is kept.
 
+## Sign-in email and an exposed key (2026-09-28)
+
+- [x] Email sign-in codes reach inboxes: teajia.com verified in Resend, a new send-only key in Infisical (prod and dev) and on the live worker; a real code was delivered and signed Adrian in. The sign-in page now lands on the home page, lets the email be corrected, offers "Send a new code", and says in words why a code was not sent. PR #328.
+- [x] Replaced nothing, retired the Google key whose first 28 characters were the NAME of a live worker secret: it was the teajia project's Gemini key (ending tSFM), unused for 28 days and in no Infisical project, so it was deleted in AI Studio. Both misnamed worker secrets (that one and "orders@teajia.com") deleted. The worker's GEMINI_API_KEY was never set on live, so nothing that ran changes.
+
 ## Tea Atlas sources and a green main (2026-09-28)
 
 - [x] Tea Atlas: run `npm run atlas:upload` once and confirm every source added from the admin stays in the rebuilt index _(band: agent-runnable)_ _(effort: quick)_ Done 2026-09-28: the rebuild listed and kept all four (The Book of Tea, The Chinese Tea Shop, Ooika, The Book of Tea (teapigs)), 1,667 articles in the index. The Chinese Tea Shop (27 articles, 69 pictures) and Ooika (4, 19) were added by `scripts/atlas-web-sources.mjs`, PR #329.

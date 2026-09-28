@@ -12,7 +12,7 @@ storage). Field-level support is published through 1
 research source records and 1 citations. This is the
 account-agnostic layer behind teajia.com, true
 regardless of who stocks or sells a tea. It is not a product catalog, a shop
-export, or Adrian's own tasting notes.
+export, or Teajia's own tasting notes.
 
 ## The standard
 
@@ -21,7 +21,7 @@ that isn't here, send it to hello@teajia.com.
 
 ## License
 
-CC BY 4.0. See LICENSE.txt. Adrian's own tea write-ups and tasting notes are
+CC BY 4.0. See LICENSE.txt. Teajia's own tea write-ups and tasting notes are
 not included in this dataset and remain his.
 
 ## Citation
