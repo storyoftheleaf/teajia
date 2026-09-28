@@ -53,8 +53,17 @@ not have it until somebody ticks it for them.
 
 - Pages carry `<meta name="robots" content="noindex, nofollow">` once rendered,
   and the 404 status already keeps them out of every index.
-- No nav link, no sitemap line, no robots.txt line (a Disallow would announce
-  it), nothing in `llms.txt`.
+- No public nav link, no sitemap line, no robots.txt line (a Disallow would
+  announce it), nothing in `llms.txt`.
+- Two doors exist, and only for readers: a **Tea Atlas** tile in Your Table, and
+  a **Tea Atlas** row in the Manage column after Wisdom (only for someone who
+  already has Manage rooms; it never counts as one). `useAtlasAccess`
+  (`src/atlas/access.ts`) decides whether to show them, asking as little as the
+  rule allows: the site owner sees them without a request; a member of the
+  platform account is asked once a session (`home.json`, a door only on 200);
+  everyone else sees nothing and sends nothing, since only platform-account
+  members can be ticked. A door is never proof: the server checks every Atlas
+  request behind it.
 - Pictures are never `<img src>` to an open URL: the app fetches each one with
   the session token and shows it from a blob. A picture URL pasted into a
   private window is a 404.
