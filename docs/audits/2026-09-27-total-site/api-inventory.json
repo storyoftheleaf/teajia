@@ -1,0 +1,2898 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/auth/login",
+    "handler": "handleLogin",
+    "file": "worker/src/index.ts",
+    "line": 26409,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/signup",
+    "handler": "handleSignup",
+    "file": "worker/src/index.ts",
+    "line": 26410,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/signup/verify",
+    "handler": "handleVerifySignupEmail",
+    "file": "worker/src/index.ts",
+    "line": 26411,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/signup/resend",
+    "handler": "handleResendSignupVerification",
+    "file": "worker/src/index.ts",
+    "line": 26412,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/refresh",
+    "handler": "handleRefreshToken",
+    "file": "worker/src/index.ts",
+    "line": 26413,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/auth/me",
+    "handler": "handleGetMe",
+    "file": "worker/src/index.ts",
+    "line": 26414,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/auth/change-password",
+    "handler": "handleChangePassword",
+    "file": "worker/src/index.ts",
+    "line": 26415,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/verify-password",
+    "handler": "handleVerifyPassword",
+    "file": "worker/src/index.ts",
+    "line": 26416,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/auth/account",
+    "handler": "handleDeleteAccount",
+    "file": "worker/src/index.ts",
+    "line": 26417,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/auth/profile",
+    "handler": "handleUpdateProfile",
+    "file": "worker/src/index.ts",
+    "line": 26418,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/request-admin",
+    "handler": "handleRequestAdmin",
+    "file": "worker/src/index.ts",
+    "line": 26419,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/forgot-password",
+    "handler": "handleForgotPassword",
+    "file": "worker/src/index.ts",
+    "line": 26420,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/reset-password",
+    "handler": "handleResetPassword",
+    "file": "worker/src/index.ts",
+    "line": 26421,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/auth/google",
+    "handler": "handleGoogleAuth",
+    "file": "worker/src/index.ts",
+    "line": 26422,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/auth/google/callback",
+    "handler": "handleGoogleCallback",
+    "file": "worker/src/index.ts",
+    "line": 26423,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/incidents",
+    "handler": "handleCreateIncident",
+    "file": "worker/src/index.ts",
+    "line": 26424,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/accounts/me",
+    "handler": "handleGetAccountsMe",
+    "file": "worker/src/index.ts",
+    "line": 26427,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/accounts/switch",
+    "handler": "handleSwitchAccount",
+    "file": "worker/src/index.ts",
+    "line": 26428,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/accounts/:id",
+    "handler": "handleGetAccount",
+    "file": "worker/src/index.ts",
+    "line": 26429,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/accounts/:id",
+    "handler": "handleUpdateAccount",
+    "file": "worker/src/index.ts",
+    "line": 26430,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/accounts/:id/integrations/openai-key",
+    "handler": "handleSetAccountOpenAIKey",
+    "file": "worker/src/index.ts",
+    "line": 26431,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/accounts/:id/integrations/openai-key",
+    "handler": "handleClearAccountOpenAIKey",
+    "file": "worker/src/index.ts",
+    "line": 26432,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/accounts/:id/features",
+    "handler": "handleGetAccountFeatures",
+    "file": "worker/src/index.ts",
+    "line": 26433,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/accounts/:id/members",
+    "handler": "handleGetAccountMembers",
+    "file": "worker/src/index.ts",
+    "line": 26434,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/accounts/:id/members",
+    "handler": "handleInviteAccountMember",
+    "file": "worker/src/index.ts",
+    "line": 26435,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/accounts/:id/members/:userId",
+    "handler": "handleUpdateAccountMember",
+    "file": "worker/src/index.ts",
+    "line": 26436,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/accounts/:id/members/:userId",
+    "handler": "handleDeleteAccountMember",
+    "file": "worker/src/index.ts",
+    "line": 26437,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/accounts/:id/access",
+    "handler": "handleGetAccountAccess",
+    "file": "worker/src/index.ts",
+    "line": 26438,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/accounts/:id/activity",
+    "handler": "handleGetAccountActivity",
+    "file": "worker/src/index.ts",
+    "line": 26439,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/accounts/:id/members/:userId/bundles",
+    "handler": "handleUpdateMemberBundles",
+    "file": "worker/src/index.ts",
+    "line": 26440,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/platform/users/:id/resend-invite",
+    "handler": "handlePlatformResendInvite",
+    "file": "worker/src/index.ts",
+    "line": 26446,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/platform/accounts",
+    "handler": "handlePlatformCreateAccount",
+    "file": "worker/src/index.ts",
+    "line": 26449,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/platform/accounts/:id/suspend",
+    "handler": "handlePlatformSuspendAccount",
+    "file": "worker/src/index.ts",
+    "line": 26451,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/platform/accounts/:id/reactivate",
+    "handler": "handlePlatformReactivateAccount",
+    "file": "worker/src/index.ts",
+    "line": 26452,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/wisdom/verifications/:kind/:id",
+    "handler": "handleDeleteWisdomVerification",
+    "file": "worker/src/index.ts",
+    "line": 26460,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/platform/applications/:id/decide",
+    "handler": "handlePlatformDecideApplication",
+    "file": "worker/src/index.ts",
+    "line": 26462,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/platform/tea-masters/invite",
+    "handler": "handlePlatformInviteTeaMaster",
+    "file": "worker/src/index.ts",
+    "line": 26463,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/platform/accounts/:id/upgrade-to-location",
+    "handler": "handlePlatformUpgradeToLocation",
+    "file": "worker/src/index.ts",
+    "line": 26464,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/accounts/:id/transfer-ownership",
+    "handler": "handleTransferOwnership",
+    "file": "worker/src/index.ts",
+    "line": 26468,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/network/stores",
+    "handler": "handleGetNetworkStores",
+    "file": "worker/src/index.ts",
+    "line": 26471,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/profiles/:id/suggestions",
+    "handler": "handleCreateProfileSuggestion",
+    "file": "worker/src/index.ts",
+    "line": 26478,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/suggestions/:id/decide",
+    "handler": "handleDecideSuggestion",
+    "file": "worker/src/index.ts",
+    "line": 26481,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/wholesale/orders",
+    "handler": "handleCreateWholesaleOrder",
+    "file": "worker/src/index.ts",
+    "line": 26484,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/wholesale/orders/:id/transition",
+    "handler": "handleTransitionWholesaleOrder",
+    "file": "worker/src/index.ts",
+    "line": 26488,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/wholesale/orders/:id/nudge",
+    "handler": "handleNudgeWholesaleOrder",
+    "file": "worker/src/index.ts",
+    "line": 26489,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/network/profiles/:id/suggest-for-network",
+    "handler": "handleSuggestProfileForNetwork",
+    "file": "worker/src/index.ts",
+    "line": 26492,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/network/profiles/:id/adopt",
+    "handler": "handleAdoptProfile",
+    "file": "worker/src/index.ts",
+    "line": 26494,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/s/:slug",
+    "handler": "handleGetPublicAccount",
+    "file": "worker/src/index.ts",
+    "line": 26496,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/s/:slug/products",
+    "handler": "handleGetPublicAccountProducts",
+    "file": "worker/src/index.ts",
+    "line": 26497,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/s/:slug/events",
+    "handler": "handleGetPublicAccountEvents",
+    "file": "worker/src/index.ts",
+    "line": 26498,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/public/xref/products/:productId/articles",
+    "handler": "handleGetPublicProductArticles",
+    "file": "worker/src/index.ts",
+    "line": 26506,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/users",
+    "handler": "handleListUsers",
+    "file": "worker/src/index.ts",
+    "line": 26509,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/admin/users/:id/role",
+    "handler": "handleUpdateUserRole",
+    "file": "worker/src/index.ts",
+    "line": 26510,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/admin/users/:id",
+    "handler": "handleDeleteUser",
+    "file": "worker/src/index.ts",
+    "line": 26511,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/reset-token",
+    "handler": "handleCreateResetToken",
+    "file": "worker/src/index.ts",
+    "line": 26512,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/repairs/invoice-lines",
+    "handler": "handlePreviewInvoiceLineRepair",
+    "file": "worker/src/index.ts",
+    "line": 26513,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/repairs/invoice-lines",
+    "handler": "handleApplyInvoiceLineRepair",
+    "file": "worker/src/index.ts",
+    "line": 26514,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/tea-reference/issues",
+    "handler": "handleCreateTeaReferenceIssue",
+    "file": "worker/src/index.ts",
+    "line": 26515,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/tea-reference/issues",
+    "handler": "handleListTeaReferenceIssues",
+    "file": "worker/src/index.ts",
+    "line": 26516,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/tea-reference/issues/export",
+    "handler": "handleExportTeaReferenceIssues",
+    "file": "worker/src/index.ts",
+    "line": 26517,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/tea-reference/issues/resolve",
+    "handler": "handleResolveTeaReferenceIssues",
+    "file": "worker/src/index.ts",
+    "line": 26518,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/venues/public",
+    "handler": "handleGetPublicVenues",
+    "file": "worker/src/index.ts",
+    "line": 26521,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/products/public",
+    "handler": "handleGetPublicProducts",
+    "file": "worker/src/index.ts",
+    "line": 26524,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/products/public/:id",
+    "handler": "handleGetPublicProduct",
+    "file": "worker/src/index.ts",
+    "line": 26525,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/sitemap-products.xml",
+    "handler": "handleProductSitemap",
+    "file": "worker/src/index.ts",
+    "line": 26526,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/products",
+    "handler": "handleGetProducts",
+    "file": "worker/src/index.ts",
+    "line": 26527,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/inventory/summaries",
+    "handler": "handleGetInventorySummaries",
+    "file": "worker/src/index.ts",
+    "line": 26528,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/products",
+    "handler": "handleCreateProduct",
+    "file": "worker/src/index.ts",
+    "line": 26529,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/products/bulk",
+    "handler": "handleBulkCreateProducts",
+    "file": "worker/src/index.ts",
+    "line": 26530,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/products/:id/catalog",
+    "handler": "handleUpdateProductCatalog",
+    "file": "worker/src/index.ts",
+    "line": 26531,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/products/:id/stock",
+    "handler": "handleUpdateProductStock",
+    "file": "worker/src/index.ts",
+    "line": 26532,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/products/:id/commercial",
+    "handler": "handleUpdateProductCommercial",
+    "file": "worker/src/index.ts",
+    "line": 26533,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/products/:id/publication",
+    "handler": "handleUpdateProductPublication",
+    "file": "worker/src/index.ts",
+    "line": 26534,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/products/:id/shown",
+    "handler": "handleUpdateProductVisibility",
+    "file": "worker/src/index.ts",
+    "line": 26535,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/products/:id",
+    "handler": "handleDeleteProduct",
+    "file": "worker/src/index.ts",
+    "line": 26536,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/products/:id/featured",
+    "handler": "handleSetProductFeatured",
+    "file": "worker/src/index.ts",
+    "line": 26537,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/products/:id/enhance-image",
+    "handler": "handleEnhanceProductImage",
+    "file": "worker/src/index.ts",
+    "line": 26538,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/products/:id/events",
+    "handler": "handleGetProductEvents",
+    "file": "worker/src/index.ts",
+    "line": 26539,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/catalog",
+    "handler": "handleGetCatalog",
+    "file": "worker/src/index.ts",
+    "line": 26542,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/rates",
+    "handler": "handleGetRates",
+    "file": "worker/src/index.ts",
+    "line": 26545,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/platform/exchange-rates/:currency",
+    "handler": "handlePlatformDeleteExchangeRate",
+    "file": "worker/src/index.ts",
+    "line": 26551,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/invoices",
+    "handler": "handleGetInvoices",
+    "file": "worker/src/index.ts",
+    "line": 26554,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/invoices",
+    "handler": "handleCreateInvoice",
+    "file": "worker/src/index.ts",
+    "line": 26555,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/invoices/:id/items",
+    "handler": "handleGetInvoiceItems",
+    "file": "worker/src/index.ts",
+    "line": 26556,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/invoices/:id/payments",
+    "handler": "handleGetInvoicePayments",
+    "file": "worker/src/index.ts",
+    "line": 26557,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/invoices/:id/payments",
+    "handler": "handleRecordInvoicePayment",
+    "file": "worker/src/index.ts",
+    "line": 26558,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/invoice-payments/:id/confirm",
+    "handler": "handleConfirmInvoicePayment",
+    "file": "worker/src/index.ts",
+    "line": 26559,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/invoice-payments/:id/reject",
+    "handler": "handleRejectInvoicePayment",
+    "file": "worker/src/index.ts",
+    "line": 26560,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/attention",
+    "handler": "handleGetAttention",
+    "file": "worker/src/index.ts",
+    "line": 26563,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/invoices/:id/attribution",
+    "handler": "handleGetInvoiceAttribution",
+    "file": "worker/src/index.ts",
+    "line": 26564,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/invoices/:id",
+    "handler": "handleUpdateInvoice",
+    "file": "worker/src/index.ts",
+    "line": 26565,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/invoices/:id",
+    "handler": "handleDeleteInvoice",
+    "file": "worker/src/index.ts",
+    "line": 26566,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/sales/grants",
+    "handler": "handleGetSalesGrants",
+    "file": "worker/src/index.ts",
+    "line": 26569,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/sales/grants",
+    "handler": "handleCreateSalesGrant",
+    "file": "worker/src/index.ts",
+    "line": 26570,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/sales/grants/:id",
+    "handler": "handleUpdateSalesGrant",
+    "file": "worker/src/index.ts",
+    "line": 26571,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/sales/grants/:id",
+    "handler": "handleRevokeSalesGrant",
+    "file": "worker/src/index.ts",
+    "line": 26572,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/sales/eligible-products",
+    "handler": "handleGetEligibleSalesProducts",
+    "file": "worker/src/index.ts",
+    "line": 26573,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/sales/settlements",
+    "handler": "handleGetSalesSettlements",
+    "file": "worker/src/index.ts",
+    "line": 26574,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/sales/settlements/:id",
+    "handler": "handleMarkSalesSettlementPaid",
+    "file": "worker/src/index.ts",
+    "line": 26575,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/analytics/revenue",
+    "handler": "handleGetRevenueAnalytics",
+    "file": "worker/src/index.ts",
+    "line": 26578,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/customers/rfm",
+    "handler": "handleGetCustomerRFM",
+    "file": "worker/src/index.ts",
+    "line": 26579,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/people/relationship-audit",
+    "handler": "handleGetPeopleRelationshipAudit",
+    "file": "worker/src/index.ts",
+    "line": 26582,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/people/relationship-audit/apply",
+    "handler": "handleApplyPeopleRelationshipAudit",
+    "file": "worker/src/index.ts",
+    "line": 26583,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/contributors",
+    "handler": "handleListAdminContributors",
+    "file": "worker/src/index.ts",
+    "line": 26584,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/contributor-options",
+    "handler": "handleListContributorOptions",
+    "file": "worker/src/index.ts",
+    "line": 26585,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/contributors",
+    "handler": "handleCreateAdminContributor",
+    "file": "worker/src/index.ts",
+    "line": 26586,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/contributors/:id",
+    "handler": "handleGetAdminContributor",
+    "file": "worker/src/index.ts",
+    "line": 26587,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/admin/contributors/:id",
+    "handler": "handleUpdateAdminContributor",
+    "file": "worker/src/index.ts",
+    "line": 26588,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/contributors/:id/request-changes",
+    "handler": "handleRequestContributorChanges",
+    "file": "worker/src/index.ts",
+    "line": 26591,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/admin/contributors/:id/contact",
+    "handler": "handlePutAdminContributorContact",
+    "file": "worker/src/index.ts",
+    "line": 26592,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/contributors/:id/accounts",
+    "handler": "handleGetContributorAccounts",
+    "file": "worker/src/index.ts",
+    "line": 26593,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/admin/contributors/:id/accounts",
+    "handler": "handlePutContributorAccounts",
+    "file": "worker/src/index.ts",
+    "line": 26594,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/customers",
+    "handler": "handleGetCustomers",
+    "file": "worker/src/index.ts",
+    "line": 26595,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/customers/:id",
+    "handler": "handleGetCustomer",
+    "file": "worker/src/index.ts",
+    "line": 26596,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/customers/:id/relationships",
+    "handler": "handleGetCustomerRelationships",
+    "file": "worker/src/index.ts",
+    "line": 26597,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/customers/:id/relationships",
+    "handler": "handlePutCustomerRelationships",
+    "file": "worker/src/index.ts",
+    "line": 26598,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/customers/:id/private-notes",
+    "handler": "handleGetCustomerPrivateNotes",
+    "file": "worker/src/index.ts",
+    "line": 26599,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/customers/:id/private-notes",
+    "handler": "handlePutCustomerPrivateNotes",
+    "file": "worker/src/index.ts",
+    "line": 26600,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/customers",
+    "handler": "handleCreateCustomer",
+    "file": "worker/src/index.ts",
+    "line": 26601,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/customers/:id",
+    "handler": "handleUpdateCustomer",
+    "file": "worker/src/index.ts",
+    "line": 26602,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/customers/:id",
+    "handler": "handleDeleteCustomer",
+    "file": "worker/src/index.ts",
+    "line": 26603,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/customers/:id/orders",
+    "handler": "handleGetCustomerOrders",
+    "file": "worker/src/index.ts",
+    "line": 26604,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/customers/:id/teas",
+    "handler": "handleGetCustomerTeas",
+    "file": "worker/src/index.ts",
+    "line": 26605,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/customers/:id/events",
+    "handler": "handleGetCustomerEvents",
+    "file": "worker/src/index.ts",
+    "line": 26606,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/customers/:id/products",
+    "handler": "handleGetVendorProducts",
+    "file": "worker/src/index.ts",
+    "line": 26607,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/customers/:id/products",
+    "handler": "handleLinkVendorProduct",
+    "file": "worker/src/index.ts",
+    "line": 26608,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/customers/:id/products/:productId",
+    "handler": "handleUnlinkVendorProduct",
+    "file": "worker/src/index.ts",
+    "line": 26609,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/customers/:id/tags/:tag",
+    "handler": "handleRemoveCustomerTag",
+    "file": "worker/src/index.ts",
+    "line": 26612,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/collections/:id/items/:itemId",
+    "handler": "handleRemoveCollectionItem",
+    "file": "worker/src/index.ts",
+    "line": 26631,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/collections/:id/publications/:pubId",
+    "handler": "handleUnpublish",
+    "file": "worker/src/index.ts",
+    "line": 26633,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/public/c/:slug/view",
+    "handler": "handlePublicCollectionView",
+    "file": "worker/src/index.ts",
+    "line": 26639,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/public/c/:slug/confirm",
+    "handler": "handleConfirmCollectionPicks",
+    "file": "worker/src/index.ts",
+    "line": 26640,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/me/collections/:id",
+    "handler": "handleUnsaveCollection",
+    "file": "worker/src/index.ts",
+    "line": 26646,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/invoices/:id/items",
+    "handler": "handleUpdateInvoiceItems",
+    "file": "worker/src/index.ts",
+    "line": 26649,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/rpc/fulfill-invoice",
+    "handler": "handleFulfillInvoice",
+    "file": "worker/src/index.ts",
+    "line": 26652,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/rpc/void-invoice",
+    "handler": "handleVoidInvoice",
+    "file": "worker/src/index.ts",
+    "line": 26653,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/rpc/split-invoice",
+    "handler": "handleSplitInvoice",
+    "file": "worker/src/index.ts",
+    "line": 26654,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/rpc/link-line-item",
+    "handler": "handleLinkLineItem",
+    "file": "worker/src/index.ts",
+    "line": 26655,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/rpc/increment-stock",
+    "handler": "handleIncrementStock",
+    "file": "worker/src/index.ts",
+    "line": 26656,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/feature-status",
+    "handler": "handleFeatureStatusSave",
+    "file": "worker/src/index.ts",
+    "line": 26660,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/admin/mcp-tokens/:id",
+    "handler": "handleMcpRevokeToken",
+    "file": "worker/src/index.ts",
+    "line": 26665,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/rpc/truncate-all",
+    "handler": "handleTruncateAll",
+    "file": "worker/src/index.ts",
+    "line": 26667,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/rpc/backfill-customer-links",
+    "handler": "handleBackfillCustomerLinks",
+    "file": "worker/src/index.ts",
+    "line": 26668,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/rpc/auto-link-vendors",
+    "handler": "handleAutoLinkVendors",
+    "file": "worker/src/index.ts",
+    "line": 26669,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/rpc/reset-stock-verification",
+    "handler": "handleResetStockVerification",
+    "file": "worker/src/index.ts",
+    "line": 26670,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/rpc/reserve-stock",
+    "handler": "handleReserveStock",
+    "file": "worker/src/index.ts",
+    "line": 26671,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/rpc/release-stock",
+    "handler": "handleReleaseStock",
+    "file": "worker/src/index.ts",
+    "line": 26672,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/stock/available",
+    "handler": "handleGetAvailableStock",
+    "file": "worker/src/index.ts",
+    "line": 26673,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/purchase-orders",
+    "handler": "handleListPurchaseOrders",
+    "file": "worker/src/index.ts",
+    "line": 26676,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/purchase-orders",
+    "handler": "handleCreatePurchaseOrder",
+    "file": "worker/src/index.ts",
+    "line": 26677,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/purchase-orders/:id",
+    "handler": "handleUpdatePurchaseOrder",
+    "file": "worker/src/index.ts",
+    "line": 26678,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/activity-logs",
+    "handler": "handleGetActivityLogs",
+    "file": "worker/src/index.ts",
+    "line": 26681,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/stock-ledger",
+    "handler": "handleGetStockLedger",
+    "file": "worker/src/index.ts",
+    "line": 26682,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/batches",
+    "handler": "handleListBatches",
+    "file": "worker/src/index.ts",
+    "line": 26685,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/batches",
+    "handler": "handleCreateBatch",
+    "file": "worker/src/index.ts",
+    "line": 26686,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/batches/:id/products",
+    "handler": "handleBatchProducts",
+    "file": "worker/src/index.ts",
+    "line": 26687,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/upload-image",
+    "handler": "handleUploadImage",
+    "file": "worker/src/index.ts",
+    "line": 26690,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/me/public-profile/image",
+    "handler": "handleUploadMyProfileImage",
+    "file": "worker/src/index.ts",
+    "line": 26691,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/story-photos/:slug",
+    "handler": "handleGetStoryPhotos",
+    "file": "worker/src/index.ts",
+    "line": 26694,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/story-photos/:slug/:slot",
+    "handler": "handlePutStoryPhoto",
+    "file": "worker/src/index.ts",
+    "line": 26695,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/story-photos/:slug/:slot",
+    "handler": "handleDeleteStoryPhoto",
+    "file": "worker/src/index.ts",
+    "line": 26696,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/story-content/:slug",
+    "handler": "handleGetStoryContent",
+    "file": "worker/src/index.ts",
+    "line": 26699,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/story-content/:slug/draft",
+    "handler": "handleSaveStoryDraft",
+    "file": "worker/src/index.ts",
+    "line": 26700,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/story-content/:slug/publish",
+    "handler": "handlePublishStory",
+    "file": "worker/src/index.ts",
+    "line": 26701,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/story-content/:slug/versions",
+    "handler": "handleListStoryVersions",
+    "file": "worker/src/index.ts",
+    "line": 26702,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/story-content/:slug/restore/:versionId",
+    "handler": "handleRestoreStoryVersion",
+    "file": "worker/src/index.ts",
+    "line": 26703,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/extract-from-image",
+    "handler": "handleExtractFromImage",
+    "file": "worker/src/index.ts",
+    "line": 26706,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/generate-wisdom",
+    "handler": "handleGenerateWisdom",
+    "file": "worker/src/index.ts",
+    "line": 26707,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/generate-chinese-name",
+    "handler": "handleGenerateChineseName",
+    "file": "worker/src/index.ts",
+    "line": 26708,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/transcribe",
+    "handler": "handleTranscribe",
+    "file": "worker/src/index.ts",
+    "line": 26709,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/transcriptions/:id/retry",
+    "handler": "handleRetryTranscription",
+    "file": "worker/src/index.ts",
+    "line": 26710,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/transcriptions/:id",
+    "handler": "handleDiscardTranscription",
+    "file": "worker/src/index.ts",
+    "line": 26711,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/migrate-tasting",
+    "handler": "handleMigrateTasting",
+    "file": "worker/src/index.ts",
+    "line": 26712,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/events",
+    "handler": "handleListPublicEvents",
+    "file": "worker/src/index.ts",
+    "line": 26715,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/events/:slug/public",
+    "handler": "handleGetEventBySlug",
+    "file": "worker/src/index.ts",
+    "line": 26716,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/events/:slug/tea-menu",
+    "handler": "handleGetPublicTeaMenu",
+    "file": "worker/src/index.ts",
+    "line": 26717,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/events/:slug/recap",
+    "handler": "handleGetPublicEventRecap",
+    "file": "worker/src/index.ts",
+    "line": 26718,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/events/:slug/rsvp",
+    "handler": "handleRSVP",
+    "file": "worker/src/index.ts",
+    "line": 26719,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/events/:slug/availability",
+    "handler": "handleGetEventAvailability",
+    "file": "worker/src/index.ts",
+    "line": 26720,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/events/:slug/find-rsvp",
+    "handler": "handleFindRSVP",
+    "file": "worker/src/index.ts",
+    "line": 26721,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/events/:slug/interest",
+    "handler": "handleEventInterest",
+    "file": "worker/src/index.ts",
+    "line": 26722,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/guest-invite/:token",
+    "handler": "handleGetGuestInvite",
+    "file": "worker/src/index.ts",
+    "line": 26725,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/guest-invite/:token/claim",
+    "handler": "handleClaimGuestInvite",
+    "file": "worker/src/index.ts",
+    "line": 26726,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/verify/request",
+    "handler": "handleVerifyRequest",
+    "file": "worker/src/index.ts",
+    "line": 26729,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/verify/confirm",
+    "handler": "handleVerifyConfirm",
+    "file": "worker/src/index.ts",
+    "line": 26730,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/journey/:phone",
+    "handler": "handleGetJourney",
+    "file": "worker/src/index.ts",
+    "line": 26733,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/rsvp/:token",
+    "handler": "handleGetRSVP",
+    "file": "worker/src/index.ts",
+    "line": 26736,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/rsvp/:token",
+    "handler": "handleUpdateRSVP",
+    "file": "worker/src/index.ts",
+    "line": 26737,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/rsvp/:token/claim",
+    "handler": "handleClaimSpot",
+    "file": "worker/src/index.ts",
+    "line": 26738,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/rsvp/:token/post-session",
+    "handler": "handleGetPostSession",
+    "file": "worker/src/index.ts",
+    "line": 26739,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/rsvp/:token/tasting-notes",
+    "handler": "handleSubmitTastingNotes",
+    "file": "worker/src/index.ts",
+    "line": 26740,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/locations",
+    "handler": "handleGetSavedLocations",
+    "file": "worker/src/index.ts",
+    "line": 26743,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/locations",
+    "handler": "handleCreateSavedLocation",
+    "file": "worker/src/index.ts",
+    "line": 26744,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/admin/locations/:id",
+    "handler": "handleUpdateSavedLocation",
+    "file": "worker/src/index.ts",
+    "line": 26745,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/admin/locations/:id",
+    "handler": "handleDeleteSavedLocation",
+    "file": "worker/src/index.ts",
+    "line": 26746,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/events",
+    "handler": "handleGetEvents",
+    "file": "worker/src/index.ts",
+    "line": 26760,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/events/:id",
+    "handler": "handleGetEvent",
+    "file": "worker/src/index.ts",
+    "line": 26761,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/events",
+    "handler": "handleCreateEvent",
+    "file": "worker/src/index.ts",
+    "line": 26762,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/admin/events/:id",
+    "handler": "handleUpdateEvent",
+    "file": "worker/src/index.ts",
+    "line": 26763,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/admin/events/:id",
+    "handler": "handleDeleteEvent",
+    "file": "worker/src/index.ts",
+    "line": 26764,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/events/:id/attendees",
+    "handler": "handleGetAttendees",
+    "file": "worker/src/index.ts",
+    "line": 26765,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/events/:id/notifications",
+    "handler": "handleGetNotifications",
+    "file": "worker/src/index.ts",
+    "line": 26766,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/events/:id/notifications",
+    "handler": "handleCreateNotifications",
+    "file": "worker/src/index.ts",
+    "line": 26767,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/events/:id/article-draft",
+    "handler": "handleCreateEventArticleDraft",
+    "file": "worker/src/index.ts",
+    "line": 26768,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/events/:id/post-session",
+    "handler": "handleGetAdminPostSession",
+    "file": "worker/src/index.ts",
+    "line": 26769,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/events/:id/post-session",
+    "handler": "handleUpsertPostSession",
+    "file": "worker/src/index.ts",
+    "line": 26770,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/events/:id/duplicate",
+    "handler": "handleDuplicateEvent",
+    "file": "worker/src/index.ts",
+    "line": 26771,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/events/:id/attendance",
+    "handler": "handleBatchAttendance",
+    "file": "worker/src/index.ts",
+    "line": 26772,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/events/:id/tea-menu",
+    "handler": "handleGetTeaMenu",
+    "file": "worker/src/index.ts",
+    "line": 26773,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/events/:id/tea-menu",
+    "handler": "handleUpsertTeaMenu",
+    "file": "worker/src/index.ts",
+    "line": 26774,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/admin/events/:id/tea-menu/:itemId",
+    "handler": "handleDeleteTeaMenuItem",
+    "file": "worker/src/index.ts",
+    "line": 26775,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/events/:id/tasting-notes",
+    "handler": "handleGetTastingNotes",
+    "file": "worker/src/index.ts",
+    "line": 26776,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/customers/:id/journey",
+    "handler": "handleGetCustomerJourney",
+    "file": "worker/src/index.ts",
+    "line": 26779,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/pending-attendees",
+    "handler": "handleGetPendingAttendees",
+    "file": "worker/src/index.ts",
+    "line": 26782,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/admin/attendees/:id",
+    "handler": "handleUpdateAttendee",
+    "file": "worker/src/index.ts",
+    "line": 26783,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/admin/attendees/:id/approve",
+    "handler": "handleApproveAttendee",
+    "file": "worker/src/index.ts",
+    "line": 26784,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/admin/attendees/:id/deny",
+    "handler": "handleDenyAttendee",
+    "file": "worker/src/index.ts",
+    "line": 26785,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/admin/attendees/:id/waitlist",
+    "handler": "handleWaitlistAttendee",
+    "file": "worker/src/index.ts",
+    "line": 26786,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/events/:id/approve-batch",
+    "handler": "handleApproveBatch",
+    "file": "worker/src/index.ts",
+    "line": 26789,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/events/:id/share",
+    "handler": "handleGetEventShareMessages",
+    "file": "worker/src/index.ts",
+    "line": 26790,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/events/:id/complete",
+    "handler": "handleCompleteEvent",
+    "file": "worker/src/index.ts",
+    "line": 26793,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/events/:id/interest",
+    "handler": "handleGetInterestSignups",
+    "file": "worker/src/index.ts",
+    "line": 26794,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/events/:id/convert-interest",
+    "handler": "handleConvertInterest",
+    "file": "worker/src/index.ts",
+    "line": 26795,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/events/:id/create-next",
+    "handler": "handleCreateNextEvent",
+    "file": "worker/src/index.ts",
+    "line": 26796,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/upload-flyer",
+    "handler": "handleUploadFlyer",
+    "file": "worker/src/index.ts",
+    "line": 26799,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/newsletter/subscribe",
+    "handler": "handleNewsletterSubscribe",
+    "file": "worker/src/index.ts",
+    "line": 26802,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/newsletter/subscribers",
+    "handler": "handleGetNewsletterSubscribers",
+    "file": "worker/src/index.ts",
+    "line": 26803,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/inquiries",
+    "handler": "handleCreateInquiry",
+    "file": "worker/src/index.ts",
+    "line": 26806,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/inquiries/:ref",
+    "handler": "handleGetInquiryByRef",
+    "file": "worker/src/index.ts",
+    "line": 26807,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orders/:ref/payment-claim",
+    "handler": "handleCreateOrderPaymentClaim",
+    "file": "worker/src/index.ts",
+    "line": 26808,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/inquiries/:id/convert",
+    "handler": "handleConvertInquiry",
+    "file": "worker/src/index.ts",
+    "line": 26809,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/inquiries",
+    "handler": "handleGetInquiries",
+    "file": "worker/src/index.ts",
+    "line": 26810,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/admin/inquiries/:id/status",
+    "handler": "handleUpdateInquiryStatus",
+    "file": "worker/src/index.ts",
+    "line": 26811,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/user/favorites",
+    "handler": "handleGetUserFavorites",
+    "file": "worker/src/index.ts",
+    "line": 26814,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/user/favorites",
+    "handler": "handlePutUserFavorites",
+    "file": "worker/src/index.ts",
+    "line": 26815,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/me/cellar/:id",
+    "handler": "handleDeleteCellarItem",
+    "file": "worker/src/index.ts",
+    "line": 26821,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/teaware",
+    "handler": "handleGetTeawareCollection",
+    "file": "worker/src/index.ts",
+    "line": 26837,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/teaware/categories",
+    "handler": "handleGetTeawareCategories",
+    "file": "worker/src/index.ts",
+    "line": 26838,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/teaware/:id",
+    "handler": "handleGetTeawareItem",
+    "file": "worker/src/index.ts",
+    "line": 26839,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/teaware",
+    "handler": "handleCreateTeawareItem",
+    "file": "worker/src/index.ts",
+    "line": 26840,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/admin/teaware/:id",
+    "handler": "handleUpdateTeawareItem",
+    "file": "worker/src/index.ts",
+    "line": 26841,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/admin/teaware/:id",
+    "handler": "handleDeleteTeawareItem",
+    "file": "worker/src/index.ts",
+    "line": 26842,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/teaware/:id/photos",
+    "handler": "handleAddTeawarePhoto",
+    "file": "worker/src/index.ts",
+    "line": 26845,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/admin/teaware/:id/photos/:photoId",
+    "handler": "handleUpdateTeawarePhoto",
+    "file": "worker/src/index.ts",
+    "line": 26846,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/admin/teaware/:id/photos/:photoId",
+    "handler": "handleDeleteTeawarePhoto",
+    "file": "worker/src/index.ts",
+    "line": 26847,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/curate/journeys",
+    "handler": "handleListCurateJourneys",
+    "file": "worker/src/index.ts",
+    "line": 26850,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/curate/journeys",
+    "handler": "handleCreateCurateJourney",
+    "file": "worker/src/index.ts",
+    "line": 26851,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/curate/journeys/:id",
+    "handler": "handleUpdateCurateJourney",
+    "file": "worker/src/index.ts",
+    "line": 26852,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/curate/journeys/:id",
+    "handler": "handleDeleteCurateJourney",
+    "file": "worker/src/index.ts",
+    "line": 26853,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/curate/visits",
+    "handler": "handleListCurateVisits",
+    "file": "worker/src/index.ts",
+    "line": 26854,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/curate/visits",
+    "handler": "handleCreateCurateVisit",
+    "file": "worker/src/index.ts",
+    "line": 26855,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/curate/visits/:id",
+    "handler": "handleUpdateCurateVisit",
+    "file": "worker/src/index.ts",
+    "line": 26856,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/curate/visits/:id",
+    "handler": "handleDeleteCurateVisit",
+    "file": "worker/src/index.ts",
+    "line": 26857,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/curate/imports/:id/finalize",
+    "handler": "handleFinalizeCurateImport",
+    "file": "worker/src/index.ts",
+    "line": 26863,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/compass/entries",
+    "handler": "handleGetCompassEntries",
+    "file": "worker/src/index.ts",
+    "line": 26875,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/compass/entries",
+    "handler": "handleCreateCompassEntry",
+    "file": "worker/src/index.ts",
+    "line": 26876,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/compass/entries/:id",
+    "handler": "handleUpdateCompassEntry",
+    "file": "worker/src/index.ts",
+    "line": 26877,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/compass/entries/:id",
+    "handler": "handleDeleteCompassEntry",
+    "file": "worker/src/index.ts",
+    "line": 26878,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/compass/sync",
+    "handler": "handleSyncCompassEntries",
+    "file": "worker/src/index.ts",
+    "line": 26879,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/compass/entries/:id/promote",
+    "handler": "handlePromoteCompassEntry",
+    "file": "worker/src/index.ts",
+    "line": 26880,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/compass/entries/:id/receipt-proposals",
+    "handler": "handleCreateReceiptProposal",
+    "file": "worker/src/index.ts",
+    "line": 26881,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/curate/receipt-proposals/:id",
+    "handler": "handleUpdateReceiptProposal",
+    "file": "worker/src/index.ts",
+    "line": 26882,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/curate/receipt-proposals/:id/accept",
+    "handler": "handleAcceptReceiptProposal",
+    "file": "worker/src/index.ts",
+    "line": 26883,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/curate/receipt-proposals/:id/reject",
+    "handler": "handleRejectReceiptProposal",
+    "file": "worker/src/index.ts",
+    "line": 26884,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/inventory/receipts",
+    "handler": "handleListInventoryReceipts",
+    "file": "worker/src/index.ts",
+    "line": 26885,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/inventory/receipts",
+    "handler": "handleCreateInventoryReceipt",
+    "file": "worker/src/index.ts",
+    "line": 26886,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/inventory/receipts/:id/state",
+    "handler": "handleUpdateInventoryReceiptState",
+    "file": "worker/src/index.ts",
+    "line": 26887,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/inventory/receipt-lines/:id/receive",
+    "handler": "handleReceiveInventoryLine",
+    "file": "worker/src/index.ts",
+    "line": 26888,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/inventory/receipt-lines/:id/cancel-remaining",
+    "handler": "handleCancelInventoryLine",
+    "file": "worker/src/index.ts",
+    "line": 26889,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/products/:id/movements",
+    "handler": "handleCreateStockMovement",
+    "file": "worker/src/index.ts",
+    "line": 26890,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/note-sessions/sync",
+    "handler": "handleSyncNoteSessions",
+    "file": "worker/src/index.ts",
+    "line": 26895,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/compass/share",
+    "handler": "handleCompassShare",
+    "file": "worker/src/index.ts",
+    "line": 26898,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/compass/incoming",
+    "handler": "handleCompassIncoming",
+    "file": "worker/src/index.ts",
+    "line": 26899,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/compass/shares/:id/accept",
+    "handler": "handleCompassAcceptShare",
+    "file": "worker/src/index.ts",
+    "line": 26900,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/compass/shares/:id/decline",
+    "handler": "handleCompassDeclineShare",
+    "file": "worker/src/index.ts",
+    "line": 26901,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/compass/invite/:token",
+    "handler": "handleCompassGetInvite",
+    "file": "worker/src/index.ts",
+    "line": 26902,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/compass/invite/:token/claim",
+    "handler": "handleCompassClaimInvite",
+    "file": "worker/src/index.ts",
+    "line": 26903,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/samples/request",
+    "handler": "handleRequestSample",
+    "file": "worker/src/index.ts",
+    "line": 26906,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/samples/set/:setId",
+    "handler": "handleGetSamplesBySet",
+    "file": "worker/src/index.ts",
+    "line": 26907,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/samples/:id",
+    "handler": "handleGetSample",
+    "file": "worker/src/index.ts",
+    "line": 26908,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/samples/:id/tastings",
+    "handler": "handleAddSampleTasting",
+    "file": "worker/src/index.ts",
+    "line": 26909,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/tea-reviews",
+    "handler": "handleGetTeaReviews",
+    "file": "worker/src/index.ts",
+    "line": 26913,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/tea-reviews",
+    "handler": "handleCreateTeaReview",
+    "file": "worker/src/index.ts",
+    "line": 26914,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/tea-reviews/:id",
+    "handler": "handleUpdateTeaReview",
+    "file": "worker/src/index.ts",
+    "line": 26915,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/tea-reviews/:id",
+    "handler": "handleDeleteTeaReview",
+    "file": "worker/src/index.ts",
+    "line": 26916,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/tasting-journal",
+    "handler": "handleGetTastingJournal",
+    "file": "worker/src/index.ts",
+    "line": 26918,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/tasting-journal/sync",
+    "handler": "handleSyncTastingJournal",
+    "file": "worker/src/index.ts",
+    "line": 26919,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/tasting-journal",
+    "handler": "handleAddTastingEntry",
+    "file": "worker/src/index.ts",
+    "line": 26920,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/tasting-journal/:id/candidates/:noteKey",
+    "handler": "handleStarTastingNote",
+    "file": "worker/src/index.ts",
+    "line": 26921,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/tasting-journal/:id/candidates/:noteKey",
+    "handler": "handleUnstarTastingNote",
+    "file": "worker/src/index.ts",
+    "line": 26922,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/tasting-journal/:id",
+    "handler": "handleDeleteTastingEntry",
+    "file": "worker/src/index.ts",
+    "line": 26923,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/customer-tasting-notes",
+    "handler": "handleListCustomerTastingNotes",
+    "file": "worker/src/index.ts",
+    "line": 26924,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/customer-tasting-notes/decide",
+    "handler": "handlePromoteCustomerTastingNote",
+    "file": "worker/src/index.ts",
+    "line": 26925,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/tasting-note-candidates",
+    "handler": "handleListTastingNoteCandidates",
+    "file": "worker/src/index.ts",
+    "line": 26926,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/admin/tasting-note-candidates/:id",
+    "handler": "handleUpdateTastingNoteCandidate",
+    "file": "worker/src/index.ts",
+    "line": 26927,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/tasting-note-candidates/:id/dismiss",
+    "handler": "handleDismissTastingNoteCandidate",
+    "file": "worker/src/index.ts",
+    "line": 26928,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/tasting-note-candidates/:id/promote",
+    "handler": "handlePromoteTastingNoteCandidate",
+    "file": "worker/src/index.ts",
+    "line": 26929,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/products/:id/impressions",
+    "handler": "handleGetProductImpressions",
+    "file": "worker/src/index.ts",
+    "line": 26930,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/tea-discovery",
+    "handler": "handleGetTeaDiscovery",
+    "file": "worker/src/index.ts",
+    "line": 26931,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/tea-discovery",
+    "handler": "handlePutTeaDiscovery",
+    "file": "worker/src/index.ts",
+    "line": 26932,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/samples",
+    "handler": "handleListSamples",
+    "file": "worker/src/index.ts",
+    "line": 26935,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/samples",
+    "handler": "handleCreateSample",
+    "file": "worker/src/index.ts",
+    "line": 26936,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/admin/samples/:id",
+    "handler": "handleUpdateSample",
+    "file": "worker/src/index.ts",
+    "line": 26937,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/admin/samples/:id",
+    "handler": "handleDeleteSample",
+    "file": "worker/src/index.ts",
+    "line": 26938,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/sample-sets",
+    "handler": "handleListSampleSets",
+    "file": "worker/src/index.ts",
+    "line": 26939,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/sample-sets",
+    "handler": "handleCreateSampleSet",
+    "file": "worker/src/index.ts",
+    "line": 26940,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/admin/sample-sets/:id",
+    "handler": "handleUpdateSampleSet",
+    "file": "worker/src/index.ts",
+    "line": 26941,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/admin/sample-sets/:id",
+    "handler": "handleDeleteSampleSet",
+    "file": "worker/src/index.ts",
+    "line": 26942,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/wisdom/relations",
+    "handler": "handleGetAdminWisdomRelations",
+    "file": "worker/src/index.ts",
+    "line": 26945,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/wisdom/relations",
+    "handler": "handleCreateAdminWisdomRelation",
+    "file": "worker/src/index.ts",
+    "line": 26946,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/admin/wisdom/relations/:id",
+    "handler": "handleUpdateAdminWisdomRelation",
+    "file": "worker/src/index.ts",
+    "line": 26947,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/admin/wisdom/relations/:id",
+    "handler": "handleDeleteAdminWisdomRelation",
+    "file": "worker/src/index.ts",
+    "line": 26948,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/admin/wisdom/nodes/:nodeType/:nodeId",
+    "handler": "handlePutAdminWisdomNode",
+    "file": "worker/src/index.ts",
+    "line": 26949,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/wisdom/findings",
+    "handler": "handleGetAdminWisdomFindings",
+    "file": "worker/src/index.ts",
+    "line": 26950,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/me/profile",
+    "handler": "handleGetMyProfile",
+    "file": "worker/src/index.ts",
+    "line": 26973,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/me/public-profile",
+    "handler": "handleGetMyPublicProfile",
+    "file": "worker/src/index.ts",
+    "line": 26974,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/me/public-profile",
+    "handler": "handlePutMyPublicProfile",
+    "file": "worker/src/index.ts",
+    "line": 26975,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/me/public-profile/unpublish",
+    "handler": "handleUnpublishMyPublicProfile",
+    "file": "worker/src/index.ts",
+    "line": 26976,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/me/profile/favorites",
+    "handler": "handleListMyProfileFavorites",
+    "file": "worker/src/index.ts",
+    "line": 26977,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/me/profile/favorites",
+    "handler": "handleCreateMyProfileFavorite",
+    "file": "worker/src/index.ts",
+    "line": 26978,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/me/profile/favorites/order",
+    "handler": "handleOrderMyProfileFavorites",
+    "file": "worker/src/index.ts",
+    "line": 26979,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/me/profile/favorites/:teaProfileId",
+    "handler": "handleUpdateMyProfileFavorite",
+    "file": "worker/src/index.ts",
+    "line": 26980,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/me/profile/favorites/:teaProfileId",
+    "handler": "handleDeleteMyProfileFavorite",
+    "file": "worker/src/index.ts",
+    "line": 26981,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/me/profile/payment-methods",
+    "handler": "handleListMyPaymentMethods",
+    "file": "worker/src/index.ts",
+    "line": 26982,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/me/profile/payment-methods",
+    "handler": "handleCreateMyPaymentMethod",
+    "file": "worker/src/index.ts",
+    "line": 26983,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/me/profile/payment-methods/:id",
+    "handler": "handleUpdateMyPaymentMethod",
+    "file": "worker/src/index.ts",
+    "line": 26984,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/me/profile/payment-methods/:id",
+    "handler": "handleDeleteMyPaymentMethod",
+    "file": "worker/src/index.ts",
+    "line": 26985,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/me/queue",
+    "handler": "handleGetMyQueue",
+    "file": "worker/src/index.ts",
+    "line": 26986,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/me/wishlist",
+    "handler": "handleGetMyWishlist",
+    "file": "worker/src/index.ts",
+    "line": 26987,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/me/journey",
+    "handler": "handleGetMyJourney",
+    "file": "worker/src/index.ts",
+    "line": 26988,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/me/orders",
+    "handler": "handleGetMyOrders",
+    "file": "worker/src/index.ts",
+    "line": 26989,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/me/orders/:id",
+    "handler": "handleGetMyOrderDetail",
+    "file": "worker/src/index.ts",
+    "line": 26990,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/me/orders/:id/payment-claim",
+    "handler": "handleCreateMyOrderPaymentClaim",
+    "file": "worker/src/index.ts",
+    "line": 26991,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/me/samples",
+    "handler": "handleGetMySamples",
+    "file": "worker/src/index.ts",
+    "line": 26992,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/members/search",
+    "handler": "handleMemberSearch",
+    "file": "worker/src/index.ts",
+    "line": 26993,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/sessions",
+    "handler": "handleCreateSession",
+    "file": "worker/src/index.ts",
+    "line": 26996,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/sessions",
+    "handler": "handleListSessions",
+    "file": "worker/src/index.ts",
+    "line": 26997,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/sessions/:id",
+    "handler": "handleGetSession",
+    "file": "worker/src/index.ts",
+    "line": 26998,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/sessions/join/:token",
+    "handler": "handleGetSessionByToken",
+    "file": "worker/src/index.ts",
+    "line": 26999,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/sessions/:id/join",
+    "handler": "handleJoinSession",
+    "file": "worker/src/index.ts",
+    "line": 27000,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/sessions/:id/teas/:teaId/verdict",
+    "handler": "handleSubmitSessionVerdict",
+    "file": "worker/src/index.ts",
+    "line": 27001,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/sessions/:id/verdicts",
+    "handler": "handleGetSessionVerdicts",
+    "file": "worker/src/index.ts",
+    "line": 27002,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/sessions/:id/host-live",
+    "handler": "handleSessionHostLive",
+    "file": "worker/src/index.ts",
+    "line": 27003,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/sessions/:id/complete",
+    "handler": "handleCompleteSession",
+    "file": "worker/src/index.ts",
+    "line": 27004,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/join-code/issue",
+    "handler": "handleIssueJoinCode",
+    "file": "worker/src/index.ts",
+    "line": 27007,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/join-code/redeem",
+    "handler": "handleRedeemJoinCode",
+    "file": "worker/src/index.ts",
+    "line": 27008,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/join-code/:code/revoke",
+    "handler": "handleRevokeJoinCode",
+    "file": "worker/src/index.ts",
+    "line": 27009,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/connections",
+    "handler": "handleGetConnections",
+    "file": "worker/src/index.ts",
+    "line": 27012,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/connections/invite",
+    "handler": "handleInviteConnection",
+    "file": "worker/src/index.ts",
+    "line": 27013,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/connections/invites/:id/accept",
+    "handler": "handleAcceptConnectionInvite",
+    "file": "worker/src/index.ts",
+    "line": 27014,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/compass/entries/:id/feedback",
+    "handler": "handleGetEntryFeedback",
+    "file": "worker/src/index.ts",
+    "line": 27017,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/compass/entries/:id/table-share",
+    "handler": "handleCreateTableShare",
+    "file": "worker/src/index.ts",
+    "line": 27020,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/t/:token",
+    "handler": "handleGetTableCard",
+    "file": "worker/src/index.ts",
+    "line": 27021,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/t/:token/verdict",
+    "handler": "handleSubmitTableVerdict",
+    "file": "worker/src/index.ts",
+    "line": 27022,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "POST",
+    "path": "/api/rpc/gift-sample",
+    "handler": "handleGiftSample",
+    "file": "worker/src/index.ts",
+    "line": 27025,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/articles/:slug",
+    "handler": "handleGetPublicArticle",
+    "file": "worker/src/index.ts",
+    "line": 27029,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/integrations/wordforge/articles/:sourceId",
+    "handler": "handlePutWordforgeArticle",
+    "file": "worker/src/index.ts",
+    "line": 27032,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/public/people/:slug/favorites",
+    "handler": "handleGetPublicProfileFavorites",
+    "file": "worker/src/index.ts",
+    "line": 27037,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/public/people/:slug/payment-methods",
+    "handler": "handleGetPublicPaymentMethods",
+    "file": "worker/src/index.ts",
+    "line": 27038,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/public/wisdom/states",
+    "handler": "handleGetPublicWisdomStates",
+    "file": "worker/src/index.ts",
+    "line": 27039,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/public/wisdom/:nodeType/:nodeId/related",
+    "handler": "handleGetPublicWisdomRelated",
+    "file": "worker/src/index.ts",
+    "line": 27040,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  },
+  {
+    "method": "GET",
+    "path": "/api/public/wisdom/:nodeType/:nodeId/state",
+    "handler": "handleGetPublicWisdomState",
+    "file": "worker/src/index.ts",
+    "line": 27041,
+    "coverage": "inventoried; see family matrix for inspection depth"
+  }
+]

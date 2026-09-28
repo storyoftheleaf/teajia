@@ -1,0 +1,839 @@
+{
+  "baseline": "2a09630333a9fe1fb449c205b73e51d4af7f7f19",
+  "date": "2026-09-27",
+  "findings": [
+    {
+      "id": "LIVE-01",
+      "title": "Live Bali cart currently refuses all order requests",
+      "severity": "P1",
+      "confidence": "high",
+      "status": "confirmed",
+      "workstream": "manager",
+      "proof": "live desktop/mobile browser and public GET",
+      "impact": "Customers can browse and add tea but the cart says the store cannot take orders; order-request submission is disabled. This blocks the intended inquiry-led journey before WhatsApp/email handoff.",
+      "reproduction": "Open https://teajia.com/shop, search Y562, open it, add 50g, open the order. Both widths showed the refusal. Public GET /api/s/teajia-bali returned can_be_paid:false. No customer details or orders were submitted.",
+      "remedy": "Owner: inspect the linked published Tea Master/payment destination and restore a published payment method if the store should accept orders. Do not remove the guard without a product decision.",
+      "size": "small operational check; exact missing configuration not available through public data",
+      "dependencies": "Public API does not distinguish missing recipient, unpublished profile, or missing payment method. Private admin configuration and intended closure state were not read. This is a verified operational state, not a proved recent regression.",
+      "source_refs": [
+        "src/App.tsx:1437",
+        "src/components/shared/PublicCart.tsx:286",
+        "src/components/shared/PublicCart.tsx:380",
+        "worker/src/index.ts:18035",
+        "worker/src/index.ts:20112"
+      ],
+      "evidence_files": [
+        "live-cart-390.png",
+        "live-cart-1440.png",
+        "public-focused.json",
+        "live-store-readiness.json"
+      ]
+    },
+    {
+      "id": "BIZ-01",
+      "severity": "P1",
+      "confidence": "high",
+      "title": "Admin product adapter collapses inherited freight and explicit zero values",
+      "evidence": [
+        "src/admin/hooks/useAdminData.ts:49",
+        "src/admin/hooks/useAdminData.ts:65-66",
+        "src/admin/components/inventory/InventoryRow.tsx:273-289",
+        "src/admin/components/ProductEditPanel.tsx:1156-1166",
+        "src/admin/components/InventoryView.tsx:1252-1255",
+        "worker/src/index.ts:2520-2554",
+        "src/admin/components/AddProductModal.tsx:413"
+      ],
+      "impact": "NULL freight becomes a pinned free rate in admin; zero retail override becomes unset and zero stock threshold becomes 100. This immediately corrupts display/preview. Duplication then treats that zero as an explicit rate and can persist free freight in the new product. Existing server prices are not proved to have changed just by reading.",
+      "reproduction": "Feed useProducts a Worker row with shipping_rate_per_kg null, fixed_retail_price_usd 0, low_stock_threshold 0.",
+      "remedy": "Preserve null versus zero in the product adapter and add focused adapter cases.",
+      "size": "small",
+      "workstream": "business",
+      "status": "confirmed",
+      "proof": "actual React product hook + synthetic raw Worker row",
+      "dependencies": "No architecture change required; targeted regression coverage.",
+      "source_refs": [
+        "src/admin/hooks/useAdminData.ts:49",
+        "src/admin/hooks/useAdminData.ts:65-66",
+        "src/admin/components/inventory/InventoryRow.tsx:273-289",
+        "src/admin/components/ProductEditPanel.tsx:1156-1166",
+        "src/admin/components/InventoryView.tsx:1252-1255",
+        "worker/src/index.ts:2520-2554",
+        "src/admin/components/AddProductModal.tsx:413"
+      ],
+      "evidence_files": [
+        "adapter-repro.json",
+        "adapter-fixture.tsx"
+      ]
+    },
+    {
+      "id": "SEC-01",
+      "title": "Closed stores still serve public products and events",
+      "severity": "P1",
+      "confidence": "high",
+      "impact": "Private or suspended account catalog and event schedule remain available to unauthenticated callers who know the slug.",
+      "trace": [
+        {
+          "file": "worker/src/index.ts",
+          "line": 591,
+          "detail": "getAccountIdBySlug resolves any account slug, without public_enabled or status."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 20103,
+          "detail": "Public store profile requires public_enabled=1 and status=active."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 20187,
+          "detail": "Public products route uses the unrestricted slug resolver."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 20195,
+          "detail": "Public store events route uses the unrestricted slug resolver."
+        }
+      ],
+      "reproduction": "In local D1, seed an account with public_enabled=0 or status=suspended plus one public product and active event. GET /api/s/:slug returns 404; GET /api/s/:slug/products and /events both return 200 with content.",
+      "smallestRemedy": "Use getPublicAccountIdBySlug for both public child routes and add closure regression cases.",
+      "size": "small",
+      "workstream": "security",
+      "status": "confirmed",
+      "proof": "in-memory D1; independently rerun",
+      "dependencies": "No architecture change required; targeted regression coverage.",
+      "source_refs": [
+        "worker/src/index.ts:591",
+        "worker/src/index.ts:20103",
+        "worker/src/index.ts:20187",
+        "worker/src/index.ts:20195"
+      ],
+      "remedy": "Use getPublicAccountIdBySlug for both public child routes and add closure regression cases.",
+      "evidence_files": [
+        "manager-security-store.log",
+        "security-store-visibility.mjs"
+      ]
+    },
+    {
+      "id": "SEC-02",
+      "title": "Private events are discoverable and reveal their address",
+      "severity": "P1",
+      "confidence": "high",
+      "impact": "Unauthenticated discovery includes events explicitly marked private, and the public detail route returns address_text and venue context.",
+      "trace": [
+        {
+          "file": "worker/src/index.ts",
+          "line": 10676,
+          "detail": "Public event detail selects address_text and venue_guide."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 10686,
+          "detail": "Detail query filters only active event status."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 10827,
+          "detail": "Public event discovery ignores public_visibility, network_discovery, and account status."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 10854,
+          "detail": "Public RSVP creation checks only event status."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 20217,
+          "detail": "Store event discovery checks only event status and account ID."
+        }
+      ],
+      "reproduction": "In local D1, seed a future active event with public_visibility=private, network_discovery=0, and address_text. GET /api/events and /api/s/:slug/events include it; GET /api/events/:slug/public returns its address.",
+      "smallestRemedy": "Define and apply shared public event visibility predicates for discovery, direct detail, and RSVP, including an active/public host account gate.",
+      "size": "medium",
+      "workstream": "security",
+      "status": "confirmed",
+      "proof": "in-memory D1; independently rerun",
+      "dependencies": "Apply discovery versus direct-link policy deliberately: private must not be publicly discoverable; unlisted may permit direct links. Schema enum at worker/schema.sql:1572 and existing public-event predicate at worker/src/index.ts:10742 establish the distinction. No real private address was queried.",
+      "source_refs": [
+        "worker/src/index.ts:10676",
+        "worker/src/index.ts:10686",
+        "worker/src/index.ts:10827",
+        "worker/src/index.ts:10854",
+        "worker/src/index.ts:20217"
+      ],
+      "remedy": "Define and apply shared public event visibility predicates for discovery, direct detail, and RSVP, including an active/public host account gate.",
+      "evidence_files": [
+        "manager-security-event.log",
+        "security-private-event.mjs"
+      ]
+    },
+    {
+      "id": "SEC-03",
+      "title": "Shop collections disclose hidden products and closed stores",
+      "severity": "P1",
+      "confidence": "high",
+      "impact": "Public shop collection discovery can reveal active products whose is_public and shown_in_shop flags are both zero, including after the host store closes. The explicit publication explains initial inclusion but should not bypass subsequent public-discovery privacy flags. Whether a deliberately shared recipient link may retain hidden items is a separate policy question; the confirmed remediation target is /api/collections/shop.",
+      "trace": [
+        {
+          "file": "worker/src/index.ts",
+          "line": 23392,
+          "detail": "Shop publication query has no host-account status/public gate."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 23424,
+          "detail": "Shop item query filters product status but not is_public or shown_in_shop."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 23750,
+          "detail": "Public collection link only checks publication and collection state."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 23792,
+          "detail": "Public link item projection filters only product status."
+        }
+      ],
+      "reproduction": "In local D1, seed private store, hidden active product (is_public=0, shown_in_shop=0), active collection and shop publication. GET /api/collections/shop and /api/public/c/:slug both return the product.",
+      "smallestRemedy": "Gate shop publications by open accounts and public, shown products; separately define whether recipient links may include private products.",
+      "size": "medium",
+      "workstream": "security",
+      "status": "confirmed",
+      "proof": "in-memory D1; independently rerun",
+      "dependencies": "No architecture change required; targeted regression coverage.",
+      "source_refs": [
+        "worker/src/index.ts:23392",
+        "worker/src/index.ts:23424",
+        "worker/src/index.ts:23750",
+        "worker/src/index.ts:23792"
+      ],
+      "remedy": "Gate shop publications by open accounts and public, shown products; separately define whether recipient links may include private products.",
+      "evidence_files": [
+        "manager-security-collections.log",
+        "security-public-collections.mjs"
+      ]
+    },
+    {
+      "id": "BIZ-02",
+      "severity": "P1",
+      "confidence": "high",
+      "title": "Stale order lines can overwrite a different pending order",
+      "evidence": [
+        "src/admin/components/EditOrderModal.tsx:53-77",
+        "src/admin/components/EditOrderModal.tsx:107-127",
+        "src/admin/components/OrdersView.tsx:1167-1172",
+        "worker/src/index.ts:6259-6309"
+      ],
+      "impact": "A pending order can have its lines, prices, and stock reservations replaced by another order\u2019s lines.",
+      "reproduction": "Open A and let its item request finish; close; open B in the same mounted EditOrderModal; reject B\u2019s item request. It changes customer fields to B, retains A\u2019s lines, clears fetching, and enables Save. Captured updateItems payload targets B with tea-a. This sequence needs no artificial race; a normal failed request is sufficient. The alternate late-A-response race is source-only.",
+      "remedy": "Clear lines before loading, ignore stale responses, and block save after load error.",
+      "size": "small-medium",
+      "workstream": "business",
+      "status": "confirmed",
+      "proof": "actual React editor + mocked load failure and captured save payload",
+      "dependencies": "No architecture change required; targeted regression coverage.",
+      "source_refs": [
+        "src/admin/components/EditOrderModal.tsx:53-77",
+        "src/admin/components/EditOrderModal.tsx:107-127",
+        "src/admin/components/OrdersView.tsx:1167-1172",
+        "worker/src/index.ts:6259-6309"
+      ],
+      "evidence_files": [
+        "stale-order-editor.json",
+        "stale-order-editor.png",
+        "editor-fixture.tsx"
+      ]
+    },
+    {
+      "id": "BIZ-03",
+      "severity": "P1",
+      "confidence": "high",
+      "title": "Save plus Share can create duplicate invoices after PDF/share failure",
+      "evidence": [
+        "src/admin/components/QuickInvoiceModal.tsx:419-457",
+        "worker/src/index.ts:5199-5275"
+      ],
+      "impact": "The invoice exists before PDF/share work. PDF failure leaves the creation form open with a failure toast; retry creates another invoice. The browser fixture hit a real PDF renderer hasOwnProperty error before navigator.share; cancellation was not browser-observed. The share promise is awaited inside the same try with no AbortError exception, so cancellation follows the same source path.",
+      "reproduction": "Click Save + Share in the supplied fixture twice. Observed: two mocked create calls, two renderer-failure toasts, no success/close. Independently submit the same synthetic Draft invoice twice to the real bundled Worker with in-memory D1: 201/201, distinct UUIDs and invoice numbers 00001/00002. No request-level idempotency key is consumed by this endpoint. The saving flag prevents simultaneous clicks only, and resets after the PDF error.",
+      "remedy": "Commit UI success after invoice create; retry sharing separately without another create.",
+      "size": "small-medium",
+      "workstream": "business",
+      "status": "confirmed",
+      "proof": "actual React invoice modal/PDF failure + mocked creates; separate real Worker/in-memory D1 persistence proof",
+      "dependencies": "No architecture change required; targeted regression coverage.",
+      "source_refs": [
+        "src/admin/components/QuickInvoiceModal.tsx:419-457",
+        "worker/src/index.ts:5199-5275"
+      ],
+      "evidence_files": [
+        "invoice-share-failure.json",
+        "invoice-repro.log",
+        "invoice-persistence.log",
+        "invoice-persistence.mjs"
+      ]
+    },
+    {
+      "id": "BIZ-04",
+      "severity": "P1",
+      "confidence": "high",
+      "title": "Unscoped persisted query keys can show prior-store financial and event data",
+      "evidence": [
+        "src/admin/components/ActivityView.tsx:29-36",
+        "src/admin/components/PendingView.tsx:25-34",
+        "src/admin/hooks/useEventData.ts:155-161",
+        "src/admin/views/VendorProfileView.tsx:95-100",
+        "src/admin/components/AccountSwitcher.tsx:75-80",
+        "src/index.tsx:24-27",
+        "src/index.tsx:43-68"
+      ],
+      "impact": "PendingView retains account A\u2019s customer/order data when account B\u2019s refetch fails; its unscoped key survives account-switch invalidation. Sensitive disk-persistence exposure is established by the persister allow rules, not a separate observed logout incident. This is client-cache isolation, not a demonstrated server authorization bypass.",
+      "reproduction": "Load pending data in A, switch to B, delay or fail B request, open Pending tab.",
+      "remedy": "Key private queries by account and user, gate display by token scope, and exclude or purge sensitive persisted data.",
+      "size": "medium",
+      "workstream": "business",
+      "status": "confirmed",
+      "proof": "actual PendingView + account switch/invalidation and injected fetch error",
+      "dependencies": "No architecture change required; targeted regression coverage.",
+      "source_refs": [
+        "src/admin/components/ActivityView.tsx:29-36",
+        "src/admin/components/PendingView.tsx:25-34",
+        "src/admin/hooks/useEventData.ts:155-161",
+        "src/admin/views/VendorProfileView.tsx:95-100",
+        "src/admin/components/AccountSwitcher.tsx:75-80",
+        "src/index.tsx:24-27",
+        "src/index.tsx:43-68"
+      ],
+      "evidence_files": [
+        "cache-repro.json",
+        "cache-repro.png",
+        "cache-fixture.tsx"
+      ]
+    },
+    {
+      "id": "CONTENT-01",
+      "severity": "P1",
+      "confidence": "high",
+      "family": "editorial publishing",
+      "title": "Article save can undo a successful publish",
+      "source": [
+        "src/admin/components/ArticleEditorModal.tsx:545",
+        "src/admin/components/ArticleEditorModal.tsx:567",
+        "src/admin/components/ArticleEditorModal.tsx:606",
+        "src/admin/components/ArticleEditorModal.tsx:763",
+        "worker/src/index.ts:21991",
+        "worker/src/index.ts:22012"
+      ],
+      "reproduction": "Edit an existing draft; let auto-save start; publish before save settles; allow publish to commit before the older update. The toast says published while the row ends as draft.",
+      "workstream": "content-gap",
+      "status": "confirmed",
+      "proof": "actual React editor; delayed mocked update commits after mocked publish",
+      "dependencies": "No architecture change required; targeted regression coverage.",
+      "source_refs": [
+        "src/admin/components/ArticleEditorModal.tsx:545",
+        "src/admin/components/ArticleEditorModal.tsx:567",
+        "src/admin/components/ArticleEditorModal.tsx:606",
+        "src/admin/components/ArticleEditorModal.tsx:763",
+        "worker/src/index.ts:21991",
+        "worker/src/index.ts:22012"
+      ],
+      "remedy": "Serialize save and publish; flush pending content before publish and remove publication status from ordinary autosaves.",
+      "size": "medium",
+      "impact": "The editor displays Published and an Article published toast while a delayed pre-publish content update writes status=draft. The fixture reproduces request ordering and UI contradiction; ordinary Worker updates accept the status field, so that order can persist draft.",
+      "evidence_files": [
+        "article-publish-race.json",
+        "article-publish-race.png",
+        "article-fixture.tsx"
+      ]
+    },
+    {
+      "id": "OPS-03",
+      "severity": "P1",
+      "confidence": "high",
+      "title": "Manual retry can double-receive a partial stock delivery",
+      "evidence": [
+        "src/admin/components/inventory/IncomingReceiptsPanel.tsx:12-28",
+        "src/admin/components/inventory/IncomingReceiptsPanel.tsx:49-54",
+        "src/lib/api.ts:1565",
+        "worker/src/index.ts:14928-14944"
+      ],
+      "reproduction": "Receive 5g of an expected 20g; let write succeed and fail list refresh. The panel still shows 0 received/20 remaining and keeps the typed 5. Click Receive again: actual API creates a different key. Separate real Worker D1 probe accepts the two 5g intents and records 10g on hand. A repeated same-key request is correctly deduplicated; the problem is manual retry identity.",
+      "impact": "The second click uses a new key and can add another 5 to stock and the receipt ledger.",
+      "smallestRemedy": "Keep the intent's idempotency key until a confirmed result and block new receives on stale data pending reconciliation.",
+      "size": "small-medium",
+      "workstream": "operations-gap",
+      "status": "confirmed",
+      "proof": "actual receipt panel + API retry-key capture; separate Worker/in-memory D1 stock proof",
+      "dependencies": "No architecture change required; targeted regression coverage.",
+      "source_refs": [
+        "src/admin/components/inventory/IncomingReceiptsPanel.tsx:12-28",
+        "src/admin/components/inventory/IncomingReceiptsPanel.tsx:49-54",
+        "src/lib/api.ts:1565",
+        "worker/src/index.ts:14928-14944"
+      ],
+      "remedy": "Keep the intent's idempotency key until a confirmed result and block new receives on stale data pending reconciliation.",
+      "evidence_files": [
+        "receipt-retry.json",
+        "receipt-retry.png",
+        "receipt-persistence.log",
+        "receipt-persistence.mjs"
+      ]
+    },
+    {
+      "id": "SEC-04",
+      "title": "Incident intake trusts unverified tenant header",
+      "severity": "P2",
+      "confidence": "high",
+      "impact": "Any signed-in user can attribute an incident to another account; global signature dedupe can alter count, severity, and resolved state of an existing incident.",
+      "trace": [
+        {
+          "file": "worker/src/index.ts",
+          "line": 26234,
+          "detail": "Handler uses requireAuth, which validates the session but does not authorize a tenant."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 26244,
+          "detail": "Handler passes raw X-Teajia-Account to upsertIncident."
+        },
+        {
+          "file": "worker/src/incidents.ts",
+          "line": 128,
+          "detail": "Incident upsert merges by a global signature."
+        }
+      ],
+      "reproduction": "In local D1, user A belongs only to account A. POST /api/incidents with user A's JWT and X-Teajia-Account: account-b returned 201; the saved incident has account_id=account-b.",
+      "smallestRemedy": "Resolve account through live membership or store null for an untrusted global client report; review dedupe key tenancy.",
+      "size": "small",
+      "workstream": "security",
+      "status": "confirmed",
+      "proof": "in-memory D1 worker reproduction",
+      "dependencies": "No architecture change required; targeted regression coverage.",
+      "source_refs": [
+        "worker/src/index.ts:26234",
+        "worker/src/index.ts:26244",
+        "worker/src/incidents.ts:128"
+      ],
+      "remedy": "Resolve account through live membership or store null for an untrusted global client report; review dedupe key tenancy.",
+      "evidence_files": [
+        "security-incident-tenant.log",
+        "security-incident-tenant.mjs"
+      ]
+    },
+    {
+      "id": "BIZ-05",
+      "severity": "P2",
+      "confidence": "high",
+      "title": "Product story route casts raw Worker rows to camelCase Product and crashes",
+      "evidence": [
+        "src/admin/views/ProductStoryView.tsx:244-250",
+        "src/admin/views/ProductStoryView.tsx:613",
+        "src/lib/api.ts:1742-1745",
+        "worker/src/index.ts:2520-2554"
+      ],
+      "impact": "Opening a product story fails when pricePerGramUSD.toFixed is called on undefined.",
+      "reproduction": "Open /admin/products/:id/story for any product returned by GET /api/products.",
+      "remedy": "Reuse the shared admin product adapter and route-test a raw Worker response.",
+      "size": "small-medium",
+      "workstream": "business",
+      "status": "confirmed",
+      "proof": "authenticated local sandbox browser using raw products API",
+      "dependencies": "No architecture change required; targeted regression coverage.",
+      "source_refs": [
+        "src/admin/views/ProductStoryView.tsx:244-250",
+        "src/admin/views/ProductStoryView.tsx:613",
+        "src/lib/api.ts:1742-1745",
+        "worker/src/index.ts:2520-2554"
+      ],
+      "evidence_files": [
+        "admin-final-check.json",
+        "product-story-crash.png"
+      ]
+    },
+    {
+      "id": "BIZ-06",
+      "severity": "P2",
+      "confidence": "high",
+      "title": "Vendor profile displays zero economics and matches sales as purchases",
+      "evidence": [
+        "worker/src/index.ts:9027-9040",
+        "src/admin/views/VendorProfileView.tsx:88-127",
+        "src/admin/views/VendorProfileView.tsx:293-330",
+        "worker/src/index.ts:20235-20262"
+      ],
+      "impact": "Vendor names, stock value, cost totals, and purchase history are false or missing.",
+      "reproduction": "Open an existing vendor with products and a purchase order; compare raw endpoint fields and profile.",
+      "remedy": "Define a vendor product DTO/adapter and read purchase orders or receipts by vendor identity.",
+      "size": "medium",
+      "workstream": "business",
+      "status": "confirmed",
+      "proof": "source trace",
+      "dependencies": "No architecture change required; targeted regression coverage.",
+      "source_refs": [
+        "worker/src/index.ts:9027-9040",
+        "src/admin/views/VendorProfileView.tsx:88-127",
+        "src/admin/views/VendorProfileView.tsx:293-330",
+        "worker/src/index.ts:20235-20262"
+      ],
+      "evidence_files": []
+    },
+    {
+      "id": "BIZ-07",
+      "severity": "P2",
+      "confidence": "high",
+      "title": "Failed partner listing writes cannot be retried unchanged",
+      "evidence": [
+        "src/admin/views/PartnerListingEdit.tsx:425-467",
+        "worker/src/index.ts:24715-24725"
+      ],
+      "impact": "Stock, price, sample, or note edits that fail remain locally marked saved and are skipped on retry.",
+      "reproduction": "Reject updateListing; blur the same unchanged field again.",
+      "remedy": "Advance lastSaved only after success and keep a retryable dirty state on failure.",
+      "size": "small",
+      "workstream": "business",
+      "status": "confirmed",
+      "proof": "source trace",
+      "dependencies": "No architecture change required; targeted regression coverage.",
+      "source_refs": [
+        "src/admin/views/PartnerListingEdit.tsx:425-467",
+        "worker/src/index.ts:24715-24725"
+      ],
+      "evidence_files": []
+    },
+    {
+      "id": "BIZ-08",
+      "severity": "P2",
+      "confidence": "high",
+      "title": "Admin uploads and MCP tokens page ignore sessionStorage token fallback",
+      "evidence": [
+        "src/lib/api.ts:596-618",
+        "src/lib/api.ts:2454-2465",
+        "src/lib/api.ts:2488-2497",
+        "src/admin/views/MCPTokensView.tsx:52-58",
+        "worker/src/index.ts:12697-12700",
+        "worker/src/index.ts:12911-12914"
+      ],
+      "impact": "A fallback authenticated session cannot upload event flyers or venue photos or manage MCP tokens.",
+      "reproduction": "Block localStorage writes, sign in so token is stored in sessionStorage, then invoke those actions.",
+      "remedy": "Use the shared authenticated request/header path.",
+      "size": "small",
+      "workstream": "business",
+      "status": "confirmed",
+      "proof": "source trace",
+      "dependencies": "No architecture change required; targeted regression coverage.",
+      "source_refs": [
+        "src/lib/api.ts:596-618",
+        "src/lib/api.ts:2454-2465",
+        "src/lib/api.ts:2488-2497",
+        "src/admin/views/MCPTokensView.tsx:52-58",
+        "worker/src/index.ts:12697-12700",
+        "worker/src/index.ts:12911-12914"
+      ],
+      "evidence_files": []
+    },
+    {
+      "id": "PUB-01",
+      "title": "Product links turn inventory outages into Not Found",
+      "severity": "P2",
+      "confidence": "high",
+      "impact": "Valid shared product links appear removed during inventory API failures and have no retry action.",
+      "trace": [
+        {
+          "file": "src/pages/ProductPage.tsx",
+          "line": 90,
+          "detail": "useInventory destructures inventory, isLoading, and refetch only."
+        },
+        {
+          "file": "src/pages/ProductPage.tsx",
+          "line": 179,
+          "detail": "Loading is handled, then any missing item becomes Not Found."
+        },
+        {
+          "file": "src/components/Shop.tsx",
+          "line": 537,
+          "detail": "Shop already has a separate error and retry state."
+        }
+      ],
+      "smallestRemedy": "Branch on inventory query error and expose refetch; reserve Not Found for a successful query without the item.",
+      "runtimeProofNeeded": true,
+      "workstream": "public-contracts",
+      "status": "confirmed",
+      "proof": "local browser, injected catalogue 503",
+      "dependencies": "No architecture change required; targeted regression coverage.",
+      "source_refs": [
+        "src/pages/ProductPage.tsx:90",
+        "src/pages/ProductPage.tsx:179",
+        "src/components/Shop.tsx:537"
+      ],
+      "remedy": "Branch on inventory query error and expose refetch; reserve Not Found for a successful query without the item.",
+      "size": "small",
+      "reproduction": "See the precise source trace and workstream appendix.",
+      "evidence_files": [
+        "public-focused.json",
+        "product-outage.png"
+      ]
+    },
+    {
+      "id": "PUB-02",
+      "title": "Storefront product failures are presented as a store with no stock",
+      "severity": "P2",
+      "confidence": "high",
+      "impact": "A failed store catalog request tells customers the merchant has not published inventory and offers no retry.",
+      "trace": [
+        {
+          "file": "src/components/storefront/Storefront.tsx",
+          "line": 56,
+          "detail": "Products query captures data and isLoading but not error/refetch state."
+        },
+        {
+          "file": "src/components/storefront/Storefront.tsx",
+          "line": 191,
+          "detail": "Only loading is passed to StorefrontShopSection."
+        },
+        {
+          "file": "src/components/storefront/Storefront.tsx",
+          "line": 256,
+          "detail": "An empty list renders the stock-preparation message."
+        }
+      ],
+      "smallestRemedy": "Pass the products query failure and refetch through, separating failure from successful empty inventory.",
+      "runtimeProofNeeded": true,
+      "workstream": "public-contracts",
+      "status": "confirmed",
+      "proof": "local browser, injected store catalogue 503",
+      "dependencies": "No architecture change required; targeted regression coverage.",
+      "source_refs": [
+        "src/components/storefront/Storefront.tsx:56",
+        "src/components/storefront/Storefront.tsx:191",
+        "src/components/storefront/Storefront.tsx:256"
+      ],
+      "remedy": "Pass the products query failure and refetch through, separating failure from successful empty inventory.",
+      "size": "small",
+      "reproduction": "See the precise source trace and workstream appendix.",
+      "evidence_files": [
+        "public-focused.json",
+        "store-outage.png"
+      ]
+    },
+    {
+      "id": "PUB-03",
+      "title": "Find-a-table review badge always falls back to Verified",
+      "severity": "P2",
+      "confidence": "high",
+      "impact": "The review query is rejected and directory rows display an unsupported status; the count cannot represent distinct teas per store.",
+      "trace": [
+        {
+          "file": "src/components/storefront/FindATable.tsx",
+          "line": 28,
+          "detail": "Review query expects an object with reviews."
+        },
+        {
+          "file": "src/components/storefront/FindATable.tsx",
+          "line": 30,
+          "detail": "Query sends visibility only."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 16780,
+          "detail": "Worker requires tea_key, product_id, or source_sample_id and returns 400 without one."
+        },
+        {
+          "file": "src/components/storefront/FindATable.tsx",
+          "line": 37,
+          "detail": "Caller reads reviewsData.reviews, but worker returns a raw array."
+        },
+        {
+          "file": "src/components/storefront/FindATable.tsx",
+          "line": 42,
+          "detail": "Count increments per row; the computed tea key is discarded."
+        },
+        {
+          "file": "src/components/storefront/FindATable.tsx",
+          "line": 219,
+          "detail": "Zero count becomes the Verified badge."
+        }
+      ],
+      "smallestRemedy": "Use a directory-level aggregate endpoint or remove the unsupported badge; distinct tea counting needs a defined aggregate contract.",
+      "runtimeProofNeeded": false,
+      "runtimeProof": "Parent browser pass observed GET /api/tea-reviews returning 400 on /find-a-table.",
+      "workstream": "public-contracts",
+      "status": "confirmed",
+      "proof": "live desktop/mobile 400 response + source contract",
+      "dependencies": "No architecture change required; targeted regression coverage.",
+      "source_refs": [
+        "src/components/storefront/FindATable.tsx:28",
+        "src/components/storefront/FindATable.tsx:30",
+        "worker/src/index.ts:16780",
+        "src/components/storefront/FindATable.tsx:37",
+        "src/components/storefront/FindATable.tsx:42",
+        "src/components/storefront/FindATable.tsx:219"
+      ],
+      "remedy": "Use a directory-level aggregate endpoint or remove the unsupported badge; distinct tea counting needs a defined aggregate contract.",
+      "size": "small",
+      "reproduction": "See the precise source trace and workstream appendix.",
+      "evidence_files": [
+        "browser-scan.json"
+      ]
+    },
+    {
+      "id": "CONTENT-02",
+      "severity": "P2",
+      "confidence": "high",
+      "family": "editorial publishing",
+      "title": "Overlapping saves can create duplicate new articles",
+      "source": [
+        "src/admin/components/ArticleEditorModal.tsx:567",
+        "src/admin/components/ArticleEditorModal.tsx:594",
+        "src/admin/components/ArticleEditorModal.tsx:778",
+        "worker/src/index.ts:21918"
+      ],
+      "reproduction": "Type a new title, click Save as the auto-save timer fires, and keep both create responses pending. Both calls can submit with a null article ID.",
+      "workstream": "content-gap",
+      "status": "confirmed",
+      "proof": "source trace",
+      "dependencies": "No architecture change required; targeted regression coverage.",
+      "source_refs": [
+        "src/admin/components/ArticleEditorModal.tsx:567",
+        "src/admin/components/ArticleEditorModal.tsx:594",
+        "src/admin/components/ArticleEditorModal.tsx:778",
+        "worker/src/index.ts:21918"
+      ],
+      "remedy": "Share one in-flight create promise, cancel a pending debounce before manual save, then update the returned ID.",
+      "size": "small-medium",
+      "impact": "Overlapping saves can create duplicate new articles",
+      "evidence_files": []
+    },
+    {
+      "id": "CONTENT-03",
+      "severity": "P2",
+      "confidence": "high",
+      "family": "event admin",
+      "title": "Failed event detail request leaves a permanent loading spinner",
+      "source": [
+        "src/admin/hooks/useEventData.ts:92",
+        "src/admin/components/EventDetail.tsx:289",
+        "src/admin/components/EventDetail.tsx:384"
+      ],
+      "reproduction": "Open an event detail URL while its GET returns an error; after the query settles the spinner remains, with no retry action.",
+      "workstream": "content-gap",
+      "status": "confirmed",
+      "proof": "source trace",
+      "dependencies": "No architecture change required; targeted regression coverage.",
+      "source_refs": [
+        "src/admin/hooks/useEventData.ts:92",
+        "src/admin/components/EventDetail.tsx:289",
+        "src/admin/components/EventDetail.tsx:384"
+      ],
+      "remedy": "Branch on query error and missing event, with retry; show spinner only while loading.",
+      "size": "small",
+      "impact": "Failed event detail request leaves a permanent loading spinner",
+      "evidence_files": []
+    },
+    {
+      "id": "OPS-01",
+      "severity": "P2",
+      "confidence": "High from source inspection; runtime reproduction pending",
+      "title": "Intake can silently lose the purchase record",
+      "evidence": [
+        "src/admin/views/IntakeWorkspace.tsx:354-357",
+        "src/admin/views/IntakeWorkspace.tsx:381-406"
+      ],
+      "reproduction": "Enable Save purchase record; let /api/products/bulk succeed and /api/purchase-orders fail for a staged vendor with cost/order data.",
+      "impact": "Products are created and success is shown, but the requested purchase record is absent; local staging is cleared and server draft closure is attempted.",
+      "smallestRemedy": "Preserve and expose partial success, retain purchase data for retry, and defer draft closure until requested records finish.",
+      "size": "small-medium",
+      "workstream": "operations-gap",
+      "status": "confirmed",
+      "proof": "source trace",
+      "dependencies": "No architecture change required; targeted regression coverage.",
+      "source_refs": [
+        "src/admin/views/IntakeWorkspace.tsx:354-357",
+        "src/admin/views/IntakeWorkspace.tsx:381-406"
+      ],
+      "remedy": "Preserve and expose partial success, retain purchase data for retry, and defer draft closure until requested records finish.",
+      "evidence_files": [],
+      "adjudication": "Downgraded from workstream P1: certain silent purchase-record loss on partial failure, but no demonstrated loss of created inventory. Runtime not exercised."
+    },
+    {
+      "id": "OPS-02",
+      "severity": "P2",
+      "confidence": "High from source inspection; runtime reproduction pending",
+      "title": "Retrying a failed contact save can create a duplicate",
+      "evidence": [
+        "src/admin/components/CustomersView.tsx:1454-1469",
+        "worker/src/index.ts:8702-8738",
+        "worker/schema.sql:170-189"
+      ],
+      "reproduction": "Let POST /api/customers succeed, fail the subsequent relationships PUT, then click Save again.",
+      "impact": "The UI reports save failure after a persisted create; retry posts a second contact with a new ID.",
+      "smallestRemedy": "Use the create payload's existing relationship write and remove the redundant follow-up PUT; retain the created ID if later work needs retry.",
+      "size": "small",
+      "workstream": "operations-gap",
+      "status": "confirmed",
+      "proof": "source trace",
+      "dependencies": "No architecture change required; targeted regression coverage.",
+      "source_refs": [
+        "src/admin/components/CustomersView.tsx:1454-1469",
+        "worker/src/index.ts:8702-8738",
+        "worker/schema.sql:170-189"
+      ],
+      "remedy": "Use the create payload's existing relationship write and remove the redundant follow-up PUT; retain the created ID if later work needs retry.",
+      "evidence_files": []
+    },
+    {
+      "id": "UI-01",
+      "title": "Mobile inventory Personal label is clipped",
+      "severity": "P3",
+      "confidence": "high",
+      "status": "confirmed",
+      "workstream": "manager",
+      "proof": "local 390px browser screenshot and element measurement",
+      "impact": "The final letters of Personal are cut off in the packed lifecycle tabs beside Flagged, making navigation harder to read. No page-level horizontal overflow was seen.",
+      "reproduction": "At 390px width open local /admin/stock; Personal has clientWidth 50 and scrollWidth 52 and is visibly truncated.",
+      "remedy": "Give lifecycle labels enough flex space or wrap/compact their surrounding controls while preserving the existing labels.",
+      "size": "small",
+      "dependencies": "Visual fix should be checked at 390px and tablet width; do not change approved navigation labels.",
+      "source_refs": [
+        "src/admin/components/InventoryView.tsx"
+      ],
+      "evidence_files": [
+        "verified-390-stock.png",
+        "admin-final-check.json"
+      ]
+    }
+  ],
+  "concerns": [
+    {
+      "id": "CONTENT-04",
+      "severity": "P2",
+      "confidence": "medium; normal-navigation reuse not established",
+      "family": "event admin",
+      "title": "Briefing cards can cross event IDs when detail component is reused",
+      "source": [
+        "src/admin/components/EventDetail.tsx:327",
+        "src/admin/components/EventDetail.tsx:333",
+        "src/admin/components/EventDetail.tsx:366",
+        "src/admin/components/EventDetail.tsx:420",
+        "src/admin/AdminApp.tsx:544"
+      ],
+      "reproduction": "Keep the event detail component mounted while changing route ID A to B, then save B's Briefing tab. A's local cards are sent to B.",
+      "workstream": "content-gap",
+      "status": "concern",
+      "proof": "source trace",
+      "dependencies": "No architecture change required; targeted regression coverage.",
+      "source_refs": [
+        "src/admin/components/EventDetail.tsx:327",
+        "src/admin/components/EventDetail.tsx:333",
+        "src/admin/components/EventDetail.tsx:366",
+        "src/admin/components/EventDetail.tsx:420",
+        "src/admin/AdminApp.tsx:544"
+      ],
+      "remedy": "If ordinary route reuse is confirmed, reset briefing state on event ID change or key the component.",
+      "size": "small",
+      "impact": "State reuse can mix briefing cards, but no ordinary navigation route reaching that exact mounted-state sequence was demonstrated. Existing artificial history-change test proves route reuse for article state, not this user journey.",
+      "evidence_files": []
+    }
+  ],
+  "excluded": [
+    "Missing product photography",
+    "Dependency advisory counts as proof of exploitability"
+  ]
+}

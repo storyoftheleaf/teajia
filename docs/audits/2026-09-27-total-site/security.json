@@ -1,0 +1,193 @@
+{
+  "audit": "worker_security_auth_tenancy_mcp",
+  "head": "2a096303",
+  "date": "2026-09-27",
+  "method": "source trace and in-memory D1 probes; no production calls or source edits",
+  "findings": [
+    {
+      "id": "SEC-01",
+      "title": "Closed stores still serve public products and events",
+      "severity": "P1",
+      "confidence": "high",
+      "impact": "Private or suspended account catalog and event schedule remain available to unauthenticated callers who know the slug.",
+      "trace": [
+        {
+          "file": "worker/src/index.ts",
+          "line": 591,
+          "detail": "getAccountIdBySlug resolves any account slug, without public_enabled or status."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 20103,
+          "detail": "Public store profile requires public_enabled=1 and status=active."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 20187,
+          "detail": "Public products route uses the unrestricted slug resolver."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 20195,
+          "detail": "Public store events route uses the unrestricted slug resolver."
+        }
+      ],
+      "reproduction": "In local D1, seed an account with public_enabled=0 or status=suspended plus one public product and active event. GET /api/s/:slug returns 404; GET /api/s/:slug/products and /events both return 200 with content.",
+      "smallestRemedy": "Use getPublicAccountIdBySlug for both public child routes and add closure regression cases.",
+      "size": "small"
+    },
+    {
+      "id": "SEC-02",
+      "title": "Private events are discoverable and reveal their address",
+      "severity": "P1",
+      "confidence": "high",
+      "impact": "Unauthenticated discovery includes events explicitly marked private, and the public detail route returns address_text and venue context.",
+      "trace": [
+        {
+          "file": "worker/src/index.ts",
+          "line": 10676,
+          "detail": "Public event detail selects address_text and venue_guide."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 10686,
+          "detail": "Detail query filters only active event status."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 10827,
+          "detail": "Public event discovery ignores public_visibility, network_discovery, and account status."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 10854,
+          "detail": "Public RSVP creation checks only event status."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 20217,
+          "detail": "Store event discovery checks only event status and account ID."
+        }
+      ],
+      "reproduction": "In local D1, seed a future active event with public_visibility=private, network_discovery=0, and address_text. GET /api/events and /api/s/:slug/events include it; GET /api/events/:slug/public returns its address.",
+      "smallestRemedy": "Define and apply shared public event visibility predicates for discovery, direct detail, and RSVP, including an active/public host account gate.",
+      "size": "medium"
+    },
+    {
+      "id": "SEC-03",
+      "title": "Shop collections disclose hidden products and closed stores",
+      "severity": "P1",
+      "confidence": "high",
+      "impact": "Public collection discovery and link reads can disclose a product after it is made private or removed from the shop, and can continue exposing a closed store's collection.",
+      "trace": [
+        {
+          "file": "worker/src/index.ts",
+          "line": 23392,
+          "detail": "Shop publication query has no host-account status/public gate."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 23424,
+          "detail": "Shop item query filters product status but not is_public or shown_in_shop."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 23750,
+          "detail": "Public collection link only checks publication and collection state."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 23792,
+          "detail": "Public link item projection filters only product status."
+        }
+      ],
+      "reproduction": "In local D1, seed private store, hidden active product (is_public=0, shown_in_shop=0), active collection and shop publication. GET /api/collections/shop and /api/public/c/:slug both return the product.",
+      "smallestRemedy": "Gate shop publications by open accounts and public, shown products; separately define whether recipient links may include private products.",
+      "size": "medium"
+    },
+    {
+      "id": "SEC-04",
+      "title": "Incident intake trusts unverified tenant header",
+      "severity": "P2",
+      "confidence": "high",
+      "impact": "Any signed-in user can attribute an incident to another account; global signature dedupe can alter count, severity, and resolved state of an existing incident.",
+      "trace": [
+        {
+          "file": "worker/src/index.ts",
+          "line": 26234,
+          "detail": "Handler uses requireAuth, which validates the session but does not authorize a tenant."
+        },
+        {
+          "file": "worker/src/index.ts",
+          "line": 26244,
+          "detail": "Handler passes raw X-Teajia-Account to upsertIncident."
+        },
+        {
+          "file": "worker/src/incidents.ts",
+          "line": 128,
+          "detail": "Incident upsert merges by a global signature."
+        }
+      ],
+      "reproduction": "In local D1, user A belongs only to account A. POST /api/incidents with user A's JWT and X-Teajia-Account: account-b returned 201; the saved incident has account_id=account-b.",
+      "smallestRemedy": "Resolve account through live membership or store null for an untrusted global client report; review dedupe key tenancy.",
+      "size": "small"
+    }
+  ],
+  "concerns": [
+    {
+      "id": "SEC-05",
+      "title": "OAuth scope fallback can mint immediately unusable tokens",
+      "severity": "P3",
+      "confidence": "medium",
+      "impact": "Viewer or restricted staff consent can fall back to write scopes they do not hold; live MCP authorization rejects the resulting token. No privilege escalation was found.",
+      "trace": [
+        {
+          "file": "worker/src/mcp.ts",
+          "line": 321,
+          "detail": "Default scopes include stock:write and sales:write."
+        },
+        {
+          "file": "worker/src/mcp.ts",
+          "line": 7223,
+          "detail": "Absent or fully filtered consent selection returns default scopes."
+        },
+        {
+          "file": "worker/src/mcp.ts",
+          "line": 459,
+          "detail": "Live authority check rejects scopes exceeding current bundles."
+        }
+      ],
+      "validationNeeded": "Focused OAuth decision/token test for a viewer and staff member without stock/sell bundles.",
+      "smallestRemedy": "Intersect defaults and requested scopes with live bundle authority before minting.",
+      "size": "small-medium"
+    }
+  ],
+  "coverage": {
+    "rest": [
+      "JWT/session validation",
+      "live membership and bundle gates",
+      "products/invoices/customers/analytics spot checks",
+      "public store/event/collection reads",
+      "incident intake",
+      "media dispatch"
+    ],
+    "mcp": [
+      "hashed token authentication",
+      "expiry/revocation",
+      "live account and bundle recheck",
+      "tool scope dispatch",
+      "module registry",
+      "owner-tier gates",
+      "single-use confirmation tickets",
+      "public four-tool allowlist"
+    ],
+    "limits": "Targeted review of a large Worker; not every route or every MCP SQL statement was proven safe. No production-state inference."
+  },
+  "tests": {
+    "localProbes": "SEC-01 through SEC-04 reproduced with bundled Worker and in-memory D1 using worker/schema.sql; temporary scripts were kept outside the repository.",
+    "focusedExisting": "mcp-live-authorization, inquiry-security, incidents: 55 passed; event-contract-routes: 81 passed",
+    "limitations": "Existing focused tests do not assert the reported privacy/tenant boundary cases. Initial test invocation accidentally included archived worktrees; clean rerun used standard worktree exclusions.",
+    "evidence": "docs/audits/2026-09-27-total-site/evidence/security-probes.md"
+  },
+  "knownDebtDistinction": "docs/ARCHITECTURE.md cites older audit/suspension gaps; current getActiveAccount blocks suspended accounts, so these were not counted without a fresh path-specific proof."
+}
