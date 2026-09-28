@@ -366,6 +366,7 @@ export interface InvoicePaymentOutcome {
 /** Body of POST /api/invoices/:id/payments, an operator recording money by hand. */
 export interface RecordPaymentInput {
   amount_usd: number;
+  request_id?: string;
   method_label?: string;
   reference?: string;
   note?: string;
@@ -2084,6 +2085,24 @@ export const api = {
         body: JSON.stringify({ invoice_id: invoiceId }),
       });
     },
+    shipInvoice: async (invoiceId: string) => {
+      return authedFetch(`${API_URL}/api/rpc/ship-invoice`, {
+        method: 'POST',
+        body: JSON.stringify({ invoice_id: invoiceId }),
+      });
+    },
+    retryPaidStock: async (invoiceId: string): Promise<{ success: true; stock: { state: string } }> => {
+      return authedFetch(`${API_URL}/api/rpc/retry-paid-stock`, {
+        method: 'POST',
+        body: JSON.stringify({ invoice_id: invoiceId }),
+      });
+    },
+    cancelInvoice: async (invoiceId: string): Promise<{ success: true; refund_required: boolean }> => {
+      return authedFetch(`${API_URL}/api/rpc/cancel-invoice`, {
+        method: 'POST',
+        body: JSON.stringify({ invoice_id: invoiceId }),
+      });
+    },
     voidInvoice: async (invoiceId: string) => {
       return authedFetch(`${API_URL}/api/rpc/void-invoice`, {
         method: 'POST',
@@ -2988,13 +3007,14 @@ export const api = {
       store_slug: string;
       customer_name: string;
       customer_contact: string;
+      whatsapp_confirmation_consent?: boolean;
       customer_location?: string;
       notes?: string;
       items_json: string;
       total_estimate_usd: number;
       currency: string;
       source: 'whatsapp' | 'email' | 'copy' | 'website';
-    }): Promise<{ id: string; ref_number: string; tracking_token: string; source: string; success: true; idempotent?: true; email_sent?: boolean }> => {
+    }): Promise<{ id: string; ref_number: string; tracking_token: string; source: string; success: true; invoice_id?: string; invoice_number?: string; idempotent?: true; email_sent?: boolean }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/inquiries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -3009,6 +3029,25 @@ export const api = {
 
     getByTrackingToken: async (token: string): Promise<{
       ref_number: string;
+      invoice_id?: string | null;
+      invoice_number?: string | null;
+      order?: {
+        invoice_id: string;
+        invoice_number: string;
+        status: string;
+        shipping_status?: string | null;
+        shipped_at?: string | null;
+        shipping_destination?: string | null;
+        tracking_number?: string | null;
+        payment_status?: string | null;
+        fulfilled_at?: string | null;
+        refund_required?: boolean;
+      } | null;
+      payment_status?: 'unpaid' | 'partial' | 'paid';
+      shipping_destination?: string | null;
+      tracking_number?: string | null;
+      fulfilled_at?: string | null;
+      notification_status?: string | null;
       items_json: string;
       status: string;
       total_estimate_usd: number;

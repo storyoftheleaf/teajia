@@ -725,7 +725,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             at the foot of the reading instead, since there is no navigation
             there to join. commerce-dock owns both geometries, and squares the
             nav's top corners while it is sitting on it. */}
-        <div className="commerce-dock paper-surface z-nav">
+        <div className="commerce-dock commerce-price-surface paper-surface dark z-nav">
           {commerceFooter('docked')}
           {commerceReassurance}
         </div>

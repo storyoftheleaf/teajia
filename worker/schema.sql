@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS accounts (
     timezone TEXT DEFAULT 'UTC',
     currency_default TEXT DEFAULT 'USD',
     whatsapp_number TEXT,
+    order_whatsapp_notifications_enabled INTEGER NOT NULL DEFAULT 0,
     contact_email TEXT,
     public_enabled INTEGER DEFAULT 1,
     public_shop_path TEXT,
@@ -282,6 +283,12 @@ CREATE TABLE IF NOT EXISTS invoices (
     customer_id TEXT,              -- FK to customers table
     display_currency TEXT,
     shipping_cost_usd REAL DEFAULT 0,
+    shipping_destination TEXT,
+    tracking_number TEXT,
+    stock_exception TEXT,
+    source_inquiry_id TEXT,
+    cancelled_at TEXT,
+    refund_required INTEGER NOT NULL DEFAULT 0,
     status TEXT DEFAULT 'Draft',
     inventory_deducted INTEGER DEFAULT 0,
     deleted_at TEXT,                          -- Soft-delete timestamp
@@ -299,6 +306,33 @@ CREATE TABLE IF NOT EXISTS invoices (
     payment_recipient_user_id TEXT REFERENCES users(id),
     created_at TEXT DEFAULT (datetime('now'))
 );
+
+-- 4. Invoice Line Items Table
+CREATE TABLE IF NOT EXISTS order_whatsapp_outbox (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  invoice_id TEXT NOT NULL,
+  order_ref TEXT NOT NULL,
+  customer_name TEXT NOT NULL,
+  customer_contact TEXT,
+  delivery_location TEXT,
+  order_summary TEXT,
+  invoice_url TEXT NOT NULL,
+  message_purpose TEXT NOT NULL DEFAULT 'owner_notification',
+  recipient_number TEXT,
+  consent_at TEXT,
+  state TEXT NOT NULL DEFAULT 'pending',
+  attempts INTEGER NOT NULL DEFAULT 0,
+  next_attempt_at TEXT,
+  lease_token TEXT,
+  lease_expires_at TEXT,
+  provider_message_id TEXT,
+  last_error TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(account_id, invoice_id)
+);
+CREATE INDEX IF NOT EXISTS idx_order_whatsapp_outbox_due ON order_whatsapp_outbox(state, next_attempt_at);
 
 -- 4. Invoice Line Items Table
 CREATE TABLE IF NOT EXISTS invoice_line_items (
@@ -344,8 +378,24 @@ CREATE TABLE IF NOT EXISTS invoice_payments (
   claimed_at          TEXT NOT NULL DEFAULT (datetime('now')),
   confirmed_by_user_id TEXT REFERENCES users(id),
   confirmed_at        TEXT,
+  request_id          TEXT,
   created_at          TEXT NOT NULL DEFAULT (datetime('now'))
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_invoice_payment_request_once
+  ON invoice_payments(account_id, invoice_id, request_id) WHERE request_id IS NOT NULL;
+CREATE TRIGGER IF NOT EXISTS invoice_payment_no_confirmed_on_void_insert
+BEFORE INSERT ON invoice_payments
+WHEN NEW.status='confirmed' AND EXISTS (SELECT 1 FROM invoices WHERE id=NEW.invoice_id AND account_id=NEW.account_id AND status='Void')
+BEGIN SELECT RAISE(ABORT, 'confirmed_payment_on_void_invoice'); END;
+CREATE TRIGGER IF NOT EXISTS invoice_payment_no_confirmed_on_void_update
+BEFORE UPDATE OF status ON invoice_payments
+WHEN NEW.status='confirmed' AND EXISTS (SELECT 1 FROM invoices WHERE id=NEW.invoice_id AND account_id=NEW.account_id AND status='Void')
+BEGIN SELECT RAISE(ABORT, 'confirmed_payment_on_void_invoice'); END;
+CREATE TRIGGER IF NOT EXISTS invoice_no_paid_legacy_void
+BEFORE UPDATE OF status ON invoices
+WHEN NEW.status='Void' AND OLD.status!='Void' AND COALESCE(NEW.refund_required,0)=0
+  AND EXISTS (SELECT 1 FROM invoice_payments WHERE invoice_id=OLD.id AND account_id=OLD.account_id AND status='confirmed')
+BEGIN SELECT RAISE(ABORT, 'paid_invoice_requires_refund_flag'); END;
 
 -- Two reads exist and these are them.
 --

@@ -33,7 +33,7 @@ export function usePendingInvoicesSummary() {
     staleTime: 30_000,
     queryFn: async () => {
       const data = (await api.invoices.list(200)) as any[];
-      return data.filter(order => order.status === 'Pending');
+      return data.filter(order => order.status === 'Pending' || (order.status === 'Draft' && order.source_inquiry_id));
     },
   });
   return { ...query, data: scope.ready ? query.data : undefined };
