@@ -28,7 +28,7 @@ const PHOSPHOR_WEIGHT = 'light' as const;
 // wide dark page two capsules with a 32px shadow read as objects placed on
 // the page rather than part of it. Depth now comes from tone, not effects.
 //
-// The Manage column itself has two states: open (11rem, sized to its own
+// The Manage column itself has two states: open (10.5rem, sized to its own
 // longest label rather than a round number, see the measurement note below)
 // and collapsed to a 3rem icon strip. Collapsing is `sidebarCollapsed` in
 // the store, which used to sit unused; it now means "the Manage column is
@@ -41,10 +41,10 @@ const PHOSPHOR_WEIGHT = 'light' as const;
 // their padding, margin and border, not just the text: "Collections" is the
 // longest parent at roughly 130px all-in, "Carry from network" the longest
 // child at roughly 167px all-in (that number already carries the column's
-// own 28px/12px child indent). 11rem, 176px, clears both with a few px of
-// breathing room on the right, well inside the 10rem to 12.5rem band Adrian
+// own 28px/12px child indent). 10.5rem, 168px, clears both with a hair to spare (narrowed from 11rem
+// on 2026-09-28 at Adrian's ask, "a little less wide"), inside the 10rem to 12.5rem band Adrian
 // asked for, and narrower than the 12.5rem the column used to run at flat.
-const MANAGE_COLUMN_WIDTH_REM = 11;
+const MANAGE_COLUMN_WIDTH_REM = 10.5;
 const MANAGE_STRIP_WIDTH_REM = 3;
 const RAIL_WIDTH_REM = 4.5;
 
@@ -185,7 +185,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const showPanel = hasManageRoom && room === 'manage';
 
   // The aside is the rail alone (4.5rem), rail plus the open Manage column
-  // (4.5 + 11 = 15.5rem), or rail plus the collapsed icon strip (4.5 + 3 =
+  // (4.5 + 10.5 = 15rem), or rail plus the collapsed icon strip (4.5 + 3 =
   // 7.5rem). Full-screen panels read this to clear it (`.sidebar-inset`), and
   // App.tsx reads it for the main column's left margin.
   useEffect(() => {
@@ -242,7 +242,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       data-testid="left-sidebar"
       aria-label="Main navigation"
       className={`hidden lg:flex flex-row fixed left-0 top-0 h-screen z-sticky select-none transition-[width] duration-300 ${
-        !showPanel ? 'w-[4.5rem]' : sidebarCollapsed ? 'w-[7.5rem]' : 'w-[15.5rem]'
+        !showPanel ? 'w-[4.5rem]' : sidebarCollapsed ? 'w-[7.5rem]' : 'w-[15rem]'
       }`}
     >
       {/* ── The rail ─────────────────────────────────────────────────────── */}
@@ -414,7 +414,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="w-[11rem] shrink-0 h-full border-r border-tea-border flex flex-col overflow-y-auto hide-scrollbar"
+            className="nav-manage-col w-[10.5rem] shrink-0 h-full border-r border-tea-border flex flex-col overflow-y-auto hide-scrollbar"
           >
             <div className="shrink-0 flex items-center justify-between" style={{ padding: '30px 24px 14px' }}>
               <span className="font-display text-ui-15 font-medium tracking-[0.04em] lowercase text-tea-gold">

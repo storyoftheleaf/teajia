@@ -89,7 +89,7 @@ export const CatalogView: React.FC = () => {
       {isEmpty ? (
         <div className="py-14 text-center space-y-2">
           <p className="text-sm text-tea-text-sec">The wholesale catalog is not yet available for your account.</p>
-          <p className="text-xs text-tea-text-dim">Contact Adrian to get set up.</p>
+          <p className="text-xs text-tea-text-dim">Contact Teajia to get set up.</p>
         </div>
       ) : (
         <>
@@ -122,7 +122,7 @@ export const CatalogView: React.FC = () => {
                 const origin = [product.originRegion, product.originCountry].filter(Boolean).join(', ');
                 const notes = product.tastingNotes?.slice(0, 3).join(', ');
                 const waText = encodeURIComponent(
-                  `Hi Adrian, I'd like to stock ${displayName} in my Teajia account.`
+                  `Hi Teajia, I'd like to stock ${displayName} in my Teajia account.`
                 );
                 const waLink = platformWhatsapp
                   ? `https://wa.me/${platformWhatsapp.replace(/[^\d]/g, '')}?text=${waText}`

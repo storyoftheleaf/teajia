@@ -155,7 +155,7 @@ function formatAuthor(authorId?: string): string | undefined {
 
 function buildPages(article: DbArticle): Page[] {
   const pages: Page[] = [];
-  const author = article.author_name || formatAuthor(article.author_id);
+  const author = article.author_name || formatAuthor(article.author_id ?? undefined);
   const authorSlug = article.author_name && article.author_id && !/^[0-9a-f]{8}-/i.test(article.author_id)
     ? article.author_id
     : undefined;
@@ -2691,7 +2691,7 @@ export default function ArticlePage() {
 
   // Article JSON-LD for AI/search, mirrors the Product schema on ProductPage.
   const articleSlug = (article as any).slug || article.id;
-  const articleAuthor = article.author_name || formatAuthor(article.author_id);
+  const articleAuthor = article.author_name || formatAuthor(article.author_id ?? undefined);
   const articleStructuredData = {
     '@context': 'https://schema.org',
     '@type': 'Article',

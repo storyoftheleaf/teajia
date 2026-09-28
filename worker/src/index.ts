@@ -11,6 +11,9 @@ import {
 } from './curateImports';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { shippingPerGramUsd, resolveShopFreightDefault } from './shippingRate';
+import { deductStockForPaidInvoice } from './orderLifecycle';
+import { internationalWhatsAppNumber } from '../../src/lib/whatsappContact';
+import { buildCustomerOrderNotificationInsert, processPendingCustomerOrderNotifications } from './whatsappOrderNotifications';
 import { FX_FEED_CURRENCY_MAP, refreshedCurrencyName } from './exchangeRateFeed';
 import { SHOP_MARKUP_MULTIPLIER, CURATOR_FALLBACK_MARKUP } from './markup';
 import { costNeedsCurrency, createMissingCost, currencyStated, stampCostCurrencySource, canonicalizeCostCurrency, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
@@ -95,6 +98,7 @@ import {
   resolvePublishedPaymentMethods,
   type GalleryImageRow,
   type PaymentMethodRow,
+  normalizePhotoFocus,
 } from './profileDomain';
 import { decidePayAccess, isShareTokenShaped, mintShareToken, PAY_LINK_PARAM, withShareToken } from './payAccessDomain';
 import {
@@ -126,6 +130,16 @@ import { serveAtlasAdmin } from './atlasAdmin';
 
 interface Env {
   DB: D1Database;
+  WHATSAPP_ORDER_ACCOUNT_ID?: string;
+  WHATSAPP_ACCESS_TOKEN?: string;
+  WHATSAPP_PHONE_NUMBER_ID?: string;
+  WHATSAPP_SENDER_NUMBER?: string;
+  WHATSAPP_TRANSPORT?: string;
+  KAPSO_API_KEY?: string;
+  WHATSAPP_CUSTOMER_CONFIRMATIONS_ENABLED?: string;
+  WHATSAPP_CUSTOMER_TEMPLATE_NAME?: string;
+  WHATSAPP_ORDER_TEMPLATE_LANGUAGE?: string;
+  WHATSAPP_GRAPH_API_VERSION?: string;
   MEDIA_BUCKET: R2Bucket;
   // Tea Atlas (docs/TEA_ATLAS.md): the private library bucket. No public
   // address; the only way in is serveAtlas, behind canReadTeaAtlas.
@@ -201,7 +215,7 @@ interface RateLimiterBinding {
   limit: (opts: { key: string }) => Promise<{ success: boolean }>;
 }
 
-type Handler = (request: Request, env: Env, params: Record<string, string>) => Promise<Response>;
+type Handler = (request: Request, env: Env, params: Record<string, string>, ctx?: ExecutionContext) => Promise<Response>;
 
 function withCurateImportAccount(
   handler: (request: Request, env: Env, ctx: CurateImportContext, params: Record<string, string>) => Promise<Response>,
@@ -4907,25 +4921,43 @@ async function insertInvoicePayment(env: Env, args: {
   claimedBy: 'customer' | 'operator';
   status: 'claimed' | 'confirmed';
   confirmedByUserId?: string | null;
-}): Promise<string> {
+  requestId?: string | null;
+}): Promise<{ id: string; inserted: boolean }> {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   const confirmed = args.status === 'confirmed';
-  await env.DB.prepare(
-    `INSERT INTO invoice_payments
+  const written = await env.DB.prepare(
+    `INSERT OR IGNORE INTO invoice_payments
        (id, invoice_id, account_id, amount_usd, amount_original, currency,
         method_label, reference, note, status, claimed_by, claimed_at,
-        confirmed_by_user_id, confirmed_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        confirmed_by_user_id, confirmed_at, request_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id, args.invoice.id, args.invoice.account_id, args.amount,
     args.fields.amountOriginal, args.fields.currency,
     args.fields.methodLabel, args.fields.reference, args.fields.note,
     args.status, args.claimedBy, now,
     confirmed ? (args.confirmedByUserId ?? null) : null,
-    confirmed ? now : null,
+    confirmed ? now : null, args.requestId ?? null,
   ).run();
-  return id;
+  if (Number(written.meta?.changes || 0) > 0) return { id, inserted: true };
+  if (args.requestId) {
+    const prior = await env.DB.prepare(
+      `SELECT id,amount_usd,amount_original,currency,method_label,reference,note
+       FROM invoice_payments WHERE account_id=? AND invoice_id=? AND request_id=?`
+    ).bind(args.invoice.account_id, args.invoice.id, args.requestId).first() as Record<string, any> | null;
+    if (prior) {
+      const same = Number(prior.amount_usd) === args.amount
+        && (prior.amount_original ?? null) === (args.fields.amountOriginal ?? null)
+        && (prior.currency ?? null) === (args.fields.currency ?? null)
+        && (prior.method_label ?? null) === (args.fields.methodLabel ?? null)
+        && (prior.reference ?? null) === (args.fields.reference ?? null)
+        && (prior.note ?? null) === (args.fields.note ?? null);
+      if (!same) throw new Error('payment_request_conflict');
+      return { id: prior.id as string, inserted: false };
+    }
+  }
+  throw new Error('Payment was not recorded');
 }
 
 async function auditInvoicePayment(
@@ -4974,7 +5006,7 @@ async function createCustomerPaymentClaim(
   // A claim writes a report and nothing else. payment_status, payment_date,
   // payment_method and stock are all deliberately untouched: only an operator
   // confirming the transfer moves an invoice toward paid.
-  const claimId = await insertInvoicePayment(env, {
+  const claim = await insertInvoicePayment(env, {
     invoice, fields, amount, claimedBy: 'customer', status: 'claimed',
   });
   const claimsPending = (ledger.get(invoice.id)?.claims_pending ?? 0) + 1;
@@ -4991,7 +5023,7 @@ async function createCustomerPaymentClaim(
     note: fields.note,
   }).catch(() => { /* a mail failure must never fail the claim */ });
 
-  return json({ claim_id: claimId, claims_pending: claimsPending }, 201);
+  return json({ claim_id: claim.id, claims_pending: claimsPending }, 201);
 }
 
 // POST /api/orders/:ref/payment-claim — public, scoped by the tracking token
@@ -5052,6 +5084,20 @@ const handleCreateMyOrderPaymentClaim: Handler = async (request, env, params) =>
 
 // ── Operator side of the ledger ──────────────────────────────────────────────
 
+async function applyConfirmedPaymentStock(
+  env: Env, invoiceId: string, ctx: { accountId: string; userId: string; role: string; email?: string | null },
+) {
+  const stock = await deductStockForPaidInvoice(env, {
+    accountId: ctx.accountId, invoiceId, actorUserId: ctx.userId,
+    actorRole: ctx.role, actorEmail: ctx.email ?? null,
+  });
+  if (stock.state === 'blocked') {
+    await env.DB.prepare('UPDATE invoices SET stock_exception=? WHERE id=? AND account_id=? AND inventory_deducted=0')
+      .bind(stock.reason || 'stock_deduction_failed', invoiceId, ctx.accountId).run();
+  }
+  return stock;
+}
+
 // GET /api/invoices/:id/payments — the payment history on one order.
 const handleGetInvoicePayments: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'sell');
@@ -5085,17 +5131,45 @@ const handleRecordInvoicePayment: Handler = async (request, env, params) => {
   // The operator is trusted with the number. An overpayment is a real thing
   // that happens with transfer fees, and the balance simply floors at zero.
   await reconcileLedgerWithColumn(env, invoice);
-  const paymentId = await insertInvoicePayment(env, {
-    invoice, fields, amount: fields.amount,
-    claimedBy: 'operator', status: 'confirmed', confirmedByUserId: ctx.userId,
-  });
+  const requestId = typeof body.request_id === 'string' ? body.request_id.trim() : null;
+  if (requestId && !/^[A-Za-z0-9_-]{8,128}$/.test(requestId)) {
+    return restError(400, 'request_id must be 8–128 URL-safe characters', 'invalid_request_id');
+  }
+  let payment: { id: string; inserted: boolean };
+  try {
+    payment = await insertInvoicePayment(env, {
+      invoice, fields, amount: fields.amount,
+      claimedBy: 'operator', status: 'confirmed', confirmedByUserId: ctx.userId,
+      requestId,
+    });
+  } catch (error) {
+    if (/payment_request_conflict/i.test(String(error))) {
+      return restError(409, 'This payment request ID was already used with different details', 'payment_request_conflict');
+    }
+    if (/confirmed_payment_on_void_invoice/i.test(String(error))) {
+      return restError(409, 'A cancelled order cannot take payment', 'invoice_void');
+    }
+    throw error;
+  }
+  if (!payment.inserted) {
+    const current = await loadLedgerInvoice(env, invoice.id, ctx.accountId);
+    const result = current ? await recomputeInvoicePaymentStatus(env, current) : null;
+    const stock = result?.payment_status === 'paid'
+      ? await applyConfirmedPaymentStock(env, invoice.id, ctx)
+      : { state: 'not_due' as const };
+    return json({ payment_id: payment.id, idempotent: true, ...result, stock }, 200);
+  }
+  const paymentId = payment.id;
   const result = await recomputeInvoicePaymentStatus(env, invoice);
+  const stock = result.payment_status === 'paid'
+    ? await applyConfirmedPaymentStock(env, invoice.id, ctx)
+    : { state: 'not_due' as const };
   await auditInvoicePayment(
     env, ctx, invoice, 'INVOICE_PAYMENT_RECORDED',
     `Payment of ${fields.amount.toFixed(2)} USD recorded on invoice ${invoice.invoice_number ?? invoice.id}`,
     { payment_id: paymentId, amount_usd: fields.amount, payment_status: result.payment_status },
   );
-  return json({ payment_id: paymentId, ...result }, 201);
+  return json({ payment_id: paymentId, ...result, stock }, 201);
 };
 
 /**
@@ -5139,9 +5213,20 @@ async function transitionInvoicePayment(
             SET status = 'rejected', confirmed_by_user_id = ?, confirmed_at = NULL
           WHERE id = ? AND account_id = ? AND status IN ('claimed', 'confirmed')`
       ).bind(ctx.userId, paymentId, ctx.accountId);
-  const changed = Number((await update.run()).meta?.changes || 0) > 0;
+  let changed: boolean;
+  try {
+    changed = Number((await update.run()).meta?.changes || 0) > 0;
+  } catch (error) {
+    if (/confirmed_payment_on_void_invoice/i.test(String(error))) {
+      return restError(409, 'A cancelled order cannot take payment', 'invoice_void');
+    }
+    throw error;
+  }
 
   const result = await recomputeInvoicePaymentStatus(env, invoice);
+  const stock = next === 'confirmed' && result.payment_status === 'paid'
+    ? await applyConfirmedPaymentStock(env, invoice.id, ctx)
+    : { state: 'not_due' as const };
   if (changed) {
     const amount = Number(row.amount_usd || 0).toFixed(2);
     await auditInvoicePayment(
@@ -5162,7 +5247,7 @@ async function transitionInvoicePayment(
       }).catch(() => { /* a mail failure must never fail the confirmation */ });
     }
   }
-  return json({ success: true, changed, payment_id: paymentId, status: next, ...result });
+  return json({ success: true, changed, payment_id: paymentId, status: next, ...result, stock });
 }
 
 const handleConfirmInvoicePayment: Handler = (request, env, params) =>
@@ -5445,13 +5530,15 @@ const handleGetInvoices: Handler = async (request, env) => {
     : 'WHERE i.account_id = ? AND i.deleted_at IS NULL';
   const result = await env.DB.prepare(
     `SELECT i.*, COALESCE(t.line_total, 0) as computed_total,
-       ev.title as source_event_title, ev.slug as source_event_slug
+       ev.title as source_event_title, ev.slug as source_event_slug,
+       ono.state AS notification_status, ono.message_purpose AS notification_purpose
      FROM invoices i
      LEFT JOIN (
        SELECT invoice_id, SUM(quantity * price_at_sale) as line_total
        FROM invoice_line_items GROUP BY invoice_id
      ) t ON t.invoice_id = i.id
      LEFT JOIN events ev ON ev.id = i.source_event_id
+     LEFT JOIN order_whatsapp_outbox ono ON ono.invoice_id=i.id AND ono.account_id=i.account_id
      ${whereClause}
      ORDER BY i.created_at DESC LIMIT ? OFFSET ?`
   ).bind(accountId, limit, offset).all();
@@ -5738,18 +5825,44 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
     return invalidInvoiceResponse(error);
   }
   delete body.account_id;
-  const invoice = await env.DB.prepare('SELECT id,status,sold_by_user_id FROM invoices WHERE id=? AND account_id=?')
+  const invoice = await env.DB.prepare('SELECT id,status,sold_by_user_id,inventory_deducted,source_inquiry_id FROM invoices WHERE id=? AND account_id=?')
     .bind(params.id, accountId).first() as Record<string, any> | null;
   if (!invoice) return restError(404, 'Invoice not found', 'invoice_not_found');
-  const INVOICE_ALLOWED_COLS = new Set(['customer_name','customer_id','customer_phone','customer_email','status','notes','display_currency','amount_usd','shipping_cost_usd','message_text','payment_status','paid_at','payment_date','due_date','payment_method','currency_rate','source_event_id']);
+  const INVOICE_ALLOWED_COLS = new Set(['customer_name','customer_id','customer_phone','customer_email','status','notes','display_currency','amount_usd','shipping_cost_usd','shipping_destination','tracking_number','message_text','payment_status','paid_at','payment_date','due_date','payment_method','currency_rate','source_event_id']);
   const cols = Object.keys(body).filter(k => INVOICE_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ success: true });
+  if (invoice.inventory_deducted && body.status && body.status !== invoice.status) {
+    return restError(409, 'A paid order must be shipped or cancelled through its own action', 'paid_order_status_locked');
+  }
+  if (invoice.source_inquiry_id && ['Filled', 'Void'].includes(String(body.status || ''))) {
+    return restError(409, 'Use the ship or cancel order action', 'order_action_required');
+  }
+  if (invoice.source_inquiry_id && invoice.status === 'Filled' && 'shipping_cost_usd' in body) {
+    return restError(409, 'A shipped order cannot have its shipping balance changed', 'already_shipped');
+  }
+  if (invoice.source_inquiry_id && invoice.status === 'Pending' && body.status === 'Draft') {
+    const ledger = await loadInvoiceLedgerTotals(env, [params.id]);
+    if ((ledger.get(params.id)?.paid_usd ?? 0) > 0) {
+      return restError(409, 'Use cancel order after payment has started', 'payment_already_started');
+    }
+  }
+  if (invoice.source_inquiry_id && ['payment_status','paid_at','payment_date','payment_method'].some(key => key in body)) {
+    return restError(409, 'Record or confirm a payment through the payment ledger', 'payment_ledger_required');
+  }
   try {
     if (Object.prototype.hasOwnProperty.call(body, 'customer_id')) {
       await assertInvoiceCustomerBelongsToAccount(env, accountId, body.customer_id);
     }
     if (Object.prototype.hasOwnProperty.call(body, 'shipping_cost_usd')) {
       body.shipping_cost_usd = validateShippingCostUsd(body.shipping_cost_usd);
+    }
+    for (const key of ['shipping_destination', 'tracking_number']) {
+      if (Object.prototype.hasOwnProperty.call(body, key)) {
+        if (body[key] != null && (typeof body[key] !== 'string' || body[key].length > 500)) {
+          return restError(400, `${key} must be text under 500 characters`, 'invalid_shipping_field');
+        }
+        body[key] = typeof body[key] === 'string' ? body[key].trim() || null : null;
+      }
     }
     if (Object.prototype.hasOwnProperty.call(body, 'payment_status')) {
       body.payment_status = validatePaymentStatusValue(body.payment_status);
@@ -5758,7 +5871,18 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
     return invalidInvoiceResponse(error);
   }
   const sets = cols.map(c => `${c} = ?`).join(', ');
+  const lease = await claimInvoiceLinkLease(env, accountId, params.id);
+  if (!lease) return restError(409, 'Order is being changed elsewhere', 'invoice_busy');
+  const editClaim = lease.claimToken;
+  if (lease.invoice.status !== invoice.status || Number(lease.invoice.inventory_deducted) !== Number(invoice.inventory_deducted)) {
+    await releaseInvoiceLinkLease(env, accountId, params.id, editClaim);
+    return restError(409, 'Order changed before editing', 'invoice_edit_conflict');
+  }
   try {
+    if (Object.prototype.hasOwnProperty.call(body, 'shipping_cost_usd')) {
+      const prior = await loadLedgerInvoice(env, params.id, accountId);
+      if (prior) await reconcileLedgerWithColumn(env, prior);
+    }
     const statements: D1PreparedStatement[] = [];
     if (invoice.status === 'Draft' && body.status === 'Pending') {
       const current = await env.DB.prepare(
@@ -5773,6 +5897,7 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
           .filter(line => !(Number(line.price_at_sale) > 0));
         if (unpriced.length > 0) {
           const names = await namesForLines(env, accountId, unpriced);
+          await releaseInvoiceLinkLease(env, accountId, params.id, editClaim);
           return restError(
             409,
             names.length === 1
@@ -5794,24 +5919,38 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
       statements.push(...buildInvoiceReservationStatements(env, {
         accountId, invoiceId: params.id, lines: authorized,
         expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+        guard: { invoiceId: params.id, claimToken: editClaim, status: 'Draft', inventoryDeducted: 0 },
       }));
       statements.push(env.DB.prepare(
-        'UPDATE invoices SET sold_by_user_id=?,payment_recipient_user_id=? WHERE id=? AND account_id=?'
-      ).bind(seller.actorUserId, resolvePaymentRecipientUserId(authorized), params.id, accountId));
+        'UPDATE invoices SET sold_by_user_id=?,payment_recipient_user_id=? WHERE id=? AND account_id=? AND fulfillment_claim_token=?'
+      ).bind(seller.actorUserId, resolvePaymentRecipientUserId(authorized), params.id, accountId, editClaim));
     } else if (invoice.status === 'Pending' && body.status === 'Draft') {
-      statements.push(env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id=? AND account_id=?').bind(params.id, accountId));
+      statements.push(env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id=? AND account_id=? AND EXISTS (SELECT 1 FROM invoices WHERE id=? AND account_id=? AND fulfillment_claim_token=?)')
+        .bind(params.id, accountId, params.id, accountId, editClaim));
     }
-    statements.push(env.DB.prepare(`UPDATE invoices SET ${sets} WHERE id = ? AND account_id = ?`)
-      .bind(...cols.map(c => body[c] ?? null), params.id, accountId));
-    await env.DB.batch(statements);
+    const updateIndex = statements.length;
+    statements.push(env.DB.prepare(`UPDATE invoices SET ${sets},fulfillment_claim_token=NULL,fulfillment_claimed_at=NULL
+      WHERE id=? AND account_id=? AND fulfillment_claim_token=? AND status=? AND inventory_deducted=?`)
+      .bind(...cols.map(c => body[c] ?? null), params.id, accountId, editClaim, invoice.status, invoice.inventory_deducted));
+    const results = await env.DB.batch(statements);
+    if (!Number(results[updateIndex]?.meta?.changes || 0)) {
+      await releaseInvoiceLinkLease(env, accountId, params.id, editClaim);
+      return restError(409, 'Order changed before editing', 'invoice_edit_conflict');
+    }
   } catch (error) {
+    await releaseInvoiceLinkLease(env, accountId, params.id, editClaim);
     if (/insufficient available stock/i.test(String((error as Error)?.message || error))) {
       return restError(409, 'Insufficient available stock', 'insufficient_available_stock');
     }
     return salesError(error);
   }
+  let payment: LedgerRecompute | null = null;
+  if (Object.prototype.hasOwnProperty.call(body, 'shipping_cost_usd')) {
+    const current = await loadLedgerInvoice(env, params.id, accountId);
+    if (current) payment = await recomputeInvoicePaymentStatus(env, current);
+  }
   await ensureContactRelationship(env, accountId, body.customer_id, 'buyer', 'workflow', 'invoice', params.id);
-  return json({ success: true });
+  return json({ success: true, payment });
 };
 
 const handleDeleteInvoice: Handler = async (request, env, params) => {
@@ -5845,6 +5984,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
     .bind(invoice_id, accountId).first() as Record<string, any> | null;
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
+  if (invoice.source_inquiry_id) return restError(409, 'Use the ship order action for a website order', 'use_ship_invoice');
   if (invoice.inventory_deducted) return json({ error: 'Inventory already deducted' }, 409);
 
   const items = await env.DB.prepare(
@@ -6337,6 +6477,112 @@ const handleFeatureStatusSave: Handler = async (request, env) => {
 };
 
 // ── RPC: Void Invoice (atomic server-side) ──
+const handleCancelInvoice: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json().catch(() => ({})) as { invoice_id?: string };
+  const invoiceId = String(body.invoice_id || '').trim();
+  if (!invoiceId) return restError(400, 'invoice_id is required', 'invalid_invoice_id');
+  const invoice = await env.DB.prepare(
+    `SELECT id,status,invoice_number,inventory_deducted FROM invoices WHERE id=? AND account_id=? AND deleted_at IS NULL`
+  ).bind(invoiceId, ctx.accountId).first() as Record<string, any> | null;
+  if (!invoice) return restError(404, 'Invoice not found', 'invoice_not_found');
+  if (invoice.status === 'Filled') return restError(409, 'A shipped order needs a return or refund process', 'already_shipped');
+  if (invoice.status === 'Void') {
+    const current = await env.DB.prepare('SELECT refund_required,cancelled_at FROM invoices WHERE id=? AND account_id=?')
+      .bind(invoiceId, ctx.accountId).first() as Record<string, any> | null;
+    return json({ success: true, idempotent: true, refund_required: Boolean(current?.refund_required), cancelled_at: current?.cancelled_at ?? null });
+  }
+  const claim = crypto.randomUUID();
+  const claimed = await env.DB.prepare(
+    `UPDATE invoices SET fulfillment_claim_token=?,fulfillment_claimed_at=datetime('now')
+     WHERE id=? AND account_id=? AND status IN ('Draft','Pending')
+       AND (fulfillment_claim_token IS NULL OR fulfillment_claimed_at IS NULL
+         OR fulfillment_claimed_at<datetime('now','-5 minutes')) RETURNING id`
+  ).bind(claim, invoiceId, ctx.accountId).first();
+  if (!claimed) return restError(409, 'Order is being changed elsewhere', 'invoice_busy');
+  try {
+    const results = await env.DB.batch([
+      env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id=? AND account_id=?').bind(invoiceId, ctx.accountId),
+      env.DB.prepare(
+        `UPDATE invoices SET status='Void',cancelled_at=datetime('now'),
+         refund_required=CASE WHEN EXISTS (SELECT 1 FROM invoice_payments
+           WHERE invoice_id=invoices.id AND account_id=invoices.account_id AND status='confirmed') THEN 1 ELSE 0 END,
+         fulfillment_claim_token=NULL,fulfillment_claimed_at=NULL
+         WHERE id=? AND account_id=? AND fulfillment_claim_token=? AND status IN ('Draft','Pending')`
+      ).bind(invoiceId, ctx.accountId, claim),
+      buildActivityLog(env, 'INVOICE_CANCELLED',
+        `Order ${invoice.invoice_number} cancelled. Check payment history for refund due.`,
+        ctx.email, 'invoice', invoiceId, ctx.accountId),
+    ]);
+    if (!Number(results[1]?.meta?.changes || 0)) return restError(409, 'Order changed before cancellation', 'invoice_busy');
+    const cancelled = await env.DB.prepare('SELECT refund_required,cancelled_at FROM invoices WHERE id=? AND account_id=?')
+      .bind(invoiceId, ctx.accountId).first() as { refund_required: number; cancelled_at: string } | null;
+    return json({ success: true, refund_required: Boolean(cancelled?.refund_required), cancelled_at: cancelled?.cancelled_at ?? null });
+  } catch (error) {
+    await env.DB.prepare(
+      'UPDATE invoices SET fulfillment_claim_token=NULL,fulfillment_claimed_at=NULL WHERE id=? AND account_id=? AND fulfillment_claim_token=?'
+    ).bind(invoiceId, ctx.accountId, claim).run().catch(() => {});
+    throw error;
+  }
+};
+
+const handleShipInvoice: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json().catch(() => ({})) as { invoice_id?: string; tracking_number?: string };
+  const invoiceId = String(body.invoice_id || '').trim();
+  if (!invoiceId) return restError(400, 'invoice_id is required', 'invalid_invoice_id');
+  const invoice = await env.DB.prepare(
+    `SELECT id,status,inventory_deducted,fulfilled_at FROM invoices WHERE id=? AND account_id=? AND deleted_at IS NULL`
+  ).bind(invoiceId, ctx.accountId).first() as Record<string, any> | null;
+  if (!invoice) return restError(404, 'Invoice not found', 'invoice_not_found');
+  if (invoice.status === 'Filled') return json({ success: true, idempotent: true, shipped_at: invoice.fulfilled_at });
+  const priced = await loadLedgerInvoice(env, invoiceId, ctx.accountId);
+  const ledger = await loadInvoiceLedgerTotals(env, [invoiceId]);
+  if (!priced || (ledger.get(invoiceId)?.paid_usd ?? 0) < priced.total_usd - PAYMENT_EPSILON) {
+    return restError(409, 'The current balance must be paid before shipping', 'balance_due');
+  }
+  if (invoice.status !== 'Pending') return restError(409, 'The order is not ready to ship', 'not_ready_to_ship');
+  if (!invoice.inventory_deducted && priced.total_usd <= 0) {
+    const freeStock = await deductStockForPaidInvoice(env, {
+      accountId: ctx.accountId, invoiceId, actorUserId: ctx.userId,
+      actorRole: ctx.role, actorEmail: ctx.email,
+      allowZeroTotal: true,
+    });
+    if (freeStock.state === 'blocked') return json({ error: 'Stock could not be reserved', stock: freeStock }, 409);
+  } else if (!invoice.inventory_deducted) {
+    return restError(409, 'The order is not ready to ship', 'not_ready_to_ship');
+  }
+  const tracking = body.tracking_number == null ? null : body.tracking_number.trim();
+  if (tracking && tracking.length > 500) return restError(400, 'Tracking number is too long', 'invalid_tracking_number');
+  const shippedAt = new Date().toISOString();
+  const changed = await env.DB.prepare(
+    `UPDATE invoices SET status='Filled',fulfilled_at=?,tracking_number=COALESCE(?,tracking_number)
+     WHERE id=? AND account_id=? AND status='Pending' AND inventory_deducted=1
+       AND fulfillment_claim_token IS NULL
+       AND COALESCE((SELECT SUM(amount_usd) FROM invoice_payments
+         WHERE invoice_id=invoices.id AND account_id=invoices.account_id AND status='confirmed'),0)
+         >= COALESCE((SELECT SUM(quantity*price_at_sale) FROM invoice_line_items
+         WHERE invoice_id=invoices.id AND account_id=invoices.account_id),0)
+         + COALESCE(shipping_cost_usd,0) - 0.01`
+  ).bind(shippedAt, tracking, invoiceId, ctx.accountId).run();
+  if (!Number(changed.meta?.changes || 0)) return restError(409, 'Order changed before shipping', 'invoice_busy');
+  await buildActivityLog(env, 'INVOICE_SHIPPED', `Order ${invoiceId} shipped`, ctx.email, 'invoice', invoiceId, ctx.accountId).run();
+  return json({ success: true, shipped_at: shippedAt, tracking_number: tracking });
+};
+
+const handleRetryPaidStock: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json().catch(() => ({})) as { invoice_id?: string };
+  const invoiceId = String(body.invoice_id || '').trim();
+  if (!invoiceId) return restError(400, 'invoice_id is required', 'invalid_invoice_id');
+  const stock = await applyConfirmedPaymentStock(env, invoiceId, ctx);
+  if (stock.state === 'blocked') return json({ success: false, stock }, 409);
+  return json({ success: true, stock });
+};
+
 const handleVoidInvoice: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
@@ -6349,6 +6595,11 @@ const handleVoidInvoice: Handler = async (request, env) => {
     .bind(invoice_id, accountId).first() as Record<string, any> | null;
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
   if (invoice.status === 'Void') return json({ error: 'Invoice is already voided' }, 400);
+  if (invoice.source_inquiry_id) return restError(409, 'Use cancel order for a website order', 'use_cancel_invoice');
+  const money = await loadInvoiceLedgerTotals(env, [invoice_id]);
+  if ((money.get(invoice_id)?.paid_usd ?? 0) > 0 || invoice.payment_status === 'paid') {
+    return restError(409, 'Use cancel order to preserve payment and mark refund needed', 'refund_required');
+  }
 
   // Claim the invoice before restoring anything. The read above and the batch
   // below are not one operation, so two voids arriving together both passed the
@@ -6602,9 +6853,17 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
   const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
     .bind(params.id, accountId).first() as Record<string, any> | null;
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
-  if (invoice.status !== 'Pending') return json({ error: 'Only Pending invoices can be edited' }, 400);
+  if (!['Draft', 'Pending'].includes(String(invoice.status)) || invoice.inventory_deducted) {
+    return json({ error: 'Only unpaid Draft or Pending invoices can be edited' }, 400);
+  }
 
   const hasReplacementLines = Object.prototype.hasOwnProperty.call(body, 'lineItems');
+  if (hasReplacementLines) {
+    const ledger = await loadInvoiceLedgerTotals(env, [params.id]);
+    if ((ledger.get(params.id)?.paid_usd ?? 0) > 0 || invoice.payment_status === 'paid') {
+      return restError(409, 'Paid order lines cannot be changed', 'paid_order_lines_locked');
+    }
+  }
   const hasCustomerIdUpdate = Object.prototype.hasOwnProperty.call(body, 'customer_id');
   let lines: unknown = body.lineItems;
   if (!hasReplacementLines) {
@@ -6630,9 +6889,9 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
     return invalidInvoiceResponse(error);
   }
 
-  const editClaim = await claimInvoiceEditLease(env, accountId, params.id);
+  const editClaim = await claimInvoiceEditLease(env, accountId, params.id, invoice.status as 'Draft' | 'Pending');
   if (!editClaim) return restError(409, 'Invoice is no longer available for editing', 'invoice_edit_conflict');
-  const leaseGuard = { invoiceId: params.id, claimToken: editClaim, status: 'Pending', inventoryDeducted: 0 };
+  const leaseGuard = { invoiceId: params.id, claimToken: editClaim, status: String(invoice.status), inventoryDeducted: 0 };
 
   const stmts: D1PreparedStatement[] = [];
   let replacementPaymentRecipient: string | null | undefined;
@@ -6640,7 +6899,9 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
   if (hasReplacementLines) {
     let authorized: AuthorizedInvoiceLine[];
     try {
-      const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice);
+      const seller = invoice.sold_by_user_id
+        ? await invoiceSellerAuthorizationContext(env, accountId, invoice)
+        : { actorUserId: ctx.userId, actorRole: ctx.role };
       authorized = await authorizeInvoiceLines(env, {
         accountId, ...seller, lines: input.lineItems,
       });
@@ -6651,24 +6912,23 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
     replacementPaymentRecipient = resolvePaymentRecipientUserId(authorized);
     stmts.push(env.DB.prepare(
       `DELETE FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?
-       AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = 'Pending'
+       AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = ?
          AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
-    ).bind(params.id, accountId, params.id, accountId, editClaim));
+    ).bind(params.id, accountId, params.id, accountId, invoice.status, editClaim));
     for (const item of authorized) {
       stmts.push(env.DB.prepare(
         `INSERT INTO invoice_line_items
          (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,stock_owner_user_id,sales_grant_id,owner_share_type,owner_share_value)
          SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-         WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = 'Pending'
+         WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = ?
            AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
       ).bind(crypto.randomUUID(), accountId, params.id, item.product_id ?? null, item.custom_name ?? null,
         item.quantity, item.price_at_sale, item.stock_owner_user_id, item.sales_grant_id,
-        item.owner_share_type, item.owner_share_value, params.id, accountId, editClaim));
+        item.owner_share_type, item.owner_share_value, params.id, accountId, invoice.status, editClaim));
     }
-    stmts.push(...buildInvoiceReservationStatements(env, {
+    if (invoice.status === 'Pending') stmts.push(...buildInvoiceReservationStatements(env, {
       accountId, invoiceId: params.id, lines: authorized,
-      expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
-      guard: leaseGuard,
+      expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(), guard: leaseGuard,
     }));
   }
 
@@ -6694,9 +6954,9 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
   }
   if (updates.length > 0) {
     stmts.push(env.DB.prepare(
-      `UPDATE invoices SET ${updates.join(', ')} WHERE id = ? AND account_id = ? AND status = 'Pending'
+      `UPDATE invoices SET ${updates.join(', ')} WHERE id = ? AND account_id = ? AND status = ?
        AND inventory_deducted = 0 AND fulfillment_claim_token = ?`
-    ).bind(...vals, params.id, accountId, editClaim));
+    ).bind(...vals, params.id, accountId, invoice.status, editClaim));
   }
 
   stmts.push(buildActivityLog(env, 'INVOICE_EDITED',
@@ -6706,8 +6966,8 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
   const releaseIndex = stmts.length;
   stmts.push(env.DB.prepare(
     `UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL
-     WHERE id = ? AND account_id = ? AND status = 'Pending' AND inventory_deducted = 0 AND fulfillment_claim_token = ?`
-  ).bind(params.id, accountId, editClaim));
+     WHERE id = ? AND account_id = ? AND status = ? AND inventory_deducted = 0 AND fulfillment_claim_token = ?`
+  ).bind(params.id, accountId, invoice.status, editClaim));
 
   try {
     const results = await env.DB.batch(stmts);
@@ -7684,7 +7944,11 @@ const CONTRIBUTOR_WRITE_FIELDS = [
   'beginnings', 'now_text', 'now_stamp', 'now_updated_at', 'inspirations', 'closing', 'avatar_url',
   'portrait_url', 'portrait_caption', 'voice_clip_url', 'voice_clip_caption',
   'pouring_today_product_id', 'pouring_today_note', 'where_to_find_text', 'user_id',
+  'portrait_focus', 'avatar_focus',
 ] as const;
+
+// Written only through normalizePhotoFocus, never as free text.
+const CONTRIBUTOR_FOCUS_FIELDS = ['portrait_focus', 'avatar_focus'] as const;
 
 const PROFILE_SELF_FIELDS = [
   'display_name', 'business_name', 'chinese_name', 'pronouns', 'location_line', 'active_since', 'languages',
@@ -7715,6 +7979,12 @@ function parseContributorWrite(body: Record<string, unknown>) {
     else if (typeof value === 'string') values[field] = value.trim() || null;
     else return { error: `${field} must be a string or null` };
   }
+  for (const field of CONTRIBUTOR_FOCUS_FIELDS) {
+    if (!(field in body)) continue;
+    const focus = normalizePhotoFocus(body[field]);
+    if (focus.error) return { error: `${field}: ${focus.error}` };
+    values[field] = focus.value ?? null;
+  }
   if (typeof values.closing === 'string' && values.closing.length > 200) return { error: 'closing must be 200 characters or fewer' };
   const links = parseContributorLinks(body.links);
   if (links.error) return { error: links.error };
@@ -7742,12 +8012,12 @@ function adminContributor(row: Record<string, any>) {
 const CONTRIBUTOR_GALLERY_IMAGE_LIMIT = 8;
 const GALLERY_CAPTION_LIMIT = 280;
 
-function parseGalleryImages(value: unknown): { value?: Array<{ image_url: string; caption: string | null }>; error?: string } {
+function parseGalleryImages(value: unknown): { value?: Array<{ image_url: string; caption: string | null; focus: string | null }>; error?: string } {
   if (!Array.isArray(value)) return { error: 'gallery_images must be an array' };
   if (value.length > CONTRIBUTOR_GALLERY_IMAGE_LIMIT) {
     return { error: `gallery_images may hold at most ${CONTRIBUTOR_GALLERY_IMAGE_LIMIT} photos` };
   }
-  const normalized: Array<{ image_url: string; caption: string | null }> = [];
+  const normalized: Array<{ image_url: string; caption: string | null; focus: string | null }> = [];
   for (const item of value) {
     if (!item || typeof item !== 'object') return { error: 'Each gallery image must be an object' };
     const rawUrl = typeof (item as any).image_url === 'string' ? (item as any).image_url.trim() : '';
@@ -7764,27 +8034,29 @@ function parseGalleryImages(value: unknown): { value?: Array<{ image_url: string
     if (trimmedCaption.length > GALLERY_CAPTION_LIMIT) {
       return { error: `caption must be ${GALLERY_CAPTION_LIMIT} characters or fewer` };
     }
-    normalized.push({ image_url: url.toString(), caption: trimmedCaption || null });
+    const focus = normalizePhotoFocus((item as any).focus);
+    if (focus.error) return { error: focus.error };
+    normalized.push({ image_url: url.toString(), caption: trimmedCaption || null, focus: focus.value ?? null });
   }
   return { value: normalized };
 }
 
-function replaceGalleryImagesStatements(env: Env, contributorId: string, images: Array<{ image_url: string; caption: string | null }>): D1PreparedStatement[] {
+function replaceGalleryImagesStatements(env: Env, contributorId: string, images: Array<{ image_url: string; caption: string | null; focus?: string | null }>): D1PreparedStatement[] {
   const statements: D1PreparedStatement[] = [
     env.DB.prepare('DELETE FROM contributor_gallery_images WHERE contributor_id = ?').bind(contributorId),
   ];
   images.forEach((image, index) => {
     statements.push(env.DB.prepare(
-      `INSERT INTO contributor_gallery_images (id, contributor_id, image_url, caption, position, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))`
-    ).bind(crypto.randomUUID(), contributorId, image.image_url, image.caption, index));
+      `INSERT INTO contributor_gallery_images (id, contributor_id, image_url, caption, focus, position, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`
+    ).bind(crypto.randomUUID(), contributorId, image.image_url, image.caption, image.focus ?? null, index));
   });
   return statements;
 }
 
 async function contributorGalleryImages(env: Env, contributorId: string) {
   const rows = await env.DB.prepare(
-    `SELECT id, contributor_id, image_url, caption, position
+    `SELECT id, contributor_id, image_url, caption, focus, position
        FROM contributor_gallery_images
       WHERE contributor_id = ?
       ORDER BY position ASC`
@@ -7797,7 +8069,7 @@ async function contributorGalleryImagesByIds(env: Env, contributorIds: string[])
   if (!contributorIds.length) return map;
   const placeholders = contributorIds.map(() => '?').join(', ');
   const rows = await env.DB.prepare(
-    `SELECT id, contributor_id, image_url, caption, position
+    `SELECT id, contributor_id, image_url, caption, focus, position
        FROM contributor_gallery_images
       WHERE contributor_id IN (${placeholders})
       ORDER BY contributor_id, position ASC`
@@ -13759,7 +14031,44 @@ const handleGetNewsletterSubscribers: Handler = async (request, env) => {
 
 // ── Cart Inquiries ──────────────────────────────────────────────────────────
 
-const handleCreateInquiry: Handler = async (request, env) => {
+async function pricedRequestLines(env: Env, accountId: string, items: Array<Record<string, any>>) {
+  const productIds = catalogProductIds(items);
+  const [productRows, rateRows] = await Promise.all([
+    productIds.length ? env.DB.prepare(
+      `SELECT p.*, COALESCE(tp.form, p.form) AS form
+         FROM products p LEFT JOIN tea_profiles tp ON tp.id='prof_' || p.id
+        WHERE p.account_id=? AND p.id IN (${productIds.map(() => '?').join(',')})`
+    ).bind(accountId, ...productIds).all() : Promise.resolve({ results: [] }),
+    env.DB.prepare('SELECT currency,rate_to_usd FROM exchange_rates').all(),
+  ]);
+  if ((productRows.results ?? []).length !== productIds.length) throw new Error('Store or items not found');
+  const rates = new Map<string, number>((rateRows.results as any[]).map(row => [row.currency, row.rate_to_usd]));
+  const shopDefaultPerKgUsd = await shopFreightPerKgUsd(env, accountId, rates);
+  const products = new Map<string, Record<string, any>>();
+  for (const row of (productRows.results ?? []) as Array<Record<string, any>>) {
+    const priced = addPricingFields(row, rates, shopDefaultPerKgUsd);
+    const currency = String(row.cost_currency || '').trim();
+    if (row.cost_amount == null || (currency && currency.toUpperCase() !== 'UNK' && !lookupRateToUsd(rates, currency))) {
+      priced.retail_price_per_gram_usd = null;
+    }
+    products.set(row.id as string, priced);
+  }
+  return items.map(item => {
+    const packing = inquiryPacking(item);
+    if (!packing) throw new Error('This request contains an invalid pack quantity.');
+    const quantity = packing.packGrams * packing.packs;
+    const product = products.get(String(item.id || ''));
+    const name = String(product?.given_name || product?.product_name || item.name || 'Item');
+    return {
+      product_id: product && isTeaType(String(product.type || '')) ? String(product.id) : null,
+      custom_name: `${name} (${inquiryPackingLabel({ ...item, category: product?.type === 'Teaware' ? 'ware' : item.category })})`,
+      quantity,
+      price_at_sale: product ? quoteInquiryLine(item, product) / quantity : 0,
+    };
+  });
+}
+
+const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
   const inquiryIp = request.headers.get('CF-Connecting-IP') || 'unknown';
   const limited = await enforceDurableLimit(env.INQUIRY_LIMITER, 'INQUIRY_LIMITER', `inquiry:${inquiryIp}`);
   if (limited) return limited;
@@ -13773,7 +14082,17 @@ const handleCreateInquiry: Handler = async (request, env) => {
   const name = typeof nameValue === 'string' ? nameValue.trim() : '';
   const contact = typeof contactValue === 'string' ? contactValue.trim() : '';
 
-  if (!name || !contact) {
+  if (body.whatsapp_handoff !== undefined && typeof body.whatsapp_handoff !== 'boolean') {
+    return json({ error: 'WhatsApp handoff must be true or false.' }, 400);
+  }
+  const whatsappHandoff = body.whatsapp_handoff === true;
+  if (whatsappHandoff && source !== 'website') {
+    return json({ error: 'WhatsApp handoff is only available for website orders.' }, 400);
+  }
+  if (whatsappHandoff && body.whatsapp_confirmation_consent === true) {
+    return json({ error: 'Choose a WhatsApp handoff or an automatic confirmation, not both.' }, 400);
+  }
+  if (!name || (!contact && !whatsappHandoff)) {
     return json({ error: 'Name and contact are required' }, 400);
   }
   const nameError = inquiryFieldTooLong('Name', name, INQUIRY_MAX_NAME);
@@ -13781,8 +14100,17 @@ const handleCreateInquiry: Handler = async (request, env) => {
   const contactError = inquiryFieldTooLong('Contact', contact, INQUIRY_MAX_CONTACT);
   if (contactError) return json({ error: contactError }, 400);
 
-  if (source === 'website' && !inquiryEmail(contact)) {
-    return json({ error: 'Enter a valid email address so the store can reply.' }, 400);
+  if (source === 'website' && contact && !inquiryEmail(contact) && !inquiryPhone(contact)) {
+    return json({ error: 'Enter a valid email or phone number so the store can reply.' }, 400);
+  }
+
+  if (body.whatsapp_confirmation_consent !== undefined && typeof body.whatsapp_confirmation_consent !== 'boolean') {
+    return json({ error: 'WhatsApp confirmation consent must be true or false.' }, 400);
+  }
+  const whatsappConsent = source === 'website' && body.whatsapp_confirmation_consent === true;
+  const whatsappRecipient = whatsappConsent ? internationalWhatsAppNumber(contact) : null;
+  if (whatsappConsent && !whatsappRecipient) {
+    return json({ error: 'Enter your WhatsApp number with + and country code to request a confirmation.' }, 400);
   }
 
   let itemsStr: string;
@@ -13835,10 +14163,18 @@ const handleCreateInquiry: Handler = async (request, env) => {
 
     const accountId = await getPublicAccountIdBySlug(env, normalized.value.storeSlug);
     if (!accountId) return json({ error: 'Store not found' }, 404);
+    if (whatsappHandoff) {
+      const business = await env.DB.prepare('SELECT whatsapp_number FROM accounts WHERE id=?').bind(accountId).first<{ whatsapp_number: string | null }>();
+      const businessNumber = business?.whatsapp_number?.trim() || '';
+      if (!internationalWhatsAppNumber(businessNumber.startsWith('+') ? businessNumber : `+${businessNumber}`)) {
+        return json({ error: 'This store has not configured a valid WhatsApp number. Add your contact details to save an order instead.' }, 400);
+      }
+    }
     const tokenHash = await sha256Hex(normalized.value.trackingToken);
     const location = typeof body.customer_location === 'string' ? body.customer_location.trim() : '';
     const locationError = inquiryFieldTooLong('Location', location, INQUIRY_MAX_LOCATION);
     if (locationError) return json({ error: locationError }, 400);
+    if (source === 'website' && !location) return json({ error: 'Approximate delivery location is required' }, 400);
     const phoneCandidate = typeof body.phone === 'string' ? body.phone.trim() : '';
     const phoneError = inquiryFieldTooLong('Phone', phoneCandidate, INQUIRY_MAX_PHONE);
     if (phoneError) return json({ error: phoneError }, 400);
@@ -13857,16 +14193,22 @@ const handleCreateInquiry: Handler = async (request, env) => {
       totalUsd: normalized.value.totalUsd,
       currency: normalized.value.currency,
     });
-    const existing = await env.DB.prepare(
-      'SELECT id, account_id, ref_number, request_fingerprint FROM inquiries WHERE tracking_token_hash = ? LIMIT 1'
-    ).bind(tokenHash).first() as { id: string; account_id: string; ref_number: string; request_fingerprint: string | null } | null;
+    const existing = await env.DB.prepare(source === 'website'
+      ? `SELECT q.id,q.account_id,q.ref_number,q.request_fingerprint,q.converted_invoice_id,
+                i.invoice_number FROM inquiries q LEFT JOIN invoices i ON i.id=q.converted_invoice_id
+         WHERE q.tracking_token_hash=? LIMIT 1`
+      : 'SELECT id, account_id, ref_number, request_fingerprint FROM inquiries WHERE tracking_token_hash = ? LIMIT 1'
+    ).bind(tokenHash).first() as Record<string, any> | null;
     if (existing) {
+      // Consent belongs to the first saved request. Retrying never adds or retargets a message.
       if (existing.account_id !== accountId || existing.request_fingerprint !== requestFingerprint) {
         return json({ error: 'Tracking token conflict' }, 409);
       }
       return json({
         id: existing.id,
         ref_number: existing.ref_number,
+        invoice_id: existing.converted_invoice_id,
+        invoice_number: existing.invoice_number,
         tracking_token: normalized.value.trackingToken,
         source,
         success: true,
@@ -13874,8 +14216,105 @@ const handleCreateInquiry: Handler = async (request, env) => {
       }, 200);
     }
 
-    if (source === 'website' && await storePayabilityGap(env, accountId)) {
-      return json({ error: 'This store cannot take orders at the moment. Please try again later.' }, 409);
+    if (source === 'website') {
+      if (whatsappRecipient) {
+        const business = await env.DB.prepare('SELECT whatsapp_number FROM accounts WHERE id=?').bind(accountId).first<{ whatsapp_number: string | null }>();
+        if (business?.whatsapp_number?.replace(/\D/g, '') === whatsappRecipient.slice(1)) {
+          return json({ error: 'Enter your own WhatsApp number, rather than the store’s number.' }, 400);
+        }
+      }
+      let lines: Awaited<ReturnType<typeof pricedRequestLines>>;
+      try {
+        lines = await pricedRequestLines(env, accountId, normalized.value.items as Array<Record<string, any>>);
+      } catch (error) {
+        return json({ error: error instanceof Error ? error.message : 'Could not price this request' }, 400);
+      }
+      const serverSubtotalUsd = roundUsd(lines.reduce((sum, line) => sum + line.quantity * line.price_at_sale, 0));
+      const requestId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+      const invoiceId = crypto.randomUUID();
+      const handoffNote = whatsappHandoff ? 'Customer will start the WhatsApp chat; not yet contacted.' : '';
+      const requestMessage = [location ? `Shipping location: ${location}` : '', handoffNote, notes].filter(Boolean).join('\n\n') || null;
+      const customerPhone = inquiryPhone(phoneCandidate) || inquiryPhone(contact);
+      let invoiceNumber = '';
+      let committed = false;
+      let lastError: unknown;
+      for (let attempt = 0; attempt < 3 && !committed; attempt++) {
+        const seq = await env.DB.prepare(
+          'UPDATE accounts SET invoice_seq=invoice_seq+1 WHERE id=? RETURNING invoice_seq,invoice_prefix'
+        ).bind(accountId).first() as { invoice_seq: number; invoice_prefix: string | null } | null;
+        if (!seq) return json({ error: 'Store not found' }, 404);
+        invoiceNumber = formatInvoiceNumber(seq.invoice_prefix, seq.invoice_seq);
+        const statements: D1PreparedStatement[] = [
+          env.DB.prepare(
+            `INSERT INTO invoices
+             (id,account_id,invoice_number,customer_name,customer_whatsapp,display_currency,
+              shipping_cost_usd,shipping_destination,source_inquiry_id,status,inventory_deducted,notes,payment_status)
+             VALUES (?,?,?,?,?,?,0,?,?,'Draft',0,?,'unpaid')`
+          ).bind(invoiceId, accountId, invoiceNumber, name, customerPhone, normalized.value.currency,
+            location || null, requestId, `From order request ${normalized.value.refNumber}. ${whatsappHandoff ? handoffNote : `Reply to: ${contact}.`} ${notes ? `Customer note: ${notes}. ` : ''}Review prices and shipping before sending.`),
+          ...lines.map(line => env.DB.prepare(
+            `INSERT INTO invoice_line_items
+             (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale)
+             VALUES (?,?,?,?,?,?,?)`
+          ).bind(crypto.randomUUID(), accountId, invoiceId, line.product_id, line.custom_name, line.quantity, line.price_at_sale)),
+          env.DB.prepare(
+            `INSERT INTO inquiries
+             (id,account_id,name,email,phone,items,total_usd,currency,message,source,ref_number,
+              tracking_token_hash,request_fingerprint,converted_invoice_id)
+             VALUES (?,?,?,?,?,?,?,?,?,'website',?,?,?,?)`
+          ).bind(requestId, accountId, name, contact, customerPhone, normalized.value.itemsJson,
+            serverSubtotalUsd, normalized.value.currency, requestMessage,
+            normalized.value.refNumber, tokenHash, requestFingerprint, invoiceId),
+          ...(whatsappRecipient ? [buildCustomerOrderNotificationInsert(env.DB, {
+            accountId, invoiceId, orderRef: normalized.value.refNumber, customerName: name,
+            customerContact: contact, deliveryLocation: location || null,
+            orderSummary: `${lines.map(line => `${line.custom_name}, ${line.quantity} g`).join('; ')} · tea subtotal USD ${serverSubtotalUsd.toFixed(2)} (shipping pending)`,
+            invoiceUrl: `${appOrigin(env)}/order/${encodeURIComponent(normalized.value.trackingToken)}`,
+            recipientNumber: whatsappRecipient, consentAt: new Date().toISOString(),
+          })] : []),
+        ];
+        try {
+          await env.DB.batch(statements);
+          committed = true;
+        } catch (error) {
+          lastError = error;
+          const raced = await env.DB.prepare(
+            `SELECT q.id,q.account_id,q.ref_number,q.request_fingerprint,q.converted_invoice_id,
+                    i.invoice_number FROM inquiries q LEFT JOIN invoices i ON i.id=q.converted_invoice_id
+             WHERE q.tracking_token_hash=? LIMIT 1`
+          ).bind(tokenHash).first() as Record<string, any> | null;
+          if (raced) {
+            if (raced.account_id !== accountId || raced.request_fingerprint !== requestFingerprint) {
+              return json({ error: 'Tracking token conflict' }, 409);
+            }
+            return json({ id: raced.id, ref_number: raced.ref_number,
+              tracking_token: normalized.value.trackingToken, invoice_id: raced.converted_invoice_id,
+              invoice_number: raced.invoice_number, source, success: true, idempotent: true }, 200);
+          }
+          if (!/UNIQUE|constraint/i.test(String((error as Error)?.message || error))) break;
+        }
+      }
+      if (!committed) {
+        console.error('Website order batch failed:', lastError);
+        return json({ error: 'Could not save the order. Please retry.' }, 500);
+      }
+      if (whatsappRecipient) {
+        const notification = processPendingCustomerOrderNotifications(env.DB, env, {
+          accountId, invoiceId, limit: 1,
+        }).catch(error => console.error('Customer order confirmation failed', error));
+        if (ctx?.waitUntil) ctx.waitUntil(notification);
+        else await notification;
+      }
+      const emailSent = await sendOrderRequestEmails(env, {
+          accountId, source, customerName: name, contact, phone: customerPhone,
+          location: location || null, itemsJson: normalized.value.itemsJson,
+          totalUsd: serverSubtotalUsd, currency: normalized.value.currency,
+          message: requestMessage, reference: normalized.value.refNumber,
+          trackingToken: normalized.value.trackingToken,
+        }).catch(() => false);
+      return json({ email_sent: emailSent, id: requestId,
+        ref_number: normalized.value.refNumber, tracking_token: normalized.value.trackingToken,
+        invoice_id: invoiceId, invoice_number: invoiceNumber, source, success: true }, 201);
     }
 
     // Only catalogue lines are checked against the catalogue. A custom line
@@ -14021,7 +14460,8 @@ const handleGetInquiryByRef: Handler = async (_request, env, params) => {
   if (!isValidTrackingToken(token)) return json({ error: 'Not found' }, 404);
   const tokenHash = await sha256Hex(token);
   const row = await env.DB.prepare(
-    `SELECT ref_number, items, status, total_usd, currency, created_at, converted_invoice_id
+    `SELECT ref_number, items, status, source, total_usd, currency, created_at, converted_invoice_id,
+            (SELECT whatsapp_number FROM accounts WHERE accounts.id=inquiries.account_id) AS store_whatsapp_number
      FROM inquiries WHERE tracking_token_hash = ? LIMIT 1`
   ).bind(tokenHash).first() as any;
   if (!row) return json({ error: 'Not found' }, 404);
@@ -14035,10 +14475,12 @@ const handleGetInquiryByRef: Handler = async (_request, env, params) => {
   // is how this page came to say "inquiry received" about a parcel in the post.
   // The request is already in hand here, so no second query finds it.
   let journeyInvoice: JourneyInvoice | null = null;
+  let order: Record<string, unknown> | null = null;
   if (row.converted_invoice_id) {
     const invoice = await env.DB.prepare(
-      `SELECT id, account_id, invoice_number, shipping_cost_usd, status, payment_status,
-              display_currency, payment_date, fulfilled_at, created_at,
+      `SELECT id, account_id, invoice_number, shipping_cost_usd, shipping_destination,
+              tracking_number, inventory_deducted, stock_exception, refund_required,
+              cancelled_at, status, payment_status, display_currency, payment_date, fulfilled_at, created_at,
               payment_recipient_user_id, sold_by_user_id
          FROM invoices WHERE id = ? AND deleted_at IS NULL`
     ).bind(row.converted_invoice_id).first() as Record<string, any> | null;
@@ -14061,14 +14503,42 @@ const handleGetInquiryByRef: Handler = async (_request, env, params) => {
         fulfilled_at: (invoice.fulfilled_at as string | null) ?? null,
         money: payment,
       };
+      const notification = await env.DB.prepare(
+        'SELECT state FROM order_whatsapp_outbox WHERE invoice_id=? AND account_id=?'
+      ).bind(invoice.id, invoice.account_id).first() as { state: string } | null;
+      order = {
+        invoice_id: invoice.id, invoice_number: invoice.invoice_number,
+        status: invoice.status, payment_status: invoice.payment_status,
+        shipping_status: invoice.fulfilled_at ? 'shipped' : invoice.inventory_deducted ? 'ready_to_pack' : 'not_ready',
+        shipping_destination: invoice.shipping_destination,
+        tracking_number: invoice.tracking_number,
+        shipped_at: invoice.fulfilled_at, cancelled_at: invoice.cancelled_at,
+        refund_required: Boolean(invoice.refund_required), stock_exception: invoice.stock_exception,
+        notification_status: notification?.state ?? null,
+      };
     }
   }
-  const journey = deriveOrderJourney({
+  let journey = deriveOrderJourney({
     requestedAt: (row.created_at as string | null) ?? null,
     manualStatus: (row.status as string | null) ?? null,
     invoice: journeyInvoice,
   });
-  return json({ ...redactPublicInquiry(row), payment, journey });
+  if (row.source === 'website' && order?.status === 'Draft') {
+    journey = {
+      stage: 'received', label: 'Request received',
+      detail: 'We have your request. We will confirm the final price and shipping with you.',
+      at: toIsoTime(row.created_at),
+    };
+  }
+  return json({ ...redactPublicInquiry(row), payment, journey, order,
+    contact: { whatsapp: row.store_whatsapp_number || null },
+    invoice_id: order?.invoice_id ?? null,
+    invoice_number: order?.invoice_number ?? null,
+    shipping_destination: order?.shipping_destination ?? null,
+    shipping_status: order?.shipping_status ?? null,
+    tracking_number: order?.tracking_number ?? null,
+    refund_required: order?.refund_required ?? false,
+  });
 };
 
 const handleUpdateInquiryStatus: Handler = async (request, env, params) => {
@@ -23114,10 +23584,16 @@ const handleGetPublicArticle: Handler = async (request, env, params) => {
 // nobody has flipped the flag yet; unpublishing an article never revokes
 // it (one-directional, matches "unpublishing turns bylines back to plain
 // text; articles stay").
+//
+// Except when somebody pressed Unpublish. That writes unpublished_at, and a
+// deliberate unpublish outranks the automatic rule: on 2026-09-28 Adrian
+// unpublished Chen Wei and the page stayed up, because Chen Wei is the named
+// author of five published articles. An explicit decision to take a person
+// down must take them down; publishing them again clears unpublished_at.
 const CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL =
-  `(c.is_published = 1 OR EXISTS (
+  `(c.is_published = 1 OR (c.unpublished_at IS NULL AND EXISTS (
       SELECT 1 FROM articles ar WHERE ar.author_id = c.id AND ar.status = 'published'
-    ))`;
+    )))`;
 
 function firstSentenceOf(text: unknown): string | null {
   if (typeof text !== 'string') return null;
@@ -23134,7 +23610,10 @@ const handleListPublicContributors: Handler = async (request, env) => {
             (SELECT gi.image_url FROM contributor_gallery_images gi
               WHERE gi.contributor_id = c.id
               ORDER BY gi.position ASC LIMIT 1) AS gallery_card_image_url,
-            c.portrait_url,
+            (SELECT gi.focus FROM contributor_gallery_images gi
+              WHERE gi.contributor_id = c.id
+              ORDER BY gi.position ASC LIMIT 1) AS gallery_card_image_focus,
+            c.portrait_url, c.portrait_focus,
             (SELECT COUNT(*) FROM articles ar WHERE ar.author_id = c.id AND ar.status = 'published') AS article_count,
             EXISTS (
               SELECT 1 FROM contributor_accounts ca WHERE ca.contributor_id = c.id AND ca.is_host = 1
@@ -23159,6 +23638,8 @@ const handleListPublicContributors: Handler = async (request, env) => {
     // placeholder. A contributor with neither has no card image at all --
     // the directory page's own job is to fall back to the initials mark.
     card_image_url: row.gallery_card_image_url ?? row.portrait_url ?? null,
+    // The focal point travels with whichever photo won the card.
+    card_image_focus: row.gallery_card_image_url ? (row.gallery_card_image_focus ?? null) : (row.portrait_url ? (row.portrait_focus ?? null) : null),
     // One line in the person's own words, for the card: the first sentence of
     // what they are doing now, else of where they began. The page never
     // describes them in the third person, so this is theirs, not a summary.
@@ -23424,7 +23905,7 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
   ).bind(slug).all();
 
   const galleryRes = await env.DB.prepare(
-    `SELECT id, contributor_id, image_url, caption, position
+    `SELECT id, contributor_id, image_url, caption, focus, position
        FROM contributor_gallery_images
       WHERE contributor_id = ?
       ORDER BY position ASC`
@@ -23459,7 +23940,7 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     publicPaymentAvailability(env, slug),
   ]);
 
-  const effectivelyPublished = row.is_published === 1 || hasPublishedArticle;
+  const effectivelyPublished = row.is_published === 1 || (!row.unpublished_at && hasPublishedArticle);
 
   return json({
     id: row.id,
@@ -23479,6 +23960,8 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     avatar_url: row.avatar_url ?? null,
     portrait_url: row.portrait_url ?? null,
     portrait_caption: row.portrait_caption ?? null,
+    portrait_focus: row.portrait_focus ?? null,
+    avatar_focus: row.avatar_focus ?? null,
     voice_clip_url: row.voice_clip_url ?? null,
     voice_clip_caption: row.voice_clip_caption ?? null,
     pouring_today_product_id: row.pouring_today_product_id ?? null,
@@ -28217,6 +28700,9 @@ const routes: [string, string, Handler][] = [
 
   // RPC
   ['POST', '/api/rpc/fulfill-invoice', handleFulfillInvoice],
+  ['POST', '/api/rpc/ship-invoice', handleShipInvoice],
+  ['POST', '/api/rpc/retry-paid-stock', handleRetryPaidStock],
+  ['POST', '/api/rpc/cancel-invoice', handleCancelInvoice],
   ['POST', '/api/rpc/void-invoice', handleVoidInvoice],
   ['POST', '/api/rpc/split-invoice', handleSplitInvoice],
   ['POST', '/api/rpc/link-line-item', handleLinkLineItem],
@@ -28802,7 +29288,7 @@ async function reportStaleExchangeRates(env: Env): Promise<void> {
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin') || '';
     const corsOrigin = resolveAllowedOrigin(origin);
@@ -28948,7 +29434,7 @@ export default {
     }
 
     try {
-      const response = await match.handler(request, env, match.params);
+      const response = await match.handler(request, env, match.params, ctx);
       return cors(response, corsOrigin);
     } catch (err: any) {
       // Log the detail for forensics; never leak err.message (may contain SQL,
@@ -28959,6 +29445,11 @@ export default {
   },
 
   async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
+    try {
+      await processPendingCustomerOrderNotifications(env.DB, env, { limit: 10 });
+    } catch (error) {
+      console.error('Customer order confirmation retry failed', error);
+    }
     /* Rates first, and on their own.
      *
      * This used to be the last statement in the tick, after recording cleanup

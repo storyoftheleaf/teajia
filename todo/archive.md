@@ -2,6 +2,12 @@
 
 Finished work, moved here from TODO.md. Nothing is deleted; lineage is kept.
 
+## Tea Atlas sources and a green main (2026-09-28)
+
+- [x] Tea Atlas: run `npm run atlas:upload` once and confirm every source added from the admin stays in the rebuilt index _(band: agent-runnable)_ _(effort: quick)_ Done 2026-09-28: the rebuild listed and kept all four (The Book of Tea, The Chinese Tea Shop, Ooika, The Book of Tea (teapigs)), 1,667 articles in the index. The Chinese Tea Shop (27 articles, 69 pictures) and Ooika (4, 19) were added by `scripts/atlas-web-sources.mjs`, PR #329.
+- [x] Worker type ratchet red on main: re-based to the current line numbers in PR #329 (37 known errors, no drift). Split: keying the baseline on something that survives a line shift stays open in TODO.md.
+- [x] Colour rules red on main: the contributor editor's resting underline used gold; now the border colour, gold on hover only. PR #329.
+
 ## Tea names without their year (2026-09-24)
 
 - [x] Take the year out of the six stored tea names (1990 Bamboo Leaf Old Tea, 2004 Yiwu Raw Puerh, 1990 Ripe Puerh Brick, 80s Ginseng Puer, 1998 Small Tuo, 1993 Y562) so the admin matches the shop; the public site already hides it, this is a data migration and needs the before/after page first _(band: agent-runnable)_ _(effort: quick)_ Done 2026-09-24 in migration 0023, approved on the before/after page https://claude.ai/artifact/FFbq8fo78V4UidUK9isB9a.
@@ -66,3 +72,4 @@ Finished work, moved here from TODO.md. Nothing is deleted; lineage is kept.
 - [x] Remove the streak counter from the Learn curriculum - done 2026-09-09, "Remove the invented streak counter from Learn curriculum". OPS-3: `calculateStreak` in `LearnCurriculum.tsx` turned watched stories into a "day streak" by dividing the count by two, a number nobody chose sitting next to the real completed count. Streak trackers are on CLAUDE.md's DO NOT build list. Removed the function and its render; nothing else in `src` computes or shows a streak, checked by grepping for gamification patterns (badge, gamif, achievement, points) across `src` and `worker/src`, all of which turned out to be ordinary status pills or content-difficulty labels. Guarded by `worker/tests/no-streak-tracker.test.ts`, which scans every file under `src` for the word outside comments.
 - [x] Choose a direction for the home page (2026-09-22: Cover C built as HomeV2Page, refined over two days, swapped in as home) → Plan: [home-page-directions.md](todo/plans/archive/home-page-directions.md)
 - [x] Remove the old home page (2026-09-22: components/HomePage.tsx deleted, 500 lines, nothing imported it; its dead navigate-event listener in App.tsx went with it)
+- [x] Tea Atlas: bring the design-polish and "drop in a PDF" branches in one at a time, each synced with main before it merges _(band: agent-runnable)_ _(effort: moderate)_ → Notes: [2026-09-28 handoff](todo/handoffs/2026-09-28-goodnight.md) — done 2026-09-28: polish #323, drop-in #326 (plus #325, #327, #329)

@@ -14,7 +14,7 @@ describe('AlcoveCharacterBand tasting attribution', () => {
     />);
 
     expect(markup).toContain('Potential profile');
-    expect(markup).not.toContain('Adrian');
+    expect(markup).not.toContain('Teajia');
   });
 
   it('labels exact-lot terms as source-described without implying style or owner', () => {
@@ -25,7 +25,7 @@ describe('AlcoveCharacterBand tasting attribution', () => {
 
     expect(markup).toContain('Source-described profile');
     expect(markup).not.toContain('Potential profile');
-    expect(markup).not.toContain('Adrian');
+    expect(markup).not.toContain('Teajia');
   });
 
   it('does not label legacy-only visible terms as a common potential profile', () => {

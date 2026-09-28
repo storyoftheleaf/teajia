@@ -3,6 +3,7 @@ import { ContributorIdentityMark } from '../components/shared/ContributorIdentit
 import { Cover, Dek, GroupHead, PeopleNav, PeopleRoot, SplitName, useReadingProgress, useReveals } from '../components/people/immersive';
 import { coverKicker } from '../components/people/profileFormat';
 import { useContributors } from '../hooks/useContributor';
+import { mediaUrl } from '../lib/mediaUrl';
 
 // /people. The directory, in the Read section's language: the sticky Teajia
 // nav with the eyebrow "People", "The People of Tea" with the italic gold
@@ -49,14 +50,14 @@ export default function ContributorsIndexPage() {
                     <Cover
                       to={`/people/${encodeURIComponent(person.id)}`}
                       height={180}
-                      className="!flex-row !items-stretch"
+                      className="!flex-row !items-stretch !justify-start"
                       testId="people-card"
                       ariaLabel={`${person.display_name}, ${coverKicker(person.role, person.location_line) || 'tea master'}`}
                     >
                       <span className="-m-6 flex h-[180px]">
                         <span className="relative w-[140px] flex-none overflow-hidden bg-tea-elevated">
                           {person.card_image_url ? (
-                            <img src={person.card_image_url} alt={person.display_name} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                            <img src={mediaUrl(person.card_image_url)} alt={person.display_name} loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: person.card_image_focus ?? undefined }} />
                           ) : (
                             <ContributorIdentityMark name={person.display_name} decorative={false} />
                           )}

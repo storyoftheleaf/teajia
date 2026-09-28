@@ -17,6 +17,7 @@ export interface WhatsAppOrderItem {
 
 export interface WhatsAppMessageOptions {
   type: 'inquiry' | 'invoice' | 'purchase';
+  invoiceNumber?: string;
   ref?: string;
   date?: string;
   customerName?: string;
@@ -103,7 +104,7 @@ export function buildOrderMessage(opts: WhatsAppMessageOptions): string {
     : null;
 
   if (opts.type === 'inquiry') {
-    lines.push("Hello, I'd like to order:", '');
+    lines.push(opts.invoiceNumber ? "Hello, I'd like to discuss my saved order:" : "Hello, I'd like to order:", '');
     opts.items.forEach(item => {
       const variant = item.variant ? ` (${item.variant})` : '';
       const packs = item.packs && item.packs > 1 ? `${item.packs} × ` : '';
@@ -119,6 +120,7 @@ export function buildOrderMessage(opts: WhatsAppMessageOptions): string {
     if (opts.customerLocation) lines.push(`Delivery: ${opts.customerLocation}`);
     if (opts.notes) lines.push('', opts.notes);
     if (opts.ref) lines.push('', `Ref: ${opts.ref}`);
+    if (opts.invoiceNumber) lines.push(`Invoice: ${opts.invoiceNumber}`);
     if (opts.trackingUrl) lines.push('', `Your private order link: ${opts.trackingUrl}`);
     if (opts.adminDraftUrl) lines.push('', `Draft invoice: ${opts.adminDraftUrl}`);
   } else if (opts.type === 'invoice') {
@@ -290,7 +292,7 @@ export function buildTastingPicksMessage(opts: {
   const lines: string[] = [];
   lines.push(`From ${opts.guestName} (${opts.guestEmail}) at ${title}`);
   lines.push('');
-  lines.push("At Adrian's tasting today, here's what I want:");
+  lines.push("At the Teajia tasting today, here's what I want:");
   lines.push('');
 
   opts.picks.forEach((p, i) => {

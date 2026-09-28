@@ -182,7 +182,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
     text: note.text,
     attribution: note.sourceAuthor
       ? note.sourceAuthor.initial || note.sourceAuthor.accountName || 'Community'
-      : 'Adrian',
+      : 'Teajia',
     detail: null as string | null,
     key: `shop-${note.id}`,
   }));

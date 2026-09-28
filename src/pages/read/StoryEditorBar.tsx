@@ -78,7 +78,13 @@ const pill = (active = false): React.CSSProperties => ({
   whiteSpace: 'nowrap',
 });
 
-const StoryEditorBar: React.FC = () => {
+interface StoryEditorBarProps {
+  /** Tuck the not-editing trigger into the window's top-right corner, tiny,
+   *  for a page whose photograph runs to that edge (the home page). */
+  corner?: boolean;
+}
+
+const StoryEditorBar: React.FC<StoryEditorBarProps> = ({ corner = false }) => {
   const {
     isOwner, editing, setEditing, previewVisitor, setPreviewVisitor,
     dirty, saving, publish, versions, refreshVersions, restore,
@@ -111,18 +117,18 @@ const StoryEditorBar: React.FC = () => {
   // Not editing: just a faint, low-key trigger that stays out of the way.
   if (!editing) {
     return (
-      <div style={barWrap(false)}>
+      <div style={corner ? { ...barWrap(false), top: 'calc(env(safe-area-inset-top, 0px) + 4px)', right: 4 } : barWrap(false)}>
         <button
           type="button"
           onClick={() => setEditing(true)}
           style={{
             fontFamily: 'var(--font-sans)',
-            fontSize: 10,
+            fontSize: corner ? 8 : 10,
             letterSpacing: '0.14em',
             textTransform: 'uppercase',
-            padding: '7px 12px',
+            padding: corner ? '2px 5px' : '7px 12px',
             borderRadius: 3,
-            border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.25)',
+            border: corner ? '1px solid transparent' : '1px solid rgb(var(--tj-read-gold-rgb) / 0.25)',
             background: 'rgb(var(--tj-read-bg-rgb) / 0.55)',
             color: 'rgb(var(--tj-read-taupe-rgb) / 0.75)',
             cursor: 'pointer',
@@ -130,7 +136,7 @@ const StoryEditorBar: React.FC = () => {
             WebkitBackdropFilter: 'blur(6px)',
           }}
           onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--tj-read-cream)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgb(var(--tj-read-gold-rgb) / 0.6)'; }}
-          onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.color = 'rgb(var(--tj-read-taupe-rgb) / 0.75)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgb(var(--tj-read-gold-rgb) / 0.25)'; }}
+          onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.color = 'rgb(var(--tj-read-taupe-rgb) / 0.75)'; (e.currentTarget as HTMLElement).style.borderColor = corner ? 'transparent' : 'rgb(var(--tj-read-gold-rgb) / 0.25)'; }}
           title="Owner editing"
         >
           edit

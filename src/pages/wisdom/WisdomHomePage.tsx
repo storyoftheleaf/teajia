@@ -231,7 +231,7 @@ export const WisdomHomeContent: React.FC<{
           </a>{' '}
           {previewDataset ? 'carrying every published holding' : 'carrying every holding'}, flat CSVs per entity, a
           README and a licence, all served from the{' '}
-          <code className="text-tea-text-sec">/wisdom/</code> folder. CC BY 4.0, minus Adrian&rsquo;s own tea write-ups
+          <code className="text-tea-text-sec">/wisdom/</code> folder. CC BY 4.0, minus Teajia&rsquo;s own tea write-ups
           and tasting notes, which remain his.
         </p>
         {/* What it is, as of when. A reference that asks to be cited has to be

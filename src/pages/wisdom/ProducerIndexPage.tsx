@@ -128,7 +128,7 @@ const ProducerIndexPage: React.FC = () => {
 
   const structuredData = buildWisdomCollectionData({
     name: 'Tea Producers',
-    description: 'Factories, houses and brands read out of Adrian’s own write-ups: who made a tea, not who sold it.',
+    description: 'Factories, houses and brands read out of Teajia’s own write-ups: who made a tea, not who sold it.',
     entries: publicState.entries,
     pathFor: producer => `/wisdom/producer/${producer.id}`,
   });

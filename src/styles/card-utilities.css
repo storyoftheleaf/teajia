@@ -3634,6 +3634,13 @@ input[type="number"]::-webkit-outer-spin-button {
   border-right: 1px solid var(--tea-keyline);
 }
 
+/* The Manage column beside the rail sits one step DARKER than the page, so it
+   reads as its own band instead of melting into the rail, which is one step
+   lighter. Slight on purpose: tone, never effects. */
+.nav-manage-col {
+  background: color-mix(in srgb, rgb(var(--tea-bg-rgb)) 86%, black);
+}
+
 /* The rail's words sit close, 14px type on a 20px gap, which is the design
    Adrian picked off the canvas. `.tap-target` would make each word a 44px box
    and spread the column down the whole edge, so the hit area grows here by a
@@ -3665,12 +3672,19 @@ input[type="number"]::-webkit-outer-spin-button {
   background: rgb(var(--tea-gold-rgb) / 0.3);
 }
 
+/* One price-list material for the product bar and the catalogue popup. */
+.commerce-price-surface {
+  color-scheme: dark;
+  background: rgb(9 8 7 / 0.9);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
 .commerce-dock {
   position: fixed;
   left: 1rem;
   right: 1rem;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 12px + 52px);
-  color-scheme: dark;
   /* The same material as the navigation it sits on, to the value: same
      translucent ground, same blur, same keyline. It used to be an opaque slab
      in a different brown, which is why the two read as two objects stacked
@@ -3695,9 +3709,6 @@ input[type="number"]::-webkit-outer-spin-button {
      off the page's own reads as a pane of the page that happens to float.
      Near-black separates it, and the price list inside it stops competing with
      the tea behind it. */
-  background: rgb(9 8 7 / 0.9);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
   /* No shadow. The navigation below casts one for the whole assembly, and a
      second cast from here fell across it and across the order block. */
   box-shadow: none;
@@ -4769,10 +4780,14 @@ body.cart-panel-open .commerce-dock {
   }
 }
 
+/* Name and origin sit together, centred on the save tile beside them.
+   space-between used to pin them to the tile's top and bottom edges,
+   which opened a 21px gap between two lines that belong to each other. */
 .tea-ledger-identity {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 2px;
   min-height: 52px;
 }
 
@@ -4830,3 +4845,16 @@ body.cart-panel-open .commerce-dock {
 }
 .checkout-input::placeholder { color: var(--tea-text-dim); }
 .checkout-text-action:hover { color: var(--tea-text); }
+
+/* The next step after a saved WhatsApp order stays within reach on mobile. */
+.checkout-whatsapp-action {
+  display: block;
+  min-height: 44px;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  text-align: center;
+}
+.checkout-whatsapp-action:focus-visible {
+  outline: 2px solid var(--tea-gold);
+  outline-offset: 2px;
+}

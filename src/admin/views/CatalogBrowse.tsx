@@ -152,7 +152,7 @@ const CarryForm: React.FC<CarryFormProps> = ({ profile, callerCurrency, onCarrie
         {/* Defaulting helper */}
         {curatorRetailPer100g != null ? (
           <p className="text-tea-text-sec italic text-ui-12 leading-[1.6] mt-2 pl-0 md:pl-48">
-            Defaults to Adrian's price. Leave it to match; change it to set your own. Shown in
+            Defaults to Teajia's price. Leave it to match; change it to set your own. Shown in
             this store's currency in the shop.
           </p>
         ) : (
@@ -305,7 +305,7 @@ const ProfileDrawer: React.FC<DrawerProps> = ({ profile, callerCurrency, onClose
           <div className="space-y-1 mb-6">
             {profile.retail_price_per_gram_curator != null && profile.retail_currency && (
               <div className="font-mono text-ui-13 text-tea-text-sec">
-                Adrian's retail · {formatMoney(profile.retail_price_per_gram_curator * 100, profile.retail_currency)}/100g
+                Teajia's retail · {formatMoney(profile.retail_price_per_gram_curator * 100, profile.retail_currency)}/100g
               </div>
             )}
             {profile.fx_unavailable ? (
@@ -438,7 +438,7 @@ const CatalogCard: React.FC<CatalogCardProps> = ({ profile, onSelect, isHovered,
           <div className="space-y-1">
             {profile.retail_price_per_gram_curator != null && profile.retail_currency && (
               <p className="num text-ui-13 text-tea-text-sec">
-                Adrian's retail · {formatMoney(profile.retail_price_per_gram_curator * 100, profile.retail_currency)}/100g
+                Teajia's retail · {formatMoney(profile.retail_price_per_gram_curator * 100, profile.retail_currency)}/100g
               </p>
             )}
             {profile.fx_unavailable ? (
@@ -624,7 +624,7 @@ export const CatalogBrowse: React.FC<CatalogBrowseProps> = ({ embedded = false }
       {/* Empty, carries everything */}
       {!networkError && profiles?.length === 0 && (
         <p className="font-body italic text-ui-16 text-tea-text-sec leading-[1.7]">
-          You carry everything Adrian curates. New harvests appear here as Adrian publishes them.
+          You carry everything Teajia curates. New harvests appear here as Teajia publishes them.
         </p>
       )}
 

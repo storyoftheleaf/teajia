@@ -82,7 +82,6 @@ const SURFACES = [
   './alcove/AlcoveAboutSection.tsx',
   './alcove/AlcoveTableSection.tsx',
   '../tasting/TastingProfileStrip.tsx',
-  '../tasting/ProductTastingEditorial.tsx',
   '../shared/PublicCart.tsx',
   '../shared/CartItem.tsx',
   '../shared/PopupModal.tsx',

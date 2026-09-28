@@ -34,6 +34,7 @@ import { eventsToolModule } from './mcpTools/events';
 import { writingToolModule } from './mcpTools/writing';
 import { costCurrencyTools } from './mcpTools/costCurrency';
 import { resolveShopFreightDefault, shippingPerGramUsd } from './shippingRate';
+import { deductStockForPaidInvoice } from './orderLifecycle';
 import { costNeedsCurrency, createMissingCost, currencyStated, costCurrencySourceFor, CURRENCY_SOURCE_STATED, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
 import { REFRESHED_CURRENCIES, refreshedCurrencyName, isRefreshedCurrency } from './exchangeRateFeed';
 import {
@@ -2449,10 +2450,15 @@ async function toolVoidInvoice(env: Env, auth: McpAuth, args: any) {
   if (!invoiceId) throw new Error('invoice_id is required');
 
   const invoice = await env.DB.prepare(
-    'SELECT id, invoice_number, customer_name, customer_id, status, inventory_deducted FROM invoices WHERE id = ? AND account_id = ?'
+    'SELECT id, invoice_number, customer_name, customer_id, status, inventory_deducted,source_inquiry_id FROM invoices WHERE id = ? AND account_id = ?'
   ).bind(invoiceId, auth.accountId).first() as Record<string, any> | null;
   if (!invoice) return { error: 'invoice_not_found' };
+  if (invoice.source_inquiry_id) return { error: 'use_cancel_invoice_for_website_order' };
   if (invoice.status === 'Void') return { error: 'invoice_already_void' };
+  const paid = await loadInvoiceLedgerTotals(env, [invoiceId]);
+  if ((paid.get(invoiceId)?.paid_usd ?? 0) > 0) {
+    return { error: 'refund_required_use_cancel_invoice', invoice_id: invoiceId };
+  }
 
   const items = await env.DB.prepare(
     `SELECT ili.product_id, ili.quantity, p.given_name, p.product_name
@@ -2598,9 +2604,14 @@ async function commitVoidInvoice(
   } catch (error) {
     // The batch rolled back, so nothing changed — but the claim was taken
     // outside it and would otherwise pin the invoice for five minutes.
-    await env.DB.prepare(
-      'UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
-    ).bind(m.invoiceId, m.accountId, voidClaim).run().catch(() => {});
+    try {
+      await env.DB.prepare(
+        'UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
+      ).bind(m.invoiceId, m.accountId, voidClaim).run();
+    } catch { /* lease expires if cleanup fails */ }
+    if (/paid_invoice_requires_refund_flag/i.test(String(error))) {
+      return { error: 'refund_required_use_cancel_invoice', invoice_id: m.invoiceId };
+    }
     throw error;
   }
 
@@ -3632,9 +3643,10 @@ async function toolFulfillInvoice(env: Env, auth: McpAuth, args: any) {
   if (!invoiceId) throw new Error('invoice_id is required');
 
   const invoice = await env.DB.prepare(
-    'SELECT id, invoice_number, customer_name, status, inventory_deducted,sold_by_user_id FROM invoices WHERE id = ? AND account_id = ?'
+    'SELECT id, invoice_number, customer_name, status, inventory_deducted,sold_by_user_id,source_inquiry_id FROM invoices WHERE id = ? AND account_id = ?'
   ).bind(invoiceId, auth.accountId).first() as Record<string, any> | null;
   if (!invoice) return { error: 'invoice_not_found' };
+  if (invoice.source_inquiry_id) return { error: 'use_ship_invoice_for_website_order' };
   if (invoice.status === 'Void') return { error: 'void_invoice_cannot_be_fulfilled' };
   if (invoice.inventory_deducted) return { error: 'inventory_already_deducted', invoice_status: invoice.status };
 
@@ -3934,6 +3946,7 @@ async function toolMarkInvoicePaid(env: Env, auth: McpAuth, args: any) {
   if (!row) {
     return { error: 'invoice_not_found', invoice_id: invoiceId || null, invoice_number: invoiceNumber || null };
   }
+  if (row.status === 'Void') return { error: 'invoice_void' };
 
   const token = await issueConfirmationToken(env, {
     kind: 'mark_invoice_paid', accountId: auth.accountId, userEmail: auth.userEmail,
@@ -3947,8 +3960,8 @@ async function toolMarkInvoicePaid(env: Env, auth: McpAuth, args: any) {
       invoice: row,
       payment_method: paymentMethod,
       stock_effect: fulfillStock
-        ? 'also deduct invoice line items and mark invoice Filled'
-        : 'payment only; stock is unchanged',
+        ? 'deduct stock on full payment, then mark the order shipped'
+        : 'deduct stock on full payment; shipment remains a separate action',
     },
     confirmation_token: token,
     expires_in_seconds: PENDING_TTL_MS / 1000,
@@ -3994,9 +4007,30 @@ async function commitMarkInvoicePaid(env: Env, m: Extract<PendingMutation, { kin
         SET payment_status = 'paid',
             payment_date = ?,
             payment_method = ?
-      WHERE id = ? AND account_id = ? AND COALESCE(payment_status, 'unpaid') != 'paid'`
+      WHERE id = ? AND account_id = ? AND status != 'Void' AND COALESCE(payment_status, 'unpaid') != 'paid'`
   ).bind(now, m.paymentMethod, m.invoiceId, m.accountId).run();
   const alreadyPaid = (paymentResult.meta?.changes ?? 0) === 0;
+  if (alreadyPaid) {
+    const current = await env.DB.prepare('SELECT status FROM invoices WHERE id=? AND account_id=?')
+      .bind(m.invoiceId, m.accountId).first() as { status: string } | null;
+    if (current?.status === 'Void') return { error: 'invoice_void' };
+  }
+
+  // The legacy status column remains readable, but a confirmed ledger row is
+  // what makes the stock transition eligible. The same stock function serves
+  // REST and MCP and leaves shipment for an explicit action.
+  let stock: Awaited<ReturnType<typeof deductStockForPaidInvoice>> | null = null;
+  if (!alreadyPaid) {
+    const ledgerInvoice = await loadLedgerInvoice(env, m.invoiceId, m.accountId);
+    if (ledgerInvoice) await reconcileLedgerWithColumn(env, ledgerInvoice);
+    stock = await deductStockForPaidInvoice(env, {
+      accountId: m.accountId, invoiceId: m.invoiceId,
+      actorUserId: m.actorUserId, actorRole: m.actorRole, actorEmail: m.userEmail,
+    });
+    if (stock.state === 'blocked') await env.DB.prepare(
+      'UPDATE invoices SET stock_exception=? WHERE id=? AND account_id=? AND inventory_deducted=0'
+    ).bind(stock.reason || 'stock_deduction_failed', m.invoiceId, m.accountId).run();
+  }
 
   if (!alreadyPaid) {
     await env.DB.prepare(
@@ -4009,37 +4043,32 @@ async function commitMarkInvoicePaid(env: Env, m: Extract<PendingMutation, { kin
     ).run();
   }
 
-  // Optional stock fulfillment. main's commitFulfillInvoice needs the invoice
-  // row + line items, and refuses if inventory is already deducted, so fetch
-  // both here and skip cleanly when fulfillment is not applicable.
+  // `fulfill_stock` explicitly ships after the shared paid-stock transition.
+  // A blocked stock result must never fall through to the legacy fulfillment
+  // function, which has a different set of preconditions.
   let fulfillment: unknown = null;
   if (m.fulfillStock) {
-    const invoice = await env.DB.prepare(
-      'SELECT id, invoice_number, customer_name, status, inventory_deducted,sold_by_user_id FROM invoices WHERE id = ? AND account_id = ?'
-    ).bind(m.invoiceId, m.accountId).first() as Record<string, any> | null;
-
-    if (!invoice) {
-      fulfillment = { error: 'invoice_not_found' };
-    } else if (invoice.status === 'Void') {
-      fulfillment = { error: 'void_invoice_cannot_be_fulfilled' };
-    } else if (invoice.inventory_deducted) {
-      fulfillment = { skipped: true, reason: 'inventory_already_deducted' };
+    if (alreadyPaid) {
+      const ledgerInvoice = await loadLedgerInvoice(env, m.invoiceId, m.accountId);
+      if (ledgerInvoice) await reconcileLedgerWithColumn(env, ledgerInvoice);
+      stock = await deductStockForPaidInvoice(env, {
+        accountId: m.accountId, invoiceId: m.invoiceId,
+        actorUserId: m.actorUserId, actorRole: m.actorRole, actorEmail: m.userEmail,
+      });
+    }
+    if (stock?.state !== 'deducted' && stock?.state !== 'already_deducted') {
+      fulfillment = { error: stock?.reason || 'stock_not_ready', stock };
     } else {
-      const { results: lineItems } = await env.DB.prepare(
-        `SELECT ili.id,ili.product_id,ili.custom_name,ili.quantity,ili.price_at_sale,
-                ili.stock_owner_user_id,ili.sales_grant_id,ili.owner_share_type,ili.owner_share_value,
-                p.given_name,p.product_name,p.stock_grams
-           FROM invoice_line_items ili
-           LEFT JOIN products p ON p.id = ili.product_id AND p.account_id = ?
-          WHERE ili.invoice_id = ? AND ili.account_id = ?`
-      ).bind(m.accountId, m.invoiceId, m.accountId).all();
-      fulfillment = await commitFulfillInvoice(
-        env,
-        { kind: 'fulfill_invoice', accountId: m.accountId, userEmail: m.userEmail, actorUserId: m.actorUserId, invoiceId: m.invoiceId },
-        invoice,
-        lineItems as any[],
-        lineItems as any[],
-      );
+      const shipped = await env.DB.prepare(
+        `UPDATE invoices SET status='Filled',fulfilled_at=COALESCE(fulfilled_at,datetime('now'))
+         WHERE id=? AND account_id=? AND status='Pending' AND inventory_deducted=1
+           AND fulfillment_claim_token IS NULL
+           AND COALESCE((SELECT SUM(amount_usd) FROM invoice_payments WHERE invoice_id=invoices.id AND status='confirmed'),0)
+             >= COALESCE((SELECT SUM(quantity*price_at_sale) FROM invoice_line_items WHERE invoice_id=invoices.id),0)
+                + COALESCE(shipping_cost_usd,0) - 0.01`
+      ).bind(m.invoiceId, m.accountId).run();
+      fulfillment = Number(shipped.meta?.changes || 0) > 0
+        ? { committed: true, status: 'Filled' } : { error: 'not_ready_to_ship' };
     }
   }
 
@@ -4052,6 +4081,7 @@ async function commitMarkInvoicePaid(env: Env, m: Extract<PendingMutation, { kin
     payment_date: now,
     payment_method: m.paymentMethod,
     already_paid: alreadyPaid,
+    stock,
     fulfillment,
   };
 }

@@ -149,7 +149,7 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
       {/* DESCRIPTION. Adrian's personal / tasting notes. Only shown when present. */}
       {introduction.trim() && (
         <div className={onPage ? 'mx-5 mt-9 lg:mt-11' : 'mx-5 mt-5 border-t border-tea-border pt-4'}>
-          {sectionLabel('Adrian\u2019s notes')}
+          {sectionLabel('Teajia\u2019s notes')}
           <div className={onPage ? '' : 'mt-1.5'}>{renderMarkdown(introduction)}</div>
         </div>
       )}

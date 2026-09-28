@@ -551,7 +551,10 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
   const buildPayload = useCallback(() => ({
     title: title.trim(),
     subtitle: subtitle.trim() || undefined,
-    author_id: author.trim() || undefined,
+    // null, not undefined: JSON drops undefined, so choosing "No contributor
+    // selected" used to leave the old author on the article. The server
+    // reads null as "clear it".
+    author_id: author.trim() || null,
     subject_ids: subjectIds,
     pull_quote: pullQuote.trim() || undefined,
     pull_quote_subject: pullQuoteSubject || undefined,

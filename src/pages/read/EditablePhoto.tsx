@@ -34,15 +34,26 @@ interface Props {
   fill?: boolean;
   placeholderBg?: string;
   placeholder?: React.ReactNode;
+  /**
+   * The photograph the story was designed with, shipped as a site file. It
+   * shows until the owner drops a different photo into the frame; removing
+   * that photo brings this one back. x/y are the focal point, 0..1.
+   */
+  defaultPhoto?: { url: string; x?: number; y?: number };
+  /** No hairline around the frame once it holds a photo. */
+  bare?: boolean;
 }
 
 const EditablePhoto: React.FC<Props> = ({
   slot, alt, label, caption, captionField, aspect = '4/5', fill = false,
   placeholderBg = 'linear-gradient(160deg,var(--tj-read-empty-from),var(--tj-read-plate-to))', placeholder,
+  defaultPhoto, bare = false,
 }) => {
   const { isOwner, editing, previewVisitor, photos, setPhoto, text, setText, registerFrame, usedImages } = useStoryEdit();
   const liveEdit = isOwner && editing && !previewVisitor;
-  const photo: PhotoVal | undefined = photos[slot];
+  const photo: PhotoVal | undefined = photos[slot] ?? (defaultPhoto
+    ? { url: defaultPhoto.url, crop: { scale: 1, x: defaultPhoto.x ?? 0.5, y: defaultPhoto.y ?? 0.5 } }
+    : undefined);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0); // 0..1 during upload
   const [uploadError, setUploadError] = useState(false);
@@ -170,8 +181,8 @@ const EditablePhoto: React.FC<Props> = ({
           position: fill ? 'absolute' : 'relative',
           inset: fill ? 0 : undefined,
           aspectRatio: fill ? undefined : aspect,
-          border: fill ? 'none' : `1px solid ${dragOver ? 'rgb(var(--tj-read-gold-rgb) / 0.7)' : liveEdit ? 'rgb(var(--tj-read-gold-rgb) / 0.4)' : 'rgb(var(--tj-read-gold-rgb) / 0.2)'}`,
-          borderRadius: fill ? 0 : 3,
+          border: fill || (bare && photo && !liveEdit) ? 'none' : `1px solid ${dragOver ? 'rgb(var(--tj-read-gold-rgb) / 0.7)' : liveEdit ? 'rgb(var(--tj-read-gold-rgb) / 0.4)' : 'rgb(var(--tj-read-gold-rgb) / 0.2)'}`,
+          borderRadius: fill || bare ? 0 : 3,
           overflow: 'hidden',
           background: photo ? 'var(--tj-read-bg)' : placeholderBg,
           outline: 'none',

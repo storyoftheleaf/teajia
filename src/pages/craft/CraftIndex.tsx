@@ -77,7 +77,7 @@ function buildCraftGroups(): CraftGroup[] {
       items: [
         { key: 'ritual', rubric: 'ritual', title: 'Seven Steeps', dek: 'The same leaves, brewed seven ways, scroll to pour.', href: '/read/ritual' },
         { key: 'field-study', rubric: 'water', title: 'Water Before Leaf', dek: 'A field study. What the water brings before the tea does.', href: '/read/field-study' },
-        { key: 'porcelain', rubric: 'teaware', title: 'Porcelain and Tea', dek: 'The renewal of a material, and what it does to the cup.', href: '/read/porcelain-and-tea' },
+        { key: 'porcelain', rubric: 'teaware', title: 'Porcelain and Tea', dek: 'Nine out of ten old things are damaged. But these are all marks of history.', href: '/read/porcelain-and-tea' },
         { key: 'pot', rubric: 'teaware', title: 'The Pot That Remembers', dek: 'Yixing clay, seasoning, and one tea per pot.', href: '/read/craft' },
         { key: 'brew-by-type', rubric: 'guides', title: 'Brewing by Tea Type', dek: "Green, white, oolong, black, pu'er, yellow. Leaf, water, time." },
       ],
@@ -342,15 +342,15 @@ const SecondaryCover: React.FC<{ to: string; kicker: string; title: React.ReactN
 // panels, one photograph and one line of real type. Never a link. The ghost
 // sketch of the surface being built was taken out 2026-09-24: under the
 // 2026-09-23 rule for empty plates, nothing is drawn where content is not. ──────────────────────────────────────
-type SoonPanelSpec = { key: string; slot: string; placeholder: string; title: string; dek: string };
+type SoonPanelSpec = { key: string; slot: string; placeholder: string; title: string; dek: string; /** focal point of the photo, as CSS object-position */ position?: string };
 
 const SOON_PANELS: SoonPanelSpec[] = [
   { key: 'playlists', slot: 'soon-playlists', placeholder: '/home/standin-consult.webp', title: 'Playlists', dek: 'Music for tea time, an hour at a time.' },
   { key: 'brew-by-type', slot: 'soon-brew', placeholder: '/home/standin-tea.webp', title: 'Brewing by Tea Type', dek: "Green, white, oolong, black, pu'er, yellow." },
-  { key: 'journeys', slot: 'soon-journeys', placeholder: '/home/standin-piece.webp', title: 'Three Journeys', dek: 'Guided tastings, step by step, to shape your palate.' },
+  { key: 'journeys', slot: 'soon-journeys', placeholder: '/craft/three-journeys.jpg', position: '50% 74%', title: 'Three Journeys', dek: 'Guided tastings, step by step, to shape your palate.' },
 ];
 
-const ComingSoonPanel: React.FC<Omit<SoonPanelSpec, 'key'>> = ({ slot, placeholder, title, dek }) => (
+const ComingSoonPanel: React.FC<Omit<SoonPanelSpec, 'key'>> = ({ slot, placeholder, position, title, dek }) => (
   <div
     aria-label={`${title}, coming soon`}
     style={{
@@ -366,7 +366,7 @@ const ComingSoonPanel: React.FC<Omit<SoonPanelSpec, 'key'>> = ({ slot, placehold
         alt=""
         fill
         placeholderBg="var(--tj-read-bg)"
-        placeholder={<img src={placeholder} alt="" className="absolute inset-0 w-full h-full object-cover" />}
+        placeholder={<img src={placeholder} alt="" className="absolute inset-0 w-full h-full object-cover" style={position ? { objectPosition: position } : undefined} />}
       />
     </div>
     <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'rgb(var(--tj-read-bg-rgb) / 0.78)' }} />
@@ -566,6 +566,7 @@ const CraftIndex: React.FC = () => {
                       key={panel.key}
                       slot={panel.slot}
                       placeholder={panel.placeholder}
+                      position={panel.position}
                       title={item?.title ?? panel.title}
                       dek={item?.dek ?? panel.dek}
                     />

@@ -86,7 +86,7 @@ function buildAdviseServices(): AdviseService[] {
       dek: 'From concept through opening. Design, curation, tea selection, training, and operations.',
       ask: 'Space design or tea integration',
       who: 'For someone opening a tea house, or a hotel, retreat, or private space making tea part of its daily welcome.',
-      work: 'Adrian helps shape the concept and room, selects tea and teaware, then works through service, team training, and operating rhythm.',
+      work: 'Teajia helps shape the concept and room, selects tea and teaware, then works through service, team training, and operating rhythm.',
       outcome: 'A coherent place to share tea, with the people and practical systems to keep it working after opening.',
       next: 'Start with the space you have or hope to create. A sketch of the idea is enough.',
       rows: [
@@ -100,7 +100,7 @@ function buildAdviseServices(): AdviseService[] {
       dek: 'Direct sourcing from Taiwan, China, and trusted origins, for collectors, spaces, and communities.',
       ask: 'Tea sourcing',
       who: 'For a collector looking for a considered direction, or a space that needs a tea selection people can return to.',
-      work: 'Adrian learns who will drink the tea, how it will be prepared, and the range you want to explore before sourcing and curating a selection.',
+      work: 'Teajia learns who will drink the tea, how it will be prepared, and the range you want to explore before sourcing and curating a selection.',
       outcome: 'A tea collection or menu with a reason for every choice and a practical way to serve it.',
       next: 'Tell us who the tea is for. You can leave regions and tea names undecided.',
       rows: [
@@ -115,7 +115,7 @@ function buildAdviseServices(): AdviseService[] {
       dek: 'In the Bali studio or wherever you are.',
       ask: 'A session or practice guidance',
       who: 'For a first encounter with tea, a personal practice taking shape, or a group seeking a shared experience.',
-      work: 'Adrian guides the session around your experience and setting, from an open sit to practice setup or a private gathering.',
+      work: 'Teajia guides the session around your experience and setting, from an open sit to practice setup or a private gathering.',
       outcome: 'Time at the table that meets you where you are, and a clearer sense of how to continue with tea.',
       next: 'Share the occasion, group size if relevant, and whether Bali or another setting suits you.',
       quiet: true,
@@ -233,7 +233,7 @@ const AdviseServiceBlock: React.FC<{
       </p>
       <div className="mt-5 max-w-[560px] border-l border-tea-border pl-4 sm:pl-5 space-y-3">
         <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}><span className="font-semibold text-tea-text">Who it suits.</span> {service.who}</p>
-        <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}><span className="font-semibold text-tea-text">What Adrian does.</span> {service.work}</p>
+        <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}><span className="font-semibold text-tea-text">What Teajia does.</span> {service.work}</p>
         <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}><span className="font-semibold text-tea-text">What you leave with.</span> {service.outcome}</p>
         <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}><span className="font-semibold text-tea-text">A place to begin.</span> {service.next}</p>
       </div>

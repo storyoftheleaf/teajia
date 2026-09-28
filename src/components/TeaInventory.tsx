@@ -966,6 +966,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                onToggleFavorite={handleFavoriteToggle}
                onOpenProduct={openProduct}
                onChooseAmount={onAddToCart ? item => setAmountItemId(item.id) : undefined}
+               onAddToCart={onAddToCart ? handleAddWithFeedback : undefined}
                isAdmin={isAdmin}
                onAdminEdit={onAdminEdit}
              />

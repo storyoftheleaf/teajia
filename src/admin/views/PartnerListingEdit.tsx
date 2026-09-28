@@ -585,7 +585,7 @@ export const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, 
         />
         <div className="flex items-center justify-between mt-1">
           <p className="text-tea-text-dim italic text-ui-12 leading-[1.6]">
-            Your note shows above Adrian's description on your storefront.
+            Your note shows above Teajia's description on your storefront.
           </p>
           <button
             type="button"
@@ -686,7 +686,7 @@ const NetworkAdoptionBlock: React.FC<NetworkAdoptionBlockProps> = ({
         <p className="font-body italic text-ui-14 text-tea-text-sec leading-[1.7]">
           Suggested for the Teajia network on{' '}
           {suggestedAt ? new Date(suggestedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'long' }) : 'recently'}.
-          Awaiting Adrian's review.
+          Awaiting Teajia's review.
         </p>
       </div>
     );
@@ -698,7 +698,7 @@ const NetworkAdoptionBlock: React.FC<NetworkAdoptionBlockProps> = ({
       <div className="mb-8">
         {declineNote && (
           <p className="font-body italic text-ui-14 text-tea-text-sec leading-[1.7] mb-2">
-            Adrian declined: "{declineNote}"
+            Teajia declined: "{declineNote}"
           </p>
         )}
         {!open ? (
@@ -776,7 +776,7 @@ interface SuggestFormProps {
 const SuggestForm: React.FC<SuggestFormProps> = ({ note, setNote, busy, error, onCancel, onSubmit }) => (
   <div className="space-y-3">
     <p className="font-body italic text-ui-14 text-tea-text-sec leading-[1.7]">
-      Adrian reviews suggestions on his time. If adopted, this tea becomes
+      Teajia reviews suggestions in its own time. If adopted, this tea becomes
       visible in every partner's catalog browse, with you credited as the originator.
     </p>
     <textarea
@@ -802,7 +802,7 @@ const SuggestForm: React.FC<SuggestFormProps> = ({ note, setNote, busy, error, o
         disabled={busy}
         className="text-tea-text-sec hover:text-tea-gold transition-colors disabled:opacity-50 disabled:cursor-wait"
       >
-        {busy ? 'Sending…' : 'Send to Adrian →'}
+        {busy ? 'Sending…' : 'Send to Teajia →'}
       </button>
     </div>
     {error && (

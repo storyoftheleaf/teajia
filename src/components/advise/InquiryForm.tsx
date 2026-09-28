@@ -350,7 +350,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
               )}
 
               <FloatingField
-                label="Anything else you want Adrian to know? (optional)"
+                label="Anything else you want Teajia to know? (optional)"
                 type="textarea"
                 value={formData.vision}
                 onChange={v => setFormData(p => ({ ...p, vision: v }))}
@@ -358,7 +358,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
                 error={errors.vision}
               />
 
-              <h3 className={`${TYPOGRAPHY_CLASSES.h3} mb-2 mt-9 text-tea-text`}>How can Adrian reach you?</h3>
+              <h3 className={`${TYPOGRAPHY_CLASSES.h3} mb-2 mt-9 text-tea-text`}>How can Teajia reach you?</h3>
               <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mb-7 text-tea-text-sec`}>Your answers will travel with your message. A name and email are enough to continue.</p>
 
               {/* Required fields */}

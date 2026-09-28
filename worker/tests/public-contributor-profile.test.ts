@@ -81,6 +81,20 @@ describe('public contributor profile (/api/people, /api/people/:slug)', () => {
     expect(body.contributors.map((c: any) => c.id)).not.toContain('quiet-person');
   });
 
+  it('a deliberate Unpublish takes the person down even when they have a published article', async () => {
+    const db = database(); seedIdentity(db);
+    seedContributor(db, { id: 'taken-down', isPublished: false });
+    db.sqlite.prepare(`INSERT INTO articles
+      (id, account_id, title, author_id, slug, status, published_at)
+      VALUES ('art-down', 'acc-one', 'Still Published', 'taken-down', 'still-published', 'published', datetime('now'))`).run();
+    expect((await call(db, '/api/people/taken-down')).status).toBe(200);
+
+    db.sqlite.prepare(`UPDATE contributors SET unpublished_at = datetime('now') WHERE id = 'taken-down'`).run();
+    expect((await call(db, '/api/people/taken-down')).status).toBe(404);
+    const directory = await (await call(db, '/api/people')).json() as any;
+    expect(directory.contributors.map((c: any) => c.id)).not.toContain('taken-down');
+  });
+
   it('auto-publishes a contributor the moment they have one published article, even with is_published=0', async () => {
     const db = database(); seedIdentity(db);
     seedContributor(db, { id: 'auto-pub', isPublished: false });

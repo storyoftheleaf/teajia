@@ -167,7 +167,7 @@ export default function SessionPage() {
               {session.title || 'Tasting'}
             </p>
             <p className="text-ui-11 text-tea-text-sec mt-0.5 tracking-wide">
-              with Adrian · {sortedTeas.length} tea{sortedTeas.length !== 1 ? 's' : ''}
+              with Teajia · {sortedTeas.length} tea{sortedTeas.length !== 1 ? 's' : ''}
             </p>
           </div>
           <div className="w-[68px]" aria-hidden />

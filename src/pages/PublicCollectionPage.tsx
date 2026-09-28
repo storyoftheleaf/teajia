@@ -186,7 +186,7 @@ const PublicCollectionPage: React.FC = () => {
           </p>
           <p className="font-body text-ui-15 leading-[1.65] text-tea-text-sec italic">
             {status === 'gone'
-              ? 'The link may have been taken down. Ask Adrian directly for a new one.'
+              ? 'The link may have been taken down. Ask Teajia directly for a new one.'
               : "The link you followed doesn’t lead anywhere. Check it with whoever shared it."}
           </p>
         </div>

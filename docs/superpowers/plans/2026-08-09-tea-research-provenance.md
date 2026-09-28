@@ -376,8 +376,6 @@ git commit -m "feat(wisdom): show cited research on references"
 - Create: `src/pages/ProductPage.research.test.tsx`
 - Modify: `src/components/shop/AlcoveCard.tsx`
 - Modify: `src/components/shop/alcove/AlcoveCharacterBand.tsx`
-- Modify: `src/components/tasting/ProductTastingEditorial.tsx`
-- Modify: `src/components/tasting/ProductTastingEditorial.test.tsx`
 
 ### Step 1: Write failing precedence tests
 
@@ -412,7 +410,7 @@ describe('product research resolution', () => {
 ### Step 2: Run and confirm RED
 
 ```bash
-npx vitest run src/wisdom/productResearch.test.ts src/components/tasting/ProductTastingEditorial.test.tsx
+npx vitest run src/wisdom/productResearch.test.ts
 ```
 
 Expected: the resolver and separate rendering path do not exist.
@@ -438,7 +436,7 @@ Resolution order for the product-level tasting is `owner`, then `community`, the
 
 ### Step 4: Render in the existing tasting section
 
-`ProductTastingEditorial` and `AlcoveCharacterBand` should show:
+`AlcoveCharacterBand` should show:
 
 - `Adrian's tasting` for `owner`;
 - `Community profile` for `community`;
@@ -450,7 +448,7 @@ If both a product tasting and a Wisdom profile exist, render both with distinct 
 ### Step 5: Verify product behavior and layout
 
 ```bash
-npx vitest run src/wisdom/productResearch.test.ts src/components/tasting/ProductTastingEditorial.test.tsx src/pages/ProductPage.research.test.tsx
+npx vitest run src/wisdom/productResearch.test.ts src/pages/ProductPage.research.test.tsx
 npm run lint
 npm run lint:colors
 ```

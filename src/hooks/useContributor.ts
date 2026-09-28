@@ -50,6 +50,8 @@ export const useContributor = (slug: string | undefined) => {
         avatar_url: data.avatar_url ?? null,
         portrait_url: data.portrait_url ?? null,
         portrait_caption: data.portrait_caption ?? null,
+        portrait_focus: data.portrait_focus ?? null,
+        avatar_focus: data.avatar_focus ?? null,
         voice_clip_url: data.voice_clip_url ?? null,
         voice_clip_caption: data.voice_clip_caption ?? null,
 
@@ -100,6 +102,7 @@ export const useContributors = () => {
         location_line: r.location_line ?? null,
         avatar_url: r.avatar_url ?? null,
         card_image_url: r.card_image_url ?? null,
+        card_image_focus: r.card_image_focus ?? null,
         own_line: typeof r.own_line === 'string' ? r.own_line : null,
         is_host: r.is_host === true,
         article_count: Number(r.article_count || 0),

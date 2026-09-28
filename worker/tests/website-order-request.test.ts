@@ -71,11 +71,169 @@ async function trackedOrder(db: SqliteD1) {
 }
 
 describe('website order requests', () => {
-  it('requires an email and refuses a store that cannot be paid', async () => {
-    const db = seed(false);
-    expect((await create(db, payload({ customer_contact: '+628123456789' }))).status).toBe(400);
-    expect((await create(db)).status).toBe(409);
+  it('saves a contact-free WhatsApp handoff as one pending request and draft invoice without a send', async () => {
+    const db = seed();
+    db.sqlite.exec("UPDATE accounts SET whatsapp_number='6281339712339' WHERE id='shop'");
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    const body = payload({ customer_contact: '', whatsapp_handoff: true, total_estimate_usd: 0 });
+    const response = await create(db, body);
+    expect(response.status).toBe(201);
+    const saved = await response.json() as any;
+    expect(saved).toMatchObject({ success: true, invoice_id: expect.any(String), invoice_number: expect.any(String), tracking_token: TOKEN });
+    const inquiry = db.sqlite.prepare('SELECT account_id, email, phone, status, message, converted_invoice_id FROM inquiries').get() as any;
+    expect(inquiry).toMatchObject({ account_id: 'shop', email: '', phone: null, status: 'new', converted_invoice_id: saved.invoice_id });
+    expect(inquiry.message).toContain('Customer will start the WhatsApp chat; not yet contacted.');
+    const invoice = db.sqlite.prepare('SELECT account_id, status, customer_whatsapp, inventory_deducted, notes FROM invoices').get() as any;
+    expect(invoice).toMatchObject({ account_id: 'shop', status: 'Draft', customer_whatsapp: null, inventory_deducted: 0 });
+    expect(invoice.notes).toContain('Customer will start the WhatsApp chat; not yet contacted.');
+    expect(invoice.notes).not.toContain('Reply to:');
+    expect(db.sqlite.prepare('SELECT quantity, price_at_sale FROM invoice_line_items').get()).toEqual({ quantity: 50, price_at_sale: 0.28 });
+    const replay = await create(db, body);
+    expect(replay.status).toBe(200);
+    expect(await replay.json()).toMatchObject({ idempotent: true, id: saved.id, invoice_id: saved.invoice_id });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM inquiries').get()).toEqual({ n: 1 });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM invoices').get()).toEqual({ n: 1 });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM invoice_line_items').get()).toEqual({ n: 1 });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM order_whatsapp_outbox').get()).toEqual({ n: 0 });
+    expect(fetch).not.toHaveBeenCalled();
+    expect((await trackedOrder(db)).order).toMatchObject({ invoice_id: saved.invoice_id, notification_status: null });
+  });
+
+  it('emails the store about the pending chat without inventing a customer recipient', async () => {
+    const db = seed();
+    db.sqlite.exec("UPDATE accounts SET whatsapp_number='+6281339712339', contact_email='owner@shop.test' WHERE id='shop'");
+    const fetch = vi.fn(async () => new Response('{}', { status: 200 }));
+    vi.stubGlobal('fetch', fetch);
+    const response = await create(db, payload({ customer_contact: '', whatsapp_handoff: true }), true);
+    expect(response.status).toBe(201);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const sent = JSON.parse(String((fetch.mock.calls[0] as any)[1].body));
+    expect(sent.to).toBe('owner@shop.test');
+    expect(sent.html).toContain('Customer will start the WhatsApp chat; not yet contacted.');
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM order_whatsapp_outbox').get()).toEqual({ n: 0 });
+  });
+
+  it('requires explicit website handoff to omit contact and rejects handoff mixed with automated consent', async () => {
+    const db = seed();
+    db.sqlite.exec("UPDATE accounts SET whatsapp_number='+6281339712339' WHERE id='shop'");
+    for (const fields of [
+      {}, { whatsapp_handoff: false }, { whatsapp_handoff: 'true' }, { whatsapp_handoff: 1 }, { whatsapp_handoff: null },
+      { whatsapp_handoff: true, source: 'cart' }, { whatsapp_handoff: true, source: 'whatsapp' },
+      { whatsapp_handoff: true, source: 'consult', vision: 'Tea please' },
+      { whatsapp_handoff: true, whatsapp_confirmation_consent: true, customer_contact: '+628123456789' },
+      { whatsapp_handoff: true, whatsapp_confirmation_consent: 'false' },
+      { whatsapp_handoff: true, customer_contact: 'not a contact' },
+      { whatsapp_handoff: true, customer_name: '' },
+    ]) {
+      expect((await create(db, payload({ customer_contact: '', ...fields }))).status).toBe(400);
+    }
     expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM inquiries').get()).toEqual({ n: 0 });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM invoices').get()).toEqual({ n: 0 });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM order_whatsapp_outbox').get()).toEqual({ n: 0 });
+  });
+
+  it('requires the selected store to have a valid WhatsApp number before saving a handoff', async () => {
+    const db = seed();
+    seedIdentity(db, { userId: 'other-owner', accountId: 'other-shop', bundles: ['sell'] });
+    db.sqlite.exec("UPDATE accounts SET whatsapp_number='+6281339712339' WHERE id='other-shop'");
+    for (const number of [null, '', '123', '08123456789', 'call 6281339712339', '+1234567890123456']) {
+      db.sqlite.prepare('UPDATE accounts SET whatsapp_number=? WHERE id=?').run(number, 'shop');
+      const response = await create(db, payload({ customer_contact: '', whatsapp_handoff: true }));
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ error: expect.stringContaining('valid WhatsApp number') });
+    }
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM inquiries').get()).toEqual({ n: 0 });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM invoices').get()).toEqual({ n: 0 });
+    db.sqlite.exec("UPDATE accounts SET whatsapp_number='+62 813-3971-2339' WHERE id='shop'");
+    expect((await create(db, payload({ customer_contact: '', whatsapp_handoff: true }))).status).toBe(201);
+  });
+
+  it('keeps handoff retries scoped to the original request and store', async () => {
+    const db = seed();
+    db.sqlite.exec("UPDATE accounts SET whatsapp_number='+6281339712339' WHERE id='shop'");
+    const body = payload({ customer_contact: '', whatsapp_handoff: true });
+    expect((await create(db, body)).status).toBe(201);
+    expect((await create(db, { ...body, notes: 'Changed request' })).status).toBe(409);
+    seedIdentity(db, { userId: 'other-owner', accountId: 'other-shop', bundles: ['sell'] });
+    db.sqlite.exec("UPDATE accounts SET whatsapp_number='+6281111111111' WHERE id='other-shop'");
+    expect((await create(db, { ...body, store_slug: 'other-shop', items: [{ ...body.items[0], storeSlug: 'other-shop' }] })).status).toBe(409);
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM invoices').get()).toEqual({ n: 1 });
+  });
+
+  it('returns only the saved order store’s public WhatsApp contact on the private tracking page', async () => {
+    const db = seed();
+    seedIdentity(db, { userId: 'other-owner', accountId: 'other-shop', bundles: ['sell'] });
+    db.sqlite.exec(`
+      UPDATE accounts SET whatsapp_number='+6281339712339' WHERE id='shop';
+      UPDATE accounts SET whatsapp_number='+6281111111111' WHERE id='other-shop';
+    `);
+    expect((await create(db)).status).toBe(201);
+    const response = await worker.fetch(new Request(`https://app.test/api/inquiries/${TOKEN}`, {
+      headers: { 'X-Teajia-Account': 'other-shop' },
+    }), { DB: db, JWT_SECRET: SECRET } as never, {} as never);
+    expect(response.status).toBe(200);
+    const tracked = await response.json() as any;
+    expect(tracked.contact).toEqual({ whatsapp: '+6281339712339' });
+    expect(JSON.stringify(tracked)).not.toContain('guest@example.com');
+    expect(JSON.stringify(tracked)).not.toContain('+6281111111111');
+    db.sqlite.exec("UPDATE accounts SET whatsapp_number=NULL WHERE id='shop'");
+    expect((await trackedOrder(db)).contact).toEqual({ whatsapp: null });
+  });
+
+  it('saves email and phone orders without consent without queueing a WhatsApp send', async () => {
+    for (const customer_contact of ['guest@example.com', '+628123456789']) {
+      const db = seed();
+      expect((await create(db, payload({ customer_contact }))).status).toBe(201);
+      expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM invoices').get()).toEqual({ n: 1 });
+      expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM order_whatsapp_outbox').get()).toEqual({ n: 0 });
+      if (customer_contact.startsWith('+')) {
+        expect((await create(db, payload({ customer_contact, whatsapp_confirmation_consent: true }))).status).toBe(200);
+        expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM order_whatsapp_outbox').get()).toEqual({ n: 0 });
+      }
+    }
+  });
+
+  it('requires explicit boolean consent and a customer international number', async () => {
+    const db = seed();
+    for (const fields of [
+      { whatsapp_confirmation_consent: 'true', customer_contact: '+628123456789' },
+      { whatsapp_confirmation_consent: true, customer_contact: 'guest@example.com' },
+      { whatsapp_confirmation_consent: true, customer_contact: '08123456789' },
+      { whatsapp_confirmation_consent: true, customer_contact: '+6281339712339' },
+    ]) {
+      db.sqlite.exec("UPDATE accounts SET whatsapp_number='+6281339712339' WHERE id='shop'");
+      expect((await create(db, payload(fields))).status).toBe(400);
+    }
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM invoices').get()).toEqual({ n: 0 });
+  });
+
+  it('stores consent with a normalized customer recipient and private tracking link atomically', async () => {
+    const db = seed();
+    const body = payload({ customer_contact: '+62 812-3456-789', whatsapp_confirmation_consent: true });
+    expect((await create(db, body)).status).toBe(201);
+    const outbox = db.sqlite.prepare('SELECT * FROM order_whatsapp_outbox').get() as any;
+    expect(outbox).toMatchObject({ message_purpose: 'customer_confirmation', recipient_number: '+628123456789', state: 'config_required', attempts: 0 });
+    expect(outbox.consent_at).toBeTruthy();
+    expect(new URL(outbox.invoice_url).pathname).toBe(`/order/${TOKEN}`);
+    expect(outbox.invoice_url).not.toContain('/admin/');
+    expect((await create(db, body)).status).toBe(200);
+    expect((await create(db, { ...body, whatsapp_confirmation_consent: false })).status).toBe(200);
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM order_whatsapp_outbox').get()).toEqual({ n: 1 });
+    const tracked = await trackedOrder(db);
+    expect(tracked.order.invoice_id).toBe(outbox.invoice_id);
+  });
+  it('accepts a phone contact even before the store publishes a payment method', async () => {
+    const db = seed(false);
+    const response = await create(db, payload({ customer_contact: '+628123456789', whatsapp_confirmation_consent: true }));
+    expect(response.status).toBe(201);
+    const created = await response.json() as any;
+    expect(created).toMatchObject({ success: true, invoice_id: expect.any(String) });
+    expect(db.sqlite.prepare('SELECT phone FROM inquiries').get()).toEqual({ phone: '+628123456789' });
+    expect(db.sqlite.prepare('SELECT status, customer_whatsapp FROM invoices').get()).toEqual({
+      status: 'Draft', customer_whatsapp: '+628123456789',
+    });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM order_whatsapp_outbox').get()).toEqual({ n: 1 });
   });
 
   it('saves once, keeps location apart from contact, and permits delivery-channel retries', async () => {
@@ -154,21 +312,18 @@ describe('website order requests', () => {
     expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM inquiries').get()).toEqual({ n: 1 });
   });
 
-  it('recomputes invoice packs from catalogue prices and ignores forged client amounts', async () => {
+  it('creates the invoice at server prices and ignores forged client amounts', async () => {
     const db = seed();
     const body = payload();
     body.items[0].pricePerGram = 0;
     body.items[0].totalPrice = 0;
     const saved = await (await create(db, body)).json() as any;
-    const response = await convert(db, saved.id);
-    expect(response.status).toBe(200);
-    const result = await response.json() as any;
-    const line = db.sqlite.prepare('SELECT product_id, custom_name, quantity, price_at_sale FROM invoice_line_items WHERE invoice_id = ?').get(result.invoice_id) as any;
+    const line = db.sqlite.prepare('SELECT product_id, custom_name, quantity, price_at_sale FROM invoice_line_items WHERE invoice_id = ?').get(saved.invoice_id) as any;
     expect(line.product_id).toBe('tea');
     expect(line.custom_name).toContain('2 × 25 g');
     expect(line.quantity).toBe(50);
     expect(line.quantity * line.price_at_sale).toBeCloseTo(14);
-    const invoice = db.sqlite.prepare('SELECT customer_whatsapp, notes FROM invoices WHERE id = ?').get(result.invoice_id) as any;
+    const invoice = db.sqlite.prepare('SELECT customer_whatsapp, notes FROM invoices WHERE id = ?').get(saved.invoice_id) as any;
     expect(invoice.customer_whatsapp).toBeNull();
     expect(invoice.notes).toContain('guest@example.com');
     expect((await convert(db, saved.id)).status).toBe(409);
@@ -182,14 +337,14 @@ describe('website order requests', () => {
     expect((await create(db, body)).status).toBe(400);
   });
 
-  it('does not convert a missing exchange rate into handling-only pricing', async () => {
+  it('does not create an invoice when the catalogue exchange rate is missing', async () => {
     const db = seed();
-    const saved = await (await create(db)).json() as any;
     db.sqlite.exec("UPDATE products SET cost_currency = 'MISSING' WHERE id = 'tea'");
-    const response = await convert(db, saved.id);
+    const response = await create(db);
     expect(response.status).toBe(400);
     expect(await response.json()).toMatchObject({ error: 'Product price is unavailable' });
     expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM invoices').get()).toEqual({ n: 0 });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM inquiries').get()).toEqual({ n: 0 });
   });
 
   it('does not treat a missing catalogue price as zero or a city as a phone', () => {
@@ -218,13 +373,13 @@ describe('website order requests', () => {
       id: request.id, source: 'website', email: 'guest@example.com', phone: null,
       items: [{ id: 'tea', packGrams: 25, packs: 2, quantityGrams: 50, totalPrice: 14 }],
     });
-    expect(await trackedOrder(db)).toMatchObject({ journey: { stage: 'received' }, payment: null });
-
-    const converted = await convert(db, request.id);
-    expect(converted.status).toBe(200);
-    const { invoice_id: invoiceId } = await converted.json() as any;
     expect(await trackedOrder(db)).toMatchObject({
-      journey: { stage: 'confirmed' }, payment: { total_usd: 14 },
+      journey: { stage: 'received' }, payment: { total_usd: 14 },
+    });
+    const invoiceId = request.invoice_id;
+    expect((await convert(db, request.id)).status).toBe(409);
+    expect(await trackedOrder(db)).toMatchObject({
+      journey: { stage: 'received' }, payment: { total_usd: 14 },
     });
 
     // Staff agrees a $3 delivery amount and sends the draft. No SQL status shortcuts.
@@ -275,8 +430,9 @@ describe('website order requests', () => {
     expect(await trackedOrder(db)).toMatchObject({
       journey: { stage: 'paid' }, payment: { total_usd: 17, paid_usd: 17, outstanding_usd: 0, pay_url: null },
     });
+    expect(db.sqlite.prepare('SELECT stock_grams FROM products WHERE id = ?').get('tea')).toEqual({ stock_grams: 950 });
 
-    const fulfilled = await admin(db, '/api/rpc/fulfill-invoice', 'POST', { invoice_id: invoiceId });
+    const fulfilled = await admin(db, '/api/rpc/ship-invoice', 'POST', { invoice_id: invoiceId, tracking_number: 'TRACK-1' });
     expect(fulfilled.status).toBe(200);
     const complete = await trackedOrder(db);
     expect(complete).toMatchObject({
@@ -285,7 +441,7 @@ describe('website order requests', () => {
     });
     expect(JSON.parse(complete.items_json)[0]).toMatchObject({ packGrams: 25, packs: 2, quantityGrams: 50 });
     expect(db.sqlite.prepare('SELECT stock_grams FROM products WHERE id = ?').get('tea')).toEqual({ stock_grams: 950 });
-    expect((await admin(db, '/api/rpc/fulfill-invoice', 'POST', { invoice_id: invoiceId })).status).toBe(409);
+    expect((await admin(db, '/api/rpc/ship-invoice', 'POST', { invoice_id: invoiceId })).status).toBe(200);
     expect(db.sqlite.prepare('SELECT stock_grams FROM products WHERE id = ?').get('tea')).toEqual({ stock_grams: 950 });
     expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM invoices').get()).toEqual({ n: 1 });
     expect(network).not.toHaveBeenCalled();

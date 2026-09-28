@@ -87,7 +87,7 @@ export const ARTICLE_TAG_MAP: Record<string, ArticleTagMeta> = {
     tags: ['Architecture', 'Space Design', 'Culture'],
     endOfArticleCTA: {
       type: 'consult',
-      text: 'Adrian designs spaces like this.',
+      text: 'Teajia designs spaces like this.',
       linkTarget: 'consult',
     },
   },
@@ -246,7 +246,7 @@ export const ARTICLE_TAG_MAP: Record<string, ArticleTagMeta> = {
     startHere: true,
     endOfArticleCTA: {
       type: 'consult',
-      text: 'Adrian designs spaces like this.',
+      text: 'Teajia designs spaces like this.',
       linkTarget: 'consult',
     },
   },

@@ -33,6 +33,8 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
   const [items, setItems] = useState<LineItem[]>([]);
   const [customerName, setCustomerName] = useState('');
   const [shippingCost, setShippingCost] = useState(0);
+  const [shippingDestination, setShippingDestination] = useState('');
+  const [trackingNumber, setTrackingNumber] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -41,6 +43,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [addingProduct, setAddingProduct] = useState(false);
   const [productSearch, setProductSearch] = useState('');
+  const itemsLocked = (invoice?.payment_status && invoice.payment_status !== 'unpaid') || !!invoice?.inventory_deducted;
 
   const fuse = useMemo(() => new Fuse(products, {
     keys: ['givenName', 'productName', 'type'],
@@ -64,6 +67,8 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
     setProductSearch('');
     setCustomerName(invoice.customer_name || '');
     setShippingCost(Number(invoice.shipping_cost_usd) || 0);
+    setShippingDestination(invoice.shipping_destination || '');
+    setTrackingNumber(invoice.tracking_number || '');
     setNotes(invoice.notes || '');
 
     api.invoices.getItems(invoice.id).then(data => {
@@ -124,7 +129,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
     }
     setLoading(true);
     try {
-      await api.invoices.updateItems(invoice.id, {
+      if (!itemsLocked) await api.invoices.updateItems(invoice.id, {
         lineItems: items.map(item => ({
           product_id: item.product_id,
           quantity: item.quantity,
@@ -137,6 +142,11 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
         shipping_cost_usd: shippingCost,
         customer_name: customerName,
         notes,
+      });
+      await api.invoices.update(invoice.id, {
+        shipping_cost_usd: shippingCost,
+        shipping_destination: shippingDestination.trim() || null,
+        tracking_number: trackingNumber.trim() || null,
       });
       showToast('Order updated.', 'success');
       onSuccess();
@@ -175,7 +185,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
             <h3 className="h3 text-tea-text">Edit Order</h3>
           </div>
           <p className="label-caps text-tea-text-dim mt-1">
-            {invoice?.invoice_number} · Pending orders only
+            {invoice?.invoice_number} · {itemsLocked ? 'Shipping details can still be added after payment' : 'Review tea, prices and shipping'}
           </p>
         </div>
 
@@ -202,6 +212,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                   <input
                     type="text"
                     value={customerName}
+                    disabled={itemsLocked}
                     onChange={(e) => setCustomerName(e.target.value)}
                     className="w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors"
                   />
@@ -219,10 +230,22 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="order-shipping-destination" className="block label-caps text-tea-text-sec mb-1.5">Delivery destination</label>
+                  <input id="order-shipping-destination" type="text" value={shippingDestination} onChange={event => setShippingDestination(event.target.value)} placeholder="Address or pickup arrangement" className="w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:outline-none" />
+                </div>
+                <div>
+                  <label htmlFor="order-tracking-number" className="block label-caps text-tea-text-sec mb-1.5">Tracking number (optional)</label>
+                  <input id="order-tracking-number" type="text" value={trackingNumber} onChange={event => setTrackingNumber(event.target.value)} className="w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:outline-none" />
+                </div>
+              </div>
+
               <div>
                 <label className="block label-caps text-tea-text-sec mb-1.5">Notes</label>
                 <textarea
                   value={notes}
+                  disabled={itemsLocked}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={2}
                   className="w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors resize-none"
@@ -233,15 +256,15 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="label-caps text-tea-text-sec">Items</label>
-                  <button
+                  {!itemsLocked && <button
                     onClick={() => setAddingProduct(!addingProduct)}
                     className="inline-flex items-center gap-1.5 text-ui-12 text-tea-gold hover:text-tea-gold/90 transition-colors"
                   >
                     <Plus size={12} /> Add Item
-                  </button>
+                  </button>}
                 </div>
 
-                {addingProduct && (
+                {!itemsLocked && addingProduct && (
                   <div className="bg-tea-bg border border-tea-border rounded-md p-3 mb-3">
                     <div className="relative mb-2">
                       <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec" />
@@ -274,13 +297,13 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                     <div key={index} className="bg-tea-bg border border-tea-border rounded-md p-3">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-ui-14 text-tea-text truncate">{item.given_name || item.product_name || item.custom_name}</span>
-                        <button
+                        {!itemsLocked && <button
                           onClick={() => removeItem(index)}
-                          className="text-tea-text-sec hover:text-tea-text transition-colors p-0.5"
+                          className="tap-target text-tea-text-sec hover:text-tea-text transition-colors p-0.5"
                           title="Remove item"
                         >
                           <Trash2 size={12} />
-                        </button>
+                        </button>}
                       </div>
                       <div className="flex gap-3">
                         <div className="flex-1">
@@ -289,6 +312,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                             type="number"
                             min={0}
                             value={item.quantity}
+                            disabled={itemsLocked}
                             onChange={(e) => updateItem(index, 'quantity', Number(e.target.value) || 0)}
                             className="w-full bg-tea-surface border border-tea-border rounded-md px-2 py-1 text-ui-12 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors num"
                           />
@@ -300,6 +324,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                             min={0}
                             step={0.01}
                             value={item.price_at_sale}
+                            disabled={itemsLocked}
                             onChange={(e) => updateItem(index, 'price_at_sale', Number(e.target.value) || 0)}
                             className="w-full bg-tea-surface border border-tea-border rounded-md px-2 py-1 text-ui-12 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors num"
                           />

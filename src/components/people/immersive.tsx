@@ -182,6 +182,8 @@ interface CoverProps {
   image?: string | null;
   imageAlt?: string;
   imageOpacity?: number;
+  /** The point kept in frame, as CSS object-position. Null is the centre. */
+  imagePosition?: string | null;
   /** When there is no image, what fills the box (the identity mark). */
   fallback?: ReactNode;
   height: number;
@@ -194,7 +196,7 @@ interface CoverProps {
 }
 
 /** A cover: image behind, fade into the page ground, words at the foot, a thin gold border that brightens on hover. */
-export function Cover({ to, image, imageAlt = '', imageOpacity = 1, fallback, height, fadeFull, children, className = '', testId, ariaLabel }: CoverProps) {
+export function Cover({ to, image, imageAlt = '', imageOpacity = 1, imagePosition, fallback, height, fadeFull, children, className = '', testId, ariaLabel }: CoverProps) {
   return (
     <Link
       to={to}
@@ -204,7 +206,7 @@ export function Cover({ to, image, imageAlt = '', imageOpacity = 1, fallback, he
       aria-label={ariaLabel}
     >
       {image ? (
-        <img src={image} alt={imageAlt} className="absolute inset-0 h-full w-full object-cover" style={{ opacity: imageOpacity }} />
+        <img src={image} alt={imageAlt} className="absolute inset-0 h-full w-full object-cover" style={{ opacity: imageOpacity, objectPosition: imagePosition ?? undefined }} />
       ) : fallback ? (
         <span className="absolute inset-0">{fallback}</span>
       ) : null}
