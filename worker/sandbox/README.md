@@ -164,3 +164,10 @@ runner, a machine that is offline), that step hangs on a login prompt and the
 API never comes up. `npm run sandbox:offline` skips the export and boots the
 API with whatever `.dev.vars` already holds, which for the sandbox only needs
 `JWT_SECRET`. Nothing else changes: same database, same ports, same site.
+
+It also runs wrangler with `--local`, so it never needs a Cloudflare login.
+Without that flag wrangler still reaches for the account to serve the AI and
+rate-limit bindings, and on a machine where `wrangler whoami` says "Not logged
+in" the API exits at boot while the site keeps running, so every request
+fails to fetch. With it those bindings are off: sign-in, the admin and Your
+Table all work; AI features and rate limits do not.

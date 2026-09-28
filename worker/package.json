@@ -13,7 +13,7 @@
     "ship": "wrangler d1 migrations apply teajia-db --remote && wrangler deploy",
     "db:init": "wrangler d1 execute teajia-db --remote --file=./schema.sql",
     "db:seed": "wrangler d1 execute teajia-db --remote --file=./seed.sql",
-    "sandbox:offline": "node sandbox/check-db.mjs && wrangler dev --port 8787"
+    "sandbox:offline": "node sandbox/check-db.mjs && wrangler dev --port 8787 --local"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241218.0",
