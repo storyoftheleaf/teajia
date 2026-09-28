@@ -98,6 +98,7 @@ import {
   resolvePublishedPaymentMethods,
   type GalleryImageRow,
   type PaymentMethodRow,
+  normalizePhotoFocus,
 } from './profileDomain';
 import { decidePayAccess, isShareTokenShaped, mintShareToken, PAY_LINK_PARAM, withShareToken } from './payAccessDomain';
 import {
@@ -7933,7 +7934,11 @@ const CONTRIBUTOR_WRITE_FIELDS = [
   'beginnings', 'now_text', 'now_stamp', 'now_updated_at', 'inspirations', 'closing', 'avatar_url',
   'portrait_url', 'portrait_caption', 'voice_clip_url', 'voice_clip_caption',
   'pouring_today_product_id', 'pouring_today_note', 'where_to_find_text', 'user_id',
+  'portrait_focus', 'avatar_focus',
 ] as const;
+
+// Written only through normalizePhotoFocus, never as free text.
+const CONTRIBUTOR_FOCUS_FIELDS = ['portrait_focus', 'avatar_focus'] as const;
 
 const PROFILE_SELF_FIELDS = [
   'display_name', 'business_name', 'chinese_name', 'pronouns', 'location_line', 'active_since', 'languages',
@@ -7964,6 +7969,12 @@ function parseContributorWrite(body: Record<string, unknown>) {
     else if (typeof value === 'string') values[field] = value.trim() || null;
     else return { error: `${field} must be a string or null` };
   }
+  for (const field of CONTRIBUTOR_FOCUS_FIELDS) {
+    if (!(field in body)) continue;
+    const focus = normalizePhotoFocus(body[field]);
+    if (focus.error) return { error: `${field}: ${focus.error}` };
+    values[field] = focus.value ?? null;
+  }
   if (typeof values.closing === 'string' && values.closing.length > 200) return { error: 'closing must be 200 characters or fewer' };
   const links = parseContributorLinks(body.links);
   if (links.error) return { error: links.error };
@@ -7991,12 +8002,12 @@ function adminContributor(row: Record<string, any>) {
 const CONTRIBUTOR_GALLERY_IMAGE_LIMIT = 8;
 const GALLERY_CAPTION_LIMIT = 280;
 
-function parseGalleryImages(value: unknown): { value?: Array<{ image_url: string; caption: string | null }>; error?: string } {
+function parseGalleryImages(value: unknown): { value?: Array<{ image_url: string; caption: string | null; focus: string | null }>; error?: string } {
   if (!Array.isArray(value)) return { error: 'gallery_images must be an array' };
   if (value.length > CONTRIBUTOR_GALLERY_IMAGE_LIMIT) {
     return { error: `gallery_images may hold at most ${CONTRIBUTOR_GALLERY_IMAGE_LIMIT} photos` };
   }
-  const normalized: Array<{ image_url: string; caption: string | null }> = [];
+  const normalized: Array<{ image_url: string; caption: string | null; focus: string | null }> = [];
   for (const item of value) {
     if (!item || typeof item !== 'object') return { error: 'Each gallery image must be an object' };
     const rawUrl = typeof (item as any).image_url === 'string' ? (item as any).image_url.trim() : '';
@@ -8013,27 +8024,29 @@ function parseGalleryImages(value: unknown): { value?: Array<{ image_url: string
     if (trimmedCaption.length > GALLERY_CAPTION_LIMIT) {
       return { error: `caption must be ${GALLERY_CAPTION_LIMIT} characters or fewer` };
     }
-    normalized.push({ image_url: url.toString(), caption: trimmedCaption || null });
+    const focus = normalizePhotoFocus((item as any).focus);
+    if (focus.error) return { error: focus.error };
+    normalized.push({ image_url: url.toString(), caption: trimmedCaption || null, focus: focus.value ?? null });
   }
   return { value: normalized };
 }
 
-function replaceGalleryImagesStatements(env: Env, contributorId: string, images: Array<{ image_url: string; caption: string | null }>): D1PreparedStatement[] {
+function replaceGalleryImagesStatements(env: Env, contributorId: string, images: Array<{ image_url: string; caption: string | null; focus?: string | null }>): D1PreparedStatement[] {
   const statements: D1PreparedStatement[] = [
     env.DB.prepare('DELETE FROM contributor_gallery_images WHERE contributor_id = ?').bind(contributorId),
   ];
   images.forEach((image, index) => {
     statements.push(env.DB.prepare(
-      `INSERT INTO contributor_gallery_images (id, contributor_id, image_url, caption, position, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))`
-    ).bind(crypto.randomUUID(), contributorId, image.image_url, image.caption, index));
+      `INSERT INTO contributor_gallery_images (id, contributor_id, image_url, caption, focus, position, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`
+    ).bind(crypto.randomUUID(), contributorId, image.image_url, image.caption, image.focus ?? null, index));
   });
   return statements;
 }
 
 async function contributorGalleryImages(env: Env, contributorId: string) {
   const rows = await env.DB.prepare(
-    `SELECT id, contributor_id, image_url, caption, position
+    `SELECT id, contributor_id, image_url, caption, focus, position
        FROM contributor_gallery_images
       WHERE contributor_id = ?
       ORDER BY position ASC`
@@ -8046,7 +8059,7 @@ async function contributorGalleryImagesByIds(env: Env, contributorIds: string[])
   if (!contributorIds.length) return map;
   const placeholders = contributorIds.map(() => '?').join(', ');
   const rows = await env.DB.prepare(
-    `SELECT id, contributor_id, image_url, caption, position
+    `SELECT id, contributor_id, image_url, caption, focus, position
        FROM contributor_gallery_images
       WHERE contributor_id IN (${placeholders})
       ORDER BY contributor_id, position ASC`
@@ -23554,7 +23567,10 @@ const handleListPublicContributors: Handler = async (request, env) => {
             (SELECT gi.image_url FROM contributor_gallery_images gi
               WHERE gi.contributor_id = c.id
               ORDER BY gi.position ASC LIMIT 1) AS gallery_card_image_url,
-            c.portrait_url,
+            (SELECT gi.focus FROM contributor_gallery_images gi
+              WHERE gi.contributor_id = c.id
+              ORDER BY gi.position ASC LIMIT 1) AS gallery_card_image_focus,
+            c.portrait_url, c.portrait_focus,
             (SELECT COUNT(*) FROM articles ar WHERE ar.author_id = c.id AND ar.status = 'published') AS article_count,
             EXISTS (
               SELECT 1 FROM contributor_accounts ca WHERE ca.contributor_id = c.id AND ca.is_host = 1
@@ -23579,6 +23595,8 @@ const handleListPublicContributors: Handler = async (request, env) => {
     // placeholder. A contributor with neither has no card image at all --
     // the directory page's own job is to fall back to the initials mark.
     card_image_url: row.gallery_card_image_url ?? row.portrait_url ?? null,
+    // The focal point travels with whichever photo won the card.
+    card_image_focus: row.gallery_card_image_url ? (row.gallery_card_image_focus ?? null) : (row.portrait_url ? (row.portrait_focus ?? null) : null),
     // One line in the person's own words, for the card: the first sentence of
     // what they are doing now, else of where they began. The page never
     // describes them in the third person, so this is theirs, not a summary.
@@ -23844,7 +23862,7 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
   ).bind(slug).all();
 
   const galleryRes = await env.DB.prepare(
-    `SELECT id, contributor_id, image_url, caption, position
+    `SELECT id, contributor_id, image_url, caption, focus, position
        FROM contributor_gallery_images
       WHERE contributor_id = ?
       ORDER BY position ASC`
@@ -23899,6 +23917,8 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     avatar_url: row.avatar_url ?? null,
     portrait_url: row.portrait_url ?? null,
     portrait_caption: row.portrait_caption ?? null,
+    portrait_focus: row.portrait_focus ?? null,
+    avatar_focus: row.avatar_focus ?? null,
     voice_clip_url: row.voice_clip_url ?? null,
     voice_clip_caption: row.voice_clip_caption ?? null,
     pouring_today_product_id: row.pouring_today_product_id ?? null,

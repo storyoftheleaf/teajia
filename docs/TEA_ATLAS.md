@@ -53,8 +53,17 @@ not have it until somebody ticks it for them.
 
 - Pages carry `<meta name="robots" content="noindex, nofollow">` once rendered,
   and the 404 status already keeps them out of every index.
-- No nav link, no sitemap line, no robots.txt line (a Disallow would announce
-  it), nothing in `llms.txt`.
+- No public nav link, no sitemap line, no robots.txt line (a Disallow would
+  announce it), nothing in `llms.txt`.
+- Two doors exist, and only for readers: a **Tea Atlas** tile in Your Table, and
+  a **Tea Atlas** row in the Manage column after Wisdom (only for someone who
+  already has Manage rooms; it never counts as one). `useAtlasAccess`
+  (`src/atlas/access.ts`) decides whether to show them, asking as little as the
+  rule allows: the site owner sees them without a request; a member of the
+  platform account is asked once a session (`home.json`, a door only on 200);
+  everyone else sees nothing and sends nothing, since only platform-account
+  members can be ticked. A door is never proof: the server checks every Atlas
+  request behind it.
 - Pictures are never `<img src>` to an open URL: the app fetches each one with
   the session token and shows it from a blob. A picture URL pasted into a
   private window is a 404.
@@ -153,6 +162,30 @@ rebuild it instead.
      which writes the same `articles/` and `media/` keys; files its ledger records
      are never sent twice).
 3. Nothing to deploy: the Worker serves whatever the bucket holds.
+
+## Adding many saved web pages as one source
+
+The Add source page makes one source per PDF. A shop's blog saved page by
+page is many PDFs that belong to one source, so it has its own script:
+`scripts/atlas-web-sources.mjs`. It runs the same reader and package builder
+as the page (`src/atlas/add/*`) in Node, one article per PDF, one issue
+("Articles") per source, then tidies each page (`scripts/atlas-web-clean.mjs`):
+the shop's menus, breadcrumbs, price tags, promotions, footer, comments and link
+addresses out; the "fi", "fl", "ff" pairs put back with `repairLigatures`
+checked against Global Tea Hut's vocabulary, and "Th" (U+E013 in The Chinese
+Tea Shop's font) put back. Pictures (`scripts/atlas-web-pictures.mjs`) follow
+the Add source page's rules, minus its near-plain test (a product photo on
+white fails it), plus one: a picture in three or more of a shop's articles is
+the shop's, not the article's. JPEGs are made with macOS `sips`.
+
+- `node scripts/atlas-web-sources.mjs --out <dir>` builds, to read before sending.
+- `--send` records the sources exactly as the Add source page does (articles,
+  `added/<id>/manifest.json`, `added/sources.json`) and runs `atlas:upload`,
+  so they are in the index and search and survive every rebuild.
+- The sources it knows are listed at the top of the script (`WEB_SOURCES`): a
+  file-name pattern plus name, credit and subtitle. Added 2026-09-28: The
+  Chinese Tea Shop (27 articles, 69 pictures, thechineseteashop.com) and Ooika
+  (4 articles, 19 pictures, ooika.co).
 
 ## Adding a source in the admin
 

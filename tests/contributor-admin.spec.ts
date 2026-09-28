@@ -90,13 +90,14 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
 
     await page.getByRole('button', { name: 'Create contributor' }).click();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
-    await page.getByLabel('Slug').fill('new-fixture');
+    await page.getByLabel('Page address').fill('new-fixture');
     await page.getByLabel('Display name').fill('New Fixture');
     await page.getByRole('button', { name: 'Publish contributor' }).click();
     await expect(page.getByText('Beginnings is required before publication.')).toBeVisible();
     await page.getByLabel('Beginnings').fill('Synthetic beginnings for the publishing test.');
     await page.getByRole('button', { name: 'Publish contributor' }).click();
-    await expect(page.getByRole('dialog', { name: 'Create contributor' })).toHaveCount(0);
+    // Once created the panel is renamed Edit contributor while it saves, so wait for any dialog to close.
+    await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.getByText('New Fixture')).toBeVisible();
 
     expect(network.requests.every(body => !body.includes('Barry'))).toBe(true);
@@ -152,7 +153,7 @@ test('uses the reactive active account for host association after an account swi
   // account, and marking it host must be what gets saved.
   const jakarta = page.getByText('Teajia Jakarta').first();
   await expect(jakarta).toBeVisible();
-  await page.getByLabel('Slug').fill('jakarta-host');
+  await page.getByLabel('Page address').fill('jakarta-host');
   await page.getByLabel('Display name').fill('Jakarta Host');
   await page.getByRole('checkbox', { name: 'Host profile' }).last().check();
   const accountsPut = page.waitForRequest(request =>
@@ -182,7 +183,7 @@ test('retries a partially failed create as an update and preserves the current t
   network.failNextPublish();
   await page.goto('/admin/contributors');
   await page.getByRole('button', { name: 'Create contributor' }).last().click();
-  await page.getByLabel('Slug').fill('resumable-writer');
+  await page.getByLabel('Page address').fill('resumable-writer');
   await page.getByLabel('Display name').fill('Resumable Writer');
   await page.getByLabel('Beginnings').fill('Fixture beginnings.');
   await page.getByLabel('Current practice updated').fill('2026-07-13T09:45');

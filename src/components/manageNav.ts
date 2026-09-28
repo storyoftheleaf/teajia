@@ -1,8 +1,9 @@
 import type { ComponentType } from 'react';
 import type { IconProps } from '@phosphor-icons/react';
 import {
-  CalendarBlank, SquaresFour, Receipt, AddressBook, BookOpen, Package, Stack, Compass, GearSix, Globe, UsersThree,
+  CalendarBlank, SquaresFour, Receipt, AddressBook, BookOpen, Books, Package, Stack, Compass, GearSix, Globe, UsersThree,
 } from '@phosphor-icons/react';
+import { useAtlasAccess } from '../atlas/access';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore, selectHasBundle, selectIsOwnerTier } from '../lib/store';
 import { ADMIN_CONNECTION_ROUTES, getVisibleAdminItemIds } from './navigationConnections';
@@ -111,6 +112,16 @@ export function buildManageItems(f: ManageListFlags): ManageItem[] {
   ];
 }
 
+export const ATLAS_MANAGE_ITEM: ManageItem = { id: 'atlas', label: 'Tea Atlas', Icon: Books, path: '/tea-atlas' };
+
+/** The rooms with the Tea Atlas placed after Wisdom, or before Network when there is no Wisdom. */
+export function withAtlas(rooms: ManageItem[]): ManageItem[] {
+  const after = rooms.findIndex(r => r.id === 'wisdom');
+  const before = rooms.findIndex(r => r.id === 'network' || r.id === 'members' || r.id === 'settings');
+  const at = after >= 0 ? after + 1 : before >= 0 ? before : rooms.length;
+  return [...rooms.slice(0, at), ATLAS_MANAGE_ITEM, ...rooms.slice(at)];
+}
+
 export function useManageNav(): ManageNav {
   const auth = useAuth();
   const hasCatalog = useAppStore(s => selectHasBundle(s, 'catalog'));
@@ -129,7 +140,13 @@ export function useManageNav(): ManageNav {
     { isAdmin: auth.isAdmin, isOwnerTier, hasCatalog, hasStock, hasSell, hasGather, hasPublish, hasMembers },
     all.map(item => item.id),
   ));
-  const items = all.filter(item => visibleIds.has(item.id));
+  const rooms = all.filter(item => visibleIds.has(item.id));
+  // The Tea Atlas sits beside Wisdom, as reference to read, for anyone who
+  // manages and whom the server lets read it. It is not a shop room: it never
+  // counts toward having Manage at all, and a reader with no rooms reaches it
+  // from Your Table instead.
+  const canReadAtlas = useAtlasAccess();
+  const items = canReadAtlas && rooms.length > 0 ? withAtlas(rooms) : rooms;
   const tableIds = new Set(getVisibleAdminItemIds(
     { isAdmin: false, isOwnerTier, hasCatalog, hasStock, hasSell, hasGather, hasPublish, hasMembers },
     all.map(item => item.id),
@@ -138,8 +155,8 @@ export function useManageNav(): ManageNav {
 
   return {
     items,
-    hasManageRoom: auth.isAuthenticated && (items.length > 0 || canCreateCollections),
-    hasSettingsRoute: items.some(item => item.id === 'settings'),
+    hasManageRoom: auth.isAuthenticated && (rooms.length > 0 || canCreateCollections),
+    hasSettingsRoute: rooms.some(item => item.id === 'settings'),
     canCreateCollections,
     tableItems,
     hasTableRoom: auth.isAuthenticated && (tableItems.length > 0 || canCreateCollections),

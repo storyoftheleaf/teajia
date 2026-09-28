@@ -182,3 +182,46 @@ describe('self-serve gallery images (PUT /api/me/public-profile/gallery-images)'
     expect(response.status).toBe(401);
   });
 });
+
+describe('a photo remembers where the face is (migration 0024)', () => {
+  it('stores each focal point, refuses a malformed one, and hands it to the public page and the directory card', async () => {
+    const db = database();
+    seedIdentity(db, { userId: 'owner-one', accountId: 'acc-one', role: 'owner' });
+    seedContributor(db, { id: 'kenji-tanaka' });
+
+    const refused = await call(db, '/api/admin/contributors/kenji-tanaka/gallery-images', {
+      method: 'PUT',
+      body: { gallery_images: [{ image_url: 'https://example.com/a.jpg', caption: null, focus: 'top left' }] },
+    });
+    expect(refused.status).toBe(400);
+
+    const gallery = await call(db, '/api/admin/contributors/kenji-tanaka/gallery-images', {
+      method: 'PUT',
+      body: { gallery_images: [
+        { image_url: 'https://example.com/a.jpg', caption: null, focus: '40% 20%' },
+        { image_url: 'https://example.com/b.jpg', caption: null },
+      ] },
+    });
+    expect(gallery.status).toBe(200);
+    expect(((await gallery.json()) as any).gallery_images.map((g: any) => g.focus)).toEqual(['40% 20%', null]);
+
+    const badPortrait = await call(db, '/api/admin/contributors/kenji-tanaka', {
+      method: 'PUT', body: { portrait_focus: '50% 150%' },
+    });
+    expect(badPortrait.status).toBe(400);
+    const portrait = await call(db, '/api/admin/contributors/kenji-tanaka', {
+      method: 'PUT', body: { portrait_url: 'https://example.com/p.jpg', portrait_focus: '30% 12%' },
+    });
+    expect(portrait.status).toBe(200);
+
+    db.sqlite.prepare(`UPDATE contributors SET is_published = 1 WHERE id = 'kenji-tanaka'`).run();
+    const page = await (await call(db, '/api/people/kenji-tanaka')).json() as any;
+    expect(page.portrait_focus).toBe('30% 12%');
+    expect(page.gallery_images.map((g: any) => g.focus)).toEqual(['40% 20%', null]);
+
+    const directory = await (await call(db, '/api/people')).json() as any;
+    const card = directory.contributors.find((row: any) => row.id === 'kenji-tanaka');
+    expect(card.card_image_url).toBe('https://example.com/a.jpg');
+    expect(card.card_image_focus).toBe('40% 20%');
+  });
+});

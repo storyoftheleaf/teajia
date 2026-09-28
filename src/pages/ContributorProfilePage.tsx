@@ -37,6 +37,7 @@ import type {
   ContributorPullQuote,
   ContributorTeaSelectionRef,
 } from '../types';
+import { mediaUrl } from '../lib/mediaUrl';
 
 // /people/:slug. A creator's public page, phone first: the page that goes in
 // an Instagram or WeChat bio. Built to the "Profile" board of the Creator
@@ -223,7 +224,9 @@ export default function ContributorProfilePage() {
     );
   }
 
-  const portrait = data.portrait_url || data.avatar_url || null;
+  // Stored as the canonical media host; rendered through the same-origin path (src/lib/mediaUrl.ts).
+  const portrait = mediaUrl(data.portrait_url || data.avatar_url || null) ?? null;
+  const portraitFocus = data.portrait_url ? data.portrait_focus : data.avatar_focus;
   const kicker = coverKicker(data.role, data.location_line);
   const coverLine = ownLine(data);
 
@@ -276,6 +279,7 @@ export default function ContributorProfilePage() {
           <Cover
             to={portrait ?? '#'}
             image={portrait}
+            imagePosition={portraitFocus}
             imageAlt={`Portrait of ${data.display_name}`}
             fallback={<ContributorIdentityMark name={data.display_name} />}
             height={420}
@@ -314,7 +318,7 @@ export default function ContributorProfilePage() {
                   const place = galleryPlacement(index);
                   return (
                     <li key={image.id ?? `${image.image_url}-${index}`} style={{ gridColumn: place.columnSpan === 2 ? 'span 2' : undefined, gridRow: place.rowSpan === 2 ? 'span 2' : undefined }}>
-                      <img src={image.image_url} alt={image.caption ?? ''} loading="lazy" className="h-full w-full object-cover" />
+                      <img src={mediaUrl(image.image_url)} alt={image.caption ?? ''} loading="lazy" className="h-full w-full object-cover" style={{ objectPosition: image.focus ?? undefined }} />
                     </li>
                   );
                 })}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BowlSteam, CalendarBlank, Heart, Tray, ArrowsLeftRight, Wrench, Path, BookOpen, Compass, Package, IdentificationCard, Receipt, Flask, Footprints, GearSix } from '@phosphor-icons/react';
+import { BowlSteam, CalendarBlank, Heart, Tray, ArrowsLeftRight, Wrench, Path, BookOpen, Books, Compass, Package, IdentificationCard, Receipt, Flask, Footprints, GearSix } from '@phosphor-icons/react';
 import { NeedsAttention, daysWord } from './primitives';
 import type { TeaMasterReadiness } from '../readiness/teaMasterReadiness';
 import type { AttentionItem } from '../../lib/api';
@@ -38,6 +38,11 @@ interface LaunchpadViewProps {
   manageEntryPath: string;
   /** Platform staff only: the walk-throughs and the docs library. */
   isPlatformOwner: boolean;
+  /**
+   * The server has said this person may read the Tea Atlas. The tile exists
+   * only on that yes; to anyone else the library stays invisible.
+   */
+  canReadAtlas?: boolean;
   membershipsCount: number;
 
   // Signals
@@ -239,6 +244,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
   hasManageRoom,
   manageEntryPath,
   isPlatformOwner,
+  canReadAtlas = false,
   membershipsCount,
   pendingInvoiceCount,
   todayEventCount,
@@ -399,6 +405,13 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       accent: inboundUnreadCount > 0,
       onClick: () => { onClose(); navigate('/account/collections'); },
     },
+    ...(canReadAtlas ? [{
+      id: 'atlas',
+      verb: 'tea atlas',
+      hint: 'the reading library',
+      icon: <Books {...ICON_PROPS} />,
+      onClick: () => { onClose(); navigate('/tea-atlas'); },
+    } as LaunchpadTile] : []),
     {
       id: 'account',
       verb: 'account',

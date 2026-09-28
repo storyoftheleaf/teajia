@@ -253,10 +253,32 @@ export interface GalleryImageRow {
   contributor_id: string;
   image_url: string;
   caption: string | null;
+  focus?: string | null;
   position: number;
 }
 
 export function projectPublicGalleryImage(image: GalleryImageRow) {
   const { id, image_url, caption, position } = image;
-  return { id, image_url, caption, position };
+  return { id, image_url, caption, focus: image.focus ?? null, position };
+}
+
+/**
+ * The point of a photo that must stay in frame when the page crops it
+ * (migration 0024), written as the CSS object-position the page applies:
+ * two percentages, "50% 30%". Anything else is refused rather than stored,
+ * because a malformed value is silently ignored by the browser and the photo
+ * crops from the centre with nobody told. Empty and null both mean the centre.
+ */
+export function normalizePhotoFocus(value: unknown): { value?: string | null; error?: string } {
+  if (value === undefined) return {};
+  if (value === null) return { value: null };
+  if (typeof value !== 'string') return { error: 'A focal point must be a string like "50% 30%" or null' };
+  const trimmed = value.trim();
+  if (!trimmed) return { value: null };
+  const match = trimmed.match(/^(\d{1,3}(?:\.\d+)?)% (\d{1,3}(?:\.\d+)?)%$/);
+  if (!match) return { error: 'A focal point must be two percentages, like "50% 30%"' };
+  const x = Number(match[1]);
+  const y = Number(match[2]);
+  if (x > 100 || y > 100) return { error: 'A focal point must lie inside the photo, 0% to 100%' };
+  return { value: `${Math.round(x * 10) / 10}% ${Math.round(y * 10) / 10}%` };
 }

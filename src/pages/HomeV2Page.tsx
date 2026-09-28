@@ -49,12 +49,22 @@ const PIECE = {
   slug: 'porcelain-and-tea',
   to: '/read/porcelain-and-tea',
   meta: 'The Lead · N°15',
-  dek: 'A porcelain restorer on repair, patience, and how mending what we love mends us in return.',
+  dek: 'When we repair objects, we are also repairing ourselves.',
 };
 
-/** The one photograph the site owns today: Adrian at the table. Served by the
- *  same-origin media route, as every site image is since main moved off Cloudinary. */
-const TABLE_PHOTO = '/api/media/site/2021-06-27_IMG_7745_Original_ehkz30.jpg';
+/** The gold-mended bowl from Porcelain and Tea, shipped as a site file with
+ *  the story (see CraftRenewalPorcelain.tsx). Chosen by Adrian 2026-09-28: a
+ *  piece of the porcelain rather than the restorer's portrait. The crop sits
+ *  low so the bowl and its reflection fill the plate. */
+const PIECE_PORTRAIT: PhotoVal = { url: '/read/porcelain-and-tea/gold-mended-bowl.jpg', crop: { scale: 1, x: 0.5, y: 0.82 } };
+
+/** Adrian pouring at the table, from his own library (2026-09-28). A site file
+ *  under public/home, so it ships with the build and never waits on the API. */
+const TABLE_PHOTO = '/home/table.webp';
+
+/** The consult plate: the teapots laid out on the old wood, shot from above and
+ *  turned on its side so the rows run across the plate. */
+const CONSULT_PHOTO = '/home/teapots.webp';
 
 /** Stand-ins until the real photographs exist, served from this site rather
  *  than hot-linked: the china-dependency scan refuses stock hosts under src/
@@ -63,7 +73,6 @@ const TABLE_PHOTO = '/api/media/site/2021-06-27_IMG_7745_Original_ehkz30.jpg';
 const TEMPLATE = {
   piece: '/home/standin-piece.webp',
   tea: '/home/standin-tea.webp',
-  consult: '/home/standin-consult.webp',
 };
 
 /** The home page's own slug in the story-content store, for the frames it carries. */
@@ -131,7 +140,9 @@ const HomeV2Page: React.FC = () => {
     queryFn: () => api.storyContent.get(PIECE.slug) as Promise<{ photos?: Record<string, PhotoVal> }>,
     staleTime: 5 * 60 * 1000,
   });
-  const portrait = pieceContent?.photos?.portrait;
+  // A portrait dropped onto the story page and published still wins; until
+  // then the plate shows the portrait the story itself was built with.
+  const portrait = pieceContent?.photos?.portrait ?? PIECE_PORTRAIT;
 
 
   // The page breaks out of the main column's gutter, and on desktop out of the
@@ -198,7 +209,7 @@ const HomeV2Page: React.FC = () => {
             alt="At the table"
             fill
             placeholderBg="var(--tea-surface)"
-            placeholder={<img src={TABLE_PHOTO} alt="" fetchPriority="high" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '68% 82%' }} />}
+            placeholder={<img src={TABLE_PHOTO} alt="" fetchPriority="high" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 40%' }} />}
           />
         </div>
       </section>
@@ -213,8 +224,8 @@ const HomeV2Page: React.FC = () => {
           title={<>Porcelain <span className="italic text-tea-gold">and Tea</span></>}
           body={PIECE.dek}
           meta={PIECE.meta}
-          src={portrait?.url ?? TEMPLATE.piece}
-          crop={portrait?.crop}
+          src={portrait.url}
+          crop={portrait.crop}
         />
         <Plate
           to={tea ? `/shop/product/${tea.slug ?? tea.id}` : '/shop'}
@@ -228,7 +239,8 @@ const HomeV2Page: React.FC = () => {
           title="Twenty years in tea culture."
           body="Taiwan, China, Japan, Bali, and beyond. Tea for your practice, your collection, your space."
           meta="The consult"
-          src={TEMPLATE.consult}
+          src={CONSULT_PHOTO}
+          crop={{ scale: 1, x: 0.6, y: 0.5 }}
         />
       </section>
 
@@ -236,7 +248,7 @@ const HomeV2Page: React.FC = () => {
           On wider screens the three meanings return to one editorial row. */}
       <section aria-label="The house" className={`${MOVEMENT} ${EDGE}`}>
         <div className="bg-tea-elevated px-6 sm:px-10 lg:px-16 pt-16 sm:pt-24 lg:pt-28 pb-12 sm:pb-16 lg:pb-20 flex flex-col items-center text-center">
-          <LogoText size="panel" color="var(--tea-text)" />
+          <LogoText size="panel" color="var(--tea-text)" className="h-[clamp(96px,12vw,176px)] w-auto" />
           <p className={`${BODY} mt-6 max-w-[46ch] text-tea-text-sec`}>
             Teajia is a home for tea. A place to source, study, and share with those who gather around the leaf.
           </p>

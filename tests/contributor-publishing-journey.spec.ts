@@ -66,9 +66,9 @@ test('synthetic contributor and article publish through the complete workflow', 
   const network = await install(page);
   await page.goto('/admin/contributors');
   await page.getByRole('button', { name: 'Create contributor' }).last().click();
-  await page.getByLabel('Slug').fill(contributorFixture.id);
+  await page.getByLabel('Page address').fill(contributorFixture.id);
   await page.getByLabel('Display name').fill(contributorFixture.display_name);
-  await page.getByLabel('Name in own script').fill('测试作者');
+  await page.getByLabel('Name, own script').fill('测试作者');
   await page.getByLabel('Role').fill(contributorFixture.role);
   await page.getByLabel('Pronouns').fill('they/them');
   await page.getByLabel('Location').fill('Synthetic location');
@@ -80,7 +80,10 @@ test('synthetic contributor and article publish through the complete workflow', 
   await page.getByLabel('Current practice updated').fill('2026-07-12T12:00');
   await page.getByLabel('Inspirations').fill(contributorFixture.inspirations);
   await page.getByLabel('Closing').fill(contributorFixture.closing);
+  // Photos are uploaded by default; a web address is the fallback behind a toggle.
+  await page.getByTestId('photo-avatar').getByRole('button', { name: 'Use a web address' }).click();
   await page.getByLabel('Avatar URL').fill('https://example.com/fixture-avatar.jpg');
+  await page.getByTestId('photo-portrait').getByRole('button', { name: 'Use a web address' }).click();
   await page.getByLabel('Portrait URL').fill('https://example.com/fixture-portrait.jpg');
   await page.getByLabel('Portrait caption').fill('Synthetic portrait caption.');
   await page.getByLabel('Voice clip URL').fill('https://example.com/fixture-voice.mp3');
@@ -88,7 +91,7 @@ test('synthetic contributor and article publish through the complete workflow', 
   await page.getByLabel('Product ID').fill('fixture-product');
   await page.getByLabel('Pouring note').fill('Synthetic pouring note.');
   await page.getByRole('button', { name: 'Add link' }).click();
-  await page.getByLabel('Link 1 platform').selectOption(contributorFixture.links[0].platform);
+  await page.getByRole('radiogroup', { name: 'Link 1 platform' }).getByRole('radio', { name: 'Website' }).check();
   await page.getByLabel('Link 1 value').fill(contributorFixture.links[0].value);
   // Host status is not set while creating a contributor any more: it moved to
   // a flag on a per-account association, and that section only appears once the
@@ -96,8 +99,9 @@ test('synthetic contributor and article publish through the complete workflow', 
   // the step simply goes.
   await page.getByLabel('Private contact').focus();
   await page.getByLabel('Private contact').selectOption('fixture-contact');
-  await page.getByLabel('Where to find them').fill('Synthetic account association.');
+  await page.getByLabel('Where to find').fill('Synthetic account association.');
   await page.getByRole('button', { name: 'Publish contributor' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByText(contributorFixture.display_name)).toBeVisible();
 
   await page.goto('/admin/magazine');

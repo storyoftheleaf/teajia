@@ -24,6 +24,7 @@ import { CellarView } from './CellarView';
 import { ReaderView } from './ReaderView';
 import { useManageNav } from '../manageNav';
 import { LaunchpadView } from './LaunchpadView';
+import { useAtlasAccess } from '../../atlas/access';
 import { usePayAccess } from '../profile/PayAccessPanel';
 import { THREADS, profileThreads } from '../TeaDiscovery/threads';
 import { AccountSwitcherChip } from './AccountSwitcherChip';
@@ -236,6 +237,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
   // column and the phone's site panel read. The panel offers ONE door to
   // them, and only once the token is confirmed for the active table.
   const manageNav = useManageNav();
+  const canReadAtlas = useAtlasAccess();
   const canSell = isTokenScopedToAccount(activeAccountId) && (
     activeMembership?.role === 'owner' ||
     selectHasBundle({ memberships, activeAccountId, platformRole }, 'sell')
@@ -1290,6 +1292,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
                 hasManageRoom={isTokenScopedToAccount(activeAccountId) && manageNav.hasTableRoom}
                 manageEntryPath={manageNav.tableItems[0]?.path ?? '/admin/collections'}
                 isPlatformOwner={auth.isAdmin}
+                canReadAtlas={canReadAtlas}
                 membershipsCount={memberships.length}
                 pendingInvoiceCount={pendingCount}
                 todayEventCount={todayEventCount}
