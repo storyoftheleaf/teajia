@@ -39,6 +39,9 @@ test.describe('the people directory', () => {
     const cardBox = await kenji.boundingBox();
     expect(Math.round(image!.width)).toBe(140);
     expect(Math.round(cardBox!.height)).toBe(180);
+    // The photo is anchored to the card's left edge whatever the length of the
+    // line beside it. A short line once let the photo drift to mid-card.
+    expect(Math.abs(image!.x - cardBox!.x)).toBeLessThanOrEqual(2);
     const nameBox = await kenji.getByText('Kenji Tanaka', { exact: true }).boundingBox();
     expect(nameBox!.x).toBeGreaterThanOrEqual(image!.x + image!.width);
     await expect(kenji).not.toContainText('Tea master');

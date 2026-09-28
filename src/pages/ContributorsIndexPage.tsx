@@ -50,7 +50,7 @@ export default function ContributorsIndexPage() {
                     <Cover
                       to={`/people/${encodeURIComponent(person.id)}`}
                       height={180}
-                      className="!flex-row !items-stretch"
+                      className="!flex-row !items-stretch !justify-start"
                       testId="people-card"
                       ariaLabel={`${person.display_name}, ${coverKicker(person.role, person.location_line) || 'tea master'}`}
                     >
