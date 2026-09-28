@@ -1,5 +1,5 @@
 export type DeliveryChoice = 'bali-delivery' | 'bali-pickup' | 'indonesia' | 'international';
-export type ReplyChannel = 'whatsapp' | 'website';
+export type ReplyChannel = 'whatsapp' | 'website' | 'whatsapp-chat';
 
 export interface CheckoutDetails {
   name: string;
@@ -46,7 +46,7 @@ export function validateCheckoutDetails(details: CheckoutDetails, channel: Reply
   const contact = details.contact.trim();
   if (channel === 'website') {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) errors.contact = 'Enter an email address so we can reply.';
-  } else if (!/^\+?[\d\s().-]+$/.test(contact) || contact.replace(/\D/g, '').length < 7) {
+  } else if (channel === 'whatsapp' && (!/^\+?[\d\s().-]+$/.test(contact) || contact.replace(/\D/g, '').length < 7)) {
     errors.contact = 'Enter your WhatsApp number, including the country code.';
   }
   if (details.delivery !== 'bali-pickup' && !details.location.trim()) errors.location = 'Enter your town or area.';

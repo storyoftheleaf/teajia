@@ -4834,3 +4834,16 @@ body.cart-panel-open .commerce-dock {
 }
 .checkout-input::placeholder { color: var(--tea-text-dim); }
 .checkout-text-action:hover { color: var(--tea-text); }
+
+/* The next step after a saved WhatsApp order stays within reach on mobile. */
+.checkout-whatsapp-action {
+  display: block;
+  min-height: 44px;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  text-align: center;
+}
+.checkout-whatsapp-action:focus-visible {
+  outline: 2px solid var(--tea-gold);
+  outline-offset: 2px;
+}

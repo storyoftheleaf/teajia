@@ -3008,6 +3008,7 @@ export const api = {
       customer_name: string;
       customer_contact: string;
       whatsapp_confirmation_consent?: boolean;
+      whatsapp_handoff?: boolean;
       customer_location?: string;
       notes?: string;
       items_json: string;
@@ -3048,6 +3049,7 @@ export const api = {
       tracking_number?: string | null;
       fulfilled_at?: string | null;
       notification_status?: string | null;
+      contact?: { whatsapp: string | null };
       items_json: string;
       status: string;
       total_estimate_usd: number;
