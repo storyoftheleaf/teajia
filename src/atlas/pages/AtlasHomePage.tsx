@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { ATLAS_ROOT, AtlasFrame, AtlasLoadState, AtlasSearchBox } from '../AtlasFrame';
 import { AtlasImage } from '../AtlasImage';
+import { AtlasAddSourceLink } from '../AtlasAddSourceLink';
 import { useAtlasJson } from '../useAtlas';
 import type { AtlasHome, AtlasTopic } from '../types';
 
@@ -28,6 +29,7 @@ export default function AtlasHomePage() {
                 A private reading library. {home.totals.articles.toLocaleString()} articles in {home.totals.issues} issues.
               </p>
               <AtlasSearchBox large autoFocus />
+              <AtlasAddSourceLink className="inline-block mt-4" />
             </section>
 
             <section className="mb-12" aria-labelledby="atlas-sources">

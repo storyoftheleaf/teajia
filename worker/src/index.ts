@@ -122,6 +122,7 @@ import {
   normalizeCartInquiry, redactPublicInquiry, sha256Hex,
 } from './inquiryDomain';
 import { hasTeaAtlasTick, serveAtlas, withTeaAtlasTick } from './atlas';
+import { serveAtlasAdmin } from './atlasAdmin';
 
 interface Env {
   DB: D1Database;
@@ -28906,6 +28907,22 @@ export default {
         return cors(served ?? json({ error: 'Not found' }, 404), corsOrigin);
       } catch (err) {
         console.error('Tea Atlas error:', err);
+        return cors(json({ error: 'Not found' }, 404), corsOrigin);
+      }
+    }
+
+    // Adding a source to the Tea Atlas (docs/TEA_ATLAS.md). The site owner only;
+    // everyone else, readers included, gets the unknown-route 404.
+    if (url.pathname.startsWith('/api/atlas-admin/')) {
+      try {
+        const actor = await optionalAuthenticatedUser(request, env);
+        const served = await serveAtlasAdmin(
+          request, env, url.pathname.slice('/api/atlas-admin/'.length), actor?.userId ?? null,
+          (action, details) => logPlatformAction(env, action, actor!.userId, actor!.email, 'tea_atlas', 'added-sources', details),
+        );
+        return cors(served ?? json({ error: 'Not found' }, 404), corsOrigin);
+      } catch (err) {
+        console.error('Tea Atlas admin error:', err);
         return cors(json({ error: 'Not found' }, 404), corsOrigin);
       }
     }
