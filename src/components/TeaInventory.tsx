@@ -611,7 +611,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                  onClick={() => setShopSavedOnly(!shopSavedOnly)}
                  aria-pressed={shopSavedOnly}
                  title={shopSavedOnly ? 'Showing saved teas only. Show all teas' : 'Show saved teas only'}
-                 className={`ml-auto flex min-h-[44px] shrink-0 items-center text-ui-10 uppercase tracking-[0.15em] transition-colors sm:ml-1 ${
+                 className={`ml-auto flex min-h-[44px] shrink-0 items-center text-ui-10 uppercase tracking-[0.15em] transition-colors sm:ml-1 sm:mr-6 ${
                    shopSavedOnly ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
                  }`}
                >

@@ -168,7 +168,7 @@ export function TeaLedger({
                       onToggle={event => onToggleFavorite(item.id, event)}
                     />
 
-                    <div className="tea-ledger-identity min-w-0 flex-1 lg:flex-none lg:w-[300px]">
+                    <div className="tea-ledger-identity min-w-0 flex-1 lg:flex-none lg:w-[240px] xl:w-[300px]">
                       <div className="flex min-w-0 items-start gap-2">
                         <h3 className="min-w-0 break-words whitespace-normal font-display text-[18px] font-medium leading-tight text-tea-text lg:text-ui-20">
                           {item.name}
@@ -220,7 +220,7 @@ export function TeaLedger({
                         rather than to blank space. Desktop only: on a phone
                         the row stays focused on the title and origin. */}
                     {lead && (
-                      <p className="hidden min-w-0 flex-1 line-clamp-2 pr-4 font-body text-ui-13 italic leading-relaxed text-tea-text-sec lg:block">
+                      <p className="hidden min-w-0 flex-1 pr-4 font-body text-ui-13 italic leading-relaxed text-tea-text-sec lg:line-clamp-2">
                         {lead}
                       </p>
                     )}
