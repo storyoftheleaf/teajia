@@ -132,7 +132,7 @@ export function FxText({ effect, text, className, as = 'span' }: {
 export function ProseSection({ text, dropcap, effect = 'scroll-highlight' }: {
   text: string; dropcap?: boolean; effect?: TextEffect;
 }) {
-  const proseClass = `font-body text-[18px] md:text-ui-20 leading-[1.78] ${dropcap ? 'immersive-dropcap' : ''}`;
+  const proseClass = 'font-body text-[18px] md:text-ui-20 leading-[1.78]';
   const body =
     effect === 'scroll-highlight' ? (
       <ScrollHighlightText text={text} className={proseClass} />

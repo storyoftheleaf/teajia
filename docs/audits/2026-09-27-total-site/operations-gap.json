@@ -1,0 +1,51 @@
+{
+  "audit": "operator_workflow_gap_pass",
+  "head": "2a096303",
+  "date": "2026-09-27",
+  "method": "bounded source trace; no browser, server, tests, production requests, or product edits",
+  "findings": [
+    {
+      "id": "OPS-01",
+      "severity": "P1",
+      "confidence": "high_source_logic_runtime_unverified",
+      "title": "Intake can silently lose the purchase record",
+      "evidence": ["src/admin/views/IntakeWorkspace.tsx:354-357", "src/admin/views/IntakeWorkspace.tsx:381-406"],
+      "reproduction": "Enable Save purchase record; let /api/products/bulk succeed and /api/purchase-orders fail for a staged vendor with cost/order data.",
+      "impact": "Products are created and success is shown, but the requested purchase record is absent; local staging is cleared and server draft closure is attempted.",
+      "smallestRemedy": "Preserve and expose partial success, retain purchase data for retry, and defer draft closure until requested records finish.",
+      "size": "small-medium"
+    },
+    {
+      "id": "OPS-02",
+      "severity": "P2",
+      "confidence": "high_source_logic_runtime_unverified",
+      "title": "Retrying a failed contact save can create a duplicate",
+      "evidence": ["src/admin/components/CustomersView.tsx:1454-1469", "worker/src/index.ts:8702-8738", "worker/schema.sql:170-189"],
+      "reproduction": "Let POST /api/customers succeed, fail the subsequent relationships PUT, then click Save again.",
+      "impact": "The UI reports save failure after a persisted create; retry posts a second contact with a new ID.",
+      "smallestRemedy": "Use the create payload's existing relationship write and remove the redundant follow-up PUT; retain the created ID if later work needs retry.",
+      "size": "small"
+    },
+    {
+      "id": "OPS-03",
+      "severity": "P1",
+      "confidence": "high_source_logic_runtime_unverified",
+      "title": "Manual retry can double-receive a partial stock delivery",
+      "evidence": ["src/admin/components/inventory/IncomingReceiptsPanel.tsx:12-28", "src/admin/components/inventory/IncomingReceiptsPanel.tsx:49-54", "src/lib/api.ts:1565", "worker/src/index.ts:14928-14944"],
+      "reproduction": "On a 20-unit open receipt line, submit 5; let the Worker commit but lose the response, or fail the subsequent list refresh; click Receive again on the stale 5-of-20 view.",
+      "impact": "The second click uses a new key and can add another 5 to stock and the receipt ledger.",
+      "smallestRemedy": "Keep the intent's idempotency key until a confirmed result and block new receives on stale data pending reconciliation.",
+      "size": "small-medium"
+    }
+  ],
+  "coveredWithoutFinding": [
+    "Curate import panel uses stable creation key within its lifetime.",
+    "Curate finalization uses a batch-derived key and server-side replay/resume for receipts and movements.",
+    "Stock movement panel retains its intent key across request failure; this pass focused on the separate receipt panel."
+  ],
+  "highestRiskUntestedJourneys": [
+    "Interrupted multi-chunk intake after some product chunks succeeded.",
+    "Concurrent receive/cancel on the same receipt line by two operators.",
+    "Customer profile load when orders, events, or teas fail independently."
+  ]
+}

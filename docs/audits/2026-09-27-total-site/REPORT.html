@@ -1,0 +1,285 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Teajia audit · 27 September 2026</title><style>body{margin:0;background:#f5f2eb;color:#292820;font:16px/1.6 system-ui,sans-serif}main{max-width:1100px;margin:auto;padding:42px 28px}h1,h2,h3{line-height:1.2}h1{font-family:Georgia,serif;font-size:42px}h2{margin-top:56px;border-top:1px solid #c8c1b1;padding-top:28px}h3{margin-top:34px}a{color:#624616}code{background:#e8e3d8;padding:2px 4px;overflow-wrap:anywhere}table{width:100%;border-collapse:collapse;font-size:14px}td,th{text-align:left;vertical-align:top;border-bottom:1px solid #cbc4b6;padding:12px}p{max-width:98ch}li{margin:8px 0}.top{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#6b624c}img{max-width:100%}.links{position:sticky;top:0;background:#f5f2ebee;padding:10px 0;border-bottom:1px solid #ccc}@media(max-width:650px){main{padding:24px 15px}h1{font-size:32px}table{display:block;overflow:auto}}@media print{.links{position:static}body{background:white}h2,h3{break-after:avoid}}</style><main><div class="top">Read-only inspection · evidence and boundaries</div><div class="links"><a href="REPORT.md">Markdown</a> · <a href="findings.json">Findings data</a> · <a href="coverage.json">Coverage</a> · <a href="evidence/">Evidence folder</a></div>
+<h1>Teajia total-site audit — 27 September 2026</h1>
+<p><strong>The most urgent problems are a live checkout block, admin money fields losing their meaning, and failure paths that can duplicate or misattribute records.</strong> Public privacy gates also differ across endpoint families. The ordinary journeys have substantial passing coverage; the highest-risk defects appear when requests fail, overlap, or cross account boundaries.</p>
+<p>Audited checkout: <code>2a09630333a9fe1fb449c205b73e51d4af7f7f19</code> (unchanged at finish). Existing dirty files were <code>CLAUDE.md</code>, <code>INDEX.md</code>, <code>docs/CAPABILITIES.md</code>, plus untracked <code>.artifacts/</code>, <code>docs/label-mockups/</code>, and <code>outputs/</code>; preserved. Audit deliverables are confined to this report/evidence folder and temporary local fixtures; normal ignored build and development-cache outputs were regenerated during verification. No product code was fixed, production data changed, order submitted, message sent to customers, commit made, or deployment performed. The live deployment SHA was not verified; live observations and checkout reproductions are labelled separately. Production inspected at <code>teajia.com</code>/<code>www.teajia.com</code>, never the abandoned Pages project.</p>
+<h2>Read first</h2>
+<ul>
+<li><strong>LIVE-01:</strong> the live Bali cart rejects order requests, and the public profile says <code>can_be_paid:false</code>. Owner configuration needs checking; no assumption was made that this closure is accidental.</li>
+<li><strong>BIZ-01:</strong> the actual admin hook converts inherited freight NULL to zero, zero retail override to NULL, and zero stock threshold to 100. Display is wrong immediately; duplication can carry the false zero into a new row.</li>
+<li><strong>BIZ-02 / BIZ-03 / OPS-03:</strong> real component fixtures demonstrate wrong-order save payloads, repeat invoice creation after PDF failure, and fresh receive keys after a failed refresh. Separate bundled-Worker/in-memory-D1 probes confirm duplicate invoices and 5g+5g stock receipt persistence.</li>
+<li><strong>SEC-01–03:</strong> unauthenticated local probes retrieve closed-store data, a private event’s synthetic address, and hidden products through shop collections. No live private records were queried.</li>
+<li><strong>BIZ-04 / CONTENT-01:</strong> account-switch cache failure retains another store’s pending customer data; an older article autosave can undo publication while the editor says Published.</li>
+</ul>
+<p>Severity: P1 = urgent business/privacy integrity; P2 = actionable functional correctness; P3 = small usability defect. No P0 was established. “Confirmed source” is a deterministic traced failure path, not a claim of a production incident. “Browser fixture” means the real component with controlled synthetic APIs. SQL probes run the real bundled Worker with an in-memory SQLite D1 adapter, not Cloudflare production.</p>
+<h2>Prioritized findings</h2>
+<h3>LIVE-01 · P1 · Live Bali cart currently refuses all order requests</h3>
+<p><strong>Evidence:</strong> live desktop/mobile browser and public GET. <strong>Confidence:</strong> high.</p>
+<p><strong>Impact:</strong> Customers can browse and add tea but the cart says the store cannot take orders; order-request submission is disabled. This blocks the intended inquiry-led journey before WhatsApp/email handoff.</p>
+<p><strong>Reproduce / trace:</strong> Open https://teajia.com/shop, search Y562, open it, add 50g, open the order. Both widths showed the refusal. Public GET /api/s/teajia-bali returned can_be_paid:false. No customer details or orders were submitted.</p>
+<p><strong>Smallest remedy:</strong> Owner: inspect the linked published Tea Master/payment destination and restore a published payment method if the store should accept orders. Do not remove the guard without a product decision. <strong>Size:</strong> small operational check; exact missing configuration not available through public data. <strong>Dependencies / limits:</strong> Public API does not distinguish missing recipient, unpublished profile, or missing payment method. Private admin configuration and intended closure state were not read. This is a verified operational state, not a proved recent regression.</p>
+<p><strong>Source:</strong> <code>src/App.tsx:1437</code>, <code>src/components/shared/PublicCart.tsx:286</code>, <code>src/components/shared/PublicCart.tsx:380</code>, <code>worker/src/index.ts:18035</code>, <code>worker/src/index.ts:20112</code>.</p>
+<p><strong>Evidence files:</strong> <a href="evidence/live-cart-390.png">live-cart-390.png</a>, <a href="evidence/live-cart-1440.png">live-cart-1440.png</a>, <a href="evidence/public-focused.json">public-focused.json</a>, <a href="evidence/live-store-readiness.json">live-store-readiness.json</a>.</p>
+<h3>BIZ-01 · P1 · Admin product adapter collapses inherited freight and explicit zero values</h3>
+<p><strong>Evidence:</strong> actual React product hook + synthetic raw Worker row. <strong>Confidence:</strong> high.</p>
+<p><strong>Impact:</strong> NULL freight becomes a pinned free rate in admin; zero retail override becomes unset and zero stock threshold becomes 100. This immediately corrupts display/preview. Duplication then treats that zero as an explicit rate and can persist free freight in the new product. Existing server prices are not proved to have changed just by reading.</p>
+<p><strong>Reproduce / trace:</strong> Feed useProducts a Worker row with shipping_rate_per_kg null, fixed_retail_price_usd 0, low_stock_threshold 0.</p>
+<p><strong>Smallest remedy:</strong> Preserve null versus zero in the product adapter and add focused adapter cases. <strong>Size:</strong> small. <strong>Dependencies / limits:</strong> No architecture change required; targeted regression coverage.</p>
+<p><strong>Source:</strong> <code>src/admin/hooks/useAdminData.ts:49</code>, <code>src/admin/hooks/useAdminData.ts:65-66</code>, <code>src/admin/components/inventory/InventoryRow.tsx:273-289</code>, <code>src/admin/components/ProductEditPanel.tsx:1156-1166</code>, <code>src/admin/components/InventoryView.tsx:1252-1255</code>, <code>worker/src/index.ts:2520-2554</code>, <code>src/admin/components/AddProductModal.tsx:413</code>.</p>
+<p><strong>Evidence files:</strong> <a href="evidence/adapter-repro.json">adapter-repro.json</a>, <a href="evidence/adapter-fixture.tsx">adapter-fixture.tsx</a>.</p>
+<p><strong>Detailed inspection:</strong> <a href="business.md">business.md</a>.</p>
+<h3>SEC-01 · P1 · Closed stores still serve public products and events</h3>
+<p><strong>Evidence:</strong> in-memory D1; independently rerun. <strong>Confidence:</strong> high.</p>
+<p><strong>Impact:</strong> Private or suspended account catalog and event schedule remain available to unauthenticated callers who know the slug.</p>
+<p><strong>Reproduce / trace:</strong> In local D1, seed an account with public_enabled=0 or status=suspended plus one public product and active event. GET /api/s/:slug returns 404; GET /api/s/:slug/products and /events both return 200 with content.</p>
+<p><strong>Smallest remedy:</strong> Use getPublicAccountIdBySlug for both public child routes and add closure regression cases. <strong>Size:</strong> small. <strong>Dependencies / limits:</strong> No architecture change required; targeted regression coverage.</p>
+<p><strong>Source:</strong> <code>worker/src/index.ts:591</code>, <code>worker/src/index.ts:20103</code>, <code>worker/src/index.ts:20187</code>, <code>worker/src/index.ts:20195</code>.</p>
+<p><strong>Evidence files:</strong> <a href="evidence/manager-security-store.log">manager-security-store.log</a>, <a href="evidence/security-store-visibility.mjs">security-store-visibility.mjs</a>.</p>
+<p><strong>Detailed inspection:</strong> <a href="security.md">security.md</a>.</p>
+<h3>SEC-02 · P1 · Private events are discoverable and reveal their address</h3>
+<p><strong>Evidence:</strong> in-memory D1; independently rerun. <strong>Confidence:</strong> high.</p>
+<p><strong>Impact:</strong> Unauthenticated discovery includes events explicitly marked private, and the public detail route returns address_text and venue context.</p>
+<p><strong>Reproduce / trace:</strong> In local D1, seed a future active event with public_visibility=private, network_discovery=0, and address_text. GET /api/events and /api/s/:slug/events include it; GET /api/events/:slug/public returns its address.</p>
+<p><strong>Smallest remedy:</strong> Define and apply shared public event visibility predicates for discovery, direct detail, and RSVP, including an active/public host account gate. <strong>Size:</strong> medium. <strong>Dependencies / limits:</strong> Apply discovery versus direct-link policy deliberately: private must not be publicly discoverable; unlisted may permit direct links. Schema enum at worker/schema.sql:1572 and existing public-event predicate at worker/src/index.ts:10742 establish the distinction. No real private address was queried.</p>
+<p><strong>Source:</strong> <code>worker/src/index.ts:10676</code>, <code>worker/src/index.ts:10686</code>, <code>worker/src/index.ts:10827</code>, <code>worker/src/index.ts:10854</code>, <code>worker/src/index.ts:20217</code>.</p>
+<p><strong>Evidence files:</strong> <a href="evidence/manager-security-event.log">manager-security-event.log</a>, <a href="evidence/security-private-event.mjs">security-private-event.mjs</a>.</p>
+<p><strong>Detailed inspection:</strong> <a href="security.md">security.md</a>.</p>
+<h3>SEC-03 · P1 · Shop collections disclose hidden products and closed stores</h3>
+<p><strong>Evidence:</strong> in-memory D1; independently rerun. <strong>Confidence:</strong> high.</p>
+<p><strong>Impact:</strong> Public shop collection discovery can reveal active products whose is_public and shown_in_shop flags are both zero, including after the host store closes. The explicit publication explains initial inclusion but should not bypass subsequent public-discovery privacy flags. Whether a deliberately shared recipient link may retain hidden items is a separate policy question; the confirmed remediation target is /api/collections/shop.</p>
+<p><strong>Reproduce / trace:</strong> In local D1, seed private store, hidden active product (is_public=0, shown_in_shop=0), active collection and shop publication. GET /api/collections/shop and /api/public/c/:slug both return the product.</p>
+<p><strong>Smallest remedy:</strong> Gate shop publications by open accounts and public, shown products; separately define whether recipient links may include private products. <strong>Size:</strong> medium. <strong>Dependencies / limits:</strong> No architecture change required; targeted regression coverage.</p>
+<p><strong>Source:</strong> <code>worker/src/index.ts:23392</code>, <code>worker/src/index.ts:23424</code>, <code>worker/src/index.ts:23750</code>, <code>worker/src/index.ts:23792</code>.</p>
+<p><strong>Evidence files:</strong> <a href="evidence/manager-security-collections.log">manager-security-collections.log</a>, <a href="evidence/security-public-collections.mjs">security-public-collections.mjs</a>.</p>
+<p><strong>Detailed inspection:</strong> <a href="security.md">security.md</a>.</p>
+<h3>BIZ-02 · P1 · Stale order lines can overwrite a different pending order</h3>
+<p><strong>Evidence:</strong> actual React editor + mocked load failure and captured save payload. <strong>Confidence:</strong> high.</p>
+<p><strong>Impact:</strong> A pending order can have its lines, prices, and stock reservations replaced by another order’s lines.</p>
+<p><strong>Reproduce / trace:</strong> Open A and let its item request finish; close; open B in the same mounted EditOrderModal; reject B’s item request. It changes customer fields to B, retains A’s lines, clears fetching, and enables Save. Captured updateItems payload targets B with tea-a. This sequence needs no artificial race; a normal failed request is sufficient. The alternate late-A-response race is source-only.</p>
+<p><strong>Smallest remedy:</strong> Clear lines before loading, ignore stale responses, and block save after load error. <strong>Size:</strong> small-medium. <strong>Dependencies / limits:</strong> No architecture change required; targeted regression coverage.</p>
+<p><strong>Source:</strong> <code>src/admin/components/EditOrderModal.tsx:53-77</code>, <code>src/admin/components/EditOrderModal.tsx:107-127</code>, <code>src/admin/components/OrdersView.tsx:1167-1172</code>, <code>worker/src/index.ts:6259-6309</code>.</p>
+<p><strong>Evidence files:</strong> <a href="evidence/stale-order-editor.json">stale-order-editor.json</a>, <a href="evidence/stale-order-editor.png">stale-order-editor.png</a>, <a href="evidence/editor-fixture.tsx">editor-fixture.tsx</a>.</p>
+<p><strong>Detailed inspection:</strong> <a href="business.md">business.md</a>.</p>
+<h3>BIZ-03 · P1 · Save plus Share can create duplicate invoices after PDF/share failure</h3>
+<p><strong>Evidence:</strong> actual React invoice modal/PDF failure + mocked creates; separate real Worker/in-memory D1 persistence proof. <strong>Confidence:</strong> high.</p>
+<p><strong>Impact:</strong> The invoice exists before PDF/share work. PDF failure leaves the creation form open with a failure toast; retry creates another invoice. The browser fixture hit a real PDF renderer hasOwnProperty error before navigator.share; cancellation was not browser-observed. The share promise is awaited inside the same try with no AbortError exception, so cancellation follows the same source path.</p>
+<p><strong>Reproduce / trace:</strong> Click Save + Share in the supplied fixture twice. Observed: two mocked create calls, two renderer-failure toasts, no success/close. Independently submit the same synthetic Draft invoice twice to the real bundled Worker with in-memory D1: 201/201, distinct UUIDs and invoice numbers 00001/00002. No request-level idempotency key is consumed by this endpoint. The saving flag prevents simultaneous clicks only, and resets after the PDF error.</p>
+<p><strong>Smallest remedy:</strong> Commit UI success after invoice create; retry sharing separately without another create. <strong>Size:</strong> small-medium. <strong>Dependencies / limits:</strong> No architecture change required; targeted regression coverage.</p>
+<p><strong>Source:</strong> <code>src/admin/components/QuickInvoiceModal.tsx:419-457</code>, <code>worker/src/index.ts:5199-5275</code>.</p>
+<p><strong>Evidence files:</strong> <a href="evidence/invoice-share-failure.json">invoice-share-failure.json</a>, <a href="evidence/invoice-repro.log">invoice-repro.log</a>, <a href="evidence/invoice-persistence.log">invoice-persistence.log</a>, <a href="evidence/invoice-persistence.mjs">invoice-persistence.mjs</a>.</p>
+<p><strong>Detailed inspection:</strong> <a href="business.md">business.md</a>.</p>
+<h3>BIZ-04 · P1 · Unscoped persisted query keys can show prior-store financial and event data</h3>
+<p><strong>Evidence:</strong> actual PendingView + account switch/invalidation and injected fetch error. <strong>Confidence:</strong> high.</p>
+<p><strong>Impact:</strong> PendingView retains account A’s customer/order data when account B’s refetch fails; its unscoped key survives account-switch invalidation. Sensitive disk-persistence exposure is established by the persister allow rules, not a separate observed logout incident. This is client-cache isolation, not a demonstrated server authorization bypass.</p>
+<p><strong>Reproduce / trace:</strong> Load pending data in A, switch to B, delay or fail B request, open Pending tab.</p>
+<p><strong>Smallest remedy:</strong> Key private queries by account and user, gate display by token scope, and exclude or purge sensitive persisted data. <strong>Size:</strong> medium. <strong>Dependencies / limits:</strong> No architecture change required; targeted regression coverage.</p>
+<p><strong>Source:</strong> <code>src/admin/components/ActivityView.tsx:29-36</code>, <code>src/admin/components/PendingView.tsx:25-34</code>, <code>src/admin/hooks/useEventData.ts:155-161</code>, <code>src/admin/views/VendorProfileView.tsx:95-100</code>, <code>src/admin/components/AccountSwitcher.tsx:75-80</code>, <code>src/index.tsx:24-27</code>, <code>src/index.tsx:43-68</code>.</p>
+<p><strong>Evidence files:</strong> <a href="evidence/cache-repro.json">cache-repro.json</a>, <a href="evidence/cache-repro.png">cache-repro.png</a>, <a href="evidence/cache-fixture.tsx">cache-fixture.tsx</a>.</p>
+<p><strong>Detailed inspection:</strong> <a href="business.md">business.md</a>.</p>
+<h3>CONTENT-01 · P1 · Article save can undo a successful publish</h3>
+<p><strong>Evidence:</strong> actual React editor; delayed mocked update commits after mocked publish. <strong>Confidence:</strong> high.</p>
+<p><strong>Impact:</strong> The editor displays Published and an Article published toast while a delayed pre-publish content update writes status=draft. The fixture reproduces request ordering and UI contradiction; ordinary Worker updates accept the status field, so that order can persist draft.</p>
+<p><strong>Reproduce / trace:</strong> Edit an existing draft; let auto-save start; publish before save settles; allow publish to commit before the older update. The toast says published while the row ends as draft.</p>
+<p><strong>Smallest remedy:</strong> Serialize save and publish; flush pending content before publish and remove publication status from ordinary autosaves. <strong>Size:</strong> medium. <strong>Dependencies / limits:</strong> No architecture change required; targeted regression coverage.</p>
+<p><strong>Source:</strong> <code>src/admin/components/ArticleEditorModal.tsx:545</code>, <code>src/admin/components/ArticleEditorModal.tsx:567</code>, <code>src/admin/components/ArticleEditorModal.tsx:606</code>, <code>src/admin/components/ArticleEditorModal.tsx:763</code>, <code>worker/src/index.ts:21991</code>, <code>worker/src/index.ts:22012</code>.</p>
+<p><strong>Evidence files:</strong> <a href="evidence/article-publish-race.json">article-publish-race.json</a>, <a href="evidence/article-publish-race.png">article-publish-race.png</a>, <a href="evidence/article-fixture.tsx">article-fixture.tsx</a>.</p>
+<p><strong>Detailed inspection:</strong> <a href="content-gap.md">content-gap.md</a>.</p>
+<h3>OPS-03 · P1 · Manual retry can double-receive a partial stock delivery</h3>
+<p><strong>Evidence:</strong> actual receipt panel + API retry-key capture; separate Worker/in-memory D1 stock proof. <strong>Confidence:</strong> high.</p>
+<p><strong>Impact:</strong> The second click uses a new key and can add another 5 to stock and the receipt ledger.</p>
+<p><strong>Reproduce / trace:</strong> Receive 5g of an expected 20g; let write succeed and fail list refresh. The panel still shows 0 received/20 remaining and keeps the typed 5. Click Receive again: actual API creates a different key. Separate real Worker D1 probe accepts the two 5g intents and records 10g on hand. A repeated same-key request is correctly deduplicated; the problem is manual retry identity.</p>
+<p><strong>Smallest remedy:</strong> Keep the intent&#x27;s idempotency key until a confirmed result and block new receives on stale data pending reconciliation. <strong>Size:</strong> small-medium. <strong>Dependencies / limits:</strong> No architecture change required; targeted regression coverage.</p>
+<p><strong>Source:</strong> <code>src/admin/components/inventory/IncomingReceiptsPanel.tsx:12-28</code>, <code>src/admin/components/inventory/IncomingReceiptsPanel.tsx:49-54</code>, <code>src/lib/api.ts:1565</code>, <code>worker/src/index.ts:14928-14944</code>.</p>
+<p><strong>Evidence files:</strong> <a href="evidence/receipt-retry.json">receipt-retry.json</a>, <a href="evidence/receipt-retry.png">receipt-retry.png</a>, <a href="evidence/receipt-persistence.log">receipt-persistence.log</a>, <a href="evidence/receipt-persistence.mjs">receipt-persistence.mjs</a>.</p>
+<p><strong>Detailed inspection:</strong> <a href="operations-gap.md">operations-gap.md</a>.</p>
+<h3>SEC-04 · P2 · Incident intake trusts unverified tenant header</h3>
+<p><strong>Evidence:</strong> in-memory D1 worker reproduction. <strong>Confidence:</strong> high.</p>
+<p><strong>Impact:</strong> Any signed-in user can attribute an incident to another account; global signature dedupe can alter count, severity, and resolved state of an existing incident.</p>
+<p><strong>Reproduce / trace:</strong> In local D1, user A belongs only to account A. POST /api/incidents with user A&#x27;s JWT and X-Teajia-Account: account-b returned 201; the saved incident has account_id=account-b.</p>
+<p><strong>Smallest remedy:</strong> Resolve account through live membership or store null for an untrusted global client report; review dedupe key tenancy. <strong>Size:</strong> small. <strong>Dependencies / limits:</strong> No architecture change required; targeted regression coverage.</p>
+<p><strong>Source:</strong> <code>worker/src/index.ts:26234</code>, <code>worker/src/index.ts:26244</code>, <code>worker/src/incidents.ts:128</code>.</p>
+<p><strong>Evidence files:</strong> <a href="evidence/security-incident-tenant.log">security-incident-tenant.log</a>, <a href="evidence/security-incident-tenant.mjs">security-incident-tenant.mjs</a>.</p>
+<p><strong>Detailed inspection:</strong> <a href="security.md">security.md</a>.</p>
+<h3>BIZ-05 · P2 · Product story route casts raw Worker rows to camelCase Product and crashes</h3>
+<p><strong>Evidence:</strong> authenticated local sandbox browser using raw products API. <strong>Confidence:</strong> high.</p>
+<p><strong>Impact:</strong> Opening a product story fails when pricePerGramUSD.toFixed is called on undefined.</p>
+<p><strong>Reproduce / trace:</strong> Open /admin/products/:id/story for any product returned by GET /api/products.</p>
+<p><strong>Smallest remedy:</strong> Reuse the shared admin product adapter and route-test a raw Worker response. <strong>Size:</strong> small-medium. <strong>Dependencies / limits:</strong> No architecture change required; targeted regression coverage.</p>
+<p><strong>Source:</strong> <code>src/admin/views/ProductStoryView.tsx:244-250</code>, <code>src/admin/views/ProductStoryView.tsx:613</code>, <code>src/lib/api.ts:1742-1745</code>, <code>worker/src/index.ts:2520-2554</code>.</p>
+<p><strong>Evidence files:</strong> <a href="evidence/admin-final-check.json">admin-final-check.json</a>, <a href="evidence/product-story-crash.png">product-story-crash.png</a>.</p>
+<p><strong>Detailed inspection:</strong> <a href="business.md">business.md</a>.</p>
+<h3>BIZ-06 · P2 · Vendor profile displays zero economics and matches sales as purchases</h3>
+<p><strong>Evidence:</strong> source trace. <strong>Confidence:</strong> high.</p>
+<p><strong>Impact:</strong> Vendor names, stock value, cost totals, and purchase history are false or missing.</p>
+<p><strong>Reproduce / trace:</strong> Open an existing vendor with products and a purchase order; compare raw endpoint fields and profile.</p>
+<p><strong>Smallest remedy:</strong> Define a vendor product DTO/adapter and read purchase orders or receipts by vendor identity. <strong>Size:</strong> medium. <strong>Dependencies / limits:</strong> No architecture change required; targeted regression coverage.</p>
+<p><strong>Source:</strong> <code>worker/src/index.ts:9027-9040</code>, <code>src/admin/views/VendorProfileView.tsx:88-127</code>, <code>src/admin/views/VendorProfileView.tsx:293-330</code>, <code>worker/src/index.ts:20235-20262</code>.</p>
+<p><strong>Detailed inspection:</strong> <a href="business.md">business.md</a>.</p>
+<h3>BIZ-07 · P2 · Failed partner listing writes cannot be retried unchanged</h3>
+<p><strong>Evidence:</strong> source trace. <strong>Confidence:</strong> high.</p>
+<p><strong>Impact:</strong> Stock, price, sample, or note edits that fail remain locally marked saved and are skipped on retry.</p>
+<p><strong>Reproduce / trace:</strong> Reject updateListing; blur the same unchanged field again.</p>
+<p><strong>Smallest remedy:</strong> Advance lastSaved only after success and keep a retryable dirty state on failure. <strong>Size:</strong> small. <strong>Dependencies / limits:</strong> No architecture change required; targeted regression coverage.</p>
+<p><strong>Source:</strong> <code>src/admin/views/PartnerListingEdit.tsx:425-467</code>, <code>worker/src/index.ts:24715-24725</code>.</p>
+<p><strong>Detailed inspection:</strong> <a href="business.md">business.md</a>.</p>
+<h3>BIZ-08 · P2 · Admin uploads and MCP tokens page ignore sessionStorage token fallback</h3>
+<p><strong>Evidence:</strong> source trace. <strong>Confidence:</strong> high.</p>
+<p><strong>Impact:</strong> A fallback authenticated session cannot upload event flyers or venue photos or manage MCP tokens.</p>
+<p><strong>Reproduce / trace:</strong> Block localStorage writes, sign in so token is stored in sessionStorage, then invoke those actions.</p>
+<p><strong>Smallest remedy:</strong> Use the shared authenticated request/header path. <strong>Size:</strong> small. <strong>Dependencies / limits:</strong> No architecture change required; targeted regression coverage.</p>
+<p><strong>Source:</strong> <code>src/lib/api.ts:596-618</code>, <code>src/lib/api.ts:2454-2465</code>, <code>src/lib/api.ts:2488-2497</code>, <code>src/admin/views/MCPTokensView.tsx:52-58</code>, <code>worker/src/index.ts:12697-12700</code>, <code>worker/src/index.ts:12911-12914</code>.</p>
+<p><strong>Detailed inspection:</strong> <a href="business.md">business.md</a>.</p>
+<h3>PUB-01 · P2 · Product links turn inventory outages into Not Found</h3>
+<p><strong>Evidence:</strong> local browser, injected catalogue 503. <strong>Confidence:</strong> high.</p>
+<p><strong>Impact:</strong> Valid shared product links appear removed during inventory API failures and have no retry action.</p>
+<p><strong>Reproduce / trace:</strong> See the precise source trace and workstream appendix.</p>
+<p><strong>Smallest remedy:</strong> Branch on inventory query error and expose refetch; reserve Not Found for a successful query without the item. <strong>Size:</strong> small. <strong>Dependencies / limits:</strong> No architecture change required; targeted regression coverage.</p>
+<p><strong>Source:</strong> <code>src/pages/ProductPage.tsx:90</code>, <code>src/pages/ProductPage.tsx:179</code>, <code>src/components/Shop.tsx:537</code>.</p>
+<p><strong>Evidence files:</strong> <a href="evidence/public-focused.json">public-focused.json</a>, <a href="evidence/product-outage.png">product-outage.png</a>.</p>
+<p><strong>Detailed inspection:</strong> <a href="public-contracts.md">public-contracts.md</a>.</p>
+<h3>PUB-02 · P2 · Storefront product failures are presented as a store with no stock</h3>
+<p><strong>Evidence:</strong> local browser, injected store catalogue 503. <strong>Confidence:</strong> high.</p>
+<p><strong>Impact:</strong> A failed store catalog request tells customers the merchant has not published inventory and offers no retry.</p>
+<p><strong>Reproduce / trace:</strong> See the precise source trace and workstream appendix.</p>
+<p><strong>Smallest remedy:</strong> Pass the products query failure and refetch through, separating failure from successful empty inventory. <strong>Size:</strong> small. <strong>Dependencies / limits:</strong> No architecture change required; targeted regression coverage.</p>
+<p><strong>Source:</strong> <code>src/components/storefront/Storefront.tsx:56</code>, <code>src/components/storefront/Storefront.tsx:191</code>, <code>src/components/storefront/Storefront.tsx:256</code>.</p>
+<p><strong>Evidence files:</strong> <a href="evidence/public-focused.json">public-focused.json</a>, <a href="evidence/store-outage.png">store-outage.png</a>.</p>
+<p><strong>Detailed inspection:</strong> <a href="public-contracts.md">public-contracts.md</a>.</p>
+<h3>PUB-03 · P2 · Find-a-table review badge always falls back to Verified</h3>
+<p><strong>Evidence:</strong> live desktop/mobile 400 response + source contract. <strong>Confidence:</strong> high.</p>
+<p><strong>Impact:</strong> The review query is rejected and directory rows display an unsupported status; the count cannot represent distinct teas per store.</p>
+<p><strong>Reproduce / trace:</strong> See the precise source trace and workstream appendix.</p>
+<p><strong>Smallest remedy:</strong> Use a directory-level aggregate endpoint or remove the unsupported badge; distinct tea counting needs a defined aggregate contract. <strong>Size:</strong> small. <strong>Dependencies / limits:</strong> No architecture change required; targeted regression coverage.</p>
+<p><strong>Source:</strong> <code>src/components/storefront/FindATable.tsx:28</code>, <code>src/components/storefront/FindATable.tsx:30</code>, <code>worker/src/index.ts:16780</code>, <code>src/components/storefront/FindATable.tsx:37</code>, <code>src/components/storefront/FindATable.tsx:42</code>, <code>src/components/storefront/FindATable.tsx:219</code>.</p>
+<p><strong>Evidence files:</strong> <a href="evidence/browser-scan.json">browser-scan.json</a>.</p>
+<p><strong>Detailed inspection:</strong> <a href="public-contracts.md">public-contracts.md</a>.</p>
+<h3>CONTENT-02 · P2 · Overlapping saves can create duplicate new articles</h3>
+<p><strong>Evidence:</strong> source trace. <strong>Confidence:</strong> high.</p>
+<p><strong>Impact:</strong> Overlapping saves can create duplicate new articles</p>
+<p><strong>Reproduce / trace:</strong> Type a new title, click Save as the auto-save timer fires, and keep both create responses pending. Both calls can submit with a null article ID.</p>
+<p><strong>Smallest remedy:</strong> Share one in-flight create promise, cancel a pending debounce before manual save, then update the returned ID. <strong>Size:</strong> small-medium. <strong>Dependencies / limits:</strong> No architecture change required; targeted regression coverage.</p>
+<p><strong>Source:</strong> <code>src/admin/components/ArticleEditorModal.tsx:567</code>, <code>src/admin/components/ArticleEditorModal.tsx:594</code>, <code>src/admin/components/ArticleEditorModal.tsx:778</code>, <code>worker/src/index.ts:21918</code>.</p>
+<p><strong>Detailed inspection:</strong> <a href="content-gap.md">content-gap.md</a>.</p>
+<h3>CONTENT-03 · P2 · Failed event detail request leaves a permanent loading spinner</h3>
+<p><strong>Evidence:</strong> source trace. <strong>Confidence:</strong> high.</p>
+<p><strong>Impact:</strong> Failed event detail request leaves a permanent loading spinner</p>
+<p><strong>Reproduce / trace:</strong> Open an event detail URL while its GET returns an error; after the query settles the spinner remains, with no retry action.</p>
+<p><strong>Smallest remedy:</strong> Branch on query error and missing event, with retry; show spinner only while loading. <strong>Size:</strong> small. <strong>Dependencies / limits:</strong> No architecture change required; targeted regression coverage.</p>
+<p><strong>Source:</strong> <code>src/admin/hooks/useEventData.ts:92</code>, <code>src/admin/components/EventDetail.tsx:289</code>, <code>src/admin/components/EventDetail.tsx:384</code>.</p>
+<p><strong>Detailed inspection:</strong> <a href="content-gap.md">content-gap.md</a>.</p>
+<h3>OPS-01 · P2 · Intake can silently lose the purchase record</h3>
+<p><strong>Evidence:</strong> source trace. <strong>Confidence:</strong> High from source inspection; runtime reproduction pending.</p>
+<p><strong>Impact:</strong> Products are created and success is shown, but the requested purchase record is absent; local staging is cleared and server draft closure is attempted.</p>
+<p><strong>Reproduce / trace:</strong> Enable Save purchase record; let /api/products/bulk succeed and /api/purchase-orders fail for a staged vendor with cost/order data.</p>
+<p><strong>Smallest remedy:</strong> Preserve and expose partial success, retain purchase data for retry, and defer draft closure until requested records finish. <strong>Size:</strong> small-medium. <strong>Dependencies / limits:</strong> No architecture change required; targeted regression coverage.</p>
+<p><strong>Source:</strong> <code>src/admin/views/IntakeWorkspace.tsx:354-357</code>, <code>src/admin/views/IntakeWorkspace.tsx:381-406</code>.</p>
+<p><strong>Detailed inspection:</strong> <a href="operations-gap.md">operations-gap.md</a>.</p>
+<h3>OPS-02 · P2 · Retrying a failed contact save can create a duplicate</h3>
+<p><strong>Evidence:</strong> source trace. <strong>Confidence:</strong> High from source inspection; runtime reproduction pending.</p>
+<p><strong>Impact:</strong> The UI reports save failure after a persisted create; retry posts a second contact with a new ID.</p>
+<p><strong>Reproduce / trace:</strong> Let POST /api/customers succeed, fail the subsequent relationships PUT, then click Save again.</p>
+<p><strong>Smallest remedy:</strong> Use the create payload&#x27;s existing relationship write and remove the redundant follow-up PUT; retain the created ID if later work needs retry. <strong>Size:</strong> small. <strong>Dependencies / limits:</strong> No architecture change required; targeted regression coverage.</p>
+<p><strong>Source:</strong> <code>src/admin/components/CustomersView.tsx:1454-1469</code>, <code>worker/src/index.ts:8702-8738</code>, <code>worker/schema.sql:170-189</code>.</p>
+<p><strong>Detailed inspection:</strong> <a href="operations-gap.md">operations-gap.md</a>.</p>
+<h3>UI-01 · P3 · Mobile inventory Personal label is clipped</h3>
+<p><strong>Evidence:</strong> local 390px browser screenshot and element measurement. <strong>Confidence:</strong> high.</p>
+<p><strong>Impact:</strong> The final letters of Personal are cut off in the packed lifecycle tabs beside Flagged, making navigation harder to read. No page-level horizontal overflow was seen.</p>
+<p><strong>Reproduce / trace:</strong> At 390px width open local /admin/stock; Personal has clientWidth 50 and scrollWidth 52 and is visibly truncated.</p>
+<p><strong>Smallest remedy:</strong> Give lifecycle labels enough flex space or wrap/compact their surrounding controls while preserving the existing labels. <strong>Size:</strong> small. <strong>Dependencies / limits:</strong> Visual fix should be checked at 390px and tablet width; do not change approved navigation labels.</p>
+<p><strong>Source:</strong> <code>src/admin/components/InventoryView.tsx</code>.</p>
+<p><strong>Evidence files:</strong> <a href="evidence/verified-390-stock.png">verified-390-stock.png</a>, <a href="evidence/admin-final-check.json">admin-final-check.json</a>.</p>
+<h2>Small UI defects and observations</h2>
+<p>UI-01 is the confirmed small layout defect. Anonymous <code>/shop</code> also makes two unnecessary protected <code>/api/products</code> calls, returning 401 while its proper public catalogue loads; <code>useAdminOverlay.ts:21</code> omits the computed <code>enabled</code> gate. This is request noise, not a broken catalogue. On the inspected mobile product page the order dock ended at y=836 and navigation began at y=836, so it cleared the bottom navigation. Inventory remained scrollable and document width matched the viewport at 390, 768 and 1440 pixels. The inventory ledger itself is horizontally scrollable by existing design/tests; that is not reported as a new defect. Missing product photography is excluded.</p>
+<h2>Unconfirmed concerns and known debt</h2>
+<p>CONTENT-04 needs a normal user navigation reproduction before prioritization; the component state trace alone is not proof that users reach it in that mounted state. SEC-05 concerns OAuth defaults potentially minting a token the live bundle check immediately rejects; no privilege escalation was demonstrated. Collection publication after response loss, simultaneous Wisdom review, multi-chunk intake interruption, and two-operator receipt conflicts remain untested, not defects asserted here.</p>
+<p>The documented reading-memory/saved-story discrepancy and incomplete real-world launch validation remain known debt. Older architecture claims about missing ownership/bundle audit and weak suspended-account enforcement were not repeated as findings without current evidence. The initial local sandbox missed the freight columns: that was fixture staleness, not a live outage. A separate temporary database copy received migration 0009 only for browser inspection; its catalogue and rates remain historical fixtures, not today&#x27;s shop values.</p>
+<h2>Coverage matrix</h2>
+<p>There are 160 route declarations (including aliases and dynamic patterns) and 362 matched literal REST registrations. These are inventories, not a completeness score. The sweep captured 48 live public and 100 local admin navigations; initial admin reads hit a stale-schema 500, so those samples are explicitly limited. Seven high-value admin routes were subsequently inspected against the repaired isolated fixture at desktop, tablet, and mobile widths. Parameterized routes and workflows are covered separately by the listed fixture journeys.</p>
+<table>
+<tr><td>Functional family</td><td>Evidence actually obtained</td><td>Highest-risk untested journey / limit</td></tr>
+</table>
+<table>
+<tr><td>Storefront/search/filter/product/cart</td><td>Live desktop/mobile search, product, add, cart; shop fixtures; source</td><td>Actual final inquiry submission/WhatsApp delivery blocked by LIVE-01 and audit no-send boundary.</td></tr>
+</table>
+<table>
+<tr><td>Store directories/Tea Masters/payments</td><td>Live directory/person shells; mobile identity/favorites/payment fixtures; source</td><td>Real linked recipient configuration and successful payment not read or exercised.</td></tr>
+</table>
+<table>
+<tr><td>Auth/session/account/permissions</td><td>Local signed-in owner; email-code/account-panel fixtures; JWT/MCP source + worker tests</td><td>Real Google OAuth, email delivery, all roles in every admin module, concurrent session revocation.</td></tr>
+</table>
+<table>
+<tr><td>Inventory/add/edit/stock/receiving</td><td>Real local catalogue at 1440/768/390; scroll measurements; movement/import/receipt fixtures; adapter failure repro</td><td>Real warehouse reconciliation; multi-operator receive/cancel conflicts; production shelf correction.</td></tr>
+</table>
+<table>
+<tr><td>Currency/freight/markup</td><td>Shared arithmetic source/worker tests; local currency/settings; actual adapter repro</td><td>Real daily feed failure and production currency-provenance backlog.</td></tr>
+</table>
+<table>
+<tr><td>Invoices/orders/customer money</td><td>Desktop/mobile order/payment fixtures; stale-edit and PDF failure fixtures; real Worker local invoice persistence</td><td>Real payment claims/fulfillment/delivery; native OS share cancellation not invoked.</td></tr>
+</table>
+<table>
+<tr><td>Contacts/vendors/customer profiles</td><td>Source save/relationship/vendor contract review; local people shell</td><td>Mixed partial failure on a full real customer profile; live customer data deliberately not accessed.</td></tr>
+</table>
+<table>
+<tr><td>Multi-store/network/access/wholesale</td><td>Operator multi-store fixtures; local network/access; authority source; pending cache repro</td><td>Full bilateral wholesale fulfillment with two real operators, ownership transfer end-to-end.</td></tr>
+</table>
+<table>
+<tr><td>Curate/import/intake</td><td>Import/receipt-possession fixtures; source idempotency/finalization and partial-save traces</td><td>Interrupted multi-chunk intake and live provider/OCR/transcription behavior.</td></tr>
+</table>
+<table>
+<tr><td>Events/venues/sessions/RSVP</td><td>Live public shells; local admin shells; event-to-article fixtures; public privacy D1 probes</td><td>Live RSVP/email/join-code delivery; every event control; ordinary briefing route-reuse concern.</td></tr>
+</table>
+<table>
+<tr><td>Editorial/contributors/read</td><td>Live read pages; contributor publishing/event essay fixtures; actual article race fixture</td><td>Editorial quality and long-content pagination matrix; two-user editing conflicts.</td></tr>
+</table>
+<table>
+<tr><td>Collections/sharing/inbound</td><td>Collection public/inbound fixtures; create/edit/publish source; hidden-item D1 probes</td><td>Lost-response person publication and actual cross-store acceptance delivery.</td></tr>
+</table>
+<table>
+<tr><td>Wisdom/reference/catalog</td><td>Live taxonomy indexes; local admin shell; proposal/review/override source</td><td>Two-operator taxonomy review conflicts; preview-only Tea Reference revision mode not exercised.</td></tr>
+</table>
+<table>
+<tr><td>Personal Journal/Favorites/Cellar/samples</td><td>Personal journey/account fixtures and direct-link shells</td><td>Complete authenticated production personal history, device/offline sync conflicts.</td></tr>
+</table>
+<table>
+<tr><td>MCP/OAuth/API/security</td><td>362 literal REST route declarations inventoried; family-based auth/tenancy source; 1410 worker tests; targeted D1 probes</td><td>Not every endpoint/tool executed; no live mutation or exploit probes, exhaustive fuzzing, or penetration-test claim.</td></tr>
+</table>
+<table>
+<tr><td>Platform/admin/tools/settings</td><td>Local route sweep including platform/audit/token/settings shells; selected source security checks</td><td>Actual privilege/ownership/token changes, provider credentials and production audit contents.</td></tr>
+</table>
+<table>
+<tr><td>Responsive/accessibility/performance</td><td>Live 1440/390; admin 1440/768/390; focused keyboard/focus restoration tests; build output</td><td>Screen-reader audit, real touch hardware, network-throttled performance and all overlay combinations.</td></tr>
+</table>
+<p>Machine-readable maps: <a href="coverage.json">coverage.json</a>, <a href="route-inventory.json">route-inventory.json</a>, <a href="api-inventory.json">api-inventory.json</a>. Raw browser navigation states are in <a href="evidence/browser-scan.json">browser-scan.json</a>; corrected admin measurements in <a href="evidence/focused-browser.json">focused-browser.json</a>. A 200 HTML response or absence of a console exception does not prove a feature works.</p>
+<h2>Checks and exact failures</h2>
+<ul>
+<li><code>npm run lint</code>: passed; <code>npm run lint:colors</code>: passed with non-blocking legacy styling notices; <code>npm run build</code>: passed in 37.18s. The build warns about large chunks: AdminApp 2,071.87 kB / 512.14 kB gzip, PDF renderer 1,297.72 / 424.92, another index chunk 1,087.11 / 304.23. No measured performance SLO failure is claimed.</li>
+<li><code>npm run test:worker</code>: <strong>93 files, 1,410 tests passed</strong>. These include important SQL/unit/source guards, but do not cover the reproduced frontend failure sequences. Focused workstream checks were additional existing tests, not new tests.</li>
+<li>Initial selected browser run: <strong>123 passed, 7 failed, 1 intentionally skipped, 17 did not run</strong>. It used the isolated fixture server at port 7802, Desktop Chrome + Mobile Chrome, three workers. <a href="evidence/browser-tests.log">Exact log</a>.</li>
+<li>Focused follow-up: the 17 previously blocked mobile tests plus the navigation failure <strong>all 18 passed</strong>; no successful initial tests were repeated. <a href="evidence/browser-followup.log">Log</a>.</li>
+<li>Additional previously uncovered content/operator journeys: <strong>71 passed, 1 desktop-inapplicable mobile-input test skipped</strong>. Contributor publishing, event essays, public/inbound collections, inventory import, Curate import/receipt possession, and stock movement/focus. <a href="evidence/gap-tests.log">Log</a>.</li>
+</ul>
+<table>
+<tr><td>Initial failure</td><td>Exact result</td><td>Adjudication</td></tr>
+<tr><td>Desktop inventory lifecycle, line 226</td><td>Record tasting button not found after clicking whole row</td><td>Error snapshot shows Source: Chen Family panel: row-center click hit the embedded source control. Source/UI still expose tasting after explicit row selection; not proof tasting is absent. Replace ambiguous row-center targeting in test.</td></tr>
+<tr><td>Mobile inventory lifecycle, line 236</td><td>Continue tasting button not found after next whole-row click</td><td>Same broad click-target problem; do not count as a confirmed removed action. Existing movement tests for explicit controls passed.</td></tr>
+<tr><td>Desktop inventory currency, line 299</td><td>Empty select instead of USD</td><td>Fixture does not mock <code>/api/rates</code> and now cannot rely on deleted invented-rate fallbacks. This is a missing-fixture-data failure, not proof live currencies are blank.</td></tr>
+<tr><td>Mobile inventory currency, line 299</td><td>Empty select instead of USD</td><td>Same fixture gap. Corrected local currency route and real rate response were inspected separately.</td></tr>
+<tr><td>Desktop product detail, line 131</td><td>Expected <code>$10</code> inside amount button; actual <code>50g0.19/g</code></td><td>Total is now a sibling in the order dock. Rate is arithmetically correct; selector/expectation is stale. Live product and cart show the same total.</td></tr>
+<tr><td>Mobile product detail, line 131</td><td>Same mismatch</td><td>Same stale assertion; no pricing defect established by this failure.</td></tr>
+<tr><td>Mobile Shop health, line 143 helper</td><td>Execution context destroyed during page.evaluate</td><td>Follow-up passed. Treat as navigation timing/test instability, not an observed persistent product crash. This serial-group failure prevented the later 17 checks; all were recovered.</td></tr>
+</table>
+<p>Every original failure is retained; the report does not turn a red run into an all-green claim. Commands and source fixture scripts remain alongside the logs. Fixtures write only mocked data or in-memory D1.</p>
+<h2>Dependency and runtime evidence</h2>
+<p><code>npm audit --omit=dev --json</code> reports five affected dependency entries (3 high, 2 moderate), not five exploitable application vulnerabilities. The React Router advisory applies only to unstable RSC APIs; this checkout uses a Vite client and BrowserRouter, so that exploit path was not found. See the <a href="https://github.com/remix-run/react-router/security/advisories/GHSA-qwww-vcr4-c8h2">maintainer advisory</a>. Brace-expansion denial-of-service entries and uuid buffer bounds advisory need call-path reachability analysis before claiming exposure; none was demonstrated here. Sources: <a href="https://github.com/advisories/GHSA-mh99-v99m-4gvg">brace-expansion advisory</a>, <a href="https://github.com/advisories/GHSA-rgw5-rvv9-x895">follow-up advisory</a>, <a href="https://github.com/advisories/GHSA-w5hq-g745-h8pq">uuid advisory</a>. Preserve normal dependency maintenance as a separate small task; do not blindly accept npm&#x27;s suggested ExcelJS downgrade. <a href="evidence/dependency-audit.json">Raw audit</a>.</p>
+<p>The PDF renderer threw a real <code>hasOwnProperty</code> error in the mounted current-version invoice fixture; BIZ-03 records the observed result without guessing its underlying dependency cause. No secret values or real customer/order records were collected.</p>
+<h2>Ordered remediation batches</h2>
+<p>1. <strong>Operational availability:</strong> owner checks LIVE-01 and restores the intended published recipient/payment configuration if ordering should be open. Verify cart readiness and an approved end-to-end inquiry; no automatic configuration change is proposed.</p>
+<p>2. <strong>Public privacy — first urgent engineering lane, alongside money/record integrity:</strong> SEC-01/02/03, then SEC-04. Use shared public-account and visibility predicates with explicit private/unlisted policy. Verify no public projection expands to cost/vendor/customer fields. Local closure/private fixtures should be regression tests.</p>
+<p>3. <strong>Money and record integrity — equally urgent engineering lane:</strong> BIZ-01/02/03/04 and OPS-03. Preserve absence/zero at the adapter; distinguish commit from presentation/refetch; retain mutation identity; scope private caches. Add failure-injection cases matching the evidence. Each is a bounded change; no migration is inherently required.</p>
+<p>4. <strong>Publishing/intake save integrity:</strong> CONTENT-01/02, OPS-01/02, BIZ-07. Serialize save/publish and surface partial success. Reconcile existing duplicate/missing records only with a separate preview and owner approval.</p>
+<p>5. <strong>Broken detail/failure UX:</strong> BIZ-05/06/08, PUB-01/02/03, CONTENT-03, UI-01. Shared DTOs, honest failure states, shared auth headers, and one small mobile layout correction.</p>
+<p>6. <strong>Verification maintenance:</strong> repair the six deterministic stale/underspecified browser assertions, investigate intermittent navigation timing, and evaluate dependency fixes with reachability and focused tests. Leave the uncertain concerns separate until reproduced.</p>
+<p>Sizes are relative: small = roughly half a day or less, medium = around one to two days including regression verification; estimates are not commitments and exclude production data cleanup. No speculative architecture redesign is recommended.</p>
+<h2>Supporting reports</h2>
+<p><a href="security.md">Security</a> · <a href="business.md">Business and admin</a> · <a href="public-contracts.md">Public contracts</a> · <a href="content-gap.md">Content follow-up</a> · <a href="operations-gap.md">Operator follow-up</a> · <a href="findings.json">All findings JSON</a> · <a href="VERIFICATION.md">Exact verification commands</a>.</p>
+<p>The findings/coverage in this synthesis supersede workstream severity and confidence labels where explicitly adjudicated. The workstream reports preserve original inspection notes. This audit is a broad, evidence-based inspection with named gaps, not an exhaustive penetration test or proof of every business workflow.</p>
+</main></html>

@@ -95,12 +95,12 @@ describe('CraftIndex, visitor', () => {
     }
   });
 
-  it('says six pieces, seven coming, and numbers only the live rows', () => {
+  it('keeps the six-piece count, seven coming labels, and publish visibility', () => {
     expect(html).toContain('six pieces');
     expect(html).toContain('seven coming');
     expect(html).toContain('coming soon');
-    expect(html).toContain('N°06');
     expect(html).not.toContain('N°07');
+    expect(html).toContain('class="tj-craft-row"');
   });
 
   it('renders the three Coming soon panels', () => {

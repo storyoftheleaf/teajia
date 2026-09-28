@@ -8,6 +8,7 @@ import { quoteForDisplay } from '../lib/teaPricing';
 import { usePublicProducts } from '../hooks/usePublicProducts';
 import { useSectionReveal } from '../hooks/useSectionReveal';
 import { LogoText } from '../components/Logos/LogoText';
+import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import { StoryEditProvider, type PhotoVal } from './read/storyEdit';
 import EditablePhoto from './read/EditablePhoto';
 import StoryEditorBar from './read/StoryEditorBar';
@@ -231,17 +232,10 @@ const HomeV2Page: React.FC = () => {
         />
       </section>
 
-      {/* The house: one panel from the reading edge to the window's edge,
-          the only tonal block on the page. What the name is, for someone who
-          has never met the word: the wordmark leads; Adrian's two lines split
-          it into tea and jiā; then jiā three times under three characters,
-          each a facet, in his words; the spirit and the motto; and, last, the
-          way to stay. Nothing is explained; the facets show themselves.
-          Centred, because three pillars are a symmetric idea. The characters
-          enter once, as they do on the live page: 家 first, 佳 and 嘉 from
-          the sides. More air above the wordmark than below the last line. */}
+      {/* The house keeps each character beside its complete meaning on mobile.
+          On wider screens the three meanings return to one editorial row. */}
       <section aria-label="The house" className={`${MOVEMENT} ${EDGE}`}>
-        <div className="bg-tea-elevated px-6 sm:px-10 lg:px-16 pt-20 sm:pt-24 lg:pt-28 pb-14 sm:pb-16 lg:pb-20 flex flex-col items-center text-center">
+        <div className="bg-tea-elevated px-6 sm:px-10 lg:px-16 pt-16 sm:pt-24 lg:pt-28 pb-12 sm:pb-16 lg:pb-20 flex flex-col items-center text-center">
           <LogoText size="panel" color="var(--tea-text)" />
           <p className={`${BODY} mt-6 max-w-[46ch] text-tea-text-sec`}>
             Teajia is a home for tea. A place to source, study, and share with those who gather around the leaf.
@@ -252,26 +246,21 @@ const HomeV2Page: React.FC = () => {
           <p className={`${BODY} italic tracking-[0.06em] text-tea-text-sec`}>
             <span className="not-italic font-semibold text-tea-gold">jiā</span> · one sound, three pillars…
           </p>
-          <div className="mt-8 w-full max-w-[880px]">
-            <div className="grid grid-cols-3 gap-x-3 sm:gap-x-6">
+          <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-5 max-w-[34ch] text-tea-text-sec`}>
+            The jiā in Teajia brings together three Chinese characters, each pronounced jiā.
+          </p>
+          <div className="mt-12 sm:mt-14 w-full max-w-[980px]">
+            <div className="grid grid-cols-1 gap-y-0 sm:grid-cols-3 sm:gap-x-6">
               {FACETS.map((c, i) => (
                 <Facet key={c.zi} {...c} index={i} />
               ))}
             </div>
-            {/* On the phone the three sentences read as a list under the row, not a tower. */}
-            <ul className="sm:hidden mt-8 flex flex-col gap-4 text-left">
-              {FACETS.map(c => (
-                <li key={c.zi} className={`${BODY} text-tea-text-sec`}>
-                  <span className="font-display text-tea-text">{c.title}. </span>{c.text}
-                </li>
-              ))}
-            </ul>
-            <p className={`${BODY} italic mt-12 tracking-[0.04em] text-tea-text-sec`}>
+            <p className={`${TYPOGRAPHY_CLASSES.subtitle} mt-12 sm:mt-16 tracking-[0.04em] text-tea-text-sec`}>
               Honor the past. Live in the present. Build for the future.
             </p>
           </div>
-          <div className="mt-16 w-full max-w-[360px]">
-            <p className={`${BODY} italic tracking-[0.04em] text-tea-text-sec`}>stay connected</p>
+          <div className="mt-16 sm:mt-20 w-full max-w-[360px]">
+            <p className={`${TYPOGRAPHY_CLASSES.subtitle} tracking-[0.04em] text-tea-text-sec`}>stay connected</p>
             <p className={`${DISPLAY} italic mt-1 text-tea-text`}>it&apos;s nothing without you</p>
             <div className="mt-6">
               <EmailField />
@@ -283,14 +272,14 @@ const HomeV2Page: React.FC = () => {
             </p>
           </div>
           {/* The footer is hidden on this page, so the way out is the panel's last line. */}
-          <p className={`${META} mt-14 flex flex-wrap justify-center gap-x-5 gap-y-1 text-tea-text-sec`}>
-          <Link to="/events" className="hover:text-tea-text transition-colors">sessions</Link>
-          <Link to="/people" className="hover:text-tea-text transition-colors">people</Link>
-          <Link to="/spaces" className="hover:text-tea-text transition-colors">spaces</Link>
-          <Link to="/about" className="hover:text-tea-text transition-colors">about</Link>
-          <a href="https://instagram.com/teajia.journal" className="hover:text-tea-text transition-colors">instagram</a>
-          <a href="mailto:hello@teajia.com" className="hover:text-tea-text transition-colors">contact</a>
-          </p>
+          <nav aria-label="More from Teajia" className={`${META} mt-14 pt-7 border-t border-tea-border w-full max-w-[680px] grid grid-cols-3 gap-x-3 gap-y-2 sm:flex sm:flex-wrap sm:justify-center sm:gap-x-6 text-tea-text-sec`}>
+            <Link to="/events" className="py-2 hover:text-tea-text transition-colors focus-visible:text-tea-gold">sessions</Link>
+            <Link to="/people" className="py-2 hover:text-tea-text transition-colors focus-visible:text-tea-gold">people</Link>
+            <Link to="/spaces" className="py-2 hover:text-tea-text transition-colors focus-visible:text-tea-gold">spaces</Link>
+            <Link to="/about" className="py-2 hover:text-tea-text transition-colors focus-visible:text-tea-gold">about</Link>
+            <a href="https://instagram.com/teajia.journal" className="py-2 hover:text-tea-text transition-colors focus-visible:text-tea-gold">instagram</a>
+            <a href="mailto:hello@teajia.com" className="py-2 hover:text-tea-text transition-colors focus-visible:text-tea-gold">contact</a>
+          </nav>
         </div>
       </section>
       <StoryEditorBar />
@@ -299,7 +288,7 @@ const HomeV2Page: React.FC = () => {
   );
 };
 
-/** The three facets of jiā, in Adrian's words (2026-09-22). Three characters, one size, one sound; the sound is said once in the line above them. */
+/** The three facets of jiā, in Adrian's words (2026-09-22), paired with their shared pronunciation. */
 const FACETS = [
   { zi: '佳', title: 'Excellence', text: 'The commitment to doing everything we do, well.', enter: 'left' as const, delay: 260 },
   { zi: '家', title: 'Home', text: 'The place we live physically and inside of ourselves. Devoted to authenticity.', enter: 'fade' as const, delay: 0 },
@@ -311,17 +300,21 @@ const Facet: React.FC<(typeof FACETS)[number] & { index: number }> = ({ zi, titl
   return (
     <div
       ref={reveal.ref}
-      className={`flex flex-col items-center ${reveal.className}`}
+      className={`grid grid-cols-[76px_minmax(0,1fr)] gap-x-5 items-center text-left py-8 border-t border-tea-border first:border-t-0 sm:border-0 sm:py-0 sm:flex sm:flex-col sm:items-center sm:text-center ${reveal.className}`}
       style={reveal.style ? { ...reveal.style, transitionDelay: `${delay}ms` } : undefined}
     >
-      <span
-        className="flex items-end justify-center leading-none text-tea-gold text-[64px] sm:text-[108px] lg:text-[clamp(88px,7.8vw,150px)]"
-        style={{ fontFamily: "'Ma Shan Zheng', cursive" }}
-      >
-        {zi}
-      </span>
-      <p className={`${DISPLAY} mt-4 text-tea-text`}>{title}</p>
-      <p className={`${BODY} hidden sm:block mt-2 max-w-[34ch] text-tea-text-sec`}>{text}</p>
+      <div className="row-span-2 flex flex-col items-center text-tea-gold">
+        <span
+          lang="zh"
+          className="leading-none text-[64px] sm:text-[108px] lg:text-[clamp(88px,7.8vw,150px)]"
+          style={{ fontFamily: "'Ma Shan Zheng', cursive" }}
+        >
+          {zi}
+        </span>
+        <span className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-2 italic`}>jiā</span>
+      </div>
+      <h3 className={`${TYPOGRAPHY_CLASSES.h3} sm:mt-4 sm:text-ui-26 sm:leading-[1.1] lg:text-[clamp(26px,2.5vw,36px)] text-tea-text`}>{title}</h3>
+      <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-1 sm:mt-2 max-w-[34ch] text-tea-text-sec`}>{text}</p>
     </div>
   );
 };

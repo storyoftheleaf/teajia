@@ -1,0 +1,50 @@
+{
+  "audit": "content-gap",
+  "date": "2026-09-27",
+  "method": "source inspection only",
+  "excluded": ["missing pictures", "visual claims", "security authorization already audited"],
+  "findings": [
+    {
+      "id": "CONTENT-01",
+      "severity": "P1",
+      "confidence": "high",
+      "family": "editorial publishing",
+      "title": "Article save can undo a successful publish",
+      "source": ["src/admin/components/ArticleEditorModal.tsx:545", "src/admin/components/ArticleEditorModal.tsx:567", "src/admin/components/ArticleEditorModal.tsx:606", "src/admin/components/ArticleEditorModal.tsx:763", "worker/src/index.ts:21991", "worker/src/index.ts:22012"],
+      "reproduction": "Edit an existing draft; let auto-save start; publish before save settles; allow publish to commit before the older update. The toast says published while the row ends as draft."
+    },
+    {
+      "id": "CONTENT-02",
+      "severity": "P2",
+      "confidence": "high",
+      "family": "editorial publishing",
+      "title": "Overlapping saves can create duplicate new articles",
+      "source": ["src/admin/components/ArticleEditorModal.tsx:567", "src/admin/components/ArticleEditorModal.tsx:594", "src/admin/components/ArticleEditorModal.tsx:778", "worker/src/index.ts:21918"],
+      "reproduction": "Type a new title, click Save as the auto-save timer fires, and keep both create responses pending. Both calls can submit with a null article ID."
+    },
+    {
+      "id": "CONTENT-03",
+      "severity": "P2",
+      "confidence": "high",
+      "family": "event admin",
+      "title": "Failed event detail request leaves a permanent loading spinner",
+      "source": ["src/admin/hooks/useEventData.ts:92", "src/admin/components/EventDetail.tsx:289", "src/admin/components/EventDetail.tsx:384"],
+      "reproduction": "Open an event detail URL while its GET returns an error; after the query settles the spinner remains, with no retry action."
+    },
+    {
+      "id": "CONTENT-04",
+      "severity": "P2",
+      "confidence": "high for state flow; browser confirmation needed for normal route reuse",
+      "family": "event admin",
+      "title": "Briefing cards can cross event IDs when detail component is reused",
+      "source": ["src/admin/components/EventDetail.tsx:327", "src/admin/components/EventDetail.tsx:333", "src/admin/components/EventDetail.tsx:366", "src/admin/components/EventDetail.tsx:420", "src/admin/AdminApp.tsx:544"],
+      "reproduction": "Keep the event detail component mounted while changing route ID A to B, then save B's Briefing tab. A's local cards are sent to B."
+    }
+  ],
+  "coverage": [
+    {"family": "collections", "journey": "create, item edit, publication, failure and retry", "confirmed_defects": 0, "highest_risk_untested": "lost response after a successful person publication"},
+    {"family": "Wisdom", "journey": "relation proposal, review, deletion, override, cache and failure", "confirmed_defects": 0, "highest_risk_untested": "two-operator approval or override conflict"},
+    {"family": "event admin", "journey": "detail load, briefing and venue save, interest conversion, article draft", "confirmed_defects": 2},
+    {"family": "editorial publishing", "journey": "article create, edit, auto-save, publish and failure", "confirmed_defects": 2}
+  ]
+}

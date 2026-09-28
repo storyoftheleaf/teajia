@@ -109,7 +109,7 @@ const CraftRenewalPorcelain: React.FC = () => {
           {/* STANDFIRST */}
           <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(20px,4vw,44px)' }}>
             <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
-              <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>W</span>
+              W
               <EditableText field="standfirst" as="span" multiline>hen I first met Shangyin Qiwu, he was holding a broken porcelain lid, studying its crack as if it were a map. He spoke softly, more about time than repair, more about patience than porcelain. This story began as a conversation about tea, but it became a meditation on how we mend what we love.</EditableText>
             </p>
           </section>

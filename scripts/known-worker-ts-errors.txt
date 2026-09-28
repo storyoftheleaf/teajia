@@ -2,7 +2,7 @@
 # `tsc -p worker/tsconfig.json` and compares every diagnostic to this file.
 # A signature not listed here fails the build; delete a line in the same commit
 # that fixes that error. Signatures are path:line:code. Duplicate lines count
-# separate diagnostics on the same line (tsc reports 38 total, 35 unique).
+# separate diagnostics on the same line (tsc reports 37 total, 34 unique).
 worker/src/curateImportAnalysis.ts:1159:TS2322
 worker/src/curateImportAnalysis.ts:1261:TS18046
 worker/src/curateImportAnalysis.ts:1261:TS18046
@@ -22,21 +22,21 @@ worker/src/curateImports.ts:988:TS2698
 worker/src/eventArticleDraft.ts:49:TS18046
 worker/src/eventArticleDraft.ts:49:TS7006
 worker/src/eventDomain.ts:9:TS2322
-worker/src/index.ts:11967:TS2322
-worker/src/index.ts:23277:TS2322
-worker/src/index.ts:23321:TS2322
-worker/src/index.ts:23830:TS2352
-worker/src/index.ts:3095:TS2345
-worker/src/index.ts:3130:TS2345
-worker/src/index.ts:6712:TS2352
-worker/src/index.ts:6719:TS2352
-worker/src/index.ts:8036:TS2352
-worker/src/index.ts:8049:TS2352
-worker/src/index.ts:8343:TS2339
-worker/src/index.ts:8343:TS2339
-worker/src/index.ts:8380:TS7053
-worker/src/index.ts:8380:TS7053
-worker/src/index.ts:8392:TS7053
+worker/src/index.ts:11968:TS2322
+worker/src/index.ts:23278:TS2322
+worker/src/index.ts:23322:TS2322
+worker/src/index.ts:23831:TS2352
+worker/src/index.ts:3096:TS2345
+worker/src/index.ts:3131:TS2345
+worker/src/index.ts:6713:TS2352
+worker/src/index.ts:6720:TS2352
+worker/src/index.ts:8037:TS2352
+worker/src/index.ts:8050:TS2352
+worker/src/index.ts:8344:TS2339
+worker/src/index.ts:8344:TS2339
+worker/src/index.ts:8381:TS7053
+worker/src/index.ts:8381:TS7053
 worker/src/index.ts:8393:TS7053
+worker/src/index.ts:8394:TS7053
 worker/src/mcp.ts:1843:TS2322
 worker/src/mcp.ts:810:TS2322

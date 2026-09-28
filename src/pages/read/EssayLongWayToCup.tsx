@@ -150,7 +150,7 @@ const EssayLongWayToCup: React.FC = () => {
         {/* ── STANDFIRST ────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 660, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(20px,4vw,44px)' }}>
           <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.76, color: C.ink, margin: 0 }}>
-            <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>T</span>
+            T
             here is a Chinese word for the sweetness that arrives{' '}
             <em style={{ fontStyle: 'italic', color: C.cream }}>after</em>{' '}
             a sip, once the cup is down and you think the taste is gone.{' '}

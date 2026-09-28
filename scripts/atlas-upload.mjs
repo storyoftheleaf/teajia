@@ -91,6 +91,43 @@ async function loadState(scratch) {
   return { files: {} };
 }
 
+/**
+ * Sources added from the admin (docs/TEA_ATLAS.md) are not in the package; they
+ * live in the bucket as one-source packages. Fetch them so the rebuilt index
+ * keeps them. A missing list means none were added; any other failure stops
+ * the upload, because rebuilding without them would drop them from the index.
+ */
+async function fetchAdded(scratch) {
+  const missing = out => /does not exist|not found|NoSuchKey|\b404\b/i.test(out);
+  const get = async (key, file) => {
+    mkdirSync(dirname(file), { recursive: true });
+    const res = await wrangler(['r2', 'object', 'get', `${BUCKET}/${key}`, '--file', file, WHERE], { quiet: true });
+    if (res.code === 0 && existsSync(file)) return true;
+    if (missing(res.out)) return false;
+    die(`Could not read ${key} from the bucket. Stopping, so the sources added from the admin are not dropped from the index.`);
+  };
+  const listFile = join(scratch, 'added', 'sources.json');
+  if (!(await get('added/sources.json', listFile))) return [];
+  const list = JSON.parse(readFileSync(listFile, 'utf8'));
+  const added = [];
+  for (const { id } of list.sources || []) {
+    const dir = join(scratch, 'added', id);
+    if (!(await get(`added/${id}/manifest.json`, join(dir, 'manifest.json')))) {
+      warn(`added source ${id} has no manifest in the bucket; left out`);
+      continue;
+    }
+    const manifest = JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8'));
+    const ids = (manifest.articles || []).map(a => a.id);
+    for (let i = 0; i < ids.length; i += 6) {
+      await Promise.all(ids.slice(i, i + 6).map(async aid => {
+        if (!(await get(`articles/${aid}.json`, join(dir, 'articles', `${aid}.json`)))) die(`added source ${id}: articles/${aid}.json is missing from the bucket`);
+      }));
+    }
+    added.push({ dir, id, articles: ids.length });
+  }
+  return added;
+}
+
 function saveStateLocally(state) {
   mkdirSync(dirname(cacheFile), { recursive: true });
   writeFileSync(cacheFile, JSON.stringify(state));
@@ -109,8 +146,12 @@ async function main() {
       ok('Private: no public address, no custom domain');
     }
 
+    stage('Fetching the sources added from the admin');
+    const added = await fetchAdded(scratch);
+    ok(added.length ? `${added.length} added: ${added.map(a => `${a.id} (${a.articles} articles)`).join(', ')}` : 'None added');
+
     stage(`Reading the package at ${EXPORT}`);
-    const { objects, stats } = buildAtlas(EXPORT);
+    const { objects, stats } = buildAtlas(EXPORT, { added });
     ok(`${stats.articles} articles in ${stats.issues} issues, ${stats.topics} topics, ${stats.pictures} pictures, ${stats.terms} search words in ${stats.shards} shards`);
 
     stage('Finding what changed');

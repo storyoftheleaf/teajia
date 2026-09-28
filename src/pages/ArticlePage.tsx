@@ -1352,29 +1352,8 @@ const ParagraphStyledPage: React.FC<{ page: Extract<Page, { kind: 'paragraph_sty
   if (v === 'justified') extra.textAlign = 'justify';
   else if (v === 'center') extra.textAlign = 'center';
 
-  if (v === 'drop_cap') {
-    const first = page.text.charAt(0);
-    const rest = page.text.slice(1);
-    textForRender = rest;
-    firstChar = (
-      <span
-        style={{
-          fontFamily: T.display,
-          fontStyle: 'italic',
-          fontWeight: 400,
-          fontSize: '96px',
-          lineHeight: 0.85,
-          color: T.gold,
-          float: 'left',
-          marginRight: '12px',
-          marginTop: '4.1px',
-          opacity: 0.85,
-        }}
-      >
-        {first}
-      </span>
-    );
-  }
+  // 'drop_cap' is still an accepted variant so stored articles keep loading,
+  // but it renders as an ordinary paragraph: the site carries no drop caps.
 
   return (
     <PageFrame>

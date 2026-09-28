@@ -1327,6 +1327,12 @@ export async function atlasResponse(path: string): Promise<Response> {
   return authenticatedResponse(`${API_URL}/api/atlas/${path}`);
 }
 
+// Adding a source to the Tea Atlas (site owner only; 404 for everyone else).
+export async function atlasAdminResponse(path: string, init: ApiRequestInit = {}): Promise<Response> {
+  if (!getToken()) return new Response(null, { status: 404 });
+  return authenticatedResponse(`${API_URL}/api/atlas-admin/${path}`, { timeoutMs: 60_000, ...init });
+}
+
 async function authedBlobFetch(url: string): Promise<Blob> {
   const response = await authenticatedResponse(url);
   if (!response.ok) {

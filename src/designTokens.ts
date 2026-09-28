@@ -429,6 +429,8 @@ export interface TeaLedgerTones {
   markBg: string;
   /** Vintage numerals, mixed to hold contrast on `markBg` in both themes. */
   markFg: string;
+  /** Filled save state, paired with tea-bg ink for small-label contrast. */
+  savedBg: string;
 }
 
 /**
@@ -453,6 +455,7 @@ export const getTeaLedgerTones = (
     wash: `rgba(${base[0]}, ${base[1]}, ${base[2]}, ${alpha})`,
     markBg: mix(base, ground.bg, 0.7),
     markFg: mix(base, ground.text, 0.5),
+    savedBg: mix(base, ground.text, 0.6),
   };
 };
 
@@ -947,9 +950,7 @@ export const SURFACE_TREATMENTS = {
  *   - Font: body italic
  *   - Color: --tea-text-sec
  *
- * DROP CAPS:
- *   - Font-size: 2.5em, weight: 700, float: left
- *   - Color: --tea-gold
+ * DROP CAPS: none. The site carries no drop caps (2026-09-28).
  *
  * ARTICLE BODY (.article-body):
  *   - Line-height: 1.85

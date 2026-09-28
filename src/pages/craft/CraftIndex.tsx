@@ -16,10 +16,8 @@
  * and a title with no way in, the rest (his own workshop) not at all. Flip a
  * key in that map and the row moves between the three in one edit.
  *
- * Row numbering (N°01…) is NOT baked into the data: it is computed at render
- * time over the LIVE rows only, in document order, so the count in the
- * masthead, the count in the Contents header, and every row's own N° can
- * never disagree.
+ * Live-row references are computed at render time in document order for the
+ * cover rail. Contents rows stay unnumbered so their titles keep the width.
  *
  * Photos: the page carries its own inline-edit slots through
  * StoryEditProvider slug="craft", the same mechanism HomeV2Page uses for its
@@ -125,18 +123,17 @@ export const CRAFT_ROW_KEYS: string[] = CRAFT_GROUPS_SEED.flatMap((g) => g.items
 // `draft` is unchanged (owner-only, dimmed, tagged), `soon` shows a title
 // and a dek with no way in for a visitor, and, for the owner, a real link
 // when one exists so he can reach the construction he is building. ────────
-const CraftRow: React.FC<{ item: CraftItem; n: string; state: CraftState; isOwner: boolean }> = ({ item, n, state, isOwner }) => {
+const CraftRow: React.FC<{ item: CraftItem; state: CraftState; isOwner: boolean }> = ({ item, state, isOwner }) => {
   const [hovered, setHovered] = useState(false);
   const isSoon = state === 'soon';
   const isDraft = state === 'draft';
   const asLink = isSoon ? (isOwner && !!item.href) : !!item.href;
   const hoverable = asLink && !isSoon;
-  const numberLabel = isSoon ? 'soon' : n;
   const rubricLabel = isSoon ? 'coming soon' : item.rubric;
 
   const rowStyle: React.CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: '48px 1fr auto',
+    gridTemplateColumns: 'minmax(0, 1fr) auto',
     alignItems: 'baseline',
     gap: 16,
     padding: hoverable && hovered ? '15px 6px 15px 14px' : '15px 6px',
@@ -150,10 +147,7 @@ const CraftRow: React.FC<{ item: CraftItem; n: string; state: CraftState; isOwne
 
   const inner = (
     <>
-      <span style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.06em', color: isSoon ? C.dim : (hoverable && hovered ? C.goldLt : C.gold), paddingTop: 5, transition: 'color 240ms' }}>
-        {numberLabel}
-      </span>
-      <span>
+      <span style={{ minWidth: 0 }}>
         <span style={{ display: 'block', fontFamily: F.display, fontSize: 'clamp(22px,2.4vw,27px)', lineHeight: 1.08, color: hoverable && hovered ? 'var(--tj-read-hover-ink)' : 'var(--tj-read-ink)', transition: 'color 240ms' }}>
           {item.title}
         </span>
@@ -161,7 +155,7 @@ const CraftRow: React.FC<{ item: CraftItem; n: string; state: CraftState; isOwne
           {item.dek}
         </span>
       </span>
-      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5, paddingTop: 6 }}>
+      <span className="tj-craft-rubric" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5, paddingTop: 6 }}>
         <span style={{ fontFamily: F.ui, fontSize: 9, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim, whiteSpace: 'nowrap' }}>
           {rubricLabel}
         </span>
@@ -179,6 +173,7 @@ const CraftRow: React.FC<{ item: CraftItem; n: string; state: CraftState; isOwne
       <Link
         to={item.href}
         style={rowStyle}
+        className="tj-craft-row"
         onMouseOver={() => hoverable && setHovered(true)}
         onMouseOut={() => hoverable && setHovered(false)}
       >
@@ -187,7 +182,7 @@ const CraftRow: React.FC<{ item: CraftItem; n: string; state: CraftState; isOwne
     );
   }
   return (
-    <div style={rowStyle} aria-label={isSoon ? `${item.title}, coming soon` : undefined}>
+    <div style={rowStyle} className="tj-craft-row" aria-label={isSoon ? `${item.title}, coming soon` : undefined}>
       {inner}
     </div>
   );
@@ -217,7 +212,6 @@ const CraftGroupBlock: React.FC<{ group: CraftGroup; isOwner: boolean; numberByK
         <CraftRow
           key={item.key}
           item={item}
-          n={numberByKey.get(item.key) ?? ''}
           state={craftEffectiveState(item)}
           isOwner={isOwner}
         />
@@ -421,10 +415,9 @@ const CraftIndex: React.FC = () => {
     return map;
   }, [groups]);
 
-  // Every LIVE row, in document order, numbered continuously across groups.
-  // "soon" and "draft" rows carry no number: this is what the eyebrow's
-  // piece count, the Contents header count, and every row's own N° all read
-  // from, so none of the three can ever disagree.
+  // Live rows, in document order, numbered continuously across groups for
+  // their cover references. Counts and visibility continue to use this same
+  // map, while the contents rows themselves remain unnumbered.
   const numberByKey = useMemo(() => {
     const map = new Map<string, string>();
     let i = 0;
