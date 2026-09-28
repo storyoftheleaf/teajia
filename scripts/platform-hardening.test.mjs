@@ -7,7 +7,13 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf
 test('Playwright is pinned and uses the clean test server', () => {
   const pkg = JSON.parse(read('package.json'));
   assert.match(pkg.devDependencies?.['@playwright/test'] ?? '', /^\^?\d+\.\d+\.\d+$/);
-  assert.equal(pkg.scripts['dev:test'], 'VITE_API_URL=http://localhost:7777 vite');
+  // The test server points VITE_API_URL at itself so every API call lands on a
+  // Playwright mock. VITE_SHOP_SHOW_PAUSED_TABS=1 keeps the paused Teaware and
+  // Sets shop tabs visible so their specs keep running (see Shop.tsx).
+  assert.match(
+    pkg.scripts['dev:test'],
+    /^VITE_API_URL=http:\/\/localhost:7777 (VITE_SHOP_SHOW_PAUSED_TABS=1 )?vite$/,
+  );
   assert.match(pkg.scripts['test:mobile'], /^playwright test /);
   assert.doesNotMatch(pkg.scripts['test:mobile'], /\bnpx\b/);
   assert.match(read('playwright.config.ts'), /command: 'npm run dev:test'/);
