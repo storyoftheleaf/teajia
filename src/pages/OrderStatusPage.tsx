@@ -84,11 +84,17 @@ const OrderStatusPage: React.FC = () => {
   // The stage the worker derived from the order itself, replacing the four
   // fixed words this page used to read off a column Adrian sets by hand in a
   // different place from where he works the order.
-  const journey = normalizeJourney(inquiry?.journey);
+  const derivedJourney = normalizeJourney(inquiry?.journey);
+  const journey = inquiry?.order?.status === 'Draft'
+    ? { stage: 'received' as const, label: 'Request received', detail: 'Your request is saved. We’ll review the tea, payment and shipping with you.', at: null }
+    : inquiry?.order?.shipping_status === 'shipped'
+      ? { stage: 'sent' as const, label: 'Shipped', detail: derivedJourney?.detail ?? null, at: inquiry.order.shipped_at ?? derivedJourney?.at ?? null }
+      : derivedJourney;
   // Two gates, and both must open. The balance rules from round two decide
   // whether there is anything to settle; the stage decides whether settling it
   // is still a thing this order can do at all.
   const offersPayment =
+    inquiry?.order?.status !== 'Draft' &&
     showsPaymentActions(journey, inquiry?.payment) &&
     Boolean(inquiry?.payment?.pay_url || shouldOfferPaymentClaim(inquiry?.payment));
   const formatStoredUsd = (amount: number) => {
@@ -188,6 +194,10 @@ const OrderStatusPage: React.FC = () => {
             </span>
           </div>
 
+          {(inquiry.order?.invoice_number || inquiry.invoice_number) && <p className="text-ui-13 text-tea-text-sec">Invoice {inquiry.order?.invoice_number || inquiry.invoice_number}</p>}
+          {(inquiry.order?.shipping_destination || inquiry.shipping_destination) && <p className="text-ui-13 text-tea-text-sec">Delivery: {inquiry.order?.shipping_destination || inquiry.shipping_destination}</p>}
+          {(inquiry.order?.tracking_number || inquiry.tracking_number) && <p className="text-ui-13 text-tea-text-sec">Tracking: {inquiry.order?.tracking_number || inquiry.tracking_number}</p>}
+
           {/* Line items */}
           <div className="border-t border-tea-border">
             {items.map((item: any) => (
@@ -208,7 +218,7 @@ const OrderStatusPage: React.FC = () => {
 
           {/* Total */}
           <div className="flex justify-between items-baseline pt-3 mt-2 border-t border-tea-border">
-            <span className={`${TYPOGRAPHY_CLASSES.label} text-tea-text`}>Requested tea subtotal</span>
+            <span className={`${TYPOGRAPHY_CLASSES.label} text-tea-text`}>Requested tea subtotal estimate</span>
             <span className="font-mono text-ui-17 text-tea-text tabular-nums">
               {formatStoredUsd(Number(inquiry?.total_estimate_usd || 0))}
             </span>
@@ -217,6 +227,12 @@ const OrderStatusPage: React.FC = () => {
           <p className="text-ui-11 text-tea-text-dim mt-2">
             Requested display currency: {inquiry.currency || 'USD'}
           </p>
+
+          {inquiry.order && inquiry.payment && <dl className="mt-4 border-t border-tea-border pt-3 space-y-1 text-ui-13">
+            <div className="flex justify-between gap-4"><dt className="text-tea-text-sec">Invoice total</dt><dd className="num text-tea-text">{formatStoredUsd(Number(inquiry.payment.total_usd))}</dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-tea-text-sec">Paid</dt><dd className="num text-tea-text">{formatStoredUsd(Number(inquiry.payment.paid_usd))}</dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-tea-text-sec">Balance</dt><dd className="num text-tea-text">{formatStoredUsd(Number(inquiry.payment.outstanding_usd))}</dd></div>
+          </dl>}
 
           {/* The line that used to sit here promised a WhatsApp conversation
               about availability and pricing whatever had happened to the order,

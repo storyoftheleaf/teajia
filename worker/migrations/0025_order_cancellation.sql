@@ -1,0 +1,2 @@
+ALTER TABLE invoices ADD COLUMN cancelled_at TEXT;
+ALTER TABLE invoices ADD COLUMN refund_required INTEGER NOT NULL DEFAULT 0;

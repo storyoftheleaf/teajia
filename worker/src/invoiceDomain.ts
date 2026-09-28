@@ -482,14 +482,15 @@ export async function claimInvoiceEditLease(
   env: { DB: D1Database },
   accountId: string,
   invoiceId: string,
+  status: 'Draft' | 'Pending' = 'Pending',
 ): Promise<string | null> {
   const claimToken = crypto.randomUUID();
   const claimed = await env.DB.prepare(
     `UPDATE invoices SET fulfillment_claim_token = ?, fulfillment_claimed_at = datetime('now')
-     WHERE id = ? AND account_id = ? AND COALESCE(status, 'Pending') = 'Pending' AND inventory_deducted = 0
+     WHERE id = ? AND account_id = ? AND status = ? AND inventory_deducted = 0
        AND (fulfillment_claim_token IS NULL OR fulfillment_claimed_at IS NULL OR fulfillment_claimed_at < datetime('now', '-5 minutes'))
      RETURNING id`
-  ).bind(claimToken, invoiceId, accountId).first();
+  ).bind(claimToken, invoiceId, accountId, status).first();
   return claimed ? claimToken : null;
 }
 
@@ -501,7 +502,7 @@ export async function releaseInvoiceEditLease(
 ): Promise<boolean> {
   const result = await env.DB.prepare(
     `UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL
-     WHERE id = ? AND account_id = ? AND status = 'Pending' AND inventory_deducted = 0 AND fulfillment_claim_token = ?`
+     WHERE id = ? AND account_id = ? AND status IN ('Draft','Pending') AND inventory_deducted = 0 AND fulfillment_claim_token = ?`
   ).bind(invoiceId, accountId, claimToken).run();
   return Number(result.meta?.changes || 0) > 0;
 }

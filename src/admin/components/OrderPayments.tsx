@@ -143,6 +143,7 @@ export const OrderClaimsFlag: React.FC<{
 };
 
 interface RecordFormProps {
+  invoiceId?: string;
   outstanding: number;
   busy: boolean;
   serverError: string | null;
@@ -153,18 +154,29 @@ interface RecordFormProps {
 const inputClass =
   'w-full bg-tea-bg border border-tea-border rounded-md px-2 py-1.5 text-ui-12 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
 
+type PendingPaymentRetry = { fingerprint: string; requestId: string; input: RecordPaymentInput };
+
+function readPendingPaymentRetry(invoiceId?: string): PendingPaymentRetry | null {
+  if (!invoiceId) return null;
+  try {
+    const value = JSON.parse(sessionStorage.getItem(`teajia_payment_retry:${invoiceId}`) || 'null');
+    return value && typeof value.fingerprint === 'string' && typeof value.requestId === 'string' && value.input ? value : null;
+  } catch { return null; }
+}
+
 const RecordPaymentForm: React.FC<RecordFormProps> = ({
-  outstanding, busy, serverError, defaultAmount, onSubmit,
+  outstanding, busy, serverError, defaultAmount, onSubmit, invoiceId,
 }) => {
-  const [amount, setAmount] = React.useState(defaultAmount);
-  const [method, setMethod] = React.useState('');
-  const [reference, setReference] = React.useState('');
-  const [note, setNote] = React.useState('');
+  const retry = React.useMemo(() => readPendingPaymentRetry(invoiceId), [invoiceId]);
+  const [amount, setAmount] = React.useState(retry ? String(retry.input.amount_usd) : defaultAmount);
+  const [method, setMethod] = React.useState(retry?.input.method_label || '');
+  const [reference, setReference] = React.useState(retry?.input.reference || '');
+  const [note, setNote] = React.useState(retry?.input.note || '');
   const [touched, setTouched] = React.useState(false);
 
   // The default follows the balance: a confirmed part payment changes what is
   // left, and the field should already hold the new number.
-  React.useEffect(() => { setAmount(defaultAmount); }, [defaultAmount]);
+  React.useEffect(() => { if (!retry) setAmount(defaultAmount); }, [defaultAmount, retry]);
 
   const localError = validateRecordAmount(amount, outstanding);
   const error = touched ? localError : null;
@@ -179,10 +191,8 @@ const RecordPaymentForm: React.FC<RecordFormProps> = ({
       reference: reference.trim() || undefined,
       note: note.trim() || undefined,
     });
-    setMethod('');
-    setReference('');
-    setNote('');
-    setTouched(false);
+    // Keep the entered details until the server confirms the write. A timeout
+    // may have saved the payment, and retry must send the same request.
   };
 
   return (
@@ -251,6 +261,7 @@ const RecordPaymentForm: React.FC<RecordFormProps> = ({
 };
 
 export interface OrderPaymentsPanelViewProps {
+  invoiceId?: string;
   payment?: InvoicePayment | null;
   rows: InvoicePaymentRecord[];
   mode: 'loading' | 'error' | 'ready';
@@ -266,7 +277,7 @@ export interface OrderPaymentsPanelViewProps {
 }
 
 export const OrderPaymentsPanelView: React.FC<OrderPaymentsPanelViewProps> = ({
-  payment, rows, mode, pendingRowId, recording, recordError,
+  payment, rows, mode, pendingRowId, recording, recordError, invoiceId,
   onRetry, onRequestConfirm, onReject, onRecord, className = '',
 }) => {
   const totals = orderPaymentTotals(payment);
@@ -407,6 +418,7 @@ export const OrderPaymentsPanelView: React.FC<OrderPaymentsPanelViewProps> = ({
       {mode === 'ready' && (
         totals.outstanding > 0 ? (
           <RecordPaymentForm
+            invoiceId={invoiceId}
             outstanding={totals.outstanding}
             busy={recording}
             serverError={recordError}
@@ -443,6 +455,13 @@ export const OrderPaymentsPanel: React.FC<OrderPaymentsPanelProps> = ({
   const [confirming, setConfirming] = React.useState<InvoicePaymentRecord | null>(null);
   const [pendingRowId, setPendingRowId] = React.useState<string | null>(null);
   const [recordError, setRecordError] = React.useState<string | null>(null);
+  const pendingPaymentRef = React.useRef<PendingPaymentRetry | null>(null);
+  const [recordedAgainst, setRecordedAgainst] = React.useState<number | null>(null);
+
+  React.useEffect(() => { setRecordedAgainst(null); pendingPaymentRef.current = null; }, [invoiceId]);
+  React.useEffect(() => {
+    if (recordedAgainst !== null && Number(payment?.outstanding_usd) !== recordedAgainst) setRecordedAgainst(null);
+  }, [payment?.outstanding_usd, recordedAgainst]);
 
   const query = useQuery<InvoicePaymentRecord[]>({
     queryKey: ['invoice-payments', invoiceId],
@@ -489,9 +508,23 @@ export const OrderPaymentsPanel: React.FC<OrderPaymentsPanelProps> = ({
   });
 
   const recordMutation = useMutation({
-    mutationFn: (input: RecordPaymentInput) => api.invoices.recordPayment(invoiceId, input),
+    mutationFn: (input: RecordPaymentInput) => {
+      const fingerprint = JSON.stringify(input);
+      const key = `teajia_payment_retry:${invoiceId}`;
+      let pending = pendingPaymentRef.current || readPendingPaymentRetry(invoiceId);
+      if (pending && pending.fingerprint !== fingerprint) {
+        throw new Error('A previous payment attempt may have been saved. Retry it with the same details before entering a different payment.');
+      }
+      if (!pending) pending = { fingerprint, requestId: crypto.randomUUID(), input };
+      pendingPaymentRef.current = pending;
+      try { sessionStorage.setItem(key, JSON.stringify(pending)); } catch { /* In-memory retry still works. */ }
+      return api.invoices.recordPayment(invoiceId, { ...input, request_id: pending.requestId });
+    },
     onMutate: () => { setRecordError(null); },
     onSuccess: (_result, input) => {
+      setRecordedAgainst(Number(payment?.outstanding_usd));
+      pendingPaymentRef.current = null;
+      try { sessionStorage.removeItem(`teajia_payment_retry:${invoiceId}`); } catch { /* Storage is optional. */ }
       showToast(`${money(input.amount_usd)} recorded on ${invoiceNumber || 'this order'}.`, 'success');
       settleCaches();
     },
@@ -510,11 +543,12 @@ export const OrderPaymentsPanel: React.FC<OrderPaymentsPanelProps> = ({
   return (
     <>
       <OrderPaymentsPanelView
+        invoiceId={invoiceId}
         payment={payment}
         rows={rows}
         mode={mode}
         pendingRowId={pendingRowId}
-        recording={recordMutation.isPending}
+        recording={recordMutation.isPending || recordedAgainst !== null}
         recordError={recordError}
         onRetry={() => { void query.refetch(); }}
         onRequestConfirm={setConfirming}

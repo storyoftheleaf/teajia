@@ -29,9 +29,8 @@ export function migrationFiles(dir = MIGRATIONS_DIR): string[] {
 }
 
 /**
- * Split a migration into statements on semicolons that are not inside a string
- * literal or a line comment. Deliberately simple: no migration in this repo
- * contains a trigger body, and a `BEGIN ... END` would need real parsing.
+ * Split on semicolons outside strings/comments. Trigger bodies may contain
+ * semicolons before their final END; retain those in the same statement.
  */
 export function splitStatements(sql: string): string[] {
   const statements: string[] = [];
@@ -59,7 +58,13 @@ export function splitStatements(sql: string): string[] {
       index = end;
       continue;
     }
-    if (character === ';') { statements.push(buffer); buffer = ''; index += 1; continue; }
+    if (character === ';') {
+      const trimmed = buffer.trim();
+      if (/\bCREATE\s+TRIGGER\b/i.test(trimmed) && /\bBEGIN\b/i.test(trimmed) && !/\bEND\s*$/i.test(trimmed)) {
+        buffer += ';'; index += 1; continue;
+      }
+      statements.push(buffer); buffer = ''; index += 1; continue;
+    }
     buffer += character;
     index += 1;
   }

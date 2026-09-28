@@ -199,6 +199,7 @@ export interface InvoicePaymentRecord {
 /** Body of POST /api/invoices/:id/payments, an operator recording money by hand. */
 export interface RecordPaymentInput {
   amount_usd: number;
+  request_id?: string;
   method_label?: string;
   reference?: string;
   note?: string;
@@ -212,6 +213,14 @@ export interface Invoice {
   customer_id?: string;
   display_currency: string;
   shipping_cost_usd?: number;
+  shipping_destination?: string | null;
+  tracking_number?: string | null;
+  source_inquiry_id?: string | null;
+  notification_status?: string | null;
+  fulfilled_at?: string | null;
+  cancelled_at?: string | null;
+  refund_required?: boolean | number;
+  stock_exception?: string | null;
   status: 'Draft' | 'Pending' | 'Filled' | 'Void';
   payment_status: 'unpaid' | 'partial' | 'paid';
   payment_date?: string;

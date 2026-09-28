@@ -76,9 +76,45 @@ function paymentLabel(order: Pick<DbOrder, 'payment_status' | 'payment_method'>)
   return 'Unpaid';
 }
 
-function stockLabel(order: Pick<DbOrder, 'inventory_deducted' | 'status'>): string {
+function stockLabel(order: Pick<DbOrder, 'inventory_deducted' | 'status' | 'stock_exception'>): string {
   if (order.status === 'Void') return 'Void';
-  return order.inventory_deducted ? 'Stock gone' : 'Stock pending';
+  if (order.stock_exception) return 'Stock needs attention';
+  return order.inventory_deducted ? 'Deducted on payment' : 'Stock pending';
+}
+
+function orderStatusLabel(order: DbOrder): string {
+  if (order.status === 'Void' && order.refund_required) return 'Cancelled, refund needed';
+  if (order.status === 'Draft' && order.source_inquiry_id) return 'Pending request';
+  if (canShipNoChargeOrder(order)) return 'No charge, ready to ship';
+  if (order.status === 'Pending' && order.payment_status === 'paid' && order.stock_exception) return 'Paid, stock needs attention';
+  if (order.status === 'Pending' && Number(order.payment?.outstanding_usd || 0) > 0 && order.inventory_deducted) return 'Shipping balance due';
+  if (order.status === 'Pending' && order.payment_status === 'paid') return 'Paid, awaiting shipment';
+  if (order.status === 'Filled') return 'Shipped';
+  return order.status;
+}
+
+function canShip(order: DbOrder): boolean {
+  return order.status === 'Pending' && order.payment_status === 'paid' && order.inventory_deducted && Number(order.payment?.outstanding_usd || 0) <= 0;
+}
+
+function canShipNoChargeOrder(order: DbOrder): boolean {
+  // The dedicated ship RPC rechecks a zero balance and deducts stock before
+  // changing status. A shortage leaves the invoice Pending and stock intact.
+  return order.status === 'Pending' && !order.stock_exception && Number(order.computed_total) === 0 && Number(order.shipping_cost_usd || 0) === 0;
+}
+
+function notificationLabel(order: DbOrder): string | null {
+  if (!order.source_inquiry_id) return null;
+  switch (order.notification_status) {
+    case 'config_required': return 'Automatic WhatsApp is not connected. The order is saved; contact the customer directly.';
+    case 'pending': return 'WhatsApp notification queued; delivery is not confirmed.';
+    case 'sending': return 'WhatsApp notification is being sent; delivery is not confirmed.';
+    case 'accepted': return 'WhatsApp accepted the notification; delivery is not confirmed.';
+    case 'retry_scheduled': return 'WhatsApp notification will be retried; delivery is not confirmed.';
+    case 'review_required':
+    case 'failed': return 'Automatic notification needs attention. The order is saved; contact the customer directly.';
+    default: return 'Automatic notification delivery is not confirmed. The order is saved.';
+  }
 }
 
 /** DB row shape returned by GET /api/invoices, extends InvoiceWithItems with computed fields */
@@ -124,13 +160,14 @@ export const OrdersView = () => {
 
   // Confirm modal state
   const [confirmState, setConfirmState] = useState<{
-    type: 'fulfill' | 'void' | 'delete' | 'accept-unpriced';
+    type: 'ship' | 'no-charge-ship' | 'void' | 'delete' | 'accept-unpriced';
     invoice: DbOrder;
     stockImpact?: { name: string; current: number; after: number }[];
     /** Lines still at no price, named, when the server refused to send. */
     unpricedLines?: string[];
   } | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [retryingStock, setRetryingStock] = useState(false);
 
   // Split & Edit modal state
   const [splitInvoice, setSplitInvoice] = useState<DbOrder | null>(null);
@@ -258,7 +295,9 @@ export const OrdersView = () => {
       setViewingInvoice((prev) => prev ? { ...prev, status: 'Pending' } : null);
       setConfirmState(null);
       refetch();
-      showToast(`Order ${invoice.invoice_number} accepted, ready to review and fulfil.`, 'success');
+      showToast(Number(invoice.computed_total) + Number(invoice.shipping_cost_usd || 0) === 0
+        ? `No-charge order ${invoice.invoice_number} accepted. Review stock before shipping.`
+        : `Order ${invoice.invoice_number} accepted. Review payment before shipping.`, 'success');
     } catch (err: any) {
       // A line still at no price is a question, not a fault. Converting leaves
       // a retired tea at zero on purpose, so the operator is the one who knows
@@ -272,22 +311,30 @@ export const OrdersView = () => {
     }
   };
 
-  const openFulfillConfirm = async (invoice: DbOrder) => {
-    // Fetch stock impact preview
+  const openShipConfirm = (invoice: DbOrder) => {
+    setConfirmState({ type: 'ship', invoice });
+  };
+
+  const openNoChargeShipConfirm = async (invoice: DbOrder) => {
     try {
       const items = await api.invoices.getItems(invoice.id) as DbOrderItem[];
-      const impact = items.map((item) => {
-        const product = products.find(p => p.id === item.product_id);
+      const quantities = new Map<string, { name: string; quantity: number }>();
+      for (const item of items) {
+        if (!item.product_id) continue;
+        const prior = quantities.get(item.product_id);
+        quantities.set(item.product_id, {
+          name: item.given_name || item.product_name || prior?.name || 'Item',
+          quantity: (prior?.quantity || 0) + (Number(item.quantity) || 0),
+        });
+      }
+      const stockImpact = Array.from(quantities, ([productId, line]) => {
+        const product = products.find(product => product.id === productId);
         const current = product?.stockGrams || 0;
-        return {
-          name: item.given_name || item.product_name || 'Unknown',
-          current,
-          after: current - (Number(item.quantity) || 0),
-        };
+        return { name: line.name, current, after: current - line.quantity };
       });
-      setConfirmState({ type: 'fulfill', invoice, stockImpact: impact });
+      setConfirmState({ type: 'no-charge-ship', invoice, stockImpact });
     } catch {
-      setConfirmState({ type: 'fulfill', invoice });
+      showToast('Could not review stock for this no-charge order.', 'error');
     }
   };
 
@@ -301,30 +348,16 @@ export const OrdersView = () => {
         // through to the shared cleanup below is what stops the button
         // spinning.
         await acceptDraft(confirmState.invoice, true);
-      } else if (confirmState.type === 'fulfill') {
-        await api.rpc.fulfillInvoice(confirmState.invoice.id);
-        showToast('Order fulfilled. Stock deducted.', 'success');
+      } else if (confirmState.type === 'ship') {
+        await api.rpc.shipInvoice(confirmState.invoice.id);
+        showToast('Order marked shipped.', 'success');
+      } else if (confirmState.type === 'no-charge-ship') {
+        await api.rpc.shipInvoice(confirmState.invoice.id);
+        showToast('No-charge order shipped. Stock deducted.', 'success');
         queryClient.invalidateQueries({ queryKey: ['products'] });
-        // Offer WhatsApp status notification
-        const inv = confirmState.invoice;
-        if (inv.customer_whatsapp) {
-          const items = (inv.items || []).map((it) => ({
-            name: it.custom_name || it.product?.givenName || it.product_name || 'Item',
-            quantity: it.quantity,
-            unit: it.product?.type === 'Teaware' ? 'u' : 'g',
-            price: '', total: '',
-          }));
-          openWhatsAppStatus(inv.customer_whatsapp, {
-            status: 'filled',
-            ref: inv.invoice_number,
-            customerName: inv.customer_name,
-            items,
-            payUrl: inv.payment?.pay_url ?? undefined,
-          });
-        }
       } else if (confirmState.type === 'void') {
-        await api.rpc.voidInvoice(confirmState.invoice.id);
-        showToast('Order voided.', 'success');
+        const result = await api.rpc.cancelInvoice(confirmState.invoice.id);
+        showToast(result.refund_required ? 'Order cancelled. Refund needed; payment record preserved.' : 'Order cancelled.', 'success');
         queryClient.invalidateQueries({ queryKey: ['products'] });
       } else if (confirmState.type === 'delete') {
         await api.invoices.delete(confirmState.invoice.id);
@@ -332,11 +365,25 @@ export const OrdersView = () => {
       }
       refetch();
     } catch (err: any) {
-      const action = confirmState?.type === 'void' ? 'void order' : confirmState?.type === 'delete' ? 'delete invoice' : 'update order status';
+      const action = confirmState?.type === 'void' ? 'void order' : confirmState?.type === 'delete' ? 'delete invoice' : confirmState?.type === 'ship' ? 'mark shipped' : 'update order status';
       showToast(`Could not ${action}: ${err.message}`, 'error');
     }
     setConfirmLoading(false);
     setConfirmState(null);
+  };
+
+  const retryStock = async (invoice: DbOrder) => {
+    setRetryingStock(true);
+    try {
+      await api.rpc.retryPaidStock(invoice.id);
+      showToast('Stock deduction retried.', 'success');
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      await refreshViewedInvoice();
+    } catch (error: any) {
+      showToast(error?.message || 'Stock still needs attention.', 'error');
+    } finally {
+      setRetryingStock(false);
+    }
   };
 
   const handleLinkProduct = async (product: { id: string; givenName?: string; productName?: string }) => {
@@ -562,7 +609,7 @@ export const OrdersView = () => {
 	                            isPending ? 'badge-status-gold' :
                             'badge-status-default'
 	                          }`}>
-	                            {order.status}
+                            {orderStatusLabel(order)}
 	                          </span>
 	                          {!isVoid && (
 	                            <span className="text-ui-10 text-tea-text-sec truncate">
@@ -572,7 +619,7 @@ export const OrdersView = () => {
 	                              <OrderClaimsFlag payment={order.payment} />
 	                              <span className="text-tea-text-dim mx-1">·</span>
 	                              <span className={order.inventory_deducted ? 'text-tea-text-sec' : 'text-tea-gold/90'}>
-	                                {order.inventory_deducted ? 'stock gone' : 'stock pending'}
+	                                {order.stock_exception ? 'stock needs attention' : order.inventory_deducted ? 'stock deducted' : 'stock pending'}
 	                              </span>
 	                            </span>
 	                          )}
@@ -593,33 +640,22 @@ export const OrdersView = () => {
                       </td>
                       <td className="px-4 align-middle border-l border-tea-border">
                         <div className="flex justify-start gap-1">
-                          {isPending && (
+                          {canShip(order) && (
                             <>
                               <Button
                                 variant="secondary"
                                 size="sm"
-                                onClick={() => openFulfillConfirm(order)}
+                                onClick={() => openShipConfirm(order)}
                                 icon={<PackageCheck size={12} />}
-                                title="Mark as Filled (Deduct Stock)"
+                                title="Mark Shipped"
                               >
-                                FILL
+                                SHIP
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setEditInvoice(order)}
-                                icon={<Pencil size={14} />}
-                                title="Edit Order"
-                              />
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setSplitInvoice(order)}
-                                icon={<Scissors size={14} />}
-                                title="Split Order"
-                              />
                             </>
                           )}
+                          {canShipNoChargeOrder(order) && <Button variant="secondary" size="sm" onClick={() => { void openNoChargeShipConfirm(order); }} icon={<PackageCheck size={12} />} title="Fulfill no-charge order">FULFILL</Button>}
+                          {(order.status === 'Draft' || isPending) && <Button variant="ghost" size="sm" onClick={() => setEditInvoice(order)} icon={<Pencil size={14} />} title="Edit Order" />}
+                          {isPending && order.payment_status === 'unpaid' && !order.inventory_deducted && <Button variant="ghost" size="sm" onClick={() => setSplitInvoice(order)} icon={<Scissors size={14} />} title="Split Order" />}
                           <OrderPayCopyButton payment={order.payment} invoiceNumber={order.invoice_number} />
                           <Button
                             variant="ghost"
@@ -717,7 +753,7 @@ export const OrdersView = () => {
                           isPending ? 'badge-status-gold' :
                           'badge-status-default'
                         }`}>
-                          {order.status}
+                          {orderStatusLabel(order)}
                         </span>
                       </div>
                     </div>
@@ -737,7 +773,7 @@ export const OrdersView = () => {
                           <OrderClaimsFlag payment={order.payment} />
                           <span className="text-tea-text-dim mx-1">·</span>
                           <span className={order.inventory_deducted ? 'text-tea-text-sec' : 'text-tea-gold/90'}>
-                            {order.inventory_deducted ? 'stock gone' : 'stock pending'}
+                            {order.stock_exception ? 'stock needs attention' : order.inventory_deducted ? 'stock deducted' : 'stock pending'}
                           </span>
                         </span>
                       )}
@@ -752,16 +788,17 @@ export const OrdersView = () => {
 
                     {/* Action gutter */}
                     <div className="flex items-center gap-2 mt-3 pt-3 border-t border-tea-border">
-                      {isPending && (
+                      {canShip(order) && (
                         <Button
                           variant="secondary"
                           size="sm"
-                          onClick={() => openFulfillConfirm(order)}
+                          onClick={() => openShipConfirm(order)}
                           icon={<PackageCheck size={12} />}
                         >
-                          FILL
+                          SHIP
                         </Button>
                       )}
+                      {canShipNoChargeOrder(order) && <Button variant="secondary" size="sm" onClick={() => { void openNoChargeShipConfirm(order); }} icon={<PackageCheck size={12} />}>FULFILL</Button>}
                       <div className="flex-1" />
                       <Button
                         variant="ghost"
@@ -771,7 +808,8 @@ export const OrdersView = () => {
                         icon={<Eye size={16} />}
                       />
                       <MobileActions
-                        isPending={isPending}
+                        canEdit={order.status === 'Draft' || isPending}
+                        canSplit={isPending && order.payment_status === 'unpaid' && !order.inventory_deducted}
                         isVoid={isVoid}
                         onEdit={() => setEditInvoice(order)}
                         onSplit={() => setSplitInvoice(order)}
@@ -827,7 +865,7 @@ export const OrdersView = () => {
                     </div>
 	                    <div className="flex justify-between border-b border-tea-border pb-3">
 	                        <span className="text-tea-text-sec">Status</span>
-	                        <span className={`font-medium ${viewingInvoice.status === 'Void' ? 'text-tea-text-sec' : viewingInvoice.status === 'Pending' ? 'text-tea-gold' : 'text-tea-text'}`}>{viewingInvoice.status}</span>
+	                        <span className={`font-medium ${viewingInvoice.status === 'Void' ? 'text-tea-text-sec' : viewingInvoice.status === 'Pending' ? 'text-tea-gold' : 'text-tea-text'}`}>{viewingInvoice.refund_required ? 'Cancelled, refund needed' : orderStatusLabel(viewingInvoice)}</span>
 	                    </div>
 	                    <div className="flex justify-between border-b border-tea-border pb-3">
 	                        <span className="text-tea-text-sec">Payment</span>
@@ -841,6 +879,8 @@ export const OrdersView = () => {
 	                          <span className="text-tea-text font-medium">{new Date(viewingInvoice.payment_date).toLocaleString()}</span>
 	                      </div>
 	                    )}
+	                    {viewingInvoice.shipping_destination && <div className="flex justify-between gap-4 border-b border-tea-border pb-3"><span className="text-tea-text-sec">Delivery</span><span className="text-tea-text text-right">{viewingInvoice.shipping_destination}</span></div>}
+	                    {viewingInvoice.tracking_number && <div className="flex justify-between gap-4 border-b border-tea-border pb-3"><span className="text-tea-text-sec">Tracking</span><span className="text-tea-text text-right break-all">{viewingInvoice.tracking_number}</span></div>}
 	                    <div className="flex justify-between border-b border-tea-border pb-3">
 	                        <span className="text-tea-text-sec">Stock State</span>
 	                        <span className={`font-medium ${viewingInvoice.inventory_deducted ? 'text-tea-text' : 'text-tea-gold'}`}>{stockLabel(viewingInvoice)}</span>
@@ -858,6 +898,8 @@ export const OrdersView = () => {
                   className="mb-6"
                 />
 
+                {notificationLabel(viewingInvoice) && <p role="status" className="mb-6 rounded-md border border-tea-border bg-tea-surface p-3 text-ui-13 text-tea-text-sec">{notificationLabel(viewingInvoice)}</p>}
+
                 {/* Payments live here, on the order detail, rather than in
                     EditOrderModal. That modal holds an unsaved form for the line
                     items of a Pending order; money should not be committed from
@@ -870,6 +912,12 @@ export const OrdersView = () => {
                   onChanged={() => { void refreshViewedInvoice(); }}
                   className="mb-6"
                 />
+
+                {viewingInvoice.stock_exception && viewingInvoice.payment_status === 'paid' && <div role="alert" className="mb-6 rounded-md border border-tea-border bg-tea-surface p-4 space-y-2">
+                  <p className="text-ui-14 text-tea-text">Payment is recorded, but stock deduction needs attention. Do not ship yet.</p>
+                  <p className="text-ui-12 text-tea-text-sec">{viewingInvoice.stock_exception}</p>
+                  <button type="button" disabled={retryingStock} onClick={() => { void retryStock(viewingInvoice); }} className="min-h-11 px-4 rounded-md cta-solid text-ui-13 disabled:opacity-50">{retryingStock ? 'Retrying stock…' : 'Retry stock deduction'}</button>
+                </div>}
 
                 {/* Source Event */}
                 {viewingInvoice.source_event_title && (
@@ -1004,8 +1052,9 @@ export const OrdersView = () => {
                 {viewingInvoice.status === 'Draft' && (
                      <div className="mt-8 pt-6 border-t border-tea-border flex flex-col gap-2">
                         <p className="text-ui-11 text-tea-text-sec leading-[1.5]">
-                          A recipient confirmed these picks from a collection. Review the items and prices, then accept to turn it into an order you can fulfil.
+                          Review the requested teas, prices and delivery details before accepting. No stock has been reserved yet.
                         </p>
+                        <button type="button" onClick={() => setEditInvoice(viewingInvoice)} className="w-full min-h-11 border border-tea-border rounded-xl text-tea-text-sec hover:text-tea-text flex items-center justify-center gap-2"><Pencil size={16} /> Edit draft invoice</button>
                         <button
                             onClick={() => acceptDraft(viewingInvoice)}
                             className="w-full py-4 cta-solid font-bold uppercase tracking-[0.2em] text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-tea-gold/10"
@@ -1015,16 +1064,18 @@ export const OrdersView = () => {
                      </div>
                 )}
 
-                {viewingInvoice.status === 'Pending' && (
+                {canShip(viewingInvoice) && (
                      <div className="mt-8 pt-6 border-t border-tea-border">
                         <button
-                            onClick={() => { setViewingInvoice(null); openFulfillConfirm(viewingInvoice); }}
+                            onClick={() => { setViewingInvoice(null); openShipConfirm(viewingInvoice); }}
                             className="w-full py-4 cta-solid font-bold uppercase tracking-[0.2em] text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-tea-gold/10"
                         >
-                            <PackageCheck size={18} /> Confirm Order & Deduct Stock
+                            <PackageCheck size={18} /> Mark Shipped
                         </button>
                      </div>
                 )}
+
+                {canShipNoChargeOrder(viewingInvoice) && <div className="mt-8 pt-6 border-t border-tea-border"><button type="button" onClick={() => { void openNoChargeShipConfirm(viewingInvoice); }} className="w-full py-4 cta-solid font-bold uppercase tracking-[0.2em] text-ui-12 rounded-xl flex items-center justify-center gap-2"><PackageCheck size={18} /> Fulfill no-charge order</button></div>}
 
                 {/* WhatsApp status notification, available for Pending/Filled orders with phone */}
                 {viewingInvoice.customer_whatsapp && viewingInvoice.status !== 'Void' && (
@@ -1093,25 +1144,28 @@ export const OrdersView = () => {
         onConfirm={handleConfirmAction}
         isLoading={confirmLoading}
         title={
-          confirmState?.type === 'fulfill' ? `Fulfill ${confirmState.invoice?.invoice_number}?`
-          : confirmState?.type === 'void' ? `Void ${confirmState?.invoice?.invoice_number}?`
+          confirmState?.type === 'ship' ? `Ship ${confirmState.invoice?.invoice_number}?`
+          : confirmState?.type === 'no-charge-ship' ? `Fulfill no-charge order ${confirmState.invoice?.invoice_number}?`
+          : confirmState?.type === 'void' ? `Cancel ${confirmState?.invoice?.invoice_number}?`
           : confirmState?.type === 'accept-unpriced' ? `Send ${confirmState.invoice?.invoice_number} with nothing charged?`
           : `Delete ${confirmState?.invoice?.invoice_number}?`
         }
         description={
-          confirmState?.type === 'fulfill' ? 'This will deduct stock from inventory for all items in this order.'
-          : confirmState?.type === 'void' ? `This will mark the invoice as void.${confirmState?.invoice?.inventory_deducted ? ' Stock will be restored.' : ''}`
+          confirmState?.type === 'ship' ? 'This marks the paid order shipped. Stock was deducted when payment was confirmed.'
+          : confirmState?.type === 'no-charge-ship' ? 'Review the stock impact below. Shipping this no-charge order deducts stock once and records the shipment.'
+          : confirmState?.type === 'void' ? (confirmState.invoice.payment_status === 'paid' || confirmState.invoice.payment_status === 'partial' ? 'This cancels the order and flags a refund needed. Confirmed payments remain in the record until you handle the refund.' : 'This cancels the unpaid order and releases its stock hold.')
           : confirmState?.type === 'accept-unpriced'
             ? 'The customer will be asked for nothing for these. Price them first if that is not what you meant.'
           : 'This will soft-delete this voided invoice. It can be recovered later.'
         }
         confirmLabel={
-          confirmState?.type === 'fulfill' ? 'Fulfill & Deduct Stock'
-          : confirmState?.type === 'void' ? 'Void Order'
+          confirmState?.type === 'ship' ? 'Mark Shipped'
+          : confirmState?.type === 'no-charge-ship' ? 'Fulfill & Deduct Stock'
+          : confirmState?.type === 'void' ? 'Cancel Order'
           : confirmState?.type === 'accept-unpriced' ? 'Send anyway'
           : 'Delete'
         }
-        variant={confirmState?.type === 'fulfill' || confirmState?.type === 'accept-unpriced' ? 'default' : 'destructive'}
+        variant={confirmState?.type === 'ship' || confirmState?.type === 'no-charge-ship' || confirmState?.type === 'accept-unpriced' ? 'default' : 'destructive'}
       >
         {/* The lines that carry no price, by name */}
         {confirmState?.type === 'accept-unpriced' && !!confirmState.unpricedLines?.length && (
@@ -1128,32 +1182,12 @@ export const OrdersView = () => {
           </div>
         )}
 
-        {/* Stock Impact Preview for Fulfillment */}
-        {confirmState?.type === 'fulfill' && confirmState.stockImpact && (
-          <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
-            <h4 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">Stock Impact</h4>
-            <div className="space-y-2">
-              {confirmState.stockImpact.map((item, i) => (
-                <div key={i} className="flex justify-between text-xs">
-                  <span className="text-tea-text truncate mr-2">{item.name}</span>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <span className="num text-tea-text-sec">{item.current}g</span>
-                    <span className="text-tea-text-sec">→</span>
-                    <span className={`num font-medium ${item.after <= 0 ? 'text-tea-gold' : 'text-tea-text'}`}>
-                      {item.after}g
-                    </span>
-                    {item.after <= 0 && <span className="text-ui-9 text-tea-gold">(archive)</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-            {confirmState.invoice?.status === 'Pending' && (
-              <p className="text-xs text-tea-text-sec italic mt-2">
-                Stock was reserved when this order was created. Fulfilling will finalize the deduction.
-              </p>
-            )}
-          </div>
-        )}
+        {confirmState?.type === 'no-charge-ship' && confirmState.stockImpact && <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
+          <h4 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">Stock impact</h4>
+          <div className="space-y-2">{confirmState.stockImpact.map((item, index) => <div key={index} className="flex justify-between gap-3 text-ui-12"><span className="text-tea-text truncate">{item.name}</span><span className="num text-tea-text-sec shrink-0">{item.current}g → {item.after}g</span></div>)}</div>
+          {confirmState.stockImpact.some(item => item.after < 0) && <p className="mt-3 text-ui-12 text-tea-text-sec">Some tea is short. The server will keep the order unshipped until stock is available.</p>}
+        </div>}
+
       </ConfirmModal>
 
       {/* SPLIT ORDER MODAL */}
@@ -1169,7 +1203,7 @@ export const OrdersView = () => {
       <EditOrderModal
         isOpen={!!editInvoice}
         onClose={() => setEditInvoice(null)}
-        onSuccess={() => { refetch(); }}
+        onSuccess={() => { void refreshViewedInvoice(); }}
         invoice={editInvoice}
         showToast={showToast}
       />
@@ -1195,13 +1229,14 @@ export const OrdersView = () => {
 
 // Mobile overflow menu for secondary actions
 const MobileActions: React.FC<{
-  isPending: boolean;
+  canEdit: boolean;
+  canSplit: boolean;
   isVoid: boolean;
   onEdit: () => void;
   onSplit: () => void;
   onVoid: () => void;
   onDelete: () => void;
-}> = ({ isPending, isVoid, onEdit, onSplit, onVoid, onDelete }) => {
+}> = ({ canEdit, canSplit, isVoid, onEdit, onSplit, onVoid, onDelete }) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -1217,14 +1252,14 @@ const MobileActions: React.FC<{
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 bottom-full mb-1 bg-tea-surface border border-tea-border rounded-xl shadow-2xl z-50 min-w-[140px] py-1 max-h-[min(240px,40vh)] overflow-y-auto">
-            {isPending && (
+            {canEdit && (
               <>
                 <button onClick={() => { setOpen(false); onEdit(); }} className="w-full text-left px-3 py-2 text-xs hover:bg-tea-elevated/50 flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors">
                   <Pencil size={12} /> Edit
                 </button>
-                <button onClick={() => { setOpen(false); onSplit(); }} className="w-full text-left px-3 py-2 text-xs hover:bg-tea-elevated/50 flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors">
+                {canSplit && <button onClick={() => { setOpen(false); onSplit(); }} className="w-full text-left px-3 py-2 text-xs hover:bg-tea-elevated/50 flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors">
                   <Scissors size={12} /> Split Order
-                </button>
+                </button>}
               </>
             )}
             {!isVoid && (
