@@ -1353,7 +1353,7 @@ export interface DbArticle {
   account_id?: string;
   title: string;
   subtitle?: string;
-  author_id?: string;
+  author_id?: string | null;
   author_name?: string;
   subject_ids?: string[];
   pull_quote?: string;
