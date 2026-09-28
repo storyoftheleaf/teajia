@@ -6,9 +6,10 @@
       "runtimeExecutable": "sh",
       "runtimeArgs": [
         "-c",
-        "TEAJIA_API_PROXY=https://api.teajia.com VITE_API_URL=http://localhost:7811 npx vite --port 7811 --strictPort"
+        "TEAJIA_API_PROXY=https://api.teajia.com VITE_API_URL=https://api.teajia.com npx vite --port ${PORT:-7811} --strictPort"
       ],
-      "port": 7811
+      "port": 7811,
+      "autoPort": true
     },
     {
       "name": "sandbox",
