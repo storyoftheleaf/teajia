@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { Helmet } from 'react-helmet-async';
 import { SiteNotFound } from '../components/SiteNotFound';
 import { useAtlasJson, type AtlasLoad } from './useAtlas';
-import { IssueCalendar, TopicIndex } from './AtlasIndex';
+import { TopicIndex } from './AtlasIndex';
 import { ATLAS_ROOT } from './atlasPaths';
 import type { AtlasHome } from './types';
 
@@ -56,78 +56,75 @@ const MEASURE: Record<Measure, string> = {
   wide: 'max-w-[1080px]',
 };
 
-type Panel = 'topics' | 'issues' | null;
-
-/** What the page is showing, so the index can mark it. */
-export interface AtlasHere { topic?: string; issue?: string }
+/** What the page is showing, so the topic index can mark it. */
+export interface AtlasHere { topic?: string }
 
 /**
- * The library's index, one click from every page: "Topics" and "Issues" open
- * the whole of either under the header, so moving sideways never means going
- * home and scrolling. Picking anything, pressing Escape or leaving the page
- * closes it.
+ * Every topic, one click from every page. The Atlas is read by subject, so
+ * topics are the way in: "Topics" opens the whole list under the header, and
+ * picking one, pressing Escape or leaving the page closes it.
  */
-const QuickPanel: React.FC<{ panel: Exclude<Panel, null>; here: AtlasHere; close: () => void }> = ({ panel, here, close }) => {
+const TopicsPanel: React.FC<{ here: AtlasHere; close: () => void }> = ({ here, close }) => {
   const home = useAtlasJson<AtlasHome>('home.json');
   if (home.state !== 'ready') return null;
   return (
-    <div id="atlas-quick-panel" className="mb-10 pb-6 border-b border-tea-border">
-      {panel === 'topics' ? (
-        <TopicIndex topics={home.data.topics} currentId={here.topic} onPick={close} className="columns-2 md:columns-3 lg:columns-4 gap-x-8" />
-      ) : (
-        <div className="grid gap-8 md:grid-cols-2">
-          {home.data.sources.map(s => (
-            <section key={s.id} aria-label={s.name} className="max-w-[460px]">
-              <Link to={`${ATLAS_ROOT}/source/${s.id}`} onClick={close} className="font-display text-ui-20 text-tea-text hover:text-tea-gold-lt transition-colors">
-                {s.name}
-              </Link>
-              <div className="mt-3"><IssueCalendar sourceId={s.id} currentIssue={here.issue} onPick={close} /></div>
-            </section>
-          ))}
-        </div>
-      )}
+    <div id="atlas-topics-panel" className="mb-10 pb-6 border-b border-tea-border">
+      <TopicIndex topics={home.data.topics} currentId={here.topic} onPick={close} className="columns-2 md:columns-3 lg:columns-4 gap-x-8" />
     </div>
   );
 };
 
 /**
+ * The issues are a secondary way in and live on their own page: this is the
+ * plain link to it. With one source it reads "Issues"; with several, each
+ * source is named.
+ */
+const IssuesLinks: React.FC<{ className: (active: boolean) => string }> = ({ className }) => {
+  const home = useAtlasJson<AtlasHome>('home.json');
+  const { pathname } = useLocation();
+  if (home.state !== 'ready') return null;
+  const sources = home.data.sources;
+  const onIssues = pathname.startsWith(`${ATLAS_ROOT}/source/`) || pathname.startsWith(`${ATLAS_ROOT}/issue/`);
+  return (
+    <>
+      {sources.map(s => (
+        <Link key={s.id} to={`${ATLAS_ROOT}/source/${s.id}`} className={className(onIssues)}>
+          {sources.length === 1 ? 'Issues' : s.name}
+        </Link>
+      ))}
+    </>
+  );
+};
+
+/**
  * Page chrome: private-library head tags, a path back up (Tea Atlas, then the
- * source, then the issue), the Topics and Issues index, and the header search.
- * The path replaces a label above the heading: it says where you are and is
- * also the way back.
+ * source, then the issue), Topics and Issues, and the header search. The path
+ * replaces a label above the heading: it says where you are and is also the
+ * way back.
  */
 export const AtlasFrame: React.FC<{
   title?: string;
   trail?: AtlasCrumb[];
   measure?: Measure;
   hideSearch?: boolean;
-  hideIndex?: boolean;
+  /** The home page lists every topic itself, so it has no Topics button. */
+  hideTopics?: boolean;
   here?: AtlasHere;
   children: React.ReactNode;
-}> = ({ title, trail = [], measure = 'list', hideSearch = false, hideIndex = false, here = {}, children }) => {
-  const [panel, setPanel] = useState<Panel>(null);
+}> = ({ title, trail = [], measure = 'list', hideSearch = false, hideTopics = false, here = {}, children }) => {
+  const [topicsOpen, setTopicsOpen] = useState(false);
   const { pathname } = useLocation();
-  useEffect(() => { setPanel(null); }, [pathname]);
+  useEffect(() => { setTopicsOpen(false); }, [pathname]);
   useEffect(() => {
-    if (!panel) return;
-    const onEscape = (e: KeyboardEvent) => { if (e.key === 'Escape') setPanel(null); };
+    if (!topicsOpen) return;
+    const onEscape = (e: KeyboardEvent) => { if (e.key === 'Escape') setTopicsOpen(false); };
     document.addEventListener('keydown', onEscape);
     return () => document.removeEventListener('keydown', onEscape);
-  }, [panel]);
+  }, [topicsOpen]);
 
-  const toggle = (which: Exclude<Panel, null>) => (
-    <button
-      type="button"
-      aria-expanded={panel === which}
-      aria-controls="atlas-quick-panel"
-      onClick={() => setPanel(p => (p === which ? null : which))}
-      className={`tap-target font-body text-ui-15 underline-offset-[6px] transition-colors ${
-        panel === which ? 'text-tea-text underline decoration-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
-      }`}
-    >
-      {which === 'topics' ? 'Topics' : 'Issues'}
-    </button>
-  );
+  const word = (active: boolean) => `tap-target font-body text-ui-15 underline-offset-[6px] transition-colors ${
+    active ? 'text-tea-text underline decoration-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
+  }`;
 
   return (
     <div className="px-4 md:px-8 pt-6 md:pt-8 pb-nav-gap-lg">
@@ -136,7 +133,7 @@ export const AtlasFrame: React.FC<{
         <meta name="robots" content="noindex, nofollow, noarchive" />
       </Helmet>
       <div className={`mx-auto ${MEASURE[measure]}`}>
-        <header className={`flex flex-wrap items-center justify-between gap-x-8 gap-y-3 ${panel ? 'mb-6' : 'mb-8 md:mb-10'}`}>
+        <header className={`flex flex-wrap items-center justify-between gap-x-8 gap-y-3 ${topicsOpen ? 'mb-6' : 'mb-8 md:mb-10'}`}>
           <nav aria-label="Where you are" className="min-w-0">
             <ol className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
               <li>
@@ -161,13 +158,21 @@ export const AtlasFrame: React.FC<{
               ))}
             </ol>
           </nav>
-          <div className="flex items-center gap-x-6 w-full sm:w-auto">
-            {!hideIndex && (
-              <nav aria-label="Library index" className="flex items-center gap-x-5 shrink-0">
-                {toggle('topics')}
-                {toggle('issues')}
-              </nav>
-            )}
+          <div className={`flex items-center gap-x-6 ${hideSearch ? '' : 'w-full sm:w-auto'}`}>
+            <nav aria-label="Library index" className="flex items-center gap-x-5 shrink-0">
+              {!hideTopics && (
+                <button
+                  type="button"
+                  aria-expanded={topicsOpen}
+                  aria-controls="atlas-topics-panel"
+                  onClick={() => setTopicsOpen(o => !o)}
+                  className={word(topicsOpen)}
+                >
+                  Topics
+                </button>
+              )}
+              <IssuesLinks className={word} />
+            </nav>
             {!hideSearch && (
               <div className="flex-1 min-w-0 sm:w-56 sm:flex-none">
                 <AtlasSearchBox />
@@ -175,7 +180,7 @@ export const AtlasFrame: React.FC<{
             )}
           </div>
         </header>
-        {panel && <QuickPanel panel={panel} here={here} close={() => setPanel(null)} />}
+        {topicsOpen && <TopicsPanel here={here} close={() => setTopicsOpen(false)} />}
         {children}
       </div>
     </div>
