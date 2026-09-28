@@ -48,6 +48,35 @@ test('password is the default non-Google sign-in path and email code remains ava
   });
 });
 
+test('a code sign-in opened straight from a link lands in the site, and the email can be corrected', async ({ page }) => {
+  const requested: string[] = [];
+  await page.route('**/api/verify/request', async route => {
+    requested.push(JSON.parse(route.request().postData() || '{}').contact);
+    await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ success: true }) });
+  });
+  await page.route('**/api/verify/confirm', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ token: jwt }),
+  }));
+
+  // The first entry in the tab: there is no in-app page to go back to.
+  await page.goto('/signin');
+  await page.getByRole('button', { name: 'Use email code instead' }).click();
+  await page.getByLabel('Email address').fill('membr@example.com');
+  await page.getByRole('button', { name: 'Email me a code' }).click();
+  await expect(page.getByLabel('Verification code')).toBeVisible();
+
+  // A typo spotted after sending: typing in the box starts over.
+  await page.getByLabel('Email address').fill('member@example.com');
+  await expect(page.getByLabel('Verification code')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Email me a code' }).click();
+  await page.getByRole('button', { name: 'Send a new code' }).click();
+  await expect.poll(() => requested).toEqual(['membr@example.com', 'member@example.com', 'member@example.com']);
+
+  await page.getByLabel('Verification code').fill('123456');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page).toHaveURL('/');
+});
+
 test('delivery failure keeps email editable and exposes retry', async ({ page }) => {
   let attempts = 0;
   await page.route('**/api/verify/request', async route => {
@@ -70,6 +99,47 @@ test('delivery failure keeps email editable and exposes retry', async ({ page })
   await page.getByRole('button', { name: 'Try again' }).click();
   await expect(page.getByLabel('Verification code')).toBeVisible();
   expect(attempts).toBe(2);
+});
+
+test('email codes that are not switched on say so and name the ways in that work', async ({ page }) => {
+  await page.route('**/api/verify/request', route => route.fulfill({
+    status: 503,
+    contentType: 'application/json',
+    body: JSON.stringify({ error: 'Email codes are not switched on yet, so no code was sent.', code: 'email_not_configured', retryable: false }),
+  }));
+
+  await page.goto('/signin');
+  await page.getByRole('button', { name: 'Use email code instead' }).click();
+  await page.getByLabel('Email address').fill('member@example.com');
+  await page.getByRole('button', { name: 'Email me a code' }).click();
+  await expect(page.getByRole('alert')).toHaveText(
+    'Email codes are not switched on yet, so no code was sent. Sign in with your password or Google instead.',
+  );
+  await expect(page.getByRole('button', { name: 'Try again' })).toHaveCount(0);
+  await expect(page.getByLabel('Verification code')).toHaveCount(0);
+});
+
+test('a password sign-in sends what is in the boxes, once', async ({ page }) => {
+  const bodies: Record<string, unknown>[] = [];
+  await page.route('**/api/auth/login', async route => {
+    bodies.push(JSON.parse(route.request().postData() || '{}'));
+    await new Promise(resolve => setTimeout(resolve, 300));
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ token: jwt }) });
+  });
+
+  await page.goto('/signin?returnTo=/read');
+  await page.getByLabel('Email or Username').fill('member@example.com');
+  await page.getByRole('textbox', { name: 'Password' }).fill('right password');
+  // Two submits in the same instant, before React has re-rendered the button
+  // as disabled: what a double press or a password manager's own submit does.
+  await page.evaluate(() => {
+    const form = document.getElementById('signin-password')!.closest('form')!;
+    form.requestSubmit();
+    form.requestSubmit();
+  });
+
+  await expect(page).toHaveURL('/read');
+  expect(bodies).toEqual([{ identifier: 'member@example.com', password: 'right password' }]);
 });
 
 test('permanent delivery failure hides retry and confirmation failure keeps the code editable', async ({ page }) => {
