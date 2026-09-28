@@ -672,11 +672,12 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
   const isSubView = panelView !== 'main';
   // One width rule for the whole panel. The panel fills the screen, so any
   // view left uncapped stretches its buttons edge to edge on desktop. Three
-  // widths: the signed-in launchpad's tile grid, the sessions list (a date
-  // block beside each title needs more room than a form), and everything else.
+  // widths: the signed-in launchpad's tile grid, the two lists (sessions and
+  // the tasting journal, whose rows carry more than a form field), and
+  // everything else.
   const panelColumn =
     panelView === 'main' && auth.isAuthenticated ? 'max-w-[920px]' :
-    panelView === 'events' ? 'max-w-xl' :
+    panelView === 'events' || panelView === 'journal' ? 'max-w-xl' :
     'max-w-sm';
 
   const headerTitle =
