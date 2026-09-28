@@ -82,7 +82,8 @@ interface EditorSheetProps {
   member: AccountMember;
   isViewerOwner: boolean;
   onClose: () => void;
-  onSave: (next: Bundle[]) => Promise<void>;
+  // `bundles` or `teaAtlas` is null when that part did not change.
+  onSave: (next: { bundles: Bundle[] | null; teaAtlas: boolean | null }) => Promise<void>;
   onRemove: () => Promise<void> | void;
   accountId: string;
   accountName: string;
@@ -91,17 +92,24 @@ interface EditorSheetProps {
 const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClose, onSave, onRemove, accountId: _accountId, accountName }) => {
   const initialBundles = useMemo(() => member.bundles || [], [member.bundles]);
   const [working, setWorking] = useState<Set<Bundle>>(() => new Set(initialBundles));
+  // Tea Atlas: offered only when the roster carries it (the platform account).
+  const offersTeaAtlas = member.tea_atlas !== undefined;
+  const atlasLocked = Boolean(member.tea_atlas_always);
+  const [atlas, setAtlas] = useState<boolean>(Boolean(member.tea_atlas));
+  const atlasDirty = offersTeaAtlas && !atlasLocked && atlas !== Boolean(member.tea_atlas);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [removing, setRemoving] = useState(false);
 
   const isOwner = member.role === 'owner';
-  const dirty = useMemo(() => {
+  const bundlesDirty = useMemo(() => {
+    if (isOwner) return false;
     if (working.size !== initialBundles.length) return true;
     for (const b of initialBundles) if (!working.has(b)) return true;
     return false;
-  }, [working, initialBundles]);
+  }, [working, initialBundles, isOwner]);
+  const dirty = bundlesDirty || atlasDirty;
 
   const toggle = (bundle: Bundle) => {
     if (isOwner) return; // owners always have all six
@@ -120,12 +128,14 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
   };
 
   const handleSave = async () => {
-    if (!dirty || saving || isOwner) return;
+    if (!dirty || saving) return;
     setSaving(true);
     setError(null);
     try {
-      const next = ALL_BUNDLES.filter(b => working.has(b));
-      await onSave(next);
+      await onSave({
+        bundles: bundlesDirty ? ALL_BUNDLES.filter(b => working.has(b)) : null,
+        teaAtlas: atlasDirty ? atlas : null,
+      });
     } catch (err: any) {
       setError(err?.message || 'Could not save. Try again.');
     } finally {
@@ -224,6 +234,29 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
             </>
           )}
 
+          {offersTeaAtlas && (
+            <div className="mt-8">
+              <div className="label-caps text-tea-text-dim mb-2">Library</div>
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={atlas}
+                onClick={() => { if (!atlasLocked) setAtlas(v => !v); }}
+                disabled={atlasLocked}
+                className={`w-full text-left py-3 px-3 -mx-3 rounded-[2px] transition-colors hover:bg-tea-elevated/50 disabled:hover:bg-transparent ${
+                  atlas ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
+                }`}
+              >
+                <div className="font-display text-ui-17">Tea Atlas</div>
+                <div className="text-ui-12 text-tea-text-dim mt-0.5 leading-[1.5]">
+                  {atlasLocked
+                    ? 'The site owner always has the private reading library.'
+                    : 'Read the private reading library. Nothing else changes.'}
+                </div>
+              </button>
+            </div>
+          )}
+
           {/* Dangerous actions: secondary color, never red. Inline confirm. */}
           {isViewerOwner && !isOwner && (
             <div className="mt-10 pt-6 border-t border-tea-border">
@@ -287,7 +320,7 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
           <button
             type="button"
             onClick={handleSave}
-            disabled={!dirty || saving || isOwner}
+            disabled={!dirty || saving}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? 'Saving…' : 'Save'}
@@ -379,25 +412,31 @@ export const AccessView: React.FC = () => {
   // Optimistic save: patch the row in place while the network call flies,
   // roll back if it rejects. Errors bubble back into EditorSheet so the inline
   // error message appears next to the toggles.
-  const handleSaveBundles = async (next: Bundle[]) => {
+  const handleSaveBundles = async (next: { bundles: Bundle[] | null; teaAtlas: boolean | null }) => {
     if (!editing || !activeAccountId) return;
     const userId = editing.user_id;
-    const previous = editing.bundles || [];
+    const previous = { bundles: editing.bundles || [], tea_atlas: editing.tea_atlas };
     setMembers(prev => prev
-      ? prev.map(m => m.user_id === userId ? { ...m, bundles: next } : m)
+      ? prev.map(m => m.user_id === userId ? {
+        ...m,
+        ...(next.bundles ? { bundles: next.bundles } : {}),
+        ...(next.teaAtlas !== null ? { tea_atlas: next.teaAtlas } : {}),
+      } : m)
       : prev
     );
     try {
-      await api.accounts.setMemberBundles(activeAccountId, userId, next);
+      if (next.bundles) await api.accounts.setMemberBundles(activeAccountId, userId, next.bundles);
+      if (next.teaAtlas !== null) await api.accounts.setMemberTeaAtlas(activeAccountId, userId, next.teaAtlas);
       setEditing(null);
       // Re-fetch in the background to reconcile any server-side derivations.
       load();
     } catch (err) {
       // Roll back the row on failure so what's on screen matches the server.
       setMembers(prev => prev
-        ? prev.map(m => m.user_id === userId ? { ...m, bundles: previous } : m)
+        ? prev.map(m => m.user_id === userId ? { ...m, ...previous } : m)
         : prev
       );
+      load();
       throw err;
     }
   };
@@ -615,7 +654,11 @@ const RosterRow: React.FC<RosterRowProps> = ({ member, onClick, isSelf }) => {
     member.role === 'owner' ? 'Owner'
     : member.role === 'staff' ? 'Member'
     : 'Viewer';
-  const bundlesText = formatBundles(member.bundles || []);
+  const bundlesText = member.tea_atlas
+    ? (!member.bundles?.length ? 'Tea Atlas only.'
+      : member.bundles.length === ALL_BUNDLES.length ? 'Full access · Tea Atlas.'
+      : `${formatBundles(member.bundles)} · Tea Atlas`)
+    : formatBundles(member.bundles || []);
   const isInvited = member.status === 'invited' || (member.invited_at && !member.joined_at);
 
   const Wrap: React.FC<{ children: React.ReactNode }> = ({ children }) =>

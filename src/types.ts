@@ -1244,6 +1244,10 @@ export interface AccountMember {
   invited_at?: string | null;
   status?: string;
   can_create_collections?: boolean;
+  // Tea Atlas (docs/TEA_ATLAS.md). Present only on the platform account's
+  // roster. `tea_atlas_always` marks the site owner, who cannot be unticked.
+  tea_atlas?: boolean;
+  tea_atlas_always?: boolean;
 }
 
 // Pending account application (Members & Access platform queue).

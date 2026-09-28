@@ -1314,6 +1314,18 @@ async function optionallyAuthedFetch(url: string): Promise<any> {
   return handleResponse(await fetchWithTimeout(url));
 }
 
+// Tea Atlas (docs/TEA_ATLAS.md). Answers the raw Response so the reader can
+// tell "no access" (404, the same as nothing there) from a network failure.
+// Without a session there is nothing to ask: the answer is always 404.
+export function hasSession(): boolean {
+  return Boolean(getToken());
+}
+
+export async function atlasResponse(path: string): Promise<Response> {
+  if (!getToken()) return new Response(null, { status: 404 });
+  return authenticatedResponse(`${API_URL}/api/atlas/${path}`);
+}
+
 async function authedBlobFetch(url: string): Promise<Blob> {
   const response = await authenticatedResponse(url);
   if (!response.ok) {
@@ -3418,6 +3430,12 @@ export const api = {
     setMemberBundles: async (accountId: string, userId: string, bundles: Bundle[]): Promise<void> => {
       await authedFetch(`${API_URL}/api/accounts/${accountId}/members/${userId}/bundles`, {
         method: 'PUT', body: JSON.stringify({ bundles }),
+      });
+    },
+    // Tea Atlas tick (docs/TEA_ATLAS.md). Platform account only.
+    setMemberTeaAtlas: async (accountId: string, userId: string, granted: boolean): Promise<void> => {
+      await authedFetch(`${API_URL}/api/accounts/${accountId}/members/${userId}/tea-atlas`, {
+        method: 'PUT', body: JSON.stringify({ granted }),
       });
     },
     getFeatures: async (accountId: string): Promise<Record<string, boolean>> => {

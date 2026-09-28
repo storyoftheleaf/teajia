@@ -5,6 +5,8 @@
     "/media/*",
     "/read",
     "/read/*",
+    "/tea-atlas",
+    "/tea-atlas/*",
     "/article/*",
     "/shop/product/*",
     "/sitemap-products.xml"
