@@ -72,7 +72,7 @@ export const IssueCalendar: React.FC<{ sourceId: string; currentIssue?: string; 
       ? <p className="font-body text-ui-14 italic text-tea-text-dim">Opening…</p>
       : null;
   }
-  const cell = (issue: { id: string; label: string; count: number }, month: number, abbr: string) => (
+  const cell = (issue: { id: string; label: string; count: number }, abbr: string) => (
     <Link
       to={`${ATLAS_ROOT}/issue/${issue.id}`}
       onClick={onPick}
@@ -85,14 +85,15 @@ export const IssueCalendar: React.FC<{ sourceId: string; currentIssue?: string; 
           : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated/60'
       }`}
     >
-      <span className="sm:hidden tabular-nums">{month}</span>
+      {/* A quiet mark, not a number: the column letter above already says which month. */}
+      <span aria-hidden className="sm:hidden block h-1.5 w-1.5 rounded-full bg-current" />
       <span className="hidden sm:inline">{abbr}</span>
     </Link>
   );
   return (
     <div role="group" aria-label={`${load.data.source.name}, every issue by year and month`}>
-      {/* Month letters head the columns on a phone, where each cell is only
-          a number; wider screens spell the month in the cell itself. */}
+      {/* Month letters head the columns on a phone, where each issue is only
+          a mark; wider screens spell the month in the cell itself. */}
       <div aria-hidden className="grid grid-cols-[2.75rem_repeat(12,minmax(0,1fr))] pb-1 mb-1 border-b border-tea-border sm:hidden">
         <span />
         {MONTHS.map(m => (
@@ -114,7 +115,7 @@ export const IssueCalendar: React.FC<{ sourceId: string; currentIssue?: string; 
               {MONTHS.map((m, i) => {
                 const issue = byMonth.get(i);
                 return issue
-                  ? <React.Fragment key={m}>{cell(issue, i + 1, m.slice(0, 3))}</React.Fragment>
+                  ? <React.Fragment key={m}>{cell(issue, m.slice(0, 3))}</React.Fragment>
                   : <span key={m} aria-hidden />;
               })}
             </div>
