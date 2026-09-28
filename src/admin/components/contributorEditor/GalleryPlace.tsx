@@ -194,7 +194,7 @@ export function GalleryPlace({ images, update, onBusy, takeRef }: Props) {
       {chosen && selected !== null && (
         <div className="mt-6 border-l border-tea-gold/40 pl-4 sm:pl-6" data-testid="gallery-selected">
           <p className="font-display text-ui-20 text-tea-text">Photo {selected + 1} <span className="font-body text-ui-14 italic text-tea-text-sec">of {images.length}</span></p>
-          <div className="mt-4 grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
+          <div className="mt-4 flex flex-col items-start gap-5">
             <FocusPicker url={chosen.image_url} focus={chosen.focus} alt={`Photo ${selected + 1}, whole`} onFocus={css => patch(selected, { focus: css })} />
             <CropStrip url={chosen.image_url} focus={chosen.focus} crops={cropsFor(selected)} />
           </div>
