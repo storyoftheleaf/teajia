@@ -1,5 +1,5 @@
 /**
- * Shangyin Qiwu: Porcelain and Tea. The words and photographs live in
+ * Yan Jinwen: Porcelain and Tea. The words and photographs live in
  * conversation/pieces/porcelainAndTea.ts; the layout is the shared
  * conversation template, so a change to either reaches every conversation.
  */
