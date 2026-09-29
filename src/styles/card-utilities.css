@@ -3714,6 +3714,12 @@ input[type="number"]::-webkit-outer-spin-button {
   box-shadow: none;
   padding: 0;
 }
+/* The navigation it docks onto pulls its insets in to 12px below 375px so the
+   words keep their air on the smallest phones; the dock follows, or the two
+   halves of the assembly stop lining up. */
+@media (max-width: 374px) {
+  .commerce-dock { left: 0.75rem; right: 0.75rem; }
+}
 
 /* The strip itself: 58px, its own darker wash over the assembly's ground. */
 .alcove-dock-strip {

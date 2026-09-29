@@ -4,7 +4,11 @@
  * bowl, and do not change with the theme any more than the photograph does.
  */
 /**
- * Shangyin Qiwu: Porcelain and Tea.
+ * Yan Jinwen, of the Shanyin Qiwu studio: Porcelain and Tea.
+ *
+ * His name and the studio's were corrected by Adrian on the page (2026-09-29):
+ * the transcript's "Shangyin Qiwu, 上隐器物" is the studio, and it is
+ * Shanyin Qiwu, 缮隐漆物. The person-page address keeps its older slug.
  *
  * Every answer is his and every question is Adrian's, from the interview
  * transcript (Adrian's Obsidian source note, SRC - Ceramicist (Porcelain
@@ -15,7 +19,7 @@
  * Reworked 2026-09-29 into the conversation template: a sentence set large is
  * lifted out of its paragraph rather than repeated beside it; "When we repair
  * objects" is set once, on the pale wall, where he says it; the In Brief box
- * became two lines in the cover credits; eight photographs came out so no
+ * went, since the cover says who, what and where; eight photos came out so no
  * more than one image sits between exchanges. The eight are still in the
  * image folder: class-at-the-cup, stapled-lid, pouring, cup-on-wood,
  * lining-close, courtyard-table, teapot-on-gold-dish, class-cup-and-dish.
@@ -23,7 +27,7 @@
 import type { ConversationSpec, Shot } from '../spec';
 
 const S = {
-  portrait: { slot: 'portrait', file: 'portrait.jpg', alt: 'Shangyin Qiwu seated in his studio', y: 0.4 },
+  portrait: { slot: 'portrait', file: 'portrait.jpg', alt: 'Yan Jinwen seated in his studio', y: 0.4 },
   classTable: { slot: 'class-table', file: 'class-at-the-table.jpg', alt: 'Adrian at the repair table during the class, seen through the studio window', y: 0.4 },
   goldSeam: { slot: 'gold-seam', file: 'gold-seam-bowl.jpg', alt: 'A dark bowl with a gold seam along its rim' },
   jar: { slot: 'jar', file: 'jar-in-hand.jpg', alt: 'A hand turning an old glazed jar with a repaired rim' },
@@ -47,11 +51,11 @@ export const porcelainAndTea: ConversationSpec = {
   path: '/read/porcelain-and-tea',
   images: '/read/porcelain-and-tea/',
   source: 'SRC - Ceramicist (Porcelain Restoration).md',
-  pageTitle: 'Shangyin Qiwu · Porcelain and Tea · Teajia',
+  pageTitle: 'Yan Jinwen · Porcelain and Tea · Teajia',
   title: ['Porcelain', 'and Tea'],
   dek: 'A conversation with a porcelain restorer in Wuyi.',
-  subject: { name: 'Shangyin Qiwu', nameCn: '上隐器物', role: 'Porcelain restorer', href: '/people/shangyin-qiwu' },
-  speakers: { author: 'Adrian', subject: 'Shangyin' },
+  subject: { name: 'Yan Jinwen', role: 'Porcelain restorer', href: '/people/shangyin-qiwu' },
+  speakers: { author: 'Adrian', subject: 'Jinwen' },
   author: {
     name: 'Adrian Rasmussen',
     links: [
@@ -60,9 +64,8 @@ export const porcelainAndTea: ConversationSpec = {
       { label: 'Portfolio', href: 'https://adrianrasmussen.com' },
     ],
   },
-  facts: [['Craft', 'Porcelain restoration and lacquer'], ['Place', 'Wuyi, China']],
   portrait: S.portrait,
-  intro: 'I learned restoration from Shangyin Qiwu. I took his class in Wuyi, and I was so interested that I wanted to come back and learn about his dedication to this craft, and his perspective.',
+  intro: 'I learned restoration from Yan Jinwen. I took his class in Wuyi, and I was so interested that I wanted to come back and learn about his dedication to this craft, and his perspective.',
   opening: [],
   parts: [
     {
@@ -89,8 +92,7 @@ export const porcelainAndTea: ConversationSpec = {
         {
           kind: 'glyph', glyph: '缘分', blocks: [
             { kind: 'q', id: 'p1-q3', text: 'Some people talk about karma, how old things carry a weight with them. By bringing these old things back to life, do you feel you are honoring the past?' },
-            { kind: 'line', id: 'p1-l3', size: 'm', text: 'This feeling is very subtle, and I can’t quite put it into words.' },
-            { kind: 'a', id: 'p1-a6', text: 'It’s probably a kind of fate, 缘分. First I mastered this repair technique, and then I came to love these ancient ceramics. It’s probably some kind of fate.' },
+            { kind: 'a', id: 'p1-a6', text: 'This feeling is very subtle, and I can’t quite put it into words. It’s probably a kind of fate, 缘分. First I mastered this repair technique, and then I came to love these ancient ceramics. It’s probably some kind of fate.' },
           ],
         },
         { kind: 'q', id: 'p1-q4', text: 'How long ago were these repair techniques developed? Maybe a thousand years ago, people would just make a new cup.' },
@@ -138,7 +140,7 @@ export const porcelainAndTea: ConversationSpec = {
         { kind: 'q', id: 'p3-q3', text: 'What role does tea play in your city, and in China?' },
         { kind: 'a', id: 'p3-a3', text: 'Tea plays many roles. It is a beverage, a gift, and a medium of communication. We sit around a tea table and talk about many things. It can be generous or selfish. This leaf absorbs the essence of heaven and earth, embodying the five elements and eight trigrams. It gathers the energy of the East in China. It’s remarkable that such energy can be concentrated in a single leaf and radiated outward.' },
         { kind: 'q', id: 'p3-q4', text: 'What is your business name, and what does it mean?' },
-        { kind: 'a', id: 'p3-a4', text: 'My company’s name is Shangyin Qiwu, 上隐器物. What I do is related to lacquer, so I named it Shangyin Qiwu. It doesn’t have too many specific meanings. It’s just like a nickname.' },
+        { kind: 'a', id: 'p3-a4', text: 'My company’s name is Shanyin Qiwu, 缮隐漆物. What I do is related to lacquer, so I named it Shanyin Qiwu. It doesn’t have too many specific meanings. It’s just like a nickname.' },
         { kind: 'wide', shot: S.studio },
         { kind: 'q', id: 'p3-q5', text: 'What are your biggest challenges right now, and what are you inspired to learn?' },
         { kind: 'a', id: 'p3-a5', text: 'My biggest challenge has been bridging reality and ideals. As artists, we invest time and energy for perfection, but sometimes fail to connect it to real life, which leads to financial problems. I’m gradually changing that, doing what I love while also creating economic benefits. My plan is to turn my skills into paid courses, so more people can learn and help preserve this craft.' },
@@ -163,7 +165,7 @@ export const porcelainAndTea: ConversationSpec = {
     aspect: '1080/1618',
   },
   credit: [
-    'Recorded with Shangyin Qiwu in Wuyi. The conversation was held in Mandarin, translated into English and lightly trimmed.',
+    'Recorded with Yan Jinwen in Wuyi. The conversation was held in Mandarin, translated into English and lightly trimmed.',
     'Interview by Adrian Rasmussen.',
   ],
   next: [

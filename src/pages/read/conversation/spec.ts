@@ -72,8 +72,6 @@ export interface ConversationSpec {
   /** The names hung in the margin beside each turn, as a printed interview marks its speakers. */
   speakers: { author: string; subject: string };
   author: { name: string; links: { label: string; href: string }[] };
-  /** Short facts set in the cover credits, e.g. Craft, Place. */
-  facts: [string, string][];
   portrait: Shot;
   /** Adrian's own opening, before the conversation starts. */
   intro: string;
@@ -128,13 +126,14 @@ export function photoCount(spec: ConversationSpec): number {
   return n;
 }
 
-/** The answers that begin his turn: the first answer after a question. They carry his name in the margin. */
+/** Where his turn begins: the first answer, or large line, after a question. It carries his name, so
+ *  nothing he says ever sits unattributed between a question and the answer. */
 export function turnStarts(spec: ConversationSpec): Set<string> {
   const starts = new Set<string>();
   let last: 'q' | 'a' | null = null;
   allBlocks(spec).forEach((b) => {
     if (b.kind === 'q') last = 'q';
-    else if (b.kind === 'a') { if (last === 'q') starts.add(b.id); last = 'a'; }
+    else if (b.kind === 'a' || b.kind === 'line') { if (last === 'q') starts.add(b.id); last = 'a'; }
   });
   return starts;
 }

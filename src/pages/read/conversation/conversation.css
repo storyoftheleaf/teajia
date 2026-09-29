@@ -43,7 +43,8 @@
   margin-bottom: 6px;
 }
 @media (min-width: 1100px) {
-  .tj-conv-col > .tj-conv-turn > .tj-conv-who {
+  .tj-conv-col > .tj-conv-turn > .tj-conv-who,
+  .tj-conv-spine > .tj-conv-turn > .tj-conv-who {
     position: absolute;
     right: 100%;
     top: 0.62em;
@@ -99,10 +100,13 @@
   margin: 0;
   text-wrap: balance;
 }
-[data-size='xl'] > .tj-conv-line { letter-spacing: -0.022em; }
-[data-size='xl'] > .tj-conv-line { font-size: clamp(40px, 7vw, 88px); max-width: 15ch; }
-[data-size='l'] > .tj-conv-line { font-size: clamp(32px, 5vw, 60px); max-width: 17ch; }
-[data-size='m'] > .tj-conv-line { font-size: clamp(26px, 3.4vw, 40px); max-width: 22ch; }
+/* Large lines run long and quiet: one or two lines each, never a short phrase
+   stacked three or four deep, which shouts (Adrian, 2026-09-29). */
+[data-size='xl'] > .tj-conv-line { font-size: clamp(32px, 4.2vw, 54px); max-width: 24ch; letter-spacing: -0.018em; }
+[data-size='l'] > .tj-conv-line { font-size: clamp(28px, 3.3vw, 42px); max-width: 28ch; }
+[data-size='m'] > .tj-conv-line { font-size: clamp(24px, 2.6vw, 33px); max-width: 32ch; }
+/* Beside a photograph the column is narrow, so a large line steps down again. */
+.tj-conv-side-words [data-size] > .tj-conv-line { font-size: clamp(24px, 2.4vw, 31px); max-width: none; }
 .tj-conv-gold { font-weight: 400; color: var(--tj-gold-lt, var(--tj-read-gold-lt-default)); }
 
 /* ── Photographs ────────────────────────────────────────────────────────── */
@@ -153,9 +157,9 @@
 .tj-conv-onphoto-frame { position: relative; }
 .tj-conv-onphoto-words {
   position: absolute; z-index: 2; left: 0; top: clamp(36px, 8%, 90px);
-  padding: 0 clamp(48px, 9vw, 96px); max-width: 15ch; box-sizing: content-box;
+  padding: 0 clamp(40px, 7vw, 80px); max-width: 27ch; box-sizing: content-box;
   font-family: var(--font-display); font-style: italic; font-weight: 300;
-  font-size: clamp(32px, 5vw, 60px); line-height: 1.08; margin: 0; pointer-events: none;
+  font-size: clamp(26px, 3.4vw, 42px); line-height: 1.12; margin: 0; pointer-events: none;
 }
 
 /* ── A Chinese word hung in the margin beside its words ─────────────────── */
@@ -188,7 +192,7 @@
 
 /* ── The saying and the close ───────────────────────────────────────────── */
 .tj-conv-saying { max-width: calc(var(--conv-wide) + 2 * var(--conv-gutter)); margin: var(--conv-s3) auto var(--conv-s2); padding: 0 var(--conv-gutter); text-align: center; }
-.tj-conv-saying .tj-conv-line { max-width: 18ch; margin: 0 auto; }
+.tj-conv-saying .tj-conv-line { max-width: 30ch; margin: 0 auto; }
 .tj-conv-close { max-width: calc(760px + 2 * var(--conv-gutter)); margin: 0 auto; padding: 0 var(--conv-gutter); }
 .tj-conv-credit {
   max-width: calc(var(--conv-col) + 2 * var(--conv-gutter));
@@ -197,6 +201,9 @@
 }
 .tj-conv-credit p { margin: 0; }
 .tj-conv-credit p + p { font-style: italic; color: var(--tj-read-dim); margin-top: 6px; }
+.tj-conv-credit p.tj-conv-credit-links { font-style: normal; display: flex; justify-content: center; flex-wrap: wrap; gap: 0 22px; margin-top: 10px; font-size: 15px; }
+.tj-conv-credit-links a { color: var(--tj-read-taupe); text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; transition: color 200ms; }
+.tj-conv-credit-links a:hover, .tj-conv-credit-links a:focus-visible { color: var(--tj-gold-lt, var(--tj-read-gold-lt-default)); }
 
 .tj-conv-follow { max-width: var(--conv-col); margin-top: 18px; }
 
@@ -243,29 +250,20 @@
   color: var(--tj-read-taupe); margin: clamp(22px, 3vw, 34px) 0 0; max-width: 26ch; text-wrap: balance;
 }
 
-/* ── The masthead: every credit on one quiet line under the cover ──────── */
-.tj-conv-masthead {
+/* ── The byline: one sentence and a quiet line, no labels ───────────────── */
+.tj-conv-byline {
   max-width: calc(var(--conv-wide) + 2 * var(--conv-gutter));
-  margin: 0 auto; padding: 22px var(--conv-gutter);
-  display: flex; flex-wrap: wrap; justify-content: center; gap: 10px clamp(22px, 3vw, 40px);
-  border-bottom: 1px solid rgb(var(--tj-read-gold-rgb) / 0.14);
+  margin: 0 auto; padding: clamp(26px, 3vw, 36px) var(--conv-gutter);
+  text-align: center;
+  border-bottom: 1px solid rgb(var(--tj-read-gold-rgb) / 0.12);
 }
-.tj-conv-masthead > div { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
-.tj-conv-masthead dt {
-  font-family: var(--font-sans); font-size: 12px; font-weight: 500; letter-spacing: 0.16em;
-  text-transform: uppercase; color: var(--tj-read-dim);
-}
-.tj-conv-masthead dd { margin: 0; font-family: var(--font-body); font-size: 15px; color: var(--tj-read-ink); }
-.tj-conv-masthead a { color: inherit; text-decoration: none; border-bottom: 1px solid rgb(var(--tj-read-gold-rgb) / 0.35); }
-.tj-conv-masthead a:hover { color: var(--tj-gold-lt, var(--tj-read-gold-lt-default)); }
-.tj-conv-masthead-soft { color: var(--tj-read-taupe); }
-.tj-conv-masthead-links { display: inline-flex; gap: 14px; margin-left: 14px; font-size: 14px; }
-.tj-conv-masthead-links a { color: var(--tj-read-taupe); }
-@media (max-width: 700px) {
-  .tj-conv-masthead { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .tj-conv-masthead > div { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; }
-  .tj-conv-masthead-links { display: flex; margin: 6px 0 0; }
-}
+.tj-conv-byline p { margin: 0; text-wrap: balance; }
+.tj-conv-byline-names { font-family: var(--font-display); font-size: clamp(20px, 2vw, 24px); line-height: 1.35; color: var(--tj-read-cream); }
+.tj-conv-byline-soft { font-style: italic; color: var(--tj-read-taupe); }
+.tj-conv-byline-names a { color: inherit; text-decoration: none; transition: color 200ms; }
+.tj-conv-byline-names a:hover, .tj-conv-byline-names a:focus-visible { color: var(--tj-gold-lt, var(--tj-read-gold-lt-default)); }
+.tj-conv-byline-names .tj-conv-cn { font-size: 0.8em; color: var(--tj-read-taupe); }
+.tj-conv-byline p.tj-conv-byline-read { margin-top: 8px; font-family: var(--font-body); font-style: italic; font-size: 15px; color: var(--tj-read-dim); }
 
 /* ── A part opens as a spread ───────────────────────────────────────────── */
 .tj-conv-spread { margin: var(--conv-s3) 0 var(--conv-s2); scroll-margin-top: 57px; }
@@ -276,8 +274,8 @@
   text-transform: uppercase; color: var(--tj-gold, var(--tj-read-gold-default));
 }
 .tj-conv-spread-title {
-  font-family: var(--font-display); font-weight: 400; font-size: clamp(40px, 5.4vw, 76px);
-  line-height: 1.02; letter-spacing: -0.02em; color: var(--tj-read-cream); margin: 16px 0 0; text-wrap: balance; max-width: 15ch;
+  font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 3.2vw, 46px);
+  line-height: 1.08; letter-spacing: -0.012em; color: var(--tj-read-cream); margin: 14px 0 0; text-wrap: balance; max-width: 22ch;
 }
 .tj-conv-spread-rule { width: 40px; height: 1px; margin-top: 28px; background: var(--tj-gold, var(--tj-read-gold-default)); }
 @media (min-width: 900px) {
