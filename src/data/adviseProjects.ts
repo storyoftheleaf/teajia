@@ -46,7 +46,7 @@ export const adviseProjects: AdviseProject[] = [
     name: 'The Art Studio',
     type: 'space',
     location: 'Bali, Indonesia',
-    description: 'A working studio that doubles as a shop. Art being made, teaware you can hold, tea you can taste. The most accessible entry point into TeajiA.',
+    description: 'A working studio that doubles as a shop. Art being made, teaware you can hold, tea you can taste. The most accessible entry point into Teajia.',
     work: 'Layout designed for both making and receiving. Product display integrated with active studio work. A space that feels alive and honest rather than pristine.',
     result: 'The casual entry point where most relationships begin. People walk in curious and walk out with teas, teaware, and the beginning of a practice.',
     featured: false,
@@ -78,7 +78,7 @@ export const adviseProjects: AdviseProject[] = [
     location: 'Taiwan',
     description: 'A sourcing journey through Taiwan\'s high mountain oolong regions and traditional tea villages.',
     work: 'Farm visits across Alishan, Lishan, and Dong Ding. Meetings with multi-generational tea masters. Private tastings. Sourcing of personal tea collections. Cultural immersion in tea village life.',
-    result: 'Three participants on this journey went on to build tea programs in their own spaces. The relationships formed with Taiwanese farmers continue to supply TeajiA today.',
+    result: 'Three participants on this journey went on to build tea programs in their own spaces. The relationships formed with Taiwanese farmers continue to supply Teajia today.',
     featured: false,
   },
   {
@@ -88,7 +88,7 @@ export const adviseProjects: AdviseProject[] = [
     location: 'Yunnan, China',
     description: 'Deep into Yunnan province to visit ancient tea tree forests and pu\'erh production at the source.',
     work: 'Travel to remote ancient tea tree gardens. Observation of traditional pu\'erh processing. Sourcing of aged and raw pu\'erh directly from producers. Cultural context around Yunnan\'s tea minorities.',
-    result: 'Access to teas that never reach export markets. Several cakes sourced on this journey are now among the most valued pieces in TeajiA\'s collection.',
+    result: 'Access to teas that never reach export markets. Several cakes sourced on this journey are now among the most valued pieces in Teajia\'s collection.',
     featured: false,
   },
   {
@@ -98,7 +98,7 @@ export const adviseProjects: AdviseProject[] = [
     location: 'Fujian, China',
     description: 'Exploring the birthplace of oolong and white tea in Fujian\'s Wuyi Mountains and Fuding region.',
     work: 'Rock oolong production observation in Wuyi. White tea sourcing in Fuding. Meetings with artisans producing traditional Jian Zhan ceramics. Tastings spanning the full range of Fujian tea culture.',
-    result: 'Direct relationships established with three Fujian producers who now supply TeajiA exclusively for specific varieties.',
+    result: 'Direct relationships established with three Fujian producers who now supply Teajia exclusively for specific varieties.',
     featured: false,
   },
 ];

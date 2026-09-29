@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "description": "TeajiA tea tasting taxonomy. Structured around somatic awareness: sensation first, naming last. Hints appear only on terms where the word alone is not enough.",
+  "description": "Teajia tea tasting taxonomy. Structured around somatic awareness: sensation first, naming last. Hints appear only on terms where the word alone is not enough.",
   "categories": [
     {
       "id": "body",
