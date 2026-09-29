@@ -66,8 +66,8 @@ test('a contributor is created with an uploaded portrait, its focal point, and g
   await expect(dialog).toBeVisible();
 
   // The page address follows the name until it is edited by hand.
-  await dialog.getByLabel('Your name').fill('Shangyin Qiwu');
-  await expect(dialog.getByLabel('Page address')).toHaveValue('shangyin-qiwu');
+  await dialog.getByLabel('Your name').fill('Yan Jinwen');
+  await expect(dialog.getByLabel('Page address')).toHaveValue('yan-jinwen');
 
   // The portrait: picked from a file, uploaded, then shown whole with its crops.
   await expect(dialog.getByText('No portrait yet')).toBeVisible();
@@ -114,8 +114,8 @@ test('a contributor is created with an uploaded portrait, its focal point, and g
   expect(network.uploads()).toBe(3);
   const created = network.writes.find(write => write.method === 'POST')!.body;
   expect(created).toMatchObject({
-    id: 'shangyin-qiwu',
-    display_name: 'Shangyin Qiwu',
+    id: 'yan-jinwen',
+    display_name: 'Yan Jinwen',
     portrait_url: 'https://media.teajia.co/accounts/acct-bali/products/upload-1.jpg?v=1',
     portrait_focus: '40% 30%',
   });

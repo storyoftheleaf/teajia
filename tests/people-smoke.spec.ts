@@ -121,8 +121,8 @@ test('contributors directory page renders the list', async ({ page }) => {
 // nobody scrolls to reach them (Adrian, 2026-09-29).
 test('a person linked in a Read story finds the story under Words, and Contact is at the top', async ({ page }) => {
   await page.route('**/api/people/shangyin-qiwu', route => route.fulfill({ json: {
-    ...profileFixture, id: 'shangyin-qiwu', display_name: 'Shangyin Qiwu', role: 'Porcelain restorer', pull_quotes: [],
-    links: [{ platform: 'wechat', value: 'shangyin_qiwu', qr_image_url: null }],
+    ...profileFixture, id: 'shangyin-qiwu', display_name: 'Yan Jinwen', role: 'Porcelain restorer', pull_quotes: [],
+    links: [{ platform: 'wechat', value: 'yan_jinwen', qr_image_url: null }],
   } }));
   await page.goto('/people/shangyin-qiwu');
   const words = page.getByTestId('profile-words');

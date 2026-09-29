@@ -7,12 +7,12 @@ describe('tidyLinks', () => {
       { platform: 'website', value: ' adrianrasmussen.com ' },
       { platform: 'website', value: 'https://teajia.com' },
       { platform: 'instagram', value: '@technicianofthesacred' },
-      { platform: 'wechat', value: 'shangyin_qiwu' },
+      { platform: 'wechat', value: 'yan_jinwen' },
     ]).map(link => link.value)).toEqual([
       'https://adrianrasmussen.com',
       'https://teajia.com',
       '@technicianofthesacred',
-      'shangyin_qiwu',
+      'yan_jinwen',
     ]);
   });
 });
