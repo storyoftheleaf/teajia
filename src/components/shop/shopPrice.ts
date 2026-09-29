@@ -116,13 +116,13 @@ export interface ShopPrice {
    */
   symbol: string;
   /**
-   * A total followed by the currency's short symbol instead of led by its
-   * code: "269k Rp", "15 $", "1,652 NT$". For a list where the code on every
-   * row ("IDR 269k") was the widest thing in it, and where the number is what
-   * the eye reads down the column, so it comes first (Adrian, 2026-09-29).
-   * The symbol is `symbol` above, so a currency with no rate reads as the
-   * dollars it really is. A narrow no-break space holds the symbol to its
-   * number so the two never split across a line.
+   * A total led by the currency's short symbol, touching it, instead of its
+   * code: "$15", "Rp269k", "NT$1,652", "JP¥26,301". That is how each of these
+   * currencies is written where it is spent, so the pair reads as one unit of
+   * money; "15 $" was tried for a day and reads as a French price. The code
+   * on every row ("IDR 269k") was the widest thing in the list. The symbol is
+   * `symbol` above, so a currency with no rate reads as the dollars it really
+   * is.
    */
   symbolTotal: (usd: number) => string;
   /** A total, rounded up to a whole unit, as the shop has always quoted totals. */
@@ -188,10 +188,14 @@ export function useShopPrice(): ShopPrice {
     [total],
   );
 
-  // A leading "~" (a rate we do not hold) or minus stays on the number,
-  // because both change what the figure means.
+  // A leading "~" (a rate we do not hold) or minus stays in front of the
+  // symbol, because both change what the figure means.
   const symbolTotal = useCallback(
-    (usd: number) => `${plainTotal(usd)}\u202F${symbol}`,
+    (usd: number) => {
+      const plain = plainTotal(usd);
+      const lead = /^[~-]/.test(plain) ? plain[0] : '';
+      return lead + symbol + plain.slice(lead.length);
+    },
     [plainTotal, symbol],
   );
 
