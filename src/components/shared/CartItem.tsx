@@ -32,7 +32,7 @@ interface CartItemProps {
  * aligns on the baseline, so a price never sits lower than the name beside it.
  */
 export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQuantity, onUpdatePacks, onNavigate }) => {
-  const { total: displayPrice, perGramExact } = useShopPrice();
+  const { total: displayPrice, plainTotal, perGramExact } = useShopPrice();
   const [showOther, setShowOther] = useState(false);
   const [photoFailed, setPhotoFailed] = useState(false);
 
@@ -146,7 +146,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
                 }`}
               >
                 <span className="num text-ui-13 leading-none">{q.whole ? `Whole ${q.grams}g` : `${q.grams}g`}</span>
-                <span className="num text-ui-12 leading-none text-tea-text-sec">{displayPrice(q.totalUsd)}</span>
+                <span className="num text-ui-12 leading-none text-tea-text-sec">{plainTotal(q.totalUsd)}</span>
               </button>
             );
           })}
