@@ -37,7 +37,15 @@ export function scanStoryPeople(root = ROOT) {
   for (const [, href, name] of app.matchAll(/<Route path="(\/read\/[^"]+)" element=\{[\s\S]*?<(\w+) \/><\/Suspense>/g)) {
     const file = fileOf.get(name);
     if (!file) continue;
-    const source = fs.readFileSync(path.join(root, 'src', `${file}.tsx`), 'utf8');
+    const storyPath = path.join(root, 'src', `${file}.tsx`);
+    let source = fs.readFileSync(storyPath, 'utf8');
+    // A conversation piece keeps its words, links included, in a word list
+    // under conversation/pieces, and its page file only points at it. Follow
+    // that one import so the people it links are still found.
+    for (const [, rel] of source.matchAll(/from '(\.\/conversation\/pieces\/[\w-]+)'/g)) {
+      const piece = path.join(path.dirname(storyPath), `${rel}.ts`);
+      if (fs.existsSync(piece)) source += fs.readFileSync(piece, 'utf8');
+    }
     const people = [...new Set([...source.matchAll(/["'`]\/people\/([a-z0-9]+(?:-[a-z0-9]+)*)["'`]/g)].map(match => match[1]))].sort();
     if (!people.length) continue;
     const words = listed.get(href);
