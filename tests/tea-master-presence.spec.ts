@@ -180,19 +180,21 @@ test.describe('selected by, on the tea', () => {
 });
 
 test.describe('the tea master\'s own page', () => {
-  test('carries who taught me, the last line, and the name of the collection, and saves each', async ({ page }) => {
+  test('keeps who taught me, carries the last line and the name of the collection, and saves each', async ({ page }) => {
     const errors = collectErrors(page);
     await signIn(page);
     const puts = await mock(page);
     await page.goto('/account/profile');
     await expect(page.getByRole('heading', { name: 'Your public profile' })).toBeVisible();
 
-    const taught = page.getByLabel('Who taught me');
-    await expect(taught).toHaveValue('A visiting Taiwanese tea master.');
-    const last = page.getByLabel(/The last line/);
+    // The last line lives in Your story. Who taught me is no longer asked,
+    // but whatever was written there is kept and sent back untouched.
+    await page.getByTestId('row-words').click();
+    const last = page.getByLabel('A last line for your page');
     await expect(last).toHaveValue('Come for the tea. Stay for the second steep.');
     await expect(page.getByText('44/200')).toBeVisible();
     await last.fill('Stay for the second steep.');
+    await page.getByRole('button', { name: 'Done' }).click();
     await page.getByRole('button', { name: /^Save/ }).first().click();
     await expect.poll(() => puts.find(put => put.path === '/api/me/public-profile')).toBeTruthy();
     const saved = puts.find(put => put.path === '/api/me/public-profile')!.body as Record<string, unknown>;

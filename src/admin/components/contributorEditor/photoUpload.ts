@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useRef, useState } from 'react';
 import { api } from '../../../lib/api';
 import { shrinkImage } from '../../../pages/read/imageUtils';
 
@@ -54,6 +54,17 @@ export async function preparePhoto(file: File): Promise<File> {
   }
 }
 
+/**
+ * Where a placed photo is sent. The shop's editor uses the staff upload; a
+ * contributor editing their own page has no staff rights, so their screen
+ * provides its own route with PhotoUploadContext.Provider. Both return the
+ * stored photo's address.
+ */
+export type PhotoUploader = (file: File, onProgress: (fraction: number) => void) => Promise<string>;
+const staffUpload: PhotoUploader = (file, onProgress) => api.uploadImageProgress(file, onProgress, { filename: file.name || 'photo.jpg' });
+export const PhotoUploadContext = createContext<PhotoUploader>(staffUpload);
+export function usePhotoUploader(): PhotoUploader { return useContext(PhotoUploadContext); }
+
 export type UploadState =
   | { status: 'idle' }
   | { status: 'uploading'; progress: number; preview: string }
@@ -68,6 +79,7 @@ export function usePhotoUpload(onUploaded: (url: string) => void) {
   const [state, setState] = useState<UploadState>({ status: 'idle' });
   const lastFile = useRef<File | null>(null);
   const preview = useRef<string | null>(null);
+  const send = usePhotoUploader();
 
   const upload = useCallback(async (file: File) => {
     lastFile.current = file;
@@ -76,9 +88,9 @@ export function usePhotoUpload(onUploaded: (url: string) => void) {
     setState({ status: 'uploading', progress: 0.02, preview: preview.current });
     try {
       const ready = await preparePhoto(file);
-      const url = await api.uploadImageProgress(ready, progress => {
+      const url = await send(ready, progress => {
         setState(current => current.status === 'uploading' ? { ...current, progress: Math.max(0.05, Math.min(0.98, progress)) } : current);
-      }, { filename: ready.name || 'photo.jpg' });
+      });
       onUploaded(url);
       setState({ status: 'idle' });
     } catch (caught) {
@@ -87,7 +99,7 @@ export function usePhotoUpload(onUploaded: (url: string) => void) {
         : 'The photo did not arrive. Check the connection and try again.';
       setState({ status: 'failed', message });
     }
-  }, [onUploaded]);
+  }, [onUploaded, send]);
 
   const retry = useCallback(() => { if (lastFile.current) void upload(lastFile.current); }, [upload]);
   const dismiss = useCallback(() => setState({ status: 'idle' }), []);
