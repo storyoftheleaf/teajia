@@ -99,7 +99,7 @@ describe('CraftIndex, visitor', () => {
     expect(html).toContain('six pieces');
     expect(html).toContain('seven coming');
     expect(html).toContain('coming soon');
-    expect(html).not.toContain('N°07');
+    expect(html).not.toContain('N°');
     expect(html).toContain('class="tj-craft-row"');
   });
 

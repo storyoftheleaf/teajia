@@ -3,7 +3,7 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * Earth, Water, Fire: Conversations over Tea, N°03
+ * Earth, Water, Fire: Conversations over Tea
  * A Jingdezhen porcelain potter on the vessels that hold the tea.
  * Ported pixel-faithfully from the tea-article-redesign mockup.
  */
@@ -15,9 +15,9 @@ import {
 } from './immersive';
 
 const moreLinks = [
-  { to: '/read/rock-remembers', kicker: 'Conversation · N°02', title: 'The Rock Remembers', blurb: 'A Wuyi rock-tea roaster on fire, patience & lineage.' },
-  { to: '/read/before-the-mist', kicker: 'Field Notes · N°04', title: 'Before the Mist Burns Away', blurb: 'A photo-essay from a Yunnan spring harvest.' },
-  { to: '/read/leaf-to-liquor', kicker: 'The Art of Tea · N°01', title: 'From Leaf to Liquor', blurb: 'How a single leaf becomes the six colours of tea.' },
+  { to: '/read/rock-remembers', kicker: 'Conversation', title: 'The Rock Remembers', blurb: 'A Wuyi rock-tea roaster on fire, patience & lineage.' },
+  { to: '/read/before-the-mist', kicker: 'Field Notes', title: 'Before the Mist Burns Away', blurb: 'A photo-essay from a Yunnan spring harvest.' },
+  { to: '/read/leaf-to-liquor', kicker: 'The Art of Tea', title: 'From Leaf to Liquor', blurb: 'How a single leaf becomes the six colours of tea.' },
 ];
 
 const pBody: React.CSSProperties = { fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.8, color: C.taupe, margin: '0 0 16px' };
@@ -101,7 +101,7 @@ const EarthWaterFire: React.FC = () => {
   return (
     <ImmersiveRoot rootRef={rootRef}>
       <Helmet><title>Earth, Water, Fire · Teajia</title></Helmet>
-      <ImmersiveNav eyebrow="Conversations · N°03" progress={progress} />
+      <ImmersiveNav eyebrow="Conversations" progress={progress} />
       <AccentSwatches accent={accent} setAccent={setAccent} />
 
       <article style={{ position: 'relative', zIndex: 1 }}>
@@ -268,7 +268,7 @@ const EarthWaterFire: React.FC = () => {
           <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: C.taupe, margin: 0 }}>
             She fires next week, three hundred pieces, and the quiet violence of the kiln. Some will not survive. Lín Yùzhēn has made her peace with that. The fire, she says, has better taste than she does; she has only learned to trust it.
           </p>
-          <div style={colophon}>Interview by Teajia &nbsp;·&nbsp; Conversations over Tea &nbsp;·&nbsp; N°03</div>
+          <div style={colophon}>Interview by Teajia &nbsp;·&nbsp; Conversations over Tea</div>
         </section>
 
         <MoreFooter links={moreLinks} />

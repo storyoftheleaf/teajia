@@ -3,7 +3,7 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * A Tea House: Quiet Hours · N°09
+ * A Tea House: Quiet Hours
  * How a homesick cup and a stack of reclaimed timber became a tea house at the
  * far end of the world. Told by Mei and Tom Hale, Brunswick, Melbourne.
  * Ported pixel-faithfully from the tea-article-redesign mockup.
@@ -16,9 +16,9 @@ import {
 } from './immersive';
 
 const moreLinks = [
-  { to: '/read/essay', kicker: 'Essay · N°10', title: 'The Long Way to the Cup', blurb: 'From Hong Kong to Bali, learning to taste.' },
-  { to: '/read/field-notes', kicker: 'Field Notes · N°11', title: 'Two Rooms in Bali', blurb: 'Jackfruit wood, charcoal, and slow bonsai light.' },
-  { to: '/read/ritual', kicker: 'The Ritual · N°05', title: 'Seven Steeps', blurb: 'The same leaves, brewed seven ways.' },
+  { to: '/read/essay', kicker: 'Essay', title: 'The Long Way to the Cup', blurb: 'From Hong Kong to Bali, learning to taste.' },
+  { to: '/read/field-notes', kicker: 'Field Notes', title: 'Two Rooms in Bali', blurb: 'Jackfruit wood, charcoal, and slow bonsai light.' },
+  { to: '/read/ritual', kicker: 'The Ritual', title: 'Seven Steeps', blurb: 'The same leaves, brewed seven ways.' },
 ];
 
 // ─── Shared sub-styles ───────────────────────────────────────────────────────
@@ -109,7 +109,7 @@ const TeaHouseQuietHours: React.FC = () => {
   return (
     <ImmersiveRoot rootRef={rootRef}>
       <Helmet><title>Quiet Hours · Teajia</title></Helmet>
-      <ImmersiveNav eyebrow="A Tea House · N°09" progress={progress} />
+      <ImmersiveNav eyebrow="A Tea House" progress={progress} />
       <AccentSwatches accent={accent} setAccent={setAccent} />
 
       <article style={{ position: 'relative', zIndex: 1 }}>
@@ -297,7 +297,7 @@ const TeaHouseQuietHours: React.FC = () => {
             When I leave, the late sun is doing exactly what Tom built it to do, sliding gold along the grain of the bar while Mei warms a pot for a stranger who has nowhere else to be. Two people who would never have met, a hemisphere from where the tea was grown, have made a small room where time runs slower. The city waits outside, as instructed.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
-            Interview by Teajia &nbsp;·&nbsp; A Tea House &nbsp;·&nbsp; N°09
+            Interview by Teajia &nbsp;·&nbsp; A Tea House
           </div>
         </section>
 

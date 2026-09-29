@@ -3,7 +3,7 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * A Map of Mountains: The Geography of Tea, N°06
+ * A Map of Mountains: The Geography of Tea
  * An interactive terroir atlas of the great tea mountains of China.
  * Ported pixel-faithfully from the Claude Design mockup:
  *   docs/_design-import/tea-article-redesign/Atlas - A Map of Mountains.dc.html
@@ -95,9 +95,9 @@ const DetailPanel: React.FC<{ region: Region }> = ({ region: r }) => (
 
 // ─── More links ───────────────────────────────────────────────────────────────
 const moreLinks = [
-  { to: '/read/history',     kicker: 'History · N°07',       title: 'Ten Thousand Mornings',   blurb: 'Five thousand years of tea, along one line.' },
-  { to: '/read/ritual',      kicker: 'The Ritual · N°05',    title: 'Seven Steeps',             blurb: 'The same leaves, brewed seven ways.' },
-  { to: '/read/leaf-to-liquor', kicker: 'The Craft of Tea · N°01', title: 'From Leaf to Liquor', blurb: 'How a single leaf becomes the six colours of tea.' },
+  { to: '/read/history',     kicker: 'History',       title: 'Ten Thousand Mornings',   blurb: 'Five thousand years of tea, along one line.' },
+  { to: '/read/ritual',      kicker: 'The Ritual',    title: 'Seven Steeps',             blurb: 'The same leaves, brewed seven ways.' },
+  { to: '/read/leaf-to-liquor', kicker: 'The Craft of Tea', title: 'From Leaf to Liquor', blurb: 'How a single leaf becomes the six colours of tea.' },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -197,7 +197,7 @@ const AtlasMapOfMountains: React.FC = () => {
   return (
     <ImmersiveRoot rootRef={rootRef}>
       <Helmet><title>A Map of Mountains · Teajia</title></Helmet>
-      <ImmersiveNav eyebrow="Geography · N°06" progress={progress} />
+      <ImmersiveNav eyebrow="Geography" progress={progress} />
       <AccentSwatches accent={accent} setAccent={setAccent} />
 
       <article style={{ position: 'relative', zIndex: 1 }}>
@@ -208,7 +208,7 @@ const AtlasMapOfMountains: React.FC = () => {
           <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-54%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(54vw,520px)', lineHeight: 1, color: 'rgb(var(--tj-read-gold-rgb) / 0.05)', pointerEvents: 'none', userSelect: 'none' }}>山</div>
           <div style={{ position: 'relative', maxWidth: 820 }}>
             <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.42em', textTransform: 'uppercase', color: C.gold, marginBottom: 28 }}>
-              The Geography of Tea &nbsp;·&nbsp; N°06
+              The Geography of Tea
             </div>
             <h1 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(46px,9vw,108px)', lineHeight: 0.98, letterSpacing: '-0.015em', color: 'var(--tj-read-cream)', margin: 0 }}>
               A Map of <span style={{ fontStyle: 'italic', color: C.gold }}>Mountains</span>
@@ -485,7 +485,7 @@ const AtlasMapOfMountains: React.FC = () => {
             A map of tea is really a map of patience, of places remote and high enough that the modern hurry never quite arrived. Drink carefully, and the mountain comes with the cup: the cold, the cloud, the stone. Geography you can taste.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
-            Words by Teajia &nbsp;·&nbsp; The Geography of Tea &nbsp;·&nbsp; N°06
+            Words by Teajia &nbsp;·&nbsp; The Geography of Tea
           </div>
         </section>
 

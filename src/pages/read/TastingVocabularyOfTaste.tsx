@@ -3,7 +3,7 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * The Vocabulary of Taste: The Language of Tea, N°08
+ * The Vocabulary of Taste: The Language of Tea
  * A radial flavour-wheel + switchable radar chart explorer.
  * Ported pixel-faithfully from the Claude Design mockup.
  *
@@ -309,9 +309,9 @@ const RadarPolygon: React.FC<{ activeVals: number[] }> = ({ activeVals }) => {
 // ─── More links ───────────────────────────────────────────────────────────────
 
 const moreLinks = [
-  { to: '/read/ritual', kicker: 'The Ritual · N°05', title: 'Seven Steeps', blurb: 'The same leaves, brewed seven ways.' },
-  { to: '/read/atlas', kicker: 'Geography · N°06', title: 'A Map of Mountains', blurb: 'An atlas of where the great teas are born.' },
-  { to: '/read/history', kicker: 'History · N°07', title: 'Ten Thousand Mornings', blurb: 'Five thousand years of tea, along one line.' },
+  { to: '/read/ritual', kicker: 'The Ritual', title: 'Seven Steeps', blurb: 'The same leaves, brewed seven ways.' },
+  { to: '/read/atlas', kicker: 'Geography', title: 'A Map of Mountains', blurb: 'An atlas of where the great teas are born.' },
+  { to: '/read/history', kicker: 'History', title: 'Ten Thousand Mornings', blurb: 'Five thousand years of tea, along one line.' },
 ];
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -339,7 +339,7 @@ const TastingVocabularyOfTaste: React.FC = () => {
   return (
     <ImmersiveRoot rootRef={rootRef}>
       <Helmet><title>The Vocabulary of Taste · Teajia</title></Helmet>
-      <ImmersiveNav eyebrow="Tasting · N°08" progress={progress} />
+      <ImmersiveNav eyebrow="Tasting" progress={progress} />
       <AccentSwatches accent={accent} setAccent={setAccent} />
 
       <article style={{ position: 'relative', zIndex: 1 }}>
@@ -377,7 +377,7 @@ const TastingVocabularyOfTaste: React.FC = () => {
           </div>
           <div style={{ position: 'relative', maxWidth: 840 }}>
             <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.42em', textTransform: 'uppercase', color: C.gold, marginBottom: 28 }}>
-              The Language of Tea &nbsp;·&nbsp; N°08
+              The Language of Tea
             </div>
             <h1 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(42px,8vw,100px)', lineHeight: 0.99, letterSpacing: '-0.015em', color: C.cream, margin: 0 }}>
               The Vocabulary <span style={{ fontStyle: 'italic', color: C.gold }}>of Taste</span>
@@ -512,7 +512,7 @@ const TastingVocabularyOfTaste: React.FC = () => {
             No two drinkers taste quite the same cup, and no wheel can hold every word. But a shared vocabulary lets us point at the same fleeting thing and say, "there, that." The wheel is only a beginning. The fluency is yours to drink into being.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
-            Words by Teajia &nbsp;·&nbsp; The Language of Tea &nbsp;·&nbsp; N°08
+            Words by Teajia &nbsp;·&nbsp; The Language of Tea
           </div>
         </section>
 
