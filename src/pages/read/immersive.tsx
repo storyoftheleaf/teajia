@@ -184,6 +184,7 @@ export function useReveals(deps: React.DependencyList = []) {
           if (e.isIntersecting) {
             (e.target as HTMLElement).style.opacity = '1';
             (e.target as HTMLElement).style.transform = 'none';
+            (e.target as HTMLElement).style.filter = 'none';
             io.unobserve(e.target);
           }
         });
@@ -194,10 +195,26 @@ export function useReveals(deps: React.DependencyList = []) {
       root.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => {
         if (el.dataset.tjRevealed) return;
         el.dataset.tjRevealed = '1';
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(26px)';
-        el.style.transition =
-          'opacity 900ms cubic-bezier(0.22,0.61,0.36,1), transform 900ms cubic-bezier(0.22,0.61,0.36,1)';
+        // Two authored kinds, opted into with a value. A photograph "develops":
+        // it settles from a touch larger and darker, slowly, like a print coming
+        // up in the tray. Words simply appear, without moving. A bare
+        // data-reveal keeps the fade-and-lift every other read page uses.
+        const kind = el.dataset.reveal;
+        const ease = 'cubic-bezier(0.16,1,0.3,1)';
+        if (kind === 'photo') {
+          el.style.opacity = '0.35';
+          el.style.transform = 'scale(1.035)';
+          el.style.filter = 'brightness(0.55)';
+          el.style.transition = `opacity 1600ms ${ease}, transform 1800ms ${ease}, filter 1800ms ${ease}`;
+        } else if (kind === 'text') {
+          el.style.opacity = '0';
+          el.style.transition = `opacity 700ms ${ease}`;
+        } else {
+          el.style.opacity = '0';
+          el.style.transform = 'translateY(26px)';
+          el.style.transition =
+            'opacity 900ms cubic-bezier(0.22,0.61,0.36,1), transform 900ms cubic-bezier(0.22,0.61,0.36,1)';
+        }
         io.observe(el);
       });
     });
@@ -224,6 +241,7 @@ export function revealFrom(target: HTMLElement) {
       el.style.transition = 'none';
       el.style.opacity = '1';
       el.style.transform = 'none';
+      el.style.filter = 'none';
     }
   });
 }

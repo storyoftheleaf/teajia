@@ -45,7 +45,10 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   // The global nav stays visible even when a product alcove is open, the
   // alcove commerce footer (Add to Cart, etc.) is sized to clear the bar,
   // and Adrian wants the bar reachable at all times. Only the explicit
-  // `hidden` prop (e.g. cart drawer) can hide the bar.
+  // `hidden` prop (e.g. cart drawer) can hide the bar. The one exception, his
+  // call on 2026-09-29: inside a conversation piece on /read the bar slides
+  // away while the reader moves down and returns on any scroll up or at the
+  // end (useQuietChrome in read/conversation, styled by conversation.css).
   const shouldHide = hidden;
 
   const { activeAccount, upcomingEventsCount } = useAppStore();

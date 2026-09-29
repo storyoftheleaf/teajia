@@ -40,16 +40,19 @@ export type Block =
   | { kind: 'a'; id: string; text: string }
   /** A sentence set large. `follow` is the plain sentence that continues it, set on the column below. */
   | { kind: 'line'; id: string; text: string; size: LineSize; follow?: { id: string; text: string } }
-  | { kind: 'side'; shot: Shot; flip?: boolean; blocks: Block[] }
+  /** A photograph beside words. `bleed` runs the photograph to the page edge and narrows the words; use it on a few, on purpose. */
+  | { kind: 'side'; shot: Shot; flip?: boolean; bleed?: boolean; blocks: Block[] }
   | { kind: 'photos'; shots: Shot[]; aspect?: string; caption?: { id: string; text: string }; stagger?: boolean; narrow?: boolean }
-  | { kind: 'wide'; shot: Shot; aspect?: string; narrow?: boolean }
+  /** One photograph. `offset` pushes it to one edge of the page instead of the centre. */
+  | { kind: 'wide'; shot: Shot; aspect?: string; narrow?: boolean; offset?: 'left' | 'right' }
   | { kind: 'bleed'; shot: Shot }
   /** Words set on the photograph's empty space. `ink` and `accent` are measured against that one photo. */
   | { kind: 'on-photo'; id: string; shot: Shot; text: string; ink: string; accent: string; aspect: string }
   /** A large vertical Chinese word hung beside the words that explain it. */
   | { kind: 'glyph'; glyph: string; blocks: Block[] };
 
-export type Part = { title: string; blocks: Block[] };
+/** `opener` opens the part as a spread: the photograph on one side, the part and its title on the other. */
+export type Part = { title: string; opener?: Shot; blocks: Block[] };
 
 export interface ConversationSpec {
   /** Story-edit slug; the owner's edits are stored under it. */
@@ -66,13 +69,15 @@ export interface ConversationSpec {
   title: [string, string];
   dek: string;
   subject: { name: string; nameCn?: string; role: string; href?: string };
+  /** The names hung in the margin beside each turn, as a printed interview marks its speakers. */
+  speakers: { author: string; subject: string };
   author: { name: string; links: { label: string; href: string }[] };
   /** Short facts set in the cover credits, e.g. Craft, Place. */
   facts: [string, string][];
   portrait: Shot;
   /** Adrian's own opening, before the conversation starts. */
   intro: string;
-  /** Anything between the intro and part one. */
+  /** Anything between the intro and part one; usually nothing, when part one opens with a photograph. */
   opening: Block[];
   parts: Part[];
   /** The last exchange, then his closing saying, then the whole closing photograph. */
@@ -115,10 +120,21 @@ export function readingMinutes(spec: ConversationSpec): number {
 }
 
 export function photoCount(spec: ConversationSpec): number {
-  let n = 2; // the portrait and the closing photograph
+  let n = 2 + spec.parts.filter((p) => p.opener).length; // the portrait, the closing photograph, the part openers
   allBlocks(spec).forEach((b) => {
     if (b.kind === 'photos') n += b.shots.length;
     else if (b.kind === 'side' || b.kind === 'wide' || b.kind === 'bleed' || b.kind === 'on-photo') n += 1;
   });
   return n;
+}
+
+/** The answers that begin his turn: the first answer after a question. They carry his name in the margin. */
+export function turnStarts(spec: ConversationSpec): Set<string> {
+  const starts = new Set<string>();
+  let last: 'q' | 'a' | null = null;
+  allBlocks(spec).forEach((b) => {
+    if (b.kind === 'q') last = 'q';
+    else if (b.kind === 'a') { if (last === 'q') starts.add(b.id); last = 'a'; }
+  });
+  return starts;
 }

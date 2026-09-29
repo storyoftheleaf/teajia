@@ -38,6 +38,8 @@ import type {
   ContributorTeaSelectionRef,
 } from '../types';
 import { mediaUrl } from '../lib/mediaUrl';
+import { isReadPathPublic } from './read/articleLive';
+import storyPeople from './read/storyPeople.generated.json';
 
 // /people/:slug. A creator's public page, phone first: the page that goes in
 // an Instagram or WeChat bio. Built to the "Profile" board of the Creator
@@ -104,7 +106,13 @@ function wordRows(data: ContributorProfile): WordRow[] {
       title: article.title,
       dek: [article.subtitle, article.quote_anchor ? passage : mention].filter(Boolean).join(' ') || null,
     }));
-  return [...authored, ...quoted, ...featured];
+  // The Read stories this person appears in, found from the stories' own
+  // links to their page (scripts/read-story-people.mjs), so nobody has to tag
+  // them by hand. Only stories a visitor can open are listed.
+  const stories = (storyPeople as Array<{ href: string; title: string; dek: string | null; people: string[] }>)
+    .filter(story => story.people.includes(data.id) && isReadPathPublic(story.href))
+    .map((story): WordRow => ({ key: `read-${story.href}`, href: story.href, title: story.title, dek: story.dek }));
+  return [...stories, ...authored, ...quoted, ...featured];
 }
 
 // ── The teas ──────────────────────────────────────────────────────────────────
@@ -258,6 +266,8 @@ export default function ContributorProfilePage() {
   const cells = [
     rows.length > 0 ? { id: 'words', label: 'Words', href: '#words' } : null,
     hasTeas ? { id: 'teas', label: 'Teas', href: '#teas' } : null,
+    // Contact and Pay sit at the top so a visitor can reach or pay them without scrolling.
+    data.links.length > 0 ? { id: 'contact', label: 'Contact', href: '#reach' } : null,
     canPay ? { id: 'pay', label: 'Pay', href: payHref, route: true } : null,
   ].filter((cell): cell is NonNullable<typeof cell> => cell !== null);
 
