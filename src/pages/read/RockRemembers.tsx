@@ -92,7 +92,7 @@ const RockRemembers: React.FC = () => {
   return (
     <ImmersiveRoot rootRef={rootRef}>
       <Helmet><title>The Rock Remembers · Teajia</title></Helmet>
-      <ImmersiveNav eyebrow="Conversations" progress={progress} />
+      <ImmersiveNav progress={progress} />
       <AccentSwatches accent={accent} setAccent={setAccent} />
 
       <article style={{ position: 'relative', zIndex: 1 }}>

@@ -320,7 +320,9 @@ export const ImmersiveRoot: React.FC<{ children: React.ReactNode; rootRef?: Reac
 
 // ─── Nav bar (single-article variant) ────────────────────────────────────────
 export const ImmersiveNav: React.FC<{
-  eyebrow: string; // e.g. "Conversations"
+  // The small label at the right of the bar. Optional: the conversation
+  // pieces dropped theirs (2026-09-29), the cover already names the series.
+  eyebrow?: string;
   progress: number;
   backTo?: string;
 }> = ({ eyebrow, progress, backTo = '/read' }) => (
@@ -348,9 +350,11 @@ export const ImmersiveNav: React.FC<{
         Teajia
       </span>
     </Link>
-    <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim, whiteSpace: 'nowrap' }}>
-      {eyebrow}
-    </span>
+    {eyebrow && (
+      <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim, whiteSpace: 'nowrap' }}>
+        {eyebrow}
+      </span>
+    )}
     <ProgressTrack progress={progress} />
   </nav>
 );
