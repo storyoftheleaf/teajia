@@ -1319,10 +1319,11 @@ export type ArticleTextEffect =
 
 export type ArticleBlock =
   // Original 6, extended:
-  | { type: 'intro'; text: string; textEffect?: ArticleTextEffect }
-  | { type: 'paragraph'; variant?: ParagraphVariant; text: string; textEffect?: ArticleTextEffect }
+  // `noTerms` opts a prose block out of tea-term pop-ups (src/lib/glossaryTerms.ts).
+  | { type: 'intro'; text: string; textEffect?: ArticleTextEffect; noTerms?: boolean }
+  | { type: 'paragraph'; variant?: ParagraphVariant; text: string; textEffect?: ArticleTextEffect; noTerms?: boolean }
   | { type: 'section_heading'; text: string; textEffect?: ArticleTextEffect }
-  | { type: 'quote'; variant?: QuoteVariant; text: string; attribution?: string }
+  | { type: 'quote'; variant?: QuoteVariant; text: string; attribution?: string; noTerms?: boolean }
   | { type: 'image'; variant?: ImageVariant; url?: string; images?: string[]; description: string; caption?: string }
   | { type: 'divider' }
   // Magazine page kinds:
@@ -1330,7 +1331,7 @@ export type ArticleBlock =
   | { type: 'chapter_divider'; variant?: ChapterVariant; number?: string; title: string; subtitle?: string }
   | { type: 'qa_pair'; items: Array<{ q: string; a: string }> }
   | { type: 'pull_sidebar'; side: 'left' | 'right' | 'image'; body: string; sidebar: string; image?: string }
-  | { type: 'epilogue'; text: string; signature?: string }
+  | { type: 'epilogue'; text: string; signature?: string; noTerms?: boolean }
   | { type: 'stat'; value: string; label: string; context?: string }
   | { type: 'definition'; term: string; body: string; etymology?: string }
   | { type: 'recipe'; title: string; ingredients: string[]; steps: string[]; pairing?: string }
