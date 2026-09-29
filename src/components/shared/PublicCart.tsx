@@ -216,7 +216,6 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       </select>}
     </div>
     <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto tea-card-scroll px-4 pt-1 pb-6">
-      {checkoutError && <p role="alert" className={`${T.bodyLight} text-tea-text bg-tea-elevated p-3 mb-4`}>{checkoutError}</p>}
       {placedOrder ? <section className="space-y-5" aria-label="Order request confirmation">
         <div role="status" className="space-y-2">
           <p className={`${T.body} text-tea-text`}>Your request is saved with {storeName}.</p>
@@ -297,6 +296,10 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
         cart is open, so reserving its 80px left a band of empty panel under
         the button. The panel itself keeps the safe-area inset. */}
     <div className="bg-tea-surface shrink-0"><div className="px-4 py-3 space-y-2">
+      {/* A failed save is said beside the button that was pressed. It used to
+          print at the top of the scrolling list, which is off screen by the
+          time a reader reaches the button, so pressing it looked like nothing. */}
+      {checkoutError && <p role="alert" className="font-body text-ui-13 leading-snug text-tea-text bg-tea-elevated px-3 py-2">{checkoutError}</p>}
       {placedOrder ? placedOrder.handoff && channels.whatsapp
         ? <a className={`checkout-whatsapp-action cta-solid ${T.label}`} href={buildWhatsAppUrl(whatsappNumber!, placedOrder.message)} target="_blank" rel="noopener noreferrer">Continue in WhatsApp</a>
         : <Button fullWidth onClick={onClose}>Continue browsing</Button> : cart.length > 0 ? <>
