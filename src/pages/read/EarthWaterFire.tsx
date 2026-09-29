@@ -108,7 +108,6 @@ const EarthWaterFire: React.FC = () => {
         {/* COVER */}
         <header className="tj-cover-dissolve" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,360px),1fr))', alignItems: 'stretch', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)', minHeight: '90vh' }}>
           <div className="tj-cover-text" style={{ position: 'relative', order: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(36px,6vw,84px) clamp(24px,5vw,72px)' }}>
-            <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.34em', textTransform: 'uppercase', color: C.gold, marginBottom: 28 }}>Conversations over Tea</div>
             <h1 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(44px,6.6vw,88px)', lineHeight: 1.0, letterSpacing: '-0.015em', color: C.cream, margin: 0 }}>
               Earth, Water,<br /><span style={{ fontStyle: 'italic', color: C.gold }}>Fire</span>
             </h1>
@@ -268,7 +267,7 @@ const EarthWaterFire: React.FC = () => {
           <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: C.taupe, margin: 0 }}>
             She fires next week, three hundred pieces, and the quiet violence of the kiln. Some will not survive. Lín Yùzhēn has made her peace with that. The fire, she says, has better taste than she does; she has only learned to trust it.
           </p>
-          <div style={colophon}>Interview by Teajia &nbsp;·&nbsp; Conversations over Tea</div>
+          <div style={colophon}>Interview by Teajia</div>
         </section>
 
         <MoreFooter links={moreLinks} />

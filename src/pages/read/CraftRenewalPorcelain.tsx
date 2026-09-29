@@ -179,7 +179,6 @@ const CraftRenewalPorcelain: React.FC = () => {
           {/* COVER: portrait left, title right; on a phone the title comes first */}
           <header className="tj-cover-dissolve" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,340px),1fr))', alignItems: 'stretch', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)' }}>
             <div className="tj-cover-text" style={{ order: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(36px,6vw,84px) clamp(24px,5vw,72px)' }}>
-              <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.34em', textTransform: 'uppercase', color: C.gold, marginBottom: 28 }}>Conversations over Tea</div>
               <h1 style={{ fontFamily: F.display, fontWeight: 300, fontSize: 'clamp(52px,8vw,112px)', lineHeight: 0.94, letterSpacing: '-0.02em', color: C.cream, margin: 0 }}>
                 <EditableText field="title-1" as="span">Porcelain</EditableText><br />
                 <span style={{ fontStyle: 'italic', fontWeight: 400, color: C.gold }}><EditableText field="title-2" as="span">and Tea</EditableText></span>
@@ -371,7 +370,7 @@ const CraftRenewalPorcelain: React.FC = () => {
           <FullBleed shot={S.lastBowl} />
 
           <div style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2, padding: '8px 24px 80px', textAlign: 'center' }}>
-            Interview by Adrian Rasmussen &nbsp;·&nbsp; Wuyi &nbsp;·&nbsp; Conversations over Tea
+            Interview by Adrian Rasmussen &nbsp;·&nbsp; Wuyi
           </div>
 
           <MoreFooter links={moreLinks} />

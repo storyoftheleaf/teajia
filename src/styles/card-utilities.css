@@ -4889,7 +4889,7 @@ body.cart-panel-open .commerce-dock {
     order: 2 !important;
     position: relative;
     z-index: 1;
-    margin-top: -150px;
+    margin-top: -110px;
     padding-top: 0 !important;
   }
 }
