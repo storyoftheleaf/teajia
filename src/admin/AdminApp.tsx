@@ -70,6 +70,7 @@ const DraftsView = lazy(() => import('./components/DraftsView').then((m) => ({ d
 import { IntakeWorkspace } from './views/IntakeWorkspace';
 import { CatalogView } from './views/CatalogView';
 import { PurchaseOrdersPage } from './views/PurchaseOrdersPage';
+import PeopleAuditView from './components/PeopleAuditView';
 const TeaCompass = lazy(() => import('../components/TeaCompass'));
 import type { CompassMode } from '../components/TeaCompass';
 import { VendorProfileView } from './views/VendorProfileView';
@@ -79,7 +80,6 @@ import { MovementStockView } from './views/MovementStockView';
 import { MagazineView } from './views/MagazineView';
 import { ContributorsView } from './views/ContributorsView';
 import { CollectionsView } from './views/CollectionsView';
-import { ContactTagsView } from './views/ContactTagsView';
 import { CollectionEditView } from './views/CollectionEditView';
 import { InboundCollectionView } from './views/InboundCollectionView';
 import { CatalogBrowse } from './views/CatalogBrowse';
@@ -556,7 +556,8 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="activity-logs" element={<Navigate to="/admin/activity?tab=log" replace />} />
               <Route path="people" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PeopleView userRole={userRole || 'user'} /></PageTransition></ProtectedRoute>} />
               <Route path="people/:customerId" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CustomerProfilePage /></PageTransition></ProtectedRoute>} />
-              <Route path="contact-tags" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ContactTagsView /></PageTransition></ProtectedRoute>} />
+              {/* Tags are one tab of People; the standalone page was a second door to the same screen. */}
+              <Route path="contact-tags" element={<Navigate to="/admin/people?tab=tags" replace />} />
 
               {/* Management: admin, owner. Canonical route is /admin/stock;
                   /admin/inventory redirects to it (query string preserved for ?panel= deep links). */}
@@ -587,7 +588,10 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="dashboard" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
               <Route path="vendors/:vendorId" element={<ProtectedRoute hasAccess={canManageInventory} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><VendorProfileView /></PageTransition></ProtectedRoute>} />
               <Route path="products/:id/story" element={<ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ProductStoryView /></PageTransition></ProtectedRoute>} />
-              <Route path="purchase-orders" element={<Navigate to="/admin/people?tab=purchase-orders" replace />} />
+              {/* Purchases live in Curate (bringing tea in) and the audit in Settings
+                  since 2026-09-29; both were People tabs. Same gates as before. */}
+              <Route path="purchase-orders" element={<ProtectedRoute hasAccess={isOwnerTier || hasStockBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PurchaseOrdersPage /></PageTransition></ProtectedRoute>} />
+              <Route path="audit" element={<ProtectedRoute hasAccess={isOwnerTier || hasMembersBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PeopleAuditView /></PageTransition></ProtectedRoute>} />
               <Route path="team" element={<Navigate to="/admin/access" replace />} />
               {/* The Manage list calls this room Members, so /admin/members is a
                   natural address to type. The page lives at /admin/access. */}

@@ -733,7 +733,7 @@ export const ImageManager = ({ product, onUpdate }: {
   const handleEnhance = async (slotIndex: number) => {
     setOpenMenu(null);
     if (!hasOpenAIKey) {
-      showToast('Add an OpenAI API key in Account Settings → Integrations to enable AI enhance.', 'error');
+      showToast('Add an OpenAI API key in Settings → Integrations to enable AI enhance.', 'error');
       return;
     }
     setEnhancingSlot(slotIndex);

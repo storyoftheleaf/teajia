@@ -61,7 +61,7 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
 
   return <>
     <header className="sticky top-0 z-sticky flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-tea-border bg-tea-bg/90 px-4 py-3 backdrop-blur-md md:px-6 lg:px-10">
-      <h1 className={`${T.h2} text-tea-text`}>Dashboard</h1>
+      <h1 className={`${T.h2} text-tea-text`}>Today</h1>
       <button type="button" onClick={refresh} disabled={refreshing} className={`tap-target flex items-center gap-2 text-tea-text-sec disabled:opacity-50 ${T.link}`}><RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} aria-hidden="true" />Refresh</button>
     </header>
     <div className="mx-auto max-w-7xl space-y-10 px-4 pt-7 text-tea-text pb-nav-gap-lg md:px-6 lg:px-10">

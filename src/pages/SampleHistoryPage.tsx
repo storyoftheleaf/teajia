@@ -23,43 +23,24 @@ function statusTone(status: string): string {
   return 'text-tea-text-sec';
 }
 
-export default function SampleHistoryPage() {
-  const navigate = useNavigate();
+/**
+ * The samples sent to this person, request to arrival to tasting. On its own
+ * page, and since 2026-09-29 also inside "orders" as "Samples sent to you",
+ * where the Your Table tile now leads. `embedded` stays silent when empty.
+ */
+export function SampleHistorySection({ embedded = false }: { embedded?: boolean }) {
   const authed = hasToken();
-
-  useEffect(() => {
-    if (!authed) {
-      navigate(`/signin?returnTo=${encodeURIComponent('/account/samples')}`, { replace: true });
-    }
-  }, [authed, navigate]);
-
   const { data, isLoading, isError } = useQuery({
     queryKey: ['me', 'samples'],
     queryFn: () => api.me.samples(),
     enabled: authed,
   });
-
-  if (!authed) return null;
-
   const samples = data?.samples ?? [];
+  if (embedded && (isLoading || isError || samples.length === 0)) return null;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-8 pb-nav-gap-lg animate-[fadeIn_0.5s_ease-out]">
-      <button
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-8"
-      >
-        <Icons.Back className="w-4 h-4" />
-        <span className="text-ui-12 uppercase tracking-[0.15em]">Back</span>
-      </button>
-
-      <header className="mb-8 max-w-xl">
-        <h1 className="font-display text-ui-16 text-tea-text mb-2">Your samples</h1>
-        <p className="text-ui-16 text-tea-text-sec">
-          Follow each sample from request to arrival, then continue into its tasting record.
-        </p>
-      </header>
-
+    <section aria-label="Samples sent to you" data-testid="sample-history">
+      {embedded && <h2 className="font-display text-ui-20 text-tea-text mb-4">Samples sent to you</h2>}
       {isLoading && (
         <div className="space-y-3" aria-label="Loading samples">
           {[0, 1, 2].map(i => (
@@ -132,6 +113,40 @@ export default function SampleHistoryPage() {
           ))}
         </ul>
       )}
+    </section>
+  );
+}
+
+export default function SampleHistoryPage() {
+  const navigate = useNavigate();
+  const authed = hasToken();
+
+  useEffect(() => {
+    if (!authed) {
+      navigate(`/signin?returnTo=${encodeURIComponent('/account/samples')}`, { replace: true });
+    }
+  }, [authed, navigate]);
+
+  if (!authed) return null;
+
+  return (
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-8 pb-nav-gap-lg animate-[fadeIn_0.5s_ease-out]">
+      <button
+        onClick={() => navigate(-1)}
+        className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-8"
+      >
+        <Icons.Back className="w-4 h-4" />
+        <span className="text-ui-12 uppercase tracking-[0.15em]">Back</span>
+      </button>
+
+      <header className="mb-8 max-w-xl">
+        <h1 className="font-display text-ui-16 text-tea-text mb-2">Your samples</h1>
+        <p className="text-ui-16 text-tea-text-sec">
+          Follow each sample from request to arrival, then continue into its tasting record.
+        </p>
+      </header>
+
+      <SampleHistorySection />
     </div>
   );
 }

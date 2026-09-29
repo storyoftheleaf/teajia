@@ -11,19 +11,19 @@ export const ADMIN_BAR_TABS: Record<AdminBarRole, [AdminTab[], AdminTab[]]> = {
   shop: [
     [{ id: 'compass',   label: 'curate',  path: '/admin/compass' },
      { id: 'inventory', label: 'stock',   path: '/admin/stock' }],
-    [{ id: 'orders',    label: 'orders',  path: '/admin/activity' },
-     { id: 'events',    label: 'events',  path: '/admin/events' }],
+    [{ id: 'orders',    label: 'sales',   path: '/admin/activity' },
+     { id: 'events',    label: 'sessions', path: '/admin/events' }],
   ],
   staff: [
     [{ id: 'compass', label: 'curate',  path: '/admin/compass' },
-     { id: 'orders',  label: 'orders',  path: '/admin/activity' }],
-    [{ id: 'events',  label: 'events',  path: '/admin/events' },
+     { id: 'orders',  label: 'sales',   path: '/admin/activity' }],
+    [{ id: 'events',  label: 'sessions', path: '/admin/events' },
      { id: 'people',  label: 'people',  path: '/admin/people' }],
   ],
   member: [
     [{ id: 'compass', label: 'curate',  path: '/admin/compass' },
-     { id: 'samples', label: 'samples', path: '/admin/samples' }],
-    [{ id: 'capture', label: 'capture', path: '/admin/capture' },
-     { id: 'events',  label: 'events',  path: '/admin/events' }],
+     { id: 'samples', label: 'samples', path: '/admin/compass?sampleOrder=manage' }],
+    [{ id: 'capture', label: 'drafts',  path: '/admin/capture' },
+     { id: 'events',  label: 'sessions', path: '/admin/events' }],
   ],
 };

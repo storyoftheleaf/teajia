@@ -5,7 +5,8 @@ import { BottomSheet, SheetOption } from '../../components/shared/BottomSheet';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Download,
-  AlertTriangle, Archive, ArrowUpDown, ArrowUp, ArrowDown, Layers, MoreHorizontal, Check, X as XIcon, Star, Sparkles, RefreshCw, ChevronDown, ChevronRight, MapPin, Search, Leaf, Image as ImageIcon, History, SlidersHorizontal
+  AlertTriangle, Archive, ArrowUpDown, ArrowUp, ArrowDown, Layers, MoreHorizontal, Check, X as XIcon, Star, Sparkles, RefreshCw, ChevronDown, ChevronRight, MapPin, Search, Leaf, Image as ImageIcon, History, SlidersHorizontal,
+  Pencil, BookOpen,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Papa from 'papaparse';
@@ -415,7 +416,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   // Feature 2: Column Show/Hide popover
   const [showColumnsPopover, setShowColumnsPopover] = useState(false);
-  const [showVendorDropdown, setShowVendorDropdown] = useState(false);
 
   // Feature 3: Row Grouping collapsed state. Lifecycle folds belong to the
   // inventory address so reload, back, and shared working views retain shape.
@@ -2012,15 +2012,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     </AnchoredMenu>
   );
 
-  const vendorMenu = (
-    <AnchoredMenu align="right" width={208} open={showVendorDropdown} onOpenChange={setShowVendorDropdown} trigger={(props) => <button {...props} className={chromeBtn} aria-label="Filter by vendor">Vendor</button>}>
-      {/* "All vendors" clears the vendor, and only the vendor. Choosing one sets
-          the vendor, and only the vendor. Both used to rewrite the whole
-          address, taking the open panel, the receipt and the wisdom filter. */}
-      {(close) => <><button role="menuitem" onClick={() => { clearFilter('vendor'); close(); }} className="w-full px-3 py-2 text-left text-ui-11 text-tea-text-sec">All vendors</button>{[...new Set(localProducts.map(p => p.vendor).filter(Boolean))].sort().map(vendor => <button key={vendor} role="menuitem" onClick={() => { setFilter('vendor', vendor!); close(); }} className="w-full px-3 py-2 text-left text-ui-11 text-tea-text-sec">{vendor}</button>)}</>}
-    </AnchoredMenu>
-  );
-
   // Mobile: price, grouping, and sort fold behind a single Adjust icon that
   // opens a bottom sheet: thumb-reachable, and it can't overflow the viewport
   // the way a top-anchored dropdown of ~17 rows did.
@@ -2205,12 +2196,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     {/* find, mobile icon (desktop uses the field above; md:!hidden beats .tap-target) */}
                     <button ref={isMobile ? mobileSearchTriggerRef : undefined} type="button" onClick={() => setMobileSearchExpanded(true)} aria-label="Search inventory" className="tap-target md:!hidden text-tea-text-sec hover:text-tea-text"><Search size={18} /></button>
 
-                    {/* desktop chrome */}
-                    <div className="hidden md:flex items-center gap-3">
-                      <button type="button" onClick={() => setGlossaryMode(!glossaryMode)} aria-pressed={glossaryMode} className={chromeBtn}>Glossary</button>
-                      {vendorMenu}
-                      {!isEditMode && <button type="button" onClick={() => setIsEditMode(true)} aria-pressed={false} className={chromeBtn}>Edit</button>}
-                    </div>
+                    {/* Glossary, Vendor and Edit left this row for the More menu
+                        (2026-09-29, todo/plans/archive/manage-regroup.md): the row holds
+                        what you reach for every visit. A vendor is still one
+                        search away, since search suggests sources as you type. */}
 
                     {/* Mobile keeps Add in the action sheet so this row retains
                         six non-overlapping 44px targets at 390px. */}
@@ -2281,6 +2270,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 tabIndex={-1}
                 ref={(el) => el?.focus()}
               >
+                  {!isEditMode && (
+                    <button onClick={() => { setIsEditMode(true); setShowOptions(false); }} className="px-3 py-2 text-left text-ui-11 text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
+                      <Pencil size={13} /> Edit table
+                    </button>
+                  )}
+                  <button onClick={() => { setGlossaryMode(!glossaryMode); setShowOptions(false); }} aria-pressed={glossaryMode} className={`px-3 py-2 text-left text-ui-11 hover:bg-tea-bg flex items-center gap-2 transition-colors ${glossaryMode ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>
+                      <BookOpen size={13} /> Glossary view
+                  </button>
+                  <div className="h-px bg-tea-border"></div>
                   <button
                       onClick={() => { setFilterType(filterType === 'Pending' ? 'All' : 'Pending'); setShowOptions(false); }}
                       className={`px-3 py-2 text-left text-ui-11 flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Pending' ? 'text-tea-gold' : 'text-tea-text-sec'}`}

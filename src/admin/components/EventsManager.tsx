@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Calendar, Copy, Bell, Search, X, MapPin } from 'lucide-react';
+import { Plus, Calendar, Copy, Bell, Search, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useEvents } from '../hooks/useEventData';
 import { useToast } from './Toast';
@@ -125,9 +125,9 @@ export const EventsManager: React.FC = () => {
     <>
     {/* Sticky header, title + subtitle counts */}
     <div className="sticky top-0 z-dropdown bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0">
-      <div className="px-4 md:px-6 lg:px-10 max-w-5xl mx-auto pt-4 pb-3 flex items-end justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <h1 className="h2 text-tea-text">Events</h1>
+      <div className="px-4 md:px-6 lg:px-10 max-w-5xl mx-auto pt-4 pb-3 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+        <div className="flex-1 min-w-[15rem]">
+          <h1 className="h2 text-tea-text">Sessions</h1>
           <div className="label-caps text-tea-text-dim mt-1">
             UPCOMING · {upcomingCount} · PAST · {pastCount}
             {activeMembership && (
@@ -136,11 +136,18 @@ export const EventsManager: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          {/* Tastings and Venues had no other door: venues showed on desktop
+              only, and tastings only in the command palette. */}
+          <button
+            onClick={() => navigate('/admin/tasting-events')}
+            className="tap-target inline-flex items-center px-2 rounded-md text-xs text-tea-text-sec hover:text-tea-text transition-colors"
+          >
+            Tastings
+          </button>
           <button
             onClick={() => navigate('/admin/venues')}
-            className="tap-target hidden md:inline-flex items-center gap-1.5 px-2.5 rounded-md text-xs text-tea-text-sec hover:text-tea-text transition-colors"
+            className="tap-target inline-flex items-center px-2 rounded-md text-xs text-tea-text-sec hover:text-tea-text transition-colors"
           >
-            <MapPin size={13} />
             Venues
           </button>
           <button
@@ -148,7 +155,7 @@ export const EventsManager: React.FC = () => {
             className="tap-target inline-flex items-center gap-1.5 px-3 rounded-md cta-solid text-xs font-semibold transition-colors"
           >
             <Plus size={13} />
-            <span>New Event</span>
+            <span>New session</span>
           </button>
         </div>
       </div>
@@ -229,7 +236,7 @@ export const EventsManager: React.FC = () => {
             className="tap-target inline-flex items-center gap-1.5 px-3 rounded-md cta-solid text-xs font-semibold transition-colors"
           >
             <Plus size={13} />
-            Create First Event
+            Create first session
           </button>
         </div>
       ) : filteredEvents.length === 0 ? (

@@ -328,22 +328,22 @@ test.describe('Account Panel — mobile audit', () => {
 
     const orders = page.getByRole('button', { name: /^manage/i });
     await expect(orders).toBeVisible();
-    await page.getByRole('button', { name: /switch account/i }).click();
+    await page.getByRole('button', { name: /switch table/i }).click();
     await page.getByRole('option', { name: /Member Table/i }).click();
 
     await expect(orders).toHaveCount(0);
     releaseSwitch?.();
-    await expect(page.getByRole('button', { name: /switch account.*Member Table/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /switch table.*Member Table/i })).toBeVisible();
     await expect(orders).toHaveCount(0);
 
-    await page.getByRole('button', { name: /switch account/i }).click();
+    await page.getByRole('button', { name: /switch table/i }).click();
     await page.getByRole('option', { name: /Owner Table/i }).click();
-    await expect(page.getByRole('button', { name: /switch account.*Owner Table/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /switch table.*Owner Table/i })).toBeVisible();
     await expect(orders).toBeVisible();
 
-    await page.getByRole('button', { name: /switch account/i }).click();
+    await page.getByRole('button', { name: /switch table/i }).click();
     await page.getByRole('option', { name: /Member Table/i }).click();
-    await expect(page.getByRole('button', { name: /switch account.*Member Table/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /switch table.*Member Table/i })).toBeVisible();
     await expect(orders).toBeVisible();
   });
 });
@@ -414,7 +414,7 @@ const PUBLIC_ROUTES = [
   ['/account/samples',    'Samples'],
   ['/account/collections','Shared Collections'],
   ['/account/journey',    'Account Journey'],
-  ['/account/settings',   'Account Settings'],
+  ['/account/settings',   'Profile'],
   ['/shop',               'Shop'],
   ['/read',               'Read'],
   ['/community',          'Community'],
@@ -505,16 +505,28 @@ test.describe('Tea Master profile routes — mobile', () => {
     await expect(page.getByText('Changes remain private until approved.')).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Public favorites' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Payment methods' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Account settings' })).toHaveAttribute('href', '/account/settings');
+    await expect(page.getByRole('link', { name: 'Name, sign-in and appearance' })).toHaveAttribute('href', '/account/settings');
     await shot(page, 'profile_management');
     await assertPageHealthy(page, 'Tea Master profile management', []);
   });
 
-  test('account settings links back to the Tea Master profile', async ({ page }) => {
+  test('the profile page links to the public profile only for someone who has one', async ({ page }) => {
     await injectAuth(page);
+    let hasProfile = true;
+    await page.route('**/api/me/public-profile', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(hasProfile ? { profile: { id: 'mei-lin', slug: 'mei-lin', display_name: 'Mei Lin', associations: [], links: [], languages: [] } } : { profile: null, can_create: false }),
+    }));
     await goto(page, '/account/settings');
+    await expect(page.getByRole('heading', { name: 'Profile', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Public profile and payment' })).toHaveAttribute('href', '/account/profile');
 
-    await expect(page.getByRole('link', { name: 'Tea Master profile' })).toHaveAttribute('href', '/account/profile');
+    // A customer with no Tea Master identity is not sent to a page that refuses them.
+    hasProfile = false;
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Profile', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Public profile and payment' })).toHaveCount(0);
   });
 
   test('profile management reports favorites and payment failures instead of false empty states', async ({ page }) => {

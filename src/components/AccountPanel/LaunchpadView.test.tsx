@@ -43,22 +43,26 @@ const render = (tier: { hasManageRoom?: boolean; isPlatformOwner?: boolean } = {
 // Your Table is the person's room. Every tile is theirs, and the shop is one
 // door. Until 2026-09-22 nine of an owner's seventeen tiles opened the Manage
 // area under words the Manage column did not use, while the person's own
-// orders, samples, journey and account pages had no door anywhere.
+// orders, samples, journey and account pages had no door anywhere. On
+// 2026-09-29 samples moved inside orders, shared collections inside remember,
+// and account inside profile, so each thing has one tile.
 describe('Launchpad: the person\'s room', () => {
   it('gives everyone their own pages, whoever they are', () => {
     for (const html of [render(), render({ hasManageRoom: true })]) {
       // Tiles are buttons that navigate, so the markup carries the words, not hrefs.
-      for (const verb of ['orders', 'samples', 'journey', 'account', 'collections']) {
+      for (const verb of ['journal', 'remember', 'orders', 'journey', 'profile']) {
         expect(html).toContain('>' + verb + '<');
       }
-      expect(html).toContain('what you have bought');
-      expect(html).toContain('shared with you');
+      for (const gone of ['samples', 'account', 'collections', 'steep']) {
+        expect(html).not.toContain('>' + gone + '<');
+      }
+      expect(html).toContain('bought &amp; samples sent');
     }
   });
 
   it('never calls the shop\'s sales the person\'s orders', () => {
     const html = render({ hasManageRoom: true });
-    expect(html).toContain('what you have bought');
+    expect(html).toContain('bought &amp; samples sent');
     expect(html).not.toContain('sales &amp; fulfillment');
   });
 
@@ -79,15 +83,17 @@ describe('Launchpad: the person\'s room', () => {
   });
 
   it('keeps the platform tools for platform staff only', () => {
-    expect(render({ isPlatformOwner: true })).toContain('>walk-throughs<');
-    expect(render({ hasManageRoom: true })).not.toContain('>walk-throughs<');
+    // The walk-throughs live inside library since 2026-09-29.
+    expect(render({ isPlatformOwner: true })).toContain('>library<');
+    expect(render({ isPlatformOwner: true })).not.toContain('>walk-throughs<');
+    expect(render({ hasManageRoom: true })).not.toContain('>library<');
   });
 });
 
 // ── What needs you ────────────────────────────────────────────────────────
 // The judgement this surface has to get right: only an operator receives the
-// queue, it is ordered by how long each thing has waited rather than grouped
-// by kind, and nothing waiting is a calm sentence rather than a zero.
+// queue, it is spoken as one sentence with one line to Today (where the list
+// lives), and nothing waiting is a calm sentence rather than a zero.
 
 const HOUR = 3600000;
 const at = (hoursAgo: number) => new Date(Date.now() - hoursAgo * HOUR).toISOString();
@@ -143,21 +149,11 @@ describe('Launchpad: what needs you', () => {
     expect(html).not.toContain('nobody has answered');
   });
 
-  it('orders by how long each thing has waited, not by kind', () => {
+  it('counts the shop once: one line to Today, not a second copy of its list', () => {
     const html = renderWaiting(waitingFixture, { isOwner: true, canSell: true });
-    const oldestFirst = html.indexOf('Yusuf asked about the Dancong');
-    const middle = html.indexOf('TJ-1042 for Hana');
-    const newest = html.indexOf('Mira reported a transfer');
-    expect(oldestFirst).toBeGreaterThan(-1);
-    expect(oldestFirst).toBeLessThan(middle);
-    expect(middle).toBeLessThan(newest);
-  });
-
-  it('says what kind of waiting each row is, so a row reads without opening it', () => {
-    const html = renderWaiting(waitingFixture, { isOwner: true, canSell: true });
-    expect(html).toContain('nobody has answered');
-    expect(html).toContain('payment reported, unchecked');
-    expect(html).toContain('paid, not sent');
+    expect(html).toContain('open them in today.');
+    expect(html).not.toContain('Yusuf asked about the Dancong');
+    expect(html).not.toContain('nobody has answered');
   });
 
   it('speaks the queue in the frontispiece as a sentence, not a count', () => {

@@ -136,7 +136,7 @@ async function openLocationSwitcher(page: Page) {
   // its search and zones, which is what these tests are about.)
   // The tile carries its verb and its hint as separate lines, so match on
   // both rather than on one assembled name. The count is what keeps this clear
-  // of "Switch account" and "Switch to light mode".
+  // of "Switch table" and "Switch to light mode".
   const row = page.getByRole('button')
     .filter({ hasText: /^switch/i })
     .filter({ hasText: /\d+ tables?/i })

@@ -48,13 +48,14 @@ const REASON_LABELS: Record<string, string> = {
 const headerCellClass = (align: 'left' | 'right' | 'center' = 'left') =>
   `px-4 py-2 border-b border-tea-border font-serif text-ui-11 uppercase tracking-display font-normal text-tea-text-sec text-${align}`;
 
-export const RecordsView = ({ products, initialTab }: { products: Product[]; initialTab?: 'archive' | 'log' | 'ledger' }) => {
+export const RecordsView = ({ products, initialTab, showTabs = false }: { products: Product[]; initialTab?: 'archive' | 'log' | 'ledger'; showTabs?: boolean }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const mappedInitial = initialTab === 'log' ? 'logs' : (initialTab || 'archive');
   // When hosted by ActivityView (initialTab provided), hide redundant internal tabs
-  const isHosted = !!initialTab;
+  // unless the host asks for them, as Sales' single Ledger tab does.
+  const isHosted = !!initialTab && !showTabs;
   const [activeTab, setActiveTab] = useState<'archive' | 'logs' | 'ledger'>(mappedInitial as any);
   const soldOutProducts = products.filter(p => p.status === 'Sold Out');
 

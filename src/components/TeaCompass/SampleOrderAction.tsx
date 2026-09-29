@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { FlaskConical, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useSampleCartStore } from '../../samples/sampleCartStore';
 import SampleSetCreator from '../../samples/SampleSetCreator';
 import { SampleCartPanel } from '../samples/SampleCartPanel';
@@ -71,11 +71,13 @@ export const SampleOrderAction: React.FC<SampleOrderActionProps> = ({
         type="button"
         onClick={() => onOpenChange(true)}
         aria-label={`Sample list (${count})`}
-        className="curate-compact-target shrink-0 whitespace-nowrap text-tea-text-sec transition-colors hover:text-tea-text"
+        className="curate-compact-target min-w-0 flex-1 shrink-0 whitespace-nowrap text-tea-text-sec transition-colors hover:text-tea-text lg:flex-none"
         data-curate-compact-target
       >
-        <span className="curate-compact-chrome whitespace-nowrap border-l border-tea-border px-2 text-ui-12" data-curate-compact-chrome>
-          <FlaskConical size={14} />
+        {/* Styled as the fourth screen beside Source, Library and Ledger
+            (2026-09-29, todo/plans/archive/manage-regroup.md): it opens the samples
+            workspace, and reads as a peer rather than a separate button. */}
+        <span className="curate-compact-chrome w-full whitespace-nowrap border-b border-transparent text-ui-12 font-medium lg:px-3" data-curate-compact-chrome>
           <span>Samples</span>
           <span className="tabular-nums text-tea-text-dim">({count})</span>
         </span>
