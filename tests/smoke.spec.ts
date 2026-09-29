@@ -41,7 +41,7 @@ test('no horizontal overflow on mobile', async ({ page }) => {
   expect(overflows).toBe(false);
 });
 
-test('shop toolbar uses compact price controls with liked on the far right', async ({ page }) => {
+test('shop toolbar uses compact price controls with Saved beside the filters', async ({ page }) => {
   await page.setViewportSize({ width: 657, height: 734 });
   // The toolbar only renders once there is a catalogue to filter, and this
   // suite runs against a server whose API points at itself, so the real
@@ -59,9 +59,10 @@ test('shop toolbar uses compact price controls with liked on the far right', asy
   await page.goto('/shop');
   await page.waitForLoadState('domcontentloaded');
 
-  const toolbar = page.locator('div.sticky.top-0').filter({
-    has: page.getByLabel('Search teas'),
-  });
+  // Found by name, not by its classes: it stopped being `top-0` when it
+  // moved under the page header (2026-09-03), and this test then found
+  // nothing and failed on every run for weeks.
+  const toolbar = page.getByTestId('shop-toolbar');
   await expect(toolbar).toBeVisible();
 
   await expect(toolbar.getByText('Price', { exact: true })).toBeVisible();
@@ -83,8 +84,11 @@ test('shop toolbar uses compact price controls with liked on the far right', asy
   const rightInset = 657 - (toolbarBox!.x + toolbarBox!.width);
   expect(leftInset).toBeLessThanOrEqual(24);
   expect(Math.abs(leftInset - rightInset)).toBeLessThanOrEqual(1);
-  expect(likedBox!.x).toBeGreaterThan(sortBox!.x);
-  expect(likedBox!.x + likedBox!.width).toBeGreaterThan(toolbarBox!.x + toolbarBox!.width - 72);
+  // Saved is the last of the filters, straight after the sort and on its
+  // line (2026-09-28: the far-right heart became the word Saved there).
+  expect(likedBox!.x).toBeGreaterThan(sortBox!.x + sortBox!.width);
+  expect(likedBox!.x - (sortBox!.x + sortBox!.width)).toBeLessThanOrEqual(40);
+  expect(Math.abs((likedBox!.y + likedBox!.height / 2) - (sortBox!.y + sortBox!.height / 2))).toBeLessThanOrEqual(2);
 });
 
 // The three home tests that stood here (the brand-story bridge, the section
