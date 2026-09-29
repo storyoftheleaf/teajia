@@ -21574,7 +21574,7 @@ function projectPublicPerson(row: Record<string, any>) {
     business_name: (row.business_name as string | null) ?? null,
     role: (row.public_role as string | null) ?? (row.role as string | null) ?? null,
     portrait_url: (row.portrait_url as string | null) ?? null,
-    own_line: firstSentenceOf(row.now_text) ?? firstSentenceOf(row.beginnings) ?? firstSentenceOf(row.inspirations),
+    own_line: firstSentenceOf(row.now_text) ?? firstSentenceOf(row.beginnings),
     is_host: row.is_host === 1 || row.is_host === true,
   };
 }
@@ -23692,7 +23692,7 @@ const handleListPublicContributors: Handler = async (request, env) => {
     // One line in the person's own words, for the card: the first sentence of
     // what they are doing now, else of where they began. The page never
     // describes them in the third person, so this is theirs, not a summary.
-    own_line: firstSentenceOf(row.now_text) ?? firstSentenceOf(row.beginnings) ?? firstSentenceOf(row.inspirations),
+    own_line: firstSentenceOf(row.now_text) ?? firstSentenceOf(row.beginnings),
     // The directory's two filters. A host runs a room or is about to: a hosted
     // account, or a public lead/co-host role on any event. A writer has at
     // least one published article of their own.
