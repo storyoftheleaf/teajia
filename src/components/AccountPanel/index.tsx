@@ -672,12 +672,12 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
   const isSubView = panelView !== 'main';
   // One width rule for the whole panel. The panel fills the screen, so any
   // view left uncapped stretches its buttons edge to edge on desktop. Three
-  // widths: the signed-in launchpad's tile grid, the two lists (sessions and
-  // the tasting journal, whose rows carry more than a form field), and
+  // widths: the signed-in launchpad's tile grid, the three lists (sessions,
+  // the tasting journal and the cellar, whose rows carry more than a form field), and
   // everything else.
   const panelColumn =
     panelView === 'main' && auth.isAuthenticated ? 'max-w-[920px]' :
-    panelView === 'events' || panelView === 'journal' ? 'max-w-xl' :
+    panelView === 'events' || panelView === 'journal' || panelView === 'cellar' ? 'max-w-xl' :
     'max-w-sm';
 
   const headerTitle =
@@ -828,18 +828,19 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-panel-backdrop bg-black/80 backdrop-blur-sm ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 sidebar-inset z-panel-backdrop bg-black/80 backdrop-blur-sm ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         style={{ transition: isVisible ? 'opacity 300ms ease' : 'opacity 150ms ease' }}
         onClick={onClose}
       />
 
       {/* Panel, full-screen at all sizes (launchpad, not side drawer).
           Was md:w-[400px] right-anchored drawer; now fills the viewport so
-          the tile grid has stage. The bottom bar gets covered while open;
-          X (top-left), Escape, and backdrop-click all close. */}
+          the tile grid has stage. It stops at the desktop sidebar
+          (sidebar-inset) so the rail stays usable, and the phone's bottom bar
+          sits above it (z-nav). X (top-left), Escape, and backdrop-click all close. */}
       <div
         ref={focusTrapRef}
-        className="fixed inset-0 bg-tea-bg z-panel-modal flex flex-col"
+        className="fixed inset-0 sidebar-inset bg-tea-bg z-panel-modal flex flex-col"
         style={{
           opacity: isVisible ? 1 : 0,
           pointerEvents: isVisible ? undefined : 'none',
