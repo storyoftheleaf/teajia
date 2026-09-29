@@ -147,13 +147,14 @@ for (const pagePath of LIVE_PAGES) {
 }
 
 test('the filter leaves a real rail standing, it does not empty every page', async ({ page }) => {
-  // The check above is satisfied by a page that offers nothing at all, which is
-  // the correct outcome on /read/porcelain-and-tea (all three of its companions
-  // are drafts) and would be a silent regression everywhere else. These two do
-  // keep cards, so this pins that the fix filtered rather than deleted.
+  // The check above is satisfied by a page that offers nothing at all, which
+  // would be a silent regression. These pages keep cards, so this pins that the
+  // fix filtered rather than deleted. Porcelain and Tea is here since
+  // 2026-09-29: a conversation always ends on at least one live piece.
   for (const [pagePath, expected] of [
     ['/read/atlas', ['/read/ritual', '/read/leaf-to-liquor']],
     ['/read/tasting', ['/read/ritual', '/read/atlas']],
+    ['/read/porcelain-and-tea', ['/read/ritual', '/read/tasting']],
   ] as const) {
     await page.goto(pagePath, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(600);

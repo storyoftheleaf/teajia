@@ -206,7 +206,7 @@
   --tj-read-cream: #f3ead9;
   --tj-read-warm: #e3d6bd;
   --tj-read-taupe: #cdc0a8;
-  --tj-read-dim: #80735f;
+  --tj-read-dim: #8c7f6a; /* 4.83:1 on the ground, 4.50:1 on a card. Was #80735f, 4.09:1, until 2026-09-29. */
   --tj-read-gold-default: #a8874d;
   --tj-read-gold-lt-default: #c6a667;
   --tj-read-gold-rgb: 168 135 77;

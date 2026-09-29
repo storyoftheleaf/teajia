@@ -23,6 +23,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ARTICLE_LIVE, isArticleVisible, isReadPathPublic, isUngatedReadPath } from './articleLive';
 import { visibleMoreLinks, type MoreLink } from './immersive';
+import { CONVERSATIONS } from './conversation/pieces';
 
 const APP_TSX_PATH = path.resolve(__dirname, '../../App.tsx');
 
@@ -246,9 +247,11 @@ describe('the "More from The Art of Tea" rail names only what a visitor can open
   // reader on the not-found page the route gate had just started serving.
   const READ_DIR = path.resolve(__dirname);
 
-  /** Every moreLinks array in the section, read out of the page sources. */
+  /** Every moreLinks array in the section, read out of the page sources,
+   *  plus each conversation piece's `next` list, which is data rather than source. */
   function moreLinkArrays(): { file: string; links: MoreLink[] }[] {
-    return fs
+    const conversations = CONVERSATIONS.map((c) => ({ file: `conversation/${c.slug}`, links: c.next }));
+    return [...conversations, ...fs
       .readdirSync(READ_DIR)
       .filter((f) => f.endsWith('.tsx'))
       .map((file) => {
@@ -260,7 +263,7 @@ describe('the "More from The Art of Tea" rail names only what a visitor can open
         );
         return { file, links };
       })
-      .filter((x): x is { file: string; links: MoreLink[] } => x !== null);
+      .filter((x): x is { file: string; links: MoreLink[] } => x !== null)];
   }
 
   it('found the rail on every article page, so the checks below are not vacuous', () => {

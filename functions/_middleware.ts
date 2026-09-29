@@ -62,6 +62,8 @@ export const STATIC_META: Record<string, Meta> = {
   '/read/porcelain-and-tea': {
     title: 'Porcelain and Tea · Teajia',
     description: 'A porcelain restorer on repair, patience, and how mending what we love mends us in return.',
+    // The cover portrait, so a shared link shows him rather than the site-wide card.
+    image: `${SITE}/read/porcelain-and-tea/portrait.jpg`,
   },
   '/read/leaf-to-liquor': {
     title: 'From Leaf to Liquor · Teajia',

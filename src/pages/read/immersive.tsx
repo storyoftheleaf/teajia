@@ -39,8 +39,9 @@
  *      read page that needs a hue the system does not have adds it once,
  *      rather than typing a hex into a component.
  *   2. Text pairs are still measured, against this palette's own background,
- *      in BOTH modes now. Dark: `C.dim` (#80735f) on `C.bg` (#14100b) is
- *      4.09:1, under the floor, confined to non-essential marginalia; body
+ *      in BOTH modes now. Dark: `C.dim` (#8c7f6a) on `C.bg` (#14100b) is
+ *      4.83:1, and 4.50:1 on the card ground. It was #80735f at 4.09:1,
+ *      under the floor on every caption and label, until 2026-09-29; body
  *      and navigation take `C.taupe` (10.6:1) or `C.warm`. Light: `--tea-
  *      text-dim` on `--tea-bg` measures 7.4:1, `--tea-text-sec` higher still,
  *      both above the dark-mode floor because parchment has more headroom
@@ -167,7 +168,10 @@ export function useReveals(deps: React.DependencyList = []) {
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
-    if (typeof IntersectionObserver === 'undefined') {
+    // A reader who has asked their device for less motion gets every block
+    // at rest from the start, and so does a browser with no observer.
+    const reduced = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced || typeof IntersectionObserver === 'undefined') {
       root.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => {
         el.style.opacity = '1';
         el.style.transform = 'none';
@@ -204,6 +208,24 @@ export function useReveals(deps: React.DependencyList = []) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
   return rootRef;
+}
+
+/**
+ * Show at once every fading block from `target` down through the next screen
+ * and a half. A jump from the contents lands on the words, not on blank space
+ * waiting for the fade to catch up.
+ */
+export function revealFrom(target: HTMLElement) {
+  const top = target.getBoundingClientRect().top;
+  const reach = top + window.innerHeight * 1.5;
+  document.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => {
+    const r = el.getBoundingClientRect();
+    if (r.bottom >= top - 40 && r.top <= reach) {
+      el.style.transition = 'none';
+      el.style.opacity = '1';
+      el.style.transform = 'none';
+    }
+  });
 }
 
 // ─── Reading progress hook ───────────────────────────────────────────────────
@@ -323,10 +345,15 @@ export const ImmersiveNav: React.FC<{
   // The small label at the right of the bar. Optional: the conversation
   // pieces dropped theirs (2026-09-29), the cover already names the series.
   eyebrow?: string;
+  /** The part being read, shown quietly at the right. A conversation fills it as the reader moves. */
+  current?: string;
   progress: number;
   backTo?: string;
-}> = ({ eyebrow, progress, backTo = '/read' }) => (
+}> = ({ eyebrow, current, progress, backTo = '/read' }) => (
+  // A solid ground in the reader's own tone. It was a frosted-glass blur,
+  // which smeared every photograph passing under it (2026-09-29).
   <nav
+    aria-label="Article"
     style={{
       position: 'sticky',
       top: 0,
@@ -336,13 +363,11 @@ export const ImmersiveNav: React.FC<{
       justifyContent: 'space-between',
       gap: 16,
       padding: '13px clamp(18px,4vw,40px)',
-      background: 'rgb(var(--tj-read-bg-rgb) / 0.72)',
-      backdropFilter: 'blur(14px)',
-      WebkitBackdropFilter: 'blur(14px)',
+      background: C.bg,
       borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.12)',
     }}
   >
-    <Link to={backTo} style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none', color: 'inherit' }}>
+    <Link to={backTo} aria-label="Back to Read" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none', color: 'inherit' }}>
       <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
         <path d="M9.5 3.5L5 7.5l4.5 4" stroke={C.gold} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
@@ -350,11 +375,15 @@ export const ImmersiveNav: React.FC<{
         Teajia
       </span>
     </Link>
-    {eyebrow && (
-      <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim, whiteSpace: 'nowrap' }}>
+    {current ? (
+      <span aria-live="polite" style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 17, color: C.taupe, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, maxWidth: '58vw' }}>
+        {current}
+      </span>
+    ) : eyebrow ? (
+      <span style={{ fontFamily: F.mono, fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim, whiteSpace: 'nowrap' }}>
         {eyebrow}
       </span>
-    )}
+    ) : null}
     <ProgressTrack progress={progress} />
   </nav>
 );
@@ -380,12 +409,15 @@ export const ProgressTrack: React.FC<{ progress: number }> = ({ progress }) => (
 // is spelled out on purpose: a lone roman "I" beside a title reads as the word
 // "I", and a numeral set far from its title reads as a stray letter.
 const PART_WORDS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+export const partWord = (n: number) => PART_WORDS[n - 1] ?? String(n);
 
 export const ChapterHead: React.FC<{ part: number; title: string; id?: string }> = ({ part, title, id }) => (
   <header
     id={id}
     data-reveal
     style={{
+      // Clears the sticky bar when a reader jumps here from the contents.
+      scrollMarginTop: 72,
       maxWidth: 640,
       margin: 'clamp(80px,11vw,150px) auto clamp(40px,5vw,64px)',
       padding: '0 24px',
@@ -395,8 +427,8 @@ export const ChapterHead: React.FC<{ part: number; title: string; id?: string }>
       textAlign: 'center',
     }}
   >
-    <span style={{ fontFamily: F.ui, fontSize: 11, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.gold }}>
-      Part {PART_WORDS[part - 1] ?? part}
+    <span style={{ fontFamily: F.ui, fontSize: 12, fontWeight: 500, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.gold }}>
+      Part {partWord(part)}
     </span>
     <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(36px,4.4vw,60px)', lineHeight: 1.06, color: C.cream, margin: 'clamp(14px,1.6vw,18px) 0 0', textWrap: 'balance' } as React.CSSProperties}>
       {title}
@@ -444,14 +476,13 @@ export const MoreFooter: React.FC<{ links: MoreLink[] }> = ({ links }) => {
   // backfill with whatever else happens to be live: this rail is the author's
   // own choice of what to read next, and a substitute nobody chose is not that.
   // ReadIndex's GroupBlock takes the same line with a group whose rows are all
-  // drafts. Today this only bites /read/porcelain-and-tea, whose three
-  // companions are all unpublished; the other three live pieces keep two or
-  // three cards each.
+  // drafts. A conversation piece names at least one live read in its own list
+  // for exactly this reason, so its ending never goes nowhere.
   if (visible.length === 0) return null;
   return (
     <footer style={{ borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)', padding: 'clamp(40px,6vw,72px) clamp(20px,5vw,56px) clamp(64px,9vw,110px)' }}>
       <div style={{ maxWidth: 1180, margin: '0 auto' }}>
-        <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 600, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.gold, marginBottom: 26 }}>
+        <div style={{ fontFamily: F.ui, fontSize: 12, fontWeight: 500, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.gold, marginBottom: 26 }}>
           More from The Art of Tea
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,260px),1fr))', gap: 'clamp(14px,2vw,22px)' }}>
@@ -476,9 +507,9 @@ export const MoreFooter: React.FC<{ links: MoreLink[] }> = ({ links }) => {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <span style={{ fontFamily: F.mono, fontSize: 9.5, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim }}>{l.kicker}</span>
+                  <span style={{ fontFamily: F.mono, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.dim }}>{l.kicker}</span>
                   {draft && (
-                    <span style={{ fontFamily: F.mono, fontSize: 8.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.gold, border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.4)', borderRadius: 2, padding: '1px 5px', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontFamily: F.mono, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.gold, border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.4)', borderRadius: 2, padding: '1px 5px', whiteSpace: 'nowrap' }}>
                       Draft
                     </span>
                   )}
