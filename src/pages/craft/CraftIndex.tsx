@@ -276,7 +276,7 @@ const LeadCover: React.FC<{ cover: CoverSpec }> = ({ cover }) => {
       <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, rgb(var(--tj-read-bg-rgb) / 0.92), transparent 52%)' }} />
       <div style={{ position: 'relative', padding: 'clamp(24px,3vw,32px)' }}>
         <div style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.26em', textTransform: 'uppercase', color: C.gold, marginBottom: 14 }}>
-          Start here
+          {cover.kicker}
         </div>
         <div style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(34px,4.4vw,46px)', lineHeight: 0.98, color: 'var(--tj-read-cream)' }}>
           {cover.title}
