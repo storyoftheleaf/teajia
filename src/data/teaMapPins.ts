@@ -3,7 +3,7 @@ import { TeaMapPin } from '../types/library';
 export const teaMapPins: TeaMapPin[] = [
   {
     id: 'pin-1',
-    name: 'TeajiA Studio',
+    name: 'Teajia Studio',
     lat: -8.5069,
     lng: 115.2625,
     location: 'Ubud, Bali',

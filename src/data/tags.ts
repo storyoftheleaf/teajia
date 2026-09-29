@@ -226,7 +226,7 @@ export const ARTICLE_TAG_MAP: Record<string, ArticleTagMeta> = {
 
   // --- Start Here Placeholder Articles ---
   'start-here-1': {
-    // The Creation of TeajiA
+    // The Creation of Teajia
     tags: ['Philosophy', 'Bali'],
     startHere: true,
   },

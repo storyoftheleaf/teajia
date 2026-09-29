@@ -23,21 +23,21 @@ export default function AboutPage() {
 
       {/* Hero image: full-width editorial strip */}
       <div className="aspect-[3/2] md:aspect-[16/7] bg-tea-elevated rounded-xl mb-12 md:mb-16 overflow-hidden border border-tea-border">
-        {/* Photograph slot: "TeajiA, the practice". Left as an empty frame on purpose.
+        {/* Photograph slot: "Teajia, the practice". Left as an empty frame on purpose.
             Rendering an img with an empty src makes the browser refetch the
             whole page, so the image arrives with the photograph, not before. */}
       </div>
 
-      {/* What TeajiA is */}
+      {/* What Teajia is */}
       <section className="mb-16 md:mb-20 space-y-6">
         <p className="body-prose">
-          TeajiA is a home for tea: the stories, the craft, the knowledge, and the people who carry it forward. It grew out of more than twenty years spent inside the world of Chinese tea: sourcing from farmers, learning from the people who make it, and building relationships with the artisans who shape the vessels, the leaf, and the practice. No tea masters here, forever students of the leaf.
+          Teajia is a home for tea: the stories, the craft, the knowledge, and the people who carry it forward. It grew out of more than twenty years spent inside the world of Chinese tea: sourcing from farmers, learning from the people who make it, and building relationships with the artisans who shape the vessels, the leaf, and the practice. No tea masters here, forever students of the leaf.
         </p>
         <p className="body-light">
           What lives here is the result of that accumulated experience: a magazine for long-form stories and photo essays, a curriculum built from real knowledge passed down through practice, a shop stocked only with teas and teaware we know deeply, and a design practice for creating tea spaces that serve the ritual.
         </p>
         <p className="body-light">
-          The work is rooted in Taiwan and mainland China but draws from everywhere tea is taken seriously. Based between Bali and Santa Cruz, TeajiA brings together design, education, and commerce into a single place. Not as separate categories, but as parts of the same conversation about how tea fits into a considered life.
+          The work is rooted in Taiwan and mainland China but draws from everywhere tea is taken seriously. Based between Bali and Santa Cruz, Teajia brings together design, education, and commerce into a single place. Not as separate categories, but as parts of the same conversation about how tea fits into a considered life.
         </p>
       </section>
 
@@ -186,7 +186,7 @@ export default function AboutPage() {
       {/* Studio link */}
       <section className="mb-16 md:mb-20 border-t border-tea-border pt-8">
         <p className="body-light mb-4">
-          TeajiA shares roots with a visual art practice: laser-cut work, oracle cards, and objects that come from the same quiet attention as the tea itself.
+          Teajia shares roots with a visual art practice: laser-cut work, oracle cards, and objects that come from the same quiet attention as the tea itself.
         </p>
         <a
           href="https://adrianrasmussen.com"
