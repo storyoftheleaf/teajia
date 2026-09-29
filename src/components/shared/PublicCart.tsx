@@ -43,6 +43,8 @@ type SavedOrder = {
   remembered: boolean;
   invoiceNumber?: string;
   handoff: boolean;
+  /** The customer chose WhatsApp (with or without a number), not email. */
+  viaWhatsApp: boolean;
 };
 
 const PENDING_KEY = 'teajia_pendingOrderRequest';
@@ -56,10 +58,13 @@ const DELIVERY_TILES: [DeliveryChoice, string, string][] = [
   ['indonesia', 'Indonesia', 'outside Bali'],
   ['international', 'International', 'shipping'],
 ];
-const REPLY_TILES: [ReplyChannel, string, string][] = [
-  ['whatsapp-chat', 'WhatsApp', 'chat'],
-  ['whatsapp', 'WhatsApp', 'number'],
-  ['website', 'Email', 'reply'],
+/* Two ways to be answered, not three. "WhatsApp chat" and "WhatsApp number"
+   read as the same choice; the difference is only whether the customer leaves
+   a number, so the number field under the one WhatsApp tile decides it: empty,
+   they send the order from WhatsApp themselves; filled, the shop writes to it. */
+const REPLY_TILES: ['whatsapp' | 'website', string, string][] = [
+  ['whatsapp', 'WhatsApp', 'chat with us'],
+  ['website', 'Email', 'reply by email'],
 ];
 const checkoutTile = (on: boolean) => `relative flex flex-col justify-center gap-0.5 min-h-[52px] px-3 py-2.5 cursor-pointer transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-tea-gold ${
   on ? 'bg-tea-elevated text-tea-text shadow-[inset_0_-2px_0_rgb(var(--tea-gold-rgb))]' : 'bg-tea-surface text-tea-text-sec hover:text-tea-text'
@@ -79,7 +84,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
   const isBaliStore = storeSlug === 'teajia-bali';
   const [details, setDetails] = useState(() => readCheckoutDetails(isBaliStore));
   const [whatsappConsent, setWhatsappConsent] = useState(false);
-  const [channelChoice, setChannelChoice] = useState<ReplyChannel | null>(null);
+  const [replyChoice, setReplyChoice] = useState<'whatsapp' | 'website' | null>(() => (readCheckoutDetails(isBaliStore).contact.includes('@') ? 'website' : null));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isPersisting, setIsPersisting] = useState(false);
@@ -97,7 +102,8 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
   const { data: rates = [] } = useRates();
   const shopPrice = useShopPrice();
   const channels = resolveContactChannels({ whatsappNumber, email: contactEmail, message: '' });
-  const channel: ReplyChannel = channelChoice === 'website' || !channels.whatsapp ? 'website' : channelChoice ?? 'whatsapp-chat';
+  const replyMode: 'whatsapp' | 'website' = replyChoice === 'website' || !channels.whatsapp ? 'website' : 'whatsapp';
+  const channel: ReplyChannel = replyMode === 'website' ? 'website' : details.contact.trim() ? 'whatsapp' : 'whatsapp-chat';
   const subtotal = useMemo(() => cart.reduce((total, item) => total + item.totalPrice, 0), [cart]);
   const unavailable = checkoutState !== 'ready';
   /* The shop keys yuan and Taiwan dollars as 'Yuan' and 'NT'; an order names
@@ -182,7 +188,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       const request: RecentOrderRequest = { trackingToken: result.tracking_token, reference: result.ref_number, storeSlug, createdAt: new Date().toISOString() };
       const remembered = rememberRecentOrderRequest(request);
       setWhatsappConsent(false);
-      setPlacedOrder({ request, items: [...cart], total: shopPrice.total(subtotal), message, remembered, invoiceNumber: result.invoice_number, handoff: channel === 'whatsapp-chat' });
+      setPlacedOrder({ request, items: [...cart], total: shopPrice.total(subtotal), message, remembered, invoiceNumber: result.invoice_number, handoff: channel === 'whatsapp-chat', viaWhatsApp: channel !== 'website' });
       setRecentRequests(readRecentOrderRequests(storeSlug));
       setUndoItem(null);
       clearPublicCart();
@@ -222,34 +228,47 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       </select>}
     </div>
     <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto tea-card-scroll px-4 pt-1 pb-6">
-      {placedOrder ? <section className="space-y-5" aria-label="Order request confirmation">
+      {placedOrder ? <section className="space-y-7" aria-label="Order request confirmation">
+        {/* The saved order in the cart's own vocabulary: the same tea rows, the
+            same figures, the same footer button. It used to switch to plain
+            paragraphs and bordered rows, so the moment the order was sent it
+            stopped looking like the thing the reader had just built. */}
         <div role="status" className="space-y-2">
-          <p className={`${T.body} text-tea-text`}>Your request is saved with {storeName}.</p>
-          <p className={`${T.bodyLight} text-tea-text-sec`}>Your order request and draft invoice are saved. We’ll arrange stock, payment and shipping with you personally.</p>
-          {placedOrder.invoiceNumber && <p className={`${T.bodyLight} text-tea-text-sec`}>Invoice {placedOrder.invoiceNumber}</p>}
-          <p className={`${T.bodyLight} text-tea-text-sec`}>Keep your private order-status link. It shows the latest status even if a separate message does not arrive.</p>
+          <p className="font-display text-ui-26 leading-tight text-tea-text">Your request is saved with {storeName}.</p>
+          <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">Your order request and draft invoice are saved. We’ll arrange stock, payment and shipping with you personally.</p>
+          {placedOrder.invoiceNumber && <p className="num text-ui-13 text-tea-text-sec">{`Invoice ${placedOrder.invoiceNumber}`}</p>}
         </div>
-        {channels.whatsapp && <section className="space-y-3" aria-label="Discuss your saved order">
-          <a className="checkout-tracking-link" href={buildWhatsAppUrl(whatsappNumber!, placedOrder.message)} target="_blank" rel="noopener noreferrer">Discuss this order on WhatsApp</a>
-          <p className={`${T.bodyLight} text-tea-text-sec`}>{placedOrder.handoff ? 'One more step: open WhatsApp and tap Send so we can reply to you.' : 'Open WhatsApp and tap Send to discuss this order.'} The message includes your order and invoice link. Nothing is sent until you tap Send.</p>
-          <details><summary className="checkout-text-action">Using a computer? Scan with your phone</summary>
+        <div className="space-y-4">
+          {placedOrder.items.map(item => <div key={lineKeyOf(item)} className="flex items-baseline justify-between gap-3">
+            <span className="min-w-0">
+              <span className="block font-display text-[22px] leading-tight text-tea-text">{item.name}</span>
+              <span className="num text-ui-13 text-tea-text-sec">{item.category === 'tea' ? `${(item.packs ?? 1) > 1 ? `${item.packs} × ` : ''}${item.packGrams ?? item.quantityGrams}g` : `${item.quantityGrams} pieces`}</span>
+            </span>
+            <span className="num text-ui-17 text-tea-text shrink-0">{shopPrice.total(item.totalPrice)}</span>
+          </div>)}
+          <div className="flex items-baseline justify-between gap-3 pt-3 border-t border-tea-border">
+            <span className="font-body text-ui-13 text-tea-text-sec">{placedOrder.items.every(item => item.category === 'tea') ? 'Tea subtotal estimate' : 'Tea & teaware subtotal estimate'}</span>
+            <span className="num text-ui-20 text-tea-text">{placedOrder.total}</span>
+          </div>
+          <p className="font-body text-ui-13 text-tea-text-sec">Shipping is arranged personally. No payment has been taken.</p>
+        </div>
+        {channels.whatsapp && placedOrder.viaWhatsApp && <section className="space-y-2" aria-label="Discuss your saved order">
+          <h3 className={`${T.h3} text-tea-text`}>{placedOrder.handoff ? 'One more step' : 'On WhatsApp'}</h3>
+          <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{placedOrder.handoff ? 'Open WhatsApp with the button below and tap Send, so we can reply to you.' : 'We’ll write to your number. To start sooner, open WhatsApp with the button below and tap Send.'} The message carries your order and its link; nothing is sent until you tap Send.</p>
+          <details><summary className="checkout-text-action text-ui-13 cursor-pointer">Using a computer? Scan with your phone</summary>
             <div className="py-3 space-y-2">
               <QRCodeSVG value={buildWhatsAppUrl(whatsappNumber!, `Hi, I would like to discuss invoice ${placedOrder.invoiceNumber || placedOrder.request.reference}. Order ${placedOrder.request.reference}. Details: ${window.location.origin}${recentOrderRequestPath(placedOrder.request)}`)} size={176} includeMargin bgColor="#ffffff" fgColor="#000000" aria-label="Scan to open WhatsApp with this invoice link" />
-              <p className={`${T.bodyLight} text-tea-text-sec`}>Scan to open your invoice conversation on your phone, then tap Send. Keep this code private.</p>
+              <p className="font-body text-ui-13 text-tea-text-sec">Scan to open your invoice conversation on your phone, then tap Send. Keep this code private.</p>
             </div>
           </details>
         </section>}
-        <a className="checkout-tracking-link" href={recentOrderRequestPath(placedOrder.request)} onClick={onClose}>View order status <span className="block break-all">{placedOrder.request.reference}</span></a>
-        <p className={`${T.bodyLight} text-tea-text-sec`}>{placedOrder.remembered ? 'You can also find this link under Recent requests in your cart on this browser.' : 'This browser could not save the link. Bookmark the order-status page so you can return.'} Keep the link private.</p>
-        <div className="divide-y divide-tea-border border-y border-tea-border">
-          {placedOrder.items.map(item => <div key={lineKeyOf(item)} className="py-3 flex justify-between gap-3">
-            <span className={`${T.bodyLight} text-tea-text`}>{item.name}<span className="block text-tea-text-sec">{item.category === 'tea' ? `${item.packs ?? 1} × ${item.packGrams ?? item.quantityGrams} g` : `${item.quantityGrams} pieces`}</span></span>
-          </div>)}
-          <div className="flex justify-between gap-3 py-3"><span className={`${T.bodyLight} text-tea-text-sec`}>{placedOrder.items.every(item => item.category === 'tea') ? 'Tea subtotal estimate' : 'Tea & teaware subtotal estimate'}</span><span className={`${T.body} num text-tea-text`}>{placedOrder.total}</span></div>
-        </div>
-        <p className={`${T.bodyLight} text-tea-text-sec`}>The final amount and shipping arrangement will be confirmed personally. No payment has been taken.</p>
-        <button type="button" onClick={copyReceipt} className="checkout-text-action">Copy order details and link</button>
-        {copyStatus && <p role="status" className={`${T.bodyLight} text-tea-text-sec`}>{copyStatus}</p>}
+        <section className="space-y-2" aria-label="Your order page">
+          <h3 className={`${T.h3} text-tea-text`}>Your order page</h3>
+          <a className="checkout-text-action text-ui-15 text-tea-text" href={recentOrderRequestPath(placedOrder.request)} onClick={onClose}>View order status <span className="num text-ui-13 text-tea-text-sec ml-2 break-all">{placedOrder.request.reference}</span></a>
+          <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">Keep your private order-status link. It shows the latest status even if a separate message does not arrive. {placedOrder.remembered ? 'It is also under Recent requests in this cart, on this browser.' : 'This browser could not save it, so bookmark the page.'}</p>
+          <button type="button" onClick={copyReceipt} className="checkout-text-action text-ui-13">Copy order details and link</button>
+          {copyStatus && <p role="status" className="font-body text-ui-13 text-tea-text-sec">{copyStatus}</p>}
+        </section>
       </section> : <>
         {undoItem && <div className="flex items-baseline justify-between gap-3 mb-2" role="status"><span className="font-body text-ui-13 text-tea-text-sec">{undoItem.name} is out of your order.</span><button type="button" onClick={() => { onAddItem(undoItem); setUndoItem(null); }} className="checkout-text-action text-ui-13 text-tea-gold-lt">Put it back</button></div>}
         {cart.length === 0 ? <div className="py-10 space-y-4">
@@ -278,18 +297,18 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
             </fieldset>
             <fieldset className="space-y-3 min-w-0">
               <legend className={`${T.h3} text-tea-text mb-3`}>How we reply</legend>
-              <div className={`grid gap-1 ${channels.whatsapp ? 'grid-cols-3' : 'grid-cols-1'}`}>
-                {REPLY_TILES.filter(([value]) => channels.whatsapp || value === 'website').map(([value, main, sub]) => <label key={value} className={checkoutTile(channel === value)}>
-                  <input type="radio" name="reply-channel" value={value} checked={channel === value} onChange={() => { setChannelChoice(value); setWhatsappConsent(false); setErrors({}); }} className="absolute inset-0 m-0 w-full h-full opacity-0 cursor-pointer" />
+              <div className={`grid gap-1 ${channels.whatsapp ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                {REPLY_TILES.filter(([value]) => channels.whatsapp || value === 'website').map(([value, main, sub]) => <label key={value} className={checkoutTile(replyMode === value)}>
+                  <input type="radio" name="reply-channel" value={value} aria-label={main} checked={replyMode === value} onChange={() => { if (value !== replyMode) updateDetail('contact', ''); setReplyChoice(value); setWhatsappConsent(false); setErrors({}); }} className="absolute inset-0 m-0 w-full h-full opacity-0 cursor-pointer" />
                   <span className="font-body text-ui-15 leading-tight">{main}</span>{' '}<span className="font-body text-ui-12 leading-tight text-tea-text-sec">{sub}</span>
                 </label>)}
               </div>
-              <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{channel === 'whatsapp-chat' ? 'No phone number needed. Save your order here, then open WhatsApp and tap Send to start the conversation.' : 'Your request is submitted here on the website. We’ll use this contact to reply; no message app opens.'}</p>
+              <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{channel === 'whatsapp-chat' ? 'Save your order here, then send it to us from WhatsApp. No number needed; leave one below if you would rather we write first.' : channel === 'whatsapp' ? 'We’ll write to you at this number on WhatsApp.' : 'We’ll reply by email. No message app opens.'}</p>
             </fieldset>
             {field('name', 'Your name', { autoComplete: 'name' })}
-            {channel !== 'whatsapp-chat' && field('contact', channel === 'website' ? 'Your email address' : 'Your WhatsApp number', { type: channel === 'website' ? 'email' : 'tel', inputMode: channel === 'website' ? 'email' : 'tel', autoComplete: channel === 'website' ? 'email' : 'tel', placeholder: channel === 'whatsapp' ? '+62…' : 'you@example.com' })}
+            {field('contact', replyMode === 'website' ? 'Your email address' : 'Your WhatsApp number', { type: replyMode === 'website' ? 'email' : 'tel', inputMode: replyMode === 'website' ? 'email' : 'tel', autoComplete: replyMode === 'website' ? 'email' : 'tel', placeholder: replyMode === 'website' ? 'you@example.com' : '+62… (optional)' })}
             {channel === 'whatsapp' && <div className="space-y-1">
-              <label className="checkout-channel"><input type="checkbox" checked={whatsappConsent} onChange={event => setWhatsappConsent(event.target.checked)} />Send me a WhatsApp order confirmation from {storeName} (optional)</label>
+              <label className="checkout-channel font-body text-ui-13 text-tea-text"><input type="checkbox" checked={whatsappConsent} onChange={event => setWhatsappConsent(event.target.checked)} style={{ accentColor: 'rgb(var(--tea-gold-rgb))' }} />Send me a WhatsApp order confirmation from {storeName} (optional)</label>
               <p className={`${T.bodyLight} text-tea-text-sec`}>I agree to receive a confirmation and replies about this order at this number. Automatic confirmations depend on availability; your order is saved even if a message does not arrive.</p>
             </div>}
             <details><summary className="checkout-text-action text-ui-13 cursor-pointer">Add a note (optional)</summary><label htmlFor="checkout-notes" className="sr-only">Order note</label><textarea id="checkout-notes" value={details.notes} onChange={event => updateDetail('notes', event.target.value)} className="checkout-input mt-2" rows={3} /></details>
@@ -306,8 +325,8 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
           print at the top of the scrolling list, which is off screen by the
           time a reader reaches the button, so pressing it looked like nothing. */}
       {checkoutError && <p role="alert" className="font-body text-ui-13 leading-snug text-tea-text bg-tea-elevated px-3 py-2">{checkoutError}</p>}
-      {placedOrder ? placedOrder.handoff && channels.whatsapp
-        ? <a className={`checkout-whatsapp-action cta-solid ${T.label}`} href={buildWhatsAppUrl(whatsappNumber!, placedOrder.message)} target="_blank" rel="noopener noreferrer">Continue in WhatsApp</a>
+      {placedOrder ? channels.whatsapp && placedOrder.viaWhatsApp
+        ? <a className="inline-flex w-full items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-xl cta-solid font-sans font-medium tracking-wide text-base whitespace-nowrap" href={buildWhatsAppUrl(whatsappNumber!, placedOrder.message)} target="_blank" rel="noopener noreferrer">Discuss this order on WhatsApp</a>
         : <Button fullWidth onClick={onClose}>Continue browsing</Button> : cart.length > 0 ? <>
         <div className="flex items-center gap-4">
           <div className="flex flex-col gap-1 shrink-0">
