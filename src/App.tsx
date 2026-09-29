@@ -433,7 +433,7 @@ const AppContent = () => {
   // Update document title on section change
   useEffect(() => {
     const titles: Record<Section, string> = {
-      HOME: 'Teajia | Tea Journal',
+      HOME: 'Teajia · A Home for Tea',
       MAGAZINE: 'Magazine · Teajia',
       LEARN: 'Craft · Teajia',
       SHOP: 'Shop · Teajia',
@@ -442,7 +442,7 @@ const AppContent = () => {
       YOUR_TABLE: 'Your Table · Teajia',
       ABOUT: 'About · Teajia',
     };
-    document.title = titles[activeSection] ?? 'Teajia | Tea Journal';
+    document.title = titles[activeSection] ?? 'Teajia · A Home for Tea';
   }, [activeSection]);
 
   const setActiveSection = useCallback((section: Section) => {
