@@ -73,6 +73,17 @@
   text-wrap: pretty;
 }
 .tj-conv-a:last-child { margin-bottom: 0; }
+/* Adrian telling the story: his voice, a shade brighter than the subject's words, no name. */
+.tj-conv-told {
+  font-family: var(--font-body);
+  font-size: clamp(16px, 2vw, 18px);
+  line-height: 1.8;
+  color: var(--tj-read-ink);
+  margin: 0 0 16px;
+  text-wrap: pretty;
+}
+.tj-conv-told:last-child { margin-bottom: 0; }
+.tj-conv-told + .tj-conv-turn { margin-top: 0; }
 .tj-conv-em { font-style: italic; color: var(--tj-read-warm); }
 .tj-conv-cn { font-family: 'Noto Serif SC', serif; }
 .tj-conv-a .tj-conv-cn { color: var(--tj-gold, var(--tj-read-gold-default)); }
@@ -210,7 +221,7 @@
 /* ── Larger reading type on a large screen ──────────────────────────────── */
 @media (min-width: 1100px) {
   .tj-conv { --conv-col: 640px; }
-  .tj-conv-a, .tj-conv-q-text { font-size: 20px; line-height: 1.75; }
+  .tj-conv-a, .tj-conv-q-text, .tj-conv-told { font-size: 20px; line-height: 1.75; }
   .tj-conv-caption { font-size: 16px; }
 }
 

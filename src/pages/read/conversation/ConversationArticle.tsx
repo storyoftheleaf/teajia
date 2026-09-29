@@ -3,9 +3,11 @@
  * /read uses this one component, so a fix here reaches all of them and a new
  * conversation is a new spec file, not a copy of an old article.
  *
- * The aim is a printed interview, not a web page: a cover that gives the
- * portrait the screen, parts that open as spreads, speakers named in the
- * margin, and an end mark where the piece is meant to end.
+ * The aim is a printed magazine story, not a web page and not a transcript: a
+ * cover that gives the portrait the screen, Adrian's opening, parts that open
+ * as spreads, the subject's words drawn out and held together by Adrian's own
+ * telling, speakers named in the margin where the subject's words begin, and
+ * Adrian's close where the piece is meant to end.
  */
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
@@ -46,12 +48,12 @@ const Who: React.FC<{ name: string }> = ({ name }) => (
 );
 
 // ── Blocks ───────────────────────────────────────────────────────────────────
-/** Consecutive questions and answers share one reading column. */
+/** Consecutive questions, answers and lines of Adrian's telling share one reading column. */
 function groupRuns(blocks: Block[]): (Block | Block[])[] {
   const out: (Block | Block[])[] = [];
   blocks.forEach((b) => {
     const last = out[out.length - 1];
-    if (b.kind === 'q' || b.kind === 'a') {
+    if (b.kind === 'q' || b.kind === 'a' || b.kind === 'n') {
       if (Array.isArray(last)) last.push(b);
       else out.push([b]);
     } else out.push(b);
@@ -91,6 +93,8 @@ const Words: React.FC<{ blocks: Block[] }> = ({ blocks }) => {
             ? <div key={b.id} className="tj-conv-turn"><Who name={subject} /><Rich field={b.id} text={b.text} className="tj-conv-a" /></div>
             : <Rich key={b.id} field={b.id} text={b.text} className="tj-conv-a" />;
         }
+        // Adrian telling the story: his own voice, set apart from the subject's words by tone, not by a name.
+        if (b.kind === 'n') return <Rich key={b.id} field={b.id} text={b.text} className="tj-conv-told" />;
         if (b.kind === 'line') return <Line key={b.id} id={b.id} text={b.text} size={b.size} />;
         return <React.Fragment key={i} />;
       })}
@@ -335,8 +339,17 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
             {groupRuns(spec.ending.blocks).map((b, i) => <BlockView key={`e${i}`} spec={spec} block={b} />)}
             <section data-reveal="text" className="tj-conv-saying">
               <Line id={spec.ending.saying.id} text={spec.ending.saying.text} size="l" />
-              <span aria-hidden="true" lang="zh-Hans" className="tj-conv-endmark">家</span>
+              {!spec.closing && <span aria-hidden="true" lang="zh-Hans" className="tj-conv-endmark">家</span>}
             </section>
+            {/* Adrian's own close, last, after the subject's saying. */}
+            {spec.closing && (
+              <section data-reveal="text" className="tj-conv-col tj-conv-closing">
+                <EditableText field="closing" as="p" multiline className="tj-conv-intro-text">
+                  {spec.closing}
+                </EditableText>
+                <span aria-hidden="true" lang="zh-Hans" className="tj-conv-endmark">家</span>
+              </section>
+            )}
             <figure data-reveal="photo" className="tj-conv-close">
               <Photo spec={spec} shot={spec.ending.shot} aspect={spec.ending.aspect} />
             </figure>

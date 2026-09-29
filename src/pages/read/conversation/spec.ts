@@ -1,5 +1,7 @@
 /**
- * The shape of a conversation piece on /read: an interview told in parts.
+ * The shape of a conversation piece on /read: a conversation told as a story, in parts:
+ * Adrian's opening, the subject's words drawn out by a few of his questions and
+ * held together by his own telling, the subject's closing saying, Adrian's close.
  *
  * An article is this data and nothing else. `ConversationArticle` draws any
  * spec, so the next conversation is a new spec file, not a copy of the last
@@ -7,7 +9,8 @@
  * conversation.test.ts, where they fail the build instead of relying on
  * whoever writes the next one to remember them:
  *
- *   - Every question and answer comes from the interview transcript.
+ *   - Every question and answer comes from the interview transcript. Adrian's
+ *     telling (`n`), opening and close are his own words, approved in his draft.
  *   - A sentence set large is lifted OUT of its paragraph, never repeated
  *     beside it, and it is always a whole sentence of his.
  *   - Words sit on a photograph only where the photograph has empty space.
@@ -38,6 +41,13 @@ export type LineSize = 'xl' | 'l' | 'm';
 export type Block =
   | { kind: 'q'; id: string; text: string }
   | { kind: 'a'; id: string; text: string }
+  /**
+   * Adrian telling the story between his words: a connecting line in Adrian's
+   * own voice, approved by him in the magazine draft. It is never the subject's
+   * words, so the transcript check does not trace it; it hands the turn back,
+   * so whatever the subject says next carries his name.
+   */
+  | { kind: 'n'; id: string; text: string }
   /** A sentence set large. `follow` is the plain sentence that continues it, set on the column below. */
   | { kind: 'line'; id: string; text: string; size: LineSize; follow?: { id: string; text: string } }
   /** A photograph beside words. `bleed` runs the photograph to the page edge and narrows the words; use it on a few, on purpose. */
@@ -75,6 +85,8 @@ export interface ConversationSpec {
   portrait: Shot;
   /** Adrian's own opening, before the conversation starts. */
   intro: string;
+  /** Adrian's own close, after the subject's closing saying; his words, from his context note. */
+  closing?: string;
   /** Anything between the intro and part one; usually nothing, when part one opens with a photograph. */
   opening: Block[];
   parts: Part[];
@@ -104,9 +116,9 @@ export function plain(text: string): string {
 }
 
 export function wordCount(spec: ConversationSpec): number {
-  const texts = [spec.intro, spec.ending.saying.text];
+  const texts = [spec.intro, spec.ending.saying.text, spec.closing ?? ''];
   allBlocks(spec).forEach((b) => {
-    if (b.kind === 'q' || b.kind === 'a' || b.kind === 'line' || b.kind === 'on-photo') texts.push(b.text);
+    if (b.kind === 'q' || b.kind === 'a' || b.kind === 'n' || b.kind === 'line' || b.kind === 'on-photo') texts.push(b.text);
     if (b.kind === 'line' && b.follow) texts.push(b.follow.text);
   });
   return texts.map(plain).join(' ').split(/\s+/).filter(Boolean).length;
@@ -129,11 +141,17 @@ export function photoCount(spec: ConversationSpec): number {
 /** Where his turn begins: the first answer, or large line, after a question. It carries his name, so
  *  nothing he says ever sits unattributed between a question and the answer. */
 export function turnStarts(spec: ConversationSpec): Set<string> {
+  // His words begin a turn wherever they follow anything but his own words: a
+  // question, a line of Adrian's telling, or the start of a part. Words that
+  // run on from his previous answer need no second name.
   const starts = new Set<string>();
-  let last: 'q' | 'a' | null = null;
-  allBlocks(spec).forEach((b) => {
-    if (b.kind === 'q') last = 'q';
-    else if (b.kind === 'a' || b.kind === 'line') { if (last === 'q') starts.add(b.id); last = 'a'; }
+  const walk = (blocks: Block[], last: { v: 'q' | 'a' | null }) => blocks.forEach((b) => {
+    if (b.kind === 'q' || b.kind === 'n') last.v = 'q';
+    else if (b.kind === 'a' || b.kind === 'line') { if (last.v !== 'a') starts.add(b.id); last.v = 'a'; }
+    else if (b.kind === 'side' || b.kind === 'glyph') walk(b.blocks, last);
   });
+  walk(spec.opening, { v: null });
+  spec.parts.forEach((p) => walk(p.blocks, { v: null }));
+  walk(spec.ending.blocks, { v: null });
   return starts;
 }
