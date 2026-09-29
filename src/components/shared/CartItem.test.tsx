@@ -7,7 +7,7 @@ import type { CartItem } from '../../types';
 
 vi.mock('../../context/ThemeContext', () => ({ useTheme: () => ({ theme: 'dark' }) }));
 vi.mock('../shop/shopPrice', () => ({
-  useShopPrice: () => ({ total: (usd: number) => `$${usd}`, perGramExact: (usd: number) => `$${usd}` }),
+  useShopPrice: () => ({ total: (usd: number) => `$${usd}`, plainTotal: (usd: number) => `${usd}`, perGramExact: (usd: number) => `$${usd}` }),
 }));
 
 const item: CartItem = {
@@ -49,5 +49,13 @@ describe('the photo leads only when the tea has one', () => {
     const html = renderWith('https://example.com/leaf.jpg');
     expect(html).toContain('src="https://example.com/leaf.jpg"');
     expect(html.indexOf('<img')).toBeLessThan(html.indexOf('Red tea</a>'));
+  });
+});
+
+describe('the size tiles carry no currency', () => {
+  it('prints a bare figure under each size, since the picker names the currency once', () => {
+    const tiles = render().match(/aria-label="\d+g pack[^"]*"[^>]*>[\s\S]*?<\/button>/g) ?? [];
+    expect(tiles.length).toBeGreaterThan(0);
+    for (const tile of tiles) expect(tile.replace(/aria-label="[^"]*"/, '')).not.toContain('$');
   });
 });
