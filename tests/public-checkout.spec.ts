@@ -47,7 +47,7 @@ async function prepare(page: Page, options: { canBePaid?: boolean; whatsapp?: bo
       can_be_paid: options.canBePaid ?? true, whatsapp_number: options.whatsapp === false ? '' : '6281234567890', contact_email: 'shop@example.com',
     });
     if (pathname === '/api/products/public' || pathname === '/api/s/teajia-bali/products') return json(route, [{ ...PRODUCT, ...options.product }]);
-    if (pathname === '/api/rates') return json(route, [{ currency: 'USD', rate_to_usd: 1 }, { currency: 'IDR', rate_to_usd: 16000 }]);
+    if (pathname === '/api/rates') return json(route, [{ currency: 'USD', rate_to_usd: 1 }, { currency: 'IDR', rate_to_usd: 16000 }, { currency: 'Yuan', rate_to_usd: 7.1 }]);
     if (pathname.includes('/api/auth/')) return json(route, { error: 'Unauthorized' }, 401);
     if (pathname === '/api/network/stores') return json(route, { stores: [] });
     return json(route, []);
@@ -120,6 +120,17 @@ test.describe('guest public checkout', () => {
     expect(requests[0].total_estimate_usd).toBe(item.totalPrice);
     expect(JSON.parse(requests[0].items_json)[0]).toMatchObject({ id: item.id, packGrams: item.packGrams, packs: 1, totalPrice: item.totalPrice });
     await expect.poll(() => savedCart(page)).toEqual([]);
+  });
+
+  test('an order priced in yuan saves, and names its money CNY', async ({ page }) => {
+    const requests = await prepare(page);
+    await beginOrder(page);
+    await page.getByRole('combobox', { name: 'Currency', exact: true }).selectOption('Yuan');
+    await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
+    await page.getByRole('button', { name: 'Place order request', exact: true }).click();
+    await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
+    expect(requests).toHaveLength(1);
+    expect(requests[0].currency).toBe('CNY');
   });
 
   test('orders in Bali on the website without opening WhatsApp or an email app', async ({ page }, testInfo) => {

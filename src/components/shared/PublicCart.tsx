@@ -9,6 +9,7 @@ import { resolveContactChannels } from '../../lib/contact';
 import { useRates } from '../../admin/hooks/useAdminData';
 import { useShopPrice } from '../shop/shopPrice';
 import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
+import { isoCurrencyCode } from '../../lib/currency';
 import { Button } from './Button';
 import { Icons } from '../Icons';
 import { CartItemRow } from './CartItem';
@@ -99,6 +100,11 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
   const channel: ReplyChannel = channelChoice === 'website' || !channels.whatsapp ? 'website' : channelChoice ?? 'whatsapp-chat';
   const subtotal = useMemo(() => cart.reduce((total, item) => total + item.totalPrice, 0), [cart]);
   const unavailable = checkoutState !== 'ready';
+  /* The shop keys yuan and Taiwan dollars as 'Yuan' and 'NT'; an order names
+     its money by ISO code, which is what the server checks for. Sending the
+     shop key refused every order placed in yuan with "Currency must be a
+     three-letter code", and the error sat off screen, so the button looked dead. */
+  const orderCurrency = isoCurrencyCode(shopPrice.code);
 
   useEffect(() => {
     if (isOpen) setRecentRequests(readRecentOrderRequests(storeSlug));
@@ -156,7 +162,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
 
     const location = checkoutLocation(details);
     const contact = channel === 'whatsapp-chat' ? '' : details.contact.trim();
-    const payloadKey = createInquiryPayloadKey({ storeSlug, name: details.name, contact, location, notes: details.notes, cart, totalUsd: subtotal, currency: shopPrice.code });
+    const payloadKey = createInquiryPayloadKey({ storeSlug, name: details.name, contact, location, notes: details.notes, cart, totalUsd: subtotal, currency: orderCurrency });
     const identity = pendingIdentity.current?.payloadKey === payloadKey ? pendingIdentity.current : requestIdentity(payloadKey);
     pendingIdentity.current = identity;
     saving.current = true;
@@ -164,12 +170,12 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
     setCheckoutError(null);
     try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(identity)); } catch { /* Keep the identity in memory for retry. */ }
     try {
-      const result = await api.inquiries.create({ tracking_token: identity.trackingToken, ref_number: identity.ref, store_slug: storeSlug, customer_name: details.name.trim(), customer_contact: contact, whatsapp_handoff: channel === 'whatsapp-chat', whatsapp_confirmation_consent: requestWhatsApp, customer_location: location, notes: details.notes.trim() || undefined, items_json: JSON.stringify(cart), total_estimate_usd: subtotal, currency: shopPrice.code, source: 'website' });
+      const result = await api.inquiries.create({ tracking_token: identity.trackingToken, ref_number: identity.ref, store_slug: storeSlug, customer_name: details.name.trim(), customer_contact: contact, whatsapp_handoff: channel === 'whatsapp-chat', whatsapp_confirmation_consent: requestWhatsApp, customer_location: location, notes: details.notes.trim() || undefined, items_json: JSON.stringify(cart), total_estimate_usd: subtotal, currency: orderCurrency, source: 'website' });
       const trackingUrl = `${window.location.origin}/order/${result.tracking_token}`;
       const message = buildOrderMessage({
         type: 'inquiry', ref: result.ref_number, invoiceNumber: result.invoice_number, trackingUrl,
         customerName: details.name.trim(), customerContact: contact, customerLocation: location,
-        notes: details.notes.trim(), currency: shopPrice.code,
+        notes: details.notes.trim(), currency: orderCurrency,
         items: cart.map(item => ({ name: item.name, variant: item.variant, quantity: item.packGrams ?? item.quantityGrams, packs: item.packs ?? 1, unit: item.category === 'tea' ? 'g' : ' pcs', price: shopPrice.total(item.totalPrice / (item.packs ?? 1)), total: shopPrice.total(item.totalPrice) })),
         subtotal: shopPrice.total(subtotal), total: shopPrice.total(subtotal),
       });
