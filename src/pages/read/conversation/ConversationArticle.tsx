@@ -295,6 +295,10 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
   const progress = useReadingProgress();
   const current = useCurrentPart(spec.parts.length);
   useQuietChrome();
+  // The run of Adrian's telling that opens the piece joins his intro.
+  const firstOther = spec.opening.findIndex((b) => b.kind !== 'n');
+  const leadingTold = (firstOther === -1 ? spec.opening : spec.opening.slice(0, firstOther)) as Extract<Block, { kind: 'n' }>[];
+  const openingRest = firstOther === -1 ? [] : spec.opening.slice(firstOther);
   const speakers = useMemo<Speakers>(() => ({ ...spec.speakers, starts: turnStarts(spec) }), [spec]);
 
   // Arriving on a #part-N link shows that part at once. It waits out the app's
@@ -324,10 +328,13 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
               <EditableText field="intro-2" as="p" multiline className="tj-conv-intro-text">
                 {spec.intro}
               </EditableText>
+              {/* Adrian's telling that opens the story continues his intro, so it sits
+                  with it, before the contents, rather than alone after the list. */}
+              {leadingTold.map((b) => <Rich key={b.id} field={b.id} text={b.text} className="tj-conv-told tj-conv-intro-told" />)}
               <Contents spec={spec} />
             </section>
 
-            {groupRuns(spec.opening).map((b, i) => <BlockView key={`o${i}`} spec={spec} block={b} />)}
+            {groupRuns(openingRest).map((b, i) => <BlockView key={`o${i}`} spec={spec} block={b} />)}
 
             {spec.parts.map((p, pi) => (
               <React.Fragment key={p.title}>
@@ -336,13 +343,17 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
               </React.Fragment>
             ))}
 
-            {/* The close: the last exchange, his saying, the end mark, the whole photograph, the colophon. */}
+            {/* The close: the last exchange, his saying, the whole photograph, then
+                Adrian's own close with the end mark, so the story ends on words. */}
             {groupRuns(spec.ending.blocks).map((b, i) => <BlockView key={`e${i}`} spec={spec} block={b} />)}
             <section data-reveal="text" className="tj-conv-saying">
               <Line id={spec.ending.saying.id} text={spec.ending.saying.text} size="l" />
               {!spec.closing && <span aria-hidden="true" lang="zh-Hans" className="tj-conv-endmark">家</span>}
             </section>
-            {/* Adrian's own close, last, after the subject's saying. */}
+            <figure data-reveal="photo" className="tj-conv-close">
+              <Photo spec={spec} shot={spec.ending.shot} aspect={spec.ending.aspect} />
+            </figure>
+            {/* Adrian's own close, last, after the subject's saying and the photograph. */}
             {spec.closing && (
               <section data-reveal="text" className="tj-conv-col tj-conv-closing">
                 <EditableText field="closing" as="p" multiline className="tj-conv-intro-text">
@@ -351,9 +362,6 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
                 <span aria-hidden="true" lang="zh-Hans" className="tj-conv-endmark">家</span>
               </section>
             )}
-            <figure data-reveal="photo" className="tj-conv-close">
-              <Photo spec={spec} shot={spec.ending.shot} aspect={spec.ending.aspect} />
-            </figure>
             <footer className="tj-conv-credit">
               {spec.credit.map((line) => <p key={line}>{line}</p>)}
               <p className="tj-conv-credit-links">

@@ -328,3 +328,7 @@ html[data-tj-reading='quiet'] [data-testid='bottom-tab-bar'] { translate: 0 calc
 @media (prefers-reduced-motion: reduce) {
   [data-testid='left-sidebar'], [data-testid='bottom-tab-bar'] { transition: none; }
 }
+
+/* The telling that opens the story sits under the intro, in its size and tone. */
+.tj-conv-intro-told { font-size: clamp(19px, 2.3vw, 23px); line-height: 1.7; color: var(--tj-read-ink); margin: 1em 0 0; }
+.tj-conv-closing { margin-top: var(--conv-s2); }
