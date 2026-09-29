@@ -63,7 +63,7 @@ async function openCart(page: Page) {
 async function beginOrder(page: Page, chooseEmail = true) {
   await page.goto('/shop', { waitUntil: 'domcontentloaded' });
   await openCart(page);
-  if (chooseEmail) await page.getByRole('radio', { name: 'Email reply', exact: true }).check();
+  if (chooseEmail) await page.getByRole('radio', { name: 'Email', exact: true }).check();
   await page.getByLabel('Your name', { exact: true }).fill('Guest Customer');
   await page.getByLabel('Your email address', { exact: true }).fill('guest@example.com');
 }
@@ -106,7 +106,7 @@ test.describe('guest public checkout', () => {
       return opacity;
     })).toBeGreaterThan(0.99);
     await page.screenshot({ path: testInfo.outputPath('catalogue-checkout-top-viewport.png'), animations: 'disabled' });
-    await page.getByRole('radio', { name: 'Email reply', exact: true }).check();
+    await page.getByRole('radio', { name: 'Email', exact: true }).check();
     await page.getByLabel('Your name', { exact: true }).fill('Catalogue Customer');
     await page.getByLabel('Your email address', { exact: true }).fill('guest@example.com');
     await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
@@ -155,10 +155,10 @@ test.describe('guest public checkout', () => {
   test('accepts a pickup request without making the customer invent a shipping location', async ({ page }, testInfo) => {
     const requests = await prepare(page, { whatsapp: false, light: true });
     await beginOrder(page, false);
-    await expect(page.getByRole('radio', { name: 'Email reply', exact: true })).toBeChecked();
+    await expect(page.getByRole('radio', { name: 'Email', exact: true })).toBeChecked();
     await page.getByRole('radio', { name: 'Pickup in Bali', exact: true }).check();
     await expect(page.getByLabel('Your area in Bali', { exact: true })).toHaveCount(0);
-    await expect(page.getByRole('radio', { name: 'WhatsApp number', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('radio', { name: 'WhatsApp', exact: true })).toHaveCount(0);
     await page.screenshot({ path: testInfo.outputPath('checkout-light-form.png'), fullPage: true });
     await page.getByRole('button', { name: 'Place order request', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
@@ -224,7 +224,7 @@ test.describe('guest public checkout', () => {
     const requests = await prepare(page);
     await page.goto('/shop', { waitUntil: 'domcontentloaded' });
     await openCart(page);
-    await page.getByRole('radio', { name: 'WhatsApp number', exact: true }).check();
+    await page.getByRole('radio', { name: 'WhatsApp', exact: true }).check();
     await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
     await page.getByLabel('Your name', { exact: true }).fill('Guest Customer');
     await page.getByLabel('Your WhatsApp number', { exact: true }).fill('+6281234567890');
@@ -233,6 +233,7 @@ test.describe('guest public checkout', () => {
     expect(requests[0].source).toBe('website');
     expect(requests[0].customer_contact).toBe('+6281234567890');
     expect(requests[0].whatsapp_confirmation_consent).toBe(false);
+    expect(requests[0].whatsapp_handoff).toBe(false);
     await expect(page.getByText('Your request is saved with Teajia Bali.', { exact: true })).toBeInViewport({ ratio: 1 });
     await expect(page.getByText('Your order request and draft invoice are saved.', { exact: false })).toBeVisible();
     await expect.poll(() => savedCart(page)).toEqual([]);
@@ -245,7 +246,7 @@ test.describe('guest public checkout', () => {
     await openCart(page);
     await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
     await page.getByLabel('Your name', { exact: true }).fill('Guest Customer');
-    await page.getByRole('radio', { name: 'WhatsApp number', exact: true }).check();
+    await page.getByRole('radio', { name: 'WhatsApp', exact: true }).check();
     const contact = page.getByLabel('Your WhatsApp number', { exact: true });
     await contact.fill('+628111234567');
     const consent = page.getByRole('checkbox', { name: /Send me a WhatsApp order confirmation/ });
@@ -267,7 +268,7 @@ test.describe('guest public checkout', () => {
     const requests = await prepare(page);
     await page.goto('/shop', { waitUntil: 'domcontentloaded' });
     await openCart(page);
-    await page.getByRole('radio', { name: 'WhatsApp number', exact: true }).check();
+    await page.getByRole('radio', { name: 'WhatsApp', exact: true }).check();
     await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
     await page.getByLabel('Your name', { exact: true }).fill('Guest Customer');
     await page.getByLabel('Your WhatsApp number', { exact: true }).fill('+6281234567890');
@@ -313,7 +314,7 @@ test.describe('guest public checkout', () => {
     expect(await savedCart(page)).toHaveLength(1);
     await page.reload({ waitUntil: 'domcontentloaded' });
     await openCart(page);
-    await page.getByRole('radio', { name: 'Email reply', exact: true }).check();
+    await page.getByRole('radio', { name: 'Email', exact: true }).check();
     await expect(page.getByLabel('Your email address', { exact: true })).toHaveValue('guest@example.com');
     await page.getByRole('button', { name: 'Place order request', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
@@ -359,8 +360,8 @@ test('saves an invoice without a phone number before offering the connected What
   const requests = await prepare(page, { failFirst: true });
   await page.goto('/shop');
   await openCart(page);
-  await expect(page.getByRole('radio', { name: 'WhatsApp chat', exact: true })).toBeChecked();
-  await expect(page.getByLabel('Your WhatsApp number', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('radio', { name: 'WhatsApp', exact: true })).toBeChecked();
+  await expect(page.getByLabel('Your WhatsApp number', { exact: true })).toHaveValue('');
   await page.getByLabel('Your name', { exact: true }).fill('Chat Customer');
   await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
   await page.getByRole('button', { name: 'Place order request', exact: true }).click();
@@ -382,10 +383,10 @@ test('saves an invoice without a phone number before offering the connected What
   expect(message).not.toContain('/admin');
   expect(await page.evaluate(() => (window as any).__checkoutPopupCalls)).toBe(0);
   await page.getByText('Using a computer? Scan with your phone', { exact: true }).click();
-  await expect(page.getByRole('link', { name: 'Continue in WhatsApp', exact: true })).toBeInViewport();
+  await expect(page.getByRole('link', { name: 'Discuss this order on WhatsApp', exact: true })).toBeInViewport();
   await page.getByLabel('Scan to open WhatsApp with this invoice link').scrollIntoViewIfNeeded();
   await expect(page.getByLabel('Scan to open WhatsApp with this invoice link')).toBeVisible();
-  await expect(page.getByText('One more step:', { exact: false })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'One more step', exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('invoice-whatsapp-handoff.png'), fullPage: true });
   expect(await page.getByRole('region', { name: 'Order request confirmation' }).evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
   await expect.poll(() => savedCart(page)).toEqual([]);
