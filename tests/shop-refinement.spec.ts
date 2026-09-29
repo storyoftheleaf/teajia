@@ -188,11 +188,9 @@ test.describe('refined public shop', () => {
     // compared on both sides: Moonlight White at $0.15/g comes to
     // 0.15 * 50 + 2 = $9.50, shown as $10, whichever surface names it.
     const row = page.getByRole('button', { name: 'View Moonlight White' });
-    // The list names its currency once, in the filter bar, and each row
-    // carries only the number.
-    await expect(page.getByTestId('shop-price-currency')).toHaveText('$');
+    // Each row leads with the currency's short symbol, not its code.
     const gridPrice = (await row.getByTestId('grid-price').textContent())?.trim();
-    expect(gridPrice).toBe('10');
+    expect(gridPrice).toBe('$10');
 
     await row.click();
     await expect(page).toHaveURL(/\/shop\/product\/tea-1$/);
@@ -201,6 +199,6 @@ test.describe('refined public shop', () => {
     await amountButton.click();
     const pageTotal = (await page.getByTestId('amount-total-50').textContent())?.trim();
 
-    expect(gridPrice).toBe(pageTotal);
+    expect(gridPrice).toBe(`$${pageTotal}`);
   });
 });

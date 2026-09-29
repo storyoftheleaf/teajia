@@ -115,6 +115,13 @@ export interface ShopPrice {
    * formatter asks.
    */
   symbol: string;
+  /**
+   * A total led by the currency's short symbol instead of its code:
+   * "Rp269k", "$15", "NT$1,652". For a list where the code on every row
+   * ("IDR 269k") is the widest thing in it. The symbol is `symbol` above, so
+   * a currency with no rate reads as the dollars it really is.
+   */
+  symbolTotal: (usd: number) => string;
   /** A total, rounded up to a whole unit, as the shop has always quoted totals. */
   total: (usd: number) => string;
   /**
@@ -178,6 +185,17 @@ export function useShopPrice(): ShopPrice {
     [total],
   );
 
+  // A leading "~" (a rate we do not hold) or minus stays in front of the
+  // symbol, because both change what the figure means.
+  const symbolTotal = useCallback(
+    (usd: number) => {
+      const plain = plainTotal(usd);
+      const lead = /^[~-]/.test(plain) ? plain[0] : '';
+      return lead + symbol + plain.slice(lead.length);
+    },
+    [plainTotal, symbol],
+  );
+
   const rate = useCallback(
     (usdPerGram: number) => ({
       value: localised
@@ -209,7 +227,7 @@ export function useShopPrice(): ShopPrice {
   );
 
   return useMemo(
-    () => ({ localised, code, symbol, total, plainTotal, perGram, rate, perGramExact }),
-    [localised, code, symbol, total, plainTotal, perGram, rate, perGramExact],
+    () => ({ localised, code, symbol, symbolTotal, total, plainTotal, perGram, rate, perGramExact }),
+    [localised, code, symbol, symbolTotal, total, plainTotal, perGram, rate, perGramExact],
   );
 }
