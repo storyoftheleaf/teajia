@@ -82,14 +82,14 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           onAccountClose?.();
           navigate(tab.path);
         }}
-        className="flex-1 w-full min-w-0 h-full flex items-center justify-center relative transition-all duration-200 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+        className="flex-auto min-w-0 h-full flex items-center justify-center relative transition-all duration-200 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
         style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
         title={tab.label}
         aria-current={isActive ? 'page' : undefined}
         aria-label={tab.label}
       >
         <motion.span
-          className="text-ui-15 tracking-normal lowercase font-medium pointer-events-none select-none whitespace-nowrap"
+          className="text-[clamp(12.5px,4vw,15px)] tracking-normal lowercase font-medium pointer-events-none select-none whitespace-nowrap"
           style={{ fontFamily: 'var(--font-display)', WebkitUserSelect: 'none', userSelect: 'none' }}
           animate={
             isActive
@@ -181,14 +181,14 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           }
           onNavigate(section.id);
         }}
-        className="flex-1 w-full min-w-0 h-full flex items-center justify-center relative transition-all duration-200 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+        className="flex-auto min-w-0 h-full flex items-center justify-center relative transition-all duration-200 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
         style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
         title={section.label}
         aria-current={isActive ? 'page' : undefined}
         aria-label={section.label}
       >
         <motion.span
-          className="text-ui-15 tracking-normal lowercase font-medium pointer-events-none select-none whitespace-nowrap"
+          className="text-[clamp(12.5px,4vw,15px)] tracking-normal lowercase font-medium pointer-events-none select-none whitespace-nowrap"
           style={{ fontFamily: 'var(--font-display)', WebkitUserSelect: 'none', userSelect: 'none' }}
           animate={
             isActive
@@ -208,7 +208,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         aria-label="Main navigation"
         data-testid="bottom-tab-bar"
         onContextMenu={(e) => e.preventDefault()}
-        className={`bottom-nav-bar fixed z-nav flex rounded-full transition-transform duration-200 select-none overflow-hidden left-4 right-4 animate-[slideUp_0.4s_ease-out] lg:hidden ${
+        className={`bottom-nav-bar fixed z-nav flex rounded-full transition-transform duration-200 select-none overflow-hidden left-3 right-3 min-[375px]:left-4 min-[375px]:right-4 animate-[slideUp_0.4s_ease-out] lg:hidden ${
           isOnAdmin ? 'lg:hidden' : ''
         } ${shouldHide ? 'translate-y-[calc(100%+24px)]' : 'translate-y-0'}`}
         style={{
@@ -243,7 +243,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               if ('vibrate' in navigator) { navigator.vibrate?.(10); }
               onMenuClick?.();
             }}
-            className="w-12 flex-shrink-0 h-full flex items-center justify-center pl-1 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none transition-colors duration-300"
+            className="w-10 min-[375px]:w-11 flex-shrink-0 h-full flex items-center justify-center pl-1 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none transition-colors duration-300"
             style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
             title="Menu"
             aria-label="Menu"
@@ -264,24 +264,21 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             </svg>
           </button>
 
-          {/* Left sections, divider only between tab pairs, not adjacent to the bracket-framed search */}
-          {isAdminRoute ? (
-            adminLeftTabs.map((tab, index) => (
-              <React.Fragment key={tab.id}>
-                {index > 0 && <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />}
-                {renderAdminTabButton(tab, index)}
-              </React.Fragment>
-            ))
-          ) : (
-            leftSections.map((section, index) => (
-              <React.Fragment key={section.id}>
-                {index > 0 && <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />}
-                {renderTabButton(section, index)}
-              </React.Fragment>
-            ))
-          )}
-
-          <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
+          {/* Spacing: the two halves either side of the logo are equal width,
+              so the logo sits on the bar's true centre whatever the words
+              are. Inside each half the words take their own width plus an
+              equal share of what is left, so every word has the same air on
+              both sides. Equal-width boxes did the opposite: short words
+              floated and "advise" sat 3px off its dividers at 360px. Only
+              the logo is framed by hairlines; space alone separates the
+              words, because a line between every pair ate the air a
+              small phone does not have. */}
+          <div className="flex flex-auto min-w-0 h-full">
+          {isAdminRoute
+            ? adminLeftTabs.map((tab, index) => renderAdminTabButton(tab, index))
+            : leftSections.map((section, index) => renderTabButton(section, index))}
+          <div className="w-px h-4 mx-1 bg-tea-border self-center flex-shrink-0" />
+          </div>
 
           {/* Center: HOME / ADMIN HOME. The logo is always the center
               affordance; contextual actions (e.g. voice capture on the
@@ -291,7 +288,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: leftSections.length * 0.05, duration: 0.25, ease: 'easeOut' }}
-            className="flex-1 w-full h-full flex items-center justify-center relative transition-all duration-300 select-none"
+            className="flex-none px-1.5 h-full flex items-center justify-center relative transition-all duration-300 select-none"
             style={{
               WebkitTouchCallout: 'none',
               WebkitUserSelect: 'none',
@@ -300,35 +297,23 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             title={isAdminRoute ? 'Admin Home · Long press to go to storefront' : 'Home · Long press for admin'}
             aria-label={isAdminRoute ? 'Admin home, long press to go to storefront' : 'Return to home, long press to open launchpad'}
           >
-            <span style={{ display: 'inline-block', transform: 'scale(0.89)', transformOrigin: 'center', lineHeight: 0 }}>
-              <LogoText
-                size="sm"
-                color={isAdminRoute
-                  ? 'var(--tea-text-sec)'
-                  : (activeSection === 'HOME' ? 'var(--tea-gold)' : 'var(--tea-text-sec)')}
-                className="transition-all duration-300 pointer-events-none"
-              />
-            </span>
+            {/* Sized, not scaled: a transform shrinks what you see but not
+                the box, which left the logo's layout 6px wider than its ink. */}
+            <LogoText
+              size="sm"
+              color={isAdminRoute
+                ? 'var(--tea-text-sec)'
+                : (activeSection === 'HOME' ? 'var(--tea-gold)' : 'var(--tea-text-sec)')}
+              className="h-[clamp(16px,5.1vw,19px)] w-auto transition-all duration-300 pointer-events-none"
+            />
           </motion.button>
 
-          <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
-
-          {/* Right sections, divider only between tab pairs, not adjacent to the bracket-framed account */}
-          {isAdminRoute ? (
-            adminRightTabs.map((tab, index) => (
-              <React.Fragment key={tab.id}>
-                {renderAdminTabButton(tab, index + adminLeftTabs.length + 1)}
-                {index < adminRightTabs.length - 1 && <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />}
-              </React.Fragment>
-            ))
-          ) : (
-            rightSections.map((section, index) => (
-              <React.Fragment key={section.id}>
-                {renderTabButton(section, index + leftSections.length + 1)}
-                {index < rightSections.length - 1 && <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />}
-              </React.Fragment>
-            ))
-          )}
+          <div className="flex flex-auto min-w-0 h-full">
+          <div className="w-px h-4 mx-1 bg-tea-border self-center flex-shrink-0" />
+          {isAdminRoute
+            ? adminRightTabs.map((tab, index) => renderAdminTabButton(tab, index + adminLeftTabs.length + 1))
+            : rightSections.map((section, index) => renderTabButton(section, index + leftSections.length + 1))}
+          </div>
 
           {/* Far right: Your Table (clean icon, sits inside the floating capsule) */}
           <button
@@ -336,7 +321,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               if ('vibrate' in navigator) { navigator.vibrate?.(10); }
               onAccountClick?.();
             }}
-            className="relative w-12 flex-shrink-0 h-full flex items-center justify-center pr-1 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none transition-colors duration-300"
+            className="relative w-10 min-[375px]:w-11 flex-shrink-0 h-full flex items-center justify-center pr-1 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none transition-colors duration-300"
             style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
             title="Your Table"
             aria-label="Your Table"
