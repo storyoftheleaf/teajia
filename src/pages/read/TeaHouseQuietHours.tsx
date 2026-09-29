@@ -115,7 +115,7 @@ const TeaHouseQuietHours: React.FC = () => {
       <article style={{ position: 'relative', zIndex: 1 }}>
 
         {/* ── COVER ─────────────────────────────────────────────────────── */}
-        <header style={{
+        <header className="tj-cover-dissolve" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,360px),1fr))',
           alignItems: 'stretch',
@@ -123,7 +123,7 @@ const TeaHouseQuietHours: React.FC = () => {
           minHeight: '90vh',
         }}>
           {/* text column */}
-          <div style={{ position: 'relative', order: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(36px,6vw,84px) clamp(24px,5vw,72px)' }}>
+          <div className="tj-cover-text" style={{ position: 'relative', order: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(36px,6vw,84px) clamp(24px,5vw,72px)' }}>
             <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.34em', textTransform: 'uppercase', color: C.gold, marginBottom: 26 }}>
               A Tea House · Brunswick, Melbourne
             </div>
@@ -161,7 +161,7 @@ const TeaHouseQuietHours: React.FC = () => {
           </div>
 
           {/* illustration column */}
-          <div style={{ position: 'relative', order: 1, overflow: 'hidden', minHeight: '48vh', background: 'linear-gradient(155deg,var(--tj-read-plate-from) 0%,var(--tj-read-bg) 80%)' }}>
+          <div className="tj-cover-photo" style={{ position: 'relative', order: 1, overflow: 'hidden', minHeight: '48vh', background: 'linear-gradient(155deg,var(--tj-read-plate-from) 0%,var(--tj-read-bg) 80%)' }}>
             <div aria-hidden="true" style={{ ...grainCss('0.8', 150), opacity: 0.08 }} />
             <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 64% 50% at 50% 36%, rgb(var(--tj-read-gold-rgb) / 0.14), transparent 64%)' }} />
             <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-54%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(40vw,320px)', lineHeight: 1, color: 'rgb(var(--tj-read-gold-rgb) / 0.06)' }}>茶</div>

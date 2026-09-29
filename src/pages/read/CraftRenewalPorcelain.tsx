@@ -50,22 +50,12 @@ const em: React.CSSProperties = { fontStyle: 'italic', color: C.warm };
 const cn: React.CSSProperties = { fontFamily: F.cn, color: C.gold };
 const briefK: React.CSSProperties = { fontFamily: F.ui, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.dim };
 const briefV: React.CSSProperties = { fontFamily: F.body, fontSize: 15, color: C.ink, textAlign: 'right' };
+const creditLabel: React.CSSProperties = { fontFamily: F.ui, fontSize: 10.5, fontWeight: 500, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.gold, paddingTop: 6 };
 const bylineLink: React.CSSProperties = { fontFamily: F.ui, fontSize: 12, letterSpacing: '0.06em', color: C.goldLt, textDecoration: 'none', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.4)', paddingBottom: 1 };
 const lineSize = { xl: 'clamp(40px,7vw,92px)', l: 'clamp(32px,5vw,62px)', m: 'clamp(26px,3.4vw,40px)' } as const;
 
 const gap = 'clamp(10px,1.6vw,18px)';
 const block = (max: number): React.CSSProperties => ({ maxWidth: max, margin: 'clamp(34px,5vw,56px) auto', padding: '0 24px' });
-
-// The phone order of the cover (title first, portrait after) needs a media
-// query, which inline styles cannot carry.
-const coverCss = `
-  .tj-pt-cover-text{order:2}
-  .tj-pt-cover-photo{order:1}
-  @media (max-width:700px){
-    .tj-pt-cover-text{order:1}
-    .tj-pt-cover-photo{order:2;min-height:78vh}
-  }
-`;
 
 // ── Building blocks ──────────────────────────────────────────────────────────
 const Col: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -182,14 +172,13 @@ const CraftRenewalPorcelain: React.FC = () => {
     <StoryEditProvider slug={STORY_SLUG}>
       <ImmersiveRoot rootRef={rootRef}>
         <Helmet><title>Shangyin Qiwu · Porcelain and Tea · Teajia</title></Helmet>
-        <style>{coverCss}</style>
         <ImmersiveNav eyebrow="Conversations" progress={progress} />
         <AccentSwatches accent={accent} setAccent={setAccent} />
 
         <article style={{ position: 'relative', zIndex: 1 }}>
           {/* COVER: portrait left, title right; on a phone the title comes first */}
-          <header style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,340px),1fr))', alignItems: 'stretch', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)' }}>
-            <div className="tj-pt-cover-text" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(36px,6vw,84px) clamp(24px,5vw,72px)' }}>
+          <header className="tj-cover-dissolve" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,340px),1fr))', alignItems: 'stretch', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)' }}>
+            <div className="tj-cover-text" style={{ order: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(36px,6vw,84px) clamp(24px,5vw,72px)' }}>
               <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.34em', textTransform: 'uppercase', color: C.gold, marginBottom: 28 }}>Conversations over Tea</div>
               <h1 style={{ fontFamily: F.display, fontWeight: 300, fontSize: 'clamp(52px,8vw,112px)', lineHeight: 0.94, letterSpacing: '-0.02em', color: C.cream, margin: 0 }}>
                 <EditableText field="title-1" as="span">Porcelain</EditableText><br />
@@ -198,16 +187,19 @@ const CraftRenewalPorcelain: React.FC = () => {
               <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(16px,2vw,20px)', lineHeight: 1.5, color: C.taupe, margin: '28px 0 0', maxWidth: 440 }}>
                 <EditableText field="dek-2" as="span" multiline>A conversation with a porcelain restorer in Wuyi.</EditableText>
               </p>
-              <div style={{ marginTop: 'clamp(30px,5vw,46px)', paddingTop: 24, borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.16)' }}>
-                <div style={{ fontFamily: F.display, fontSize: 24, color: C.ink, lineHeight: 1 }}>
-                  <Link to="/people/shangyin-qiwu" style={{ color: 'inherit', textDecoration: 'none', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.35)' }}>Shangyin Qiwu</Link>
-                  <span style={{ fontFamily: F.cn, color: C.taupe, fontSize: 20, marginLeft: 8 }}>上隐器物</span>
+              <div style={{ marginTop: 'clamp(30px,5vw,46px)', paddingTop: 22, borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.16)', display: 'grid', gridTemplateColumns: '52px minmax(0,1fr)', rowGap: 20 }}>
+                <div style={creditLabel}>With</div>
+                <div>
+                  <div style={{ fontFamily: F.display, fontSize: 24, color: C.ink, lineHeight: 1.1 }}>
+                    <Link to="/people/shangyin-qiwu" style={{ color: 'inherit', textDecoration: 'none', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.35)' }}>Shangyin Qiwu</Link>
+                    <span style={{ fontFamily: F.cn, color: C.taupe, fontSize: 18, marginLeft: 8 }}>上隐器物</span>
+                  </div>
+                  <div style={{ fontFamily: F.ui, fontSize: 12, letterSpacing: '0.04em', color: C.taupe, marginTop: 6 }}>Porcelain restorer, Wuyi, China</div>
                 </div>
-                <div style={{ fontFamily: F.ui, fontSize: 10.5, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim, marginTop: 8 }}>Porcelain restorer · Wuyi, China</div>
-                <div style={{ marginTop: 22, display: 'grid', gap: 4 }}>
-                  <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim }}>Interview by</div>
-                  <div style={{ fontFamily: F.display, fontSize: 22, color: C.ink }}>Adrian Rasmussen</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 18px', marginTop: 4 }}>
+                <div style={creditLabel}>By</div>
+                <div>
+                  <div style={{ fontFamily: F.display, fontSize: 24, color: C.ink, lineHeight: 1.1 }}>Adrian Rasmussen</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 18px', marginTop: 6 }}>
                     <Link to="/people/adrian-rasmussen" style={bylineLink}>Teajia page</Link>
                     <a href="https://www.instagram.com/technicianofthesacred/" target="_blank" rel="noopener noreferrer" style={bylineLink}>Instagram</a>
                     <a href="https://adrianrasmussen.com" target="_blank" rel="noopener noreferrer" style={bylineLink}>Portfolio</a>
@@ -215,7 +207,7 @@ const CraftRenewalPorcelain: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="tj-pt-cover-photo" style={{ position: 'relative', overflow: 'hidden', minHeight: 'min(88vh,860px)', background: 'linear-gradient(155deg,var(--tj-read-empty-from) 0%,var(--tj-read-bg) 80%)' }}>
+            <div className="tj-cover-photo" style={{ order: 1, position: 'relative', overflow: 'hidden', minHeight: 'min(88vh,860px)', background: 'linear-gradient(155deg,var(--tj-read-empty-from) 0%,var(--tj-read-bg) 80%)' }}>
               <EditablePhoto
                 slot="portrait"
                 alt={S.portrait.alt}

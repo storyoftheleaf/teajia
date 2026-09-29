@@ -106,8 +106,8 @@ const EarthWaterFire: React.FC = () => {
 
       <article style={{ position: 'relative', zIndex: 1 }}>
         {/* COVER */}
-        <header style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,360px),1fr))', alignItems: 'stretch', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)', minHeight: '90vh' }}>
-          <div style={{ position: 'relative', order: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(36px,6vw,84px) clamp(24px,5vw,72px)' }}>
+        <header className="tj-cover-dissolve" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,360px),1fr))', alignItems: 'stretch', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)', minHeight: '90vh' }}>
+          <div className="tj-cover-text" style={{ position: 'relative', order: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(36px,6vw,84px) clamp(24px,5vw,72px)' }}>
             <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.34em', textTransform: 'uppercase', color: C.gold, marginBottom: 28 }}>Conversations over Tea</div>
             <h1 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(44px,6.6vw,88px)', lineHeight: 1.0, letterSpacing: '-0.015em', color: C.cream, margin: 0 }}>
               Earth, Water,<br /><span style={{ fontStyle: 'italic', color: C.gold }}>Fire</span>
@@ -122,7 +122,7 @@ const EarthWaterFire: React.FC = () => {
               </div>
             </div>
           </div>
-          <div style={{ position: 'relative', order: 1, overflow: 'hidden', minHeight: '48vh', background: 'linear-gradient(155deg,var(--tj-read-empty-from) 0%,var(--tj-read-bg) 80%)' }}>
+          <div className="tj-cover-photo" style={{ position: 'relative', order: 1, overflow: 'hidden', minHeight: '48vh', background: 'linear-gradient(155deg,var(--tj-read-empty-from) 0%,var(--tj-read-bg) 80%)' }}>
             <div aria-hidden="true" style={{ ...grainCss('0.8', 150), opacity: 0.08 }} />
             <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 50% at 50% 32%, rgba(150,180,180,0.12), transparent 64%)' }} />
             <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(38vw,300px)', lineHeight: 1, color: 'rgb(var(--tj-read-gold-rgb) / 0.07)' }}>林</div>
