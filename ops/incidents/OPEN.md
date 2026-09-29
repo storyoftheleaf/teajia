@@ -74,6 +74,11 @@
   Normalized error: `http_503`
   Evidence: [server-post-api-verify-request-503-http-503-7ee643ea.json](evidence/server-post-api-verify-request-503-http-503-7ee643ea.json)
 
+- [ ] `acc_teajia_bali:client_get_app_shell_none_chunk_load_recovered` — **medium**
+  1 occurrence · first 2026-09-28T09:51:04Z · last 2026-09-28T09:51:04Z
+  Normalized error: `chunk_load_recovered`
+  Evidence: [acc-teajia-bali-client-get-app-shell-none-chunk-load-recovered-1bca9662.json](evidence/acc-teajia-bali-client-get-app-shell-none-chunk-load-recovered-1bca9662.json)
+
 - [ ] `client_get_app_shell_none_chunk_load_recovered` — **medium**
   1 occurrence · first 2026-08-09T07:56:44Z · last 2026-08-09T07:56:44Z
   Normalized error: `chunk_load_recovered`
