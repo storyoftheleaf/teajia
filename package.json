@@ -15,7 +15,7 @@
     "sandbox:offline": "concurrently -n api,site -c magenta,cyan \"npm --prefix worker run sandbox:offline\" \"npm run sandbox:site\"",
     "sandbox:refresh": "npm --prefix worker run sandbox:refresh",
     "sandbox:seed-creators": "npm --prefix worker run sandbox:seed-creators",
-    "build": "node scripts/check-required-deployment-config.mjs --if-cloudflare-pages && vite build",
+    "build": "node scripts/check-required-deployment-config.mjs --if-cloudflare-pages && node scripts/read-story-people.mjs && vite build",
     "check:deploy-config": "node scripts/check-required-deployment-config.mjs",
     "lint:colors": "bash scripts/lint-colors.sh",
     "preview": "vite preview",

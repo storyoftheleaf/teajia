@@ -51,6 +51,7 @@ export const porcelainAndTea: ConversationSpec = {
   title: ['Porcelain', 'and Tea'],
   dek: 'A conversation with a porcelain restorer in Wuyi.',
   subject: { name: 'Shangyin Qiwu', nameCn: '上隐器物', role: 'Porcelain restorer', href: '/people/shangyin-qiwu' },
+  speakers: { author: 'Adrian', subject: 'Shangyin' },
   author: {
     name: 'Adrian Rasmussen',
     links: [
@@ -62,17 +63,16 @@ export const porcelainAndTea: ConversationSpec = {
   facts: [['Craft', 'Porcelain restoration and lacquer'], ['Place', 'Wuyi, China']],
   portrait: S.portrait,
   intro: 'I learned restoration from Shangyin Qiwu. I took his class in Wuyi, and I was so interested that I wanted to come back and learn about his dedication to this craft, and his perspective.',
-  opening: [
-    { kind: 'wide', shot: S.classTable, aspect: '4/5', narrow: true },
-  ],
+  opening: [],
   parts: [
     {
       title: 'What brought me here',
+      opener: S.classTable,
       blocks: [
         { kind: 'q', id: 'p1-q1', text: 'When did you decide that you felt inspired to work with porcelain restoration?' },
         { kind: 'a', id: 'p1-a1', text: 'First of all, I quite like collecting things. Because of tea, I like to collect tea utensils. Many old utensils have some damage here and there.' },
         {
-          kind: 'side', shot: S.goldSeam, blocks: [
+          kind: 'side', shot: S.goldSeam, bleed: true, blocks: [
             { kind: 'line', id: 'p1-l1', size: 'l', text: 'As the saying goes, nine out of ten old things are damaged. ==But I think these are all marks of history.==' },
           ],
         },
@@ -98,18 +98,15 @@ export const porcelainAndTea: ConversationSpec = {
         { kind: 'photos', shots: [S.stapledBowl], narrow: true, caption: { id: 'p1-cap1', text: 'The repair of cracked porcelain using staples can be traced back to the Song Dynasty, more than 1,000 years ago.' } },
         { kind: 'q', id: 'p1-q5', text: 'What do people who aren’t into old things not understand about teaware?' },
         { kind: 'a', id: 'p1-a8', text: 'I take many of my pieces to exhibitions and markets, so more people can understand the connection between these ancient artifacts and modern life. I also share on Douyin and Xiaohongshu. When these things are damaged, people don’t know what they can be used for. But when I repair them, people discover, _“Oh, this thing can be used like this. It’s quite interesting.”_' },
-        { kind: 'wide', shot: S.shelves, aspect: '4/5', narrow: true },
+        { kind: 'wide', shot: S.shelves, aspect: '4/5', narrow: true, offset: 'right' },
       ],
     },
     {
       title: 'Clay, fire, and patience',
+      opener: S.kettle,
       blocks: [
-        {
-          kind: 'side', shot: S.kettle, blocks: [
             { kind: 'q', id: 'p2-q1', text: 'Do these old techniques and tools change the actual taste of tea?' },
             { kind: 'a', id: 'p2-a1', text: 'For old utensils, especially teacups and teapots, the clay of that era was likely superior to today’s. Ancient utensils were mainly fired with wood, and the temperature and transformation from wood firing are more layered and rich than modern electric firing. That’s a big reason so many people pursue old utensils and old cups.' },
-          ],
-        },
         { kind: 'q', id: 'p2-q2', text: 'Does that clay no longer exist?' },
         { kind: 'a', id: 'p2-a2', text: 'Clay is a large part of the reason, and it’s possible that such clay no longer exists today. Another reason is that people now pursue speed and convenience, so they no longer calm down as they did before. Most are chasing a fast rhythm and quick gains.' },
         { kind: 'q', id: 'p2-q3', text: 'Can you feel the state of the person who made the cup? Someone making it for money, versus someone focused on mastering the craft?' },
@@ -118,9 +115,9 @@ export const porcelainAndTea: ConversationSpec = {
         { kind: 'q', id: 'p2-q4', text: 'Is there anything you would like this generation to value again, that the generations these antiques come from valued more?' },
         { kind: 'a', id: 'p2-a4', text: 'The state of being dedicated to excelling at something. The ancients focused more on pursuing form, spirit, and inner expression. Nowadays this is somewhat lacking. It’s about slowing down, and devoting more energy to the thing itself.' },
         { kind: 'line', id: 'p2-l1', size: 'xl', text: 'Restoration can’t be rushed.', follow: { id: 'p2-a5', text: 'It requires time to polish slowly to produce a good result.' } },
-        { kind: 'wide', shot: S.liningHand, aspect: '4/5', narrow: true },
+        { kind: 'wide', shot: S.liningHand, aspect: '4/5', narrow: true, offset: 'left' },
         {
-          kind: 'side', shot: S.whiteBowl, blocks: [
+          kind: 'side', shot: S.whiteBowl, bleed: true, flip: true, blocks: [
             { kind: 'q', id: 'p2-q5', text: 'When you take that time, polishing slowly, what do you feel it is cultivating in your life?' },
             { kind: 'a', id: 'p2-a6', text: 'I think the main thing is being able to calm oneself down, slow down, and truly focus one’s energy on _a single utensil or a single matter._ It has made my life more steady and relaxed.' },
             { kind: 'q', id: 'p2-q6', text: 'When someone brings these objects into their life, can they feel what you put into them?' },
@@ -131,6 +128,7 @@ export const porcelainAndTea: ConversationSpec = {
     },
     {
       title: 'Tea, and the work ahead',
+      opener: S.stream,
       blocks: [
         { kind: 'q', id: 'p3-q1', text: 'Tell me what tea is for you, since all these objects are around the ritual of tea.' },
         { kind: 'a', id: 'p3-a1', text: 'Tea is an indispensable spiritual food in my life. Like a craft, it allows me to focus on the present moment, which is of great significance to me.' },
@@ -139,7 +137,6 @@ export const porcelainAndTea: ConversationSpec = {
         { kind: 'photos', shots: [S.settingCups, S.listening], stagger: true },
         { kind: 'q', id: 'p3-q3', text: 'What role does tea play in your city, and in China?' },
         { kind: 'a', id: 'p3-a3', text: 'Tea plays many roles. It is a beverage, a gift, and a medium of communication. We sit around a tea table and talk about many things. It can be generous or selfish. This leaf absorbs the essence of heaven and earth, embodying the five elements and eight trigrams. It gathers the energy of the East in China. It’s remarkable that such energy can be concentrated in a single leaf and radiated outward.' },
-        { kind: 'bleed', shot: S.stream },
         { kind: 'q', id: 'p3-q4', text: 'What is your business name, and what does it mean?' },
         { kind: 'a', id: 'p3-a4', text: 'My company’s name is Shangyin Qiwu, 上隐器物. What I do is related to lacquer, so I named it Shangyin Qiwu. It doesn’t have too many specific meanings. It’s just like a nickname.' },
         { kind: 'wide', shot: S.studio },

@@ -20,8 +20,10 @@ function withChinese(text: string, key: string): React.ReactNode[] {
   );
 }
 
-/** Parse the markup into nodes. Exported for the tests. */
+/** Parse the markup into nodes. Exported for the tests. An opening quote mark
+ *  hangs outside the text edge, so the words themselves line up. */
 export function renderMarkup(text: string): React.ReactNode[] {
+  if (text.startsWith('“')) return [<span key="hang" className="tj-conv-hang">“</span>, ...renderMarkup(text.slice(1))];
   return text.split(/(==[^=]+==|_[^_]+_)/).flatMap((seg, i): React.ReactNode[] => {
     if (seg.startsWith('==') && seg.endsWith('==') && seg.length > 4) {
       return [<span key={i} className="tj-conv-gold">{withChinese(seg.slice(2, -2), `g${i}`)}</span>];

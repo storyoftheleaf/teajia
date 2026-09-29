@@ -15,7 +15,7 @@ import { deductStockForPaidInvoice } from './orderLifecycle';
 import { internationalWhatsAppNumber } from '../../src/lib/whatsappContact';
 import { buildCustomerOrderNotificationInsert, processPendingCustomerOrderNotifications } from './whatsappOrderNotifications';
 import { FX_FEED_CURRENCY_MAP, refreshedCurrencyName } from './exchangeRateFeed';
-import { SHOP_MARKUP_MULTIPLIER, CURATOR_FALLBACK_MARKUP } from './markup';
+import { SHOP_MARKUP_MULTIPLIER, CURATOR_FALLBACK_MARKUP } from './markup'; import { mentionNeedles } from './peopleMentions';
 import { costNeedsCurrency, createMissingCost, currencyStated, stampCostCurrencySource, canonicalizeCostCurrency, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
 import { nameProductColumns } from './productDefaults';
 import { validateCurateContextPair } from './curateContextValidation';
@@ -23802,16 +23802,16 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     quote_anchor: `quote-${slug}`,
   }));
 
-  const subjectMatch = `%"${slug}"%`;
+  const subjectMatch = `%"${slug}"%`; const [nameNeedle, scriptNeedle] = mentionNeedles(row);
   const featuredInRes = await env.DB.prepare(
     `SELECT slug, title, subtitle, author_id, published_at, cover_image_url, reading_time_mins,
             pull_quote, pull_quote_subject
      FROM articles
-     WHERE subject_ids LIKE ?
-       AND status = 'published'
+     WHERE (subject_ids LIKE ? OR (? <> '' AND (instr(title, ?) > 0 OR instr(COALESCE(subtitle, ''), ?) > 0 OR instr(blocks, ?) > 0)) OR (? <> '' AND (instr(title, ?) > 0 OR instr(blocks, ?) > 0)))
+       AND status = 'published' AND COALESCE(author_id, '') <> ?
      ORDER BY published_at DESC
      LIMIT 12`
-  ).bind(subjectMatch).all();
+  ).bind(subjectMatch, nameNeedle, nameNeedle, nameNeedle, nameNeedle, scriptNeedle, scriptNeedle, scriptNeedle, slug).all();
   // "Featured in" rows land on the passage about this person when the article
   // quotes them, and on the top of the piece when it only names them.
   const featuredIn = (featuredInRes.results as Array<Record<string, any>> ?? []).map(article => ({
