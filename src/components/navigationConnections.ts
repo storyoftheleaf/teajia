@@ -37,24 +37,22 @@ export interface AdminNavAccess {
  * screen nobody can find.
  */
 const ADMIN_ITEM_ACCESS: Record<string, (access: AdminNavAccess) => boolean> = {
-  dashboard: access => access.isOwnerTier,
+  // Curate is the compass screen, which admits the catalog bundle.
+  curate: access => access.hasCatalog,
   inventory: access => access.hasCatalog || access.hasStock,
-  collections: access => access.hasPublish,
-  // Orders is the activity screen, which admits the sell bundle and nothing else.
+  // Sales is the activity screen, which admits the sell bundle and nothing else.
   orders: access => access.hasSell,
   // People admits any bundle (canUsePeople in AdminApp.tsx).
   people: access =>
     access.hasSell || access.hasGather || access.hasMembers || access.hasStock || access.hasPublish,
+  // Sessions: events, tastings and venues all admit the gather bundle.
   events: access => access.hasGather,
-  magazine: access => access.hasPublish,
-  wisdom: access => access.hasPublish,
-  network: access => access.hasCatalog || access.hasSell,
-  // Members & Access follows the route's own gate, the members bundle, which an
-  // owner holds implicitly.
-  members: access => access.hasMembers || access.isOwnerTier,
-  // Settings now lands on the shop's own settings, so it follows the same rule
-  // as that screen rather than the one it used to be misrouted to.
-  settings: access => access.isOwnerTier,
+  // Publish opens on the magazine; collections, guest notes and wisdom share
+  // its gate, the publish bundle.
+  publish: access => access.hasPublish,
+  // Settings opens the shop's settings for an owner, and Members & Access for
+  // someone who holds only the members bundle (manageNav.ts picks the path).
+  settings: access => access.isOwnerTier || access.hasMembers,
 };
 
 /**

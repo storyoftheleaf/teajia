@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useManageNav } from './manageNav';
+import { useManageNav, isManagePathActive, type ManageChild } from './manageNav';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
 // The phone's second door. The bottom bar has seven slots and the site has
@@ -36,6 +36,7 @@ const SITE_LINKS: SiteLink[] = [
 ];
 
 const ROW_CLASS = 'flex items-center justify-between w-full min-h-[44px] px-5 font-display text-ui-17 lowercase tracking-[0.03em] transition-colors duration-200';
+const CHILD_ROW_CLASS = 'flex items-center w-full min-h-[44px] pl-10 pr-5 font-display text-ui-15 lowercase tracking-[0.03em] transition-colors duration-200';
 const ROW_IDLE = 'text-tea-text-sec hover:text-tea-text';
 const ROW_ACTIVE = 'text-tea-gold';
 const ACTIVE_GLOW: React.CSSProperties = {
@@ -61,6 +62,7 @@ export const SiteMenu: React.FC<SiteMenuProps> = ({ isOpen, onClose, onSearchCli
 
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(path + '/');
+  const here = (path: string) => isManagePathActive(path, location.pathname, location.search);
 
   return (
     <AnimatePresence>
@@ -148,22 +150,58 @@ export const SiteMenu: React.FC<SiteMenuProps> = ({ isOpen, onClose, onSearchCli
                 <>
                   <div className="h-px bg-tea-border mx-5 mt-2" />
                   <BandLabel>Manage</BandLabel>
-                  {(manageNav.items.length > 0
-                    ? manageNav.items
-                    : [{ id: 'collections', label: 'Collections', path: '/admin/collections' }]
-                  ).map(item => {
-                    const active = isActive(item.path);
+                  {/* Today, the owner's overview, leads the band: on a laptop it is
+                      the word Manage at the top of the column. */}
+                  {manageNav.today && (() => {
+                    const active = here(manageNav.today.path);
                     return (
                       <Link
-                        key={item.id}
-                        to={item.path}
+                        to={manageNav.today.path}
                         onClick={onClose}
                         className={`${ROW_CLASS} ${active ? ROW_ACTIVE : ROW_IDLE}`}
                         style={active ? ACTIVE_GLOW : undefined}
                         aria-current={active ? 'page' : undefined}
                       >
-                        {item.label}
+                        {manageNav.today.label}
                       </Link>
+                    );
+                  })()}
+                  {(manageNav.items.length > 0
+                    ? manageNav.items
+                    : [{ id: 'collections', label: 'Collections', path: '/admin/collections', children: undefined as ManageChild[] | undefined }]
+                  ).map(item => {
+                    // A room's own screens open under it once you are in it, the
+                    // same rule as the laptop column, so seven rooms stay seven rows.
+                    const childActive = item.children?.some(c => here(c.path)) ?? false;
+                    const inRoom = here(item.path) || childActive;
+                    const active = inRoom && !childActive;
+                    return (
+                      <React.Fragment key={item.id}>
+                        <Link
+                          to={item.path}
+                          onClick={onClose}
+                          className={`${ROW_CLASS} ${inRoom ? ROW_ACTIVE : ROW_IDLE}`}
+                          style={active ? ACTIVE_GLOW : undefined}
+                          aria-current={active ? 'page' : undefined}
+                        >
+                          {item.label}
+                        </Link>
+                        {inRoom && item.children?.map(child => {
+                          const on = here(child.path);
+                          return (
+                            <Link
+                              key={child.id}
+                              to={child.path}
+                              onClick={onClose}
+                              className={`${CHILD_ROW_CLASS} ${on ? ROW_ACTIVE : ROW_IDLE}`}
+                              style={on ? ACTIVE_GLOW : undefined}
+                              aria-current={on ? 'page' : undefined}
+                            >
+                              {child.label}
+                            </Link>
+                          );
+                        })}
+                      </React.Fragment>
                     );
                   })}
                 </>

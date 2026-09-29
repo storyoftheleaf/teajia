@@ -77,18 +77,21 @@ test.describe('the site panel', () => {
     await expect(page.getByTestId('site-menu')).toHaveCount(0);
   });
 
-  test('an owner gets the Manage band, with Members in it', async ({ page }) => {
+  test('an owner gets Today and the seven rooms, and a room opens its own screens', async ({ page }) => {
     await signInAsOwner(page);
     await page.goto('/shop');
     await page.getByTestId('bottom-tab-bar').getByRole('button', { name: 'Menu' }).click();
     const menu = page.getByTestId('site-menu');
     await expect(menu.getByText('Manage', { exact: true })).toBeVisible();
-    const rows = await menu.getByRole('link').allInnerTexts();
-    expect(rows.map(r => r.toLowerCase())).toEqual(expect.arrayContaining(['dashboard', 'stock', 'sales', 'people', 'sessions', 'members', 'settings']));
-    // One word per route: Sales and People are rooms; Business and its Activity child are gone.
-    expect(rows.map(r => r.toLowerCase())).not.toContain('business');
-    expect(rows.map(r => r.toLowerCase())).not.toContain('activity');
-    await menu.getByRole('link', { name: 'Members' }).click();
+    const rows = (await menu.getByRole('link').allInnerTexts()).map(r => r.toLowerCase());
+    const band = rows.slice(rows.indexOf('today'));
+    expect(band).toEqual(['today', 'curate', 'stock', 'sales', 'people', 'sessions', 'publish', 'settings']);
+    // A room's screens stay folded until you are in that room.
+    expect(rows).not.toContain('members');
+    await menu.getByRole('link', { name: 'Settings' }).click();
+    await expect(page).toHaveURL(/\/admin\/account-settings$/);
+    await page.getByTestId('bottom-tab-bar').getByRole('button', { name: 'Menu' }).click();
+    await page.getByTestId('site-menu').getByRole('link', { name: 'Members' }).click();
     await expect(page).toHaveURL(/\/admin\/access$/);
   });
 });

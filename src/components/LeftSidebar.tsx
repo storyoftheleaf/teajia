@@ -11,10 +11,10 @@ import type { SidebarRoom } from '../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 // Phosphor (Light weight), refined hairlines, replaces the generic lucide
 // stock icons in the admin nav. Browse keeps its hand-drawn brand icons.
-import { Stack, CaretLeft, CaretRight } from '@phosphor-icons/react';
+import { Stack, CaretLeft, CaretRight, SquaresFour } from '@phosphor-icons/react';
 import { SampleIcon } from './Icons';
 import { useSampleCartStore } from '../samples/sampleCartStore';
-import { useManageNav, type ManageItem } from './manageNav';
+import { useManageNav, isManagePathActive, type ManageItem } from './manageNav';
 
 const PHOSPHOR_WEIGHT = 'light' as const;
 
@@ -181,6 +181,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   // Manage; the foot is glyphs and public rooms now.
   const manageItems: ManageItem[] = manageNav.items.length > 0 ? manageNav.items : curatorItems;
   const hasManageRoom = auth.isAuthenticated && manageItems.length > 0;
+  const today = manageNav.today;
+  const isTodayActive = today ? isManagePathActive(today.path, currentPath) : false;
+  const here = (path: string) => isManagePathActive(path, currentPath, location.search);
   const room: SidebarRoom = hasManageRoom ? sidebarRoom : 'browse';
   const showPanel = hasManageRoom && room === 'manage';
 
@@ -302,7 +305,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   // visit. Collapsing itself only happens from its own
                   // control, so this only ever moves false, never true.
                   if (sidebarCollapsed) toggleSidebarCollapsed();
-                  if (!isAdminRoute && manageItems[0]?.path) navigate(manageItems[0].path);
+                  // An owner arrives at Today; everyone else at their first room.
+                  const door = today?.path ?? manageItems[0]?.path;
+                  if (!isAdminRoute && door) navigate(door);
                 }}
                 aria-pressed={room === 'manage'}
                 className={`nav-rail-word ${railWord(room === 'manage')}`}
@@ -391,9 +396,20 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               </button>
             </div>
             <nav className="flex flex-col items-center flex-1 min-h-0 w-full" aria-label="Manage (collapsed)">
+              {today && (
+                <Link
+                  to={today.path}
+                  title={today.label}
+                  aria-label={today.label}
+                  className={`w-full flex items-center justify-center transition-colors duration-200 ${isTodayActive ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}
+                  style={{ minHeight: 42 }}
+                >
+                  <SquaresFour size={18} weight={PHOSPHOR_WEIGHT} />
+                </Link>
+              )}
               {manageItems.map(item => {
-                const isAnyChildActive = item.children?.some(c => currentPath === c.path) ?? false;
-                const isParentExact = currentPath === item.path;
+                const isAnyChildActive = item.children?.some(c => here(c.path)) ?? false;
+                const isParentExact = here(item.path);
                 const isActive = isParentExact || isAnyChildActive;
                 const iconClass = `w-full flex items-center justify-center transition-colors duration-200 ${
                   isActive ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
@@ -417,9 +433,23 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             className="nav-manage-col w-[10.5rem] shrink-0 h-full border-r border-tea-border flex flex-col overflow-y-auto hide-scrollbar"
           >
             <div className="shrink-0 flex items-center justify-between" style={{ padding: '30px 24px 14px' }}>
-              <span className="font-display text-ui-15 font-medium tracking-[0.04em] lowercase text-tea-gold">
-                Manage
-              </span>
+              {/* The word Manage is the door to Today, the owner's overview. It
+                  used to be a Dashboard row; now it is the heading itself. */}
+              {today ? (
+                <Link
+                  to={today.path}
+                  title={today.label}
+                  aria-current={isTodayActive ? 'page' : undefined}
+                  className="font-display text-ui-15 font-medium tracking-[0.04em] lowercase text-tea-gold hover:opacity-80 transition-opacity"
+                  style={isTodayActive ? { filter: 'drop-shadow(0 0 8px rgb(var(--tea-gold-rgb) / 0.75))' } : undefined}
+                >
+                  Manage
+                </Link>
+              ) : (
+                <span className="font-display text-ui-15 font-medium tracking-[0.04em] lowercase text-tea-gold">
+                  Manage
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => toggleSidebarCollapsed()}
@@ -433,8 +463,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             <nav className="flex flex-col flex-1 min-h-0" aria-label="Manage">
               {manageItems.map((item, index) => {
                 const hasChildren = (item.children?.length ?? 0) > 0;
-                const isAnyChildActive = item.children?.some(c => currentPath === c.path) ?? false;
-                const isParentExact = currentPath === item.path;
+                const isAnyChildActive = item.children?.some(c => here(c.path)) ?? false;
+                const isParentExact = here(item.path);
                 const showActive = isParentExact && !isAnyChildActive;
                 const showChildren = hasChildren && (isParentExact || isAnyChildActive);
 
@@ -463,7 +493,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                                 key={child.id}
                                 to={child.path}
                                 className={`relative flex items-center min-h-[26px] transition-colors duration-150 ${
-                                  currentPath === child.path ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
+                                  here(child.path) ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
                                 }`}
                               >
                                 <span className={`${TYPOGRAPHY_CLASSES.navSidebarChild} lowercase`}>
