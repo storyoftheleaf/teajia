@@ -14,6 +14,16 @@ name: Playwright
 # worker test suite, on every push and pull request to main. `mobile` and
 # `e2e` cover browser behavior; `china-scan`, `platform-hardening` and
 # `recovery` wire in the three suites that had no CI lane at all.
+#
+# Pull requests run the full browser suite only for the spec files the PR
+# changed (`e2e-changed`, Playwright's --only-changed follows each spec's
+# imports, so a change to tests/fixtures.ts still reaches every spec); main
+# runs everything (`e2e`) after every merge. Adrian, 2026-09-29: a one-line
+# fix waited 30 minutes on 640 browser tests it could not affect. The trade
+# is that a regression in a page no changed spec visits surfaces on main,
+# minutes after merge, instead of on the PR. `checks` (tsc, the build, the
+# unit and worker suites) and `mobile` still run in full on every PR, which
+# is the class of check the 2026-09-09 outage needed.
 
 on:
   schedule:
@@ -86,6 +96,11 @@ jobs:
         run: |
           set -euo pipefail
           run=true; why="not a push to main"
+          # Pull requests now run only the browser specs they changed
+          # (e2e-changed), so a green PR head is not a full-suite verdict and
+          # a merge runs everything unless the merged head already has a green
+          # run that was not a pull_request run (a push or a manual dispatch,
+          # both of which run the full e2e job).
           if [ "${{ github.event_name }}" = push ]; then
             why="direct push"
             if [ "$(git rev-list --parents -n1 HEAD | wc -w)" -ge 3 ]; then
@@ -93,7 +108,7 @@ jobs:
               if [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse "${head}^{tree}")" ]; then
                 # workflow_ref is owner/repo/.github/workflows/<file>@refs/heads/<branch>
                 wf="${{ github.workflow_ref }}"; wf="${wf%%@*}"; wf="${wf##*/}"
-                green="$(gh run list --workflow="$wf" --commit="$head" --json conclusion --jq '[.[] | select(.conclusion=="success")] | length' 2>&1 || true)"
+                green="$(gh run list --workflow="$wf" --commit="$head" --json conclusion,event --jq '[.[] | select(.conclusion=="success" and .event!="pull_request")] | length' 2>&1 || true)"
                 case "$green" in ''|*[!0-9]*) echo "gate: run lookup failed: $green"; green=0;; esac
                 if [ "${green:-0}" -gt 0 ]; then run=false; why="merge of $head, same tree, already green"; else why="merge of $head, same tree, but no green run on it"; fi
               else
@@ -207,7 +222,7 @@ jobs:
     # playwright.config.ts (not this item's file) either way.
     runs-on: ubuntu-latest
     needs: gate
-    if: needs.gate.outputs.run == 'true' && github.event_name != 'schedule'
+    if: needs.gate.outputs.run == 'true' && github.event_name != 'schedule' && github.event_name != 'pull_request'
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -232,6 +247,39 @@ jobs:
 
       - name: Full browser suite (shard ${{ matrix.shard }}/4)
         run: npx playwright test --project="Desktop Chrome" --project="Mobile Chrome" --grep-invert "$KNOWN_FAILING_E2E" --shard=${{ matrix.shard }}/4 --reporter=list
+
+  e2e-changed:
+    # Pull requests only: the specs this PR changed, against its base branch.
+    # A PR that changes no spec (or no file a spec imports) runs none here and
+    # passes; `checks` and `mobile` above still ran in full. Same projects,
+    # same KNOWN_FAILING_E2E exclusion and the same build as `e2e`, so a spec
+    # that passes here passes there. Full history is fetched because
+    # --only-changed diffs against the base ref.
+    runs-on: ubuntu-latest
+    needs: gate
+    if: needs.gate.outputs.run == 'true' && github.event_name == 'pull_request'
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build
+        run: npm run build
+
+      - name: Browser specs this PR changed
+        run: npx playwright test --project="Desktop Chrome" --project="Mobile Chrome" --grep-invert "$KNOWN_FAILING_E2E" --only-changed="origin/${{ github.base_ref }}" --pass-with-no-tests --reporter=list
 
   known-failing:
     # The same six tests named in KNOWN_FAILING_E2E, on their own, with
