@@ -116,10 +116,13 @@ export interface ShopPrice {
    */
   symbol: string;
   /**
-   * A total led by the currency's short symbol instead of its code:
-   * "Rp269k", "$15", "NT$1,652". For a list where the code on every row
-   * ("IDR 269k") is the widest thing in it. The symbol is `symbol` above, so
-   * a currency with no rate reads as the dollars it really is.
+   * A total led by the currency's short symbol, touching it, instead of its
+   * code: "$15", "Rp269k", "NT$1,652", "JP¥26,301". That is how each of these
+   * currencies is written where it is spent, so the pair reads as one unit of
+   * money; "15 $" was tried for a day and reads as a French price. The code
+   * on every row ("IDR 269k") was the widest thing in the list. The symbol is
+   * `symbol` above, so a currency with no rate reads as the dollars it really
+   * is.
    */
   symbolTotal: (usd: number) => string;
   /** A total, rounded up to a whole unit, as the shop has always quoted totals. */

@@ -500,7 +500,7 @@ test.describe('Tea Master profile routes — mobile', () => {
 
     await goto(page, '/account/profile');
     await expect(page.getByRole('heading', { name: 'Your public profile' })).toBeVisible();
-    await expect(page.getByText('Published · public identity')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Published', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Save for review' })).toBeVisible();
     await expect(page.getByText('Changes remain private until approved.')).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Public favorites' })).toBeVisible();
@@ -575,7 +575,7 @@ test.describe('Tea Master profile routes — mobile', () => {
     await page.route('**/api/me/profile/payment-methods', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ methods: [] }) }));
 
     await goto(page, '/account/profile');
-    await page.getByRole('textbox', { name: 'Display name', exact: true }).fill('Mei Lin Updated');
+    await page.getByRole('textbox', { name: 'Your name', exact: true }).fill('Mei Lin Updated');
     await page.getByRole('button', { name: 'Save for review' }).click();
     await expect(page.getByRole('alert').filter({ hasText: 'Owner review is required.' })).toBeVisible();
     await expect(page.getByText('Changes saved')).toHaveCount(0);

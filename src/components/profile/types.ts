@@ -37,6 +37,8 @@ export interface SelfProfile {
   display_name: string;
   business_name: string | null;
   chinese_name: string | null;
+  /** What they do, printed above their name on the cover: "Porcelain restorer". */
+  role: string | null;
   beginnings: string | null;
   now_text: string | null;
   /** Who taught me: teachers, mountains, a cup that changed my mind. The public page reads it as the third paragraph. */
@@ -47,6 +49,8 @@ export interface SelfProfile {
   languages: string[];
   avatar_url: string | null;
   portrait_url: string | null;
+  /** Where the face is in the portrait, as the page crops it: "50% 36%". */
+  portrait_focus: string | null;
   links: ProfileLink[];
   gallery_images: ProfileGalleryImage[];
   publication_state: ProfilePublicationState;
@@ -67,6 +71,7 @@ export type SelfProfileUpdate = Pick<
   | 'display_name'
   | 'business_name'
   | 'chinese_name'
+  | 'role'
   | 'beginnings'
   | 'now_text'
   | 'inspirations'
@@ -75,6 +80,7 @@ export type SelfProfileUpdate = Pick<
   | 'languages'
   | 'avatar_url'
   | 'portrait_url'
+  | 'portrait_focus'
   | 'links'
 >;
 

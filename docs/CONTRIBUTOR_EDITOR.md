@@ -1,23 +1,52 @@
 # The contributor editor
 
-`/admin/contributors`, Create contributor and Edit. Written 2026-09-28, before the
+`/admin/contributors` (Create contributor, Edit) and `/account/profile` (a tea master's own page). Written 2026-09-28, before the
 rebuild, at Adrian's request: "It needs to have image uploads. It needs to look much
 better. We need a whole new style." This is the one written place for the screen's
 style rules. When a line on the screen is corrected, the rule here changes in the
 same commit.
 
-## The idea
+## The idea: the card and the rest, filled in by the person
 
-The editor is a proof of the public page at `/people/:slug`, not a form about it.
-You set the page in the type it will be read in, and the page is always beside
-you (desktop) or at the top of the sheet (phone), updating as you type.
+Chosen 2026-09-28 from four directions (mockups: https://claude.ai/artifact/JsN5LuYQ7nzhuD7davHNNe).
+Adrian: "to add or edit contributors is quite a huge process ... a bit overwhelming".
+Then, looking at the first build, 2026-09-29: "Consider this as something that the
+contributor themself is doing, not me ... reduce this down majorly ... This is for
+people, not computers."
 
-- The name is typed in the display serif at cover size. The prose is typed in Lora
-  at reading size. What you see while typing is what the reader sees.
-- Sections carry the public page's own words where the page has them (In my words,
-  Hands on, Reach me), so the editor and the page map onto each other.
-- Photos are placed, not linked: drop, paste, pick or take one, watch it arrive,
-  then tap where the face is. The crop shown is the crop the page will make.
+- **One editor, two doors.** The card and rows live in
+  `src/admin/components/contributorEditor/PersonPage.tsx` and are used by the shop's
+  editor (`/admin/contributors`) and by the tea master's own screen
+  (`/account/profile`, `ProfileEditor.tsx`). Same questions, same words, both places.
+- **Written to the person, in the second person.** Your name, Business name, What you
+  do, Where you are, Name in Chinese (optional: many contributors do not read Chinese,
+  so it sits last and says so). Instagram, WeChat and Website are plain fields on the
+  card; a QR code or any other link opens from one quiet line under them. A website
+  typed without https:// gets it on save (`tidyLinks`) instead of an error. Your story asks three questions: How did tea begin for you? What
+  are you working on now? A last line for your page. Photos of your work. How people
+  reach you. Never a field name (no "own script", "current practice", "beginnings",
+  "inspirations", "display name").
+- **Only what the page shows is asked.** Pronouns, active since,
+  languages, portrait caption, the current stamp and its date, pouring today, where
+  to find, the voice clip, who taught them and the separate small round photo are
+  not on screen at all. Their stored values are sent back untouched on every save,
+  so nothing written earlier is lost. If the page ever starts showing one of them,
+  it comes back as a plain question in the same commit.
+- **The small round photo follows the portrait**, unless someone once gave it its own.
+- **Rows the shop alone sees** come after the three everyone sees: Shops (where they
+  belong) and Page settings (address, their sign-in, private contact, unpublish,
+  delete). A contributor never sees them.
+- **A contributor places photos; the shop may also link one.** "Use a web address" is
+  hidden on the contributor's screen. Their photos go through their own upload route
+  (`PhotoUploadContext`), since the staff upload needs shop rights.
+- **Sheets stay mounted while closed**, so an upload in flight keeps landing. In the
+  shop's panel they sit between header and footer so Save stays in reach; on the
+  contributor's page they cover the screen and end with Done. Escape closes the sheet
+  first. Focus goes to the sheet's X and back to the row.
+- Saving without how tea began opens Your story rather than naming a field.
+- A contributor's own save may now change what they do and where their face is in the
+  portrait (`role`, `portrait_focus` in `PROFILE_SELF_FIELDS`); on a live page those
+  still go to the shop to approve first, like every other change.
 
 ## What this screen will NOT use
 
