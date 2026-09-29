@@ -633,8 +633,16 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                  />
                </label>
 
+               {/* The currency is named here, once, by its own symbol, and the
+                   list's prices carry only numbers. It names the money the
+                   figures are really printed in, which is dollars whenever the
+                   chosen currency has no rate. */}
                <div className="flex items-center gap-1.5 shrink-0">
                  <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Price</span>
+                 <span className="text-ui-10 tracking-[0.05em] text-tea-text-sec">
+                   <span className="uppercase tracking-[0.15em]">in</span>{' '}
+                   <span data-testid="shop-price-currency" className="text-tea-text">{shopPrice.symbol}</span>
+                 </span>
                  <div className="flex items-center gap-0.5 border border-tea-border rounded-md overflow-hidden">
                    {([50, 100] as const).map(g => (
                      <button
@@ -938,7 +946,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                specialFilter={specialFilter}
                tastingCounts={tastingCounts}
                priceWeight={shopPriceWeight}
-               formatPrice={shopPrice.total}
+               formatPrice={shopPrice.plainTotal}
                favoriteIds={userFavorites}
                onToggleFavorite={handleFavoriteToggle}
                onOpenProduct={openProduct}

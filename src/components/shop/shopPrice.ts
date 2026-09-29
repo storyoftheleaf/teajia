@@ -4,6 +4,9 @@ import { useRates } from '../../admin/hooks/useAdminData';
 import { formatCurrency } from '../../admin/utils';
 import type { Currency, ExchangeRate } from '../../admin/types';
 import { fmtShopPrice, fmtShopPricePerGram } from '../../utils/formatNumber';
+import { CURRENCY_SYMBOLS } from '../../utils/currency';
+import { isoCurrencyCode, rateToUsd } from '../../lib/currency';
+import type { CostCurrency } from '../../types';
 
 /**
  * What a tea costs, in the currency the reader chose.
@@ -102,6 +105,16 @@ export interface ShopPrice {
    * message so the basket the customer sends names its own currency.
    */
   code: string;
+  /**
+   * The symbol of the money the figures are actually printed in, for a list
+   * that names its currency once and shows bare numbers under it.
+   *
+   * Not the currency the reader chose: when the rate table has no row for it,
+   * `formatCurrency` prints dollars, and a heading reading "Rp" over dollar
+   * figures would misprice the whole column. So this asks the same lookup the
+   * formatter asks.
+   */
+  symbol: string;
   /** A total, rounded up to a whole unit, as the shop has always quoted totals. */
   total: (usd: number) => string;
   /**
@@ -140,6 +153,8 @@ export function useShopPrice(): ShopPrice {
   // USD needs no table, and an empty table is not a reason to invent a rate.
   const localised = currency !== 'USD' && rates.length > 0;
   const code = localised ? currency : 'USD';
+  const quotedIn = localised && rateToUsd(rates, currency) !== null ? isoCurrencyCode(currency) : 'USD';
+  const symbol = CURRENCY_SYMBOLS[quotedIn as CostCurrency] ?? quotedIn;
 
   const total = useCallback(
     (usd: number) => (localised ? formatCurrency(Math.ceil(usd), currency, rates) : fmtShopPrice(usd)),
@@ -194,7 +209,7 @@ export function useShopPrice(): ShopPrice {
   );
 
   return useMemo(
-    () => ({ localised, code, total, plainTotal, perGram, rate, perGramExact }),
-    [localised, code, total, plainTotal, perGram, rate, perGramExact],
+    () => ({ localised, code, symbol, total, plainTotal, perGram, rate, perGramExact }),
+    [localised, code, symbol, total, plainTotal, perGram, rate, perGramExact],
   );
 }
