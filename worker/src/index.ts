@@ -7951,9 +7951,9 @@ const CONTRIBUTOR_WRITE_FIELDS = [
 const CONTRIBUTOR_FOCUS_FIELDS = ['portrait_focus', 'avatar_focus'] as const;
 
 const PROFILE_SELF_FIELDS = [
-  'display_name', 'business_name', 'chinese_name', 'pronouns', 'location_line', 'active_since', 'languages',
+  'display_name', 'business_name', 'chinese_name', 'role', 'pronouns', 'location_line', 'active_since', 'languages',
   'beginnings', 'now_text', 'now_stamp', 'now_updated_at', 'inspirations', 'closing',
-  'avatar_url', 'portrait_url', 'portrait_caption', 'voice_clip_url', 'voice_clip_caption',
+  'avatar_url', 'portrait_url', 'portrait_focus', 'portrait_caption', 'voice_clip_url', 'voice_clip_caption',
   'pouring_today_product_id', 'pouring_today_note', 'where_to_find_text', 'links',
 ] as const;
 

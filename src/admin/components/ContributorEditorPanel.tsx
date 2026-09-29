@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
@@ -11,29 +11,17 @@ import {
   type ContributorLinkPlatform,
   type ContributorWrite,
 } from '../../types';
-import { ACTION, Count, LABEL, LINE_SANS, Line, Prose, QUIET } from './contributorEditor/parts';
-import { PhotoPlace, type Crop } from './contributorEditor/PhotoPlace';
-import { GalleryPlace, GALLERY_IMAGE_LIMIT } from './contributorEditor/GalleryPlace';
-import { EditorRow, EditorSheet, KeptFold, type SheetId } from './contributorEditor/CardParts';
+import { ACTION, LABEL, LINE_SANS, Line, Prose, QUESTION, QUIET } from './contributorEditor/parts';
+import { GALLERY_IMAGE_LIMIT } from './contributorEditor/GalleryPlace';
+import { EditorRow, EditorSheet, type SheetId } from './contributorEditor/CardParts';
+import { MISSING_BEGINNINGS, personPageParts, type PersonValue } from './contributorEditor/PersonPage';
 import { imagesFrom } from './contributorEditor/photoUpload';
-import { ownLine } from '../../components/people/profileFormat';
-import { mediaUrl } from '../../lib/mediaUrl';
 
-// The contributor editor: the card and the rest. One short card holds what
-// the cover needs (portrait, name, role, place, the line under the name).
-// Every other part of the page is one row that says what is there, and opens
-// on its own in a sheet over the card. Fields no reader sees sit behind the
-// page, under a fold that says so. Style rules, and the list of what this
-// screen deliberately does not use: docs/CONTRIBUTOR_EDITOR.md.
-
-function linkPlatformLabel(platform: ContributorLinkPlatform): string {
-  switch (platform) {
-    case 'wechat': return 'WeChat';
-    case 'instagram': return 'Instagram';
-    case 'website': return 'Website';
-    default: return 'Other';
-  }
-}
+// The shop's contributor editor: the same card and rows a tea master sees on
+// their own page (PersonPage), plus the two rows only the shop sees, Shops and
+// Page settings, and the save, publish, review and delete controls. Style
+// rules, and the list of what this screen deliberately does not use:
+// docs/CONTRIBUTOR_EDITOR.md.
 
 function linkValueLabel(platform: ContributorLinkPlatform): string {
   switch (platform) {
@@ -44,16 +32,6 @@ function linkValueLabel(platform: ContributorLinkPlatform): string {
   }
 }
 
-/** The crops the page makes of the portrait: the cover at phone and desktop width, and the directory card. */
-const PORTRAIT_CROPS: Crop[] = [
-  { label: 'Phone', width: 342, height: 420 },
-  { label: 'Desktop', width: 576, height: 420 },
-  { label: 'Directory', width: 140, height: 180 },
-];
-const AVATAR_CROPS: Crop[] = [
-  { label: 'Round', width: 96, height: 96, round: true },
-  { label: 'Small', width: 40, height: 40, round: true },
-];
 
 /** "Mei Lin" becomes "mei-lin": the page address offered while the name is typed. */
 export function slugFromName(name: string): string {
@@ -123,7 +101,11 @@ function reviewValue(value: unknown): string {
   return String(value);
 }
 
-const MISSING_BEGINNINGS = 'Where it began is needed before the page can be published.';
+const FIELD_WORDS: Record<string, string> = {
+  display_name: 'Name', chinese_name: 'Name in Chinese', role: 'What they do', location_line: 'Where they are',
+  beginnings: 'How tea began', now_text: 'What they are working on now', closing: 'Last line', inspirations: 'Who taught them',
+  portrait_url: 'Portrait', portrait_focus: 'Where the face is', avatar_url: 'Small photo', links: 'Ways to reach them',
+};
 
 function statusWord(contributor: AdminContributor | null): string {
   if (!contributor) return 'Not saved';
@@ -235,11 +217,11 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
   const setField = (field: keyof ContributorWrite, value: any) => setForm(current => ({ ...current, [field]: value }));
   const setName = (name: string) => setForm(current => ({ ...current, display_name: name, ...(isNew && !slugTouched ? { id: slugFromName(name) } : {}) }));
   const markBusy = useCallback((key: string) => (value: boolean) => setBusy(current => current[key] === value ? current : { ...current, [key]: value }), []);
-  const portraitBusy = useMemo(() => markBusy('portrait'), [markBusy]);
-  const avatarBusy = useMemo(() => markBusy('avatar'), [markBusy]);
-  const galleryBusy = useMemo(() => markBusy('gallery'), [markBusy]);
-  const setPortrait = useCallback((next: { url: string | null; focus: string | null }) => setForm(current => ({ ...current, portrait_url: next.url ?? '', portrait_focus: next.focus })), []);
-  const setAvatar = useCallback((next: { url: string | null; focus: string | null }) => setForm(current => ({ ...current, avatar_url: next.url ?? '', avatar_focus: next.focus })), []);
+  // The small round photo follows the portrait unless someone once gave it a photo of its own.
+  const setPortrait = useCallback((next: { url: string | null; focus: string | null }) => setForm(current => {
+    const follows = !current.avatar_url || current.avatar_url === current.portrait_url;
+    return { ...current, portrait_url: next.url ?? '', portrait_focus: next.focus, ...(follows ? { avatar_url: next.url ?? '', avatar_focus: next.focus } : {}) };
+  }), []);
   const updateGallery = useCallback((change: (images: ContributorGalleryImage[]) => ContributorGalleryImage[]) => setForm(current => ({ ...current, gallery_images: change(current.gallery_images ?? []) })), []);
 
   const loadCustomers = async () => {
@@ -257,11 +239,11 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
     if (!form.display_name?.trim()) return 'A name is needed before it can be saved.';
     if ((form.closing?.length ?? 0) > 200) return 'The closing line must be 200 characters or fewer.';
     for (const link of form.links ?? []) {
-      if (!(CONTRIBUTOR_LINK_PLATFORMS as readonly string[]).includes(link.platform)) return 'Choose a platform for every link.';
-      if (!link.value?.trim()) return `Every link needs its ${linkValueLabel(link.platform).toLowerCase()}.`;
+      if (!(CONTRIBUTOR_LINK_PLATFORMS as readonly string[]).includes(link.platform)) return 'Choose Website, Instagram, WeChat or Other for each way to reach you.';
+      if (!link.value?.trim()) return `A way to reach you is missing its ${linkValueLabel(link.platform).toLowerCase()}.`;
       if (link.platform === 'website') {
-        try { if (new URL(link.value).protocol !== 'https:') return 'A website link needs a valid https URL.'; }
-        catch { return 'A website link needs a valid https URL.'; }
+        try { if (new URL(link.value).protocol !== 'https:') return 'A website address starts with https://'; }
+        catch { return 'A website address starts with https://'; }
       }
       if (link.qr_image_url) {
         try { new URL(link.qr_image_url); } catch { return 'The QR image URL must be a valid URL.'; }
@@ -379,9 +361,6 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
     finally { setSaving(false); }
   };
 
-  const links = form.links ?? [];
-  const updateLink = (index: number, next: Partial<AdminContributorLink>) => setField('links', links.map((link, position) => position === index ? { ...link, ...next } : link));
-  const galleryImages = form.gallery_images ?? [];
 
   // A photo pasted anywhere that is not a text field goes where a photo is
   // wanted next: the portrait while there is none, the gallery after that.
@@ -400,23 +379,62 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
   const pending = persistedContributor?.has_pending_draft === true;
   const published = persistedContributor?.is_published === 1;
   const slug = persistedContributor?.id ?? form.id ?? '';
-  const coverLine = ownLine(form);
-
-  // What each row says is there, in words a reader of the list can act on.
-  const wordParts = [
-    form.now_text?.trim() && 'now',
-    form.beginnings?.trim() && 'where it began',
-    form.inspirations?.trim() && 'who taught them',
-    form.closing?.trim() && 'a closing line',
-  ].filter(Boolean) as string[];
-  const wordsDescription = wordParts.length
-    ? `${wordParts[0].charAt(0).toUpperCase()}${wordParts[0].slice(1)}${wordParts.length > 1 ? `, ${wordParts.slice(1).join(', ')}` : ''}`
-    : 'What they do now, where it began, the closing line';
-  const linkWords = links.map(link => link.platform === 'other' && link.label ? link.label : linkPlatformLabel(link.platform));
   const belongWords = associations.map(association => association.public_role ? `${association.account_name}, ${association.public_role.toLowerCase()}` : association.account_name);
-  const avatarState = !form.avatar_url
-    ? (form.portrait_url ? 'Taken from the portrait' : 'None yet')
-    : form.avatar_url === form.portrait_url ? 'Same as the portrait' : 'Its own photo';
+
+  const person: PersonValue = {
+    display_name: form.display_name ?? '',
+    chinese_name: form.chinese_name ?? '',
+    role: form.role ?? '',
+    location_line: form.location_line ?? '',
+    now_text: form.now_text ?? '',
+    beginnings: form.beginnings ?? '',
+    closing: form.closing ?? '',
+    portrait_url: form.portrait_url ?? '',
+    portrait_focus: form.portrait_focus ?? null,
+    links: form.links ?? [],
+    gallery_images: form.gallery_images ?? [],
+  };
+  const { card, sheets } = personPageParts({
+    value: person,
+    onChange: patch => {
+      const { display_name, links: nextLinks, ...rest } = patch;
+      if (display_name !== undefined) setName(display_name);
+      setForm(current => ({ ...current, ...rest, ...(nextLinks ? { links: nextLinks as AdminContributorLink[] } : {}) }));
+    },
+    onPortrait: setPortrait,
+    onGallery: updateGallery,
+    markBusy,
+    sheet,
+    openSheet,
+    closeSheet,
+    takePortrait,
+    takeGallery,
+    afterName: isNew ? (
+      <div>
+        <label htmlFor="f-page-address" className={LABEL}>Page address</label>
+        <div className="mt-1 flex min-w-0 items-baseline border-b border-tea-border focus-within:border-tea-gold">
+          <span className="shrink-0 font-sans text-ui-14 text-tea-text-dim">teajia.com/people/</span>
+          <input
+            id="f-page-address"
+            className="min-h-11 min-w-0 flex-1 border-0 bg-transparent px-0 py-2 font-sans text-ui-15 text-tea-text placeholder:text-tea-text-dim/60 focus:outline-none focus:ring-0"
+            value={form.id ?? ''}
+            placeholder="mei-lin"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            onChange={event => { setSlugTouched(true); setField('id', event.target.value.toLowerCase()); }}
+          />
+        </div>
+        <p className="mt-1.5 font-sans text-ui-12 text-tea-text-dim">Follows the name. Fixed once saved.</p>
+      </div>
+    ) : null,
+    extraRows: (
+      <>
+        <EditorRow id="belong" title="Shops" description={belongWords.length ? belongWords.join('; ') : 'The shops this person belongs to'} state={associations.length ? (associations.some(item => item.is_host) ? 'Hosts' : 'Linked') : 'Not yet'} onOpen={openSheet} />
+        <EditorRow id="behind" title="Page settings" description={isNew ? 'Their sign-in and private contact' : 'Address, sign-in, take down or delete'} state="Only you see this" onOpen={openSheet} />
+      </>
+    ),
+  });
 
   return (
     <>
@@ -446,7 +464,7 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
               {pending && persistedContributor && (
                 <div className="mb-10 border-l border-tea-gold/40 pl-5">
                   <p className="font-display text-ui-20 text-tea-text">Submitted changes awaiting review</p>
-                  <p className="mt-1 max-w-[52ch] font-body text-ui-14 leading-relaxed text-tea-text-sec">The card below holds the live profile only. Approving publishes this exact draft; editorial saving is unavailable during review.</p>
+                  <p className="mt-1 max-w-[52ch] font-body text-ui-14 leading-relaxed text-tea-text-sec">{persistedContributor.display_name} sent changes to their page. Below is the page as it is now. Approving publishes this exact draft.</p>
                   {persistedContributor.draft_diff && (
                     <dl className="mt-4">
                       <div className="grid grid-cols-2 gap-4 border-b border-tea-border pb-2">
@@ -455,7 +473,7 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
                       </div>
                       {persistedContributor.draft_diff.changed_fields.map(field => (
                         <div key={field} className="border-b border-tea-border py-3">
-                          <p className="font-sans text-ui-11 text-tea-text-dim">{field.replace(/_/g, ' ')}</p>
+                          <p className="font-sans text-ui-12 text-tea-text-dim">{FIELD_WORDS[field] ?? field.replace(/_/g, ' ')}</p>
                           <div className="mt-1 grid grid-cols-2 gap-4 font-body text-ui-14 leading-relaxed">
                             <p className="break-words text-tea-text-sec">{reviewValue(persistedContributor.draft_diff?.live[field])}</p>
                             <p className="break-words text-tea-text">{reviewValue(persistedContributor.draft_diff?.pending[field])}</p>
@@ -466,179 +484,13 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
                   )}
                 </div>
               )}
-
-              {/* The card: what the cover needs, and nothing else. */}
-              <div className="grid gap-x-10 gap-y-8 md:grid-cols-[minmax(0,360px)_minmax(0,1fr)]" data-testid="contributor-card">
-                <div className="min-w-0" data-testid="section-portrait">
-                  <PhotoPlace
-                    name="Portrait"
-                    testId="photo-portrait"
-                    url={form.portrait_url}
-                    focus={form.portrait_focus}
-                    onChange={setPortrait}
-                    crops={PORTRAIT_CROPS}
-                    purpose="A photo of them at work fills the cover best. Tall or wide both work."
-                    emptyHeight={300}
-                    onBusy={portraitBusy}
-                    takeRef={takePortrait}
-                  />
-                  <button type="button" data-testid="row-avatar" aria-haspopup="dialog" onClick={event => openSheet('avatar', event.currentTarget)} className="mt-5 flex min-h-11 w-full items-baseline justify-between gap-3 border-t border-tea-border pt-3 text-left">
-                    <span className="font-sans text-ui-13 text-tea-text-sec">Small round photo</span>
-                    <span className="font-body text-ui-13 italic text-tea-text-dim">{avatarState}</span>
-                  </button>
-                </div>
-
-                <div className="min-w-0 space-y-6">
-                  <Line
-                    label="Name"
-                    id="f-name"
-                    value={form.display_name ?? ''}
-                    onChange={event => setName(event.target.value)}
-                    placeholder="Their name"
-                    autoComplete="off"
-                    inputClassName="w-full rounded-none border-0 border-b border-tea-border bg-transparent px-0 py-1 font-display text-[34px] font-light leading-tight text-tea-text placeholder:text-tea-text-dim/60 focus:border-tea-gold focus:outline-none focus:ring-0 sm:text-[38px]"
-                  />
-                  {isNew && (
-                    <div>
-                      <label htmlFor="f-page-address" className={LABEL}>Page address</label>
-                      <div className="mt-1 flex min-w-0 items-baseline border-b border-tea-border focus-within:border-tea-gold">
-                        <span className="shrink-0 font-sans text-ui-14 text-tea-text-dim">teajia.com/people/</span>
-                        <input
-                          id="f-page-address"
-                          className="min-h-11 min-w-0 flex-1 border-0 bg-transparent px-0 py-2 font-sans text-ui-15 text-tea-text placeholder:text-tea-text-dim/60 focus:outline-none focus:ring-0"
-                          value={form.id ?? ''}
-                          placeholder="mei-lin"
-                          autoCapitalize="none"
-                          autoCorrect="off"
-                          spellCheck={false}
-                          onChange={event => { setSlugTouched(true); setField('id', event.target.value.toLowerCase()); }}
-                        />
-                      </div>
-                      <p className="mt-1.5 font-sans text-ui-12 text-tea-text-dim">Follows the name. Fixed once saved.</p>
-                    </div>
-                  )}
-                  <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
-                    <Line label="Role" id="f-role" value={form.role ?? ''} onChange={event => setField('role', event.target.value)} placeholder="Tea master, writer, host" />
-                    <Line label="Place" id="f-place" value={form.location_line ?? ''} onChange={event => setField('location_line', event.target.value)} placeholder="City, country" />
-                  </div>
-                  <Line label="Own script" id="f-own-script" value={form.chinese_name ?? ''} onChange={event => setField('chinese_name', event.target.value)} placeholder="Optional. Shown under the name." inputClassName={`${LINE_SANS} font-body text-ui-17`} />
-                  <div>
-                    <p className={LABEL}>Line under the name</p>
-                    <button type="button" aria-haspopup="dialog" onClick={event => openSheet('words', event.currentTarget)} className="mt-1 block min-h-11 w-full border-b border-tea-border py-2 text-left font-body text-ui-15 italic leading-relaxed transition-colors hover:border-tea-gold">
-                      {coverLine
-                        ? <span className="text-tea-text">{coverLine}</span>
-                        : <span className="text-tea-text-dim">Comes from what they are doing now. Write it in In my words.</span>}
-                    </button>
-                  </div>
-                  {/* The rest of the page: one row each, opened on its own. */}
-                  <nav className="mt-10" aria-label="The rest of the page">
-                    <EditorRow id="words" title="In my words" description={wordsDescription} state={form.beginnings?.trim() ? 'Written' : 'Needed to publish'} needed={!form.beginnings?.trim()} onOpen={openSheet} />
-                    <EditorRow
-                      id="hands"
-                      title="Hands on"
-                      description={`Photographs of them at work, up to ${GALLERY_IMAGE_LIMIT}`}
-                      state={galleryImages.length ? `${galleryImages.length} of ${GALLERY_IMAGE_LIMIT}` : 'Not yet'}
-                      thumbs={galleryImages.slice(0, 3).map(image => mediaUrl(image.image_url)).filter((src): src is string => Boolean(src))}
-                      onOpen={openSheet}
-                    />
-                    <EditorRow id="reach" title="Reach me" description={linkWords.length ? linkWords.join(', ') : 'A website, Instagram or WeChat, at the foot of the page'} state={links.length ? `${links.length} ${links.length === 1 ? 'way' : 'ways'}` : 'Not yet'} onOpen={openSheet} />
-                    <EditorRow id="belong" title="Where they belong" description={belongWords.length ? belongWords.join('; ') : 'Their home shop, and any they host or guest at'} state={associations.length ? (associations.some(item => item.is_host) ? 'Hosts' : 'Linked') : 'Not yet'} onOpen={openSheet} />
-                    <EditorRow id="behind" title="Behind the page" description={isNew ? 'Pronouns, private contact, their sign-in' : 'Address, pronouns, sign-in, unpublish and delete'} state="Not shown" onOpen={openSheet} />
-                  </nav>
-                </div>
-              </div>
-
+              {card}
             </div>
           </div>
 
-          <EditorSheet id="words" title="In my words" note="Written in the first person. The page prints two passages here: the rest of Now, then Where it began." open={sheet === 'words'} onClose={closeSheet}>
-            <div className="space-y-7">
-              <Prose label="Now" id="f-now" value={form.now_text ?? ''} onChange={event => setField('now_text', event.target.value)} placeholder="What they are doing now." minRows={4} hint="Its first sentence is the line under their name." />
-              <Prose label="Where it began" id="f-where-it-began" value={form.beginnings ?? ''} onChange={event => setField('beginnings', event.target.value)} placeholder="Where it began for them." minRows={4} hint="Needed before the page can be published." />
-              <Prose label="Who taught them" id="f-who-taught-them" value={form.inspirations ?? ''} onChange={event => setField('inspirations', event.target.value)} placeholder="Who and what taught them." hint="Shown when Now is a single sentence or one of the two above is empty." />
-              <Prose label="Closing line" id="f-closing-line" value={form.closing ?? ''} maxLength={200} minRows={2} onChange={event => setField('closing', event.target.value)} placeholder="The last line of the page." aside={<Count value={form.closing?.length ?? 0} max={200} />} />
-            </div>
-          </EditorSheet>
+          {sheets}
 
-          <EditorSheet id="hands" title="Hands on" note="Photographs of them at work, laid out as the page lays them out." open={sheet === 'hands'} onClose={closeSheet}>
-            <div data-testid="section-gallery">
-              <GalleryPlace images={galleryImages} update={updateGallery} onBusy={galleryBusy} takeRef={takeGallery} />
-            </div>
-          </EditorSheet>
-
-          <EditorSheet id="avatar" title="Small round photo" note="Stands in for the portrait when there is none, and anywhere a small round face is shown." open={sheet === 'avatar'} onClose={closeSheet}>
-            <PhotoPlace
-              name="Avatar"
-              testId="photo-avatar"
-              url={form.avatar_url}
-              focus={form.avatar_focus}
-              onChange={setAvatar}
-              crops={AVATAR_CROPS}
-              purpose="A face, close. It is shown round."
-              emptyHeight={180}
-              onBusy={avatarBusy}
-              extraActions={form.portrait_url && form.avatar_url !== form.portrait_url
-                ? <button type="button" onClick={() => setAvatar({ url: form.portrait_url || null, focus: form.portrait_focus ?? null })} className={ACTION}>Use the portrait</button>
-                : null}
-            />
-          </EditorSheet>
-
-          <EditorSheet id="reach" title="Reach me" note="Where a reader can find them. Each becomes a row at the foot of the page." open={sheet === 'reach'} onClose={closeSheet}>
-            <div>
-              {links.length === 0 && <p className="font-body text-ui-15 italic text-tea-text-dim">No ways to reach them yet.</p>}
-              {links.map((link, index) => (
-                <div key={index} className="border-b border-tea-border py-5 first:pt-0">
-                  <div role="radiogroup" aria-label={`Link ${index + 1} platform`} className="flex flex-wrap items-baseline gap-x-5">
-                    {CONTRIBUTOR_LINK_PLATFORMS.map(platform => {
-                      const on = link.platform === platform;
-                      return (
-                        <label key={platform} className={`tap-target inline-flex min-h-11 cursor-pointer items-center border-b font-display text-ui-17 transition-colors ${on ? 'border-tea-gold text-tea-text' : 'border-transparent text-tea-text-sec hover:text-tea-text'}`}>
-                          <input type="radio" className="sr-only" name={`link-${index}-platform`} value={platform} checked={on} onChange={() => updateLink(index, { platform })} />
-                          {linkPlatformLabel(platform)}
-                        </label>
-                      );
-                    })}
-                    <button type="button" aria-label={`Remove link ${index + 1}`} onClick={() => setField('links', links.filter((_, position) => position !== index))} className={`${QUIET} ml-auto`}>Remove</button>
-                  </div>
-                  <Line
-                    className="mt-2"
-                    id={`f-link-${index}-value`}
-                    label={linkValueLabel(link.platform)}
-                    aria-label={`Link ${index + 1} value`}
-                    value={link.value}
-                    onChange={event => updateLink(index, { value: event.target.value })}
-                    placeholder={link.platform === 'website' ? 'https://' : link.platform === 'instagram' ? '@handle' : ''}
-                    inputMode={link.platform === 'website' ? 'url' : undefined}
-                    autoCapitalize="none"
-                  />
-                  {link.platform === 'wechat' && (
-                    <div className="mt-5">
-                      <p className={LABEL}>QR code, optional</p>
-                      <div className="mt-2 max-w-[320px]">
-                        <PhotoPlace
-                          name="QR image"
-                          testId={`photo-qr-${index}`}
-                          url={link.qr_image_url}
-                          focus={null}
-                          onChange={next => updateLink(index, { qr_image_url: next.url })}
-                          crops={[]}
-                          purpose="A screenshot of their WeChat QR, so a reader can scan it."
-                          emptyHeight={160}
-                          onBusy={markBusy(`qr-${index}`)}
-                        />
-                      </div>
-                    </div>
-                  )}
-                  {link.platform === 'other' && (
-                    <Line className="mt-4" id={`f-link-${index}-label`} label="Label, optional" value={link.label ?? ''} onChange={event => updateLink(index, { label: event.target.value })} placeholder="How this link is described" />
-                  )}
-                </div>
-              ))}
-              <button type="button" onClick={() => setField('links', [...links, { platform: 'website', value: '', qr_image_url: null }])} className={`${ACTION} mt-4`}>Add a way to reach them</button>
-            </div>
-          </EditorSheet>
-
-          <EditorSheet id="belong" title="Where they belong" note="A tea master is one person across Teajia. Their master account is their home for stock and selection; other shops are guest or collaborating places." open={sheet === 'belong'} onClose={closeSheet}>
+          <EditorSheet id="belong" title="Shops" note="The shops this person belongs to. Their home shop holds their teas; others are places they guest or work with." open={sheet === 'belong'} onClose={closeSheet}>
             <div className="space-y-7">
               {associations.length > 0 && (
                 <ul>
@@ -649,7 +501,7 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
                         <div className="flex flex-wrap items-baseline justify-between gap-x-4">
                           <div className="min-w-0">
                             <p className="font-display text-ui-20 text-tea-text">{association.account_name}</p>
-                            <p className="font-body text-ui-13 italic text-tea-text-sec">{availableAccounts.find(item => item.id === association.account_id)?.account_kind === 'master' ? 'Tea Master operational home' : 'Guest or collaborating practice'}</p>
+                            <p className="font-body text-ui-13 italic text-tea-text-sec">{availableAccounts.find(item => item.id === association.account_id)?.account_kind === 'master' ? 'Their home shop' : 'A place they guest or work with'}</p>
                           </div>
                           <div className="flex flex-wrap gap-x-5">
                             <button type="button" aria-label={`Move ${association.account_name} up`} disabled={!editable || index === 0} onClick={() => moveAssociation(index, index - 1)} className={QUIET}>Earlier</button>
@@ -658,10 +510,10 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
                           </div>
                         </div>
                         <div className="mt-2 grid gap-x-8 gap-y-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-                          <Line id={`f-role-${association.account_id}`} label="Public role" disabled={!editable} value={association.public_role ?? ''} onChange={event => updateAssociation(association.account_id, { public_role: event.target.value || null })} placeholder="Tea Master, guest curator, writer" />
+                          <Line id={`f-role-${association.account_id}`} label="Public role" disabled={!editable} value={association.public_role ?? ''} onChange={event => updateAssociation(association.account_id, { public_role: event.target.value || null })} placeholder="Tea master, guest, writer" />
                           <label className="tap-target flex min-h-11 cursor-pointer items-center gap-3 font-sans text-ui-13 text-tea-text-sec"><input type="checkbox" disabled={!editable} checked={association.is_host} onChange={event => updateAssociation(association.account_id, { is_host: event.target.checked })} className="h-4 w-4 accent-tea-gold" /> Host profile</label>
                         </div>
-                        {!editable && <p className="mt-2 font-sans text-ui-12 text-tea-text-dim">Read only while another account is active.</p>}
+                        {!editable && <p className="mt-2 font-sans text-ui-12 text-tea-text-dim">Switch to this shop to change it.</p>}
                       </li>
                     );
                   })}
@@ -672,7 +524,7 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
                   <label htmlFor="f-add-account" className={LABEL}>Add a shop</label>
                   <select id="f-add-account" value={newAssociationId} onChange={event => setNewAssociationId(event.target.value)} className={`mt-1 ${LINE_SANS}`}>
                     <option value="">Choose a shop</option>
-                    {availableAccounts.filter(item => canEditContributorAssociation(item.id, activeAccountId, platformRole) && !associations.some(association => association.account_id === item.id)).map(item => <option key={item.id} value={item.id}>{item.name}{item.account_kind === 'master' ? ' · Tea Master home' : ''}</option>)}
+                    {availableAccounts.filter(item => canEditContributorAssociation(item.id, activeAccountId, platformRole) && !associations.some(association => association.account_id === item.id)).map(item => <option key={item.id} value={item.id}>{item.name}{item.account_kind === 'master' ? ', their home shop' : ''}</option>)}
                   </select>
                 </div>
                 <button type="button" onClick={addAssociation} disabled={!newAssociationId} className={ACTION}>Add</button>
@@ -680,10 +532,10 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
             </div>
           </EditorSheet>
 
-          <EditorSheet id="behind" title="Behind the page" note="Nothing here is printed on the page." open={sheet === 'behind'} onClose={closeSheet}>
+          <EditorSheet id="behind" title="Page settings" note="Only you see this. Nothing here is printed on the page." open={sheet === 'behind'} onClose={closeSheet}>
             <div className="space-y-7">
               {!isNew && <p className="font-sans text-ui-13 text-tea-text-sec">teajia.com/people/<span className="text-tea-text">{slug}</span></p>}
-              <Line label="Pronouns" id="f-pronouns" value={form.pronouns ?? ''} onChange={event => setField('pronouns', event.target.value)} placeholder="she/her, he/him, they/them" hint="Not printed. The page uses them when it speaks of this person." />
+              <Line label="Their sign-in" id="f-their-sign-in" value={form.user_id ?? ''} onChange={event => setField('user_id', event.target.value)} autoCapitalize="none" placeholder="The account that may edit this page" hint="With it they can change their own page. Their changes come to you to approve." />
               <div>
                 <label htmlFor="f-private-contact" className={LABEL}>Private contact</label>
                 <select id="f-private-contact" className={`mt-1 ${LINE_SANS}`} value={contactId} onFocus={loadCustomers} onChange={event => setContactId(event.target.value)}>
@@ -691,34 +543,15 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
                   {contactId && !customers.some(customer => customer.id === contactId) && <option value={contactId}>{contributor?.contact_name || 'Linked contact'}</option>}
                   {customers.map(customer => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
                 </select>
+                <p className="mt-1.5 font-sans text-ui-12 leading-relaxed text-tea-text-dim">Who they are in your customer list.</p>
               </div>
-              <Line label="Their sign-in" id="f-their-sign-in" value={form.user_id ?? ''} onChange={event => setField('user_id', event.target.value)} autoCapitalize="none" placeholder="The account that may edit this page" hint="They can then send changes for you to approve." />
-
-              <KeptFold count={10}>
-                <Line label="Business name" id="f-business-name" value={form.business_name ?? ''} onChange={event => setField('business_name', event.target.value)} placeholder="If they trade under another" />
-                <Line label="Active since" id="f-active-since" value={form.active_since ?? ''} onChange={event => setField('active_since', event.target.value)} placeholder="The year they began" inputMode="numeric" />
-                <Line label="Portrait caption" id="f-portrait-caption" value={form.portrait_caption ?? ''} onChange={event => setField('portrait_caption', event.target.value)} placeholder="Where and when it was taken" />
-                <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
-                  <Line label="Now stamp" id="f-now-stamp" value={form.now_stamp ?? ''} onChange={event => setField('now_stamp', event.target.value)} placeholder="A season or a month" />
-                  <Line label="Now updated" id="f-now-updated" type="datetime-local" value={form.now_updated_at?.slice(0, 16) ?? ''} onChange={event => setField('now_updated_at', event.target.value)} />
-                </div>
-                <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
-                  <Line label="Product ID" id="f-product-id" value={form.pouring_today_product_id ?? ''} onChange={event => setField('pouring_today_product_id', event.target.value)} autoCapitalize="none" hint="Pouring today" />
-                  <Line label="Pouring note" id="f-pouring-note" value={form.pouring_today_note ?? ''} onChange={event => setField('pouring_today_note', event.target.value)} />
-                </div>
-                <Prose label="Where to find" id="f-where-to-find" value={form.where_to_find_text ?? ''} onChange={event => setField('where_to_find_text', event.target.value)} minRows={2} placeholder="Their shop, their table, the days they pour." />
-                <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
-                  <Line label="Voice clip URL" id="f-voice-clip-url" type="url" value={form.voice_clip_url ?? ''} onChange={event => setField('voice_clip_url', event.target.value)} placeholder="https://" />
-                  <Line label="Voice clip caption" id="f-voice-clip-caption" value={form.voice_clip_caption ?? ''} onChange={event => setField('voice_clip_caption', event.target.value)} />
-                </div>
-              </KeptFold>
 
               {!isNew && persistedContributor && (
                 <div className="border-t border-tea-border pt-6" data-testid="section-delete">
                   {published && !pending && (
                     <div className="mb-6">
                       <button type="button" onClick={unpublish} disabled={saving} className={QUIET}>Unpublish</button>
-                      <p className="mt-1 font-sans text-ui-12 text-tea-text-dim">Takes the page down. It stays here as a draft.</p>
+                      <p className="mt-1 font-sans text-ui-12 text-tea-text-dim">Takes the page down. It stays here, unpublished.</p>
                     </div>
                   )}
                   {persistedContributor.is_published === 1 ? (
@@ -755,10 +588,10 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
         </footer>
         {requestingChanges && pending && (
           <div className="absolute inset-x-0 bottom-0 z-modal border-t border-tea-border bg-tea-elevated px-6 pt-5 pb-nav-gap sm:px-8 lg:pb-5">
-            <Prose label="What should the Tea Master revise?" id="f-revise" autoFocus minRows={3} maxLength={800} value={reviewerNote} onChange={event => setReviewerNote(event.target.value)} />
+            <Prose label="What should they change?" labelClassName={QUESTION} id="f-revise" autoFocus minRows={3} maxLength={800} value={reviewerNote} onChange={event => setReviewerNote(event.target.value)} />
             <div className="mt-3 flex justify-between gap-3">
               <button type="button" onClick={() => { setRequestingChanges(false); setReviewerNote(''); }} className="tap-target min-h-11 font-sans text-ui-14 text-tea-text-sec hover:text-tea-text">Cancel</button>
-              <button type="button" onClick={requestChanges} disabled={saving || !reviewerNote.trim()} className="tap-target min-h-11 rounded-md cta-solid px-5 font-sans text-ui-14 disabled:opacity-50">Send revision request</button>
+              <button type="button" onClick={requestChanges} disabled={saving || !reviewerNote.trim()} className="tap-target min-h-11 rounded-md cta-solid px-5 font-sans text-ui-14 disabled:opacity-50">Send it back</button>
             </div>
           </div>
         )}

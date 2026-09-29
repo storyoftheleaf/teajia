@@ -7,6 +7,9 @@ import React, { useLayoutEffect, useRef } from 'react';
 /** Field label: micro caps, three words at most. */
 export const LABEL = 'block font-sans text-ui-10 font-medium uppercase tracking-display text-tea-text-sec';
 
+/** A question asked in the person's own words, set as a sentence rather than micro caps (micro caps are for three words or fewer). */
+export const QUESTION = 'block font-display text-ui-20 font-normal leading-snug text-tea-text';
+
 /** A hairline field. The line brightens to bronze while the field is in use. */
 const LINE = 'w-full rounded-none border-0 border-b border-tea-border bg-transparent px-0 text-tea-text placeholder:text-tea-text-dim/60 transition-colors focus:border-tea-gold focus:outline-none focus:ring-0 disabled:opacity-60';
 export const LINE_SANS = `${LINE} min-h-11 py-2 font-sans text-ui-15`;
@@ -27,14 +30,14 @@ export function Section({ id, title, note, children, testId }: { id: string; tit
   );
 }
 
-type LineProps = React.InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: React.ReactNode; inputClassName?: string; aside?: React.ReactNode };
+type LineProps = React.InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: React.ReactNode; inputClassName?: string; labelClassName?: string; aside?: React.ReactNode };
 
-export function Line({ label, hint, className = '', inputClassName = LINE_SANS, aside, id, ...input }: LineProps) {
+export function Line({ label, hint, className = '', inputClassName = LINE_SANS, labelClassName = LABEL, aside, id, ...input }: LineProps) {
   const fieldId = id ?? `f-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
   return (
     <div className={className}>
       <div className="flex items-baseline justify-between gap-3">
-        <label htmlFor={fieldId} className={LABEL}>{label}</label>
+        <label htmlFor={fieldId} className={labelClassName}>{label}</label>
         {aside}
       </div>
       <input id={fieldId} className={`mt-1 ${inputClassName}`} {...input} />
@@ -43,10 +46,10 @@ export function Line({ label, hint, className = '', inputClassName = LINE_SANS, 
   );
 }
 
-type ProseProps = React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string; hint?: React.ReactNode; aside?: React.ReactNode; minRows?: number };
+type ProseProps = React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string; hint?: React.ReactNode; aside?: React.ReactNode; minRows?: number; labelClassName?: string };
 
 /** A passage the person wrote, typed in Lora at reading size, growing with its text. */
-export function Prose({ label, hint, aside, id, minRows = 3, className = '', value, ...area }: ProseProps) {
+export function Prose({ label, hint, aside, id, minRows = 3, className = '', labelClassName = LABEL, value, ...area }: ProseProps) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const fieldId = id ?? `f-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
   useLayoutEffect(() => {
@@ -73,7 +76,7 @@ export function Prose({ label, hint, aside, id, minRows = 3, className = '', val
   return (
     <div className={className}>
       <div className="flex items-baseline justify-between gap-3">
-        <label htmlFor={fieldId} className={LABEL}>{label}</label>
+        <label htmlFor={fieldId} className={labelClassName}>{label}</label>
         {aside}
       </div>
       <textarea

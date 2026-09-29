@@ -1,40 +1,49 @@
 # The contributor editor
 
-`/admin/contributors`, Create contributor and Edit. Written 2026-09-28, before the
+`/admin/contributors` (Create contributor, Edit) and `/account/profile` (a tea master's own page). Written 2026-09-28, before the
 rebuild, at Adrian's request: "It needs to have image uploads. It needs to look much
 better. We need a whole new style." This is the one written place for the screen's
 style rules. When a line on the screen is corrected, the rule here changes in the
 same commit.
 
-## The idea: the card and the rest
+## The idea: the card and the rest, filled in by the person
 
 Chosen 2026-09-28 from four directions (mockups: https://claude.ai/artifact/JsN5LuYQ7nzhuD7davHNNe).
 Adrian: "to add or edit contributors is quite a huge process ... a bit overwhelming".
-The old screen opened eight sections and about thirty fields at once. Now:
+Then, looking at the first build, 2026-09-29: "Consider this as something that the
+contributor themself is doing, not me ... reduce this down majorly ... This is for
+people, not computers."
 
-- **The card** holds only what the cover needs: the portrait with its focal point
-  and crops, name, page address (new people only), role, place, name in their own
-  script, and the line under the name as it will read. A new person saves from a
-  name alone.
-- **The rows** are every other part of the page, one line each: In my words, Hands on,
-  Reach me, Where they belong, Behind the page. Each says what is in it ("4 of 8",
-  "WeChat", "Needed to publish") and opens on its own in a sheet: from the right on a
-  wide screen, from the bottom on a phone. On a wide screen the rows sit under the
-  fields, beside the photo, so the whole card and its rows fit one laptop screen.
-- **Sheets stay mounted while closed**, so an upload in flight or a pasted photo keeps
-  landing. They sit between the header and the footer, so Save is always in reach.
-  Escape closes the sheet first, then the editor. Focus goes to the sheet's X and
-  back to the row.
-- **Behind the page** holds what no reader sees: the fixed address, pronouns, private
-  contact, their sign-in, unpublish and delete. The ten stored fields that neither
-  the page nor the directory reads (business name, active since, portrait caption,
-  the Now stamp and its date, pouring today, where to find, the voice clip) sit
-  under a fold that says so. If one of them starts rendering, move it out of the
-  fold in the same commit.
-- Publishing without Where it began opens In my words, rather than naming the field
-  and leaving you to find it.
-- Labels use the page's own words: Now, Where it began, Who taught them, Closing line,
-  Place, Own script, Their sign-in.
+- **One editor, two doors.** The card and rows live in
+  `src/admin/components/contributorEditor/PersonPage.tsx` and are used by the shop's
+  editor (`/admin/contributors`) and by the tea master's own screen
+  (`/account/profile`, `ProfileEditor.tsx`). Same questions, same words, both places.
+- **Written to the person, in the second person.** Your name, Name in Chinese, What you
+  do, Where you are. Your story asks three questions: How did tea begin for you? What
+  are you working on now? A last line for your page. Photos of your work. How people
+  reach you. Never a field name (no "own script", "current practice", "beginnings",
+  "inspirations", "display name").
+- **Only what the page shows is asked.** Pronouns, business name, active since,
+  languages, portrait caption, the current stamp and its date, pouring today, where
+  to find, the voice clip, who taught them and the separate small round photo are
+  not on screen at all. Their stored values are sent back untouched on every save,
+  so nothing written earlier is lost. If the page ever starts showing one of them,
+  it comes back as a plain question in the same commit.
+- **The small round photo follows the portrait**, unless someone once gave it its own.
+- **Rows the shop alone sees** come after the three everyone sees: Shops (where they
+  belong) and Page settings (address, their sign-in, private contact, unpublish,
+  delete). A contributor never sees them.
+- **A contributor places photos; the shop may also link one.** "Use a web address" is
+  hidden on the contributor's screen. Their photos go through their own upload route
+  (`PhotoUploadContext`), since the staff upload needs shop rights.
+- **Sheets stay mounted while closed**, so an upload in flight keeps landing. In the
+  shop's panel they sit between header and footer so Save stays in reach; on the
+  contributor's page they cover the screen and end with Done. Escape closes the sheet
+  first. Focus goes to the sheet's X and back to the row.
+- Saving without how tea began opens Your story rather than naming a field.
+- A contributor's own save may now change what they do and where their face is in the
+  portrait (`role`, `portrait_focus` in `PROFILE_SELF_FIELDS`); on a live page those
+  still go to the shop to approve first, like every other change.
 
 ## What this screen will NOT use
 

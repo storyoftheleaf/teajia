@@ -124,6 +124,10 @@ type Props = {
   testId?: string;
   /** Lets the panel hand this place a pasted photo when nothing else took it. */
   takeRef?: React.MutableRefObject<((files: File[]) => void) | null>;
+  /** The photo as said in a sentence, "No portrait yet". Defaults to the name in lower case; give it when the name carries capitals, "QR code". */
+  noun?: string;
+  /** Offer "Use a web address". Off on a contributor's own screen, where a photo is always placed, never linked. */
+  allowAddress?: boolean;
 };
 
 /**
@@ -133,7 +137,7 @@ type Props = {
  * the foot. Placed, it shows the whole photo with its focal point beside the
  * crops the page will make of it.
  */
-export function PhotoPlace({ name, url, focus, onChange, crops, purpose, emptyHeight = 240, onBusy, extraActions, testId, takeRef }: Props) {
+export function PhotoPlace({ name, url, focus, onChange, crops, purpose, emptyHeight = 240, onBusy, extraActions, testId, takeRef, noun, allowAddress = true }: Props) {
   const inputId = useId();
   const cameraId = useId();
   const addressId = useId();
@@ -223,7 +227,7 @@ export function PhotoPlace({ name, url, focus, onChange, crops, purpose, emptyHe
           className={`flex flex-col items-center justify-center gap-1 border px-6 text-center transition-colors focus:outline-none focus-visible:border-tea-gold ${over ? 'border-tea-gold bg-tea-accent-sub' : 'border-tea-border bg-tea-surface'}`}
           style={{ height: emptyHeight }}
         >
-          <p className="font-display text-ui-26 font-light leading-tight text-tea-text">{over ? 'Let go to place it' : `No ${name.toLowerCase()} yet`}</p>
+          <p className="font-display text-ui-26 font-light leading-tight text-tea-text">{over ? 'Let go to place it' : `No ${noun ?? name.toLowerCase()} yet`}</p>
           <p className="max-w-[36ch] font-body text-ui-14 italic leading-relaxed text-tea-text-sec">{purpose}</p>
           <p className="mt-1 font-sans text-ui-12 text-tea-text-dim">{TOUCH ? 'From the camera or your photos.' : 'Drop it here, paste it, or choose one.'}</p>
           <div className="mt-3 flex flex-wrap justify-center gap-x-7">
@@ -238,7 +242,7 @@ export function PhotoPlace({ name, url, focus, onChange, crops, purpose, emptyHe
         {url && !busy && focus && <button type="button" onClick={() => onChange({ url, focus: null })} className={QUIET}>Centre the focus</button>}
         {extraActions}
         {url && !busy && <button type="button" onClick={() => onChange({ url: null, focus: null })} className={QUIET}>Remove</button>}
-        {!busy && <button type="button" onClick={() => setByAddress(open => !open)} aria-expanded={byAddress} className={QUIET}>{byAddress ? 'Hide the web address' : 'Use a web address'}</button>}
+        {!busy && allowAddress && <button type="button" onClick={() => setByAddress(open => !open)} aria-expanded={byAddress} className={QUIET}>{byAddress ? 'Hide the web address' : 'Use a web address'}</button>}
       </div>
       {byAddress && (
         <Line

@@ -66,7 +66,7 @@ test('a contributor is created with an uploaded portrait, its focal point, and g
   await expect(dialog).toBeVisible();
 
   // The page address follows the name until it is edited by hand.
-  await dialog.getByLabel('Name', { exact: true }).fill('Shangyin Qiwu');
+  await dialog.getByLabel('Your name').fill('Shangyin Qiwu');
   await expect(dialog.getByLabel('Page address')).toHaveValue('shangyin-qiwu');
 
   // The portrait: picked from a file, uploaded, then shown whole with its crops.

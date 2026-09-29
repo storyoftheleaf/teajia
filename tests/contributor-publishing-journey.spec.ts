@@ -67,29 +67,25 @@ test('synthetic contributor and article publish through the complete workflow', 
   await page.goto('/admin/contributors');
   await page.getByRole('button', { name: 'Create contributor' }).last().click();
   await page.getByLabel('Page address').fill(contributorFixture.id);
-  // The card: what the cover needs.
-  await page.getByLabel('Name', { exact: true }).fill(contributorFixture.display_name);
-  await page.getByLabel('Own script').fill('测试作者');
-  await page.getByLabel('Role', { exact: true }).fill(contributorFixture.role);
-  await page.getByLabel('Place').fill('Synthetic location');
+  // The card: what the top of the page needs, asked as the person would be asked.
+  await page.getByLabel('Your name').fill(contributorFixture.display_name);
+  await page.getByLabel('Name in Chinese').fill('测试作者');
+  await page.getByLabel('What you do').fill(contributorFixture.role);
+  await page.getByLabel('Where you are').fill('Synthetic location');
   // Photos are uploaded by default; a web address is the fallback behind a toggle.
+  // The small round photo follows the portrait.
   await page.getByTestId('photo-portrait').getByRole('button', { name: 'Use a web address' }).click();
   await page.getByLabel('Portrait URL').fill('https://example.com/fixture-portrait.jpg');
-  await page.getByTestId('row-avatar').click();
-  await page.getByTestId('photo-avatar').getByRole('button', { name: 'Use a web address' }).click();
-  await page.getByLabel('Avatar URL').fill('https://example.com/fixture-avatar.jpg');
-  await page.keyboard.press('Escape');
 
   // Each row opens its part on its own.
   await page.getByTestId('row-words').click();
-  await page.getByLabel('Where it began').fill(contributorFixture.beginnings);
-  await page.getByLabel('Now', { exact: true }).fill(contributorFixture.now_text);
-  await page.getByLabel('Who taught them').fill(contributorFixture.inspirations);
-  await page.getByLabel('Closing line').fill(contributorFixture.closing);
+  await page.getByLabel('How did tea begin for you?').fill(contributorFixture.beginnings);
+  await page.getByLabel('What are you working on now?').fill(contributorFixture.now_text);
+  await page.getByLabel('A last line for your page').fill(contributorFixture.closing);
   await page.keyboard.press('Escape');
 
   await page.getByTestId('row-reach').click();
-  await page.getByRole('button', { name: 'Add a way to reach them' }).click();
+  await page.getByRole('button', { name: 'Add a way to reach you' }).click();
   await page.getByRole('radiogroup', { name: 'Link 1 platform' }).getByRole('radio', { name: 'Website' }).check();
   await page.getByLabel('Link 1 value').fill(contributorFixture.links[0].value);
   await page.keyboard.press('Escape');
@@ -98,21 +94,9 @@ test('synthetic contributor and article publish through the complete workflow', 
   // a flag on a per-account association. Nothing later in this journey
   // depends on the flag, so the step simply goes.
   await page.getByTestId('row-behind').click();
-  await page.getByLabel('Pronouns').fill('they/them');
   await page.getByLabel('Their sign-in').fill('fixture-user');
   await page.getByLabel('Private contact').focus();
   await page.getByLabel('Private contact').selectOption('fixture-contact');
-  // The fields no page reads yet are still stored, folded away.
-  await page.getByText(/Kept, not on the page yet/).click();
-  await page.getByLabel('Active since').fill('2026');
-  await page.getByLabel('Portrait caption').fill('Synthetic portrait caption.');
-  await page.getByLabel('Now stamp').fill('Synthetic season 2026');
-  await page.getByLabel('Now updated').fill('2026-07-12T12:00');
-  await page.getByLabel('Voice clip URL').fill('https://example.com/fixture-voice.mp3');
-  await page.getByLabel('Voice clip caption').fill('Synthetic voice caption.');
-  await page.getByLabel('Product ID').fill('fixture-product');
-  await page.getByLabel('Pouring note').fill('Synthetic pouring note.');
-  await page.getByLabel('Where to find').fill('Synthetic account association.');
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Publish contributor' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);

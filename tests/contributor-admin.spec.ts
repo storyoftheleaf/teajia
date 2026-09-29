@@ -78,12 +78,13 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
 
     await page.getByRole('button', { name: 'Edit Publishing Fixture' }).click();
     await expect(page.getByRole('dialog', { name: 'Edit contributor' })).toBeVisible();
-    await expect(page.getByLabel('Where it began')).toHaveValue(fixture.beginnings);
-    await expect(page.getByLabel('Now updated')).toHaveValue('2026-07-13T09:45');
+    await expect(page.getByLabel('How did tea begin for you?')).toHaveValue(fixture.beginnings);
     await page.getByTestId('row-words').click();
-    await page.getByLabel('Closing line').fill('Updated synthetic closing.');
+    await page.getByLabel('A last line for your page').fill('Updated synthetic closing.');
     await page.getByRole('button', { name: 'Save changes' }).click();
     await expect(page.getByRole('dialog', { name: 'Edit contributor' })).toHaveCount(0);
+    // Fields the editor no longer asks for are sent back exactly as they were.
+    expect(network.requests.some(body => body.includes('2026-07-13T09:45:00Z'))).toBe(true);
     await page.getByRole('button', { name: 'Edit Publishing Fixture' }).click();
     await page.getByTestId('row-behind').click();
     await page.getByRole('button', { name: 'Unpublish', exact: true }).click();
@@ -93,11 +94,11 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
     await page.getByRole('button', { name: 'Create contributor' }).click();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
     await page.getByLabel('Page address').fill('new-fixture');
-    await page.getByLabel('Name', { exact: true }).fill('New Fixture');
+    await page.getByLabel('Your name').fill('New Fixture');
     await page.getByRole('button', { name: 'Publish contributor' }).click();
-    await expect(page.getByText('Where it began is needed before the page can be published.')).toBeVisible();
+    await expect(page.getByText('Write how tea began for you before the page can go live.')).toBeVisible();
     // Publishing without it opens the part that is missing.
-    await page.getByLabel('Where it began').fill('Synthetic beginnings for the publishing test.');
+    await page.getByLabel('How did tea begin for you?').fill('Synthetic beginnings for the publishing test.');
     await page.getByRole('button', { name: 'Publish contributor' }).click();
     // Once created the panel is renamed Edit contributor while it saves, so wait for any dialog to close.
     await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -157,7 +158,7 @@ test('uses the reactive active account for host association after an account swi
   const jakarta = page.getByText('Teajia Jakarta').first();
   await expect(jakarta).toBeVisible();
   await page.getByLabel('Page address').fill('jakarta-host');
-  await page.getByLabel('Display name').fill('Jakarta Host');
+  await page.getByLabel('Your name').fill('Jakarta Host');
   await page.getByRole('checkbox', { name: 'Host profile' }).last().check();
   const accountsPut = page.waitForRequest(request =>
     /\/api\/admin\/contributors\/[^/]+\/accounts$/.test(new URL(request.url()).pathname)
@@ -181,19 +182,16 @@ test('publish-bundle staff cannot open contributor administration', async ({ pag
   await expect(page.getByText('Access Restricted')).toBeVisible();
 });
 
-test('retries a partially failed create as an update and preserves the current timestamp', async ({ page }) => {
+test('retries a partially failed create as an update', async ({ page }) => {
   const network = await install(page, []);
   network.failNextPublish();
   await page.goto('/admin/contributors');
   await page.getByRole('button', { name: 'Create contributor' }).last().click();
   await page.getByLabel('Page address').fill('resumable-writer');
-  await page.getByLabel('Name', { exact: true }).fill('Resumable Writer');
+  await page.getByLabel('Your name').fill('Resumable Writer');
   await page.getByTestId('row-words').click();
-  await page.getByLabel('Where it began').fill('Fixture beginnings.');
+  await page.getByLabel('How did tea begin for you?').fill('Fixture beginnings.');
   await page.keyboard.press('Escape');
-  await page.getByTestId('row-behind').click();
-  await page.getByText(/Kept, not on the page yet/).click();
-  await page.getByLabel('Now updated').fill('2026-07-13T09:45');
   await page.getByRole('button', { name: 'Publish contributor' }).click();
   await expect(page.getByRole('alert')).toContainText('publish failed');
   await page.getByRole('button', { name: 'Publish contributor' }).click();
@@ -202,7 +200,6 @@ test('retries a partially failed create as an update and preserves the current t
     { method: 'POST', path: '/api/admin/contributors' },
     { method: 'PUT', path: '/api/admin/contributors/resumable-writer' },
   ]);
-  expect(network.requests.some(body => body.includes('2026-07-13T09:45'))).toBe(true);
 });
 
 test('dialog traps focus, closes on Escape, and restores focus to its trigger', async ({ page }) => {
