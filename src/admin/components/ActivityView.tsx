@@ -100,7 +100,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
       {/* Page header */}
       <div className="px-4 md:px-6 lg:px-10 pt-6 pb-3 flex-shrink-0">
         <div className="max-w-7xl mx-auto">
-          <h1 className="h2 text-tea-text">Activity</h1>
+          <h1 className="h2 text-tea-text">Sales</h1>
           <div className="label-caps text-tea-text-dim mt-1">Orders, payments, and customer inquiries</div>
         </div>
       </div>

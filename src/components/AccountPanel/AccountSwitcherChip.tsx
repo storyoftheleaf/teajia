@@ -55,7 +55,7 @@ export const AccountSwitcherChip: React.FC<AccountSwitcherChipProps> = ({
           <button
             {...menuProps}
             type="button"
-            aria-label={`Switch account. Current account: ${activeName}`}
+            aria-label={`Switch table. Current table: ${activeName}`}
             className={`tap-target inline-flex items-center gap-2 max-w-full pl-3 pr-2 py-1.5 rounded-full border text-ui-12 font-medium transition-colors ${
               open
                 ? 'border-tea-gold bg-tea-gold/8 text-tea-text'
@@ -72,7 +72,7 @@ export const AccountSwitcherChip: React.FC<AccountSwitcherChipProps> = ({
         )}
       >
         {(close) => (
-          <ul role="listbox" aria-label="Switch account" className="max-h-[320px] overflow-y-auto">
+          <ul role="listbox" aria-label="Switch table" className="max-h-[320px] overflow-y-auto">
             {memberships.map(m => {
               const isActive = m.account_id === activeAccountId;
               const isLoading = switchingTo === m.account_id;

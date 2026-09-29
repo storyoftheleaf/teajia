@@ -80,19 +80,19 @@ export function buildManageItems(f: ManageListFlags): ManageItem[] {
       ],
     },
     { id: 'collections', label: 'Collections', Icon: Stack, path: '/admin/collections' },
-    // Orders follows its route's one gate, the sell bundle. It used to sit
+    // Sales follows its route's one gate, the sell bundle. It used to sit
     // under a "Business" parent that showed for five capabilities while the
     // screen behind it accepted one.
-    { id: 'orders', label: 'Orders', Icon: Receipt, path: '/admin/activity' },
+    { id: 'orders', label: 'Sales', Icon: Receipt, path: '/admin/activity' },
     // People is its own room so a member who gathers or publishes, and so
-    // cannot open Orders, still reaches the people they work with.
+    // cannot open Sales, still reaches the people they work with.
     {
       id: 'people', label: 'People', Icon: AddressBook, path: '/admin/people',
       children: f.isOwnerTier
         ? [{ id: 'contributors', path: ADMIN_CONNECTION_ROUTES.teaMasters, label: 'Tea Masters' }]
         : undefined,
     },
-    { id: 'events', label: 'Events', Icon: CalendarBlank, path: '/admin/events' },
+    { id: 'events', label: 'Sessions', Icon: CalendarBlank, path: '/admin/events' },
     {
       id: 'magazine', label: 'Magazine', Icon: BookOpen, path: '/admin/magazine',
       children: [

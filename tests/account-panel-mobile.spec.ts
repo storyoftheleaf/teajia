@@ -328,22 +328,22 @@ test.describe('Account Panel — mobile audit', () => {
 
     const orders = page.getByRole('button', { name: /^manage/i });
     await expect(orders).toBeVisible();
-    await page.getByRole('button', { name: /switch account/i }).click();
+    await page.getByRole('button', { name: /switch table/i }).click();
     await page.getByRole('option', { name: /Member Table/i }).click();
 
     await expect(orders).toHaveCount(0);
     releaseSwitch?.();
-    await expect(page.getByRole('button', { name: /switch account.*Member Table/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /switch table.*Member Table/i })).toBeVisible();
     await expect(orders).toHaveCount(0);
 
-    await page.getByRole('button', { name: /switch account/i }).click();
+    await page.getByRole('button', { name: /switch table/i }).click();
     await page.getByRole('option', { name: /Owner Table/i }).click();
-    await expect(page.getByRole('button', { name: /switch account.*Owner Table/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /switch table.*Owner Table/i })).toBeVisible();
     await expect(orders).toBeVisible();
 
-    await page.getByRole('button', { name: /switch account/i }).click();
+    await page.getByRole('button', { name: /switch table/i }).click();
     await page.getByRole('option', { name: /Member Table/i }).click();
-    await expect(page.getByRole('button', { name: /switch account.*Member Table/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /switch table.*Member Table/i })).toBeVisible();
     await expect(orders).toBeVisible();
   });
 });

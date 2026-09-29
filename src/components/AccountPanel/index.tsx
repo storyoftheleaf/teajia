@@ -454,11 +454,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
     }
   };
 
-  const handleGoToAdmin = (path: string = '/admin/stock') => {
-    onClose();
-    navigate(path);
-  };
-
   const getInitials = (nameStr: string) =>
     nameStr.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
@@ -681,7 +676,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
     'max-w-sm';
 
   const headerTitle =
-    panelView === 'location-switcher' ? 'Switch Location' :
+    panelView === 'location-switcher' ? 'Switch table' :
     panelView === 'events' ? 'Sessions' :
     panelView === 'signin' ? 'Sign In' :
     panelView === 'signup' ? 'Create Account' :
@@ -701,7 +696,9 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
   }, [memberships, locationSearch]);
 
   // ── Location card ───────────────────────────────────────────────────────────
-  const ActiveLocationCard: React.FC<{ showSwitchButton?: boolean; hideActions?: boolean }> = ({ showSwitchButton, hideActions }) => (
+  // Its Shop / Sessions / Ops links were cut (2026-09-29): the manage tile is
+  // the one door into Manage, and Shop and Sessions have their own doors.
+  const ActiveLocationCard: React.FC<{ showSwitchButton?: boolean }> = ({ showSwitchButton }) => (
     <div className="rounded-xl overflow-hidden border border-tea-border bg-tea-surface">
       <div className="flex items-start justify-between px-4 py-3.5">
         <div className="min-w-0 flex-1">
@@ -739,30 +736,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
           </button>
         )}
       </div>
-      {!hideActions && (
-        <div className="flex border-t border-tea-border divide-x divide-tea-border">
-          <button
-            onClick={() => { onClose(); navigate('/shop'); }}
-            className="flex-1 py-3 text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
-          >
-            Shop
-          </button>
-          <button
-            onClick={() => setPanelView('events')}
-            className="flex-1 py-3 text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
-          >
-            Sessions
-          </button>
-          {isStaff && (
-            <button
-              onClick={() => handleGoToAdmin('/admin/stock')}
-              className="flex-1 py-3 text-ui-11 uppercase tracking-[0.15em] text-tea-gold hover:bg-tea-accent-sub transition-colors"
-            >
-              Ops
-            </button>
-          )}
-        </div>
-      )}
     </div>
   );
 

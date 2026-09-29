@@ -79,7 +79,6 @@ import { MovementStockView } from './views/MovementStockView';
 import { MagazineView } from './views/MagazineView';
 import { ContributorsView } from './views/ContributorsView';
 import { CollectionsView } from './views/CollectionsView';
-import { ContactTagsView } from './views/ContactTagsView';
 import { CollectionEditView } from './views/CollectionEditView';
 import { InboundCollectionView } from './views/InboundCollectionView';
 import { CatalogBrowse } from './views/CatalogBrowse';
@@ -556,7 +555,8 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="activity-logs" element={<Navigate to="/admin/activity?tab=log" replace />} />
               <Route path="people" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PeopleView userRole={userRole || 'user'} /></PageTransition></ProtectedRoute>} />
               <Route path="people/:customerId" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CustomerProfilePage /></PageTransition></ProtectedRoute>} />
-              <Route path="contact-tags" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ContactTagsView /></PageTransition></ProtectedRoute>} />
+              {/* Tags are one tab of People; the standalone page was a second door to the same screen. */}
+              <Route path="contact-tags" element={<Navigate to="/admin/people?tab=tags" replace />} />
 
               {/* Management: admin, owner. Canonical route is /admin/stock;
                   /admin/inventory redirects to it (query string preserved for ?panel= deep links). */}

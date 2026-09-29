@@ -321,7 +321,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
   const tiles: LaunchpadTile[] = [
     {
       id: 'steep',
-      verb: 'steep',
+      verb: 'journal',
       hint: journalLastTea
         ? `${journalLastTea} · ${formatRelativeShort(journalLastAt)}`
         : 'begin a session',

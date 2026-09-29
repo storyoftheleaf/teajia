@@ -84,7 +84,7 @@ const WALKTHROUGHS: Walkthrough[] = [
       { text: 'Mint a token in MCP Tokens (it shows once, copy it then).', to: '/admin/mcp-tokens', goLabel: 'MCP Tokens' },
       { text: `Point your assistant at the endpoint ${API}/mcp and paste the token.` },
       { text: 'Ask it "what\'s low on stock", it should list your reorder teas. Compare against the real screen.', to: '/admin/stock', goLabel: 'Stock' },
-      { text: 'Ask it to record a small sale, it should preview first, then confirm. Watch that the stock actually moves.', to: '/admin/orders', goLabel: 'Orders' },
+      { text: 'Ask it to record a small sale, it should preview first, then confirm. Watch that the stock actually moves.', to: '/admin/orders', goLabel: 'Sales' },
     ],
   },
   {
@@ -156,7 +156,7 @@ const WALKTHROUGHS: Walkthrough[] = [
     steps: [
       { text: 'Build the collection (pick the teas, the order, the framing).', to: '/admin/collections', goLabel: 'Collections' },
       { text: 'Publish it as an editorial band and check it on the storefront.', to: '/shop', goLabel: 'Shop' },
-      { text: 'Share it to a contact or a tagged group, and confirm the share lands (no duplicate sends).', to: '/admin/contact-tags', goLabel: 'Contact Tags' },
+      { text: 'Share it to a contact or a tagged group, and confirm the share lands (no duplicate sends).', to: '/admin/people?tab=tags', goLabel: 'Tags' },
     ],
   },
   {
@@ -164,7 +164,7 @@ const WALKTHROUGHS: Walkthrough[] = [
     title: 'A sale, fully',
     intent: 'Watch one sale fire everything it should downstream.',
     steps: [
-      { text: 'Record or fulfill an invoice in Orders.', to: '/admin/orders', goLabel: 'Orders' },
+      { text: 'Record or fulfill an invoice in Sales.', to: '/admin/orders', goLabel: 'Sales' },
       { text: 'Confirm the stock ledger moved and the listing mirror updated.', to: '/admin/records', goLabel: 'Records' },
       { text: 'If it crossed a threshold, confirm the low-stock alert fired; if it hit zero, confirm the tea auto-archived.', to: '/admin/stock', goLabel: 'Stock' },
     ],

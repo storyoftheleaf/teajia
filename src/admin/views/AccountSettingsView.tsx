@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Circle, Copy, ExternalLink, Loader2, Save, AlertTriangle, ArrowRight, RefreshCw } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useAppStore } from '../store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
@@ -26,6 +27,7 @@ interface AccountSettingsViewProps {
 
 export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedded = false }) => {
   const { activeAccountId, setActiveAccount } = useAppStore();
+  const platformRole = useAppStore(s => s.platformRole);
   const currentRole = useCurrentRole();
   const canEdit = currentRole === 'owner';
 
@@ -209,11 +211,25 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
       {!embedded && (
         <div className="mb-8">
           <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>
-            Account Settings
+            Settings
           </h1>
           <p className="label-caps text-tea-text-dim mt-1">
             {account.name}
           </p>
+          {/* The shop's other settings screens. Agents, rates and platform had
+              no door in the Manage column; each link follows its route's gate. */}
+          <nav aria-label="More settings" className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-ui-13">
+            {[
+              { to: '/admin/access', label: 'Members', show: true },
+              { to: '/admin/mcp-tokens', label: 'Agents', show: true },
+              { to: '/admin/currency', label: 'Rates', show: !!platformRole },
+              { to: '/admin/platform', label: 'Platform', show: !!platformRole },
+            ].filter(l => l.show).map(l => (
+              <Link key={l.to} to={l.to} className="text-tea-text-sec hover:text-tea-text underline-offset-4 hover:underline">
+                {l.label}
+              </Link>
+            ))}
+          </nav>
         </div>
       )}
 
