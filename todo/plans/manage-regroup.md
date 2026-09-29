@@ -57,7 +57,18 @@ The original plan for this step:
 - Sources becomes Suppliers. Do not merge the suppliers table with contacts tagged "vendor"; show them side by side and decide later.
 - Every retired address keeps forwarding; old `?tab=` names stay as aliases (the dashboard, Your Table rows, the briefing page and the stale-rates banner link with them).
 
-## Step 5: fold the heavy screens (2 to 3 days)
+## Step 5: fold the heavy screens (built 2026-09-29)
+
+What shipped: Stock's selection rail shows Edit, Publish, Invoice, Archive and a More that opens the other eight in place; Stock's top row lost Glossary, Vendor and Edit to the More menu (Edit table, Glossary view; a vendor is found through search, which already suggests sources); Curate's Samples button reads as the fourth screen beside Source, Library and Ledger.
+
+Kept, deliberately, and why:
+- Stock's views stay All, Working, Samples, Personal with Flagged for the rest. Those four are the purpose views the page is built and tested around; swapping them for All, Drafts, Low stock, Incoming would change what Stock is for, which is a taste call, not a fold. Drafts already has its own door under Stock.
+- Sort, Group, Columns and Price stay four short words on a laptop (the phone already folds them into one Adjust sheet). They are the table's working controls; one more click on each costs more than four words.
+- The currency stays in the top row: it says which currency every price on the page is in.
+- Curate's Source keeps Tea, Teaware, Import as its three small tabs.
+- The Library filter panel keeps every group open. A test holds that every filter is visible when it opens, a decision made earlier; collapsing groups would reverse it.
+
+The original plan for this step:
 
 - Stock: toolbar is search, Tea/Wares and Add (menu: new tea, import file, bulk intake); the rest in one More menu. Views: All, Drafts, Low stock, Incoming, with the other eleven behind a Views menu. Sort, group, columns and price behind one View control. Selected tea: Edit, Publish, Invoice, Archive, More.
 - Curate: Source is one form with a Tea/Teaware switch and a "from file" link; the Library filter sheet opens with its first group, the rest folded.
