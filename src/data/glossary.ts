@@ -549,7 +549,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'wild-tea',
     term: 'Wild Tea',
-    chineseCharacters: '野生',
+    chineseCharacters: '野生茶',
     category: 'origin',
     definition: 'Tea from naturally occurring trees growing without cultivation. Distinct from gushu (cultivated ancient trees). Often found in Yunnan forests.',
     relatedTerms: ['gushu'],
