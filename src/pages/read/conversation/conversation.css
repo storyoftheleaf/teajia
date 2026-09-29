@@ -99,10 +99,13 @@
   margin: 0;
   text-wrap: balance;
 }
-[data-size='xl'] > .tj-conv-line { letter-spacing: -0.022em; }
-[data-size='xl'] > .tj-conv-line { font-size: clamp(40px, 7vw, 88px); max-width: 15ch; }
-[data-size='l'] > .tj-conv-line { font-size: clamp(32px, 5vw, 60px); max-width: 17ch; }
-[data-size='m'] > .tj-conv-line { font-size: clamp(26px, 3.4vw, 40px); max-width: 22ch; }
+/* Large lines run long and quiet: one or two lines each, never a short phrase
+   stacked three or four deep, which shouts (Adrian, 2026-09-29). */
+[data-size='xl'] > .tj-conv-line { font-size: clamp(32px, 4.2vw, 54px); max-width: 24ch; letter-spacing: -0.018em; }
+[data-size='l'] > .tj-conv-line { font-size: clamp(28px, 3.3vw, 42px); max-width: 28ch; }
+[data-size='m'] > .tj-conv-line { font-size: clamp(24px, 2.6vw, 33px); max-width: 32ch; }
+/* Beside a photograph the column is narrow, so a large line steps down again. */
+.tj-conv-side-words [data-size] > .tj-conv-line { font-size: clamp(24px, 2.4vw, 31px); max-width: none; }
 .tj-conv-gold { font-weight: 400; color: var(--tj-gold-lt, var(--tj-read-gold-lt-default)); }
 
 /* ── Photographs ────────────────────────────────────────────────────────── */
@@ -153,9 +156,9 @@
 .tj-conv-onphoto-frame { position: relative; }
 .tj-conv-onphoto-words {
   position: absolute; z-index: 2; left: 0; top: clamp(36px, 8%, 90px);
-  padding: 0 clamp(48px, 9vw, 96px); max-width: 15ch; box-sizing: content-box;
+  padding: 0 clamp(40px, 7vw, 80px); max-width: 27ch; box-sizing: content-box;
   font-family: var(--font-display); font-style: italic; font-weight: 300;
-  font-size: clamp(32px, 5vw, 60px); line-height: 1.08; margin: 0; pointer-events: none;
+  font-size: clamp(26px, 3.4vw, 42px); line-height: 1.12; margin: 0; pointer-events: none;
 }
 
 /* ── A Chinese word hung in the margin beside its words ─────────────────── */
@@ -188,7 +191,7 @@
 
 /* ── The saying and the close ───────────────────────────────────────────── */
 .tj-conv-saying { max-width: calc(var(--conv-wide) + 2 * var(--conv-gutter)); margin: var(--conv-s3) auto var(--conv-s2); padding: 0 var(--conv-gutter); text-align: center; }
-.tj-conv-saying .tj-conv-line { max-width: 18ch; margin: 0 auto; }
+.tj-conv-saying .tj-conv-line { max-width: 30ch; margin: 0 auto; }
 .tj-conv-close { max-width: calc(760px + 2 * var(--conv-gutter)); margin: 0 auto; padding: 0 var(--conv-gutter); }
 .tj-conv-credit {
   max-width: calc(var(--conv-col) + 2 * var(--conv-gutter));
@@ -276,8 +279,8 @@
   text-transform: uppercase; color: var(--tj-gold, var(--tj-read-gold-default));
 }
 .tj-conv-spread-title {
-  font-family: var(--font-display); font-weight: 400; font-size: clamp(40px, 5.4vw, 76px);
-  line-height: 1.02; letter-spacing: -0.02em; color: var(--tj-read-cream); margin: 16px 0 0; text-wrap: balance; max-width: 15ch;
+  font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 3.2vw, 46px);
+  line-height: 1.08; letter-spacing: -0.012em; color: var(--tj-read-cream); margin: 14px 0 0; text-wrap: balance; max-width: 22ch;
 }
 .tj-conv-spread-rule { width: 40px; height: 1px; margin-top: 28px; background: var(--tj-gold, var(--tj-read-gold-default)); }
 @media (min-width: 900px) {
