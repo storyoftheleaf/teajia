@@ -115,3 +115,20 @@ test('contributors directory page renders the list', async ({ page }) => {
 
   await page.screenshot({ path: 'test-results/people-index.png', fullPage: true });
 });
+
+// A Read story features whoever it links on /people, with no tagging by hand
+// (scripts/read-story-people.mjs), and Contact sits beside Pay at the top so
+// nobody scrolls to reach them (Adrian, 2026-09-29).
+test('a person linked in a Read story finds the story under Words, and Contact is at the top', async ({ page }) => {
+  await page.route('**/api/people/shangyin-qiwu', route => route.fulfill({ json: {
+    ...profileFixture, id: 'shangyin-qiwu', display_name: 'Shangyin Qiwu', role: 'Porcelain restorer', pull_quotes: [],
+    links: [{ platform: 'wechat', value: 'shangyin_qiwu', qr_image_url: null }],
+  } }));
+  await page.goto('/people/shangyin-qiwu');
+  const words = page.getByTestId('profile-words');
+  await expect(words.getByRole('link', { name: /Porcelain and Tea/ })).toHaveAttribute('href', '/read/porcelain-and-tea');
+  const hub = page.getByTestId('profile-hub');
+  await expect(hub.getByRole('link', { name: 'Words' })).toHaveAttribute('href', '#words');
+  await expect(hub.getByRole('link', { name: 'Contact' })).toHaveAttribute('href', '#reach');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
+});
