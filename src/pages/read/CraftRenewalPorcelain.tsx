@@ -27,7 +27,7 @@ import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import {
   C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
-  useReveals, useReadingProgress, useImmersiveChrome, grainCss, ACCENTS,
+  useReveals, useReadingProgress, useImmersiveChrome, grainCss, ACCENTS, ChapterHead,
 } from './immersive';
 import EditablePhoto from './EditablePhoto';
 import { StoryEditProvider, EditableText } from './storyEdit';
@@ -119,17 +119,6 @@ const Side: React.FC<{ shot: Shot; flip?: boolean; children: React.ReactNode }> 
     <div style={{ order: flip ? 1 : 0 }}>{children}</div>
     <div style={{ order: flip ? 0 : 1 }}><Photo shot={shot} /></div>
   </section>
-);
-
-/** Section marker: title on the left, the numeral on the far right. */
-const Movement: React.FC<{ numeral: string; title: string }> = ({ numeral, title }) => (
-  <div data-reveal style={{ maxWidth: 1040, margin: 'clamp(70px,10vw,130px) auto clamp(30px,4vw,48px)', padding: '0 24px' }}>
-    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24 }}>
-      <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(28px,4vw,48px)', lineHeight: 1.05, color: C.cream, margin: '0 0 0.12em', textWrap: 'balance' } as React.CSSProperties}>{title}</h2>
-      <span aria-hidden="true" style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 300, fontSize: 'clamp(70px,11vw,150px)', lineHeight: 0.8, color: C.gold }}>{numeral}</span>
-    </div>
-    <div style={{ height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.2)', marginTop: 18 }} />
-  </div>
 );
 
 // ── Photographs ──────────────────────────────────────────────────────────────
@@ -226,7 +215,7 @@ const CraftRenewalPorcelain: React.FC = () => {
           <Row shots={[S.classTable, S.classCup]} />
 
           {/* I */}
-          <Movement numeral="I" title="What brought me here" />
+          <ChapterHead part={1} id="part-1" title="What brought me here" />
           <Col>
             <Q first>When did you decide that you felt inspired to work with porcelain restoration?</Q>
             <p style={pBody}>First of all, I quite like collecting things. Because of tea, I like to collect tea utensils. Many old utensils have some damage here and there. As the saying goes, nine out of ten old things are damaged. But I think these are all marks of history.</p>
@@ -279,7 +268,7 @@ const CraftRenewalPorcelain: React.FC = () => {
           </figure>
 
           {/* II */}
-          <Movement numeral="II" title="Clay, fire, and patience" />
+          <ChapterHead part={2} id="part-2" title="Clay, fire, and patience" />
           <Side shot={S.kettle}>
             <Q first>Do these old techniques and tools change the actual taste of tea?</Q>
             <p style={pBody}>For old utensils, especially teacups and teapots, the clay of that era was likely superior to today’s. Ancient utensils were mainly fired with wood, and the temperature and transformation from wood firing are more layered and rich than modern electric firing. That’s a big reason so many people pursue old utensils and old cups.</p>
@@ -309,7 +298,7 @@ const CraftRenewalPorcelain: React.FC = () => {
           <Row shots={[S.goldDish, S.courtyard]} />
 
           {/* III */}
-          <Movement numeral="III" title="Tea, and the work ahead" />
+          <ChapterHead part={3} id="part-3" title="Tea, and the work ahead" />
           <Col>
             <Q first>Tell me what tea is for you, since all these objects are around the ritual of tea.</Q>
             <p style={pBody}>Tea is an indispensable spiritual food in my life. Like a craft, it allows me to focus on the present moment, which is of great significance to me.</p>

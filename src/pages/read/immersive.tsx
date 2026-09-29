@@ -373,6 +373,38 @@ export const ProgressTrack: React.FC<{ progress: number }> = ({ progress }) => (
   </div>
 );
 
+// ─── Chapter head ────────────────────────────────────────────────────────────
+// The section break every long read uses (chosen 2026-09-29, option A of three
+// on the "Article Section Breaks" canvas). "Part one" in small capitals, the
+// title centred on the reading column, a short bronze rule beneath. The number
+// is spelled out on purpose: a lone roman "I" beside a title reads as the word
+// "I", and a numeral set far from its title reads as a stray letter.
+const PART_WORDS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+
+export const ChapterHead: React.FC<{ part: number; title: string; id?: string }> = ({ part, title, id }) => (
+  <header
+    id={id}
+    data-reveal
+    style={{
+      maxWidth: 640,
+      margin: 'clamp(80px,11vw,150px) auto clamp(40px,5vw,64px)',
+      padding: '0 24px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      textAlign: 'center',
+    }}
+  >
+    <span style={{ fontFamily: F.ui, fontSize: 11, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.gold }}>
+      Part {PART_WORDS[part - 1] ?? part}
+    </span>
+    <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(36px,4.4vw,60px)', lineHeight: 1.06, color: C.cream, margin: 'clamp(14px,1.6vw,18px) 0 0', textWrap: 'balance' } as React.CSSProperties}>
+      {title}
+    </h2>
+    <span aria-hidden="true" style={{ width: 'clamp(32px,3vw,40px)', height: 1, background: C.gold, marginTop: 'clamp(22px,2.4vw,30px)' }} />
+  </header>
+);
+
 // ─── Accent tweak control (retired) ──────────────────────────────────────────
 // The reader-facing accent swatch row (gold / copper / jade / claret) was
 // removed by design decision: every Read page stays on the gold accent
