@@ -85,7 +85,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           onAccountClose?.();
           navigate(tab.path);
         }}
-        className="flex-auto min-w-0 h-full flex items-center justify-center relative transition-all duration-200 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+        className="flex-auto min-w-0 h-full flex items-center justify-center relative z-[1] transition-all duration-200 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
         style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
         title={tab.label}
         aria-current={isActive ? 'page' : undefined}
@@ -184,7 +184,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           }
           onNavigate(section.id);
         }}
-        className="flex-auto min-w-0 h-full flex items-center justify-center relative transition-all duration-200 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+        className="flex-auto min-w-0 h-full flex items-center justify-center relative z-[1] transition-all duration-200 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
         style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
         title={section.label}
         aria-current={isActive ? 'page' : undefined}
@@ -246,7 +246,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               if ('vibrate' in navigator) { navigator.vibrate?.(10); }
               onMenuClick?.();
             }}
-            className="w-10 min-[375px]:w-11 flex-shrink-0 h-full flex items-center justify-center pl-1 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none transition-colors duration-300"
+            className="relative flex-none h-full flex items-center justify-start pl-3 min-[375px]:pl-3.5 after:content-[''] after:absolute after:inset-y-0 after:left-0 after:-right-2.5 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none transition-colors duration-300"
             style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
             title="Menu"
             aria-label="Menu"
@@ -267,16 +267,21 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             </svg>
           </button>
 
-          {/* Spacing: the two halves either side of the logo are equal width,
-              so the logo sits on the bar's true centre whatever the words
-              are. Inside each half the words take their own width plus an
-              equal share of what is left, so every word has the same air on
-              both sides. Equal-width boxes did the opposite: short words
+          {/* The two icons hug the rounded ends: each box stops at its icon,
+              so the air that used to sit inside it on the word side goes to
+              the words instead. An invisible extension reaches a little
+              further toward the words, but sits beneath them: on a crowded
+              bar a tap on a word must never open the menu. */}
+          {/* Spacing: every word takes its own width plus an equal share of
+              what is left, so the gaps match on both sides of the logo. The
+              logo drifts a few pixels off centre when one side's words are
+              longer ("advise"), which reads better than uneven gaps. Equal-width boxes did the opposite: short words
               floated and "advise" sat 3px off its dividers at 360px. Only
               the logo is framed by hairlines; space alone separates the
               words, because a line between every pair ate the air a
               small phone does not have. */}
           <div className="flex flex-auto min-w-0 h-full">
+          <div aria-hidden className="grow-[0.5] basis-0" />
           {isAdminRoute
             ? adminLeftTabs.map((tab, index) => renderAdminTabButton(tab, index))
             : leftSections.map((section, index) => renderTabButton(section, index))}
@@ -316,6 +321,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           {isAdminRoute
             ? adminRightTabs.map((tab, index) => renderAdminTabButton(tab, index + adminLeftTabs.length + 1))
             : rightSections.map((section, index) => renderTabButton(section, index + leftSections.length + 1))}
+          <div aria-hidden className="grow-[0.5] basis-0" />
           </div>
 
           {/* Far right: Your Table (clean icon, sits inside the floating capsule) */}
@@ -324,7 +330,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               if ('vibrate' in navigator) { navigator.vibrate?.(10); }
               onAccountClick?.();
             }}
-            className="relative w-10 min-[375px]:w-11 flex-shrink-0 h-full flex items-center justify-center pr-1 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none transition-colors duration-300"
+            className="relative flex-none h-full flex items-center justify-end pr-3 min-[375px]:pr-3.5 before:content-[''] before:absolute before:inset-y-0 before:right-0 before:-left-2.5 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none transition-colors duration-300"
             style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
             title="Your Table"
             aria-label="Your Table"
