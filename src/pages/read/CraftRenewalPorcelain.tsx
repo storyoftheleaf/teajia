@@ -32,6 +32,7 @@ import {
 import EditablePhoto from './EditablePhoto';
 import { StoryEditProvider, EditableText } from './storyEdit';
 import StoryEditorBar from './StoryEditorBar';
+import { GlossaryTerms } from '../../components/reader/GlossaryTerms';
 
 const STORY_SLUG = 'porcelain-and-tea';
 const IMG = '/read/porcelain-and-tea/';
@@ -186,6 +187,8 @@ const CraftRenewalPorcelain: React.FC = () => {
         <ImmersiveNav eyebrow="Conversations · N°15" progress={progress} />
         <AccentSwatches accent={accent} setAccent={setAccent} />
 
+        {/* Tea terms in his answers open a short definition, first mention only */}
+        <GlossaryTerms>
         <article style={{ position: 'relative', zIndex: 1 }}>
           {/* COVER: portrait left, title right; on a phone the title comes first */}
           <header style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,340px),1fr))', alignItems: 'stretch', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)' }}>
@@ -384,6 +387,7 @@ const CraftRenewalPorcelain: React.FC = () => {
 
           <MoreFooter links={moreLinks} />
         </article>
+        </GlossaryTerms>
       </ImmersiveRoot>
       <StoryEditorBar />
     </StoryEditProvider>
