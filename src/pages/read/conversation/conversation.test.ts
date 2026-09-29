@@ -33,6 +33,7 @@ const sentences = (t: string) => plain(t).split(/(?<=[.!?:])\s+/).map(norm).filt
 /** Each large sentence, and every other passage of words in the piece. */
 function display(spec: ConversationSpec) {
   const large: { id: string; text: string }[] = [{ id: spec.ending.saying.id, text: spec.ending.saying.text }];
+  if (spec.hook) large.push({ id: 'hook', text: spec.hook });
   const words: { id: string; text: string }[] = [];
   allBlocks(spec).forEach((b: Block) => {
     if (b.kind === 'line' || b.kind === 'on-photo') large.push({ id: b.id, text: b.text });
@@ -59,7 +60,8 @@ describe.each(PIECES.map((p) => [p.slug, p] as const))('conversation %s', (_slug
     expect(spec.next.filter((l) => isArticleVisible(l.to, false)).length).toBeGreaterThan(0);
   });
 
-  it('names him wherever his answer begins, large line or paragraph', () => {
+  // A story names nobody in the margin; its quotation marks carry who is speaking.
+  it.skipIf(spec.form === 'story')('names him wherever his answer begins, large line or paragraph', () => {
     // A large line once opened his answer above his name, so it read as nobody's.
     // Adrian's telling hands the turn back just as a question does.
     const words = allBlocks(spec).filter((b) => b.kind === 'q' || b.kind === 'n' || b.kind === 'a' || b.kind === 'line');
@@ -74,7 +76,7 @@ describe.each(PIECES.map((p) => [p.slug, p] as const))('conversation %s', (_slug
   });
 
   it('gives every editable passage its own key', () => {
-    const ids: string[] = ['title-1', 'title-2', 'dek-2', 'intro-2', 'closing', spec.ending.saying.id];
+    const ids: string[] = ['title-1', 'title-2', 'dek-2', 'hook', 'intro-2', 'closing', spec.ending.saying.id];
     allBlocks(spec).forEach((b) => {
       if ('id' in b) ids.push(b.id);
       if (b.kind === 'line' && b.follow) ids.push(b.follow.id);
