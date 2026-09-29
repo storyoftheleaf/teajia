@@ -4,6 +4,8 @@
 
 ## Soon
 
+- [ ] Magazine: settle how the An Cha couple want their names printed (she is the main voice, her name not on file; he is Dai Haizhong), after asking them _(band: you-required)_ _(effort: quick)_
+- [ ] Magazine: once the stories are published, send each person the Chinese check-in message (name as printed, how readers contact them, photos, corrections) and file their replies into the stories _(band: you-required)_ _(effort: moderate)_ → Process: the magazine's "message to subjects after publish" note in the vault
 - [ ] Move Rock Remembers, Earth, Water, Fire and The Tea House onto the shared conversation template, so all four interviews look and behave the same and each becomes just its words and photographs _(band: agent-runnable)_ _(effort: deep)_
 - [ ] Bring back the Teaware and Sets tabs on the shop once there is something to show in them; they are hidden, not deleted (`PAUSED_TABS` in the shop page), paused 2026-09-28 _(band: you-required)_ _(effort: quick)_
 - [ ] Gather the launch photographs: 24 places outside the shop, each with what to shoot, shape, size and whether a square fits; plus the shop's 20 teas and 117 teaware pieces at three squares each _(band: you-required)_ _(effort: deep)_ → Shot list: [Teajia Shot List](https://claude.ai/artifact/Xef4FpLupisCWaMptNCyMM), shop: [Teajia Shop Photos](https://claude.ai/artifact/N67p5t2KvCSHaSKFwgBcXE) → Plan: [launch-photo-upload.md](todo/plans/launch-photo-upload.md)
