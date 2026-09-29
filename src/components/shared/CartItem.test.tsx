@@ -7,7 +7,7 @@ import type { CartItem } from '../../types';
 
 vi.mock('../../context/ThemeContext', () => ({ useTheme: () => ({ theme: 'dark' }) }));
 vi.mock('../shop/shopPrice', () => ({
-  useShopPrice: () => ({ total: (usd: number) => `$${usd}`, perGramExact: (usd: number) => `$${usd}` }),
+  useShopPrice: () => ({ total: (usd: number) => `$${usd}`, plainTotal: (usd: number) => `${usd}`, symbol: 'CN¥', perGramExact: (usd: number) => `$${usd}` }),
 }));
 
 const item: CartItem = {
@@ -21,9 +21,9 @@ const render = () => renderToStaticMarkup(
 );
 
 describe('cart controls inside checkout', () => {
-  it('names the pack weight and count and exposes remove without opening an editor', () => {
+  it('shows the pack sizes on the row, marks the chosen one, and exposes remove', () => {
     const html = render();
-    expect(html).toContain('50g per pack');
+    expect(html).toMatch(/aria-pressed="true"[^>]*aria-label="50g pack/);
     expect(html).toContain('2 packs');
     expect(html).toContain('100g in all');
     expect(html).toContain('Remove Red tea from cart');
@@ -32,5 +32,34 @@ describe('cart controls inside checkout', () => {
     const buttons = render().match(/<button\b[^>]*>/g) ?? [];
     expect(buttons.length).toBeGreaterThanOrEqual(4);
     expect(buttons.every(button => button.includes('type="button"'))).toBe(true);
+  });
+});
+
+describe('the photo leads only when the tea has one', () => {
+  const renderWith = (image?: string) => renderToStaticMarkup(
+    <MemoryRouter>
+      <CartItemRow item={{ ...item, image }} onRemove={() => {}} onUpdateQuantity={() => {}} onUpdatePacks={() => {}} />
+    </MemoryRouter>,
+  );
+  it('draws no image and no empty plate for a tea without a photo', () => {
+    expect(renderWith(undefined)).not.toContain('<img');
+    expect(renderWith('')).not.toContain('<img');
+  });
+  it('draws the photo above the name when there is one', () => {
+    const html = renderWith('https://example.com/leaf.jpg');
+    expect(html).toContain('src="https://example.com/leaf.jpg"');
+    expect(html.indexOf('<img')).toBeLessThan(html.indexOf('Red tea</a>'));
+  });
+});
+
+describe('the size tiles carry the mark of the money, not its country', () => {
+  it('prints "¥" before each tile price and never "CN"', () => {
+    const tiles = render().match(/aria-label="\d+g pack[^"]*"[^>]*>[\s\S]*?<\/button>/g) ?? [];
+    expect(tiles.length).toBeGreaterThan(0);
+    for (const tile of tiles) {
+      const shown = tile.replace(/aria-label="[^"]*"/, '');
+      expect(shown).toMatch(/¥\d/);
+      expect(shown).not.toContain('CN');
+    }
   });
 });
