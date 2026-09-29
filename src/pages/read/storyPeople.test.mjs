@@ -8,9 +8,9 @@ describe('Read stories on the people they feature', () => {
     expect(fs.readFileSync(OUTPUT, 'utf8')).toBe(render(scanStoryPeople()));
   });
 
-  it('finds Porcelain and Tea on both Shangyin Qiwu and Adrian Rasmussen from the story\'s own links', () => {
+  it('finds Porcelain and Tea on both Yan Jinwen and Adrian Rasmussen from the story\'s own links', () => {
     const porcelain = scanStoryPeople().find(story => story.href === '/read/porcelain-and-tea');
-    expect(porcelain?.people).toEqual(['adrian-rasmussen', 'shangyin-qiwu']);
+    expect(porcelain?.people).toEqual(['adrian-rasmussen', 'yan-jinwen']);
     expect(porcelain?.title).toBe('Porcelain and Tea');
   });
 });

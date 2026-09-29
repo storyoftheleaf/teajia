@@ -8,7 +8,7 @@
  *
  * His name and the studio's were corrected by Adrian (2026-09-29): the
  * transcript's "Shangyin Qiwu, 上隐器物" is the studio, and it is Shanyin Qiwu,
- * 缮隐漆物. The person-page address keeps its older slug.
+ * 缮隐漆物. His person page moved to /people/yan-jinwen (migration 0029).
  *
  * Told as a story, not an interview (Adrian, 2026-09-29: "it reads as an
  * interview, not a story from an interview"). Built from the magazine draft
@@ -74,7 +74,7 @@ export const porcelainAndTea: ConversationSpec = {
   pageTitle: 'Yan Jinwen · Porcelain and Tea · Teajia',
   title: ['Porcelain', 'and Tea'],
   dek: 'Old tea ware, lacquer, and a restorer at the foot of the Wuyi Mountains.',
-  subject: { name: 'Yan Jinwen', role: 'Porcelain restorer', href: '/people/shangyin-qiwu' },
+  subject: { name: 'Yan Jinwen', nameCn: '严金文', role: 'Porcelain restorer', href: '/people/yan-jinwen' },
   speakers: { author: 'Adrian', subject: 'Jinwen' },
   form: 'story',
   author: {

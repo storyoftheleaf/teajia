@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate, useParams, type Location } from 'react-router-dom';
+import { FollowRenamedPerson } from './pages/renamedPeople';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { TEA_REFERENCE_ROUTE_PATHS } from './wisdom/reference/previewMode';
 import { useArticleAccess } from './pages/read/publishGate';
@@ -1320,15 +1321,15 @@ const AppContent = () => {
                 <Route path="/people/:slug" element={
                   <ErrorBoundary>
                     <Suspense fallback={<EmblemLoader />}>
-                      <ContributorProfilePage />
+                      <FollowRenamedPerson><ContributorProfilePage /></FollowRenamedPerson>
                     </Suspense>
                   </ErrorBoundary>
                 } />
                 <Route path="/people/:slug/favorites" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><ProfileFavoritesPage /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><FollowRenamedPerson><ProfileFavoritesPage /></FollowRenamedPerson></Suspense></ErrorBoundary>
                 } />
                 <Route path="/people/:slug/pay" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><ProfilePaymentPage /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><FollowRenamedPerson><ProfilePaymentPage /></FollowRenamedPerson></Suspense></ErrorBoundary>
                 } />
                 <Route path="/people" element={
                   <ErrorBoundary>

@@ -118,13 +118,15 @@ test('contributors directory page renders the list', async ({ page }) => {
 
 // A Read story features whoever it links on /people, with no tagging by hand
 // (scripts/read-story-people.mjs), and Contact sits beside Pay at the top so
-// nobody scrolls to reach them (Adrian, 2026-09-29).
+// nobody scrolls to reach them (Adrian, 2026-09-29). It opens at his OLD address,
+// which must land on the new one (src/pages/renamedPeople.tsx).
 test('a person linked in a Read story finds the story under Words, and Contact is at the top', async ({ page }) => {
-  await page.route('**/api/people/shangyin-qiwu', route => route.fulfill({ json: {
-    ...profileFixture, id: 'shangyin-qiwu', display_name: 'Shangyin Qiwu', role: 'Porcelain restorer', pull_quotes: [],
-    links: [{ platform: 'wechat', value: 'shangyin_qiwu', qr_image_url: null }],
+  await page.route('**/api/people/yan-jinwen', route => route.fulfill({ json: {
+    ...profileFixture, id: 'yan-jinwen', display_name: 'Yan Jinwen', role: 'Porcelain restorer', pull_quotes: [],
+    links: [{ platform: 'wechat', value: 'yan_jinwen', qr_image_url: null }],
   } }));
-  await page.goto('/people/shangyin-qiwu');
+  await page.goto('/people/shangyin-qiwu?t=keep#words');
+  await expect(page).toHaveURL(/\/people\/yan-jinwen\?t=keep#words$/);
   const words = page.getByTestId('profile-words');
   await expect(words.getByRole('link', { name: /Porcelain and Tea/ })).toHaveAttribute('href', '/read/porcelain-and-tea');
   const hub = page.getByTestId('profile-hub');
