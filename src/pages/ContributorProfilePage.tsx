@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { ContributorIdentityMark } from '../components/shared/ContributorIdentityMark';
 import { PLATFORM_NAMES } from '../components/people/PlatformMark';
 import {
@@ -230,13 +230,11 @@ export default function ContributorProfilePage() {
   const kicker = coverKicker(data.role, data.location_line);
   const coverLine = ownLine(data);
 
-  // In my words: the quote, then two paragraphs, now first and then where it
-  // began, with the sentence the cover already said taken out of the first.
-  const quote = data.pull_quotes[0]?.pull_quote
-    ?? data.articles.find(article => article.pull_quote)?.pull_quote
-    ?? null;
-  const paragraphs = wordsAfterCoverLine(data).slice(0, 2);
-  const hasWords = Boolean(quote || paragraphs.length);
+  // In my words: one passage in their own voice, with the sentence the cover
+  // already said taken out. No pull quote and no second passage (Adrian,
+  // 2026-09-29: "cut both"; one passage lands harder than three).
+  const paragraphs = wordsAfterCoverLine(data).slice(0, 1);
+  const hasWords = paragraphs.length > 0;
 
   const gallery = data.gallery_images;
   const rows = wordRows(data);
@@ -291,7 +289,26 @@ export default function ContributorProfilePage() {
             {data.chinese_name && <p className="mt-2 text-[22px] leading-none tracking-[0.08em] text-tea-readgold" style={{ fontFamily: "'Ma Shan Zheng','Noto Serif SC',cursive" }}>{data.chinese_name}</p>}
             {coverLine && <Dek className="mt-3 max-w-[30ch] text-ui-14">{coverLine}</Dek>}
           </Cover>
-          {/* The hub: three cells at most, side by side, sharing the width. */}
+          {/* Where to find them, as one line under the name and only when there
+              is something: the event they host next, and their own table.
+              These were two whole sections further down until 2026-09-29. */}
+          {(hosting || house) && (
+            <p className={`${SIDE} mt-3 flex flex-wrap items-center gap-x-2 font-sans text-ui-13 leading-relaxed text-tea-text-sec`} data-testid="profile-where">
+              {hosting && (
+                <Link to={`/event/${encodeURIComponent(hosting.slug)}`} className="tap-target underline decoration-tea-border underline-offset-4 transition-colors hover:text-tea-text">
+                  Hosting {hosting.title}, {formatEventLong(hosting.event_date)}
+                </Link>
+              )}
+              {hosting && house && <span aria-hidden="true">·</span>}
+              {house && (
+                <Link to={`/store/${encodeURIComponent(house.slug)}`} className="tap-target underline decoration-tea-border underline-offset-4 transition-colors hover:text-tea-text">
+                  My table: {house.name}
+                </Link>
+              )}
+            </p>
+          )}
+          {/* The hub: three cells at most, side by side, sharing the width. It
+              stays: someone who came to pay should not have to scroll. */}
           <HubCells cells={cells} testId="profile-hub" />
         </header>
 
@@ -300,7 +317,6 @@ export default function ContributorProfilePage() {
           <Section testId="profile-words-of-mine">
             <div className={SIDE}>
               <GroupHead label="In my words" />
-              {quote && <p className="mt-3.5 max-w-[22ch] font-display text-ui-26 font-light leading-[1.2] text-tea-text" data-testid="profile-quote">“{quote}”</p>}
               {paragraphs.map((paragraph, index) => (
                 <p key={index} className={`font-body text-ui-15 leading-[1.65] text-tea-text ${index === 0 ? 'mt-[18px]' : 'mt-3.5'}`}>{paragraph}</p>
               ))}
@@ -365,35 +381,6 @@ export default function ContributorProfilePage() {
                   And {countWord(moreTeas)} more, in the {collection ? 'collection' : 'selection'}
                 </a>
               )}
-            </div>
-          </Section>
-        )}
-
-        {/* ── Hosting ────────────────────────────────────────────────────── */}
-        {hosting && (
-          <Section id="hosting" testId="profile-hosting">
-            <div className={SIDE}>
-              <GroupHead label="Hosting" />
-              {/* Canvas version 22: no rubric. The title, then the day, time, place and places line as the dek. */}
-              <IndexRow
-                to={`/event/${encodeURIComponent(hosting.slug)}`}
-                title={hosting.title}
-                dek={[`${formatEventLong(hosting.event_date)}, at ${hosting.location_name ?? hosting.account_name}.`, hosting.subtitle ? `${hosting.subtitle}.` : null].filter(Boolean).join(' ')}
-              />
-            </div>
-          </Section>
-        )}
-
-        {/* ── My table ───────────────────────────────────────────────────── */}
-        {house && (
-          <Section id="house" testId="profile-house">
-            <div className={SIDE}>
-              <GroupHead label="My table" />
-              <IndexRow
-                to={`/store/${encodeURIComponent(house.slug)}`}
-                title={house.name}
-                dek={`My shop and sessions${house.location_city ? ` in ${house.location_city}` : ''}, and how to find the door.`}
-              />
             </div>
           </Section>
         )}

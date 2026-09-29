@@ -91,21 +91,24 @@ export function firstSentence(text: string | null | undefined): string | null {
   return (match ? match[0] : first).trim();
 }
 
-/** The line under a cover, in the person's own words: what they are doing now, else where they began. */
-export function ownLine(person: { now_text?: string | null; beginnings?: string | null; inspirations?: string | null }): string | null {
-  return firstSentence(person.now_text) ?? firstSentence(person.beginnings) ?? firstSentence(person.inspirations);
+/**
+ * The line under a cover, in the person's own words: what they are doing now,
+ * else where they began. Who taught them is no longer printed anywhere
+ * (Adrian, 2026-09-29: "I want it to be more simple ... You can remove it").
+ */
+export function ownLine(person: { now_text?: string | null; beginnings?: string | null }): string | null {
+  return firstSentence(person.now_text) ?? firstSentence(person.beginnings);
 }
 
 /**
  * The paragraphs under In my words, with the cover line taken out. The cover
  * owns the first sentence (Adrian, sandbox, 2026-09-21: the same sentence
  * printed twice in a row); the source paragraph keeps the rest, or is dropped
- * when that sentence was all of it. Order: now, then beginnings, then
- * inspirations, as before.
+ * when that sentence was all of it. Order: now, then beginnings.
  */
-export function wordsAfterCoverLine(person: { now_text?: string | null; beginnings?: string | null; inspirations?: string | null }): string[] {
+export function wordsAfterCoverLine(person: { now_text?: string | null; beginnings?: string | null }): string[] {
   const cover = ownLine(person);
-  const sources = [person.now_text, person.beginnings, person.inspirations];
+  const sources = [person.now_text, person.beginnings];
   const out: string[] = [];
   let removed = !cover;
   for (const source of sources) {
