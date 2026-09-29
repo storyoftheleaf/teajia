@@ -72,8 +72,6 @@ export interface ConversationSpec {
   /** The names hung in the margin beside each turn, as a printed interview marks its speakers. */
   speakers: { author: string; subject: string };
   author: { name: string; links: { label: string; href: string }[] };
-  /** Short facts set in the cover credits, e.g. Craft, Place. */
-  facts: [string, string][];
   portrait: Shot;
   /** Adrian's own opening, before the conversation starts. */
   intro: string;

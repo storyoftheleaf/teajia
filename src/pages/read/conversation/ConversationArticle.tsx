@@ -213,7 +213,7 @@ function useQuietChrome() {
   }, []);
 }
 
-// ── Cover and masthead ───────────────────────────────────────────────────────
+// ── Cover and byline ─────────────────────────────────────────────────────────
 const Cover: React.FC<{ spec: ConversationSpec }> = ({ spec }) => (
   <header className="tj-cover-dissolve tj-conv-cover">
     <div className="tj-cover-photo tj-conv-cover-photo" style={{ background: 'linear-gradient(155deg,var(--tj-read-empty-from) 0%,var(--tj-read-bg) 80%)' }}>
@@ -237,34 +237,26 @@ const Cover: React.FC<{ spec: ConversationSpec }> = ({ spec }) => (
   </header>
 );
 
-/** The credits, as one quiet line under the cover, the way a magazine sets its masthead. */
-const Masthead: React.FC<{ spec: ConversationSpec }> = ({ spec }) => (
-  <dl className="tj-conv-masthead">
-    <div>
-      <dt>With</dt>
-      <dd>
+/**
+ * The byline under the cover, set as a magazine sets it: one sentence naming
+ * the two people, and a quiet line saying how long the piece is. No labels;
+ * the cover already says what he does and where. The author's own links live
+ * in the colophon at the end, where a reader who wants them looks.
+ */
+const Byline: React.FC<{ spec: ConversationSpec }> = ({ spec }) => {
+  const home = spec.author.links.find((l) => l.href.startsWith('/'));
+  return (
+    <div className="tj-conv-byline">
+      <p className="tj-conv-byline-names">
         {spec.subject.href ? <Link to={spec.subject.href}>{spec.subject.name}</Link> : spec.subject.name}
         {spec.subject.nameCn && <span lang="zh-Hans" className="tj-conv-cn"> {spec.subject.nameCn}</span>}
-        <span className="tj-conv-masthead-soft">, {spec.subject.role.toLowerCase()}</span>
-      </dd>
+        <span className="tj-conv-byline-soft"> in conversation with </span>
+        {home ? <Link to={home.href}>{spec.author.name}</Link> : spec.author.name}
+      </p>
+      <p className="tj-conv-byline-read">About {readingMinutes(spec)} minutes, {photoCount(spec)} photographs</p>
     </div>
-    <div>
-      <dt>By</dt>
-      <dd>
-        {spec.author.name}
-        <span className="tj-conv-masthead-links">
-          {spec.author.links.map((l) => (l.href.startsWith('/')
-            ? <Link key={l.href} to={l.href}>{l.label}</Link>
-            : <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer">{l.label}</a>))}
-        </span>
-      </dd>
-    </div>
-    {spec.facts.map(([k, v]) => (
-      <div key={k}><dt>{k}</dt><dd>{v}</dd></div>
-    ))}
-    <div><dt>Read</dt><dd>About {readingMinutes(spec)} minutes, {photoCount(spec)} photographs</dd></div>
-  </dl>
-);
+  );
+};
 
 // ── Contents ─────────────────────────────────────────────────────────────────
 const Contents: React.FC<{ spec: ConversationSpec }> = ({ spec }) => (
@@ -321,7 +313,7 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
 
           <article className="tj-conv" style={{ position: 'relative', zIndex: 1 }}>
             <Cover spec={spec} />
-            <Masthead spec={spec} />
+            <Byline spec={spec} />
 
             <section data-reveal="text" className="tj-conv-col tj-conv-intro">
               <EditableText field="intro" as="p" multiline className="tj-conv-intro-text">
@@ -350,6 +342,11 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
             </figure>
             <footer className="tj-conv-credit">
               {spec.credit.map((line) => <p key={line}>{line}</p>)}
+              <p className="tj-conv-credit-links">
+                {spec.author.links.map((l) => (l.href.startsWith('/')
+                  ? <Link key={l.href} to={l.href}>{l.label}</Link>
+                  : <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer">{l.label}</a>))}
+              </p>
             </footer>
 
             <MoreFooter links={spec.next} />
