@@ -29,8 +29,11 @@ test('inventory purpose labels fit at phone, tablet, and desktop widths', async 
   for (const width of [390, 768, 1440]) {
     await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
     await expect(personal).toBeVisible();
-    const geometry = await personal.evaluate(element => ({ clientWidth: element.clientWidth, scrollWidth: element.scrollWidth }));
-    expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
+    // The main column slides its desktop sidebar margin in and out over 300ms
+    // (the Manage column's fold animation), so straight after a resize from a
+    // desktop width the row is still mid-slide and briefly narrower than it
+    // will be. Measure the settled layout, not the frame after the resize.
+    await expect.poll(() => personal.evaluate(element => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(0);
     await page.screenshot({ path: testInfo.outputPath(`inventory-purpose-${width}.png`), fullPage: false });
   }
 });

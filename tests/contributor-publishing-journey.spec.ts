@@ -122,7 +122,10 @@ test('synthetic contributor and article publish through the complete workflow', 
   await page.goto('/people/publishing-fixture');
   // The cover carries the first line of the origin as well, so the passage is on the page twice.
   await expect(page.getByText(contributorFixture.beginnings).first()).toBeVisible();
-  await expect(page.getByText(articleFixture.pull_quote)).toBeVisible();
+  // The pull quote is saved on the article, but a person's page no longer
+  // prints it: In my words is one passage in their own voice (Adrian,
+  // 2026-09-29, "cut both", PR #341). The article still reaches the page as a row.
+  await expect(page.getByText(articleFixture.pull_quote)).toHaveCount(0);
   await expect(page.getByRole('link', { name: /Synthetic Publishing Path/ }).first()).toHaveAttribute('href', '/article/synthetic-publishing-path');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
 
