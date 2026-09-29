@@ -10,6 +10,7 @@ import { useRates } from '../../admin/hooks/useAdminData';
 import { useShopPrice } from '../shop/shopPrice';
 import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 import { Button } from './Button';
+import { Icons } from '../Icons';
 import { CartItemRow } from './CartItem';
 import { api } from '../../lib/api';
 import { createHumanOrderRef, createInquiryPayloadKey, createTrackingToken, validateStoreCart } from '../../lib/publicCartDomain';
@@ -44,6 +45,24 @@ type SavedOrder = {
 };
 
 const PENDING_KEY = 'teajia_pendingOrderRequest';
+
+/* Delivery and reply are picked from tiles, not a dropdown: four and three
+   choices are few enough to see at once, and a tap beats opening a menu.
+   Each tile is a real radio, so the order is still a plain form. */
+const DELIVERY_TILES: [DeliveryChoice, string, string][] = [
+  ['bali-delivery', 'Delivery', 'in Bali'],
+  ['bali-pickup', 'Pickup', 'in Bali'],
+  ['indonesia', 'Indonesia', 'outside Bali'],
+  ['international', 'International', 'shipping'],
+];
+const REPLY_TILES: [ReplyChannel, string, string][] = [
+  ['whatsapp-chat', 'WhatsApp', 'chat'],
+  ['whatsapp', 'WhatsApp', 'number'],
+  ['website', 'Email', 'reply'],
+];
+const checkoutTile = (on: boolean) => `relative flex flex-col justify-center gap-0.5 min-h-[52px] px-3 py-2.5 cursor-pointer transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-tea-gold ${
+  on ? 'bg-tea-elevated text-tea-text shadow-[inset_0_-2px_0_rgb(var(--tea-gold-rgb))]' : 'bg-tea-surface text-tea-text-sec hover:text-tea-text'
+}`;
 
 /** A timed-out save can have succeeded. Retrying the same basket reuses its key,
  * including after a reload, instead of silently filing another request. */
@@ -178,20 +197,25 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
 
   const field = (key: 'name' | 'contact' | 'location' | 'country' | 'postcode', label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
     <div className="space-y-1">
-      <label className={`${T.label} text-tea-text-sec`} htmlFor={`checkout-${key}`}>{label}</label>
+      <label className="block font-body text-ui-13 text-tea-text-sec" htmlFor={`checkout-${key}`}>{label}</label>
       <input id={`checkout-${key}`} name={key} value={details[key]} onChange={event => updateDetail(key, event.target.value)} aria-invalid={!!errors[key]} aria-describedby={errors[key] ? `checkout-${key}-error` : undefined} className="checkout-input" {...props} />
       {errors[key] && <p id={`checkout-${key}-error`} role="alert" className={`${T.bodyLight} text-tea-text`}>{errors[key]}</p>}
     </div>
   );
 
   return <>
-    <div className="flex items-center justify-between gap-3 px-5 pb-3 border-b border-tea-border bg-tea-surface shrink-0">
-      <h2 className={`${T.h3} text-tea-text`}>{placedOrder ? 'Request received' : 'Your order'}</h2>
+    {/* One row: close on the left (the panel rule), the name, the currency.
+        The close used to sit on a row of its own above this one. */}
+    <div className="flex items-center gap-2 pl-2 pr-4 min-h-[52px] shrink-0">
+      <button type="button" onClick={onClose} aria-label="Close cart" className="min-w-[44px] min-h-[44px] flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors">
+        <Icons.Close className="w-5 h-5" />
+      </button>
+      <h2 className="flex-1 min-w-0 font-display text-[22px] leading-none text-tea-text">{placedOrder ? 'Request received' : 'Your order'}</h2>
       {!placedOrder && rates.length > 0 && <select aria-label="Currency" value={currency} onChange={event => setCurrency(event.target.value as Currency)} disabled={isPersisting} className="checkout-currency">
         {rates.map(rate => <option key={rate.currency} value={rate.currency}>{rate.currency}</option>)}
       </select>}
     </div>
-    <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto tea-card-scroll px-5 py-4">
+    <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto tea-card-scroll px-4 pt-1 pb-6">
       {checkoutError && <p role="alert" className={`${T.bodyLight} text-tea-text bg-tea-elevated p-3 mb-4`}>{checkoutError}</p>}
       {placedOrder ? <section className="space-y-5" aria-label="Order request confirmation">
         <div role="status" className="space-y-2">
@@ -222,36 +246,40 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
         <button type="button" onClick={copyReceipt} className="checkout-text-action">Copy order details and link</button>
         {copyStatus && <p role="status" className={`${T.bodyLight} text-tea-text-sec`}>{copyStatus}</p>}
       </section> : <>
-        {undoItem && <div className="flex items-center justify-between gap-3 mb-3 bg-tea-surface p-2" role="status"><span className={`${T.bodyLight} text-tea-text-sec`}>{undoItem.name} removed</span><button type="button" onClick={() => { onAddItem(undoItem); setUndoItem(null); }} className="checkout-text-action">Undo</button></div>}
+        {undoItem && <div className="flex items-baseline justify-between gap-3 mb-2" role="status"><span className="font-body text-ui-13 text-tea-text-sec">{undoItem.name} is out of your order.</span><button type="button" onClick={() => { onAddItem(undoItem); setUndoItem(null); }} className="checkout-text-action text-ui-13 text-tea-gold-lt">Put it back</button></div>}
         {cart.length === 0 ? <div className="py-10 space-y-4">
           <p className={`${T.body} text-tea-text`}>Your basket is empty.</p>
           <a href={storeSlug === 'teajia-bali' ? '/shop' : `/store/${encodeURIComponent(storeSlug)}`} onClick={onClose} className="checkout-text-action">Browse the teas</a>
         </div> : <form id="checkout-form" ref={formRef} onSubmit={submitOrder} noValidate>
-          <fieldset disabled={isPersisting} className="min-w-0 space-y-5">
+          <fieldset disabled={isPersisting} className="min-w-0 space-y-7">
             <legend className="sr-only">Your tea selection and delivery details</legend>
-            <div className="space-y-3">{cart.map(item => <CartItemRow key={lineKeyOf(item)} item={item} onRemove={removeItem} onUpdateQuantity={onUpdateQuantity} onUpdatePacks={onUpdatePacks} onNavigate={onClose} />)}</div>
+            <div className="space-y-7 !mt-0">{cart.map(item => <CartItemRow key={lineKeyOf(item)} item={item} onRemove={removeItem} onUpdateQuantity={onUpdateQuantity} onUpdatePacks={onUpdatePacks} onNavigate={onClose} />)}</div>
             {unavailable && <div role="status" className={`${T.bodyLight} text-tea-text bg-tea-surface p-3`}>
               <p>{checkoutState === 'loading' ? 'Checking the shop’s ordering details…' : 'We could not check the shop. Your basket is safe.'}</p>
               {checkoutState === 'error' && onRetryStore && <button type="button" onClick={onRetryStore} className="checkout-text-action">Retry shop details</button>}
             </div>}
-            <div className="space-y-3 border-t border-tea-border pt-4">
-              <h3 className={`${T.h3} text-tea-text`}>How would you like to receive it?</h3>
-              {isBaliStore && <div className="space-y-1"><label htmlFor="checkout-delivery" className={`${T.label} text-tea-text-sec`}>Delivery</label><select id="checkout-delivery" value={details.delivery} onChange={event => { updateDetail('delivery', event.target.value as DeliveryChoice); setErrors({}); }} className="checkout-input">
-                <option value="bali-delivery">Delivery in Bali</option><option value="bali-pickup">Request pickup in Bali</option><option value="indonesia">Elsewhere in Indonesia</option><option value="international">International shipping</option>
-              </select></div>}
+            <fieldset className="min-w-0 space-y-3">
+              <legend className={`${T.h3} text-tea-text mb-3`}>Receiving</legend>
+              {isBaliStore && <div className="grid grid-cols-2 gap-1">
+                {DELIVERY_TILES.map(([value, main, sub]) => <label key={value} className={checkoutTile(details.delivery === value)}>
+                  <input type="radio" name="delivery" value={value} checked={details.delivery === value} onChange={() => { updateDetail('delivery', value); setErrors({}); }} className="absolute inset-0 m-0 w-full h-full opacity-0 cursor-pointer" />
+                  <span className="font-body text-ui-15 leading-tight">{main}</span>{' '}<span className="font-body text-ui-12 leading-tight text-tea-text-sec">{sub}</span>
+                </label>)}
+              </div>}
               {details.delivery !== 'bali-pickup' && field('location', details.delivery === 'bali-delivery' ? 'Your area in Bali' : details.delivery === 'indonesia' ? 'City and province' : 'Town or city', { autoComplete: 'address-level2', placeholder: details.delivery === 'bali-delivery' ? 'e.g. Ubud or Canggu' : details.delivery === 'indonesia' ? 'e.g. Jakarta, DKI Jakarta' : undefined })}
               {details.delivery === 'international' && field('country', 'Country', { autoComplete: 'country-name' })}
               {(details.delivery === 'indonesia' || details.delivery === 'international') && field('postcode', 'Postcode (optional)', { autoComplete: 'postal-code' })}
-              <p className={`${T.bodyLight} text-tea-text-sec`}>{details.delivery === 'bali-pickup' ? 'We’ll confirm whether pickup is available and arrange the place and time.' : details.delivery === 'international' ? 'We’ll confirm shipping availability and cost with you. No full address needed yet.' : 'We’ll confirm delivery cost and timing, then ask for your address or map pin.'}</p>
-            </div>
-            <fieldset className="space-y-2 min-w-0">
-              <legend className={`${T.h3} text-tea-text mb-2`}>How would you like to connect?</legend>
-              <div className="flex flex-wrap gap-x-5 gap-y-1">
-                {channels.whatsapp && <label className="checkout-channel"><input type="radio" name="reply-channel" value="whatsapp-chat" checked={channel === 'whatsapp-chat'} onChange={() => { setChannelChoice('whatsapp-chat'); setWhatsappConsent(false); setErrors({}); }} />Chat in WhatsApp</label>}
-                {channels.whatsapp && <label className="checkout-channel"><input type="radio" name="reply-channel" value="whatsapp" checked={channel === 'whatsapp'} onChange={() => { setChannelChoice('whatsapp'); setWhatsappConsent(false); setErrors({}); }} />WhatsApp number</label>}
-                <label className="checkout-channel"><input type="radio" name="reply-channel" value="website" checked={channel === 'website'} onChange={() => { setChannelChoice('website'); setWhatsappConsent(false); setErrors({}); }} />Email reply</label>
+              <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{details.delivery === 'bali-pickup' ? 'We’ll confirm whether pickup is available and arrange the place and time.' : details.delivery === 'international' ? 'We’ll confirm shipping availability and cost with you. No full address needed yet.' : 'We’ll confirm delivery cost and timing, then ask for your address or map pin.'}</p>
+            </fieldset>
+            <fieldset className="space-y-3 min-w-0">
+              <legend className={`${T.h3} text-tea-text mb-3`}>How we reply</legend>
+              <div className={`grid gap-1 ${channels.whatsapp ? 'grid-cols-3' : 'grid-cols-1'}`}>
+                {REPLY_TILES.filter(([value]) => channels.whatsapp || value === 'website').map(([value, main, sub]) => <label key={value} className={checkoutTile(channel === value)}>
+                  <input type="radio" name="reply-channel" value={value} checked={channel === value} onChange={() => { setChannelChoice(value); setWhatsappConsent(false); setErrors({}); }} className="absolute inset-0 m-0 w-full h-full opacity-0 cursor-pointer" />
+                  <span className="font-body text-ui-15 leading-tight">{main}</span>{' '}<span className="font-body text-ui-12 leading-tight text-tea-text-sec">{sub}</span>
+                </label>)}
               </div>
-              <p className={`${T.bodyLight} text-tea-text-sec`}>{channel === 'whatsapp-chat' ? 'No phone number needed. Save your order here, then open WhatsApp and tap Send to start the conversation.' : 'Your request is submitted here on the website. We’ll use this contact to reply; no message app opens.'}</p>
+              <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{channel === 'whatsapp-chat' ? 'No phone number needed. Save your order here, then open WhatsApp and tap Send to start the conversation.' : 'Your request is submitted here on the website. We’ll use this contact to reply; no message app opens.'}</p>
             </fieldset>
             {field('name', 'Your name', { autoComplete: 'name' })}
             {channel !== 'whatsapp-chat' && field('contact', channel === 'website' ? 'Your email address' : 'Your WhatsApp number', { type: channel === 'website' ? 'email' : 'tel', inputMode: channel === 'website' ? 'email' : 'tel', autoComplete: channel === 'website' ? 'email' : 'tel', placeholder: channel === 'whatsapp' ? '+62…' : 'you@example.com' })}
@@ -259,20 +287,27 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
               <label className="checkout-channel"><input type="checkbox" checked={whatsappConsent} onChange={event => setWhatsappConsent(event.target.checked)} />Send me a WhatsApp order confirmation from {storeName} (optional)</label>
               <p className={`${T.bodyLight} text-tea-text-sec`}>I agree to receive a confirmation and replies about this order at this number. Automatic confirmations depend on availability; your order is saved even if a message does not arrive.</p>
             </div>}
-            <details className="border-t border-tea-border pt-3"><summary className="checkout-text-action">Add a note (optional)</summary><label htmlFor="checkout-notes" className="sr-only">Order note</label><textarea id="checkout-notes" value={details.notes} onChange={event => updateDetail('notes', event.target.value)} className="checkout-input mt-2" rows={3} /></details>
+            <details><summary className="checkout-text-action text-ui-13 cursor-pointer">Add a note (optional)</summary><label htmlFor="checkout-notes" className="sr-only">Order note</label><textarea id="checkout-notes" value={details.notes} onChange={event => updateDetail('notes', event.target.value)} className="checkout-input mt-2" rows={3} /></details>
           </fieldset>
         </form>}
-        {recentRequests.length > 0 && <section aria-label="Recent requests" className="border-t border-tea-border pt-4 mt-6 space-y-2"><h3 className={`${T.h3} text-tea-text`}>Recent requests</h3>{recentRequests.map(request => <a key={request.trackingToken} href={recentOrderRequestPath(request)} onClick={onClose} className="checkout-text-action block break-all">{request.reference}</a>)}</section>}
+        {recentRequests.length > 0 && <section aria-label="Recent requests" className="mt-8 flex flex-wrap items-baseline gap-x-3"><h3 className="font-body text-ui-13 text-tea-text-sec">Recent requests</h3>{recentRequests.map(request => <a key={request.trackingToken} href={recentOrderRequestPath(request)} onClick={onClose} className="checkout-text-action num text-ui-13 break-all">{request.reference}</a>)}</section>}
       </>}
     </div>
-    <div className="px-5 pt-3 pb-nav-gap border-t border-tea-border bg-tea-surface shrink-0 space-y-2">
+    {/* No bottom-bar clearance here: the app hides the bottom bar while the
+        cart is open, so reserving its 80px left a band of empty panel under
+        the button. The panel itself keeps the safe-area inset. */}
+    <div className="bg-tea-surface shrink-0"><div className="px-4 py-3 space-y-2">
       {placedOrder ? placedOrder.handoff && channels.whatsapp
         ? <a className={`checkout-whatsapp-action cta-solid ${T.label}`} href={buildWhatsAppUrl(whatsappNumber!, placedOrder.message)} target="_blank" rel="noopener noreferrer">Continue in WhatsApp</a>
         : <Button fullWidth onClick={onClose}>Continue browsing</Button> : cart.length > 0 ? <>
-        <div className="flex items-baseline justify-between gap-3"><span className={`${T.bodyLight} text-tea-text-sec`}>{cart.every(item => item.category === 'tea') ? 'Tea subtotal' : 'Tea & teaware subtotal'}</span><span className={`${T.h3} num text-tea-text`}>{shopPrice.total(subtotal)}</span></div>
-        <p className={`${T.bodyLight} text-tea-text-sec`}>Payment and shipping will be arranged personally.</p>
-        <Button type="submit" form="checkout-form" fullWidth loading={isPersisting} disabled={unavailable}>{isPersisting ? 'Saving request…' : 'Place order request'}</Button>
+        <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-1 shrink-0">
+            <span className="num text-ui-26 leading-none text-tea-text"><span className="sr-only">{cart.every(item => item.category === 'tea') ? 'Tea subtotal' : 'Tea & teaware subtotal'} </span>{shopPrice.total(subtotal)}</span>
+            <span className="font-body text-ui-11 leading-none text-tea-text-sec">Shipping arranged personally</span>
+          </div>
+          <Button type="submit" form="checkout-form" fullWidth className="flex-1 min-w-0 whitespace-nowrap !px-4" loading={isPersisting} disabled={unavailable}>{isPersisting ? 'Saving request…' : 'Place order request'}</Button>
+        </div>
       </> : <Button variant="secondary" fullWidth onClick={onClose}>Continue browsing</Button>}
-    </div>
+    </div></div>
   </>;
 };

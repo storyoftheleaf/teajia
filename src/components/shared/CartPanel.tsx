@@ -3,7 +3,6 @@ import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { CartItem as AdminCartItem, ExchangeRate } from '../../admin/types';
 import { CartItem as PublicCartItem } from '../../types';
-import { Icons } from '../Icons';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { PublicCart } from './PublicCart';
 
@@ -168,22 +167,8 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
               <div className={`h-1 rounded-full transition-all duration-150 ${isDragging ? 'bg-tea-gold w-16' : 'bg-tea-text-sec/30 w-10'}`} />
             </div>
 
-            {/* Header: Close top-left, matching AccountPanel rule.
-                The panel used to name itself "Your order" in 23px display type
-                across the middle of this row. The step underneath already says
-                Cart, and the footer says Total: three bands of chrome telling
-                the reader the same thing before the first tea. The close sits
-                on the row alone now, and the row is as tall as the close. */}
-            <div className="flex items-center px-4 pt-0.5 bg-tea-surface shrink-0">
-              <button
-                onClick={onClose}
-                className="min-w-[44px] min-h-[44px] flex items-center justify-center -ml-2"
-                aria-label="Close cart"
-              >
-                <Icons.Close className="w-5 h-5 text-tea-text-sec hover:text-tea-text transition-colors" />
-              </button>
-            </div>
-
+            {/* The close lives in the order's own header row now (top-left,
+                the panel rule), so the panel no longer spends a row on it. */}
             {/* Content */}
             <div className="flex flex-col flex-1 min-h-0">
               <PublicCart

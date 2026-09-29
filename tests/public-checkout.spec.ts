@@ -145,7 +145,7 @@ test.describe('guest public checkout', () => {
     const requests = await prepare(page, { whatsapp: false, light: true });
     await beginOrder(page, false);
     await expect(page.getByRole('radio', { name: 'Email reply', exact: true })).toBeChecked();
-    await page.getByLabel('Delivery', { exact: true }).selectOption('bali-pickup');
+    await page.getByRole('radio', { name: 'Pickup in Bali', exact: true }).check();
     await expect(page.getByLabel('Your area in Bali', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('radio', { name: 'WhatsApp number', exact: true })).toHaveCount(0);
     await page.screenshot({ path: testInfo.outputPath('checkout-light-form.png'), fullPage: true });
@@ -270,7 +270,7 @@ test.describe('guest public checkout', () => {
   test('requires a country internationally and keeps the postcode optional', async ({ page }) => {
     const requests = await prepare(page);
     await beginOrder(page);
-    await page.getByLabel('Delivery', { exact: true }).selectOption('international');
+    await page.getByRole('radio', { name: 'International shipping', exact: true }).check();
     await page.getByLabel('Town or city', { exact: true }).fill('Melbourne');
     await page.getByRole('button', { name: 'Place order request', exact: true }).click();
     await expect(page.getByText('Enter the destination country.', { exact: true })).toBeVisible();
@@ -284,7 +284,7 @@ test.describe('guest public checkout', () => {
   test('quotes another Indonesian city without asking for a country', async ({ page }) => {
     const requests = await prepare(page);
     await beginOrder(page);
-    await page.getByLabel('Delivery', { exact: true }).selectOption('indonesia');
+    await page.getByRole('radio', { name: 'Indonesia outside Bali', exact: true }).check();
     await page.getByLabel('City and province', { exact: true }).fill('Jakarta, DKI Jakarta');
     await page.getByLabel('Postcode (optional)', { exact: true }).fill('12345');
     await expect(page.getByLabel('Country', { exact: true })).toHaveCount(0);
@@ -348,7 +348,7 @@ test('saves an invoice without a phone number before offering the connected What
   const requests = await prepare(page, { failFirst: true });
   await page.goto('/shop');
   await openCart(page);
-  await expect(page.getByRole('radio', { name: 'Chat in WhatsApp', exact: true })).toBeChecked();
+  await expect(page.getByRole('radio', { name: 'WhatsApp chat', exact: true })).toBeChecked();
   await expect(page.getByLabel('Your WhatsApp number', { exact: true })).toHaveCount(0);
   await page.getByLabel('Your name', { exact: true }).fill('Chat Customer');
   await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
