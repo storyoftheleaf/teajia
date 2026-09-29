@@ -14,7 +14,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { allBlocks, plain, type Block, type ConversationSpec } from './spec';
+import { allBlocks, plain, turnStarts, type Block, type ConversationSpec } from './spec';
 import { CONVERSATIONS } from './pieces';
 import { isArticleVisible } from '../articleLive';
 
@@ -57,6 +57,14 @@ describe.each(PIECES.map((p) => [p.slug, p] as const))('conversation %s', (_slug
 
   it('ends on at least one piece a visitor can open next', () => {
     expect(spec.next.filter((l) => isArticleVisible(l.to, false)).length).toBeGreaterThan(0);
+  });
+
+  it('names him wherever his answer begins, large line or paragraph', () => {
+    // A large line once opened his answer above his name, so it read as nobody's.
+    const words = allBlocks(spec).filter((b) => b.kind === 'q' || b.kind === 'a' || b.kind === 'line');
+    const starts = turnStarts(spec);
+    const unnamed = words.filter((b, i) => i > 0 && words[i - 1].kind === 'q' && b.kind !== 'q' && !starts.has((b as { id: string }).id));
+    expect(unnamed.map((b) => (b as { id: string }).id)).toEqual([]);
   });
 
   it('never puts more than two photographs in a row', () => {

@@ -43,7 +43,8 @@
   margin-bottom: 6px;
 }
 @media (min-width: 1100px) {
-  .tj-conv-col > .tj-conv-turn > .tj-conv-who {
+  .tj-conv-col > .tj-conv-turn > .tj-conv-who,
+  .tj-conv-spine > .tj-conv-turn > .tj-conv-who {
     position: absolute;
     right: 100%;
     top: 0.62em;

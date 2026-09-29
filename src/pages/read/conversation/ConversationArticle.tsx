@@ -60,12 +60,17 @@ function groupRuns(blocks: Block[]): (Block | Block[])[] {
 }
 
 /** A sentence of his set large. */
-const Line: React.FC<{ id: string; text: string; size: LineSize; follow?: { id: string; text: string } }> = ({ id, text, size, follow }) => (
+const Line: React.FC<{ id: string; text: string; size: LineSize; follow?: { id: string; text: string } }> = ({ id, text, size, follow }) => {
+  const { subject, starts } = useContext(SpeakerCtx);
+  const line = (
   <div data-size={size}>
     <Rich field={id} text={text} className="tj-conv-line" />
     {follow && <Rich field={follow.id} text={follow.text} className="tj-conv-a tj-conv-follow" />}
   </div>
-);
+  );
+  // A large line that opens his answer carries his name, like any turn.
+  return starts.has(id) ? <div className="tj-conv-turn"><Who name={subject} />{line}</div> : line;
+};
 
 /** Words inside a column, a side or a glyph block. Each turn carries its speaker's name. */
 const Words: React.FC<{ blocks: Block[] }> = ({ blocks }) => {

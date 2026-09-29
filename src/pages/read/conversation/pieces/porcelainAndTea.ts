@@ -89,8 +89,7 @@ export const porcelainAndTea: ConversationSpec = {
         {
           kind: 'glyph', glyph: '缘分', blocks: [
             { kind: 'q', id: 'p1-q3', text: 'Some people talk about karma, how old things carry a weight with them. By bringing these old things back to life, do you feel you are honoring the past?' },
-            { kind: 'line', id: 'p1-l3', size: 'm', text: 'This feeling is very subtle, and I can’t quite put it into words.' },
-            { kind: 'a', id: 'p1-a6', text: 'It’s probably a kind of fate, 缘分. First I mastered this repair technique, and then I came to love these ancient ceramics. It’s probably some kind of fate.' },
+            { kind: 'a', id: 'p1-a6', text: 'This feeling is very subtle, and I can’t quite put it into words. It’s probably a kind of fate, 缘分. First I mastered this repair technique, and then I came to love these ancient ceramics. It’s probably some kind of fate.' },
           ],
         },
         { kind: 'q', id: 'p1-q4', text: 'How long ago were these repair techniques developed? Maybe a thousand years ago, people would just make a new cup.' },
