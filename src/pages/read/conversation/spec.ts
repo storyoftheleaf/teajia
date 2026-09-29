@@ -81,6 +81,9 @@ export interface ConversationSpec {
   subject: { name: string; nameCn?: string; role: string; href?: string };
   /** The names hung in the margin beside each turn, as a printed interview marks its speakers. */
   speakers: { author: string; subject: string };
+  /** How the piece names itself under the cover: 'story' is Adrian's telling ("By Adrian, with him"),
+   *  the default is a conversation ("him in conversation with Adrian"). */
+  form?: 'story' | 'conversation';
   author: { name: string; links: { label: string; href: string }[] };
   portrait: Shot;
   /** Adrian's own opening, before the conversation starts. */

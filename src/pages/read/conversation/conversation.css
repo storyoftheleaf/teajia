@@ -210,7 +210,7 @@
   margin: var(--conv-s2) auto 0; padding: 0 var(--conv-gutter) clamp(96px, 12vw, 140px);
   text-align: center; font-family: var(--font-body); font-size: 16px; line-height: 1.75; color: var(--tj-read-taupe);
 }
-.tj-conv-credit p { margin: 0; }
+.tj-conv-credit p { margin: 0; text-wrap: balance; }
 .tj-conv-credit p + p { font-style: italic; color: var(--tj-read-dim); margin-top: 6px; }
 .tj-conv-credit p.tj-conv-credit-links { font-style: normal; display: flex; justify-content: center; flex-wrap: wrap; gap: 0 22px; margin-top: 10px; font-size: 15px; }
 .tj-conv-credit-links a { color: var(--tj-read-taupe); text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; transition: color 200ms; }

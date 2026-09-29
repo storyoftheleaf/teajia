@@ -23,6 +23,10 @@
  * Eight pull quotes run through every part, and all 25 photographs in the
  * image folder are placed (Adrian: "you reduced the image amount a lot").
  *
+ * The dek, byline and credit were reworded on 2026-09-29 with Adrian's permission
+ * ("give you permission to add the small bits") so the frame no longer calls
+ * the piece an interview; the story's own words are untouched.
+ *
  * Two saved page edits are left behind on purpose: "intro" (the line below)
  * and "p3-a4" (his studio-name answer, which this version tells instead). The
  * intro now saves under "intro-2", and no block here uses "p3-a4", so neither
@@ -69,9 +73,10 @@ export const porcelainAndTea: ConversationSpec = {
   source: 'SRC - Ceramicist (Porcelain Restoration).md',
   pageTitle: 'Yan Jinwen · Porcelain and Tea · Teajia',
   title: ['Porcelain', 'and Tea'],
-  dek: 'A conversation with a porcelain restorer in Wuyi.',
+  dek: 'Old tea ware, lacquer, and a restorer at the foot of the Wuyi Mountains.',
   subject: { name: 'Yan Jinwen', role: 'Porcelain restorer', href: '/people/shangyin-qiwu' },
   speakers: { author: 'Adrian', subject: 'Jinwen' },
+  form: 'story',
   author: {
     name: 'Adrian Rasmussen',
     links: [
@@ -196,8 +201,8 @@ export const porcelainAndTea: ConversationSpec = {
   },
   closing: 'Leaving this place, I felt a strong sense of the love and attention that goes into these things that we do regularly. How true, and how clearly I can see: how you do it in one place, you do it in every place. Beyond the love for those things which are old, it is about putting energy into those things which you cherish, and bringing them a new life.',
   credit: [
-    'Recorded with Yan Jinwen in Wuyi. The conversation was held in Mandarin, translated into English and lightly trimmed.',
-    'Interview by Adrian Rasmussen.',
+    'His words were spoken in Mandarin in Wuyi, translated into English and lightly trimmed.',
+    'Told by Adrian Rasmussen.',
   ],
   next: [
     { to: '/read/earth-water-fire', kicker: 'Conversation', title: 'Earth, Water, Fire', blurb: 'A Jingdezhen potter on the vessels that hold the tea.' },

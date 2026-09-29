@@ -251,12 +251,22 @@ const Byline: React.FC<{ spec: ConversationSpec }> = ({ spec }) => {
   const home = spec.author.links.find((l) => l.href.startsWith('/'));
   return (
     <div className="tj-conv-byline">
-      <p className="tj-conv-byline-names">
-        {spec.subject.href ? <Link to={spec.subject.href}>{spec.subject.name}</Link> : spec.subject.name}
-        {spec.subject.nameCn && <span lang="zh-Hans" className="tj-conv-cn"> {spec.subject.nameCn}</span>}
-        <span className="tj-conv-byline-soft"> in conversation with </span>
-        {home ? <Link to={home.href}>{spec.author.name}</Link> : spec.author.name}
-      </p>
+      {spec.form === 'story' ? (
+        <p className="tj-conv-byline-names">
+          <span className="tj-conv-byline-soft">By </span>
+          {home ? <Link to={home.href}>{spec.author.name}</Link> : spec.author.name}
+          <span className="tj-conv-byline-soft">, with </span>
+          {spec.subject.href ? <Link to={spec.subject.href}>{spec.subject.name}</Link> : spec.subject.name}
+          {spec.subject.nameCn && <span lang="zh-Hans" className="tj-conv-cn"> {spec.subject.nameCn}</span>}
+        </p>
+      ) : (
+        <p className="tj-conv-byline-names">
+          {spec.subject.href ? <Link to={spec.subject.href}>{spec.subject.name}</Link> : spec.subject.name}
+          {spec.subject.nameCn && <span lang="zh-Hans" className="tj-conv-cn"> {spec.subject.nameCn}</span>}
+          <span className="tj-conv-byline-soft"> in conversation with </span>
+          {home ? <Link to={home.href}>{spec.author.name}</Link> : spec.author.name}
+        </p>
+      )}
       <p className="tj-conv-byline-read">About {readingMinutes(spec)} minutes, {photoCount(spec)} photographs</p>
     </div>
   );
