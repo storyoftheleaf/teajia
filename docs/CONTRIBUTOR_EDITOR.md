@@ -18,12 +18,15 @@ people, not computers."
   `src/admin/components/contributorEditor/PersonPage.tsx` and are used by the shop's
   editor (`/admin/contributors`) and by the tea master's own screen
   (`/account/profile`, `ProfileEditor.tsx`). Same questions, same words, both places.
-- **Written to the person, in the second person.** Your name, Name in Chinese, What you
-  do, Where you are. Your story asks three questions: How did tea begin for you? What
+- **Written to the person, in the second person.** Your name, Business name, What you
+  do, Where you are, Name in Chinese (optional: many contributors do not read Chinese,
+  so it sits last and says so). Instagram, WeChat and Website are plain fields on the
+  card; a QR code or any other link opens from one quiet line under them. A website
+  typed without https:// gets it on save (`tidyLinks`) instead of an error. Your story asks three questions: How did tea begin for you? What
   are you working on now? A last line for your page. Photos of your work. How people
   reach you. Never a field name (no "own script", "current practice", "beginnings",
   "inspirations", "display name").
-- **Only what the page shows is asked.** Pronouns, business name, active since,
+- **Only what the page shows is asked.** Pronouns, active since,
   languages, portrait caption, the current stamp and its date, pouring today, where
   to find, the voice clip, who taught them and the separate small round photo are
   not on screen at all. Their stored values are sent back untouched on every save,

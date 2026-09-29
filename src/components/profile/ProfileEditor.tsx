@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { profileStatus } from './profileDomain';
 import type { ProfileGalleryImage, SelfProfile, SelfProfileUpdate } from './types';
 import type { ContributorGalleryImage } from '../../types';
-import { personPageParts, MISSING_BEGINNINGS, type PersonValue } from '../../admin/components/contributorEditor/PersonPage';
+import { personPageParts, MISSING_BEGINNINGS, tidyLinks, type PersonValue } from '../../admin/components/contributorEditor/PersonPage';
 import { PhotoUploadContext, type PhotoUploader } from '../../admin/components/contributorEditor/photoUpload';
 import type { SheetId } from '../../admin/components/contributorEditor/CardParts';
 
@@ -35,7 +35,7 @@ function toUpdate(profile: SelfProfile): SelfProfileUpdate {
     avatar_url: profile.avatar_url,
     portrait_url: profile.portrait_url,
     portrait_focus: profile.portrait_focus,
-    links: profile.links,
+    links: tidyLinks(profile.links),
   };
 }
 
@@ -113,6 +113,7 @@ export function ProfileEditor({ profile, onSave, onSaveGallery, onUnpublish, onU
 
   const person: PersonValue = {
     display_name: draft.display_name ?? '',
+    business_name: draft.business_name ?? '',
     chinese_name: draft.chinese_name ?? '',
     role: draft.role ?? '',
     location_line: draft.location_line ?? '',
@@ -131,6 +132,7 @@ export function ProfileEditor({ profile, onSave, onSaveGallery, onUnpublish, onU
       const next = { ...current };
       if (patch.display_name !== undefined) next.display_name = patch.display_name;
       if (patch.chinese_name !== undefined) next.chinese_name = orNull(patch.chinese_name);
+      if (patch.business_name !== undefined) next.business_name = orNull(patch.business_name);
       if (patch.role !== undefined) next.role = orNull(patch.role);
       if (patch.location_line !== undefined) next.location_line = orNull(patch.location_line);
       if (patch.now_text !== undefined) next.now_text = orNull(patch.now_text);

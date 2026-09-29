@@ -14,7 +14,7 @@ import {
 import { ACTION, LABEL, LINE_SANS, Line, Prose, QUESTION, QUIET } from './contributorEditor/parts';
 import { GALLERY_IMAGE_LIMIT } from './contributorEditor/GalleryPlace';
 import { EditorRow, EditorSheet, type SheetId } from './contributorEditor/CardParts';
-import { MISSING_BEGINNINGS, personPageParts, type PersonValue } from './contributorEditor/PersonPage';
+import { MISSING_BEGINNINGS, personPageParts, tidyLinks, type PersonValue } from './contributorEditor/PersonPage';
 import { imagesFrom } from './contributorEditor/photoUpload';
 
 // The shop's contributor editor: the same card and rows a tea master sees on
@@ -238,7 +238,7 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
     if (isNew && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(form.id?.trim() ?? '')) return 'The page address takes lowercase letters, numbers and hyphens.';
     if (!form.display_name?.trim()) return 'A name is needed before it can be saved.';
     if ((form.closing?.length ?? 0) > 200) return 'The closing line must be 200 characters or fewer.';
-    for (const link of form.links ?? []) {
+    for (const link of tidyLinks(form.links ?? [])) {
       if (!(CONTRIBUTOR_LINK_PLATFORMS as readonly string[]).includes(link.platform)) return 'Choose Website, Instagram, WeChat or Other for each way to reach you.';
       if (!link.value?.trim()) return `A way to reach you is missing its ${linkValueLabel(link.platform).toLowerCase()}.`;
       if (link.platform === 'website') {
@@ -277,7 +277,8 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
       // gallery_images is its own table, not a column on `contributors`, so
       // it is never part of this payload -- it saves through its own
       // endpoint below, the same reason associations save through theirs.
-      const { face_of_account_id: _legacyHost, gallery_images: _gallery, ...payload } = form;
+      const { face_of_account_id: _legacyHost, gallery_images: _gallery, ...rest } = form;
+      const payload = { ...rest, links: tidyLinks(rest.links ?? []) };
       const result = isNew
         ? await api.people.createContributor(payload)
         : await api.people.updateContributor(persistedContributor.id, payload);
@@ -383,6 +384,7 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
 
   const person: PersonValue = {
     display_name: form.display_name ?? '',
+    business_name: form.business_name ?? '',
     chinese_name: form.chinese_name ?? '',
     role: form.role ?? '',
     location_line: form.location_line ?? '',

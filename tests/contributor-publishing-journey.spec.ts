@@ -84,11 +84,8 @@ test('synthetic contributor and article publish through the complete workflow', 
   await page.getByLabel('A last line for your page').fill(contributorFixture.closing);
   await page.keyboard.press('Escape');
 
-  await page.getByTestId('row-reach').click();
-  await page.getByRole('button', { name: 'Add a way to reach you' }).click();
-  await page.getByRole('radiogroup', { name: 'Link 1 platform' }).getByRole('radio', { name: 'Website' }).check();
-  await page.getByLabel('Link 1 value').fill(contributorFixture.links[0].value);
-  await page.keyboard.press('Escape');
+  // Instagram, WeChat and a website sit on the card as plain fields.
+  await page.getByLabel('Website', { exact: true }).fill(contributorFixture.links[0].value);
 
   // Host status is not set while creating a contributor any more: it moved to
   // a flag on a per-account association. Nothing later in this journey

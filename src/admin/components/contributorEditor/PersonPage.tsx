@@ -17,6 +17,7 @@ export type PersonLink = { platform: ContributorLinkPlatform; value: string; qr_
 /** Only what the public page shows. Everything else stays stored, untouched, out of sight. */
 export type PersonValue = {
   display_name: string;
+  business_name: string;
   chinese_name: string;
   role: string;
   location_line: string;
@@ -35,6 +36,18 @@ export const PORTRAIT_CROPS: Crop[] = [
   { label: 'Computer', width: 576, height: 420 },
   { label: 'People list', width: 140, height: 180 },
 ];
+
+/**
+ * People type "adrianrasmussen.com" and "@name". The page needs a full web
+ * address for a website, so one is made for them on save rather than refused.
+ */
+export function tidyLinks<T extends PersonLink>(links: T[]): T[] {
+  return links.map(link => {
+    const value = link.value.trim();
+    if (link.platform === 'website' && value && !/^[a-z][a-z0-9+.-]*:\/\//i.test(value)) return { ...link, value: `https://${value}` };
+    return { ...link, value };
+  });
+}
 
 /** Needed before a page can go live, in the words the person reads. */
 export const MISSING_BEGINNINGS = 'Write how tea began for you before the page can go live.';
@@ -89,6 +102,17 @@ export function personPageParts(props: Props): { card: React.ReactNode; sheets: 
   const gallery = value.gallery_images;
   const began = value.beginnings.trim();
   const updateLink = (index: number, next: Partial<PersonLink>) => onChange({ links: links.map((link, position) => position === index ? { ...link, ...next } : link) });
+  // The three everyone has sit on the card as plain fields. Each writes the
+  // first link of its kind; emptying one removes it. A QR code or any other
+  // link lives in the sheet behind "Add a QR code or another link".
+  const social = (platform: ContributorLinkPlatform) => links.find(link => link.platform === platform)?.value ?? '';
+  const setSocial = (platform: ContributorLinkPlatform, text: string) => {
+    const at = links.findIndex(link => link.platform === platform);
+    if (at < 0) { if (text.trim()) onChange({ links: [...links, { platform, value: text, qr_image_url: null }] }); return; }
+    if (!text.trim() && !links[at].qr_image_url) { onChange({ links: links.filter((_, position) => position !== at) }); return; }
+    updateLink(at, { value: text });
+  };
+  const extraLinks = links.filter((link, index) => link.platform === 'other' || links.findIndex(item => item.platform === link.platform) !== index || Boolean(link.qr_image_url)).length;
 
   const storyParts = [
     began && 'how it began',
@@ -128,10 +152,23 @@ export function personPageParts(props: Props): { card: React.ReactNode; sheets: 
           inputClassName="w-full rounded-none border-0 border-b border-tea-border bg-transparent px-0 py-1 font-display text-[34px] font-light leading-tight text-tea-text placeholder:text-tea-text-dim/60 focus:border-tea-gold focus:outline-none focus:ring-0 sm:text-[38px]"
         />
         {afterName}
-        <Line label="Name in Chinese" id="f-chinese-name" value={value.chinese_name} onChange={event => onChange({ chinese_name: event.target.value })} placeholder="If you have one" inputClassName={`${LINE_SANS} font-body text-ui-17`} />
+        <Line label="Business name" id="f-business-name" value={value.business_name} onChange={event => onChange({ business_name: event.target.value })} placeholder="If you have one, the name you trade under" />
         <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
           <Line label="What you do" id="f-role" value={value.role} onChange={event => onChange({ role: event.target.value })} placeholder="Tea master, potter, grower" />
           <Line label="Where you are" id="f-place" value={value.location_line} onChange={event => onChange({ location_line: event.target.value })} placeholder="City, country" />
+        </div>
+        <Line label="Name in Chinese" id="f-chinese-name" value={value.chinese_name} onChange={event => onChange({ chinese_name: event.target.value })} placeholder="Optional. Leave it empty if you don't have one." inputClassName={`${LINE_SANS} font-body text-ui-17`} />
+
+        <div className="pt-2" data-testid="card-socials">
+          <p className="font-display text-ui-20 leading-snug text-tea-text">How people reach you</p>
+          <div className="mt-4 grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
+            <Line label="Instagram" id="f-instagram" value={social('instagram')} onChange={event => setSocial('instagram', event.target.value)} placeholder="@yourname" autoCapitalize="none" autoCorrect="off" spellCheck={false} />
+            <Line label="WeChat" id="f-wechat" value={social('wechat')} onChange={event => setSocial('wechat', event.target.value)} placeholder="Your WeChat ID" autoCapitalize="none" autoCorrect="off" spellCheck={false} />
+          </div>
+          <Line className="mt-6" label="Website" id="f-website" value={social('website')} onChange={event => setSocial('website', event.target.value)} placeholder="https://" inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} />
+          <button type="button" aria-haspopup="dialog" data-testid="row-reach" onClick={event => openSheet('reach', event.currentTarget)} className={`${QUIET} mt-3`}>
+            {extraLinks ? `Your QR code and other links (${extraLinks})` : 'Add a WeChat QR code or another link'}
+          </button>
         </div>
 
         <nav className="pt-4" aria-label="The rest of your page">
@@ -144,7 +181,6 @@ export function personPageParts(props: Props): { card: React.ReactNode; sheets: 
             thumbs={gallery.slice(0, 3).map(image => mediaUrl(image.image_url)).filter((src): src is string => Boolean(src))}
             onOpen={openSheet}
           />
-          <EditorRow id="reach" title="How people reach you" description={links.length ? links.map(link => link.platform === 'other' && link.label ? link.label : platformWord(link.platform)).join(', ') : 'Your website, Instagram or WeChat'} state={links.length ? `${links.length} ${links.length === 1 ? 'way' : 'ways'}` : 'Not yet'} onOpen={openSheet} />
           {extraRows}
         </nav>
       </div>
