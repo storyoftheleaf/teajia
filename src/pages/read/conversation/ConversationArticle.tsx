@@ -23,7 +23,7 @@ import StoryEditorBar from '../StoryEditorBar';
 import { Rich } from './RichText';
 import {
   type Block, type ConversationSpec, type LineSize, type Part, type Shot,
-  allBlocks, photoCount, readingMinutes, turnStarts,
+  photoCount, readingMinutes, shareCardFor, turnStarts,
 } from './spec';
 import './conversation.css';
 
@@ -316,15 +316,7 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
   const speakers = useMemo<Speakers>(() => ({ ...spec.speakers, starts: turnStarts(spec) }), [spec]);
   // What the Share button puts on its card: the piece's own title, the line it
   // names, said by its subject, over the object it names.
-  const share = useMemo<ReadShare>(() => {
-    const line = spec.share && allBlocks(spec).find((b) => b.kind === 'line' && b.id === spec.share!.line);
-    const role = spec.subject.role.charAt(0).toLowerCase() + spec.subject.role.slice(1);
-    return {
-      title: spec.title.join(' '),
-      image: spec.share?.photo ? spec.images + spec.share.photo.file : undefined,
-      line: line && line.kind === 'line' ? { text: line.text, who: `${spec.subject.name}, ${role}` } : undefined,
-    };
-  }, [spec]);
+  const share = useMemo<ReadShare>(() => shareCardFor(spec), [spec]);
 
   // Arriving on a #part-N link shows that part at once. It waits out the app's
   // own scroll restore, which runs a frame after the route mounts and would
