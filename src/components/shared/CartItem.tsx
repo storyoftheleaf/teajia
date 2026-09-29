@@ -32,7 +32,17 @@ interface CartItemProps {
  * aligns on the baseline, so a price never sits lower than the name beside it.
  */
 export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQuantity, onUpdatePacks, onNavigate }) => {
-  const { total: displayPrice, plainTotal, perGramExact } = useShopPrice();
+  const { total: displayPrice, plainTotal, symbol, perGramExact } = useShopPrice();
+  /* The size tiles carry the bare mark of the money, "¥142" or "$15", not the
+     country-qualified one ("CN¥", "NT$") the rest of the panel uses: the
+     picker above already says which yuan or dollar it is, and six tiles in a
+     row repeating "CN" was the clutter Adrian asked to remove. */
+  const tileMark = symbol.replace(/^[A-Z]+(?=[^A-Za-z])/, '');
+  const tilePrice = (usd: number) => {
+    const plain = plainTotal(usd);
+    const lead = /^[~-]/.test(plain) ? plain[0] : '';
+    return lead + tileMark + plain.slice(lead.length);
+  };
   const [showOther, setShowOther] = useState(false);
   const [photoFailed, setPhotoFailed] = useState(false);
 
@@ -146,7 +156,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
                 }`}
               >
                 <span className="num text-ui-13 leading-none">{q.whole ? `Whole ${q.grams}g` : `${q.grams}g`}</span>
-                <span className="num text-ui-12 leading-none text-tea-text-sec">{plainTotal(q.totalUsd)}</span>
+                <span className="num text-ui-12 leading-none text-tea-text-sec">{tilePrice(q.totalUsd)}</span>
               </button>
             );
           })}

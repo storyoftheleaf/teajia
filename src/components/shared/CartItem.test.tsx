@@ -7,7 +7,7 @@ import type { CartItem } from '../../types';
 
 vi.mock('../../context/ThemeContext', () => ({ useTheme: () => ({ theme: 'dark' }) }));
 vi.mock('../shop/shopPrice', () => ({
-  useShopPrice: () => ({ total: (usd: number) => `$${usd}`, plainTotal: (usd: number) => `${usd}`, perGramExact: (usd: number) => `$${usd}` }),
+  useShopPrice: () => ({ total: (usd: number) => `$${usd}`, plainTotal: (usd: number) => `${usd}`, symbol: 'CN¥', perGramExact: (usd: number) => `$${usd}` }),
 }));
 
 const item: CartItem = {
@@ -52,10 +52,14 @@ describe('the photo leads only when the tea has one', () => {
   });
 });
 
-describe('the size tiles carry no currency', () => {
-  it('prints a bare figure under each size, since the picker names the currency once', () => {
+describe('the size tiles carry the mark of the money, not its country', () => {
+  it('prints "¥" before each tile price and never "CN"', () => {
     const tiles = render().match(/aria-label="\d+g pack[^"]*"[^>]*>[\s\S]*?<\/button>/g) ?? [];
     expect(tiles.length).toBeGreaterThan(0);
-    for (const tile of tiles) expect(tile.replace(/aria-label="[^"]*"/, '')).not.toContain('$');
+    for (const tile of tiles) {
+      const shown = tile.replace(/aria-label="[^"]*"/, '');
+      expect(shown).toMatch(/¥\d/);
+      expect(shown).not.toContain('CN');
+    }
   });
 });
