@@ -2,6 +2,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { ArticleBlock } from '../../types';
 import { ScrollHighlightText } from './ScrollHighlightText';
+import type { TermSegment } from '../../lib/glossaryTerms';
+import { renderSegments } from '../reader/GlossaryTerms';
 
 // Wraps a child and fades it up (translateY + blur-clear) the first time it
 // enters the viewport. IntersectionObserver, one-shot. Animates only
@@ -129,20 +131,22 @@ export function FxText({ effect, text, className, as = 'span' }: {
 
 // Prose: the spine. Default reading effect is scroll-highlight (Adrian's pick);
 // a block may opt into a different per-section effect via `effect`.
-export function ProseSection({ text, dropcap, effect = 'scroll-highlight' }: {
+export function ProseSection({ text, dropcap, effect = 'scroll-highlight', segments }: {
   text: string; dropcap?: boolean; effect?: TextEffect;
+  /** The text split into tea terms (renderBlock's linker); absent = no links. */
+  segments?: TermSegment[];
 }) {
   const proseClass = 'font-body text-[18px] md:text-ui-20 leading-[1.78]';
   const body =
     effect === 'scroll-highlight' ? (
-      <ScrollHighlightText text={text} className={proseClass} />
+      <ScrollHighlightText text={text} segments={segments} className={proseClass} />
     ) : effect === 'word-rise' ? (
       <p className={proseClass}><WordRise text={text} /></p>
     ) : (
       <p className={`${proseClass} ${
         effect === 'blur-focus' ? 'fx-blur-focus' :
         effect === 'letter-expand' ? 'fx-letter-expand' : ''
-      }`}>{text}</p>
+      }`}>{segments ? renderSegments(segments) : text}</p>
     );
   return (
     <section className="py-20 md:py-32">
@@ -172,12 +176,12 @@ export function SectionHeading({ text, effect }: { text: string; effect?: TextEf
 
 // `id` is the anchor a creator profile links to (quote-<contributor id>), so a
 // "Quoted in" row can land on the passage rather than the top of the piece.
-export function PullQuote({ text, attribution, id }: { text: string; attribution?: string; id?: string }) {
+export function PullQuote({ text, attribution, id, segments }: { text: string; attribution?: string; id?: string; segments?: TermSegment[] }) {
   return (
     <section id={id} className="py-24 md:py-32 text-center px-6 scroll-mt-16">
       <Reveal>
         <blockquote className="font-display font-medium italic text-tea-gold-lt leading-[1.18] text-[32px] md:text-[46px] max-w-[760px] mx-auto">
-          {text}
+          {segments ? renderSegments(segments) : text}
         </blockquote>
         {attribution && (
           <cite className="block mt-8 font-sans not-italic text-ui-11 tracking-[0.16em] uppercase text-tea-text-dim">{attribution}</cite>
@@ -200,12 +204,12 @@ export function ChapterDivider({ number, title, subtitle }: { number?: string; t
 }
 
 // Epilogue: the closing voice. Italic display, optional signature.
-export function Epilogue({ text, signature }: { text: string; signature?: string }) {
+export function Epilogue({ text, signature, segments }: { text: string; signature?: string; segments?: TermSegment[] }) {
   return (
     <section className="py-24 md:py-32">
       <div className="px-6 md:px-0 mx-auto max-w-[680px]">
         <Reveal>
-          <p className="font-display italic text-tea-text-sec leading-[1.5] text-[24px] md:text-[30px]">{text}</p>
+          <p className="font-display italic text-tea-text-sec leading-[1.5] text-[24px] md:text-[30px]">{segments ? renderSegments(segments) : text}</p>
           {signature && <p className="font-sans text-tea-text-dim tracking-[0.14em] uppercase text-ui-11 mt-8">{signature}</p>}
         </Reveal>
       </div>
@@ -739,30 +743,34 @@ export interface RenderBlockContext {
   /** The article's pull quote and the anchor a creator profile links to
    *  (quote-<contributor id>). The quote block whose text matches gets the id. */
   quoteAnchor?: { text: string; id: string } | null;
+  /** Splits prose into tea terms, first mention per story (storyTermLinker).
+   *  Called in block order; a block with `noTerms` is skipped. */
+  terms?: (text: string) => TermSegment[];
 }
 
 // Maps one ArticleBlock to its section. Visual variants are read off the
 // image/list/recipe/map/tasting blocks. Unmapped block types render nothing;
 // they are intentionally skipped, not errored.
 export function renderBlock(block: ArticleBlock, index: number, ctx?: RenderBlockContext) {
+  const terms = (b: { text: string; noTerms?: boolean }) => (ctx?.terms && !b.noTerms ? ctx.terms(b.text) : undefined);
   switch (block.type) {
     case 'cover':
       return <CoverSection key={index} title={block.title} subtitle={block.subtitle} image={block.image} kicker={block.kicker} variant={block.variant} />;
     case 'intro':
-      return <ProseSection key={index} text={block.text} dropcap effect={normalizeEffect(block.textEffect)} />;
+      return <ProseSection key={index} text={block.text} dropcap effect={normalizeEffect(block.textEffect)} segments={terms(block)} />;
     case 'paragraph':
       // The paragraph variant `drop_cap` carries dropcap; the per-block
       // text-effect dial (AR.5) rides `textEffect`, defaulting to
       // scroll-highlight when absent.
-      return <ProseSection key={index} text={block.text} dropcap={block.variant === 'drop_cap'} effect={normalizeEffect(block.textEffect)} />;
+      return <ProseSection key={index} text={block.text} dropcap={block.variant === 'drop_cap'} effect={normalizeEffect(block.textEffect)} segments={terms(block)} />;
     case 'section_heading':
       return <SectionHeading key={index} text={block.text} effect={normalizeHeadingEffect(block.textEffect)} />;
     case 'chapter_divider':
       return <ChapterDivider key={index} number={block.number} title={block.title} subtitle={block.subtitle} />;
     case 'quote':
-      return <PullQuote key={index} text={block.text} attribution={block.attribution} id={ctx?.quoteAnchor && ctx.quoteAnchor.text.trim() === block.text.trim() ? ctx.quoteAnchor.id : undefined} />;
+      return <PullQuote key={index} text={block.text} attribution={block.attribution} id={ctx?.quoteAnchor && ctx.quoteAnchor.text.trim() === block.text.trim() ? ctx.quoteAnchor.id : undefined} segments={terms(block)} />;
     case 'epilogue':
-      return <Epilogue key={index} text={block.text} signature={block.signature} />;
+      return <Epilogue key={index} text={block.text} signature={block.signature} segments={terms(block)} />;
     case 'poem':
       // Demonstrates the line-stagger text-effect dial wired from block data.
       return <PoemSection key={index} text={block.text} />;
