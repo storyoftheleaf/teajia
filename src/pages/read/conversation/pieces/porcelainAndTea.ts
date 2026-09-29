@@ -74,7 +74,7 @@ export const porcelainAndTea: ConversationSpec = {
   pageTitle: 'Yan Jinwen · Porcelain and Tea · Teajia',
   title: ['Porcelain', 'and Tea'],
   dek: 'Old tea ware, lacquer, and a restorer at the foot of the Wuyi Mountains.',
-  subject: { name: 'Yan Jinwen', nameCn: '严金文', role: 'Porcelain restorer', href: '/people/yan-jinwen' },
+  subject: { name: 'Yan Jinwen', nameCn: '严金文', role: 'Porcelain restorer', href: '/people/yan-jinwen', words: 'his' },
   speakers: { author: 'Adrian', subject: 'Jinwen' },
   form: 'story',
   author: {

@@ -78,7 +78,8 @@ export interface ConversationSpec {
   /** Cover title: first line roman, second line bronze italic. */
   title: [string, string];
   dek: string;
-  subject: { name: string; nameCn?: string; role: string; href?: string };
+  /** `words` is how the story byline refers to their words: "in his own words". Defaults to "their". */
+  subject: { name: string; nameCn?: string; role: string; href?: string; words?: 'his' | 'her' | 'their' };
   /** The names hung in the margin beside each turn, as a printed interview marks its speakers. */
   speakers: { author: string; subject: string };
   /** How the piece names itself under the cover: 'story' is Adrian's telling ("By Adrian, with him"),

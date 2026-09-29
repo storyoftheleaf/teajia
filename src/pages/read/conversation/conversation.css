@@ -271,7 +271,17 @@
 .tj-conv-byline p { margin: 0; text-wrap: balance; }
 .tj-conv-byline-names { font-family: var(--font-display); font-size: clamp(20px, 2vw, 24px); line-height: 1.35; color: var(--tj-read-cream); }
 .tj-conv-byline-soft { font-style: italic; color: var(--tj-read-taupe); }
-.tj-conv-byline-names a { color: inherit; text-decoration: none; transition: color 200ms; }
+/* The names are the way deeper into each person, so they read as links at rest, not only on hover. */
+.tj-conv-byline-names a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgb(var(--tj-read-gold-rgb) / 0.55);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+  transition: color 200ms, text-decoration-color 200ms;
+}
+.tj-conv-byline-names a:hover, .tj-conv-byline-names a:focus-visible { text-decoration-color: currentColor; }
+.tj-conv-byline-told { display: block; margin-top: 4px; }
 .tj-conv-byline-names a:hover, .tj-conv-byline-names a:focus-visible { color: var(--tj-gold-lt, var(--tj-read-gold-lt-default)); }
 .tj-conv-byline-names .tj-conv-cn { font-size: 0.8em; color: var(--tj-read-taupe); }
 .tj-conv-byline p.tj-conv-byline-read { margin-top: 8px; font-family: var(--font-body); font-style: italic; font-size: 15px; color: var(--tj-read-dim); }

@@ -253,12 +253,15 @@ const Byline: React.FC<{ spec: ConversationSpec }> = ({ spec }) => {
   return (
     <div className="tj-conv-byline">
       {spec.form === 'story' ? (
+        // His name first: the words are mostly his. Adrian is the one who told it (Adrian, 2026-09-30).
         <p className="tj-conv-byline-names">
-          <span className="tj-conv-byline-soft">By </span>
-          {home ? <Link to={home.href}>{spec.author.name}</Link> : spec.author.name}
-          <span className="tj-conv-byline-soft">, with </span>
           {spec.subject.href ? <Link to={spec.subject.href}>{spec.subject.name}</Link> : spec.subject.name}
           {spec.subject.nameCn && <span lang="zh-Hans" className="tj-conv-cn"> {spec.subject.nameCn}</span>}
+          <span className="tj-conv-byline-soft">, in {spec.subject.words ?? 'their'} own words.</span>
+          <span className="tj-conv-byline-told">
+            <span className="tj-conv-byline-soft">Told by </span>
+            {home ? <Link to={home.href}>{spec.author.name}</Link> : spec.author.name}
+          </span>
         </p>
       ) : (
         <p className="tj-conv-byline-names">
