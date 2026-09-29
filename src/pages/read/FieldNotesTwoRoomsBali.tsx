@@ -3,7 +3,7 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * Field Notes: Two Rooms in Bali: Field Notes · N°11
+ * Field Notes: Two Rooms in Bali: Field Notes
  * Two tea rooms in the hills above Ubud: one dark as a drum, one open to the sky.
  * Ported pixel-faithfully from the tea-article-redesign mockup.
  */
@@ -15,9 +15,9 @@ import {
 } from './immersive';
 
 const moreLinks = [
-  { to: '/read/essay',   kicker: 'Essay · N°10',    title: 'The Long Way to the Cup', blurb: 'The woman this room woke, in her own words.' },
-  { to: '/read/tea-house', kicker: 'A Tea House · N°09', title: 'Quiet Hours',         blurb: 'The Melbourne tea house these rooms inspired.' },
-  { to: '/read/ritual',  kicker: 'The Ritual · N°05', title: 'Seven Steeps',           blurb: 'The slow brewing those rooms are built around.' },
+  { to: '/read/essay',   kicker: 'Essay',    title: 'The Long Way to the Cup', blurb: 'The woman this room woke, in her own words.' },
+  { to: '/read/tea-house', kicker: 'A Tea House', title: 'Quiet Hours',         blurb: 'The Melbourne tea house these rooms inspired.' },
+  { to: '/read/ritual',  kicker: 'The Ritual', title: 'Seven Steeps',           blurb: 'The slow brewing those rooms are built around.' },
 ];
 
 // ─── Shared sub-styles ───────────────────────────────────────────────────────
@@ -59,7 +59,7 @@ const FieldNotesTwoRoomsBali: React.FC = () => {
   return (
     <ImmersiveRoot rootRef={rootRef}>
       <Helmet><title>Two Rooms in Bali · Teajia</title></Helmet>
-      <ImmersiveNav eyebrow="Field Notes · N°11" progress={progress} />
+      <ImmersiveNav eyebrow="Field Notes" progress={progress} />
       <AccentSwatches accent={accent} setAccent={setAccent} />
 
       <article style={{ position: 'relative', zIndex: 1 }}>
@@ -275,7 +275,7 @@ const FieldNotesTwoRoomsBali: React.FC = () => {
             It was in the dark jackfruit room that a homesick traveller named Mei first tasted tea on purpose, and decided to spend the rest of her life chasing that feeling, eventually carrying it to a converted garage in Melbourne. Two rooms in the Bali hills; one of them, quietly, the beginning of a third. That is how it spreads: one slow hour at a time.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
-            Pictures &amp; words by Teajia &nbsp;·&nbsp; Field Notes &nbsp;·&nbsp; N°11
+            Pictures &amp; words by Teajia &nbsp;·&nbsp; Field Notes
           </div>
         </section>
 

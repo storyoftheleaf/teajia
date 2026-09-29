@@ -6,7 +6,7 @@
  * with the theme any more than the photograph does.
  */
 /**
- * Shangyin Qiwu: Porcelain and Tea, N°15
+ * Shangyin Qiwu: Porcelain and Tea
  *
  * Rebuilt 2026-09-28 from the full interview transcript (Adrian's Obsidian
  * source note, SRC - Ceramicist (Porcelain Restoration)). Every answer is his,
@@ -39,9 +39,9 @@ const PALE_INK = '#1c1712';
 const PALE_GOLD = '#5a4318';
 
 const moreLinks = [
-  { to: '/read/earth-water-fire', kicker: 'Conversation · N°03', title: 'Earth, Water, Fire', blurb: 'A Jingdezhen potter on the vessels that hold the tea.' },
-  { to: '/read/craft', kicker: 'The Craft · N°14', title: 'The Pot That Remembers', blurb: 'Yixing purple clay, and pots that age with you.' },
-  { to: '/read/rock-remembers', kicker: 'Conversation · N°02', title: 'The Rock Remembers', blurb: 'A Wuyi roaster on fire, patience and lineage.' },
+  { to: '/read/earth-water-fire', kicker: 'Conversation', title: 'Earth, Water, Fire', blurb: 'A Jingdezhen potter on the vessels that hold the tea.' },
+  { to: '/read/craft', kicker: 'The Craft', title: 'The Pot That Remembers', blurb: 'Yixing purple clay, and pots that age with you.' },
+  { to: '/read/rock-remembers', kicker: 'Conversation', title: 'The Rock Remembers', blurb: 'A Wuyi roaster on fire, patience and lineage.' },
 ];
 
 // ── Type ─────────────────────────────────────────────────────────────────────
@@ -183,14 +183,14 @@ const CraftRenewalPorcelain: React.FC = () => {
       <ImmersiveRoot rootRef={rootRef}>
         <Helmet><title>Shangyin Qiwu · Porcelain and Tea · Teajia</title></Helmet>
         <style>{coverCss}</style>
-        <ImmersiveNav eyebrow="Conversations · N°15" progress={progress} />
+        <ImmersiveNav eyebrow="Conversations" progress={progress} />
         <AccentSwatches accent={accent} setAccent={setAccent} />
 
         <article style={{ position: 'relative', zIndex: 1 }}>
           {/* COVER: portrait left, title right; on a phone the title comes first */}
           <header style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,340px),1fr))', alignItems: 'stretch', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)' }}>
             <div className="tj-pt-cover-text" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(36px,6vw,84px) clamp(24px,5vw,72px)' }}>
-              <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.34em', textTransform: 'uppercase', color: C.gold, marginBottom: 28 }}>Conversations over Tea · N°15</div>
+              <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.34em', textTransform: 'uppercase', color: C.gold, marginBottom: 28 }}>Conversations over Tea</div>
               <h1 style={{ fontFamily: F.display, fontWeight: 300, fontSize: 'clamp(52px,8vw,112px)', lineHeight: 0.94, letterSpacing: '-0.02em', color: C.cream, margin: 0 }}>
                 <EditableText field="title-1" as="span">Porcelain</EditableText><br />
                 <span style={{ fontStyle: 'italic', fontWeight: 400, color: C.gold }}><EditableText field="title-2" as="span">and Tea</EditableText></span>
@@ -379,7 +379,7 @@ const CraftRenewalPorcelain: React.FC = () => {
           <FullBleed shot={S.lastBowl} />
 
           <div style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2, padding: '8px 24px 80px', textAlign: 'center' }}>
-            Interview by Adrian Rasmussen &nbsp;·&nbsp; Wuyi &nbsp;·&nbsp; Conversations over Tea &nbsp;·&nbsp; N°15
+            Interview by Adrian Rasmussen &nbsp;·&nbsp; Wuyi &nbsp;·&nbsp; Conversations over Tea
           </div>
 
           <MoreFooter links={moreLinks} />

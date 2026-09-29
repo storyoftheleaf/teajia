@@ -3,7 +3,7 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * Seven Steeps: The Ritual of Tea, N°05
+ * Seven Steeps: The Ritual of Tea
  * Gongfu cha scrollytelling: a single handful of leaves brewed again and again.
  * Ported pixel-faithfully from the tea-article-redesign mockup.
  *
@@ -22,9 +22,9 @@ import {
 
 // ─── More links ──────────────────────────────────────────────────────────────
 const moreLinks = [
-  { to: '/read/atlas',          kicker: 'Geography · N°06',       title: 'A Map of Mountains',        blurb: 'An atlas of where the great teas are born.' },
-  { to: '/read/tasting',        kicker: 'Tasting · N°08',         title: 'The Vocabulary of Taste',   blurb: 'A turning wheel of everything a cup can say.' },
-  { to: '/read/leaf-to-liquor', kicker: 'The Craft of Tea · N°01',title: 'From Leaf to Liquor',       blurb: 'How a single leaf becomes the six colours of tea.' },
+  { to: '/read/atlas',          kicker: 'Geography',       title: 'A Map of Mountains',        blurb: 'An atlas of where the great teas are born.' },
+  { to: '/read/tasting',        kicker: 'Tasting',         title: 'The Vocabulary of Taste',   blurb: 'A turning wheel of everything a cup can say.' },
+  { to: '/read/leaf-to-liquor', kicker: 'The Craft of Tea',title: 'From Leaf to Liquor',       blurb: 'How a single leaf becomes the six colours of tea.' },
 ];
 
 // ─── Tea datasets ─────────────────────────────────────────────────────────────
@@ -281,7 +281,7 @@ const RitualSevenSteeps: React.FC = () => {
       <style>{`@keyframes tjSpin{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }`}</style>
 
       <Helmet><title>Seven Steeps · Teajia</title></Helmet>
-      <ImmersiveNav eyebrow="The Ritual · N°05" progress={progress} />
+      <ImmersiveNav eyebrow="The Ritual" progress={progress} />
       <AccentSwatches accent={accent} setAccent={() => undefined} />
 
       <article style={{ position: 'relative', zIndex: 1 }}>
@@ -291,7 +291,7 @@ const RitualSevenSteeps: React.FC = () => {
           <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 55% at 50% 30%, rgb(var(--tj-read-gold-rgb) / 0.13), transparent 62%)' }} />
           <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-54%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(56vw,540px)', lineHeight: 1, color: 'rgb(var(--tj-read-gold-rgb) / 0.05)', pointerEvents: 'none', userSelect: 'none' }}>沏</div>
           <div style={{ position: 'relative', maxWidth: 760 }}>
-            <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.42em', textTransform: 'uppercase', color: C.gold, marginBottom: 30 }}>The Ritual of Tea &nbsp;·&nbsp; N°05</div>
+            <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.42em', textTransform: 'uppercase', color: C.gold, marginBottom: 30 }}>The Ritual of Tea</div>
             <h1 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(54px,11vw,128px)', lineHeight: 0.96, letterSpacing: '-0.015em', color: C.cream, margin: 0 }}>
               Seven <span style={{ fontStyle: 'italic', color: C.gold }}>Steeps</span>
             </h1>
@@ -456,7 +456,7 @@ const RitualSevenSteeps: React.FC = () => {
             The pot cools. The spent leaves, fully opened, fill it now where a small dark twist of dryness once sat. Seven cups behind us, and not one of them the same. That is the quiet promise of gongfu cha: that patience is not the price of the tea, but the better half of it.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
-            Words by Teajia &nbsp;·&nbsp; The Ritual of Tea &nbsp;·&nbsp; N°05
+            Words by Teajia &nbsp;·&nbsp; The Ritual of Tea
           </div>
         </section>
 

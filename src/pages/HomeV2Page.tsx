@@ -48,7 +48,7 @@ import type { PublicProduct } from '../types';
 const PIECE = {
   slug: 'porcelain-and-tea',
   to: '/read/porcelain-and-tea',
-  meta: 'The Lead · N°15',
+  meta: 'The Lead',
   dek: 'When we repair objects, we are also repairing ourselves.',
 };
 

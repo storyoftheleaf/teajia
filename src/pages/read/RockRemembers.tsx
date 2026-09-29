@@ -3,7 +3,7 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * The Rock Remembers: Conversations over Tea, N°02
+ * The Rock Remembers: Conversations over Tea
  * A Wuyi rock-tea roaster on fire, patience and lineage.
  * Ported pixel-faithfully from the tea-article-redesign mockup.
  */
@@ -15,9 +15,9 @@ import {
 } from './immersive';
 
 const moreLinks = [
-  { to: '/read/earth-water-fire', kicker: 'Conversation · N°03', title: 'Earth, Water, Fire', blurb: 'A Jingdezhen potter on the vessels that hold the tea.' },
-  { to: '/read/before-the-mist', kicker: 'Field Notes · N°04', title: 'Before the Mist Burns Away', blurb: 'A photo-essay from a Yunnan spring harvest.' },
-  { to: '/read/leaf-to-liquor', kicker: 'The Art of Tea · N°01', title: 'From Leaf to Liquor', blurb: 'How a single leaf becomes the six colours of tea.' },
+  { to: '/read/earth-water-fire', kicker: 'Conversation', title: 'Earth, Water, Fire', blurb: 'A Jingdezhen potter on the vessels that hold the tea.' },
+  { to: '/read/before-the-mist', kicker: 'Field Notes', title: 'Before the Mist Burns Away', blurb: 'A photo-essay from a Yunnan spring harvest.' },
+  { to: '/read/leaf-to-liquor', kicker: 'The Art of Tea', title: 'From Leaf to Liquor', blurb: 'How a single leaf becomes the six colours of tea.' },
 ];
 
 const qa = (q: string, body: React.ReactNode) => ({ q, body });
@@ -92,7 +92,7 @@ const RockRemembers: React.FC = () => {
   return (
     <ImmersiveRoot rootRef={rootRef}>
       <Helmet><title>The Rock Remembers · Teajia</title></Helmet>
-      <ImmersiveNav eyebrow="Conversations · N°02" progress={progress} />
+      <ImmersiveNav eyebrow="Conversations" progress={progress} />
       <AccentSwatches accent={accent} setAccent={setAccent} />
 
       <article style={{ position: 'relative', zIndex: 1 }}>
@@ -241,7 +241,7 @@ const RockRemembers: React.FC = () => {
           <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: C.taupe, margin: 0 }}>
             By the time we leave, the mist has burned away and the cliffs stand clear and red against the sky. Chén Wǔ does not see us out; he is bent over the baskets, listening to the fire. The tea, he says, is almost ready to tell him something.
           </p>
-          <div style={colophon}>Interview by Teajia &nbsp;·&nbsp; Conversations over Tea &nbsp;·&nbsp; N°02</div>
+          <div style={colophon}>Interview by Teajia &nbsp;·&nbsp; Conversations over Tea</div>
         </section>
 
         <MoreFooter links={moreLinks} />

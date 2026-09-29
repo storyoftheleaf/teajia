@@ -320,7 +320,7 @@ export const ImmersiveRoot: React.FC<{ children: React.ReactNode; rootRef?: Reac
 
 // ─── Nav bar (single-article variant) ────────────────────────────────────────
 export const ImmersiveNav: React.FC<{
-  eyebrow: string; // e.g. "Conversations · N°02"
+  eyebrow: string; // e.g. "Conversations"
   progress: number;
   backTo?: string;
 }> = ({ eyebrow, progress, backTo = '/read' }) => (
