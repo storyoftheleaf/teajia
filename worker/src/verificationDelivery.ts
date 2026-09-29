@@ -63,7 +63,7 @@ export async function deliverVerificationCode(
         from: `${env.SENDER_NAME || 'Teajia'} <${env.SENDER_EMAIL}>`,
         to: [input.email],
         subject: input.purpose === 'signin' ? 'Your Teajia sign-in code' : 'Your Teajia verification code',
-        html: `<p>Your Teajia code is <strong>${input.code}</strong>.</p><p>It expires in 10 minutes.</p>`,
+        html: `<p>Your Teajia code is <strong>${input.code}</strong>.</p><p>It expires in 10 minutes.</p><p>Come share a cup.</p>`,
       }),
     });
   } catch {

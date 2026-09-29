@@ -31,7 +31,7 @@ export default function AboutPage() {
       {/* What TeajiA is */}
       <section className="mb-16 md:mb-20 space-y-6">
         <p className="body-prose">
-          TeajiA is a space for tea culture: the stories, the craft, the knowledge, and the people who carry it forward. It grew out of more than twenty years spent inside the world of Chinese tea: sourcing from farmers, learning from masters, and building relationships with the artisans who shape the vessels, the leaf, and the practice.
+          TeajiA is a home for tea: the stories, the craft, the knowledge, and the people who carry it forward. It grew out of more than twenty years spent inside the world of Chinese tea: sourcing from farmers, learning from the people who make it, and building relationships with the artisans who shape the vessels, the leaf, and the practice. No tea masters here, forever students of the leaf.
         </p>
         <p className="body-light">
           What lives here is the result of that accumulated experience: a magazine for long-form stories and photo essays, a curriculum built from real knowledge passed down through practice, a shop stocked only with teas and teaware we know deeply, and a design practice for creating tea spaces that serve the ritual.

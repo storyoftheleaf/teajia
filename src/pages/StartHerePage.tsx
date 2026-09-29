@@ -69,7 +69,7 @@ export const StartHerePage: React.FC = () => {
           Where would you like to begin?
         </h1>
         <p className="subtitle">
-          Six paths into the practice, choose the one that meets you where you are.
+          No tea masters here. Six ways in, choose the one that meets you where you are.
         </p>
       </div>
 
