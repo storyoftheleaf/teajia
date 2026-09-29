@@ -28,9 +28,10 @@ test.describe('creator profile, full (Kenji Tanaka)', () => {
     await expect(cover).toContainText('I pour on Saturday evenings at Tanaka Tea House, four guests at most.');
     expect(await cover.evaluate(element => getComputedStyle(element).borderTopWidth)).toBe('1px');
 
-    // The hub: exactly Words, Teas, Pay, side by side, no counts, each 48px tall.
+    // The hub: Words, Teas, Contact, Pay, side by side on one line, no counts, each 48px tall.
     const hub = page.getByTestId('profile-hub');
-    await expect(hub.getByRole('link')).toHaveCount(3);
+    await expect(hub.getByRole('link')).toHaveCount(4);
+    await expect(hub.getByRole('link', { name: 'Contact' })).toHaveAttribute('href', '#reach');
     await expect(hub.getByRole('link', { name: 'Words' })).toHaveAttribute('href', '#words');
     await expect(hub.getByRole('link', { name: 'Teas' })).toHaveAttribute('href', '#teas');
     await expect(hub.getByRole('link', { name: 'Pay' })).toHaveAttribute('href', '/people/kenji-tanaka/pay');
@@ -39,6 +40,7 @@ test.describe('creator profile, full (Kenji Tanaka)', () => {
     expect(Math.abs(words!.width - teasCell!.width)).toBeLessThan(2);
     expect(Math.abs(teasCell!.width - payCell!.width)).toBeLessThan(2);
     expect(words!.y).toBe(teasCell!.y);
+    expect(words!.y).toBe(payCell!.y);
     expect(await hub.innerText()).not.toMatch(/\d/);
 
     // In my words: one passage, first person. No pull quote, no second passage (2026-09-29).
