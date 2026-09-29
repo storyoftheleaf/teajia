@@ -76,11 +76,16 @@ describe('MoreFooter', () => {
     expect(html).not.toContain('The Rock Remembers');
   });
 
-  it('renders nothing at all when every companion is a draft', () => {
+  it('drops the whole rail when every companion is a draft, and keeps the share line', () => {
     signIn(null);
     // /read/porcelain-and-tea's own three cards, the one live page whose rail
-    // empties completely. No heading over an empty grid.
-    expect(render(RAIL.slice(1))).toBe('');
+    // empties completely. No heading over an empty grid. The share line is not
+    // part of the rail, so it stays: a piece with nothing to read next can
+    // still be passed on.
+    const html = render(RAIL.slice(1));
+    expect(html).not.toContain('More from The Art of Tea');
+    expect(html).not.toContain('tj-morecard');
+    expect(html).toContain('read-share-end');
   });
 
   it('shows the Teajia owner every card, marked Draft', () => {

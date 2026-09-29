@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { DbArticle } from '../../admin/types';
 
+// All the panel reads from an article. The hand-built Read pieces have no
+// DbArticle row, so they pass just these fields.
+export type ShareArticle = Pick<DbArticle, 'id' | 'title' | 'subtitle' | 'slug'>;
+
 // Restored from MagazinePageReader (commit 3dae784^). Adapted to the new
 // Page model in src/pages/ArticlePage.tsx and the DbArticle type. Behaviour
 // preserved: per-page or whole-article scope, 4:5 poster preview, native
@@ -62,7 +66,7 @@ type ShareComposition =
   | { type: 'qa'; head: string; qa?: { q: string; a: string } }
   | { type: 'cover'; title: string; subtitle?: string };
 
-function compositionForPage(page: SharePage | null, article: DbArticle): ShareComposition {
+function compositionForPage(page: SharePage | null, article: ShareArticle): ShareComposition {
   if (!page) return { type: 'cover', title: article.title, subtitle: article.subtitle ?? undefined };
   const k = page.kind;
 
@@ -173,7 +177,7 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   return lines;
 }
 
-async function renderPosterToCanvas(comp: ShareComposition, article: DbArticle): Promise<HTMLCanvasElement> {
+async function renderPosterToCanvas(comp: ShareComposition, article: ShareArticle): Promise<HTMLCanvasElement> {
   await document.fonts.ready;
   const W = 800, H = 1000, PAD = 52;
   const canvas = document.createElement('canvas');
@@ -299,7 +303,7 @@ async function renderPosterToCanvas(comp: ShareComposition, article: DbArticle):
   return canvas;
 }
 
-function SharePoster({ comp, article }: { comp: ShareComposition; article: DbArticle }) {
+function SharePoster({ comp, article }: { comp: ShareComposition; article: ShareArticle }) {
   return (
     <div style={{
       position: 'absolute', inset: 0,
@@ -400,7 +404,7 @@ const IcMail = () => <svg width="18" height="18" viewBox="0 0 16 16" fill="none"
 
 export interface SharePanelProps {
   page: SharePage | null;
-  article: DbArticle;
+  article: ShareArticle;
   onClose: () => void;
 }
 
@@ -567,7 +571,9 @@ export function SharePanel({ page, article, onClose }: SharePanelProps) {
 
         <div style={{ flex: '0 1 auto', padding: '18px 18px 8px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 0, overflow: 'hidden' }}>
           <div style={{
-            aspectRatio: '4/5', maxHeight: '46vh', width: 'auto', maxWidth: '100%',
+            // A set height, not a max: the poster inside is absolutely placed and
+            // has no size of its own, so width:auto collapsed the box to nothing.
+            aspectRatio: '4/5', height: 'min(46vh, calc((min(100vw, 520px) - 36px) * 1.25))', maxWidth: '100%',
             background: T.bg, border: `1px solid ${posterReady ? T.border : 'rgba(184,146,78,0.2)'}`,
             position: 'relative', overflow: 'hidden',
             boxShadow: '0 10px 30px rgba(24,19,14,0.4)',

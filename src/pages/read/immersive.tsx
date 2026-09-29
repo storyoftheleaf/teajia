@@ -71,8 +71,15 @@
  * ╚══════════════════════════════════════════════════════════════════╝
  */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { createPortal } from 'react-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { isArticleVisible, useIsReadOwner } from './publishGate';
+
+// The share sheet is the magazine's own, loaded only when someone asks for it,
+// so a reader who never shares never downloads it.
+const SharePanel = React.lazy(() =>
+  import('../../components/article/SharePanel').then((m) => ({ default: m.SharePanel })),
+);
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
 // Every field is a CSS custom property reference now, declared in
@@ -298,6 +305,8 @@ export function useImmersiveChrome(accent: string) {
       .tj-tabs::-webkit-scrollbar{ display:none; }
       .tj-morecard{ transition:border-color 240ms; }
       .tj-morecard:hover{ border-color:rgb(var(--tj-read-gold-rgb) / 0.4) !important; }
+      .tj-share{ transition:color 200ms; }
+      .tj-share:hover, .tj-share:focus-visible{ color:var(--tj-read-ink) !important; }
       .tj-tab:hover{ color:var(--tj-read-ink) !important; }
       .tj-explore-link{ transition:color 200ms; }
       .tj-explore-link:hover{ color:var(--tj-gold, var(--tj-read-gold-default)) !important; }
@@ -358,6 +367,50 @@ export const ImmersiveRoot: React.FC<{ children: React.ReactNode; rootRef?: Reac
   </div>
 );
 
+// ─── Share ───────────────────────────────────────────────────────────────────
+// One button, two places: the right end of the top bar, and the close of the
+// piece above "More from". Both open the same sheet. The title is read off the
+// page's own <title> at the moment of the press, because every Read piece
+// already sets it and a second copy here would drift from it.
+function readShareArticle(pathname: string) {
+  const title = document.title.replace(/\s*·\s*Teajia\s*$/, '').trim() || 'Teajia';
+  const slug = pathname.replace(/\/+$/, '').split('/').pop() || 'read';
+  return { id: slug, slug, title };
+}
+
+export const ShareButton: React.FC<{ variant: 'bar' | 'end' }> = ({ variant }) => {
+  const [open, setOpen] = useState(false);
+  const { pathname } = useLocation();
+  // Held steady while the sheet is open: the bar re-renders on every scroll
+  // tick, and a fresh object each time restarts the poster before it finishes.
+  const article = React.useMemo(() => (open ? readShareArticle(pathname) : null), [open, pathname]);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="tj-share"
+        data-testid={variant === 'bar' ? 'read-share-bar' : 'read-share-end'}
+        style={
+          variant === 'bar'
+            ? { flexShrink: 0, background: 'none', border: 0, cursor: 'pointer', padding: '12px 0 12px 8px', margin: '-12px 0', fontFamily: F.mono, fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.taupe }
+            : { background: 'none', border: 0, cursor: 'pointer', padding: '12px 0', fontFamily: F.display, fontStyle: 'italic', fontSize: 20, color: C.ink }
+        }
+      >
+        {variant === 'bar' ? 'Share' : <>Share this story <span aria-hidden="true" style={{ color: C.gold }}>&rarr;</span></>}
+      </button>
+      {/* Portalled to the body: the reader is its own stacking context, which
+          left the sheet underneath the phone's bottom bar. */}
+      {article && createPortal(
+        <React.Suspense fallback={null}>
+          <SharePanel page={null} article={article} onClose={() => setOpen(false)} />
+        </React.Suspense>,
+        document.body,
+      )}
+    </>
+  );
+};
+
 // ─── Nav bar (single-article variant) ────────────────────────────────────────
 export const ImmersiveNav: React.FC<{
   // The small label at the right of the bar. Optional: the conversation
@@ -393,15 +446,18 @@ export const ImmersiveNav: React.FC<{
         Teajia
       </span>
     </Link>
-    {current ? (
-      <span aria-live="polite" style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 17, color: C.taupe, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, maxWidth: '58vw' }}>
-        {current}
-      </span>
-    ) : eyebrow ? (
-      <span style={{ fontFamily: F.mono, fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim, whiteSpace: 'nowrap' }}>
-        {eyebrow}
-      </span>
-    ) : null}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(14px,2.4vw,26px)', minWidth: 0 }}>
+      {current ? (
+        <span aria-live="polite" style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 17, color: C.taupe, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, maxWidth: '46vw' }}>
+          {current}
+        </span>
+      ) : eyebrow ? (
+        <span style={{ fontFamily: F.mono, fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim, whiteSpace: 'nowrap' }}>
+          {eyebrow}
+        </span>
+      ) : null}
+      <ShareButton variant="bar" />
+    </div>
     <ProgressTrack progress={progress} />
   </nav>
 );
@@ -496,10 +552,15 @@ export const MoreFooter: React.FC<{ links: MoreLink[] }> = ({ links }) => {
   // ReadIndex's GroupBlock takes the same line with a group whose rows are all
   // drafts. A conversation piece names at least one live read in its own list
   // for exactly this reason, so its ending never goes nowhere.
-  if (visible.length === 0) return null;
+  // The share line is not part of that choice, so it stays even when the rail
+  // goes.
   return (
     <footer style={{ borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)', padding: 'clamp(40px,6vw,72px) clamp(20px,5vw,56px) clamp(64px,9vw,110px)' }}>
       <div style={{ maxWidth: 1180, margin: '0 auto' }}>
+        <div style={{ marginBottom: visible.length ? 'clamp(40px,6vw,64px)' : 0 }}>
+          <ShareButton variant="end" />
+        </div>
+        {visible.length > 0 && (<>
         <div style={{ fontFamily: F.ui, fontSize: 12, fontWeight: 500, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.gold, marginBottom: 26 }}>
           More from The Art of Tea
         </div>
@@ -538,6 +599,7 @@ export const MoreFooter: React.FC<{ links: MoreLink[] }> = ({ links }) => {
             );
           })}
         </div>
+        </>)}
       </div>
     </footer>
   );
