@@ -1,10 +1,11 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ClipboardList, BarChart3, ScrollText, Inbox, MessageSquare, RefreshCw } from 'lucide-react';
+import { ClipboardList, BarChart3, Inbox, Truck, MessageSquare, RefreshCw } from 'lucide-react';
 import { OrdersView } from './OrdersView';
 import { RecordsView } from './SoldItemsView';
 import { PendingView } from './PendingView';
+import { WholesaleOrdersList } from '../views/WholesaleOrdersList';
 import { usePendingAttendees } from '../hooks/useEventData';
 import { usePendingInvoicesSummary, usePrivateQueryScope } from '../hooks/usePrivateQueryScope';
 import {
@@ -19,8 +20,21 @@ import { Product } from '../types';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { useAppStore } from '../../lib/store';
 
-type ActivityTab = 'pending' | 'orders' | 'ledger' | 'log' | 'inquiries';
-const VALID_TABS: ActivityTab[] = ['pending', 'orders', 'ledger', 'log', 'inquiries'];
+// Sales, four tabs (2026-09-29, todo/plans/manage-regroup.md): Waiting holds
+// what used to be Pending and Inquiries, one queue of things someone is
+// waiting on; Ledger holds the stock ledger, the activity log and the sold-out
+// archive under one tab with its own switch; Wholesale moved in from Network.
+// The old tab names still open the tab that now holds them, because the
+// dashboard, Your Table and older links carry them.
+type ActivityTab = 'waiting' | 'orders' | 'wholesale' | 'ledger';
+const VALID_TABS: ActivityTab[] = ['waiting', 'orders', 'wholesale', 'ledger'];
+const TAB_ALIASES: Record<string, ActivityTab> = { pending: 'waiting', inquiries: 'waiting', log: 'ledger' };
+
+function resolveTab(raw: string | null): ActivityTab {
+  if (!raw) return 'waiting';
+  if ((VALID_TABS as string[]).includes(raw)) return raw as ActivityTab;
+  return TAB_ALIASES[raw] ?? 'waiting';
+}
 
 interface ActivityViewProps {
   products: Product[];
@@ -58,8 +72,10 @@ function useClaimsPendingCount() {
 
 export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const rawTab = searchParams.get('tab') as ActivityTab | null;
-  const activeTab: ActivityTab = rawTab && VALID_TABS.includes(rawTab) ? rawTab : 'pending';
+  const rawTab = searchParams.get('tab');
+  const activeTab: ActivityTab = resolveTab(rawTab);
+  // Which part of the ledger an old ?tab=log link asked for.
+  const ledgerStart: 'ledger' | 'log' = rawTab === 'log' ? 'log' : 'ledger';
   const setActiveTab = (tab: ActivityTab) => setSearchParams({ tab }, { replace: true });
   const pendingCount = usePendingCount();
   const activeAccountId = useAppStore(state => state.activeAccountId);
@@ -82,17 +98,17 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
   const claimsPendingCount = useClaimsPendingCount();
 
   const tabs: { id: ActivityTab; label: string; icon: React.ReactNode; badge?: number; countUnavailable?: boolean }[] = [
-    { id: 'pending', label: 'Pending', icon: <Inbox size={15} />, badge: pendingCount },
-    { id: 'orders', label: 'Orders', icon: <ClipboardList size={15} />, badge: claimsPendingCount || undefined },
     {
-      id: 'inquiries',
-      label: 'Inquiries',
-      icon: <MessageSquare size={15} />,
-      badge: newInquiryCount || undefined,
+      id: 'waiting',
+      label: 'Waiting',
+      icon: <Inbox size={15} />,
+      badge: (pendingCount + (newInquiryCount ?? 0)) || undefined,
       countUnavailable: inquiryAccountReady && inquiryCountQuery.isError,
     },
+    { id: 'orders', label: 'Orders', icon: <ClipboardList size={15} />, badge: claimsPendingCount || undefined },
+    // The Sales route admits only the sell bundle, which is what wholesale needs.
+    { id: 'wholesale', label: 'Wholesale', icon: <Truck size={15} /> },
     { id: 'ledger', label: 'Ledger', icon: <BarChart3 size={15} /> },
-    { id: 'log', label: 'Log', icon: <ScrollText size={15} /> },
   ];
 
   return (
@@ -154,14 +170,18 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
         </div>
       </div>
 
-      {/* Content: RecordsView already has Archive/Log/Ledger as internal tabs,
-          so we pass it the right initial tab via a key-based approach */}
       <div className="flex-1 overflow-auto">
-        {activeTab === 'pending' && <PendingView />}
+        {activeTab === 'waiting' && (
+          <>
+            <PendingView />
+            <InquiriesView accountId={activeAccountId} accountReady={inquiryAccountReady} />
+          </>
+        )}
         {activeTab === 'orders' && <OrdersView />}
-        {activeTab === 'ledger' && <RecordsView products={products} initialTab="ledger" />}
-        {activeTab === 'log' && <RecordsView products={products} initialTab="log" />}
-        {activeTab === 'inquiries' && <InquiriesView accountId={activeAccountId} accountReady={inquiryAccountReady} />}
+        {activeTab === 'wholesale' && <WholesaleOrdersList embedded />}
+        {/* One Ledger: the stock ledger, the activity log and the sold-out
+            archive, switched inside it rather than as three Sales tabs. */}
+        {activeTab === 'ledger' && <RecordsView key={ledgerStart} products={products} initialTab={ledgerStart} showTabs />}
       </div>
     </div>
   );

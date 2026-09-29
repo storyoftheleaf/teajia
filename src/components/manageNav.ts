@@ -68,6 +68,8 @@ export interface ManageListFlags {
   isAdmin: boolean;
   isOwnerTier: boolean;
   platformRole: unknown;
+  /** The stock bundle; purchases open to it as well as to an owner. */
+  hasStock?: boolean;
 }
 
 export const TODAY_PATH = '/admin/dashboard';
@@ -87,7 +89,10 @@ export function buildManageItems(f: ManageListFlags): ManageItem[] {
     {
       id: 'curate', label: 'Curate', Icon: Compass, path: '/admin/compass',
       children: [
-        { id: 'capture', path: '/admin/capture', label: 'Capture' },
+        // The samples workspace, which Curate opens over its own screen.
+        { id: 'samples', path: '/admin/compass?sampleOrder=manage', label: 'Samples' },
+        // What the shop buys from its suppliers (a People tab until 2026-09-29).
+        ...(owner || f.hasStock ? [{ id: 'purchases', path: '/admin/purchase-orders', label: 'Purchases' }] : []),
         // The network catalog: carrying other houses' teas into this shop.
         { id: 'network', path: '/admin/network?tab=catalog', label: 'Network' },
       ],
@@ -95,12 +100,19 @@ export function buildManageItems(f: ManageListFlags): ManageItem[] {
     // The shelf.
     {
       id: 'inventory', label: 'Stock', Icon: Package, path: '/admin/stock',
-      children: f.hasCatalog ? [{ id: 'catalog', path: '/admin/catalog', label: 'Tea Glossary' }] : undefined,
+      children: f.hasCatalog
+        ? [
+            // Teas still being written up before they go on the shelf (was
+            // "Capture", a second word for the capturing Curate does).
+            { id: 'drafts', path: '/admin/capture', label: 'Drafts' },
+            { id: 'catalog', path: '/admin/catalog', label: 'Tea Glossary' },
+          ]
+        : undefined,
     },
     // Selling. Follows its route's one gate, the sell bundle.
     {
       id: 'orders', label: 'Sales', Icon: Receipt, path: '/admin/activity',
-      children: [{ id: 'wholesale', path: '/admin/network?tab=wholesale', label: 'Wholesale' }],
+      children: [{ id: 'wholesale', path: '/admin/activity?tab=wholesale', label: 'Wholesale' }],
     },
     // Who you know. Its own room so a member who gathers or publishes, and so
     // cannot open Sales, still reaches the people they work with.
@@ -129,7 +141,11 @@ export function buildManageItems(f: ManageListFlags): ManageItem[] {
     owner
       ? {
           id: 'settings', label: 'Settings', Icon: GearSix, path: '/admin/account-settings',
-          children: [{ id: 'members', path: '/admin/access', label: 'Members' }],
+          children: [
+            { id: 'members', path: '/admin/access', label: 'Members' },
+            // Where products imply a relationship nobody recorded (a People tab until 2026-09-29).
+            { id: 'audit', path: '/admin/audit', label: 'Audit' },
+          ],
         }
       : { id: 'settings', label: 'Settings', Icon: GearSix, path: '/admin/access' },
   ];
@@ -147,7 +163,7 @@ export function useManageNav(): ManageNav {
   const isOwnerTier = useAppStore(selectIsOwnerTier);
   const canCreateCollections = auth.user?.canCreateCollections ?? false;
 
-  const all = buildManageItems({ hasCatalog, hasSell, hasPublish, isAdmin: auth.isAdmin, isOwnerTier, platformRole });
+  const all = buildManageItems({ hasCatalog, hasSell, hasPublish, hasStock, isAdmin: auth.isAdmin, isOwnerTier, platformRole });
 
   const visibleIds = new Set(getVisibleAdminItemIds(
     { isAdmin: auth.isAdmin, isOwnerTier, hasCatalog, hasStock, hasSell, hasGather, hasPublish, hasMembers },

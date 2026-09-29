@@ -4,7 +4,7 @@
 
 ## Soon
 
-- [ ] Regroup Manage into seven rooms named for the job (Curate, Stock, Sales, People, Sessions, Publish, Settings) and thin Your Table to what is yours; steps 1 to 3 built (pull request 336), steps 4 and 5 open _(band: agent-runnable)_ _(effort: deep)_ → Plan: [manage-regroup.md](todo/plans/manage-regroup.md), page: [Manage Regrouped](https://claude.ai/artifact/9bMA6ocRdeoNd7u5EkxM2M)
+- [ ] Regroup Manage into seven rooms named for the job (Curate, Stock, Sales, People, Sessions, Publish, Settings) and thin Your Table to what is yours; steps 1 to 3 built (pull request 336), step 4 built on its own branch, step 5 open _(band: agent-runnable)_ _(effort: deep)_ → Plan: [manage-regroup.md](todo/plans/manage-regroup.md), page: [Manage Regrouped](https://claude.ai/artifact/9bMA6ocRdeoNd7u5EkxM2M)
 - [ ] Move Rock Remembers, Earth, Water, Fire and The Tea House onto the shared conversation template, so all four interviews look and behave the same and each becomes just its words and photographs _(band: agent-runnable)_ _(effort: deep)_
 - [ ] Bring back the Teaware and Sets tabs on the shop once there is something to show in them; they are hidden, not deleted (`PAUSED_TABS` in the shop page), paused 2026-09-28 _(band: you-required)_ _(effort: quick)_
 - [ ] Gather the launch photographs: 24 places outside the shop, each with what to shoot, shape, size and whether a square fits; plus the shop's 20 teas and 117 teaware pieces at three squares each _(band: you-required)_ _(effort: deep)_ → Shot list: [Teajia Shot List](https://claude.ai/artifact/Xef4FpLupisCWaMptNCyMM), shop: [Teajia Shop Photos](https://claude.ai/artifact/N67p5t2KvCSHaSKFwgBcXE) → Plan: [launch-photo-upload.md](todo/plans/launch-photo-upload.md)

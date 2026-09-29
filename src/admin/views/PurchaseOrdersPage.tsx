@@ -355,7 +355,7 @@ export const PurchaseOrdersPage: React.FC = () => {
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
       {/* Header, canonical §5 */}
       <div className="px-4 md:px-6 lg:px-10 pt-6 pb-3 flex-shrink-0 flex items-center gap-3">
-        <h1 className="h2 flex-1">Purchase Orders</h1>
+        <h1 className="h2 flex-1">Purchases</h1>
         <button
           onClick={() => setIsNewFormOpen(true)}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"

@@ -41,7 +41,13 @@ says journal and "Switch table"; the switcher card's Shop / Sessions / Ops links
 - "What needs you" is one line under the day sentence, opening Today (or Sales for someone whose Manage does not open on Today).
 - Kept, deliberately: discover stays a tile. The plan cut it for members as living in the site panel, but the site panel has no discover row, so cutting it would have removed its only door.
 
-## Step 4: merge the doubles (2 to 3 days)
+## Step 4: merge the doubles (built 2026-09-29)
+
+What shipped: Sales is Waiting, Orders, Wholesale, Ledger; People is Customers, Suppliers, Tags; People's Team tab and the deprecated TeamView are gone (Members does it); Audit is a Settings screen at /admin/audit; Purchases is a Curate screen at /admin/purchase-orders; Capture is Stock's Drafts; Network lost its essay and its Wholesale tab; Settings has an Adoptions door for platform staff. Every old address forwards, held by tests/manage-regroup.spec.ts.
+
+Moved to step 5, deliberately: Samples becoming a real Curate tab rather than the full-screen workspace it opens today, and the Library filter and Ledger split inside Curate, because both rework the Curate header that step 5 folds anyway. Tags stay a People tab rather than inline in Customers until inline tag editing exists.
+
+The original plan for this step:
 
 - People's Team tab merges into Members; People's Audit moves to Settings as Record.
 - Sales: Pending and Inquiries become Waiting; Ledger and Log become one Ledger with a filter; Wholesale moves in from Network.

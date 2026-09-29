@@ -224,6 +224,8 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
               { to: '/admin/mcp-tokens', label: 'Agents', show: true },
               { to: '/admin/currency', label: 'Rates', show: !!platformRole },
               { to: '/admin/platform', label: 'Platform', show: !!platformRole },
+              // Adoption requests from other houses (a Network tab, platform staff only).
+              { to: '/admin/network?tab=adoptions', label: 'Adoptions', show: !!platformRole },
             ].filter(l => l.show).map(l => (
               <Link key={l.to} to={l.to} className="text-tea-text-sec hover:text-tea-text underline-offset-4 hover:underline">
                 {l.label}
@@ -1185,7 +1187,7 @@ export const OrderContactsSection: React.FC<OrderContactsSectionProps> = ({
       Saved website requests are also available in Order requests.
     </p>
     <div className="flex flex-wrap gap-x-6 gap-y-1">
-      <a href="/admin/activity?tab=inquiries" className={`${TYPOGRAPHY_CLASSES.link} tap-target text-tea-text underline underline-offset-4 hover:text-tea-gold-lt`}>
+      <a href="/admin/activity?tab=waiting" className={`${TYPOGRAPHY_CLASSES.link} tap-target text-tea-text underline underline-offset-4 hover:text-tea-gold-lt`}>
         Open order requests <ArrowRight size={14} aria-hidden="true" />
       </a>
       <a href="/account/profile" className={`${TYPOGRAPHY_CLASSES.link} tap-target text-tea-text underline underline-offset-4 hover:text-tea-gold-lt`}>

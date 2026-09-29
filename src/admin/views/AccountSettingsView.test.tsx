@@ -14,7 +14,7 @@ describe('order contact setup', () => {
     expect(html).toContain('WhatsApp not set');
     expect(html).toContain('Order email not set');
     expect(html).toContain('Business WhatsApp (optional)');
-    expect(html).toContain('href="/admin/activity?tab=inquiries"');
+    expect(html).toContain('href="/admin/activity?tab=waiting"');
     expect(html).toContain('href="/account/profile"');
     expect(html).not.toContain('required=');
   });
