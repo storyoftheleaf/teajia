@@ -74,7 +74,7 @@ describe.each(PIECES.map((p) => [p.slug, p] as const))('conversation %s', (_slug
   });
 
   it('gives every editable passage its own key', () => {
-    const ids: string[] = ['title-1', 'title-2', 'dek-2', 'intro', 'closing', spec.ending.saying.id];
+    const ids: string[] = ['title-1', 'title-2', 'dek-2', 'intro-2', 'closing', spec.ending.saying.id];
     allBlocks(spec).forEach((b) => {
       if ('id' in b) ids.push(b.id);
       if (b.kind === 'line' && b.follow) ids.push(b.follow.id);

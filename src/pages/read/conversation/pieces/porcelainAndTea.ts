@@ -23,6 +23,11 @@
  * Eight pull quotes run through every part, and all 25 photographs in the
  * image folder are placed (Adrian: "you reduced the image amount a lot").
  *
+ * Two saved page edits are left behind on purpose: "intro" (the line below)
+ * and "p3-a4" (his studio-name answer, which this version tells instead). The
+ * intro now saves under "intro-2", and no block here uses "p3-a4", so neither
+ * can reach the page again.
+ *
  * The opening line the page carried from 2026-09-28, "I learned restoration
  * from Yan Jinwen. I took his class in Wuyi…", was written by an AI session and
  * was never Adrian's ("this didn't happen"). It is gone; do not restore it.
@@ -148,7 +153,7 @@ export const porcelainAndTea: ConversationSpec = {
         {
           kind: 'side', shot: S.whiteBowl, bleed: true, blocks: [
             { kind: 'n', id: 'p3-n1', text: 'The friends who take a mended piece home find something of the same.' },
-            { kind: 'a', id: 'p3-a4', text: 'Then they realize it helps them calm down and focus more on the present moment.' },
+            { kind: 'a', id: 'p3-a5', text: 'Then they realize it helps them calm down and focus more on the present moment.' },
           ],
         },
         { kind: 'photos', shots: [S.mendedDish, S.goldDish], stagger: true },

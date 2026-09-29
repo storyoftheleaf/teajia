@@ -320,7 +320,8 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
             <Byline spec={spec} />
 
             <section data-reveal="text" className="tj-conv-col tj-conv-intro">
-              <EditableText field="intro" as="p" multiline className="tj-conv-intro-text">
+              {/* Keyed intro-2: a saved edit under "intro" held a line that was never Adrian's (2026-09-29). */}
+              <EditableText field="intro-2" as="p" multiline className="tj-conv-intro-text">
                 {spec.intro}
               </EditableText>
               <Contents spec={spec} />
