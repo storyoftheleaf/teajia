@@ -86,6 +86,7 @@ export const porcelainAndTea: ConversationSpec = {
     ],
   },
   portrait: S.portrait,
+  share: { line: 'p4-l1', photo: S.goldBowl },
   intro: 'At the base of the Wuyi Mountains, I found my way into this shop where I just loved everything. Everything was taken care of at such a high level. Everywhere I looked, each and every piece was cared for immaculately, using skills that have been developed over many years. The first time I came here, I did not have time to learn, but the second time I created space in my schedule to pick up some of the skills and spend more time with this master.',
   opening: [
     { kind: 'n', id: 'o-n1', text: 'Yan Jinwen mends old tea ware with lacquer. It began with tea.' },

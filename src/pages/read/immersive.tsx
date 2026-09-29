@@ -372,18 +372,29 @@ export const ImmersiveRoot: React.FC<{ children: React.ReactNode; rootRef?: Reac
 // piece above "More from". Both open the same sheet. The title is read off the
 // page's own <title> at the moment of the press, because every Read piece
 // already sets it and a second copy here would drift from it.
-function readShareArticle(pathname: string) {
-  const title = document.title.replace(/\s*·\s*Teajia\s*$/, '').trim() || 'Teajia';
+//
+// A piece that knows more about itself (its object, its person's line) says so
+// through ReadShareContext; one that does not gets a card of its title alone.
+export type ReadShare = {
+  title: string;
+  image?: string;
+  line?: { text: string; who?: string };
+};
+export const ReadShareContext = React.createContext<ReadShare | null>(null);
+
+function readShareArticle(pathname: string, known: ReadShare | null) {
+  const title = known?.title ?? (document.title.replace(/\s*·\s*Teajia\s*$/, '').trim() || 'Teajia');
   const slug = pathname.replace(/\/+$/, '').split('/').pop() || 'read';
-  return { id: slug, slug, title };
+  return { id: slug, slug, title, kicker: 'Teajia · Read', image: known?.image, line: known?.line };
 }
 
 export const ShareButton: React.FC<{ variant: 'bar' | 'end' }> = ({ variant }) => {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
+  const known = React.useContext(ReadShareContext);
   // Held steady while the sheet is open: the bar re-renders on every scroll
   // tick, and a fresh object each time restarts the poster before it finishes.
-  const article = React.useMemo(() => (open ? readShareArticle(pathname) : null), [open, pathname]);
+  const article = React.useMemo(() => (open ? readShareArticle(pathname, known) : null), [open, pathname, known]);
   return (
     <>
       <button

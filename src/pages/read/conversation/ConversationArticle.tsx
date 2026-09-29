@@ -15,6 +15,7 @@ import { Link } from 'react-router-dom';
 import {
   ImmersiveRoot, ImmersiveNav, MoreFooter, ChapterHead, partWord, revealFrom,
   useReveals, useReadingProgress, useImmersiveChrome, grainCss, ACCENTS,
+  ReadShareContext, type ReadShare,
 } from '../immersive';
 import EditablePhoto from '../EditablePhoto';
 import { StoryEditProvider, EditableText } from '../storyEdit';
@@ -22,7 +23,7 @@ import StoryEditorBar from '../StoryEditorBar';
 import { Rich } from './RichText';
 import {
   type Block, type ConversationSpec, type LineSize, type Part, type Shot,
-  photoCount, readingMinutes, turnStarts,
+  allBlocks, photoCount, readingMinutes, turnStarts,
 } from './spec';
 import './conversation.css';
 
@@ -310,6 +311,17 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
   const leadingTold = (firstOther === -1 ? spec.opening : spec.opening.slice(0, firstOther)) as Extract<Block, { kind: 'n' }>[];
   const openingRest = firstOther === -1 ? [] : spec.opening.slice(firstOther);
   const speakers = useMemo<Speakers>(() => ({ ...spec.speakers, starts: turnStarts(spec) }), [spec]);
+  // What the Share button puts on its card: the piece's own title, the line it
+  // names, said by its subject, over the object it names.
+  const share = useMemo<ReadShare>(() => {
+    const line = spec.share && allBlocks(spec).find((b) => b.kind === 'line' && b.id === spec.share!.line);
+    const role = spec.subject.role.charAt(0).toLowerCase() + spec.subject.role.slice(1);
+    return {
+      title: spec.title.join(' '),
+      image: spec.share?.photo ? spec.images + spec.share.photo.file : undefined,
+      line: line && line.kind === 'line' ? { text: line.text, who: `${spec.subject.name}, ${role}` } : undefined,
+    };
+  }, [spec]);
 
   // Arriving on a #part-N link shows that part at once. It waits out the app's
   // own scroll restore, which runs a frame after the route mounts and would
@@ -324,6 +336,7 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
 
   return (
     <StoryEditProvider slug={spec.slug}>
+      <ReadShareContext.Provider value={share}>
       <SpeakerCtx.Provider value={speakers}>
         <ImmersiveRoot rootRef={rootRef}>
           <Helmet><title>{spec.pageTitle}</title></Helmet>
@@ -385,6 +398,7 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
           </article>
         </ImmersiveRoot>
       </SpeakerCtx.Provider>
+      </ReadShareContext.Provider>
       <StoryEditorBar />
     </StoryEditProvider>
   );
