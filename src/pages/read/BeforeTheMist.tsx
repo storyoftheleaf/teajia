@@ -3,7 +3,7 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * Before the Mist Burns Away: Field Notes, N°04
+ * Before the Mist Burns Away: Field Notes
  * A photo-essay from a Yunnan spring harvest, from first grey light to first cup.
  * Ported pixel-faithfully from the tea-article-redesign mockup.
  */
@@ -15,9 +15,9 @@ import {
 } from './immersive';
 
 const moreLinks = [
-  { to: '/read/rock-remembers', kicker: 'Conversation · N°02', title: 'The Rock Remembers', blurb: 'A Wuyi rock-tea roaster on fire, patience & lineage.' },
-  { to: '/read/earth-water-fire', kicker: 'Conversation · N°03', title: 'Earth, Water, Fire', blurb: 'A Jingdezhen potter on the vessels that hold the tea.' },
-  { to: '/read/leaf-to-liquor', kicker: 'The Art of Tea · N°01', title: 'From Leaf to Liquor', blurb: 'How a single leaf becomes the six colours of tea.' },
+  { to: '/read/rock-remembers', kicker: 'Conversation', title: 'The Rock Remembers', blurb: 'A Wuyi rock-tea roaster on fire, patience & lineage.' },
+  { to: '/read/earth-water-fire', kicker: 'Conversation', title: 'Earth, Water, Fire', blurb: 'A Jingdezhen potter on the vessels that hold the tea.' },
+  { to: '/read/leaf-to-liquor', kicker: 'The Art of Tea', title: 'From Leaf to Liquor', blurb: 'How a single leaf becomes the six colours of tea.' },
 ];
 
 const interludeBig: React.CSSProperties = { fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(24px,4vw,40px)', lineHeight: 1.3, color: C.ink, margin: 0 };
@@ -34,7 +34,7 @@ const BeforeTheMist: React.FC = () => {
   return (
     <ImmersiveRoot rootRef={rootRef}>
       <Helmet><title>Before the Mist Burns Away · Teajia</title></Helmet>
-      <ImmersiveNav eyebrow="Field Notes · N°04" progress={progress} />
+      <ImmersiveNav eyebrow="Field Notes" progress={progress} />
       <AccentSwatches accent={accent} setAccent={setAccent} />
 
       <article style={{ position: 'relative', zIndex: 1 }}>
@@ -185,7 +185,7 @@ const BeforeTheMist: React.FC = () => {
             All of it, the climb, the cool, the careful hands, so that months from now, a single cup might taste of this exact morning.
           </p>
           <div style={{ marginTop: 42, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
-            Pictures &amp; words by Teajia &nbsp;·&nbsp; Field Notes &nbsp;·&nbsp; N°04
+            Pictures &amp; words by Teajia &nbsp;·&nbsp; Field Notes
           </div>
         </section>
 

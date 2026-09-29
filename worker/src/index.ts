@@ -7951,9 +7951,9 @@ const CONTRIBUTOR_WRITE_FIELDS = [
 const CONTRIBUTOR_FOCUS_FIELDS = ['portrait_focus', 'avatar_focus'] as const;
 
 const PROFILE_SELF_FIELDS = [
-  'display_name', 'business_name', 'chinese_name', 'pronouns', 'location_line', 'active_since', 'languages',
+  'display_name', 'business_name', 'chinese_name', 'role', 'pronouns', 'location_line', 'active_since', 'languages',
   'beginnings', 'now_text', 'now_stamp', 'now_updated_at', 'inspirations', 'closing',
-  'avatar_url', 'portrait_url', 'portrait_caption', 'voice_clip_url', 'voice_clip_caption',
+  'avatar_url', 'portrait_url', 'portrait_focus', 'portrait_caption', 'voice_clip_url', 'voice_clip_caption',
   'pouring_today_product_id', 'pouring_today_note', 'where_to_find_text', 'links',
 ] as const;
 
@@ -21574,7 +21574,7 @@ function projectPublicPerson(row: Record<string, any>) {
     business_name: (row.business_name as string | null) ?? null,
     role: (row.public_role as string | null) ?? (row.role as string | null) ?? null,
     portrait_url: (row.portrait_url as string | null) ?? null,
-    own_line: firstSentenceOf(row.now_text) ?? firstSentenceOf(row.beginnings) ?? firstSentenceOf(row.inspirations),
+    own_line: firstSentenceOf(row.now_text) ?? firstSentenceOf(row.beginnings),
     is_host: row.is_host === 1 || row.is_host === true,
   };
 }
@@ -23692,7 +23692,7 @@ const handleListPublicContributors: Handler = async (request, env) => {
     // One line in the person's own words, for the card: the first sentence of
     // what they are doing now, else of where they began. The page never
     // describes them in the third person, so this is theirs, not a summary.
-    own_line: firstSentenceOf(row.now_text) ?? firstSentenceOf(row.beginnings) ?? firstSentenceOf(row.inspirations),
+    own_line: firstSentenceOf(row.now_text) ?? firstSentenceOf(row.beginnings),
     // The directory's two filters. A host runs a room or is about to: a hosted
     // account, or a public lead/co-host role on any event. A writer has at
     // least one published article of their own.

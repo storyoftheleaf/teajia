@@ -3,7 +3,7 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * Field Study: The Water Before the Leaf · N°12
+ * Field Study: The Water Before the Leaf
  * Lu Yu's forgotten half: water hardness, temperature, and the classical
  * ranking of sources.
  * Ported pixel-faithfully from the tea-article-redesign mockup.
@@ -16,9 +16,9 @@ import {
 } from './immersive';
 
 const moreLinks = [
-  { to: '/read/legend', kicker: 'Legend · N°13', title: "The Immortals' Cliff", blurb: 'The Da Hong Pao mother trees of Wuyi.' },
-  { to: '/read/craft', kicker: 'The Craft · N°14', title: 'The Pot That Remembers', blurb: 'Yixing purple clay, and pots that age with you.' },
-  { to: '/read/ritual', kicker: 'The Ritual · N°05', title: 'Seven Steeps', blurb: 'The same leaves, brewed seven ways.' },
+  { to: '/read/legend', kicker: 'Legend', title: "The Immortals' Cliff", blurb: 'The Da Hong Pao mother trees of Wuyi.' },
+  { to: '/read/craft', kicker: 'The Craft', title: 'The Pot That Remembers', blurb: 'Yixing purple clay, and pots that age with you.' },
+  { to: '/read/ritual', kicker: 'The Ritual', title: 'Seven Steeps', blurb: 'The same leaves, brewed seven ways.' },
 ];
 
 // ─── Shared sub-styles ────────────────────────────────────────────────────────
@@ -109,7 +109,7 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
   return (
     <ImmersiveRoot rootRef={rootRef}>
       <Helmet><title>The Water Before the Leaf · Teajia</title></Helmet>
-      <ImmersiveNav eyebrow="Field Study · N°12" progress={progress} />
+      <ImmersiveNav eyebrow="Field Study" progress={progress} />
       <AccentSwatches accent={accent} setAccent={setAccent} />
 
       <article style={{ position: 'relative', zIndex: 1 }}>
@@ -389,7 +389,7 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
             Change your water before you change your tea. It is the cheapest and most dramatic improvement a drinker can make, and the one almost no one thinks to try. The leaf gets all the attention. The water does most of the work.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
-            A Field Study by Teajia &nbsp;·&nbsp; N°12
+            A Field Study by Teajia
           </div>
         </section>
 

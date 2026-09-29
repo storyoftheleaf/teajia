@@ -1,0 +1,176 @@
+/*
+ * The conversation template's layout. Two widths and one spacing scale, shared
+ * by every conversation, instead of six widths and five clamps typed by hand
+ * into each article. Colours come only from the reader's own tokens.
+ *
+ * The spine: every run of words, large or small, starts at the reading
+ * column's left edge. Large lines may run wider to the right; only
+ * photographs go wider on both sides.
+ */
+.tj-conv {
+  --conv-col: 592px;
+  --conv-wide: 1040px;
+  --conv-gutter: 24px;
+  --conv-s1: clamp(28px, 4vw, 44px);
+  --conv-s2: clamp(44px, 6vw, 84px);
+  --conv-s3: clamp(64px, 9vw, 120px);
+  --conv-gap: clamp(10px, 1.6vw, 18px);
+}
+
+/* ── The reading column ─────────────────────────────────────────────────── */
+.tj-conv-col {
+  max-width: calc(var(--conv-col) + 2 * var(--conv-gutter));
+  margin: var(--conv-s2) auto;
+  padding: 0 var(--conv-gutter);
+}
+.tj-conv-col + .tj-conv-col { margin-top: calc(-1 * var(--conv-s2) + var(--conv-s1)); }
+
+/* Adrian's question: the display face, a step larger, in cream. */
+.tj-conv-q {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(21px, 2.4vw, 24px);
+  line-height: 1.4;
+  color: var(--tj-read-cream);
+  margin: 0 0 14px;
+  text-wrap: pretty;
+}
+.tj-conv-q:not(:first-child) { margin-top: var(--conv-s1); }
+
+/* His answer: the reading face. */
+.tj-conv-a {
+  font-family: var(--font-body);
+  font-size: clamp(16px, 2vw, 18px);
+  line-height: 1.8;
+  color: var(--tj-read-taupe);
+  margin: 0 0 16px;
+  text-wrap: pretty;
+}
+.tj-conv-a:last-child { margin-bottom: 0; }
+.tj-conv-em { font-style: italic; color: var(--tj-read-warm); }
+.tj-conv-cn { font-family: 'Noto Serif SC', serif; }
+.tj-conv-a .tj-conv-cn { color: var(--tj-gold, var(--tj-read-gold-default)); }
+
+.tj-sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* ── A sentence set large, hung on the column's left edge ──────────────── */
+.tj-conv-spine {
+  max-width: calc(var(--conv-wide) + 2 * var(--conv-gutter));
+  margin: var(--conv-s2) auto;
+  padding-right: var(--conv-gutter);
+  padding-left: max(var(--conv-gutter), calc((min(100%, var(--conv-wide) + 2 * var(--conv-gutter)) - var(--conv-col)) / 2));
+  box-sizing: border-box;
+}
+.tj-conv-line {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 300;
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  color: var(--tj-read-cream);
+  margin: 0;
+  text-wrap: balance;
+}
+[data-size='xl'] > .tj-conv-line { font-size: clamp(40px, 7vw, 88px); max-width: 15ch; }
+[data-size='l'] > .tj-conv-line { font-size: clamp(32px, 5vw, 60px); max-width: 17ch; }
+[data-size='m'] > .tj-conv-line { font-size: clamp(26px, 3.4vw, 40px); max-width: 22ch; }
+.tj-conv-gold { font-weight: 400; color: var(--tj-gold-lt, var(--tj-read-gold-lt-default)); }
+
+/* ── Photographs ────────────────────────────────────────────────────────── */
+.tj-conv-figure {
+  max-width: calc(var(--conv-wide) + 2 * var(--conv-gutter));
+  margin: var(--conv-s2) auto;
+  padding: 0 var(--conv-gutter);
+}
+.tj-conv-figure[data-narrow] { max-width: calc(688px + 2 * var(--conv-gutter)); }
+.tj-conv-photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: var(--conv-gap);
+}
+@media (min-width: 700px) {
+  .tj-conv-photos[data-stagger] > :nth-child(2) { margin-top: clamp(0px, 8vw, 110px); }
+}
+.tj-conv-caption {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--tj-read-dim);
+  margin: 12px 0 0;
+  max-width: var(--conv-col);
+}
+.tj-conv-bleed { position: relative; margin: var(--conv-s2) 0; height: clamp(480px, 86vh, 880px); }
+
+/* ── A photograph beside words: the words start at the photograph's top ── */
+.tj-conv-side {
+  max-width: 1148px;
+  margin: var(--conv-s2) auto;
+  padding: 0 var(--conv-gutter);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: clamp(28px, 5vw, 72px);
+  align-items: start;
+}
+.tj-conv-side-words { padding-top: clamp(0px, 2vw, 24px); }
+.tj-conv-side-words > [data-size] { margin-bottom: 22px; }
+.tj-conv-side-words > [data-size]:last-child { margin-bottom: 0; }
+@media (min-width: 700px) {
+  .tj-conv-side[data-flip] > .tj-conv-side-words { order: 1; }
+}
+
+/* ── Words on a photograph's empty space ────────────────────────────────── */
+.tj-conv-onphoto { position: relative; max-width: calc(820px + 2 * var(--conv-gutter)); margin: var(--conv-s2) auto; padding: 0 var(--conv-gutter); }
+.tj-conv-onphoto-frame { position: relative; }
+.tj-conv-onphoto-words {
+  position: absolute; z-index: 2; left: 0; top: clamp(36px, 8%, 90px);
+  padding: 0 clamp(48px, 9vw, 96px); max-width: 15ch; box-sizing: content-box;
+  font-family: var(--font-display); font-style: italic; font-weight: 300;
+  font-size: clamp(32px, 5vw, 60px); line-height: 1.08; margin: 0; pointer-events: none;
+}
+
+/* ── A Chinese word hung in the margin beside its words ─────────────────── */
+.tj-conv-glyph { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px; align-items: start; }
+.tj-conv-glyph-mark {
+  writing-mode: vertical-rl;
+  font-family: 'Noto Serif SC', serif; font-weight: 200;
+  font-size: clamp(56px, 12vw, 140px); line-height: 1; letter-spacing: 0.08em;
+  color: var(--tj-gold, var(--tj-read-gold-default)); opacity: 0.85;
+}
+@media (min-width: 1000px) {
+  .tj-conv-glyph { display: block; position: relative; }
+  .tj-conv-glyph-mark { position: absolute; right: 100%; top: 0; margin-right: clamp(32px, 4vw, 56px); }
+}
+.tj-conv-glyph [data-size] { margin: 0 0 22px; }
+.tj-conv-col > [data-size] { margin: var(--conv-s1) 0; }
+
+/* ── Contents, under the intro ──────────────────────────────────────────── */
+.tj-conv-contents { list-style: none; margin: var(--conv-s1) 0 0; padding: 0; border-top: 1px solid rgb(var(--tj-read-gold-rgb) / 0.16); }
+.tj-conv-contents li { border-bottom: 1px solid rgb(var(--tj-read-gold-rgb) / 0.16); }
+.tj-conv-contents a {
+  display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: baseline; gap: 12px;
+  min-height: 44px; padding: 12px 0; text-decoration: none; color: var(--tj-read-cream);
+}
+.tj-conv-contents a:hover .tj-conv-contents-title,
+.tj-conv-contents a:focus-visible .tj-conv-contents-title { color: var(--tj-gold-lt, var(--tj-read-gold-lt-default)); }
+.tj-conv-contents a:focus-visible { outline: 1px solid rgb(var(--tj-read-gold-rgb) / 0.6); outline-offset: 4px; }
+.tj-conv-contents-part { font-family: var(--font-sans); font-size: 12px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--tj-read-dim); }
+.tj-conv-contents-title { font-family: var(--font-display); font-size: clamp(21px, 2.4vw, 24px); line-height: 1.2; transition: color 200ms; }
+
+/* ── The saying and the close ───────────────────────────────────────────── */
+.tj-conv-saying { max-width: calc(var(--conv-wide) + 2 * var(--conv-gutter)); margin: var(--conv-s3) auto var(--conv-s2); padding: 0 var(--conv-gutter); text-align: center; }
+.tj-conv-saying .tj-conv-line { max-width: 18ch; margin: 0 auto; }
+.tj-conv-close { max-width: calc(760px + 2 * var(--conv-gutter)); margin: 0 auto; padding: 0 var(--conv-gutter); }
+.tj-conv-credit {
+  max-width: calc(var(--conv-col) + 2 * var(--conv-gutter));
+  margin: var(--conv-s2) auto 0; padding: 0 var(--conv-gutter) clamp(96px, 12vw, 140px);
+  text-align: center; font-family: var(--font-body); font-style: italic; font-size: 15px; line-height: 1.7; color: var(--tj-read-dim);
+}
+.tj-conv-credit p { margin: 0; }
+.tj-conv-credit-rule { display: block; width: 32px; height: 1px; margin: 0 auto 22px; background: var(--tj-gold, var(--tj-read-gold-default)); }
+
+.tj-conv-follow { max-width: var(--conv-col); margin-top: 18px; }

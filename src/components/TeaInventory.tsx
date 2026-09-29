@@ -536,6 +536,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
              --page-header-h, and the fallback is 0 for any page that has no
              header to sit under. */}
          <div
+           data-testid="shop-toolbar"
            className="sticky z-dropdown -mx-7 px-4 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border md:-mx-10 md:px-6 lg:-mx-4 lg:px-4"
            style={{ top: 'calc(var(--page-header-h, 0px) + env(safe-area-inset-top, 0px))' }}
          >
@@ -938,7 +939,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                specialFilter={specialFilter}
                tastingCounts={tastingCounts}
                priceWeight={shopPriceWeight}
-               formatPrice={shopPrice.total}
+               formatPrice={shopPrice.symbolTotal}
                favoriteIds={userFavorites}
                onToggleFavorite={handleFavoriteToggle}
                onOpenProduct={openProduct}

@@ -80,7 +80,7 @@ describe('ContributorEditorPanel publication controls', () => {
       />,
     );
 
-    expect(html).toContain('Where they belong');
+    expect(html).toContain('Shops');
     expect(html).toContain('Public role');
     expect(html).toContain('Host profile');
     expect(html).not.toContain('Public host for');

@@ -3,7 +3,7 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * Ten Thousand Mornings: A History of Tea, N°07
+ * Ten Thousand Mornings: A History of Tea
  * Five thousand years of tea history, told along a horizontal ink spine
  * that draws as you scroll through the six eras.
  * Ported pixel-faithfully from the tea-article-redesign mockup
@@ -30,9 +30,9 @@ import {
 
 // ─── MoreFooter links ────────────────────────────────────────────────────────
 const moreLinks = [
-  { to: '/read/tasting',  kicker: 'Tasting · N°08',    title: 'The Vocabulary of Taste',  blurb: 'A turning wheel of everything a cup can say.' },
-  { to: '/read/atlas',    kicker: 'Geography · N°06',   title: 'A Map of Mountains',        blurb: 'An atlas of where the great teas are born.' },
-  { to: '/read/ritual',   kicker: 'The Ritual · N°05',  title: 'Seven Steeps',              blurb: 'The same leaves, brewed seven ways.' },
+  { to: '/read/tasting',  kicker: 'Tasting',    title: 'The Vocabulary of Taste',  blurb: 'A turning wheel of everything a cup can say.' },
+  { to: '/read/atlas',    kicker: 'Geography',   title: 'A Map of Mountains',        blurb: 'An atlas of where the great teas are born.' },
+  { to: '/read/ritual',   kicker: 'The Ritual',  title: 'Seven Steeps',              blurb: 'The same leaves, brewed seven ways.' },
 ];
 
 // ─── Shared era-body style ────────────────────────────────────────────────────
@@ -446,7 +446,7 @@ const HistoryTenThousandMornings: React.FC = () => {
   return (
     <ImmersiveRoot rootRef={rootRef}>
       <Helmet><title>Ten Thousand Mornings · Teajia</title></Helmet>
-      <ImmersiveNav eyebrow="History · N°07" progress={progress} />
+      <ImmersiveNav eyebrow="History" progress={progress} />
       <AccentSwatches accent={accent} setAccent={setAccent} />
 
       <article style={{ position: 'relative', zIndex: 1 }}>
@@ -487,7 +487,7 @@ const HistoryTenThousandMornings: React.FC = () => {
               color: C.gold,
               marginBottom: 28,
             }}>
-              A History of Tea &nbsp;·&nbsp; N°07
+              A History of Tea
             </div>
             <h1 style={{
               fontFamily: F.display,
@@ -763,7 +763,7 @@ const HistoryTenThousandMornings: React.FC = () => {
             restored. Tea is the oldest morning we still keep.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
-            Words by Teajia &nbsp;·&nbsp; A History of Tea &nbsp;·&nbsp; N°07
+            Words by Teajia &nbsp;·&nbsp; A History of Tea
           </div>
         </section>
 

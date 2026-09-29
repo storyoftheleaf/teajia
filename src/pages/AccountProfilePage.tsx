@@ -163,7 +163,7 @@ function NewProfileForm({ name, onCreate }: { name: string; onCreate: (value: Se
   const submit = async (event: React.FormEvent) => {
     event.preventDefault(); setSaving(true); setError(null);
     try {
-      await onCreate({ id: slug, display_name: displayName, business_name: null, beginnings: bio, chinese_name: null, now_text: null, inspirations: null, closing: null, location_line: null, languages: [], avatar_url: null, portrait_url: null, links: [] });
+      await onCreate({ id: slug, display_name: displayName, business_name: null, beginnings: bio, chinese_name: null, role: null, now_text: null, inspirations: null, closing: null, location_line: null, languages: [], avatar_url: null, portrait_url: null, portrait_focus: null, links: [] });
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'The profile draft could not be created.'); }
     finally { setSaving(false); }
   };

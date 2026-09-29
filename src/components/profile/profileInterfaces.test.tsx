@@ -28,6 +28,8 @@ const profile: SelfProfile = {
   display_name: 'Adrian Rasmussen',
   business_name: null,
   chinese_name: null,
+  role: null,
+  portrait_focus: null,
   inspirations: null,
   closing: null,
   beginnings: 'Tea sourcing, service, and education from Bali.',
@@ -93,9 +95,11 @@ describe('profile interfaces', () => {
     );
 
     expect(html).toContain('Awaiting approval');
-    expect(html).not.toContain('Draft · public identity');
-    expect(html).toContain('Teajia');
-    expect(html).toContain('Store associations are managed by an owner');
+    // The card asks only what the page shows: no store list, no pronouns, no business name.
+    expect(html).not.toContain('Store associations');
+    expect(html).not.toContain('Pronouns');
+    expect(html).toContain('What you do');
+    expect(html).toContain('Your story');
     expect(html).toContain('Changes remain private until approved.');
     expect(html).toContain('Save draft');
   });
@@ -110,9 +114,8 @@ describe('profile interfaces', () => {
       />,
     );
 
-    expect(html).toContain('Published · public identity');
+    expect(html).toContain('>Published<');
     expect(html).toContain('Save for review');
-    expect(html).not.toContain('Draft · public identity');
     expect(html).not.toContain('Changes remain private until approved.');
   });
 
@@ -128,7 +131,7 @@ describe('profile interfaces', () => {
       <ProfileEditor profile={publishedWithDraft} onSave={async () => {}} onSaveGallery={async () => {}} onUnpublish={async () => {}} />,
     );
 
-    expect(html).toContain('Published · public identity');
+    expect(html).toContain('>Published<');
     expect(html).toContain('Update pending draft');
     expect(html).toContain('Your live profile is unchanged.');
   });

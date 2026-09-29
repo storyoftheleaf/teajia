@@ -206,7 +206,7 @@
   --tj-read-cream: #f3ead9;
   --tj-read-warm: #e3d6bd;
   --tj-read-taupe: #cdc0a8;
-  --tj-read-dim: #80735f;
+  --tj-read-dim: #8c7f6a; /* 4.83:1 on the ground, 4.50:1 on a card. Was #80735f, 4.09:1, until 2026-09-29. */
   --tj-read-gold-default: #a8874d;
   --tj-read-gold-lt-default: #c6a667;
   --tj-read-gold-rgb: 168 135 77;
@@ -4857,4 +4857,39 @@ body.cart-panel-open .commerce-dock {
 .checkout-whatsapp-action:focus-visible {
   outline: 2px solid var(--tea-gold);
   outline-offset: 2px;
+}
+
+/* ── Interview cover on a phone: the photo sinks into the page ─────────────
+   Chosen 2026-09-29 from five mock-ups ("Dissolve"). On a phone the cover used
+   to stack eight separate pieces above a photo cropped to empty cloth; now the
+   photo comes first, its lower half falls to the page ground, and the title
+   rises over that fall, so photo, title and credits read as one piece. The
+   words sit on the faded half only, never on the sharp part of the picture.
+   Desktop keeps its two columns untouched: every rule is inside the query.
+   The article sets these classes on its <header> and the header's two cells;
+   the !important is there because each cover sizes its cells inline. */
+@media (max-width: 700px) {
+  .tj-cover-dissolve { min-height: 0 !important; }
+  .tj-cover-dissolve .tj-cover-photo {
+    order: 1 !important;
+    height: 72svh !important;
+    min-height: 0 !important;
+  }
+  .tj-cover-dissolve .tj-cover-photo::after {
+    content: '';
+    position: absolute;
+    inset: 45% 0 0 0;
+    pointer-events: none;
+    background: linear-gradient(to bottom,
+      rgb(var(--tj-read-bg-rgb) / 0) 0%,
+      rgb(var(--tj-read-bg-rgb) / 0.78) 45%,
+      var(--tj-read-bg) 82%);
+  }
+  .tj-cover-dissolve .tj-cover-text {
+    order: 2 !important;
+    position: relative;
+    z-index: 1;
+    margin-top: -110px;
+    padding-top: 0 !important;
+  }
 }
