@@ -14,7 +14,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { allBlocks, plain, type Block, type ConversationSpec } from './spec';
+import { allBlocks, plain, turnStarts, type Block, type ConversationSpec } from './spec';
 import { CONVERSATIONS } from './pieces';
 import { isArticleVisible } from '../articleLive';
 
@@ -37,7 +37,7 @@ function display(spec: ConversationSpec) {
   allBlocks(spec).forEach((b: Block) => {
     if (b.kind === 'line' || b.kind === 'on-photo') large.push({ id: b.id, text: b.text });
     if (b.kind === 'line' && b.follow) words.push(b.follow);
-    if (b.kind === 'q' || b.kind === 'a') words.push({ id: b.id, text: b.text });
+    if (b.kind === 'q' || b.kind === 'a' || b.kind === 'n') words.push({ id: b.id, text: b.text });
   });
   return { large, words };
 }
@@ -59,13 +59,22 @@ describe.each(PIECES.map((p) => [p.slug, p] as const))('conversation %s', (_slug
     expect(spec.next.filter((l) => isArticleVisible(l.to, false)).length).toBeGreaterThan(0);
   });
 
+  it('names him wherever his answer begins, large line or paragraph', () => {
+    // A large line once opened his answer above his name, so it read as nobody's.
+    // Adrian's telling hands the turn back just as a question does.
+    const words = allBlocks(spec).filter((b) => b.kind === 'q' || b.kind === 'n' || b.kind === 'a' || b.kind === 'line');
+    const starts = turnStarts(spec);
+    const unnamed = words.filter((b, i) => i > 0 && (words[i - 1].kind === 'q' || words[i - 1].kind === 'n') && (b.kind === 'a' || b.kind === 'line') && !starts.has((b as { id: string }).id));
+    expect(unnamed.map((b) => (b as { id: string }).id)).toEqual([]);
+  });
+
   it('never puts more than two photographs in a row', () => {
     const rows = allBlocks(spec).filter((b) => b.kind === 'photos').map((b) => (b.kind === 'photos' ? b.shots.length : 0));
     expect(rows.every((n) => n <= 2)).toBe(true);
   });
 
   it('gives every editable passage its own key', () => {
-    const ids: string[] = ['title-1', 'title-2', 'dek-2', 'intro', spec.ending.saying.id];
+    const ids: string[] = ['title-1', 'title-2', 'dek-2', 'intro-2', 'closing', spec.ending.saying.id];
     allBlocks(spec).forEach((b) => {
       if ('id' in b) ids.push(b.id);
       if (b.kind === 'line' && b.follow) ids.push(b.follow.id);
@@ -93,8 +102,10 @@ describe.each(PIECES.map((p) => [p.slug, p] as const))('conversation %s', (_slug
     const keyWords = (t: string) => norm(t).split(' ').filter((w) => w.length >= 5);
     const { large, words } = display(spec);
     const questions = new Set(allBlocks(spec).filter((b) => b.kind === 'q').map((b) => (b as { id: string }).id));
+    // Adrian's telling is his own voice, approved in his draft; it is not the subject's, so it is not traced.
+    const told = new Set(allBlocks(spec).filter((b) => b.kind === 'n').map((b) => (b as { id: string }).id));
     const untraced: string[] = [];
-    [...large, ...words].forEach((p) => {
+    [...large, ...words].filter((p) => !told.has(p.id)).forEach((p) => {
       const isQ = questions.has(p.id);
       // Each sentence of his is checked on its own, so one invented sentence
       // cannot hide inside a long answer that is otherwise his.
