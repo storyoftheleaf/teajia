@@ -2197,7 +2197,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <button ref={isMobile ? mobileSearchTriggerRef : undefined} type="button" onClick={() => setMobileSearchExpanded(true)} aria-label="Search inventory" className="tap-target md:!hidden text-tea-text-sec hover:text-tea-text"><Search size={18} /></button>
 
                     {/* Glossary, Vendor and Edit left this row for the More menu
-                        (2026-09-29, todo/plans/manage-regroup.md): the row holds
+                        (2026-09-29, todo/plans/archive/manage-regroup.md): the row holds
                         what you reach for every visit. A vendor is still one
                         search away, since search suggests sources as you type. */}
 

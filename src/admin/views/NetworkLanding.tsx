@@ -16,7 +16,7 @@ import { AdoptionQueue } from './AdoptionQueue';
 // order, a listing edit) remain on their own routes and link back here.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Wholesale moved to Sales on 2026-09-29 (todo/plans/manage-regroup.md); an
+// Wholesale moved to Sales on 2026-09-29 (todo/plans/archive/manage-regroup.md); an
 // old ?tab=wholesale link forwards there.
 type NetworkTab = 'catalog' | 'suggestions' | 'adoptions';
 

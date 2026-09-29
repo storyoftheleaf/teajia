@@ -10,7 +10,7 @@ import { ADMIN_CONNECTION_ROUTES, getVisibleAdminItemIds } from './navigationCon
 // The Manage rooms, in one place. Seven since 2026-09-29, each named for the
 // job being done (bringing tea in, the shelf, selling, who you know, hosting,
 // what the shop puts out, running the shop), with the screens that job uses
-// under it. The plan and the reasoning: todo/plans/manage-regroup.md.
+// under it. The plan and the reasoning: todo/plans/archive/manage-regroup.md.
 //
 // The desktop column beside the rail and the phone's site panel both read
 // this list, so a room added here appears on

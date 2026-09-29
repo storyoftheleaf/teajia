@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildManageItems, isManagePathActive } from './manageNav';
 
-// Seven rooms, named for the job (todo/plans/manage-regroup.md). The order is
+// Seven rooms, named for the job (todo/plans/archive/manage-regroup.md). The order is
 // the order of a working day: bring tea in, shelve it, sell it, the people,
 // hosting, publishing, then running the shop.
 

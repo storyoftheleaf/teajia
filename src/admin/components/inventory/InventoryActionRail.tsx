@@ -14,7 +14,7 @@ import { Pencil, Eye, Star, FlaskConical, Share2, Receipt, Layers, Archive, X as
  * Edit (single-select only), Publish, Invoice, Archive; then More, which opens
  * the other eight in place (the tasting pair, Profile, Writing, Star, Sample,
  * Share, Collect); spacer, Clear pinned at the bottom. Thirteen at once was the
- * densest control in Manage (2026-09-29, todo/plans/manage-regroup.md). All handlers are passed in and reuse the
+ * densest control in Manage (2026-09-29, todo/plans/archive/manage-regroup.md). All handlers are passed in and reuse the
  * existing InventoryView business logic.
  */
 export interface InventoryActionRailProps {

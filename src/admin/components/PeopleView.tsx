@@ -10,7 +10,7 @@ import { useAppStore as useMainStore, selectHasBundle, selectIsOwnerTier } from 
 import { api } from '../../lib/api';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
-// Customers, Suppliers and Tags since 2026-09-29 (todo/plans/manage-regroup.md).
+// Customers, Suppliers and Tags since 2026-09-29 (todo/plans/archive/manage-regroup.md).
 // Team was a deprecated copy of Members; Audit moved to Settings; Purchase
 // Orders moved to Curate. Their old tab links forward to where they live now.
 type PeopleTab = 'customers' | 'sources' | 'tags';

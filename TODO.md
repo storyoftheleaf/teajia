@@ -4,7 +4,6 @@
 
 ## Soon
 
-- [ ] Regroup Manage into seven rooms named for the job (Curate, Stock, Sales, People, Sessions, Publish, Settings) and thin Your Table to what is yours; steps 1 to 3 built (pull request 336), steps 4 and 5 built on stacked branches _(band: agent-runnable)_ _(effort: deep)_ → Plan: [manage-regroup.md](todo/plans/manage-regroup.md), page: [Manage Regrouped](https://claude.ai/artifact/9bMA6ocRdeoNd7u5EkxM2M)
 - [ ] Magazine: settle how the An Cha couple want their names printed (she is the main voice, her name not on file; he is Dai Haizhong), after asking them _(band: you-required)_ _(effort: quick)_
 - [ ] Magazine: once each story is up on the site, send every person in it the Chinese feedback message (name as printed, how they want to be introduced, photos, corrections; never addresses or contacts) and file their replies into the stories _(band: you-required)_ _(effort: moderate)_ → Process: the magazine's "message to subjects after publish" note in the vault
 - [ ] Move Rock Remembers, Earth, Water, Fire and The Tea House onto the shared conversation template, so all four interviews look and behave the same and each becomes just its words and photographs _(band: agent-runnable)_ _(effort: deep)_

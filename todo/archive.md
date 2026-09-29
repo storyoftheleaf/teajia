@@ -2,6 +2,10 @@
 
 Finished work, moved here from TODO.md. Nothing is deleted; lineage is kept.
 
+## Manage regrouped (2026-09-29)
+
+- [x] Manage is seven rooms named for the job (Curate, Stock, Sales, People, Sessions, Publish, Settings) with Today behind the word Manage; Your Table has one tile per thing that is yours; screens that lived in two rooms merged; the heaviest screens folded. Orders became Sales and Events became Sessions on Adrian's word. PR #336 (with #344 and #349 folded in). → Plan: [manage-regroup.md](plans/archive/manage-regroup.md), page: [Manage Regrouped](https://claude.ai/artifact/9bMA6ocRdeoNd7u5EkxM2M)
+
 ## Sign-in email and an exposed key (2026-09-28)
 
 - [x] Email sign-in codes reach inboxes: teajia.com verified in Resend, a new send-only key in Infisical (prod and dev) and on the live worker; a real code was delivered and signed Adrian in. The sign-in page now lands on the home page, lets the email be corrected, offers "Send a new code", and says in words why a code was not sent. PR #328.

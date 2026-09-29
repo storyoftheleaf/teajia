@@ -75,7 +75,7 @@ export const SampleOrderAction: React.FC<SampleOrderActionProps> = ({
         data-curate-compact-target
       >
         {/* Styled as the fourth screen beside Source, Library and Ledger
-            (2026-09-29, todo/plans/manage-regroup.md): it opens the samples
+            (2026-09-29, todo/plans/archive/manage-regroup.md): it opens the samples
             workspace, and reads as a peer rather than a separate button. */}
         <span className="curate-compact-chrome w-full whitespace-nowrap border-b border-transparent text-ui-12 font-medium lg:px-3" data-curate-compact-chrome>
           <span>Samples</span>

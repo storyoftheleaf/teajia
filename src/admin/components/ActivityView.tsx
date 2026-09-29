@@ -20,7 +20,7 @@ import { Product } from '../types';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { useAppStore } from '../../lib/store';
 
-// Sales, four tabs (2026-09-29, todo/plans/manage-regroup.md): Waiting holds
+// Sales, four tabs (2026-09-29, todo/plans/archive/manage-regroup.md): Waiting holds
 // what used to be Pending and Inquiries, one queue of things someone is
 // waiting on; Ledger holds the stock ledger, the activity log and the sold-out
 // archive under one tab with its own switch; Wholesale moved in from Network.
