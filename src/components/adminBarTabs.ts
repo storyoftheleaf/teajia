@@ -22,8 +22,8 @@ export const ADMIN_BAR_TABS: Record<AdminBarRole, [AdminTab[], AdminTab[]]> = {
   ],
   member: [
     [{ id: 'compass', label: 'curate',  path: '/admin/compass' },
-     { id: 'samples', label: 'samples', path: '/admin/samples' }],
-    [{ id: 'capture', label: 'capture', path: '/admin/capture' },
+     { id: 'samples', label: 'samples', path: '/admin/compass?sampleOrder=manage' }],
+    [{ id: 'capture', label: 'drafts',  path: '/admin/capture' },
      { id: 'events',  label: 'sessions', path: '/admin/events' }],
   ],
 };

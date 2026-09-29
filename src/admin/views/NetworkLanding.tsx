@@ -1,12 +1,11 @@
 import React, { useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useAppStore, selectHasBundle } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { CatalogBrowse } from './CatalogBrowse';
 import { SuggestionsInbox } from './SuggestionsInbox';
-import { WholesaleOrdersList } from './WholesaleOrdersList';
 import { AdoptionQueue } from './AdoptionQueue';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -17,7 +16,9 @@ import { AdoptionQueue } from './AdoptionQueue';
 // order, a listing edit) remain on their own routes and link back here.
 // ─────────────────────────────────────────────────────────────────────────────
 
-type NetworkTab = 'catalog' | 'suggestions' | 'wholesale' | 'adoptions';
+// Wholesale moved to Sales on 2026-09-29 (todo/plans/manage-regroup.md); an
+// old ?tab=wholesale link forwards there.
+type NetworkTab = 'catalog' | 'suggestions' | 'adoptions';
 
 interface TabSpec {
   id: NetworkTab;
@@ -41,7 +42,6 @@ export const NetworkLanding: React.FC = () => {
   const tabs: TabSpec[] = useMemo(() => [
     { id: 'catalog',     label: 'Catalog',     visible: hasCatalog },
     { id: 'suggestions', label: 'Suggestions', visible: hasCatalog },
-    { id: 'wholesale',   label: 'Wholesale',   visible: hasSell },
     { id: 'adoptions',   label: 'Adoptions',   visible: isPlatform },
   ], [hasCatalog, hasSell, isPlatform]);
 
@@ -53,6 +53,8 @@ export const NetworkLanding: React.FC = () => {
   const activeTab: NetworkTab =
     rawTab && visibleTabs.find(t => t.id === rawTab) ? rawTab : fallback;
 
+  if (rawTab === ('wholesale' as NetworkTab)) return <Navigate to="/admin/activity?tab=wholesale" replace />;
+
   const setActiveTab = (tab: NetworkTab) => {
     setSearchParams({ tab }, { replace: true });
   };
@@ -60,33 +62,13 @@ export const NetworkLanding: React.FC = () => {
   return (
     <div className="pt-8 pb-nav-gap-lg">
 
-      {/* Orientation header, page-level intro that frames all four tabs at once */}
-      <header className="px-4 md:px-8 max-w-2xl mx-auto mb-8">
-        <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec mb-3`}>
-          The network
+      {/* One line of orientation. The two-paragraph essay that framed four tabs
+          went with the regroup; how carrying works is shown on the cards. */}
+      <header className="px-4 md:px-8 max-w-3xl mx-auto mb-6">
+        <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>Network</h1>
+        <p className="font-body italic text-ui-15 text-tea-text-sec mt-2">
+          Teas other houses keep, which you can carry in your own shop.
         </p>
-        <h1 className={`${TYPOGRAPHY_CLASSES.h1} text-tea-text mb-5`}>
-          One catalog, many houses.
-        </h1>
-        <p className="font-body italic text-ui-17 text-tea-text-sec leading-[1.6] mb-6">
-          Teajia is the shared root. Each house carries the teas it knows.
-        </p>
-
-        <div className="space-y-4 font-body text-ui-15 text-tea-text leading-[1.75]">
-          <p>
-            Each tea has one original record (origin, varietal, harvest
-            year, description, photos), kept by the curator who sources
-            it. Other houses can <em>carry</em> the tea, setting their own
-            stock, retail price, and store note. The original stays
-            anchored to the curator.
-          </p>
-          <p>
-            When a partner sees a typo or a clearer way to describe a tea,
-            they edit the curator's text in place on the card. The change
-            goes to the curator's queue. The curator decides, field by
-            field. Accepted changes update everywhere immediately.
-          </p>
-        </div>
       </header>
 
       {/* Tab strip, text-link tabs in the editorial register */}
@@ -127,7 +109,6 @@ export const NetworkLanding: React.FC = () => {
         )}
         {activeTab === 'catalog'     && hasCatalog && <CatalogBrowse embedded />}
         {activeTab === 'suggestions' && hasCatalog && <SuggestionsInbox embedded />}
-        {activeTab === 'wholesale'   && hasSell    && <WholesaleOrdersList embedded />}
         {activeTab === 'adoptions'   && isPlatform && <AdoptionQueue embedded />}
       </div>
     </div>

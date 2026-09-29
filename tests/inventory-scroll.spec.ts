@@ -225,7 +225,10 @@ test.describe('Inventory page — scroll regression guard', () => {
     await firstTea.focus();
     await firstTea.press('Enter');
     const rail = page.getByRole('toolbar', { name: 'Selection actions' });
+    // The tasting pair sits under More since 2026-09-29; four actions show first.
+    await rail.getByRole('button', { name: 'More actions' }).click();
     await expect(rail.getByRole('button', { name: 'Record tasting' })).toBeVisible();
+    await shot(page, `${test.info().project.name.replace(/ /g, '-')}-selection-rail-more`);
     await expect(rail.getByRole('button', { name: 'Edit product tasting profile' })).toBeVisible();
     await rail.getByRole('button', { name: 'Record tasting' }).click();
     await expect(page.locator('[data-tasting-session-overlay]')).toBeVisible();
@@ -237,6 +240,7 @@ test.describe('Inventory page — scroll regression guard', () => {
     const secondTea = page.locator('tr[data-product-id="test-product-2"]');
     await secondTea.focus();
     await secondTea.press('Enter');
+    await rail.getByRole('button', { name: 'More actions' }).click();
     await expect(rail.getByRole('button', { name: 'Continue tasting' })).toBeVisible();
     await expect(rail.getByRole('button', { name: 'View personal tasting' })).toBeVisible();
   });
@@ -537,10 +541,15 @@ test.describe('Inventory page — scroll regression guard', () => {
     await expect(page.getByTestId('inventory-column-row').first()).toBeVisible();
 
     if (testInfo.project.name === 'Desktop Chrome') {
-      await primary.getByText('Glossary', { exact: true }).click();
+      // Glossary is a More-menu toggle since 2026-09-29.
+      const toggleGlossary = async () => {
+        await primary.getByRole('button', { name: /inventory actions/i }).click();
+        await page.getByRole('menu').getByRole('button', { name: 'Glossary view' }).click();
+      };
+      await toggleGlossary();
       await expectHeaderAtTop();
       await expect(primary).toBeVisible();
-      await primary.getByText('Glossary', { exact: true }).click();
+      await toggleGlossary();
       await expect(page.getByTestId('inventory-column-row').first()).toBeVisible();
     }
   });
@@ -609,7 +618,9 @@ test.describe('Inventory page — scroll regression guard', () => {
     await page.waitForTimeout(1500);
 
     const primary = page.getByTestId('inventory-primary-row');
-    await primary.getByText('Edit', { exact: true }).click();
+    // Edit lives in the More menu since 2026-09-29; Done still lands after More.
+    await primary.getByRole('button', { name: 'Open inventory actions' }).click();
+    await page.getByRole('menu').getByRole('button', { name: 'Edit table' }).click();
 
     const done = page.getByTestId('inventory-done');
     const more = primary.getByRole('button', { name: 'Open inventory actions' });

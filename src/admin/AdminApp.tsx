@@ -70,6 +70,7 @@ const DraftsView = lazy(() => import('./components/DraftsView').then((m) => ({ d
 import { IntakeWorkspace } from './views/IntakeWorkspace';
 import { CatalogView } from './views/CatalogView';
 import { PurchaseOrdersPage } from './views/PurchaseOrdersPage';
+import PeopleAuditView from './components/PeopleAuditView';
 const TeaCompass = lazy(() => import('../components/TeaCompass'));
 import type { CompassMode } from '../components/TeaCompass';
 import { VendorProfileView } from './views/VendorProfileView';
@@ -587,7 +588,10 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="dashboard" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
               <Route path="vendors/:vendorId" element={<ProtectedRoute hasAccess={canManageInventory} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><VendorProfileView /></PageTransition></ProtectedRoute>} />
               <Route path="products/:id/story" element={<ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ProductStoryView /></PageTransition></ProtectedRoute>} />
-              <Route path="purchase-orders" element={<Navigate to="/admin/people?tab=purchase-orders" replace />} />
+              {/* Purchases live in Curate (bringing tea in) and the audit in Settings
+                  since 2026-09-29; both were People tabs. Same gates as before. */}
+              <Route path="purchase-orders" element={<ProtectedRoute hasAccess={isOwnerTier || hasStockBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PurchaseOrdersPage /></PageTransition></ProtectedRoute>} />
+              <Route path="audit" element={<ProtectedRoute hasAccess={isOwnerTier || hasMembersBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PeopleAuditView /></PageTransition></ProtectedRoute>} />
               <Route path="team" element={<Navigate to="/admin/access" replace />} />
               {/* The Manage list calls this room Members, so /admin/members is a
                   natural address to type. The page lives at /admin/access. */}
