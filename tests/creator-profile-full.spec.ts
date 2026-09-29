@@ -41,14 +41,15 @@ test.describe('creator profile, full (Kenji Tanaka)', () => {
     expect(words!.y).toBe(teasCell!.y);
     expect(await hub.innerText()).not.toMatch(/\d/);
 
-    // In my words: the quote, then two paragraphs, all first person.
-    await expect(page.getByTestId('profile-quote')).toContainText('Tea is not a performance.');
+    // In my words: one passage, first person. No pull quote, no second passage (2026-09-29).
+    await expect(page.getByTestId('profile-quote')).toHaveCount(0);
     const mine = page.getByTestId('profile-words-of-mine');
     await expect(mine).toContainText('In my words');
-    // The cover owns the first sentence; the first paragraph here starts with the second (2026-09-21).
+    await expect(mine).not.toContainText('Tea is not a performance.');
+    // The cover owns the first sentence; the passage here starts with the second (2026-09-21).
     await expect(mine).not.toContainText('I pour on Saturday evenings');
-    await expect(mine.locator('p').filter({ hasNotText: 'Tea is not a performance.' }).first()).toHaveText(/^This year is about teaching, not just pouring\./);
-    await expect(mine).toContainText('I still source most of my sencha');
+    await expect(mine.locator('p').first()).toHaveText(/^This year is about teaching, not just pouring\./);
+    await expect(mine).not.toContainText('I still source most of my sencha');
     await expect(mine).not.toContainText('I trained for six years');
 
     // Hands on: five photos, two columns.
@@ -82,19 +83,13 @@ test.describe('creator profile, full (Kenji Tanaka)', () => {
     await expect(teaRows.nth(0).locator('span[style*="color"]')).toHaveCount(0);
     await expect(teas.getByRole('link', { name: 'And three more, in the collection' })).toHaveAttribute('href', '/c/saturday-at-the-house-fixture');
 
-    // Hosting: one row, linking to the event, dated in words.
-    const hosting = page.getByTestId('profile-hosting');
-    await expect(hosting.getByRole('link', { name: /Gongfu evening/ })).toHaveAttribute('href', '/event/sbx-kyoto-tasting-fixture');
-    await expect(hosting).toContainText('Saturday 10 October, 19:00, at Tanaka Tea House.');
-    await expect(hosting).toContainText('Four places at the table.');
-    // Canvas version 22: no rubric on the hosting row.
-    await expect(hosting).not.toContainText('Session');
-
-    // My table: one row, linking to the store, in his words.
-    const house = page.getByTestId('profile-house');
-    await expect(house).toContainText('My table');
-    await expect(house.getByRole('link', { name: /Tanaka Tea House/ })).toHaveAttribute('href', '/store/tanaka-tea-house');
-    await expect(house).toContainText('My shop and sessions in Kyoto, and how to find the door.');
+    // The event he hosts next and his table: one line under the name, not two sections (2026-09-29).
+    const where = page.getByTestId('profile-where');
+    await expect(where.getByRole('link', { name: /Hosting Gongfu evening/ })).toHaveAttribute('href', '/event/sbx-kyoto-tasting-fixture');
+    await expect(where).toContainText('Saturday 10 October');
+    await expect(where.getByRole('link', { name: 'My table: Tanaka Tea House' })).toHaveAttribute('href', '/store/tanaka-tea-house');
+    await expect(page.getByTestId('profile-hosting')).toHaveCount(0);
+    await expect(page.getByTestId('profile-house')).toHaveCount(0);
 
     // Reach me: three plain rows, handle on the left, a first-person dek naming the platform, no rubric, no image and no icon.
     const reach = page.getByTestId('profile-reach');
@@ -124,7 +119,8 @@ test.describe('creator profile, full (Kenji Tanaka)', () => {
     // Each divider is searched for after the one before it (the hub's own
     // "Words" cell comes first on the page), so a hit for every label is the
     // order itself.
-    const order = ['in my words', 'hands on', 'words', 'the teas', 'hosting', 'my table', 'reach me'];
+    // Hosting and My table left the order on 2026-09-29: they are one line under the name now.
+    const order = ['in my words', 'hands on', 'words', 'the teas', 'reach me'];
     const lower = body.toLowerCase();
     let cursor = lower.indexOf('in my words');
     const positions = order.map(label => { const at = lower.indexOf(label, cursor); if (at >= 0) cursor = at + label.length; return at; });

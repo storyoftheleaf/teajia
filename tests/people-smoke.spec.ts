@@ -15,7 +15,8 @@ const profileFixture = {
 test('profile leads with the first pull quote and lists every quoting article under Words', async ({ page }) => {
   await page.route('**/api/people/publishing-fixture', route => route.fulfill({ json: profileFixture }));
   await page.goto('/people/publishing-fixture');
-  await expect(page.getByTestId('profile-quote')).toContainText('First synthetic quote.');
+  // The pull quote no longer opens In my words (2026-09-29); the quoting articles are still listed under Words.
+  await expect(page.getByTestId('profile-quote')).toHaveCount(0);
   const words = page.getByTestId('profile-words');
   await expect(words.getByRole('link', { name: /First Source/ })).toHaveAttribute('href', '/article/first-source');
   await expect(words.getByRole('link', { name: /Second Source/ })).toHaveAttribute('href', '/article/second-source');
@@ -25,10 +26,11 @@ test('profile leads with the first pull quote and lists every quoting article un
   await expect(words).not.toContainText('Quoted in');
   // The cover carries the first line of the origin in the person's words; the quote opens the words below it.
   await expect(page.getByTestId('profile-cover')).toContainText('Synthetic origin.');
-  // The cover owns that sentence, so In my words does not repeat it (2026-09-21).
-  await expect(page.getByTestId('profile-words-of-mine')).not.toContainText('Synthetic origin.');
-  // Who taught them is stored but no longer printed.
-  await expect(page.getByTestId('profile-words-of-mine')).not.toContainText('Synthetic inspirations.');
+  // The cover owns that sentence, and who taught them is no longer printed,
+  // so this person has nothing more to say under In my words and the section
+  // does not appear at all, rather than standing empty (2026-09-29).
+  await expect(page.getByTestId('profile-words-of-mine')).toHaveCount(0);
+  await expect(page.locator('body')).not.toContainText('Synthetic inspirations.');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
 });
 
