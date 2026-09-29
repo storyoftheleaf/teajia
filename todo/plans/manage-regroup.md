@@ -21,7 +21,7 @@ name and doors to Members, Agents, Rates and Platform; Sessions has doors to Tas
 Venues on every width; the standalone tags page forwards to People's Tags tab; Your Table
 says journal and "Switch table"; the switcher card's Shop / Sessions / Ops links are cut.
 
-## Step 2: the seven-room column (about a day)
+## Step 2: the seven-room column (shipped 2026-09-29)
 
 - Column: Curate, Stock, Sales, People, Sessions, Publish, Settings. Today behind the Manage heading; its row goes.
 - Curate becomes the first room (it is already the phone bar's first word for every role).
@@ -32,13 +32,14 @@ says journal and "Switch table"; the switcher card's Shop / Sessions / Ops links
 - Gates: a room shows when any of its tabs would show. Settings must show for the members bundle alone, or an access manager loses their only screen.
 - Tests that pin words or placement change in the same commit: `manageNav.oneWord.test.ts`, the Atlas placement test, `LeftSidebar.access.test.ts`, the navigation gates test, `tests/site-menu.spec.ts`. PILLAR.md and the CLAUDE.md layout section change in the same commit.
 
-## Step 3: Your Table tiles (about a day)
+## Step 3: Your Table tiles (shipped 2026-09-29)
 
 - remember takes in "shared with you" collections as a second section; the collections tile goes.
 - samples moves into orders as "samples sent to you".
-- account folds into profile (public profile, sign-in, appearance, payment access, delete).
-- walk-throughs becomes a section of library (platform owner only).
-- "What needs you" becomes one line linking to Today.
+- account folds into profile: the tile opens name, sign-in and appearance (retitled Profile), which links to the public Tea Master profile only for someone who has one or may start one, so a customer is never sent to a page that refuses them.
+- walk-throughs becomes a link inside library (platform owner only).
+- "What needs you" is one line under the day sentence, opening Today (or Sales for someone whose Manage does not open on Today).
+- Kept, deliberately: discover stays a tile. The plan cut it for members as living in the site panel, but the site panel has no discover row, so cutting it would have removed its only door.
 
 ## Step 4: merge the doubles (2 to 3 days)
 

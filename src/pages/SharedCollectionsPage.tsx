@@ -10,7 +10,13 @@ import type { SavedCollectionRow } from '../types';
 // link ('received') or that they explicitly saved ('saved'). Cross-account:
 // these can come from any curator. Each card deep-links back to the /c/:slug
 // link they arrived through so they can re-open and order.
-export default function SharedCollectionsPage() {
+/**
+ * Collections other people have shared with this person. On its own page, and
+ * since 2026-09-29 also as the second half of "remember", which is where the
+ * Your Table tile now leads: things kept, whether you kept them or someone
+ * sent them. `embedded` drops the page chrome and stays silent when empty.
+ */
+export function SharedCollectionsSection({ embedded = false }: { embedded?: boolean }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -33,21 +39,20 @@ export default function SharedCollectionsPage() {
   };
 
   const showEmpty = !isLoading && rows.length === 0;
+  if (embedded && (isLoading || showEmpty)) return null;
 
   return (
-    <div className="max-w-sm mx-auto pt-12 pb-nav-gap px-4">
-      <button
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-8 tap-target"
-      >
-        <Icons.Back className="w-4 h-4" />
-        <span className="text-ui-12 uppercase tracking-[0.15em]">Back</span>
-      </button>
-
-      <h1 className="font-display text-3xl text-tea-text mb-1">Collections</h1>
-      <p className="font-body italic text-ui-14 text-tea-text-dim mb-8">
-        {isLoading ? 'Loading…' : `${rows.length} ${rows.length === 1 ? 'collection' : 'collections'} shared with you`}
-      </p>
+    <section aria-label="Shared with you" data-testid="shared-collections">
+      {embedded ? (
+        <h2 className="font-display text-ui-20 text-tea-text mb-4">Shared with you</h2>
+      ) : (
+        <>
+          <h1 className="font-display text-3xl text-tea-text mb-1">Collections</h1>
+          <p className="font-body italic text-ui-14 text-tea-text-dim mb-8">
+            {isLoading ? 'Loading…' : `${rows.length} ${rows.length === 1 ? 'collection' : 'collections'} shared with you`}
+          </p>
+        </>
+      )}
 
       {isLoading ? (
         <div className="border border-tea-border overflow-hidden rounded-md">
@@ -118,6 +123,22 @@ export default function SharedCollectionsPage() {
           ))}
         </div>
       )}
+    </section>
+  );
+}
+
+export default function SharedCollectionsPage() {
+  const navigate = useNavigate();
+  return (
+    <div className="max-w-sm mx-auto pt-12 pb-nav-gap px-4">
+      <button
+        onClick={() => navigate(-1)}
+        className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-8 tap-target"
+      >
+        <Icons.Back className="w-4 h-4" />
+        <span className="text-ui-12 uppercase tracking-[0.15em]">Back</span>
+      </button>
+      <SharedCollectionsSection />
     </div>
   );
 }

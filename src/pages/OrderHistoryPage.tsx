@@ -10,6 +10,7 @@ import { PayOrderAction } from '../components/shared/PayOrderAction';
 import { ReportPaymentAction } from '../components/shared/ReportPaymentAction';
 import { OrderJourneyStatus } from '../components/shared/OrderJourneyStatus';
 import { normalizeJourney, showsPaymentActions } from '../components/shared/orderJourneyDomain';
+import { SampleHistorySection } from './SampleHistoryPage';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -141,6 +142,12 @@ export default function OrderHistoryPage() {
           })}
         </ul>
       )}
+
+      {/* Samples sent to this person live with what they bought (their own
+          Your Table tile until 2026-09-29). Absent when there are none. */}
+      <div className="mt-12">
+        <SampleHistorySection embedded />
+      </div>
     </div>
   );
 }
