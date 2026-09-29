@@ -98,6 +98,8 @@ export interface ConversationSpec {
   /** Closing credit lines. Say how the conversation reached the page. */
   credit: string[];
   next: MoreLink[];
+  /** The share card: one of the piece's own lines, by id, and one object photograph to set above it. */
+  share?: { line: string; photo?: Shot };
 }
 
 /** Every block, depth first, including those nested in sides and glyphs. */

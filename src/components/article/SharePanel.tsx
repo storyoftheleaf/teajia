@@ -3,7 +3,14 @@ import type { DbArticle } from '../../admin/types';
 
 // All the panel reads from an article. The hand-built Read pieces have no
 // DbArticle row, so they pass just these fields.
-export type ShareArticle = Pick<DbArticle, 'id' | 'title' | 'subtitle' | 'slug'>;
+export type ShareArticle = Pick<DbArticle, 'id' | 'title' | 'subtitle' | 'slug'> & {
+  /** The small line at the top of the card. Defaults to the magazine's. */
+  kicker?: string;
+  /** One object from the story, set small on the cover card. Same-origin path. */
+  image?: string;
+  /** The person's own line for the cover card; '==phrase==' is set in bronze. */
+  line?: { text: string; who?: string };
+};
 
 // Restored from MagazinePageReader (commit 3dae784^). Adapted to the new
 // Page model in src/pages/ArticlePage.tsx and the DbArticle type. Behaviour
@@ -152,6 +159,52 @@ function shortPageLabel(page: SharePage | null): string {
   return k;
 }
 
+type Run = { text: string; hi: boolean };
+
+/** Words of a line, each marked whether it sits inside '==…==' (the phrase the article sets in bronze). */
+function markedWords(text: string): Run[] {
+  const out: Run[] = [];
+  text.split('==').forEach((part, i) => {
+    for (const w of part.split(/\s+/).filter(Boolean)) out.push({ text: w, hi: i % 2 === 1 });
+  });
+  return out;
+}
+
+function wrapMarked(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): Run[][] {
+  const width = (ws: Run[]) => ctx.measureText(ws.map((w) => w.text).join(' ')).width;
+  const lines: Run[][] = [];
+  let cur: Run[] = [];
+  for (const w of markedWords(text)) {
+    if (cur.length && width([...cur, w]) > maxWidth) { lines.push(cur); cur = [w]; } else cur.push(w);
+  }
+  if (cur.length) lines.push(cur);
+  return lines;
+}
+
+function drawMarked(ctx: CanvasRenderingContext2D, line: Run[], x: number, y: number, centred: boolean, ink: string, accent: string) {
+  const space = ctx.measureText(' ').width;
+  const total = ctx.measureText(line.map((w) => w.text).join(' ')).width;
+  let cx = centred ? x - total / 2 : x;
+  const align = ctx.textAlign;
+  ctx.textAlign = 'left';
+  for (const w of line) {
+    ctx.fillStyle = w.hi ? accent : ink;
+    ctx.fillText(w.text, cx, y);
+    cx += ctx.measureText(w.text).width + space;
+  }
+  ctx.textAlign = align;
+}
+
+function loadImage(src: string): Promise<HTMLImageElement | null> {
+  return new Promise((res) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => res(img);
+    img.onerror = () => res(null);
+    img.src = src;
+  });
+}
+
 function truncate(s: string, n: number): string {
   if (!s) return '';
   return s.length > n ? s.slice(0, n - 1).trim() + '…' : s;
@@ -203,41 +256,54 @@ async function renderPosterToCanvas(comp: ShareComposition, article: ShareArticl
   ctx.fillStyle = C.bg;
   ctx.fillRect(0, 0, W, H);
 
-  setMono(10);
+  const spaced = (px: string) => { if ('letterSpacing' in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = px; };
+  setMono(13);
+  spaced('3px');
   ctx.fillStyle = C.gold;
   ctx.textAlign = 'left';
-  ctx.fillText('TEAJIA · JOURNAL', PAD, PAD + 12);
-  ctx.fillStyle = C.textDim;
-  ctx.textAlign = 'right';
-  ctx.fillText('ISSUE 04', W - PAD, PAD + 12);
-  ctx.textAlign = 'left';
+  ctx.fillText((article.kicker ?? 'Teajia · Journal').toUpperCase(), PAD, PAD + 14);
+  spaced('0px');
 
   const bodyTop = PAD + 60;
   const bodyW   = W - PAD * 2;
 
   if (comp.type === 'cover') {
-    ctx.font = `400 280px "Ma Shan Zheng", serif`;
-    ctx.fillStyle = C.gold;
-    ctx.globalAlpha = 0.12;
-    ctx.textAlign = 'right';
-    ctx.fillText('器', W - PAD + 24, bodyTop + 210);
-    ctx.textAlign = 'left';
-    ctx.globalAlpha = 1;
-    setMono(10);
-    ctx.fillStyle = C.gold;
-    ctx.fillText('COVER STORY · ISSUE 04', PAD, bodyTop + 30);
-    setDisplay(68, 'italic');
-    ctx.fillStyle = C.text;
-    const titleLines = wrapText(ctx, truncate(comp.title, 36), bodyW);
-    let y = bodyTop + 96;
-    for (const line of titleLines) { ctx.fillText(line, PAD, y); y += 76; }
-    if (comp.subtitle) {
-      setBody(17);
-      ctx.fillStyle = C.textSec;
-      const subLines = wrapText(ctx, truncate(comp.subtitle, 140), bodyW * 0.8);
-      y += 8;
-      for (const line of subLines.slice(0, 5)) { ctx.fillText(line, PAD, y); y += 27; }
+    // One object from the story, set small with room around it, and the
+    // person's own line under it. With no object the line carries the card on
+    // its own; with no line either, the title does.
+    const photo = article.image ? await loadImage(article.image) : null;
+    const line = article.line;
+    const centred = !!photo;
+    const x = centred ? W / 2 : PAD;
+    // Measure the whole block first, then set it in the middle of the space
+    // between the kicker and the closing rule.
+    let pw = 0, ph = 0;
+    if (photo) {
+      const sc = Math.min(300 / photo.naturalWidth, (line ? 400 : 500) / photo.naturalHeight);
+      pw = Math.round(photo.naturalWidth * sc); ph = Math.round(photo.naturalHeight * sc);
     }
+    const size = line ? (photo ? 46 : 70) : (photo ? 54 : 76);
+    const lh = Math.round(size * 1.08);
+    setDisplay(size);
+    const shown = (line ? wrapMarked(ctx, line.text, bodyW) : wrapMarked(ctx, truncate(comp.title, 60), bodyW)).slice(0, photo ? 3 : 5);
+    const under = line ? line.who : comp.subtitle;
+    setBody(19, 'italic');
+    const underLines = under ? wrapText(ctx, truncate(under, 120), bodyW * 0.85).slice(0, 3) : [];
+    const gap = 56;
+    const blockH = (photo ? ph + gap : 0) + shown.length * lh + (underLines.length ? 18 + underLines.length * 28 : 0);
+    const top = PAD + 40, bottom = H - PAD - 44 - 30;
+    let y = Math.round(top + Math.max(0, (bottom - top - blockH) / 2));
+    if (photo) { ctx.drawImage(photo, Math.round((W - pw) / 2), y, pw, ph); y += ph + gap; }
+    ctx.textAlign = centred ? 'center' : 'left';
+    setDisplay(size);
+    for (const l of shown) { drawMarked(ctx, l, x, y + size * 0.8, centred, C.text, C.gold); y += lh; }
+    if (underLines.length) {
+      setBody(19, 'italic');
+      ctx.fillStyle = C.textSec;
+      y += 18;
+      for (const u of underLines) { ctx.fillText(u, x, y + 10); y += 28; }
+    }
+    ctx.textAlign = 'left';
   } else if (comp.type === 'quote') {
     setDisplay(180, 'italic');
     ctx.fillStyle = C.gold;
@@ -289,71 +355,25 @@ async function renderPosterToCanvas(comp: ShareComposition, article: ShareArticl
     }
   }
 
-  const btmY = H - PAD - 72;
+  // The title closes the card, unless the card already is the title.
+  const btmY = H - PAD - 44;
   ctx.strokeStyle = 'rgba(184,146,78,0.25)';
   ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(PAD, btmY); ctx.lineTo(W - PAD, btmY); ctx.stroke();
-  setDisplay(18, 'italic');
-  ctx.fillStyle = C.text;
-  ctx.fillText(article.title, PAD, btmY + 28);
-  setMono(9);
+  if (!(comp.type === 'cover' && !article.line)) {
+    setDisplay(24);
+    ctx.fillStyle = C.text;
+    ctx.fillText(truncate(article.title, 44), PAD, btmY + 34);
+  }
+  setMono(13);
+  spaced('2px');
   ctx.fillStyle = C.textDim;
-  ctx.fillText('teajia · journal', PAD, btmY + 50);
+  ctx.textAlign = 'right';
+  ctx.fillText('teajia.com', W - PAD, btmY + 34);
+  ctx.textAlign = 'left';
+  spaced('0px');
 
   return canvas;
-}
-
-function SharePoster({ comp, article }: { comp: ShareComposition; article: ShareArticle }) {
-  return (
-    <div style={{
-      position: 'absolute', inset: 0,
-      padding: '6.5cqi 6.5cqi 6cqi',
-      display: 'flex', flexDirection: 'column',
-      containerType: 'inline-size',
-    } as React.CSSProperties}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <span style={{ fontFamily: T.mono, fontSize: '2.6cqi', color: T.gold, letterSpacing: '0.28em' } as React.CSSProperties}>TEAJIA · JOURNAL</span>
-        <span style={{ fontFamily: T.mono, fontSize: '2.6cqi', color: T.textDim } as React.CSSProperties}>ISSUE 04</span>
-      </div>
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4cqi 0' } as React.CSSProperties}>
-        {comp.type === 'quote' && (
-          <div style={{ textAlign: 'left', position: 'relative', width: '100%' }}>
-            <div style={{ position: 'absolute', top: '-7cqi', left: '-2cqi', fontFamily: T.display, fontStyle: 'italic', fontSize: '26cqi', color: T.gold, opacity: 0.4, lineHeight: 0.8, pointerEvents: 'none' } as React.CSSProperties}>&ldquo;</div>
-            <p style={{ fontFamily: T.display, fontStyle: 'italic', fontWeight: 400, fontSize: '6.2cqi', lineHeight: 1.18, margin: 0, color: T.text, position: 'relative' } as React.CSSProperties}>{truncate(comp.content, 160)}</p>
-            <div style={{ width: '6cqi', height: 1, background: T.gold, margin: '5cqi 0 2.5cqi' } as React.CSSProperties} />
-            <p style={{ fontFamily: T.body, fontStyle: 'italic', fontSize: '3.2cqi', color: T.textSec, margin: 0 } as React.CSSProperties}>{article.title}</p>
-          </div>
-        )}
-        {comp.type === 'passage' && (
-          <div style={{ width: '100%' }}>
-            <h3 style={{ fontFamily: T.display, fontStyle: 'italic', fontWeight: 400, fontSize: '7.2cqi', lineHeight: 1.08, margin: '0 0 3.5cqi', color: T.text } as React.CSSProperties}>{truncate(comp.head, 60)}</h3>
-            <p style={{ fontFamily: T.body, fontSize: '3.6cqi', lineHeight: 1.55, margin: 0, color: T.textSec } as React.CSSProperties}>{truncate(comp.text ?? '', 210)}</p>
-          </div>
-        )}
-        {comp.type === 'qa' && (
-          <div style={{ width: '100%' }}>
-            <h3 style={{ fontFamily: T.display, fontStyle: 'italic', fontWeight: 400, fontSize: '6.2cqi', lineHeight: 1.1, margin: '0 0 4.5cqi', color: T.text } as React.CSSProperties}>{truncate(comp.head, 48)}</h3>
-            <p style={{ fontFamily: T.body, fontStyle: 'italic', fontSize: '3.5cqi', lineHeight: 1.5, margin: '0 0 3cqi', color: T.gold } as React.CSSProperties}>Q. {truncate(comp.qa?.q ?? '', 100)}</p>
-            <p style={{ fontFamily: T.body, fontSize: '3.5cqi', lineHeight: 1.55, margin: 0, color: T.textSec } as React.CSSProperties}>A. {truncate(comp.qa?.a ?? '', 180)}</p>
-          </div>
-        )}
-        {comp.type === 'cover' && (
-          <div style={{ width: '100%', textAlign: 'left', position: 'relative' }}>
-            <div style={{ position: 'absolute', top: '-6cqi', right: '-2cqi', fontFamily: "'Ma Shan Zheng',cursive", fontSize: '52cqi', color: T.gold, opacity: 0.14, lineHeight: 0.8, pointerEvents: 'none' } as React.CSSProperties}>器</div>
-            <div style={{ ...labelStyle, color: T.gold, marginBottom: '4cqi', position: 'relative' } as React.CSSProperties}>Cover story · Issue 04</div>
-            <h3 style={{ fontFamily: T.display, fontStyle: 'italic', fontWeight: 400, fontSize: '11cqi', lineHeight: 0.98, margin: '0 0 3.5cqi', color: T.text, letterSpacing: '-0.01em' } as React.CSSProperties}>{truncate(comp.title, 36)}</h3>
-            <p style={{ fontFamily: T.body, fontSize: '3.5cqi', lineHeight: 1.55, margin: 0, color: T.textSec, maxWidth: '30ch' } as React.CSSProperties}>{truncate(comp.subtitle ?? '', 140)}</p>
-          </div>
-        )}
-      </div>
-      <div style={{ borderTop: '1px solid rgba(184,146,78,0.25)', paddingTop: '3.5cqi', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '3cqi', flexShrink: 0 } as React.CSSProperties}>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontFamily: T.display, fontStyle: 'italic', fontSize: '4cqi', lineHeight: 1.1, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } as React.CSSProperties}>{article.title}</div>
-          <div style={{ fontFamily: T.mono, fontSize: '2.4cqi', color: T.textDim, marginTop: '0.8cqi' } as React.CSSProperties}>teajia · journal</div>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function ShareTab({ active, disabled, onClick, label, sub }: { active: boolean; disabled?: boolean; onClick: () => void; label: string; sub: string }) {
@@ -541,6 +561,15 @@ export function SharePanel({ page, article, onClose }: SharePanelProps) {
   };
 
   const posterReady = posterBlob !== null;
+  // The sheet shows the very image that gets saved or sent, not a second
+  // drawing of it that could drift.
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!posterBlob) { setPreviewUrl(null); return; }
+    const u = URL.createObjectURL(posterBlob);
+    setPreviewUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [posterBlob]);
 
   return (
     <div
@@ -579,9 +608,9 @@ export function SharePanel({ page, article, onClose }: SharePanelProps) {
             boxShadow: '0 10px 30px rgba(24,19,14,0.4)',
             transition: 'border-color 0.4s',
           }}>
-            <div style={{ opacity: posterReady ? 1 : 0.55, transition: 'opacity 0.4s' }}>
-              <SharePoster comp={comp} article={article} />
-            </div>
+            {previewUrl && (
+              <img src={previewUrl} alt="The image that will be shared" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }} />
+            )}
             {!posterReady && (
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', padding: 10, pointerEvents: 'none' }}>
                 <span style={{ fontFamily: T.mono, fontSize: 8, color: T.gold, letterSpacing: '0.12em', opacity: 0.7 }}>Preparing…</span>
