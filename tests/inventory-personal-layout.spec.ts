@@ -29,8 +29,16 @@ test('inventory purpose labels fit at phone, tablet, and desktop widths', async 
   for (const width of [390, 768, 1440]) {
     await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
     await expect(personal).toBeVisible();
-    const geometry = await personal.evaluate(element => ({ clientWidth: element.clientWidth, scrollWidth: element.scrollWidth }));
-    expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
+    // Measure in the page's own typeface. Before Cormorant arrives the button is
+    // sized for the fallback face and, for one frame after the swap, the text is
+    // wider than its box; that was measured as a clipped label about one run in
+    // three (2026-09-29) and never lasted past the swap. A label that truly does
+    // not fit still fails: the poll gives up after five seconds.
+    await page.evaluate(() => document.fonts.ready);
+    await expect.poll(
+      () => personal.evaluate(element => element.scrollWidth - element.clientWidth),
+      { message: `Personal fits its box at ${width}px`, timeout: 5_000 },
+    ).toBeLessThanOrEqual(0);
     await page.screenshot({ path: testInfo.outputPath(`inventory-purpose-${width}.png`), fullPage: false });
   }
 });
