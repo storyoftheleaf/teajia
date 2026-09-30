@@ -69,7 +69,12 @@ jobs:
           git config user.name "teajia-incident-bot"
           git config user.email "teajia-incident-bot@users.noreply.github.com"
           git add ops/incidents
-          git commit -m "chore(ops): sync incident repair queue [skip ci]"
+          # Two tokens for two builders. GitHub reads `[skip ci]`; Cloudflare
+          # Pages documents its own set (`[CI Skip]`, `[Skip CI]`, `[No CI]`)
+          # and its Git integration has no path filter, so without one of those
+          # this daily bot push rebuilds and redeploys the whole site for a
+          # file the site never reads — up to 31 of the month's 500 builds.
+          git commit -m "chore(ops): sync incident repair queue [skip ci] [CI Skip]"
           git pull --rebase origin main
           git push origin HEAD:main
 

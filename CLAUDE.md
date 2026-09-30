@@ -305,6 +305,25 @@ without touching the sign-in form: [worker/sandbox/README.md](worker/sandbox/REA
 **Do not hand admin verification back to Adrian.** The sandbox exists so the
 agent can click the thing it just changed.
 
+## Metered services
+
+**Every push to `main` spends one Cloudflare Pages production build, and the free plan stops at 500 a month.** The Git integration builds each push and has no path filter, so a docs-only commit rebuilds and redeploys the site for exactly the same price as a redesign. Nothing announces the limit: the 500th build is fine and the 501st simply does not deploy, and the site stays on whatever was live when the month ran out.
+
+September 2026 ran out. `main` took **225 separate pushes** in 29 days and the repo produced **520 GitHub Actions runs** against that 500. Nothing was looping and no job had gone feral — the shape of the work was the spend. One commit per push, six or seven sessions shipping in parallel, and a single change landing over three to six pushes minutes apart: "Read: Porcelain and Tea" alone took six pushes between 05:44 and 06:15 on the 29th, six builds and six runs for one story page, of which the first five were superseded before anyone read them.
+
+- **A change is one push.** Finish it, verify it, push it once. The "ship" command still means push to `main` directly — that has not changed — but shipping is what you do with a finished change, not a way to save an intermediate one. Force-push the branch, amend, squash, keep the work in a worktree: all of that is free. A push is not.
+- **A push that cannot change what ships must not cost a build.** Prose is the cheap half of this repo and 42 of September's 225 pushes changed nothing else. `playwright.yml` ignores `*.md`, `docs/**`, `todo/**`, `ops/**` and `.claude/**` on both triggers, and the incident bot's daily commit carries `[skip ci]` for GitHub and `[CI Skip]` for Cloudflare, because Pages reads its own token and has no path filter to fall back on.
+- **One push starts one run.** Three workflows used to answer the same push to `main`. `Check deployment config` is a pull-request lane now and its two commands live inside `playwright.yml`'s `checks` job; `deploy-worker.yml` still runs on its own because it only fires on `worker/**`.
+- **A schedule runs at most twice a day, and the nightly lanes are where advisory work belongs.** `known-failing` and `recovery` are on the 02:30 cron and nowhere else; the incident queue syncs at 02:17. Anything that wants to run more often than that needs a reason written here first.
+- **The month's spend is read out loud, not left in a dashboard nobody opens.** `scripts/ci-spend-budget.mjs` counts the month's runs on every push to main and turns the run RED once four fifths of the limit is gone or the pace is past it — same rule as the stale exchange rates, a warning on screen rather than only in a log. It gates nothing: an over-budget month must never be the reason a fix cannot land. Fed September's own numbers it says `stop`, and at 400 runs on the 24th it would have said `warn` with five days of room left.
+- Enforced by [scripts/ci-spend-budget.test.mjs](scripts/ci-spend-budget.test.mjs) (`npm run test:platform-hardening`), which pins the arithmetic AND scans the wiring: a `paths-ignore` list losing an entry on one of the two triggers, the budget job losing its call or its `actions: read`, the deployment-config workflow watching `main` again, or the incident bot dropping a skip token all fail it. Comments are stripped before the scans, because a guard that can read its own explanation is satisfied by deleting the reason it exists — removing `[CI Skip]` left this suite green until that was fixed.
+
+### Tests never touch a metered service
+
+**The suite answers every media request itself.** `tests/fixtures.ts` is the suite's `test`, and specs import `test` and `expect` from there, never from `@playwright/test` directly — that is what makes the rule impossible to forget. Every `/api/media/` request is fulfilled in-process with a 1×1 transparent PNG (so `<img>` still fires `load`), and every video with an empty body. A fresh browser context has no cache, so without it each of ~48 specs pulls the whole shelf's artwork from the origin on every run: in September 2026 the sister suites on mandalacodes and Adrian-Website delivered 70 GB in one day that way and the shared account ran out of free credits.
+
+Nothing in the suite asserts on the pixels of the artwork, so the stub costs no coverage. A new spec that reaches a metered host — R2 media, the live API, a currency feed — is a bug in the spec, not a gap in the fixture: mock it at the fixture, where every spec inherits it.
+
 ## Testing
 ```bash
 npm run test:mobile  # Playwright mobile audit — 26 tests at 390×844 (Mobile Chrome)

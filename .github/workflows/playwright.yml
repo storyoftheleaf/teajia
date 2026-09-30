@@ -35,14 +35,23 @@ on:
       - '*.md'
       - 'docs/**'
       - 'todo/**'
+      - 'ops/**'
+      - '.claude/**'
   push:
     branches: [main]
     # Prose never changes what the suite proves; every skipped run is minutes
     # kept for a run that matters (the account ran out in September 2026).
+    #
+    # `ops/**` is the incident bot's own export, written to main once a day,
+    # and `.claude/**` is agent configuration. Neither is read by the build or
+    # by any spec, and 42 of September's 225 pushes to main changed nothing but
+    # prose of this kind.
     paths-ignore:
       - '*.md'
       - 'docs/**'
       - 'todo/**'
+      - 'ops/**'
+      - '.claude/**'
 
 # A run on main is never cancelled once it has started. Main takes a push
 # every few minutes and the sharded e2e takes longer than that, so with
@@ -118,6 +127,41 @@ jobs:
           fi
           echo "run=$run" >> "$GITHUB_OUTPUT"
           echo "gate: run=$run ($why)"
+
+  budget:
+    # What the month has cost so far, said out loud.
+    #
+    # Every push to main is one Cloudflare Pages production build as well as a
+    # run here, the free plan stops building after 500 of them in a month, and
+    # the 501st does not announce itself — it simply does not deploy. September
+    # 2026 took 225 separate pushes to main and produced 520 runs, one push per
+    # commit and a single change landing over three to six pushes minutes
+    # apart; nothing was looping, the shape of the work was the spend.
+    #
+    # So this job turns the run RED once the month is four fifths spent or on
+    # pace to pass the limit, which is the repo's own rule about stale exchange
+    # rates applied to money of a different kind: a warning on screen, not just
+    # in a log. It gates nothing and needs no install — an over-budget month
+    # must never be the reason a fix cannot land. The figure and the decision
+    # live in scripts/ci-spend-budget.mjs; this job only calls it.
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    timeout-minutes: 3
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+
+      - name: This month's CI spend
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: npm run ci:spend-budget
+
   checks:
     # The lane the outage needed. Nothing here touches a browser: tsc sees
     # every file whether or not a route imports it, the build is the same
@@ -147,6 +191,18 @@ jobs:
 
       - name: Worker types (ratcheted)
         run: npm run lint:worker-types
+
+      # Moved here from check-deployment-config.yml, which used to be a second
+      # workflow run per push to main for two commands that take seconds. Same
+      # two commands, same push, one run. That workflow still answers pull
+      # requests, where it reports on its own without costing a Pages build.
+      - name: Required deployment configuration
+        env:
+          WORKER_ORIGIN: ${{ vars.WORKER_ORIGIN }}
+        run: npm run check:deploy-config
+
+      - name: Deployment configuration tests
+        run: node --test scripts/check-required-deployment-config.test.mjs
 
       - name: Source unit tests
         run: npm run test:src
