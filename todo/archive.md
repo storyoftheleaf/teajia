@@ -2,6 +2,10 @@
 
 Finished work, moved here from TODO.md. Nothing is deleted; lineage is kept.
 
+## Home page photographs (2026-09-28)
+
+- [x] Home page: Adrian's own photographs in place. The opener is the teapots on the old wood, cropped to the pots and cups with a light sepia; Porcelain and Tea shows the gold-mended bowl, centred; Twenty years in tea culture shows his hands pouring, face cropped out. The edit button is tucked tiny into the corner and the caption is gone. Grain was tried three ways and dropped: every version read as a low-quality photo.
+
 ## Manage regrouped (2026-09-29)
 
 - [x] Manage is seven rooms named for the job (Curate, Stock, Sales, People, Sessions, Publish, Settings) with Today behind the word Manage; Your Table has one tile per thing that is yours; screens that lived in two rooms merged; the heaviest screens folded. Orders became Sales and Events became Sessions on Adrian's word. PR #336 (with #344 and #349 folded in). → Plan: [manage-regroup.md](plans/archive/manage-regroup.md), page: [Manage Regrouped](https://claude.ai/artifact/9bMA6ocRdeoNd7u5EkxM2M)
