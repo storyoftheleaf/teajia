@@ -227,7 +227,10 @@
 
 /* ── The story form: their words in quotation marks, brightest; Adrian's telling one step quieter ── */
 .tj-conv[data-form="story"] .tj-conv-a { color: var(--tj-read-ink); }
-.tj-conv[data-form="story"] .tj-conv-told { color: var(--tj-read-taupe); }
+/* Adrian's telling wears the look of his opening and close (Adrian, 2026-10-01: "give my telling
+   its own look"), so a reader who met his voice in the first paragraph knows it wherever it returns:
+   the same face, size and tone, and no quotation marks, because he is telling, not being quoted. */
+.tj-conv[data-form="story"] .tj-conv-told { font-size: clamp(19px, 2.3vw, 23px); line-height: 1.7; color: var(--tj-read-ink); }
 /* Each paragraph of theirs opens with a quotation mark hung outside the column; only the last
    paragraph of a run closes it, as a printed story sets a speech that runs over paragraphs. */
 .tj-conv[data-form="story"] .tj-conv-a::before,
