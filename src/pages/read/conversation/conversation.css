@@ -363,3 +363,35 @@ html[data-tj-reading='quiet'] [data-testid='bottom-tab-bar'] { translate: 0 calc
 /* The telling that opens the story sits under the intro, in its size and tone. */
 .tj-conv-intro-told { font-size: clamp(19px, 2.3vw, 23px); line-height: 1.7; color: var(--tj-read-ink); margin: 1em 0 0; }
 .tj-conv-closing { margin-top: var(--conv-s2); }
+
+/* ── Whose words these are ──────────────────────────────────────────────────
+   The subject's words carry quotation marks, as any printed profile sets a
+   quote, so a reader can tell them from Adrian's telling without a label.
+   The opening mark hangs outside the text edge so the words stay on the
+   spine. A paragraph that carries on from a large line opens without one. */
+.tj-conv-a:not(.tj-conv-follow)::before { content: '\201C'; margin-left: -0.42em; }
+.tj-conv-a::after { content: '\201D'; }
+
+/* ── Reading on a phone ─────────────────────────────────────────────────────
+   One paragraph gap everywhere, a larger one only where the voice changes,
+   tighter leading for a narrow column, and plain wrapping: `pretty` aims each
+   line short of the edge, which on a 38-letter line reads as a ragged column. */
+@media (max-width: 700px) {
+  .tj-conv-a, .tj-conv-told, .tj-conv-q-text {
+    line-height: 1.65;
+    margin-bottom: 18px;
+    text-wrap: wrap;
+  }
+  .tj-conv-q-text { margin-bottom: 18px; }
+  .tj-conv-a + .tj-conv-told,
+  .tj-conv-turn + .tj-conv-told,
+  .tj-conv-told + .tj-conv-turn,
+  .tj-conv-told + .tj-conv-a { margin-top: 34px; }
+  .tj-conv-who { margin-bottom: 8px; }
+  .tj-conv-col + .tj-conv-col { margin-top: calc(-1 * var(--conv-s2) + 34px); }
+  /* Words that carry on beside a photograph: on a phone the photograph drops below,
+     so the words continue at the paragraph gap, not a section gap. */
+  .tj-conv-col:has(+ .tj-conv-side) { margin-bottom: 18px; }
+  .tj-conv-col + .tj-conv-side { margin-top: 18px; }
+  .tj-conv-side-words { padding-top: 0; }
+}
