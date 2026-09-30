@@ -479,7 +479,9 @@ export const ImmersiveNav: React.FC<{
   current?: string;
   progress: number;
   backTo?: string;
-}> = ({ eyebrow, current, progress, backTo = '/read' }) => (
+  /** Words that sit in the bar just before Share, in the same type: the owner's Edit. */
+  actions?: React.ReactNode;
+}> = ({ eyebrow, current, progress, backTo = '/read', actions }) => (
   // A solid ground in the reader's own tone. It was a frosted-glass blur,
   // which smeared every photograph passing under it (2026-09-29).
   <nav
@@ -515,6 +517,7 @@ export const ImmersiveNav: React.FC<{
           {eyebrow}
         </span>
       ) : null}
+      {actions}
       <ShareButton variant="bar" />
     </div>
     <ProgressTrack progress={progress} />

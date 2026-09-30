@@ -344,6 +344,11 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
       <SpeakerCtx.Provider value={speakers}>
         <ImmersiveRoot rootRef={rootRef}>
           <Helmet><title>{spec.pageTitle}</title></Helmet>
+          {/* Owner editing is switched off on these pieces (Adrian, 2026-09-30: "I won't
+              use this"). The editor itself stays: to bring it back, import
+              EditWord from ../StoryEditorBar and pass actions={<EditWord />}
+              here. With no word in the bar, nothing can start editing, so the
+              toolbar below never shows. */}
           <ImmersiveNav progress={progress} current={current ? spec.parts[current - 1].title : undefined} />
 
           <article className="tj-conv" data-form={spec.form ?? 'conversation'} style={{ position: 'relative', zIndex: 1 }}>
@@ -403,7 +408,7 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
         </ImmersiveRoot>
       </SpeakerCtx.Provider>
       </ReadShareContext.Provider>
-      <StoryEditorBar />
+      <StoryEditorBar inBar />
     </StoryEditProvider>
   );
 };
