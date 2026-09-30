@@ -78,12 +78,20 @@ export interface ConversationSpec {
   /** Cover title: first line roman, second line bronze italic. */
   title: [string, string];
   dek: string;
+  /**
+   * The hook: one of their sentences, set on the cover in place of the dek in
+   * the story form. It is lifted out of the body, like any large sentence, so
+   * it is never printed twice.
+   */
+  hook?: string;
   /** `words` is how the story byline refers to their words: "in his own words". Defaults to "their". */
   subject: { name: string; nameCn?: string; role: string; href?: string; words?: 'his' | 'her' | 'their' };
   /** The names hung in the margin beside each turn, as a printed interview marks its speakers. */
   speakers: { author: string; subject: string };
-  /** How the piece names itself under the cover: 'story' is Adrian's telling ("By Adrian, with him"),
-   *  the default is a conversation ("him in conversation with Adrian"). */
+  /** How the piece names itself and reads. 'story' is Adrian's telling: no speaker names in the
+   *  margin, the subject's words in quotation marks and in the brightest tone, Adrian's telling
+   *  one step quieter, the hook on the cover, no contents list. The default is a conversation:
+   *  speakers named in the margin, as a printed interview marks them. */
   form?: 'story' | 'conversation';
   author: { name: string; links: { label: string; href: string }[] };
   portrait: Shot;

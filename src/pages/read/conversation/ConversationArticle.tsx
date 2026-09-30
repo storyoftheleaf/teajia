@@ -6,8 +6,10 @@
  * The aim is a printed magazine story, not a web page and not a transcript: a
  * cover that gives the portrait the screen, Adrian's opening, parts that open
  * as spreads, the subject's words drawn out and held together by Adrian's own
- * telling, speakers named in the margin where the subject's words begin, and
- * Adrian's close where the piece is meant to end.
+ * telling, and Adrian's close where the piece is meant to end. A conversation
+ * names its speakers in the margin; a story (form: 'story') does not: the
+ * subject's words sit in quotation marks, which is how a reader of a story
+ * knows who is speaking (Adrian, 2026-09-29: "a story, not an interview").
  */
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
@@ -40,8 +42,8 @@ const Photo: React.FC<{ spec: ConversationSpec; shot: Shot; aspect?: string; fil
 );
 
 // ── Speakers ─────────────────────────────────────────────────────────────────
-type Speakers = { author: string; subject: string; starts: Set<string> };
-const SpeakerCtx = createContext<Speakers>({ author: '', subject: '', starts: new Set() });
+type Speakers = { author: string; subject: string; starts: Set<string>; named: boolean };
+const SpeakerCtx = createContext<Speakers>({ author: '', subject: '', starts: new Set(), named: true });
 
 /** A speaker's name, hung in the margin on a wide screen and set above the turn on a phone. */
 const Who: React.FC<{ name: string }> = ({ name }) => (
@@ -77,14 +79,14 @@ const Line: React.FC<{ id: string; text: string; size: LineSize; follow?: { id: 
 
 /** Words inside a column, a side or a glyph block. Each turn carries its speaker's name. */
 const Words: React.FC<{ blocks: Block[] }> = ({ blocks }) => {
-  const { author, subject, starts } = useContext(SpeakerCtx);
+  const { author, subject, starts, named } = useContext(SpeakerCtx);
   return (
     <>
       {blocks.map((b, i) => {
         if (b.kind === 'q') {
           return (
             <div key={b.id} className="tj-conv-turn tj-conv-q">
-              <Who name={author} />
+              {named && <Who name={author} />}
               <Rich field={b.id} text={b.text} className="tj-conv-q-text" />
             </div>
           );
@@ -166,7 +168,7 @@ const PartOpening: React.FC<{ spec: ConversationSpec; part: Part; n: number }> =
     <section id={`part-${n}`} className="tj-conv-spread" data-flip={n % 2 === 0 ? '' : undefined} aria-labelledby={`part-${n}-title`}>
       <div data-reveal="photo" className="tj-conv-spread-photo"><Photo spec={spec} shot={part.opener} fill /></div>
       <header data-reveal="text" className="tj-conv-spread-head">
-        <span className="tj-conv-spread-part">Part {partWord(n)}</span>
+        {spec.form !== 'story' && <span className="tj-conv-spread-part">Part {partWord(n)}</span>}
         <h2 id={`part-${n}-title`} className="tj-conv-spread-title">{part.title}</h2>
         <span aria-hidden="true" className="tj-conv-spread-rule" />
       </header>
@@ -235,9 +237,13 @@ const Cover: React.FC<{ spec: ConversationSpec }> = ({ spec }) => (
         <EditableText field="title-1" as="span">{spec.title[0]}</EditableText>{' '}<br />
         <span className="tj-conv-title-2"><EditableText field="title-2" as="span">{spec.title[1]}</EditableText></span>
       </h1>
-      <p className="tj-conv-dek">
-        <EditableText field="dek-2" as="span" multiline>{spec.dek}</EditableText>
-      </p>
+      {spec.form === 'story' && spec.hook
+        ? <Rich field="hook" text={spec.hook} className="tj-conv-cover-hook" />
+        : (
+          <p className="tj-conv-dek">
+            <EditableText field="dek-2" as="span" multiline>{spec.dek}</EditableText>
+          </p>
+        )}
     </div>
   </header>
 );
@@ -313,7 +319,10 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
   const firstOther = spec.opening.findIndex((b) => b.kind !== 'n');
   const leadingTold = (firstOther === -1 ? spec.opening : spec.opening.slice(0, firstOther)) as Extract<Block, { kind: 'n' }>[];
   const openingRest = firstOther === -1 ? [] : spec.opening.slice(firstOther);
-  const speakers = useMemo<Speakers>(() => ({ ...spec.speakers, starts: turnStarts(spec) }), [spec]);
+  // A story names nobody in the margin: quotation marks carry who is speaking.
+  const speakers = useMemo<Speakers>(() => (spec.form === 'story'
+    ? { ...spec.speakers, starts: new Set<string>(), named: false }
+    : { ...spec.speakers, starts: turnStarts(spec), named: true }), [spec]);
   // What the Share button puts on its card: the piece's own title, the line it
   // names, said by its subject, over the object it names.
   const share = useMemo<ReadShare>(() => shareCardFor(spec), [spec]);
@@ -337,7 +346,7 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
           <Helmet><title>{spec.pageTitle}</title></Helmet>
           <ImmersiveNav progress={progress} current={current ? spec.parts[current - 1].title : undefined} />
 
-          <article className="tj-conv" style={{ position: 'relative', zIndex: 1 }}>
+          <article className="tj-conv" data-form={spec.form ?? 'conversation'} style={{ position: 'relative', zIndex: 1 }}>
             <Cover spec={spec} />
             <Byline spec={spec} />
 
@@ -349,7 +358,7 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
               {/* Adrian's telling that opens the story continues his intro, so it sits
                   with it, before the contents, rather than alone after the list. */}
               {leadingTold.map((b) => <Rich key={b.id} field={b.id} text={b.text} className="tj-conv-told tj-conv-intro-told" />)}
-              <Contents spec={spec} />
+              {spec.form !== 'story' && <Contents spec={spec} />}
             </section>
 
             {groupRuns(openingRest).map((b, i) => <BlockView key={`o${i}`} spec={spec} block={b} />)}

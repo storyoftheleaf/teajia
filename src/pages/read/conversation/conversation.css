@@ -225,6 +225,27 @@
   .tj-conv-caption { font-size: 16px; }
 }
 
+/* ── The story form: their words in quotation marks, brightest; Adrian's telling one step quieter ── */
+.tj-conv[data-form="story"] .tj-conv-a { color: var(--tj-read-ink); }
+.tj-conv[data-form="story"] .tj-conv-told { color: var(--tj-read-taupe); }
+/* Each paragraph of theirs opens with a quotation mark hung outside the column; only the last
+   paragraph of a run closes it, as a printed story sets a speech that runs over paragraphs. */
+.tj-conv[data-form="story"] .tj-conv-a::before,
+.tj-conv[data-form="story"] .tj-conv-q-text::before { content: '\201C'; margin-left: -0.42em; }
+.tj-conv[data-form="story"] .tj-conv-a::after,
+.tj-conv[data-form="story"] .tj-conv-q-text::after { content: '\201D'; }
+.tj-conv[data-form="story"] .tj-conv-a:has(+ .tj-conv-a)::after { content: none; }
+/* A question Adrian kept: his words, in italics inside quotation marks, no name. */
+.tj-conv[data-form="story"] .tj-conv-q-text { font-style: italic; color: var(--tj-read-taupe); }
+/* The hook on the cover, in place of the dek. */
+.tj-conv-cover-hook {
+  font-family: var(--font-display); font-style: italic; font-weight: 400;
+  font-size: clamp(21px, 2.1vw, 28px); line-height: 1.35; color: var(--tj-read-cream);
+  margin: clamp(22px, 3vw, 34px) 0 0; max-width: 24ch; text-wrap: balance;
+}
+.tj-conv-cover-hook::before { content: '\201C'; margin-left: -0.42em; }
+.tj-conv-cover-hook::after { content: '\201D'; }
+
 /* A quote mark opening a large line hangs outside it, so the words align. */
 .tj-conv-hang { margin-left: -0.42em; }
 

@@ -32,6 +32,14 @@
  * intro now saves under "intro-2", and no block here uses "p3-a4", so neither
  * can reach the page again.
  *
+ * Read as a story (2026-09-29, after the magazine audit): no speaker names in
+ * the margin, his words in quotation marks, and his hook on the cover in place
+ * of the dek. The hook is lifted out of his first answer, so it is printed once;
+ * the gold-seam photograph it sat beside stays, on its own. Adrian's line about
+ * hiding his skills is his telling (`n`), as the draft sets it, not a question.
+ * The saved edit key "p1-l1" (the hook, when it sat in the body) no longer
+ * reaches the page.
+ *
  * The opening line the page carried from 2026-09-28, "I learned restoration
  * from Yan Jinwen. I took his class in Wuyi…", was written by an AI session and
  * was never Adrian's ("this didn't happen"). It is gone; do not restore it.
@@ -74,6 +82,7 @@ export const porcelainAndTea: ConversationSpec = {
   pageTitle: 'Yan Jinwen · Porcelain and Tea · Teajia',
   title: ['Porcelain', 'and Tea'],
   dek: 'Old tea ware, lacquer, and a restorer at the foot of the Wuyi Mountains.',
+  hook: 'Nine out of ten old things are damaged. But I think these are ==all marks of history.==',
   subject: { name: 'Yan Jinwen', nameCn: '严金文', role: 'Porcelain restorer', href: '/people/yan-jinwen', words: 'his' },
   speakers: { author: 'Adrian', subject: 'Jinwen' },
   form: 'story',
@@ -97,11 +106,7 @@ export const porcelainAndTea: ConversationSpec = {
       opener: S.classTable,
       blocks: [
         { kind: 'a', id: 'p1-a1', text: 'First of all, I quite like collecting things. Because of tea, I like to collect some tea-related utensils. Many old utensils have some damages here and there.' },
-        {
-          kind: 'side', shot: S.goldSeam, bleed: true, blocks: [
-            { kind: 'line', id: 'p1-l1', size: 'l', text: 'As the saying goes, nine out of ten old things are damaged. ==But I think these are all marks of history.==' },
-          ],
-        },
+        { kind: 'wide', shot: S.goldSeam, aspect: '4/5', narrow: true, offset: 'left' },
         { kind: 'a', id: 'p1-a2', text: 'After I repair them, they couldn’t be used before the repair, but after repair, they can return to our lives. Some utensils may be a hundred years old, and some may be a thousand years old. Just think about it, it’s a very wonderful thing that they can meet you after thousands of years. And it’s very meaningful that they can continue to be with us now, on our tea tables or in our lives.' },
         { kind: 'a', id: 'p1-a3', text: 'So, I don’t think it’s about inspiration. It’s just that my love for these utensils themselves naturally makes me find various ways to enable them to be better passed on and better used.' },
         { kind: 'wide', shot: S.cupOnWood, aspect: '4/5', narrow: true, offset: 'right' },
@@ -135,7 +140,7 @@ export const porcelainAndTea: ConversationSpec = {
         },
         { kind: 'a', id: 'p2-a3', text: 'For example, the repair of cracked porcelain using staples can be traced back to the Song Dynasty, with a history of more than 1,000 years.' },
         { kind: 'n', id: 'p2-n1', text: 'He takes the mended pieces out to exhibitions and markets, where people meet them for the first time.' },
-        { kind: 'a', id: 'p2-a4', text: 'When these artifacts are in a damaged state, people don’t know what they can be used for. But when I repair them, people discover, “Oh, this thing can be used like this, it’s quite interesting.”' },
+        { kind: 'a', id: 'p2-a4', text: 'When these artifacts are in a damaged state, people don’t know what they can be used for. But when I repair them, people discover, ‘Oh, this thing can be used like this, it’s quite interesting.’' },
         { kind: 'wide', shot: S.shelves, aspect: '4/5', narrow: true, offset: 'right' },
         { kind: 'a', id: 'p2-a5', text: 'It’s the state of being dedicated to excelling at something. The ancients focused more on pursuing form, spirit, and inner expression. Nowadays, this is somewhat lacking.' },
       ],
@@ -183,7 +188,7 @@ export const porcelainAndTea: ConversationSpec = {
         { kind: 'n', id: 'p4-n2', text: 'His plan now is to teach what he knows, in paid courses, so more people can learn and help preserve the craft.' },
         {
           kind: 'side', shot: S.classBench, flip: true, blocks: [
-            { kind: 'q', id: 'p4-q1', text: 'One thing I realized a long time ago is if I hide my skills or my ways of doing things, it will end with me.' },
+            { kind: 'n', id: 'p4-q1', text: 'One thing I realized a long time ago is if I hide my skills or my ways of doing things, it will end with me.' },
             { kind: 'a', id: 'p4-a4', text: 'We must first get our own lives in order, then we can have better energy to spread meaningful things.' },
           ],
         },
@@ -203,7 +208,6 @@ export const porcelainAndTea: ConversationSpec = {
   closing: 'Leaving this place, I felt a strong sense of the love and attention that goes into these things that we do regularly. How true, and how clearly I can see: how you do it in one place, you do it in every place. Beyond the love for those things which are old, it is about putting energy into those things which you cherish, and bringing them a new life.',
   credit: [
     'His words were spoken in Mandarin in Wuyi, translated into English and lightly trimmed.',
-    'Told by Adrian Rasmussen.',
   ],
   next: [
     { to: '/read/earth-water-fire', kicker: 'Conversation', title: 'Earth, Water, Fire', blurb: 'A Jingdezhen potter on the vessels that hold the tea.' },
