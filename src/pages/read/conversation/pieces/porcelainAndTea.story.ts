@@ -49,6 +49,7 @@ export const story: Pick<ConversationSpec, 'portrait' | 'intro' | 'hook' | 'open
     {
       title: "Marks of history",
       blocks: [
+        { kind: "n", id: "p1-n2", text: "I asked when he first felt inspired to work with porcelain restoration." },
         {
           kind: "a",
           id: "p1-a1",
@@ -72,17 +73,21 @@ export const story: Pick<ConversationSpec, 'portrait' | 'intro' | 'hook' | 'open
           ],
           stagger: true,
         },
-        { kind: "n", id: "p1-n1", text: "Plenty of tea drinkers are happy with a new gaiwan. He doesn’t argue with them." },
+        { kind: "n", id: "p1-n3", text: "I mentioned that many people are happy with a gaiwan or some new cups." },
         {
           kind: "a",
-          id: "p1-a4",
-          text: "For instance, some people like coffee, while others like tea. I think we can only do what we like in the present, and through this, attract like-minded friends.",
+          id: "p1-a7",
+          text: "Whether one likes old things or new things, everyone has different preferences. For instance, some people like coffee, while others like tea. I think we can only do what we like in the present, and through this, attract like-minded friends. Friends with common interests can gather together, sit down because of these utensils or a cup of tea, and we can have plenty of topics to talk about.",
         },
         {
           kind: "side",
           shot: shots.jar,
           blocks: [
-            { kind: "a", id: "p1-a5", text: "I like them because I think they have a more natural sense of historical vicissitudes." },
+            {
+              kind: "a",
+              id: "p1-a8",
+              text: "As for old utensils, I think they carry a lot of historical and cultural elements, which are reflected in them. I like them because I think they have a more natural sense of historical vicissitudes.",
+            },
             {
               kind: "a",
               id: "p1-l2",
@@ -95,11 +100,7 @@ export const story: Pick<ConversationSpec, 'portrait' | 'intro' | 'hook' | 'open
           kind: "glyph",
           glyph: "缘分",
           blocks: [
-            {
-              kind: "q",
-              id: "p1-q1",
-              text: "Some people talk about karma, how old things carry a weight with them. By bringing these old things back to life, do you feel you are honoring the past?",
-            },
+            { kind: "n", id: "p1-n4", text: "I asked if he felt bringing these old cups back to life honors the past." },
             { kind: "a", id: "p1-l3", text: "This feeling is very subtle, and I can’t quite put it into words." },
             {
               kind: "a",
@@ -114,6 +115,7 @@ export const story: Pick<ConversationSpec, 'portrait' | 'intro' | 'hook' | 'open
     {
       title: "People cherished utensils more",
       blocks: [
+        { kind: "n", id: "p2-n2", text: "I guessed that a thousand years ago, people would just make a new cup." },
         { kind: "a", id: "p2-a1", text: "Repair techniques have existed for thousands of years." },
         {
           kind: "side",
@@ -132,13 +134,29 @@ export const story: Pick<ConversationSpec, 'portrait' | 'intro' | 'hook' | 'open
             },
           ],
         },
-        { kind: "n", id: "p2-n1", text: "He takes the mended pieces out to exhibitions and markets, where people meet them for the first time." },
         {
           kind: "a",
-          id: "p2-a4",
-          text: "When these artifacts are in a damaged state, people don’t know what they can be used for. But when I repair them, people discover, ‘Oh, this thing can be used like this, it’s quite interesting.’",
+          id: "p2-a6",
+          text: "I take many of my artifacts to exhibitions and markets. Through this, more people can understand the connection between these ancient artifacts and modern life. … When these artifacts are in a damaged state, people don’t know what they can be used for. But when I repair them, people discover, ‘Oh, this thing can be used like this, it’s quite interesting.’",
         },
         { kind: "wide", shot: shots.shelves, aspect: "4/5", narrow: true, offset: "right" },
+        {
+          kind: "a",
+          id: "p2-a7",
+          text: "For old utensils, especially teacups and teapots, the clay used in their production during that era was likely superior to today’s clay. Ancient utensils were mainly fired with wood, and the temperature and transformation effects from wood firing are more layered and rich compared to modern electric firing. That’s a big reason why so many people pursue old utensils and old cups.",
+        },
+        { kind: "n", id: "p2-n3", text: "I brought up the clay, and whether it still exists." },
+        {
+          kind: "a",
+          id: "p2-a8",
+          text: "Clay is a large part of the reason, and it’s possible that such clay no longer exists today. Another reason is that people now pursue speed and convenience, so they no longer calm down as they did before. Most are chasing a fast rhythm and quick gains.",
+        },
+        { kind: "n", id: "p2-n4", text: "I offered that a piece made for money is tangibly different from one made for the mastery of the craft." },
+        {
+          kind: "a",
+          id: "p2-a9",
+          text: "Of course, you get what you pay for. It’s not that no one today focuses deeply, but there are many choices. You can buy a stove for 50 yuan, 500 yuan, or 5,000 yuan, the same goes for cups. While price isn’t the only standard, it’s an important factor in evaluating a utensil.",
+        },
         {
           kind: "a",
           id: "p2-a5",
@@ -175,8 +193,11 @@ export const story: Pick<ConversationSpec, 'portrait' | 'intro' | 'hook' | 'open
               id: "p3-a3",
               text: "I think the main thing is being able to calm oneself down, slow down, and truly focus one’s energy on _a single utensil or a single matter._ It has made my life more steady and relaxed.",
             },
-            { kind: "n", id: "p3-n1", text: "The friends who take a mended piece home find something of the same." },
-            { kind: "a", id: "p3-a5", text: "Then they realize it helps them calm down and focus more on the present moment." },
+            {
+              kind: "a",
+              id: "p3-a4",
+              text: "Yes. Many friends, after getting these restored objects, first feel they are meaningful and interesting. Then they realize it helps them calm down and focus more on the present moment.",
+            },
           ],
           flip: true,
         },
@@ -207,8 +228,8 @@ export const story: Pick<ConversationSpec, 'portrait' | 'intro' | 'hook' | 'open
           text: "Tea is like an ==invisible language.==",
           size: "xl",
           follow: {
-            id: "p4-a2",
-            text: "Just like us, from different countries, but we can sit together because of tea. Maybe the topic isn’t tea, but it brings us together.",
+            id: "p4-a5",
+            text: "Just like us, from different countries, but we can sit together because of tea. Maybe the topic isn’t tea, but it brings us together. For me personally, tea is a spiritual practice and a way of life.",
           },
         },
         {
@@ -223,27 +244,36 @@ export const story: Pick<ConversationSpec, 'portrait' | 'intro' | 'hook' | 'open
           kind: "side",
           shot: shots.courtyard,
           blocks: [
-            { kind: "n", id: "p4-n1", text: "The name over the door came from the lacquer, and he wears it lightly." },
-            { kind: "a", id: "p4-a3", text: "It doesn’t have too many specific meanings, it’s just like a nickname." },
+            {
+              kind: "a",
+              id: "p4-a6",
+              text: "Tea plays many roles. It is a beverage, a gift, and a medium of communication. We sit around a tea table and talk about many things. It can be generous or selfish.",
+            },
+            { kind: "a", id: "p4-a7", text: "This leaf absorbs the essence of heaven and earth, embodying the five elements and eight trigrams." },
+            {
+              kind: "a",
+              id: "p4-a8",
+              text: "It gathers the energy of the East in China, remarkable that such energy can be concentrated in a single leaf and radiated outward.",
+            },
           ],
           flip: true,
         },
         { kind: "wide", shot: shots.studio },
         {
-          kind: "n",
-          id: "p4-n2",
-          text: "His plan now is to teach what he knows, in paid courses, so more people can learn and help preserve the craft.",
+          kind: "a",
+          id: "p4-a9",
+          text: "My biggest challenge has been bridging reality and ideals. As an artist, we invest time and energy for perfection, but sometimes fail to connect it to real life, leading to financial problems. I’m gradually changing that, doing what I love while also creating economic benefits. My plan is to turn my skills into paid courses, so more people can learn and help preserve this craft.",
         },
         {
           kind: "side",
           shot: shots.classBench,
           blocks: [
+            { kind: "n", id: "p4-n3", text: "I shared that if I hide my skills or my ways of doing things, they end with me." },
             {
-              kind: "n",
-              id: "p4-q1",
-              text: "One thing I realized a long time ago is if I hide my skills or my ways of doing things, it will end with me.",
+              kind: "a",
+              id: "p4-a10",
+              text: "Yes, I think the economic base determines the superstructure. We can’t talk about ideals apart from life, nor focus on life without ideals. The bridge between the two is the economic base. As long as we obtain due rewards within our capabilities, we can make this work more meaningful and selfless. But we must first get our own lives in order, then we can have better energy to spread meaningful things.",
             },
-            { kind: "a", id: "p4-a4", text: "We must first get our own lives in order, then we can have better energy to spread meaningful things." },
           ],
           flip: true,
         },
