@@ -62,8 +62,6 @@ export const STATIC_META: Record<string, Meta> = {
   '/read/porcelain-and-tea': {
     title: 'Porcelain and Tea · Teajia',
     description: 'A porcelain restorer on repair, patience, and how mending what we love mends us in return.',
-    // The cover portrait, so a shared link shows him rather than the site-wide card.
-    image: `${SITE}/read/porcelain-and-tea/portrait.jpg`,
   },
   '/read/leaf-to-liquor': {
     title: 'From Leaf to Liquor · Teajia',
@@ -164,12 +162,23 @@ const NOT_FOUND_META: Meta = {
  * shown only if it is marked live or is one of the named exceptions (/read
  * itself and the leaf-to-liquor routes), and anything else is a draft.
  */
+/**
+ * The picture a chat app shows under a pasted link to a published Read piece:
+ * its own share card, the same drawing the Share button sends, made by
+ * `npm run share:cards`. functions/shareCards.test.ts fails when a
+ * published piece has no card, or its card no longer matches the piece.
+ */
+export function readShareCardPath(path: string): string {
+  return `/read/${path.split('/').pop()}/share.jpg`;
+}
+
 export function resolveStaticReadMeta(path: string): Meta | null {
   const meta = STATIC_META[path] || null;
   if (!meta) return null;
   if (path === '/read' || path.startsWith('/read/')) {
     if (!isReadPathPublic(path)) return NOT_FOUND_META;
   }
+  if (path.startsWith('/read/') && !meta.image) return { ...meta, image: `${SITE}${readShareCardPath(path)}` };
   return meta;
 }
 

@@ -230,9 +230,13 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   return lines;
 }
 
-async function renderPosterToCanvas(comp: ShareComposition, article: ShareArticle): Promise<HTMLCanvasElement> {
+/** 'portrait' is the 4:5 card a reader saves or sends; 'landscape' is the 1200×630 picture a chat app shows under a pasted link. */
+export type ShareCardFormat = 'portrait' | 'landscape';
+
+async function renderPosterToCanvas(comp: ShareComposition, article: ShareArticle, format: ShareCardFormat = 'portrait'): Promise<HTMLCanvasElement> {
   await document.fonts.ready;
-  const W = 800, H = 1000, PAD = 52;
+  const wide = format === 'landscape';
+  const W = wide ? 1200 : 800, H = wide ? 630 : 1000, PAD = 52;
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
@@ -273,27 +277,41 @@ async function renderPosterToCanvas(comp: ShareComposition, article: ShareArticl
     // its own; with no line either, the title does.
     const photo = article.image ? await loadImage(article.image) : null;
     const line = article.line;
-    const centred = !!photo;
-    const x = centred ? W / 2 : PAD;
-    // Measure the whole block first, then set it in the middle of the space
-    // between the kicker and the closing rule.
+    const top = PAD + 40, bottom = H - PAD - 44 - 30;
+    const under = line ? line.who : comp.subtitle;
+    // Wide, the object stands at the left and the words sit beside it; tall,
+    // the object sits above and the words are centred under it.
+    const beside = wide && !!photo;
     let pw = 0, ph = 0;
     if (photo) {
-      const sc = Math.min(300 / photo.naturalWidth, (line ? 400 : 500) / photo.naturalHeight);
+      const maxW = beside ? 360 : 300;
+      const maxH = beside ? bottom - top : (line ? 400 : 500);
+      const sc = Math.min(maxW / photo.naturalWidth, maxH / photo.naturalHeight);
       pw = Math.round(photo.naturalWidth * sc); ph = Math.round(photo.naturalHeight * sc);
     }
-    const size = line ? (photo ? 46 : 70) : (photo ? 54 : 76);
+    const textX = beside ? PAD + 24 + pw + 64 : PAD;
+    const textW = beside ? W - PAD - textX : bodyW;
+    const centred = !!photo && !beside;
+    const x = centred ? W / 2 : textX;
+    const size = line ? (photo ? 46 : (wide ? 60 : 70)) : (photo ? 54 : (wide ? 66 : 76));
     const lh = Math.round(size * 1.08);
     setDisplay(size);
-    const shown = (line ? wrapMarked(ctx, line.text, bodyW) : wrapMarked(ctx, truncate(comp.title, 60), bodyW)).slice(0, photo ? 3 : 5);
-    const under = line ? line.who : comp.subtitle;
+    const shown = (line ? wrapMarked(ctx, line.text, textW) : wrapMarked(ctx, truncate(comp.title, 60), textW)).slice(0, photo || wide ? 3 : 5);
     setBody(19, 'italic');
-    const underLines = under ? wrapText(ctx, truncate(under, 120), bodyW * 0.85).slice(0, 3) : [];
+    const underLines = under ? wrapText(ctx, truncate(under, 120), textW * (beside ? 1 : 0.85)).slice(0, wide ? 2 : 3) : [];
     const gap = 56;
-    const blockH = (photo ? ph + gap : 0) + shown.length * lh + (underLines.length ? 18 + underLines.length * 28 : 0);
-    const top = PAD + 40, bottom = H - PAD - 44 - 30;
-    let y = Math.round(top + Math.max(0, (bottom - top - blockH) / 2));
-    if (photo) { ctx.drawImage(photo, Math.round((W - pw) / 2), y, pw, ph); y += ph + gap; }
+    const wordsH = shown.length * lh + (underLines.length ? 18 + underLines.length * 28 : 0);
+    // Measure first, then set everything in the middle of the space between
+    // the kicker and the closing rule.
+    let y: number;
+    if (beside && photo) {
+      ctx.drawImage(photo, PAD + 24, Math.round(top + (bottom - top - ph) / 2), pw, ph);
+      y = Math.round(top + Math.max(0, (bottom - top - wordsH) / 2));
+    } else {
+      const blockH = (photo ? ph + gap : 0) + wordsH;
+      y = Math.round(top + Math.max(0, (bottom - top - blockH) / 2));
+      if (photo) { ctx.drawImage(photo, Math.round((W - pw) / 2), y, pw, ph); y += ph + gap; }
+    }
     ctx.textAlign = centred ? 'center' : 'left';
     setDisplay(size);
     for (const l of shown) { drawMarked(ctx, l, x, y + size * 0.8, centred, C.text, C.gold); y += lh; }
@@ -426,6 +444,16 @@ export interface SharePanelProps {
   page: SharePage | null;
   article: ShareArticle;
   onClose: () => void;
+}
+
+/**
+ * The article's cover card as an image, outside the sheet: the phone's one-tap
+ * share attaches it, and the preview script saves the wide one as the picture
+ * a chat app shows under a pasted link. One drawing, so all three match.
+ */
+export async function renderShareCard(article: ShareArticle, format: ShareCardFormat = 'portrait'): Promise<Blob | null> {
+  const canvas = await renderPosterToCanvas({ type: 'cover', title: article.title, subtitle: article.subtitle ?? undefined }, article, format);
+  return new Promise((res) => canvas.toBlob(res, format === 'landscape' ? 'image/jpeg' : 'image/png', 0.9));
 }
 
 export function SharePanel({ page, article, onClose }: SharePanelProps) {

@@ -103,6 +103,19 @@ export interface ConversationSpec {
   share?: { line: string; photo?: Shot };
 }
 
+/** What a piece's share card carries: its title, the line it names said by its subject, over the object it names. */
+export type ShareCard = { title: string; image?: string; line?: { text: string; who?: string } };
+
+export function shareCardFor(spec: ConversationSpec): ShareCard {
+  const line = spec.share && allBlocks(spec).find((b) => b.kind === 'line' && b.id === spec.share!.line);
+  const role = spec.subject.role.charAt(0).toLowerCase() + spec.subject.role.slice(1);
+  return {
+    title: spec.title.join(' '),
+    image: spec.share?.photo ? spec.images + spec.share.photo.file : undefined,
+    line: line && line.kind === 'line' ? { text: line.text, who: `${spec.subject.name}, ${role}` } : undefined,
+  };
+}
+
 /** Every block, depth first, including those nested in sides and glyphs. */
 export function allBlocks(spec: ConversationSpec): Block[] {
   const out: Block[] = [];

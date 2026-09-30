@@ -385,7 +385,31 @@ export const ReadShareContext = React.createContext<ReadShare | null>(null);
 function readShareArticle(pathname: string, known: ReadShare | null) {
   const title = known?.title ?? (document.title.replace(/\s*·\s*Teajia\s*$/, '').trim() || 'Teajia');
   const slug = pathname.replace(/\/+$/, '').split('/').pop() || 'read';
-  return { id: slug, slug, title, kicker: 'Teajia · Read', image: known?.image, line: known?.line };
+  // A piece with no line of its own still has the description the edge wrote
+  // into the page, but only trust it when it was written for this address: a
+  // page reached by clicking through keeps the first page's head.
+  const ogUrl = document.querySelector('meta[property="og:url"]')?.getAttribute('content') ?? '';
+  const described = !known?.line && ogUrl.replace(/\/+$/, '').endsWith(pathname.replace(/\/+$/, ''));
+  const subtitle = described ? document.querySelector('meta[property="og:description"]')?.getAttribute('content') ?? undefined : undefined;
+  return { id: slug, slug, title, subtitle, kicker: 'Teajia · Read', image: known?.image, line: known?.line };
+}
+
+// On a phone, Share goes straight to the phone's own share menu, which lists
+// the reader's real apps and people, with the card attached. The card is drawn
+// ahead of the press: a phone only opens its menu while the tap is fresh, and
+// drawing it after the tap can outlast that.
+const isPhone = () =>
+  typeof navigator !== 'undefined' && typeof navigator.share === 'function' &&
+  typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+const cards = new Map<string, Blob | null>();
+const drawing = new Map<string, Promise<void>>();
+
+function prepareCard(key: string, article: ReturnType<typeof readShareArticle>) {
+  if (cards.has(key) || drawing.has(key)) return;
+  drawing.set(key, import('../../components/article/SharePanel')
+    .then((m) => m.renderShareCard(article))
+    .then((blob) => { cards.set(key, blob); })
+    .catch(() => { cards.set(key, null); }));
 }
 
 export const ShareButton: React.FC<{ variant: 'bar' | 'end' }> = ({ variant }) => {
@@ -395,11 +419,35 @@ export const ShareButton: React.FC<{ variant: 'bar' | 'end' }> = ({ variant }) =
   // Held steady while the sheet is open: the bar re-renders on every scroll
   // tick, and a fresh object each time restarts the poster before it finishes.
   const article = React.useMemo(() => (open ? readShareArticle(pathname, known) : null), [open, pathname, known]);
+  const key = `${pathname}|${known?.title ?? ''}|${known?.line?.text ?? ''}`;
+
+  useEffect(() => {
+    if (!isPhone()) return;
+    const t = window.setTimeout(() => prepareCard(key, readShareArticle(pathname, known)), 1200);
+    return () => window.clearTimeout(t);
+  }, [key, pathname, known]);
+
+  const press = async () => {
+    if (isPhone()) {
+      const a = readShareArticle(pathname, known);
+      const data: ShareData = { title: a.title, text: `${a.title} · Teajia`, url: window.location.href };
+      const blob = cards.get(key);
+      if (blob) {
+        const file = new File([blob], `teajia-${a.slug}.png`, { type: 'image/png' });
+        if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) data.files = [file];
+      }
+      try { await navigator.share(data); return; }
+      catch (e) { if ((e as Error).name === 'AbortError') return; }
+      // The menu refused (an old phone, or the tap went stale): fall back to the sheet.
+    }
+    setOpen(true);
+  };
+
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={press}
         className="tj-share"
         data-testid={variant === 'bar' ? 'read-share-bar' : 'read-share-end'}
         style={
