@@ -19,7 +19,7 @@ import {
 } from '../immersive';
 import EditablePhoto from '../EditablePhoto';
 import { StoryEditProvider, EditableText } from '../storyEdit';
-import StoryEditorBar from '../StoryEditorBar';
+import StoryEditorBar, { EditWord } from '../StoryEditorBar';
 import { Rich } from './RichText';
 import {
   type Block, type ConversationSpec, type LineSize, type Part, type Shot,
@@ -335,7 +335,7 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
       <SpeakerCtx.Provider value={speakers}>
         <ImmersiveRoot rootRef={rootRef}>
           <Helmet><title>{spec.pageTitle}</title></Helmet>
-          <ImmersiveNav progress={progress} current={current ? spec.parts[current - 1].title : undefined} />
+          <ImmersiveNav progress={progress} current={current ? spec.parts[current - 1].title : undefined} actions={<EditWord />} />
 
           <article className="tj-conv" style={{ position: 'relative', zIndex: 1 }}>
             <Cover spec={spec} />
@@ -394,7 +394,7 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
         </ImmersiveRoot>
       </SpeakerCtx.Provider>
       </ReadShareContext.Provider>
-      <StoryEditorBar />
+      <StoryEditorBar inBar />
     </StoryEditProvider>
   );
 };
