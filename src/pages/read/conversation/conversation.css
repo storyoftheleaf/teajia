@@ -364,14 +364,6 @@ html[data-tj-reading='quiet'] [data-testid='bottom-tab-bar'] { translate: 0 calc
 .tj-conv-intro-told { font-size: clamp(19px, 2.3vw, 23px); line-height: 1.7; color: var(--tj-read-ink); margin: 1em 0 0; }
 .tj-conv-closing { margin-top: var(--conv-s2); }
 
-/* ── Whose words these are ──────────────────────────────────────────────────
-   The subject's words carry quotation marks, as any printed profile sets a
-   quote, so a reader can tell them from Adrian's telling without a label.
-   The opening mark hangs outside the text edge so the words stay on the
-   spine. A paragraph that carries on from a large line opens without one. */
-.tj-conv-a:not(.tj-conv-follow)::before { content: '\201C'; margin-left: -0.42em; }
-.tj-conv-a::after { content: '\201D'; }
-
 /* ── Reading on a phone ─────────────────────────────────────────────────────
    One paragraph gap everywhere, a larger one only where the voice changes,
    tighter leading for a narrow column, and plain wrapping: `pretty` aims each
@@ -395,3 +387,15 @@ html[data-tj-reading='quiet'] [data-testid='bottom-tab-bar'] { translate: 0 calc
   .tj-conv-col + .tj-conv-side { margin-top: 18px; }
   .tj-conv-side-words { padding-top: 0; }
 }
+
+/* Large lines in a story are the subject's words too, never Adrian's, so they carry
+   the same marks as the small ones. A large line that carries on into a paragraph
+   closes at the end of that paragraph. The closing saying brings its own marks. */
+.tj-conv[data-form="story"] [data-size] > .tj-conv-line::before,
+.tj-conv[data-form="story"] .tj-conv-onphoto-words::before { content: '\201C'; margin-left: -0.42em; }
+.tj-conv[data-form="story"] [data-size] > .tj-conv-line::after,
+.tj-conv[data-form="story"] .tj-conv-onphoto-words::after { content: '\201D'; }
+.tj-conv[data-form="story"] [data-size]:has(> .tj-conv-follow) > .tj-conv-line::after { content: none; }
+.tj-conv[data-form="story"] .tj-conv-follow::before { content: none; }
+.tj-conv[data-form="story"] .tj-conv-saying .tj-conv-line::before,
+.tj-conv[data-form="story"] .tj-conv-saying .tj-conv-line::after { content: none; }

@@ -100,10 +100,12 @@ try {
 }
 
 // Photographs: every one in the folder is placed, and every placed one is in the folder.
+// share.jpg is the card a pasted link shows (functions/_middleware.ts), not a photograph of the story.
+const SHARE_CARD = 'share.jpg';
 const slug = opt('slug') ?? prev?.images?.replace(/^\/read\/|\/$/g, '') ?? prev?.slug;
 if (!slug) fail('No image folder: pass --slug for a new story.');
 const imgDir = path.join(repo, 'public/read', slug);
-const onDisk = fs.existsSync(imgDir) ? fs.readdirSync(imgDir).filter((f) => /\.(jpe?g|png|webp)$/i.test(f)) : [];
+const onDisk = fs.existsSync(imgDir) ? fs.readdirSync(imgDir).filter((f) => /\.(jpe?g|png|webp)$/i.test(f) && f !== SHARE_CARD) : [];
 const placed = new Set(m.placedFiles(story));
 const missing = [...placed].filter((f) => !onDisk.includes(f));
 const unplaced = onDisk.filter((f) => !placed.has(f));

@@ -54,7 +54,6 @@ export const story: Pick<ConversationSpec, 'portrait' | 'intro' | 'hook' | 'open
           id: "p1-a1",
           text: "First of all, I quite like collecting things. Because of tea, I like to collect some tea-related utensils. Many old utensils have some damages here and there.",
         },
-        { kind: "wide", shot: shots.goldSeam, aspect: "4/5", narrow: true, offset: "left" },
         {
           kind: "a",
           id: "p1-a2",
@@ -65,7 +64,14 @@ export const story: Pick<ConversationSpec, 'portrait' | 'intro' | 'hook' | 'open
           id: "p1-a3",
           text: "So, I don’t think it’s about inspiration. It’s just that my love for these utensils themselves naturally makes me find various ways to enable them to be better passed on and better used.",
         },
-        { kind: "wide", shot: shots.cupOnWood, aspect: "4/5", narrow: true, offset: "right" },
+        {
+          kind: "photos",
+          shots: [
+            shots.goldSeam,
+            shots.cupOnWood,
+          ],
+          stagger: true,
+        },
         { kind: "n", id: "p1-n1", text: "Plenty of tea drinkers are happy with a new gaiwan. He doesn’t argue with them." },
         {
           kind: "a",
@@ -78,10 +84,9 @@ export const story: Pick<ConversationSpec, 'portrait' | 'intro' | 'hook' | 'open
           blocks: [
             { kind: "a", id: "p1-a5", text: "I like them because I think they have a more natural sense of historical vicissitudes." },
             {
-              kind: "line",
+              kind: "a",
               id: "p1-l2",
-              text: "Moreover, I can feel the state of the people who created them at that time ==through touching these utensils.==",
-              size: "m",
+              text: "Moreover, I can feel the state of the people who created them at that time through touching these utensils.",
             },
           ],
           flip: true,
@@ -95,7 +100,7 @@ export const story: Pick<ConversationSpec, 'portrait' | 'intro' | 'hook' | 'open
               id: "p1-q1",
               text: "Some people talk about karma, how old things carry a weight with them. By bringing these old things back to life, do you feel you are honoring the past?",
             },
-            { kind: "line", id: "p1-l3", text: "This feeling is very subtle, and ==I can’t quite put it into words.==", size: "m" },
+            { kind: "a", id: "p1-l3", text: "This feeling is very subtle, and I can’t quite put it into words." },
             {
               kind: "a",
               id: "p1-a6",
@@ -114,18 +119,18 @@ export const story: Pick<ConversationSpec, 'portrait' | 'intro' | 'hook' | 'open
           kind: "side",
           shot: shots.stapledBowl,
           blocks: [
-            { kind: "line", id: "p2-l1", text: "In the past, ==people cherished utensils more.==", size: "l" },
+            { kind: "a", id: "p2-l1", text: "In the past, people cherished utensils more." },
             {
               kind: "a",
               id: "p2-a2",
               text: "Many utensils in daily life that got damaged can still show traces of repair. This technique was quite common in ancient times. On the contrary, in our current society, it’s not as popular because we can easily buy new things.",
             },
+            {
+              kind: "a",
+              id: "p2-a3",
+              text: "For example, the repair of cracked porcelain using staples can be traced back to the Song Dynasty, with a history of more than 1,000 years.",
+            },
           ],
-        },
-        {
-          kind: "a",
-          id: "p2-a3",
-          text: "For example, the repair of cracked porcelain using staples can be traced back to the Song Dynasty, with a history of more than 1,000 years.",
         },
         { kind: "n", id: "p2-n1", text: "He takes the mended pieces out to exhibitions and markets, where people meet them for the first time." },
         {
@@ -145,13 +150,7 @@ export const story: Pick<ConversationSpec, 'portrait' | 'intro' | 'hook' | 'open
     {
       title: "Restoration can’t be rushed",
       blocks: [
-        {
-          kind: "side",
-          shot: shots.classCupAndDish,
-          blocks: [
-            { kind: "a", id: "p3-a1", text: "It’s about slowing down, devoting more energy to the thing itself." },
-          ],
-        },
+        { kind: "a", id: "p3-a1", text: "It’s about slowing down, devoting more energy to the thing itself." },
         {
           kind: "line",
           id: "p3-l1",
@@ -159,6 +158,7 @@ export const story: Pick<ConversationSpec, 'portrait' | 'intro' | 'hook' | 'open
           size: "xl",
           follow: { id: "p3-a2", text: "It requires time to polish slowly to produce a good result." },
         },
+        { kind: "wide", shot: shots.classCupAndDish, aspect: "4/5", narrow: true, offset: "right" },
         {
           kind: "photos",
           shots: [
@@ -175,18 +175,12 @@ export const story: Pick<ConversationSpec, 'portrait' | 'intro' | 'hook' | 'open
               id: "p3-a3",
               text: "I think the main thing is being able to calm oneself down, slow down, and truly focus one’s energy on _a single utensil or a single matter._ It has made my life more steady and relaxed.",
             },
-          ],
-          flip: true,
-        },
-        {
-          kind: "side",
-          shot: shots.whiteBowl,
-          blocks: [
             { kind: "n", id: "p3-n1", text: "The friends who take a mended piece home find something of the same." },
             { kind: "a", id: "p3-a5", text: "Then they realize it helps them calm down and focus more on the present moment." },
           ],
-          bleed: true,
+          flip: true,
         },
+        { kind: "wide", shot: shots.whiteBowl },
         {
           kind: "photos",
           shots: [
