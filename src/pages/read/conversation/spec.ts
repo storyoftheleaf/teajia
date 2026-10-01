@@ -84,8 +84,7 @@ export interface ConversationSpec {
    * it is never printed twice.
    */
   hook?: string;
-  /** `words` is how the story byline refers to their words: "in his own words". Defaults to "their". */
-  subject: { name: string; nameCn?: string; role: string; href?: string; words?: 'his' | 'her' | 'their' };
+  subject: { name: string; nameCn?: string; role: string; href?: string };
   /** The names hung in the margin beside each turn, as a printed interview marks its speakers. */
   speakers: { author: string; subject: string };
   /** How the piece names itself and reads. 'story' is Adrian's telling: no speaker names in the

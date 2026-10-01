@@ -249,35 +249,33 @@ const Cover: React.FC<{ spec: ConversationSpec }> = ({ spec }) => (
 );
 
 /**
- * The byline under the cover, set as a magazine sets it: one sentence naming
- * the two people, and a quiet line saying how long the piece is. No labels;
- * the cover already says what he does and where. The author's own links live
- * in the colophon at the end, where a reader who wants them looks.
+ * The byline under the cover, as a short ledger: a conversation WITH the
+ * subject, BY Adrian, and how long it reads. Adrian made the conversation and
+ * wrote the piece, so it is his byline, not "told by" (Adrian, 2026-10-01).
+ * The author's own links live in the colophon at the end.
  */
 const Byline: React.FC<{ spec: ConversationSpec }> = ({ spec }) => {
   const home = spec.author.links.find((l) => l.href.startsWith('/'));
   return (
     <div className="tj-conv-byline">
-      {spec.form === 'story' ? (
-        // His name first: the words are mostly his. Adrian is the one who told it (Adrian, 2026-09-30).
-        <p className="tj-conv-byline-names">
-          {spec.subject.href ? <Link to={spec.subject.href}>{spec.subject.name}</Link> : spec.subject.name}
-          {spec.subject.nameCn && <span lang="zh-Hans" className="tj-conv-cn"> {spec.subject.nameCn}</span>}
-          <span className="tj-conv-byline-soft">, in {spec.subject.words ?? 'their'} own words.</span>
-          <span className="tj-conv-byline-told">
-            <span className="tj-conv-byline-soft">Told by </span>
-            {home ? <Link to={home.href}>{spec.author.name}</Link> : spec.author.name}
-          </span>
-        </p>
-      ) : (
-        <p className="tj-conv-byline-names">
-          {spec.subject.href ? <Link to={spec.subject.href}>{spec.subject.name}</Link> : spec.subject.name}
-          {spec.subject.nameCn && <span lang="zh-Hans" className="tj-conv-cn"> {spec.subject.nameCn}</span>}
-          <span className="tj-conv-byline-soft"> in conversation with </span>
-          {home ? <Link to={home.href}>{spec.author.name}</Link> : spec.author.name}
-        </p>
-      )}
-      <p className="tj-conv-byline-read">About {readingMinutes(spec)} minutes, {photoCount(spec)} photographs</p>
+      <p className="tj-conv-byline-kind">A conversation</p>
+      <dl className="tj-conv-byline-ledger">
+        <div>
+          <dt>With</dt>
+          <dd className="tj-conv-byline-name">
+            {spec.subject.href ? <Link to={spec.subject.href}>{spec.subject.name}</Link> : spec.subject.name}
+            {spec.subject.nameCn && <span lang="zh-Hans" className="tj-conv-cn"> {spec.subject.nameCn}</span>}
+          </dd>
+        </div>
+        <div>
+          <dt>By</dt>
+          <dd className="tj-conv-byline-name">{home ? <Link to={home.href}>{spec.author.name}</Link> : spec.author.name}</dd>
+        </div>
+        <div>
+          <dt>Length</dt>
+          <dd className="tj-conv-byline-read">{readingMinutes(spec)} minutes, {photoCount(spec)} photographs</dd>
+        </div>
+      </dl>
     </div>
   );
 };
