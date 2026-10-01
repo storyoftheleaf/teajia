@@ -396,15 +396,15 @@ html[data-tj-reading='quiet'] [data-testid='bottom-tab-bar'] { translate: 0 calc
   .tj-conv-side-words { padding-top: 0; }
 }
 
-/* Large lines in a story are the subject's words too, never Adrian's, so they carry
-   the same marks as the small ones. A large line that carries on into a paragraph
-   closes at the end of that paragraph. The closing saying brings its own marks. */
+/* Large lines in a story are the subject's words too, never Adrian's, so they carry the
+   same marks as the small ones. Every piece a reader sees on its own (a large line, the
+   paragraph after it, words set on a photograph) opens and closes its own marks, so it
+   still reads as a quote wherever a photo or a change of size breaks it up (Adrian,
+   2026-10-01). The closing saying brings its own marks. */
 .tj-conv[data-form="story"] [data-size] > .tj-conv-line::before,
 .tj-conv[data-form="story"] .tj-conv-onphoto-words::before { content: '\201C'; margin-left: -0.42em; }
 .tj-conv[data-form="story"] [data-size] > .tj-conv-line::after,
 .tj-conv[data-form="story"] .tj-conv-onphoto-words::after { content: '\201D'; }
-.tj-conv[data-form="story"] [data-size]:has(> .tj-conv-follow) > .tj-conv-line::after { content: none; }
-.tj-conv[data-form="story"] .tj-conv-follow::before { content: none; }
 .tj-conv[data-form="story"] .tj-conv-saying .tj-conv-line::before,
 .tj-conv[data-form="story"] .tj-conv-saying .tj-conv-line::after { content: none; }
 
