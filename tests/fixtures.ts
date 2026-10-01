@@ -44,6 +44,12 @@ export const test = base.extend({
       }
       return route.fulfill({ status: 200, contentType: 'image/png', headers: CORS, body: ONE_PIXEL_PNG });
     });
+    /* Every /read page asks which stories were published or taken down from
+       their own page (migration 0030). The default answer is "none", so the
+       ARTICLE_LIVE map decides exactly as it did before that existed; a spec
+       about publishing registers its own page.route, which wins over this. */
+    await context.route(/\/api\/public\/read\/publish-state$/, (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ states: {} }) }));
     await use(context);
   },
 });

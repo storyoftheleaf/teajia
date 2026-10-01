@@ -38,7 +38,8 @@ import type {
   ContributorTeaSelectionRef,
 } from '../types';
 import { mediaUrl } from '../lib/mediaUrl';
-import { isReadPathPublic } from './read/articleLive';
+import { isReadPathPublic, type ReadPublishOverrides } from './read/articleLive';
+import { useKnownReadOverrides } from './read/publishGate';
 import storyPeople from './read/storyPeople.generated.json';
 
 // /people/:slug. A creator's public page, phone first: the page that goes in
@@ -76,7 +77,7 @@ function articleHref(slug: string, anchor?: string | null): string {
   return `/article/${encodeURIComponent(slug)}${anchor ? `#${anchor}` : ''}`;
 }
 
-function wordRows(data: ContributorProfile): WordRow[] {
+function wordRows(data: ContributorProfile, readStates?: ReadPublishOverrides): WordRow[] {
   const authored = data.articles.map((article: ContributorArticleRef): WordRow => ({
     key: `wrote-${article.slug}`,
     href: articleHref(article.slug),
@@ -110,7 +111,7 @@ function wordRows(data: ContributorProfile): WordRow[] {
   // links to their page (scripts/read-story-people.mjs), so nobody has to tag
   // them by hand. Only stories a visitor can open are listed.
   const stories = (storyPeople as Array<{ href: string; title: string; dek: string | null; people: string[] }>)
-    .filter(story => story.people.includes(data.id) && isReadPathPublic(story.href))
+    .filter(story => story.people.includes(data.id) && isReadPathPublic(story.href, readStates))
     .map((story): WordRow => ({ key: `read-${story.href}`, href: story.href, title: story.title, dek: story.dek }));
   return [...stories, ...authored, ...quoted, ...featured];
 }
@@ -198,6 +199,8 @@ export default function ContributorProfilePage() {
   const { slug } = useParams<{ slug: string }>();
   const { data, isLoading, isError, error, refetch } = useContributor(slug);
   const rootRef = useReveals([data?.id]);
+  // A Read story published or taken down from its own page, once this browser knows.
+  const readStates = useKnownReadOverrides();
   const progress = useReadingProgress();
 
   useEffect(() => {
@@ -245,7 +248,7 @@ export default function ContributorProfilePage() {
   const hasWords = paragraphs.length > 0;
 
   const gallery = data.gallery_images;
-  const rows = wordRows(data);
+  const rows = wordRows(data, readStates);
   const collection = data.collection;
   const teas = data.tea_selection;
   const shownTeas = teas.slice(0, 3);

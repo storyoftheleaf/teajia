@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { canonicalUrlFor, isTeaAtlasPath, isWorkerProxyPath, onRequest, resolveStaticReadMeta, STATIC_META } from './_middleware';
+import { canonicalUrlFor, isTeaAtlasPath, isWorkerProxyPath, onRequest, readPublishStatesAtEdge, resetReadStatesCacheForTests, resolveStaticReadMeta, STATIC_META } from './_middleware';
 import { ARTICLE_LIVE, isReadPathPublic, isUngatedReadPath } from '../src/pages/read/articleLive';
 
 describe('Pages protocol proxy', () => {
@@ -157,6 +157,55 @@ describe('a draft does not claim its own URL as canonical', () => {
       } else {
         expect(url, `${routePath} is a draft but still claims its own URL as canonical`).toBe('https://www.teajia.com/read');
       }
+    }
+  });
+});
+
+describe('a story published or taken down from its own page', () => {
+  // Migration 0030: a stored state overrides ARTICLE_LIVE in both directions,
+  // and the edge must say the same thing to a crawler that the page says to a
+  // visitor. No stored state, or no way to read it, leaves the map deciding.
+  afterEach(() => { resetReadStatesCacheForTests(); vi.unstubAllGlobals(); });
+
+  it('gives a draft published from the page its own meta', () => {
+    expect(ARTICLE_LIVE['/read/history']).toBe(false);
+    expect(resolveStaticReadMeta('/read/history')?.title).toBe('Not found · Teajia');
+    const meta = resolveStaticReadMeta('/read/history', { '/read/history': 'live' });
+    expect(meta?.title).toBe('Ten Thousand Mornings · Teajia');
+    expect(canonicalUrlFor(meta!, '/read/history')).toBe('https://www.teajia.com/read/history');
+    // No share card was drawn for it, so no picture is promised that is not there.
+    expect(meta?.image).toBeUndefined();
+  });
+
+  it('gives a live story taken down from the page not-found meta', () => {
+    expect(ARTICLE_LIVE['/read/porcelain-and-tea']).toBe(true);
+    const meta = resolveStaticReadMeta('/read/porcelain-and-tea', { '/read/porcelain-and-tea': 'draft' });
+    expect(meta?.title).toBe('Not found · Teajia');
+    expect(canonicalUrlFor(meta!, '/read/porcelain-and-tea')).toBe('https://www.teajia.com/read');
+  });
+
+  it('reads the states from the worker, once per fifteen seconds', async () => {
+    const upstream = vi.fn(async () => Response.json({ states: { '/read/history': 'live', '/read/x': 'nonsense' } }));
+    const origin = new URL('https://worker.example');
+    expect(await readPublishStatesAtEdge(origin, upstream as any, 1_000)).toEqual({ '/read/history': 'live' });
+    expect(await readPublishStatesAtEdge(origin, upstream as any, 10_000)).toEqual({ '/read/history': 'live' });
+    expect(upstream).toHaveBeenCalledTimes(1);
+    await readPublishStatesAtEdge(origin, upstream as any, 20_000);
+    expect(upstream).toHaveBeenCalledTimes(2);
+    expect(String((upstream.mock.calls[0] as unknown[])[0])).toBe('https://worker.example/api/public/read/publish-state');
+  });
+
+  it('falls back to the map when the worker fails, so a live story is never hidden', async () => {
+    for (const failing of [
+      vi.fn(async () => new Response('down', { status: 503 })),
+      vi.fn(async () => { throw new TypeError('network'); }),
+      vi.fn(async () => new Response('<html>shell</html>', { headers: { 'content-type': 'text/html' } })),
+    ]) {
+      resetReadStatesCacheForTests();
+      const states = await readPublishStatesAtEdge(new URL('https://worker.example'), failing as any);
+      expect(states).toBeUndefined();
+      expect(resolveStaticReadMeta('/read/porcelain-and-tea', states)?.title).toBe('Porcelain and Tea · Teajia');
+      expect(resolveStaticReadMeta('/read/history', states)?.title).toBe('Not found · Teajia');
     }
   });
 });

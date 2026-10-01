@@ -22,6 +22,7 @@ import {
 import EditablePhoto from '../EditablePhoto';
 import { StoryEditProvider, EditableText } from '../storyEdit';
 import StoryEditorBar from '../StoryEditorBar';
+import PublishControl from '../PublishControl';
 import { Rich } from './RichText';
 import {
   type Block, type ConversationSpec, type LineSize, type Part, type Shot,
@@ -222,7 +223,33 @@ function useQuietChrome() {
 }
 
 // ── Cover and byline ─────────────────────────────────────────────────────────
-const Cover: React.FC<{ spec: ConversationSpec }> = ({ spec }) => (
+/** The hook in the story form, the dek otherwise: the words under the title on either cover. */
+const CoverWords: React.FC<{ spec: ConversationSpec }> = ({ spec }) => (spec.form === 'story' && spec.hook
+  ? <Rich field="hook" text={spec.hook} className="tj-conv-cover-hook" />
+  : (
+    <p className="tj-conv-dek">
+      <EditableText field="dek-2" as="span" multiline>{spec.dek}</EditableText>
+    </p>
+  ));
+
+/**
+ * A story sent before its photographs: the cover typeset on the plain ground,
+ * as the template-style Read covers are (Seven Steeps, The Long Way to the
+ * Cup): the title, its bronze italic second line, a short rule under it, and
+ * the hook. No placeholder plate, which would read as a photograph missing.
+ */
+const TypesetCover: React.FC<{ spec: ConversationSpec }> = ({ spec }) => (
+  <header className="tj-conv-cover-typeset" data-testid="conv-cover-typeset">
+    <h1 className="tj-conv-title">
+      <EditableText field="title-1" as="span">{spec.title[0]}</EditableText>{' '}<br />
+      <span className="tj-conv-title-2"><EditableText field="title-2" as="span">{spec.title[1]}</EditableText></span>
+    </h1>
+    <span aria-hidden="true" className="tj-conv-cover-rule" />
+    <CoverWords spec={spec} />
+  </header>
+);
+
+const Cover: React.FC<{ spec: ConversationSpec }> = ({ spec }) => (!spec.portrait ? <TypesetCover spec={spec} /> : (
   <header className="tj-cover-dissolve tj-conv-cover">
     <div className="tj-cover-photo tj-conv-cover-photo" style={{ background: 'linear-gradient(155deg,var(--tj-read-empty-from) 0%,var(--tj-read-bg) 80%)' }}>
       <EditablePhoto
@@ -247,7 +274,7 @@ const Cover: React.FC<{ spec: ConversationSpec }> = ({ spec }) => (
         )}
     </div>
   </header>
-);
+));
 
 /** The byline under the cover: the shared ledger every conversation piece carries. */
 const Byline: React.FC<{ spec: ConversationSpec }> = ({ spec }) => {
@@ -362,9 +389,12 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
               <Line id={spec.ending.saying.id} text={spec.ending.saying.text} size="l" />
               {!spec.closing && <span aria-hidden="true" lang="zh-Hans" className="tj-conv-endmark">家</span>}
             </section>
-            <figure data-reveal="photo" className="tj-conv-close">
-              <Photo spec={spec} shot={spec.ending.shot} aspect={spec.ending.aspect} />
-            </figure>
+            {/* No closing photograph yet: the story ends on the saying and Adrian's close. */}
+            {spec.ending.shot && (
+              <figure data-reveal="photo" className="tj-conv-close">
+                <Photo spec={spec} shot={spec.ending.shot} aspect={spec.ending.aspect} />
+              </figure>
+            )}
             {/* Adrian's own close, last, after the subject's saying and the photograph. */}
             {spec.closing && (
               <section data-reveal="text" className="tj-conv-col tj-conv-closing">
@@ -374,6 +404,9 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
                 <span aria-hidden="true" lang="zh-Hans" className="tj-conv-endmark">家</span>
               </section>
             )}
+            {/* Publish / Unpublish for Teajia's editors, after the last words and
+                before the credits. Nothing renders for a visitor. */}
+            <PublishControl />
             <footer className="tj-conv-credit">
               {spec.credit.map((line) => <p key={line}>{line}</p>)}
               <p className="tj-conv-credit-links">
@@ -383,7 +416,7 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
               </p>
             </footer>
 
-            <MoreFooter links={spec.next} />
+            <MoreFooter links={spec.next} publishControl={false} />
           </article>
         </ImmersiveRoot>
       </SpeakerCtx.Provider>

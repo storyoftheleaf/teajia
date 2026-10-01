@@ -73,7 +73,9 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
-import { isArticleVisible, useIsReadOwner } from './publishGate';
+import { isArticleVisible, useIsReadOwner, useReadPublishState } from './publishGate';
+import type { ReadPublishOverrides } from './articleLive';
+import PublishControl from './PublishControl';
 
 // The share sheet is the magazine's own, loaded only when someone asks for it,
 // so a reader who never shares never downloads it.
@@ -600,13 +602,21 @@ export type MoreLink = { to: string; kicker: string; title: string; blurb: strin
  * the component, which is the only version of this fix that survives the next
  * article being added.
  */
-export function visibleMoreLinks(links: MoreLink[], isOwner: boolean): MoreLink[] {
-  return links.filter((l) => isArticleVisible(l.to, isOwner));
+export function visibleMoreLinks(links: MoreLink[], isOwner: boolean, states?: ReadPublishOverrides): MoreLink[] {
+  return links.filter((l) => isArticleVisible(l.to, isOwner, states));
 }
 
-export const MoreFooter: React.FC<{ links: MoreLink[] }> = ({ links }) => {
+/**
+ * The foot of every Read piece. It also carries Publish / Unpublish for
+ * Teajia's editors (PublishControl renders nothing for anyone else), so every
+ * hand-built story has the button at its end by rendering this one component.
+ * The conversation template places its own control earlier, between Adrian's
+ * close and the credits, and turns this one off with `publishControl={false}`.
+ */
+export const MoreFooter: React.FC<{ links: MoreLink[]; publishControl?: boolean }> = ({ links, publishControl = true }) => {
   const isOwner = useIsReadOwner();
-  const visible = visibleMoreLinks(links, isOwner);
+  const { states } = useReadPublishState();
+  const visible = visibleMoreLinks(links, isOwner, states);
   // Nothing survived the filter, so there is no related reading to offer. Show
   // no rail at all rather than a heading over an empty grid, and do not
   // backfill with whatever else happens to be live: this rail is the author's
@@ -617,6 +627,8 @@ export const MoreFooter: React.FC<{ links: MoreLink[] }> = ({ links }) => {
   // The share line is not part of that choice, so it stays even when the rail
   // goes.
   return (
+    <>
+    {publishControl && <PublishControl />}
     <footer style={{ borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)', padding: 'clamp(40px,6vw,72px) clamp(20px,5vw,56px) clamp(64px,9vw,110px)' }}>
       <div style={{ maxWidth: 1180, margin: '0 auto' }}>
         <div style={{ marginBottom: visible.length ? 'clamp(40px,6vw,64px)' : 0 }}>
@@ -631,7 +643,7 @@ export const MoreFooter: React.FC<{ links: MoreLink[] }> = ({ links }) => {
             // Dimmed and tagged for the owner, exactly as ReadIndex marks a
             // draft row, so the owner can tell at a glance which of these cards
             // a visitor is not being shown.
-            const draft = !isArticleVisible(l.to, false);
+            const draft = !isArticleVisible(l.to, false, states);
             return (
               <Link
                 key={l.to}
@@ -664,5 +676,6 @@ export const MoreFooter: React.FC<{ links: MoreLink[] }> = ({ links }) => {
         </>)}
       </div>
     </footer>
+    </>
   );
 };

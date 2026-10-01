@@ -31,7 +31,8 @@ import {
   C, F, ImmersiveRoot, useImmersiveChrome, useReveals, useReadingProgress,
   ProgressTrack, ACCENTS,
 } from '../read/immersive';
-import { isArticleVisible, useIsReadOwner } from '../read/publishGate';
+import { isArticleVisible, useIsReadOwner, useKnownReadOverrides } from '../read/publishGate';
+import type { ReadPublishOverrides } from '../read/articleLive';
 import { numberWord } from '../read/ReadIndex';
 import { GLOSSARY_TERMS, termOfTheDay } from '../../data/glossary';
 import { StoryEditProvider } from '../read/storyEdit';
@@ -50,17 +51,17 @@ import { CRAFT_STATE, type CraftState } from './craftLive';
 function isCraftReadHref(href?: string): boolean {
   return !!href && href.startsWith('/read/');
 }
-function craftReadGatePasses(item: CraftItem): boolean {
+function craftReadGatePasses(item: CraftItem, states?: ReadPublishOverrides): boolean {
   if (!isCraftReadHref(item.href)) return true;
-  return isArticleVisible(item.href as string, false);
+  return isArticleVisible(item.href as string, false, states);
 }
-function craftEffectiveState(item: CraftItem): CraftState {
+function craftEffectiveState(item: CraftItem, states?: ReadPublishOverrides): CraftState {
   const state = CRAFT_STATE[item.key] ?? 'draft';
-  if (state === 'live' && !craftReadGatePasses(item)) return 'draft';
+  if (state === 'live' && !craftReadGatePasses(item, states)) return 'draft';
   return state;
 }
-function craftItemVisible(item: CraftItem, isOwner: boolean): boolean {
-  return isOwner || craftEffectiveState(item) !== 'draft';
+function craftItemVisible(item: CraftItem, isOwner: boolean, states?: ReadPublishOverrides): boolean {
+  return isOwner || craftEffectiveState(item, states) !== 'draft';
 }
 
 // ── Data ──────────────────────────────────────────────────────────────────
@@ -191,8 +192,8 @@ const CraftRow: React.FC<{ item: CraftItem; state: CraftState; isOwner: boolean 
 // ── Group block. Renders nothing when no row in it is visible to the
 // current audience (the same "a group with no visible rows renders nothing"
 // rule Read's GroupBlock follows). ──────────────────────────────────────────
-const CraftGroupBlock: React.FC<{ group: CraftGroup; isOwner: boolean }> = ({ group, isOwner }) => {
-  const visible = group.items.filter((it) => craftItemVisible(it, isOwner));
+const CraftGroupBlock: React.FC<{ group: CraftGroup; isOwner: boolean; states: ReadPublishOverrides }> = ({ group, isOwner, states }) => {
+  const visible = group.items.filter((it) => craftItemVisible(it, isOwner, states));
   if (visible.length === 0) return null;
   return (
     <div style={{ marginTop: 38 }}>
@@ -212,7 +213,7 @@ const CraftGroupBlock: React.FC<{ group: CraftGroup; isOwner: boolean }> = ({ gr
         <CraftRow
           key={item.key}
           item={item}
-          state={craftEffectiveState(item)}
+          state={craftEffectiveState(item, states)}
           isOwner={isOwner}
         />
       ))}
@@ -402,6 +403,9 @@ const CraftIndex: React.FC = () => {
   useImmersiveChrome(ACCENTS[0]);
 
   const isOwner = useIsReadOwner();
+  // A Read story published or taken down from its own page counts here too,
+  // once this browser has read those states (see useKnownReadOverrides).
+  const states = useKnownReadOverrides();
   const groups = useMemo(() => buildCraftGroups(), []);
 
   const itemsByKey = useMemo(() => {
@@ -419,17 +423,17 @@ const CraftIndex: React.FC = () => {
   // for the "six pieces" line.
   const liveCount = useMemo(() => {
     let n = 0;
-    for (const group of groups) for (const item of group.items) if (craftEffectiveState(item) === 'live') n += 1;
+    for (const group of groups) for (const item of group.items) if (craftEffectiveState(item, states) === 'live') n += 1;
     return n;
-  }, [groups]);
+  }, [groups, states]);
   const soonCount = useMemo(() => {
     let n = 0;
-    for (const group of groups) for (const item of group.items) if (craftEffectiveState(item) === 'soon') n += 1;
+    for (const group of groups) for (const item of group.items) if (craftEffectiveState(item, states) === 'soon') n += 1;
     return n;
-  }, [groups]);
+  }, [groups, states]);
   const visibleCount = useMemo(
-    () => groups.reduce((acc, g) => acc + g.items.filter((it) => craftItemVisible(it, isOwner)).length, 0),
-    [groups, isOwner],
+    () => groups.reduce((acc, g) => acc + g.items.filter((it) => craftItemVisible(it, isOwner, states)).length, 0),
+    [groups, isOwner, states],
   );
 
   const piecesLabel = `${numberWord(liveCount)} ${liveCount === 1 ? 'piece' : 'pieces'}`;
@@ -441,7 +445,7 @@ const CraftIndex: React.FC = () => {
   // something that exists for them.
   const canSee = (href: string) => {
     const item = itemsByHref.get(href);
-    return !!item && craftItemVisible(item, isOwner) && craftEffectiveState(item) === 'live';
+    return !!item && craftItemVisible(item, isOwner, states) && craftEffectiveState(item, states) === 'live';
   };
   const railCovers = COVERS.filter((cover) => canSee(cover.to));
 
@@ -506,7 +510,7 @@ const CraftIndex: React.FC = () => {
               <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.1em', color: C.dim }}>{piecesLabel}</span>
             </div>
             {groups.map((group) => (
-              <CraftGroupBlock key={group.label} group={group} isOwner={isOwner} />
+              <CraftGroupBlock key={group.label} group={group} isOwner={isOwner} states={states} />
             ))}
             {!isOwner && visibleCount === 0 && (
               <p style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 18, lineHeight: 1.55, color: C.dim, margin: '38px 2px 0', maxWidth: 460 }}>

@@ -127,7 +127,11 @@ try {
 } catch { /* offline: reported below */ }
 const editWarn = edits ? Object.keys(edits).filter((k) => changed.includes(k)) : [];
 
-say(`${placed.size} photographs placed, all ${onDisk.length} in the folder.`);
+// A story may go out before its photographs: no cover (the page typesets one),
+// no closing photograph, an empty or missing folder. A placed photograph that
+// is not in the folder is still refused above.
+if (placed.size === 0) say('No photographs yet: the cover is typeset and the story ends on the saying. Add them later and send again.');
+else say(`${placed.size} photographs placed, all ${onDisk.length} in the folder.`);
 say(`${after.size} passages: ${changed.length} changed, ${added.length} new, ${dropped.length} gone.`);
 changed.forEach((id) => say(`  changed ${id}: "${after.get(id).slice(0, 70)}"`));
 added.forEach((id) => say(`  new ${id}: "${after.get(id).slice(0, 70)}"`));

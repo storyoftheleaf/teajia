@@ -66,12 +66,49 @@ export function isUngatedReadPath(path: string): boolean {
 }
 
 /**
+ * Is this one of the curated pieces the map lists, and so a path whose state
+ * Adrian may change from the page. The worker refuses a publish or unpublish
+ * for anything else, and a stored state is ignored for anything else, so a
+ * stray row can never make public a route the map has never heard of.
+ */
+export function isCuratedReadPath(path: string): boolean {
+  return Object.prototype.hasOwnProperty.call(ARTICLE_LIVE, path);
+}
+
+/**
+ * A piece's state as Adrian set it on the page: the Publish and Unpublish
+ * buttons at the end of a story, stored by the worker in read_publish_state
+ * (migration 0030) and served at /api/public/read/publish-state. One row per
+ * path, and a row wins over the map in BOTH directions: 'live' publishes a
+ * draft, 'draft' takes a live piece back down. A path with no row is decided
+ * by ARTICLE_LIVE exactly as before, so the map stays the default and nothing
+ * live today changes until somebody presses a button.
+ *
+ * A caller that cannot reach the stored states (a failed fetch, the edge with
+ * the API down) passes nothing and gets the map: a bad minute falls back to
+ * what the code says, never to "everything hidden".
+ */
+export type ReadPublishState = 'live' | 'draft';
+export type ReadPublishOverrides = Readonly<Record<string, ReadPublishState>>;
+
+/** The stored state for one path, or undefined when the map decides. */
+export function readOverrideFor(path: string, overrides?: ReadPublishOverrides | null): ReadPublishState | undefined {
+  if (!overrides || !isCuratedReadPath(path)) return undefined;
+  if (!Object.prototype.hasOwnProperty.call(overrides, path)) return undefined;
+  const state = overrides[path];
+  return state === 'live' || state === 'draft' ? state : undefined;
+}
+
+/**
  * May a visitor see this Read path. Fails closed: a path neither marked live
  * nor named as an exception is a draft, whether it is a piece somebody forgot
- * to add to the map or a route that does not exist at all.
+ * to add to the map or a route that does not exist at all. A state stored from
+ * the page overrides the map for a curated path (see ReadPublishOverrides).
  */
-export function isReadPathPublic(path: string): boolean {
+export function isReadPathPublic(path: string, overrides?: ReadPublishOverrides | null): boolean {
   if (isUngatedReadPath(path)) return true;
+  const stored = readOverrideFor(path, overrides);
+  if (stored) return stored === 'live';
   return ARTICLE_LIVE[path] === true;
 }
 
@@ -90,7 +127,7 @@ export function isReadPathPublic(path: string): boolean {
  * clicking one landed the reader on the not-found page the gate had just
  * started serving.
  */
-export function isArticleVisible(href: string, isOwner: boolean): boolean {
+export function isArticleVisible(href: string, isOwner: boolean, overrides?: ReadPublishOverrides | null): boolean {
   if (isOwner) return true;
-  return isReadPathPublic(href);
+  return isReadPathPublic(href, overrides);
 }

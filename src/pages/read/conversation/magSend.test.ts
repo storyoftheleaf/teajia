@@ -15,7 +15,8 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { DraftError, draftBody, memoryOf, parseDraft, storyToDraft, storyToTs, textKeys, type Story } from './magSend';
+import { DraftError, draftBody, memoryOf, parseDraft, placedFiles, storyToDraft, storyToTs, textKeys, type Story } from './magSend';
+import { photoCount } from './spec';
 import { CONVERSATIONS } from './pieces';
 
 const pick = (s: Story) => ({ portrait: s.portrait, intro: s.intro, hook: s.hook, opening: s.opening, parts: s.parts, ending: s.ending, closing: s.closing });
@@ -89,7 +90,7 @@ describe('the draft markup', () => {
     expect(part.blocks[3]).toMatchObject({ kind: 'a', text: 'Only the fire.' });
     expect(part.blocks[4]).toMatchObject({ size: 'xl', text: 'Clay ==remembers.==', follow: { text: 'And it forgets nothing.' } });
     expect(story.ending.saying.text).toBe('“Make it slowly.”');
-    expect(story.ending.shot.file).toBe('last.jpg');
+    expect(story.ending.shot?.file).toBe('last.jpg');
     expect(story.closing).toBe('I left with a cup in my pocket.');
   });
 
@@ -129,6 +130,72 @@ describe('the draft markup', () => {
   });
 });
 
+// ── A story sent before its photographs ─────────────────────────────────────
+// Adrian, 2026-10-01: "I don't mind publishing without photos." No cover, no
+// photograph after the saying, nothing in the folder: the draft still makes a
+// page, the cover is typeset, and the story ends on the saying and his close.
+const TEXT_ONLY = `---
+type: DEV
+---
+
+**Story Subject:** A maker
+
+---
+
+%%pull: hook%%
+> "Clay remembers **the hand.**"
+
+I came in from the rain and the kiln was still warm.
+
+## The first part
+
+"I learned from my father. He said it's the water."
+
+%%ending%%
+
+"That is all."
+
+%%saying%%
+> "Make it slowly."
+
+I left with a cup in my pocket.
+
+---
+`;
+
+describe('a draft with no photographs', () => {
+  const story = parseDraft(draftBody(TEXT_ONLY).body);
+
+  it('makes a story with no cover photo and no closing photograph', () => {
+    expect(story.portrait).toBeUndefined();
+    expect(story.ending.shot).toBeUndefined();
+    expect(story.ending.aspect).toBeUndefined();
+    expect(story.ending.saying.text).toBe('“Make it slowly.”');
+    expect(story.closing).toBe('I left with a cup in my pocket.');
+    expect(placedFiles(story)).toEqual([]);
+  });
+
+  it('turns into a draft and back into exactly the same story', () => {
+    const back = parseDraft(storyToDraft(story), memoryOf({ ...story } as Parameters<typeof memoryOf>[0]));
+    expect(sort(pick(back))).toEqual(sort(pick(story)));
+  });
+
+  it('writes a story file with no photographs in it', () => {
+    const ts = storyToTs(story, 'DEV - A maker');
+    expect(ts).toContain('export const shots = {\n\n}');
+    expect(ts).not.toContain('portrait:');
+  });
+
+  it('still needs the closing saying itself', () => {
+    expect(() => parseDraft(draftBody(TEXT_ONLY).body.replace('%%saying%%\n> "Make it slowly."\n\n', ''))).toThrow(/closing saying/);
+  });
+
+  it('reads 0 photographs, which the byline leaves out', () => {
+    const spec = { ...CONVERSATIONS[0], ...story, portrait: undefined, parts: story.parts, ending: story.ending };
+    expect(photoCount(spec)).toBe(0);
+  });
+});
+
 // ── With the vault: the committed story file is what the draft makes now ─────
 const develop = process.env.MAGAZINE_DEVELOP_DIR
   ?? join(homedir(), 'Library/Mobile Documents/iCloud~md~obsidian/Documents/Adrian-obsidian/Brands/Teajia/Magazine/Workflow/3-Develop');
@@ -143,7 +210,7 @@ describe.each(generated.map((f) => [f] as const))('generated %s', (file) => {
   it('names the draft it was made from', () => { expect(source).not.toBe(''); });
 
   it.skipIf(!existsSync(devPath))('is exactly what its draft makes now (no hand edits, no unsent draft)', async () => {
-    const piece = CONVERSATIONS.find((c) => ts.includes(`"${c.portrait.file}"`));
+    const piece = CONVERSATIONS.find((c) => (c.portrait ? ts.includes(`"${c.portrait.file}"`) : ts.includes(`"${c.images}`)));
     const story = parseDraft(draftBody(readFileSync(devPath, 'utf8')).body, memoryOf(piece));
     expect(storyToTs(story, source)).toBe(ts);
   });

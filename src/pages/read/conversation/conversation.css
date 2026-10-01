@@ -290,6 +290,25 @@
   color: var(--tj-read-taupe); margin: clamp(22px, 3vw, 34px) 0 0; max-width: 26ch; text-wrap: balance;
 }
 
+/* ── The typeset cover: a story sent before its photographs ───────────────
+   Modelled on the template-style Read covers (Seven Steeps, The Long Way to
+   the Cup): centred on the plain ground, the title and its bronze italic
+   second line, a short rule, then the hook. Same title type as the photo
+   cover, so a story keeps its face when the portrait arrives. */
+.tj-conv-cover-typeset {
+  min-height: calc(84svh - 57px);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  padding: clamp(56px, 10vw, 120px) var(--conv-gutter);
+}
+.tj-conv-cover-rule {
+  display: block; width: 54px; height: 1px;
+  background: var(--tj-gold, var(--tj-read-gold-default)); opacity: 0.6;
+  margin: clamp(26px, 3.4vw, 36px) auto 0;
+}
+.tj-conv-cover-typeset .tj-conv-cover-hook,
+.tj-conv-cover-typeset .tj-conv-dek { margin-left: auto; margin-right: auto; }
+
 /* ── A part opens as a spread ───────────────────────────────────────────── */
 .tj-conv-spread { margin: var(--conv-s3) 0 var(--conv-s2); scroll-margin-top: 57px; }
 .tj-conv-spread-photo { position: relative; aspect-ratio: 4 / 5; }

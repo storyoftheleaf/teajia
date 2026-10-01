@@ -93,7 +93,13 @@ export interface ConversationSpec {
    *  speakers named in the margin, as a printed interview marks them. */
   form?: 'story' | 'conversation';
   author: { name: string; links: { label: string; href: string }[] };
-  portrait: Shot;
+  /**
+   * The cover photograph. Optional: a story may go out before its photographs
+   * exist (Adrian, 2026-10-01: "I don't mind publishing without photos"), and
+   * then the cover is typeset on the plain ground, the way the template-style
+   * Read covers are. Add the photograph later and send the draft again.
+   */
+  portrait?: Shot;
   /** Adrian's own opening, before the conversation starts. */
   intro: string;
   /** Adrian's own close, after the subject's closing saying; his words, from his context note. */
@@ -101,8 +107,12 @@ export interface ConversationSpec {
   /** Anything between the intro and part one; usually nothing, when part one opens with a photograph. */
   opening: Block[];
   parts: Part[];
-  /** The last exchange, then his closing saying, then the whole closing photograph. */
-  ending: { blocks: Block[]; saying: { id: string; text: string }; shot: Shot; aspect: string };
+  /**
+   * The last exchange, then his closing saying, then the whole closing
+   * photograph. The photograph is optional, as the cover's is: without one the
+   * story ends on the saying and Adrian's close.
+   */
+  ending: { blocks: Block[]; saying: { id: string; text: string }; shot?: Shot; aspect?: string };
   /** Closing credit lines. Say how the conversation reached the page. */
   credit: string[];
   next: MoreLink[];
@@ -156,7 +166,9 @@ export function readingMinutes(spec: ConversationSpec): number {
 }
 
 export function photoCount(spec: ConversationSpec): number {
-  let n = 2 + spec.parts.filter((p) => p.opener).length; // the portrait, the closing photograph, the part openers
+  // The portrait, the closing photograph (either may be absent on a story sent
+  // before its photographs), and the part openers.
+  let n = (spec.portrait ? 1 : 0) + (spec.ending.shot ? 1 : 0) + spec.parts.filter((p) => p.opener).length;
   allBlocks(spec).forEach((b) => {
     if (b.kind === 'photos') n += b.shots.length;
     else if (b.kind === 'side' || b.kind === 'wide' || b.kind === 'bleed' || b.kind === 'on-photo') n += 1;

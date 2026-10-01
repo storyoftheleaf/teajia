@@ -1330,6 +1330,16 @@ export async function atlasResponse(path: string): Promise<Response> {
   return authenticatedResponse(`${API_URL}/api/atlas/${path}`);
 }
 
+// Publish or unpublish a Read story from the story itself (migration 0030).
+// Teajia's own editors only; the worker refuses everyone else.
+export async function setReadPublishStateRequest(path: string, state: 'live' | 'draft'): Promise<unknown> {
+  return authedFetch(`${API_URL}/api/read/publish-state`, {
+    method: 'POST',
+    body: JSON.stringify({ path, state }),
+    retryTimeouts: false,
+  });
+}
+
 // Adding a source to the Tea Atlas (site owner only; 404 for everyone else).
 export async function atlasAdminResponse(path: string, init: ApiRequestInit = {}): Promise<Response> {
   if (!getToken()) return new Response(null, { status: 404 });

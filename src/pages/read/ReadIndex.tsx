@@ -23,7 +23,8 @@ import {
   useReadingProgress, useImmersiveChrome, useReveals,
   ACCENTS,
 } from './immersive';
-import { isArticleVisible, useIsReadOwner } from './publishGate';
+import { isArticleVisible, useIsReadOwner, useReadPublishState } from './publishGate';
+import type { ReadPublishOverrides } from './articleLive';
 
 // ── Seed-article filter (kept from original ReadIndex) ───────────────────────
 const SEED_ARTICLE_TITLES = new Set([
@@ -151,9 +152,11 @@ const IndexRow: React.FC<{ item: IndexItem; draft?: boolean }> = ({ item, draft 
 // ── Group block component ────────────────────────────────────────────────────
 // `isAdmin` decides the audience: the owner sees every row (drafts dimmed +
 // tagged); a visitor sees only live rows. A group with no visible rows for the
-// current audience renders nothing.
-const GroupBlock: React.FC<{ group: IndexGroup; isAdmin: boolean }> = ({ group, isAdmin }) => {
-  const visible = group.items.filter((it) => isArticleVisible(it.href, isAdmin));
+// current audience renders nothing. `states` is what Adrian set from the page
+// (Publish / Unpublish), which overrides the map; a draft is whatever a
+// visitor would not be shown under it.
+const GroupBlock: React.FC<{ group: IndexGroup; isAdmin: boolean; states: ReadPublishOverrides }> = ({ group, isAdmin, states }) => {
+  const visible = group.items.filter((it) => isArticleVisible(it.href, isAdmin, states));
   if (visible.length === 0) return null;
   return (
     <div style={{ marginTop: 38 }}>
@@ -170,7 +173,7 @@ const GroupBlock: React.FC<{ group: IndexGroup; isAdmin: boolean }> = ({ group, 
         </span>
       </div>
       {visible.map((item) => (
-        <IndexRow key={item.href} item={item} draft={isAdmin && !isArticleVisible(item.href, false)} />
+        <IndexRow key={item.href} item={item} draft={isAdmin && !isArticleVisible(item.href, false, states)} />
       ))}
     </div>
   );
@@ -323,8 +326,15 @@ const ReadIndex: React.FC = () => {
 
   // How many pieces the current audience can see. A visitor counts only live
   // pieces; the owner counts all of them. Drives the masthead + contents labels.
+  //
+  // What Adrian set from a story's own page (Publish / Unpublish) overrides
+  // the map, so every count and filter below reads `states`. A visitor's list
+  // waits until those states are read (or the read gives up and the map
+  // decides), so a story taken down is never listed for a moment first.
+  const { states, settled } = useReadPublishState();
+  const ready = isAdmin || settled;
   const allItems = INDEX_GROUPS.flatMap((g) => g.items);
-  const liveCount = allItems.filter((it) => isArticleVisible(it.href, false)).length;
+  const liveCount = allItems.filter((it) => isArticleVisible(it.href, false, states)).length;
   const shownCount = isAdmin ? allItems.length : liveCount;
   const piecesLabel = `${numberWord(shownCount)} ${shownCount === 1 ? 'piece' : 'pieces'}`;
   // May the current audience see the piece at this route. Used to gate the
@@ -332,9 +342,9 @@ const ReadIndex: React.FC = () => {
   // cannot open while the owner always sees the full designed rail. It is the
   // same call the route, the rail at the foot of each article and the crawler
   // meta make, rather than a fourth spelling of one question.
-  const canSee = (href: string) => isArticleVisible(href, isAdmin);
+  const canSee = (href: string) => ready && isArticleVisible(href, isAdmin, states);
 
-  const rootRef = useReveals([isAdmin]);
+  const rootRef = useReveals([isAdmin, ready, states]);
   const progress = useReadingProgress();
 
   return (
@@ -391,11 +401,11 @@ const ReadIndex: React.FC = () => {
               <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.18)' }} />
               <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.1em', color: C.dim }}>{piecesLabel}</span>
             </div>
-            {INDEX_GROUPS.map((group) => (
-              <GroupBlock key={group.label} group={group} isAdmin={isAdmin} />
+            {ready && INDEX_GROUPS.map((group) => (
+              <GroupBlock key={group.label} group={group} isAdmin={isAdmin} states={states} />
             ))}
             {/* Public empty state, only when a visitor has no live pieces yet. */}
-            {!isAdmin && liveCount === 0 && (
+            {!isAdmin && settled && liveCount === 0 && (
               <p style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 18, lineHeight: 1.55, color: C.dim, margin: '38px 2px 0', maxWidth: 460 }}>
                 The first pieces are being set in type. Come back soon, the kettle is on.
               </p>

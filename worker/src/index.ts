@@ -100,7 +100,7 @@ import {
   type PaymentMethodRow,
   normalizePhotoFocus,
 } from './profileDomain';
-import { decidePayAccess, isShareTokenShaped, mintShareToken, PAY_LINK_PARAM, withShareToken } from './payAccessDomain';
+import { decidePayAccess, isShareTokenShaped, mintShareToken, PAY_LINK_PARAM, withShareToken } from './payAccessDomain'; import { mayEditReadMagazine, parseReadPublishRequest, publishStatesFromRows } from './readPublishDomain';
 import {
   deriveWisdomFindings,
   nodeKey,
@@ -28499,6 +28499,83 @@ const handleResolveTeaReferenceIssues: Handler = async (request, env) => {
   }
 };
 
+// ── Read stories: publish and unpublish from the page ────────────────────────
+// Migration 0030. A row in read_publish_state overrides ARTICLE_LIVE (in
+// src/pages/read/articleLive.ts) in both directions; no row, the map decides.
+// The rules are in readPublishDomain.ts; the reads and writes are here.
+
+async function readPublishStates(env: Env) {
+  const { results } = await env.DB.prepare('SELECT path, state FROM read_publish_state').all();
+  return publishStatesFromRows((results ?? []) as { path: unknown; state: unknown }[]);
+}
+
+// GET /api/public/read/publish-state
+// Every visitor's browser and the edge's crawler meta read this. Short-lived
+// cache, so a press reaches a stranger within seconds rather than at the next
+// deploy. A failure answers 503 and the caller falls back to the map.
+const handleGetReadPublishState: Handler = async (_request, env) => {
+  try {
+    const states = await readPublishStates(env);
+    return new Response(JSON.stringify({ states }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=15' },
+    });
+  } catch {
+    return json({ error: 'Read publish state unavailable', code: 'read_publish_unavailable' }, 503);
+  }
+};
+
+// POST /api/read/publish-state  { path, state: 'live' | 'draft' }
+// Only the Teajia magazine's own people may press it: the platform owner or
+// admin, the platform account's owner, or its staff with the publish bundle.
+// A curator who owns their own shop is refused, as the read gate refuses them.
+// Pressing the same button twice changes nothing and logs nothing new.
+const handleSetReadPublishState: Handler = async (request, env) => {
+  const token = isAuthed(request);
+  if (!token) return restError(401, 'Sign in to publish', 'auth_no_token');
+  const sessionError = await validateSessionToken(token, env);
+  if (sessionError) return sessionError;
+  const claims = parseToken(token);
+  if (!claims) return restError(401, 'Unauthorized', 'auth_invalid');
+  const platformRole = await resolveDbPlatformRole(env, claims.sub);
+  if (platformRole === 'db_error') return restError(503, 'Authentication dependency unavailable', 'auth_dependency_unavailable', { dependency: 'users' });
+  const memberships = await loadMemberships(env, claims.sub);
+  if (!mayEditReadMagazine({ platformRole, memberships })) {
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    console.warn(`[auth] read publish denied: sub=${claims.sub} ip=${ip}`);
+    return restError(403, 'Only Teajia\'s own editors may publish a Read story', 'read_editor_required');
+  }
+
+  const parsed = parseReadPublishRequest(await request.json().catch(() => null));
+  if ('error' in parsed) return restError(400, parsed.error, parsed.code);
+
+  const platform = await env.DB.prepare(
+    "SELECT id FROM accounts WHERE is_platform_owner = 1 AND status = 'active' ORDER BY created_at ASC LIMIT 1"
+  ).first<{ id: string }>();
+  if (!platform?.id) return restError(503, 'Teajia\'s own account is unavailable', 'platform_account_unavailable');
+
+  const previous = await env.DB.prepare('SELECT state FROM read_publish_state WHERE path = ?')
+    .bind(parsed.path).first<{ state: string }>();
+  const changed = previous?.state !== parsed.state;
+  if (changed) {
+    await env.DB.prepare(
+      `INSERT INTO read_publish_state (path, account_id, state, changed_by, changed_at)
+       VALUES (?, ?, ?, ?, datetime('now'))
+       ON CONFLICT(path) DO UPDATE SET
+         account_id = excluded.account_id, state = excluded.state,
+         changed_by = excluded.changed_by, changed_at = excluded.changed_at`
+    ).bind(parsed.path, platform.id, parsed.state, claims.sub).run();
+    await logPlatformAction(env, parsed.state === 'live' ? 'read.published' : 'read.unpublished',
+      claims.sub, claims.email, 'read_story', parsed.path,
+      { previous: previous?.state ?? null }, platform.id, null);
+  }
+  const states = await readPublishStates(env);
+  return new Response(JSON.stringify({ path: parsed.path, state: parsed.state, changed, states }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+  });
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -29143,6 +29220,8 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/public/people/:slug/payment-methods', handleGetPublicPaymentMethods],
   ['GET', '/api/public/people/:slug/pay-access', handleGetPayAccess],
   ['POST', '/api/public/people/:slug/pay-access/request', handleRequestPayAccess],
+  ['GET', '/api/public/read/publish-state', handleGetReadPublishState],
+  ['POST', '/api/read/publish-state', handleSetReadPublishState],
   ['GET', '/api/me/pay-access', handleListMyPayAccess],
   ['POST', '/api/me/pay-access/share-link', handleMintMyPayShareLink],
   ['POST', '/api/me/pay-access/:id/approve', handleApprovePayAccess],

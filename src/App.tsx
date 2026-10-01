@@ -71,8 +71,14 @@ function ArticleRouteSwitch() {
 // component when it actually renders, so a blocked route never triggers that
 // chunk's fetch, it renders ReadNotFound's own (separately lazy) chunk
 // instead.
+//
+// Since 2026-10-01 the map is the default, not the whole answer: a story can
+// be published or taken down from its own page, and that state is read from
+// the API once per page load. While a visitor's read is in flight the route
+// waits on the loader; it settles to the map if the read fails.
 const ArticleGate: React.FC<{ href: string; children: React.ReactNode }> = ({ href, children }) => {
   const allowed = useArticleAccess(href);
+  if (allowed === 'pending') return <EmblemLoader />;
   if (!allowed) {
     return (
       <ErrorBoundary>

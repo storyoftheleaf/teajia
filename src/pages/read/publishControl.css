@@ -1,0 +1,75 @@
+/*
+ * Publish and Unpublish at the end of a Read story (PublishControl.tsx).
+ * Centred on the reading column, set apart by a hairline above and below so it
+ * reads as the editor's note at the foot of the piece, not as part of the
+ * story. Colours come only from the reader's own tokens and the site's one
+ * solid button treatment (.cta-solid); no literal.
+ */
+.tj-publish {
+  max-width: calc(592px + 48px);
+  margin: clamp(48px, 7vw, 88px) auto;
+  padding: clamp(28px, 4vw, 40px) 24px;
+  border-top: 1px solid rgb(var(--tj-read-gold-rgb) / 0.22);
+  border-bottom: 1px solid rgb(var(--tj-read-gold-rgb) / 0.22);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  text-align: center;
+}
+.tj-publish-line {
+  margin: 0;
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--tj-read-taupe);
+}
+/* The site's solid button, squared like every other Read control: no pill. */
+.tj-publish-button {
+  min-height: 48px;
+  min-width: 180px;
+  padding: 0 32px;
+  border: 0;
+  border-radius: 2px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.tj-publish-button:disabled { opacity: 0.7; cursor: default; }
+.tj-publish-button:focus-visible,
+.tj-publish-quiet:focus-visible { outline: 1px solid var(--tj-gold, var(--tj-read-gold-default)); outline-offset: 4px; }
+/* Unpublish, Cancel and Take it down: text, never louder than the story. */
+.tj-publish-quiet {
+  background: none;
+  border: 0;
+  padding: 10px 4px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--tj-read-taupe);
+  cursor: pointer;
+}
+.tj-publish-quiet:hover:not(:disabled) { color: var(--tj-read-cream); }
+.tj-publish-commit { color: var(--tj-read-cream); text-decoration: underline; text-underline-offset: 6px; text-decoration-color: rgb(var(--tj-read-gold-rgb) / 0.6); }
+.tj-publish-confirm { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+.tj-publish-note {
+  margin: 0;
+  max-width: 34ch;
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--tj-read-ink);
+}
+/* Cancel on the left, the commitment on the right. */
+.tj-publish-pair { display: flex; justify-content: space-between; width: 100%; max-width: 320px; }
+.tj-publish-error {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--tj-read-ink);
+}

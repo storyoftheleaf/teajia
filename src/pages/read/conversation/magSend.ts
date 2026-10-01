@@ -38,7 +38,13 @@
  *   %%ending%%                                    the last stretch, after the parts
  *   %%on-photo: FILE · ALT · aspect=… ink=#… accent=#…%% then > "…"
  *   %%saying: FILE · ALT · aspect=…%% then > "…"  their closing saying, then the closing photograph
+ *   %%saying%% then > "…"                         their closing saying, with no photograph yet
  *   any paragraph after the saying               Adrian's close
+ *
+ * Photographs are optional (Adrian, 2026-10-01: "I don't mind publishing
+ * without photos"). With no cover the page typesets one; with no closing
+ * photograph the story ends on the saying and the close. A photograph that IS
+ * placed must still be in the story's image folder, or the send is refused.
  * Every photo note may carry x= and y= (the focal point, 0 to 1).
  * Any other %%note%% is left out of the page.
  */
@@ -233,13 +239,19 @@ export function parseDraft(body: string, prev: Ids = { byText: new Map(), slots:
       push({ kind: 'on-photo', id: '', shot: shotOf(p, prev.slots), text: pullQuote(c), ink: p.opts.ink, accent: p.opts.accent, aspect: p.opts.aspect });
       continue;
     }
-    if ((n = note(c, 'saying')) !== undefined) {
+    // %%saying: FILE · ALT · aspect=…%% places the closing photograph after the
+    // saying; a bare %%saying%% is a story sent before its photographs, which
+    // ends on the saying and Adrian's close.
+    const bareSaying = /^%%saying:?\s*%%/.test(c);
+    if (bareSaying || (n = note(c, 'saying')) !== undefined) {
       if (where !== 'ending') throw new DraftError('The closing saying belongs after %%ending%%.');
-      const p = photoNote(n);
-      if (!p.opts.aspect) throw new DraftError(`The closing photograph needs aspect=: ${p.file}`);
       saying = { id: 'e-saying', text: `“${pullQuote(c)}”` };
-      endShot = shotOf(p, prev.slots);
-      endAspect = p.opts.aspect;
+      if (!bareSaying) {
+        const p = photoNote(n!);
+        if (!p.opts.aspect) throw new DraftError(`The closing photograph needs aspect=: ${p.file}`);
+        endShot = shotOf(p, prev.slots);
+        endAspect = p.opts.aspect;
+      }
       where = 'closing';
       continue;
     }
@@ -274,10 +286,16 @@ export function parseDraft(body: string, prev: Ids = { byText: new Map(), slots:
   }
 
   if (stack.length) throw new DraftError('A %%side%% or %%glyph%% was never closed.');
-  if (!portrait) throw new DraftError('No cover photo (%%photo: FILE · ALT · cover%%).');
+  // No cover photo is allowed: the page typesets the cover instead (Adrian,
+  // 2026-10-01: "I don't mind publishing without photos").
   if (intro === undefined) throw new DraftError('No opening paragraph of Adrian’s before the first part.');
-  if (!saying || !endShot) throw new DraftError('No closing saying (%%saying: FILE · ALT · aspect=…%%).');
-  const story: Story = { portrait, intro, opening, parts, ending: { blocks: endingBlocks, saying, shot: endShot, aspect: endAspect } };
+  if (!saying) throw new DraftError('No closing saying (%%saying%%, or %%saying: FILE · ALT · aspect=…%% with its photograph).');
+  const ending: Story['ending'] = endShot
+    ? { blocks: endingBlocks, saying, shot: endShot, aspect: endAspect }
+    : { blocks: endingBlocks, saying };
+  const story: Story = portrait
+    ? { portrait, intro, opening, parts, ending }
+    : { intro, opening, parts, ending };
   if (hook !== undefined) story.hook = hook;
   if (closing !== undefined) story.closing = closing;
   assignIds(story, prev.byText);
@@ -367,7 +385,7 @@ export function storyToDraft(s: Story): string {
         out.push(`%%glyph: ${b.glyph}%%`); blocks(b.blocks); out.push('%%/glyph%%'); break;
     }
   });
-  out.push(`%%photo: ${noteText(s.portrait, ['cover'])}%%`);
+  if (s.portrait) out.push(`%%photo: ${noteText(s.portrait, ['cover'])}%%`);
   if (s.hook !== undefined) out.push(`%%pull: hook%%\n> ${quote(s.hook)}`);
   out.push(draftText(s.intro));
   blocks(s.opening);
@@ -379,7 +397,9 @@ export function storyToDraft(s: Story): string {
   out.push('%%ending%%');
   blocks(s.ending.blocks);
   const inner = s.ending.saying.text.replace(/^“/, '').replace(/”$/, '');
-  out.push(`%%saying: ${noteText(s.ending.shot, [`aspect=${s.ending.aspect}`])}%%\n> ${quote(inner)}`);
+  out.push(s.ending.shot
+    ? `%%saying: ${noteText(s.ending.shot, [`aspect=${s.ending.aspect}`])}%%\n> ${quote(inner)}`
+    : `%%saying%%\n> ${quote(inner)}`);
   if (s.closing !== undefined) out.push(draftText(s.closing));
   return `\n\n${out.join('\n\n')}\n\n`;
 }
@@ -390,13 +410,13 @@ const camel = (slot: string) => slot.replace(/[-_ ]+(\w)/g, (_, c: string) => c.
 export function storyToTs(s: Story, source: string): string {
   const shots = new Map<string, Shot>();
   const collect = (sh: Shot) => { shots.set(sh.slot, sh); };
-  collect(s.portrait);
+  if (s.portrait) collect(s.portrait);
   const walk = (bs: Block[]) => bs.forEach((b) => {
     if ('shot' in b) collect(b.shot);
     if (b.kind === 'photos') b.shots.forEach(collect);
     if (b.kind === 'side' || b.kind === 'glyph') walk(b.blocks);
   });
-  walk(s.opening); s.parts.forEach((p) => { if (p.opener) collect(p.opener); walk(p.blocks); }); walk(s.ending.blocks); collect(s.ending.shot);
+  walk(s.opening); s.parts.forEach((p) => { if (p.opener) collect(p.opener); walk(p.blocks); }); walk(s.ending.blocks); if (s.ending.shot) collect(s.ending.shot);
 
   const key = (k: string) => (/^[A-Za-z_$][\w$]*$/.test(k) ? k : JSON.stringify(k));
   const ser = (v: unknown, ind: string): string => {
@@ -436,20 +456,22 @@ export function memoryOf(prev: Pick<ConversationSpec, 'portrait' | 'opening' | '
   const slots = new Map<string, string>();
   if (prev) {
     const add = (sh: Shot) => slots.set(sh.file, sh.slot);
-    add(prev.portrait);
+    if (prev.portrait) add(prev.portrait);
     const walk = (bs: Block[]) => bs.forEach((b) => {
       if ('shot' in b) add(b.shot);
       if (b.kind === 'photos') b.shots.forEach(add);
       if (b.kind === 'side' || b.kind === 'glyph') walk(b.blocks);
     });
-    walk(prev.opening); prev.parts.forEach((p) => { if (p.opener) add(p.opener); walk(p.blocks); }); walk(prev.ending.blocks); add(prev.ending.shot);
+    walk(prev.opening); prev.parts.forEach((p) => { if (p.opener) add(p.opener); walk(p.blocks); }); walk(prev.ending.blocks); if (prev.ending.shot) add(prev.ending.shot);
   }
   return { byText, slots };
 }
 
 /** Every photograph a story places, by file. */
 export function placedFiles(s: Story): string[] {
-  const out: string[] = [s.portrait.file, s.ending.shot.file];
+  const out: string[] = [];
+  if (s.portrait) out.push(s.portrait.file);
+  if (s.ending.shot) out.push(s.ending.shot.file);
   const walk = (bs: Block[]) => bs.forEach((b) => {
     if ('shot' in b) out.push(b.shot.file);
     if (b.kind === 'photos') b.shots.forEach((sh) => out.push(sh.file));

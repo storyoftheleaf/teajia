@@ -821,6 +821,19 @@ CREATE UNIQUE INDEX IF NOT EXISTS uniq_payment_share_links_invoice
 CREATE UNIQUE INDEX IF NOT EXISTS uniq_payment_share_links_contributor_open
   ON payment_share_links(contributor_id) WHERE invoice_id IS NULL;
 
+-- A Read story is published or taken down from the story itself (migration
+-- 0030). One row per /read path; a row overrides ARTICLE_LIVE in both
+-- directions, no row means the map decides.
+CREATE TABLE IF NOT EXISTS read_publish_state (
+  path TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  state TEXT NOT NULL CHECK (state IN ('live', 'draft')),
+  changed_by TEXT,
+  changed_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_read_publish_state_account
+  ON read_publish_state(account_id);
+
 -- 5b. Password Reset Tokens Table
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),

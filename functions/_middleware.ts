@@ -30,7 +30,7 @@
 // an edge bundle that only needs one plain object. articleLive.ts carries
 // nothing but that object and a pure function, so importing it here adds
 // nothing else to the bundle.
-import { isReadPathPublic } from '../src/pages/read/articleLive';
+import { isCuratedReadPath, isReadPathPublic, type ReadPublishOverrides } from '../src/pages/read/articleLive';
 
 interface Meta {
   title: string;
@@ -172,14 +172,60 @@ export function readShareCardPath(path: string): string {
   return `/read/${path.split('/').pop()}/share.jpg`;
 }
 
-export function resolveStaticReadMeta(path: string): Meta | null {
+export function resolveStaticReadMeta(path: string, states?: ReadPublishOverrides | null): Meta | null {
   const meta = STATIC_META[path] || null;
   if (!meta) return null;
   if (path === '/read' || path.startsWith('/read/')) {
-    if (!isReadPathPublic(path)) return NOT_FOUND_META;
+    if (!isReadPathPublic(path, states)) return NOT_FOUND_META;
   }
-  if (path.startsWith('/read/') && !meta.image) return { ...meta, image: `${SITE}${readShareCardPath(path)}` };
+  // Share cards are drawn at build time for the pieces the MAP calls live
+  // (functions/shareCards.test.ts holds that). A piece published from its own
+  // page since then has no card yet, so it keeps the site's default picture
+  // rather than pointing a chat app at a file that is not there.
+  if (path.startsWith('/read/') && !meta.image && isReadPathPublic(path)) return { ...meta, image: `${SITE}${readShareCardPath(path)}` };
   return meta;
+}
+
+/**
+ * The states Adrian set from a story's own page (Publish / Unpublish,
+ * migration 0030), as the crawler meta needs them: a story published from the
+ * page must stop answering a crawler with not-found meta, and one taken down
+ * must start. Asked of the worker's public read, kept for fifteen seconds in
+ * this isolate so a burst of scrapers costs one request, and bounded so a slow
+ * API never holds a page. Any failure answers undefined, and the caller uses
+ * ARTICLE_LIVE alone: a bad minute never hides a live story.
+ */
+const READ_STATES_TTL_MS = 15_000;
+let readStatesCache: { at: number; states: ReadPublishOverrides } | null = null;
+
+export async function readPublishStatesAtEdge(
+  workerOrigin: URL,
+  fetcher: typeof fetch = fetch,
+  now: number = Date.now(),
+): Promise<ReadPublishOverrides | undefined> {
+  if (readStatesCache && now - readStatesCache.at < READ_STATES_TTL_MS) return readStatesCache.states;
+  try {
+    const res = await fetcher(new URL('/api/public/read/publish-state', workerOrigin).toString(), {
+      signal: AbortSignal.timeout(1500),
+    });
+    if (!res.ok) return undefined;
+    const body = (await res.json()) as { states?: unknown };
+    const raw = body?.states;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+    const states: Record<string, 'live' | 'draft'> = {};
+    for (const [p, s] of Object.entries(raw as Record<string, unknown>)) {
+      if (s === 'live' || s === 'draft') states[p] = s;
+    }
+    readStatesCache = { at: now, states };
+    return states;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Tests only: forget the isolate's cached states. */
+export function resetReadStatesCacheForTests() {
+  readStatesCache = null;
 }
 
 interface Env { WORKER_ORIGIN?: string }
@@ -401,7 +447,16 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     return new Response(shell.body, { status: 404, headers });
   }
 
-  let meta: Meta | null = resolveStaticReadMeta(path);
+  // A curated Read story's state may have been set from its own page, which
+  // the map alone does not know. Only a crawler is shown this meta for any
+  // reason, so only a crawler pays the (cached, bounded) request for it, the
+  // same rule the article and product lookups below follow.
+  let readStates: ReadPublishOverrides | undefined;
+  if (STATIC_META[path] && isCuratedReadPath(path) && CRAWLER_RE.test(request.headers.get('user-agent') || '')) {
+    const workerOrigin = configuredWorkerOrigin(context.env.WORKER_ORIGIN);
+    if (workerOrigin) readStates = await readPublishStatesAtEdge(workerOrigin);
+  }
+  let meta: Meta | null = resolveStaticReadMeta(path, readStates);
 
   // Dynamic DB-backed article — only pay the API call for crawlers.
   if (!meta && path.startsWith('/article/')) {
