@@ -8,6 +8,7 @@
  * Ported pixel-faithfully from the tea-article-redesign mockup.
  */
 import React, { useState } from 'react';
+import { ConversationByline } from './conversation/Byline';
 import { Helmet } from 'react-helmet-async';
 import {
   C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
@@ -121,6 +122,8 @@ const RockRemembers: React.FC = () => {
             <div style={{ position: 'absolute', left: 'clamp(18px,3vw,28px)', bottom: 'clamp(18px,3vw,26px)', fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim }}>Portrait, in his roasting room</div>
           </div>
         </header>
+
+        <ConversationByline people={[{ name: 'Chén Wǔ', nameCn: '陈武' }]} minutes={3} />
 
         {/* STANDFIRST */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(20px,4vw,44px)' }}>
@@ -240,7 +243,6 @@ const RockRemembers: React.FC = () => {
           <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: C.taupe, margin: 0 }}>
             By the time we leave, the mist has burned away and the cliffs stand clear and red against the sky. Chén Wǔ does not see us out; he is bent over the baskets, listening to the fire. The tea, he says, is almost ready to tell him something.
           </p>
-          <div style={colophon}>Interview by Teajia</div>
         </section>
 
         <MoreFooter links={moreLinks} />
@@ -254,7 +256,6 @@ const plateLabel: React.CSSProperties = { position: 'absolute', left: 14, bottom
 const cap: React.CSSProperties = { fontFamily: F.body, fontStyle: 'italic', fontSize: 13, lineHeight: 1.5, color: C.dim, marginTop: 12 };
 const briefK: React.CSSProperties = { fontFamily: F.ui, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.dim };
 const briefV: React.CSSProperties = { fontFamily: F.body, fontSize: 15, color: C.ink, textAlign: 'right' };
-const colophon: React.CSSProperties = { marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 };
 
 const Meter: React.FC<{ label: string; value: string; pct: number }> = ({ label, value, pct }) => (
   <div>

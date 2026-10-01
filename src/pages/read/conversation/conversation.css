@@ -290,41 +290,6 @@
   color: var(--tj-read-taupe); margin: clamp(22px, 3vw, 34px) 0 0; max-width: 26ch; text-wrap: balance;
 }
 
-/* ── The byline: a short ledger, with / by / length ───────────────────── */
-.tj-conv-byline {
-  max-width: calc(var(--conv-wide) + 2 * var(--conv-gutter));
-  margin: 0 auto; padding: clamp(26px, 3vw, 36px) var(--conv-gutter);
-  border-bottom: 1px solid rgb(var(--tj-read-gold-rgb) / 0.12);
-}
-.tj-conv-byline p.tj-conv-byline-kind {
-  margin: 0 0 clamp(12px, 1.6vw, 18px); text-align: center;
-  font-family: var(--font-display); font-style: italic; font-size: clamp(19px, 1.8vw, 22px); color: var(--tj-read-taupe);
-}
-.tj-conv-byline-ledger { margin: 0 auto; max-width: 560px; }
-.tj-conv-byline-ledger > div {
-  display: grid; grid-template-columns: clamp(72px, 20%, 170px) minmax(0, 1fr); align-items: baseline;
-  padding: 14px 0; border-top: 1px solid rgb(var(--tj-read-gold-rgb) / 0.22);
-}
-.tj-conv-byline-ledger > div:last-child { border-bottom: 1px solid rgb(var(--tj-read-gold-rgb) / 0.22); }
-.tj-conv-byline-ledger dt {
-  font-family: var(--font-sans); font-size: 11px; font-weight: 500; letter-spacing: 0.2em;
-  text-transform: uppercase; color: var(--tj-gold, var(--tj-read-gold-default));
-}
-.tj-conv-byline-ledger dd { margin: 0; min-width: 0; }
-.tj-conv-byline-name { font-family: var(--font-display); font-size: clamp(22px, 2.4vw, 28px); line-height: 1.25; color: var(--tj-read-cream); }
-/* The names are the way deeper into each person, so they read as links at rest, not only on hover. */
-.tj-conv-byline-name a {
-  color: inherit;
-  text-decoration: underline;
-  text-decoration-color: rgb(var(--tj-read-gold-rgb) / 0.55);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 0.22em;
-  transition: color 200ms, text-decoration-color 200ms;
-}
-.tj-conv-byline-name a:hover, .tj-conv-byline-name a:focus-visible { color: var(--tj-gold-lt, var(--tj-read-gold-lt-default)); text-decoration-color: currentColor; }
-.tj-conv-byline-name .tj-conv-cn { font-size: 0.7em; color: var(--tj-read-taupe); }
-.tj-conv-byline-read { font-family: var(--font-body); font-style: italic; font-size: 15px; color: var(--tj-read-dim); }
-
 /* ── A part opens as a spread ───────────────────────────────────────────── */
 .tj-conv-spread { margin: var(--conv-s3) 0 var(--conv-s2); scroll-margin-top: 57px; }
 .tj-conv-spread-photo { position: relative; aspect-ratio: 4 / 5; }

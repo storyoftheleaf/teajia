@@ -5,10 +5,11 @@
 /**
  * A Tea House: Quiet Hours
  * How a homesick cup and a stack of reclaimed timber became a tea house at the
- * far end of the world. Told by Mei and Tom Hale, Brunswick, Melbourne.
+ * far end of the world. A conversation with Mei and Tom Hale, Brunswick, Melbourne.
  * Ported pixel-faithfully from the tea-article-redesign mockup.
  */
 import React, { useState } from 'react';
+import { ConversationByline } from './conversation/Byline';
 import { Helmet } from 'react-helmet-async';
 import {
   C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
@@ -131,7 +132,7 @@ const TeaHouseQuietHours: React.FC = () => {
               Quiet <span style={{ fontStyle: 'italic', color: C.gold }}>Hours</span>
             </h1>
             <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(16px,2vw,20px)', lineHeight: 1.5, color: C.taupe, margin: '24px 0 0', maxWidth: 460 }}>
-              How a homesick cup and a stack of reclaimed timber became a tea house at the far end of the world, told by the two people who made it.
+              How a homesick cup and a stack of reclaimed timber became a tea house at the far end of the world, in conversation with the two people who made it.
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '26px 40px', marginTop: 'clamp(30px,5vw,46px)', paddingTop: 24, borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.16)' }}>
               {/* Mei */}
@@ -186,6 +187,8 @@ const TeaHouseQuietHours: React.FC = () => {
             </div>
           </div>
         </header>
+
+        <ConversationByline people={[{ name: 'Mei', nameCn: '梅' }, { name: 'Tom Hale' }]} minutes={3} />
 
         {/* ── STANDFIRST ────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(20px,4vw,44px)' }}>
@@ -297,7 +300,7 @@ const TeaHouseQuietHours: React.FC = () => {
             When I leave, the late sun is doing exactly what Tom built it to do, sliding gold along the grain of the bar while Mei warms a pot for a stranger who has nowhere else to be. Two people who would never have met, a hemisphere from where the tea was grown, have made a small room where time runs slower. The city waits outside, as instructed.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
-            Interview by Teajia &nbsp;·&nbsp; A Tea House
+            A Tea House
           </div>
         </section>
 
