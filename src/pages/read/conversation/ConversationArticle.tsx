@@ -28,6 +28,7 @@ import {
   photoCount, readingMinutes, shareCardFor, turnStarts,
 } from './spec';
 import './conversation.css';
+import { ConversationByline } from './Byline';
 
 // ── Photographs ──────────────────────────────────────────────────────────────
 const Photo: React.FC<{ spec: ConversationSpec; shot: Shot; aspect?: string; fill?: boolean }> = ({ spec, shot, aspect = '4/5', fill }) => (
@@ -248,35 +249,16 @@ const Cover: React.FC<{ spec: ConversationSpec }> = ({ spec }) => (
   </header>
 );
 
-/**
- * The byline under the cover, as a short ledger: a conversation WITH the
- * subject, BY Adrian, and how long it reads. Adrian made the conversation and
- * wrote the piece, so it is his byline, not "told by" (Adrian, 2026-10-01).
- * The author's own links live in the colophon at the end.
- */
+/** The byline under the cover: the shared ledger every conversation piece carries. */
 const Byline: React.FC<{ spec: ConversationSpec }> = ({ spec }) => {
   const home = spec.author.links.find((l) => l.href.startsWith('/'));
   return (
-    <div className="tj-conv-byline">
-      <p className="tj-conv-byline-kind">A conversation</p>
-      <dl className="tj-conv-byline-ledger">
-        <div>
-          <dt>With</dt>
-          <dd className="tj-conv-byline-name">
-            {spec.subject.href ? <Link to={spec.subject.href}>{spec.subject.name}</Link> : spec.subject.name}
-            {spec.subject.nameCn && <span lang="zh-Hans" className="tj-conv-cn"> {spec.subject.nameCn}</span>}
-          </dd>
-        </div>
-        <div>
-          <dt>By</dt>
-          <dd className="tj-conv-byline-name">{home ? <Link to={home.href}>{spec.author.name}</Link> : spec.author.name}</dd>
-        </div>
-        <div>
-          <dt>Length</dt>
-          <dd className="tj-conv-byline-read">{readingMinutes(spec)} minutes, {photoCount(spec)} photographs</dd>
-        </div>
-      </dl>
-    </div>
+    <ConversationByline
+      people={[{ name: spec.subject.name, nameCn: spec.subject.nameCn, href: spec.subject.href }]}
+      by={{ name: spec.author.name, href: home?.href }}
+      minutes={readingMinutes(spec)}
+      photos={photoCount(spec)}
+    />
   );
 };
 

@@ -8,6 +8,7 @@
  * Ported pixel-faithfully from the tea-article-redesign mockup.
  */
 import React, { useState } from 'react';
+import { ConversationByline } from './conversation/Byline';
 import { Helmet } from 'react-helmet-async';
 import {
   C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
@@ -90,7 +91,6 @@ const cap: React.CSSProperties = { fontFamily: F.body, fontStyle: 'italic', font
 const plateLabel: React.CSSProperties = { position: 'absolute', left: 14, bottom: 12, fontFamily: F.mono, fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.gold };
 const briefK: React.CSSProperties = { fontFamily: F.ui, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.dim };
 const briefV: React.CSSProperties = { fontFamily: F.body, fontSize: 15, color: C.ink, textAlign: 'right' };
-const colophon: React.CSSProperties = { marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 };
 
 const EarthWaterFire: React.FC = () => {
   const [accent, setAccent] = useState<string>(ACCENTS[0]);
@@ -140,6 +140,8 @@ const EarthWaterFire: React.FC = () => {
             <div style={{ position: 'absolute', left: 'clamp(18px,3vw,28px)', bottom: 'clamp(18px,3vw,26px)', fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim }}>Portrait, at the wheel</div>
           </div>
         </header>
+
+        <ConversationByline people={[{ name: 'Lín Yùzhēn', nameCn: '林玉珍' }]} minutes={4} />
 
         {/* STANDFIRST */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(20px,4vw,44px)' }}>
@@ -267,7 +269,6 @@ const EarthWaterFire: React.FC = () => {
           <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: C.taupe, margin: 0 }}>
             She fires next week, three hundred pieces, and the quiet violence of the kiln. Some will not survive. Lín Yùzhēn has made her peace with that. The fire, she says, has better taste than she does; she has only learned to trust it.
           </p>
-          <div style={colophon}>Interview by Teajia</div>
         </section>
 
         <MoreFooter links={moreLinks} />
