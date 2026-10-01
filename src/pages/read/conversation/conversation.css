@@ -407,3 +407,16 @@ html[data-tj-reading='quiet'] [data-testid='bottom-tab-bar'] { translate: 0 calc
 .tj-conv[data-form="story"] .tj-conv-follow::before { content: none; }
 .tj-conv[data-form="story"] .tj-conv-saying .tj-conv-line::before,
 .tj-conv[data-form="story"] .tj-conv-saying .tj-conv-line::after { content: none; }
+
+/* In a story Adrian's opening and close are the size of every other line, his and theirs:
+   the sand tells his voice apart, not the size (Adrian, 2026-10-01: "I want them to be the same"). */
+.tj-conv[data-form="story"] .tj-conv-intro-text,
+.tj-conv[data-form="story"] .tj-conv-intro-told { font-size: clamp(16px, 2vw, 18px); line-height: 1.8; }
+@media (min-width: 1100px) {
+  .tj-conv[data-form="story"] .tj-conv-intro-text,
+  .tj-conv[data-form="story"] .tj-conv-intro-told { font-size: 20px; line-height: 1.75; }
+}
+@media (max-width: 700px) {
+  .tj-conv[data-form="story"] .tj-conv-intro-text,
+  .tj-conv[data-form="story"] .tj-conv-intro-told { line-height: 1.65; }
+}
