@@ -134,31 +134,6 @@ const TeaHouseQuietHours: React.FC = () => {
             <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(16px,2vw,20px)', lineHeight: 1.5, color: C.taupe, margin: '24px 0 0', maxWidth: 460 }}>
               How a homesick cup and a stack of reclaimed timber became a tea house at the far end of the world, in conversation with the two people who made it.
             </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '26px 40px', marginTop: 'clamp(30px,5vw,46px)', paddingTop: 24, borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.16)' }}>
-              {/* Mei */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <span style={{ width: 9, height: 9, borderRadius: '50%', background: C.gold, marginTop: 7, flex: 'none' }} />
-                <div>
-                  <div style={{ fontFamily: F.display, fontSize: 23, color: C.ink, lineHeight: 1 }}>
-                    Mei{' '}
-                    <span style={{ fontFamily: F.cn, color: C.taupe, fontSize: 18 }}>梅</span>
-                  </div>
-                  <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim, marginTop: 7 }}>
-                    Founder &amp; host
-                  </div>
-                </div>
-              </div>
-              {/* Tom */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#8f9aa0', marginTop: 7, flex: 'none' }} />
-                <div>
-                  <div style={{ fontFamily: F.display, fontSize: 23, color: C.ink, lineHeight: 1 }}>Tom Hale</div>
-                  <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim, marginTop: 7 }}>
-                    Builder &amp; joiner
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* illustration column */}
