@@ -230,7 +230,12 @@
 /* Adrian's telling wears the look of his opening and close (Adrian, 2026-10-01: "give my telling
    its own look"), so a reader who met his voice in the first paragraph knows it wherever it returns:
    the same face, size and tone, and no quotation marks, because he is telling, not being quoted. */
-.tj-conv[data-form="story"] .tj-conv-told { font-size: clamp(19px, 2.3vw, 23px); line-height: 1.7; color: var(--tj-read-ink); }
+.tj-conv[data-form="story"] .tj-conv-told { color: var(--tj-read-voice); }
+/* Everywhere Adrian speaks in a story he is sand, at the size of the words around him: colour
+   tells the voices apart, size does not (Adrian, 2026-10-01: "color is easier to tell"). His opening
+   and close keep the lede size they have always had; his telling in the body is body size. */
+.tj-conv[data-form="story"] .tj-conv-intro-text,
+.tj-conv[data-form="story"] .tj-conv-q-text { color: var(--tj-read-voice); }
 /* Each paragraph of theirs opens with a quotation mark hung outside the column; only the last
    paragraph of a run closes it, as a printed story sets a speech that runs over paragraphs. */
 .tj-conv[data-form="story"] .tj-conv-a::before,
@@ -239,7 +244,7 @@
 .tj-conv[data-form="story"] .tj-conv-q-text::after { content: '\201D'; }
 .tj-conv[data-form="story"] .tj-conv-a:has(+ .tj-conv-a)::after { content: none; }
 /* A question Adrian kept: his words, in italics inside quotation marks, no name. */
-.tj-conv[data-form="story"] .tj-conv-q-text { font-style: italic; color: var(--tj-read-taupe); }
+.tj-conv[data-form="story"] .tj-conv-q-text { font-style: italic; color: var(--tj-read-voice); }
 /* The hook on the cover, in place of the dek. */
 .tj-conv-cover-hook {
   font-family: var(--font-display); font-style: italic; font-weight: 400;

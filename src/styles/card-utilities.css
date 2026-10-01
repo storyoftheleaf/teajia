@@ -206,6 +206,10 @@
   --tj-read-cream: #f3ead9;
   --tj-read-warm: #e3d6bd;
   --tj-read-taupe: #cdc0a8;
+  /* Adrian's own voice in a story: his opening, his telling, his questions and his close.
+     Sand, so it reads as his by colour at the same size as theirs; never the bronze,
+     which marks the key words in a large quote (Adrian, 2026-10-01). 11:1 on the ground. */
+  --tj-read-voice: #d8c39b;
   --tj-read-dim: #8c7f6a; /* 4.83:1 on the ground, 4.50:1 on a card. Was #80735f, 4.09:1, until 2026-09-29. */
   --tj-read-gold-default: #a8874d;
   --tj-read-gold-lt-default: #c6a667;
@@ -255,6 +259,7 @@
   --tj-read-cream: var(--tea-text);
   --tj-read-warm: var(--tea-text-sec);
   --tj-read-taupe: var(--tea-text-sec);
+  --tj-read-voice: #6b5432; /* about 6:1 on the light ground */
   --tj-read-dim: var(--tea-text-dim);
   --tj-read-gold-default: var(--tea-gold);
   --tj-read-gold-lt-default: var(--tea-gold-lt);
