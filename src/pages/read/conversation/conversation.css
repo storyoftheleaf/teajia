@@ -236,13 +236,14 @@
    and close keep the lede size they have always had; his telling in the body is body size. */
 .tj-conv[data-form="story"] .tj-conv-intro-text,
 .tj-conv[data-form="story"] .tj-conv-q-text { color: var(--tj-read-voice); }
-/* Each paragraph of theirs opens with a quotation mark hung outside the column; only the last
-   paragraph of a run closes it, as a printed story sets a speech that runs over paragraphs. */
+/* Each paragraph of theirs opens AND closes its own quotation marks, the opening mark hung
+   outside the column. Print closes only the last paragraph of a run, but readers took the open
+   end for a mistake, and our paragraphs are often separate pieces of the conversation, so each
+   one is its own quote (Adrian, 2026-10-01). */
 .tj-conv[data-form="story"] .tj-conv-a::before,
 .tj-conv[data-form="story"] .tj-conv-q-text::before { content: '\201C'; margin-left: -0.42em; }
 .tj-conv[data-form="story"] .tj-conv-a::after,
 .tj-conv[data-form="story"] .tj-conv-q-text::after { content: '\201D'; }
-.tj-conv[data-form="story"] .tj-conv-a:has(+ .tj-conv-a)::after { content: none; }
 /* A question Adrian kept: his words, in italics inside quotation marks, no name. */
 .tj-conv[data-form="story"] .tj-conv-q-text { font-style: italic; color: var(--tj-read-voice); }
 /* The hook on the cover, in place of the dek. */
