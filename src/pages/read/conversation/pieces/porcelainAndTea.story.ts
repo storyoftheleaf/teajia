@@ -86,12 +86,7 @@ export const story: Pick<ConversationSpec, 'portrait' | 'intro' | 'hook' | 'open
             {
               kind: "a",
               id: "p1-a8",
-              text: "As for old utensils, I think they carry a lot of historical and cultural elements, which are reflected in them. I like them because I think they have a more natural sense of historical vicissitudes.",
-            },
-            {
-              kind: "a",
-              id: "p1-l2",
-              text: "Moreover, I can feel the state of the people who created them at that time through touching these utensils.",
+              text: "As for old utensils, I think they carry a lot of historical and cultural elements, which are reflected in them. I like them because I think they have a more natural sense of historical vicissitudes. Moreover, I can feel the state of the people who created them at that time through touching these utensils.",
             },
           ],
           flip: true,
@@ -101,11 +96,10 @@ export const story: Pick<ConversationSpec, 'portrait' | 'intro' | 'hook' | 'open
           glyph: "缘分",
           blocks: [
             { kind: "n", id: "p1-n4", text: "I asked if he felt bringing these old cups back to life honors the past." },
-            { kind: "a", id: "p1-l3", text: "This feeling is very subtle, and I can’t quite put it into words." },
             {
               kind: "a",
               id: "p1-a6",
-              text: "It’s probably a kind of fate, 缘分. First, I’ve mastered this repair technique, and then I’ve come to love these ancient ceramics. It’s probably some kind of fate.",
+              text: "This feeling is very subtle, and I can’t quite put it into words. It’s probably a kind of fate, 缘分. First, I’ve mastered this repair technique, and then I’ve come to love these ancient ceramics. It’s probably some kind of fate.",
             },
           ],
         },
@@ -116,16 +110,14 @@ export const story: Pick<ConversationSpec, 'portrait' | 'intro' | 'hook' | 'open
       title: "People cherished utensils more",
       blocks: [
         { kind: "n", id: "p2-n2", text: "I guessed that a thousand years ago, people would just make a new cup." },
-        { kind: "a", id: "p2-a1", text: "Repair techniques have existed for thousands of years." },
         {
           kind: "side",
           shot: shots.stapledBowl,
           blocks: [
-            { kind: "a", id: "p2-l1", text: "In the past, people cherished utensils more." },
             {
               kind: "a",
               id: "p2-a2",
-              text: "Many utensils in daily life that got damaged can still show traces of repair. This technique was quite common in ancient times. On the contrary, in our current society, it’s not as popular because we can easily buy new things.",
+              text: "Repair techniques have existed for thousands of years. In the past, people cherished utensils more. Many utensils in daily life that got damaged can still show traces of repair. This technique was quite common in ancient times. On the contrary, in our current society, it’s not as popular because we can easily buy new things.",
             },
             {
               kind: "a",
@@ -246,14 +238,8 @@ export const story: Pick<ConversationSpec, 'portrait' | 'intro' | 'hook' | 'open
           blocks: [
             {
               kind: "a",
-              id: "p4-a6",
-              text: "Tea plays many roles. It is a beverage, a gift, and a medium of communication. We sit around a tea table and talk about many things. It can be generous or selfish.",
-            },
-            { kind: "a", id: "p4-a7", text: "This leaf absorbs the essence of heaven and earth, embodying the five elements and eight trigrams." },
-            {
-              kind: "a",
-              id: "p4-a8",
-              text: "It gathers the energy of the East in China, remarkable that such energy can be concentrated in a single leaf and radiated outward.",
+              id: "p4-a2",
+              text: "Tea plays many roles. It is a beverage, a gift, and a medium of communication. We sit around a tea table and talk about many things. It can be generous or selfish. This leaf absorbs the essence of heaven and earth, embodying the five elements and eight trigrams. It gathers the energy of the East in China, remarkable that such energy can be concentrated in a single leaf and radiated outward.",
             },
           ],
           flip: true,

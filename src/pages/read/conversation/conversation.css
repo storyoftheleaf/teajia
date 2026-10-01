@@ -240,11 +240,10 @@
    outside the column. Print closes only the last paragraph of a run, but readers took the open
    end for a mistake, and our paragraphs are often separate pieces of the conversation, so each
    one is its own quote (Adrian, 2026-10-01). */
-.tj-conv[data-form="story"] .tj-conv-a::before,
-.tj-conv[data-form="story"] .tj-conv-q-text::before { content: '\201C'; margin-left: -0.42em; }
-.tj-conv[data-form="story"] .tj-conv-a::after,
-.tj-conv[data-form="story"] .tj-conv-q-text::after { content: '\201D'; }
-/* A question Adrian kept: his words, in italics inside quotation marks, no name. */
+.tj-conv[data-form="story"] .tj-conv-a::before { content: '\201C'; margin-left: -0.42em; }
+.tj-conv[data-form="story"] .tj-conv-a::after { content: '\201D'; }
+/* A question Adrian kept: his words, in italics and sand, never in quotation marks, because he is
+   telling the story, not being quoted (Adrian, 2026-10-01: "No marks on my questions also"). */
 .tj-conv[data-form="story"] .tj-conv-q-text { font-style: italic; color: var(--tj-read-voice); }
 /* The hook on the cover, in place of the dek. */
 .tj-conv-cover-hook {
