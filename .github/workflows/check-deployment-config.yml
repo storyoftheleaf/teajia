@@ -3,17 +3,16 @@ name: Check deployment config
 # This is early repository feedback, not the gate for Cloudflare Git deploys.
 # The authoritative gate runs inside `npm run build` on Cloudflare Pages, where
 # WORKER_ORIGIN is the same environment binding received by Pages Functions.
+#
+# Pull requests only, since 2026-09-29. On a push to main this was a SECOND
+# workflow run for two commands that take seconds — `package.json` is in its
+# path list, so it fired on most of the month's pushes — and a run is the unit
+# the free plan counts. Both commands now run inside playwright.yml's `checks`
+# job, which that push already starts, so main lost a run per push and no
+# check. `scripts/ci-spend-budget.test.mjs` fails if the push trigger returns
+# without the steps in `checks` going with it.
 on:
   pull_request:
-    paths:
-      - 'functions/**'
-      - 'scripts/check-required-deployment-config.mjs'
-      - 'scripts/check-required-deployment-config.test.mjs'
-      - 'package.json'
-      - '.github/workflows/check-deployment-config.yml'
-      - '.github/workflows/deploy-frontend.yml'
-  push:
-    branches: [main]
     paths:
       - 'functions/**'
       - 'scripts/check-required-deployment-config.mjs'
