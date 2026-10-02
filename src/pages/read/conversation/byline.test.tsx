@@ -58,4 +58,16 @@ describe('the conversation byline', () => {
     expect(ledger(html)).toMatch(names);
     expect(html).not.toMatch(/Interview by|Told by|in (his|her|their) own words/i);
   });
+
+  // The byline names them, so the cover above it does not name them again (Adrian, 2026-10-01).
+  const names: [string, React.ReactNode, string[]][] = [
+    ['The Rock Remembers', <RockRemembers />, ['Chén Wǔ']],
+    ['Earth, Water, Fire', <EarthWaterFire />, ['Lín Yùzhēn']],
+    ['Quiet Hours', <TeaHouseQuietHours />, ['Mei', 'Tom Hale']],
+  ];
+  it.each(names)('%s does not name its people on the cover as well', (_title, node, people) => {
+    const html = render(node);
+    const cover = html.slice(0, html.indexOf('tj-conv-byline"')).replace(/<title>[\s\S]*?<\/title>/, '');
+    for (const name of people) expect(cover).not.toMatch(new RegExp(`>\\s*${name}(?=[\\s<])`));
+  });
 });

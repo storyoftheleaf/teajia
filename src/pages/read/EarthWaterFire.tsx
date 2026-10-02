@@ -114,12 +114,6 @@ const EarthWaterFire: React.FC = () => {
             <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(16px,2vw,20px)', lineHeight: 1.5, color: C.taupe, margin: '26px 0 0', maxWidth: 440 }}>
               In a thousand-year-old porcelain town, a potter throws the vessels that tea is poured from, and lets the kiln have the final word.
             </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 'clamp(30px,5vw,46px)', paddingTop: 24, borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.16)' }}>
-              <div>
-                <div style={{ fontFamily: F.display, fontSize: 24, color: C.ink, lineHeight: 1 }}>Lín Yùzhēn <span style={{ fontFamily: F.cn, color: C.taupe, fontSize: 20 }}>林玉珍</span></div>
-                <div style={{ fontFamily: F.ui, fontSize: 10.5, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim, marginTop: 8 }}>Porcelain potter · Jingdezhen, Jiangxi</div>
-              </div>
-            </div>
           </div>
           <div className="tj-cover-photo" style={{ position: 'relative', order: 1, overflow: 'hidden', minHeight: '48vh', background: 'linear-gradient(155deg,var(--tj-read-empty-from) 0%,var(--tj-read-bg) 80%)' }}>
             <div aria-hidden="true" style={{ ...grainCss('0.8', 150), opacity: 0.08 }} />

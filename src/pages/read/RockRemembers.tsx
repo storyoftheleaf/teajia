@@ -106,12 +106,6 @@ const RockRemembers: React.FC = () => {
             <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(16px,2vw,20px)', lineHeight: 1.5, color: C.taupe, margin: '26px 0 0', maxWidth: 440 }}>
               High in the Wuyi cliffs, a fourth-generation roaster tends a fire that never quite goes out, and listens for the moment his tea is ready to speak.
             </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 'clamp(30px,5vw,46px)', paddingTop: 24, borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.16)' }}>
-              <div>
-                <div style={{ fontFamily: F.display, fontSize: 24, color: C.ink, lineHeight: 1 }}>Chén Wǔ <span style={{ fontFamily: F.cn, color: C.taupe, fontSize: 20 }}>陈武</span></div>
-                <div style={{ fontFamily: F.ui, fontSize: 10.5, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim, marginTop: 8 }}>Rock-tea roaster · Wuyishan, Fujian</div>
-              </div>
-            </div>
           </div>
           <div className="tj-cover-photo" style={{ position: 'relative', order: 1, overflow: 'hidden', minHeight: '48vh', background: 'linear-gradient(155deg,#2a2117 0%,var(--tj-read-bg) 80%)' }}>
             <div aria-hidden="true" style={{ ...grainCss('0.8', 150), opacity: 0.08 }} />
