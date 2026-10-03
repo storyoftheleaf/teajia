@@ -31,7 +31,7 @@ for (const match of shellConfig.matchAll(/\$\{([A-Z_]+):=([^}]*)\}/g)) {
 const existingConfig = fs.existsSync(path.join(destination,'config.json')) ? JSON.parse(fs.readFileSync(path.join(destination,'config.json'),'utf8')) : {};
 const config = {...existingConfig,repoRoot,python,buildsDir,magFiles:values.MAG_FILES,magVault:values.MAG_VAULT,teaTerms:values.TEA_TERMS,magDrops:(values.MAG_DROPS || '').split('|').map(s=>s.trim()).filter(Boolean),legacyIntake:path.join(buildsDir,'mag-intake.sh')};
 if (!config.magFiles || !config.magVault) throw Error('mag-intake.config must define MAG_FILES and MAG_VAULT');
-const modules = ['jobs.mjs','intake.mjs','workshop-ui.mjs','outputs.mjs','i64-export.mjs','i64-worker.mjs'];
+const modules = ['jobs.mjs','intake.mjs','workshop-ui.mjs','outputs.mjs','i64-export.mjs','i64-worker.mjs','translation.mjs'];
 for (const name of modules) if (!fs.existsSync(path.join(sourceDir,name))) throw Error(`Missing module: ${name}`);
 for (const item of patches) {
   const temp = path.join(os.tmpdir(),`mag-local-check-${process.pid}${item.name.endsWith('.sh')?'.sh':'.mjs'}`);

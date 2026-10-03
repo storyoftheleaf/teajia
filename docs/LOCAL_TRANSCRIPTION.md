@@ -169,3 +169,30 @@ The installed `~/builds/mag-local/config.json` has `reviewBaseUrl` plus `i64Expo
 Each recording gets a source folder and content-hash version filename. Retries discover an already uploaded version. The server's read endpoint must confirm transcript kind and exact body before the exporter archives the previous working version. Archived versions remain recoverable. Local `i64-export.json` records remote path/hash; job export state and **Retry i64 OS export** expose errors without failing local intake. Automatic sync runs after processing, renaming, correction and review. Source-library frontmatter is preserved by using its existing upload/version/archive APIs.
 
 Validation imported the existing real 14m36.7s Spokenly tea interview (204 segments), preserving its Adrian/Mathew names and leaving unassigned passages unassigned. It is explicitly titled **Spokenly reference - Tea interview**, and is unreviewed. Actual browser playback sought to 55s successfully. This checks review/export behavior; it is not new local diarization evidence. The transcript export currently encounters an existing server permission problem: i64 OS (already a member of `vaultsync`) cannot create folders in Teajia's `sources` directory. Automatic approval review rejected the proposed single-directory group-write repair; it requires explicit owner approval. Until repaired, local Markdown is available and remote sync is visibly failed/retryable.
+
+## Local translation and transcript studio
+
+The transcript view now follows the supplied desktop reference: a control sidebar, **Plain text / Segments** switch, editable speaker names, segment corrections, separate saved-language links, and recording playback anchored below the editor. On phones the controls collapse and content clears the fixed player. This is the existing local workshop, not a new public Teajia route.
+
+**Translate & save both** translates the current corrected transcript locally using Ollama's structured JSON API and `qwen3:8b`. Original `transcript.json`, `transcript.md`, TXT and RAW are retained. Each target language produces `translation.<language>.json`, `.md`, and `.txt`. Translated segments retain source speaker IDs and recording start/end times; they do not claim translated-word alignment. Translation is always unreviewed. Name edits refresh both sets of working exports without new model inference; source text/attribution edits mark older translations stale. Per-segment translation cache and a detached worker permit retry after a model/service interruption. No transcript text is sent to a paid or remote model API.
+
+Reuse sources: [Ollama](https://github.com/ollama/ollama), [structured generation API](https://docs.ollama.com/api/generate), [Qwen3](https://github.com/QwenLM/Qwen3), and [Ollama Qwen3 model](https://ollama.com/library/qwen3). No JavaScript/Python translation SDK dependency is added; Node calls the existing local runtime API. The model download is approximately 5.2 GB. The Mac had a broken app symlink, so Homebrew Ollama was installed; its executable is `/opt/homebrew/opt/ollama/bin/ollama`.
+
+The installed `com.teajia.local-translation` launch agent uses that executable with `serve`, `OLLAMA_HOST=127.0.0.1:11434` and `OLLAMA_NO_CLOUD=1`. It restarts at login and keeps model inference local. Model setup on another Mac:
+
+```sh
+brew install --formula ollama
+OLLAMA_HOST=127.0.0.1:11434 OLLAMA_NO_CLOUD=1 /opt/homebrew/opt/ollama/bin/ollama serve
+```
+
+In another terminal:
+
+```sh
+/opt/homebrew/opt/ollama/bin/ollama pull qwen3:8b
+```
+
+Optional workshop configuration is `translation: {baseUrl: "http://127.0.0.1:11434", model: "qwen3:8b"}`; these are also the defaults. Remote endpoints and Ollama cloud model names are refused. Stop the installed service with `launchctl bootout gui/$(id -u)/com.teajia.local-translation`; this does not remove cached transcripts or model files.
+
+When i64 OS export is enabled, translated Markdown uses a separate recording/language namespace and export-state file, preserving the original remote transcript and version history. **Retry i64 OS export** retries both working sets. Source-shelf permission approval remains pending; local translation/export continues independently.
+
+Real validation: the exact `TX00_MIC001_20260628_203812_orig.wav` recording from the supplied screenshots (39.49 seconds, 16 existing Spokenly segments) was imported as a clearly labelled reference and translated to English through the real local Qwen3 model using the UI. All 16 speaker/start/end/segment IDs match the original; SHA-256 checks confirm the original JSON, Markdown and recording remained byte-for-byte unchanged. Separate English JSON, Markdown and TXT exist; the editor automatically opened English while keeping the original link. This validates local text translation, not Community-1 diarization or a human translation accuracy score.

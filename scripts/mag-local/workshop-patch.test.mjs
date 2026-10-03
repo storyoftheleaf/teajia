@@ -79,3 +79,12 @@ test('review UI has playback, named Markdown download, corrections and honest re
   assert.match(html,/data-export-retry="record"/);
   assert.match(html,/Saved locally; i64 OS export failed/);
 });
+test('studio exposes original and translated versions with separate downloads and safe stale state',()=>{
+  const result={language:'zh',speakers:[{id:'SPEAKER_00',name:'Adrian'}],segments:[{start:0,end:2,speaker:'SPEAKER_00',text:'Original'}]};
+  const html=renderTranscript(result,{id:'record',story:'Tea',translations:[{language:'en',state:'complete',stale:true}]},{...result,language:'en',stale:true});
+  assert.match(html,/workspace-sidebar/);assert.match(html,/data-view="plain"/);assert.match(html,/data-view="segments"/);
+  assert.match(html,/Translate &amp; save both|Translate & save both/);
+  assert.match(html,/Original retained/);assert.match(html,/translation.md\?language=en/);assert.match(html,/transcript.md/);
+  assert.match(html,/original changed after this translation/);
+  assert.doesNotMatch(html,/data-segment-form/);
+});

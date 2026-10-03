@@ -36,8 +36,9 @@ export async function callI64(config, request) {
     });
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 }
-export async function exportTranscript(config, job, { markdown }) {
-  const stateFile = path.join(job.output, 'i64-export.json');
+export async function exportTranscript(config, job, { markdown, stateKey = 'i64-export' }) {
+  if (!/^[a-zA-Z0-9.-]+$/.test(stateKey)) throw Error('Invalid export state key.');
+  const stateFile = path.join(job.output, stateKey + '.json');
   const previous = fs.existsSync(stateFile) ? JSON.parse(fs.readFileSync(stateFile, 'utf8')) : null;
   const result = await callI64(config.i64Export, { action: 'export', job: { id: job.id, story: job.story }, markdown, previous });
   const temp = stateFile + '.part';

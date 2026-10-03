@@ -29,6 +29,10 @@ export async function writeWorkingOutputs(job, result, config = {}) {
   const markdown = markdownTranscript(job, result, config), file = path.join(job.output, 'transcript.md');
   write(path.join(job.output, 'transcript.txt'), readableTranscript(result));
   write(file, markdown);
+  if (fs.existsSync(path.join(job.output,'translations'))) {
+    const { refreshTranslationOutputs } = await import('./translation.mjs');
+    await refreshTranslationOutputs(config,job,result);
+  }
   if (config.i64Export?.enabled) {
     try {
       const { exportTranscript } = await import('./i64-export.mjs');

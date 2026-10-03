@@ -31,9 +31,10 @@ test('detached intake survives the caller and exposes transcript, rename and imm
     assert.match(fs.readFileSync(path.join(job.output,'transcript.md'),'utf8'), /review_status: unreviewed/);
     const raw=fs.readFileSync(job.raw,'utf8');
     assert.ok(raw.includes('Synthetic test transcript.'));
-    server=http.createServer(async(req,res)=>{if(!await handleLocalRoute(req,res,new URL(req.url,'http://localhost')))res.end('not found');});
+    server=http.createServer(async(req,res)=>{if(req.url==='/api/generate'){res.writeHead(200,{'content-type':'application/json'});res.end(JSON.stringify({done:true,response:JSON.stringify({text:'Transcripción de prueba.'})}));return;}if(!await handleLocalRoute(req,res,new URL(req.url,'http://localhost')))res.end('not found');});
     await new Promise(r=>server.listen(0,'127.0.0.1',r));
     const url=`http://127.0.0.1:${server.address().port}/transcription/${id}`;
+    const updatedConfig=JSON.parse(fs.readFileSync(config));updatedConfig.translation={baseUrl:`http://127.0.0.1:${server.address().port}`,model:'qwen3:8b'};fs.writeFileSync(config,JSON.stringify(updatedConfig));
     let response=await fetch(url);assert.equal(response.status,200);
     assert.equal((await response.json()).result.speakers[0].name,null);
     response=await fetch(url+'/review',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({confirmed:true})});
@@ -65,6 +66,15 @@ test('detached intake survives the caller and exposes transcript, rename and imm
     assert.equal(response.status,403);
     response=await fetch(url+'/retry',{method:'POST'});assert.equal(response.status,409);
     response=await fetch(url+'/view');assert.ok((await response.text()).includes('Adrian'));
+    const beforeTranslation=fs.readFileSync(path.join(job.output,'transcript.json'),'utf8');
+    response=await fetch(url+'/translate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({language:'es'})});assert.equal(response.status,202);
+    let translatedJob;
+    for(let attempt=0;attempt<80;attempt++){translatedJob=(await(await fetch(url)).json()).job;if(translatedJob.translations.some(t=>t.state==='complete'))break;await new Promise(r=>setTimeout(r,50));}
+    assert.equal(translatedJob.translations[0].state,'complete');
+    response=await fetch(url+'/translation.md?language=es');assert.equal(response.status,200);assert.match(await response.text(),/Transcripción de prueba/);
+    assert.equal(fs.readFileSync(path.join(job.output,'transcript.json'),'utf8'),beforeTranslation);
+    assert.equal(fs.readFileSync(job.raw,'utf8'),raw);
+    response=await fetch(url+'/view?language=es');assert.match(await response.text(),/Original retained/);
     // A second source with this title fails without changing the existing quote record.
     fs.writeFileSync(source,'second source');const duplicate=startLocalIntake('Synthetic test',source);
     while(Date.now()<deadline+5000){job=localJobs().find(j=>j.id===duplicate);if(job?.state!=='running')break;await new Promise(r=>setTimeout(r,50));}

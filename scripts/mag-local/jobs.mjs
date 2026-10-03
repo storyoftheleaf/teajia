@@ -8,6 +8,7 @@ import { readConfig, atomicJson, runIntake, safeStory } from './intake.mjs';
 import { readableTranscript, markdownTranscript, writeWorkingOutputs, reviewEligibility } from './outputs.mjs';
 export { readableTranscript } from './outputs.mjs';
 import { transcriptPage } from './workshop-ui.mjs';
+import { translateTranscript, translationStatus, loadTranslation, translatedMarkdown, translationLanguage, translationSourceDigest } from './translation.mjs';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const alive = pid => { try { process.kill(pid, 0); return true; } catch { return false; } };
 const root = config => path.join(config.magFiles, '.transcription-jobs');
@@ -61,7 +62,7 @@ export function localJobs() {
       .map(n => readJob(config, n.slice(0, -5))).sort((a, b) => b.started.localeCompare(a.started));
   } catch { return []; }
 }
-const publicJob = job => ({ id: job.id, story: job.story, file: job.file, state: job.state, stage: job.stage, error: job.error, started: job.started, transcriptReady: !!job.transcriptReady, ...(job.export ? { export: job.export } : {}) });
+const publicJob = job => ({ id: job.id, story: job.story, file: job.file, state: job.state, stage: job.stage, error: job.error, started: job.started, transcriptReady: !!job.transcriptReady, translations: job.transcriptReady ? translationStatus(job,JSON.parse(fs.readFileSync(path.join(job.output,'transcript.json'),'utf8'))) : [], ...(job.export ? { export: job.export } : {}) });
 const send = (res, status, data) => { res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(data)); };
 async function body(req) {
   let value = '';
@@ -87,13 +88,28 @@ export function serveAudio(req, res, file) {
   stream.on('error', () => res.destroy()); res.on('close', () => stream.destroy()); stream.pipe(res);
 }
 export async function handleLocalRoute(req, res, url) {
-  const match = url.pathname.match(/^\/transcription\/([a-f0-9-]{36})(?:\/(view|retry|export-retry|speakers|segment|review|audio|transcript\.json|transcript\.txt|transcript\.md))?$/);
+  const match = url.pathname.match(/^\/transcription\/([a-f0-9-]{36})(?:\/(view|retry|export-retry|translate|speakers|segment|review|audio|(?:transcript|translation)\.(?:json|txt|md)))?$/);
   if (!match) return false;
   try {
     const config = readConfig(), id = match[1], action = match[2] || '';
     const job = readJob(config, id);
     if (req.method === 'POST') {
       if (req.headers.origin && req.headers.origin !== `http://${req.headers.host}`) { send(res, 403, { error: 'not from this page' }); return true; }
+      if (action === 'translate') {
+        if (job.state !== 'done' || !job.transcriptReady) throw new Error('Transcript is not ready.');
+        const input = await body(req), language = translationLanguage(input.language);
+        const result = JSON.parse(fs.readFileSync(path.join(job.output,'transcript.json'),'utf8'));
+        if (translationStatus(job,result).some(t => t.state === 'running' || t.state === 'queued')) { send(res,409,{error:'A translation is already running. Wait for it to finish.'}); return true; }
+        const stateFile=path.join(job.output,'translations',`${language}.state.json`);
+        fs.mkdirSync(path.dirname(stateFile),{recursive:true});
+        atomicJson(stateFile,{language,state:'queued',sourceDigest:translationSourceDigest(result),completed:0,total:result.segments.length,updatedAt:new Date().toISOString()});
+        const log=fs.openSync(path.join(job.output,'translations',`${language}.log`),'a',0o600);
+        try {
+          const child=spawn(process.execPath,[fileURLToPath(import.meta.url),'translate',id,language],{detached:true,stdio:['ignore',log,log],env:process.env});
+          child.on('error',error=>atomicJson(stateFile,{language,state:'failed',error:error.message,sourceDigest:translationSourceDigest(result)}));child.unref();
+        } finally {fs.closeSync(log);}
+        send(res,202,{job:publicJob(job)});return true;
+      }
       if (action === 'retry') {
         if (job.state !== 'failed') { send(res, 409, { error: 'Only failed jobs can be retried.' }); return true; }
         job.state = 'running'; job.stage = 'queued'; job.started = new Date().toISOString(); delete job.error; delete job.pid;
@@ -155,7 +171,15 @@ export async function handleLocalRoute(req, res, url) {
     let result;
     if (job.transcriptReady) result = JSON.parse(fs.readFileSync(path.join(job.output, 'transcript.json'), 'utf8'));
     if (action === 'view') {
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(transcriptPage(publicJob(job), result));
+      const translation = url.searchParams.has('language') && result ? loadTranslation(job,result,url.searchParams.get('language')) : null;
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(transcriptPage(publicJob(job), result, translation));
+    } else if (action.startsWith('translation.')) {
+      if (!result) throw new Error('Transcript is not ready.');
+      const translation=loadTranslation(job,result,url.searchParams.get('language'));
+      if(!translation)throw new Error('Translation is not ready.');
+      const extension=action.split('.').pop();
+      res.writeHead(200,{'Content-Type':extension==='json'?'application/json; charset=utf-8':'text/plain; charset=utf-8','Cache-Control':'no-store','Content-Disposition':`attachment; filename*=UTF-8''${encodeURIComponent(`Transcript - ${job.story} - ${translation.language}.${extension}`)}`});
+      res.end(extension==='json'?JSON.stringify(translation,null,2):extension==='md'?translatedMarkdown(job,translation,config):(translation.stale?'Original changed after translation; translate again to update.\n':'')+'Unreviewed machine translation. Timestamps refer to original audio.\n\n'+readableTranscript(translation));
     } else if (action === 'transcript.json' || action === 'transcript.txt' || action === 'transcript.md') {
       if (!result) throw new Error('Transcript is not ready.');
       res.writeHead(200, { 'Content-Type': action.endsWith('.json') ? 'application/json; charset=utf-8' : 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', 'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(`Transcript - ${job.story}.${action.split('.').pop()}`)}` });
@@ -191,3 +215,9 @@ async function work(id) {
   }
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url) && process.argv[2] === 'run') await work(process.argv[3]);
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url) && process.argv[2] === 'translate') {
+  const config=readConfig(),job=readJob(config,process.argv[3]),language=translationLanguage(process.argv[4]);
+  const result=JSON.parse(fs.readFileSync(path.join(job.output,'transcript.json'),'utf8'));
+  try {await translateTranscript(config,job,result,language);}
+  catch(error){const file=path.join(job.output,'translations',`${language}.state.json`);let prior={};try{prior=JSON.parse(fs.readFileSync(file,'utf8'));}catch{} atomicJson(file,{...prior,language,state:'failed',error:error.message,sourceDigest:translationSourceDigest(result),updatedAt:new Date().toISOString()});}
+}
