@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import vm from 'node:vm';
 import { spawnSync } from 'node:child_process';
 import { patchWorkshop, patchLegacyIntake, intakeStory, sourceHash } from './workshop-patch.mjs';
-import { renderTranscript, renderLocalJob, transcriptPage } from './workshop-ui.mjs';
+import { renderTranscript, renderLocalJob, transcriptPage, LOCAL_JOB_JS } from './workshop-ui.mjs';
 
 const original = fs.readFileSync(new URL('./fixtures/mag-preview.original.mjs',import.meta.url),'utf8');
 const shell = fs.readFileSync(new URL('./fixtures/mag-intake.original.sh',import.meta.url),'utf8');
@@ -63,4 +64,18 @@ test('hostile names, ids and transcript text cannot create script or attribute t
   const html=renderTranscript({speakers:[{id:attack,name:attack}],segments:[{speaker:attack,start:0,end:1,text:attack}]},{id:attack,story:attack,file:attack});
   assert.doesNotMatch(html,/<script>|data-speaker=""><|href="\/transcription\/">/);
   assert.match(html,/&lt;script&gt;/);
+});
+
+test('review UI has playback, named Markdown download, corrections and honest review gating',()=>{
+  new vm.Script(LOCAL_JOB_JS);
+  const result={speakers:[{id:'SPEAKER_00',name:null}],segments:[{start:3,end:5,speaker:'SPEAKER_00',text:'Text'}]};
+  const html=renderTranscript(result,{id:'record',story:'Tea',export:{state:'failed',error:'Offline'}});
+  assert.match(html,/data-recording-player controls/);
+  assert.match(html,/data-audio-seek="3"/);
+  assert.match(html,/transcript.md/);
+  assert.match(html,/data-segment-form="record"/);
+  assert.match(html,/Mark reviewed<\/button>/);
+  assert.match(html,/type="submit" disabled>Mark reviewed/);
+  assert.match(html,/data-export-retry="record"/);
+  assert.match(html,/Saved locally; i64 OS export failed/);
 });

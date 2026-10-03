@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { readConfig, atomicJson, runIntake, safeStory } from './intake.mjs';
+import { readableTranscript, markdownTranscript, writeWorkingOutputs, reviewEligibility } from './outputs.mjs';
+export { readableTranscript } from './outputs.mjs';
 import { transcriptPage } from './workshop-ui.mjs';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const alive = pid => { try { process.kill(pid, 0); return true; } catch { return false; } };
@@ -59,20 +61,33 @@ export function localJobs() {
       .map(n => readJob(config, n.slice(0, -5))).sort((a, b) => b.started.localeCompare(a.started));
   } catch { return []; }
 }
-const publicJob = job => ({ id: job.id, story: job.story, file: job.file, state: job.state, stage: job.stage, error: job.error, started: job.started, transcriptReady: !!job.transcriptReady });
+const publicJob = job => ({ id: job.id, story: job.story, file: job.file, state: job.state, stage: job.stage, error: job.error, started: job.started, transcriptReady: !!job.transcriptReady, ...(job.export ? { export: job.export } : {}) });
 const send = (res, status, data) => { res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(data)); };
 async function body(req) {
   let value = '';
   for await (const chunk of req) { value += chunk; if (value.length > 16000) throw new Error('Request too large'); }
   return JSON.parse(value);
 }
-export function readableTranscript(result) {
-  const names = new Map(result.speakers.map((s, i) => [s.id, s.name || `Speaker ${i + 1}`]));
-  const time = n => { n = Math.floor(n); return [Math.floor(n / 3600), Math.floor(n / 60) % 60, n % 60].map(x => String(x).padStart(2, '0')).join(':'); };
-  return result.segments.map(s => `[${time(s.start)}] ${names.get(s.speaker) || 'Unassigned'}: ${s.text.trim()}`).join('\n') + '\n';
+export function serveAudio(req, res, file) {
+  const size = fs.statSync(file).size;
+  const types = { '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4', '.aac': 'audio/aac', '.wav': 'audio/wav', '.ogg': 'audio/ogg', '.opus': 'audio/ogg', '.flac': 'audio/flac', '.mp4': 'video/mp4', '.mov': 'video/quicktime', '.webm': 'video/webm' };
+  const headers = { 'Content-Type': types[path.extname(file).toLowerCase()] || 'application/octet-stream', 'Cache-Control': 'no-store', 'Accept-Ranges': 'bytes' };
+  let start = 0, end = size - 1;
+  if (req.headers.range) {
+    const match = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range);
+    if (!match || (!match[1] && !match[2])) { res.writeHead(416, { ...headers, 'Content-Range': `bytes */${size}` }); res.end(); return; }
+    if (!match[1]) start = Math.max(0, size - Number(match[2]));
+    else { start = Number(match[1]); if (match[2]) end = Math.min(end, Number(match[2])); }
+    if (start > end || start >= size || !Number.isSafeInteger(start) || !Number.isSafeInteger(end)) { res.writeHead(416, { ...headers, 'Content-Range': `bytes */${size}` }); res.end(); return; }
+    headers['Content-Range'] = `bytes ${start}-${end}/${size}`;
+  }
+  res.writeHead(req.headers.range ? 206 : 200, { ...headers, 'Content-Length': Math.max(0, end - start + 1) });
+  if (!size) { res.end(); return; }
+  const stream = fs.createReadStream(file, { start, end });
+  stream.on('error', () => res.destroy()); res.on('close', () => stream.destroy()); stream.pipe(res);
 }
 export async function handleLocalRoute(req, res, url) {
-  const match = url.pathname.match(/^\/transcription\/([a-f0-9-]{36})(?:\/(view|retry|speakers|transcript\.json|transcript\.txt))?$/);
+  const match = url.pathname.match(/^\/transcription\/([a-f0-9-]{36})(?:\/(view|retry|export-retry|speakers|segment|review|audio|transcript\.json|transcript\.txt|transcript\.md))?$/);
   if (!match) return false;
   try {
     const config = readConfig(), id = match[1], action = match[2] || '';
@@ -84,33 +99,67 @@ export async function handleLocalRoute(req, res, url) {
         job.state = 'running'; job.stage = 'queued'; job.started = new Date().toISOString(); delete job.error; delete job.pid;
         dispatch(config, job); send(res, 202, { job: publicJob(job) }); return true;
       }
-      if (action === 'speakers') {
+      if (action === 'export-retry') {
+        if (job.state !== 'done' || !job.transcriptReady || !config.i64Export?.enabled) throw new Error('Export is not available.');
+        const result = JSON.parse(fs.readFileSync(path.join(job.output, 'transcript.json'), 'utf8'));
+        await writeWorkingOutputs(job, result, config); atomicJson(jobFile(config, id), job);
+        send(res, 200, { job: publicJob(job), result }); return true;
+      }
+      if (action === 'speakers' || action === 'segment' || action === 'review') {
         if (job.state !== 'done' || !job.transcriptReady) throw new Error('Transcript is not ready.');
         const resultFile = path.join(job.output, 'transcript.json');
         const result = JSON.parse(fs.readFileSync(resultFile, 'utf8'));
         const input = await body(req);
-        if (!input.names || typeof input.names !== 'object' || Array.isArray(input.names)) throw new Error('Expected speaker names.');
-        for (const [id, name] of Object.entries(input.names)) {
-          const speaker = result.speakers.find(s => s.id === id);
-          if (!speaker || typeof name !== 'string' || name.length > 120 || /[\x00-\x1f]/.test(name)) throw new Error('Invalid speaker name.');
-          speaker.name = name.trim() || null;
+        if (action === 'review') {
+          if (input.confirmed !== true || !reviewEligibility(result)) throw new Error('Name every speaker and resolve unattributed segments before confirming review.');
+          result.metadata = { ...result.metadata, review: { status: 'reviewed', reviewedAt: new Date().toISOString() } };
+        } else if (action === 'segment') {
+          const segment = result.segments?.[input.index];
+          if (!Number.isInteger(input.index) || !segment || typeof input.text !== 'string' || !input.text.trim() || input.text.length > 12000 || typeof input.speaker !== 'string' || (input.speaker && !result.speakers.some(s => s.id === input.speaker))) throw new Error('Invalid transcript correction.');
+          const speaker = input.speaker || null, text = input.text.trim();
+          if (segment.speaker !== speaker || segment.text !== text) {
+            if (segment.text !== text) {
+              // Original alignment stays in transcribe.json; edited text has no proven word alignment.
+              segment.words = [];
+              segment.word_timestamps_status = 'invalidated_by_text_edit';
+            } else {
+              for (const word of segment.words || []) word.speaker = speaker;
+            }
+            segment.speaker = speaker; segment.text = text;
+            result.metadata = { ...result.metadata, review: { status: 'unreviewed', reviewedAt: null } };
+          }
+        } else {
+          let changed = false;
+          if (!input.names || typeof input.names !== 'object' || Array.isArray(input.names)) throw new Error('Expected speaker names.');
+          for (const [id, name] of Object.entries(input.names)) {
+            const speaker = result.speakers.find(s => s.id === id);
+            if (!speaker || typeof name !== 'string' || name.length > 120 || /[\x00-\x1f]/.test(name)) throw new Error('Invalid speaker name.');
+            const value = name.trim() || null;
+            changed ||= speaker.name !== value;
+            speaker.name = value;
+          }
+          if (changed) result.metadata = { ...result.metadata, review: { status: 'unreviewed', reviewedAt: null } };
         }
         atomicJson(resultFile, result);
-        const textFile = path.join(job.output, 'transcript.txt');
-        fs.writeFileSync(`${textFile}.part`, readableTranscript(result)); fs.renameSync(`${textFile}.part`, textFile);
+        await writeWorkingOutputs(job, result, config);
+        atomicJson(jobFile(config, id), job);
         send(res, 200, { job: publicJob(job), result }); return true;
       }
       send(res, 404, { error: 'Unknown action' }); return true;
     }
     if (req.method !== 'GET') { send(res, 405, { error: 'Method not allowed' }); return true; }
+    if (action === 'audio') {
+      if (!job.source || !job.transcriptReady) throw new Error('Recording is not ready.');
+      serveAudio(req, res, job.source); return true;
+    }
     let result;
     if (job.transcriptReady) result = JSON.parse(fs.readFileSync(path.join(job.output, 'transcript.json'), 'utf8'));
     if (action === 'view') {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(transcriptPage(publicJob(job), result));
-    } else if (action === 'transcript.json' || action === 'transcript.txt') {
+    } else if (action === 'transcript.json' || action === 'transcript.txt' || action === 'transcript.md') {
       if (!result) throw new Error('Transcript is not ready.');
-      res.writeHead(200, { 'Content-Type': action.endsWith('.json') ? 'application/json; charset=utf-8' : 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
-      res.end(action.endsWith('.json') ? JSON.stringify(result, null, 2) : readableTranscript(result));
+      res.writeHead(200, { 'Content-Type': action.endsWith('.json') ? 'application/json; charset=utf-8' : 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', 'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(`Transcript - ${job.story}.${action.split('.').pop()}`)}` });
+      res.end(action.endsWith('.json') ? JSON.stringify(result, null, 2) : action.endsWith('.md') ? markdownTranscript(job, result, config) : readableTranscript(result));
     } else send(res, 200, { job: publicJob(job), ...(result ? { result } : {}) });
   } catch (error) { send(res, error.code === 'ENOENT' ? 404 : 400, { error: error.message }); }
   return true;

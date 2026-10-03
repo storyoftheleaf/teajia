@@ -2,6 +2,8 @@
 
 ## 2026-10-04 — Local Mag transcription integration
 
+Added automatic named Markdown, recording playback with timestamp seeking, segment text/speaker correction and explicit human review. Edits reset review; original RAW remains immutable. i64 OS's existing Teajia tile opens the workshop, and an Infisical-authenticated exporter targets its existing transcript shelf with verified versioning and independent retry. A real Spokenly reference interview verified playback and local exports; remote upload is blocked by the existing source directory permissions, with a narrowly scoped repair pending explicit owner approval. Community-1 acceptance/login remains required for new local diarization.
+
 Added independent MLX full Large V3 and Community-1 adapters, word-level speaker reconciliation, recoverable local checkpoints and JSON/text outputs. A SHA-checked installer connects the existing Mag upload/CLI intake to detached local jobs, progress/retry, speaker renaming and immutable RAW filing. Reviewed the requested upstream projects and reused their underlying model libraries. Focused Python/Node checks and browser upload/rename checks pass. Actual 51.48-second ASR sample: 89 timed words, 6.41s warm offline run, 16.7% normalized text disagreement against Spokenly's machine baseline. Real Community-1 diarization is pending free model acceptance/login; no claim of an end-to-end speaker benchmark. Details and rollback: [LOCAL_TRANSCRIPTION.md](LOCAL_TRANSCRIPTION.md).
 
 > Shipped work, newest first. For what's next see `CONSOLIDATED_DIRECTION.md`; active checklists live in `tracks/`.

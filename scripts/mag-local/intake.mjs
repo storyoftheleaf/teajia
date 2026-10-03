@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn, execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { writeWorkingOutputs } from './outputs.mjs';
 
 export const isMedia = file => /\.(m4a|mp3|wav|mov|mp4|aac|flac|ogg|opus|webm|mkv|aiff|aif|m4v)$/i.test(file);
 export function safeStory(value) {
@@ -50,6 +51,7 @@ export async function runIntake(config, job, save = () => {}) {
   const raw = path.join(config.magVault, 'Workflow/0-Inbox', `RAW - ${story}.md`);
   if (fs.existsSync(raw)) {
     if (job.raw === raw && job.rawCandidateSha256 && createHash('sha256').update(fs.readFileSync(raw)).digest('hex') === job.rawCandidateSha256) {
+      await writeWorkingOutputs(job, JSON.parse(fs.readFileSync(path.join(job.output, 'transcript.json'), 'utf8')), config);
       job.transcriptReady = true; save(); return; // recover a crash just after atomic publication
     }
     throw new Error('RAW already exists. Choose another story name; RAW is never overwritten.');
@@ -99,6 +101,7 @@ export async function runIntake(config, job, save = () => {}) {
   fs.writeFileSync(temporary, document, { mode: 0o600 });
   try { fs.linkSync(temporary, raw); } finally { fs.rmSync(temporary, { force: true }); }
   // The hard link atomically publishes complete bytes and refuses existing RAW.
+  await writeWorkingOutputs(job, result, config);
   job.transcriptReady = true; save();
   // Source is safely filed AND RAW exists before clearing a Drop copy.
   if ((config.magDrops || []).some(d => path.resolve(d) === path.dirname(path.resolve(job.originalSource || '')))) {
