@@ -19,6 +19,10 @@ The launch-to-real-use implementation spec is
 [`superpowers/specs/2026-07-12-launch-to-real-use-program-design.md`](superpowers/specs/2026-07-12-launch-to-real-use-program-design.md).
 It records the locally verified Releases 1–3. It is an implementation record, not a second launch checklist.
 
+## Local magazine workshop
+
+[LOCAL_TRANSCRIPTION.md](LOCAL_TRANSCRIPTION.md) — local Large V3/Community-1 integration, setup, recovery, upstream review and first real-audio comparison.
+
 ## Active engineering tracks
 
 Only three engineering queues remain active. Human, operator, editorial, and deployed-environment work is not a fourth queue; it lives only in [Launch Validation](LAUNCH_VALIDATION.md).

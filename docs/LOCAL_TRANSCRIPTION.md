@@ -1,0 +1,155 @@
+# Local magazine transcription
+
+Checked on 2026-10-04. This is the local Mac magazine workshop, separate from the storefront and its Cloudflare deployment. The target is full **Whisper Large V3 through MLX**, followed by **pyannote Community-1** speaker diarization. Turbo is a different model and is not the default.
+
+## Existing workshop and source boundaries
+
+The working magazine starts at `~/builds/mag-preview.mjs`. Its configuration comes from `~/builds/mag-intake.config`; `mag-config.mjs` also reads that configuration. The observed paths are:
+
+| Purpose | Configured path |
+|---|---|
+| Sources and photos, outside the vault | `~/Documents/Files/1 Areas/Brands/Teajia/Magazine` |
+| Computer drop | the preceding folder's `Drop/` |
+| Phone drop | `~/Library/Mobile Documents/com~apple~CloudDocs/Teajia Drop` |
+| Magazine notes | `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Adrian-obsidian/Brands/Teajia/Magazine` |
+| Tea vocabulary | `~/builds/tea-terms.json` |
+
+The existing `mag-intake.sh` accepts a recording or an already written transcript. Before this integration, audio went through ffmpeg and whisper.cpp using cached `ggml-small.bin`; transcript inputs bypass ASR. Dropped sources move into the story's folder; sources elsewhere are copied. RAW lands at `MAG_VAULT/Workflow/0-Inbox/RAW - [Title].md`, and intake refuses to overwrite it. Photos remain beside the recording, outside the vault.
+
+The magazine's own `SYSTEM.md` makes RAW immutable after creation. SRC is the later working source, with reviewed speaker names, source grade and highlights; then come MAP, DEV and review. The eight legacy stories predate this intake and lack recording references and times. Their SRC is their source record. Do not replace those records with a fresh machine interpretation or manufacture timestamps for them.
+
+The repository's `transcription/` package supplies the new local processing boundary. `scripts/mag-local/` integrates it with the existing workshop. Installing or restarting the local workshop is distinct from deploying teajia.com.
+
+## Machine readiness observed
+
+| Check | Result |
+|---|---|
+| Hardware | MacBook Pro, Apple M1 Max, 64 GB unified memory (`system_profiler`) |
+| Architecture | `arm64` |
+| Disk | approximately 595 GiB available on the workspace volume |
+| Audio tools | `/opt/homebrew/bin/ffmpeg` and `ffprobe` present |
+| Existing ASR | `/opt/homebrew/bin/whisper-cli`; small and base whisper.cpp weights cached |
+| Python | shell `python3` is 3.10; uv has Apple Silicon Python 3.11 and 3.13 installed |
+| Model packages | isolated `.venv-transcription` imports MLX Whisper 0.4.3, pyannote.audio 4.0.7 and torch successfully; Metal/MPS available |
+| Hugging Face default model cache | full Large V3 cached and verified in an offline ASR run; Community-1 is not yet downloaded |
+| Hugging Face credentials | neither supported token environment variable nor either default token file was present |
+
+These are checks of the current shell and known default locations, not a claim that every Python environment on the computer is empty. Spokenly is installed and keeps audio/history; its `Models/` directory had no entries during inspection. Its proprietary managed runtime is not reused by this pipeline.
+
+The Mac has suitable hardware, but the requested pipeline is **not model-ready until dependencies and weights have been downloaded and Community-1 access granted**. No model inference benchmark was run as part of these readiness checks.
+
+## Setup and first download
+
+Use a dedicated Python 3.11 environment for the package rather than the system Python. During setup the workspace environment is `.venv-transcription`; its interpreter is `.venv-transcription/bin/python`. The repository workshop installer entry point is `npm run mag:install-local`; inspect its output for the actual environment and workshop install paths. Create the isolated environment and install the verified dependency set:
+
+```sh
+uv venv --python 3.11 .venv-transcription
+uv pip install --python .venv-transcription/bin/python -r transcription/requirements.lock.txt
+.venv-transcription/bin/hf auth login
+npm run mag:install-local                 # inspect dry-run
+npm run mag:install-local -- --apply       # backs up and patches local scripts
+launchctl kickstart -k gui/$(id -u)/com.teajia.mag-page
+```
+
+The login stores credentials locally so the launch agent can download Community-1; an environment token in a shell alone is not inherited by a running launch agent. Never paste tokens into chat. After accepting Community-1 terms, run one full process command to warm its dependent weights. The command-line processing interface is:
+
+```sh
+python -m transcription process "/absolute/path/to/recording.wav" --output "/absolute/path/to/output"
+```
+
+Run that command with the installed environment's Python, from the package's installed directory or repository root. It does not imply that bare system `python` has the dependencies.
+
+Before the first diarization run, the owner must sign in and accept the conditions on the [Community-1 model page](https://huggingface.co/pyannote/speaker-diarization-community-1), then create a Hugging Face token with permission to read that model. Acceptance includes sharing contact information with the model publisher. Use the same account for acceptance and the token. Keep credentials in the local environment or Hugging Face credential store, never source control, output manifests or logs. The Python adapter accepts `HF_TOKEN` or `HUGGING_FACE_HUB_TOKEN`.
+
+ASR uses the public [mlx-community/whisper-large-v3-mlx](https://huggingface.co/mlx-community/whisper-large-v3-mlx) model; Community-1 is a separate gated download. Full Large V3 weights require several gigabytes; allow further space for the Python/torch environment, diarization dependencies, cache and normalized audio. A 16 kHz mono PCM16 working WAV uses about 115 MB per hour, before other runtime copies. The free disk reading above provides ample room, but is not an actual download measurement.
+
+First-use networking downloads dependencies and model weights. It does not require sending recordings to an inference service. Cache both stages before relying on offline operation. For a reproducible run, record exact model revisions as well as model IDs and package versions; an unpinned Hub name may change at a later download.
+
+## Offline behavior and privacy
+
+After all model files are local, set `HF_HUB_OFFLINE=1` and `PYANNOTE_METRICS_ENABLED=0` when verifying disconnected processing. The adapter disables pyannote telemetry before importing the library. Hub offline mode makes a missing cache fail instead of silently fetching a missing component. Verify a whole ASR-plus-diarization run with networking unavailable before claiming the installation works offline.
+
+Community-1 also documents loading a complete local pipeline directory with `Pipeline.from_pretrained('/local/path')`; the MLX adapter can receive a local model path. A partial snapshot, Git LFS pointer or missing dependent weight is not an offline installation. The package should report a failed stage and preserve the source when either model is unavailable. It should never substitute a cloud transcription or silently omit speaker attribution.
+
+Speaker clusters are local anonymous identities, not proof of a person's name. Keep `SPEAKER_00`-style labels until a human maps them. No voice enrollment or persistent biometric registry is necessary for this magazine flow. Source copies and transcript sidecars are private local material; neither belongs in the public repository.
+
+The [pyannote telemetry documentation](https://github.com/pyannote/pyannote-audio#telemetry) describes optional metrics, including processed duration and speaker-count parameters. Disabling telemetry is part of the local-only setup. Community-1's [offline instructions](https://huggingface.co/pyannote/speaker-diarization-community-1#offline-use) describe downloading once and running from disk.
+
+## Why these components
+
+The following upstream projects were reviewed before the implementation:
+
+| Project | Relevant finding | Integration decision |
+|---|---|---|
+| [weypro/whispermlx](https://github.com/weypro/whispermlx) | WhisperX fork replacing inference with mlx-whisper; includes forced alignment and Community-1 diarization | Reference for composition; avoid adopting another complete ASR stack for the first Mag integration |
+| [haniabdemai/local-transcription](https://github.com/haniabdemai/local-transcription) | Small separated ASR, diarization and merge scripts; default ASR is **Turbo**; documents MPS diarization | Useful stage separation; choose full Large V3 explicitly and do not assume its published timing applies here |
+| [sblattj/whosaid](https://github.com/sblattj/whosaid) | MLX ASR plus ungated sherpa-onnx CPU diarization and optional voice registry | Useful attribution/sidecar reference; its diarizer is not Community-1, so it does not meet the requested default |
+| [WhisperX](https://github.com/m-bain/whisperX) | faster-whisper ASR, wav2vec2 forced alignment and pyannote; documents CPU use on macOS | Optional future alignment comparison; default Mac ASR remains MLX |
+| [sooth/whisperx-mlx](https://github.com/sooth/whisperx-mlx) | MLX backend, optional forced alignment, VAD/batching and diarization; package declares alpha status | Optional timing/alignment experiment after real interview results; its warm English M4 Max timings do not predict end-to-end Mag time |
+
+The direct path is ffmpeg normalization → mlx-whisper with full Large V3 → Community-1 → speaker/text reconciliation → readable transcript and structured sidecars. MLX uses the Apple GPU for ASR; pyannote can use MPS, with a clearly reported CPU fallback for unsupported MPS operations. Community-1's exclusive diarization output simplifies assigning one speaker to a time span; preserve ordinary overlap evidence where available instead of interpreting exclusivity as proof there was no simultaneous speech.
+
+The [Large V3 MLX model card](https://huggingface.co/mlx-community/whisper-large-v3-mlx) declares MIT; the [Community-1 model card](https://huggingface.co/pyannote/speaker-diarization-community-1) declares CC BY 4.0. Preserve required notices and model attribution in redistribution. Pipeline code licenses and model licenses are separate: WhisperX and sooth's package declare BSD-2-Clause; the local-transcription and whosaid projects declare MIT. Do not copy upstream code without its corresponding notice.
+
+## Language and alignment limits
+
+Use transcription, not translation, for RAW. English, Mandarin and mixed conversations must retain the spoken language; translation belongs in a later clearly marked source step. Automatic language detection is a starting point, not a guarantee of correct code switching. A global language hint can improve a mostly single-language interview but can also hurt its other language; compare hints on the actual bilingual audio rather than forcing English.
+
+Tea prompts are vocabulary hints. They do not establish that a rare cultivar, place or person's name was actually spoken. Review uncertain terms against audio and preserve uncertainty in SRC. Whisper can hallucinate text during silence or music, miss short interjections and struggle with simultaneous speech.
+
+Native Whisper word timestamps improve speaker assignment without adding a separate forced-alignment model, but remain estimated timings. WhisperX-style forced alignment requires a language-specific model and may fail on out-of-dictionary terms, numbers and mixed-language spans. Do not advertise Chinese/English word-perfect alignment from English-only tests. Exclusive diarization also does not make overlapping speakers or very short turns reliably attributable. Review speaker changes and consequential quotes against the recording.
+
+## Real available benchmark fixtures
+
+The configured Magazine folder and both current drops contained no audio source at inspection. However, Spokenly's current history contains paired audio and completed transcripts. The directory is `~/Library/Application Support/Spokenly/History/2026-10-04/`:
+
+| History basename (same `.wav` and `.json`) | Original source name | Duration | Use |
+|---|---|---|---|
+| `90CEABDF-0EE6-4A69-8805-10F3E21161A5` | `TX00_MIC022_20261003_143744_orig.wav` | 51.48 s | Fast smoke fixture; completed transcript has 22 segments and Speaker 1/2 labels |
+| `199AEDB4-F5BF-412F-B4DA-EB7AE79DD66B` | `TX00_MIC028_20261003_195100_orig.wav` | 876.70 s | Relevant tea interview comparison; completed transcript has 204 segments and Adrian/Mathew labels |
+| `4DE43475-3CAD-4431-8B4D-016F812B12C9` | `TX00_MIC024_20261003_143858_orig.wav` | 1800.15 s | Longer real audio, but Spokenly recorded a failed state; no completed transcript baseline |
+| `B10BCED5-32E4-40C5-97A6-92F6884A0779` | `TX00_MIC023_20261003_143840_orig.wav` | 2.97 s | Empty-text/silence check; existing result contains one empty segment |
+
+These WAVs are 48 kHz mono, verified from their headers. The completed JSON stores segments at `content.fileTranscription._0.state.completed._0.segments`, with `start`, `end`, `text` and optional `speakerId`. Its recorded model ID is `whisper-v3`. Existing completed text contains no Chinese characters; that describes the saved text, not a verified language classification of the audio. The tea interview is identified by its saved tea vocabulary and speaker labels, not by listening performed during setup.
+
+No Cohere-labelled matching export was found in the scoped Magazine/drop locations. `whisper-v3` does not identify a Cohere backend, and neither existing machine transcript is ground truth. Do not label these baselines Cohere or claim a quality win against one until its exact matching export is supplied or located.
+
+### Comparison procedure
+
+The machine-baseline comparison tool reads the pipeline's `transcript.json` and the original Spokenly history JSON directly:
+
+```sh
+node scripts/mag-local/benchmark.mjs "/path/to/output/transcript.json" "/path/to/Spokenly/History/date/id.json"
+node --test scripts/mag-local/benchmark.test.mjs
+```
+
+It emits a JSON report with normalized token edit distance, insertion/deletion/substitution counts, machine-text disagreement rate, source duration delta, segment counts, speaker counts, unattributed segments and first/last segment times. Memory used by edit-distance rows grows linearly with transcript length; execution time remains quadratic. Mixed text is NFKC-normalized and lowercased; punctuation is ignored, Han characters are individual tokens and other text uses Unicode word tokens. This mixed token rate is **not** a standard English WER or Chinese CER; use human references and separate metrics for those. Rates can exceed one when there are many insertions, and an empty baseline returns an undefined (`null`) rate.
+
+The utility refuses failed Spokenly results and malformed timestamps. It warns when source durations differ and never treats matching speaker-count totals as correct attribution. It does not measure runtime: collect elapsed stage times from the actual run alongside its report. Its real 14-minute baseline self-comparison verified parsing and zero disagreement; that check ran no model and establishes no transcription quality.
+
+1. Keep the source unchanged. Record its SHA-256, exact sample duration and clip boundaries. Use the same bytes for local and existing results; do not compare another day's interview or a cleaned SRC to ASR.
+2. Start with the 51-second fixture to verify model loading, ffmpeg normalization, speaker outputs and failure handling. Then run the full 14-minute tea interview. Include the 30-minute file for long-form behavior once the first two work.
+3. Record one cold run separately from a warm run: package/model versions and revisions, device used for each stage, elapsed normalization/ASR/diarization/merge times, total wall time, peak memory if measurable, and audio-seconds divided by total wall-seconds. Exclude download time from warm inference figures but report it separately.
+4. Listen and manually annotate the same representative windows: names and tea terms, speaker changes, short responses, silence, overlap and actual language switches. Score English WER and Chinese CER on human reference text where applicable. Machine-to-machine disagreement alone measures agreement, not correctness.
+5. Compare speaker counting, merged/split identities, attribution of the reviewed turns, timing drift and omitted/repeated text. Map anonymous clusters before computing speaker agreement; label numbers can permute. Compute DER only with a timed human speaker reference and a stated overlap/collar policy.
+6. Keep initial outputs outside the production vault. A candidate benchmark must not overwrite existing RAW, create new magazine stories unintentionally or revise SRC. Report remaining errors and review effort alongside speed.
+
+**Benchmark status:** fixture availability and machine readiness verified; model downloads, disconnected inference and accuracy/speed comparison remain unmeasured until the required runtime and Community-1 credentials are ready. Published upstream speed figures are references only.
+
+## Verified first sample (2026-10-04)
+
+The 51.48-second Spokenly fixture above was transcribed with full `mlx-community/whisper-large-v3-mlx`, automatic language detection, no vocabulary hint and native word timestamps. It returned English, 19 ASR segments and 89 timestamped words. The first call took 161.96 seconds including the initial ~2.9 GiB download; a subsequent `HF_HUB_OFFLINE=1` run took 6.41 seconds including model loading and ASR. These are single-sample observations, not production throughput guarantees.
+
+Against the existing Spokenly `whisper-v3` output: 90 normalized tokens on each side; edit distance 15 (3 substitutions, 6 deletions, 6 insertions), **16.7% machine-text disagreement**. The baseline has 22 segments and two speaker labels. This is not a human accuracy score or a diarization comparison; a matching Cohere-labelled export was not available. Private audio/transcript content was kept outside Git.
+
+A real AAC `.m4a` converted from that WAV was uploaded through the existing browser drop area in an isolated workshop copy. Automatic intake normalized it, ran Large V3, and retained `normalize.json`/`transcribe.json` when Community-1 was missing. The test also interrupted and retried a job through the browser. Community-1 inference and real speaker separation remain **unverified pending model-term acceptance and local Hugging Face login**. No RAW is published on that failure.
+
+The browser transcript/rename screen was verified using explicitly marked synthetic speaker segments, and automated tests independently verify detached intake, RAW publication, speaker rename, cross-origin refusal and no-overwrite behavior. This fixture is UI evidence, not a diarization benchmark.
+
+## Local installation and rollback
+
+The installer patches the reviewed `~/builds/mag-preview.mjs` and `mag-intake.sh`, copies the connector modules to `~/builds/mag-local/`, and records original/patched SHA-256 values plus backup paths in `install-manifest.json`. Changed unreviewed scripts are refused. It leaves the storefront Worker and its Groq voice-note path untouched. To undo the connector, restore both recorded script backups and restart the existing launch agent. Keep the model cache and recordings unless you deliberately want to remove them.
+
+Jobs live in `MAG_FILES/.transcription-jobs`, outside `/tmp`. Each story keeps its source, Photos folder and `Transcription/<job-id>` stage/output files. Detached jobs continue when the page or preview server closes; they serialize model work. Failed jobs expose Retry and keep source bytes. The first transcript is atomically published to the existing RAW Inbox; it is never overwritten. Renaming updates only working JSON/text, and `/mag` can review the names while preparing SRC. Direct CLI `mag-intake` queues audio, prints its progress URL and waits for successful RAW publication (preserving the existing command contract); text continues through the legacy importer. Recordings uploaded without a story name use the filename stem, and collisions with existing RAW fail explicitly.
+
+The local workshop integration was installed and its launch agent restarted during this build. Original scripts were backed up; a repeated installer dry run reported no script changes. The remaining model setup is Community-1 acceptance/login and a full real-speaker run.

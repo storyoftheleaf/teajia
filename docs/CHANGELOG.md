@@ -1,5 +1,9 @@
 # Teajia Changelog
 
+## 2026-10-04 — Local Mag transcription integration
+
+Added independent MLX full Large V3 and Community-1 adapters, word-level speaker reconciliation, recoverable local checkpoints and JSON/text outputs. A SHA-checked installer connects the existing Mag upload/CLI intake to detached local jobs, progress/retry, speaker renaming and immutable RAW filing. Reviewed the requested upstream projects and reused their underlying model libraries. Focused Python/Node checks and browser upload/rename checks pass. Actual 51.48-second ASR sample: 89 timed words, 6.41s warm offline run, 16.7% normalized text disagreement against Spokenly's machine baseline. Real Community-1 diarization is pending free model acceptance/login; no claim of an end-to-end speaker benchmark. Details and rollback: [LOCAL_TRANSCRIPTION.md](LOCAL_TRANSCRIPTION.md).
+
 > Shipped work, newest first. For what's next see `CONSOLIDATED_DIRECTION.md`; active checklists live in `tracks/`.
 
 ## 2026-09
