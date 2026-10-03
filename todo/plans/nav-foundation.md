@@ -1,5 +1,14 @@
 # Navigation foundation: one word per route, nothing dead behind the doors
 
+> **Superseded execution plan, 2026-09-23.** Use the [reconciled audit and
+> bounded Direction A cleanup](../../docs/_notes/navigation-audit-2026-09-23.md)
+> as the current proposal. The material below is retained as historical
+> context, not instructions to implement. In particular, `/collection` has
+> an active share-link generator, compatibility redirects should remain,
+> Craft has changed, and Orders/Tea Masters renames are unapproved proposals.
+> The remaining priority is route-gate parity and mobile access to Manage
+> children, not deleting routes or adding more primary links.
+
 The third and last slice of Direction A from the 2026-09-22 navigation survey
 (https://claude.ai/artifact/VNLJtEDaYFRshPSgMeWk9P, sections "What is actually
 wrong" and "The shared foundation"). Slices one and two shipped on 2026-09-22
