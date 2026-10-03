@@ -88,3 +88,17 @@ test('studio exposes original and translated versions with separate downloads an
   assert.match(html,/original changed after this translation/);
   assert.doesNotMatch(html,/data-segment-form/);
 });
+test('comparison pairs source and translation safely and is withheld when stale',()=>{
+  const original={language:'zh',speakers:[{id:'SPEAKER_00',name:'Ada'}],segments:[{start:4,end:8,speaker:'SPEAKER_00',text:'原文 <safe>'}]};
+  const translated={...original,language:'en',segments:[{...original.segments[0],text:'Translated <safe>'}]};
+  const html=renderTranscript(original,{id:'compare',story:'Tea'},translated);
+  assert.match(html,/data-view="compare"/);
+  assert.match(html,/data-view-panel="compare"/);
+  assert.match(html,/Original · zh/);
+  assert.match(html,/原文 &lt;safe&gt;/);
+  assert.match(html,/Translated &lt;safe&gt;/);
+  assert.match(html,/data-search-text="Ada: 原文 &lt;safe&gt; Translated &lt;safe&gt;"/);
+  assert.match(html,/data-copy-transcript/);
+  assert.doesNotMatch(html,/data-segment-form/);
+  assert.doesNotMatch(renderTranscript(original,{id:'compare'},{...translated,stale:true}),/data-view="compare"/);
+});
