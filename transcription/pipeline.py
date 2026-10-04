@@ -12,6 +12,7 @@ import wave
 
 from .adapters import MLXWhisperAdapter, CommunityDiarizationAdapter
 from .merge import merge, readable, interval
+from .speech import speech_windows, transcribe_speech
 
 SCHEMA_VERSION = 1
 
@@ -151,9 +152,6 @@ def process(source, output, *, language=None, prompt=None, asr=None, diarizer=No
                     for word in segment.get("words", []):
                         interval(word)
 
-            raw = checkpoint("transcribe", lambda: asr.transcribe(
-                audio, language=language, prompt=prompt, progress=lambda event: report("running", **event)), validate_asr)
-
             def validate_diarization(result):
                 if not isinstance(result["turns"], list):
                     raise ValueError("Diarization turns must be a list")
@@ -162,8 +160,46 @@ def process(source, output, *, language=None, prompt=None, asr=None, diarizer=No
                     if not isinstance(turn["speaker"], str):
                         raise ValueError("Diarization speaker is missing")
 
-            turns = checkpoint("diarize", lambda: diarizer.diarize(
-                audio, progress=lambda event: report("running", **event)), validate_diarization)
+            def diarize():
+                return checkpoint("diarize", lambda: diarizer.diarize(
+                    audio, progress=lambda event: report("running", **event)), validate_diarization)
+
+            if getattr(asr, "speech_gating", False):
+                # Whole-conversation clustering also supplies speech regions for ASR.
+                turns = diarize()
+                expected_windows = [{"start": a, "end": b} for a, b in speech_windows(
+                    turns["turns"], normalized["duration_seconds"])]
+
+                def validate_speech_asr(result):
+                    validate_asr(result)
+                    if result.get("speech_windows") != expected_windows:
+                        raise ValueError("Transcription checkpoint speech boundaries changed")
+
+                def chunk_checkpoint(index, start, end, work):
+                    directory = output / "speech-chunks"
+                    directory.mkdir(exist_ok=True)
+                    path = directory / f"{index:06d}.json"
+                    if path.exists():
+                        try:
+                            cached = json.loads(path.read_text())
+                            if cached["start"] != start or cached["end"] != end:
+                                raise ValueError("Speech boundaries changed")
+                            validate_asr(cached["result"])
+                            return cached["result"]
+                        except (ValueError, KeyError, TypeError, OSError):
+                            pass
+                    result = work()
+                    validate_asr(result)
+                    atomic_json(path, {"start": start, "end": end, "result": result})
+                    return result
+
+                raw = checkpoint("transcribe", lambda: transcribe_speech(
+                    asr, audio, turns["turns"], language=language, prompt=prompt,
+                    progress=lambda event: report("running", **event), checkpoint=chunk_checkpoint), validate_speech_asr)
+            else:
+                raw = checkpoint("transcribe", lambda: asr.transcribe(
+                    audio, language=language, prompt=prompt, progress=lambda event: report("running", **event)), validate_asr)
+                turns = diarize()
             stage = "merge"
             report("running")
             result = merge(raw, turns)
@@ -174,8 +210,13 @@ def process(source, output, *, language=None, prompt=None, asr=None, diarizer=No
                 "asr_adapter": asr.identity, "diarization_adapter": turns.get("adapter", diarizer.identity),
                 "diarization_model": turns.get("model"), "diarization_exclusive": turns.get("exclusive"),
                 "diarization_device": turns.get("device"), "word_timestamps": getattr(asr, "timestamp_method", "adapter-provided"),
-                "warnings": ["Language detection is recording-wide; code-switching and overlapping speech require review.",
+                "language_detection": raw.get("language_detection", "recording-wide"),
+                "detected_languages": raw.get("languages", [raw.get("language")]),
+                "quality_flags": raw.get("quality_flags", []),
+                "warnings": ["Language detection and overlapping speech require listening review, including changes within a speech window.",
                              "Speaker IDs are recording-local clusters, not verified identities."]}
+            if raw.get("quality_flags"):
+                result["metadata"]["warnings"].append(f"{len(raw['quality_flags'])} speech segments have repetitive decoder output; review the marked timestamps.")
             if turns.get("fallback_reason"):
                 result["metadata"]["warnings"].append(turns["fallback_reason"])
             atomic_json(output / "transcript.json", result)

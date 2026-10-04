@@ -9,7 +9,7 @@ python -m transcription process recording.m4a --output /absolute/path/to/job
 python -m transcription process recording.m4a --output /absolute/path/to/job --language zh --prompt 'Tea names: Teajia, puer'
 ```
 
-Omit `--language` to detect the recording language. Set `HF_TOKEN` in the process environment after accepting the [Community-1 model conditions](https://huggingface.co/pyannote/speaker-diarization-community-1). A cached authorized model may work without an explicit token. Credentials are never written into artifacts. First inference can download weights; installation alone does not warm/download models. `--model` and `--diarization-model` also accept local model directories. `--diarization-device cpu` is available when MPS is unsuitable; auto uses MPS when available and retries only recognized MPS runtime errors on CPU.
+Omit `--language` to detect language separately in each speech window, allowing multilingual conversations. Set `HF_TOKEN` in the process environment after accepting the [Community-1 model conditions](https://huggingface.co/pyannote/speaker-diarization-community-1). A cached authorized model may work without an explicit token. Credentials are never written into artifacts. First inference can download weights; installation alone does not warm/download models. `--model` and `--diarization-model` also accept local model directories. `--diarization-device cpu` is available when MPS is unsuitable; auto uses MPS when available and retries only recognized MPS runtime errors on CPU.
 
 ## Artifacts and recovery
 
@@ -20,7 +20,7 @@ Omit `--language` to detect the recording language. Set `HF_TOKEN` in the proces
 
 Rerun the same command/output directory after failure. Valid completed stages are reused; corrupt or missing checkpoints are recomputed. The source content SHA-256, options and adapter identities must match; changed input/options require a new directory. A process lock prevents simultaneous writers and releases automatically after a crash. Reconciliation/output can be repeated without rerunning inference.
 
-Audio, checkpoint text and outputs are private local files. Recording-wide language detection does not guarantee accurate code-switching; Whisper word timings are approximate rather than a language-specific forced alignment. Overlapping speech, noise and similar voices can affect text and speaker clustering. IDs identify clusters within a recording, not verified people. A word with no temporal overlap remains `speaker: null`; no nearest-speaker guess fills silence. A segment without words remains available with segment timestamps.
+Audio, checkpoint text and outputs are private local files. Speech-window language detection does not guarantee accurate code-switching within a window; Whisper word timings are approximate rather than a language-specific forced alignment. Overlapping speech, noise and similar voices can affect text and speaker clustering. IDs identify clusters within a recording, not verified people. A word with no temporal overlap remains `speaker: null`; no nearest-speaker guess fills silence. A segment without words remains available with segment timestamps.
 
 ## Adapter boundary
 

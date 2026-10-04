@@ -12,7 +12,7 @@ function replaceOnce(source, before, after) {
 }
 
 export function patchWorkshop(source) {
-  if (source.includes(`// ${PATCH_VERSION}`)) return separateTranscriptionPage(source);
+  if (source.includes(`// ${PATCH_VERSION}`)) return enhanceConversationPage(separateTranscriptionPage(source));
   let patched = replaceOnce(source, "import os from 'os';", `import os from 'os';\n// ${PATCH_VERSION}\nimport { startLocalIntake, localJobs, handleLocalRoute } from './mag-local/jobs.mjs';\nimport { renderLocalJob, LOCAL_JOB_JS, LOCAL_TRANSCRIPT_CSS } from './mag-local/workshop-ui.mjs';`);
   const start = patched.indexOf("const JOBS = '/tmp/mag-intake-jobs';");
   const end = patched.indexOf('// A drop zone like Google Drive:', start);
@@ -31,7 +31,18 @@ export function patchWorkshop(source) {
   patched = replaceOnce(patched, "let failed=0;", "let failed=0,takingIn=0;");
   patched = replaceOnce(patched, "(story?'Uploaded. Taking it in now.':'Uploaded. They are in the drop folder.')", "(takingIn?'Uploaded. Transcribing locally now.':'Uploaded. They are in the drop folder.')");
   patched = replaceOnce(patched, "if(res.ok){st.textContent='done';fill.style.width='100%'}", "if(res.ok){if(res.job)takingIn++;st.textContent=res.job?'transcribing locally':'done';fill.style.width='100%'}");
-  return separateTranscriptionPage(patched);
+  return enhanceConversationPage(separateTranscriptionPage(patched));
+}
+
+function enhanceConversationPage(source) {
+  if (source.includes('// mag-conversation-upload-v1')) return source;
+  let patched = replaceOnce(source,
+    'function uploadAll(files){',
+    'function uploadAll(files){\n  // mag-conversation-upload-v1\n  if(files.length>1 && document.querySelector("[data-join-upload]")?.checked && [...files].every(f=>/\\.(m4a|mp3|wav|mov|mp4|aac|flac|ogg|opus|webm|mkv|aiff?)$/i.test(f.name))){uploadConversation(files);return}');
+  return replaceOnce(patched,
+    "startIntake(story || automaticStory, dest) : '';",
+    "startIntake(story || automaticStory, dest, {defer:url.searchParams.get('defer')==='1'}) : '';"
+  );
 }
 
 export function patchLegacyIntake(source) {

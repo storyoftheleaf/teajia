@@ -15,6 +15,7 @@ def main(argv=None):
     command.add_argument("--language", help="Whisper language code; omitted means automatic detection")
     command.add_argument("--prompt", help="Optional domain vocabulary or proper names")
     command.add_argument("--model", default=DEFAULT_MODEL, help="MLX model repository or local model directory")
+    command.add_argument("--whole-recording-asr", action="store_true", help="Disable detected-speech windows for comparison; default diarizes the conversation first")
     command.add_argument("--diarization-model", default=DIARIZATION_MODEL)
     command.add_argument("--diarization-device", choices=["auto", "mps", "cpu"], default="auto")
     command.add_argument("--diarization-engine", choices=["auto", "community", "sherpa"], default="auto")
@@ -23,7 +24,7 @@ def main(argv=None):
     diarizer = community if args.diarization_engine == "community" else SherpaDiarizationAdapter() if args.diarization_engine == "sherpa" else PreferredDiarizationAdapter(community)
     try:
         process(args.input, args.output, language=args.language, prompt=args.prompt,
-                asr=MLXWhisperAdapter(args.model),
+                asr=MLXWhisperAdapter(args.model, speech_gating=not args.whole_recording_asr),
                 diarizer=diarizer,
                 on_progress=lambda event: print(json.dumps(event), file=sys.stderr, flush=True))
     except KeyboardInterrupt:

@@ -44,6 +44,14 @@ export function rawDocument(story, source, result, text, terms = '', note = '') 
 }
 export async function runIntake(config, job, save = () => {}) {
   const story = safeStory(job.story);
+  if (job.sources?.length) {
+    job.stage = 'join'; save();
+    const request = path.join(config.magFiles, story, `.join-${job.id}.json`);
+    atomicJson(request, {sources: job.sources, output: job.source});
+    await run(config.python, ['-m', 'transcription.join', request], {cwd:config.repoRoot});
+    job.parts = JSON.parse(fs.readFileSync(job.source.replace(/\.wav$/, '.parts.json'), 'utf8')).parts;
+    save();
+  }
   if (!isMedia(job.source)) {
     await run('bash', [config.legacyIntake, story, job.source], { env: { ...process.env, MAG_LOCAL_LEGACY: '1' } });
     return;
@@ -85,6 +93,10 @@ export async function runIntake(config, job, save = () => {}) {
     prompt = execFileSync(process.execPath, args, { encoding: 'utf8', env: { ...process.env, TEA_TERMS_FILE: config.teaTerms } }).trim();
   }
   const { result, text } = await processFile(source, job.output, job.language, prompt);
+  if (job.parts) {
+    result.metadata.recording_parts = job.parts;
+    atomicJson(path.join(job.output, 'transcript.json'), result);
+  }
   if (!result.segments?.length || !text.trim()) throw new Error('No speech was found. Source has been kept for retry.');
   let note = '';
   if (job.note) {

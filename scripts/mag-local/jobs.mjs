@@ -31,8 +31,24 @@ function dispatch(config, job) {
 export function startLocalIntake(story, file, options = {}) {
   const config = readConfig();
   const job = { id: randomUUID(), story: safeStory(story), file: path.basename(file), source: path.resolve(file), originalSource: path.resolve(file), state: 'running', stage: 'queued', started: new Date().toISOString(), ...options };
-  dispatch(config, job);
+  if (options.defer) { job.state = 'saved'; job.stage = 'saved'; atomicJson(jobFile(config, job.id), job); }
+  else dispatch(config, job);
   return job.id;
+}
+export const orderConversationParts = parts => [...parts].sort((a,b) => a.file.localeCompare(b.file, 'en', {numeric:true}));
+export function startConversation(story, ids) {
+  const config = readConfig();
+  if (!Array.isArray(ids) || ids.length < 2 || ids.length > 32 || new Set(ids).size !== ids.length) throw new Error('Select 2–32 different recordings in conversation order.');
+  const parts = orderConversationParts(ids.map(id => readJob(config, id)));
+  if (parts.some(job => job.state === 'running' || job.sources?.length)) throw new Error('Choose saved individual recordings that have finished processing.');
+  const sources = parts.map(job => fs.realpathSync(job.source));
+  if (new Set(sources).size !== sources.length) throw new Error('The same recording was selected more than once.');
+  const name = safeStory(story), id = randomUUID();
+  const source = path.join(config.magFiles, name, `Conversation-${id}.wav`);
+  const job = { id, story: name, file: 'Conversation · ' + sources.length + ' parts', source,
+    sources, sourceJobs: parts.map(p=>p.id), originalSource: source, state: 'running', stage: 'join', started: new Date().toISOString() };
+  dispatch(config, job);
+  return id;
 }
 function readJob(config, id) {
   const file = jobFile(config, id);
@@ -62,7 +78,7 @@ export function localJobs() {
       .map(n => readJob(config, n.slice(0, -5))).sort((a, b) => b.started.localeCompare(a.started));
   } catch { return []; }
 }
-const publicJob = job => ({ id: job.id, story: job.story, file: job.file, state: job.state, stage: job.stage, error: job.error, started: job.started, transcriptReady: !!job.transcriptReady, translations: job.transcriptReady ? translationStatus(job,JSON.parse(fs.readFileSync(path.join(job.output,'transcript.json'),'utf8'))) : [], ...(job.export ? { export: job.export } : {}) });
+const publicJob = job => ({ id: job.id, story: job.story, file: job.file, state: job.state, stage: job.stage, error: job.error, started: job.started, parts: job.parts?.map(p=>({source:path.basename(p.source),start:p.start,end:p.end})), transcriptReady: !!job.transcriptReady, translations: job.transcriptReady ? translationStatus(job,JSON.parse(fs.readFileSync(path.join(job.output,'transcript.json'),'utf8'))) : [], ...(job.export ? { export: job.export } : {}) });
 const send = (res, status, data) => { res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(data)); };
 async function body(req) {
   let value = '';
@@ -88,6 +104,14 @@ export function serveAudio(req, res, file) {
   stream.on('error', () => res.destroy()); res.on('close', () => stream.destroy()); stream.pipe(res);
 }
 export async function handleLocalRoute(req, res, url) {
+  if (url.pathname === '/transcription/join' && req.method === 'POST') {
+    if (req.headers.origin && req.headers.origin !== `http://${req.headers.host}`) { send(res,403,{error:'not from this page'}); return true; }
+    try {
+      const input = await body(req), id = startConversation(input.story, input.ids);
+      res.writeHead(202, {'Content-Type':'application/json'}); res.end(JSON.stringify({id, url:`/transcription/${id}/view`}));
+    } catch (error) { res.writeHead(400, {'Content-Type':'application/json'}); res.end(JSON.stringify({error:error.message})); }
+    return true;
+  }
   const match = url.pathname.match(/^\/transcription\/([a-f0-9-]{36})(?:\/(view|retry|export-retry|translate|speakers|segment|review|audio|(?:transcript|translation)\.(?:json|txt|md)))?$/);
   if (!match) return false;
   try {

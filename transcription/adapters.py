@@ -23,9 +23,10 @@ class DiarizationAdapter(Protocol):
 
 class MLXWhisperAdapter:
     timestamp_method = "whisper-native"
-    def __init__(self, model: str = DEFAULT_MODEL):
+    def __init__(self, model: str = DEFAULT_MODEL, *, speech_gating: bool = True):
         self.model = model
-        self.identity = f"mlx-whisper:{model}"
+        self.speech_gating = speech_gating
+        self.identity = f"mlx-whisper:{model}:speech-v2:{speech_gating}"
 
     def transcribe(self, audio, *, language, prompt, progress):
         import mlx_whisper
@@ -35,6 +36,8 @@ class MLXWhisperAdapter:
             str(audio), path_or_hf_repo=self.model, language=language,
             initial_prompt=prompt, task="transcribe", word_timestamps=True,
             verbose=False, condition_on_previous_text=False,
+            # Native upstream protection: skip long silence around anomalous words.
+            hallucination_silence_threshold=2.0,
         )
         return {"language": result.get("language"), "segments": result["segments"]}
 

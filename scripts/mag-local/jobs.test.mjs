@@ -31,7 +31,7 @@ test('detached intake survives the caller and exposes transcript, rename and imm
     assert.match(fs.readFileSync(path.join(job.output,'transcript.md'),'utf8'), /review_status: unreviewed/);
     const raw=fs.readFileSync(job.raw,'utf8');
     assert.ok(raw.includes('Synthetic test transcript.'));
-    server=http.createServer(async(req,res)=>{if(req.url==='/api/generate'){res.writeHead(200,{'content-type':'application/json'});res.end(JSON.stringify({done:true,response:JSON.stringify({text:'Transcripción de prueba.'})}));return;}if(!await handleLocalRoute(req,res,new URL(req.url,'http://localhost')))res.end('not found');});
+    server=http.createServer(async(req,res)=>{if(req.url==='/api/generate'){res.writeHead(200,{'content-type':'application/json'});let body='';for await(const chunk of req)body+=chunk;const prompt=JSON.parse(JSON.parse(body).prompt);res.end(JSON.stringify({done:true,response:JSON.stringify({segments:prompt.segments.map(segment=>({id:segment.id,translated_text:'Transcripción de prueba.'}))})}));return;}if(!await handleLocalRoute(req,res,new URL(req.url,'http://localhost')))res.end('not found');});
     await new Promise(r=>server.listen(0,'127.0.0.1',r));
     const url=`http://127.0.0.1:${server.address().port}/transcription/${id}`;
     const updatedConfig=JSON.parse(fs.readFileSync(config));updatedConfig.translation={baseUrl:`http://127.0.0.1:${server.address().port}`,model:'qwen3:8b'};fs.writeFileSync(config,JSON.stringify(updatedConfig));
@@ -85,4 +85,12 @@ test('detached intake survives the caller and exposes transcript, rename and imm
     if(prior)process.env.MAG_LOCAL_CONFIG=prior;else delete process.env.MAG_LOCAL_CONFIG;
     fs.rmSync(dir,{recursive:true,force:true});
   }
+});
+
+test('recorder parts are ordered naturally by filename without mutating selection', async () => {
+  const {orderConversationParts}=await import('./jobs.mjs');
+  const parts=[{file:'TX00_MIC027_20261003_160859_orig.wav'},{file:'TX00_MIC025_20261003_150858_orig.wav'},{file:'TX00_MIC024_20261003_143858_orig.wav'},{file:'TX00_MIC026_20261003_153858_orig.wav'}];
+  assert.deepEqual(orderConversationParts(parts).map(p=>p.file.match(/MIC\d+/)[0]),['MIC024','MIC025','MIC026','MIC027']);
+  assert.match(parts[0].file,/MIC027/);
+  assert.deepEqual(orderConversationParts([{file:'part10.wav'},{file:'part2.wav'}]).map(p=>p.file),['part2.wav','part10.wav']);
 });

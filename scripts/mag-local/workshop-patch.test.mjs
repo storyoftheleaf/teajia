@@ -139,3 +139,13 @@ test('sparse model cluster IDs use the same displayed numbering as rename contro
   assert.match(html,/Speaker 2: /);
   assert.doesNotMatch(html,/Speaker 8:/);
 });
+
+test('multiple recorder files join by default and individual parts can be selected',()=>{
+  const html=renderRecordings([{id:'abc',file:'part2.wav',story:'Part 2',state:'done',transcriptReady:true}]);
+  assert.match(html,/data-join-upload checked/);
+  assert.match(html,/data-join-recording="abc"/);
+  assert.match(html,/data-join-form/);
+  assert.match(LOCAL_JOB_JS,/defer=1/);
+  assert.match(LOCAL_JOB_JS,/numeric:true/);
+  assert.match(LOCAL_JOB_JS,/\/transcription\/join/);
+});
