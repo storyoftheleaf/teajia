@@ -250,6 +250,7 @@ import { ScrollProgressBar, shouldShowGlobalScrollProgress } from './components/
 import { AnimatedRoutes } from './components/shared/AnimatedRoutes';
 import { SiteNotFound } from './components/SiteNotFound';
 import AtlasGate from './atlas/AtlasGate';
+import OldAtlasRedirect from './atlas/OldAtlasRedirect';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
 
 // View Transitions API feature detection (#46)
@@ -1346,7 +1347,8 @@ const AppContent = () => {
                 } />
                 {/* Tea Atlas: private library. The gate asks the server and shows
                     the same 404 below to anyone without access (docs/TEA_ATLAS.md). */}
-                <Route path="/tea-atlas/*" element={<AtlasGate />} />
+                <Route path="/atlas/*" element={<AtlasGate />} />
+                <Route path="/tea-atlas/*" element={<OldAtlasRedirect />} />
                 {/* 404 Page */}
                 <Route path="*" element={<SiteNotFound onReturnHome={() => setActiveSection('HOME')} />} />
               </Routes>

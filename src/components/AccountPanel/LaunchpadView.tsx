@@ -6,6 +6,7 @@ import type { TeaMasterReadiness } from '../readiness/teaMasterReadiness';
 import type { AttentionItem } from '../../lib/api';
 import type { PayAccessTable } from '../profile/types';
 import { PayAccessRequestRow, soFarLine } from '../profile/PayAccessPanel';
+import { ATLAS_ROOT } from '../../atlas/atlasPaths';
 
 interface LaunchpadTile {
   id: string;
@@ -382,7 +383,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       verb: 'tea atlas',
       hint: 'the reading library',
       icon: <Books {...ICON_PROPS} />,
-      onClick: () => { onClose(); navigate('/tea-atlas'); },
+      onClick: () => { onClose(); navigate(ATLAS_ROOT); },
     } as LaunchpadTile] : []),
     ...(membershipsCount > 1 ? [{
       id: 'switch',

@@ -49,7 +49,7 @@ not have it until somebody ticks it for them.
 | Surface | Signed out, or no capability | Has the capability |
 | --- | --- | --- |
 | `/api/atlas/...` (data and pictures) | `404 {"error":"Not found"}`, byte-identical to an unknown API route. Checked before any storage lookup, so a real key and a made-up key answer the same. | `200`, streamed from R2, `Cache-Control: private`, `X-Robots-Tag: noindex` |
-| `/tea-atlas...` (pages) | HTTP status **404** from the edge (Pages middleware), then the site's ordinary "Page not found" view | HTTP 404 from the edge too (the shell is identical for everyone, the edge cannot see a session), then the app asks the API and shows the library |
+| `/atlas...` (pages; old `/tea-atlas...` links forward) | HTTP status **404** from the edge (Pages middleware), then the site's ordinary "Page not found" view | HTTP 404 from the edge too (the shell is identical for everyone, the edge cannot see a session), then the app asks the API and shows the library |
 
 - Pages carry `<meta name="robots" content="noindex, nofollow">` once rendered,
   and the 404 status already keeps them out of every index.
@@ -129,12 +129,12 @@ and prev/next from the issue file, so article files are served untouched.
 **Pages** (React, lazy, under `src/atlas/`):
 
 ```
-/tea-atlas                         home: search box, sources, topics with counts
-/tea-atlas/source/:sourceId        a source's issues by year
-/tea-atlas/issue/:issueId          an issue: articles in order
-/tea-atlas/read/:articleId         the reader
-/tea-atlas/topic/:topicId          every article on a topic
-/tea-atlas/search?q=               titles, authors, topics, then full text
+/atlas                         home: search box, sources, topics with counts
+/atlas/source/:sourceId        a source's issues by year
+/atlas/issue/:issueId          an issue: articles in order
+/atlas/read/:articleId         the reader
+/atlas/topic/:topicId          every article on a topic
+/atlas/search?q=               titles, authors, topics, then full text
 ```
 
 Every article credits its source (`Global Tea Hut, globalteahut.org`).
@@ -194,7 +194,7 @@ out by hand into `lines` so search finds it, and it can carry topics directly.
 ## Adding a source in the admin
 
 The site owner can add a book, a magazine issue or a saved web article from a
-PDF, without the `tea-atlas` scripts: **`/tea-atlas/add`**, linked from the
+PDF, without the `tea-atlas` scripts: **`/atlas/add`**, linked from the
 Tea Atlas home page for the owner only. Code only, no AI.
 
 1. **Drop the PDF.** It is read in the browser with pdf.js

@@ -212,7 +212,7 @@ describe('a story published or taken down from its own page', () => {
 
 describe('Tea Atlas pages are a 404 at the edge for everyone', () => {
   it('serves the shell with a 404 status and noindex, whoever asks', async () => {
-    for (const path of ['/tea-atlas', '/tea-atlas/', '/tea-atlas/read/2012-02-p03-answering-some-puerh-questions', '/tea-atlas/search?q=puerh']) {
+    for (const path of ['/atlas', '/atlas/', '/atlas/read/2012-02-p03-answering-some-puerh-questions', '/atlas/search?q=puerh', '/tea-atlas', '/tea-atlas/', '/tea-atlas/read/2012-02-p03-answering-some-puerh-questions', '/tea-atlas/search?q=puerh']) {
       const next = vi.fn(async () => new Response('<html>SPA</html>', { headers: { 'content-type': 'text/html' } }));
       const response = await onRequest({ request: new Request(`https://www.teajia.com${path}`), env: {}, next } as any);
       expect(response.status, path).toBe(404);
@@ -224,5 +224,6 @@ describe('Tea Atlas pages are a 404 at the edge for everyone', () => {
   it('leaves neighbouring paths alone', async () => {
     expect(isTeaAtlasPath('/tea-atlas-other')).toBe(false);
     expect(isTeaAtlasPath('/read/atlas')).toBe(false);
+    expect(isTeaAtlasPath('/atlases')).toBe(false);
   });
 });

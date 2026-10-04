@@ -5,6 +5,8 @@
     "/media/*",
     "/read",
     "/read/*",
+    "/atlas",
+    "/atlas/*",
     "/tea-atlas",
     "/tea-atlas/*",
     "/article/*",

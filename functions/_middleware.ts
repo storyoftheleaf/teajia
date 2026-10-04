@@ -420,7 +420,8 @@ class HeadRewriter {
 }
 
 export function isTeaAtlasPath(path: string): boolean {
-  return path === '/tea-atlas' || path.startsWith('/tea-atlas/');
+  // /atlas is the address; /tea-atlas is where it lived until 2026-10-04 and still forwards.
+  return ['/atlas', '/tea-atlas'].some((root) => path === root || path.startsWith(root + '/'));
 }
 
 export const onRequest: PagesFunction<Env> = async (context) => {
