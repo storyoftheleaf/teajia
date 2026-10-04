@@ -75,8 +75,17 @@ test('detached intake survives the caller and exposes transcript, rename and imm
     assert.equal(fs.readFileSync(path.join(job.output,'transcript.json'),'utf8'),beforeTranslation);
     assert.equal(fs.readFileSync(job.raw,'utf8'),raw);
     response=await fetch(url+'/view?language=es');assert.match(await response.text(),/Original retained/);
+    response=await fetch(url+'/save',{method:'POST'});assert.equal(response.status,200);
+    const saved=(await response.json()).saved;assert.equal(saved.state,'saved');assert.equal(saved.files.length,3);assert.equal(saved.excludedTranslations.length,0);
+    assert.match(await(await fetch(new URL(saved.files[0].url,url))).text(),/Adrian R\./);
+    assert.equal((await(await fetch(url)).json()).job.saved.savedAt,saved.savedAt);
+    assert.equal(fs.readFileSync(job.raw,'utf8'),raw);
+    response=await fetch(url+'/start',{method:'POST'});assert.equal(response.status,409);
     // A second source with this title fails without changing the existing quote record.
-    fs.writeFileSync(source,'second source');const duplicate=startLocalIntake('Synthetic test',source);
+    fs.writeFileSync(source,'second source');const duplicate=startLocalIntake('Temporary staged title',source,{defer:true});
+    assert.equal(localJobs().find(j=>j.id===duplicate).state,'saved');
+    response=await fetch(`http://127.0.0.1:${server.address().port}/transcription/${duplicate}/start`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({story:'Synthetic test'})});
+    assert.equal(response.status,202);assert.equal((await response.json()).job.story,'Synthetic test');
     while(Date.now()<deadline+5000){job=localJobs().find(j=>j.id===duplicate);if(job?.state!=='running')break;await new Promise(r=>setTimeout(r,50));}
     await assert.rejects(waitForLocalIntake(duplicate), /never overwritten/);
     assert.equal(job.state,'failed');assert.match(job.error,/never overwritten/);assert.equal(fs.readFileSync(job.raw || path.join(vault,'Workflow/0-Inbox/RAW - Synthetic test.md'),'utf8'),raw);

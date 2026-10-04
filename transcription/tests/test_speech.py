@@ -118,3 +118,17 @@ class SpeechTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class DecoderConfidenceTests(unittest.TestCase):
+    def test_missing_confidence_is_retained_as_unknown_not_a_json_failure(self):
+        import json
+        from transcription.adapters import clean_whisper_result
+        raw={'language':'zh','segments':[{'start':0,'end':1,'text':'Tea','avg_logprob':float('nan'),'words':[{'start':0,'end':1,'word':'Tea','probability':float('nan')}]}]}
+        result=clean_whisper_result(raw)
+        json.dumps(result,allow_nan=False)
+        self.assertTrue(result['segments'][0]['confidence_unavailable'])
+        self.assertNotIn('probability',result['segments'][0]['words'][0])
+        self.assertEqual(result['segments'][0]['text'],'Tea')
+        self.assertNotEqual(raw['segments'][0]['avg_logprob'],raw['segments'][0]['avg_logprob'])
+        raw['segments'][0]['start']=float('nan')
+        with self.assertRaisesRegex(ValueError,'timestamp'):clean_whisper_result(raw)

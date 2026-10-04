@@ -6,7 +6,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { spawnSync } from 'node:child_process';
 import { patchWorkshop, patchLegacyIntake, intakeStory, sourceHash } from './workshop-patch.mjs';
-import { renderTranscript, renderLocalJob, transcriptPage, LOCAL_JOB_JS, renderRecordings } from './workshop-ui.mjs';
+import { renderTranscript, renderLocalJob, transcriptPage, LOCAL_JOB_JS, renderRecordings, reviewIssues } from './workshop-ui.mjs';
 
 const original = fs.readFileSync(new URL('./fixtures/mag-preview.original.mjs',import.meta.url),'utf8');
 const shell = fs.readFileSync(new URL('./fixtures/mag-intake.original.sh',import.meta.url),'utf8');
@@ -148,4 +148,18 @@ test('multiple recorder files join by default and individual parts can be select
   assert.match(LOCAL_JOB_JS,/defer=1/);
   assert.match(LOCAL_JOB_JS,/numeric:true/);
   assert.match(LOCAL_JOB_JS,/\/transcription\/join/);
+});
+
+test('focused review links only suspected issues and supports speaker samples and Save to Mag',()=>{
+  const result={speakers:[{id:'speaker',name:null}],segments:[{start:1,end:12,speaker:'speaker',text:'Clear tea discussion',words:[{probability:.99}]},{start:12,end:14,speaker:null,text:'Maybe',words:[{probability:.2}]}]};
+  assert.deepEqual(reviewIssues(result),[{index:1,start:12,end:14,reasons:['Missing speaker','Unclear speech']}]);
+  const html=renderTranscript(result,{id:'test',state:'done'});
+  assert.match(html,/data-review-jump="1"/);assert.match(html,/data-speaker-sample="1" data-sample-end="9"/);assert.match(html,/data-name-speaker="speaker"/);assert.match(html,/data-save-mag="test"/);
+  new vm.Script(LOCAL_JOB_JS);
+});
+test('existing conversation patch upgrades to explicit staged Start and stays idempotent',()=>{
+  const v2=patchWorkshop(original);
+  const v1=v2.replace('// mag-conversation-upload-v2','// mag-conversation-upload-v1').replace('if(document.querySelector("[data-upload-preview]") &&','if(files.length>1 && document.querySelector("[data-join-upload]")?.checked &&').replace('{prepareRecordingUpload(files);return}','{uploadConversation(files);return}');
+  const upgraded=patchWorkshop(v1);assert.match(upgraded,/prepareRecordingUpload\(files\)/);assert.doesNotMatch(upgraded,/files.length>1 &&/);assert.equal(patchWorkshop(upgraded),upgraded);
+  const file=path.join(os.tmpdir(),`mag-upgrade-test-${process.pid}.mjs`);try{fs.writeFileSync(file,upgraded);assert.equal(spawnSync(process.execPath,['--check',file]).status,0)}finally{fs.rmSync(file,{force:true})}
 });

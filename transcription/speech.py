@@ -101,6 +101,9 @@ def transcribe_speech(asr, audio, turns, *, language, prompt, progress, checkpoi
         segments.extend(result["segments"])
         # Keep real repetitions; report decoder evidence instead of deleting text by regex.
         for segment in result["segments"]:
+            if segment.get('confidence_unavailable') or segment.get('avg_logprob', 0) < -1:
+                flagged.append({'start':segment['start'],'end':segment['end'],'kind':'confidence',
+                                'reason':'Decoder confidence is unavailable or low; listen to verify.'})
             if segment.get("compression_ratio", 0) > 2.4:
                 flagged.append({"start": segment["start"], "end": segment["end"],
                                 "reason": "Decoder reports unusually repetitive text; listen to verify."})

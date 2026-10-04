@@ -2,6 +2,7 @@
 from pathlib import Path
 from typing import Callable, Protocol
 import os
+import math
 
 DEFAULT_MODEL = "mlx-community/whisper-large-v3-mlx"
 DIARIZATION_MODEL = "pyannote/speaker-diarization-community-1"
@@ -19,6 +20,32 @@ class DiarizationAdapter(Protocol):
     identity: str
 
     def diarize(self, audio: Path, *, progress: Progress) -> dict: ...
+
+
+def clean_whisper_result(result):
+    """Optional decoder diagnostics can be NaN on short windows; timings cannot."""
+    segments=[]
+    for source in result['segments']:
+        segment=dict(source)
+        for key in ('start','end'):
+            if not math.isfinite(float(segment[key])):
+                raise ValueError('Whisper returned an invalid timestamp')
+        for key in ('avg_logprob','compression_ratio','no_speech_prob','temperature'):
+            if key in segment and not math.isfinite(float(segment[key])):
+                segment.pop(key)
+                segment['confidence_unavailable']=True
+        if 'words' in segment:
+            segment['words']=[]
+            for original in source['words']:
+                word=dict(original)
+                if not all(math.isfinite(float(word[key])) for key in ('start','end')):
+                    raise ValueError('Whisper returned an invalid word timestamp')
+                if 'probability' in word and not math.isfinite(float(word['probability'])):
+                    word.pop('probability')
+                    segment['confidence_unavailable']=True
+                segment['words'].append(word)
+        segments.append(segment)
+    return {'language':result.get('language'),'segments':segments}
 
 
 class MLXWhisperAdapter:
@@ -39,7 +66,7 @@ class MLXWhisperAdapter:
             # Native upstream protection: skip long silence around anomalous words.
             hallucination_silence_threshold=2.0,
         )
-        return {"language": result.get("language"), "segments": result["segments"]}
+        return clean_whisper_result(result)
 
 
 class CommunityDiarizationAdapter:

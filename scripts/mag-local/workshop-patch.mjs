@@ -35,10 +35,13 @@ export function patchWorkshop(source) {
 }
 
 function enhanceConversationPage(source) {
-  if (source.includes('// mag-conversation-upload-v1')) return source;
+  if (source.includes('// mag-conversation-upload-v2')) return source;
+  if (source.includes('// mag-conversation-upload-v1')) {
+    return source.replace(/\/\/ mag-conversation-upload-v1\n  if\(files.length>1[^\n]+/, '// mag-conversation-upload-v2\n  if(document.querySelector("[data-upload-preview]") && [...files].every(f=>/\\.(m4a|mp3|wav|mov|mp4|aac|flac|ogg|opus|webm|mkv|aiff?)$/i.test(f.name))){prepareRecordingUpload(files);return}');
+  }
   let patched = replaceOnce(source,
     'function uploadAll(files){',
-    'function uploadAll(files){\n  // mag-conversation-upload-v1\n  if(files.length>1 && document.querySelector("[data-join-upload]")?.checked && [...files].every(f=>/\\.(m4a|mp3|wav|mov|mp4|aac|flac|ogg|opus|webm|mkv|aiff?)$/i.test(f.name))){uploadConversation(files);return}');
+    'function uploadAll(files){\n  // mag-conversation-upload-v2\n  if(document.querySelector("[data-upload-preview]") && [...files].every(f=>/\\.(m4a|mp3|wav|mov|mp4|aac|flac|ogg|opus|webm|mkv|aiff?)$/i.test(f.name))){prepareRecordingUpload(files);return}');
   return replaceOnce(patched,
     "startIntake(story || automaticStory, dest) : '';",
     "startIntake(story || automaticStory, dest, {defer:url.searchParams.get('defer')==='1'}) : '';"

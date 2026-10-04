@@ -216,7 +216,7 @@ def process(source, output, *, language=None, prompt=None, asr=None, diarizer=No
                 "warnings": ["Language detection and overlapping speech require listening review, including changes within a speech window.",
                              "Speaker IDs are recording-local clusters, not verified identities."]}
             if raw.get("quality_flags"):
-                result["metadata"]["warnings"].append(f"{len(raw['quality_flags'])} speech segments have repetitive decoder output; review the marked timestamps.")
+                result["metadata"]["warnings"].append(f"{len(raw['quality_flags'])} speech segments have decoder quality flags; review the marked timestamps.")
             if turns.get("fallback_reason"):
                 result["metadata"]["warnings"].append(turns["fallback_reason"])
             atomic_json(output / "transcript.json", result)

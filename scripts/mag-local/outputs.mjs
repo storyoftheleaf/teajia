@@ -27,11 +27,11 @@ function write(file, text) {
   const part = `${file}.${process.pid}.part`;
   fs.writeFileSync(part, text, { mode: 0o600 }); fs.renameSync(part, file);
 }
-export async function writeWorkingOutputs(job, result, config = {}) {
+export async function writeWorkingOutputs(job, result, config = {}, options = {}) {
   const markdown = markdownTranscript(job, result, config), file = path.join(job.output, 'transcript.md');
   write(path.join(job.output, 'transcript.txt'), readableTranscript(result));
   write(file, markdown);
-  if (fs.existsSync(path.join(job.output,'translations'))) {
+  if (!options.freshTranslationsOnly && fs.existsSync(path.join(job.output,'translations'))) {
     const { refreshTranslationOutputs } = await import('./translation.mjs');
     await refreshTranslationOutputs(config,job,result);
   }
@@ -45,4 +45,31 @@ export async function writeWorkingOutputs(job, result, config = {}) {
     }
   }
   return file;
+}
+
+// An explicit save exposes one coherent current bundle. Old translations remain
+// recoverable on disk, but are never presented as part of this saved revision.
+export async function saveToMag(job, result, config = {}) {
+  const { translationStatus, loadTranslation, translatedMarkdown } = await import('./translation.mjs');
+  write(path.join(job.output, 'transcript.json'), JSON.stringify(result, null, 2) + '\n');
+  await writeWorkingOutputs(job, result, config, { freshTranslationsOnly: true });
+  const base = `/transcription/${encodeURIComponent(job.id)}`;
+  const files = [
+    { kind: 'original', format: 'md', name: `Transcript - ${job.story}.md`, url: `${base}/transcript.md` },
+    { kind: 'structured', format: 'json', name: `Transcript - ${job.story}.json`, url: `${base}/transcript.json` },
+  ];
+  const excludedTranslations = [];
+  for (const status of translationStatus(job, result)) {
+    const translated = loadTranslation(job, result, status.language);
+    if (status.state !== 'complete' || status.stale || status.outdated || !translated || translated.stale || translated.outdated) {
+      excludedTranslations.push({ language: status.language, reason: translated?.stale ? 'Original changed; translate again.' : translated?.outdated ? 'Translate again with the current translator.' : 'Translation is not ready.' });
+      continue;
+    }
+    const language = translated.language;
+    write(path.join(job.output, `translation.${language}.json`), JSON.stringify(translated, null, 2) + '\n');
+    write(path.join(job.output, `translation.${language}.md`), translatedMarkdown(job, translated, config));
+    write(path.join(job.output, `translation.${language}.txt`), 'Unreviewed machine translation. Timestamps refer to original audio.\n\n' + readableTranscript(translated));
+    files.push({ kind: 'translation', language, format: 'md', name: `Transcript - ${job.story} - ${language}.md`, url: `${base}/translation.md?language=${encodeURIComponent(language)}` });
+  }
+  return { state: 'saved', savedAt: new Date().toISOString(), files, excludedTranslations };
 }

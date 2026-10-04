@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { readConfig, atomicJson, runIntake, safeStory } from './intake.mjs';
-import { readableTranscript, markdownTranscript, writeWorkingOutputs, reviewEligibility } from './outputs.mjs';
+import { readableTranscript, markdownTranscript, writeWorkingOutputs, reviewEligibility, saveToMag } from './outputs.mjs';
 export { readableTranscript } from './outputs.mjs';
 import { transcriptPage } from './workshop-ui.mjs';
 import { translateTranscript, translationStatus, loadTranslation, translatedMarkdown, translationLanguage, translationSourceDigest } from './translation.mjs';
@@ -78,12 +78,12 @@ export function localJobs() {
       .map(n => readJob(config, n.slice(0, -5))).sort((a, b) => b.started.localeCompare(a.started));
   } catch { return []; }
 }
-const publicJob = job => ({ id: job.id, story: job.story, file: job.file, state: job.state, stage: job.stage, error: job.error, started: job.started, parts: job.parts?.map(p=>({source:path.basename(p.source),start:p.start,end:p.end})), transcriptReady: !!job.transcriptReady, translations: job.transcriptReady ? translationStatus(job,JSON.parse(fs.readFileSync(path.join(job.output,'transcript.json'),'utf8'))) : [], ...(job.export ? { export: job.export } : {}) });
+const publicJob = job => ({ id: job.id, story: job.story, file: job.file, state: job.state, stage: job.stage, error: job.error, started: job.started, parts: job.parts?.map(p=>({source:path.basename(p.source),start:p.start,end:p.end})), transcriptReady: !!job.transcriptReady, translations: job.transcriptReady ? translationStatus(job,JSON.parse(fs.readFileSync(path.join(job.output,'transcript.json'),'utf8'))) : [], ...(job.saved ? { saved: job.saved } : {}), ...(job.export ? { export: job.export } : {}) });
 const send = (res, status, data) => { res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(data)); };
 async function body(req) {
   let value = '';
   for await (const chunk of req) { value += chunk; if (value.length > 16000) throw new Error('Request too large'); }
-  return JSON.parse(value);
+  return value.trim() ? JSON.parse(value) : {};
 }
 export function serveAudio(req, res, file) {
   const size = fs.statSync(file).size;
@@ -112,13 +112,27 @@ export async function handleLocalRoute(req, res, url) {
     } catch (error) { res.writeHead(400, {'Content-Type':'application/json'}); res.end(JSON.stringify({error:error.message})); }
     return true;
   }
-  const match = url.pathname.match(/^\/transcription\/([a-f0-9-]{36})(?:\/(view|retry|export-retry|translate|speakers|segment|review|audio|(?:transcript|translation)\.(?:json|txt|md)))?$/);
+  const match = url.pathname.match(/^\/transcription\/([a-f0-9-]{36})(?:\/(view|start|save|retry|export-retry|translate|speakers|segment|review|audio|(?:transcript|translation)\.(?:json|txt|md)))?$/);
   if (!match) return false;
   try {
     const config = readConfig(), id = match[1], action = match[2] || '';
     const job = readJob(config, id);
     if (req.method === 'POST') {
       if (req.headers.origin && req.headers.origin !== `http://${req.headers.host}`) { send(res, 403, { error: 'not from this page' }); return true; }
+      if (action === 'start') {
+        if (job.state !== 'saved') { send(res,409,{error:'Only saved recordings can be started.'}); return true; }
+        const input=await body(req);
+        if (input.story !== undefined && (typeof input.story !== 'string' || !input.story.trim())) throw new Error('Enter a recording name.');
+        if (input.story) job.story=safeStory(input.story);
+        job.state='running';job.stage='queued';job.started=new Date().toISOString();delete job.defer;
+        dispatch(config,job);send(res,202,{job:publicJob(job),url:`/transcription/${id}/view`});return true;
+      }
+      if (action === 'save') {
+        if (job.state !== 'done' || !job.transcriptReady) throw new Error('Transcript is not ready.');
+        const result=JSON.parse(fs.readFileSync(path.join(job.output,'transcript.json'),'utf8'));
+        job.saved=await saveToMag(job,result,config);atomicJson(jobFile(config,id),job);
+        send(res,200,{saved:job.saved,job:publicJob(job)});return true;
+      }
       if (action === 'translate') {
         if (job.state !== 'done' || !job.transcriptReady) throw new Error('Transcript is not ready.');
         const input = await body(req), language = translationLanguage(input.language);
@@ -127,6 +141,7 @@ export async function handleLocalRoute(req, res, url) {
         const stateFile=path.join(job.output,'translations',`${language}.state.json`);
         fs.mkdirSync(path.dirname(stateFile),{recursive:true});
         atomicJson(stateFile,{language,state:'queued',sourceDigest:translationSourceDigest(result),completed:0,total:result.segments.length,updatedAt:new Date().toISOString()});
+        delete job.saved;atomicJson(jobFile(config,id),job);
         const log=fs.openSync(path.join(job.output,'translations',`${language}.log`),'a',0o600);
         try {
           const child=spawn(process.execPath,[fileURLToPath(import.meta.url),'translate',id,language],{detached:true,stdio:['ignore',log,log],env:process.env});
@@ -182,6 +197,7 @@ export async function handleLocalRoute(req, res, url) {
         }
         atomicJson(resultFile, result);
         await writeWorkingOutputs(job, result, config);
+        delete job.saved;
         atomicJson(jobFile(config, id), job);
         send(res, 200, { job: publicJob(job), result }); return true;
       }
