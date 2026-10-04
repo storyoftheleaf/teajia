@@ -41,7 +41,7 @@ export function patchLegacyIntake(source) {
 
 // Reuse the reviewed upload form and browser upload flow on a dedicated page.
 function separateTranscriptionPage(source) {
-  if (source.includes('// mag-transcription-page-v1')) return source;
+  if (source.includes('// mag-transcription-page-v1')) return enhanceRecordingsPage(source);
   let patched = source;
   const start = patched.indexOf('  const drops = dropped();', patched.indexOf('function frontPage(remote)'));
   const end = patched.indexOf('  return `<header>', start);
@@ -69,5 +69,16 @@ function transcriptionHome(remote) {
     pageFunction + '\n// ── Look: one typeface everywhere, Claude-style ─────────────────────────');
   patched = replaceOnce(patched, "    html = page('Teajia Magazine', frontPage(remote));",
     "    html = page('Teajia Magazine', frontPage(remote));\n  } else if (url.pathname === '/transcription' || url.pathname === '/transcription/') {\n    html = page('Local transcription', transcriptionHome(remote));");
-  return patched;
+  return enhanceRecordingsPage(patched);
+}
+
+function enhanceRecordingsPage(source) {
+  if(source.includes('// mag-recordings-library-v1'))return source;
+  let patched = replaceOnce(source,
+    'import { renderLocalJob, LOCAL_JOB_JS, LOCAL_TRANSCRIPT_CSS }',
+    'import { renderLocalJob, renderRecordings, LOCAL_JOB_JS, LOCAL_TRANSCRIPT_CSS }');
+  const start = patched.indexOf('function transcriptionHome(remote)');
+  const end = patched.indexOf('// ── Look:',start);
+  if(start < 0 || end < 0)throw Error('Workshop source changed: missing recording page boundary');
+  return patched.slice(0,start) + '// mag-recordings-library-v1\nfunction transcriptionHome(remote) { return renderRecordings(jobs(),remote); }\n\n' + patched.slice(end);
 }

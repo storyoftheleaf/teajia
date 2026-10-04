@@ -6,7 +6,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { spawnSync } from 'node:child_process';
 import { patchWorkshop, patchLegacyIntake, intakeStory, sourceHash } from './workshop-patch.mjs';
-import { renderTranscript, renderLocalJob, transcriptPage, LOCAL_JOB_JS } from './workshop-ui.mjs';
+import { renderTranscript, renderLocalJob, transcriptPage, LOCAL_JOB_JS, renderRecordings } from './workshop-ui.mjs';
 
 const original = fs.readFileSync(new URL('./fixtures/mag-preview.original.mjs',import.meta.url),'utf8');
 const shell = fs.readFileSync(new URL('./fixtures/mag-intake.original.sh',import.meta.url),'utf8');
@@ -15,7 +15,7 @@ test('reviewed workshop patch is syntactically valid, idempotent and keeps uploa
   const result=patchWorkshop(original);
   assert.equal(patchWorkshop(result),result);
   assert.match(result,/const MAX_UPLOAD = 4 \* 1024 \*\* 3/);
-  assert.match(result,/\.\.\.js\.map\(renderLocalJob\)/);
+  assert.match(result,/renderRecordings\(jobs\(\),remote\)/);
   assert.match(result,/if \(await handleLocalRoute\(req, res, url\)\) return/);
   assert.match(result,/size > MAX_UPLOAD/);
   assert.match(result,/url.pathname === '\/answer'/);
@@ -108,8 +108,28 @@ test('recording drop and progress live separately from story approvals',()=>{
   assert.doesNotMatch(front,/\+ UPLOAD|dropSection|renderLocalJob/);
   assert.match(front,/href="\/transcription"/);
   const recordings=patched.slice(patched.indexOf('function transcriptionHome(remote)'),patched.indexOf('// ── Look:'));
-  assert.match(recordings,/Drop audio or video here/);
-  assert.match(recordings,/js.map\(renderLocalJob\)/);
+  assert.match(recordings,/renderRecordings\(jobs\(\),remote\)/);
   assert.doesNotMatch(recordings,/section\('you'|card\(b/);
   assert.match(patched,/url.pathname === '\/transcription'/);
+});
+
+test('recording library presents state filters, one setup notice and escaped error details',()=>{
+  const jobs=[
+    {id:'ready',story:'Interview',state:'done',transcriptReady:true},
+    {id:'busy',story:'Tea <audio>',state:'running',stage:'transcribe'},
+    {id:'failed',story:'Part two',state:'failed',error:'Cannot access gated repo: you are not in the authorized list <secret>'}
+  ];
+  const html=renderRecordings(jobs);
+  assert.match(html,/Choose audio or video files/);
+  assert.match(html,/data-recording-filter="attention"/);
+  assert.match(html,/data-recording-category="ready"/);
+  assert.match(html,/data-recording-category="processing"/);
+  assert.match(html,/Transcribing/);
+  assert.equal(html.split('Speaker separation needs setup').length-1,1);
+  assert.match(html,/Speaker model access required/);
+  assert.match(html,/<summary>Error details<\/summary><p>Cannot access/);
+  assert.match(html,/Tea &lt;audio&gt;/);
+  assert.doesNotMatch(html,/<audio>|<secret>/);
+  assert.doesNotMatch(renderRecordings([],true),/Open folder/);
+  assert.match(renderRecordings([]),/Your transcripts will appear here/);
 });
