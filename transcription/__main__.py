@@ -3,10 +3,11 @@ import json
 import sys
 from .adapters import DEFAULT_MODEL, MLXWhisperAdapter, CommunityDiarizationAdapter, DIARIZATION_MODEL
 from .pipeline import process
+from .sherpa import PreferredDiarizationAdapter, SherpaDiarizationAdapter
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Local Whisper Large V3 + Community-1 transcription")
+    parser = argparse.ArgumentParser(description="Local Whisper Large V3 transcription and speaker separation")
     commands = parser.add_subparsers(dest="command", required=True)
     command = commands.add_parser("process")
     command.add_argument("input")
@@ -16,11 +17,14 @@ def main(argv=None):
     command.add_argument("--model", default=DEFAULT_MODEL, help="MLX model repository or local model directory")
     command.add_argument("--diarization-model", default=DIARIZATION_MODEL)
     command.add_argument("--diarization-device", choices=["auto", "mps", "cpu"], default="auto")
+    command.add_argument("--diarization-engine", choices=["auto", "community", "sherpa"], default="auto")
     args = parser.parse_args(argv)
+    community = CommunityDiarizationAdapter(args.diarization_model, args.diarization_device)
+    diarizer = community if args.diarization_engine == "community" else SherpaDiarizationAdapter() if args.diarization_engine == "sherpa" else PreferredDiarizationAdapter(community)
     try:
         process(args.input, args.output, language=args.language, prompt=args.prompt,
                 asr=MLXWhisperAdapter(args.model),
-                diarizer=CommunityDiarizationAdapter(args.diarization_model, args.diarization_device),
+                diarizer=diarizer,
                 on_progress=lambda event: print(json.dumps(event), file=sys.stderr, flush=True))
     except KeyboardInterrupt:
         return 130

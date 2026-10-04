@@ -44,7 +44,7 @@ function readJob(config, id) {
   if (job.output) {
     try { progress = JSON.parse(fs.readFileSync(path.join(job.output, 'progress.json'), 'utf8')); } catch {}
   }
-  return { ...job, stage: job.state === 'running' && job.stage !== 'filing' ? (progress?.stage || job.stage) : job.stage };
+  return { ...job, stage: job.state === 'running' && job.stage !== 'filing' ? (progress && Date.parse(progress.updated_at) >= Date.parse(job.started) ? progress.stage : job.stage) : job.stage };
 }
 export async function waitForLocalIntake(id) {
   const config = readConfig();

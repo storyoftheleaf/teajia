@@ -40,7 +40,7 @@ async function keep(source, folder) {
 }
 export function rawDocument(story, source, result, text, terms = '', note = '') {
   const scalar = v => JSON.stringify(v); // JSON quoted strings are valid YAML scalars.
-  return `---\ntype: RAW\ntitle: ${scalar(story)}\nrecorded: ${scalar(new Date(fs.statSync(source).mtimeMs).toISOString().slice(0, 10))}\naudio: ${scalar(source)}\nphotos: ${scalar(path.join(path.dirname(source), 'Photos'))}\ncredit: Adrian Rasmussen\nlanguage: ${scalar(result.language || 'unknown')}\ntranscribed: ${scalar(`${new Date().toISOString().slice(0, 10)} locally; ${result.metadata?.asr_adapter || 'Whisper Large V3 MLX'}; Pyannote Community-1`)}\n${terms}---\n\n# RAW – ${story}\n\nMachine transcript, preserved as first produced. Speaker labels are automatic; names and corrections belong in SRC. Every quote is checked against this record.\n\n## Interview\n\n${text.trim()}\n${note ? `\n## Adrian's voice note\n\n${note.trim()}\n` : ''}`;
+  return `---\ntype: RAW\ntitle: ${scalar(story)}\nrecorded: ${scalar(new Date(fs.statSync(source).mtimeMs).toISOString().slice(0, 10))}\naudio: ${scalar(source)}\nphotos: ${scalar(path.join(path.dirname(source), 'Photos'))}\ncredit: Adrian Rasmussen\nlanguage: ${scalar(result.language || 'unknown')}\ntranscribed: ${scalar(`${new Date().toISOString().slice(0, 10)} locally; ${result.metadata?.asr_adapter || 'Whisper Large V3 MLX'}; ${result.metadata?.diarization_adapter || 'local diarization'}`)}\n${terms}---\n\n# RAW – ${story}\n\nMachine transcript, preserved as first produced. Speaker labels are automatic; names and corrections belong in SRC. Every quote is checked against this record.\n\n## Interview\n\n${text.trim()}\n${note ? `\n## Adrian's voice note\n\n${note.trim()}\n` : ''}`;
 }
 export async function runIntake(config, job, save = () => {}) {
   const story = safeStory(job.story);
@@ -64,6 +64,9 @@ export async function runIntake(config, job, save = () => {}) {
   job.output = path.join(folder, 'Transcription', job.id);
   save(); // source path persists before processing, so retry never depends on Drop.
   const processFile = async (input, output, language, prompt = '') => {
+    // Vocabulary can change between retries; retain the ASR prompt used by this job.
+    const manifest = path.join(output, 'job.json');
+    if (fs.existsSync(manifest)) prompt = JSON.parse(fs.readFileSync(manifest, 'utf8')).prompt || '';
     const args = ['-m', 'transcription', 'process', input, '--output', output];
     if (language && language !== 'auto') args.push('--language', language);
     if (prompt) args.push('--prompt', prompt);

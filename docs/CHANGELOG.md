@@ -1,5 +1,9 @@
 # Teajia Changelog
 
+## 2026-10 local workshop
+
+- 2026-10-04 — Added a public local sherpa-onnx/WeSpeaker fallback for Community-1 gated access, preserved original vocabulary on retries, repaired queue progress and exposed actual speaker-model provenance in the editor and Markdown. Validated real recordings and retained earlier machine outputs when rebuilding speaker versions. Community-1 access and the remote i64 OS source-folder permission remain unresolved.
+
 ## 2026-10-04 — Local Mag transcription integration
 
 Added the reference-inspired transcript studio with sidebar controls, plain/segment views, bottom playback and a local translation option. Original and translated Markdown, TXT and JSON remain separate; speaker-name updates refresh both, source changes flag stale translations, and failed model work resumes from segment caches. Reused Ollama/Qwen3 rather than introducing a translation SDK or paid API.

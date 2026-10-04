@@ -96,6 +96,18 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(json.loads((self.output / "progress.json").read_text())["state"], "completed")
         self.assertTrue((self.output / "transcript.txt").is_file())
 
+    def test_changed_diarizer_resumes_only_unfinished_job(self):
+        self.diarizer.fail = True
+        with self.assertRaises(RuntimeError):
+            self.run_pipeline()
+        self.diarizer = FakeDiarizer()
+        self.diarizer.identity = "replacement-diarizer"
+        self.run_pipeline()
+        self.assertEqual(self.asr.calls, 1)
+        self.diarizer.identity = "third-diarizer"
+        with self.assertRaises(ValueError):
+            self.run_pipeline()
+
     def test_changed_source_and_options_refused(self):
         self.run_pipeline()
         with self.assertRaises(ValueError):

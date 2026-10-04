@@ -15,10 +15,12 @@ test('RAW frontmatter quotes title safely and retains original speaker text', ()
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mag-raw-'));
   try {
     const source = path.join(dir, 'original.m4a'); fs.writeFileSync(source, 'source');
-    const doc = rawDocument('Tea: "Hong Kong"', source, {language:'zh'}, '[00:00:03] Speaker 1: 這茶很好。');
+    const doc = rawDocument('Tea: "Hong Kong"', source, {language:'zh',metadata:{diarization_adapter:'sherpa-onnx:public-models'}}, '[00:00:03] Speaker 1: 這茶很好。');
     assert.ok(doc.includes('title: "Tea: \\"Hong Kong\\""'));
     assert.ok(doc.includes('這茶很好。'));
     assert.ok(doc.includes('type: RAW'));
+    assert.ok(doc.includes('sherpa-onnx:public-models'));
+    assert.ok(!doc.includes('Pyannote Community-1'));
   } finally { fs.rmSync(dir, {recursive:true,force:true}); }
 });
 test('intake refuses existing immutable RAW before copying or processing source', async () => {

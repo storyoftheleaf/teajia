@@ -133,3 +133,9 @@ test('recording library presents state filters, one setup notice and escaped err
   assert.doesNotMatch(renderRecordings([],true),/Open folder/);
   assert.match(renderRecordings([]),/Your transcripts will appear here/);
 });
+
+test('sparse model cluster IDs use the same displayed numbering as rename controls and exports',()=>{
+  const html=renderTranscript({speakers:[{id:'SPEAKER_00',name:null},{id:'SPEAKER_07',name:null}],segments:[{start:0,end:1,speaker:'SPEAKER_07',text:'Sparse cluster'}]},{id:'sparse',story:'Check'});
+  assert.match(html,/Speaker 2: /);
+  assert.doesNotMatch(html,/Speaker 8:/);
+});

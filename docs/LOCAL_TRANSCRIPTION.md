@@ -1,6 +1,6 @@
 # Local magazine transcription
 
-Checked on 2026-10-04. This is the local Mac magazine workshop, separate from the storefront and its Cloudflare deployment. The target is full **Whisper Large V3 through MLX**, followed by **pyannote Community-1** speaker diarization. Turbo is a different model and is not the default.
+Checked on 2026-10-04. This is the local Mac magazine workshop, separate from the storefront and its Cloudflare deployment. The target is full **Whisper Large V3 through MLX**, followed by preferred **pyannote Community-1** speaker diarization, with an explicitly labelled public local sherpa-onnx fallback when gated access is denied. Turbo is a different model and is not the default.
 
 ## Existing workshop and source boundaries
 
@@ -32,11 +32,11 @@ The repository's `transcription/` package supplies the new local processing boun
 | Python | shell `python3` is 3.10; uv has Apple Silicon Python 3.11 and 3.13 installed |
 | Model packages | isolated `.venv-transcription` imports MLX Whisper 0.4.3, pyannote.audio 4.0.7 and torch successfully; Metal/MPS available |
 | Hugging Face default model cache | full Large V3 cached and verified in an offline ASR run; Community-1 is not yet downloaded |
-| Hugging Face credentials | neither supported token environment variable nor either default token file was present |
+| Hugging Face credentials | locally cached token now present; its account still receives Community-1 HTTP 403 |
 
 These are checks of the current shell and known default locations, not a claim that every Python environment on the computer is empty. Spokenly is installed and keeps audio/history; its `Models/` directory had no entries during inspection. Its proprietary managed runtime is not reused by this pipeline.
 
-The Mac has suitable hardware, but the requested pipeline is **not model-ready until dependencies and weights have been downloaded and Community-1 access granted**. No model inference benchmark was run as part of these readiness checks.
+Dependencies, full Large V3 and public fallback speaker weights are now installed. Community-1 itself remains gated; the default auto engine can complete local processing using the fallback. Read the measured validation below rather than interpreting model readiness as accuracy.
 
 ## Setup and first download
 
@@ -162,7 +162,7 @@ Open the recording's transcript, name its speakers, tap timestamps to compare th
 
 ## i64 OS integration
 
-The existing Teajia tile now has **Transcribe**, pointing to the private studio workshop at `http://100.90.156.97:8766/`. It requires the studio Mac and Tailscale. No new i64 OS deployment or ASR service is required.
+The existing Teajia tile now has **Transcribe**, pointing to the private studio workshop at `http://100.90.156.97:8766/transcription`. It requires the studio Mac and Tailscale. No new i64 OS deployment or ASR service is required.
 
 The installed `~/builds/mag-local/config.json` has `reviewBaseUrl` plus `i64Export: {enabled, repoRoot, project, folder, workshopUrl}`. The installed integration uses `project: teajia`, `folder: Transcripts`, and the existing canonical i64 OS checkout as `repoRoot`. Reinstallation preserves these settings. The exporter adapts i64 OS's own MCP launcher and imports its authenticated HTTP client, so Infisical remains the credential authority. Tokens are never placed in configuration, command arguments, Git or diagnostics. Only transcript Markdown travels to the existing authenticated `/api/v1/wf/sources/file` endpoint; recordings remain local.
 
@@ -204,3 +204,19 @@ The studio supports Plain text and Segments. Open a saved translation to use Com
 Transcription has its own entry page at `/transcription`: media drop area, recording progress and transcript links. The root `/` remains the story approval list and links to transcription. Transcript “Drop files” navigation returns to the recording page. Both pages reuse the existing upload backend and Mag intake workflow.
 
 The recording library filters Ready, Processing and Needs attention, with per-file retry and expandable error details. Community-1 access failures appear as a single setup notice; recordings and checkpoints stay available for retry. File selection, multi-file drop and upload progress use the existing workshop upload flow.
+
+## Public fallback and recovery validation (2026-10-04)
+
+The default auto diarizer tries Community-1 first and catches only `GatedRepoError` before using whosaid's public-model provisioning architecture with the official sherpa-onnx API. The final fallback uses pyannote segmentation-3.0 (full precision) plus WeSpeaker ResNet34-LM embeddings, CPU, clustering threshold 0.7. No private-model mirror or paid service is used. Approximately 33 MB of public weights are cached in ignored `.models/diarization`; the segmentation package retains the CNRS MIT license. See `transcription/UPSTREAM.md` for attribution. `--diarization-engine community` forces the requested engine; `sherpa` selects the fallback.
+
+An unfinished diarization job can switch engines without repeating completed normalization/ASR. Source bytes and transcription options must still match; completed results cannot silently change engines. Retry retains its original vocabulary prompt, because a subsequently edited tea-term library must not invalidate completed transcription. Queued jobs no longer display an old failure stage as current progress. RAW and working Markdown identify the actual engine, and the editor displays fallback provenance under Speaker identification.
+
+TitaNet-small fragmented a real 30-minute recording into 158 clusters. Testing whosaid global clustering and ERes2Net did not solve that recording's count problem, so those paths are not included. WeSpeaker with threshold 0.7 gave two clusters on the 51.50-second reference (Spokenly also has two) and eight clusters on that 30-minute recording. Speaker counts alone are not attribution accuracy, and background voices and overlaps still need listening review.
+
+The initial 51-second machine-baseline comparison had 13/90 normalized text-token disagreements (14.44%) and a 0.019-second AAC duration difference. This is disagreement against Spokenly, not accuracy against human truth. Community-1 remains preferred when account access is resolved. Earlier first-produced outputs and immutable RAW remain intact; corrected working speaker versions live in `speaker-versions/wespeaker-v2` with their own model manifest, retained original ASR checkpoints and a previous-output reference. No human identity is guessed.
+
+A fresh `actual-sample.m4a` (51.50 seconds, converted from the exact paired Spokenly reference) was uploaded through the installed workshop's actual file chooser as **Local M4A check - 51s tea interview**. Automatic intake completed 19 segments, two speaker clusters and word timestamps, plus JSON/TXT/Markdown and immutable RAW. Its fresh text has 12/90 normalized token disagreements (13.33%) against Spokenly. Generic test names Voice A/B were saved through the UI; working Markdown updated, while recording and RAW SHA-256 stayed unchanged. These names are test labels, not asserted human identities.
+
+All four user-uploaded recordings completed their corrected working speaker versions: MIC024 has 10 clusters/615 segments, MIC025 8/628, MIC026 7/654, MIC027 4/324. Original ASR checkpoint bytes are identical to those retained in each prior output. All segment times are finite, ordered within each segment and bounded by recording duration. JSON, TXT, Markdown and RAW exist. All remain unreviewed; counts and schema checks do not verify speaker accuracy or quotes. The English VoxCeleb embedding model's multilingual attribution accuracy has not been measured.
+
+The fresh M4A's 19 segments were also translated to Chinese through the actual UI using local Qwen3:8b. Both `transcript.*` and `translation.zh.*` JSON/Markdown/TXT are saved. SHA-256 checks confirm original JSON, Markdown, RAW and audio remained unchanged; every translated segment retained its original start/end/speaker. Actual Markdown downloads returned recording-specific filenames (with `- zh` on the translation), and playback served a validated HTTP 206 byte range. The editor displayed original/translation comparison. The i64 OS Teajia Transcribe launcher was read back with its direct `/transcription` URL. Remote source export still returns the existing folder-permission error; no rejected permission change was applied.

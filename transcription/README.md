@@ -1,6 +1,6 @@
 # Local transcription
 
-Apple Silicon Whisper **full Large V3**, native word timestamps, and pyannote **Community-1** exclusive speaker diarization. ffmpeg normalizes every source, including WAVs, to 16 kHz mono. Python imports stay lightweight until inference runs.
+Apple Silicon Whisper **full Large V3**, native word timestamps, and preferred pyannote **Community-1** exclusive speaker diarization. When Community-1 denies gated access, the default `auto` engine uses the public local sherpa-onnx segmentation-3.0/WeSpeaker ResNet34-LM pipeline used by whosaid. Results name the actual engine and warn about fallback; this is not Community-1. ffmpeg normalizes every source, including WAVs, to 16 kHz mono. Python imports stay lightweight until inference runs.
 
 From the repository root, use a Python 3.12 environment with `transcription/requirements.txt` installed and ffmpeg on PATH:
 
@@ -33,3 +33,9 @@ python3 -m unittest discover -s transcription/tests -v
 ```
 
 See [UPSTREAM.md](UPSTREAM.md) for reviewed source paths and license/model attribution.
+
+## Public local speaker fallback
+
+`--diarization-engine auto` prefers Community-1 and falls back only on gated-model access errors. `community` requires Community-1 access; `sherpa` selects the public fallback explicitly. Other errors remain recoverable failures. Official GitHub release weights are downloaded to `.models/diarization` (about 33 MB); `MAG_DIARIZATION_MODELS` can select a preloaded directory for offline use. The segmentation package retains its MIT license; the sherpa-onnx library is Apache-2.0. Provisioning follows [whosaid](https://github.com/sblattj/whosaid/blob/main/lib/diarize_sherpa.py); inference uses the [official sherpa-onnx API](https://github.com/k2-fsa/sherpa-onnx/blob/master/python-api-examples/offline-speaker-diarization.py).
+
+Fallback diarization runs on CPU, uses full-precision segmentation and WeSpeaker ResNet34-LM embeddings (clustering threshold 0.7), and preserves overlapping turns. Automatic speaker clustering is approximate: check speaker assignments, especially noise, very short turns, and multilingual recordings, before confirming review. JSON includes `diarization_model`, `diarization_adapter`, `diarization_exclusive` and a fallback warning. An unfinished job may change only its diarizer while reusing ASR; completed jobs and changed source/transcription options require a new output directory.

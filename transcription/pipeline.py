@@ -91,8 +91,13 @@ def process(source, output, *, language=None, prompt=None, asr=None, diarizer=No
                   "diarizer": diarizer.identity}
         manifest = output / "job.json"
         if manifest.exists():
-            if json.loads(manifest.read_text()) != config:
-                raise ValueError("Output directory belongs to different audio or options; use a new directory")
+            previous = json.loads(manifest.read_text())
+            if previous != config:
+                # An unfinished diarization can change engines without repeating ASR.
+                same_input = {k: v for k, v in previous.items() if k != "diarizer"} == {k: v for k, v in config.items() if k != "diarizer"}
+                if not same_input or (output / "diarize.json").exists() or (output / "transcript.json").exists():
+                    raise ValueError("Output directory belongs to different audio or options; use a new directory")
+                atomic_json(manifest, config)
         else:
             atomic_json(manifest, config)
         completed = []
@@ -166,10 +171,13 @@ def process(source, output, *, language=None, prompt=None, asr=None, diarizer=No
                 "schema_version": SCHEMA_VERSION, "source": str(source),
                 "source_sha256": config["source_sha256"],
                 "duration_seconds": normalized["duration_seconds"],
-                "asr_adapter": asr.identity, "diarization_adapter": diarizer.identity,
+                "asr_adapter": asr.identity, "diarization_adapter": turns.get("adapter", diarizer.identity),
+                "diarization_model": turns.get("model"), "diarization_exclusive": turns.get("exclusive"),
                 "diarization_device": turns.get("device"), "word_timestamps": getattr(asr, "timestamp_method", "adapter-provided"),
                 "warnings": ["Language detection is recording-wide; code-switching and overlapping speech require review.",
                              "Speaker IDs are recording-local clusters, not verified identities."]}
+            if turns.get("fallback_reason"):
+                result["metadata"]["warnings"].append(turns["fallback_reason"])
             atomic_json(output / "transcript.json", result)
             atomic_text(output / "transcript.txt", readable(result))
             completed.append("merge")

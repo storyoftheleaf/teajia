@@ -35,3 +35,5 @@ worker/sandbox/table-list.txt
 transcription/**/__pycache__/
 transcription/**/.pytest_cache/
 outputs/local-transcription/
+
+.models/
