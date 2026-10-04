@@ -163,3 +163,9 @@ test('existing conversation patch upgrades to explicit staged Start and stays id
   const upgraded=patchWorkshop(v1);assert.match(upgraded,/prepareRecordingUpload\(files\)/);assert.doesNotMatch(upgraded,/files.length>1 &&/);assert.equal(patchWorkshop(upgraded),upgraded);
   const file=path.join(os.tmpdir(),`mag-upgrade-test-${process.pid}.mjs`);try{fs.writeFileSync(file,upgraded);assert.equal(spawnSync(process.execPath,['--check',file]).status,0)}finally{fs.rmSync(file,{force:true})}
 });
+
+test('recorder part names fit a narrow sidebar and preserve original filenames',()=>{
+ const filename='TX00_MIC024_20261003_143858_orig.wav';
+ const html=renderTranscript({speakers:[],segments:[],metadata:{recording_parts:[{source:'/recordings/'+filename,start:0,end:1800}]}},{id:'test'});
+ assert.match(html,/class="part-time">00:00:00/);assert.match(html,/class="part-name">MIC024 · 14:38:58/);assert.ok(html.includes('title="'+filename+'"'));assert.match(html,/aria-label="Play TX00_MIC024/);
+});
