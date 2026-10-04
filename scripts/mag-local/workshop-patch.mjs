@@ -12,7 +12,7 @@ function replaceOnce(source, before, after) {
 }
 
 export function patchWorkshop(source) {
-  if (source.includes(`// ${PATCH_VERSION}`)) return source;
+  if (source.includes(`// ${PATCH_VERSION}`)) return separateTranscriptionPage(source);
   let patched = replaceOnce(source, "import os from 'os';", `import os from 'os';\n// ${PATCH_VERSION}\nimport { startLocalIntake, localJobs, handleLocalRoute } from './mag-local/jobs.mjs';\nimport { renderLocalJob, LOCAL_JOB_JS, LOCAL_TRANSCRIPT_CSS } from './mag-local/workshop-ui.mjs';`);
   const start = patched.indexOf("const JOBS = '/tmp/mag-intake-jobs';");
   const end = patched.indexOf('// A drop zone like Google Drive:', start);
@@ -31,10 +31,43 @@ export function patchWorkshop(source) {
   patched = replaceOnce(patched, "let failed=0;", "let failed=0,takingIn=0;");
   patched = replaceOnce(patched, "(story?'Uploaded. Taking it in now.':'Uploaded. They are in the drop folder.')", "(takingIn?'Uploaded. Transcribing locally now.':'Uploaded. They are in the drop folder.')");
   patched = replaceOnce(patched, "if(res.ok){st.textContent='done';fill.style.width='100%'}", "if(res.ok){if(res.job)takingIn++;st.textContent=res.job?'transcribing locally':'done';fill.style.width='100%'}");
-  return patched;
+  return separateTranscriptionPage(patched);
 }
 
 export function patchLegacyIntake(source) {
   if (source.includes(`# ${PATCH_VERSION}`)) return source;
   return replaceOnce(source, 'set -euo pipefail\n', `set -euo pipefail\n\n# ${PATCH_VERSION}: one local engine for workshop uploads and /mag.\nif [[ "\u0024{MAG_LOCAL_LEGACY:-0}" != "1" && -f "$HOME/builds/mag-local/intake.mjs" ]]; then\n  exec node "$HOME/builds/mag-local/intake.mjs" --legacy-cli "$@"\nfi\n`);
+}
+
+// Reuse the reviewed upload form and browser upload flow on a dedicated page.
+function separateTranscriptionPage(source) {
+  if (source.includes('// mag-transcription-page-v1')) return source;
+  let patched = source;
+  const start = patched.indexOf('  const drops = dropped();', patched.indexOf('function frontPage(remote)'));
+  const end = patched.indexOf('  return `<header>', start);
+  if(start < 0 || end < 0)throw Error('Workshop source changed: missing drop list boundary');
+  patched = patched.slice(0,start)+patched.slice(end);
+  patched = replaceOnce(patched,
+    "(remote ? '' : `<a class=\"mini\" href=\"/drop\" data-open>Open the Drop folder</a>`) + `</div></header>` + UPLOAD + HOW_TO_DROP + dropSection +",
+    "`<a class=\"mini\" href=\"/transcription\">Transcription →</a></div></header>` +");
+  const pageFunction = `
+// mag-transcription-page-v1
+function transcriptionHome(remote) {
+  const js = jobs();
+  const rows = [...js.map(renderLocalJob)];
+  const upload = UPLOAD
+    .replace('Drop recordings or transcripts here', 'Drop audio or video here')
+    .replace('Story name, for a single file (optional): recordings start automatically', 'Recording name (optional)')
+    .replace('audio/*,video/*,.m4a,.mp3,.wav,.mov,.mp4,.txt,.md,.docx,.rtf,.srt,.vtt', 'audio/*,video/*,.m4a,.mp3,.wav,.mov,.mp4');
+  return '<header><div><p class="eyebrow">Local transcription</p><h1>Recordings</h1></div><a class="mini" href="/">Story approvals →</a></header>' +
+    upload + '<p class="empty">Drop a recording, then open its transcript for speakers, translation and export.</p>' +
+    (rows.length ? '<section><h3>Recordings <span class="count">' + rows.length + '</span></h3><div class="card">' + rows.join('') + '</div></section>' : '<p class="empty">No recordings yet.</p>') +
+    (remote ? '' : '<a class="mini" href="/drop" data-open>Open the Drop folder</a>');
+}
+`;
+  patched = replaceOnce(patched, '// ── Look: one typeface everywhere, Claude-style ─────────────────────────',
+    pageFunction + '\n// ── Look: one typeface everywhere, Claude-style ─────────────────────────');
+  patched = replaceOnce(patched, "    html = page('Teajia Magazine', frontPage(remote));",
+    "    html = page('Teajia Magazine', frontPage(remote));\n  } else if (url.pathname === '/transcription' || url.pathname === '/transcription/') {\n    html = page('Local transcription', transcriptionHome(remote));");
+  return patched;
 }

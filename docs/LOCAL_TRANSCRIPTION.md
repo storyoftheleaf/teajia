@@ -200,3 +200,5 @@ Real validation: the exact `TX00_MIC001_20260628_203812_orig.wav` recording from
 ### Transcript workspace navigation
 
 The studio supports Plain text and Segments. Open a saved translation to use Compare: original and translated text share timestamps and speaker names, with stacked cards on phones. Comparison is unavailable for outdated translations until they are regenerated. Search matches text and speaker labels; Compare searches both languages. Copy transcript copies the active view, while Copy matches copies only matching segments. Downloads always retain the complete saved transcript. Saving names or corrections preserves the selected view, search, open controls, reading position and paused audio position.
+
+Transcription has its own entry page at `/transcription`: media drop area, recording progress and transcript links. The root `/` remains the story approval list and links to transcription. Transcript “Drop files” navigation returns to the recording page. Both pages reuse the existing upload backend and Mag intake workflow.

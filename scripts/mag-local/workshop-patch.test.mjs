@@ -102,3 +102,14 @@ test('comparison pairs source and translation safely and is withheld when stale'
   assert.doesNotMatch(html,/data-segment-form/);
   assert.doesNotMatch(renderTranscript(original,{id:'compare'},{...translated,stale:true}),/data-view="compare"/);
 });
+test('recording drop and progress live separately from story approvals',()=>{
+  const patched=patchWorkshop(original);
+  const front=patched.slice(patched.indexOf('function frontPage(remote)'),patched.indexOf('// mag-transcription-page-v1'));
+  assert.doesNotMatch(front,/\+ UPLOAD|dropSection|renderLocalJob/);
+  assert.match(front,/href="\/transcription"/);
+  const recordings=patched.slice(patched.indexOf('function transcriptionHome(remote)'),patched.indexOf('// ── Look:'));
+  assert.match(recordings,/Drop audio or video here/);
+  assert.match(recordings,/js.map\(renderLocalJob\)/);
+  assert.doesNotMatch(recordings,/section\('you'|card\(b/);
+  assert.match(patched,/url.pathname === '\/transcription'/);
+});
