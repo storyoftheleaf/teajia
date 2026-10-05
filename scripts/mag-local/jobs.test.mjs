@@ -103,3 +103,39 @@ test('recorder parts are ordered naturally by filename without mutating selectio
   assert.match(parts[0].file,/MIC027/);
   assert.deepEqual(orderConversationParts([{file:'part10.wav'},{file:'part2.wav'}]).map(p=>p.file),['part2.wav','part10.wav']);
 });
+
+test('library metadata groups conversation parts and shows only available fresh languages', async () => {
+  const { publicJob } = await import('./jobs.mjs');
+  const { translationSourceDigest } = await import('./translation.mjs');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mag-library-metadata-'));
+  try {
+    const result = { language: 'zh', speakers: [{id:'SPEAKER_00',name:'Adrian'},{id:'SPEAKER_01',name:'Guest'}], segments: [{start:0,end:12,text:'茶',speaker:'SPEAKER_00'}], metadata: {duration_seconds:98,review:{status:'reviewed'}} };
+    fs.mkdirSync(path.join(dir,'translations'));
+    fs.writeFileSync(path.join(dir,'transcript.json'),JSON.stringify(result));
+    const sourceDigest = translationSourceDigest(result);
+    for (const [language,state,digest,version] of [['en','complete',sourceDigest,3],['es','complete','old',3],['fr','running',sourceDigest,3],['de','complete',sourceDigest,2],['it','complete',sourceDigest,3]]) {
+      fs.writeFileSync(path.join(dir,'translations',language+'.state.json'),JSON.stringify({language,state,sourceDigest:digest,version,pid:process.pid}));
+      if (language !== 'it') fs.writeFileSync(path.join(dir,'translation.'+language+'.json'),JSON.stringify({language,metadata:{translation:{sourceDigest:digest,version}}}));
+    }
+    const sourceJobs = ['11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222'];
+    const saved = {state:'saved',savedAt:'2026-10-05T01:00:00Z',files:[]}, exported = {state:'failed',error:'Remote sync failed'};
+    const data = publicJob({id:'33333333-3333-3333-3333-333333333333',story:'Conversation',file:'joined.wav',output:dir,source:'/private/original.wav',sourceJobs,transcriptReady:true,saved,export:exported,parts:[{source:'/private/part1.wav',start:0,end:12},{source:'/private/part2.wav',start:12,end:98}]});
+    assert.equal(data.durationSeconds,98);assert.equal(data.speakerCount,2);assert.equal(data.reviewStatus,'reviewed');assert.equal(data.partCount,2);
+    assert.deepEqual(data.availableLanguages,['zh','en']);assert.deepEqual(data.sourceJobs,sourceJobs);assert.deepEqual(data.saved,saved);assert.deepEqual(data.export,exported);
+    assert.equal(data.parts[0].source,'part1.wav');assert.equal(data.output,undefined);assert.equal(data.source,undefined);
+    delete result.metadata.duration_seconds;fs.writeFileSync(path.join(dir,'transcript.json'),JSON.stringify(result));assert.equal(publicJob({...data,output:dir}).durationSeconds,12);
+    fs.rmSync(path.join(dir,'transcript.json'));assert.equal(publicJob({...data,output:dir}).transcriptReady,false);assert.match(publicJob({...data,output:dir}).transcriptError,/retained/);
+  } finally {fs.rmSync(dir,{recursive:true,force:true});}
+});
+
+test('one missing transcript or malformed job does not remove the recording library', () => {
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'mag-library-recovery-')), prior=process.env.MAG_LOCAL_CONFIG;
+  try {
+    fs.mkdirSync(path.join(dir,'.transcription-jobs'));const config=path.join(dir,'config.json');fs.writeFileSync(config,JSON.stringify({magFiles:dir}));process.env.MAG_LOCAL_CONFIG=config;
+    const validId='11111111-1111-1111-1111-111111111111', missingId='22222222-2222-2222-2222-222222222222', brokenId='33333333-3333-3333-3333-333333333333';
+    fs.writeFileSync(path.join(dir,'.transcription-jobs',validId+'.json'),JSON.stringify({id:validId,story:'Original',state:'saved',started:'2026-10-05T01:00:00Z'}));
+    fs.writeFileSync(path.join(dir,'.transcription-jobs',missingId+'.json'),JSON.stringify({id:missingId,story:'Archived transcript',state:'done',started:'2026-10-05T02:00:00Z',transcriptReady:true,output:path.join(dir,'absent')}));
+    fs.writeFileSync(path.join(dir,'.transcription-jobs',brokenId+'.json'),'{incomplete');
+    const jobs=localJobs();assert.equal(jobs.length,3);assert.equal(jobs.find(j=>j.id===validId).story,'Original');assert.match(jobs.find(j=>j.id===missingId).transcriptError,/retained/);assert.equal(jobs.find(j=>j.id===brokenId).state,'failed');
+  } finally {if(prior)process.env.MAG_LOCAL_CONFIG=prior;else delete process.env.MAG_LOCAL_CONFIG;fs.rmSync(dir,{recursive:true,force:true});}
+});

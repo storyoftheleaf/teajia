@@ -75,10 +75,32 @@ export function localJobs() {
   const config = readConfig();
   try {
     return fs.readdirSync(root(config)).filter(n => /^[a-f0-9-]{36}\.json$/.test(n))
-      .map(n => readJob(config, n.slice(0, -5))).sort((a, b) => b.started.localeCompare(a.started));
+      .map(n => {
+        const id = n.slice(0, -5);
+        try { const job = readJob(config, id); return { ...job, ...libraryMetadata(job) }; }
+        catch { return { id, story: 'Recording needs recovery', file: 'Saved recording', state: 'failed', stage: 'recovery', error: 'Recording details could not be read. The saved files are retained.', started: fs.statSync(jobFile(config,id)).mtime.toISOString(), transcriptReady: false, partCount: 1, sourceJobs: [], availableLanguages: [], translations: [], reviewStatus: 'unreviewed' }; }
+      }).sort((a, b) => String(b.started || '').localeCompare(String(a.started || '')));
   } catch { return []; }
 }
-const publicJob = job => ({ id: job.id, story: job.story, file: job.file, state: job.state, stage: job.stage, error: job.error, started: job.started, parts: job.parts?.map(p=>({source:path.basename(p.source),start:p.start,end:p.end})), transcriptReady: !!job.transcriptReady, translations: job.transcriptReady ? translationStatus(job,JSON.parse(fs.readFileSync(path.join(job.output,'transcript.json'),'utf8'))) : [], ...(job.saved ? { saved: job.saved } : {}), ...(job.export ? { export: job.export } : {}) });
+function libraryMetadata(job) {
+  const sourceJobs = (Array.isArray(job.sourceJobs) ? job.sourceJobs : []).filter(id => typeof id === 'string' && /^[a-f0-9-]{36}$/.test(id));
+  const base = { transcriptReady: !!job.transcriptReady, sourceJobs, partCount: Math.max(1, job.parts?.length || sourceJobs.length || job.sources?.length || 1), availableLanguages: [], translations: [], reviewStatus: 'unreviewed' };
+  if (!job.transcriptReady) return base;
+  try {
+    const result = JSON.parse(fs.readFileSync(path.join(job.output,'transcript.json'),'utf8'));
+    if (!Array.isArray(result.segments) || !Array.isArray(result.speakers)) throw new Error('Invalid transcript');
+    const duration = result.metadata?.duration_seconds;
+    const durationSeconds = typeof duration === 'number' && Number.isFinite(duration) && duration >= 0 ? duration : result.segments.reduce((end, segment) => typeof segment.end === 'number' && Number.isFinite(segment.end) ? Math.max(end, segment.end) : end, 0);
+    let translations = [];
+    try { translations = translationStatus(job,result); } catch {}
+    const availableLanguages = [...new Set([result.language, ...translations.filter(t => {
+      if (t.state !== 'complete' || t.stale || t.outdated) return false;
+      try { const translated = loadTranslation(job,result,t.language); return translated && !translated.stale && !translated.outdated; } catch { return false; }
+    }).map(t=>t.language)].filter(language => typeof language === 'string' && /^[a-z]{2,3}(?:-[A-Za-z]{2,4})?$/.test(language)))];
+    return { ...base, durationSeconds, speakerCount: result.speakers.length, reviewStatus: result.metadata?.review?.status === 'reviewed' ? 'reviewed' : 'unreviewed', availableLanguages, translations };
+  } catch { return { ...base, transcriptReady: false, transcriptError: 'Transcript could not be read. The saved recording is retained for recovery.' }; }
+}
+export const publicJob = job => ({ id: job.id, story: job.story, file: job.file, state: job.state, stage: job.stage, error: job.error, started: job.started, parts: job.parts?.map(p=>({source:path.basename(p.source),start:p.start,end:p.end})), ...libraryMetadata(job), ...(job.saved ? { saved: job.saved } : {}), ...(job.export ? { export: job.export } : {}) });
 const send = (res, status, data) => { res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(data)); };
 async function body(req) {
   let value = '';

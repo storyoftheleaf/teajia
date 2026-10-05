@@ -239,3 +239,9 @@ Drop or choose files, check the automatic filename order and total duration, the
 Click a speaker label to open its name and hear up to eight seconds of that speaker. **Apply names everywhere** updates the working transcript and exports. **Needs review** lists suspected repeated text, low-probability words and missing speakers; each link opens the original segment correction beside audio playback. These are heuristic flags, not an accuracy score.
 
 **Save to Mag** saves current original Markdown/JSON and all fresh translated Markdown together in the existing conversation output folder, with download links that survive reload. Old or unfinished translations are excluded and reported. Local save and i64 OS sync have separate status; a failed sync never removes local files. Story approvals remain separate.
+
+### Conversation library
+
+The compact drop bar reveals recording name and join settings after files are selected. Titles are suggested from filenames; the ordered preview shows total duration before Start. Joined source parts sit inside their conversation instead of appearing as duplicate library rows. Select files reveals checkboxes; the join toolbar appears only while files are selected.
+
+Processing conversations appear first and update status and their primary action in place. Each conversation groups duration, speakers, review status, available languages and local save state. Sync failures are labelled separately. Missing transcripts retain an actionable library row instead of blanking the library. The transcript sidebar guides Name speakers → Check transcript → Translate → Save to Mag. Long review lists show six examples and a Next flagged section control that reaches every flagged segment.

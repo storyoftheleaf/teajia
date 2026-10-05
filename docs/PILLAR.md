@@ -71,4 +71,4 @@ No streaks, gamification, engagement notifications, algorithmic recommendations,
 
 `docs/INDEX.md` routes everything. `docs/VISION.md` is the philosophy and the five layers (tools, sourcing, education, scaffolding, community). `docs/STATE_OF_THE_SITE.md` is the verified snapshot. `docs/SITE_MAP.md` lists routes by tier but its home page line is stale (it describes the April build). `CLAUDE.md` carries the styling rules and the money rules in full.
 
-The local transcription studio uses a compact drop → ordered preview → Start → review/name speakers → Save to Mag flow. Original and fresh translated working files stay together; story approvals and remote sync remain separate from local processing.
+The local transcription studio uses a compact drop → ordered preview → Start → name speakers → check transcript → translate → Save to Mag flow. The conversation library nests recorder parts and groups duration, languages, review and save state; upload options and selection actions appear when needed. Original and fresh translated working files stay together; story approvals and remote sync remain separate from local processing.

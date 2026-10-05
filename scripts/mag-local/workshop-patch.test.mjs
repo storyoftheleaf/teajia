@@ -6,7 +6,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { spawnSync } from 'node:child_process';
 import { patchWorkshop, patchLegacyIntake, intakeStory, sourceHash } from './workshop-patch.mjs';
-import { renderTranscript, renderLocalJob, transcriptPage, LOCAL_JOB_JS, renderRecordings, reviewIssues } from './workshop-ui.mjs';
+import { renderTranscript, renderLocalJob, transcriptPage, LOCAL_JOB_JS, renderRecordings, reviewIssues, cleanRecordingTitle, suggestedConversationTitle } from './workshop-ui.mjs';
 
 const original = fs.readFileSync(new URL('./fixtures/mag-preview.original.mjs',import.meta.url),'utf8');
 const shell = fs.readFileSync(new URL('./fixtures/mag-intake.original.sh',import.meta.url),'utf8');
@@ -168,4 +168,16 @@ test('recorder part names fit a narrow sidebar and preserve original filenames',
  const filename='TX00_MIC024_20261003_143858_orig.wav';
  const html=renderTranscript({speakers:[],segments:[],metadata:{recording_parts:[{source:'/recordings/'+filename,start:0,end:1800}]}},{id:'test'});
  assert.match(html,/class="part-time">00:00:00/);assert.match(html,/class="part-name">MIC024 · 14:38:58/);assert.ok(html.includes('title="'+filename+'"'));assert.match(html,/aria-label="Play TX00_MIC024/);
+});
+
+ test('conversation library nests source parts and puts active work first',()=>{
+ const html=renderRecordings([{id:'part',file:'part1.wav',state:'done',transcriptReady:true},{id:'joined',story:'Tea interview',sourceJobs:['part'],state:'done',transcriptReady:true,partCount:2,availableLanguages:['zh','en'],saved:{state:'saved'}},{id:'busy',story:'Current recording',state:'running'}]);
+ assert.doesNotMatch(html,/data-local-job="part"/);assert.match(html,/recording parts/);assert.ok(html.indexOf('data-local-job="busy"')<html.indexOf('data-local-job="joined"'));assert.match(html,/Saved to Mag · ZH · EN/);assert.match(html,/data-upload-settings hidden/);assert.match(html,/data-bulk-toolbar hidden/);
+});
+test('recording titles are readable and unavailable transcripts remain actionable',()=>{
+ assert.equal(cleanRecordingTitle('TX00_MIC024_20261003_143858_orig.wav'),'MIC024 · 2026-10-03 14:38');assert.equal(suggestedConversationTitle('TX00_MIC024_20261003_143858_orig.wav'),'Conversation · 2026-10-03');
+ const html=renderLocalJob({id:'moved',state:'done',transcriptError:'File moved',transcriptReady:false});assert.match(html,/data-recording-category="attention"/);assert.match(html,/data-job-retry="moved"/);assert.doesNotMatch(html,/Open →/);
+});
+test('guided review keeps a long issue list bounded while exposing all flagged sections',()=>{
+ const segments=Array.from({length:20},(_,i)=>({start:i,end:i+1,text:'Unclear',speaker:null}));const html=renderTranscript({speakers:[],segments},{id:'review'});assert.equal((html.match(/data-review-jump=/g)||[]).length,6);assert.match(html,/Next flagged section/);assert.match(html,/data-guide-step="save"/);assert.match(html,/data-issue-indices/);
 });
