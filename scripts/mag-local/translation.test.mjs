@@ -19,6 +19,8 @@ function mock(callback = () => 'Hello') {
     assert.equal(url.hostname, '127.0.0.1');
     const request = JSON.parse(options.body);
     assert.equal(request.stream, false);
+    assert.match(request.system, /individual turns may use different languages or mix languages/);
+    assert.match(request.system, /Translate every passage outside the target language/);
     assert.equal(request.format.type, 'object');
     const prompt = JSON.parse(request.prompt);
     const translated = await callback(++calls, prompt);
