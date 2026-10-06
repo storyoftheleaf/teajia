@@ -37,6 +37,7 @@ function listSources(root: string, prefix = ''): Array<[string, string]> {
 
 const worker = read('../src/index.ts');
 const feed = read('../src/exchangeRateFeed.ts');
+const sources = read('../src/exchangeRateSources.ts');
 const adminTypes = read('../../src/admin/types.ts');
 
 /** The currencies the app lets an operator record a cost in. */
@@ -79,7 +80,13 @@ describe('the daily rate refresh', () => {
     const fn = worker.match(/async function syncLiveExchangeRates[\s\S]*?\n\}/);
     expect(fn, 'syncLiveExchangeRates moved or was renamed').toBeTruthy();
     const body = fn![0];
-    expect(body).toMatch(/if\s*\(!resp\.ok\)\s*return false/);
+    // A refused or malformed feed is folded into a reason by fetchLiveRates and
+    // comes back as `refreshed: false`, before any write is reached.
+    expect(body).toMatch(/if\s*\(!live\.ok\)\s*return\s*\{\s*refreshed:\s*false/);
+    expect(sources, 'a non-OK feed answer must be a failure, not a parse attempt')
+      .toMatch(/if\s*\(!resp\.ok\)/);
+    expect(sources, 'a zero or negative rate must be dropped by the parser')
+      .toMatch(/value\s*<=\s*0/);
     expect(body).toMatch(/rateToUsd\s*<=\s*0\)\s*continue/);
   });
 
@@ -151,10 +158,10 @@ describe('the daily rate refresh', () => {
     // The gate has to sit above the fetch, or it is not a gate.
     expect(body.indexOf('last_updated'), 'the gate reads nothing')
       .toBeGreaterThan(-1);
-    expect(body.indexOf('last_updated')).toBeLessThan(body.indexOf('await fetch('));
+    expect(body.indexOf('last_updated')).toBeLessThan(body.indexOf('await fetchLiveRates('));
     // And the timestamp it reads must only ever be written on success, which
     // the upsert below the fetch is what guarantees.
-    expect(body.indexOf('await fetch(')).toBeLessThan(body.indexOf('INSERT INTO exchange_rates'));
+    expect(body.indexOf('await fetchLiveRates(')).toBeLessThan(body.indexOf('INSERT INTO exchange_rates'));
 
     const cron = read('../wrangler.toml').match(/crons\s*=\s*\[([^\]]*)\]/);
     expect(cron, 'no cron trigger').toBeTruthy();
@@ -170,6 +177,8 @@ describe('the daily rate refresh', () => {
     const fn = worker.match(/async function syncLiveExchangeRates[\s\S]*?\n\}/)![0];
     expect(fn, 'a failed refresh must leave the stored rows standing')
       .not.toMatch(/DELETE\s+FROM\s+exchange_rates|UPDATE\s+exchange_rates\s+SET\s+rate_to_usd\s*=\s*0/i);
+    expect(sources, 'the feed module must never write to the rate table')
+      .not.toMatch(/exchange_rates/i);
 
     const hook = read('../../src/admin/hooks/useAdminData.ts');
     expect(hook, 'a failed rate read must fall back to the last known rates')
