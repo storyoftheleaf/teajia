@@ -543,6 +543,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       }
       if (data.price != null && !entry.priceAmount) {
         updates.priceAmount = data.price;
+        // The label said which money; it beats a currency nobody chose.
+        if (data.currency && !(entry.touchedFields ?? []).includes('priceCurrency')) {
+          updates.priceCurrency = data.currency as Currency;
+        }
       }
       if (data.grams != null && !entry.pricePerUnitGrams) {
         updates.pricePerUnitGrams = data.grams;

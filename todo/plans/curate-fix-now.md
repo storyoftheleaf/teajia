@@ -9,7 +9,7 @@ Done marks say where; everything else is still open.
 - [ ] a3 People without catalog access land on a dead page (send each role to its first room, hide what they cannot open)
 - [ ] a4 Purchase records (ledger) live only on the phone and are not separated by shop
 ## Wrong money
-- [ ] m1 Price-tag scan throws away the currency it reads; preview always says NT$
+- [x] m1 (v2) Price-tag scan throws away the currency it reads; preview always says NT$
 - [x] m2 (v2) Ledger lines multiply the per-100 g price by grams
 - [ ] m3 Promotion copies a per-N-gram quote as the whole cost
 - [ ] m4 A default currency can be sent as stated after a restart (touched fields lost on hydrate)

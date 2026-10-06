@@ -1,3 +1,5 @@
+import { canonicalCurrency, currencyInText } from '../../lib/currency';
+import { CURRENCY_LABELS } from './PricingRow';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { createPortal } from 'react-dom';
@@ -17,6 +19,8 @@ export interface ExtractedTeaData {
   season?: string;
   region?: string;
   price?: number;
+  /** The money the label's price is in, as the shop's key (Yuan, NT, HKD…). */
+  currency?: string;
   grams?: number;
   extraNotes?: string;
 }
@@ -65,7 +69,7 @@ const SCAN_ERROR_COPY: Record<ScanErrorCode, string> = {
   extract_failed: "Couldn't read this label",
 };
 
-function parseExtractResult(r: Record<string, any>): ExtractedTeaData {
+export function parseExtractResult(r: Record<string, any>): ExtractedTeaData {
   const data: ExtractedTeaData = {};
   if (r.name || r.givenName || r.given_name) data.name = r.name || r.givenName || r.given_name;
   if (r.chineseName || r.chinese_name) data.chineseName = r.chineseName || r.chinese_name;
@@ -83,6 +87,14 @@ function parseExtractResult(r: Record<string, any>): ExtractedTeaData {
     data.price = typeof priceRaw === 'number' ? priceRaw : parseFloat(priceRaw) || undefined;
   }
   // Grams: the worker/Gemini contract returns `quantityPurchased` (always grams).
+  // The reader returns the currency it saw; it used to be thrown away, so a
+  // Taiwan tag's NT$ price was stored under the default yuan, about 4.5 times
+  // too high once the shop converted it. Read through the shop's one map.
+  const currencyRaw = r.costCurrency ?? r.cost_currency ?? r.currency ?? r.priceCurrency;
+  if (data.price != null && currencyRaw) {
+    const key = canonicalCurrency(String(currencyRaw)) ?? currencyInText(String(currencyRaw));
+    if (key) data.currency = key;
+  }
   const gramsRaw = r.grams ?? r.weight ?? r.quantityPurchased ?? r.quantity_purchased;
   if (gramsRaw !== undefined && gramsRaw !== null && gramsRaw !== '' && gramsRaw !== 0) {
     data.grams = typeof gramsRaw === 'number' ? gramsRaw : parseFloat(gramsRaw) || undefined;
@@ -546,7 +558,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               {(extractedPreview.price != null || extractedPreview.grams != null) && (
                 <p className="text-ui-12 text-tea-text-dim tabular-nums">
                   {[
-                    extractedPreview.price != null && `NT$${extractedPreview.price}`,
+                    extractedPreview.price != null && `${CURRENCY_LABELS[extractedPreview.currency as keyof typeof CURRENCY_LABELS] ?? extractedPreview.currency ?? ''}${extractedPreview.price}`,
                     extractedPreview.grams != null && `${extractedPreview.grams}g`,
                   ].filter(Boolean).join(' · ')}
                 </p>
