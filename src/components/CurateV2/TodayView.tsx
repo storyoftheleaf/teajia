@@ -26,8 +26,26 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct }) => 
         </button>
       </div>
       <Section title="Waiting" count={items.length} />
-      {items.length === 0 && (
+      {items.length === 0 && entries.length > 0 && (
         <p className="px-4 py-4 text-ui-13 text-tea-text-sec">Nothing waiting. Start a table, or add a tea by name.</p>
+      )}
+      {entries.length === 0 && (
+        // First time here: how a tea gets from a vendor's table to the shelf.
+        <ol className="grid gap-0 px-4 pt-2">
+          {[
+            ['At the table', 'Start a table, type each tea\u2019s name and price as the vendor says it, tap the cup to taste.'],
+            ['Decide', 'Each tea waits here until you choose Buy, Sample or Pass. Compare a few in Teas.'],
+            ['Order and shelve', 'Orders writes the message to the vendor. When a tea arrives, it goes on the shelf from here.'],
+          ].map(([title, body], i) => (
+            <li key={title} className="flex items-baseline gap-3 border-b border-tea-border py-3">
+              <span className="font-display text-ui-20 text-tea-gold tabular-nums">{i + 1}</span>
+              <span className="min-w-0">
+                <span className="block font-display text-ui-17 text-tea-text">{title}</span>
+                <span className="block text-ui-13 text-tea-text-sec">{body}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
       )}
       {items.map((item) => {
         const e = byId.get(item.entryId);

@@ -651,6 +651,27 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     setDuplicateMatch(null);
   }, [duplicateMatch, updateEntry]);
 
+  // "Same tea, new price?" Copy what was known about the earlier capture into
+  // this one's EMPTY fields, never over anything already typed here.
+  const handleCopyDetails = useCallback(() => {
+    if (!duplicateMatch || !entry) return;
+    const updates: Partial<TeaCompassEntry> = {};
+    const fill = <K extends keyof TeaCompassEntry>(key: K) => {
+      if ((entry[key] == null || entry[key] === '') && duplicateMatch[key] != null && duplicateMatch[key] !== '') {
+        (updates as Record<string, unknown>)[key as string] = duplicateMatch[key];
+      }
+    };
+    (['type', 'form', 'year', 'season', 'storage', 'originRegion', 'originCountry', 'chineseName', 'pricePerUnitGrams', 'vendorId', 'vendorName'] as const).forEach(fill);
+    if (entry.priceAmount == null && duplicateMatch.priceAmount != null) {
+      updates.priceAmount = duplicateMatch.priceAmount;
+      updates.priceCurrency = duplicateMatch.priceCurrency;
+    }
+    if (Object.keys(updates).length) update(updates);
+    dismissedDuplicateRef.current = duplicateMatch.id;
+    setShowDuplicateNudge(false);
+    setDuplicateMatch(null);
+  }, [duplicateMatch, entry, update]);
+
   const handleDifferentTea = useCallback(() => {
     if (duplicateMatch) dismissedDuplicateRef.current = duplicateMatch.id;
     setShowDuplicateNudge(false);
@@ -1766,6 +1787,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               type: duplicateMatch.type,
             }}
             onSameTea={handleSameTea}
+            onCopyDetails={handleCopyDetails}
             onDifferentTea={handleDifferentTea}
             onDismiss={handleDismissDuplicate}
           />

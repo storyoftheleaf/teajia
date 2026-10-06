@@ -27,8 +27,8 @@ Done marks say where; everything else is still open.
 - [ ] s2 Voice button hidden from everyone but platform owners
 - [ ] s3 Carry the last tea's details forward
 - [~] s4 Currency follows the vendor (v2: the table's vendor carries to every new tea; currency per vendor still to do)
-- [ ] s5 "Same tea as before?" can copy details
-- [ ] s6 Focus the next tea's name after Done
+- [x] s5 (v2) "Same tea as before?" can copy details
+- [x] s6 (v2) Focus the next tea's name after Done
 - [ ] s7 Keep Done in reach
 - [x] s8 Quick-add row reads the whole line (v2 Table: "Mengku 2018 ¥450/cake")
 - [ ] s9 Scan fills the form directly
@@ -39,7 +39,7 @@ Done marks say where; everything else is still open.
 - [x] t5 Check tasting terms against the taxonomy on promotion
 - [ ] t7 Start a re-taste from the last one
 ## New curators
-- [ ] p1 First-run guide
+- [x] p1 (v2) First-run guide
 - [~] p2 Plain words (v2: Teas, Orders, empty screens; "Graduate", "Compass" route still elsewhere)
 - [ ] p3 More currencies from the refreshed rate list
 - [ ] p4 Who captured what; merge duplicates

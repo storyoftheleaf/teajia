@@ -11,6 +11,8 @@ interface DuplicateNudgeProps {
     type?: string;
   };
   onSameTea: () => void;
+  /** Fill this capture's empty fields from the earlier one. */
+  onCopyDetails?: () => void;
   onDifferentTea: () => void;
   onDismiss: () => void;
 }
@@ -30,6 +32,7 @@ function formatDate(iso: string): string {
 export const DuplicateNudge: React.FC<DuplicateNudgeProps> = ({
   matchedEntry,
   onSameTea,
+  onCopyDetails,
   onDifferentTea,
   onDismiss,
 }) => {
@@ -66,6 +69,15 @@ export const DuplicateNudge: React.FC<DuplicateNudgeProps> = ({
           >
             Same
           </button>
+          {onCopyDetails && (
+            <button
+              type="button"
+              onClick={onCopyDetails}
+              className="pill pill-dense curate-duplicate-action text-tea-gold"
+            >
+              Copy details
+            </button>
+          )}
           <button
             type="button"
             onClick={onDifferentTea}

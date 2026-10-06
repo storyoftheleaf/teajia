@@ -538,6 +538,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     const remaining = getSessionEntries().filter(
       (e) => e.id !== activeEntryId && entryHasDeliberateInput(e)
     );
+    // Straight on to the next tea: the cursor goes to the table's name line.
+    window.requestAnimationFrame(() => {
+      Array.from(document.querySelectorAll<HTMLInputElement>('input[aria-label="Name the next tea"]'))
+        .find((input) => input.offsetParent !== null)?.focus();
+    });
     if (remaining.length > 0) {
       setActiveEntry(remaining[0].id);
     } else {
