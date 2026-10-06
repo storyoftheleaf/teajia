@@ -17,13 +17,16 @@ import {
   ChevronLeft,
   ChevronRight,
   Tag,
+  Send,
 } from 'lucide-react';
 import { useLedgerStore } from '../../lib/ledgerStore';
+import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import type { LedgerTransaction, LedgerLineItem } from '../../lib/ledgerStore';
 import type { Currency } from '../../admin/types';
 import { useAppStore } from '../../lib/store';
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
+import { OrderMessageSheet } from './OrderMessageSheet';
 
 // ─── Currency helpers ────────────────────────────────────────────────────────
 
@@ -321,6 +324,7 @@ const TransactionCard: React.FC<{
   const [justConfirmed, setJustConfirmed] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [showTagSheet, setShowTagSheet] = useState(false);
+  const [messageOpen, setMessageOpen] = useState(false);
 
   const handleSharePdf = useCallback(async () => {
     setPdfLoading(true);
@@ -556,6 +560,18 @@ const TransactionCard: React.FC<{
                   </button>
                 )}
 
+                {isPurchase && tx.items.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setMessageOpen(true)}
+                    className="pill flex items-center gap-1 text-tea-gold"
+                    aria-label="Message the vendor about this order"
+                  >
+                    <Send size={12} />
+                    Message
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={handleSharePdf}
@@ -598,6 +614,8 @@ const TransactionCard: React.FC<{
           </motion.div>
         )}
       </AnimatePresence>
+
+      <OrderMessageSheet tx={messageOpen ? tx : null} onOpenChange={(open) => { if (!open) setMessageOpen(false); }} />
 
       {/* Tag sheet overlay */}
       {showTagSheet && (
@@ -684,7 +702,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
           </button>
           <div className="flex gap-2">
             <button
-              onClick={() => createTransaction('purchase', '', 'NT')}
+              onClick={() => createTransaction('purchase', '', useTeaCompassStore.getState().lastCurrency)}
               className="flex-1 px-4 py-2.5 bg-tea-surface text-tea-text-sec text-ui-10 font-semibold uppercase tracking-[0.08em] transition-colors active:text-tea-text"
             >
               Quick Note
@@ -751,7 +769,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
         <div className="flex gap-2">
           <button
             onClick={() => {
-              createTransaction('purchase', '', 'NT');
+              createTransaction('purchase', '', useTeaCompassStore.getState().lastCurrency);
             }}
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-tea-gold/5 text-tea-text-sec text-ui-11 font-semibold uppercase tracking-[0.08em] active:text-tea-text transition-colors"
           >

@@ -4,7 +4,8 @@ import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { parseTeaInput } from './InputParser';
 import { REGION_NAMES } from '../../wisdom';
 import type { TeaCompassEntry } from './types';
-import { quotedUnit } from './curateV2Model';
+import { linePriceFields, quotedUnit, readLinePrice, tastingLine } from './curateV2Model';
+import { VendorPickerSheet } from './VendorPickerSheet';
 import { CURRENCY_LABELS } from './PricingRow';
 
 interface TableListProps {
@@ -36,6 +37,9 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
   const commitEntry = useTeaCompassStore((s) => s.commitEntry);
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
   const [name, setName] = useState('');
+  const [pickingVendor, setPickingVendor] = useState(false);
+  const lastVendorName = useTeaCompassStore((s) => s.lastVendorName);
+  const setLastVendor = useTeaCompassStore((s) => s.setLastVendor);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // This table is the current capture run: teas saved in it, plus any draft
@@ -50,8 +54,12 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
     .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
 
   const add = () => {
-    const text = name.trim();
-    if (!text) { inputRef.current?.focus(); return; }
+    const typed = name.trim();
+    if (!typed) { inputRef.current?.focus(); return; }
+    // "Mengku 2018 ¥450/cake": the price comes out first, then the reader
+    // finds type, form, year and region in what is left.
+    const price = readLinePrice(typed);
+    const text = price?.rest || typed;
     const parsed = parseTeaInput(text, REGION_NAMES);
     const keep = activeEntryId;
     const id = startNewCapture('tea');
@@ -66,6 +74,7 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
     if (parsed.season) updates.season = parsed.season;
     if (parsed.storage) updates.storage = parsed.storage;
     if (parsed.region) updates.originRegion = parsed.region;
+    if (price) Object.assign(updates, linePriceFields(price));
     updateEntry(id, updates);
     commitEntry(id);
     if (keep) setActiveEntry(keep);
@@ -75,6 +84,21 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
 
   return (
     <div className="curate-v2 -mx-4 mb-3 border-t border-tea-border">
+      <button type="button" onClick={() => setPickingVendor(true)} className="curate-v2-row w-full text-left">
+        <span className="curate-v2-label">Table</span>
+        <span className={lastVendorName ? 'curate-v2-name' : 'text-ui-13 text-tea-text-sec'}>{lastVendorName || 'Whose table? Add it any time'}</span>
+        <span className="flex-1" />
+        <span className="text-ui-12 text-tea-gold">{lastVendorName ? 'Change' : 'Choose'}</span>
+      </button>
+      <VendorPickerSheet
+        open={pickingVendor}
+        onOpenChange={setPickingVendor}
+        onPick={(id, vendorName) => {
+          setLastVendor(id, vendorName);
+          setPickingVendor(false);
+          inputRef.current?.focus();
+        }}
+      />
       <div className="curate-v2-row">
         <input
           ref={inputRef}
@@ -82,7 +106,7 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') add(); }}
           enterKeyHint="next"
-          placeholder="Name the next tea…"
+          placeholder="Name the next tea, and its price if you have it…"
           aria-label="Name the next tea"
           className="min-w-0 flex-1 border-0 border-b border-tea-border bg-transparent py-2 font-display text-ui-17 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold"
         />
@@ -102,7 +126,9 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
             <button type="button" onClick={() => onOpen(e.id)} className="flex min-w-0 flex-1 items-baseline gap-2 text-left">
               {e.photos?.[0] && <span className="h-7 w-7 shrink-0 self-center rounded-md bg-cover bg-center" style={{ backgroundImage: `url(${e.photos[0]})` }} aria-hidden="true" />}
               <span className="curate-v2-name">{e.name?.trim() || 'Untitled tea'}</span>
-              {e.year != null && <span className="text-ui-12 text-tea-text-dim tabular-nums">{e.year}</span>}
+              {tastingLine(e.tasting)
+                ? <span className="min-w-0 truncate text-ui-12 text-tea-gold tabular-nums">{tastingLine(e.tasting).split(' · ').slice(0, 2).join(' · ')}</span>
+                : e.year != null && <span className="text-ui-12 text-tea-text-dim tabular-nums">{e.year}</span>}
               <span className="flex-1" />
               {e.priceAmount != null ? (
                 <span className="text-ui-13 font-medium text-tea-text-sec tabular-nums">

@@ -1351,13 +1351,15 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             className={`flex flex-col overflow-hidden ${
               libraryGrid
                 ? 'flex-1 min-w-0'
-                : 'w-[264px] shrink-0 border-r border-tea-border'
+                : mode === 'sourcing'
+                  ? 'w-[360px] shrink-0 border-r border-tea-border'
+                  : 'w-[264px] shrink-0 border-r border-tea-border'
             }`}
           >
 
             {/* Search bar (desktop) */}
-            <div className="shrink-0 px-4 pt-2.5 pb-1">
-              <div className="relative">
+            <div className="shrink-0 flex items-center gap-3 px-4 pt-2.5 pb-1">
+              <div className="relative min-w-0 flex-1">
                 <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
                 <input
                   ref={desktopSearchInputRef}
@@ -1365,9 +1367,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   value={tabSearchQuery}
                   onChange={(e) => setTabSearchQuery(e.target.value)}
                   placeholder={
-                    mode === 'sourcing' ? 'Search entries…'
-                    : mode === 'library' ? 'Search Library'
-                    : 'Search transactions…'
+                    mode === 'sourcing' ? 'Search teas…'
+                    : mode === 'library' ? 'Search teas'
+                    : 'Search orders…'
                   }
                   className="w-full min-h-11 bg-tea-surface border border-tea-border text-tea-text text-ui-16 rounded-md pl-9 pr-10 py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors"
                 />
@@ -1382,6 +1384,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   </button>
                 )}
               </div>
+              {mode === 'library' && (
+                <button type="button" onClick={() => { setPrevMode('library'); setMode('compare'); }} className="tap-target min-h-11 shrink-0 text-ui-13 font-medium text-tea-gold">
+                  Compare
+                </button>
+              )}
             </div>
 
             {/* Scrollable left content */}

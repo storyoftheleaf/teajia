@@ -9,6 +9,8 @@
  * never disagree. Nothing here invents a term.
  */
 import type { TastingData } from '../../types';
+import { currencyInText } from '../../lib/currency';
+import type { Currency } from '../../admin/types';
 import type { TeaCompassEntry } from './types';
 
 // ── Today ────────────────────────────────────────────────────────────────
@@ -191,4 +193,71 @@ export function tastingLine(t: TastingData | undefined): string {
   for (const f of a.flavour.slice(0, 2)) parts.push(label('flavour', f));
   if (a.stays[0]) parts.push(label('stays', a.stays[0]));
   return parts.join(' · ');
+}
+
+// ── A price inside the name line ─────────────────────────────────────────
+
+export interface LinePrice {
+  amount: number;
+  /** The shop's currency key, when the line said which money. Read by the
+   *  shop's one currency reader (src/lib/currency.ts); a bare $ says nothing. */
+  currency?: string;
+  /** What the price is for, the way the vendor said it. */
+  unit?: 'jin' | 'liang' | 'g' | '100g' | 'cake' | 'brick' | 'tuo';
+  /** "per 150g": the grams the price is for, when the line said a number. */
+  grams?: number;
+  /** The line with the price taken out. */
+  rest: string;
+}
+
+const UNIT_WORDS: Array<[RegExp, LinePrice['unit']]> = [
+  [/^(?:jin|斤)$/i, 'jin'],
+  [/^(?:liang|两)$/i, 'liang'],
+  [/^(?:100\s?g|100\s?grams?)$/i, '100g'],
+  [/^(?:g|gram|grams|克)$/i, 'g'],
+  [/^(?:cake|cakes|bing|饼)$/i, 'cake'],
+  [/^(?:brick|bricks|砖)$/i, 'brick'],
+  [/^(?:tuo|沱)$/i, 'tuo'],
+];
+
+/**
+ * Reads "¥450/cake", "380 a jin", "NT$1800 per 150g" out of a typed or spoken
+ * line. A number counts as a price only when it carries a currency mark or a
+ * unit, so a year ("2018") or a count in a name is never read as one.
+ */
+export function readLinePrice(line: string): LinePrice | null {
+  const re = /(nt\$|hk\$|cn¥|¥|￥|\$|rmb|cny|usd|ntd|nt|hkd)?\s?(\d[\d,]*(?:\.\d+)?)\s?(元|块|yuan|rmb)?\s*(?:\/|per|a|each|for|一)?\s*(\d+\s?g(?:rams?)?|jin|斤|liang|两|grams?|g|克|cakes?|bing|饼|bricks?|砖|tuo|沱)?(?![\w])/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(line))) {
+    const [whole, pre, num, post, unitWord] = m;
+    if (!pre && !post && !unitWord) continue;
+    const amount = Number(num.replace(/,/g, ''));
+    if (!Number.isFinite(amount) || amount <= 0) continue;
+    const mark = (pre || post || '').trim();
+    const currency = mark ? currencyInText(mark) ?? undefined : undefined;
+    const gramsMatch = unitWord ? /^(\d+)\s?g/i.exec(unitWord.trim()) : null;
+    const grams = gramsMatch ? Number(gramsMatch[1]) : undefined;
+    const unit = gramsMatch ? undefined : unitWord ? UNIT_WORDS.find(([r]) => r.test(unitWord.trim()))?.[1] : undefined;
+    if (!currency && !unit && !grams) continue;
+    const rest = (line.slice(0, m.index) + ' ' + line.slice(m.index + whole.length)).replace(/\s{2,}/g, ' ').trim();
+    return { amount, currency, unit, grams, rest };
+  }
+  return null;
+}
+
+/** The entry fields a line price writes, in the shapes Curate already uses. */
+export function linePriceFields(p: LinePrice): { priceAmount: number; priceCurrency?: Currency; pricePerUnitGrams?: number; form?: 'Cake' | 'Brick' | 'Tuo' } {
+  const out: ReturnType<typeof linePriceFields> = { priceAmount: p.amount };
+  if (p.currency) out.priceCurrency = p.currency as Currency;
+  if (p.grams) out.pricePerUnitGrams = p.grams;
+  switch (p.unit) {
+    case 'jin': out.pricePerUnitGrams = 500; break;
+    case 'liang': out.pricePerUnitGrams = 50; break;
+    case '100g': out.pricePerUnitGrams = 100; break;
+    case 'g': out.pricePerUnitGrams = 1; break;
+    case 'cake': out.form = 'Cake'; break;
+    case 'brick': out.form = 'Brick'; break;
+    case 'tuo': out.form = 'Tuo'; break;
+  }
+  return out;
 }

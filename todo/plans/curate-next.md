@@ -105,3 +105,17 @@ Agents now write Curate through MCP (`worker/src/mcpTools/curateIntake.ts`, bran
 - **Who added it**: agent notes carry author_name "Adrian (via GrokBot)"; new vendors carry source "curate (added by GrokBot)".
 - A vendor's website is a contacts entry {channel:'other', handle:url, label:'website'}; the vendor card should show it.
 - Notes with source_type 'voice' are Adrian's words kept whole; show them folded at the bottom of a tea, per the "long things fold" rule.
+
+## Ten ideas after three review passes (2026-10-07), top four built
+Built:
+1. A price in the name line: "Mengku 2018 ¥450/cake", "Jingmai 380 a jin", "Li Shan NT$1,800 per 150g". A number counts as a price only with a currency mark or a unit, so years never do.
+2. "Whose table?" on the Table: a vendor search, a new vendor in one tap, every next tea inherits it.
+3. Message the vendor from an order: every tea on it, Chinese then English, one tap Copy, WhatsApp to their number when the card has one.
+4. The fast tasting's first words on each row ("9 · Clean"), so a table reads at a glance.
+Next:
+5. The same "missing" words as the agents (`teaMissing()`), on rows and Today.
+6. Agent to-dos (`curate_todos`) on Today, ticked off there.
+7. The vendor card messages them directly (WeChat copy, WhatsApp) and shows the website.
+8. Compare lights the best figure on more rows (per gram, clean, finish).
+9. What you said, folded at the bottom of a tea, opened on tap.
+10. Keyboard on the laptop: Enter adds, Tab moves to price, a key opens the fast tasting.

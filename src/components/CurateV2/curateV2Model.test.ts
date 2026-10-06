@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import taxonomy from '../../data/teajia-tasting-taxonomy.json';
-import { FAST_TASTING, applyFast, quotedUnit, readFast, tastingLine, todayItems } from './curateV2Model';
+import { FAST_TASTING, applyFast, linePriceFields, quotedUnit, readFast, readLinePrice, tastingLine, todayItems } from './curateV2Model';
 import { createEmptyEntry, type TeaCompassEntry } from './types';
 
 const entry = (over: Partial<TeaCompassEntry>): TeaCompassEntry => ({
@@ -90,5 +90,25 @@ describe('todayItems', () => {
     expect(items.map((i) => [i.entryId, i.action])).toEqual([
       ['c', 'taste'], ['b', 'decide'], ['a', 'add-cost'], ['d', 'shelf'],
     ]);
+  });
+});
+
+describe('readLinePrice', () => {
+  it('reads a price the way it is said at the table', () => {
+    expect(readLinePrice('Mengku 2018 ¥450/cake')).toMatchObject({ amount: 450, currency: 'Yuan', unit: 'cake', rest: 'Mengku 2018' });
+    expect(readLinePrice('Jingmai 380 a jin')).toMatchObject({ amount: 380, unit: 'jin', rest: 'Jingmai' });
+    expect(readLinePrice('Li Shan NT$1,800 per 150g')).toMatchObject({ amount: 1800, currency: 'NT', grams: 150, rest: 'Li Shan' });
+    expect(linePriceFields(readLinePrice('Li Shan NT$1,800 per 150g')!)).toEqual({ priceAmount: 1800, priceCurrency: 'NT', pricePerUnitGrams: 150 });
+    expect(readLinePrice('old oolong 120元一两')).toMatchObject({ amount: 120, currency: 'Yuan', unit: 'liang' });
+  });
+
+  it('never reads a year or a bare number as a price', () => {
+    expect(readLinePrice('Yiwu 2019 sheng')).toBeNull();
+    expect(readLinePrice('7572 Menghai')).toBeNull();
+  });
+
+  it('writes the fields Curate already uses', () => {
+    expect(linePriceFields({ amount: 380, unit: 'jin', rest: '' })).toEqual({ priceAmount: 380, pricePerUnitGrams: 500 });
+    expect(linePriceFields({ amount: 450, currency: 'Yuan', unit: 'cake', rest: '' })).toEqual({ priceAmount: 450, priceCurrency: 'Yuan', form: 'Cake' });
   });
 });

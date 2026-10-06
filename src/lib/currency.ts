@@ -185,6 +185,8 @@ const FREE_TEXT_SPELLINGS: ReadonlyArray<readonly [RegExp, string]> = [
   [/CNY/, 'CNY'],
   [/YUAN/, 'YUAN'],
   [/[¥￥]/, '¥'],
+  // A price said in Chinese at the table: 120元, 380块 (spoken yuan).
+  [/[元块]/, 'YUAN'],
   [/HK\$/, 'HK$'],
   [/\bHKD\b/, 'HKD'],
   [/\bJPY\b/, 'JPY'],

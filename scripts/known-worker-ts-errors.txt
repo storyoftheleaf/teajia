@@ -23,9 +23,9 @@ worker/src/eventArticleDraft.ts:49:TS18046
 worker/src/eventArticleDraft.ts:49:TS7006
 worker/src/eventDomain.ts:9:TS2322
 worker/src/index.ts:12051:TS2322
-worker/src/index.ts:23405:TS2322
-worker/src/index.ts:23449:TS2322
-worker/src/index.ts:23969:TS2352
+worker/src/index.ts:23403:TS2322
+worker/src/index.ts:23447:TS2322
+worker/src/index.ts:23967:TS2352
 worker/src/index.ts:3112:TS2345
 worker/src/index.ts:3147:TS2345
 worker/src/index.ts:6729:TS2352
@@ -38,5 +38,5 @@ worker/src/index.ts:8458:TS7053
 worker/src/index.ts:8458:TS7053
 worker/src/index.ts:8470:TS7053
 worker/src/index.ts:8471:TS7053
-worker/src/mcp.ts:1843:TS2322
-worker/src/mcp.ts:810:TS2322
+worker/src/mcp.ts:1844:TS2322
+worker/src/mcp.ts:811:TS2322

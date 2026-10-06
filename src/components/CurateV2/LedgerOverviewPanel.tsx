@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { ArrowDownLeft, ArrowUpRight, ShoppingBag } from 'lucide-react';
 import { useLedgerStore } from '../../lib/ledgerStore';
+import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useAppStore } from '../../lib/store';
 import { CompassIcon } from './CompassIcon';
 import { useRates } from '../../admin/hooks/useAdminData';
@@ -228,7 +229,7 @@ export const LedgerOverviewPanel: React.FC = () => {
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => createTransaction('purchase', '', 'NT')}
+            onClick={() => createTransaction('purchase', '', useTeaCompassStore.getState().lastCurrency)}
             className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-tea-border text-tea-text-sec text-ui-12 hover:bg-tea-surface transition-colors"
           >
             <ArrowDownLeft size={13} />
