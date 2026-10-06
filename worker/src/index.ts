@@ -3,7 +3,7 @@ import {
   oauthProtectedResourceMetadata, oauthAuthorizationServerMetadata,
   oauthRegister, oauthAuthorize, oauthAuthorizeRequestInfo, oauthAuthorizeDecision, oauthToken,
 } from './mcp';
-import { foldHandlesIntoContacts, HANDLE_CHANNELS, withContactHandles } from './customerContactHandles';
+import { customerTagList, customerTagsForStore, foldHandlesIntoContacts, HANDLE_CHANNELS, withContactHandles } from './customerContactHandles';
 import {
   abandonCurateImport, acceptCurateImportItem, addCurateImportItem, addCurateImportSource, analyzeCurateImport, createCurateImport, getCurateImport,
   createVendorForCurateImportGroup, finalizeCurateImportRequest, getCurateImportEvidence, listIncompleteCurateImports, mergeCurateImportItem,
@@ -7700,7 +7700,7 @@ const handleGetCustomers: Handler = async (request, env) => {
   ).map(c => ({
     ...c,
     contacts: typeof c.contacts === 'string' ? JSON.parse(c.contacts || '[]') : (c.contacts ?? []),
-    tags: typeof c.tags === 'string' ? JSON.parse(c.tags || '[]') : (c.tags ?? []),
+    tags: customerTagList(c.tags),
     contact_tags: tagMap.get(c.id) || [],
     relationship_kinds: relationshipMap.get(c.id) || [],
   }));
@@ -7724,7 +7724,7 @@ const handleGetCustomer: Handler = async (request, env, params) => {
   const parsed = {
     ...withContactHandles(customer as Record<string, unknown>),
     contacts: typeof customer.contacts === 'string' ? JSON.parse(customer.contacts || '[]') : (customer.contacts ?? []),
-    tags: typeof customer.tags === 'string' ? JSON.parse(customer.tags || '[]') : (customer.tags ?? []),
+    tags: customerTagList(customer.tags),
     relationship_kinds: relationships,
     orders,
   };
@@ -9765,7 +9765,7 @@ const handleCreateCustomer: Handler = async (request, env) => {
   delete body.account_id;
   const id = crypto.randomUUID();
 
-  if (Array.isArray(body.tags)) body.tags = JSON.stringify(body.tags);
+  if (body.tags !== undefined) body.tags = customerTagsForStore(body.tags);
   if (Array.isArray(body.contacts)) body.contacts = JSON.stringify(body.contacts);
 
   await env.DB.prepare(
@@ -9802,7 +9802,7 @@ const handleUpdateCustomer: Handler = async (request, env, params) => {
 
   const body = await request.json() as Record<string, any>;
   delete body.account_id;
-  if (Array.isArray(body.tags)) body.tags = JSON.stringify(body.tags);
+  if (body.tags !== undefined) body.tags = customerTagsForStore(body.tags);
   if (Array.isArray(body.contacts)) body.contacts = JSON.stringify(body.contacts);
   // `customers` has no wechat/instagram column: those handles live in contacts.
   if (HANDLE_CHANNELS.some((c) => Object.prototype.hasOwnProperty.call(body, c))) {
@@ -12008,7 +12008,7 @@ const handleRSVP: Handler = async (request, env, params) => {
   if (customer) {
     customerId = customer.id as string;
     try {
-      const tags = typeof customer.tags === 'string' ? JSON.parse(customer.tags) : customer.tags;
+      const tags = customerTagList(customer.tags);
       if (Array.isArray(tags) && tags.some((t: string) => t.toLowerCase() === 'golden')) {
         accessTier = 'golden';
       }
@@ -15607,8 +15607,7 @@ const handleCreateCurateVisit: Handler = async (request, env) => {
   if (body.vendor_id != null) {
     const vendor = await env.DB.prepare('SELECT id, name, tags FROM customers WHERE id = ? AND account_id = ?').bind(body.vendor_id, ctx.accountId).first() as { name?: string; tags?: string } | null;
     if (!vendor) return json({ error: 'Vendor not found' }, 404);
-    let tags: unknown[] = [];
-    try { tags = JSON.parse(vendor.tags || '[]'); } catch { tags = []; }
+    const tags = customerTagList(vendor.tags).map((t) => t.toLowerCase());
     if (!tags.includes('vendor')) return json({ error: 'Selected customer is not tagged as a vendor' }, 400);
     body.vendor_name = vendor.name ?? null;
   }
@@ -15630,8 +15629,7 @@ const handleUpdateCurateVisit: Handler = async (request, env, params) => {
   if (body.vendor_id !== undefined && body.vendor_id != null) {
     const vendor = await env.DB.prepare('SELECT id, name, tags FROM customers WHERE id = ? AND account_id = ?').bind(body.vendor_id, ctx.accountId).first() as { name?: string; tags?: string } | null;
     if (!vendor) return json({ error: 'Vendor not found' }, 404);
-    let tags: unknown[] = [];
-    try { tags = JSON.parse(vendor.tags || '[]'); } catch { tags = []; }
+    const tags = customerTagList(vendor.tags).map((t) => t.toLowerCase());
     if (!tags.includes('vendor')) return json({ error: 'Selected customer is not tagged as a vendor' }, 400);
     body.vendor_name = vendor.name ?? null;
   }

@@ -670,9 +670,9 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
         <div className="w-20 h-20 rounded-full bg-tea-gold/8 flex items-center justify-center mb-5 shadow-[0_0_30px_var(--tea-accent-sub)]">
           <ShoppingBag className="w-8 h-8 text-tea-gold/40" />
         </div>
-        <h3 className="font-serif text-lg text-tea-text mb-1.5 tracking-wide">No transactions yet</h3>
+        <h3 className="font-serif text-lg text-tea-text mb-1.5 tracking-wide">No orders yet</h3>
         <p className="text-ui-13 text-tea-text-sec font-serif text-center max-w-[240px] leading-relaxed mb-8">
-          Mark items as "Buy" in the Compass, or start a new purchase or sale here.
+          Choose Buy on a tea, or start an order here.
         </p>
         <div className="flex flex-col gap-2 w-full max-w-xs">
           <button

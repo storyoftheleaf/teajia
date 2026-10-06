@@ -64,3 +64,30 @@ export function withContactHandles<T extends Record<string, unknown>>(row: T): T
   }
   return out as T & Partial<Record<HandleChannel, string>>;
 }
+
+/**
+ * A customer's tags as a list, whatever shape the row holds.
+ *
+ * `tags` is meant to be a JSON array, but Curate's vendor picker created
+ * vendors with `tags: 'vendor'`, a bare word, and the create route stored it as
+ * sent. Every read then ran JSON.parse over it and threw, so one vendor added
+ * from Curate took down the whole customer list. Reads now accept a bare word
+ * or a comma list as well as JSON; writes store JSON.
+ */
+export function customerTagList(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw.map(String).filter(Boolean);
+  if (typeof raw !== 'string' || !raw.trim()) return [];
+  const text = raw.trim();
+  if (text.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
+    } catch { /* fall through to the plain-text reading */ }
+  }
+  return text.split(',').map((t) => t.trim()).filter(Boolean);
+}
+
+/** Tags as the column stores them: a JSON array. */
+export function customerTagsForStore(raw: unknown): string {
+  return JSON.stringify(customerTagList(raw));
+}

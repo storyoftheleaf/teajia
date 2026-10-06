@@ -1,3 +1,5 @@
+import { quotedUnit } from './curateV2Model';
+import { CURRENCY_LABELS } from './PricingRow';
 import React, { useMemo, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { useNavigate } from 'react-router-dom';
@@ -147,6 +149,8 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
   const { entries, browseFilter, setBrowseFilter, browseSort, setBrowseSort, browseLayout, setBrowseLayout, libraryFilters, setLibraryFilters, removeEntry, updateEntry, hydrationStatus } = useTeaCompassStore();
+  // Curate v2: each tea is one line; tapping it opens the full card in place.
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [cleanupDismissed, setCleanupDismissed] = useState(false);
   const [sortSheetOpen, setSortSheetOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -329,14 +333,25 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: prefersReducedMotion ? 0 : 0.18 }}
             >
-              <BrowseCard
-                entry={entry}
-                onEdit={onEditEntry}
-                tasteQueueActive={opts?.tasteQueueActive}
-                onSelect={onSelectEntry}
-                isSelected={selectedEntryId === entry.id}
-                onAcquire={onAcquireEntry}
-              />
+              {expandedRowId === entry.id ? (
+                <div className="curate-v2">
+                  <button type="button" onClick={() => setExpandedRowId(null)} className="curate-v2-row w-full text-left" aria-expanded="true">
+                    <span className="curate-v2-name">{entry.name || 'Untitled tea'}</span>
+                    <span className="flex-1" />
+                    <span className="text-ui-12 text-tea-text-dim">Close</span>
+                  </button>
+                  <BrowseCard
+                    entry={entry}
+                    onEdit={onEditEntry}
+                    tasteQueueActive={opts?.tasteQueueActive}
+                    onSelect={onSelectEntry}
+                    isSelected={selectedEntryId === entry.id}
+                    onAcquire={onAcquireEntry}
+                  />
+                </div>
+              ) : (
+                <V2TeaRow entry={entry} onOpen={() => setExpandedRowId(entry.id)} />
+              )}
             </motion.div>
           );
         })}
@@ -663,7 +678,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
     return (
       <div role="alert" className="flex flex-col items-center justify-center py-16 text-center">
         <h3 className="text-ui-16 font-serif text-tea-text">Library could not refresh</h3>
-        <p className="mt-2 max-w-[32rem] text-ui-12 text-tea-text-sec">Your local Library is empty. Check the connection and try again before assuming there are no saved encounters.</p>
+        <p className="mt-2 max-w-[32rem] text-ui-12 text-tea-text-sec">Your teas haven't loaded yet. Check the connection and try again.</p>
         <button type="button" onClick={() => void hydrateCompassEntries(activeAccountId ?? undefined)} className="tap-target mt-4 min-h-11 text-ui-12 text-tea-gold hover:text-tea-gold-lt" aria-label="Retry Library sync">Retry</button>
       </div>
     );
@@ -675,7 +690,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         <div className="w-20 h-20 rounded-full bg-tea-gold/8 flex items-center justify-center mb-5 shadow-[0_0_30px_var(--tea-accent-sub)]">
           <CompassIcon className="w-9 h-9 text-tea-gold/30" />
         </div>
-        <h3 className="font-serif text-ui-16 text-tea-text mb-1.5 tracking-wide">No tea encounters yet</h3>
+        <h3 className="font-serif text-ui-16 text-tea-text mb-1.5 tracking-wide">No teas yet</h3>
         <p className="text-ui-12 text-tea-text-sec text-center max-w-[240px] leading-relaxed mb-8 font-serif">
           Every tea has a story. Start capturing the ones you taste, want, and buy.
         </p>
@@ -943,5 +958,25 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         />
       )}
     </div>
+  );
+};
+
+
+/** Curate v2's one-line tea row: name, year, who sold it, then the price as
+ *  quoted and the score, anchored right. */
+const V2TeaRow: React.FC<{ entry: TeaCompassEntry; onOpen: () => void }> = ({ entry, onOpen }) => {
+  const sym = CURRENCY_LABELS[entry.priceCurrency] ?? '';
+  const unit = quotedUnit(entry);
+  return (
+    <button type="button" onClick={onOpen} className="curate-v2 curate-v2-row w-full text-left" aria-expanded="false">
+      <span className="curate-v2-name">{entry.name || 'Untitled tea'}</span>
+      {entry.year != null && <span className="text-ui-12 text-tea-text-dim tabular-nums">{entry.year}</span>}
+      {entry.vendorName && <span className="min-w-0 truncate text-ui-12 text-tea-text-dim">{entry.vendorName}</span>}
+      <span className="flex-1" />
+      {entry.tasting?.quality != null && <span className="text-ui-12 text-tea-text-sec tabular-nums">{entry.tasting.quality}/10</span>}
+      {entry.priceAmount != null
+        ? <span className="text-ui-13 font-medium text-tea-text-sec tabular-nums">{sym}{entry.priceAmount.toLocaleString()}{unit && <span className="ml-1 text-ui-12 font-normal text-tea-text-dim">{unit}</span>}</span>
+        : <span className="text-ui-12 text-tea-text-dim">add cost</span>}
+    </button>
   );
 };

@@ -77,3 +77,29 @@ describe('foldHandlesIntoContacts', () => {
     expect(withContactHandles({ contacts: '[{"channel":"wechat","handle":"w"}]' }).wechat).toBe('w');
   });
 });
+
+/**
+ * Curate created vendors with `tags: 'vendor'`, a bare word, and the list read
+ * ran JSON.parse over every row, so one such vendor made GET /api/customers a
+ * 500 for the whole shop: the vendor picker and the People page both empty.
+ */
+describe('a vendor created from Curate', () => {
+  it('is stored with a list of tags, and an old bare-word row no longer breaks the customer list', async () => {
+    const db = new SqliteD1();
+    databases.push(db);
+    seedIdentity(db, { userId: 'owner-one', accountId: 'acc-one' });
+    db.sqlite.exec(`INSERT INTO customers (id, account_id, name, tags) VALUES ('old-1', 'acc-one', 'Old vendor', 'vendor')`);
+
+    const created = await call(db, '/api/customers', { method: 'POST', body: JSON.stringify({ name: 'Wang Laoshi', tags: 'vendor', source: 'compass' }) });
+    expect(created.status).toBe(201);
+    const { id } = await created.json() as { id: string };
+    const stored = db.sqlite.prepare('SELECT tags FROM customers WHERE id = ?').get(id) as { tags: string };
+    expect(JSON.parse(stored.tags)).toEqual(['vendor']);
+
+    const list = await call(db, '/api/customers');
+    expect(list.status).toBe(200);
+    const rows = await list.json() as Array<{ name: string; tags: string[] }>;
+    expect(rows.find((r) => r.name === 'Old vendor')?.tags).toEqual(['vendor']);
+    expect(rows.find((r) => r.name === 'Wang Laoshi')?.tags).toEqual(['vendor']);
+  });
+});

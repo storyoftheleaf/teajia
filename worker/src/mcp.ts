@@ -26,6 +26,7 @@
 // still fire). Nothing in this file touches D1 in a way that bypasses the
 // admin UI's invariants.
 
+import { customerTagList } from './customerContactHandles';
 import { combineToolModules, type ToolModule } from './mcpTools/registry';
 import { PENDING_TTL_MS as TICKET_PENDING_TTL_MS } from './mcpTools/tickets';
 import { transferToolModule } from './mcpTools/transfer';
@@ -3041,7 +3042,7 @@ async function toolRemoveVendorContact(env: Env, auth: McpAuth, args: any) {
   if (!customer) return { error: 'not_found' };
 
   let tags: string[] = [];
-  try { tags = Array.isArray(JSON.parse(customer.tags || '[]')) ? JSON.parse(customer.tags || '[]') : []; } catch { tags = []; }
+  tags = customerTagList(customer.tags);
   const [productLinks, invoiceLinks, groupLinks] = await Promise.all([
     env.DB.prepare('SELECT COUNT(*) AS n FROM products WHERE vendor_id = ? AND account_id = ?').bind(customerId, auth.accountId).first<{ n: number }>(),
     env.DB.prepare('SELECT COUNT(*) AS n FROM invoices WHERE customer_id = ? AND account_id = ?').bind(customerId, auth.accountId).first<{ n: number }>(),
