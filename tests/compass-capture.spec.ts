@@ -172,7 +172,7 @@ test.describe('Curate field capture preservation', () => {
     }
   });
 
-  test('keeps Retail shipping and Buy quantity controls on the working scale', async ({ page }) => {
+  test('shows the shelf price from the shop freight and keeps Buy quantity on the working scale', async ({ page }) => {
     await openCompass(page);
     await page.evaluate(async () => {
       // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
@@ -181,13 +181,12 @@ test.describe('Curate field capture preservation', () => {
       state.updateEntry(state.activeEntryId!, { priceAmount: 500, pricePerUnitGrams: 100 });
     });
 
-    const shipping = page.getByRole('button', { name: 'add ship cost', exact: true }).filter({ visible: true }).first();
-    await expect.poll(async () => (await shipping.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
-    expect(parseFloat(await shipping.evaluate((element) => getComputedStyle(element).fontSize))).toBe(12);
-    await shipping.click();
-    const shippingInput = page.getByRole('spinbutton', { name: 'Shipping cost per kilogram' }).filter({ visible: true }).first();
-    await expect.poll(async () => (await shippingInput.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
-    expect(parseFloat(await shippingInput.evaluate((element) => getComputedStyle(element).fontSize))).toBe(16);
+    // Freight is the shop's own rate from Store Settings, shown beside the
+    // shelf price, never typed into Curate. Curate used to keep a freight box
+    // of its own that started at zero, so its previews priced free freight.
+    const preview = page.getByTestId('curate-shelf-preview').filter({ visible: true }).first();
+    await expect(preview).toBeVisible();
+    await expect(page.getByRole('button', { name: 'add ship cost', exact: true })).toHaveCount(0);
 
     await page.getByTestId('capture-action-footer').filter({ visible: true }).getByRole('button', { name: 'Buy', exact: true }).click();
     const quantity = page.getByRole('spinbutton', { name: 'Purchase quantity' }).filter({ visible: true }).first();
