@@ -41,14 +41,14 @@ import { INVALID_TICKET, consumeTicket, issueTicket, previewEnvelope } from './t
 
 // ── Small readers ─────────────────────────────────────────────────────────────
 
-function str(value: unknown, max = 500): string | null {
+export function str(value: unknown, max = 500): string | null {
   if (value == null) return null;
   if (typeof value !== 'string' && typeof value !== 'number') return null;
   const text = String(value).trim();
   return text ? text.slice(0, max) : null;
 }
 
-function agentName(args: any): string {
+export function agentName(args: any): string {
   return str(args?.agent, 60) ?? 'an agent';
 }
 
@@ -56,7 +56,7 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function parseJson<T>(raw: unknown, fallback: T): T {
+export function parseJson<T>(raw: unknown, fallback: T): T {
   if (raw == null) return fallback;
   if (typeof raw !== 'string') return raw as T;
   try { return JSON.parse(raw) as T; } catch { return fallback; }
@@ -136,6 +136,14 @@ function readYear(raw: unknown): { year?: number; era?: string } {
 }
 
 const CATEGORY_VALUES = new Set(['tea', 'teaware']);
+export const TRANSPORT_MODES = new Set(['air', 'sea', 'land', 'courier']);
+
+/** "I'm interested in buying it" lands on the same two columns the app's buttons write. */
+const WANTS: Record<string, { decision: string; status: string; said: string }> = {
+  considering: { decision: 'considering', status: 'want', said: 'interested, deciding' },
+  buying: { decision: 'selected', status: 'buying', said: 'buying it' },
+  passed: { decision: 'passed_on', status: 'pass', said: 'passing on it' },
+};
 
 /** The tea fields an agent may set, read into compass column values. */
 function readTeaFields(args: any, label: string): { values: Record<string, unknown>; price: QuotedPrice | null; lines: string[] } {
@@ -146,6 +154,7 @@ function readTeaFields(args: any, label: string): { values: Record<string, unkno
     ['form', 'form', 80], ['season', 'season', 40], ['storage', 'storage', 80],
     ['origin_country', 'country', 80], ['origin_region', 'region', 160], ['cultivar', 'cultivar', 120],
     ['description', 'description', 4000], ['teaware_category', 'teaware kind', 80], ['material', 'material', 120],
+    ['shop_name', 'shop name', 200],
   ];
   for (const [key, word, max] of simple) {
     const v = str(args?.[key], max);
@@ -161,6 +170,20 @@ function readTeaFields(args: any, label: string): { values: Record<string, unkno
     if (!Number.isInteger(ml) || ml <= 0) throw new Error('capacity_ml must be a whole number of millilitres');
     values.capacity_ml = ml;
     lines.push(`capacity: ${ml} ml`);
+  }
+  if (args?.ships_by != null) {
+    const mode = str(args.ships_by, 20)?.toLowerCase() ?? null;
+    if (!mode || !TRANSPORT_MODES.has(mode)) throw new Error('ships_by must be air, sea, land or courier');
+    values.transport_mode = mode;
+    lines.push(`ships by: ${mode}`);
+  }
+  if (args?.wants != null) {
+    const wants = str(args.wants, 20);
+    const mapped = wants ? WANTS[wants] : undefined;
+    if (!mapped) throw new Error(`wants must be one of: ${Object.keys(WANTS).join(', ')}`);
+    values.decision = mapped.decision;
+    values.status = mapped.status;
+    lines.push(`Adrian: ${mapped.said}`);
   }
   const y = readYear(args?.year);
   if (y.year != null) { values.year = y.year; lines.push(`year: ${y.year}`); }
@@ -208,7 +231,7 @@ function readTasting(args: any): { byCategory: Record<string, string[]>; score: 
 
 // ── Vendors ───────────────────────────────────────────────────────────────────
 
-type VendorRow = {
+export type VendorRow = {
   id: string; name: string; company: string | null; phone: string | null; whatsapp: string | null;
   email: string | null; city: string | null; country: string | null; address: string | null;
   notes: string | null; contacts: string | null; tags: string | null; type: string | null;
@@ -255,12 +278,12 @@ async function findVendors(env: ToolEnv, auth: ToolAuth, name: string): Promise<
   return rows.results ?? [];
 }
 
-async function vendorById(env: ToolEnv, auth: ToolAuth, id: string): Promise<VendorRow | null> {
+export async function vendorById(env: ToolEnv, auth: ToolAuth, id: string): Promise<VendorRow | null> {
   return env.DB.prepare(`SELECT ${VENDOR_COLUMNS} FROM customers WHERE id = ? AND account_id = ?`)
     .bind(id, auth.accountId).first<VendorRow>();
 }
 
-type VendorPlan = { id: string | null; name: string; isNew: boolean };
+export type VendorPlan = { id: string | null; name: string; isNew: boolean };
 
 /**
  * Who sold it. An id must exist in this shop; a name matches an existing
@@ -268,7 +291,7 @@ type VendorPlan = { id: string | null; name: string; isNew: boolean };
  * vendor. Two vendors with one name is refused with both ids, because guessing
  * puts a tea on the wrong card in silence.
  */
-async function planVendor(env: ToolEnv, auth: ToolAuth, vendorId: string | null, vendorName: string | null): Promise<VendorPlan | null> {
+export async function planVendor(env: ToolEnv, auth: ToolAuth, vendorId: string | null, vendorName: string | null): Promise<VendorPlan | null> {
   if (vendorId) {
     const row = await vendorById(env, auth, vendorId);
     if (!row) throw new Error(`No vendor with id ${vendorId} in this shop. Use curate_find to look it up.`);
@@ -285,13 +308,84 @@ async function planVendor(env: ToolEnv, auth: ToolAuth, vendorId: string | null,
   return { id: pool[0].id, name: pool[0].name, isNew: false };
 }
 
-function newVendorStatements(env: ToolEnv, auth: ToolAuth, id: string, name: string, agent: string): D1PreparedStatement[] {
+/**
+ * The people behind a tea, all private: the vendor who sells it, the freight
+ * forwarder who moves it, the warehouse that holds it. Each is a `customers`
+ * row with its own tag, so a forwarder never shows up in the vendor picker.
+ */
+export type ContactRole = 'vendor' | 'freight' | 'warehouse';
+const ROLE_TAG: Record<ContactRole, string> = { vendor: 'vendor', freight: 'freight', warehouse: 'warehouse' };
+const ROLE_TYPE: Record<ContactRole, string> = { vendor: 'vendor', freight: 'logistics', warehouse: 'logistics' };
+const ROLE_WORD: Record<ContactRole, string> = { vendor: 'vendor', freight: 'freight forwarder', warehouse: 'warehouse' };
+
+function hasRole(row: Pick<VendorRow, 'tags' | 'type'>, role: ContactRole): boolean {
+  if (role === 'vendor') return isVendorRow(row);
+  return new RegExp(ROLE_TAG[role], 'i').test(row.tags ?? '');
+}
+
+function newVendorStatements(env: ToolEnv, auth: ToolAuth, id: string, name: string, agent: string, role: ContactRole = 'vendor'): D1PreparedStatement[] {
   return [
     env.DB.prepare(
       `INSERT INTO customers (id, account_id, type, name, tags, contacts, source, created_at, updated_at)
-       VALUES (?, ?, 'vendor', ?, '["vendor"]', '[]', ?, datetime('now'), datetime('now'))`
-    ).bind(id, auth.accountId, name, `curate (added by ${agent})`),
+       VALUES (?, ?, ?, ?, ?, '[]', ?, datetime('now'), datetime('now'))`
+    ).bind(id, auth.accountId, ROLE_TYPE[role], name, JSON.stringify([ROLE_TAG[role]]), `curate (added by ${agent})`),
   ];
+}
+
+/** What the shop knows about how a vendor works. Every field optional; only what is sent changes. */
+export type VendorProfileWrite = {
+  price_currency?: string; storage?: string; story?: string; ships_from?: string; route?: string; lead_time_days?: number;
+};
+
+function readVendorProfile(args: any, lines: string[]): VendorProfileWrite {
+  const profile: VendorProfileWrite = {};
+  const typed = str(args?.price_currency, 20);
+  if (typed) {
+    if (/^unk$/i.test(typed)) throw new Error("'UNK' is not a currency");
+    const currency = refreshedCurrencyName(typed);
+    if (!currency) throw new Error(`${typed} is not a currency this shop keeps a live rate for. Use one of: ${[...REFRESHED_CURRENCIES].join(', ')}.`);
+    profile.price_currency = currency;
+    lines.push(`quotes prices in: ${currency}`);
+  }
+  for (const [key, word] of [['storage', 'stores tea'], ['ships_from', 'ships from'], ['route', 'route home']] as const) {
+    const v = str(args?.[key], 500);
+    if (v) { profile[key] = v; lines.push(`${word}: ${v}`); }
+  }
+  const story = str(args?.story, 2000);
+  if (story) { profile.story = story; lines.push(`their story: ${story}`); }
+  if (args?.lead_time_days != null && args.lead_time_days !== '') {
+    const days = Number(args.lead_time_days);
+    if (!Number.isInteger(days) || days < 0) throw new Error('lead_time_days must be a whole number of days');
+    profile.lead_time_days = days;
+    lines.push(`takes about ${days} days to arrive`);
+  }
+  return profile;
+}
+
+async function writeVendorProfile(env: ToolEnv, auth: ToolAuth, vendorId: string, p: VendorProfileWrite, agent: string) {
+  if (!Object.keys(p).length) return;
+  const current = await env.DB.prepare('SELECT * FROM curate_vendor_profiles WHERE vendor_id = ? AND account_id = ?')
+    .bind(vendorId, auth.accountId).first<Record<string, any>>();
+  // The story grows: a new fact is added under what is already known, dated.
+  const story = p.story
+    ? (current?.story ? `${current.story}\n${datedLine(agent, p.story)}` : datedLine(agent, p.story))
+    : current?.story ?? null;
+  const merged = {
+    price_currency: p.price_currency ?? current?.price_currency ?? null,
+    storage: p.storage ?? current?.storage ?? null,
+    story,
+    ships_from: p.ships_from ?? current?.ships_from ?? null,
+    route: p.route ?? current?.route ?? null,
+    lead_time_days: p.lead_time_days ?? current?.lead_time_days ?? null,
+  };
+  await env.DB.prepare(
+    `INSERT INTO curate_vendor_profiles (vendor_id, account_id, price_currency, storage, story, ships_from, route, lead_time_days, updated_by_agent, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+     ON CONFLICT(vendor_id) DO UPDATE SET price_currency = excluded.price_currency, storage = excluded.storage, story = excluded.story,
+       ships_from = excluded.ships_from, route = excluded.route, lead_time_days = excluded.lead_time_days,
+       updated_by_agent = excluded.updated_by_agent, updated_at = excluded.updated_at
+     WHERE curate_vendor_profiles.account_id = excluded.account_id`
+  ).bind(vendorId, auth.accountId, merged.price_currency, merged.storage, merged.story, merged.ships_from, merged.route, merged.lead_time_days, agent).run();
 }
 
 async function ensureVendorRelationship(env: ToolEnv, auth: ToolAuth, customerId: string) {
@@ -305,7 +399,7 @@ async function ensureVendorRelationship(env: ToolEnv, auth: ToolAuth, customerId
   } catch { /* older database */ }
 }
 
-async function resolveVendorAtCommit(env: ToolEnv, auth: ToolAuth, plan: VendorPlan | null, agent: string): Promise<{ id: string; name: string } | null> {
+export async function resolveVendorAtCommit(env: ToolEnv, auth: ToolAuth, plan: VendorPlan | null, agent: string): Promise<{ id: string; name: string } | null> {
   if (!plan) return null;
   if (plan.id) {
     const row = await vendorById(env, auth, plan.id);
@@ -321,15 +415,15 @@ async function resolveVendorAtCommit(env: ToolEnv, auth: ToolAuth, plan: VendorP
   return { id, name: plan.name };
 }
 
-function datedLine(agent: string, text: string): string {
+export function datedLine(agent: string, text: string): string {
   return `${today()} (${agent}): ${text}`;
 }
 
 // ── Teas (compass entries) ────────────────────────────────────────────────────
 
-type EntryRow = Record<string, any> & { id: string; name: string | null };
+export type EntryRow = Record<string, any> & { id: string; name: string | null };
 
-async function entryById(env: ToolEnv, auth: ToolAuth, id: string): Promise<EntryRow | null> {
+export async function entryById(env: ToolEnv, auth: ToolAuth, id: string): Promise<EntryRow | null> {
   return env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ? AND user_id = ?')
     .bind(id, auth.accountId, auth.userId).first<EntryRow>();
 }
@@ -377,7 +471,10 @@ function teaSummary(e: Record<string, any>) {
       currency: e.price_currency ?? null,
       per_grams: e.price_per_unit_grams ?? null,
     },
+    shop_name: e.shop_name ?? null,
+    ships_by: e.transport_mode ?? null,
     status: e.status ?? null,
+    decision: e.decision ?? null,
     sample_state: e.sample_state ?? null,
     missing,
   };
@@ -406,7 +503,7 @@ type UpdateTeaTicket = { kind: 'curate:update_tea'; accountId: string; userId: s
 type SaveVendorTicket = {
   kind: 'curate:save_vendor'; accountId: string; vendorId: string | null; name: string; agent: string;
   rename: string | null; columns: Record<string, string>; contacts: Array<{ channel: string; handle: string; label?: string }>;
-  note: string | null;
+  note: string | null; role: ContactRole; profile: VendorProfileWrite;
 };
 type PickTicket = {
   kind: 'curate:pick'; accountId: string; userId: string; agent: string;
@@ -415,7 +512,8 @@ type PickTicket = {
 type CurateTicket = AddTeaTicket | UpdateTeaTicket | SaveVendorTicket | PickTicket;
 
 const CLEARABLE = new Set(['chinese_name', 'type', 'form', 'season', 'storage', 'origin_country', 'origin_region',
-  'cultivar', 'description', 'year', 'era', 'price', 'vendor', 'teaware_category', 'material', 'capacity_ml']);
+  'cultivar', 'description', 'year', 'era', 'price', 'vendor', 'teaware_category', 'material', 'capacity_ml',
+  'shop_name', 'transport_mode']);
 
 function readTeaWrite(args: any, label: string, vendor: VendorPlan | null): { write: TeaWrite; lines: string[] } {
   const fields = readTeaFields(args, label);
@@ -550,7 +648,7 @@ const toolFind: ToolHandler = async (env, auth, args) => {
   };
 };
 
-function vendorSummary(v: VendorRow) {
+export function vendorSummary(v: VendorRow) {
   const reach = vendorReach(v);
   const missing: string[] = [];
   if (!reach.wechat) missing.push('WeChat');
@@ -730,16 +828,20 @@ const toolSaveVendor: ToolHandler = async (env, auth, args) => {
   const vendorId = str(args?.vendor_id, 80);
   const name = str(args?.name, 200);
   if (!vendorId && !name) throw new Error('name is required (or vendor_id to change an existing vendor). A name is all a vendor needs.');
+  const role = (str(args?.role, 20) ?? 'vendor') as ContactRole;
+  if (!ROLE_TAG[role]) throw new Error('role must be vendor, freight or warehouse');
   let existing: VendorRow | null = null;
   if (vendorId) {
     existing = await vendorById(env, auth, vendorId);
-    if (!existing) throw new Error(`No vendor with id ${vendorId} in this shop.`);
+    if (!existing) throw new Error(`No contact with id ${vendorId} in this shop.`);
   } else {
-    const plan = await planVendor(env, auth, null, name);
-    if (plan?.id) existing = await vendorById(env, auth, plan.id);
+    const same = (await findVendors(env, auth, name!)).filter(row => hasRole(row, role));
+    if (same.length > 1) throw new Error(`More than one ${ROLE_WORD[role]} is called "${name}": ${same.map(v => v.id).join(', ')}. Pass vendor_id instead.`);
+    existing = same[0] ?? null;
   }
   const columns: Record<string, string> = {};
   const lines: string[] = [];
+  const profile = readVendorProfile(args, lines);
   for (const [key, word, max] of VENDOR_TEXT_COLUMNS) {
     const v = str(args?.[key], max);
     if (v != null) { columns[key] = v; lines.push(`${word}: ${v}`); }
@@ -761,14 +863,14 @@ const toolSaveVendor: ToolHandler = async (env, auth, args) => {
   const ticket: SaveVendorTicket = {
     kind: 'curate:save_vendor', accountId: auth.accountId, vendorId: existing?.id ?? null,
     name: existing?.name ?? name!, agent, rename: rename && existing && rename !== existing.name ? rename : null,
-    columns, contacts, note,
+    columns, contacts, note, role, profile,
   };
   const token = await issueTicket(env, ticket, auth.tokenId);
   return previewEnvelope({
     action: 'curate_save_vendor',
     read_back: existing
       ? `Add to ${existing.name}'s card. Only the lines below change; everything else on the card stays.`
-      : `Add a new vendor "${name}"${lines.length ? '' : ' (name only, the rest can be filled later)'}.`,
+      : `Add a new ${ROLE_WORD[role]} "${name}"${lines.length ? '' : ' (name only, the rest can be filled later)'}.`,
     mode: existing ? 'update_existing' : 'create_new',
     vendor_id: existing?.id ?? null,
     will_file: lines,
@@ -780,12 +882,13 @@ async function commitSaveVendor(env: ToolEnv, auth: ToolAuth, t: SaveVendorTicke
   let id = t.vendorId;
   let row: VendorRow | null = id ? await vendorById(env, auth, id) : null;
   if (id && !row) throw new Error('That vendor was removed after the preview. Preview again.');
+  const role: ContactRole = t.role ?? 'vendor';
   if (!id) {
-    const again = (await findVendors(env, auth, t.name)).filter(isVendorRow);
+    const again = (await findVendors(env, auth, t.name)).filter(r => hasRole(r, role));
     if (again.length === 1) { id = again[0].id; row = again[0]; }
     else {
       id = crypto.randomUUID();
-      await env.DB.batch(newVendorStatements(env, auth, id, t.name, t.agent));
+      await env.DB.batch(newVendorStatements(env, auth, id, t.name, t.agent, role));
       row = await vendorById(env, auth, id);
     }
   }
@@ -795,7 +898,7 @@ async function commitSaveVendor(env: ToolEnv, auth: ToolAuth, t: SaveVendorTicke
   const merged = [...contacts, ...t.contacts];
   const tags = parseJson<unknown>(row!.tags, []);
   const tagList = Array.isArray(tags) ? tags.map(String) : (row!.tags ? [String(row!.tags)] : []);
-  if (!tagList.some(tag => /vendor/i.test(tag))) tagList.push('vendor');
+  if (!tagList.some(tag => new RegExp(ROLE_TAG[role], 'i').test(tag))) tagList.push(ROLE_TAG[role]);
   const sets: string[] = ['contacts = ?', 'tags = ?'];
   const binds: unknown[] = [JSON.stringify(merged), JSON.stringify(tagList)];
   for (const [key, value] of Object.entries(t.columns)) { sets.push(`${key} = ?`); binds.push(value); }
@@ -806,7 +909,8 @@ async function commitSaveVendor(env: ToolEnv, auth: ToolAuth, t: SaveVendorTicke
   }
   await env.DB.prepare(`UPDATE customers SET ${sets.join(', ')}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
     .bind(...binds, id, auth.accountId).run();
-  await ensureVendorRelationship(env, auth, id!);
+  if (role === 'vendor') await ensureVendorRelationship(env, auth, id!);
+  await writeVendorProfile(env, auth, id!, t.profile ?? {}, t.agent);
   if (t.rename) {
     // The tea rows carry the vendor's name beside its id; keep them saying the same thing.
     await env.DB.prepare('UPDATE tea_compass_entries SET vendor_name = ?, updated_at = datetime(\'now\') WHERE vendor_id = ? AND account_id = ?')
@@ -1089,11 +1193,14 @@ const TEA_FIELD_PROPS = {
   origin_country: { type: 'string', description: 'China, Taiwan…' },
   origin_region: { type: 'string', description: 'Yiwu, Lincang, Li Shan…' },
   cultivar: { type: 'string', description: 'Cultivar if known.' },
-  description: { type: 'string', description: 'A factual description of the tea.' },
+  description: { type: 'string', description: 'The public description customers read, written from Adrian\'s guidance notes (character, flavour, feeling, storage). Never name the vendor or what he paid here; that stays private.' },
   teaware_category: { type: 'string', description: 'For teaware: teapot, cup, gaiwan…' },
   material: { type: 'string', description: 'For teaware: zhuni, porcelain…' },
   capacity_ml: { type: 'number', description: 'For teaware: capacity in ml.' },
   price: PRICE_PROP,
+  shop_name: { type: 'string', description: 'The name customers will see, if Adrian gives one ("call it Deep Forest"). name stays what the vendor calls it.' },
+  ships_by: { type: 'string', enum: ['air', 'sea', 'land', 'courier'], description: 'How it travels home, e.g. sea for "by boat to Bali".' },
+  wants: { type: 'string', enum: ['considering', 'buying', 'passed'], description: '"Interested in buying" = considering; "I\'m buying it" = buying; "not for me" = passed.' },
 };
 const FILING_PROPS = {
   tasting: TASTING_PROP,
@@ -1175,7 +1282,7 @@ const defs: ToolDefinition[] = [
   {
     name: 'curate_save_vendor',
     scope: 'stock:write',
-    description: 'Use this to add a vendor (a name is enough) or to add to a vendor\'s card: company, WeChat, WhatsApp, phone, email, website, Instagram, address, city, country, a dated note. Only what you pass changes; nothing on the card is wiped. Use it after reading a business card photo. Two steps (preview, then confirm).',
+    description: 'Use this to add a vendor, freight forwarder or warehouse (a name is enough) or to add to their card: contacts (company, WeChat, WhatsApp, phone, email, website, Instagram, address, city, country), a dated note, and what the shop knows about how a vendor works (the currency they quote in, how they store tea, their story, where they ship from, the route home, days to arrive). Only what you pass changes; nothing on the card is wiped. Use it after a business card or a WhatsApp/WeChat screenshot, or after researching a vendor online. All private. Two steps (preview, then confirm).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1185,6 +1292,13 @@ const defs: ToolDefinition[] = [
         email: { type: 'string' }, website: { type: 'string' }, instagram: { type: 'string' },
         address: { type: 'string' }, city: { type: 'string' }, country: { type: 'string' },
         note: { type: 'string', description: 'Appended to the card with today\'s date.' },
+        role: { type: 'string', enum: ['vendor', 'freight', 'warehouse'], description: 'vendor (default), freight (a forwarder or shipping agent), or warehouse (a distributor or storage).' },
+        price_currency: { type: 'string', description: 'The currency this vendor quotes in, e.g. HKD for a Hong Kong shop. Next time a price from them comes without one, propose this one and read it back.' },
+        storage: { type: 'string', description: 'How their tea is stored, e.g. "Hong Kong traditional storage".' },
+        story: { type: 'string', description: 'A fact about them worth telling, e.g. "in business for 70 years". Added under what is already known.' },
+        ships_from: { type: 'string', description: 'Where their tea leaves from, e.g. "Sheung Wan, Hong Kong".' },
+        route: { type: 'string', description: 'The way home in words, e.g. "courier Hong Kong to Guangzhou, then boat Guangzhou to Bali".' },
+        lead_time_days: { type: 'number', description: 'About how many days from order to arrival.' },
         agent: AGENT_PROP,
         confirm: CONFIRM_PROP,
       },

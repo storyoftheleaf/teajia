@@ -22,12 +22,80 @@ tests that prove where each one writes are in
    `confirm: <token>`. A token lasts 5 minutes and works once.
 4. **A price is an amount, a currency and a unit, or it is not a price.** "Twelve
    hundred a cake" is `{amount: 1200, currency: "Yuan", per: "piece"}`. If he did
-   not say the currency, ask once (at a mainland table it is usually yuan, but
-   ask). Never guess. 0 means free, not unknown: if there is no price, leave
-   `price` out.
+   not say the currency, work it out from what he did say (bought in Hong Kong,
+   or the vendor's card says they quote in HKD), and read it back as a question:
+   "HK$100 per 100 g?". If there is nothing to work it out from, ask. Never
+   store a guess he has not heard. 0 means free, not unknown: if there is no
+   price, leave `price` out.
 
 A tea needs only a name. A vendor needs only a name. Everything else can come
 later, from anyone.
+
+**Private and public.** Everything about where a tea came from, what it cost,
+how it ships and who moves it is back office: only Adrian sees it. The one thing
+customers will read is the tea's `description`, written from his words about
+the tea itself, and its `shop_name`. Never put the vendor, the price or the
+route in the description.
+
+## Reading what Adrian says: where each piece goes
+
+He talks in a few loose sentences. Your job is to take them apart, file each
+piece in its place, fill what you can work out, look up what you can find, and
+ask him only for what is left. One read-back, one yes.
+
+**His example**, said to GrokBot:
+
+> "I have this 2008 cooked puer I just got from Yee On Tea. A hundred dollars
+> per hundred grams. Smoky, calming, slightly dry. I'm interested in buying it.
+> Call it Deep Forest. It ships by boat to my Bali warehouse."
+
+| He said | It goes to | Tool and field |
+|---|---|---|
+| "2008 cooked puer" | The tea: type and year | `curate_add_tea` `type: "Shou"`, `year: "2008"` (cooked = shou, raw = sheng) |
+| "from Yee On Tea" | Who sold it | `vendor_name`. Then `curate_get_vendor` to read what the shop already knows about them |
+| "a hundred dollars per hundred grams" | The price as quoted | `price: {amount: 100, currency: ?, per_grams: 100}`. Which dollars? Yee On is in Hong Kong, so HKD. Read it back |
+| "smoky, calming, slightly dry" | Tasting | `tasting: {flavor: ["smoky"], feeling: ["calming"], finish: ["finish-dry"]}` |
+| the same words | The public description | `description`: two or three sentences in the shop's voice, built on his words and the storage |
+| "interested in buying it" | His intent | `wants: "considering"` ("I'm buying it" = `buying`, "not for me" = `passed`) |
+| "call it Deep Forest" | The name customers see | `shop_name: "Deep Forest"`; `name` stays "2008 Shou" |
+| "by boat to my Bali warehouse" | How it travels | `ships_by: "sea"` |
+| everything he said | Kept whole | `said`: the whole transcript |
+
+**What you work out without asking**, then read back as part of the one preview:
+
+- **The vendor's habits.** `curate_get_vendor` returns what the shop knows: the
+  currency they quote in, how they store tea, where they ship from, the route
+  home, their story. A Yee On tea is Hong Kong stored, priced in HKD, and goes
+  courier to Guangzhou then boat to Bali. Use it.
+- **A vendor the shop does not know.** Research them online (their shop, their
+  history, where they are), then `curate_save_vendor` with `price_currency`,
+  `storage`, `story` ("in business for 70 years"), `ships_from`, `route`. Read
+  that back too. Next time it is already known.
+- **Storage from place.** Bought in Hong Kong, priced in HKD, a Hong Kong vendor:
+  `storage: "Hong Kong"` on the tea, and say so in the description.
+
+**What you ask** (one question at a time, only what is missing): a price with
+no way to tell the currency; how much a cake weighs before ordering by the
+piece; the shipping cost the first time a route is used.
+
+**When he buys.** "I want one kilo of it" is `curate_order` with the tea and
+`quantity: {amount: 1, unit: "kg"}`. Write the vendor message in their language
+(Chinese, with English beneath, for a Chinese-speaking shop) as `message`. Add
+the shared legs the route uses (`shared_legs`). The preview shows the cost
+landed in Bali. After his yes, the order waits on the Purchase Orders page with
+the message to copy, and the tea waits as an arrival he approves into stock
+when it lands.
+
+**When he says what shipping cost.** "It cost HK$450 to send 3 kg from Yee On to
+Guangzhou" is `curate_record_freight` for that vendor and leg. "The boat to Bali
+was 2,000 yuan for 20 kg" is the same tool with `shared: true`. Keep his total
+and weight; the tool works out the cost per kilo. A new figure replaces the old
+one as current. These figures are for order landed costs; the shelf price still
+uses the shop's freight rate.
+
+**Import and export contacts.** A forwarder, a shipping agent or the distributor's
+warehouse is `curate_save_vendor` with `role: "freight"` or `role: "warehouse"`.
+They stay private and out of the vendor list.
 
 ## Connecting
 
@@ -80,6 +148,9 @@ and so on. The Hermes skill for this is in the i64os repo at
 | `curate_pick_suggestions` | Adrian's picks become Curate teas (samples to request by default); the rest are dropped | preview, confirm |
 | `curate_suggest_teas` | Teas you found, into his suggestions list, with where they came from | one step |
 | `curate_todo` | A reminder on a tea or vendor, or tick one off | one step |
+| `curate_get_vendor` | A vendor's card, what the shop knows about how they work, shipping cost per leg, their teas, orders and to-dos | read |
+| `curate_record_freight` | A shipping cost Adrian reports, per vendor and leg (or shared) | preview, confirm |
+| `curate_order` | An order to a vendor: the message to copy, the landed cost, an arrival to approve | preview, confirm |
 
 Always pass `agent` with your name ("GrokBot", "Hermes", "ChatGPT", "Claude"). It
 is shown beside what you wrote.
@@ -218,7 +289,18 @@ You help Adrian source tea for Teajia through the Teajia tools (server label
   from.vendor_name and from.contact. Then read Adrian the list, numbered, and
   call curate_pick_suggestions with his picks and drops.
 - Teas ADRIAN tells you about: curate_find first, then curate_add_tea or
-  curate_update_tea.
+  curate_update_tea. Read his sentence apart: type and year, vendor, price as
+  quoted, tasting words, intent (wants), the name customers see (shop_name),
+  how it ships (ships_by), a public description from his words, and the whole
+  transcript as said.
+- Before filing anything from a vendor, curate_get_vendor: it says which
+  currency they quote in, how they store tea, and the route home. Use it, and
+  read your inferences back ("HK$100 per 100 g, Hong Kong stored?"). If the
+  shop does not know the vendor, research them online and save what you find
+  with curate_save_vendor.
+- "I want one kilo": curate_order, with the vendor message in their language.
+  "Shipping cost X for Y kg": curate_record_freight.
+- Vendor, price and route are private. Never put them in description.
 - Every tool that changes something answers with a preview and a
   confirmation_token. Read the preview to Adrian in plain words. Only after he
   says yes, call the same tool again with confirm set to the token.
@@ -244,7 +326,12 @@ You help Adrian source tea for Teajia through the Teajia tools (server label
 - **The tick list in the app.** Suggestions can be picked through an agent
   today. The "From your agent" screen in the app is for the second Curate
   (written down in `todo/plans/curate-next.md`, "From the agent session").
-- **Orders.** Purchase orders, freight and the rate on the day are entered in
-  the app.
+- **Approving an arrival in the app.** An order leaves each tea waiting as an
+  arrival to approve into stock, but the app has no list of waiting arrivals
+  yet; it is asked of the second Curate. The order itself shows on the Purchase
+  Orders page today.
+- **Shipping costs in the shelf price.** The real legs give an order its landed
+  cost. The shelf still prices freight at the shop rate; changing that is a
+  separate decision.
 - **Photos into the shop.** A photo goes to Drive; attaching it to the tea in the
   app is done in the app.

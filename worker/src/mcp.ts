@@ -34,6 +34,7 @@ import { eventsToolModule } from './mcpTools/events';
 import { writingToolModule } from './mcpTools/writing';
 import { costCurrencyTools } from './mcpTools/costCurrency';
 import { curateIntakeTools } from './mcpTools/curateIntake';
+import { curateSupplyTools } from './mcpTools/curateSupply';
 import { resolveShopFreightDefault, shippingPerGramUsd } from './shippingRate';
 import { deductStockForPaidInvoice } from './orderLifecycle';
 import { costNeedsCurrency, createMissingCost, currencyStated, costCurrencySourceFor, CURRENCY_SOURCE_STATED, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
@@ -6735,6 +6736,7 @@ const TOOL_MODULES: ToolModule[] = [
   writingToolModule,
   costCurrencyTools,
   curateIntakeTools,
+  curateSupplyTools,
 ];
 
 const { defs: MODULE_TOOL_DEFS, handlers: MODULE_TOOL_HANDLERS } = combineToolModules(TOOL_MODULES);
