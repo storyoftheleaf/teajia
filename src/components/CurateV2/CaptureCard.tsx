@@ -1,3 +1,4 @@
+import { orderLinePrice } from './curateV2Model';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Droplets, Loader2, Minus, Plus, Sparkles } from 'lucide-react';
@@ -235,9 +236,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       if (tx.status !== 'draft') continue;
       for (const item of tx.items) {
         if (item.compassEntryId !== entry.id) continue;
-        const newPrice = entry.priceAmount ?? 0;
-        const unitBased = entry.category === 'teaware' || (['Cake','Brick','Tuo'] as string[]).includes(entry.form || '');
-        const newIsPerGram = !unitBased && !!entry.pricePerUnitGrams;
+        const { pricePerUnit: newPrice, priceIsPerGram: newIsPerGram } = orderLinePrice(entry);
         if (item.pricePerUnit !== newPrice || item.priceIsPerGram !== newIsPerGram) {
           updItem(tx.id, item.id, { pricePerUnit: newPrice, priceIsPerGram: newIsPerGram });
         }
@@ -934,8 +933,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       unitWeightGrams: (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '')
         ? (DEFAULT_GRAMS[entry.form!] ?? 100)
         : undefined,
-      pricePerUnit: entry.priceAmount ?? 0,
-      priceIsPerGram: !unitBased && !!entry.pricePerUnitGrams,
+      ...orderLinePrice(entry),
       currency,
       compassEntryId: entry.id,
     });

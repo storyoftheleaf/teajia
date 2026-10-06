@@ -3,6 +3,7 @@ import {
   oauthProtectedResourceMetadata, oauthAuthorizationServerMetadata,
   oauthRegister, oauthAuthorize, oauthAuthorizeRequestInfo, oauthAuthorizeDecision, oauthToken,
 } from './mcp';
+import { mergeProductTasting, tastingForShop, tastingHasTerms, tastingTermsSupplied } from './curateImportTasting';
 import { customerTagList, customerTagsForStore, foldHandlesIntoContacts, HANDLE_CHANNELS, withContactHandles } from './customerContactHandles';
 import {
   abandonCurateImport, acceptCurateImportItem, addCurateImportItem, addCurateImportSource, analyzeCurateImport, createCurateImport, getCurateImport,
@@ -15768,13 +15769,24 @@ const handleUpdateCompassEntry: Handler = async (request, env, params) => {
   // Feature 2: Propagate tasting data to the linked draft product when tasting is updated.
   // If this compass entry has a promoted product (draft_product_id) and the update includes
   // tasting data, keep the product's tasting field in sync so compass notes are never lost.
+  // It MERGES: the product's tasting also holds the starred notes, the teaser
+  // and the brewing the admin wrote, and a re-taste in Curate used to replace
+  // the whole column and delete them. Only the term categories this tasting
+  // carries words in are replaced, and only with words the shop can print.
   if (updated && updated.draft_product_id && decoded.values.tasting !== undefined) {
     try {
-      const tastingJson = decoded.values.tasting;
-      await env.DB.prepare(
-        `UPDATE products SET tasting = ?, updated_at = datetime('now')
-         WHERE id = ? AND account_id = ?`
-      ).bind(tastingJson, updated.draft_product_id, accountId).run();
+      const product = await env.DB.prepare('SELECT tasting FROM products WHERE id = ? AND account_id = ?')
+        .bind(updated.draft_product_id, accountId).first() as { tasting?: string | null } | null;
+      if (product) {
+        const supplied = tastingTermsSupplied(tastingForShop(decoded.values.tasting));
+        if (Object.keys(supplied).length) {
+          const { next } = mergeProductTasting(product.tasting, supplied);
+          await env.DB.prepare(
+            `UPDATE products SET tasting = ?, updated_at = datetime('now')
+             WHERE id = ? AND account_id = ?`
+          ).bind(JSON.stringify(next), updated.draft_product_id, accountId).run();
+        }
+      }
     } catch {
       // Non-critical — product tasting sync failure must not break the compass update
     }
@@ -15848,7 +15860,11 @@ const handlePromoteCompassEntry: Handler = async (request, env, params) => {
       : captured.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     name = [vendor, dateLabel].filter(Boolean).join(' · ') || 'Unnamed tea';
   }
-  const tasting = entry.tasting; // already a JSON string in storage
+  // Only words the shop can print reach the product, and the page drops its
+  // "potential profile" note only when there are such words: a score or a note
+  // alone is not the shop's tasting.
+  const shopTasting = tastingForShop(entry.tasting);
+  const tasting = Object.keys(shopTasting).length ? JSON.stringify(shopTasting) : null;
 
   const productType = isTeaware ? 'Teaware' : (entry.type || 'Misc');
   // Captured buying quantity is intent/evidence, not received stock. Only a
@@ -15912,7 +15928,7 @@ const handlePromoteCompassEntry: Handler = async (request, env, params) => {
     capacity_ml: entry.capacity_ml ?? null,
     teaware_category: entry.teaware_category ?? null,
     tasting: tasting ?? '{}',
-    tasting_source: tasting && tasting !== '{}' ? 'owner' : null,
+    tasting_source: tastingHasTerms(shopTasting) ? 'owner' : null,
     tea_key: entry.tea_key ?? null,
     source_compass_entry_id: entry.id,
   };

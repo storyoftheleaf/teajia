@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Check, ChevronDown, Plus, RotateCcw, Share2, X, Zap } from 'lucide-react';
-import { useTeaCompassStore } from '../../lib/teaCompassStore';
+import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompassStore';
 import type { CompassCategory } from './types';
 import { BottomSheet } from '../shared/BottomSheet';
 import { SyncIndicator } from './SyncIndicator';
@@ -63,6 +63,9 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
       : 'Run';
 
   const handleDiscard = (id: string) => {
+    // A capture with anything in it asks first; an empty draft just goes.
+    const target = sessionEntries.find((e) => e.id === id);
+    if (target && entryHasDeliberateInput(target) && !window.confirm(`Discard ${target.name?.trim() || 'this capture'}?`)) return;
     if (id === activeEntryId) {
       const remaining = sessionEntries.filter((e) => e.id !== id);
       discardEntry(id);

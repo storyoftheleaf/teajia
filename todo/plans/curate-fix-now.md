@@ -10,7 +10,7 @@ Done marks say where; everything else is still open.
 - [ ] a4 Purchase records (ledger) live only on the phone and are not separated by shop
 ## Wrong money
 - [ ] m1 Price-tag scan throws away the currency it reads; preview always says NT$
-- [ ] m2 Ledger lines multiply the per-100 g price by grams
+- [x] m2 (v2) Ledger lines multiply the per-100 g price by grams
 - [ ] m3 Promotion copies a per-N-gram quote as the whole cost
 - [ ] m4 A default currency can be sent as stated after a restart (touched fields lost on hydrate)
 - [~] m5 NT$ fallbacks: Curate v2 new orders now start in the last currency used; the other fallbacks remain
@@ -18,10 +18,10 @@ Done marks say where; everything else is still open.
 - [ ] l1 Edit typed during a save is marked saved, then lost (`teaCompassSync` marks synced without checking updatedAt)
 - [ ] l2 Photos taken with no signal are lost; concurrent uploads overwrite each other
 - [ ] l3 Deleting a sample batch can jam every later save
-- [ ] l4 One tap on × discards a capture with no undo
+- [x] l4 (v2) One tap on × discards a capture with no undo
 - [ ] l5 Purchase orders fail quietly; "Mark as Sent" PUTs a prefix id; receive shows blanks
 - [ ] l6 Receipt flow makes a bare product and blocks the full promotion
-- [ ] l7 Re-tasting wipes the product's curated tasting (use `mergeProductTasting` in the compass PUT)
+- [x] l7 Re-tasting wipes the product's curated tasting (use `mergeProductTasting` in the compass PUT)
 ## Faster entry (v2 covers some)
 - [ ] s1 Voice and typed notes fill the fields (v2: a typed line now fills price, unit and currency)
 - [ ] s2 Voice button hidden from everyone but platform owners
@@ -35,8 +35,8 @@ Done marks say where; everything else is still open.
 ## Tasting
 - [x] t1 One-tap tasting (v2 fast tasting, the full tasting's own words)
 - [ ] t3 Notes from the vendor table reach the product
-- [ ] t4 "Tasted by the shop" only when terms are present
-- [ ] t5 Check tasting terms against the taxonomy on promotion
+- [x] t4 "Tasted by the shop" only when terms are present
+- [x] t5 Check tasting terms against the taxonomy on promotion
 - [ ] t7 Start a re-taste from the last one
 ## New curators
 - [ ] p1 First-run guide

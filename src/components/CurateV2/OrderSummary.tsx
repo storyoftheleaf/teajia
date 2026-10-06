@@ -1,3 +1,4 @@
+import { orderLinePrice } from './curateV2Model';
 import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Minus, Plus } from 'lucide-react';
@@ -352,8 +353,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
         quantityGrams: unitBased ? undefined : qty,
         quantityUnits: unitBased ? qty : undefined,
         unitWeightGrams: unitBased && entry.form ? getDefaultGrams(entry.form) : undefined,
-        pricePerUnit: entry.priceAmount ?? 0,
-        priceIsPerGram: !unitBased && !!entry.pricePerUnitGrams,
+        ...orderLinePrice(entry),
         currency,
         compassEntryId: entry.id,
       });

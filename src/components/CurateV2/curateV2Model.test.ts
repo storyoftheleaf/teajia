@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import taxonomy from '../../data/teajia-tasting-taxonomy.json';
-import { FAST_TASTING, applyFast, linePriceFields, quotedUnit, readFast, readLinePrice, tastingLine, todayItems } from './curateV2Model';
+import { FAST_TASTING, applyFast, linePriceFields, orderLinePrice, quotedUnit, readFast, readLinePrice, tastingLine, todayItems } from './curateV2Model';
 import { createEmptyEntry, type TeaCompassEntry } from './types';
 
 const entry = (over: Partial<TeaCompassEntry>): TeaCompassEntry => ({
@@ -110,5 +110,17 @@ describe('readLinePrice', () => {
   it('writes the fields Curate already uses', () => {
     expect(linePriceFields({ amount: 380, unit: 'jin', rest: '' })).toEqual({ priceAmount: 380, pricePerUnitGrams: 500 });
     expect(linePriceFields({ amount: 450, currency: 'Yuan', unit: 'cake', rest: '' })).toEqual({ priceAmount: 450, priceCurrency: 'Yuan', form: 'Cake' });
+  });
+});
+
+describe('orderLinePrice', () => {
+  it('turns a per-100 g quote into a per-gram price so 250 g costs ¥300, not ¥30,000', () => {
+    const line = orderLinePrice({ category: 'tea', priceAmount: 120, pricePerUnitGrams: 100 });
+    expect(line).toEqual({ pricePerUnit: 1.2, priceIsPerGram: true });
+    expect(line.pricePerUnit * 250).toBeCloseTo(300);
+  });
+  it('prices a cake or teaware per piece', () => {
+    expect(orderLinePrice({ category: 'tea', priceAmount: 450, form: 'Cake', pricePerUnitGrams: 357 })).toEqual({ pricePerUnit: 450, priceIsPerGram: false });
+    expect(orderLinePrice({ category: 'teaware', priceAmount: 800 })).toEqual({ pricePerUnit: 800, priceIsPerGram: false });
   });
 });

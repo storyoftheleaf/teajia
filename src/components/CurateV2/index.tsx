@@ -574,6 +574,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   }, [activeEntryId, getEntry, getSessionEntries, discardEntry, setActiveEntry, startNewCapture, activeCategory]);
 
   const handleDiscardSessionEntry = useCallback((id: string) => {
+    // Same question the main discard asks: a capture with anything in it is
+    // not thrown away by one stray tap on its ×.
+    const target = getEntry(id);
+    if (target && entryHasDeliberateInput(target) && !window.confirm(`Discard ${target.name?.trim() || 'this capture'}?`)) return;
     if (id === activeEntryId) {
       const remaining = getSessionEntries().filter((e) => e.id !== id);
       discardEntry(id);
@@ -585,7 +589,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     } else {
       discardEntry(id);
     }
-  }, [activeEntryId, getSessionEntries, discardEntry, setActiveEntry, startNewCapture, activeCategory]);
+  }, [activeEntryId, getEntry, getSessionEntries, discardEntry, setActiveEntry, startNewCapture, activeCategory]);
 
   // Remember the screen we switched away from, so the header back arrow can
   // return there (Source → Library → back → Source) instead of exiting Curate.

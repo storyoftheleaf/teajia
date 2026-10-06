@@ -1,3 +1,4 @@
+import { orderLinePrice } from './curateV2Model';
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Minus, Plus, Check, BookOpen, BookmarkPlus, BookmarkCheck } from 'lucide-react';
@@ -90,8 +91,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
       quantityGrams: unitBased ? undefined : quantity,
       quantityUnits: unitBased ? quantity : undefined,
       unitWeightGrams: isUnitBased(entry.form) ? (DEFAULT_GRAMS[entry.form!] ?? 100) : undefined,
-      pricePerUnit: entry.priceAmount ?? 0,
-      priceIsPerGram: !unitBased && !!entry.pricePerUnitGrams,
+      ...orderLinePrice(entry),
       currency,
       compassEntryId: entry.id,
     });

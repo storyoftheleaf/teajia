@@ -119,3 +119,4 @@ Next:
 8. Compare lights the best figure on more rows (per gram, clean, finish).
 9. What you said, folded at the bottom of a tea, opened on tap.
 10. Keyboard on the laptop: Enter adds, Tab moves to price, a key opens the fast tasting.
+- From the agent session (0032): agents write purchase_orders with message_text and one pending curate_receipt_proposals row per tea. v2 needs an **Arriving** list with Accept, since today a proposal shows only inline on one capture card. shop_name and transport_mode exist on tea_compass_entries but are not in the sync codec yet.

@@ -261,3 +261,21 @@ export function linePriceFields(p: LinePrice): { priceAmount: number; priceCurre
   }
   return out;
 }
+
+// ── An order line's price ────────────────────────────────────────────────
+
+/**
+ * The price an order line multiplies by its amount. A loose tea's price is
+ * quoted for `pricePerUnitGrams` grams (¥120 for 100 g), so the line needs the
+ * price of ONE gram; the line used to take the whole quote and multiply it by
+ * grams, so 250 g at ¥120 per 100 g came out at ¥30,000 instead of ¥300.
+ * A cake, a brick, a tuo or a piece of teaware is priced per piece as quoted.
+ */
+export function orderLinePrice(entry: Pick<TeaCompassEntry, 'priceAmount' | 'pricePerUnitGrams' | 'form' | 'category'>): { pricePerUnit: number; priceIsPerGram: boolean } {
+  const amount = entry.priceAmount ?? 0;
+  const pieces = entry.category === 'teaware' || (!!entry.form && PIECE_FORMS.includes(entry.form));
+  if (pieces || !entry.pricePerUnitGrams || entry.pricePerUnitGrams <= 0) {
+    return { pricePerUnit: amount, priceIsPerGram: false };
+  }
+  return { pricePerUnit: amount / entry.pricePerUnitGrams, priceIsPerGram: true };
+}
