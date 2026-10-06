@@ -1095,7 +1095,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             disabled={receiptBusy}
             className="curate-action w-full rounded-md cta-solid px-3 font-semibold active:opacity-80"
           >
-            {receiptBusy ? 'Adding…' : 'Add to Ledger'}
+            {receiptBusy ? 'Adding…' : 'Add to order'}
           </button>
         </div>
       )}
@@ -2108,7 +2108,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   className="curate-action w-full rounded-md cta-solid px-3 font-semibold active:opacity-80"
                   data-curate-action
                 >
-                  {receiptBusy ? 'Adding…' : 'Add to Ledger'}
+                  {receiptBusy ? 'Adding…' : 'Add to order'}
                 </button>
               </div>
             </motion.div>

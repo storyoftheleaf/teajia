@@ -278,7 +278,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
                   onClick={handleConfirmAdd}
                   className="flex-1 py-2 rounded-xl cta-solid font-semibold text-xs uppercase tracking-[0.08em] transition-opacity active:opacity-80"
                 >
-                  Add to Ledger
+                  Add to order
                 </button>
               </div>
             </div>

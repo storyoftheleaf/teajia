@@ -19,7 +19,10 @@ function amount(item: LedgerLineItem, lang: 'zh' | 'en'): string {
 }
 
 export function orderMessage(tx: Pick<LedgerTransaction, 'counterpartyName' | 'items' | 'direction'>): { zh: string; en: string; both: string } {
-  const who = tx.counterpartyName?.trim() || '';
+  // An order with no vendor on it carries the placeholder 'Unknown Vendor';
+  // the greeting then simply says hello.
+  const named = tx.counterpartyName?.trim() || '';
+  const who = /^unknown vendor$/i.test(named) ? '' : named;
   const items = tx.items.filter((i) => i.name?.trim());
   const zhLines = items.map((i) => `${i.chineseName?.trim() || i.name.trim()}${i.year ? ` ${i.year}` : ''} ${amount(i, 'zh')}`);
   const enLines = items.map((i) => `${i.name.trim()}${i.year ? ` ${i.year}` : ''}, ${amount(i, 'en')}`);
