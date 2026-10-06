@@ -93,6 +93,34 @@ describe('Compass sync acknowledgements', () => {
     expect(useTeaCompassStore.getState().entries[0]).toMatchObject({ sampleState: 'tasted', sampleSetId: 'batch-1', synced: true });
   });
 
+  it('keeps an entry unsynced when it was edited while its save was in the air', async () => {
+    useTeaCompassStore.setState({ entries: [{ ...entry('typing'), updatedAt: '2026-10-07T01:00:00.000Z' }] });
+    syncMock.mockImplementation(async () => {
+      // The note typed during the request, before the server answers.
+      useTeaCompassStore.setState((state) => ({
+        entries: state.entries.map((e) => (e.id === 'typing' ? { ...e, notes: 'typed mid-save', updatedAt: '2026-10-07T01:00:01.000Z' } : e)),
+      }));
+      return { synced: 1, syncedIds: ['typing'] };
+    });
+
+    await syncCompassEntries('acct-a');
+    const after = useTeaCompassStore.getState().entries.find((e) => e.id === 'typing')!;
+    expect(after.synced).toBe(false);
+    expect(after.notes).toBe('typed mid-save');
+  });
+
+  it('runs one sync at a time', async () => {
+    let release!: () => void;
+    syncMock.mockImplementation(() => new Promise((resolve) => { release = () => resolve({ synced: 1, syncedIds: ['one'] }); }));
+    useTeaCompassStore.setState({ entries: [entry('one')] });
+    const first = syncCompassEntries('acct-a');
+    const second = syncCompassEntries('acct-a');
+    await new Promise((r) => setTimeout(r, 0));
+    release();
+    await Promise.all([first, second]);
+    expect(syncMock).toHaveBeenCalledTimes(1);
+  });
+
   it('marks only acknowledged ids synced and keeps collisions queued', async () => {
     syncMock.mockResolvedValue({
       synced: 1,

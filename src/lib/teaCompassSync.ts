@@ -175,7 +175,17 @@ export async function retryPendingDeletes(accountId?: string): Promise<void> {
 
 // ── Sync unsynced entries to D1 ──
 
+// One sync at a time. Two overlapping pushes could each acknowledge the
+// other's snapshot; the second caller waits for the first instead.
+let syncInFlight: Promise<number> | null = null;
+
 export async function syncCompassEntries(accountId?: string): Promise<number> {
+  if (syncInFlight) return syncInFlight;
+  syncInFlight = syncCompassEntriesOnce(accountId).finally(() => { syncInFlight = null; });
+  return syncInFlight;
+}
+
+async function syncCompassEntriesOnce(accountId?: string): Promise<number> {
   if (!hasToken()) return 0;
   const initial = useTeaCompassStore.getState();
   const requestedAccountId = accountId ?? initial.accountScopeId;
@@ -197,6 +207,12 @@ export async function syncCompassEntries(accountId?: string): Promise<number> {
     return 0;
   }
 
+  // What each entry looked like when it was sent. An edit typed while this
+  // request is in the air changes updatedAt, and that entry must stay unsynced
+  // so the edit goes out next time: marking it synced here is how a note typed
+  // during a save used to be shown as saved and then lost to the server copy.
+  const sentVersion = new Map(unsynced.map(entry => [entry.id, entry.updatedAt]));
+
   try {
     const payload = unsynced.map(toSnakeCase);
     const result = await api.compass.sync(payload, BACKGROUND_REQUEST);
@@ -214,7 +230,7 @@ export async function syncCompassEntries(accountId?: string): Promise<number> {
     // state. A protected id collision remains unsynced and retries visibly.
     useTeaCompassStore.setState((state) => ({
       entries: state.accountScopeId === requestedAccountId
-        ? state.entries.map(e => acknowledgedIds.has(e.id) ? { ...e, synced: true } : e)
+        ? state.entries.map(e => acknowledgedIds.has(e.id) && e.updatedAt === sentVersion.get(e.id) ? { ...e, synced: true } : e)
         : state.entries,
       syncError: state.accountScopeId === requestedAccountId ? hasUnacknowledged : state.syncError,
     }));

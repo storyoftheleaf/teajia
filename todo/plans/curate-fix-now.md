@@ -15,7 +15,7 @@ Done marks say where; everything else is still open.
 - [ ] m4 A default currency can be sent as stated after a restart (touched fields lost on hydrate)
 - [~] m5 NT$ fallbacks: Curate v2 new orders now start in the last currency used; the other fallbacks remain
 ## Lost work
-- [ ] l1 Edit typed during a save is marked saved, then lost (`teaCompassSync` marks synced without checking updatedAt)
+- [x] l1 Edit typed during a save is marked saved, then lost (`teaCompassSync` marks synced without checking updatedAt)
 - [ ] l2 Photos taken with no signal are lost; concurrent uploads overwrite each other
 - [ ] l3 Deleting a sample batch can jam every later save
 - [x] l4 (v2) One tap on × discards a capture with no undo
