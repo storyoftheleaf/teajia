@@ -4939,8 +4939,9 @@ body.cart-panel-open .commerce-dock {
   border-bottom: 1px solid var(--tea-border);
   white-space: nowrap;
 }
-.curate-v2-row > .curate-v2-name {
-  font-family: var(--font-display, 'Cormorant Garamond', Georgia, serif);
+.curate-v2 .curate-v2-name {
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
+  font-feature-settings: 'lnum' 1;
   font-size: 18px;
   line-height: 1.1;
   color: var(--tea-text);

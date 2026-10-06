@@ -28,6 +28,7 @@ interface TableListProps {
  */
 export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onTaste, canTalk, onTalk, talkingEntryId, voiceState }) => {
   const sessionEntryIds = useTeaCompassStore((s) => s.sessionEntryIds);
+  const currentSessionId = useTeaCompassStore((s) => s.currentSessionId);
   const entries = useTeaCompassStore((s) => s.entries);
   const pendingEntries = useTeaCompassStore((s) => s.pendingEntries);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
@@ -37,10 +38,16 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
   const [name, setName] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const rows: TeaCompassEntry[] = sessionEntryIds
-    .map((id) => pendingEntries.find((e) => e.id === id) ?? entries.find((e) => e.id === id))
-    .filter((e): e is TeaCompassEntry => !!e && e.category === 'tea' && (!!e.name?.trim() || e.id === activeEntryId))
-    .reverse();
+  // This table is the current capture run: teas saved in it, plus any draft
+  // in it that already has a name. Newest first.
+  const rows: TeaCompassEntry[] = [
+    ...sessionEntryIds
+      .map((id) => pendingEntries.find((e) => e.id === id))
+      .filter((e): e is TeaCompassEntry => !!e),
+    ...(currentSessionId ? entries.filter((e) => e.sessionId === currentSessionId) : []),
+  ]
+    .filter((e, i, all) => e.category === 'tea' && !!e.name?.trim() && all.findIndex((x) => x.id === e.id) === i)
+    .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
 
   const add = () => {
     const text = name.trim();
@@ -48,7 +55,11 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
     const parsed = parseTeaInput(text, REGION_NAMES);
     const keep = activeEntryId;
     const id = startNewCapture('tea');
-    const updates: Partial<TeaCompassEntry> = { name: parsed.name || text };
+    // The name stays as typed: the reader fills type, form, year and region
+    // from it, but "Old oolong" is a name, not "Old" plus a type. Only a
+    // standalone year is lifted out, since it has its own column.
+    const typedName = parsed.year ? text.replace(new RegExp(`\\b${parsed.year}\\b`), '').replace(/\s{2,}/g, ' ').trim() : text;
+    const updates: Partial<TeaCompassEntry> = { name: typedName || text };
     if (parsed.type) updates.type = parsed.type;
     if (parsed.form) updates.form = parsed.form;
     if (parsed.year) updates.year = parsed.year;

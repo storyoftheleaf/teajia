@@ -1602,54 +1602,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       )}
 
       <div data-testid="curate-primary-workflow" className="space-y-0">
-      <DecisionControl value={entry.decision} onChange={(decision) => update({ decision })} />
-
-      {/* Context chips row: Run + Vendor. Both stay sticky across a burst of
-          captures (run via the session id, vendor via lastVendor seeding), so
-          reopening the card mid-visit costs nothing. The old always-open
-          "Select vendor" box collapses behind the Vendor chip. */}
-      <div className={sourceShellClass} data-testid="curate-context-band" data-zone="context">
-        <CaptureContextChips
-          category={entry.category}
-          vendorName={entry.vendorName}
-          vendorOpen={vendorOpen}
-          onToggleVendor={() => setVendorOpen((v) => !v)}
-          batchMode={batchMode}
-          onToggleBatchMode={onToggleBatchMode}
-          onShare={onShare}
-        />
-
-        {vendorOpen && (
-          <div className="mt-2.5">
-            <VendorStrip
-              vendorName={entry.vendorName}
-              vendorId={entry.vendorId}
-              vendorDetails={entry.vendorDetails}
-              onVendorSelect={handleVendorSelect}
-              onClear={handleVendorClear}
-              onDetailsChange={handleVendorDetailsChange}
-              linkedCustomerId={entry.linkedCustomerId}
-              onLinkedCustomerChange={handleLinkedCustomerChange}
-            />
-          </div>
-        )}
-
-        <div className="flex min-w-0 items-center gap-1 border-t border-tea-border">
-          <div className="min-w-0 flex-1">
-            <EncounterContext journeyId={entry.journeyId} visitId={entry.visitId} onChange={(journeyId, visitId) => useTeaCompassStore.getState().setEncounterContext(entryId, journeyId, visitId)} />
-          </div>
-          <div className="shrink-0">
-          <PhotoCapture
-            onExtracted={handleExtracted}
-            onPhotoTaken={handlePhotoTaken}
-            onPhotoReplaced={handlePhotoReplaced}
-            photos={entry.photos}
-            onRemovePhoto={(i) => updateEntry(entryId, { photos: entry.photos.filter((_, idx) => idx !== i) })}
-            variant="strip"
-          />
-          </div>
-        </div>
-      </div>
 
       <section className="curate-cluster curate-zone-identity space-y-2" data-testid="curate-cluster-identity" data-zone="identity">
         <AutocompleteInput
@@ -1841,6 +1793,59 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           asked that they never sit behind a second tap. ─── */}
 
       {/* ─── Profile zone: quality bar + brewing + tag cloud ─── */}
+      {/* Curate v2: name, cost and origin lead the card; who, where and the
+          photo follow, then the decision, then tasting and notes. */}
+      {/* Context chips row: Run + Vendor. Both stay sticky across a burst of
+          captures (run via the session id, vendor via lastVendor seeding), so
+          reopening the card mid-visit costs nothing. The old always-open
+          "Select vendor" box collapses behind the Vendor chip. */}
+      <div className={sourceShellClass} data-testid="curate-context-band" data-zone="context">
+        <CaptureContextChips
+          category={entry.category}
+          vendorName={entry.vendorName}
+          vendorOpen={vendorOpen}
+          onToggleVendor={() => setVendorOpen((v) => !v)}
+          batchMode={batchMode}
+          onToggleBatchMode={onToggleBatchMode}
+          onShare={onShare}
+        />
+
+        {vendorOpen && (
+          <div className="mt-2.5">
+            <VendorStrip
+              vendorName={entry.vendorName}
+              vendorId={entry.vendorId}
+              vendorDetails={entry.vendorDetails}
+              onVendorSelect={handleVendorSelect}
+              onClear={handleVendorClear}
+              onDetailsChange={handleVendorDetailsChange}
+              linkedCustomerId={entry.linkedCustomerId}
+              onLinkedCustomerChange={handleLinkedCustomerChange}
+            />
+          </div>
+        )}
+
+        <div className="flex min-w-0 items-center gap-1 border-t border-tea-border">
+          <div className="min-w-0 flex-1">
+            <EncounterContext journeyId={entry.journeyId} visitId={entry.visitId} onChange={(journeyId, visitId) => useTeaCompassStore.getState().setEncounterContext(entryId, journeyId, visitId)} />
+          </div>
+          <div className="shrink-0">
+          <PhotoCapture
+            onExtracted={handleExtracted}
+            onPhotoTaken={handlePhotoTaken}
+            onPhotoReplaced={handlePhotoReplaced}
+            photos={entry.photos}
+            onRemovePhoto={(i) => updateEntry(entryId, { photos: entry.photos.filter((_, idx) => idx !== i) })}
+            variant="strip"
+          />
+          </div>
+        </div>
+      </div>
+
+      <div className="pt-2">
+        <DecisionControl value={entry.decision} onChange={(decision) => update({ decision })} />
+      </div>
+
       <section className="curate-cluster curate-zone-taste space-y-1.5" data-testid="curate-cluster-tasting" data-zone="taste">
           <QuietEyebrow label="Taste" />
           {!hasTasting && (

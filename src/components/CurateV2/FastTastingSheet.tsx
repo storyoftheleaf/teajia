@@ -27,12 +27,9 @@ export const FastTastingSheet: React.FC<FastTastingSheetProps> = ({ entryId, onO
   };
 
   return (
-    <BottomSheet open={!!entryId} onOpenChange={onOpenChange} title={entry?.name || 'Fast tasting'} large>
+    <BottomSheet open={!!entryId} onOpenChange={onOpenChange} title={entry?.name || 'Fast tasting'} description="Fast tasting · saved as you tap" large>
       <div className="curate-v2 pb-nav-gap">
-        <div className="flex items-baseline justify-between border-b border-tea-border px-4 pb-2">
-          <span className="font-display text-ui-20 text-tea-text truncate">{entry?.name || 'Untitled tea'}</span>
-          <span className="text-ui-12 text-tea-text-sec">fast tasting</span>
-        </div>
+        <div className="border-b border-tea-border" />
         {FAST_TASTING.map((question) => {
           const chosen = answers[question.q];
           const cols = question.options.length === 10 ? 'grid-cols-10'
