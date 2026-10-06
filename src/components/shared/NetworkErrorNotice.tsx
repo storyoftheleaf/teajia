@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   NETWORK_ERROR_EVENT,
@@ -12,23 +12,40 @@ const NETWORK_MESSAGES: Record<NetworkErrorKind, string> = {
   slow: 'This is taking too long. Try again in a moment.',
 };
 
+/** A request that fails and recovers inside this window never reaches the screen. */
+export const NETWORK_NOTICE_DELAY_MS = 4000;
+
 export const NetworkErrorNotice = () => {
   const [visible, setVisible] = useState(false);
   const [kind, setKind] = useState<NetworkErrorKind>('unstable');
+  const pending = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    const cancelPending = () => {
+      if (pending.current) clearTimeout(pending.current);
+      pending.current = null;
+    };
     const handleNetworkError = (event: Event) => {
       const detail = (event as CustomEvent<{ kind?: NetworkErrorKind }>).detail;
-      setKind(detail?.kind ?? 'unstable');
-      setVisible(true);
+      const next = detail?.kind ?? 'unstable';
+      cancelPending();
+      pending.current = setTimeout(() => {
+        pending.current = null;
+        setKind(next);
+        setVisible(true);
+      }, NETWORK_NOTICE_DELAY_MS);
     };
-    const handleNetworkRecovered = () => setVisible(false);
+    const handleNetworkRecovered = () => {
+      cancelPending();
+      setVisible(false);
+    };
 
     window.addEventListener(NETWORK_ERROR_EVENT, handleNetworkError);
     window.addEventListener(NETWORK_RECOVERED_EVENT, handleNetworkRecovered);
     return () => {
       window.removeEventListener(NETWORK_ERROR_EVENT, handleNetworkError);
       window.removeEventListener(NETWORK_RECOVERED_EVENT, handleNetworkRecovered);
+      cancelPending();
     };
   }, []);
 

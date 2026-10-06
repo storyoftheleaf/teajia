@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BowlSteam, CalendarBlank, Heart, ArrowsLeftRight, Wrench, Path, BookOpen, Books, Package, IdentificationCard, Receipt, Footprints } from '@phosphor-icons/react';
+import { BowlSteam, CalendarBlank, Heart, ArrowsLeftRight, Wrench, Path, BookOpen, Books, Package, IdentificationCard, Receipt, Footprints, Warning } from '@phosphor-icons/react';
 import { daysWord } from './primitives';
 import type { TeaMasterReadiness } from '../readiness/teaMasterReadiness';
 import type { AttentionItem } from '../../lib/api';
@@ -39,6 +39,8 @@ interface LaunchpadViewProps {
   manageEntryPath: string;
   /** Platform staff only: the walk-throughs and the docs library. */
   isPlatformOwner: boolean;
+  /** Open site problems seen in the last two weeks. Platform owner only; 0 for everyone else. */
+  siteProblemCount?: number;
   /**
    * The server has said this person may read the Tea Atlas. The tile exists
    * only on that yes; to anyone else the library stays invisible.
@@ -232,6 +234,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
   hasManageRoom,
   manageEntryPath,
   isPlatformOwner,
+  siteProblemCount = 0,
   canReadAtlas = false,
   membershipsCount,
   pendingInvoiceCount,
@@ -417,6 +420,13 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       hint: 'docs & walk-throughs',
       icon: <BookOpen {...ICON_PROPS} />,
       onClick: () => { onClose(); navigate('/account/docs'); },
+    } as LaunchpadTile,
+    {
+      id: 'fixes',
+      verb: 'fixes',
+      hint: siteProblemCount > 0 ? 'site problems to resolve' : 'nothing needs fixing',
+      icon: <Warning {...ICON_PROPS} />,
+      onClick: () => { onClose(); navigate('/account/fixes'); },
     } as LaunchpadTile] : []),
   ];
 
@@ -468,6 +478,19 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             {waitingDoor === '/admin/dashboard' ? 'open them in today.' : 'open them in sales.'}
+          </button>
+        )}
+        {/* Site problems: for the platform owner only, and only while there is
+            something to do. They never appear as a banner on the live site. */}
+        {isPlatformOwner && siteProblemCount > 0 && (
+          <button
+            type="button"
+            onClick={() => { onClose(); navigate('/account/fixes'); }}
+            className="mt-1 py-2 font-display italic text-ui-15 text-tea-text-sec hover:text-tea-text transition-colors"
+            aria-label="Site problems to fix"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            {siteProblemCount === 1 ? '1 site problem to fix.' : `${siteProblemCount} site problems to fix.`}
           </button>
         )}
       </div>

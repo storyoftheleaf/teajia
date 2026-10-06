@@ -129,6 +129,7 @@ const DeveloperDocsPage = import.meta.env.DEV
       </div>
     );
 const BriefingPage = lazy(() => import('./pages/BriefingPage'));
+const SiteFixesPage = lazy(() => import('./pages/SiteFixesPage'));
 const SessionPage = lazy(() => import('./pages/SessionPage'));
 const JoinPage = lazy(() => import('./pages/JoinPage'));
 const TableCardPage = lazy(() => import('./pages/TableCardPage'));
@@ -1277,7 +1278,8 @@ const AppContent = () => {
                 <Route path="/account/orders/:id" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><OrderDetailPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/samples" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SampleHistoryPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/docs" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><DeveloperDocsPage /></Suspense></ErrorBoundary>} />
-                <Route path="/account/briefing" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><BriefingPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/fixes" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SiteFixesPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/briefing"element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><BriefingPage /></Suspense></ErrorBoundary>} />
                 {/* Design harnesses: reachable while developing (and by the browser
                     suite, which runs the dev server), never on the live site. */}
                 {import.meta.env.DEV && (<>

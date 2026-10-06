@@ -1598,7 +1598,10 @@ export const api = {
       method: 'POST', body: JSON.stringify(incident), retryTimeouts: true,
       background: true, reportIncident: false,
     }),
-    list: () => authedFetch(`${API_URL}/api/platform/incidents`),
+    // Reading the ledger must never write to it: a failed read would otherwise
+    // report itself as a new problem, and the panel's background count must not
+    // raise the network notice on a screen visitors also use.
+    list: () => authedFetch(`${API_URL}/api/platform/incidents`, { background: true, reportIncident: false }),
     update: (id: string, patch: { status: string; resolution_ref?: string }) => authedFetch(`${API_URL}/api/platform/incidents/${encodeURIComponent(id)}`, {
       method: 'PATCH', body: JSON.stringify(patch), retryTimeouts: true,
     }),
