@@ -2711,3 +2711,40 @@ CREATE INDEX IF NOT EXISTS idx_story_versions_slug
   ON story_content_versions(account_id, story_slug, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_wisdom_verifications_account_entry
   ON wisdom_entry_verifications(account_id, entry_kind, entry_id);
+
+-- Migration 0031: agent suggestions waiting for Adrian's tick, and Curate to-dos.
+CREATE TABLE IF NOT EXISTS curate_suggestions (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  created_by_user_id TEXT NOT NULL,
+  -- One delivery from one agent: "GrokBot read wangtea.cn" is one batch.
+  batch_id TEXT NOT NULL,
+  from_agent TEXT,
+  from_url TEXT,
+  from_vendor_name TEXT,
+  from_contact TEXT,
+  from_note TEXT,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL CHECK (category IN ('tea', 'teaware')),
+  fields_json TEXT NOT NULL,
+  state TEXT NOT NULL DEFAULT 'waiting' CHECK (state IN ('waiting', 'picked', 'dropped')),
+  compass_entry_id TEXT,
+  decided_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_curate_suggestions_waiting
+  ON curate_suggestions(account_id, state, created_at);
+
+CREATE TABLE IF NOT EXISTS curate_todos (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  created_by_user_id TEXT NOT NULL,
+  text TEXT NOT NULL,
+  compass_entry_id TEXT,
+  vendor_id TEXT,
+  from_agent TEXT,
+  done_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_curate_todos_open
+  ON curate_todos(account_id, done_at, created_at);
