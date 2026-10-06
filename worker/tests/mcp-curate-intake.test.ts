@@ -321,3 +321,72 @@ describe('the missing list orders by what matters', () => {
     expect(teaMissing({ name: 'pot', category: 'teaware', price_amount: 800, price_currency: 'Yuan', vendor_name: 'W' })).toEqual([]);
   });
 });
+
+describe('through the real MCP endpoint, the way an agent reaches it', () => {
+  // A made-up bearer for an in-memory database, not a credential.
+  const FAKE = 'fake-curate-endpoint-test';
+
+  async function seedBearer(db: SqliteD1, id: string, scopes: string[]) {
+    const { sha256Hex } = await import('../src/inquiryDomain');
+    db.sqlite.prepare(
+      `INSERT INTO mcp_tokens (id, account_id, user_id, user_email, label, token_hash, token_prefix, scopes, creator_tier, expires_at)
+       VALUES (?, ?, 'adrian', 'adrian@test.dev', 'test', ?, 'fake', ?, 'account_owner', ?)`
+    ).run(id, ACCOUNT, await sha256Hex(`${FAKE}-${id}`), JSON.stringify(scopes), Math.floor(Date.now() / 1000) + 3600);
+    return `${FAKE}-${id}`;
+  }
+
+  /* The live D1 returns a promise from run(); the shim returns a plain object,
+     and mcp.ts bumps last_used_at with a floating run().catch(). */
+  function asD1(db: SqliteD1) {
+    const wrap = (stmt: any): any => ({
+      bind: (...v: unknown[]) => wrap(stmt.bind(...v)),
+      run: () => Promise.resolve(stmt.run()),
+      first: (col?: string) => Promise.resolve(stmt.first(col)),
+      all: () => Promise.resolve(stmt.all()),
+      raw: stmt,
+    });
+    return {
+      prepare: (sql: string) => wrap(db.prepare(sql)),
+      batch: (stmts: any[]) => Promise.resolve(db.batch(stmts.map(s => s.raw))),
+    };
+  }
+
+  async function rpc(db: SqliteD1, bearer: string, method: string, params: any = {}) {
+    const { mcpFetch } = await import('../src/mcp');
+    const res = await mcpFetch(new Request('https://api.test/mcp', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${bearer}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+    }), { DB: asD1(db) } as any);
+    return res.json() as Promise<R>;
+  }
+
+  const structured = (out: R) => out.result?.structuredContent ?? JSON.parse(out.result?.content?.[0]?.text ?? '{}');
+
+  it('lists the curate tools, marks the reads read-only, and runs add_tea preview then confirm', async () => {
+    const db = makeDb();
+    const bearer = await seedBearer(db, 'full', ['inventory:read', 'stock:write']);
+    const list = await rpc(db, bearer, 'tools/list');
+    const names = list.result.tools.map((t: R) => t.name);
+    for (const n of ['curate_find', 'curate_get_tea', 'curate_whats_missing', 'curate_add_tea', 'curate_update_tea', 'curate_save_vendor',
+      'curate_suggest_teas', 'curate_list_suggestions', 'curate_pick_suggestions', 'curate_todo']) expect(names).toContain(n);
+    expect(list.result.tools.find((t: R) => t.name === 'curate_find').annotations.readOnlyHint).toBe(true);
+    expect(list.result.tools.find((t: R) => t.name === 'curate_add_tea').annotations.readOnlyHint).toBe(false);
+
+    const preview = structured(await rpc(db, bearer, 'tools/call', { name: 'curate_add_tea', arguments: { name: 'Endpoint tea', agent: 'Hermes' } }));
+    expect(preview.confirmation_token).toBeTruthy();
+    const done = structured(await rpc(db, bearer, 'tools/call', { name: 'curate_add_tea', arguments: { name: 'Endpoint tea', confirm: preview.confirmation_token } }));
+    expect(done.committed).toBe(true);
+    expect(entries(db)[0]).toMatchObject({ name: 'Endpoint tea', user_id: 'adrian' });
+  });
+
+  it('a read-only connection can ask what is missing but cannot add a tea', async () => {
+    const db = makeDb();
+    const bearer = await seedBearer(db, 'ro', ['inventory:read']);
+    const missing = await rpc(db, bearer, 'tools/call', { name: 'curate_whats_missing', arguments: {} });
+    expect(structured(missing).counts).toBeDefined();
+    const refused = await rpc(db, bearer, 'tools/call', { name: 'curate_add_tea', arguments: { name: 'Nope' } });
+    expect(JSON.stringify(refused)).toMatch(/scope|stock:write|not allowed|forbidden/i);
+    expect(entries(db)).toHaveLength(0);
+  });
+});
