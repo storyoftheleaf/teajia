@@ -61,3 +61,21 @@ test('the owner sees what needs fixing, in words, with the rates linked', async 
   expect(overflow).toBe(false);
   await page.screenshot({ path: testInfo.outputPath('site-fixes.png'), fullPage: true });
 });
+
+test('the Your Table door turns terracotta while something needs fixing', async ({ page }, testInfo) => {
+  await signIn(page);
+  await page.goto('/read');
+  const door = page.getByRole('button', { name: /^Your Table, 2 site problems to fix$/ }).first();
+  await expect(door).toBeVisible({ timeout: 15_000 });
+  const terracotta = await page.evaluate(() => {
+    const probe = document.createElement('span');
+    probe.className = 'text-tea-error';
+    document.body.appendChild(probe);
+    const c = getComputedStyle(probe).color;
+    probe.remove();
+    return c;
+  });
+  // Polled: the glyph fades its colour over 300ms, so an immediate read is mid-fade.
+  await expect.poll(() => door.locator('svg').evaluate(el => getComputedStyle(el).color)).toBe(terracotta);
+  await page.screenshot({ path: testInfo.outputPath('door.png') });
+});

@@ -27,3 +27,15 @@ export function useSiteIncidents(enabled: boolean) {
 export function activeIncidentCount(rows: readonly IncidentRow[] | undefined): number {
   return rows ? splitIncidents(rows).active.length : 0;
 }
+
+/**
+ * How many active problems the owner has to fix, for the Your Table door.
+ *
+ * The person glyph on the bar and the rail shifts to terracotta when this is
+ * above zero, so the owner sees there is something to fix without a banner
+ * that a visitor could see. Zero for everyone else, who never fetches it.
+ */
+export function useSiteProblemCount(isOwner: boolean): number {
+  const { data } = useSiteIncidents(isOwner);
+  return isOwner ? activeIncidentCount(data) : 0;
+}

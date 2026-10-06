@@ -7,6 +7,7 @@ import { useLongPress } from '../hooks/useLongPress';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore, selectHasBundle, selectIsOwnerTier } from '../lib/store';
 import { useAuth } from '../hooks/useAuth';
+import { useSiteProblemCount } from '../lib/useSiteIncidents';
 import { ADMIN_BAR_TABS, type AdminTab } from './adminBarTabs';
 
 
@@ -53,6 +54,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 
   const { activeAccount, upcomingEventsCount } = useAppStore();
   const auth = useAuth();
+  // Owner only: the person glyph turns terracotta while something needs fixing.
+  const siteProblems = useSiteProblemCount(auth.isAdmin);
   const isAdmin = auth.isAdmin;
   // Which set of tabs someone gets is a question about what they may do here,
   // not about the global account type. Every invited shop owner carries the
@@ -332,13 +335,13 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             }}
             className="relative flex-none h-full flex items-center justify-end pr-3 min-[375px]:pr-3.5 before:content-[''] before:absolute before:inset-y-0 before:right-0 before:-left-2.5 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none transition-colors duration-300"
             style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
-            title="Your Table"
-            aria-label="Your Table"
+            title={siteProblems > 0 ? `Your Table, ${siteProblems} to fix` : 'Your Table'}
+            aria-label={siteProblems > 0 ? `Your Table, ${siteProblems} site problem${siteProblems === 1 ? '' : 's'} to fix` : 'Your Table'}
             aria-pressed={isAccountOpen}
           >
             <svg
               viewBox="0 0 24 24"
-              className={`w-5 h-5 transition-colors duration-300 pointer-events-none ${isAccountOpen ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'}`}
+              className={`w-5 h-5 transition-colors duration-300 pointer-events-none ${isAccountOpen ? 'text-tea-gold' : siteProblems > 0 ? 'text-tea-error' : 'text-tea-text-sec group-hover:text-tea-text'}`}
               fill="none"
               stroke="currentColor"
               strokeWidth={1.6}
