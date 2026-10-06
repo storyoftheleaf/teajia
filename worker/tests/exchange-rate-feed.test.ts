@@ -201,20 +201,28 @@ describe('the daily rate refresh', () => {
     expect(worker, 'the tick no longer checks how old the rates are')
       .toContain('reportStaleExchangeRates');
 
-    const banner = read('../../src/admin/components/StaleRatesBanner.tsx');
-    const shell = read('../../src/admin/AdminApp.tsx');
-    expect(shell, 'the stale-rate warning is not mounted, so nobody sees it')
-      .toContain('<StaleRatesBanner />');
-    expect(banner, 'the warning does not lead anywhere it can be fixed')
-      .toContain('/admin/currency');
+    // Said to the builder, not to the shop floor (2026-10-07). It used to be a
+    // red bar on top of the admin, painted first from rates cached in the
+    // browser and then replaced by the live ones, so it flashed on every load
+    // and read as a broken site. It is now one row in the problem ledger,
+    // filed by the tick, cleared by the tick, and listed on the owner's
+    // "Needs fixing" page that Your Table links to.
+    expect(worker, 'stale rates are no longer filed as a problem to fix')
+      .toMatch(/recordHealthProblem\(/);
+    expect(worker, 'a refreshed rate no longer clears its own problem')
+      .toMatch(/clearHealthProblem\(/);
+    expect(worker, 'the worker lost its staleness threshold')
+      .toMatch(/STALE_RATES_AFTER_DAYS\s*=\s*\d+/);
 
-    // Both halves must agree on how many days is too many, or the log and the
-    // screen tell different stories about the same table.
-    const workerDays = worker.match(/STALE_RATES_AFTER_DAYS\s*=\s*(\d+)/);
-    const bannerDays = banner.match(/STALE_RATES_AFTER_DAYS\s*=\s*(\d+)/);
-    expect(workerDays, 'the worker lost its staleness threshold').toBeTruthy();
-    expect(bannerDays, 'the banner lost its staleness threshold').toBeTruthy();
-    expect(Number(bannerDays![1])).toBe(Number(workerDays![1]));
+    const app = read('../../src/App.tsx');
+    expect(app, 'the Needs fixing page is not routed, so nobody sees the problem')
+      .toContain('/account/fixes');
+    const table = read('../../src/components/AccountPanel/LaunchpadView.tsx');
+    expect(table, 'Your Table no longer leads to the Needs fixing page')
+      .toContain('/account/fixes');
+    const page = read('../../src/pages/SiteFixesPage.tsx');
+    expect(page, 'the problem does not lead anywhere it can be fixed')
+      .toContain('/admin/currency');
   });
 
   it('never lets the feed move the dollar off one', () => {

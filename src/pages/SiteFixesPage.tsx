@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft } from '@phosphor-icons/react';
 import { useAuth } from '../hooks/useAuth';
@@ -32,6 +32,16 @@ const IncidentItem: React.FC<{
       <p className="font-sans text-ui-12 text-tea-text-sec mt-1 leading-[1.5]">
         First seen {relativeTime(row.first_seen)}, last seen {relativeTime(row.last_seen)}, {countPhrase(row.occurrence_count)}.
       </p>
+      {/* Stale rates clear themselves on the next good refresh; until then the
+          rates screen is where one can be corrected by hand. */}
+      {row.error_code === 'rates_stale' && (
+        <Link
+          to="/admin/currency"
+          className="inline-block mt-2 font-sans text-ui-13 text-tea-text-sec hover:text-tea-text underline underline-offset-2"
+        >
+          Check rates
+        </Link>
+      )}
     </div>
     <button
       type="button"
