@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SqliteD1, seedIdentity } from './helpers/sqliteD1';
-import { curateIntakeTools, readQuotedPrice, teaMissing } from '../src/mcpTools/curateIntake';
+import { curateIntakeTools, markTodoDone, pickSuggestions, readQuotedPrice, teaMissing } from '../src/mcpTools/curateIntake';
 
 /*
  * Adrian's rule for these tools: whether he talks to an agent or types in the
@@ -287,6 +287,38 @@ describe('the GrokBot example: ten teas found, three picked', () => {
     const second = await call(db, 'curate_pick_suggestions', { pick: [id], confirm: b.confirmation_token });
     expect(second.skipped).toEqual([id]);
     expect(entries(db)).toHaveLength(1);
+  });
+});
+
+describe('a pick in the app lands the same rows as a pick through an agent', () => {
+  it('pickSuggestions and curate_pick_suggestions write identical teas, vendor and note', async () => {
+    const from = { url: 'https://wangtea.cn', vendor_name: 'Wang Laoshi', contact: 'WeChat wang_tea' };
+    const shape = (db: SqliteD1) => ({
+      tea: (({ id, created_at, updated_at, vendor_id, ...rest }) => rest)(entries(db)[0]),
+      vendor: (({ id, created_at, updated_at, notes, ...rest }) => rest)(vendors(db)[0]),
+      note: (db.sqlite.prepare('SELECT text, source_type FROM notes').get() as R),
+    });
+
+    const viaAgent = makeDb();
+    await call(viaAgent, 'curate_suggest_teas', { agent: 'GrokBot', from, teas: [{ name: '2019 Yiwu', price: { amount: 1200, currency: 'Yuan', per: 'piece' } }] });
+    const a = (await call(viaAgent, 'curate_list_suggestions', {})).waiting[0].teas[0].id;
+    await confirm(viaAgent, 'curate_pick_suggestions', { pick: [a], agent: 'GrokBot' });
+
+    const viaApp = makeDb();
+    await call(viaApp, 'curate_suggest_teas', { agent: 'GrokBot', from, teas: [{ name: '2019 Yiwu', price: { amount: 1200, currency: 'Yuan', per: 'piece' } }] });
+    const b = (await call(viaApp, 'curate_list_suggestions', {})).waiting[0].teas[0].id;
+    const out = await pickSuggestions({ DB: viaApp } as any, { accountId: ACCOUNT, userId: 'adrian' }, { pick: [b] });
+
+    expect(out.in_curate).toHaveLength(1);
+    expect(shape(viaApp)).toEqual(shape(viaAgent));
+  });
+
+  it('markTodoDone ticks a to-do once, only in its own shop', async () => {
+    const db = makeDb();
+    const added = await call(db, 'curate_todo', { action: 'add', text: 'Ask Wang' });
+    expect(await markTodoDone({ DB: db } as any, { accountId: OTHER }, added.todo_id)).toBe(false);
+    expect(await markTodoDone({ DB: db } as any, { accountId: ACCOUNT }, added.todo_id)).toBe(true);
+    expect(await markTodoDone({ DB: db } as any, { accountId: ACCOUNT }, added.todo_id)).toBe(false);
   });
 });
 
