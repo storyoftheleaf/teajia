@@ -32,6 +32,8 @@ import { EncounterContext } from './EncounterContext';
 import { DecisionControl } from './DecisionControl';
 import { CaptureContextChips } from './CaptureContextChips';
 import { CaptureActionFooter } from './CaptureActionFooter';
+import { curateShelfPreview } from './curatePricing';
+import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
 
 type ParseableField = 'type' | 'form' | 'year' | 'season' | 'storage' | 'region';
 
@@ -90,72 +92,41 @@ function fillOriginCountry(region: string | undefined, currentCountry: string | 
   if (country) updates.originCountry = country;
 }
 
-/** Retail price preview: shows cost/g and projected retail/g using 3× formula */
+/** Shelf price preview: what one gram cost, and what it would sell for.
+ *  Priced by the shop's own rates, freight and markup (see curatePricing.ts),
+ *  so the figure at the vendor's table is the figure the shelf will charge.
+ *  Shelf price in USD, the admin's display unit, like every other admin price. */
 function RetailPricePreview({
-  costAmount, grams, currency, shippingRatePerKg, onShippingRateChange,
+  costAmount, grams, currency,
 }: {
   costAmount: number;
   grams: number;
   currency: string;
-  shippingRatePerKg: number;
-  onShippingRateChange: (rate: number) => void;
 }) {
-  const [editingShipping, setEditingShipping] = useState(false);
-  const [shippingInput, setShippingInput] = useState('');
+  const { data: rates } = useRates();
+  const shopFreight = useShopFreightDefault();
   const sym = CURRENCY_SYMBOLS[currency] || currency;
-
-  const costPerGram = costAmount / grams;
-  const shippingPerGram = shippingRatePerKg / 1000;
-  const retailPerGram = (costPerGram + shippingPerGram) * 3;
+  const preview = curateShelfPreview({
+    costAmount, grams, currency, rates, shopFreightPerKgUsd: shopFreight.perKgUsd,
+  });
 
   const fmtGram = (v: number) => v < 1 ? v.toFixed(2) : v < 10 ? v.toFixed(1) : Math.round(v).toString();
 
+  if (!preview) {
+    return (
+      <div className="curate-support px-1 text-tea-text-dim" data-testid="curate-shelf-preview">
+        No exchange rate for {sym} yet, so the shelf price can't be worked out.
+      </div>
+    );
+  }
+
   return (
-    <div className="curate-support flex flex-wrap items-center gap-2 px-1 text-tea-text-dim">
-      <span className="tabular-nums">{sym}{fmtGram(costPerGram)}/g cost</span>
+    <div className="curate-support flex flex-wrap items-center gap-2 px-1 text-tea-text-dim" data-testid="curate-shelf-preview">
+      <span className="tabular-nums">{sym}{fmtGram(preview.costPerGramSource)}/g cost</span>
       <span className="text-tea-border">→</span>
-      <span className="tabular-nums text-tea-text-sec font-medium">≈ {sym}{fmtGram(retailPerGram)}/g retail</span>
+      <span className="tabular-nums text-tea-text-sec font-medium">≈ ${preview.retailPerGramUsd.toFixed(2)}/g on the shelf</span>
       <span className="text-tea-border">·</span>
-      {editingShipping ? (
-        <span className="flex items-center gap-1">
-          <span className="text-tea-text-dim">ship</span>
-          <input
-            autoFocus
-            type="number"
-            inputMode="decimal"
-            aria-label="Shipping cost per kilogram"
-            value={shippingInput}
-            onChange={(e) => setShippingInput(e.target.value)}
-            onBlur={() => {
-              const v = parseFloat(shippingInput);
-              // Blur fires on pointer-down, before the intended next button's
-              // click. Defer this parent update so the target is not replaced
-              // between pointer-down and click (notably the adjacent Buy action).
-              window.requestAnimationFrame(() => {
-                onShippingRateChange(isNaN(v) ? 0 : v);
-                setEditingShipping(false);
-              });
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === 'Escape') {
-                const v = parseFloat(shippingInput);
-                onShippingRateChange(isNaN(v) ? 0 : v);
-                setEditingShipping(false);
-              }
-            }}
-            className="curate-primary min-h-11 w-16 bg-transparent text-tea-text px-1 py-0.5 border-0 border-b border-tea-border rounded-none outline-none focus:border-tea-gold tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-          />
-          <span className="text-tea-text-dim">/kg</span>
-        </span>
-      ) : (
-        <button
-          type="button"
-          onClick={() => { setShippingInput(shippingRatePerKg > 0 ? String(shippingRatePerKg) : ''); setEditingShipping(true); }}
-          className="tap-target min-h-11 text-ui-12 text-tea-text-dim hover:text-tea-text-sec transition-colors underline underline-offset-2 decoration-dashed"
-        >
-          {shippingRatePerKg > 0 ? `+${sym}${shippingRatePerKg}/kg ship` : 'add ship cost'}
-        </button>
-      )}
+      <span className="tabular-nums">with {sym}{fmtGram(preview.freightPerKgSource)}/kg freight</span>
     </div>
   );
 }
@@ -194,8 +165,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const setLastCurrency = useTeaCompassStore((s) => s.setLastCurrency);
   const setLastVendor = useTeaCompassStore((s) => s.setLastVendor);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
-  const shippingRatePerKg = useTeaCompassStore((s) => s.shippingRatePerKg);
-  const setShippingRatePerKg = useTeaCompassStore((s) => s.setShippingRatePerKg);
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
   const lastVendorId = useTeaCompassStore((s) => s.lastVendorId);
   const lastVendorName = useTeaCompassStore((s) => s.lastVendorName);
@@ -1826,8 +1795,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               costAmount={entry.priceAmount}
               grams={entry.pricePerUnitGrams}
               currency={entry.priceCurrency}
-              shippingRatePerKg={shippingRatePerKg}
-              onShippingRateChange={setShippingRatePerKg}
             />
           )}
         </div>

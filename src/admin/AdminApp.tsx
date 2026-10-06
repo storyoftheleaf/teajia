@@ -73,6 +73,10 @@ import { PurchaseOrdersPage } from './views/PurchaseOrdersPage';
 import PeopleAuditView from './components/PeopleAuditView';
 const TeaCompass = lazy(() => import('../components/TeaCompass'));
 import type { CompassMode } from '../components/TeaCompass';
+// Curate version 2: a copy of TeaCompass being rebuilt to the new design at
+// /admin/compass/v2 (/admin/curate/v2 forwards there), on the same data. The live Curate above is untouched until
+// Adrian switches over; then the route points here and the old folder goes.
+const CurateV2 = lazy(() => import('../components/CurateV2'));
 import { VendorProfileView } from './views/VendorProfileView';
 import { ProductStoryView } from './views/ProductStoryView';
 import { PlatformAuditLogPage } from './views/PlatformAuditLogPage';
@@ -96,6 +100,39 @@ import { AuthModal } from './components/AuthModal';
 import { CsvImportModal } from './components/CsvImportModal';
 import { AddToCartModal } from './components/AddToCartModal';
 import { AddProductModal } from './components/AddProductModal';
+
+/** Curate version 2 at /admin/compass/v2: the same query params as the live
+ *  Curate, kept on its own address. */
+const CurateV2WithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const tab = params.get('tab');
+  const entryId = params.get('entry');
+  const capture = params.get('capture');
+  const sampleOrder = params.get('sampleOrder');
+  const sampleSetId = params.get('set');
+  const initialMode: CompassMode | undefined =
+    tab === 'buying' || tab === 'ledger' || tab === 'orders' ? 'buying' :
+    tab === 'sourcing' || tab === 'capture' || tab === 'samples' || tab === 'table' ? 'sourcing' :
+    tab === 'tasting' || tab === 'browse' || tab === 'library' || tab === 'teas' ? 'library' :
+    undefined;
+  return (
+    <CurateV2
+      onBack={onBack}
+      initialMode={initialMode}
+      initialEntryId={entryId || undefined}
+      initialCaptureOption={capture === 'teaware' ? 'teaware' : capture === 'tea' ? 'tea' : undefined}
+      initialSampleOrder={sampleOrder === 'manage' ? 'manage' : sampleOrder === 'open' ? 'open' : undefined}
+      initialSampleSetId={sampleSetId || undefined}
+      onSampleOrderRouteClose={() => {
+        const next = new URLSearchParams(params);
+        next.delete('sampleOrder');
+        next.delete('set');
+        navigate({ pathname: '/admin/compass/v2', search: next.toString() ? `?${next}` : '' }, { replace: true });
+      }}
+    />
+  );
+};
 
 /** Reads ?tab= and ?entry= query params and passes them to TeaCompass */
 const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
@@ -512,6 +549,14 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                   </PageTransition>
                 </ProtectedRoute>
               } />
+              <Route path="compass/v2" element={
+                <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}>
+                  <PageTransition>
+                    <CurateV2WithMode onBack={() => navigate(-1)} />
+                  </PageTransition>
+                </ProtectedRoute>
+              } />
+              <Route path="curate/v2" element={<Navigate to={`/admin/compass/v2${location.search}`} replace />} />
               <Route path="compass-playbook" element={
                 <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}>
                   <PageTransition>

@@ -4912,3 +4912,58 @@ body.cart-panel-open .commerce-dock {
     padding-top: 0 !important;
   }
 }
+
+/* ── Curate v2 ─────────────────────────────────────────────────────────────
+   The second Curate (src/components/CurateV2, /admin/compass/v2). Every figure
+   uses lining, even-width numbers so prices, weights and years sit on the
+   line and stack in columns; Cormorant's default old-style figures drop below
+   it. Labels are small spaced capitals in the sans face, never below 10px. */
+.curate-v2,
+.curate-v2 .font-display {
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.curate-v2-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tea-text-dim);
+}
+/* One-line row: what it is on the left, figures and one small action right. */
+.curate-v2-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--tea-border);
+  white-space: nowrap;
+}
+.curate-v2 .curate-v2-name {
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
+  font-feature-settings: 'lnum' 1;
+  font-size: 18px;
+  line-height: 1.1;
+  color: var(--tea-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.curate-v2-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.curate-v2-tab {
+  min-height: 44px;
+  white-space: nowrap;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tea-text-dim);
+  box-shadow: inset 0 -1px 0 transparent;
+}
+.curate-v2-tab[aria-selected='true'] {
+  color: var(--tea-gold);
+  box-shadow: inset 0 -1px 0 var(--tea-gold);
+}

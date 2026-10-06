@@ -1,34 +1,14 @@
 import React, { useMemo } from 'react';
 import { ArrowDownLeft, ArrowUpRight, ShoppingBag } from 'lucide-react';
 import { useLedgerStore } from '../../lib/ledgerStore';
-import type { LedgerLineItem, LedgerTransaction } from '../../lib/ledgerStore';
 import { useAppStore } from '../../lib/store';
 import { CompassIcon } from './CompassIcon';
+import { useRates } from '../../admin/hooks/useAdminData';
+import { formatCurrency } from '../../admin/utils';
+import { rateToUsd } from '../../lib/currency';
+import { purchaseSpendInUsd } from './curatePricing';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  USD: '$', NT: 'NT$', Yuan: 'CN¥', IDR: 'Rp', JPY: 'JP¥', MYR: 'RM', HKD: 'HK$', AUD: 'A$', UNK: '',
-};
-
-function fmtAmount(amount: number, currency = 'USD'): string {
-  const sym = CURRENCY_SYMBOLS[currency] || '';
-  const decimals = ['NT', 'IDR', 'JPY'].includes(currency) ? 0 : 2;
-  return `${sym}${amount.toLocaleString(undefined, {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  })}`;
-}
-
-function itemTotal(item: LedgerLineItem): number {
-  if (item.priceIsPerGram && item.quantityGrams) return item.pricePerUnit * item.quantityGrams;
-  if (!item.priceIsPerGram && item.quantityUnits) return item.pricePerUnit * item.quantityUnits;
-  return item.pricePerUnit;
-}
-
-function txTotal(tx: LedgerTransaction): number {
-  return tx.items.reduce((sum, item) => sum + itemTotal(item), 0);
-}
 
 function getCurrentMonth(): string {
   return new Date().toISOString().slice(0, 7); // YYYY-MM
@@ -48,14 +28,28 @@ export const LedgerOverviewPanel: React.FC = () => {
   const transactions = useLedgerStore((s) => s.transactions);
   const createTransaction = useLedgerStore((s) => s.createTransaction);
   const openPurchaseOrder = useAppStore((s) => s.openPurchaseOrder);
+  const { data: rates } = useRates();
   const activeCurrency = useAppStore((s) => s.currency);
 
-  const confirmed = useMemo(
-    () => transactions.filter(
-      (t) => t.direction === 'purchase' && t.status === 'confirmed' && t.currency === activeCurrency
+  // Every confirmed purchase, whatever it was paid in, converted at the shop's
+  // rates and shown in the currency the site is set to. This used to keep only
+  // purchases paid in the display currency, so with the site on dollars every
+  // yuan purchase vanished from the totals.
+  const spend = useMemo(
+    () => purchaseSpendInUsd(
+      transactions.filter((t) => t.direction === 'purchase' && t.status === 'confirmed'),
+      rates,
     ),
-    [transactions, activeCurrency]
+    [transactions, rates]
   );
+  const confirmed = spend.priced;
+  const unpriced = Object.entries(spend.unpricedByCurrency);
+  // The admin's formatter, which converts and then rounds once. The shop's
+  // customer-facing total rounds up to a whole dollar first, which turned a
+  // ¥700 purchase into ¥706.
+  const shownIn = rateToUsd(rates, activeCurrency) ? activeCurrency : 'USD';
+  const fmtAmount = (usd: number) => formatCurrency(usd, shownIn, rates ?? []);
+  const fmtDelta = (usd: number) => `${usd >= 0 ? '+' : '−'}${fmtAmount(Math.abs(usd))}`;
 
   const stats = useMemo(() => {
     const currentMonth = getCurrentMonth();
@@ -68,8 +62,7 @@ export const LedgerOverviewPanel: React.FC = () => {
     const categoryMap: Record<string, number> = { Tea: 0, Teaware: 0, Samples: 0, Other: 0 };
     const categoryCountMap: Record<string, number> = { Tea: 0, Teaware: 0, Samples: 0, Other: 0 };
 
-    for (const tx of confirmed) {
-      const amount = txTotal(tx);
+    for (const { tx, usd: amount, itemsUsd } of confirmed) {
       totalAllTime += amount;
 
       const txMonth = tx.updatedAt.slice(0, 7);
@@ -79,7 +72,7 @@ export const LedgerOverviewPanel: React.FC = () => {
       const vendor = tx.counterpartyName || 'Unknown';
       vendorMap.set(vendor, (vendorMap.get(vendor) ?? 0) + amount);
 
-      for (const item of tx.items) {
+      tx.items.forEach((item, i) => {
         const t = (item.type || '').toLowerCase();
         let cat = 'Tea';
         if (t === 'teaware') cat = 'Teaware';
@@ -87,9 +80,9 @@ export const LedgerOverviewPanel: React.FC = () => {
         else if (t && !['white', 'green', 'yellow', 'oolong', 'black', 'dark', 'puer', 'pu-erh', 'puerh', 'raw', 'ripe', 'tea'].some((k) => t.includes(k))) {
           cat = 'Other';
         }
-        categoryMap[cat] += itemTotal(item);
+        categoryMap[cat] += itemsUsd[i];
         categoryCountMap[cat] += 1;
-      }
+      });
     }
 
     // Top 5 vendors by spend
@@ -114,7 +107,7 @@ export const LedgerOverviewPanel: React.FC = () => {
     };
   }, [confirmed]);
 
-  const hasData = confirmed.length > 0;
+  const hasData = confirmed.length > 0 || unpriced.length > 0;
 
   return (
     <div
@@ -130,23 +123,27 @@ export const LedgerOverviewPanel: React.FC = () => {
           <>
             {/* Total all-time */}
             <p className="font-serif text-3xl text-tea-gold tabular-nums leading-none">
-              {fmtAmount(stats.totalAllTime, activeCurrency)}
+              {fmtAmount(stats.totalAllTime)}
             </p>
             <p className="text-ui-12 text-tea-text-dim mt-1">
-              {stats.totalPurchases} purchase{stats.totalPurchases !== 1 ? 's' : ''} in {activeCurrency}
+              {stats.totalPurchases} purchase{stats.totalPurchases !== 1 ? 's' : ''}, shown in {shownIn} at today's rates
             </p>
+            {unpriced.length > 0 && (
+              <p className="text-ui-12 text-tea-text-sec mt-1" data-testid="ledger-unpriced">
+                Not counted, no exchange rate yet: {unpriced.map(([cur, n]) => `${n} in ${cur}`).join(", ")}.
+              </p>
+            )}
 
             {/* This month */}
             <div className="mt-5">
               <p className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim font-medium mb-1.5">This Month</p>
               <div className="flex items-baseline gap-2">
                 <span className="text-xl font-serif text-tea-text tabular-nums">
-                  {fmtAmount(stats.thisMonth, activeCurrency)}
+                  {fmtAmount(stats.thisMonth)}
                 </span>
                 {stats.lastMonth > 0 && (
                   <span className="text-ui-11 text-tea-text-dim tabular-nums">
-                    {stats.delta >= 0 ? '+' : ''}
-                    {fmtAmount(stats.delta, activeCurrency)} vs last month
+                    {fmtDelta(stats.delta)} vs last month
                   </span>
                 )}
               </div>
@@ -164,7 +161,7 @@ export const LedgerOverviewPanel: React.FC = () => {
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-ui-12 text-tea-text-sec flex-1 truncate">{vendor}</span>
                           <span className="text-ui-12 text-tea-text-dim tabular-nums shrink-0">
-                            {fmtAmount(amount, activeCurrency)}
+                            {fmtAmount(amount)}
                           </span>
                         </div>
                         <div className="h-1 rounded-full bg-tea-gold/20">
