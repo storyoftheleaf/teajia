@@ -1,0 +1,194 @@
+/**
+ * The logic behind Curate v2's new surfaces, kept out of the components so it
+ * can be asked directly: what is waiting on Today, how a price reads the way the
+ * vendor quoted it, and the fast tasting.
+ *
+ * The fast tasting writes ONLY into the full tasting's own fields and ids
+ * (src/data/teajia-tasting-taxonomy.json, and TastingData's `cleanliness` and
+ * `quality`), so a fast tasting is the first layer of a full one and the two can
+ * never disagree. Nothing here invents a term.
+ */
+import type { TastingData } from '../../types';
+import type { TeaCompassEntry } from './types';
+
+// ── Today ────────────────────────────────────────────────────────────────
+
+export type TodayAction = 'taste' | 'decide' | 'add-cost' | 'shelf';
+
+export interface TodayItem {
+  entryId: string;
+  name: string;
+  /** Who it is from, or what it is, in one or two words. */
+  who: string;
+  action: TodayAction;
+}
+
+const ACTION_ORDER: Record<TodayAction, number> = { taste: 0, decide: 1, 'add-cost': 2, shelf: 3 };
+
+export function hasTasting(t: TastingData | undefined): boolean {
+  if (!t) return false;
+  return t.quality != null
+    || !!t.cleanliness
+    || (t.flavor?.length ?? 0) > 0
+    || (t.body?.length ?? 0) > 0
+    || (t.finish?.length ?? 0) > 0
+    || (t.feeling?.length ?? 0) > 0;
+}
+
+/**
+ * What needs Adrian, one item per tea, the most pressing reason only.
+ * A tea he passed on never asks for anything.
+ */
+export function todayItems(entries: readonly TeaCompassEntry[]): TodayItem[] {
+  const items: TodayItem[] = [];
+  for (const e of entries) {
+    if (e.decision === 'passed_on' || e.status === 'pass' || e.status === 'depleted') continue;
+    const name = e.name?.trim() || 'Untitled tea';
+    const vendor = e.vendorName?.trim() || '';
+    let action: TodayAction | null = null;
+    let who = vendor;
+    if (e.sampleState === 'received') { action = 'taste'; who = 'sample'; }
+    else if (e.status === 'in_stock' && !e.draftProductId) { action = 'shelf'; who = 'arrived'; }
+    else if (hasTasting(e.tasting) && (e.decision == null || e.decision === 'considering') && e.status !== 'buying' && e.status !== 'incoming') action = 'decide';
+    else if (e.category === 'tea' && e.priceAmount == null && e.status !== 'in_stock' && e.status !== 'incoming') action = 'add-cost';
+    if (action) items.push({ entryId: e.id, name, who, action });
+  }
+  return items.sort((a, b) => ACTION_ORDER[a.action] - ACTION_ORDER[b.action]);
+}
+
+export const TODAY_ACTION_LABEL: Record<TodayAction, string> = {
+  taste: 'Taste',
+  decide: 'Decide',
+  'add-cost': 'Add cost',
+  shelf: 'Shelf',
+};
+
+// ── Price, the way the vendor said it ────────────────────────────────────
+
+const PIECE_FORMS = ['Cake', 'Brick', 'Tuo'];
+
+/** The unit a price was quoted in: "cake", "jin", "liang", "g", or "100 g". */
+export function quotedUnit(entry: Pick<TeaCompassEntry, 'form' | 'pricePerUnitGrams' | 'category'>): string {
+  if (entry.category === 'teaware') return 'each';
+  if (entry.form && PIECE_FORMS.includes(entry.form)) return entry.form.toLowerCase();
+  const g = entry.pricePerUnitGrams;
+  if (g === 500) return 'jin';
+  if (g === 50) return 'liang';
+  if (g === 1) return 'g';
+  if (g != null && g > 0) return `${g} g`;
+  return '';
+}
+
+/** How a vendor might quote a loose tea, as grams per quoted unit. */
+export const QUOTE_UNITS: ReadonlyArray<{ id: string; label: string; grams: number }> = [
+  { id: 'jin', label: 'per jin · 500 g', grams: 500 },
+  { id: 'liang', label: 'per liang · 50 g', grams: 50 },
+  { id: '100g', label: 'per 100 g', grams: 100 },
+  { id: 'g', label: 'per gram', grams: 1 },
+];
+
+// ── Fast tasting ─────────────────────────────────────────────────────────
+
+export type FastQuestion = 'score' | 'clean' | 'drying' | 'weight' | 'flavour' | 'stays';
+
+export interface FastOption { id: string; label: string }
+
+/** Each question's answers, in the full tasting's own ids. */
+export const FAST_TASTING: ReadonlyArray<{ q: FastQuestion; label: string; from: string; multi?: boolean; options: FastOption[] }> = [
+  { q: 'score', label: 'How good', from: 'score', options: Array.from({ length: 10 }, (_, i) => ({ id: String(i + 1), label: String(i + 1) })) },
+  { q: 'clean', label: 'How clean', from: 'movement', options: [
+    { id: 'clean', label: 'Clean' }, { id: 'some-edge', label: 'Slight edge' }, { id: 'rough', label: 'Rough' },
+  ] },
+  { q: 'drying', label: 'How drying', from: 'sensation', options: [
+    { id: 'none', label: 'None' }, { id: 'finish-dry', label: 'A little' }, { id: 'dry', label: 'Astringent' },
+  ] },
+  { q: 'weight', label: 'How full', from: 'sensation', options: [
+    { id: 'light', label: 'Light' }, { id: 'medium', label: 'Medium' }, { id: 'full', label: 'Full' },
+  ] },
+  { q: 'flavour', label: 'Tastes of', from: 'flavour', multi: true, options: [
+    { id: 'sweet', label: 'Sweet' }, { id: 'floral', label: 'Floral' }, { id: 'fruity', label: 'Fruity' }, { id: 'woody', label: 'Woody' },
+    { id: 'earthy', label: 'Earthy' }, { id: 'roasted', label: 'Roasted' }, { id: 'mineral', label: 'Mineral' }, { id: 'nutty', label: 'Nutty' },
+  ] },
+  { q: 'stays', label: 'Stays', from: 'movement', options: [
+    { id: 'finish-short', label: 'Short' }, { id: 'finish-medium', label: 'Medium' }, { id: 'finish-long', label: 'Long' }, { id: 'lingering', label: 'Lingers' },
+  ] },
+];
+
+const WEIGHT_IDS = ['light', 'medium', 'full'];
+const STAY_IDS = ['finish-short', 'finish-medium', 'finish-long', 'lingering'];
+
+/** The fast tasting's current answers, read from a full tasting. */
+export function readFast(t: TastingData | undefined): Record<FastQuestion, string[]> {
+  const body = t?.body ?? [];
+  const finish = t?.finish ?? [];
+  const drying = body.includes('dry') ? ['dry'] : finish.includes('finish-dry') ? ['finish-dry'] : [];
+  return {
+    score: t?.quality != null ? [String(t.quality)] : [],
+    clean: t?.cleanliness ? [t.cleanliness] : [],
+    drying,
+    weight: body.filter((id) => WEIGHT_IDS.includes(id)).slice(0, 1),
+    flavour: (t?.flavor ?? []).filter((id) => FAST_TASTING[4].options.some((o) => o.id === id)),
+    stays: finish.filter((id) => STAY_IDS.includes(id)).slice(0, 1),
+  };
+}
+
+const toggle = (list: string[], id: string) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
+const without = (list: string[] | undefined, ids: string[]) => (list ?? []).filter((x) => !ids.includes(x));
+
+/**
+ * One tap on one answer. Single-answer questions switch to the tapped answer,
+ * or clear it when it is tapped again. Everything else in the tasting (notes,
+ * the deeper terms from a full tasting) is left exactly as it was.
+ */
+export function applyFast(t: TastingData | undefined, q: FastQuestion, id: string): TastingData {
+  const next: TastingData = { ...(t ?? {}) };
+  const current = readFast(t)[q];
+  const clearing = current.includes(id);
+  switch (q) {
+    case 'score':
+      if (clearing) delete next.quality; else next.quality = Number(id);
+      break;
+    case 'clean':
+      if (clearing) delete next.cleanliness; else next.cleanliness = id;
+      break;
+    case 'drying': {
+      const body = without(next.body, ['dry']);
+      const finish = without(next.finish, ['finish-dry']);
+      if (!clearing && id === 'dry') body.push('dry');
+      if (!clearing && id === 'finish-dry') finish.push('finish-dry');
+      next.body = body;
+      next.finish = finish;
+      break;
+    }
+    case 'weight': {
+      const body = without(next.body, WEIGHT_IDS);
+      if (!clearing) body.push(id);
+      next.body = body;
+      break;
+    }
+    case 'flavour':
+      next.flavor = toggle(next.flavor ?? [], id);
+      break;
+    case 'stays': {
+      const finish = without(next.finish, STAY_IDS);
+      if (!clearing) finish.push(id);
+      next.finish = finish;
+      break;
+    }
+  }
+  return next;
+}
+
+/** One line for a row: "8 · Clean · Full · Sweet · Long". */
+export function tastingLine(t: TastingData | undefined): string {
+  if (!t) return '';
+  const a = readFast(t);
+  const label = (q: FastQuestion, id: string) => FAST_TASTING.find((x) => x.q === q)?.options.find((o) => o.id === id)?.label ?? '';
+  const parts: string[] = [];
+  if (a.score[0]) parts.push(a.score[0]);
+  if (a.clean[0]) parts.push(label('clean', a.clean[0]));
+  if (a.weight[0]) parts.push(label('weight', a.weight[0]));
+  for (const f of a.flavour.slice(0, 2)) parts.push(label('flavour', f));
+  if (a.stays[0]) parts.push(label('stays', a.stays[0]));
+  return parts.join(' · ');
+}

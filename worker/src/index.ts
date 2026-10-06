@@ -3,6 +3,7 @@ import {
   oauthProtectedResourceMetadata, oauthAuthorizationServerMetadata,
   oauthRegister, oauthAuthorize, oauthAuthorizeRequestInfo, oauthAuthorizeDecision, oauthToken,
 } from './mcp';
+import { foldHandlesIntoContacts, HANDLE_CHANNELS, withContactHandles } from './customerContactHandles';
 import {
   abandonCurateImport, acceptCurateImportItem, addCurateImportItem, addCurateImportSource, analyzeCurateImport, createCurateImport, getCurateImport,
   createVendorForCurateImportGroup, finalizeCurateImportRequest, getCurateImportEvidence, listIncompleteCurateImports, mergeCurateImportItem,
@@ -7721,7 +7722,7 @@ const handleGetCustomer: Handler = async (request, env, params) => {
   } catch { /* customer_id column may not exist yet */ }
 
   const parsed = {
-    ...customer,
+    ...withContactHandles(customer as Record<string, unknown>),
     contacts: typeof customer.contacts === 'string' ? JSON.parse(customer.contacts || '[]') : (customer.contacts ?? []),
     tags: typeof customer.tags === 'string' ? JSON.parse(customer.tags || '[]') : (customer.tags ?? []),
     relationship_kinds: relationships,
@@ -9803,8 +9804,14 @@ const handleUpdateCustomer: Handler = async (request, env, params) => {
   delete body.account_id;
   if (Array.isArray(body.tags)) body.tags = JSON.stringify(body.tags);
   if (Array.isArray(body.contacts)) body.contacts = JSON.stringify(body.contacts);
+  // `customers` has no wechat/instagram column: those handles live in contacts.
+  if (HANDLE_CHANNELS.some((c) => Object.prototype.hasOwnProperty.call(body, c))) {
+    const row = await env.DB.prepare('SELECT contacts FROM customers WHERE id = ? AND account_id = ?')
+      .bind(params.id, accountId).first() as { contacts?: string } | null;
+    foldHandlesIntoContacts(body, row?.contacts);
+  }
 
-  const CUSTOMER_ALLOWED_COLS = new Set(['name','email','phone','notes','tags','address','city','country','source','vip','preferred_currency','instagram','wechat','whatsapp','line','referred_by','type','company','contacts','business_card_photo','storefront_photo','latitude','longitude']);
+  const CUSTOMER_ALLOWED_COLS = new Set(['name','email','phone','notes','tags','address','city','country','source','vip','preferred_currency','whatsapp','line','referred_by','type','company','contacts','business_card_photo','storefront_photo','latitude','longitude']);
   const cols = Object.keys(body).filter(k => CUSTOMER_ALLOWED_COLS.has(k));
   if (cols.length > 0) {
     const sets = cols.map(c => `${c} = ?`).join(', ');

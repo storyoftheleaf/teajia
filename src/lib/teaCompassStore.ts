@@ -71,10 +71,6 @@ interface TeaCompassState {
   addPendingPromotion: (id: string) => void;
   removePendingPromotion: (id: string) => void;
 
-  // Pricing formula, shipping rate used in retail preview (same currency as entry cost)
-  shippingRatePerKg: number;
-  setShippingRatePerKg: (rate: number) => void;
-
   // User-added teaware eras (e.g. "Song Dynasty"). Appear in the Era picker
   // alongside the standard TEAWARE_ERAS list.
   customEras: string[];
@@ -264,7 +260,6 @@ const createdTeaCompassStore = create<TeaCompassState>()(
       hydrationStatus: 'idle',
       deletedIds: [],
       pendingPromotions: [],
-      shippingRatePerKg: 0,
       customEras: [],
 
       setSyncError: (failed) => set({ syncError: failed }),
@@ -328,7 +323,6 @@ const createdTeaCompassStore = create<TeaCompassState>()(
       removePendingPromotion: (id) =>
         set((s) => ({ pendingPromotions: s.pendingPromotions.filter((p) => p !== id) })),
 
-      setShippingRatePerKg: (rate) => set({ shippingRatePerKg: rate }),
 
       addCustomEra: (era) => {
         const trimmed = era.trim();
@@ -589,7 +583,6 @@ const createdTeaCompassStore = create<TeaCompassState>()(
           libraryFilters: state.libraryFilters,
           currentSessionId: state.currentSessionId,
           lastCaptureAt: state.lastCaptureAt,
-          shippingRatePerKg: state.shippingRatePerKg,
           customEras: state.customEras,
           deletedIds: state.deletedIds, // survive reloads so a pending delete still wins
           pendingPromotions: state.pendingPromotions, // survive reloads so a failed promote still retries

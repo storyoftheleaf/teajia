@@ -419,7 +419,7 @@ EMDASH_ENFORCED_PATHS='^src/admin/|^src/pages/|^src/components/|^src/lib/|^src/u
 # Anything else on an enforced path fails. A new exception means adding a shape
 # here and saying what it is, which is the point: it should cost a sentence.
 EMDASH_ALLOWED_SHAPES="[\"'\`]${EMDASH}[\"'\`]|>${EMDASH}<|\[[^]]{0,16}${EMDASH}[^]]{0,16}\]"
-EMDASH_ALLOWED_PARSERS='^src/components/SinglePageRenderer\.tsx:[0-9]+:.*(split|join)\(|^src/components/TeaCompass/import/importEvidence(\.test)?\.ts:'
+EMDASH_ALLOWED_PARSERS='^src/components/SinglePageRenderer\.tsx:[0-9]+:.*(split|join)\(|^src/components/(TeaCompass|CurateV2)/import/importEvidence(\.test)?\.ts:'
 
 EMDASH_PATH_BLOCKING=$(printf '%s\n' "$EMDASH_ALL" \
   | grep -E "$EMDASH_ENFORCED_PATHS" \
