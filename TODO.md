@@ -4,6 +4,7 @@
 
 ## Soon
 
+- [ ] Curate: work through the fix-now picks from the review; Curate v2 is live at /admin/compass/v2 beside the current one until Adrian switches _(band: agent-runnable)_ _(effort: deep)_ → Plan: [curate-fix-now.md](todo/plans/curate-fix-now.md) · Design: [curate-next.md](todo/plans/curate-next.md)
 - [ ] Magazine: settle how the An Cha couple want their names printed (she is the main voice, her name not on file; he is Dai Haizhong), after asking them _(band: you-required)_ _(effort: quick)_
 - [ ] Magazine: once each story is up on the site, send every person in it the Chinese feedback message (name as printed, how they want to be introduced, photos, corrections; never addresses or contacts) and file their replies into the stories _(band: you-required)_ _(effort: moderate)_ → Process: the magazine's "message to subjects after publish" note in the vault
 - [ ] Magazine: put each story's photos in its Photos folder (Files → Teajia → Magazine → the story), or add a shared iCloud album link on the magazine page ([1] [2] [3] [5] [6] [7]) _(band: you-required)_ _(effort: quick)_

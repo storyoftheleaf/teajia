@@ -880,6 +880,19 @@ async function requireBundle(
   return { error: restError(403, 'Insufficient bundle for this action', 'insufficient_bundle', { required_bundle: bundle }) };
 }
 
+/**
+ * Sourcing work in Curate: anyone who gathers samples or curates the catalogue.
+ * A viewer is neither. Sample lists carry the supplier's name and contact, and
+ * journeys and visits are shared by the whole shop, so a viewer may not read
+ * the one or change the other.
+ */
+async function requireSourcing(request: Request, env: Env): Promise<AccountCtx | { error: Response }> {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx;
+  if (ctx.bundles.includes('gather') || ctx.bundles.includes('catalog')) return ctx;
+  return { error: restError(403, 'Sourcing needs the gather or catalog permission', 'insufficient_bundle', { required_bundle: 'gather' }) };
+}
+
 // Some actions are reserved to the account's owner tier specifically (not just
 // "anyone with the members bundle"). E.g. transferring ownership, configuring
 // the per-partner wholesale margin override that defines a financial relationship.
@@ -15544,7 +15557,7 @@ const handleListCurateJourneys: Handler = async (request, env) => {
 };
 
 const handleCreateCurateJourney: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireSourcing(request, env);
   if ('error' in ctx) return ctx.error;
   const body = await request.json() as Record<string, unknown>;
   if (typeof body.name !== 'string' || !body.name.trim()) return json({ error: 'name required' }, 400);
@@ -15559,7 +15572,7 @@ const handleCreateCurateJourney: Handler = async (request, env) => {
 };
 
 const handleUpdateCurateJourney: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireSourcing(request, env);
   if ('error' in ctx) return ctx.error;
   const owned = await env.DB.prepare('SELECT id FROM curate_journeys WHERE id = ? AND account_id = ?')
     .bind(params.id, ctx.accountId).first();
@@ -15573,7 +15586,7 @@ const handleUpdateCurateJourney: Handler = async (request, env, params) => {
 };
 
 const handleDeleteCurateJourney: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireSourcing(request, env);
   if ('error' in ctx) return ctx.error;
   const owned = await env.DB.prepare('SELECT id FROM curate_journeys WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first();
   if (!owned) return json({ error: 'Journey not found' }, 404);
@@ -15600,7 +15613,7 @@ async function curateJourneyOwned(env: Env, accountId: string, journeyId: unknow
 }
 
 const handleCreateCurateVisit: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireSourcing(request, env);
   if ('error' in ctx) return ctx.error;
   const body = await request.json() as Record<string, unknown>;
   if (!await curateJourneyOwned(env, ctx.accountId, body.journey_id)) return json({ error: 'Journey not found' }, 404);
@@ -15620,7 +15633,7 @@ const handleCreateCurateVisit: Handler = async (request, env) => {
 };
 
 const handleUpdateCurateVisit: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireSourcing(request, env);
   if ('error' in ctx) return ctx.error;
   const owned = await env.DB.prepare('SELECT id FROM curate_visits WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first();
   if (!owned) return json({ error: 'Visit not found' }, 404);
@@ -15642,7 +15655,7 @@ const handleUpdateCurateVisit: Handler = async (request, env, params) => {
 };
 
 const handleDeleteCurateVisit: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireSourcing(request, env);
   if ('error' in ctx) return ctx.error;
   const owned = await env.DB.prepare('SELECT id FROM curate_visits WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first();
   if (!owned) return json({ error: 'Visit not found' }, 404);
@@ -17720,6 +17733,30 @@ const handleGetJourney: Handler = async (request, env, params) => {
 
 // ── Samples ──
 
+/**
+ * Whether this request may see who supplied a sample: the vendor's name, their
+ * WeChat or phone, and the shop's own notes. Only people in the shop that owns
+ * the sample, and the platform owner. Being signed in is not enough: sample
+ * labels are handed out, and any customer with an account who opened one used
+ * to see the supplier's contact.
+ */
+async function canSeeSampleSource(request: Request, env: Env, accountId: unknown): Promise<boolean> {
+  const token = isAuthed(request);
+  if (!token || typeof accountId !== 'string' || !accountId) return false;
+  if (await validateSessionToken(token, env)) return false;
+  const claims = parseToken(token);
+  if (!claims) return false;
+  if (claims.sub === 'env-admin' || claims.platform_role === 'platform_owner' || claims.platform_role === 'platform_admin') return true;
+  try {
+    const member = await env.DB.prepare(
+      "SELECT 1 AS ok FROM account_members WHERE user_id = ? AND account_id = ? AND status = 'active'"
+    ).bind(claims.sub, accountId).first();
+    return !!member;
+  } catch {
+    return false;
+  }
+}
+
 function stripSampleSource(sample: Record<string, any>): Record<string, any> {
   const { source_id, source_name, source_contact, notes, ...rest } = sample;
   return rest;
@@ -17760,10 +17797,8 @@ const handleGetSample: Handler = async (request, env, params) => {
 
   let parsed = parseSampleRow(sample as Record<string, any>);
 
-  // Strip source info for unauthenticated users
-  const token = isAuthed(request);
-  const authed = token ? await verifyToken(token, env.JWT_SECRET) : false;
-  if (!authed) {
+  // Who supplied it is the shop's business only.
+  if (!await canSeeSampleSource(request, env, (sample as Record<string, unknown>).account_id)) {
     parsed = stripSampleSource(parsed);
   }
 
@@ -17782,12 +17817,11 @@ const handleGetSamplesBySet: Handler = async (request, env, params) => {
     'SELECT * FROM tea_samples WHERE set_id = ? ORDER BY created_at DESC'
   ).bind(params.setId).all();
 
-  const token = isAuthed(request);
-  const authed = token ? await verifyToken(token, env.JWT_SECRET) : false;
+  const insider = await canSeeSampleSource(request, env, (set as Record<string, unknown>).account_id);
 
   const parsedSamples = (samples.results as Record<string, any>[]).map(s => {
     const parsed = parseSampleRow(s);
-    return authed ? parsed : stripSampleSource(parsed);
+    return insider ? parsed : stripSampleSource(parsed);
   });
 
   return json({
@@ -18905,7 +18939,7 @@ const handleRequestSample: Handler = async (request, env) => {
 
 // Admin: GET /api/admin/samples
 const handleListSamples: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireSourcing(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -19068,7 +19102,7 @@ const handleDeleteSample: Handler = async (request, env, params) => {
 
 // Admin: GET /api/admin/sample-sets
 const handleListSampleSets: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireSourcing(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
