@@ -24,6 +24,7 @@ import { CellarView } from './CellarView';
 import { ReaderView } from './ReaderView';
 import { useManageNav } from '../manageNav';
 import { LaunchpadView } from './LaunchpadView';
+import { useSiteIncidents, activeIncidentCount } from '../../lib/useSiteIncidents';
 import { useAtlasAccess } from '../../atlas/access';
 import { usePayAccess } from '../profile/PayAccessPanel';
 import { THREADS, profileThreads } from '../TeaDiscovery/threads';
@@ -568,6 +569,11 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
       return res.unread_count ?? 0;
     },
   });
+
+  // Site problems are the builder's to resolve, so they surface here and only
+  // for the platform owner. A visitor never makes this request.
+  const siteIncidentsQuery = useSiteIncidents(auth.isAuthenticated && auth.isAdmin);
+  const siteProblemCount = activeIncidentCount(siteIncidentsQuery.data);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -1276,6 +1282,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
                 hasManageRoom={isTokenScopedToAccount(activeAccountId) && manageNav.hasTableRoom}
                 manageEntryPath={manageNav.today?.path ?? manageNav.tableItems[0]?.path ?? '/admin/collections'}
                 isPlatformOwner={auth.isAdmin}
+                siteProblemCount={siteProblemCount}
                 canReadAtlas={canReadAtlas}
                 membershipsCount={memberships.length}
                 pendingInvoiceCount={pendingCount}

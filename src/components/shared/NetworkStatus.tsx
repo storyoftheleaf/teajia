@@ -3,19 +3,37 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 type Status = 'online' | 'offline' | 'back-online';
 
+/** A brief wifi flicker is not worth a bar: only a lasting outage is shown. */
+export const OFFLINE_BAR_DELAY_MS = 8000;
+
 export const NetworkStatus = () => {
   const [status, setStatus] = useState<Status>('online');
   const [visible, setVisible] = useState(false);
   const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const offlineTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // True only once the offline bar has actually been on screen, so "Back
+  // online" never answers a bar nobody saw.
+  const barShown = useRef(false);
 
   useEffect(() => {
+    const armOffline = () => {
+      if (offlineTimer.current) clearTimeout(offlineTimer.current);
+      offlineTimer.current = setTimeout(() => {
+        barShown.current = true;
+        setStatus('offline');
+        setVisible(true);
+      }, OFFLINE_BAR_DELAY_MS);
+    };
+
     const goOffline = () => {
       if (dismissTimer.current) clearTimeout(dismissTimer.current);
-      setStatus('offline');
-      setVisible(true);
+      armOffline();
     };
 
     const goOnline = () => {
+      if (offlineTimer.current) clearTimeout(offlineTimer.current);
+      if (!barShown.current) return;
+      barShown.current = false;
       setStatus('back-online');
       setVisible(true);
       dismissTimer.current = setTimeout(() => {
@@ -24,10 +42,7 @@ export const NetworkStatus = () => {
     };
 
     // Check initial state
-    if (!navigator.onLine) {
-      setStatus('offline');
-      setVisible(true);
-    }
+    if (!navigator.onLine) armOffline();
 
     window.addEventListener('offline', goOffline);
     window.addEventListener('online', goOnline);
@@ -36,6 +51,7 @@ export const NetworkStatus = () => {
       window.removeEventListener('offline', goOffline);
       window.removeEventListener('online', goOnline);
       if (dismissTimer.current) clearTimeout(dismissTimer.current);
+      if (offlineTimer.current) clearTimeout(offlineTimer.current);
     };
   }, []);
 

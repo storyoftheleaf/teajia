@@ -6,6 +6,7 @@ import { LogoEmblem } from './Logos';
 import { Section } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
+import { useSiteProblemCount } from '../lib/useSiteIncidents';
 import { useAppStore } from '../lib/store';
 import type { SidebarRoom } from '../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
@@ -124,6 +125,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 }) => {
   const { theme } = useTheme();
   const auth = useAuth();
+  // Owner only: the person glyph turns terracotta while something needs fixing.
+  const siteProblems = useSiteProblemCount(auth.isAdmin);
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
@@ -334,9 +337,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           </button>
           <button
             onClick={onAccountClick}
-            className={`nav-rail-word ${footGlyph(activeSection === 'YOUR_TABLE')}`}
-            title="Your Table"
-            aria-label="Your Table"
+            className={`nav-rail-word ${footGlyph(activeSection === 'YOUR_TABLE')}${siteProblems > 0 && activeSection !== 'YOUR_TABLE' ? ' !text-tea-error' : ''}`}
+            title={siteProblems > 0 ? `Your Table, ${siteProblems} to fix` : 'Your Table'}
+            aria-label={siteProblems > 0 ? `Your Table, ${siteProblems} site problem${siteProblems === 1 ? '' : 's'} to fix` : 'Your Table'}
           >
             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="12" cy="8" r="4" />

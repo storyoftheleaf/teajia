@@ -1212,7 +1212,11 @@ async function handleResponse(res: Response) {
     }
     throw error;
   }
-  dispatchNetworkRecovered();
+  // The site's own bookkeeping is not evidence the visitor's request came back.
+  // Filing the incident for a failed request succeeds whenever the API is up,
+  // so counting it as recovery cancelled the notice for every slow request
+  // before it could appear (2026-10-07).
+  if (incidentContext.reportIncident) dispatchNetworkRecovered();
   // Adopt any sliding-refresh token the server stapled onto the response
   // (currently /api/auth/me does this). Keeps the client JWT fresh without
   // an extra round-trip.
@@ -1598,7 +1602,10 @@ export const api = {
       method: 'POST', body: JSON.stringify(incident), retryTimeouts: true,
       background: true, reportIncident: false,
     }),
-    list: () => authedFetch(`${API_URL}/api/platform/incidents`),
+    // Reading the ledger must never write to it: a failed read would otherwise
+    // report itself as a new problem, and the panel's background count must not
+    // raise the network notice on a screen visitors also use.
+    list: () => authedFetch(`${API_URL}/api/platform/incidents`, { background: true, reportIncident: false }),
     update: (id: string, patch: { status: string; resolution_ref?: string }) => authedFetch(`${API_URL}/api/platform/incidents/${encodeURIComponent(id)}`, {
       method: 'PATCH', body: JSON.stringify(patch), retryTimeouts: true,
     }),

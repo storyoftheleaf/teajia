@@ -32,7 +32,7 @@ test('foreground API failure shows unstable wording when the site probe also fai
 
   await runNotesSync(page);
 
-  await expect(page.getByRole('alert')).toContainText("Couldn't load everything. Check your connection.");
+  await expect(page.getByRole('alert')).toContainText("Couldn't load everything. Check your connection.", { timeout: 10_000 });
 });
 
 test('foreground API failure uses server wording and clears after recovery', async ({ page }) => {
@@ -51,7 +51,7 @@ test('foreground API failure uses server wording and clears after recovery', asy
   await page.goto(baseUrl);
 
   await runNotesSync(page);
-  await expect(page.getByRole('alert')).toContainText('This is taking too long. Try again in a moment.');
+  await expect(page.getByRole('alert')).toContainText('This is taking too long. Try again in a moment.', { timeout: 10_000 });
 
   await page.route('**/api/notes', route => route.fulfill({
     status: 200,
@@ -75,7 +75,31 @@ test('offline events use reconnect wording', async ({ page }) => {
     }));
   });
 
-  await expect(page.getByRole('alert')).toContainText("You're offline. Reconnect to keep going.");
+  await expect(page.getByRole('alert')).toContainText("You're offline. Reconnect to keep going.", { timeout: 10_000 });
   await page.getByRole('button', { name: 'Dismiss' }).click();
   await expect(page.getByRole('alert')).toHaveCount(0);
+});
+
+test('a failure that recovers within a few seconds never shows anything', async ({ page }) => {
+  await page.goto(baseUrl);
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new CustomEvent('teajia:network-error', { detail: { kind: 'unstable' } }));
+    setTimeout(() => window.dispatchEvent(new CustomEvent('teajia:network-recovered')), 500);
+  });
+
+  await page.waitForTimeout(5000);
+  await expect(page.getByRole('alert')).toHaveCount(0);
+});
+
+test('a brief offline flicker shows no bar and no "Back online"', async ({ page }) => {
+  await page.goto(baseUrl);
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('offline'));
+    setTimeout(() => window.dispatchEvent(new Event('online')), 1000);
+  });
+
+  await page.waitForTimeout(2500);
+  await expect(page.getByText(/offline|back online/i)).toHaveCount(0);
 });

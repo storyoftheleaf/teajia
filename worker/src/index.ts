@@ -17,6 +17,7 @@ import { deductStockForPaidInvoice } from './orderLifecycle';
 import { internationalWhatsAppNumber } from '../../src/lib/whatsappContact';
 import { buildCustomerOrderNotificationInsert, processPendingCustomerOrderNotifications } from './whatsappOrderNotifications';
 import { FX_FEED_CURRENCY_MAP, refreshedCurrencyName } from './exchangeRateFeed';
+import { fetchLiveRates, staleRateRows, staleRatesMessage, type RateRefreshResult, type RateRow } from './exchangeRateSources';
 import { SHOP_MARKUP_MULTIPLIER, CURATOR_FALLBACK_MARKUP } from './markup'; import { mentionNeedles } from './peopleMentions';
 import { costNeedsCurrency, createMissingCost, currencyStated, stampCostCurrencySource, canonicalizeCostCurrency, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
 import { nameProductColumns } from './productDefaults';
@@ -80,7 +81,7 @@ import {
 } from './eventDomain';
 import { candidateToApi, impressionToApi, journalRowToNotes, parseCandidateInput } from './tastingNoteCuration';
 import { deliverVerificationCode, deliveryFailureBody } from './verificationDelivery';
-import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, type IncidentStatus } from './incidents';
+import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, recordHealthProblem, clearHealthProblem, type IncidentStatus } from './incidents';
 import {
   deleteWisdomVerification,
   getWisdomVerification,
@@ -29360,10 +29361,10 @@ function resolveAllowedOrigin(origin: string): string | null {
  * union the app allows, so adding a currency to the shop and forgetting it
  * here fails rather than passes.
  */
-// Refresh live rates from a free no-key feed (open.er-api.com), at most once
-// per 24h (gated on the USD row's last_updated). Stale rows are left untouched
+// Refresh live rates from a free no-key feed (open.er-api.com, with a backup
+// behind it), at most once per 23h (gated on the USD row's last_updated). Stale rows are left untouched
 // on offline ticks so pricing never zeroes. Fails gently.
-async function syncLiveExchangeRates(env: Env): Promise<boolean> {
+async function syncLiveExchangeRates(env: Env): Promise<RateRefreshResult> {
   try {
     /* Once a day, and retried hourly until it lands.
      *
@@ -29389,15 +29390,15 @@ async function syncLiveExchangeRates(env: Env): Promise<boolean> {
       const last = new Date(`${String(usdRow.last_updated).replace(' ', 'T')}Z`).getTime();
       // An unreadable timestamp falls through and refreshes, which is the safe
       // direction: a wasted fetch costs nothing, a wedged gate costs every price.
-      if (Number.isFinite(last) && Date.now() - last < 23 * 3600 * 1000) return false;
+      if (Number.isFinite(last) && Date.now() - last < 23 * 3600 * 1000) return { refreshed: false, skipped: 'fresh' };
     }
 
-    const resp = await fetch('https://open.er-api.com/v6/latest/USD', {
-      headers: { 'User-Agent': 'teajia-worker/1.0' },
-    });
-    if (!resp.ok) return false;
-    const body: any = await resp.json();
-    if (body?.result !== 'success' || !body?.rates) return false;
+    /* The first feed that answers wins, and every feed failing comes back as
+       a reason rather than a bare false: see exchangeRateSources. Nothing has
+       been written at this point, so a failed fetch leaves every stored rate
+       exactly where it was. */
+    const live = await fetchLiveRates();
+    if (!live.ok) return { refreshed: false, reason: live.reason };
 
     /* Every currency the shop actually holds has to be covered, not just the
        ones someone remembered to map. A row in exchange_rates outside the map
@@ -29415,7 +29416,7 @@ async function syncLiveExchangeRates(env: Env): Promise<boolean> {
     }
 
     const stmts: D1PreparedStatement[] = [];
-    for (const [feedCode, rateToUsd] of Object.entries(body.rates as Record<string, number>)) {
+    for (const [feedCode, rateToUsd] of Object.entries(live.rates)) {
       const key = FX_FEED_CURRENCY_MAP[feedCode];
       if (!key || !Number.isFinite(rateToUsd) || rateToUsd <= 0) continue;
       stmts.push(
@@ -29430,14 +29431,17 @@ async function syncLiveExchangeRates(env: Env): Promise<boolean> {
       await env.DB.batch(stmts);
       console.info('Exchange rates refreshed', { count: stmts.length });
     }
-    return true;
-  } catch {
-    return false;
+    return { refreshed: true, source: live.source };
+  } catch (err) {
+    return { refreshed: false, reason: `the refresh threw (${err instanceof Error && err.name ? err.name : 'error'})` };
   }
 }
 
 /** Past this many days without a refresh, the rates are a problem worth naming. */
 const STALE_RATES_AFTER_DAYS = 3;
+
+/** The one ledger row stale rates live in; fixed so an hourly check upserts rather than multiplies. */
+const RATES_STALE_SIGNATURE = 'rates_stale';
 
 /**
  * Say out loud when the rates have stopped being refreshed.
@@ -29451,23 +29455,32 @@ const STALE_RATES_AFTER_DAYS = 3;
  * still has work to do. The admin shows the same condition on screen, which is
  * where it will actually be read.
  */
-async function reportStaleExchangeRates(env: Env): Promise<void> {
+async function reportStaleExchangeRates(env: Env, lastRefresh?: RateRefreshResult): Promise<void> {
   const { results } = await env.DB.prepare(
     'SELECT currency, last_updated FROM exchange_rates'
   ).all();
-  const now = Date.now();
-  const stale: Array<{ currency: string; days: number | null }> = [];
-  for (const row of results as Array<{ currency: string; last_updated: string | null }>) {
-    if (!row.last_updated) { stale.push({ currency: row.currency, days: null }); continue; }
-    const at = new Date(`${String(row.last_updated).replace(' ', 'T')}Z`).getTime();
-    if (!Number.isFinite(at)) { stale.push({ currency: row.currency, days: null }); continue; }
-    const days = (now - at) / 86400000;
-    if (days > STALE_RATES_AFTER_DAYS) stale.push({ currency: row.currency, days: Math.round(days) });
+  const stale = staleRateRows(results as RateRow[], Date.now(), STALE_RATES_AFTER_DAYS);
+  if (stale.length === 0) {
+    // Healthy: close the ledger entry if there is one. Idempotent, so it is
+    // safe on every tick, including the ones where the refresh skipped itself.
+    await clearHealthProblem(env.DB, RATES_STALE_SIGNATURE, 'auto: rates refreshed');
+    return;
   }
-  if (stale.length === 0) return;
   console.error('Exchange rates are stale; every price on the site converts through these', {
     threshold_days: STALE_RATES_AFTER_DAYS,
     currencies: stale,
+  });
+  // Only past the threshold does this reach the ledger: one failed hour is not
+  // a problem, a week of them is. The reason the last attempt failed rides on
+  // the message, because the worker keeps no logs to find it in afterwards.
+  await recordHealthProblem(env.DB, {
+    signature: RATES_STALE_SIGNATURE,
+    category: 'server',
+    severity: 'high',
+    route: '/api/rates',
+    method: 'CRON',
+    errorCode: 'rates_stale',
+    message: staleRatesMessage(stale, lastRefresh?.reason),
   });
 }
 
@@ -29644,8 +29657,9 @@ export default {
      * piece of the tick that must not depend on the rest of it succeeding.
      * It runs on every tick, and writing the same number twice costs nothing.
      */
+    let rateRefresh: RateRefreshResult | undefined;
     try {
-      await syncLiveExchangeRates(env);
+      rateRefresh = await syncLiveExchangeRates(env);
     } catch (err) {
       console.error('Exchange rate refresh failed', err);
     }
@@ -29654,7 +29668,7 @@ export default {
        the age has to be said out loud somewhere. Checked after the attempt, so
        it reports the age that actually stands. */
     try {
-      await reportStaleExchangeRates(env);
+      await reportStaleExchangeRates(env, rateRefresh);
     } catch (err) {
       console.error('Exchange rate staleness check failed', err);
     }
