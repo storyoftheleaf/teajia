@@ -1041,6 +1041,38 @@ const toolPickSuggestions: ToolHandler = async (env, auth, args) => {
   }, token);
 };
 
+/**
+ * The same pick, for the app's "From your agent" list.
+ *
+ * Adrian ticking a box in the app IS the approval, so there is no ticket here;
+ * what is shared is the commit, so a pick made in the app and a pick confirmed
+ * through an agent land exactly the same rows (the Curate tea, the vendor and
+ * its website and contact, the "Suggested by" note). The caller is responsible
+ * for having authenticated Adrian and scoped `auth` to his account and user.
+ */
+export async function pickSuggestions(
+  env: ToolEnv,
+  auth: Pick<ToolAuth, 'accountId' | 'userId'>,
+  input: { pick?: string[]; drop?: string[]; as?: 'sample' | 'considering'; agent?: string },
+) {
+  const pick = (input.pick ?? []).map(String);
+  const drop = (input.drop ?? []).map(String);
+  if (!pick.length && !drop.length) throw new Error('pick or drop is required');
+  const both = pick.filter(id => drop.includes(id));
+  if (both.length) throw new Error(`These are in both pick and drop: ${both.join(', ')}`);
+  return commitPick(env, auth as ToolAuth, {
+    kind: 'curate:pick', accountId: auth.accountId, userId: auth.userId,
+    agent: str(input.agent, 60) ?? 'the app', pick, drop, as: input.as === 'considering' ? 'considering' : 'sample',
+  });
+}
+
+/** Tick a to-do off, for the app's Today list. Same write as `curate_todo` done. */
+export async function markTodoDone(env: ToolEnv, auth: Pick<ToolAuth, 'accountId'>, todoId: string): Promise<boolean> {
+  const r = await env.DB.prepare(`UPDATE curate_todos SET done_at = datetime('now') WHERE id = ? AND account_id = ? AND done_at IS NULL`)
+    .bind(todoId, auth.accountId).run();
+  return (r.meta?.changes ?? 0) > 0;
+}
+
 async function commitPick(env: ToolEnv, auth: ToolAuth, t: PickTicket) {
   const ids = [...t.pick, ...t.drop];
   const rows = await env.DB.prepare(
