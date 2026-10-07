@@ -7103,6 +7103,15 @@ const OAUTH_REDIRECT_HOST_ALLOWLIST = [
   'chatgpt.com',
   'chat.openai.com',
   'platform.openai.com',
+  // Grok Bot (xAI with Cursor) registers three callbacks at once and connects
+  // by OAuth only, never a pasted token: cursor://anysphere.cursor-mcp/...,
+  // https://www.cursor.com/agents/mcp/oauth/callback and a localhost loopback.
+  // Registration refuses the whole client if any one is off this list, so
+  // without cursor.com Grok Bot could not connect at all (Cursor forum,
+  // 2026-09). grok.com is the Grok app's own connector callback,
+  // https://grok.com/connectors-oauth-exchange-code/.
+  'cursor.com',
+  'grok.com',
 ];
 const OAUTH_REDIRECT_SCHEME_ALLOWLIST = ['claude:', 'cursor:', 'vscode:'];
 
@@ -7227,7 +7236,15 @@ export async function oauthRegister(request: Request, env: Env): Promise<Respons
   }
   const grantTypes = body.grant_types === undefined ? ['authorization_code'] : body.grant_types;
   const responseTypes = body.response_types === undefined ? ['code'] : body.response_types;
-  if (!Array.isArray(grantTypes) || grantTypes.length !== 1 || grantTypes[0] !== 'authorization_code') {
+  /* A client may say it would also like refresh tokens; most connector
+     clients (Cursor's, ChatGPT's) ask for both. This server issues none, and a
+     token lasts a year, so asking is harmless: it gets an access token and no
+     refresh token, which RFC 6749 allows. Refusing the registration over it
+     would refuse the client entirely. Anything other than those two is still
+     refused. */
+  if (!Array.isArray(grantTypes) || !grantTypes.includes('authorization_code')
+    || grantTypes.some((g: unknown) => g !== 'authorization_code' && g !== 'refresh_token')
+    || new Set(grantTypes).size !== grantTypes.length) {
     return corsJson({ error: 'invalid_client_metadata', error_description: 'Only authorization_code is supported' }, 400);
   }
   if (!Array.isArray(responseTypes) || responseTypes.length !== 1 || responseTypes[0] !== 'code') {
