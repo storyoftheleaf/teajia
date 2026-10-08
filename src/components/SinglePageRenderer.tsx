@@ -89,7 +89,7 @@ const BODY_CLASS = `${TYPE.body} text-left font-body [font-optical-sizing:auto] 
 const BODY_DENSE_CLASS = `${TYPE.bodyDense} text-justify font-body [font-optical-sizing:auto] [hyphens:auto] [hyphenate-limit-chars:6_3_2] [word-spacing:-0.01em]`;
 const CAPTION_CLASS = `${TYPE.caption} ${LH.tight} uppercase font-caption small-caps`;
 const FOLIO_CLASS = `${TYPE.folio} uppercase font-caption tracking-[0.2em]`;
-const OPENTYPE = { fontFeatureSettings: "'liga' 1, 'kern' 1, 'calt' 1, 'onum' 1", fontOpticalSizing: 'auto' as const } as const;
+const OPENTYPE = { fontFeatureSettings: "'liga' 1, 'kern' 1, 'calt' 1, 'lnum' 1", fontOpticalSizing: 'auto' as const } as const;
 
 // --- Animation Styles & Rich Text Helpers ---
 const ANIMATION_STYLES = `
