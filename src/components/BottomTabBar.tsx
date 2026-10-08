@@ -275,20 +275,15 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               the words instead. An invisible extension reaches a little
               further toward the words, but sits beneath them: on a crowded
               bar a tap on a word must never open the menu. */}
-          {/* Spacing: every word takes its own width plus an equal share of
-              what is left, so the gaps match on both sides of the logo. The
-              logo drifts a few pixels off centre when one side's words are
-              longer ("advise"), which reads better than uneven gaps. Equal-width boxes did the opposite: short words
-              floated and "advise" sat 3px off its dividers at 360px. Only
-              the logo is framed by hairlines; space alone separates the
-              words, because a line between every pair ate the air a
-              small phone does not have. */}
-          <div className="flex flex-auto min-w-0 h-full">
+          {/* Each side shares space between the labels themselves. Equal
+              side widths keep Home centered as the capsule grows; the
+              hairlines stay beside Home rather than drifting with a tab. */}
+          <div className="flex flex-1 basis-0 min-w-0 h-full">
           <div aria-hidden className="grow-[0.5] basis-0" />
           {isAdminRoute
             ? adminLeftTabs.map((tab, index) => renderAdminTabButton(tab, index))
             : leftSections.map((section, index) => renderTabButton(section, index))}
-          <div className="w-px h-4 mx-1 bg-tea-border self-center flex-shrink-0" />
+          <div aria-hidden className="grow-[0.5] basis-0" />
           </div>
 
           {/* Center: HOME / ADMIN HOME. The logo is always the center
@@ -299,7 +294,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: leftSections.length * 0.05, duration: 0.25, ease: 'easeOut' }}
-            className="flex-none px-1.5 h-full flex items-center justify-center relative transition-all duration-300 select-none"
+            className="flex-none px-1.5 h-full flex items-center justify-center relative transition-all duration-300 select-none before:absolute before:left-0 before:h-4 before:w-px before:bg-tea-border after:absolute after:right-0 after:h-4 after:w-px after:bg-tea-border"
             style={{
               WebkitTouchCallout: 'none',
               WebkitUserSelect: 'none',
@@ -319,8 +314,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             />
           </motion.button>
 
-          <div className="flex flex-auto min-w-0 h-full">
-          <div className="w-px h-4 mx-1 bg-tea-border self-center flex-shrink-0" />
+          <div className="flex flex-1 basis-0 min-w-0 h-full">
+          <div aria-hidden className="grow-[0.5] basis-0" />
           {isAdminRoute
             ? adminRightTabs.map((tab, index) => renderAdminTabButton(tab, index + adminLeftTabs.length + 1))
             : rightSections.map((section, index) => renderTabButton(section, index + leftSections.length + 1))}
