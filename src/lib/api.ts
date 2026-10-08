@@ -2848,7 +2848,7 @@ export const api = {
     holdings: (samplesOnly = false, teaId?: string): Promise<any[]> => authedFetch(`${API_URL}/api/curate/holdings?samples_only=${samplesOnly}${teaId ? `&tea_id=${encodeURIComponent(teaId)}` : ''}`),
     history: (entityType: string, entityId: string): Promise<any> => authedFetch(`${API_URL}/api/curate/history?entity_type=${encodeURIComponent(entityType)}&entity_id=${encodeURIComponent(entityId)}`),
     correct: (command: Record<string, unknown>, confirm?: string): Promise<any> => authedFetch(`${API_URL}/api/curate/correct`, { method: 'POST', body: JSON.stringify({ command, confirm }) }),
-    undo: (confirm?: string): Promise<any> => authedFetch(`${API_URL}/api/curate/undo`, { method: 'POST', body: JSON.stringify({ confirm }) }),
+    undo: (confirm?: string, mutationId?: string): Promise<any> => authedFetch(`${API_URL}/api/curate/undo`, { method: 'POST', body: JSON.stringify({ confirm, mutation_id: mutationId }) }),
     order: (input: Record<string, unknown>): Promise<any> => authedFetch(`${API_URL}/api/curate/order`, { method: 'POST', body: JSON.stringify(input) }),
   },
   compass: {

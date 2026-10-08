@@ -43,6 +43,8 @@ function RecordToolsInner({ entityType, entityId, onChanged }: Props) {
   const [role, setRole] = useState('source_document');
   const [file, setFile] = useState<File | null>(null);
   const [pending, setPending] = useState<{ kind: 'upload'|'correct'|'undo'; input: Record<string, unknown>; token: string; preview: any } | null>(null);
+  const confirmationRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (pending) confirmationRef.current?.scrollIntoView({ block: 'center' }); }, [pending]);
   const refresh = useCallback(async () => {
     const [files, changes] = await Promise.all([api.curateWorkspace.attachments(entityType,entityId), api.curateWorkspace.history(entityType,entityId)]);
     setAttachments(files); setHistory(changes.history || []);
@@ -63,10 +65,10 @@ function RecordToolsInner({ entityType, entityId, onChanged }: Props) {
     if(!result.confirmation_token) throw new Error(result.message||result.error||'Could not preview removal.');
     setPending({kind:'correct',input,token:result.confirmation_token,preview:result.preview});
   });
-  const previewUndo = () => perform(async () => {
-    const result=await api.curateWorkspace.undo();
+  const previewUndo = (mutationId?: string) => perform(async () => {
+    const result=await api.curateWorkspace.undo(undefined,mutationId);
     if(!result.confirmation_token) throw new Error(result.message||result.error||'Could not preview undo.');
-    setPending({kind:'undo',input:{},token:result.confirmation_token,preview:result.preview});
+    setPending({kind:'undo',input:{mutation_id:mutationId},token:result.confirmation_token,preview:result.preview});
   });
   const confirm = () => perform(async () => {
     if(!pending) return;
@@ -90,17 +92,17 @@ function RecordToolsInner({ entityType, entityId, onChanged }: Props) {
     <label className="curate-v2-line mt-3 border-t border-tea-border"><span className="curate-v2-label">Choose file</span><input className="min-w-0 flex-1 text-right font-mono text-ui-12 text-tea-text-sec" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" disabled={busy||!!pending} onChange={e=>setFile(e.target.files?.[0]||null)} /></label>
     <label className="curate-v2-line"><span className="curate-v2-label">Role</span><select aria-label="Attachment role" className="curate-v2-select flex-1" value={role} disabled={busy||!!pending} onChange={e=>setRole(e.target.value)}>{Object.entries(roles).filter(([key])=>key!=='businesscard'||entityType==='vendor').map(([key,name])=><option key={key} value={key}>{name}</option>)}</select></label>
     <div className="px-4 pt-3"><button type="button" className="curate-v2-frame is-tall" disabled={busy||!file||!!pending} onClick={()=>void previewUpload()}>Preview attachment</button></div>
-    {pending && <div className="mx-4 mt-4 space-y-3 rounded-[3px] border border-tea-gold p-4" role="region" aria-label="Confirm change">
-      <h3 className="font-display text-ui-20 text-tea-text">{pending.kind==='upload'?'Attach this file?':pending.kind==='undo'?'Undo the last shop change?':'Remove this attachment?'}</h3>
+    {pending && <div ref={confirmationRef} className="mx-4 mt-4 space-y-3 rounded-[3px] border border-tea-gold p-4" role="region" aria-label="Confirm change">
+      <h3 className="font-display text-ui-20 text-tea-text">{pending.kind==='upload'?'Attach this file?':pending.kind==='undo'?(pending.input.mutation_id?'Undo this change?':'Undo the last shop change?'):'Remove this attachment?'}</h3>
       {pending.kind==='upload' ? <p className="break-all font-mono text-ui-13">{pending.preview.filename} · {roles[pending.preview.role as keyof typeof roles]} · {Math.ceil(pending.preview.size_bytes/1024)} KB</p> : <ChangePreview changes={pending.preview.changes||[]} />}
       <div className="flex flex-wrap justify-between gap-3"><button type="button" className="curate-v2-word tap-target text-tea-text-sec" disabled={busy} onClick={()=>setPending(null)}>Cancel</button><button type="button" className="curate-v2-frame is-on is-tall" disabled={busy} onClick={()=>void confirm()}>Confirm change</button></div>
     </div>}
     {error && <p role="alert" className="px-4 pt-3 text-ui-14 text-tea-text">{error}</p>}
     <details className="mt-3 border-t border-tea-border px-4 pt-1">
       <summary className="curate-v2-label flex min-h-11 cursor-pointer items-center">Change history ({history.length})</summary>
-      <p className="mb-3 font-body text-ui-14 italic text-tea-text-sec">Recorded changes since this feature was added. Undo previews the latest confirmed change across the shop.</p>
+      <p className="mb-3 font-body text-ui-14 italic text-tea-text-sec">Choose a recorded change to review its undo. Later edits to the affected records are protected.</p>
       <button type="button" className="curate-v2-frame is-tall mb-4" disabled={busy||!!pending} onClick={()=>void previewUndo()}>Preview undo of last shop change</button>
-      <div className="space-y-4 pb-3">{history.map(h=><article key={h.id} className="space-y-2"><p className="curate-v2-label">{h.agent_name||h.actor_user_id} · {new Date(h.confirmed_at).toLocaleString()}</p><ChangePreview changes={(h.records||[]).map((r:any)=>({entity_type:r.entity_type,entity_id:r.entity_id,before:JSON.parse(r.before_json),after:JSON.parse(r.after_json)}))} /></article>)}</div>
+      <div className="space-y-4 pb-3">{history.map(h=><article key={h.id} className="space-y-2"><div className="flex flex-wrap items-center justify-between gap-2"><p className="curate-v2-label">{h.agent_name||h.actor_user_id} · {new Date(h.confirmed_at).toLocaleString()}</p>{h.undone_by ? <span className="curate-v2-label">Undone</span> : !h.undo_of && !String(h.command_type).endsWith(':with_side_effects') && <button type="button" className="curate-v2-word tap-target" disabled={busy||!!pending} onClick={()=>void previewUndo(h.id)}>Preview undo</button>}</div><ChangePreview changes={(h.records||[]).map((r:any)=>({entity_type:r.entity_type,entity_id:r.entity_id,before:JSON.parse(r.before_json),after:JSON.parse(r.after_json)}))} /></article>)}</div>
     </details>
   </section>;
 }

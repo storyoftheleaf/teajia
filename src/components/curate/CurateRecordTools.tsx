@@ -44,6 +44,8 @@ function RecordToolsInner({ entityType, entityId, onChanged }: Props) {
   const [role, setRole] = useState('source_document');
   const [file, setFile] = useState<File | null>(null);
   const [pending, setPending] = useState<{ kind: 'upload'|'correct'|'undo'; input: Record<string, unknown>; token: string; preview: any } | null>(null);
+  const confirmationRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (pending) confirmationRef.current?.scrollIntoView({ block: 'center' }); }, [pending]);
   const refresh = useCallback(async () => {
     const [files, changes] = await Promise.all([api.curateWorkspace.attachments(entityType,entityId), api.curateWorkspace.history(entityType,entityId)]);
     setAttachments(files); setHistory(changes.history || []);
@@ -64,10 +66,10 @@ function RecordToolsInner({ entityType, entityId, onChanged }: Props) {
     if(!result.confirmation_token) throw new Error(result.message||result.error||'Could not preview removal.');
     setPending({kind:'correct',input,token:result.confirmation_token,preview:result.preview});
   });
-  const previewUndo = () => perform(async () => {
-    const result=await api.curateWorkspace.undo();
+  const previewUndo = (mutationId?: string) => perform(async () => {
+    const result=await api.curateWorkspace.undo(undefined,mutationId);
     if(!result.confirmation_token) throw new Error(result.message||result.error||'Could not preview undo.');
-    setPending({kind:'undo',input:{},token:result.confirmation_token,preview:result.preview});
+    setPending({kind:'undo',input:{mutation_id:mutationId},token:result.confirmation_token,preview:result.preview});
   });
   const confirm = () => perform(async () => {
     if(!pending) return;
@@ -93,17 +95,17 @@ function RecordToolsInner({ entityType, entityId, onChanged }: Props) {
         <button type="button" className="min-h-11 px-3 border border-tea-border rounded-md" disabled={busy||!file||!!pending} onClick={()=>void previewUpload()}>Preview attachment</button>
       </div>
     </div>
-    {pending && <div className="bg-tea-elevated border border-tea-border rounded-md p-4 space-y-3" role="region" aria-label="Confirm change">
-      <h3 className={T.h3}>{pending.kind==='upload'?'Attach this file?':pending.kind==='undo'?'Undo the last shop change?':'Remove this attachment?'}</h3>
+    {pending && <div ref={confirmationRef} className="bg-tea-elevated border border-tea-border rounded-md p-4 space-y-3" role="region" aria-label="Confirm change">
+      <h3 className={T.h3}>{pending.kind==='upload'?'Attach this file?':pending.kind==='undo'?(pending.input.mutation_id?'Undo this change?':'Undo the last shop change?'):'Remove this attachment?'}</h3>
       {pending.kind==='upload' ? <p className={`${T.body} break-all`}>{pending.preview.filename} · {roles[pending.preview.role as keyof typeof roles]} · {Math.ceil(pending.preview.size_bytes/1024)} KB</p> : <CurateChangePreview changes={pending.preview.changes||[]} />}
       <div className="flex flex-wrap gap-3"><button type="button" className="min-h-11 px-4" disabled={busy} onClick={()=>setPending(null)}>Cancel</button><button type="button" className="cta-solid min-h-11 px-4 rounded-md" disabled={busy} onClick={()=>void confirm()}>Confirm change</button></div>
     </div>}
     {error && <p role="alert" className={`${T.body} text-tea-text`}>{error}</p>}
     <details className="border-t border-tea-border pt-3">
       <summary className={`${T.label} cursor-pointer min-h-11`}>Change history ({history.length})</summary>
-      <p className="text-ui-12 text-tea-text-dim mb-3">Recorded changes since this feature was added. Undo previews the latest confirmed change across the shop.</p>
+      <p className="text-ui-12 text-tea-text-dim mb-3">Choose a recorded change to review its undo. Later edits to the affected records are protected.</p>
       <button type="button" className="min-h-11 px-3 border border-tea-border rounded-md mb-4" disabled={busy||!!pending} onClick={()=>void previewUndo()}>Preview undo of last shop change</button>
-      <div className="space-y-4">{history.map(h=><article key={h.id} className="space-y-2"><p className={T.label}>{h.agent_name||h.actor_user_id} · {new Date(h.confirmed_at).toLocaleString()}</p><CurateChangePreview changes={(h.records||[]).map((r:any)=>({entity_type:r.entity_type,entity_id:r.entity_id,before:JSON.parse(r.before_json),after:JSON.parse(r.after_json)}))} /></article>)}</div>
+      <div className="space-y-4">{history.map(h=><article key={h.id} className="space-y-2"><div className="flex flex-wrap items-center justify-between gap-2"><p className={T.label}>{h.agent_name||h.actor_user_id} · {new Date(h.confirmed_at).toLocaleString()}</p>{h.undone_by ? <span className={T.label}>Undone</span> : !h.undo_of && !String(h.command_type).endsWith(':with_side_effects') && <button type="button" className="tap-target text-ui-12" disabled={busy||!!pending} onClick={()=>void previewUndo(h.id)}>Preview undo</button>}</div><CurateChangePreview changes={(h.records||[]).map((r:any)=>({entity_type:r.entity_type,entity_id:r.entity_id,before:JSON.parse(r.before_json),after:JSON.parse(r.after_json)}))} /></article>)}</div>
     </details>
   </section>;
 }

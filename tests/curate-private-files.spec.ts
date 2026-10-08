@@ -1,7 +1,8 @@
 import { test, expect } from './fixtures';
 import { installCompassHarness, COMPASS_TOKEN, expectNoUnhandledCompassApi } from './helpers/compassHarness';
 
-test('private vendor files require preview and confirmation, authenticate download, and record undo history', async ({ page }) => {
+for (const selected of [false, true]) {
+test(`private vendor files preview, authenticate download, and ${selected ? 'undo a selected change' : 'undo the last change'}`,  async ({ page }) => {
   await installCompassHarness(page);
   await page.route('**/api/customers/vendor-1', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'vendor-1', name: 'Private Vendor', tags: ['vendor'], contacts: [] }) }));
   for (const path of ['customers/vendor-1/products', 'customers/vendor-1/supplied-products', 'purchase-orders', 'inventory/receipts*']) await page.route(`**/api/${path}`, route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
@@ -65,8 +66,15 @@ test('private vendor files require preview and confirmation, authenticate downlo
   await expect(link).toBeHidden();
   await tools.getByText('Change history (2)', { exact: true }).click();
   await expect(tools).toContainText('Test Admin');
-  await tools.getByRole('button', { name: 'Preview undo of last shop change', exact: true }).click();
-  await expect(preview).toContainText('Undo the last shop change?');
+  if (selected) await tools.locator('article').nth(1).getByRole('button', { name: 'Preview undo', exact: true }).click();
+  else await tools.getByRole('button', { name: 'Preview undo of last shop change', exact: true }).click();
+  await expect(preview).toContainText(selected ? 'Undo this change?' : 'Undo the last shop change?');
+  expect(undoCalls[0].mutation_id).toBe(selected ? 'event-remove' : undefined);
+  if (selected) {
+    await expect(preview).toBeInViewport();
+    await expect(page.locator('body')).toHaveJSProperty('scrollWidth', await page.locator('body').evaluate(el => el.clientWidth));
+    await page.screenshot({ path: `/tmp/teajia-selected-undo-${test.info().project.name.replace(/ /g, '-')}.png`, fullPage: true });
+  }
   expect(files).toHaveLength(0);
   await preview.getByRole('button', { name: 'Confirm change', exact: true }).click();
   await expect(link).toBeVisible();
@@ -74,3 +82,5 @@ test('private vendor files require preview and confirmation, authenticate downlo
   expect(undoCalls).toHaveLength(2);
   await expectNoUnhandledCompassApi(page);
 });
+
+}

@@ -65,7 +65,7 @@ export async function handleCurateWorkspace(request:Request,env:ToolEnv,auth:Too
     }
     if(path==='/api/curate/undo'){
       const body=await boundedJson(request);
-      return Response.json(body.confirm?await confirmCurateMutation(env,auth,body.confirm):await previewCurateUndo(env,auth,auth.userEmail || 'Shop app'));
+      return Response.json(body.confirm?await confirmCurateMutation(env,auth,body.confirm):await previewCurateUndo(env,auth,auth.userEmail || 'Shop app',body.mutation_id));
     }
     if(path==='/api/curate/order')return Response.json(await curateSupplyTools.handlers.curate_order(env,auth,{...await boundedJson(request),agent:auth.userEmail || 'Shop app'}));
     return Response.json({error:'Not found'},{status:404});

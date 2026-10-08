@@ -409,3 +409,13 @@ If management tools refuse a platform-level connection, the exact signed-in iden
 `remove_vendor_contact` refuses any vendor with durable references, including Curate teas, samples, quotes and history. For a vendor with history, use reviewed archive or merge instead.
 
 Adrian’s 5 g rule: when he says a 5 g sample, record a free vendor-given sample as received with measured sample grams of 5. This is sample possession, not purchased or saleable stock; do not overwrite the vendor’s quoted tea price. Do not invent a 5 g measurement when he has not supplied it.
+
+## Select a change or a Drive backup
+
+Refresh `tools/list` for MCP 0.8.0. `curate_promote_tea` is the direct path from a sourced tea to a private inventory product; no purchase order is required.
+
+To undo a chosen change, read `curate_history`, select its `id`, and preview `curate_undo` with `mutation_id`. Read the exact preview before confirming. Entries with `undone_by` are already reversed; newer conflicting edits and physical changes are protected. Omitting the ID still selects the latest shop change.
+
+Vendor delete/archive is soft and previews the counts of records that remain attached. Never describe it as deleting the teas or samples.
+
+Removing a photo URL does not remove its Drive copy. Use `curate_tea_photos` to find the exact synced `photo_url`, then preview `curate_drive_photo` with `tea_id`, `photo`, and `action:"trash"` (or `"restore"`). Confirm using `confirmation_token`. Trash can later be permanently emptied by Google; the preview explains this. `operation_id` reads/reconciles an uncertain outcome; `retry:true` requests a fresh same-action retry preview after 60 seconds. Never claim success until status is succeeded. Operation history and retry attribution are available in the photo result; generic Curate undo does not reverse Google writes.

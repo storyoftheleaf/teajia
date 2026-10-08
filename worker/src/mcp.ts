@@ -44,6 +44,7 @@ import { curateAttachmentTools } from './mcpTools/curateAttachments';
 import { curateManageModule } from './mcpTools/curateManage';
 import { curateQuoteTools } from './mcpTools/curateQuotes';
 import { curatePromotionTools } from './mcpTools/curatePromotion';
+import { curateDrivePhotosModule } from './mcpTools/curateDrivePhotos';
 import type { CurateReceiptService } from './mcpTools/registry';
 import { resolveShopFreightDefault, shippingPerGramUsd } from './shippingRate';
 import { deductStockForPaidInvoice } from './orderLifecycle';
@@ -6790,6 +6791,7 @@ const TOOL_MODULES: ToolModule[] = [
   curateManageModule,
   curateQuoteTools,
   curatePromotionTools,
+  curateDrivePhotosModule,
 ];
 
 const { defs: MODULE_TOOL_DEFS, handlers: MODULE_TOOL_HANDLERS } = combineToolModules(TOOL_MODULES);
@@ -6960,8 +6962,8 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
 
 const SERVER_INFO = {
   name: 'teajia-inventory',
-  version: '0.7.0',
-  description: 'Teajia inventory, orders, customers and Curate. Ask whats_waiting for pending orders and payments. Use search_tea for products and separate Curate sample holdings; curate_find and curate_get_tea read sourcing records. Curate tools cover structured intake, vendor quotes, attachments and uploads, samples and arrivals. curate_correct edits, clears, deletes, archives or merges records; curate_history and curate_undo preserve attribution. Curate management requires shop ownership or explicit curate_manage permission. Writes use preview and confirmation; curate_promote_tea creates a private zero-stock inventory Draft from a Curate tea; stock and sale tools take product ids only. Available tools depend on token scopes: fetch tools/list after connecting or reconnecting.',
+  version: '0.8.0',
+  description: 'Teajia inventory, orders, customers and Curate. Ask whats_waiting for pending orders and payments. Use search_tea for products and separate Curate sample holdings; curate_find and curate_get_tea read sourcing records. Curate tools cover structured intake, vendor quotes, attachments and uploads, samples and arrivals. curate_correct edits, clears, deletes, archives or merges records; curate_history and curate_undo preserve attribution; select mutation_id to undo a chosen safe change. curate_drive_photo previews trash or restore of a synced Drive backup. Curate management requires shop ownership or explicit curate_manage permission. Writes use preview and confirmation; curate_promote_tea creates a private zero-stock inventory Draft from a Curate tea; stock and sale tools take product ids only. Available tools depend on token scopes: fetch tools/list after connecting or reconnecting.',
 };
 
 // Default to the current rev (structured output + tool annotations). We echo
@@ -7007,7 +7009,7 @@ export async function mcpFetch(request: Request, env: Env): Promise<Response> {
           protocolVersion: requested || PROTOCOL_VERSION,
           capabilities: { tools: { listChanged: false } },
           serverInfo: SERVER_INFO,
-          instructions: 'Read the current tools/list after connecting or reconnecting. Use curate_find/curate_get_tea for sourcing records, and search_tea for separate product matches and curate_holdings. Call get_tea with source: curate and a curate_tea_id for sample holdings. Curate ids are never product stock/sale ids. Use curate_promote_tea to preview and confirm a private zero-stock Draft product, then use the returned product id for inventory tools. Use curate_correct to edit, clear, delete, archive or merge; curate_history/curate_undo to inspect or undo. Curate management requires active shop ownership or explicit curate_manage permission; tool visibility also depends on token scopes. Confirm writes only after the user accepts their exact preview.',
+          instructions: 'Read the current tools/list after connecting or reconnecting. Use curate_find/curate_get_tea for sourcing records, and search_tea for separate product matches and curate_holdings. Call get_tea with source: curate and a curate_tea_id for sample holdings. Curate ids are never product stock/sale ids. Use curate_promote_tea to preview and confirm a private zero-stock Draft product, then use the returned product id for inventory tools. Use curate_correct to edit, clear, delete, archive or merge; curate_history/curate_undo to inspect or undo, with mutation_id for a selected change. Photo unlinking retains its Drive copy; curate_drive_photo separately previews trash or restore. Curate management requires active shop ownership or explicit curate_manage permission; tool visibility also depends on token scopes. Confirm writes only after the user accepts their exact preview.',
         });
       }
 

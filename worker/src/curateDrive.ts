@@ -102,20 +102,20 @@ export async function forgetDrive(env: DriveEnv, accountId: string): Promise<voi
   accessCache.delete(accountId);
 }
 
-const accessCache = new Map<string, { token: string; until: number }>();
+const accessCache = new Map<string, { token: string; until: number; credential: string }>();
 
 class DriveNeedsReconnect extends Error {}
 
 async function accessToken(env: DriveEnv, sealed: DriveCrypto, link: DriveLink): Promise<string> {
   const hit = accessCache.get(link.account_id);
-  if (hit && hit.until > Date.now()) return hit.token;
+  if (hit && hit.until > Date.now() && hit.credential === link.refresh_token_encrypted) return hit.token;
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       client_id: env.GOOGLE_CLIENT_ID!, client_secret: env.GOOGLE_CLIENT_SECRET!,
       refresh_token: await sealed.decrypt(link.refresh_token_encrypted), grant_type: 'refresh_token',
-    }),
+    }), signal: AbortSignal.timeout(10000),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({})) as { error?: string };
@@ -126,7 +126,7 @@ async function accessToken(env: DriveEnv, sealed: DriveCrypto, link: DriveLink):
     throw new Error(`Drive token refresh failed (${res.status})`);
   }
   const t = await res.json() as { access_token: string; expires_in?: number };
-  accessCache.set(link.account_id, { token: t.access_token, until: Date.now() + ((t.expires_in ?? 3600) - 120) * 1000 });
+  accessCache.set(link.account_id, { token: t.access_token, credential: link.refresh_token_encrypted, until: Date.now() + ((t.expires_in ?? 3600) - 120) * 1000 });
   return t.access_token;
 }
 
@@ -266,9 +266,35 @@ export async function driveStatus(env: DriveEnv, accountId: string) {
 
 /** A tea's Drive folder and its saved photos, for an agent that wants to find them. */
 export async function teaDriveFiles(env: DriveEnv, accountId: string, entryId: string) {
-  const [folder, files] = await Promise.all([
+  const [folder, files, operations] = await Promise.all([
     env.DB.prepare('SELECT folder_id FROM curate_drive_folders WHERE account_id = ? AND folder_key = ?').bind(accountId, `tea:${entryId}`).first<{ folder_id: string }>(),
-    env.DB.prepare('SELECT photo_url, drive_file_id, web_view_link FROM curate_drive_files WHERE account_id = ? AND compass_entry_id = ? ORDER BY created_at').bind(accountId, entryId).all(),
+    env.DB.prepare('SELECT f.photo_url, f.drive_file_id, f.web_view_link, (SELECT id FROM curate_drive_photo_operations o WHERE o.account_id=f.account_id AND o.mapping_id=f.id ORDER BY o.created_at DESC, o.rowid DESC LIMIT 1) AS operation_id, (SELECT status FROM curate_drive_photo_operations o WHERE o.account_id=f.account_id AND o.mapping_id=f.id ORDER BY o.created_at DESC, o.rowid DESC LIMIT 1) AS operation_status FROM curate_drive_files f WHERE f.account_id = ? AND f.compass_entry_id = ? ORDER BY f.created_at').bind(accountId, entryId).all(),
+    env.DB.prepare('SELECT id, photo_url, drive_file_id, action, status, actor_user_id, actor_token_id, agent_name, created_at, updated_at, attempts_json FROM curate_drive_photo_operations WHERE account_id=? AND compass_entry_id=? ORDER BY created_at DESC, rowid DESC').bind(accountId,entryId).all(),
   ]);
-  return { folder_url: folder ? `https://drive.google.com/drive/folders/${folder.folder_id}` : null, photos: files.results ?? [] };
+  return { folder_url: folder ? `https://drive.google.com/drive/folders/${folder.folder_id}` : null, photos: files.results ?? [], operations: operations.results ?? [] };
+}
+
+/** Only metadata operations on an exact remembered backup; callers scope the mapping. */
+export type DrivePhotoState = { id: string; name: string; mimeType: string; trashed: boolean; explicitlyTrashed?: boolean; version?: string; capabilities?: { canTrash?: boolean; canUntrash?: boolean } };
+export class DrivePhotoHttpError extends Error {
+  constructor(public status: number) { super(`Drive photo metadata request failed (${status})`); }
+}
+export async function readDrivePhoto(env: DriveEnv, sealed: DriveCrypto, link: DriveLink, fileId: string): Promise<DrivePhotoState> {
+  const token = await accessToken(env, sealed, link);
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?fields=id,name,mimeType,trashed,explicitlyTrashed,version,capabilities(canTrash,canUntrash)`, {
+    headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) throw new DrivePhotoHttpError(res.status);
+  const file = await res.json() as DrivePhotoState;
+  if (file.id !== fileId || typeof file.trashed !== 'boolean' || !file.mimeType?.startsWith('image/')) throw new Error('Drive backup is not the exact image file');
+  return file;
+}
+/** Google Drive files.update: trashed=true/false; never files.delete. */
+export async function setDrivePhotoTrashed(env: DriveEnv, sealed: DriveCrypto, link: DriveLink, fileId: string, trashed: boolean): Promise<void> {
+  const token = await accessToken(env, sealed, link);
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?fields=id,trashed`, {
+    method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ trashed }), signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) throw new DrivePhotoHttpError(res.status);
 }

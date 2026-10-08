@@ -4,6 +4,8 @@
 
 ## 2026-10
 
+- 2026-10-09 — **Selected undo and explicit Drive cleanup.** Agents and app history controls can preview undo of a chosen change, retaining guards against later edits and duplicate reversals. Vendor soft-delete/archive previews show the tea/sample dependencies that remain attached. An explicit Drive photo tool previews trash/restore, retains local bytes, and records/reconciles external outcomes with safe same-action retries. Migration 0038 adds its operation audit. Prior release `3b7309c1` is verified live as `mv04eo7d`; this follow-up uses its own release proof.
+
 - 2026-10-09 — **Curate agent access and inventory identity.** An explicitly authorized shop-scoped capability repairs the existing OAuth identity without weakening management checks. `curate_promote_tea` previews and confirms a private inventory Draft or reuses its existing product, preserving unknown cost and sample balances. Legacy vendor deletion now reports and atomically protects Curate teas, samples, quotes and all durable contact references, including archived records.
 
 - 2026-10-09 — **Curate editor saves hydrated teas correctly.** Sync sends only editable fields, retaining import provenance and archive metadata for reading. Country names and structured route prices now use the Worker’s accepted wire format. This fixes the live PE1 “Not saved” error without weakening field validation or changing its recorded sample weight. The prior workspace release was independently verified live as build `muzqjfkv`; the i64 agent bridge reads the same Curate sample balances as Inventory.

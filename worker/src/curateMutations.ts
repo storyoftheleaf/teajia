@@ -1,3 +1,4 @@
+import { readVendorDependencies, VENDOR_DEPENDENCIES } from './vendorDependencies';
 /** Allowlisted, account-scoped corrections. The history insert is the atomic gate
  * for every write; a stale row makes the whole batch a no-op. Physical holdings,
  * receipts and historical tasting rows are never rewritten during a merge. */
@@ -27,6 +28,7 @@ export interface CurateMutationTicket {
  kind: 'curate:manage'; accountId: string; userId: string; commandType: string;
  agent: string; changes: Change[]; guards: CurateGuard[]; undoOf: string | null;
  promotionProductToRemove?: Row;
+ previewDetails?: Record<string,unknown>;
 }
 const TABLES: Record<CurateRecordedEntity, string> = { tea: 'tea_compass_entries', vendor: 'customers', note: 'notes', transcript: 'notes', todo: 'curate_todos', vendor_profile:'curate_vendor_profiles',quote:'curate_quotes',quote_line:'curate_quote_lines',attachment:'curate_attachments',asset:'curate_media_assets',sample:'tea_samples',sample_set:'tea_sample_sets' };
 const keyColumn=(entity:CurateRecordedEntity)=>entity==='vendor_profile'?'vendor_id':'id';
@@ -199,7 +201,16 @@ export async function previewCurateMutation(env:ToolEnv,auth:ToolAuth,command:Cu
  const before=await load(env,auth.accountId,command.entity,command.id);
  if(before.deleted_at || before.merged_into_id || (['note','transcript'].includes(command.entity)&&before.deleted)) throw new Error('Record is already deleted or merged');
  const after={...before}; const changes:Change[]=[]; let guards:CurateGuard[]=[];
+ const previewDetails:Record<string,unknown>={};
  const now=new Date().toISOString();
+ if(command.entity==='vendor' && (command.action==='delete'||command.action==='archive')) {
+  const dependencies=await readVendorDependencies(env.DB,auth.accountId,command.id);
+  previewDetails.vendor_removal={mode:'soft',dependencies,linked_records_remain_attached:true,
+   message:'This hides the vendor from active Curate. Its teas, samples, inventory and commercial history remain attached; nothing physical is deleted or moved.'};
+  const countColumns=Object.entries(VENDOR_DEPENDENCIES).map(([key,query])=>`(SELECT COUNT(*) FROM (${query})) AS ${key}`).join(',');
+  guards.push({sql:`EXISTS(SELECT 1 FROM (SELECT ${countColumns} FROM customers WHERE id=? AND account_id=?) refs WHERE ${Object.keys(dependencies).map(key=>`refs.${key}=?`).join(' AND ')})`,values:[command.id,auth.accountId,...Object.values(dependencies)],confirmationOnly:true});
+ }
+ if(command.action==='remove_photo') previewDetails.photo_removal={asset_retained:true,drive_photo_retained:true,drive_tool:'curate_drive_photo',message:'Removes this photo from the Curate tea only. The stored asset and its Drive copy remain; use curate_drive_photo to preview a Drive removal separately.'};
  switch(command.action) {
   case 'taste_sample': {
    if(before.grams_known===0) throw new Error('Record the sample grams before logging consumption; the remaining weight is unknown.');
@@ -290,11 +301,11 @@ export async function previewCurateMutation(env:ToolEnv,auth:ToolAuth,command:Cu
  if(Object.hasOwn(after,'updated_at')) after.updated_at=now;
  changes.unshift({entity:command.entity,id:command.id,before,after});
  guards.push(...await physicalGuards(env,auth.accountId,command.entity,command.id));
- return issuePreview(env,auth,{kind:'curate:manage',accountId:auth.accountId,userId:auth.userId,commandType:`${command.entity}:${command.action}`,agent:agent.slice(0,100),changes,guards,undoOf:null});
+ return issuePreview(env,auth,{kind:'curate:manage',accountId:auth.accountId,userId:auth.userId,commandType:`${command.entity}:${command.action}`,agent:agent.slice(0,100),changes,guards,undoOf:null,previewDetails});
 }
 async function issuePreview(env:ToolEnv,auth:ToolAuth,ticket:CurateMutationTicket) {
  const token=await issueTicket(env,ticket,auth.tokenId);
- return previewEnvelope({action:ticket.commandType,changes:ticket.changes.map(c=>({entity:c.entity,id:c.id,before:c.before,after:c.after})),undo_of:ticket.undoOf,physical_holdings_preserved:ticket.commandType!=='sample:taste_sample',inventory_preserved:!ticket.promotionProductToRemove,removes_pristine_draft_product:ticket.promotionProductToRemove?.id??null},token);
+ return previewEnvelope({...ticket.previewDetails,action:ticket.commandType,changes:ticket.changes.map(c=>({entity:c.entity,id:c.id,before:c.before,after:c.after})),undo_of:ticket.undoOf,physical_holdings_preserved:ticket.commandType!=='sample:taste_sample',inventory_preserved:!ticket.promotionProductToRemove,removes_pristine_draft_product:ticket.promotionProductToRemove?.id??null},token);
 }
 export async function confirmCurateMutation(env:ToolEnv,auth:ToolAuth,token:string) {
  await requireCurateManager(env.DB,auth);
@@ -393,7 +404,7 @@ export async function readCurateHistory(env:ToolEnv,auth:ToolAuth,options:{entit
  // Read parent relations from recorded before/after facts: a later move must
  // not erase the parent's history. Exact child reads remain exact child reads.
  const filter=options.entity_id?` AND EXISTS(SELECT 1 FROM curate_mutation_records r WHERE r.mutation_id = m.id AND r.account_id = m.account_id AND ((r.entity_id = ? AND r.entity_type = ?) OR (r.entity_type='attachment' AND EXISTS(SELECT 1 FROM curate_attachments a WHERE a.id=r.entity_id AND a.account_id=m.account_id AND a.entity_id=? AND a.entity_type=?))${related}))`:'';
- const rows=await env.DB.prepare(`SELECT m.* FROM curate_mutations m WHERE m.account_id = ?${filter} ORDER BY m.confirmed_at DESC,m.rowid DESC LIMIT ?`)
+ const rows=await env.DB.prepare(`SELECT m.*, (SELECT undone.id FROM curate_mutations undone WHERE undone.account_id=m.account_id AND undone.undo_of=m.id ORDER BY undone.confirmed_at DESC,undone.rowid DESC LIMIT 1) AS undone_by FROM curate_mutations m WHERE m.account_id = ?${filter} ORDER BY m.confirmed_at DESC,m.rowid DESC LIMIT ?`)
  .bind(auth.accountId,...(options.entity_id?[options.entity_id,entityType,options.entity_id,entityType,...relationValues]:[]),Math.min(100,Math.max(1,options.limit??20))).all<Row>();
  return {history:await Promise.all((rows.results??[]).map(async m=>({...m,records:(await env.DB.prepare('SELECT entity_type,entity_id,before_json,after_json FROM curate_mutation_records WHERE mutation_id = ? AND account_id = ?').bind(m.id,auth.accountId).all()).results})))};
 }
@@ -422,11 +433,16 @@ async function promotionDependencyGuards(db:D1Database,productId:string,records:
  if(!safe?.safe) throw new Error('This Draft product is now referenced by receipts, stock, samples, listings or other dependent work; undo cannot discard it');
  return [guard];
 }
-export async function previewCurateUndo(env:ToolEnv,auth:ToolAuth,agent='an agent') {
+export async function previewCurateUndo(env:ToolEnv,auth:ToolAuth,agent='an agent',mutationId?:string) {
  await requireCurateManager(env.DB,auth);
- const last=await env.DB.prepare('SELECT * FROM curate_mutations WHERE account_id = ? ORDER BY confirmed_at DESC,rowid DESC LIMIT 1').bind(auth.accountId).first<Row>();
- if(!last) throw new Error('There is no confirmed change to undo');
- if(last.undo_of) throw new Error('The last confirmed change was already an undo');
+ if(mutationId!==undefined && (typeof mutationId!=='string'||!mutationId.trim()||mutationId.length>100)) throw new Error('Choose a valid mutation_id from Curate history');
+ const last=mutationId
+  ? await env.DB.prepare('SELECT * FROM curate_mutations WHERE account_id = ? AND id = ?').bind(auth.accountId,mutationId).first<Row>()
+  : await env.DB.prepare('SELECT * FROM curate_mutations WHERE account_id = ? ORDER BY confirmed_at DESC,rowid DESC LIMIT 1').bind(auth.accountId).first<Row>();
+ if(!last) throw new Error(mutationId?'Confirmed change not found in this shop':'There is no confirmed change to undo');
+ if(last.undo_of) throw new Error('This confirmed change was already an undo');
+ const alreadyUndone=await env.DB.prepare('SELECT id FROM curate_mutations WHERE account_id = ? AND undo_of = ? LIMIT 1').bind(auth.accountId,last.id).first();
+ if(alreadyUndone) throw new Error('This confirmed change has already been undone');
  if(String(last.command_type).endsWith(':with_side_effects')) throw new Error('This change also filed sample or transcript records. Correct those records explicitly; undo cannot discard their history.');
  const records=await env.DB.prepare('SELECT * FROM curate_mutation_records WHERE mutation_id = ? AND account_id = ?').bind(last.id,auth.accountId).all<Row>();
  const changes:Change[]=[]; const guards:CurateGuard[]=JSON.parse(last.guards_json||'[]');
@@ -466,7 +482,9 @@ export async function previewCurateUndo(env:ToolEnv,auth:ToolAuth,agent='an agen
   }
   changes.push({entity:r.entity_type,id:r.entity_id,before:current,after});
  }
- // The latest mutation must still be latest when the confirmation runs.
- guards.push({sql:'(SELECT id FROM curate_mutations WHERE account_id = ? ORDER BY confirmed_at DESC,rowid DESC LIMIT 1) = ?',values:[auth.accountId,last.id]});
+ // A selected change may precede independent work. Its exact record/holding
+ // snapshots still guard it, and two confirmations cannot undo it twice.
+ guards.push({sql:'NOT EXISTS(SELECT 1 FROM curate_mutations WHERE account_id = ? AND undo_of = ?)',values:[auth.accountId,last.id]});
+ if(!mutationId) guards.push({sql:'(SELECT id FROM curate_mutations WHERE account_id = ? ORDER BY confirmed_at DESC,rowid DESC LIMIT 1) = ?',values:[auth.accountId,last.id]});
  return issuePreview(env,auth,{kind:'curate:manage',accountId:auth.accountId,userId:auth.userId,commandType:'undo',agent:agent.slice(0,100),changes,guards,undoOf:last.id,promotionProductToRemove});
 }

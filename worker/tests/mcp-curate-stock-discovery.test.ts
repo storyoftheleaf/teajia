@@ -97,7 +97,7 @@ describe('ordinary inventory discovery includes separate Curate holdings', () =>
   it('advertises current Curate tools and asks clients to refresh the live list', async () => {
     const db = await setup();
     const initialized = await rpc(db, 'initialize');
-    expect(initialized.result.serverInfo.version).toBe('0.7.0');
+    expect(initialized.result.serverInfo.version).toBe('0.8.0');
     expect(initialized.result.serverInfo.description).toContain('curate_correct');
     expect(initialized.result.instructions).toContain('tools/list');
     expect(initialized.result.capabilities.tools.listChanged).toBe(false);
