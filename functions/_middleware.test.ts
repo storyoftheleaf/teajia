@@ -227,3 +227,34 @@ describe('Tea Atlas pages are a 404 at the edge for everyone', () => {
     expect(isTeaAtlasPath('/atlases')).toBe(false);
   });
 });
+
+describe('built scripts and styles', () => {
+  const ask = (path: string, answer: Response) =>
+    onRequest({ request: new Request(`https://www.teajia.com${path}`), env: {}, next: async () => answer } as any) as Promise<Response>;
+
+  it('a script this deployment does not have is a plain not-found nobody may keep, never the shop page', async () => {
+    const shell = new Response('<!doctype html><title>Teajia</title>', { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=31536000, immutable' } });
+    const res = await ask('/assets/index-NOTYET.js', shell);
+    expect(res.status).toBe(404);
+    expect(res.headers.get('cache-control')).toBe('no-store');
+    expect(res.headers.get('content-type')).not.toContain('html');
+  });
+
+  it('a real script passes with its long caching', async () => {
+    const js = new Response('export {}', { status: 200, headers: { 'Content-Type': 'application/javascript' } });
+    const res = await ask('/assets/index-B2nVYaFK.js', js);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe('export {}');
+    expect(res.headers.get('cache-control')).toBe('public, max-age=31536000, immutable');
+  });
+
+  it('a browser revalidating a script it holds keeps its copy', async () => {
+    const res = await ask('/assets/index-B2nVYaFK.js', new Response(null, { status: 304 }));
+    expect(res.status).toBe(304);
+  });
+
+  it('every /assets/ request reaches this guard', async () => {
+    const routes = JSON.parse((await import('node:fs')).readFileSync(new URL('../public/_routes.json', import.meta.url), 'utf8'));
+    expect(routes.include).toContain('/assets/*');
+  });
+});
