@@ -124,12 +124,12 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
   // heading to sort by it, tap again to reverse (todo/plans/stock-phone-by-supplier.md).
   // The three number columns are fenced by hairlines: a grid you can read down,
   // drawn in the quiet border tone so it separates without adding noise.
-  const COLS = 'grid grid-cols-[minmax(0,1fr)_42px_52px_48px] items-stretch';
-  const NUM = 'flex items-center justify-end pr-2 border-l border-tea-border';
+  const COLS = 'grid grid-cols-[minmax(0,1fr)_36px_42px_38px] items-stretch';
+  const NUM = 'flex items-center justify-end pr-1.5 border-l border-tea-border';
   const heads: Array<[PhoneSortKey, string, string]> = [
     ['productName', ware ? 'Piece' : 'Tea', 'text-left'],
     ['year', 'Year', 'text-right'],
-    ['stockGrams', ware ? 'Pc' : 'Stock g', 'text-right'],
+    ['stockGrams', ware ? 'Pc' : 'Stock', 'text-right'],
     [priceKey, ware ? '$ ea' : '$/g', 'text-right'],
   ];
 
@@ -146,7 +146,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
                 role="columnheader"
                 aria-sort={on ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
                 onClick={() => onSort?.(key)}
-                className={`h-8 ${align === 'text-right' ? `${NUM} ` : 'text-left '}text-ui-10 uppercase tracking-[0.12em] ${on ? 'text-tea-gold' : 'text-tea-text-dim'}`}
+                className={`h-8 ${align === 'text-right' ? `${NUM} ` : 'text-left '}text-ui-10 uppercase tracking-[0.06em] ${on ? 'text-tea-gold' : 'text-tea-text-dim'}`}
               >
                 {label}{on ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
               </button>
@@ -246,9 +246,9 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
                         {comingQty > 0 && <span className="shrink-0 text-tea-gold-lt">· +{fmtNum(comingQty)}</span>}
                       </span>
                     </span>
-                    <span className={`${NUM} font-mono text-ui-13 text-tea-text-sec tabular-nums`}>{p.year || '—'}</span>
-                    <span className={`${NUM} font-mono text-ui-15 tabular-nums ${qtyTone}`}>{isTeaware(p) ? (p.quantityUnits == null ? '—' : qty) : qty.toLocaleString('en-US')}</span>
-                    <span className={`${NUM} font-mono text-ui-14 text-tea-text tabular-nums`}>{price != null ? fmtNum(price) : '—'}</span>
+                    <span className={`${NUM} font-mono text-ui-13 tracking-tight text-tea-text-sec tabular-nums`}>{p.year || '—'}</span>
+                    <span className={`${NUM} font-mono text-ui-13 tracking-tight tabular-nums ${qtyTone}`}>{isTeaware(p) ? (p.quantityUnits == null ? '—' : qty) : qty.toLocaleString('en-US')}</span>
+                    <span className={`${NUM} font-mono text-ui-13 tracking-tight text-tea-text tabular-nums`}>{price != null ? fmtNum(price) : '—'}</span>
                   </button>
                 </div>
               );
