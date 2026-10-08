@@ -33,7 +33,7 @@ const RATES = [
  * (the card keeps its "Added to Ledger" note when it switches tea). The ledger
  * is kept in localStorage, so the drafts carry across the reloads.
  */
-async function buyThroughCaptureCard(page: Page, teas: Array<Record<string, unknown>>) {
+async function buyThroughCaptureCard(page: Page, teas: Array<Record<string, unknown>>, amount = '2') {
   for (const [index, tea] of teas.entries()) {
     if (index > 0) await openCompass(page);
     await page.evaluate(async ({ list, id }) => {
@@ -43,7 +43,7 @@ async function buyThroughCaptureCard(page: Page, teas: Array<Record<string, unkn
       useTeaCompassStore.setState({ entries, pendingEntries: [], activeEntryId: id });
     }, { list: teas, id: tea.id as string });
     await page.getByRole('button', { name: /Buy/ }).last().click();
-    await page.getByRole('spinbutton').last().fill('2');
+    await page.getByRole('spinbutton').last().fill(amount);
     await page.getByRole('button', { name: 'Add to Ledger' }).click();
     await expect(page.getByText('Inventory changes only after you accept this receipt.')).toBeVisible();
   }
@@ -118,6 +118,21 @@ test.describe('Curate v1 purchase orders: the money they send', () => {
     const items = JSON.parse(po.items_json);
     expect(items.find((i: any) => i.name === 'Priceless Cake').pricePerUnit).toBeNull();
     expect(items.find((i: any) => i.name === 'Mengku Laobanzhang').pricePerUnit).toBe(450);
+  });
+
+  test('a loose tea priced per 100 g is counted per gram: 200 g at ¥450/100 g is ¥900, recorded as dollars', async ({ page }) => {
+    await installCompassHarness(page, { rates: RATES, customers: [{ id: 'vendor-wang', name: 'Wang Laoshi', tags: ['vendor'] }] });
+    const sent = record(page);
+    await openCompass(page);
+    await buyThroughCaptureCard(page, [{ id: 'g-1', name: 'Jingmai Mao Cha', form: undefined, priceAmount: 450, pricePerUnitGrams: 100, priceCurrency: 'Yuan' }], '200');
+    await openLedger(page);
+    // It was CN¥90,000.00: the per-100 g price multiplied by every gram.
+    await expect(page.getByRole('tabpanel').getByLabel('Grand total')).toContainText('CN¥900.00');
+    await page.getByRole('button', { name: 'Purchase', exact: true }).click();
+    await expect.poll(() => posted(sent).length).toBe(1);
+    const po = posted(sent)[0];
+    expect(po.total_usd).toBeCloseTo(900 / 7.1, 2);
+    expect(JSON.parse(po.items_json)[0]).toMatchObject({ quantity: 200, pricePerUnit: 4.5, priceIsPerGram: true });
   });
 
   test('a currency the shop has no rate for leaves total_usd out instead of reading it at 1', async ({ page }) => {

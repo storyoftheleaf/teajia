@@ -15987,16 +15987,18 @@ async function acceptCurateReceipt(env: Env, ctx: { accountId: string; userId: s
     // Promotion may have created an empty, unpriced draft before the order.
     // Its first receipt can supply a batch cost; never reprice stocked holdings.
     if (receiptDetails.cost_amount != null && proposal.compass_entry_id && decoded.unit === 'g') {
-      statements.push(env.DB.prepare(`UPDATE products SET cost_amount = ?, cost_currency = ?, quantity_purchased = ?
+      statements.push(env.DB.prepare(`UPDATE products SET cost_amount = ?, cost_currency = ?, cost_currency_source = ?, quantity_purchased = ?
         WHERE id = ? AND account_id = ? AND source_compass_entry_id = ?
           AND cost_amount IS NULL AND quantity_purchased IS NULL AND COALESCE(stock_grams, 0) = 0`)
-        .bind(receiptDetails.cost_amount, receiptDetails.cost_currency, receiptDetails.quantity_purchased, productId, ctx.accountId, proposal.compass_entry_id));
+        .bind(receiptDetails.cost_amount, receiptDetails.cost_currency, receiptDetails.cost_currency_source ?? null, receiptDetails.quantity_purchased, productId, ctx.accountId, proposal.compass_entry_id));
+      // The listing COPIES the product row's mark rather than re-deriving it.
       statements.push(env.DB.prepare(`UPDATE product_listings SET
         cost_amount = (SELECT cost_amount FROM products WHERE id = ? AND account_id = ?),
         cost_currency = (SELECT cost_currency FROM products WHERE id = ? AND account_id = ?),
+        cost_currency_source = (SELECT cost_currency_source FROM products WHERE id = ? AND account_id = ?),
         quantity_purchased = (SELECT quantity_purchased FROM products WHERE id = ? AND account_id = ?)
         WHERE legacy_product_id = ? AND account_id = ?`)
-        .bind(productId, ctx.accountId, productId, ctx.accountId, productId, ctx.accountId, productId, ctx.accountId));
+        .bind(productId, ctx.accountId, productId, ctx.accountId, productId, ctx.accountId, productId, ctx.accountId, productId, ctx.accountId));
     }
     const amountColumn = decoded.unit === 'g' ? 'stock_grams' : 'quantity_units';
     statements.push(env.DB.prepare(`UPDATE products SET inventory_purpose = ?, is_sample = ?, is_personal = ?, ${amountColumn} = COALESCE(${amountColumn}, 0) + ?, stock_known_at = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
@@ -21761,12 +21763,19 @@ const handleUpdatePurchaseOrder: Handler = async (request, env, params) => {
   const body = await request.json() as { status?: string; notes?: string; message_text?: string };
   const allowed = ['status', 'notes', 'message_text'];
   const cols = Object.keys(body).filter(k => allowed.includes(k));
-  if (cols.length === 0) return json({ success: true });
+  if (cols.length === 0) {
+    const exists = await env.DB.prepare('SELECT id FROM purchase_orders WHERE id = ? AND account_id = ?').bind(params.id, accountId).first();
+    return exists ? json({ success: true }) : json({ error: 'Purchase order not found' }, 404);
+  }
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(
+  const result = await env.DB.prepare(
     `UPDATE purchase_orders SET ${sets}, updated_at = ? WHERE id = ? AND account_id = ?`
   ).bind(...cols.map(c => (body as Record<string, any>)[c]), new Date().toISOString(), params.id, accountId).run();
+
+  // An id that is not this account's order changed nothing; saying success would
+  // let a screen report a send that never happened.
+  if (!(Number(result?.meta?.changes) > 0)) return json({ error: 'Purchase order not found' }, 404);
 
   return json({ success: true });
 };

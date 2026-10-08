@@ -13,6 +13,7 @@ import {
   compassRequestCount,
   delayCompassRequests,
   failCompassRequests,
+  forgetCompassPurchaseOrders,
   compassUpdatedCustomers,
   expectNoUnhandledCompassApi,
   installCompassHarness,
@@ -560,6 +561,27 @@ test.describe('Curate v2 requests (phone)', () => {
     await page.getByRole('button', { name: 'Open the order with Wang Laoshi' }).click();
     await expect(page.getByRole('button', { name: 'Marked as sent' })).toBeVisible();
     expect(sent.filter((s) => s.method === 'PUT' && s.path === '/api/purchase-orders/po-created')).toHaveLength(2);
+  });
+
+  test('Mark as sent on an order the shop does not hold (404) says so in a sentence and is not "Marked as sent"', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS, rates: RATES,
+      compassEntries: [entry({ id: 'po-404', name: 'Mengku Laobanzhang', year: 2018, form: 'Cake', price_amount: 450, price_currency: 'Yuan', tasting: tasted })],
+    });
+    const sent = record(page);
+    await openCurateV2(page, 'today');
+    await buyFromToday(page, /Mengku Laobanzhang/);
+    await tab(page, 'Orders').click();
+    await page.getByRole('button', { name: 'Open the order with Wang Laoshi' }).click();
+    await page.getByRole('button', { name: 'Confirm purchase' }).click();
+    await expect(page.getByRole('button', { name: 'Mark as sent' })).toBeVisible();
+    forgetCompassPurchaseOrders(page);
+    await page.getByRole('button', { name: 'Mark as sent' }).click();
+    const said = page.getByText('Could not mark it as sent. Try again.');
+    await expect(said).toBeVisible();
+    plain(await said.innerText());
+    await expect(page.getByRole('button', { name: 'Marked as sent' })).toHaveCount(0);
+    expect(sent.filter((s) => s.method === 'PUT' && s.path === '/api/purchase-orders/po-created')).toHaveLength(1);
   });
 
   test('Shelf: the tea is sent before it is shelved, shelving sends no body, a failure names the tea and keeps the line, and the money on the tea is untouched', async ({ page }) => {
