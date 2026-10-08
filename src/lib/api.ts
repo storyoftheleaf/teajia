@@ -2899,6 +2899,20 @@ export const api = {
       authedFetch(`${API_URL}/api/curate/receipt-proposals/${id}/accept`, { method: 'POST', retryTimeouts: true }),
     rejectReceiptProposal: async (id: string): Promise<CurateReceiptProposal> =>
       authedFetch(`${API_URL}/api/curate/receipt-proposals/${id}/reject`, { method: 'POST', retryTimeouts: true }),
+    /** Orders on their way: one pending receipt per tea, accepted when it arrives. */
+    pendingReceipts: async (): Promise<{ pending: CuratePendingReceipt[] }> =>
+      authedFetch(`${API_URL}/api/curate/receipt-proposals`),
+    /** Teas an agent found, waiting for a pick; grouped by where they were found. */
+    agentSuggestions: async (): Promise<{ waiting: CurateSuggestionGroup[] }> =>
+      authedFetch(`${API_URL}/api/curate/suggestions`),
+    pickAgentSuggestions: async (body: { pick: string[]; drop: string[]; as?: 'sample' | 'considering' }) =>
+      authedFetch(`${API_URL}/api/curate/suggestions/pick`, { method: 'POST', body: JSON.stringify(body) }),
+    todos: async (): Promise<{ todos: CurateTodo[] }> =>
+      authedFetch(`${API_URL}/api/curate/todos`),
+    addTodo: async (body: { text: string; tea_id?: string; vendor_id?: string }) =>
+      authedFetch(`${API_URL}/api/curate/todos`, { method: 'POST', body: JSON.stringify(body) }),
+    todoDone: async (id: string) =>
+      authedFetch(`${API_URL}/api/curate/todos/${id}/done`, { method: 'POST' }),
     /** Share a capture card to known accounts and/or generate an invite link for external tasters */
     share: async (params: {
       entryId: string;
@@ -4909,3 +4923,19 @@ export const api = {
   },
 
 };
+
+export interface CuratePendingReceipt {
+  id: string; compass_entry_id: string | null; product_id: string | null; product_name: string | null;
+  purpose: 'working' | 'sample' | 'personal'; quantity: number; unit: 'g' | 'unit';
+  acquisition_kind: string; created_at: string; tea_name: string | null; vendor_name: string | null;
+}
+export interface CurateSuggestionGroup {
+  batch_id: string; found_by: string | null; url: string | null; vendor: string | null;
+  contact: string | null; note: string | null; found_at: string;
+  teas: Array<{ id: string; name: string; category: 'tea' | 'teaware'; type: string | null; year: number | string | null;
+    price: { amount: number; currency: string; per_grams: number | null } | null; note: string | null }>;
+}
+export interface CurateTodo {
+  id: string; text: string; compass_entry_id: string | null; vendor_id: string | null; from_agent: string | null;
+  created_at: string; tea_name: string | null; vendor_name: string | null;
+}

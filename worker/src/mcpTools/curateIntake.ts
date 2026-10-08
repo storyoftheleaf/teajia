@@ -977,11 +977,12 @@ const toolSuggestTeas: ToolHandler = async (env, auth, args) => {
 
 // ── Tool: curate_list_suggestions ─────────────────────────────────────────────
 
-const toolListSuggestions: ToolHandler = async (env, auth, args) => {
-  const limit = Math.min(Math.max(Number(args?.limit) || 50, 1), 100);
+/** What agents found and Adrian has not picked from yet, one group per find
+ *  (a website, a vendor's list). The agent tool and the app read the same. */
+export async function waitingSuggestions(env: ToolEnv, accountId: string, limit = 50) {
   const rows = await env.DB.prepare(
     `SELECT * FROM curate_suggestions WHERE account_id = ? AND state = 'waiting' ORDER BY created_at ASC LIMIT ?`
-  ).bind(auth.accountId, limit).all<Record<string, any>>();
+  ).bind(accountId, Math.min(Math.max(limit, 1), 100)).all<Record<string, any>>();
   const groups = new Map<string, any>();
   for (const r of rows.results ?? []) {
     if (!groups.has(r.batch_id)) {
@@ -997,7 +998,12 @@ const toolListSuggestions: ToolHandler = async (env, auth, args) => {
       note: f.note ?? null,
     });
   }
-  return { waiting: [...groups.values()], how_to_use: 'Number the teas when you read them out. Pass the ids Adrian keeps to curate_pick_suggestions as pick, and the rest as drop.' };
+  return [...groups.values()];
+}
+
+const toolListSuggestions: ToolHandler = async (env, auth, args) => {
+  const waiting = await waitingSuggestions(env, auth.accountId, Number(args?.limit) || 50);
+  return { waiting, how_to_use: 'Number the teas when you read them out. Pass the ids Adrian keeps to curate_pick_suggestions as pick, and the rest as drop.' };
 };
 
 // ── Tool: curate_pick_suggestions ─────────────────────────────────────────────
@@ -1064,6 +1070,38 @@ export async function pickSuggestions(
     kind: 'curate:pick', accountId: auth.accountId, userId: auth.userId,
     agent: str(input.agent, 60) ?? 'the app', pick, drop, as: input.as === 'considering' ? 'considering' : 'sample',
   });
+}
+
+/** Open to-dos, oldest first, with the tea and vendor they are about. */
+export async function openTodos(env: ToolEnv, accountId: string) {
+  const r = await env.DB.prepare(
+    `SELECT t.id, t.text, t.compass_entry_id, t.vendor_id, t.from_agent, t.created_at, e.name AS tea_name, c.name AS vendor_name
+       FROM curate_todos t
+       LEFT JOIN tea_compass_entries e ON e.id = t.compass_entry_id
+       LEFT JOIN customers c ON c.id = t.vendor_id
+      WHERE t.account_id = ? AND t.done_at IS NULL ORDER BY t.created_at ASC LIMIT 200`
+  ).bind(accountId).all<Record<string, any>>();
+  return r.results ?? [];
+}
+
+/** Add a to-do, from an agent or from the app. A to-do about a tea also
+ *  carries that tea's vendor, so it shows on the vendor's card too. */
+export async function addTodo(env: ToolEnv, auth: ToolAuth, input: { text?: unknown; tea_id?: unknown; vendor_id?: unknown; agent?: unknown }) {
+  const text = str(input.text, 500);
+  if (!text) throw new Error('text is required');
+  const teaId = str(input.tea_id, 80);
+  let vendorId = str(input.vendor_id, 80);
+  if (teaId) {
+    const e = await entryById(env, auth, teaId);
+    if (!e) throw new Error('No such tea in Curate (tea_id)');
+    vendorId = vendorId ?? (e.vendor_id ? String(e.vendor_id) : null);
+  }
+  if (vendorId && !await vendorById(env, auth, vendorId)) throw new Error('No such vendor (vendor_id)');
+  const id = crypto.randomUUID();
+  await env.DB.prepare(
+    `INSERT INTO curate_todos (id, account_id, created_by_user_id, text, compass_entry_id, vendor_id, from_agent) VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).bind(id, auth.accountId, auth.userId, text, teaId, vendorId, input.agent == null ? null : agentName(input)).run();
+  return { added: true, todo_id: id, text };
 }
 
 /** Tick a to-do off, for the app's Today list. Same write as `curate_todo` done. */
@@ -1175,21 +1213,7 @@ const toolTodo: ToolHandler = async (env, auth, args) => {
     return (r.meta?.changes ?? 0) ? { done: true, todo_id: id } : { error: 'not_found_or_already_done' };
   }
   if (action !== 'add') throw new Error("action must be 'add' or 'done'");
-  const text = str(args?.text, 500);
-  if (!text) throw new Error('text is required');
-  const teaId = str(args?.tea_id, 80);
-  let vendorId = str(args?.vendor_id, 80);
-  if (teaId) {
-    const e = await entryById(env, auth, teaId);
-    if (!e) throw new Error('No such tea in Curate (tea_id)');
-    vendorId = vendorId ?? (e.vendor_id ? String(e.vendor_id) : null);
-  }
-  if (vendorId && !await vendorById(env, auth, vendorId)) throw new Error('No such vendor (vendor_id)');
-  const id = crypto.randomUUID();
-  await env.DB.prepare(
-    `INSERT INTO curate_todos (id, account_id, created_by_user_id, text, compass_entry_id, vendor_id, from_agent) VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).bind(id, auth.accountId, auth.userId, text, teaId, vendorId, agentName(args)).run();
-  return { added: true, todo_id: id, text };
+  return addTodo(env, auth, { ...args, agent: agentName(args) });
 };
 
 // ── Definitions ───────────────────────────────────────────────────────────────

@@ -22,6 +22,7 @@ import { SHOP_MARKUP_MULTIPLIER, CURATOR_FALLBACK_MARKUP } from './markup'; impo
 import { costNeedsCurrency, createMissingCost, currencyStated, stampCostCurrencySource, canonicalizeCostCurrency, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
 import { nameProductColumns } from './productDefaults';
 import { validateCurateContextPair } from './curateContextValidation';
+import { addTodo, markTodoDone, openTodos, pickSuggestions, waitingSuggestions } from './mcpTools/curateIntake';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import {
   deriveConfirmedInvoiceLine,
@@ -28632,6 +28633,68 @@ const handleSetReadPublishState: Handler = async (request, env) => {
   });
 };
 
+// ── Curate: what agents left for Adrian ──
+// The same rows the curate_* agent tools write and read, so a pick, a to-do or
+// an arrival can be handled in the app or through an agent, either way.
+
+const curateAppAuth = (ctx: AccountCtx) => ({ accountId: ctx.accountId, userId: ctx.userId, userEmail: ctx.email, tokenId: '', creatorTier: ctx.role });
+
+const handleListCurateSuggestions: Handler = async (request, env) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  return json({ waiting: await waitingSuggestions(env, ctx.accountId, 100) });
+};
+
+const handlePickCurateSuggestions: Handler = async (request, env) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json().catch(() => ({})) as { pick?: unknown; drop?: unknown; as?: unknown };
+  const list = (v: unknown) => (Array.isArray(v) ? v.map(String).slice(0, 100) : []);
+  try {
+    return json(await pickSuggestions(env, curateAppAuth(ctx), { pick: list(body.pick), drop: list(body.drop), as: body.as === 'considering' ? 'considering' : 'sample' }));
+  } catch (error) {
+    return json({ error: (error as Error).message }, 400);
+  }
+};
+
+const handleListCurateTodos: Handler = async (request, env) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  return json({ todos: await openTodos(env, ctx.accountId) });
+};
+
+const handleAddCurateTodo: Handler = async (request, env) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json().catch(() => ({})) as { text?: unknown; tea_id?: unknown; vendor_id?: unknown };
+  try {
+    return json(await addTodo(env, curateAppAuth(ctx), { text: body.text, tea_id: body.tea_id, vendor_id: body.vendor_id }), 201);
+  } catch (error) {
+    return json({ error: (error as Error).message }, 400);
+  }
+};
+
+const handleCurateTodoDone: Handler = async (request, env, params) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  return (await markTodoDone(env, ctx, params.id)) ? json({ done: true }) : json({ error: 'Not found or already done' }, 404);
+};
+
+/** Orders on their way: one pending receipt per tea, accepted on arrival. */
+const handleListPendingReceipts: Handler = async (request, env) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  const r = await env.DB.prepare(
+    `SELECT p.id, p.compass_entry_id, p.product_id, p.product_name, p.purpose, p.quantity, p.unit, p.acquisition_kind, p.created_at,
+            e.name AS tea_name, e.vendor_name
+       FROM curate_receipt_proposals p
+       LEFT JOIN tea_compass_entries e ON e.id = p.compass_entry_id
+      WHERE p.account_id = ? AND p.status = 'pending'
+      ORDER BY p.created_at DESC LIMIT 200`
+  ).bind(ctx.accountId).all();
+  return json({ pending: r.results ?? [] });
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -29118,6 +29181,12 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/curate/receipt-proposals/:id', handleUpdateReceiptProposal],
   ['POST', '/api/curate/receipt-proposals/:id/accept', handleAcceptReceiptProposal],
   ['POST', '/api/curate/receipt-proposals/:id/reject', handleRejectReceiptProposal],
+  ['GET', '/api/curate/receipt-proposals', handleListPendingReceipts],
+  ['GET', '/api/curate/suggestions', handleListCurateSuggestions],
+  ['POST', '/api/curate/suggestions/pick', handlePickCurateSuggestions],
+  ['GET', '/api/curate/todos', handleListCurateTodos],
+  ['POST', '/api/curate/todos', handleAddCurateTodo],
+  ['POST', '/api/curate/todos/:id/done', handleCurateTodoDone],
   ['GET', '/api/inventory/receipts', handleListInventoryReceipts],
   ['POST', '/api/inventory/receipts', handleCreateInventoryReceipt],
   ['PUT', '/api/inventory/receipts/:id/state', handleUpdateInventoryReceiptState],

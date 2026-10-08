@@ -970,7 +970,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-3 pb-nav-gap-lg" style={{ WebkitOverflowScrolling: 'touch' }}>
             <div className="mx-auto w-full max-w-2xl">
               {mode === 'today' && (
-                <TodayView onStartTable={startTable} onAct={handleTodayAct} />
+                <TodayView onStartTable={startTable} onAct={handleTodayAct} onOpenTea={(id) => openTeaFrom(id, 'today')} />
               )}
               {mode === 'vendors' && (
                 <VendorsView

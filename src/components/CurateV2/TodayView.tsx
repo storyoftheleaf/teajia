@@ -2,17 +2,19 @@ import React, { useMemo } from 'react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TODAY_ACTION_LABEL, todayItems, type TodayAction } from './curateV2Model';
 import { getTeaColor } from '../../designTokens';
+import { AgentInbox } from './AgentInbox';
 
 interface TodayViewProps {
   onStartTable: () => void;
   onAct: (entryId: string, action: TodayAction) => void;
+  onOpenTea: (entryId: string) => void;
 }
 
 /**
  * Curate opens here: what is waiting, one line each, the one thing it needs
  * as a small word on the right. A tea that is only a name says "Add cost".
  */
-export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct }) => {
+export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpenTea }) => {
   const entries = useTeaCompassStore((s) => s.entries);
   const items = useMemo(() => todayItems(entries).slice(0, 40), [entries]);
   const byId = useMemo(() => new Map(entries.map((e) => [e.id, e])), [entries]);
@@ -25,6 +27,7 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct }) => 
           Start a table
         </button>
       </div>
+      <AgentInbox onOpenTea={onOpenTea} />
       <Section title="Waiting" count={items.length} />
       {items.length === 0 && entries.length > 0 && (
         <p className="px-4 py-4 text-ui-13 text-tea-text-sec">Nothing waiting. Start a table, or add a tea by name.</p>
