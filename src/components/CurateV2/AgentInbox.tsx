@@ -5,6 +5,7 @@ import { api, hasToken, type CurateSuggestionGroup } from '../../lib/api';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { useAppStore } from '../../lib/store';
 import { BottomSheet } from './CurateSheet';
+import { plainFailure } from './plainFailure';
 import { CURRENCY_LABELS } from './PricingRow';
 
 export const AGENT_KEYS = {
@@ -18,7 +19,7 @@ const hostOf = (url: string | null) => {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return null; }
 };
 
-export const errorText = (e: unknown) => (e instanceof Error ? e.message : 'That did not go through. Try again.');
+export const errorText = (e: unknown) => plainFailure(e, 'That');
 
 /** What agents left: their finds, the to-dos, the orders on the way. One read each. */
 export function useAgentLists() {
@@ -61,7 +62,6 @@ export const AgentFindsSheet: React.FC<{ group: CurateSuggestionGroup | null; on
   const queryClient = useQueryClient();
   const accountId = useAppStore((s) => s.activeAccountId);
   const [kept, setKept] = useState<Set<string>>(new Set());
-  useEffect(() => { setKept(new Set()); }, [group?.batch_id]);
   const pick = useMutation({
     mutationFn: () => {
       const all = group!.teas.map((t) => t.id);
@@ -73,6 +73,8 @@ export const AgentFindsSheet: React.FC<{ group: CurateSuggestionGroup | null; on
       onClose();
     },
   });
+  // Another find opens clean: nothing ticked, and no failure left over from the last one.
+  useEffect(() => { setKept(new Set()); pick.reset(); }, [group?.batch_id]); // eslint-disable-line react-hooks/exhaustive-deps
   const toggle = (id: string) => setKept((prev) => {
     const next = new Set(prev);
     if (next.has(id)) next.delete(id); else next.add(id);

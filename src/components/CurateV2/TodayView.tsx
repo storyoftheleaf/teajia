@@ -112,7 +112,9 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
     setShelfError(null);
     const result = await createInventoryRecord(entryId);
     setShelving(null);
-    if (result.promotionError) setShelfError(result.retryQueued ? 'The shelf could not be reached. It will try again.' : result.promotionError);
+    // Said with the tea's name: more than one line may be waiting on the shelf.
+    const name = byId.get(entryId)?.name?.trim() || 'That tea';
+    if (result.promotionError) setShelfError(result.retryQueued ? `${name} is not on the shelf yet: the shop could not be reached. It will try again.` : `${name}: ${result.promotionError}`);
   };
 
   const openTodos = todos.filter((t) => !done.has(t.id));

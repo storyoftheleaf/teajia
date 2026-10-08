@@ -5,6 +5,7 @@ import { api } from '../../lib/api';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useNotesStore } from '../../lib/notesStore';
 import { SAID_LABEL, applySaidParts, type SaidPart } from './saidFiling';
+import { plainFailure } from './plainFailure';
 
 interface Filing { parts: SaidPart[]; keep: boolean[]; applied: boolean }
 
@@ -40,8 +41,10 @@ export const SaidSheet: React.FC<{ entryId: string | null; onClose: () => void }
 
   if (!entry || !entryId) return null;
 
-  const filingFor = (key: string) => filings[key] ?? readFiling(storeKey(entryId, key));
-  const save = (key: string, f: Filing) => { writeFiling(storeKey(entryId, key), f); setFilings((prev) => ({ ...prev, [key]: f })); };
+  // Kept per tea AND recording: this sheet stays mounted from one tea to the next,
+  // and two teas can hold a recording with the same key (a duplicated tea copies its clips).
+  const filingFor = (key: string) => filings[storeKey(entryId, key)] ?? readFiling(storeKey(entryId, key));
+  const save = (key: string, f: Filing) => { writeFiling(storeKey(entryId, key), f); setFilings((prev) => ({ ...prev, [storeKey(entryId, key)]: f })); };
 
   const file = async (key: string, text: string) => {
     setBusy(key); setError(null);
@@ -49,7 +52,7 @@ export const SaidSheet: React.FC<{ entryId: string | null; onClose: () => void }
       const res = await api.compass.fileSaid({ text, tea_name: entry.name || undefined });
       save(key, { parts: res.parts, keep: res.parts.map(() => true), applied: false });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Filing did not answer. Try again.');
+      setError(plainFailure(e, 'Filing'));
     } finally { setBusy(null); }
   };
 

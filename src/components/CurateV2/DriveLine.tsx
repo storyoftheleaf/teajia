@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, hasToken } from '../../lib/api';
 import { selectIsOwnerTier, useAppStore } from '../../lib/store';
+import { plainFailure } from './plainFailure';
 
 const KEY = ['curate', 'drive'] as const;
 
@@ -86,7 +87,7 @@ export const DriveLine: React.FC = () => {
       </div>
       {(note || connect.isError || saveNow.isError) && (
         <p className={`font-mono text-ui-12 ${connect.isError || saveNow.isError ? 'text-tea-error' : 'text-tea-text-sec'}`}>
-          {connect.isError ? (connect.error as Error).message : saveNow.isError ? (saveNow.error as Error).message : note}
+          {connect.isError ? plainFailure(connect.error, 'Connecting Drive') : saveNow.isError ? plainFailure(saveNow.error, 'Copying the photos') : note}
         </p>
       )}
     </div>

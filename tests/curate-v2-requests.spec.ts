@@ -7,8 +7,11 @@
  */
 import { test, expect, type Page } from './fixtures';
 import {
+  clearCompassFailures,
   compassCreatedCustomers,
   compassRequestCount,
+  delayCompassRequests,
+  failCompassRequests,
   compassUpdatedCustomers,
   expectNoUnhandledCompassApi,
   installCompassHarness,
@@ -41,6 +44,7 @@ const VENDORS = [
 ];
 const tab = (page: Page, name: string) => page.getByRole('tab', { name, exact: true });
 const nameLine = (page: Page) => page.getByRole('textbox', { name: 'Name the next tea' });
+const tableRows = (page: Page) => page.getByTestId('table-list').locator('.curate-v2-row').filter({ has: page.getByRole('button', { name: /^Fast tasting for/ }) });
 const overlay = (page: Page) => page.getByTestId('curate-tea-overlay');
 const back = (page: Page) => page.getByRole('button', { name: 'Back', exact: true }).first();
 const buy = (page: Page) => overlay(page).getByRole('radio', { name: 'Buy', exact: true });
@@ -439,5 +443,420 @@ test.describe('Curate v2 requests (phone)', () => {
     }
     for (const name of ['Purchase Order Builder', 'Quick Note', 'Quick Sale']) expect((await box(page.getByRole('button', { name, exact: true }))).height).toBeGreaterThanOrEqual(43.5);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  });
+  // ── Pass 6: the rest of what v2 sends, and what it says when a request fails ──
+
+  /** A sentence a person can use: no status line, no column name, no stack of words in code. */
+  const plain = (text: string) => {
+    expect(text).not.toMatch(/Request failed|\(\d{3}\)|\b[a-z]+_[a-z_]+\b|undefined|\[object/i);
+    expect(text.trim().length).toBeGreaterThan(10);
+  };
+
+  test('Confirm: a purchase order the shop did not take is said so, stays tryable, and trying again records ONE order; Mark as sent names it, and a failure to mark is not "Marked as sent"', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS, rates: RATES,
+      compassEntries: [entry({ id: 'po-1', name: 'Mengku Laobanzhang', year: 2018, form: 'Cake', price_amount: 450, price_currency: 'Yuan', tasting: tasted })],
+      failRequests: [{ match: 'POST /api/purchase-orders', times: 1 }],
+    });
+    const sent = record(page);
+    await openCurateV2(page, 'today');
+    await buyFromToday(page, /Mengku Laobanzhang/);
+    await tab(page, 'Orders').click();
+    await page.getByRole('button', { name: 'Open the order with Wang Laoshi' }).click();
+    await page.getByRole('button', { name: 'Confirm purchase' }).click();
+
+    const failed = page.getByTestId('order-record-failed');
+    await expect(failed).toBeVisible();
+    plain(await failed.innerText());
+    await expect(failed).toContainText('not recorded it yet');
+    // Not offered as sent while the shop has no order to name.
+    await expect(page.getByRole('button', { name: 'Mark as sent' })).toHaveCount(0);
+    expect(sent.filter((s) => s.path === '/api/purchase-orders')).toHaveLength(1);
+
+    await failed.getByRole('button', { name: 'Try again' }).click();
+    await expect(failed).toHaveCount(0);
+    const orders = sent.filter((s) => s.path === '/api/purchase-orders');
+    expect(orders).toHaveLength(2);
+    // Same order both times, in dollars, with its money named.
+    expect(orders[1].body.po_number).toBe(orders[0].body.po_number);
+    expect(orders[1].body.total_usd).toBeCloseTo(450 / 7.1, 2);
+    expect(orders[1].body.display_currency).toBe('Yuan');
+
+    // Mark as sent: a failure is said and the button is not turned into "Marked as sent".
+    failCompassRequests(page, 'PUT /api/purchase-orders/po-created', 1);
+    await page.getByRole('button', { name: 'Mark as sent' }).click();
+    await expect(page.getByText('Could not mark it as sent. Try again.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Marked as sent' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Mark as sent' }).click();
+    await expect(page.getByRole('button', { name: 'Marked as sent' })).toBeVisible();
+    // It stays marked when the order is left and opened again.
+    await back(page).click();
+    await page.getByRole('button', { name: 'Open the order with Wang Laoshi' }).click();
+    await expect(page.getByRole('button', { name: 'Marked as sent' })).toBeVisible();
+    expect(sent.filter((s) => s.method === 'PUT' && s.path === '/api/purchase-orders/po-created')).toHaveLength(2);
+  });
+
+  test('Shelf: the tea is sent before it is shelved, shelving sends no body, a failure names the tea and keeps the line, and the money on the tea is untouched', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS, rates: RATES,
+      compassEntries: [
+        entry({ id: 'sh-1', name: 'Shelf Cake', status: 'in_stock', form: 'Cake', price_amount: 450, price_currency: 'Yuan', price_per_unit_grams: 357, tasting: tasted }),
+        entry({ id: 'sh-2', name: 'Other Cake', status: 'in_stock', form: 'Cake', price_amount: 300, price_currency: 'NT', tasting: tasted }),
+      ],
+      failRequests: [{ match: 'POST /api/compass/entries/sh-1/promote', times: 1 }],
+    });
+    const sent = record(page);
+    await openCurateV2(page, 'today');
+    const shelve = page.getByTestId('today-section-shelve');
+    await shelve.getByRole('button', { name: 'Shelf: Shelf Cake' }).click();
+    const alert = shelve.getByRole('alert');
+    await expect(alert).toBeVisible();
+    plain(await alert.innerText());
+    await expect(alert).toContainText('Shelf Cake');
+    await expect(shelve).toContainText('Shelf Cake');
+    await expect(shelve).toContainText('Other Cake');
+    // Try again from the same line.
+    await shelve.getByRole('button', { name: 'Shelf: Shelf Cake' }).click();
+    await expect(shelve).not.toContainText('Shelf Cake');
+    await expect(shelve).toContainText('Other Cake');
+    const promotes = sent.filter((s) => /\/promote$/.test(s.path));
+    for (const p of promotes) expect(p.body ?? null).toBeNull();
+    expect(promotes.every((p) => p.path === '/api/compass/entries/sh-1/promote')).toBe(true);
+    // Linking the product back sends the tea again with its money exactly as it was.
+    await expect.poll(() => synced(sent).get('sh-1')?.draft_product_id).toBe('product-sh-1');
+    expect(synced(sent).get('sh-1')).toMatchObject({ price_amount: 450, price_currency: 'Yuan', price_per_unit_grams: 357 });
+    expect(synced(sent).has('sh-2')).toBe(false);
+  });
+
+  test('Arrived on a pending receipt: accepting sends nothing but the accept, a failure is said, the row stays, and trying again moves the tea to the shelf line', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS, rates: RATES,
+      compassEntries: [entry({ id: 'ar-1', name: 'Nannuo 2021', status: 'incoming', form: 'Cake', price_amount: 280, price_currency: 'Yuan', tasting: tasted })],
+      pendingReceipts: [{ id: 'rp-1', compass_entry_id: 'ar-1', tea_name: 'Nannuo 2021', vendor_name: 'Wang Laoshi', quantity: 2, unit: 'unit', created_at: daysAgo(3) }],
+      failRequests: [{ match: 'POST /api/curate/receipt-proposals/rp-1/accept', times: 1 }],
+    });
+    const sent = record(page);
+    await openCurateV2(page, 'today');
+    const way = page.getByTestId('today-section-way');
+    await way.getByRole('button', { name: 'Arrived: Nannuo 2021' }).click();
+    await expect(way.getByRole('alert').or(way.locator('p.text-tea-error'))).toBeVisible();
+    plain(await way.locator('p.text-tea-error').innerText());
+    await expect(way).toContainText('Nannuo 2021');
+    await expect(page.getByTestId('today-section-shelve')).toHaveCount(0);
+    await way.getByRole('button', { name: 'Arrived: Nannuo 2021' }).click();
+    await expect(page.getByTestId('today-section-shelve')).toContainText('Nannuo 2021');
+    const accepts = sent.filter((s) => s.path === '/api/curate/receipt-proposals/rp-1/accept');
+    expect(accepts).toHaveLength(2);
+    for (const a of accepts) expect(a.body ?? null).toBeNull();
+    // The tea's own money is not touched by arriving.
+    await expect.poll(() => synced(sent).get('ar-1')?.status).toBe('in_stock');
+    expect(synced(sent).get('ar-1')).toMatchObject({ price_amount: 280, price_currency: 'Yuan' });
+  });
+
+  test('an agent\'s find: a failed pick is said, keeps the ticks and the sheet, trying again sends the same pick once; another find opens without the old failure', async ({ page }) => {
+    const find = (id: string, vendor: string) => ({ batch_id: id, found_by: 'GrokBot', url: null, vendor, contact: null, note: null, found_at: daysAgo(1),
+      teas: [1, 2].map((n) => ({ id: `${id}-s${n}`, name: `${vendor} tea ${n}`, category: 'tea', type: null, year: null, price: { amount: 380, currency: 'Yuan', per_grams: 500 }, note: null })) });
+    await installCompassHarness(page, {
+      customers: VENDORS,
+      agentSuggestions: [find('b1', 'Mengku House'), find('b2', 'Bulang House')],
+      failRequests: [{ match: 'POST /api/curate/suggestions/pick', times: 1 }],
+    });
+    const sent = record(page);
+    await openCurateV2(page, 'today');
+    await page.getByTestId('today-agent-find').first().click();
+    await page.getByRole('checkbox', { name: 'Keep Mengku House tea 1' }).click();
+    await page.getByRole('button', { name: 'Add 1 to samples' }).click();
+    const sheet = page.getByTestId('agent-finds-sheet');
+    const error = sheet.locator('p.text-tea-error');
+    await expect(error).toBeVisible();
+    plain(await error.innerText());
+    await expect(page.getByRole('checkbox', { name: 'Keep Mengku House tea 1' })).toHaveAttribute('aria-checked', 'true');
+    await page.getByRole('button', { name: 'Add 1 to samples' }).click();
+    await expect(sheet).toHaveCount(0);
+    const picks = sent.filter((s) => s.path === '/api/curate/suggestions/pick');
+    expect(picks).toHaveLength(2);
+    expect(picks[1].body).toEqual({ pick: ['b1-s1'], drop: ['b1-s2'] });
+    expect(picks[0].body).toEqual(picks[1].body);
+
+    // A failure from one find is not left standing on the next.
+    failCompassRequests(page, 'POST /api/curate/suggestions/pick', 1);
+    await page.getByTestId('today-agent-find').filter({ hasText: 'Bulang House' }).click();
+    await page.getByRole('checkbox', { name: /^Keep Bulang House tea 1/ }).click();
+    await page.getByRole('button', { name: 'Add 1 to samples' }).click();
+    await expect(sheet.locator('p.text-tea-error')).toBeVisible();
+    await page.getByRole('button', { name: 'Not now' }).click();
+    await page.getByTestId('today-agent-find').filter({ hasText: 'Mengku House' }).click();
+    await expect(page.getByTestId('agent-finds-sheet').locator('p.text-tea-error')).toHaveCount(0);
+  });
+
+  test('Drive: Copy photos now sends an empty save and says how many were copied; a failure is said in words and can be tried again', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS,
+      compassEntries: [entry({ id: 'dr-1', name: 'Mengku', price_amount: 450, price_currency: 'Yuan' })],
+      drive: { connected: true, email: 'shop@example.com', folder_url: null },
+      failRequests: [{ match: 'POST /api/curate/drive/save', times: 1 }],
+    });
+    const sent = record(page);
+    await openCurateV2(page, 'today');
+    const line = page.getByTestId('curate-drive-line');
+    await expect(line).toContainText('Photos are saved to Google Drive');
+    await line.getByRole('button', { name: 'Copy photos now' }).click();
+    const error = line.locator('p.text-tea-error');
+    await expect(error).toBeVisible();
+    plain(await error.innerText());
+    await line.getByRole('button', { name: 'Copy photos now' }).click();
+    await expect(line).toContainText('2 photos copied to Drive.');
+    const saves = sent.filter((s) => s.path === '/api/curate/drive/save');
+    expect(saves).toHaveLength(2);
+    for (const s of saves) expect(s.body).toEqual({});
+    // Nothing about a tea was sent by looking at Drive.
+    expect(sent.filter((s) => s.path === '/api/compass/sync')).toEqual([]);
+  });
+
+  test('what you said: the recording goes up as it was, a price is filed in the shop\'s own money and unit, and nothing already entered is overwritten', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS,
+      compassEntries: [
+        entry({ id: 'sd-1', name: 'Mengku', year: 2019, price_amount: null, audio_clips: JSON.stringify([{ id: 'c1', timestamp: daysAgo(1), transcript: 'Mengku 2018 sheng, 450 yuan a cake.', duration: 5 }]) }),
+        entry({ id: 'sd-2', name: 'Alishan', price_amount: 1800, price_currency: 'NT', form: 'Brick', audio_clips: JSON.stringify([{ id: 'c2', timestamp: daysAgo(1), transcript: 'It is 600 yuan a cake.', duration: 5 }]) }),
+      ],
+      saidParts: [
+        { kind: 'tea', text: 'Mengku 2018 sheng', fields: { year: 2018, type: 'Sheng', form: 'Cake' } },
+        { kind: 'price', text: '450 yuan a cake', fields: { amount: 450, currency: 'CNY', per: 'cake' } },
+      ],
+      failRequests: [{ match: 'POST /api/curate/said/file', times: 1 }],
+    });
+    const sent = record(page);
+    await openCurateV2(page, 'teas');
+    await page.getByRole('button', { name: /^Mengku/ }).first().click();
+    await overlay(page).getByTestId('tea-face-said').click();
+    const sheet = page.getByTestId('said-sheet');
+    await sheet.getByRole('button', { name: 'File it, part by part' }).click();
+    const error = sheet.locator('p.text-tea-error');
+    await expect(error).toBeVisible();
+    plain(await error.innerText());
+    await sheet.getByRole('button', { name: 'File it, part by part' }).click();
+    await sheet.getByRole('button', { name: /^File 2 parts/ }).click();
+    await expect(sheet).toContainText('Filed');
+    expect(sent.filter((s) => s.path === '/api/curate/said/file')[1].body).toEqual({ text: 'Mengku 2018 sheng, 450 yuan a cake.', tea_name: 'Mengku' });
+    // The price is in the shop's money (Yuan, not CNY) with its unit; the year the person typed stands.
+    await expect.poll(() => synced(sent).get('sd-1')?.price_amount).toBe(450);
+    expect(synced(sent).get('sd-1')).toMatchObject({ price_currency: 'Yuan', form: 'Cake', year: 2019, type: 'Sheng' });
+
+    // A tea that already has a price keeps it: the recording does not change what was entered.
+    await page.keyboard.press('Escape');
+    await back(page).click();
+    await page.getByRole('button', { name: /^Alishan/ }).first().click();
+    await overlay(page).getByTestId('tea-face-said').click();
+    await sheet.getByRole('button', { name: 'File it, part by part' }).click();
+    await sheet.getByRole('button', { name: /^File 2 parts/ }).click();
+    await expect(sheet).toContainText('Filed');
+    await page.waitForTimeout(600);
+    // Only what was empty is filled (the year); the price and shape stand.
+    await expect.poll(() => synced(sent).get('sd-2')?.year).toBe(2018);
+    expect(synced(sent).get('sd-2')).toMatchObject({ price_amount: 1800, price_currency: 'NT', form: 'Brick' });
+  });
+
+  test('a tea typed while the shop is slow to answer lands once: never a second row, never a second record', async ({ page }) => {
+    await installCompassHarness(page, { customers: VENDORS });
+    delayCompassRequests(page, 'POST /api/compass/sync', 2500);
+    const sent = record(page);
+    await openCurateV2(page, 'table');
+    await page.getByTestId('table-start').click();
+    await page.getByTestId('vendor-picker').getByRole('button', { name: 'Wang Laoshi' }).click();
+    await addTea(page, 'Yiwu Gushu 2019 ¥1200/cake');
+    await addTea(page, 'Bulang 2020 ¥300/cake');
+    const rows = tableRows(page);
+    await expect(rows).toHaveCount(2);
+    // Everything has landed once the shop has answered; the rows are still two and the shop holds two.
+    await expect.poll(() => compassRequestCount(page, 'POST /api/compass/sync'), { timeout: 15_000 }).toBeGreaterThan(0);
+    await page.waitForTimeout(3500);
+    await expect(rows).toHaveCount(2);
+    const ids = new Set<string>();
+    for (const s of sent) if (s.path === '/api/compass/sync') for (const e of s.body.entries ?? []) ids.add(e.id);
+    expect(ids.size).toBe(2);
+    await expect(page.getByTestId('curate-sync-notice')).toHaveCount(0);
+  });
+
+  test('when the shop cannot be reached, every screen says so in a sentence with Try again, nothing typed is lost, and it clears once the shop answers', async ({ page }) => {
+    await installCompassHarness(page, { customers: VENDORS, failRequests: [{ match: 'POST /api/compass/sync' }] });
+    const sent = record(page);
+    await openCurateV2(page, 'table');
+    await page.getByTestId('table-start').click();
+    await page.getByTestId('vendor-picker').getByRole('button', { name: 'Wang Laoshi' }).click();
+    await addTea(page, 'Yiwu Gushu 2019 ¥1200/cake');
+    const notice = page.getByTestId('curate-sync-notice');
+    await expect(notice).toBeVisible({ timeout: 20_000 });
+    plain(await notice.innerText());
+    await expect(notice).toContainText('1 change has not reached the shop yet');
+    // The same sentence on the other screens.
+    await tab(page, 'Today').click();
+    await expect(notice).toBeVisible();
+    // The fast tasting does not claim to be saved.
+    await tab(page, 'Table').click();
+    await page.getByRole('button', { name: /^Fast tasting for/ }).click();
+    await expect(page.getByText('Not saved to the shop yet. It will try again.')).toBeVisible();
+    await expect(page.getByText('Saved as you tap', { exact: true })).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    // The shop answers: the notice goes, and the tea (with its price) is what arrives.
+    clearCompassFailures(page);
+    await notice.getByRole('button', { name: 'Try again' }).click();
+    await expect(notice).toHaveCount(0);
+    expect(synced(sent).get([...synced(sent).keys()][0])).toMatchObject({ name: 'Yiwu Gushu', price_amount: 1200, price_currency: 'Yuan' });
+    await expect(tableRows(page)).toHaveCount(1);
+  });
+  test('Edit all fields: every money field is sent as typed and in the shop\'s own names; a cleared field is a blank, a typed 0 is a 0, and nothing else on the tea changes', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS, rates: RATES,
+      compassEntries: [entry({ id: 'ea-1', name: 'Card Tea', year: 2019, form: 'Cake', price_amount: 450, price_currency: 'Yuan', price_per_unit_grams: 357, chinese_name: '测试茶', notes: 'kept', tasting: tasted })],
+    });
+    const sent = record(page);
+    const errors: string[] = [];
+    page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+    await openCurateV2(page, 'teas');
+    await page.getByRole('button', { name: /^Card Tea/ }).first().click();
+    await overlay(page).getByRole('button', { name: /Edit all fields/ }).click();
+    const card = overlay(page);
+    const price = card.getByRole('spinbutton', { name: 'Price' });
+    const grams = card.getByRole('spinbutton', { name: 'Grams' });
+
+    await price.fill('500');
+    await card.getByRole('combobox', { name: 'Currency' }).selectOption('NT');
+    await grams.fill('400');
+    await card.getByRole('button', { name: 'Tea form' }).click();
+    await page.getByRole('button', { name: 'Brick', exact: true }).click();
+    await card.locator('input[type=number]').first().fill('2020');
+    await expect.poll(() => synced(sent).get('ea-1')?.price_amount).toBe(500);
+    await expect.poll(() => synced(sent).get('ea-1')?.form).toBe('Brick');
+    expect(synced(sent).get('ea-1')).toMatchObject({
+      name: 'Card Tea', price_amount: 500, price_currency: 'NT', price_per_unit_grams: 400, form: 'Brick', year: 2020,
+      vendor_id: 'vendor-wang', vendor_name: 'Wang Laoshi', chinese_name: '测试茶', notes: 'kept', category: 'tea', type: 'Sheng',
+    });
+    expect(JSON.parse(synced(sent).get('ea-1')!.tasting)).toMatchObject({ quality: 8, cleanliness: 'clean' });
+
+    // Cleared is a blank, never a 0.
+    await price.fill('');
+    await grams.fill('');
+    await expect.poll(() => synced(sent).get('ea-1')?.price_amount ?? 'blank').toBe('blank');
+    expect(synced(sent).get('ea-1')!.price_per_unit_grams ?? null).toBeNull();
+    // A 0 the person typed is a 0: a tea that was free.
+    await price.fill('0');
+    await expect.poll(() => synced(sent).get('ea-1')?.price_amount).toBe(0);
+    expect(synced(sent).get('ea-1')!.price_currency).toBe('NT');
+
+    // The vendor changed from the card reaches the tea by id and name together.
+    await card.getByRole('button', { name: 'Vendor Wang Laoshi' }).click();
+    await card.getByRole('button', { name: 'Vendor: Wang Laoshi. Change' }).click();
+    await card.getByRole('option', { name: /Chen Family/ }).or(card.getByRole('button', { name: /^Chen Family/ })).first().click();
+    await expect.poll(() => synced(sent).get('ea-1')?.vendor_id).toBe('vendor-chen');
+    expect(synced(sent).get('ea-1')).toMatchObject({ vendor_name: 'Chen Family', price_amount: 0, price_currency: 'NT' });
+    expect(compassCreatedCustomers(page)).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+
+  test('photos: two added back to back are both kept, a failed upload says so and keeps the first, and nothing but the photo list changes', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS, rates: RATES,
+      compassEntries: [entry({ id: 'ph-1', name: 'Photo Tea', form: 'Cake', price_amount: 450, price_currency: 'Yuan', price_per_unit_grams: 357, tasting: tasted })],
+    });
+    delayCompassRequests(page, 'POST /api/upload-image', 800);
+    const sent = record(page);
+    await openCurateV2(page, 'teas');
+    await page.getByRole('button', { name: /^Photo Tea/ }).first().click();
+    await overlay(page).getByRole('button', { name: /Edit all fields/ }).click();
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+    const input = overlay(page).locator('input[type=file]').first();
+    await input.setInputFiles({ name: 'one.png', mimeType: 'image/png', buffer: png });
+    await input.setInputFiles({ name: 'two.png', mimeType: 'image/png', buffer: png });
+    await expect.poll(() => JSON.parse(synced(sent).get('ph-1')?.photos ?? '[]').length, { timeout: 15_000 }).toBe(2);
+    const photos = JSON.parse(synced(sent).get('ph-1')!.photos);
+    expect(new Set(photos).size).toBe(2);
+    expect(synced(sent).get('ph-1')).toMatchObject({ price_amount: 450, price_currency: 'Yuan', price_per_unit_grams: 357, form: 'Cake' });
+
+    // A third that the shop does not take: said in a sentence (the first two stay), and tried again from the same picture.
+    failCompassRequests(page, 'POST /api/upload-image', 1);
+    await input.setInputFiles({ name: 'three.png', mimeType: 'image/png', buffer: png });
+    const failed = overlay(page).getByTestId('photo-upload-failed');
+    await expect(failed).toBeVisible({ timeout: 15_000 });
+    plain(await failed.innerText());
+    expect(JSON.parse(synced(sent).get('ph-1')!.photos)).toHaveLength(2);
+    await failed.getByRole('button', { name: 'Try again' }).click();
+    await expect(failed).toHaveCount(0);
+    await expect.poll(() => JSON.parse(synced(sent).get('ph-1')?.photos ?? '[]').length, { timeout: 15_000 }).toBe(3);
+    expect(new Set(JSON.parse(synced(sent).get('ph-1')!.photos)).size).toBe(3);
+  });
+  test('tasting: a fast tasting adds its answers to the tea\'s tasting and nothing else; the full tasting opened from it keeps them, and neither touches the money', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS, rates: RATES,
+      compassEntries: [entry({ id: 'ta-1', name: 'Taste Cake', form: 'Cake', price_amount: 450, price_currency: 'Yuan', price_per_unit_grams: 357, tasting: JSON.stringify({ quality: 6, body: ['full'], flavor: ['sweet'], notes: 'kept words' }) })],
+    });
+    const sent = record(page);
+    const errors: string[] = [];
+    page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+    page.on('pageerror', (e) => errors.push(String(e)));
+    await openCurateV2(page, 'teas');
+    await page.getByRole('button', { name: /^Taste Cake/ }).first().click();
+    await overlay(page).getByRole('button', { name: 'Taste', exact: true }).click();
+    const sheet = page.getByRole('dialog');
+    await sheet.getByRole('group', { name: 'How good' }).getByRole('button', { name: '8', exact: true }).click();
+    await sheet.getByRole('group', { name: 'How clean' }).getByRole('button', { name: 'Clean', exact: true }).click();
+    await sheet.getByRole('group', { name: 'Stays' }).getByRole('button', { name: 'Long', exact: true }).click();
+    await expect.poll(() => JSON.parse(synced(sent).get('ta-1')?.tasting ?? '{}').finish?.[0]).toBe('finish-long');
+    const fast = JSON.parse(synced(sent).get('ta-1')!.tasting);
+    expect(fast).toMatchObject({ quality: 8, cleanliness: 'clean', body: ['full'], flavor: ['sweet'], finish: ['finish-long'], notes: 'kept words' });
+    expect(synced(sent).get('ta-1')).toMatchObject({ price_amount: 450, price_currency: 'Yuan', price_per_unit_grams: 357, form: 'Cake' });
+    // The full tasting opens on the same answers.
+    await sheet.getByRole('button', { name: /Full tasting/ }).click();
+    await expect(page.getByRole('radio', { name: '8' }).first()).toBeChecked();
+    expect(errors).toEqual([]);
+  });
+  test('to-dos and the vendor card: a save the shop did not take is said in words, what was typed stays, and trying again sends it once more', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: [{ id: 'vendor-wang', name: 'Wang Laoshi', tags: ['vendor'] }],
+      compassEntries: [entry({ id: 'td-1', name: 'Mengku', price_amount: 450, price_currency: 'Yuan', tasting: tasted })],
+      todos: [{ id: 'todo-1', text: 'confirm the year', compass_entry_id: 'td-1', vendor_id: null, from_agent: null, created_at: daysAgo(1), tea_name: 'Mengku', vendor_name: null }],
+      failRequests: [
+        { match: 'POST /api/curate/todos', times: 1 },
+        { match: 'POST /api/curate/todos/todo-1/done', times: 1 },
+        { match: 'PUT /api/customers/vendor-wang', times: 1 },
+      ],
+    });
+    const sent = record(page);
+    await openCurateV2(page, 'today');
+    const todo = page.getByTestId('today-section-todo');
+    await todo.getByRole('button', { name: '+ A to-do' }).click();
+    await todo.getByRole('textbox', { name: 'Add a to-do' }).fill('Ask Wang about the 2018');
+    await todo.getByRole('button', { name: 'Add', exact: true }).click();
+    const error = todo.locator('p.text-tea-error');
+    await expect(error).toBeVisible();
+    plain(await error.innerText());
+    await expect(todo.getByRole('textbox', { name: 'Add a to-do' })).toHaveValue('Ask Wang about the 2018');
+    await todo.getByRole('button', { name: 'Add', exact: true }).click();
+    await expect(todo.getByRole('textbox', { name: 'Add a to-do' })).toHaveCount(0);
+
+    await todo.getByRole('button', { name: 'Done: confirm the year' }).click();
+    await expect(todo.locator('p.text-tea-error')).toBeVisible();
+    plain(await todo.locator('p.text-tea-error').innerText());
+    await expect(todo.getByRole('button', { name: 'Done: confirm the year' })).toBeVisible();
+    await todo.getByRole('button', { name: 'Done: confirm the year' }).click();
+    await expect(todo.getByRole('button', { name: 'Done: confirm the year' })).toHaveCount(0);
+    expect(sent.filter((s) => s.path === '/api/curate/todos').map((s) => s.body.text)).toEqual(['Ask Wang about the 2018', 'Ask Wang about the 2018']);
+    expect(sent.filter((s) => s.path === '/api/curate/todos/todo-1/done')).toHaveLength(2);
+
+    await tab(page, 'Vendors').click();
+    await page.getByRole('button', { name: /Wang Laoshi/ }).first().click();
+    const card = page.getByTestId('curate-vendor-card');
+    await card.getByRole('button', { name: /^WeChat/ }).click();
+    await card.getByRole('textbox', { name: 'WeChat' }).fill('wang-ls');
+    await card.getByRole('button', { name: 'Save', exact: true }).click();
+    const cardError = card.locator('p.text-tea-error');
+    await expect(cardError).toBeVisible();
+    plain(await cardError.innerText());
+    await expect(card.getByRole('textbox', { name: 'WeChat' })).toHaveValue('wang-ls');
+    await card.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(card.getByRole('textbox', { name: 'WeChat' })).toHaveCount(0);
+    const puts = compassUpdatedCustomers(page);
+    expect(puts.map((p) => p.body)).toEqual([{ wechat: 'wang-ls' }]);
+    expect(compassCreatedCustomers(page)).toEqual([]);
   });
 });

@@ -6,13 +6,20 @@ const unhandledByPage = new WeakMap<Page, string[]>();
 const requestCounts = new WeakMap<Page, Map<string, number>>();
 const createdCustomersByPage = new WeakMap<Page, Array<Record<string, any>>>();
 const updatedCustomersByPage = new WeakMap<Page, Array<{ id: string; body: Record<string, any> }>>();
+type RequestMatch = string | RegExp;
+const failuresByPage = new WeakMap<Page, Array<{ match: RequestMatch; left: number }>>();
+const delaysByPage = new WeakMap<Page, Array<{ match: RequestMatch; ms: number }>>();
+const matches = (match: RequestMatch, key: string) => (typeof match === 'string' ? match === key : match.test(key));
 export const COMPASS_TOKEN = `${enc(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${enc(JSON.stringify({ sub: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', platform_role: 'platform_owner', exp: Math.floor(Date.now() / 1000) + 86400, active_account_id: 'acct-bali', memberships }))}.test`;
 
-export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; preserveSamplesOnNavigation?: boolean; preserveSampleCartOnNavigation?: boolean; compassSyncLoseResponses?: number; contextEmpty?: boolean; contextFailOnce?: boolean; contextJourneyFailOnce?: boolean; contextVisitFailOnce?: boolean; products?: unknown[]; compassEntries?: unknown[]; contextByAccount?: Record<string, { journeys: unknown[]; visits: unknown[] }>; contextAfterInitial?: { journeys: unknown[]; visits: unknown[] }; contextDelayByAccount?: Record<string, number>; customers?: Array<Record<string, any>>; todos?: unknown[]; agentSuggestions?: unknown[]; pendingReceipts?: unknown[]; chineseName?: string | null; chineseNameFails?: boolean; rates?: unknown[]; saidParts?: unknown[] }) {
+export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; preserveSamplesOnNavigation?: boolean; preserveSampleCartOnNavigation?: boolean; compassSyncLoseResponses?: number; contextEmpty?: boolean; contextFailOnce?: boolean; contextJourneyFailOnce?: boolean; contextVisitFailOnce?: boolean; products?: unknown[]; compassEntries?: unknown[]; contextByAccount?: Record<string, { journeys: unknown[]; visits: unknown[] }>; contextAfterInitial?: { journeys: unknown[]; visits: unknown[] }; contextDelayByAccount?: Record<string, number>; customers?: Array<Record<string, any>>; todos?: unknown[]; agentSuggestions?: unknown[]; pendingReceipts?: unknown[]; chineseName?: string | null; chineseNameFails?: boolean; rates?: unknown[]; saidParts?: unknown[]; drive?: Record<string, unknown>; failRequests?: Array<{ match: RequestMatch; times?: number }>; delayRequests?: Array<{ match: RequestMatch; ms: number }> }) {
   unhandledByPage.set(page, []);
   requestCounts.set(page, new Map());
   createdCustomersByPage.set(page, []);
   updatedCustomersByPage.set(page, []);
+  failuresByPage.set(page, (options?.failRequests ?? []).map((f) => ({ match: f.match, left: f.times ?? Infinity })));
+  delaysByPage.set(page, [...(options?.delayRequests ?? [])]);
+  let uploads = 0;
   // The shop's people. Vendors are the ones tagged vendor; creating one adds to this list.
   const customers: Array<Record<string, any>> = [...(options?.customers ?? [{ id: 'vendor-chen', name: 'Chen Family', tags: ['vendor'] }])];
   const sampleSets: Array<Record<string, any>> = [];
@@ -52,6 +59,14 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     }
     if (options?.contextJourneyFailOnce && requestKey === 'GET /api/curate/journeys' && counts.get(requestKey)! <= 4) return route.fulfill({ status: 503, body: '{}' });
     if (options?.contextVisitFailOnce && requestKey === 'GET /api/curate/visits' && counts.get(requestKey)! <= 4) return route.fulfill({ status: 503, body: '{}' });
+    // A request the test has told to fail answers 500, and one it has told to be slow waits first.
+    const slow = delaysByPage.get(page)?.find((d) => matches(d.match, requestKey));
+    if (slow) await new Promise((resolve) => setTimeout(resolve, slow.ms));
+    const failing = failuresByPage.get(page)?.find((f) => f.left !== 0 && matches(f.match, requestKey));
+    if (failing) {
+      if (failing.left > 0) failing.left -= 1;
+      return route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'Request failed (500)' }) });
+    }
     const delay = options?.contextDelayByAccount?.[accountId] ?? 0;
     if (delay && (path === '/api/curate/journeys' || path === '/api/curate/visits')) await new Promise(resolve => setTimeout(resolve, delay));
     const scopedContext = options?.contextAfterInitial && counts.get(requestKey)! > 1
@@ -206,6 +221,7 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     if (requestKey === 'POST /api/curate/todos') return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: `todo-created-${counts.get(requestKey)}` }) });
     if (/^\/api\/curate\/todos\/[^/]+\/done$/.test(path) && route.request().method() === 'POST') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ done: true }) });
     if (requestKey === 'POST /api/curate/said/file') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ parts: options?.saidParts ?? [] }) });
+    if (requestKey === 'POST /api/upload-image') { uploads += 1; return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ url: `https://img.test/upload-${uploads}.jpg` }) }); }
     if (requestKey === 'POST /api/curate/drive/save') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ copied: 2, teas: 1 }) });
     if (/^\/api\/purchase-orders\/[^/]+$/.test(path) && route.request().method() === 'PUT') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
     const proposalMatch = path.match(/^\/api\/compass\/entries\/([^/]+)\/receipt-proposals$/);
@@ -231,6 +247,8 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       'GET /api/accounts/acct-empty': { id: 'acct-empty', name: 'Empty Test Account', slug: 'empty-test', default_currency: 'USD' },
       'GET /api/products': options?.products ?? [], 'GET /api/rates': options?.rates ?? [{ currency: 'USD', rate_to_usd: 1, last_updated: new Date().toISOString() }],
       'GET /api/batches': [],
+      // A photo read for a label: nothing on it to fill in.
+      'POST /api/extract-from-image': {},
       // Confirming an order records the purchase order.
       'POST /api/purchase-orders': { id: 'po-created' },
       'GET /api/products/public': [], 'GET /api/user/favorites': { favorites: [] },
@@ -250,7 +268,7 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       'GET /api/curate/suggestions': { waiting: options?.agentSuggestions ?? [] },
       'GET /api/curate/todos': { todos: options?.todos ?? [] },
       'GET /api/curate/receipt-proposals': { pending: options?.pendingReceipts ?? [] },
-      'GET /api/curate/drive': { connected: false },
+      'GET /api/curate/drive': options?.drive ?? { connected: false },
       'POST /api/curate/journeys': { id: 'journey-created', account_id: 'acct-bali', name: 'Yunnan', season: 'Autumn', year: 2026 },
       'PUT /api/curate/journeys/journey-created': { id: 'journey-created', account_id: 'acct-bali', name: 'Yunnan edited', season: 'Autumn', year: 2026 },
       'DELETE /api/curate/journeys/journey-created': { success: true },
@@ -266,6 +284,19 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     }
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(responses[requestKey]) });
   });
+}
+
+/** From now on, requests matching this key (METHOD /path) answer 500: the next `times`, or every one. */
+export function failCompassRequests(page: Page, match: RequestMatch, times = Infinity) {
+  failuresByPage.get(page)?.push({ match, left: times });
+}
+/** Requests matching this key answer normally again. */
+export function clearCompassFailures(page: Page) {
+  failuresByPage.set(page, []);
+}
+/** Requests matching this key wait this long before they are answered. */
+export function delayCompassRequests(page: Page, match: RequestMatch, ms: number) {
+  delaysByPage.get(page)?.push({ match, ms });
 }
 
 /** Every PUT /api/customers/:id the page made, as sent. */

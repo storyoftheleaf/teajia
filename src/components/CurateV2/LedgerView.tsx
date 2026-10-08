@@ -359,9 +359,6 @@ const TransactionCard: React.FC<{
   const isDraft = tx.status === 'draft';
   const directionLabel = isPurchase ? 'Purchasing from' : 'Selling to';
 
-  const [poSaved, setPoSaved] = useState(false);
-  // Only the vendor having been messaged counts as sent, not the order being recorded.
-  const [markedSent, setMarkedSent] = useState(false);
   // An order for "No vendor yet" cannot be confirmed: someone has to be named first.
   // ("Unknown Vendor" is the older placeholder, left on drafts made before this one.)
   const needsVendor = isPurchase && !tx.counterpartyId && (!tx.counterpartyName?.trim() || tx.counterpartyName === NO_VENDOR_YET || /^unknown vendor$/i.test(tx.counterpartyName.trim()));
@@ -378,23 +375,18 @@ const TransactionCard: React.FC<{
     if (kept !== tx.id) onSwitchOrder?.(kept);
   }, [tx.id, tx.items, adoptVendor, updateCompassEntry, onSwitchOrder]);
 
-  const handleConfirm = useCallback(async () => {
-    confirmTransaction(tx.id);
-    setJustConfirmed(true);
-    setTimeout(() => setJustConfirmed(false), 1500);
-    // Ordered, not arrived: the teas on a confirmed purchase wait under "On the way".
-    if (tx.direction === 'purchase') {
-      const compass = useTeaCompassStore.getState();
-      for (const item of tx.items) {
-        const e = item.compassEntryId ? compass.getEntry(item.compassEntryId) : undefined;
-        if (e && e.status !== 'in_stock') compass.updateEntry(e.id, { status: 'incoming' });
-      }
-    }
-
-    // A confirmed purchase order records acquisition intent only. Inventory is
-    // created or increased later through a reviewed receipt/Inventory action.
-    if (tx.direction === 'purchase') {
-      try {
+  // Putting the confirmed order into the shop's books (a purchase order, or an
+  // invoice for a sale). It can fail on a bad connection: then the order stays
+  // confirmed here, says plainly that the shop has not recorded it, and offers
+  // it again. One attempt at a time, so a second tap cannot record it twice.
+  const recording = useRef(false);
+  const [recordBusy, setRecordBusy] = useState(false);
+  const recordAtShop = useCallback(async () => {
+    if (recording.current) return;
+    recording.current = true;
+    setRecordBusy(true);
+    try {
+      if (tx.direction === 'purchase') {
         // total_usd is dollars: the order's own money is converted at the shop's
         // rates, and left out when a currency has no rate (never read at 1,
         // which would store ¥2,400 as $2,400).
@@ -423,16 +415,8 @@ const TransactionCard: React.FC<{
           status: 'confirmed',
         });
         // Kept so "Mark as sent" can name the order the shop recorded.
-        if (created?.id) updateTransaction(tx.id, { purchaseOrderId: created.id });
-        setPoSaved(true);
-      } catch {
-        // Non-critical: PO exists locally in ledger store
-      }
-    }
-
-    // Persist sale as invoice to database (fire-and-forget)
-    if (tx.direction === 'sale') {
-      try {
+        updateTransaction(tx.id, { recordFailed: false, ...(created?.id ? { purchaseOrderId: created.id } : {}) });
+      } else if (tx.direction === 'sale') {
         const invoiceNumber = `INV-${new Date().getFullYear()}-${tx.id.slice(0, 8).toUpperCase()}`;
         const lineItems = tx.items
           .filter(item => item.productId) // Only items linked to inventory products
@@ -456,12 +440,48 @@ const TransactionCard: React.FC<{
             lineItems
           );
         }
-        setPoSaved(true);
-      } catch {
-        // Non-critical, sale exists locally in ledger store
+        updateTransaction(tx.id, { recordFailed: false });
+      }
+    } catch {
+      updateTransaction(tx.id, { recordFailed: true });
+    } finally {
+      recording.current = false;
+      setRecordBusy(false);
+    }
+  }, [tx, updateTransaction, rates]);
+
+  const handleConfirm = useCallback(async () => {
+    if (recording.current) return;
+    confirmTransaction(tx.id);
+    setJustConfirmed(true);
+    setTimeout(() => setJustConfirmed(false), 1500);
+    // Ordered, not arrived: the teas on a confirmed purchase wait under "On the way".
+    if (tx.direction === 'purchase') {
+      const compass = useTeaCompassStore.getState();
+      for (const item of tx.items) {
+        const e = item.compassEntryId ? compass.getEntry(item.compassEntryId) : undefined;
+        if (e && e.status !== 'in_stock') compass.updateEntry(e.id, { status: 'incoming' });
       }
     }
-  }, [tx, confirmTransaction, updateTransaction, rates]);
+    // A confirmed purchase order records acquisition intent only. Inventory is
+    // created or increased later through a reviewed receipt/Inventory action.
+    await recordAtShop();
+  }, [tx, confirmTransaction, recordAtShop]);
+
+  const [sendFailed, setSendFailed] = useState(false);
+  const markSent = useCallback(async () => {
+    setSendFailed(false);
+    try {
+      // The order the shop recorded, by its own id. (This used to send the first
+      // eight letters of the local id, which names no order, so "Marked as sent"
+      // changed nothing anywhere.)
+      if (!tx.purchaseOrderId) throw new Error('no order');
+      await api.purchaseOrders.updateStatus(tx.purchaseOrderId, 'sent');
+      updateTransaction(tx.id, { purchaseOrderSent: true });
+    } catch {
+      setSendFailed(true);
+    }
+  }, [tx.id, tx.purchaseOrderId, updateTransaction]);
 
   const handleDelete = useCallback(() => {
     if (window.confirm(`Remove this ${isPurchase ? 'purchase' : 'sale'} order?`)) {
@@ -640,26 +660,31 @@ const TransactionCard: React.FC<{
                   Delete
                 </button>
 
-                {isPurchase && !isDraft && (
+                {/* Sent only means something once the shop has the order to name. */}
+                {isPurchase && !isDraft && tx.purchaseOrderId && (
                   <button
                     type="button"
-                    onClick={async () => {
-                      try {
-                        // The order the shop recorded, by its own id. (This used to
-                        // send the first eight letters of the local id, which names
-                        // no order, so "Marked as sent" changed nothing anywhere.)
-                        if (tx.purchaseOrderId) await api.purchaseOrders.updateStatus(tx.purchaseOrderId, 'sent');
-                        setMarkedSent(true);
-                      } catch {
-                        // Status update failed silently
-                      }
-                    }}
+                    onClick={() => void markSent()}
+                    disabled={tx.purchaseOrderSent}
                     className="tap-target flex min-h-11 items-center gap-1 font-mono text-ui-13 text-tea-text-sec hover:text-tea-text"
                   >
-                    {markedSent ? 'Marked as sent' : 'Mark as sent'}
+                    {tx.purchaseOrderSent ? 'Marked as sent' : 'Mark as sent'}
                   </button>
                 )}
               </div>
+              {!isDraft && tx.recordFailed && (
+                <div role="alert" data-testid="order-record-failed" className="flex items-baseline justify-between gap-3 px-4 pt-1">
+                  <p className="font-body text-ui-13 text-tea-error">
+                    {isPurchase ? 'The order is confirmed here, but the shop has not recorded it yet.' : 'The sale is confirmed here, but the shop has not recorded it yet.'}
+                  </p>
+                  <button type="button" onClick={() => void recordAtShop()} disabled={recordBusy} className="curate-v2-word tap-target shrink-0 disabled:opacity-60">
+                    {recordBusy ? 'Trying…' : 'Try again'}
+                  </button>
+                </div>
+              )}
+              {!isDraft && sendFailed && (
+                <p role="alert" className="px-4 pt-1 font-body text-ui-13 text-tea-error">Could not mark it as sent. Try again.</p>
+              )}
               {needsVendor && isDraft && choosingVendor && (
                 <div className="mt-2 border-t border-tea-border" data-testid="order-vendor-picker">
                   <p className="px-4 pt-3 font-mono text-ui-12 text-tea-text-sec">Whose order is this?</p>

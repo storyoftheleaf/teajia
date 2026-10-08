@@ -548,10 +548,14 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   const handlePhotoTaken = useCallback(
     (url: string) => {
-      if (!entry) return;
-      updateEntry(entryId, { photos: [...entry.photos, url] });
+      // The photos the tea has NOW: a second photo that finished uploading
+      // first must not be written over by this one's older copy of the list.
+      const current = useTeaCompassStore.getState().getEntry(entryId);
+      if (!current) return;
+      if (current.photos.includes(url)) return;
+      updateEntry(entryId, { photos: [...current.photos, url] });
     },
-    [entry, entryId, updateEntry]
+    [entryId, updateEntry]
   );
 
   const handlePhotoReplaced = useCallback(
@@ -563,9 +567,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       //      we must swap it for newUrl so the thumbnail re-renders. Without
       //      this, the user sees their edits "save" but the strip keeps
       //      showing the stale image.
-      if (!entry || oldUrl === newUrl) return;
+      const current = useTeaCompassStore.getState().getEntry(entryId);
+      if (!current || oldUrl === newUrl) return;
       let changed = false;
-      const updated = entry.photos.map((u) => {
+      const updated = current.photos.map((u) => {
         if (u === oldUrl) {
           changed = true;
           return newUrl;
@@ -574,7 +579,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       });
       if (changed) updateEntry(entryId, { photos: updated });
     },
-    [entry, entryId, updateEntry]
+    [entryId, updateEntry]
   );
 
   // Cleanup timers
@@ -804,7 +809,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             onPhotoTaken={handlePhotoTaken}
             onPhotoReplaced={handlePhotoReplaced}
             photos={entry.photos}
-            onRemovePhoto={(i) => updateEntry(entryId, { photos: entry.photos.filter((_, idx) => idx !== i) })}
+            onRemovePhoto={(i) => updateEntry(entryId, { photos: (useTeaCompassStore.getState().getEntry(entryId)?.photos ?? entry.photos).filter((_, idx) => idx !== i) })}
             variant="strip"
           />
         </div>

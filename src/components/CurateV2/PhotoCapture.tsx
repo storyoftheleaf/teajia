@@ -426,6 +426,41 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     );
   };
 
+  // A photo that did not upload is said in a sentence, and can be sent again from
+  // the picture the person already took (its local copy is kept until it lands or is cleared).
+  const retryUpload = async (localUrl: string) => {
+    setPendingPreviews((prev) => prev.map((p) => (p.localUrl === localUrl ? { ...p, uploading: true, failed: false } : p)));
+    try {
+      const blob = await (await fetch(localUrl)).blob();
+      const compressed = await compressImage(new File([blob], 'photo.jpg', { type: blob.type || 'image/jpeg' }), 1600, 0.7);
+      const imageUrl = await api.uploadImage(new File([compressed], 'photo.jpg', { type: 'image/jpeg' })).catch(() => null);
+      if (!imageUrl) { markPreviewFailed(localUrl); return; }
+      onPhotoTaken(imageUrl);
+      setPendingPreviews((prev) => prev.filter((p) => p.localUrl !== localUrl));
+      URL.revokeObjectURL(localUrl);
+    } catch {
+      markPreviewFailed(localUrl);
+    }
+  };
+  const failedPreviews = pendingPreviews.filter((p) => p.failed);
+  const uploadErrorLine = failedPreviews.length > 0 ? (
+    <div className="flex flex-wrap items-center gap-x-4 pt-1.5" role="alert" data-testid="photo-upload-failed">
+      <span className="text-ui-12 text-tea-error">
+        {failedPreviews.length === 1 ? 'A photo did not upload.' : `${failedPreviews.length} photos did not upload.`}
+      </span>
+      <button type="button" onClick={() => failedPreviews.forEach((p) => void retryUpload(p.localUrl))} className="tap-target min-h-11 text-ui-12 text-tea-text underline decoration-dashed underline-offset-2">
+        Try again
+      </button>
+      <button
+        type="button"
+        onClick={() => { failedPreviews.forEach((p) => URL.revokeObjectURL(p.localUrl)); setPendingPreviews((prev) => prev.filter((p) => !p.failed)); }}
+        className="tap-target min-h-11 text-ui-12 text-tea-text-sec underline decoration-dashed underline-offset-2"
+      >
+        Clear
+      </button>
+    </div>
+  ) : null;
+
   // ── Scanner modal ──────────────────────────────────────────────────────────
   const scannerModal = scannerOpen ? createPortal(
     <div className="fixed inset-0 z-modal flex flex-col bg-black">
@@ -915,6 +950,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
       )}
 
       {scanErrorLine}
+      {uploadErrorLine}
     </div>
   );
 
@@ -1006,6 +1042,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         </div>
       </div>
       {scanErrorLine}
+      {uploadErrorLine}
     </>
   );
 

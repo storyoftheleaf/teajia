@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { syncCompassEntries } from '../../lib/teaCompassSync';
 import { api, hasToken, isTransientApiError } from '../../lib/api';
+import { plainFailure } from './plainFailure';
 
 export interface CommitResult {
   promoted: boolean;
@@ -46,7 +47,7 @@ export function useCommitAndPromote() {
         else removePendingPromotion(entryId);
         const result: CommitResult = {
           promoted: false,
-          promotionError: err instanceof Error ? err.message : 'Promotion failed',
+          promotionError: plainFailure(err, 'Putting it on the shelf'),
           retryQueued,
         };
         setLastResult(result);

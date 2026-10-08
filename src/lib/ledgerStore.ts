@@ -52,6 +52,10 @@ export interface LedgerTransaction {
   currency: Currency;
   /** The purchase order the shop recorded when this was confirmed. */
   purchaseOrderId?: string;
+  /** Confirmed here but the shop did not take the purchase order (or invoice): Curate says so and offers it again. */
+  recordFailed?: boolean;
+  /** The vendor has been messaged: the shop's purchase order is marked sent. */
+  purchaseOrderSent?: boolean;
 
   createdAt: string;
   updatedAt: string;
@@ -70,7 +74,7 @@ interface LedgerState {
   addLineItem: (transactionId: string, item: Omit<LedgerLineItem, 'id' | 'addedAt'>) => string;
   updateLineItem: (transactionId: string, itemId: string, updates: Partial<LedgerLineItem>) => void;
   removeLineItem: (transactionId: string, itemId: string) => void;
-  updateTransaction: (transactionId: string, updates: Partial<Pick<LedgerTransaction, 'counterpartyName' | 'counterpartyId' | 'currency' | 'status' | 'purchaseOrderId'>>) => void;
+  updateTransaction: (transactionId: string, updates: Partial<Pick<LedgerTransaction, 'counterpartyName' | 'counterpartyId' | 'currency' | 'status' | 'purchaseOrderId' | 'recordFailed' | 'purchaseOrderSent'>>) => void;
   addPhoto: (transactionId: string, url: string) => void;
   removePhoto: (transactionId: string, index: number) => void;
   removeTransaction: (transactionId: string) => void;

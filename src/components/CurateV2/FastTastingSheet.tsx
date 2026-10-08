@@ -19,6 +19,8 @@ export const FastTastingSheet: React.FC<FastTastingSheetProps> = ({ entryId, onO
   const entry = useTeaCompassStore((s) => (entryId ? s.getEntry(entryId) : undefined));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const answers = readFast(entry?.tasting);
+  // "Saved" is only said while it is true.
+  const notSaved = useTeaCompassStore((s) => s.syncError);
 
   const tap = (q: FastQuestion, id: string) => {
     if (!entryId) return;
@@ -27,7 +29,7 @@ export const FastTastingSheet: React.FC<FastTastingSheetProps> = ({ entryId, onO
   };
 
   return (
-    <BottomSheet open={!!entryId} onOpenChange={onOpenChange} title={entry?.name || 'Fast tasting'} description="Fast tasting · saved as you tap" large>
+    <BottomSheet open={!!entryId} onOpenChange={onOpenChange} title={entry?.name || 'Fast tasting'} description={notSaved ? 'Fast tasting · kept on this phone, not saved to the shop yet' : 'Fast tasting · saved as you tap'} large>
       <div className="curate-v2 pb-nav-gap">
         <div className="border-b border-tea-border" />
         {FAST_TASTING.map((question) => {
@@ -69,7 +71,7 @@ export const FastTastingSheet: React.FC<FastTastingSheetProps> = ({ entryId, onO
           );
         })}
         <div className="flex items-baseline justify-between px-4 pt-3 text-ui-13">
-          <span className="text-tea-text-sec">Saved as you tap</span>
+          <span className={notSaved ? 'text-tea-error' : 'text-tea-text-sec'}>{notSaved ? 'Not saved to the shop yet. It will try again.' : 'Saved as you tap'}</span>
           {entryId && (
             <button type="button" onClick={() => onFullTasting(entryId)} className="tap-target font-medium text-tea-gold">
               Full tasting ›

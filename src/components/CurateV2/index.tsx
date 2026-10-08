@@ -37,6 +37,7 @@ import { LedgerOverviewPanel } from './LedgerOverviewPanel';
 import { ImportPanel } from './import/ImportPanel';
 import { LibraryImportsSection, nextLibraryImportFocusId, type LibraryImportFocusRequest } from './LibraryImportsSection';
 import { SampleOrderAction } from './SampleOrderAction';
+import { SyncNotice } from './SyncNotice';
 import { CaptureActionFooter } from './CaptureActionFooter';
 
 export type CompassMode = 'today' | 'sourcing' | 'library' | 'vendors' | 'compare' | 'buying';
@@ -912,6 +913,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         </div>
 
       </div>
+      <SyncNotice />
 
       {/* ── BODY ──
           The tab underneath stays mounted while a tea is open on top of it

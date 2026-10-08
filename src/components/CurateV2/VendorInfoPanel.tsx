@@ -30,6 +30,13 @@ const VendorInfoPanelContent: React.FC<VendorInfoPanelProps> = ({
 }) => {
   const [editing, setEditing] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  // What did not reach the shop is said, not swallowed: the details stay on this phone.
+  const [saveError, setSaveError] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  // A photo finishes uploading after the screen it was picked on has re-rendered:
+  // it is added to the details as they are NOW, so two photos picked close together both stay.
+  const latestDetails = useRef(vendorDetails);
+  latestDetails.current = vendorDetails;
 
   // Load vendor details from API on first expand if we have an ID but no details
   useEffect(() => {
@@ -76,7 +83,9 @@ const VendorInfoPanelContent: React.FC<VendorInfoPanelProps> = ({
       if (vendorDetails.whatsapp) payload.whatsapp = vendorDetails.whatsapp;
       if (vendorDetails.wechat) payload.wechat = vendorDetails.wechat;
       if (vendorDetails.line) payload.line = vendorDetails.line;
-      api.customers.update(vendorId, payload).catch(() => {});
+      api.customers.update(vendorId, payload)
+        .then(() => setSaveError(false))
+        .catch(() => setSaveError(true));
     }, 2000);
 
     return () => {
@@ -97,9 +106,9 @@ const VendorInfoPanelContent: React.FC<VendorInfoPanelProps> = ({
 
   const updateDetail = useCallback(
     (key: keyof VendorDetails, value: string | number | undefined) => {
-      onDetailsChange({ ...vendorDetails, [key]: value });
+      onDetailsChange({ ...latestDetails.current, [key]: value });
     },
-    [vendorDetails, onDetailsChange]
+    [onDetailsChange]
   );
 
   const handleGeoPin = () => {
@@ -132,6 +141,7 @@ const VendorInfoPanelContent: React.FC<VendorInfoPanelProps> = ({
     if (!file) return;
     e.target.value = '';
     setState('loading');
+    setPhotoError(null);
     try {
       const compressed = await compressImage(file, 1200, 0.7);
       const compressedFile = new File([compressed], 'vendor-photo.jpg', { type: 'image/jpeg' });
@@ -142,7 +152,7 @@ const VendorInfoPanelContent: React.FC<VendorInfoPanelProps> = ({
           navigator.geolocation.getCurrentPosition(
             (pos) => {
               onDetailsChange({
-                ...vendorDetails,
+                ...latestDetails.current,
                 [key]: imageUrl,
                 lat: pos.coords.latitude,
                 lng: pos.coords.longitude,
@@ -158,9 +168,11 @@ const VendorInfoPanelContent: React.FC<VendorInfoPanelProps> = ({
         setTimeout(() => setState('idle'), 1500);
       } else {
         setState('idle');
+        setPhotoError('The photo did not upload. Try again.');
       }
     } catch {
       setState('idle');
+      setPhotoError('The photo did not upload. Check the connection and try again.');
     }
   };
 
@@ -251,6 +263,7 @@ const VendorInfoPanelContent: React.FC<VendorInfoPanelProps> = ({
             Edit
           </button>
         </div>
+        {saveError && <p role="alert" className="px-3 pb-2 font-mono text-ui-12 text-tea-error">These details have not reached the shop yet. They are kept on this phone.</p>}
       </div>
     );
   }
@@ -258,6 +271,11 @@ const VendorInfoPanelContent: React.FC<VendorInfoPanelProps> = ({
   // ── Edit mode ──
   return (
     <div className="rounded-xl bg-tea-surface/60 p-3 space-y-3">
+      {(saveError || photoError) && (
+        <p role="alert" className="font-mono text-ui-12 text-tea-error">
+          {photoError ?? 'These details have not reached the shop yet. They are kept on this phone and will be sent again as you edit.'}
+        </p>
+      )}
       {/* Hidden file inputs */}
       <input ref={storefrontRef} type="file" accept="image/*" capture="environment" className="hidden"
         onChange={(e) => handlePhotoUpload(e, 'storefrontUrl', setStorefrontState)} />

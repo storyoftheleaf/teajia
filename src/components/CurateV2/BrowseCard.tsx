@@ -195,7 +195,10 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
       const compressedFile = new File([compressed], 'photo.jpg', { type: 'image/jpeg' });
       const imageUrl = await api.uploadImage(compressedFile);
       if (!imageUrl) throw new Error('no url');
-      updateEntry(entry.id, { photos: [...entry.photos, imageUrl] });
+      // Added to the photos the tea has NOW, not the ones it had when this one
+      // was picked: another photo may have landed while this one uploaded.
+      const current = useTeaCompassStore.getState().getEntry(entry.id)?.photos ?? entry.photos;
+      updateEntry(entry.id, { photos: [...current, imageUrl] });
     } catch {
       // Not silent, on a flaky connection the user must know to retap.
       setPhotoFailed(true);

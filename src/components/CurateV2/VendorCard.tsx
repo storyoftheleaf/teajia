@@ -8,6 +8,7 @@ import { CURRENCY_LABELS } from './PricingRow';
 import { Section } from './TodayView';
 import { VendorInfoPanel } from './VendorInfoPanel';
 import { isVendorTagged } from './VendorPicker';
+import { plainFailure } from './plainFailure';
 import type { TeaCompassEntry, VendorDetails } from './types';
 
 interface Contact { channel: string; handle: string; label?: string }
@@ -122,7 +123,7 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
       }
       setEditing(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'That did not save. Try again.');
+      setError(plainFailure(e, 'That'));
     } finally {
       setSaving(false);
     }
