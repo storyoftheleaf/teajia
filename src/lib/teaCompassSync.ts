@@ -1,4 +1,4 @@
-import { COMPASS_STRUCTURED_CAMEL } from './curateStructuredFields';
+import { COMPASS_STRUCTURED_CAMEL, COMPASS_STRUCTURED_COLUMNS } from './curateStructuredFields';
 import { useTeaCompassStore } from './teaCompassStore';
 import { api, hasToken, isTokenScopedToAccount, isTransientApiError } from './api';
 import { normalizeCompassEntry, type TeaCompassEntry } from '../components/TeaCompass/types';
@@ -11,6 +11,7 @@ const CAMEL_TO_SNAKE: Record<string, string> = {
   ...Object.fromEntries(Object.entries(COMPASS_STRUCTURED_CAMEL).map(([snake, camel]) => [camel, snake])),
   chineseName: 'chinese_name',
   originRegion: 'origin_region',
+  originCountry: 'origin_country',
   priceAmount: 'price_amount',
   priceCurrency: 'price_currency',
   pricePerUnitGrams: 'price_per_unit_grams',
@@ -41,19 +42,36 @@ const SNAKE_TO_CAMEL: Record<string, string> = Object.fromEntries(
   Object.entries(CAMEL_TO_SNAKE).map(([k, v]) => [v, k])
 );
 
+// Only writable Compass columns cross the sync boundary. Hydrated rows retain
+// provenance/lifecycle metadata for reading, and local state keeps its own fields.
+// The strict worker codec remains the authority; the sync test pins this list to it.
+const COMPASS_SYNC_COLUMNS = new Set<string>([
+  'id', ...COMPASS_STRUCTURED_COLUMNS,
+  'name', 'chinese_name', 'type', 'form', 'year', 'season', 'storage',
+  'origin_country', 'origin_region', 'classification', 'cultivar', 'producer', 'description',
+  'tea_key', 'price_amount', 'price_currency', 'price_per_unit_grams',
+  'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
+  'vendor_id', 'vendor_name', 'shop_name', 'transport_mode', 'linked_customer_id', 'notes',
+  'tasting', 'photos', 'audio_clips', 'status', 'buy_quantity_grams', 'buy_quantity_units',
+  'buy_total', 'verdict', 'decision', 'sample_state', 'sample_set_id', 'session_id',
+  'journey_id', 'visit_id', 'draft_product_id', 'source_entry_id', 'created_at', 'updated_at',
+]);
+
 function toSnakeCase(entry: TeaCompassEntry): Record<string, any> {
   const result: Record<string, any> = {};
   for (const [key, value] of Object.entries(entry)) {
-    // Skip client-only fields
-    if (key === 'synced' || key === 'vendorDetails' || key === 'touchedFields' || key === 'draftAccountId' || key === 'isSample') continue;
-
     const snakeKey = CAMEL_TO_SNAKE[key] || key;
+    if (!COMPASS_SYNC_COLUMNS.has(snakeKey)) continue;
 
     // `decision` intentionally passes through unchanged: unlike status and
     // verdict it is an independent sourcing choice with matching API/DB naming.
 
-    // Serialize arrays/objects to JSON strings for D1
-    if (snakeKey === 'photos' || snakeKey === 'audio_clips' || snakeKey === 'tasting' || snakeKey === 'route_quotes') {
+    // Legacy JSON fields retain their wire format. Structured route quotes stay
+    // arrays for worker validation; the worker encodes them for D1.
+    if (snakeKey === 'route_quotes') {
+      // Routes clear as an empty array in the strict API contract.
+      result[snakeKey] = value ?? [];
+    } else if (snakeKey === 'photos' || snakeKey === 'audio_clips' || snakeKey === 'tasting') {
       result[snakeKey] = value != null ? JSON.stringify(value) : null;
     } else {
       result[snakeKey] = value ?? null;
