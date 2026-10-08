@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import taxonomy from '../../data/teajia-tasting-taxonomy.json';
-import { FAST_TASTING, applyFast, linePriceFields, orderLinePrice, quotedUnit, readFast, readLinePrice, tastingLine, todayItems } from './curateV2Model';
+import { FAST_TASTING, applyFast, linePriceFields, orderLinePrice, quotedUnit, readFast, readLinePrice, tastingLine, todayItems, todaySections } from './curateV2Model';
 import { createEmptyEntry, type TeaCompassEntry } from './types';
 
 const entry = (over: Partial<TeaCompassEntry>): TeaCompassEntry => ({
@@ -90,6 +90,24 @@ describe('todayItems', () => {
     expect(items.map((i) => [i.entryId, i.action])).toEqual([
       ['c', 'taste'], ['b', 'decide'], ['a', 'add-cost'], ['d', 'shelf'],
     ]);
+  });
+});
+
+describe('todaySections', () => {
+  const now = Date.parse('2026-10-08T12:00:00.000Z');
+  it('sorts teas into the sections Today shows, with days on the way', () => {
+    const s = todaySections([
+      entry({ id: 'a', name: 'Sample', sampleState: 'received', priceAmount: 300 }),
+      entry({ id: 'b', priceAmount: 1200, tasting: { quality: 8 } }),
+      entry({ id: 'c', name: 'No cost', priceAmount: undefined }),
+      entry({ id: 'd', name: 'Arrived', priceAmount: 420, status: 'in_stock' }),
+      entry({ id: 'e', name: 'Coming', priceAmount: 260, status: 'incoming', vendorName: 'Wang', updatedAt: '2026-10-02T12:00:00.000Z' }),
+      entry({ id: 'f', name: 'Shelved', priceAmount: 420, status: 'in_stock', draftProductId: 'p1' }),
+    ], now);
+    expect(s.decide.map((i) => i.entryId)).toEqual(['a', 'b']);
+    expect(s.cost.map((i) => i.entryId)).toEqual(['c']);
+    expect(s.shelve.map((i) => i.entryId)).toEqual(['d']);
+    expect(s.onTheWay).toEqual([{ entryId: 'e', name: 'Coming', vendor: 'Wang', days: 6, ordering: false }]);
   });
 });
 
