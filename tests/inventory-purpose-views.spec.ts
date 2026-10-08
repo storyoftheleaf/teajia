@@ -104,6 +104,8 @@ async function selectView(page: Page, label: string) {
   await page.getByRole('menuitem', { name: label }).click();
 }
 
+test.skip(({ isMobile }) => isMobile, 'Drives the laptop ledger; the phone opens the same panels from its supplier list, covered in stock-phone.spec.ts');
+
 test.beforeEach(async ({ page }) => {
   updateRequests.length = 0;
   await install(page);
