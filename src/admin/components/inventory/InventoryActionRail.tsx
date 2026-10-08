@@ -41,6 +41,13 @@ export interface InventoryActionRailProps {
   onCollect: () => void;
   onArchive: () => void;
   onClear: () => void;
+  /** 'side' is the strip on the right edge. 'bottom' is the phone's stock
+   *  screen, where a strip on the right covered the Source column: the same
+   *  actions sit in a bar just above the bottom nav instead. */
+  placement?: 'side' | 'bottom';
+  /** Bottom bar only: tick every tea in the list on screen. */
+  onSelectAll?: () => void;
+  selectAllCount?: number;
 }
 
 const RAIL_WIDTH = 60;
@@ -82,10 +89,70 @@ export const InventoryActionRail: React.FC<InventoryActionRailProps> = ({
   personalTastingLabel, hasPersonalTasting,
   onEdit, onPersonalTasting, onViewTasting, onEditProductTasting, onContentLinks,
   onPublish, onStar, onSample, onShare, onInvoice, onCollect, onArchive, onClear,
+  placement = 'side', onSelectAll, selectAllCount,
 }) => {
   const [moreOpen, setMoreOpen] = React.useState(false);
   // A new selection starts folded.
   React.useEffect(() => { if (!open) setMoreOpen(false); }, [open]);
+  if (placement === 'bottom') {
+    if (!open) return null;
+    const BarButton = ({ label, accessibleLabel, onClick, disabled, children }: Omit<RailButtonProps, 'variant'>) => (
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        aria-label={accessibleLabel ?? label}
+        className="flex flex-col items-center justify-center gap-1 min-h-[52px] text-tea-text disabled:opacity-40"
+      >
+        <span className="text-tea-gold">{children}</span>
+        <span className="text-ui-11 leading-none">{label}</span>
+      </button>
+    );
+    return createPortal(
+      <div
+        role="toolbar"
+        aria-label="Selection actions"
+        className="fixed left-0 right-0 bottom-nav z-drawer border-t border-tea-gold bg-tea-surface px-2 pb-2"
+      >
+        <div className="flex items-center h-11 px-2">
+          <span className="text-ui-14 font-medium text-tea-gold tabular-nums">{selectedCount} {selectedCount === 1 ? 'tea' : 'teas'} selected</span>
+          <span className="flex-1" />
+          {onSelectAll && selectAllCount !== undefined && selectAllCount > selectedCount && (
+            <button type="button" onClick={onSelectAll} className="tap-target px-2 text-ui-13 text-tea-text-sec hover:text-tea-text">Select all {selectAllCount}</button>
+          )}
+          <button type="button" onClick={onClear} className="tap-target px-2 text-ui-13 text-tea-text-sec hover:text-tea-text">Clear</button>
+        </div>
+        {moreOpen && (
+          <div className="grid grid-cols-4 gap-y-1 border-b border-tea-border pb-2 mb-1">
+            {isSingle && (
+              <>
+                <BarButton label={personalTastingLabel === 'Record tasting' ? 'Taste' : 'Continue'} accessibleLabel={personalTastingLabel} onClick={onPersonalTasting}><NotebookPen size={19} aria-hidden="true" /></BarButton>
+                {hasPersonalTasting && <BarButton label="Journal" accessibleLabel="View personal tasting" onClick={onViewTasting}><BookOpen size={19} aria-hidden="true" /></BarButton>}
+                <BarButton label="Profile" accessibleLabel="Edit product tasting profile" onClick={onEditProductTasting}><FilePenLine size={19} aria-hidden="true" /></BarButton>
+                <BarButton label="Writing" accessibleLabel="Manage linked writing" onClick={onContentLinks}><Link2 size={19} aria-hidden="true" /></BarButton>
+              </>
+            )}
+            <BarButton label="Star" onClick={onStar} disabled={isBusy}><Star size={19} aria-hidden="true" /></BarButton>
+            <BarButton label="Sample" onClick={onSample} disabled={isBusy}><FlaskConical size={19} aria-hidden="true" /></BarButton>
+            <BarButton label="Share" onClick={onShare} disabled={isBusy}><Share2 size={19} aria-hidden="true" /></BarButton>
+            {isSingle && <BarButton label="Archive" accessibleLabel="Archive selection" onClick={onArchive} disabled={isBusy}><Archive size={19} aria-hidden="true" /></BarButton>}
+          </div>
+        )}
+        <div className="grid grid-cols-5">
+          <BarButton label="Collection" accessibleLabel="Add to a collection" onClick={onCollect} disabled={isBusy}><Layers size={19} aria-hidden="true" /></BarButton>
+          <BarButton label="Publish" accessibleLabel={canPublish ? 'Publish selection' : 'Publish unavailable until inventory arrival status is ready'} onClick={onPublish} disabled={isBusy || !canPublish}>
+            {isBusy ? <Loader2 size={19} className="animate-spin" aria-hidden="true" /> : <Eye size={19} aria-hidden="true" />}
+          </BarButton>
+          <BarButton label="Invoice" onClick={onInvoice} disabled={isBusy}><Receipt size={19} aria-hidden="true" /></BarButton>
+          {isSingle
+            ? <BarButton label="Edit" onClick={onEdit}><Pencil size={19} aria-hidden="true" /></BarButton>
+            : <BarButton label="Archive" onClick={onArchive} disabled={isBusy}><Archive size={19} aria-hidden="true" /></BarButton>}
+          <BarButton label={moreOpen ? 'Less' : 'More'} accessibleLabel={moreOpen ? 'Fewer actions' : 'More actions'} onClick={() => setMoreOpen(v => !v)}><MoreHorizontal size={19} aria-hidden="true" /></BarButton>
+        </div>
+      </div>,
+      document.body,
+    );
+  }
   // Portal to document.body so the rail's `position: fixed` resolves against the
   // viewport, NOT against an ancestor. The admin shell wraps pages in a
   // framer-motion PageTransition (a `transform`), and the InventoryView root is
