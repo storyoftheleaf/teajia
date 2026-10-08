@@ -230,6 +230,7 @@ import { SiteMenu } from './components/SiteMenu';
 import { sellUnitOf, wholePieceOf } from './lib/teaPricing';
 import { AdvisePage } from './components/AdvisePage';
 import AboutPage from './AboutPage';
+import PrivacyPage from './pages/PrivacyPage';
 // The home page. Imported statically, as the page it replaced was: it is the
 // route most visitors land on, and behind lazy() the first paint is the shell
 // with the page a round trip behind it. On a phone that is long enough for the
@@ -1261,6 +1262,7 @@ const AppContent = () => {
                   <ErrorBoundary><Suspense fallback={<WisdomFallback />}><TeaTypePage /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />
+                <Route path="/privacy" element={<ErrorBoundary><PrivacyPage /></ErrorBoundary>} />
                 <Route path="/mcp" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><McpPage /></Suspense></ErrorBoundary>} />
                 {/* /compass is admin-only at /admin/compass, public route removed.
                     Members use /account/journal for tasting; Compass is sourcing + ledger only. */}
