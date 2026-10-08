@@ -86,7 +86,7 @@ import {
 } from './eventDomain';
 import { candidateToApi, impressionToApi, journalRowToNotes, parseCandidateInput } from './tastingNoteCuration';
 import { deliverVerificationCode, deliveryFailureBody } from './verificationDelivery';
-import { alertForProblem } from './problemAlerts';
+import { handoffToRepair } from './problemAlerts';
 import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, recordHealthProblem, clearHealthProblem, type IncidentStatus } from './incidents';
 import {
   deleteWisdomVerification,
@@ -173,9 +173,6 @@ interface Env extends WorkerReleaseEnv {
   SENDER_EMAIL?: string;
   SENDER_NAME?: string;
   RESEND_API_KEY?: string;
-  // Optional worker secrets: both set means a new high/critical problem sends one Telegram message
-  TELEGRAM_BOT_TOKEN?: string;
-  TELEGRAM_CHAT_ID?: string;
   // Optional — set to enable Google OAuth sign-in
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
@@ -220,6 +217,8 @@ interface Env extends WorkerReleaseEnv {
   NEWSLETTER_LIMITER?: RateLimiterBinding;
   // Scoped machine credential used only by the repository incident-queue exporter.
   INCIDENT_EXPORT_TOKEN?: string;
+  /** Shared with i64os: sent to it as x-i64os-repair-secret, accepted from it as x-teajia-repair-secret on the incident PATCH only. */
+  I64OS_REPAIR_SECRET?: string;
   WORDFORGE_INTEGRATION_TOKEN?: string;
   WORDFORGE_ACCOUNT_ID?: string;
 }
@@ -28413,8 +28412,8 @@ async function handleCreateIncident(request: Request, env: Env): Promise<Respons
       accountId,
       userId: claims.sub,
     });
-    // Never throws and is bounded by a 5s timeout; a failed alert must not fail the report.
-    await alertForProblem(env, { row, change });
+    // Never throws and is bounded by a 5s timeout; a failed handoff must not fail the report.
+    await handoffToRepair(env, { row, change });
     return json({ incident: incidentToApi(row || { id: null, signature: incident.signature }) }, 201);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Invalid incident';
@@ -28429,7 +28428,7 @@ function hasIncidentExportCredential(request: Request, env: Env): boolean {
 }
 
 async function handleListIncidents(request: Request, env: Env): Promise<Response> {
-  if (!hasIncidentExportCredential(request, env)) {
+  if (!hasIncidentExportCredential(request, env) && !hasRepairCredential(request, env)) {
     const authErr = await requirePlatformAdmin(request, env);
     if (authErr) return authErr;
   }
@@ -28443,11 +28442,30 @@ async function handleListIncidents(request: Request, env: Env): Promise<Response
   return json({ incidents: results.map(incidentToApi) });
 }
 
+/** Constant-time check of the i64os secret. Used by the incident PATCH and the incident list, and nowhere else. */
+function hasRepairCredential(request: Request, env: Env): boolean {
+  const secret = env.I64OS_REPAIR_SECRET;
+  const given = request.headers.get('x-teajia-repair-secret');
+  if (!secret || !given) return false;
+  const a = new TextEncoder().encode(given);
+  const b = new TextEncoder().encode(secret);
+  let diff = a.length ^ b.length;
+  for (let i = 0; i < b.length; i += 1) diff |= (a[i] ?? 0) ^ b[i];
+  return diff === 0;
+}
+
+/** What i64os may set when it reports back. */
+const REPAIR_REPORTABLE_STATUSES: readonly string[] = ['repairing', 'open', 'resolved'];
+
 async function handleUpdateIncident(request: Request, env: Env, params: Record<string, string>): Promise<Response> {
-  const authErr = await requirePlatformAdmin(request, env);
-  if (authErr) return authErr;
+  const machine = hasRepairCredential(request, env);
+  if (!machine) {
+    const authErr = await requirePlatformAdmin(request, env);
+    if (authErr) return authErr;
+  }
   const body = await request.json().catch(() => null) as { status?: string; resolution_ref?: string } | null;
   if (!body || !INCIDENT_STATUSES.includes(body.status as IncidentStatus)) return json({ error: 'Invalid incident status' }, 400);
+  if (machine && !REPAIR_REPORTABLE_STATUSES.includes(body.status as string)) return json({ error: 'Invalid incident status' }, 400);
   const resolutionRef = typeof body.resolution_ref === 'string' ? body.resolution_ref.slice(0, 240) : null;
   const result = await env.DB.prepare(`UPDATE incident_ledger SET status = ?, resolution_ref = ?,
     resolved_at = CASE WHEN ? = 'resolved' THEN datetime('now') ELSE NULL END WHERE id = ?`)
@@ -29636,7 +29654,7 @@ async function reportStaleExchangeRates(env: Env, lastRefresh?: RateRefreshResul
     errorCode: 'rates_stale',
     message: staleRatesMessage(stale, lastRefresh?.reason),
   });
-  await alertForProblem(env, write);
+  await handoffToRepair(env, write);
 }
 
 export default {

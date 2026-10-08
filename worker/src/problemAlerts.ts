@@ -1,73 +1,73 @@
 /**
- * One Telegram message when a NEW (or returning) serious problem lands in the
- * problem ledger, so the owner hears about it without opening the site.
+ * What the site does when a serious problem lands in the problem ledger.
  *
- * Rules, all enforced here and pinned by worker/tests/problem-alerts.test.ts:
- *  - only a new row or a reopened one; a repeat of an open row is silent
- *  - only severity high or critical; visitor wifi drops are medium and noise
- *  - at most DAILY_ALERT_CAP per UTC day, counted in D1 (isolates differ); the
- *    last one of the day says alerts are paused
- *  - never throws and never logs the token: a failed alert must not fail the
- *    request or cron tick that triggered it
+ * The owner does not want a message per problem and does not want to fix
+ * things himself (2026-10-08). So:
+ *  - a NEW or REOPENED high|critical problem is handed to i64os, which has
+ *    Claude Code fix, test and merge it (handoffToRepair);
+ *  - the site sends no message to the owner itself: i64os sends the one morning
+ *    message and asks for the one tap that merges a fix.
+ *
+ * The handoff never throws and never logs a secret: a failed handoff or
+ * note must not fail the request or cron tick that triggered it. Pinned by
+ * worker/tests/problem-alerts.test.ts.
  */
 import { describeIncident, type IncidentRow } from '../../src/lib/incidentWords';
 import type { IncidentWrite } from './incidents';
 
-export const DAILY_ALERT_CAP = 10;
-export const FIXES_URL = 'https://www.teajia.com/account/fixes';
+export const REPAIR_ENDPOINT = 'https://app.i64os.com/api/v1/repairs/incident';
+export const REPAIR_SECRET_HEADER = 'x-i64os-repair-secret';
 
-type AlertEnv = { DB: D1Database; TELEGRAM_BOT_TOKEN?: string; TELEGRAM_CHAT_ID?: string };
+type HandoffEnv = { DB: D1Database; I64OS_REPAIR_SECRET?: string };
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
 export interface AlertResult { sent: boolean; reason?: string }
 
-function problemText(row: IncidentRow, reopened: boolean): string {
-  const head = reopened ? 'Teajia: a problem came back.' : 'Teajia: something needs fixing.';
-  const seen = row.first_seen ? `First seen ${row.first_seen} UTC.` : 'First seen just now.';
-  return `${head}\n${describeIncident(row)}\n${seen}\n${FIXES_URL}`;
+async function recordAlert(db: D1Database, incidentId: string, signature: string, kind: string, ok: boolean): Promise<void> {
+  await db.prepare(
+    'INSERT INTO problem_alerts (id, incident_id, signature, kind, ok) VALUES (?, ?, ?, ?, ?)',
+  ).bind(crypto.randomUUID(), incidentId, signature, kind, ok ? 1 : 0).run();
 }
 
-const PAUSED_TEXT = `Teajia: problem alerts are paused for today (too many). Check the page.\n${FIXES_URL}`;
-
-/** Posts plain text to Telegram. Never throws; never logs the token. */
-export async function sendProblemAlert(env: AlertEnv, text: string, fetchImpl: FetchLike = fetch): Promise<AlertResult> {
-  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) return { sent: false, reason: 'not configured' };
-  try {
-    const res = await fetchImpl(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: env.TELEGRAM_CHAT_ID, text, disable_web_page_preview: true }),
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!res.ok) return { sent: false, reason: `telegram answered ${res.status}` };
-    return { sent: true };
-  } catch {
-    // The error text can carry the request URL, which holds the token.
-    return { sent: false, reason: 'telegram unreachable' };
-  }
-}
-
-/** Decides whether a ledger write deserves a message, and sends it. Never throws. */
-export async function alertForProblem(env: AlertEnv, write: IncidentWrite, fetchImpl: FetchLike = fetch): Promise<AlertResult> {
+/** Hands a new or returning serious problem to i64os. Never throws. */
+export async function handoffToRepair(env: HandoffEnv, write: IncidentWrite, fetchImpl: FetchLike = fetch): Promise<AlertResult> {
   try {
     const { row, change } = write;
     if (!row || change === 'repeat') return { sent: false, reason: 'not new' };
     if (row.severity !== 'high' && row.severity !== 'critical') return { sent: false, reason: 'severity' };
-    if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) return { sent: false, reason: 'not configured' };
+    if (!env.I64OS_REPAIR_SECRET) return { sent: false, reason: 'not configured' };
 
-    const counted = await env.DB.prepare(
-      "SELECT COUNT(*) AS n FROM problem_alerts WHERE date(sent_at) = date('now')",
-    ).first<{ n: number }>();
-    const today = Number(counted?.n ?? 0);
-    if (today >= DAILY_ALERT_CAP) return { sent: false, reason: 'daily cap' };
-
-    const paused = today === DAILY_ALERT_CAP - 1;
-    const text = paused ? PAUSED_TEXT : problemText(row as unknown as IncidentRow, change === 'reopened');
-    const result = await sendProblemAlert(env, text, fetchImpl);
-    await env.DB.prepare(
-      'INSERT INTO problem_alerts (id, incident_id, signature, kind, ok) VALUES (?, ?, ?, ?, ?)',
-    ).bind(crypto.randomUUID(), String(row.id ?? ''), String(row.signature ?? ''), paused ? 'paused' : change, result.sent ? 1 : 0).run();
-    return result;
+    const r = row as Record<string, unknown>;
+    const body = {
+      source: 'teajia',
+      repo: 'storyoftheleaf/teajia',
+      incident: {
+        id: r.id, signature: r.signature, category: r.category, severity: r.severity,
+        route: r.route ?? null, method: r.method ?? null, http_status: r.http_status ?? null,
+        error_code: r.error_code, safe_message: r.safe_message,
+        sentence: describeIncident(row as unknown as IncidentRow),
+        first_seen: r.first_seen, last_seen: r.last_seen, occurrence_count: r.occurrence_count,
+        change,
+      },
+    };
+    let ok = false;
+    let reason: string | undefined;
+    try {
+      const res = await fetchImpl(REPAIR_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', [REPAIR_SECRET_HEADER]: env.I64OS_REPAIR_SECRET },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(5000),
+      });
+      ok = res.ok;
+      if (!ok) reason = `i64os answered ${res.status}`;
+    } catch {
+      reason = 'i64os unreachable';
+    }
+    try {
+      await recordAlert(env.DB, String(r.id ?? ''), String(r.signature ?? ''), 'handoff', ok);
+    } catch { /* the record of handoffs is a record, not a requirement */ }
+    return ok ? { sent: true } : { sent: false, reason };
   } catch {
     return { sent: false, reason: 'error' };
   }
