@@ -26,6 +26,7 @@ import { nameProductColumns } from './productDefaults';
 import { validateCurateContextPair } from './curateContextValidation';
 import { addTodo, markTodoDone, openTodos, pickSuggestions, waitingSuggestions } from './mcpTools/curateIntake';
 import { decryptSecret, encryptSecret } from './secretSeal';
+import { fileSaid } from './curateSaidFiling';
 import { driveConsentUrl, driveSeal, driveStatus, forgetDrive, saveDriveConsent, savePhotosToDrive, savePhotosToDriveQuietly } from './curateDrive';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import {
@@ -9778,7 +9779,7 @@ const handleUpdateCustomer: Handler = async (request, env, params) => {
     foldHandlesIntoContacts(body, row?.contacts);
   }
 
-  const CUSTOMER_ALLOWED_COLS = new Set(['name','email','phone','notes','tags','address','city','country','source','vip','preferred_currency','whatsapp','line','referred_by','type','company','contacts','business_card_photo','storefront_photo','latitude','longitude']);
+  const CUSTOMER_ALLOWED_COLS = new Set(['name','chinese_name','email','phone','notes','tags','address','city','country','source','vip','preferred_currency','whatsapp','line','referred_by','type','company','contacts','business_card_photo','storefront_photo','latitude','longitude']);
   const cols = Object.keys(body).filter(k => CUSTOMER_ALLOWED_COLS.has(k));
   if (cols.length > 0) {
     const sets = cols.map(c => `${c} = ?`).join(', ');
@@ -28716,6 +28717,22 @@ const handleCurateTodoDone: Handler = async (request, env, params) => {
   return (await markTodoDone(env, ctx, params.id)) ? json({ done: true }) : json({ error: 'Not found or already done' }, 404);
 };
 
+/** What was said about a tea, split into parts for Adrian to tick. Writes nothing. */
+const handleFileSaid: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${ctx.accountId}:${ctx.userId}:file-said`);
+  if (limited) return limited;
+  const body = await request.json().catch(() => ({})) as { text?: unknown; tea_name?: unknown };
+  const text = typeof body.text === 'string' ? body.text.trim() : '';
+  if (!text) return json({ error: 'Nothing to file' }, 400);
+  try {
+    return json({ parts: await fileSaid(env, text, typeof body.tea_name === 'string' ? body.tea_name : null) });
+  } catch (error) {
+    return json({ error: (error as Error).message }, 502);
+  }
+};
+
 /** Orders on their way: one pending receipt per tea, accepted on arrival. */
 const handleListPendingReceipts: Handler = async (request, env) => {
   const ctx = await requireSourcing(request, env);
@@ -29281,6 +29298,7 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/curate/receipt-proposals/:id/accept', handleAcceptReceiptProposal],
   ['POST', '/api/curate/receipt-proposals/:id/reject', handleRejectReceiptProposal],
   ['GET', '/api/curate/receipt-proposals', handleListPendingReceipts],
+  ['POST', '/api/curate/said/file', handleFileSaid],
   ['GET', '/api/curate/drive', handleDriveStatus],
   ['POST', '/api/curate/drive/connect', handleDriveConnect],
   ['DELETE', '/api/curate/drive', handleDriveDisconnect],

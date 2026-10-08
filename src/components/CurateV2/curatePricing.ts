@@ -108,3 +108,46 @@ export function purchaseSpendInUsd(
   }
   return { priced, unpricedByCurrency };
 }
+
+export interface OrderLanded {
+  /** What the teas cost, in the order's currency. */
+  subtotal: number;
+  /** Tea weight carried, in kilos. Teaware is priced with its freight inside. */
+  weightKg: number;
+  /** The shop's freight per kilo, in the order's currency. */
+  freightPerKg: number;
+  freight: number;
+  /** Units of the order's currency to one dollar, today. */
+  perUsd: number;
+  landedUsd: number;
+}
+
+const PIECE_GRAMS: Record<string, number> = { Cake: 357, Brick: 250, Tuo: 100 };
+
+/**
+ * An order as it lands: the teas, the shop's freight on their weight (85
+ * yuan a kilo unless the shop says otherwise), and the total in dollars at
+ * today's rate. Null when the order's currency has no rate, for the same
+ * reason the shelf preview declines: a rate of 1 reads yuan as dollars.
+ */
+export function orderLanded(
+  tx: Pick<LedgerTransaction, 'items' | 'currency'>,
+  rates: readonly ExchangeRate[] | null | undefined,
+  shopFreightPerKgUsd: number,
+): OrderLanded | null {
+  const perUsd = isUnrecordedCurrency(tx.currency) ? 1 : rateToUsd(rates, tx.currency);
+  if (!perUsd) return null;
+  const freightPerKg = shopRateInCurrency(shopFreightPerKgUsd, perUsd);
+  if (freightPerKg === null) return null;
+  let subtotal = 0;
+  let grams = 0;
+  for (const item of tx.items) {
+    subtotal += ledgerItemAmount(item);
+    if (item.type === 'Teaware') continue;
+    if (item.priceIsPerGram) grams += item.quantityGrams ?? 0;
+    else grams += (item.quantityUnits ?? 1) * (item.unitWeightGrams ?? PIECE_GRAMS[String(item.form)] ?? 0);
+  }
+  const weightKg = grams / 1000;
+  const freight = weightKg * freightPerKg;
+  return { subtotal, weightKg, freightPerKg, freight, perUsd, landedUsd: (subtotal + freight) / perUsd };
+}

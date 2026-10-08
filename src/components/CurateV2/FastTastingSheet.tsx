@@ -33,6 +33,7 @@ export const FastTastingSheet: React.FC<FastTastingSheetProps> = ({ entryId, onO
         {FAST_TASTING.map((question) => {
           const chosen = answers[question.q];
           const cols = question.options.length === 10 ? 'grid-cols-10'
+            : question.q === 'flavour' ? 'grid-cols-4'
             : question.options.length >= 8 ? 'grid-cols-4'
             : question.options.length === 4 ? 'grid-cols-4' : 'grid-cols-3';
           return (
@@ -58,6 +59,11 @@ export const FastTastingSheet: React.FC<FastTastingSheetProps> = ({ entryId, onO
                     </button>
                   );
                 })}
+                {question.q === 'flavour' && entryId && (
+                  <button type="button" onClick={() => onFullTasting(entryId)} className="min-h-9 whitespace-nowrap rounded border border-tea-border text-ui-12 text-tea-gold hover:border-tea-gold">
+                    More ›
+                  </button>
+                )}
               </div>
             </div>
           );

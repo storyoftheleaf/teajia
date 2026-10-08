@@ -2918,6 +2918,9 @@ export const api = {
       authedFetch(`${API_URL}/api/curate/drive/connect`, { method: 'POST', body: JSON.stringify({ return: returnPath }) }),
     driveSaveNow: async (): Promise<{ copied: number; teas: number }> =>
       authedFetch(`${API_URL}/api/curate/drive/save`, { method: 'POST', body: JSON.stringify({}) }),
+    /** Split what was said about a tea into parts to tick. Writes nothing. */
+    fileSaid: async (body: { text: string; tea_name?: string }): Promise<{ parts: Array<{ kind: 'tea' | 'price' | 'taste' | 'story' | 'vendor' | 'todo'; text: string; fields: Record<string, any> }> }> =>
+      authedFetch(`${API_URL}/api/curate/said/file`, { method: 'POST', body: JSON.stringify(body) }),
     todoDone: async (id: string) =>
       authedFetch(`${API_URL}/api/curate/todos/${id}/done`, { method: 'POST' }),
     /** Share a capture card to known accounts and/or generate an invite link for external tasters */

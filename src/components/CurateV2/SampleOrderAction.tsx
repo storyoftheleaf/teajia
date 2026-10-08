@@ -14,10 +14,12 @@ interface SampleOrderActionProps {
   onManagingChange: (managing: boolean) => void;
   onCaptureTea: () => void;
   onBrowseLibrary: () => void;
+  /** Curate v2 opens the list from its ＋ menu; the header shows the trigger only while the list has samples in it. */
+  hideWhenEmpty?: boolean;
 }
 
 export const SampleOrderAction: React.FC<SampleOrderActionProps> = ({
-  open, managing, initialSetId, onOpenChange, onRequestCloseRoute, onManagingChange, onCaptureTea, onBrowseLibrary,
+  open, managing, initialSetId, onOpenChange, onRequestCloseRoute, onManagingChange, onCaptureTea, onBrowseLibrary, hideWhenEmpty,
 }) => {
   const count = useSampleCartStore((state) => state.items.length);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -66,7 +68,7 @@ export const SampleOrderAction: React.FC<SampleOrderActionProps> = ({
 
   return (
     <>
-      <button
+      {!(hideWhenEmpty && count === 0) && <button
         ref={triggerRef}
         type="button"
         onClick={() => onOpenChange(true)}
@@ -81,7 +83,7 @@ export const SampleOrderAction: React.FC<SampleOrderActionProps> = ({
           <span>Samples</span>
           <span className="tabular-nums text-tea-text-dim">({count})</span>
         </span>
-      </button>
+      </button>}
 
       {open && createPortal((
         <div ref={dialogRef} className="fixed inset-0 z-modal flex bg-tea-bg" role="dialog" aria-modal="true" aria-label="Samples workspace">

@@ -7,6 +7,7 @@ import type { TeaCompassEntry } from './types';
 import { linePriceFields, quotedUnit, readLinePrice, tastingLine } from './curateV2Model';
 import { VendorPickerSheet } from './VendorPickerSheet';
 import { CURRENCY_LABELS } from './PricingRow';
+import type { Currency } from '../../admin/types';
 
 interface TableListProps {
   /** The tea open in the capture card below, if any. */
@@ -40,7 +41,25 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
   const [pickingVendor, setPickingVendor] = useState(false);
   const lastVendorName = useTeaCompassStore((s) => s.lastVendorName);
   const setLastVendor = useTeaCompassStore((s) => s.setLastVendor);
+  const lastCurrency = useTeaCompassStore((s) => s.lastCurrency);
+  const setLastCurrency = useTeaCompassStore((s) => s.setLastCurrency);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Hold the microphone to talk and let go to stop, as drawn. A quick tap
+  // still starts it, and a second tap stops it, for a longer note.
+  const holdRef = useRef<{ id: string; since: number; began: boolean } | null>(null);
+  const [holding, setHolding] = useState(false);
+  const micDown = (id: string, isTalking: boolean) => {
+    holdRef.current = { id, since: Date.now(), began: !isTalking };
+    if (!isTalking) { onTalk(id); setHolding(true); }
+  };
+  const micUp = (id: string) => {
+    const hold = holdRef.current;
+    holdRef.current = null;
+    setHolding(false);
+    if (!hold || hold.id !== id) return;
+    // Held: letting go stops it. Tapped while recording: that tap stops it.
+    if (!hold.began || Date.now() - hold.since > 450) onTalk(id);
+  };
 
   // This table is the current capture run: teas saved in it, plus any draft
   // in it that already has a name. Newest first.
@@ -84,12 +103,30 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
 
   return (
     <div className="curate-v2 -mx-4 mb-3 border-t border-tea-border">
-      <button type="button" onClick={() => setPickingVendor(true)} className="curate-v2-row w-full text-left">
-        <span className="curate-v2-label">Table</span>
-        <span className={lastVendorName ? 'curate-v2-name' : 'text-ui-13 text-tea-text-sec'}>{lastVendorName || 'Whose table? Add it any time'}</span>
+      <div className="curate-v2-row gap-0 pr-2">
+      <button type="button" onClick={() => setPickingVendor(true)} aria-label={lastVendorName ? `Table: ${lastVendorName}. Change` : 'Whose table? Choose'} className="flex min-h-12 min-w-0 flex-1 items-center gap-2 text-left">
+        <span className={lastVendorName ? 'curate-v2-name' : 'font-display text-ui-17 text-tea-text-sec'}>{lastVendorName || 'Whose table?'}</span>
         <span className="flex-1" />
-        <span className="text-ui-12 text-tea-gold">{lastVendorName ? 'Change' : 'Choose'}</span>
+        <span className="text-ui-12 text-tea-text-dim tabular-nums">
+          {lastVendorName ? `${rows.length} ${rows.length === 1 ? 'tea' : 'teas'} · ` : ''}
+          <span className="text-tea-gold">{lastVendorName ? 'change' : 'choose'}</span>
+        </span>
       </button>
+      {/* The table's money: a price typed without a sign is in this. */}
+      <label className="relative ml-2 flex min-h-11 shrink-0 items-center border-l border-tea-border pl-3">
+        <span className="sr-only">Prices at this table are in</span>
+        <select
+          value={lastCurrency}
+          onChange={(e) => setLastCurrency(e.target.value as Currency)}
+          className="appearance-none bg-transparent pr-1 text-ui-13 font-medium text-tea-gold outline-none"
+          aria-label="Currency at this table"
+        >
+          {(['Yuan', 'NT', 'HKD', 'USD', 'JPY', 'IDR', 'MYR', 'AUD'] as Currency[]).map((c) => (
+            <option key={c} value={c}>{CURRENCY_LABELS[c]}</option>
+          ))}
+        </select>
+      </label>
+      </div>
       <VendorPickerSheet
         open={pickingVendor}
         onOpenChange={setPickingVendor}
@@ -150,7 +187,11 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
             {canTalk && (
               <button
                 type="button"
-                onClick={() => onTalk(e.id)}
+                onPointerDown={(ev) => { ev.preventDefault(); micDown(e.id, talking); }}
+                onPointerUp={() => micUp(e.id)}
+                onPointerCancel={() => micUp(e.id)}
+                onContextMenu={(ev) => ev.preventDefault()}
+                onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onTalk(e.id); } }}
                 aria-label={talking ? `Stop recording for ${e.name || 'this tea'}` : `Talk about ${e.name || 'this tea'}`}
                 className={`tap-target flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors ${
                   talking ? 'border-tea-gold bg-tea-gold/10 text-tea-gold' : 'border-tea-border text-tea-text-sec hover:text-tea-text'
@@ -167,7 +208,7 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
       {talkingEntryId && voiceState === 'recording' && (
         <div className="flex items-baseline justify-between px-4 py-2 text-ui-12">
           <span className="text-tea-text-sec">Recording for this tea</span>
-          <span className="text-tea-gold">tap the square to stop</span>
+          <span className="text-tea-gold">{holding ? 'let go to stop' : 'tap the square to stop'}</span>
         </div>
       )}
     </div>
