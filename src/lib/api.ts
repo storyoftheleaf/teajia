@@ -2911,6 +2911,13 @@ export const api = {
       authedFetch(`${API_URL}/api/curate/todos`),
     addTodo: async (body: { text: string; tea_id?: string; vendor_id?: string }) =>
       authedFetch(`${API_URL}/api/curate/todos`, { method: 'POST', body: JSON.stringify(body) }),
+    /** The shop's Google Drive, where Curate photos are copied. */
+    driveStatus: async (): Promise<{ connected: boolean; email?: string | null; needs_reconnect?: boolean; folder_url?: string | null }> =>
+      authedFetch(`${API_URL}/api/curate/drive`),
+    driveConnect: async (returnPath: string): Promise<{ url: string }> =>
+      authedFetch(`${API_URL}/api/curate/drive/connect`, { method: 'POST', body: JSON.stringify({ return: returnPath }) }),
+    driveSaveNow: async (): Promise<{ copied: number; teas: number }> =>
+      authedFetch(`${API_URL}/api/curate/drive/save`, { method: 'POST', body: JSON.stringify({}) }),
     todoDone: async (id: string) =>
       authedFetch(`${API_URL}/api/curate/todos/${id}/done`, { method: 'POST' }),
     /** Share a capture card to known accounts and/or generate an invite link for external tasters */

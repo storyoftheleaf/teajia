@@ -173,7 +173,9 @@ as text.
   price per unit as invoiced). The order itself, its freight and the rate on the
   day, is entered in the app for now (Orders). Say so.
 
-Then save the photo to Drive (below) in that tea's or vendor's folder.
+Then put the photo on the tea with `curate_add_photo`: an https link, or the image
+itself as base64. The shop shows it on the tea and copies it into that tea's
+Drive folder for you.
 
 Example, a label:
 
@@ -250,34 +252,32 @@ skipped and why.
 
 ## Drive: plain folders anyone can read
 
-Photos and recordings live in Adrian's Google Drive, named in words, so he can
-edit a photo on his computer and an agent can read the folder without the app.
+Once Adrian connects Drive (a line on Curate Today), the shop copies every Curate
+photo into his Google Drive, named in words, so he can edit a photo on his
+computer and an agent can read the folder without the app:
 
 ```
-Teajia/
-  Vendors/
-    Wang Laoshi (Fangcun)/
-      vendor.md          name, contacts, notes, what's missing
-      Yiwu Gushu 2019/
-        tea.md           what the shop knows and what is missing
-        said.md          every transcript, and where each part was filed
-        2026-10-05.m4a   the recording
-        photo-1.jpg      the original photo
-      Teaware/
-        Zhuni teapot/
-          tea.md
-          photo-1.jpg
+Teajia Curate/
+  Wang Laoshi/
+    Yiwu Gushu 2019/
+      Yiwu Gushu 2026-10-08 1.jpg
+      tea.md       (yours to write: what the shop knows and what is missing)
+      said.md      (yours to write: every transcript, and where each part went)
+  No vendor/
+    Old oolong/
 ```
 
-- Folder names: the vendor's name with the place in brackets; the tea's name and
-  year. A tea with no vendor goes under `Teajia/Vendors/Unknown/`.
-- `tea.md` is written from `curate_get_tea`; `vendor.md` from `curate_find`.
-  They are a readable copy. Rewrite them after a change; never read them as the
-  truth over the shop.
+- **Photos go in through the shop, never straight into Drive.** Send them with
+  `curate_add_photo`. The shop is allowed to see only the files it made, so a
+  photo dropped into the folder by hand never reaches the tea.
+- `curate_tea_photos` gives a tea's photos and its Drive folder link, so you can
+  find the folder to write `tea.md` and `said.md` beside the photos.
+- `tea.md` is written from `curate_get_tea`; it is a readable copy. Rewrite it
+  after a change; never read it as the truth over the shop.
 - `said.md` gets one dated section per recording: the transcript, then one line
   per part filed and where it went.
-- If you cannot reach Drive, say so and carry on with the shop. The shop is what
-  matters.
+- If Drive is not connected, `curate_add_photo` still puts the photo on the tea
+  and says Drive was skipped. Tell Adrian once; carry on.
 
 ## For GrokBot: paste this as its instructions
 
@@ -330,5 +330,6 @@ You help Adrian source tea for Teajia through the Teajia tools (server label
 - **Shipping costs in the shelf price.** The real legs give an order its landed
   cost. The shelf still prices freight at the shop rate; changing that is a
   separate decision.
-- **Photos into the shop.** A photo goes to Drive; attaching it to the tea in the
-  app is done in the app.
+- **Photos on a vendor.** `curate_add_photo` takes a tea. A business card's
+  details go in with `curate_save_vendor`; the card photo itself is added in the
+  app for now.

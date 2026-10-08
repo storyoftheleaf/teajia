@@ -3,6 +3,7 @@ import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TODAY_ACTION_LABEL, todayItems, type TodayAction } from './curateV2Model';
 import { getTeaColor } from '../../designTokens';
 import { AgentInbox } from './AgentInbox';
+import { DriveLine } from './DriveLine';
 
 interface TodayViewProps {
   onStartTable: () => void;
@@ -28,6 +29,7 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
         </button>
       </div>
       <AgentInbox onOpenTea={onOpenTea} />
+      <DriveLine />
       <Section title="Waiting" count={items.length} />
       {items.length === 0 && entries.length > 0 && (
         <p className="px-4 py-4 text-ui-13 text-tea-text-sec">Nothing waiting. Start a table, or add a tea by name.</p>

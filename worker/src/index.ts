@@ -23,6 +23,8 @@ import { costNeedsCurrency, createMissingCost, currencyStated, stampCostCurrency
 import { nameProductColumns } from './productDefaults';
 import { validateCurateContextPair } from './curateContextValidation';
 import { addTodo, markTodoDone, openTodos, pickSuggestions, waitingSuggestions } from './mcpTools/curateIntake';
+import { decryptSecret, encryptSecret } from './secretSeal';
+import { driveConsentUrl, driveSeal, driveStatus, forgetDrive, saveDriveConsent, savePhotosToDrive, savePhotosToDriveQuietly } from './curateDrive';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import {
   deriveConfirmedInvoiceLine,
@@ -401,66 +403,6 @@ function isAuthed(request: Request): string | null {
   const auth = request.headers.get('Authorization');
   if (!auth?.startsWith('Bearer ')) return null;
   return auth.slice(7);
-}
-
-// ── BYOK secret encryption (AES-GCM via HKDF-derived key) ──
-// Used for per-account third-party API keys stored in D1. The wrapping key
-// is derived from KEY_ENCRYPTION_SECRET so the same plaintext encrypts to
-// different ciphertexts each call (12-byte random IV, prepended to output).
-async function deriveAesKey(secret: string): Promise<CryptoKey> {
-  const enc = new TextEncoder();
-  const baseKey = await crypto.subtle.importKey(
-    'raw', enc.encode(secret), 'HKDF', false, ['deriveKey'],
-  );
-  return crypto.subtle.deriveKey(
-    { name: 'HKDF', hash: 'SHA-256', salt: enc.encode('teajia/byok/v1'), info: enc.encode('account-secret') },
-    baseKey,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt', 'decrypt'],
-  );
-}
-
-function bytesToB64(bytes: Uint8Array): string {
-  let s = '';
-  for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
-  return btoa(s);
-}
-
-function b64ToBytes(s: string): Uint8Array {
-  const bin = atob(s);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
-}
-
-export async function encryptSecret(plaintext: string, env: Env): Promise<string> {
-  if (!env.KEY_ENCRYPTION_SECRET) {
-    throw new Error('KEY_ENCRYPTION_SECRET not configured');
-  }
-  const key = await deriveAesKey(env.KEY_ENCRYPTION_SECRET);
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = new Uint8Array(
-    await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(plaintext)),
-  );
-  // Prefix the IV so we don't need a second column.
-  const combined = new Uint8Array(iv.length + ct.length);
-  combined.set(iv, 0);
-  combined.set(ct, iv.length);
-  return bytesToB64(combined);
-}
-
-export async function decryptSecret(b64: string, env: Env): Promise<string> {
-  if (!env.KEY_ENCRYPTION_SECRET) {
-    throw new Error('KEY_ENCRYPTION_SECRET not configured');
-  }
-  const key = await deriveAesKey(env.KEY_ENCRYPTION_SECRET);
-  const buf = b64ToBytes(b64);
-  if (buf.length < 13) throw new Error('Encrypted payload too short');
-  const iv = buf.slice(0, 12);
-  const ct = buf.slice(12);
-  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
-  return new TextDecoder().decode(pt);
 }
 
 function parseToken(token: string): TokenClaims | null {
@@ -2600,6 +2542,9 @@ const handleGoogleCallback: Handler = async (request, env) => {
   // From here on, errors and success land the user back where they started.
   const returnPath = await verifyOAuthState(state, env.JWT_SECRET);
   if (!returnPath) return Response.redirect(`${appOrigin}/admin?oauth_error=invalid_state`, 302);
+  // Connecting the shop's Google Drive comes back through this same registered
+  // callback; its signed state says whose shop and where to land.
+  if (returnPath.startsWith('/curate-drive|')) return finishDriveConnect(request, env, code, returnPath);
   const sep = returnPath.includes('?') ? '&' : '?';
   const errRedirect = (e: string) => Response.redirect(`${appOrigin}${returnPath}${sep}oauth_error=${e}`, 302);
 
@@ -15743,7 +15688,7 @@ const handleCreateCompassEntry: Handler = async (request, env) => {
   return json(created, 201);
 };
 
-const handleUpdateCompassEntry: Handler = async (request, env, params) => {
+const handleUpdateCompassEntry: Handler = async (request, env, params, execCtx) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
@@ -15794,6 +15739,10 @@ const handleUpdateCompassEntry: Handler = async (request, env, params) => {
     }
   }
   // End Feature 2
+
+  if (updated && decoded.values.photos !== undefined && execCtx) {
+    execCtx.waitUntil(savePhotosToDriveQuietly(env, driveSeal(env), accountId, [params.id]));
+  }
 
   return json(updated);
 };
@@ -16547,7 +16496,7 @@ const handleSyncNoteSessions: Handler = async (request, env) => {
   return json({ synced: stmts.length });
 };
 
-const handleSyncCompassEntries: Handler = async (request, env) => {
+const handleSyncCompassEntries: Handler = async (request, env, _params, execCtx) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
@@ -16588,6 +16537,13 @@ const handleSyncCompassEntries: Handler = async (request, env) => {
     if (Number(result.meta?.changes ?? 0) > 0) syncedIds.push(id);
     else conflicts.push(id);
   });
+
+  // A tea that arrived with photos gets them copied to the shop's Drive, after
+  // the response: Drive is slow and is never allowed to fail a save.
+  const withPhotos = body.entries
+    .filter((entry) => syncedIds.includes(String(entry.id)) && entry.photos != null && String(typeof entry.photos === 'string' ? entry.photos : JSON.stringify(entry.photos)) !== '[]')
+    .map((entry) => String(entry.id));
+  if (withPhotos.length && execCtx) execCtx.waitUntil(savePhotosToDriveQuietly(env, driveSeal(env), accountId, withPhotos));
 
   return json({ synced: syncedIds.length, syncedIds, conflicts });
 };
@@ -28695,6 +28651,68 @@ const handleListPendingReceipts: Handler = async (request, env) => {
   return json({ pending: r.results ?? [] });
 };
 
+// ── Curate photos in the shop's Google Drive ──
+
+const driveRedirectUri = (request: Request, env: Env) => `${(env.OAUTH_REDIRECT_ORIGIN || new URL(request.url).origin).replace(/\/$/, '')}/api/auth/google/callback`;
+
+/** The owner connects the shop's Drive: answers with Google's consent page to open. */
+const handleDriveConnect: Handler = async (request, env) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) return json({ error: 'Google is not set up on this server' }, 503);
+  if (!env.KEY_ENCRYPTION_SECRET) return json({ error: 'The server has no key to keep the Drive link safe' }, 503);
+  const body = await request.json().catch(() => ({})) as { return?: string };
+  const back = typeof body.return === 'string' && body.return.startsWith('/') && !body.return.startsWith('//') ? body.return : '/admin/compass/v2';
+  const state = await signOAuthState(env.JWT_SECRET, `/curate-drive|${ctx.accountId}|${ctx.userId}|${back}`);
+  return json({ url: driveConsentUrl(env.GOOGLE_CLIENT_ID, driveRedirectUri(request, env), state, ctx.email) });
+};
+
+async function finishDriveConnect(request: Request, env: Env, code: string, signed: string): Promise<Response> {
+  const appOrigin = (env.APP_URL || 'https://www.teajia.com').replace(/\/$/, '');
+  const [, accountId, userId, ...rest] = signed.split('|');
+  const back = rest.join('|') || '/admin/compass/v2';
+  const sep = back.includes('?') ? '&' : '?';
+  // The signed state names the shop; it must still be the same owner when Google sends them back.
+  const member = await env.DB.prepare(`SELECT role FROM account_members WHERE account_id = ? AND user_id = ? AND status = 'active'`).bind(accountId, userId).first<{ role: string }>();
+  const platform = await env.DB.prepare('SELECT platform_role FROM users WHERE id = ?').bind(userId).first<{ platform_role: string | null }>();
+  if (member?.role !== 'owner' && !platform?.platform_role) return Response.redirect(`${appOrigin}${back}${sep}drive=not_allowed`, 302);
+  const done = await saveDriveConsent(env, driveSeal(env), { accountId, userId, code, redirectUri: driveRedirectUri(request, env) });
+  return Response.redirect(`${appOrigin}${back}${sep}drive=${done.ok ? 'connected' : done.reason}`, 302);
+}
+
+const handleDriveStatus: Handler = async (request, env) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  return json(await driveStatus(env, ctx.accountId));
+};
+
+const handleDriveDisconnect: Handler = async (request, env) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  await forgetDrive(env, ctx.accountId);
+  return json({ connected: false });
+};
+
+/** Copy photos to Drive now: the teas named, or every tea of this shop that has photos (the first time). */
+const handleDriveSaveNow: Handler = async (request, env) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json().catch(() => ({})) as { entry_ids?: unknown };
+  const named = Array.isArray(body.entry_ids) ? body.entry_ids.map(String).slice(0, 50) : null;
+  const ids = named ?? ((await env.DB.prepare(
+    `SELECT e.id FROM tea_compass_entries e WHERE e.account_id = ? AND e.photos IS NOT NULL AND e.photos NOT IN ('', '[]')
+       AND NOT EXISTS (SELECT 1 FROM curate_drive_files f WHERE f.account_id = e.account_id AND f.compass_entry_id = e.id)
+     ORDER BY e.updated_at DESC LIMIT 25`
+  ).bind(ctx.accountId).all<{ id: string }>()).results ?? []).map(r => r.id);
+  let copied = 0;
+  try {
+    for (const id of ids) copied += await savePhotosToDrive(env, driveSeal(env), ctx.accountId, id);
+  } catch (e) {
+    return json({ error: (e as Error).message, copied }, 502);
+  }
+  return json({ copied, teas: ids.length });
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -29182,6 +29200,10 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/curate/receipt-proposals/:id/accept', handleAcceptReceiptProposal],
   ['POST', '/api/curate/receipt-proposals/:id/reject', handleRejectReceiptProposal],
   ['GET', '/api/curate/receipt-proposals', handleListPendingReceipts],
+  ['GET', '/api/curate/drive', handleDriveStatus],
+  ['POST', '/api/curate/drive/connect', handleDriveConnect],
+  ['DELETE', '/api/curate/drive', handleDriveDisconnect],
+  ['POST', '/api/curate/drive/save', handleDriveSaveNow],
   ['GET', '/api/curate/suggestions', handleListCurateSuggestions],
   ['POST', '/api/curate/suggestions/pick', handlePickCurateSuggestions],
   ['GET', '/api/curate/todos', handleListCurateTodos],
