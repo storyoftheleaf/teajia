@@ -39,7 +39,7 @@ test.describe('Stock on the phone', () => {
     await expect(list).toBeVisible();
     // The mock shelf has three suppliers, 32 teas each.
     for (const supplier of ['Chen Family', 'Mountain Source', 'Old Tree Co']) {
-      await expect(list.getByRole('region', { name: supplier })).toContainText('32 items');
+      await expect(list.getByRole('region', { name: supplier })).toContainText('32 teas');
     }
     await expect(page.locator('[data-inventory-header-row]')).toHaveCount(2);
     const purpose = page.getByTestId('inventory-purpose-row');
@@ -57,10 +57,10 @@ test.describe('Stock on the phone', () => {
     await chen.getByRole('button', { name: /^Green Test Tea 01/ }).click();
     const panel = page.getByRole('region', { name: /Green Test Tea 01, at a glance/ });
     await expect(panel).toBeVisible();
-    await expect(panel).toContainText('Checked');
-    await expect(panel).toContainText('In transit');
+    await expect(panel).toContainText('Counted');
+    await expect(panel).toContainText('Coming');
     await shot(page, 'panel');
-    await panel.getByRole('button', { name: 'Edit everything' }).click();
+    await panel.getByRole('button', { name: 'Open', exact: true }).click();
     await expect(page.getByText('Quick entry')).toBeVisible();
   });
 
@@ -69,7 +69,7 @@ test.describe('Stock on the phone', () => {
     const chen = page.getByTestId('stock-phone').getByRole('region', { name: 'Chen Family' });
     await chen.getByRole('button', { name: /Chen Family/ }).first().click();
     await chen.getByRole('button', { name: /^Green Test Tea 07/ }).click();
-    await page.getByRole('region', { name: /Green Test Tea 07, at a glance/ }).getByRole('button', { name: 'Edit everything' }).click();
+    await page.getByRole('region', { name: /Green Test Tea 07, at a glance/ }).getByRole('button', { name: 'Open', exact: true }).click();
 
     const header = page.getByTestId('phone-tea-header');
     await expect(header.getByRole('region', { name: 'On the shelf' })).toContainText('82 g');
@@ -147,6 +147,41 @@ test.describe('Stock on the phone', () => {
     await expect(page.getByText('Stock from this source')).toHaveCount(0);
   });
 
+  test('the supplier page sums the supplier, opens its teas, and ticks them all', async ({ page }) => {
+    await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('button', { name: 'Supplier details for Mountain Source' }).click();
+    const glance = page.getByRole('region', { name: 'This supplier at a glance' });
+    await expect(glance).toContainText('32');
+    await expect(glance).toContainText('Not checked');
+    await shot(page, 'supplier');
+    await glance.getByRole('button', { name: 'Select all 32' }).click();
+    await expect(page.getByRole('toolbar', { name: 'Selection actions' })).toContainText('32 teas selected');
+    await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Clear' }).click();
+
+    await page.getByRole('button', { name: 'Supplier details for Mountain Source' }).click();
+    await page.getByRole('button', { name: /^Open Oolong Test Tea 02/ }).click();
+    await expect(page.getByTestId('phone-tea-header')).toBeVisible();
+  });
+
+  test('Incoming groups deliveries by supplier with how they travel and when they are due', async ({ page }) => {
+    const soon = new Date(Date.now() + 6 * 86_400_000).toISOString().slice(0, 10);
+    const past = new Date(Date.now() - 3 * 86_400_000).toISOString().slice(0, 10);
+    const transportCalls: unknown[] = [];
+    await page.route('**/api/inventory/receipts**', route => route.fulfill({ json: [
+      { id: 'r1', state: 'in_transit', vendor_name: 'Chen Family', source_kind: 'invoice', source_ref: 'WeChat', eta: soon, transport_mode: 'air', lines: [{ id: 'l1', product_id: 'test-product-1', product_name: 'Green Test Tea 01', expected_quantity: 500, received_quantity: 0, cancelled_quantity: 0, unit: 'g', intended_purpose: 'working' }] },
+      { id: 'r2', state: 'ordered', vendor_name: 'Old Tree Co', source_kind: 'invoice', eta: past, transport_mode: null, lines: [{ id: 'l2', product_id: 'test-product-3', product_name: 'Red Test Tea 03', expected_quantity: 300, received_quantity: 0, cancelled_quantity: 0, unit: 'g', intended_purpose: 'working' }] },
+    ] }));
+    await page.route('**/api/inventory/receipts/*/transport', route => { transportCalls.push(route.request().postDataJSON()); return route.fulfill({ json: { ok: true } }); });
+    await page.goto('/admin/stock?incoming=1', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('region', { name: 'Coming from Chen Family' })).toContainText('due in 6 days');
+    await expect(page.getByRole('region', { name: 'Coming from Old Tree Co' })).toContainText('3 days late');
+    await shot(page, 'incoming');
+    await page.getByRole('combobox', { name: 'How the delivery from Old Tree Co travels' }).selectOption('sea');
+    await expect.poll(() => transportCalls).toEqual([{ transport_mode: 'sea' }]);
+    await page.getByRole('button', { name: 'Air', exact: true }).click();
+    await expect(page.getByRole('region', { name: 'Coming from Old Tree Co' })).toHaveCount(0);
+  });
+
   test('search narrows the list by supplier and opens the groups that match', async ({ page }) => {
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     await page.getByRole('button', { name: 'Search inventory' }).first().click();
@@ -156,6 +191,26 @@ test.describe('Stock on the phone', () => {
     await expect(list.getByRole('region', { name: 'Chen Family' })).toHaveCount(0);
     // A search opens its groups, so the teas show without a second tap.
     await expect(list.getByRole('button', { name: /^Oolong Test Tea 02/ }).or(list.getByRole('button', { name: /Test Tea/ }).first())).toBeVisible();
+  });
+
+  test('the column headings sort by price per gram and by year, and tap again to reverse', async ({ page }) => {
+    await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
+    const chen = page.getByTestId('stock-phone').getByRole('region', { name: 'Chen Family' });
+    await chen.getByRole('button', { name: /Chen Family/ }).first().click();
+    const price = page.getByRole('columnheader', { name: /\$\s*\/\s*g/ });
+    await price.click();
+    await expect(price).toHaveAttribute('aria-sort', 'ascending');
+    const prices = async () => (await chen.locator('button[aria-expanded] > span:last-child').allInnerTexts()).map(Number);
+    const up = await prices();
+    expect(up).toEqual([...up].sort((a, b) => a - b));
+    await price.click();
+    await expect(price).toHaveAttribute('aria-sort', 'descending');
+    const down = await prices();
+    expect(down).toEqual([...down].sort((a, b) => b - a));
+    const year = page.getByRole('columnheader', { name: /Year/ });
+    await year.click();
+    await expect(year).toHaveAttribute('aria-sort', 'ascending');
+    await shot(page, 'sorted');
   });
 
   test('every view is one menu away, and choosing one filters the list', async ({ page }) => {

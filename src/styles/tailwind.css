@@ -263,6 +263,12 @@ html, body {
 body {
   font-family: var(--font-sans);
   font-weight: 400;
+  /* Every number sits on one baseline. Cormorant and Lora default to old-style
+     figures, where the 7 and 2 in "7572" drop below the line; Adrian never
+     wants that (2026-10-08). font-feature-settings inherits through elements
+     that set font-variant-numeric (tabular-nums) and keeps lining figures there. */
+  font-variant-numeric: lining-nums;
+  font-feature-settings: 'lnum' 1;
   line-height: 1.5;
   letter-spacing: 0.01em;
   transition: background-color 500ms ease, color 500ms ease;
@@ -480,7 +486,7 @@ p {
 .reader-body-text {
   text-align: left;
   text-rendering: optimizeLegibility;
-  font-feature-settings: 'liga' 1, 'kern' 1, 'calt' 1;
+  font-feature-settings: 'liga' 1, 'kern' 1, 'calt' 1, 'lnum' 1;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -493,7 +499,7 @@ p {
 /* Small caps utility */
 .small-caps {
   font-variant: small-caps;
-  font-feature-settings: 'smcp' 1;
+  font-feature-settings: 'smcp' 1, 'lnum' 1;
   letter-spacing: 0.05em;
 }
 
