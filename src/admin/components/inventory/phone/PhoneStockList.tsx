@@ -122,7 +122,10 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
   const ware = products.length > 0 && products.every(isTeaware);
   // Name, year, stock and price as four columns that read straight down; tap a
   // heading to sort by it, tap again to reverse (todo/plans/stock-phone-by-supplier.md).
-  const COLS = 'grid grid-cols-[minmax(0,1fr)_40px_62px_52px] items-center gap-x-2';
+  // The three number columns are fenced by hairlines: a grid you can read down,
+  // drawn in the quiet border tone so it separates without adding noise.
+  const COLS = 'grid grid-cols-[minmax(0,1fr)_44px_66px_58px] items-stretch';
+  const NUM = 'flex items-center justify-end pr-2 border-l border-tea-border';
   const heads: Array<[PhoneSortKey, string, string]> = [
     ['productName', ware ? 'Piece' : 'Tea', 'text-left'],
     ['year', 'Year', 'text-right'],
@@ -143,7 +146,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
                 role="columnheader"
                 aria-sort={on ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
                 onClick={() => onSort?.(key)}
-                className={`h-8 ${align} text-ui-10 uppercase tracking-[0.12em] ${on ? 'text-tea-gold' : 'text-tea-text-dim'}`}
+                className={`h-8 ${align === 'text-right' ? `${NUM} ` : 'text-left '}text-ui-10 uppercase tracking-[0.12em] ${on ? 'text-tea-gold' : 'text-tea-text-dim'}`}
               >
                 {label}{on ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
               </button>
@@ -217,23 +220,33 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
                     type="button"
                     onClick={() => setFocusedId(isFocused ? null : p.id)}
                     aria-expanded={isFocused}
-                    className={`${COLS} flex-1 min-w-0 py-1.5 pr-4 text-left min-h-[46px]`}
+                    className={`${COLS} flex-1 min-w-0 pr-4 text-left min-h-[46px]`}
                   >
-                    <span className="min-w-0">
+                    <span className="min-w-0 py-1.5 pr-2">
                       <span className={`block truncate font-display text-ui-17 font-semibold leading-tight ${isFocused || isSel ? 'text-tea-gold' : 'text-tea-text'}`}>{p.productName}</span>
                       <span className="flex items-center gap-1.5 text-ui-11 leading-tight text-tea-text-sec min-w-0">
                         {!isTeaware(p) && <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: getThemeColor(p.type) }} />}{/* color-data: the tea kind's own colour, from themeUtils */}
-                        <span className="shrink-0 whitespace-nowrap" style={isTeaware(p) ? undefined : { color: getThemeTextColor(p.type) }}>{groupBy === 'type' ? (p.vendor || p.type) : (isTeaware(p) ? (p.teawareCategory || 'Teaware') : p.type)}</span>
-                        {comingQty > 0 && <span className="truncate text-tea-gold-lt">· +{fmtNum(comingQty)} coming</span>}
-                        {isUnchecked(p) && comingQty <= 0 && <span className="truncate text-tea-text-dim">· not counted</span>}
+                        {(() => {
+                          // The second line is the name Adrian gives a tea; the kind
+                          // is already in the dot's colour. With no given name, the kind.
+                          const given = (p.givenName || '').trim();
+                          const own = given && given.toLowerCase() !== 'unnamed' && given !== p.productName ? given : '';
+                          if (groupBy === 'type') return <span className="truncate">{own || p.vendor || p.type}</span>;
+                          if (isTeaware(p)) return <span className="truncate">{own || p.teawareCategory || 'Teaware'}</span>;
+                          return own
+                            ? <span className="truncate">{own}</span>
+                            : <span className="truncate" style={{ color: getThemeTextColor(p.type) }}>{p.type}</span>;
+                        })()}
+                        {comingQty > 0 && <span className="shrink-0 text-tea-gold-lt">· +{fmtNum(comingQty)}</span>}
                       </span>
                     </span>
-                    <span className="text-right font-mono text-ui-13 text-tea-text-sec tabular-nums">{p.year || '—'}</span>
-                    <span className={`text-right font-mono text-ui-15 tabular-nums ${qtyTone}`}>
-                      {isTeaware(p) ? (p.quantityUnits == null ? '—' : qty) : qty.toLocaleString('en-US')}
-                      <span className="ml-0.5 font-sans text-ui-11 text-tea-text-dim">{isTeaware(p) ? 'pc' : 'g'}</span>
+                    <span className={`${NUM} font-mono text-ui-13 text-tea-text-sec tabular-nums`}>{p.year || '—'}</span>
+                    <span className={`${NUM} gap-1 font-mono text-ui-15 tabular-nums ${qtyTone}`}>
+                      {/* never counted: a small hollow ring, not words */}
+                      {isUnchecked(p) && <span title="Never counted" aria-label="never counted" className="h-[5px] w-[5px] shrink-0 rounded-full border border-tea-text-dim" />}
+                      <span>{isTeaware(p) ? (p.quantityUnits == null ? '—' : qty) : qty.toLocaleString('en-US')}<span className="ml-0.5 font-sans text-ui-11 text-tea-text-dim">{isTeaware(p) ? 'pc' : 'g'}</span></span>
                     </span>
-                    <span className="text-right font-mono text-ui-14 text-tea-text-sec tabular-nums">{price != null ? fmtNum(price) : '—'}</span>
+                    <span className={`${NUM} font-mono text-ui-14 text-tea-text tabular-nums`}>{price != null ? <><span className="text-tea-text-dim">$</span>{fmtNum(price)}</> : '—'}</span>
                   </button>
                 </div>
               );
