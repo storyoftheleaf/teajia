@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import type { Currency } from '../../admin/types';
 import { GRAM_PRESETS, TEA_FORMS, type TeaForm } from './types';
-import { BottomSheet } from '../shared/BottomSheet';
+import { BottomSheet } from './CurateSheet';
 
 /**
  * PricingRow, the shared "what does this cost and how much of it"

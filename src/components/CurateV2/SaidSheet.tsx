@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { BottomSheet } from '../shared/BottomSheet';
+import { BottomSheet } from './CurateSheet';
 import { api } from '../../lib/api';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useNotesStore } from '../../lib/notesStore';

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompassStore';
 import type { CompassCategory } from './types';
-import { BottomSheet } from '../shared/BottomSheet';
+import { BottomSheet } from './CurateSheet';
 import { SyncIndicator } from './SyncIndicator';
 
 /** Context chips row at the top of the capture card: Run + Vendor.

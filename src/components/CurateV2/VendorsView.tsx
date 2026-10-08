@@ -15,6 +15,8 @@ interface VendorsViewProps {
   /** Open straight onto one vendor's card (from Today). */
   initialVendor?: { id?: string; name: string } | null;
   onCloseVendor?: () => void;
+  /** The one action on an empty list: sit down with a vendor. */
+  onStartTable?: () => void;
 }
 
 const isVendorTagged = (tags: Vendor['tags']) => {
@@ -28,21 +30,27 @@ const isVendorTagged = (tags: Vendor['tags']) => {
  * vendor panel (photos, contact, location) so nothing it could do is lost, and
  * lists every tea and piece of teaware captured with that vendor.
  */
-export const VendorsView: React.FC<VendorsViewProps> = ({ onOpenTea, onAddTea, onAddTeaware, initialVendor, onCloseVendor }) => {
+export const VendorsView: React.FC<VendorsViewProps> = ({ onOpenTea, onAddTea, onAddTeaware, initialVendor, onCloseVendor, onStartTable }) => {
   const entries = useTeaCompassStore((s) => s.entries);
   const [remote, setRemote] = useState<Vendor[]>([]);
+  const [remoteState, setRemoteState] = useState<'loading' | 'ready' | 'error'>(hasToken() ? 'loading' : 'ready');
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState<Vendor | null>(initialVendor ?? null);
   useEffect(() => { if (initialVendor) setOpen(initialVendor); }, [initialVendor]);
 
-  useEffect(() => {
+  const loadVendors = React.useCallback(() => {
     if (!hasToken()) return;
+    setRemoteState('loading');
     api.customers.list()
-      .then((res: any) => setRemote(((res?.customers || res || []) as any[])
-        .filter((c) => isVendorTagged(c.tags))
-        .map((c) => ({ id: c.id, name: c.name, tags: c.tags }))))
-      .catch(() => {});
+      .then((res: any) => {
+        setRemote(((res?.customers || res || []) as any[])
+          .filter((c) => isVendorTagged(c.tags))
+          .map((c) => ({ id: c.id, name: c.name, tags: c.tags })));
+        setRemoteState('ready');
+      })
+      .catch(() => setRemoteState('error'));
   }, []);
+  useEffect(() => { loadVendors(); }, [loadVendors]);
 
   // Every vendor anyone has captured with, known to the shop or only typed.
   const vendors = useMemo(() => {
@@ -87,11 +95,23 @@ export const VendorsView: React.FC<VendorsViewProps> = ({ onOpenTea, onAddTea, o
           )}
         </div>
       </div>
-      <Section title="Vendors" count={shown.length} />
-      {shown.length === 0 && (
-        <p className="px-4 py-4 text-ui-13 text-tea-text-sec">
-          {query ? 'No vendor by that name yet. Pick one when you start a table, and it appears here.' : 'Vendors appear here as you taste with them. A name is enough to start.'}
-        </p>
+      {(shown.length > 0 || query) && <Section title="Vendors" count={shown.length} />}
+      {shown.length === 0 && remoteState === 'loading' && !query && (
+        <p role="status" className="px-4 py-6 text-ui-13 text-tea-text-sec">Loading your vendors…</p>
+      )}
+      {remoteState === 'error' && (
+        <div role="alert" className="flex items-baseline justify-between gap-3 px-4 py-3">
+          <p className="text-ui-13 text-tea-text-sec">Your vendor list could not be loaded.</p>
+          <button type="button" onClick={loadVendors} className="curate-v2-word tap-target shrink-0">Try again</button>
+        </div>
+      )}
+      {shown.length === 0 && remoteState !== 'loading' && (
+        <div className="grid gap-4 px-4 py-6" data-testid="vendors-empty">
+          <p className="text-ui-13 leading-relaxed text-tea-text-sec">
+            {query ? 'No vendor by that name yet. Pick one when you start a table, and it appears here.' : 'No vendors yet. A vendor appears here as soon as you start a table with them.'}
+          </p>
+          {!query && onStartTable && <button type="button" onClick={onStartTable} className="curate-v2-frame is-on is-tall is-wide uppercase tracking-[0.16em]">Start a table</button>}
+        </div>
       )}
       {shown.map((v) => (
         <button key={v.id || v.name} type="button" onClick={() => setOpen(v)} className="curate-v2-row w-full text-left">

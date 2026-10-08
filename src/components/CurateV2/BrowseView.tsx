@@ -10,7 +10,7 @@ import Fuse from 'fuse.js';
 import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useSampleStore } from '../../samples/sampleStore';
 import { BrowseCard } from './BrowseCard';
-import { BottomSheet, SheetOption } from '../shared/BottomSheet';
+import { BottomSheet, SheetOption } from './CurateSheet';
 import { isUntriaged, entryDisplayTitle, entryIsSample } from './types';
 import { entryHasBeenTasted, entryNeedsTasting } from '../TeaCompass/types';
 import type { TeaCompassEntry, BrowseFilter, BrowseSort } from './types';
@@ -660,25 +660,18 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
   if (entries.length === 0 && hydrationStatus === 'error') {
     return (
       <div role="alert" className="flex flex-col items-center justify-center py-16 text-center">
-        <h3 className="text-ui-16 font-serif text-tea-text">Library could not refresh</h3>
-        <p className="mt-2 max-w-[32rem] text-ui-12 text-tea-text-sec">Your teas haven't loaded yet. Check the connection and try again.</p>
-        <button type="button" onClick={() => void hydrateCompassEntries(activeAccountId ?? undefined)} className="tap-target mt-4 min-h-11 text-ui-12 text-tea-gold hover:text-tea-gold-lt" aria-label="Retry Library sync">Retry</button>
+        <p className="max-w-[20rem] font-body text-ui-14 leading-relaxed text-tea-text-sec">Your teas could not be loaded. Check the connection and try again.</p>
+        <button type="button" onClick={() => void hydrateCompassEntries(activeAccountId ?? undefined)} className="curate-v2-word tap-target mt-2" aria-label="Retry Library sync">Try again</button>
       </div>
     );
   }
 
   if (entries.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 animate-[fadeIn_0.4s_ease-out]">
-        <h3 className="font-display text-ui-26 text-tea-text mb-1.5">No teas yet</h3>
-        <p className="text-ui-14 text-tea-text-sec text-center max-w-[260px] leading-relaxed mb-8">
-          Every tea has a story. Start capturing the ones you taste, want, and buy.
-        </p>
-        <button
-          onClick={onNewCapture}
-          className="curate-v2-frame is-on is-tall px-8 uppercase tracking-[0.16em]"
-        >
-          Begin
+      <div className="flex flex-col items-center justify-center gap-5 px-4 py-16 text-center animate-[fadeIn_0.4s_ease-out]" data-testid="library-empty">
+        <p className="max-w-[18rem] font-body text-ui-14 leading-relaxed text-tea-text-sec">No teas yet. Teas you add at a table or from a photo are kept here.</p>
+        <button type="button" onClick={onNewCapture} className="curate-v2-frame is-on is-tall px-8 uppercase tracking-[0.16em]">
+          Add a tea
         </button>
       </div>
     );

@@ -337,6 +337,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
 
       {tastingOpen && (
         <TastingSession
+          className="curate-v2"
           item={{ id: entry.id, name: entry.name, type: entry.type, image: validPhotos[0], sourceType: 'compass', compassEntryId: entry.id }}
           onClose={() => setTastingOpen(false)}
           onAfterSave={(data: TastingData, verdict?: CompassVerdict) => updateEntry(entry.id, {

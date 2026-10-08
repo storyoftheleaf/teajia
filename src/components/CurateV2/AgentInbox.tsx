@@ -4,7 +4,7 @@ import { Check } from 'lucide-react';
 import { api, hasToken, type CurateSuggestionGroup } from '../../lib/api';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { useAppStore } from '../../lib/store';
-import { BottomSheet } from '../shared/BottomSheet';
+import { BottomSheet } from './CurateSheet';
 import { CURRENCY_LABELS } from './PricingRow';
 
 export const AGENT_KEYS = {
@@ -30,6 +30,9 @@ export function useAgentLists() {
     groups: suggestions.data?.waiting ?? [],
     todos: todos.data?.todos ?? [],
     arriving: arriving.data?.pending ?? [],
+    /** A read failed: what is shown may be missing something an agent left. */
+    failed: signedIn && (suggestions.isError || todos.isError || arriving.isError),
+    retry: () => { for (const q of [suggestions, todos, arriving]) if (q.isError) void q.refetch(); },
   };
 }
 

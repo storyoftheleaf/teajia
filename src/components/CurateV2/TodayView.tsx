@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
+import { hydrateCompassEntries } from '../../lib/teaCompassSync';
+import { useAppStore } from '../../lib/store';
 import { api, hasToken, type CurateSuggestionGroup } from '../../lib/api';
 import { TODAY_ACTION_LABEL, daysSince, todaySections, type TodayAction, type TodayItem } from './curateV2Model';
 import { getTeaColor } from '../../designTokens';
@@ -40,7 +42,7 @@ const Action: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 );
 
 /** One kind of waiting thing on its own band: the page shows between bands. */
-const Band: React.FC<{ id: string; title: string; count: number; children: React.ReactNode }> = ({ id, title, count, children }) => (
+const Band: React.FC<{ id: string; title: string; count?: number; children: React.ReactNode }> = ({ id, title, count, children }) => (
   <section className="mb-3 bg-tea-surface pb-1 [&>.curate-v2-row:last-child]:border-b-0" data-testid={`today-section-${id}`} aria-label={title}>
     <Section title={title} count={count} />
     {children}
@@ -59,7 +61,9 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const sections = useMemo(() => todaySections(entries), [entries]);
   const byId = useMemo(() => new Map(entries.map((e) => [e.id, e])), [entries]);
-  const { groups, todos, arriving } = useAgentLists();
+  const { groups, todos, arriving, failed: agentFailed, retry: retryAgent } = useAgentLists();
+  const hydration = useTeaCompassStore((s) => s.hydrationStatus);
+  const accountId = useAppStore((s) => s.activeAccountId);
   const { createInventoryRecord } = useCommitAndPromote();
   const [findOpen, setFindOpen] = useState<CurateSuggestionGroup | null>(null);
   const [done, setDone] = useState<Set<string>>(new Set());
@@ -134,24 +138,27 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
 
   return (
     <div className="curate-v2 -mx-4">
-      {entries.length === 0 && groups.length === 0 && (
-        // First time here: how a tea gets from a vendor's table to the shelf.
-        <ol className="grid gap-0 px-4 pt-2">
-          {[
-            ['At the table', 'Open Table, type each tea’s name and price as the vendor says it, tap Taste on a row.'],
-            ['Decide', 'Each tea waits here until you choose Pass, Sample or Buy. Compare a few in Teas.'],
-            ['Order and shelve', 'Orders writes the message to the vendor. When a tea arrives, it goes on the shelf from here.'],
-          ].map(([title, body], i) => (
-            <li key={title} className="flex items-baseline gap-3 border-b border-tea-border py-3">
-              <span className="font-display text-ui-20 text-tea-gold tabular-nums">{i + 1}</span>
-              <span className="min-w-0">
-                <span className="block font-display text-ui-17 text-tea-text">{title}</span>
-                <span className="block font-body text-ui-14 leading-relaxed text-tea-text-sec">{body}</span>
-              </span>
-            </li>
-          ))}
-          <li className="pt-3"><button type="button" onClick={onStartTable} className="curate-v2-frame is-on is-tall is-wide uppercase tracking-[0.16em]">Start a table</button></li>
-        </ol>
+      {entries.length === 0 && groups.length === 0 && hydration === 'loading' && (
+        <p role="status" className="px-4 py-6 font-body text-ui-14 text-tea-text-sec">Loading your teas…</p>
+      )}
+      {entries.length === 0 && groups.length === 0 && hydration === 'error' && (
+        <div role="alert" className="grid gap-1 px-4 py-6">
+          <p className="font-body text-ui-14 text-tea-text-sec">Your teas could not be loaded. Check the connection and try again.</p>
+          <button type="button" onClick={() => void hydrateCompassEntries(accountId ?? undefined)} className="curate-v2-word tap-target justify-start">Try again</button>
+        </div>
+      )}
+      {entries.length === 0 && groups.length === 0 && hydration !== 'loading' && hydration !== 'error' && (
+        // Nothing yet: one plain sentence and the one thing to do.
+        <div className="grid gap-4 px-4 py-6" data-testid="today-empty">
+          <p className="font-body text-ui-14 leading-relaxed text-tea-text-sec">Nothing here yet. Teas you taste at a vendor's table wait on this page until you decide.</p>
+          <button type="button" onClick={onStartTable} className="curate-v2-frame is-on is-tall is-wide uppercase tracking-[0.16em]">Start a table</button>
+        </div>
+      )}
+      {agentFailed && (
+        <div role="alert" className="flex items-baseline justify-between gap-3 px-4 py-2">
+          <p className="font-body text-ui-13 text-tea-text-sec">What your agent left could not be loaded.</p>
+          <button type="button" onClick={retryAgent} className="curate-v2-word tap-target shrink-0">Try again</button>
+        </div>
       )}
       {waitingCount === 0 && entries.length > 0 && (
         <p className="px-4 py-4 font-body text-ui-14 text-tea-text-sec">Nothing waiting. Open Table to taste, or + Tea to add one.</p>
@@ -170,8 +177,8 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
         </Band>
       )}
 
-      {(openTodos.length > 0 || signedIn) && (
-        <Band id="todo" title="To do" count={openTodos.length}>
+      {(openTodos.length > 0 || (signedIn && entries.length > 0)) && (
+        <Band id="todo" title="To do" count={openTodos.length > 0 ? openTodos.length : undefined}>
           {openTodos.map((t) => {
             const subject = t.tea_name || t.vendor_name || '';
             return (
@@ -180,7 +187,7 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
                   type="button"
                   onClick={() => t.compass_entry_id && onOpenTea(t.compass_entry_id)}
                   disabled={!t.compass_entry_id}
-                  className="grid min-w-0 flex-1 gap-0.5 text-left"
+                  className="grid min-h-11 min-w-0 flex-1 content-center gap-0.5 text-left"
                 >
                   <span className="curate-v2-name !whitespace-normal">{subject || t.text}</span>
                   {(subject || t.from_agent) && (
@@ -287,7 +294,7 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
         </Band>
       )}
 
-      <div className="pt-3"><DriveLine /></div>
+      {(entries.length > 0 || groups.length > 0) && <div className="pt-3"><DriveLine /></div>}
       <AgentFindsSheet group={findOpen} onClose={() => setFindOpen(null)} />
     </div>
   );

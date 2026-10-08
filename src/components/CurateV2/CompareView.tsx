@@ -97,7 +97,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ chosen, onChosenChange
             <button key={t.id} type="button" onClick={() => toggle(t.id)} aria-pressed={on} className="curate-v2-row w-full text-left">
               <span className={`h-4 w-4 shrink-0 rounded-[3px] border ${on ? 'border-tea-gold bg-tea-gold' : 'border-tea-text-sec'}`} aria-hidden="true" />
               <span className="curate-v2-name">{t.name}</span>
-              {t.vendorName && <span className="min-w-0 truncate font-mono text-ui-12 text-tea-text-sec">{t.vendorName}</span>}
+              {t.vendorName && <span className="min-w-0 font-mono text-ui-12 text-tea-text-sec !whitespace-normal">{t.vendorName}</span>}
               <span className="flex-1" />
               {t.year != null && <span className="text-ui-12 text-tea-text-sec tabular-nums">{t.year}</span>}
             </button>
@@ -137,8 +137,8 @@ export const CompareView: React.FC<CompareViewProps> = ({ chosen, onChosenChange
             <article key={entry.id} className="overflow-hidden rounded-md border border-tea-border bg-tea-surface/40">
               <div className="flex items-center gap-2 border-b border-tea-border pl-3 pr-1">
                 <button type="button" onClick={() => onOpenTea(entry.id)} className="grid min-h-11 min-w-0 flex-1 py-1.5 text-left">
-                  <span className="curate-v2-name truncate">{entry.name}</span>
-                  <span className="truncate text-ui-12 text-tea-text-sec tabular-nums">{[entry.vendorName, entry.year, unit && `per ${unit}`].filter(Boolean).join(' · ')}</span>
+                  <span className="curate-v2-name">{entry.name}</span>
+                  <span className="text-ui-12 text-tea-text-sec tabular-nums">{[entry.vendorName, entry.year, unit && `per ${unit}`].filter(Boolean).join(' · ')}</span>
                 </button>
                 <button type="button" onClick={() => updateEntry(entry.id, entry.sampleState ? { sampleState: null } : { sampleState: 'requested', isSample: true, decision: 'considering' })} aria-pressed={!!entry.sampleState} className={`tap-target px-2 font-mono text-ui-13 ${entry.sampleState ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>Sample</button>
                 <button type="button" onClick={() => { updateEntry(entry.id, { decision: 'selected' }); onBuy?.(entry.id); }} className={`tap-target px-2 font-mono text-ui-13 ${entry.decision === 'selected' ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>Buy</button>

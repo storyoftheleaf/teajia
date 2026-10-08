@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BottomSheet } from '../shared/BottomSheet';
+import { BottomSheet } from './CurateSheet';
 import { api, hasToken } from '../../lib/api';
 import type { LedgerTransaction } from '../../lib/ledgerStore';
 import { orderMessage, whatsappLink } from './orderMessage';

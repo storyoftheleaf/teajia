@@ -150,7 +150,7 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
         <select
           value={lastCurrency}
           onChange={(e) => setLastCurrency(e.target.value as Currency)}
-          className="appearance-none bg-transparent pr-1 font-mono text-ui-14 text-tea-gold outline-none"
+          className="min-h-11 min-w-11 appearance-none bg-transparent pr-1 font-mono text-ui-14 text-tea-gold outline-none"
           aria-label="Currency at this table"
         >
           {(['Yuan', 'NT', 'HKD', 'USD', 'JPY', 'IDR', 'MYR', 'AUD'] as Currency[]).map((c) => (
@@ -180,27 +180,31 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
             key={e.id}
             className={`curate-v2-row ${e.id === activeEntryId ? 'bg-tea-accent-sub' : ''}`}
           >
-            <button type="button" onClick={() => onOpen(e.id)} className="flex min-w-0 flex-1 items-baseline gap-2 text-left">
-              {e.photos?.[0] && <span className="h-7 w-7 shrink-0 self-center rounded-md bg-cover bg-center" style={{ backgroundImage: `url(${e.photos[0]})` }} aria-hidden="true" />}
-              <span className="curate-v2-name">{e.name?.trim() || (e.category === 'teaware' ? 'Untitled teaware' : 'Untitled tea')}</span>
-              {tastingLine(e.tasting)
-                ? <span className="min-w-0 truncate text-ui-12 text-tea-gold tabular-nums">{tastingLine(e.tasting).split(' · ').slice(0, 2).join(' · ')}</span>
-                : e.year != null && <span className="text-ui-12 text-tea-text-sec tabular-nums">{e.year}</span>}
-              <span className="flex-1" />
-              {e.priceAmount != null ? (
-                <span className="text-ui-13 font-medium text-tea-text-sec tabular-nums">
-                  {sym}{e.priceAmount.toLocaleString()}
-                  {unit && <span className="ml-1 text-ui-12 font-normal text-tea-text-sec">{unit}</span>}
+            <button type="button" onClick={() => onOpen(e.id)} className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left">
+              {e.photos?.[0] && <span className="h-9 w-9 shrink-0 rounded-md bg-cover bg-center" style={{ backgroundImage: `url(${e.photos[0]})` }} aria-hidden="true" />}
+              <span className="grid min-w-0 flex-1 gap-0.5">
+                {/* The name wraps to two lines rather than being cut: "Mengku Laobanzhang" must read in full. */}
+                <span className="curate-v2-name !whitespace-normal line-clamp-2">{e.name?.trim() || (e.category === 'teaware' ? 'Untitled teaware' : 'Untitled tea')}</span>
+                <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-ui-12 tabular-nums">
+                  {tastingLine(e.tasting)
+                    ? <span className="text-tea-gold">{tastingLine(e.tasting).split(' · ').slice(0, 2).join(' · ')}</span>
+                    : e.year != null && <span className="text-tea-text-sec">{e.year}</span>}
+                  {e.priceAmount != null ? (
+                    <span className="font-medium text-tea-text-sec">
+                      {sym}{e.priceAmount.toLocaleString()}
+                      {unit && <span className="ml-1 font-normal">{unit}</span>}
+                    </span>
+                  ) : (
+                    <span className="text-tea-text-sec">add cost</span>
+                  )}
                 </span>
-              ) : (
-                <span className="font-mono text-ui-12 text-tea-text-sec">add cost</span>
-              )}
+              </span>
             </button>
             <button
               type="button"
               onClick={() => onTaste(e.id)}
               aria-label={`Fast tasting for ${e.name || 'this tea'}`}
-              className={`curate-v2-frame shrink-0 ${tastingLine(e.tasting) ? "is-on" : ""}`}
+              className={`curate-v2-frame tap-target shrink-0 ${tastingLine(e.tasting) ? "is-on" : ""}`}
             >
               Taste
             </button>
@@ -213,7 +217,7 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
                 onContextMenu={(ev) => ev.preventDefault()}
                 onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onTalk(e.id); } }}
                 aria-label={talking ? `Stop recording for ${e.name || 'this tea'}` : `Talk about ${e.name || 'this tea'}`}
-                className={`curate-v2-frame w-[40px] shrink-0 px-0 ${talking ? "is-on" : ""}`}
+                className={`curate-v2-frame tap-target shrink-0 px-0 ${talking ? "is-on" : ""}`}
               >
                 {talking && voiceState === 'transcribing' ? <Loader2 size={13} className="animate-spin" />
                   : talking ? <Square size={11} fill="currentColor" strokeWidth={0} />
@@ -238,7 +242,7 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
           enterKeyHint="next"
           placeholder="Name the next tea, and its price if you have it…"
           aria-label="Name the next tea"
-          className="min-w-0 flex-1 border-0 border-b border-tea-border bg-transparent py-2 font-display text-ui-17 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold"
+          className="min-h-11 min-w-0 flex-1 border-0 border-b border-tea-border bg-transparent py-2 font-display text-ui-17 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold"
         />
         {name.trim() && (
           <button type="button" onClick={add} className="curate-v2-word tap-target">Add</button>

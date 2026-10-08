@@ -678,6 +678,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
       <AnimatePresence>
         {tastingOpen && (
           <TastingSession
+            className="curate-v2"
             item={{
               id: entry.id,
               name: entry.name,

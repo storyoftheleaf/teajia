@@ -591,8 +591,14 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   /** Open one tea on top of the tab you are on. The tab does not change. */
   const openTea = useCallback((entryId: string) => pushTea(entryId, 'face'), [pushTea]);
 
+  // The full tasting lives on the tea's form. When it was opened from the tea
+  // (or from a row's sheet) rather than from "Edit all fields", the form is only
+  // its backdrop: closing the tasting steps back to where it was opened.
+  const tastingPushedRef = useRef<string | null>(null);
   const openFullTasting = useCallback((entryId: string) => {
     setFastTastingId(null);
+    const top = teaStackRef.current[teaStackRef.current.length - 1];
+    tastingPushedRef.current = top && top.id === entryId && top.as === 'card' ? null : entryId;
     pushTea(entryId, 'card');
     window.setTimeout(() => captureCardActionsRef.current?.openTasting(), 250);
   }, [pushTea]);
@@ -906,6 +912,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               )}
               {mode === 'vendors' && (
                 <VendorsView
+                  onStartTable={() => { startTable(); setPrevMode('vendors'); }}
                   initialVendor={vendorOpen}
                   onCloseVendor={() => setVendorOpen(null)}
                   onOpenTea={openTea}
@@ -1582,6 +1589,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   actionRef={captureCardActionsRef}
                   openPurchasePicker={pendingLibraryAcquisitionId === topLayer.id}
                   onBuyExpandedChange={setCaptureBuyExpanded}
+                  onTastingClosed={() => { if (tastingPushedRef.current === topLayer.id) { tastingPushedRef.current = null; closeTopTea(); } }}
                   batchMode={batchMode}
                   onToggleBatchMode={() => setBatchMode((v) => !v)}
                 />

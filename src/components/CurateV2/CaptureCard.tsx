@@ -23,7 +23,7 @@ import { VendorStrip } from './VendorStrip';
 import { PricingRow } from './PricingRow';
 import { NoteThread } from '../shared/NoteThread';
 import { useLedgerStore } from '../../lib/ledgerStore';
-import { BottomSheet } from '../shared/BottomSheet';
+import { BottomSheet } from './CurateSheet';
 import { TastingSession } from '../tasting/TastingSession';
 import { parseTeaInput } from './InputParser';
 import { PhotoCapture } from './PhotoCapture';
@@ -71,6 +71,8 @@ interface CaptureCardProps {
   /** Opens the reviewed acquisition form when Library hands this entry off. */
   openPurchasePicker?: boolean;
   onBuyExpandedChange?: (expanded: boolean) => void;
+  /** The full tasting closed (saved or left). Lets the screen that opened the form for the tasting alone step back. */
+  onTastingClosed?: () => void;
   /** Rapid batch-entry mode state, surfaced inside the Run chip's sheet */
   batchMode?: boolean;
   onToggleBatchMode?: () => void;
@@ -130,7 +132,7 @@ function RetailPricePreview({
   );
 }
 
-export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, actionRef, onShare, purchasePickerId = `capture-purchase-picker-${entryId}`, openPurchasePicker = false, onBuyExpandedChange, batchMode, onToggleBatchMode }) => {
+export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, actionRef, onShare, purchasePickerId = `capture-purchase-picker-${entryId}`, openPurchasePicker = false, onBuyExpandedChange, onTastingClosed, batchMode, onToggleBatchMode }) => {
   const entry = useTeaCompassStore((s) => s.getEntry(entryId));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const commitEntry = useTeaCompassStore((s) => s.commitEntry);
@@ -835,6 +837,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   const closeTastingOverlay = () => {
     setTastingOverlayOpen(false);
+    onTastingClosed?.();
   };
 
   const handleTastingStripRemove = (categoryId: TastingCategoryId, termId: string) => {
@@ -1666,7 +1669,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 <span className="flex-1 text-right font-mono text-ui-15 tabular-nums text-tea-gold">
                   {entry.tasting.quality != null ? `${entry.tasting.quality} / 10` : '/ 10'}
                 </span>
-                <div className="grid w-full grid-cols-10 gap-1" role="radiogroup" aria-label="Quality rating">
+                <div className="grid w-full grid-cols-5 gap-2" role="radiogroup" aria-label="Quality rating">
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((v) => {
                     const isSelected = entry.tasting!.quality === v;
                     return (
@@ -1676,7 +1679,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                         onClick={() => handleQualityChange(v)}
                         role="radio"
                         aria-checked={isSelected}
-                        className={`curate-v2-frame is-tall is-slim tabular-nums ${isSelected ? 'is-on' : ''}`}
+                        className={`curate-v2-frame is-tall tabular-nums ${isSelected ? 'is-on' : ''}`}
                         data-curate-action
                       >
                         {v}
@@ -1749,6 +1752,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       <AnimatePresence>
         {tastingOverlayOpen && (
           <TastingSession
+            className="curate-v2"
             item={{
               id: entry.id,
               name: entry.name,

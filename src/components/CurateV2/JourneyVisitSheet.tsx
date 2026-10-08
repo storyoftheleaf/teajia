@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import type { CurateJourney, CurateVisit } from './types';
-import { BottomSheet, SheetOption } from '../shared/BottomSheet';
+import { BottomSheet, SheetOption } from './CurateSheet';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 
 interface Props {

@@ -104,6 +104,12 @@ interface TastingSessionProps {
    * then a hunt along the taskbar for the NOTE word.
    */
   startOnNotes?: boolean;
+  /**
+   * Extra class on the overlay root. The session is portalled to the body, so a
+   * surface that dresses it (Curate's `curate-v2`) cannot reach it by ancestry;
+   * it passes its scope here. With none, the session is exactly as before.
+   */
+  className?: string;
 }
 
 const TeaLeafRating: React.FC<{ rating: number }> = ({ rating }) => (
@@ -161,7 +167,7 @@ function tastingFingerprint(value: unknown): string {
 
 export const TastingSession: React.FC<TastingSessionProps> = ({
   item, onClose, onSave, onAfterSave, adminMode = false, initialData, showVerdict = false, onOrderTea, onCreatePO, onWriteDescription, writeDraftReview = false,
-  detailsPanel, startOnDetails = false, startOnNotes = false,
+  detailsPanel, startOnDetails = false, startOnNotes = false, className,
 }) => {
   const { addTasting, updateTasting, upsertTastingByProductId, activeAccountId, activeAccount, tastingJournal } = useAppStore();
   const { addNote } = useNotesStore();
@@ -505,7 +511,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   }, [wouldBuy, updateNoteFields, onSave, adminMode, tastingData, verdict]);
 
   return createPortal(
-    <div data-tasting-session-overlay className="fixed inset-0 z-takeover lg:bg-black/75 lg:backdrop-blur-sm lg:flex lg:items-center lg:justify-center">
+    <div data-tasting-session-overlay className={`fixed inset-0 z-takeover lg:bg-black/75 lg:backdrop-blur-sm lg:flex lg:items-center lg:justify-center${className ? ` ${className}` : ''}`}>
     <motion.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}

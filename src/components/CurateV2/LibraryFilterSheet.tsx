@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BottomSheet } from '../shared/BottomSheet';
+import { BottomSheet } from './CurateSheet';
 import type { LibraryFilters } from './types';
 
 type FilterGroup = 'Encounter' | 'Tea' | 'State' | 'Samples & Inventory' | 'Completeness';

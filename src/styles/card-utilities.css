@@ -4919,6 +4919,13 @@ body.cart-panel-open .commerce-dock {
    capital label in Lora (the site's `num` face), rows with room to breathe,
    and thin frames rather than filled pills or round blobs. Figures are lining
    and even-width so prices and weights stack in columns. */
+/* Gold that carries a meaning (a word that acts, a chosen frame) is read on the
+   dark surfaces at 4.0:1 in its plain form, so inside Curate the words use the
+   lighter gold on dark and the solid, darker one on parchment. Borders keep
+   the plain gold. */
+.curate-v2 { --curate-gold-text: var(--tea-gold-lt); }
+.light .curate-v2 { --curate-gold-text: var(--tea-gold-solid); }
+.curate-v2 .text-tea-gold { color: var(--curate-gold-text); }
 .curate-v2,
 .curate-v2 .font-display {
   font-variant-numeric: lining-nums tabular-nums;
@@ -4966,13 +4973,19 @@ body.cart-panel-open .commerce-dock {
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+  /* A tea's name wraps to a second line before it is ever cut: "Mengku Laobanzhang" reads in full. */
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 /* A small framed box, the shop's year and price frame: Taste, a mic, − and +. */
 .curate-v2-frame {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 40px;
+  min-width: 44px;
+  min-height: 44px;
   height: 34px;
   padding: 0 10px;
   border: 1px solid var(--tea-border);
@@ -4985,7 +4998,7 @@ body.cart-panel-open .commerce-dock {
 }
 .curate-v2-frame:hover { color: var(--tea-text); border-color: rgb(var(--tea-gold-rgb) / 0.5); }
 .curate-v2-frame[aria-pressed='true'],
-.curate-v2-frame.is-on { color: var(--tea-gold); border-color: var(--tea-gold); }
+.curate-v2-frame.is-on { color: var(--curate-gold-text, var(--tea-gold)); border-color: var(--tea-gold); }
 .curate-v2-tabs {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -5002,7 +5015,7 @@ body.cart-panel-open .commerce-dock {
   box-shadow: inset 0 -1px 0 transparent;
 }
 .curate-v2-tab[aria-selected='true'] {
-  color: var(--tea-gold);
+  color: var(--curate-gold-text, var(--tea-gold));
   box-shadow: inset 0 -1px 0 var(--tea-gold);
 }
 
@@ -5030,7 +5043,7 @@ body.cart-panel-open .commerce-dock {
 .curate-v2-field {
   flex: 1 1 0;
   width: 100%;
-  min-width: 0;
+  min-width: 44px;
   min-height: 44px;
   padding: 0;
   border: 0;
@@ -5061,6 +5074,7 @@ body.cart-panel-open .commerce-dock {
   border: 0;
   outline: 0;
   padding: 0;
+  min-width: 44px;
   min-height: 44px;
   cursor: pointer;
   font-family: var(--font-mono);
@@ -5118,7 +5132,7 @@ body.cart-panel-open .commerce-dock {
   transition: color 0.15s, border-color 0.15s;
 }
 .curate-v2-choice:hover { color: var(--tea-text); }
-.curate-v2-choice[aria-pressed='true'] { color: var(--tea-gold); border-color: var(--tea-gold); }
+.curate-v2-choice[aria-pressed='true'] { color: var(--curate-gold-text, var(--tea-gold)); border-color: var(--tea-gold); }
 /* A choice in a list inside a sheet: a full-width line. */
 .curate-v2-sheetrow {
   display: flex;
@@ -5134,14 +5148,14 @@ body.cart-panel-open .commerce-dock {
   font-size: 20px;
   color: var(--tea-text);
 }
-.curate-v2-sheetrow[aria-pressed='true'] { color: var(--tea-gold); }
+.curate-v2-sheetrow[aria-pressed='true'] { color: var(--curate-gold-text, var(--tea-gold)); }
 .curate-v2-sheetrow .curate-v2-label { color: var(--tea-text-dim); }
 /* A plain gold word that acts: Done, add, suggest. No frame, no fill. */
 .curate-v2-word {
   font-family: var(--font-mono);
   font-size: 13px;
   letter-spacing: 0.06em;
-  color: var(--tea-gold);
+  color: var(--curate-gold-text, var(--tea-gold));
 }
 .curate-v2-word:disabled { color: var(--tea-text-sec); cursor: not-allowed; }
 /* A fold-away block (details/summary) shows a plus or a minus, never a triangle. */
@@ -5169,7 +5183,179 @@ body.cart-panel-open .commerce-dock {
 .curate-v2-notes .tasting-voice-field:focus-within { border-color: var(--tea-gold); box-shadow: none; }
 .curate-v2-notes textarea { font-size: 17px; }
 .curate-v2-notes .tasting-voice-btn { color: var(--tea-text-sec); border-left: 1px solid var(--tea-border); }
-.curate-v2-notes .tasting-voice-btn:hover { color: var(--tea-gold); }
+.curate-v2-notes .tasting-voice-btn:hover { color: var(--curate-gold-text, var(--tea-gold)); }
+
+/* ── Curate v2: the full tasting and the sheets, in the shop's dress ──────
+   The full tasting (src/components/tasting) and the bottom sheet are shared
+   with the live journal and the rest of the site, so they are dressed here and
+   only here: the overlay and the sheet are portalled to the body, so Curate
+   hands each its own `curate-v2` class (TastingSession and BottomSheet take a
+   `className`). Nothing below applies without that class. Choices are thin
+   frames that turn gold when chosen; a section is a large word over a gold
+   hairline; small labels are Lora capitals; no tinted tiles, no pills, no icons.
+   `!important` is on exactly the properties the zones set inline. */
+.curate-v2[data-tasting-session-overlay] > .bg-tea-bg { border-radius: 3px !important; }
+.curate-v2 .tasting-scroll p.italic { font-size: 13px; color: var(--tea-text-sec); }
+.curate-v2 .tasting-scroll .divider-warm { display: none; }
+/* A section: the word large, a gold hairline under it. */
+.curate-v2 .tasting-scroll .uppercase.text-ui-12,
+.curate-v2 .tasting-scroll :not(button *)[style*='font-display'].text-ui-13,
+.curate-v2 .tasting-scroll :not(button *)[style*='font-display'].border-b {
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif !important;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: 0.02em !important;
+  text-transform: none;
+  color: var(--tea-text);
+  padding: 22px 0 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgb(var(--tea-gold-rgb) / 0.2);
+}
+.curate-v2 .tasting-scroll .uppercase.text-ui-12 { padding-top: 14px; margin-bottom: 4px; }
+/* A heading that shares a line with its figure (Quality 8/10, Liquor color): the
+   hairline runs under the whole line, not just under the word. */
+.curate-v2 .tasting-scroll .flex > :not(button *)[style*='font-display'].text-ui-13 { border-bottom: 0; padding: 0; margin: 0; }
+.curate-v2 .tasting-scroll .flex:has(> :not(button *)[style*='font-display'].text-ui-13) {
+  align-items: baseline;
+  padding: 22px 0 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgb(var(--tea-gold-rgb) / 0.2);
+}
+.curate-v2 .tasting-scroll button[aria-label^='Clear'] { min-height: 44px; min-width: 44px; justify-content: center; color: var(--tea-text-sec); }
+/* A small label: Lora capitals. */
+.curate-v2 .tasting-scroll .uppercase.text-ui-10,
+.curate-v2 .tasting-scroll .uppercase.text-ui-11 {
+  font-family: var(--font-mono) !important;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em !important;
+  color: var(--tea-text-sec);
+}
+.curate-v2 .tasting-scroll p.text-tea-text-sec { font-size: 13px; line-height: 1.5; }
+/* The quadrants of Effect: no tile, the heading does the grouping. */
+.curate-v2 .tasting-scroll .bg-tea-surface\/40 { background: transparent; border-radius: 0; padding: 0; }
+/* Every choice: a thin frame, gold when chosen. */
+.curate-v2 .tasting-scroll button[aria-pressed],
+.curate-v2 .tasting-scroll button[role='radio'] {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 1px solid var(--tea-border) !important;
+  border-radius: 3px !important;
+  min-height: 44px;
+  font-family: var(--font-mono) !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.02em;
+  color: var(--tea-text-sec);
+}
+.curate-v2 .tasting-scroll button[aria-pressed]:hover,
+.curate-v2 .tasting-scroll button[role='radio']:hover { color: var(--tea-text); border-color: rgb(var(--tea-gold-rgb) / 0.5) !important; }
+.curate-v2 .tasting-scroll button[aria-pressed='true'],
+.curate-v2 .tasting-scroll button[role='radio'][aria-checked='true'] {
+  color: var(--curate-gold-text, var(--tea-gold)) !important;
+  border-color: var(--tea-gold) !important;
+}
+.curate-v2 .tasting-scroll button[aria-pressed] svg,
+.curate-v2 .tasting-scroll button[role='radio'] svg,
+.curate-v2 .tasting-scroll button[aria-pressed] .shrink-0.rounded-full { display: none; }
+.curate-v2 .tasting-scroll button[aria-pressed] [style*='serif'] { display: none; }
+.curate-v2 .tasting-scroll button[aria-pressed] [style*='font-display'] { font-family: var(--font-mono) !important; }
+.curate-v2 .tasting-scroll button[aria-pressed] .text-tea-text-dim,
+.curate-v2 .tasting-scroll button[role='radio'] .text-tea-text-dim { color: var(--tea-text-sec); }
+.curate-v2 .tasting-scroll button[aria-pressed='true'] [class*='text-tea-gold\/'] { color: var(--curate-gold-text, var(--tea-gold)); }
+/* A run of choices (weight, finish, passage, 1 to 10): separate frames. */
+.curate-v2 .tasting-segment-toggle {
+  gap: 8px;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
+}
+.curate-v2 .tasting-segment-toggle::before { display: none; }
+.curate-v2 .tasting-segment-toggle:has(> :nth-child(10)) { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.curate-v2 .tasting-segment-toggle > button { min-height: 48px; }
+/* Flavour: the family list is plain words, the chosen one gold. */
+.curate-v2 .tasting-scroll button[role='option'] { background: transparent !important; border-radius: 0 !important; min-height: 44px; font-size: 18px !important; }
+.curate-v2 .tasting-scroll button[role='option'] > span.rounded-full {
+  background: transparent !important;
+  color: var(--curate-gold-text, var(--tea-gold)) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 11px;
+  font-weight: 500;
+  width: auto;
+  right: -22px !important;
+}
+.curate-v2 .tasting-scroll button[role='option'] > .absolute.w-\[2px\] { display: none; }
+.curate-v2 .tasting-scroll button[aria-pressed] .ml-auto { display: none; }
+.curate-v2 .tasting-scroll .flex-1.min-w-0.overflow-y-auto > div > button { margin-bottom: 8px; }
+/* Fields in the tasting (vessel, temperature, time, notes). */
+.curate-v2 .tasting-scroll input,
+.curate-v2 .tasting-scroll textarea {
+  min-height: 44px;
+  background: transparent;
+  border-radius: 3px;
+  border-color: var(--tea-border);
+  font-family: var(--font-mono);
+}
+.curate-v2 .tasting-scroll input:focus,
+.curate-v2 .tasting-scroll textarea:focus { border-color: var(--tea-gold); }
+.curate-v2 .tasting-voice-field { background: transparent; border-radius: 3px; box-shadow: none; }
+.curate-v2 .tasting-voice-field:focus-within { border-color: var(--tea-gold); box-shadow: none; }
+.curate-v2 .tasting-voice-btn { color: var(--tea-text-sec); border-left: 1px solid var(--tea-border); }
+.curate-v2 .tasting-voice-btn:hover { color: var(--curate-gold-text, var(--tea-gold)); }
+/* The saved screen and the leave prompt: thin frames, a plain gold action. */
+.curate-v2[data-tasting-session-overlay] .rounded-xl.bg-tea-surface\/50,
+.curate-v2[data-tasting-session-overlay] [role='dialog'] { border-radius: 3px; }
+.curate-v2[data-tasting-session-overlay] .rounded-xl.bg-tea-surface\/50 { background: transparent; border: 1px solid var(--tea-border); }
+.curate-v2[data-tasting-session-overlay] .cta-solid {
+  background: transparent;
+  color: var(--curate-gold-text, var(--tea-gold));
+  border: 1px solid var(--tea-gold);
+  border-radius: 3px;
+  box-shadow: none;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+/* The tab bar under the full tasting: Lora capitals, the unlit words at secondary
+   text (they sat at 3.7:1 as a faint wash), the count as a plain figure. */
+.curate-v2[data-tasting-session-overlay] .border-t.bg-tea-bg button {
+  font-family: var(--font-mono) !important;
+  font-weight: 500 !important;
+  font-size: 11px !important;
+  letter-spacing: 0.16em !important;
+}
+.curate-v2[data-tasting-session-overlay] .border-t.bg-tea-bg button:not(.text-tea-gold) { color: var(--tea-text-sec); }
+.curate-v2[data-tasting-session-overlay] .border-t.bg-tea-bg button span.tabular-nums { color: currentColor !important; font-size: 11px !important; }
+/* A bottom sheet opened from Curate: the name in Cormorant, its line in Lora. */
+.curate-v2-sheet .bottom-sheet-title {
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif !important;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: 0 !important;
+}
+.curate-v2-sheet .bottom-sheet-description {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--tea-text-sec);
+  margin-top: 2px;
+}
+/* A row in a sheet: a divider, the chosen one gold; no tint, no round corners. */
+.curate-v2-sheet .sheet-option {
+  min-height: 56px;
+  border-radius: 0;
+  border-bottom: 1px solid var(--tea-border);
+  background: transparent;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
+}
+.curate-v2-sheet .sheet-option > span > span:first-child { font-size: 20px; font-weight: 500; }
+.curate-v2-sheet .sheet-option:hover,
+.curate-v2-sheet .sheet-option:active,
+.curate-v2-sheet .sheet-option[aria-pressed='true'] { background: transparent; }
+.curate-v2-sheet .sheet-option span.text-ui-11 { font-family: var(--font-mono); color: var(--tea-text-sec); }
 
 /* ── Stock on the phone: quieter layers (2026-10-08) ──────────────────────
    Why the Stock Room mockup read better than the live screen, kept to colour:

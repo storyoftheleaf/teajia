@@ -851,4 +851,233 @@ test.describe('Curate v2 journeys (phone)', () => {
     expect(await word.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('400');
     expect(await word.evaluate((el) => getComputedStyle(el).wordSpacing)).toMatch(/^(normal|0px)$/);
   });
+
+  // ── Review pass 3 ──────────────────────────────────────────────────────────
+
+  const rgb = (c: string) => (c.match(/[\d.]+/g) ?? []).map(Number);
+  const isClear = (c: string) => { const v = rgb(c); return v.length === 4 && v[3] === 0; };
+
+  test('Full tasting is dressed for Curate: thin frames, gold when chosen, Cormorant sections, Lora labels; Back from it lands on the tea', async ({ page }) => {
+    await installCompassHarness(page, BUY_DATA);
+    await openCurateV2(page, 'today');
+    await page.getByTestId('today-section-decide').getByRole('button', { name: /Mengku Laobanzhang/ }).click();
+    await overlay(page).getByRole('button', { name: 'Full tasting' }).click();
+    const session = page.locator('[data-tasting-session-overlay]');
+    await expect(session).toBeVisible();
+    await expect(session).toHaveClass(/curate-v2/);
+    await page.waitForTimeout(700); // the panel slides in
+
+    const medium = session.getByRole('radio', { name: 'Medium', exact: true }).first();
+    const light = session.getByRole('radio', { name: 'Light', exact: true });
+    await medium.click();
+    // A choice is a thin frame: no fill, a 1px border, a square-ish corner.
+    const frame = (loc: ReturnType<Page['locator']>) => loc.evaluate((el) => { const cs = getComputedStyle(el); return { bg: cs.backgroundColor, bgImage: cs.backgroundImage, bw: cs.borderTopWidth, radius: parseFloat(cs.borderTopLeftRadius), color: cs.borderTopColor, shadow: cs.boxShadow, font: cs.fontFamily, h: el.getBoundingClientRect().height }; });
+    const off = await frame(light);
+    const on = await frame(medium);
+    for (const f of [off, on]) {
+      expect(isClear(f.bg)).toBe(true);
+      expect(f.bgImage).toBe('none');
+      expect(f.bw).toBe('1px');
+      expect(f.radius).toBeLessThanOrEqual(4);
+      expect(f.shadow).toBe('none');
+      expect(f.font).toContain('Lora');
+      expect(f.h).toBeGreaterThanOrEqual(44);
+    }
+    expect(on.color).not.toBe(off.color); // gold when chosen
+    // A section is the word large (Cormorant), a label is Lora capitals, and nothing is a pill.
+    const heading = session.getByText('Texture', { exact: true });
+    expect(await heading.evaluate((el) => { const cs = getComputedStyle(el); return { f: cs.fontFamily, s: parseFloat(cs.fontSize), t: cs.textTransform, b: cs.borderBottomWidth }; })).toMatchObject({ t: 'none', b: '1px' });
+    expect(await heading.evaluate((el) => getComputedStyle(el).fontFamily)).toContain('Cormorant');
+    expect(await heading.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(22);
+    const label = session.getByText('Duration', { exact: true });
+    expect(await label.evaluate((el) => getComputedStyle(el).fontFamily)).toContain('Lora');
+    expect(await label.evaluate((el) => getComputedStyle(el).textTransform)).toBe('uppercase');
+    const pills = await session.locator('.tasting-scroll button').evaluateAll((els) => els.filter((el) => parseFloat(getComputedStyle(el).borderTopLeftRadius) > 8).length);
+    expect(pills).toBe(0);
+    // The quality scale is two rows of five, each at least 44 wide.
+    await page.getByRole('button', { name: /^Effect/ }).first().click();
+    // The new section slides in (about 0.4s, shared with the journal); measure once it has landed.
+    const settling = session.getByText('Settling', { exact: true });
+    await expect.poll(async () => Math.round((await settling.boundingBox())?.x ?? -1)).toBe(16);
+    const ten = await session.getByRole('radio', { name: '10', exact: true }).evaluate((el) => el.getBoundingClientRect().width);
+    expect(ten).toBeGreaterThanOrEqual(44);
+    // Nothing runs sideways: both columns sit inside 16px gutters, the Clear control is whole, no horizontal scroll.
+    const fit = await page.evaluate(() => {
+      const sc = document.querySelector('[data-tasting-session-overlay] .tasting-scroll') as HTMLElement;
+      const rects = Array.from(sc.querySelectorAll('button')).map((b) => b.getBoundingClientRect()).filter((r) => r.width > 0);
+      const clear = sc.querySelector('button[aria-label^="Clear"]')?.getBoundingClientRect();
+      return {
+        docScroll: document.documentElement.scrollWidth - window.innerWidth,
+        paneScroll: sc.scrollWidth - sc.clientWidth,
+        minLeft: Math.min(...rects.map((r) => r.left)),
+        maxRight: Math.max(...rects.map((r) => r.right)),
+        width: window.innerWidth,
+        clearRight: clear ? clear.right : null,
+      };
+    });
+    expect(fit.docScroll).toBeLessThanOrEqual(0);
+    expect(fit.paneScroll).toBeLessThanOrEqual(0);
+    expect(fit.minLeft).toBeGreaterThanOrEqual(15.5);
+    expect(fit.maxRight).toBeLessThanOrEqual(fit.width - 15.5);
+    if (fit.clearRight != null) expect(fit.clearRight).toBeLessThanOrEqual(fit.width);
+    await shot(page, 'review3-full-tasting');
+
+    // Back from the full tasting lands on the tea it came from, with the tab where it was.
+    await session.getByRole('button', { name: 'Close' }).first().click();
+    await page.getByRole('button', { name: 'Discard' }).click(); // there were unsaved answers
+    await expect(session).toHaveCount(0);
+    await expect(overlay(page)).toHaveAttribute('data-layer', 'face');
+    await expect(overlay(page)).toContainText('Mengku Laobanzhang');
+    expect(await selectedTab(page)).toEqual(['Today']);
+  });
+
+  test('A sheet opened from Curate: the title in Cormorant, the line under it in Lora', async ({ page }) => {
+    await installCompassHarness(page, { customers: VENDORS });
+    await openCurateV2(page, 'table');
+    await page.getByTestId('table-start').click();
+    await page.getByTestId('vendor-picker').getByRole('button', { name: 'Wang Laoshi' }).click();
+    await addTea(page, 'Mengku Laobanzhang 2018 ¥450/cake');
+    await page.getByRole('button', { name: /^Fast tasting for/ }).click();
+    const sheet = page.getByRole('dialog');
+    await expect(sheet).toBeVisible();
+    await expect(sheet).toHaveClass(/curate-v2-sheet/);
+    const title = sheet.getByRole('heading', { name: 'Mengku Laobanzhang' });
+    expect(await title.evaluate((el) => getComputedStyle(el).fontFamily)).toContain('Cormorant');
+    expect(await title.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(20);
+    const sub = sheet.getByText('Fast tasting · saved as you tap', { exact: true });
+    expect(await sub.evaluate((el) => getComputedStyle(el).fontFamily)).toContain('Lora');
+    // Answers are frames of at least 44px with no fill, and the scale is two rows of five.
+    const eight = sheet.getByRole('group', { name: 'How good' }).getByRole('button', { name: '8', exact: true });
+    await eight.click();
+    const box = await eight.evaluate((el) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return { w: r.width, h: r.height, bg: cs.backgroundColor }; });
+    expect(box.w).toBeGreaterThanOrEqual(44);
+    expect(box.h).toBeGreaterThanOrEqual(44);
+    expect(isClear(box.bg)).toBe(true);
+    await shot(page, 'review3-fast-sheet');
+  });
+
+  test('Table rows: a long name wraps to two lines instead of being cut, and every control is at least 44px', async ({ page }) => {
+    await installCompassHarness(page, { customers: VENDORS });
+    await openCurateV2(page, 'table');
+    await page.getByTestId('table-start').click();
+    await page.getByTestId('vendor-picker').getByRole('button', { name: 'Wang Laoshi' }).click();
+    await addTea(page, 'Mengku Laobanzhang 2018 ¥450/cake');
+    await addTea(page, 'Old Tree Bulang Shengcha 2020 ¥300/cake');
+    const rows = page.getByTestId('table-list').locator('.curate-v2-row').filter({ has: page.getByRole('button', { name: /^Fast tasting for/ }) });
+    await expect(rows).toHaveCount(2);
+    for (const name of ['Mengku Laobanzhang', 'Old Tree Bulang Shengcha']) {
+      const nameEl = page.getByTestId('table-list').locator('.curate-v2-name', { hasText: name });
+      const cut = await nameEl.evaluate((el) => el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1);
+      expect(cut, name + ' is cut').toBe(false);
+    }
+    await shot(page, 'review3-table-rows');
+    const small = await page.getByTestId('table-list').locator('button, select, input').evaluateAll((els) => els
+      .filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && (r.height < 43.5 || r.width < 43.5); })
+      .map((el) => `${Math.round(el.getBoundingClientRect().width)}x${Math.round(el.getBoundingClientRect().height)} ${(el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 30)}`));
+    expect(small).toEqual([]);
+  });
+
+  test('Empty tabs: a single plain sentence and one action, no stray count, no junk', async ({ page }) => {
+    await installCompassHarness(page, { customers: [], compassEntries: [] });
+    await openCurateV2(page, 'today');
+    const empty = page.getByTestId('today-empty');
+    await expect(empty).toBeVisible();
+    await expect(empty.locator('p')).toHaveCount(1);
+    await expect(empty.getByRole('button')).toHaveCount(1);
+    await expect(page.getByTestId('today-section-todo')).toHaveCount(0);
+    await expect(page.getByText('Save photos to Google Drive')).toHaveCount(0);
+    await expect(page.locator('ol')).toHaveCount(0);
+
+    await tab(page, 'Teas').click();
+    const teas = page.getByTestId('library-empty').filter({ visible: true });
+    await expect(teas).toBeVisible();
+    await expect(teas.locator('p')).toHaveCount(1);
+    await expect(teas.getByRole('button')).toHaveCount(1);
+
+    await tab(page, 'Vendors').click();
+    const vendors = page.getByTestId('vendors-empty');
+    await expect(vendors).toBeVisible();
+    await expect(vendors.locator('p')).toHaveCount(1);
+    await expect(vendors.getByRole('button', { name: 'Start a table' })).toBeVisible();
+    await expect(page.getByText('00', { exact: true })).toHaveCount(0);
+    await shot(page, 'review3-empty-vendors');
+    await vendors.getByRole('button', { name: 'Start a table' }).click();
+    expect(await selectedTab(page)).toEqual(['Table']);
+    await expect(page.getByTestId('vendor-picker')).toBeVisible();
+  });
+
+  test('Vendors: loading is said before the empty sentence, and a failed read says so and can be retried', async ({ page }) => {
+    await installCompassHarness(page, { customers: VENDORS });
+    let down = true; // the shop is unreachable until the test says otherwise (the client retries, so a count would not hold)
+    await page.route((url) => url.pathname === '/api/customers', async (route) => {
+      if (route.request().method() !== 'GET') return route.fallback();
+      if (down) { await new Promise((r) => setTimeout(r, 700)); return route.fulfill({ status: 500, contentType: 'application/json', body: '{"error":"down"}' }); }
+      return route.fallback();
+    });
+    await openCurateV2(page, 'today');
+    await tab(page, 'Vendors').click();
+    // While the first read is out: loading, never the "no vendors" sentence.
+    await expect(page.getByText('Loading your vendors…')).toBeVisible();
+    await expect(page.getByTestId('vendors-empty')).toHaveCount(0);
+    // It failed: a plain sentence and one way forward.
+    const alert = page.getByRole('alert').filter({ hasText: 'could not be loaded' });
+    await expect(alert).toBeVisible();
+    await shot(page, 'review3-vendors-error');
+    down = false;
+    await alert.getByRole('button', { name: 'Try again' }).click();
+    await expect(page.getByRole('button', { name: /Wang Laoshi/ }).first()).toBeVisible();
+    await expect(page.getByRole('alert').filter({ hasText: 'could not be loaded' })).toHaveCount(0);
+  });
+
+  test('Today with no teas yet: a failed load says so and can be retried', async ({ page }) => {
+    await installCompassHarness(page, { customers: VENDORS, compassEntries: [entry({ id: 'late-1', name: 'Late Arrival', tasting: JSON.stringify({ quality: 7 }) })] });
+    let down = true;
+    await page.route((url) => url.pathname === '/api/compass/entries', async (route) => {
+      if (down) return route.fulfill({ status: 500, contentType: 'application/json', body: '{"error":"down"}' });
+      return route.fallback();
+    });
+    await openCurateV2(page, 'today');
+    const alert = page.getByRole('alert').filter({ hasText: 'Your teas could not be loaded' });
+    await expect(alert).toBeVisible();
+    await expect(page.getByTestId('today-empty')).toHaveCount(0);
+    down = false;
+    await alert.getByRole('button', { name: 'Try again' }).click();
+    await expect(page.getByRole('button', { name: /Late Arrival/ })).toBeVisible();
+  });
+
+  test('Light mode: Today reads on parchment, names and actions keep their contrast', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('teajia_theme', 'light'));
+    await installCompassHarness(page, TODAY_DATA);
+    await openCurateV2(page, 'today');
+    await expect(page.getByTestId('today-section-decide')).toBeVisible();
+    await expect(page.locator('html')).toHaveClass(/light/);
+    const ratio = await page.getByTestId('today-section-decide').getByRole('button', { name: /Mengku Laobanzhang/ }).locator('.curate-v2-name').evaluate((el) => {
+      const px = (c: string) => (c.match(/[\d.]+/g) ?? []).map(Number);
+      const lum = ([r, g, b]: number[]) => { const f = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+      let bg = [255, 255, 255]; let n: Element | null = el;
+      while (n) { const c = px(getComputedStyle(n).backgroundColor); if (c.length >= 3 && (c[3] ?? 1) === 1) { bg = c.slice(0, 3); break; } n = n.parentElement; }
+      const fg = px(getComputedStyle(el).color).slice(0, 3);
+      const [a, b] = [lum(fg), lum(bg)];
+      return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    });
+    expect(ratio).toBeGreaterThanOrEqual(7);
+    await shot(page, 'review3-light-today');
+  });
+
+  test('Full tasting opened from a row\'s sheet: closing it returns to the Table rows, not to a form nobody asked for', async ({ page }) => {
+    await installCompassHarness(page, { customers: VENDORS });
+    await openCurateV2(page, 'table');
+    await page.getByTestId('table-start').click();
+    await page.getByTestId('vendor-picker').getByRole('button', { name: 'Wang Laoshi' }).click();
+    await addTea(page, 'Mengku Laobanzhang 2018 ¥450/cake');
+    await page.getByRole('button', { name: /^Fast tasting for/ }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'More ›' }).click();
+    const session = page.locator('[data-tasting-session-overlay]');
+    await expect(session).toBeVisible();
+    await session.getByRole('button', { name: 'Close' }).first().click();
+    await expect(session).toHaveCount(0);
+    await expect(overlay(page)).toHaveCount(0);
+    expect(await selectedTab(page)).toEqual(['Table']);
+    await expect(page.getByTestId('table-count')).toHaveText('1 tea');
+  });
 });

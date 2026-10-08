@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { SquareCropModal } from '../shared/SquareCropModal';
-import { BottomSheet, SheetOption } from '../shared/BottomSheet';
+import { BottomSheet, SheetOption } from './CurateSheet';
 
 export interface ExtractedTeaData {
   name?: string;
