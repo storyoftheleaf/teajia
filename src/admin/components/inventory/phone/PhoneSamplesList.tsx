@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, X as XIcon } from 'lucide-react';
 import { api } from '../../../../lib/api';
 import { fmtNum } from '../../../../utils/formatNumber';
-import { getThemeColor, getThemeTextColor } from '../../../themeUtils';
+import { getThemeTextColor } from '../../../themeUtils';
 
 // Samples on the phone, drawn exactly like the Stock list: grouped by supplier,
 // one slim row per tea, a sheet when you tap it. Only the data differs. A sample
@@ -26,36 +26,53 @@ function teaName(h: SampleHolding): string {
 
 export interface PhoneSamplesListProps {
   holdings: SampleHolding[];
+  /** The Stock page's Supplier / Kind / Stage switch. Samples have no stage, so Stage groups by supplier. */
+  groupBy?: 'vendor' | 'type' | 'stage' | 'none';
   onEditTea: (id: string) => void;
   onOrder: (holding: SampleHolding) => void;
   onChanged: () => void | Promise<void>;
 }
 
-export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, onEditTea, onOrder, onChanged }) => {
+type SampleSort = 'name' | 'year' | 'grams';
+
+export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, groupBy = 'vendor', onEditTea, onOrder, onChanged }) => {
+  const [sort, setSort] = useState<{ key: SampleSort; dir: 'asc' | 'desc' }>({ key: 'name', dir: 'asc' });
+  const onSort = (key: SampleSort) => setSort(prev => ({ key, dir: prev.key === key && prev.dir === 'asc' ? 'desc' : 'asc' }));
   const [open, setOpen] = useState<Set<string>>(() => new Set());
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const groups = useMemo(() => {
     const byVendor = new Map<string, { label: string; rows: SampleHolding[] }>();
     for (const h of holdings) {
-      const label = String(h.entry.vendor_name || 'No supplier').trim();
+      const label = groupBy === 'none' ? 'All samples' : groupBy === 'type' ? String(h.entry.type || 'No kind').trim() : String(h.entry.vendor_name || 'No supplier').trim();
       const key = label.toLowerCase();
       if (!byVendor.has(key)) byVendor.set(key, { label, rows: [] });
       byVendor.get(key)!.rows.push(h);
     }
     return [...byVendor.entries()]
-      .map(([key, g]) => ({ key, ...g, rows: g.rows.sort((a, b) => teaName(a).localeCompare(teaName(b))) }))
+      .map(([key, g]) => ({ key, ...g, rows: g.rows.sort((a, b) => {
+        const d = sort.dir === 'asc' ? 1 : -1;
+        if (sort.key === 'year') return d * (Number(a.entry.year || 0) - Number(b.entry.year || 0)) || teaName(a).localeCompare(teaName(b));
+        if (sort.key === 'grams') return d * (Number(a.sample_grams ?? -1) - Number(b.sample_grams ?? -1)) || teaName(a).localeCompare(teaName(b));
+        return d * teaName(a).localeCompare(teaName(b));
+      }) }))
       .sort((a, b) => b.rows.length - a.rows.length || a.label.localeCompare(b.label));
-  }, [holdings]);
+  }, [holdings, groupBy, sort]);
   const expandAll = holdings.length <= 25;
   const focused = focusedId ? holdings.find(h => h.entry.id === focusedId) ?? null : null;
 
   return (
     <div data-testid="samples-phone" className={`stock-phone-tone ${focused ? 'pb-[300px]' : ''}`}>
-      <div role="row" className="sticky top-0 z-sticky flex items-center bg-tea-bg pl-9 pr-3 border-b border-tea-border">
+      <div role="row" className="sticky top-0 z-sticky flex items-center bg-tea-bg pl-4 pr-3 border-b border-tea-border">
         <div className={`${COLS} flex-1`}>
-          {(['Tea', 'Year', 'Sample'] as const).map((label, i) => (
-            <span key={label} role="columnheader" className={`h-8 flex items-center ${i ? 'justify-end' : ''} text-ui-10 uppercase tracking-[0.06em] text-tea-text-dim`}>{label}</span>
-          ))}
+          {([['name', 'Tea'], ['year', 'Year'], ['grams', 'Sample']] as const).map(([key, label], i) => {
+            const on = sort.key === key;
+            return (
+              <button key={key} type="button" role="columnheader" aria-sort={on ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'} onClick={() => onSort(key)}
+                className={`h-8 flex items-center ${i ? 'justify-end' : ''} text-ui-10 uppercase tracking-[0.06em] ${on ? 'text-tea-gold' : 'text-tea-text-dim'}`}>
+                {label}{on ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : ''}
+              </button>
+            );
+          })}
         </div>
       </div>
       {groups.map(group => {
@@ -81,21 +98,22 @@ export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, on
             </button>
             {isOpen && group.rows.map(h => {
               const isFocused = focusedId === h.entry.id;
-              const color = getThemeColor(String(h.entry.type || ''));
               const empty = h.sample_grams == null;
               return (
                 <div key={h.entry.id} className={`relative flex items-center ${isFocused ? 'bg-tea-surface' : ''} after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-tea-border`}>
-                  <span aria-hidden="true" className="ml-3 w-3.5 h-3.5 shrink-0 rounded-full border-2" style={{ borderColor: color, background: empty ? 'transparent' : color }} />{/* color-data: the tea kind's own colour */}
                   <button
                     type="button"
                     data-testid="curate-sample-row"
                     aria-expanded={isFocused}
                     onClick={() => setFocusedId(isFocused ? null : h.entry.id)}
-                    className={`${COLS} flex-1 min-w-0 pl-2.5 pr-3 text-left min-h-[46px]`}
+                    className={`${COLS} flex-1 min-w-0 pl-4 pr-3 text-left min-h-[46px]`}
                   >
                     <span className="min-w-0 py-1.5 pr-2">
                       <span className={`block truncate font-display text-ui-17 font-semibold leading-tight ${isFocused ? 'text-tea-gold' : 'text-tea-text'}`}>{teaName(h)}</span>
-                      <span className="block truncate text-ui-11 leading-tight" style={{ color: getThemeTextColor(String(h.entry.type || '')) }}>{h.entry.type || 'Tea'}</span>
+                      <span className="flex items-center gap-1.5 text-ui-11 leading-tight min-w-0">
+                        <span className="truncate" style={{ color: getThemeTextColor(String(h.entry.type || '')) }}>{h.entry.type || 'Tea'}</span>
+                        {empty && <span aria-label="not weighed" className="shrink-0 w-1.5 h-1.5 rounded-full bg-tea-error" />}
+                      </span>
                     </span>
                     <span className="flex items-center justify-end font-mono text-ui-13 tracking-tight text-tea-text tabular-nums">{h.entry.year || '—'}</span>
                     <span className="flex items-center justify-end font-mono text-ui-13 tracking-tight text-tea-text tabular-nums">{empty ? '—' : whole(Number(h.sample_grams))}</span>
