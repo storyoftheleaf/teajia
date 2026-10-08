@@ -9,6 +9,7 @@ import { test, expect, type Page } from './fixtures';
 import {
   clearCompassFailures,
   compassCreatedCustomers,
+  compassCreatedProducts,
   compassRequestCount,
   delayCompassRequests,
   failCompassRequests,
@@ -207,6 +208,71 @@ test.describe('Curate v2 requests (phone)', () => {
     const put = sent.find((s) => s.method === 'PUT' && s.path.startsWith('/api/purchase-orders/'))!;
     expect(put.path).toBe('/api/purchase-orders/po-created');
     expect(put.body).toEqual({ status: 'sent' });
+  });
+
+  test('a tea bought at the table arrives with its cost: the order names its grams, total and money, a receipt waits per tea, and the shelf product carries what was paid', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS, rates: RATES,
+      compassEntries: [entry({ id: 'cost-1', name: 'Mengku Laobanzhang', year: 2018, form: 'Cake', price_amount: 450, price_currency: 'Yuan', tasting: tasted })],
+    });
+    const sent = record(page);
+    await openCurateV2(page, 'today');
+    await buyFromToday(page, /Mengku Laobanzhang/);
+    await tab(page, 'Orders').click();
+    await page.getByRole('button', { name: 'Open the order with Wang Laoshi' }).click();
+    await page.getByRole('button', { name: 'Confirm purchase' }).click();
+    await expect.poll(() => sent.filter((s) => /\/receipt-proposals$/.test(s.path)).length).toBe(1);
+
+    // The order's line tells the shop which tea, how many grams, what it came to and in which money.
+    const items = JSON.parse(sent.find((s) => s.path === '/api/purchase-orders')!.body.items_json);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ compass_entry_id: 'cost-1', quantity_grams: 357, line_total: 450, currency: 'Yuan' });
+    // One receipt waits for the tea, keyed to that order and that tea, for exactly those grams.
+    const proposal = sent.find((s) => /\/receipt-proposals$/.test(s.path))!;
+    expect(proposal.path).toBe('/api/compass/entries/cost-1/receipt-proposals');
+    expect(proposal.body).toEqual({ purpose: 'working', quantity: 357, unit: 'g', acquisition_kind: 'purchase', idempotency_key: 'order:po-created:cost-1', product_name: 'Mengku Laobanzhang', product_type: 'Sheng' });
+
+    // Arrived accepts that receipt; Shelf then finds the product the receipt already made.
+    await back(page).click();
+    await tab(page, 'Today').click();
+    const way = page.getByTestId('today-section-way');
+    await expect(way.getByRole('button', { name: /^Arrived:/ })).toHaveCount(1);
+    await way.getByRole('button', { name: 'Arrived: Mengku Laobanzhang' }).click();
+    const shelve = page.getByTestId('today-section-shelve');
+    await expect(shelve).toContainText('Mengku Laobanzhang');
+    await shelve.getByRole('button', { name: 'Shelf: Mengku Laobanzhang' }).click();
+    await expect(page.getByTestId('today-section-shelve')).toHaveCount(0);
+    const products = compassCreatedProducts(page);
+    expect(products).toHaveLength(1);
+    // What the shelf holds: the batch cost in the money it was paid in (never dollars by default),
+    // the grams that came, and no freight rate or markup of its own, so it follows the shop.
+    expect(products[0]).toMatchObject({ cost_amount: 450, cost_currency: 'Yuan', quantity_purchased: 357, stock_grams: 357, shipping_rate_per_kg: null, markup_multiplier: null });
+  });
+
+  test('Confirm: a receipt the shop did not take is said, and trying again adds it to the SAME order instead of recording a second one', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS, rates: RATES,
+      compassEntries: [entry({ id: 'retry-1', name: 'Mengku Laobanzhang', year: 2018, form: 'Cake', price_amount: 450, price_currency: 'Yuan', tasting: tasted })],
+      failRequests: [{ match: 'POST /api/compass/entries/retry-1/receipt-proposals', times: 1 }],
+    });
+    const sent = record(page);
+    await openCurateV2(page, 'today');
+    await buyFromToday(page, /Mengku Laobanzhang/);
+    await tab(page, 'Orders').click();
+    await page.getByRole('button', { name: 'Open the order with Wang Laoshi' }).click();
+    await page.getByRole('button', { name: 'Confirm purchase' }).click();
+    const failed = page.getByTestId('order-record-failed');
+    await expect(failed).toBeVisible();
+    plain(await failed.innerText());
+    await failed.getByRole('button', { name: 'Try again' }).click();
+    await expect(failed).toHaveCount(0);
+    expect(sent.filter((s) => s.path === '/api/purchase-orders')).toHaveLength(1);
+    const proposals = sent.filter((s) => /\/receipt-proposals$/.test(s.path));
+    expect(proposals).toHaveLength(2);
+    expect(proposals[1].body.idempotency_key).toBe(proposals[0].body.idempotency_key);
+    // And "Mark as sent" names that one order.
+    await page.getByRole('button', { name: 'Mark as sent' }).click();
+    await expect(page.getByRole('button', { name: 'Marked as sent' })).toBeVisible();
   });
 
   test('changing your mind after Buy takes the tea off the order and back to deciding; it never falls off Today', async ({ page }) => {

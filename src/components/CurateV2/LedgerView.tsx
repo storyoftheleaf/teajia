@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronDown,
@@ -19,6 +20,8 @@ import { OrderMessageSheet } from './OrderMessageSheet';
 import { VendorPicker } from './VendorPicker';
 import { NO_VENDOR_YET, releaseTeaFromOrder } from './orderBuy';
 import { orderLanded, orderMoney, purchaseSpendInUsd } from './curatePricing';
+import { arrivalFields, arrivalKey, orderArrivalLines } from './orderArrivals';
+import { AGENT_KEYS } from './AgentInbox';
 import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
 
 // ─── Currency helpers ────────────────────────────────────────────────────────
@@ -380,6 +383,7 @@ const TransactionCard: React.FC<{
   // confirmed here, says plainly that the shop has not recorded it, and offers
   // it again. One attempt at a time, so a second tap cannot record it twice.
   const recording = useRef(false);
+  const queryClient = useQueryClient();
   const [recordBusy, setRecordBusy] = useState(false);
   const recordAtShop = useCallback(async () => {
     if (recording.current) return;
@@ -394,28 +398,60 @@ const TransactionCard: React.FC<{
         // blanks counted as zero would record the order as cheaper than it is.
         const complete = tx.items.length > 0 && tx.items.every((item) => !item.unpriced);
         const totalAmount = complete ? purchaseSpendInUsd([tx], rates).priced[0]?.usd : undefined;
-        const created = await api.purchaseOrders.create({
-          po_number: `PO-${tx.id.slice(0, 8).toUpperCase()}`,
-          vendor_name: tx.counterpartyName || 'Unknown',
-          vendor_id: tx.counterpartyId || undefined,
-          items_json: JSON.stringify(tx.items.map(item => ({
-            name: item.name,
-            chineseName: item.chineseName,
-            type: item.type,
-            form: item.form,
-            year: item.year,
-            quantity: item.priceIsPerGram ? (item.quantityGrams ?? 0) : (item.quantityUnits ?? 1),
-            // No price yet is no price, not a price of nothing.
-            pricePerUnit: item.unpriced ? null : item.pricePerUnit,
-            priceIsPerGram: item.priceIsPerGram,
-            currency: item.currency,
-          }))),
-          total_usd: totalAmount === undefined ? undefined : Math.round(totalAmount * 100) / 100,
-          display_currency: tx.currency,
-          status: 'confirmed',
-        });
-        // Kept so "Mark as sent" can name the order the shop recorded.
-        updateTransaction(tx.id, { recordFailed: false, ...(created?.id ? { purchaseOrderId: created.id } : {}) });
+        // Recorded once: a retry after a failed receipt picks the same order up.
+        let purchaseOrderId = tx.purchaseOrderId;
+        if (!purchaseOrderId) {
+          const created = await api.purchaseOrders.create({
+            po_number: `PO-${tx.id.slice(0, 8).toUpperCase()}`,
+            vendor_name: tx.counterpartyName || 'Unknown',
+            vendor_id: tx.counterpartyId || undefined,
+            items_json: JSON.stringify(tx.items.map(item => ({
+              name: item.name,
+              chineseName: item.chineseName,
+              type: item.type,
+              form: item.form,
+              year: item.year,
+              quantity: item.priceIsPerGram ? (item.quantityGrams ?? 0) : (item.quantityUnits ?? 1),
+              // No price yet is no price, not a price of nothing.
+              pricePerUnit: item.unpriced ? null : item.pricePerUnit,
+              priceIsPerGram: item.priceIsPerGram,
+              currency: item.currency,
+              // What the shop reads back when the tea arrives, so it comes in
+              // with its cost (see orderArrivals.ts).
+              ...arrivalFields(item),
+            }))),
+            total_usd: totalAmount === undefined ? undefined : Math.round(totalAmount * 100) / 100,
+            display_currency: tx.currency,
+            status: 'confirmed',
+          });
+          purchaseOrderId = created?.id;
+          // Kept so "Mark as sent" can name the order the shop recorded.
+          if (purchaseOrderId) updateTransaction(tx.id, { purchaseOrderId });
+        }
+        // One receipt waiting per tea: accepting it on arrival puts the tea on
+        // the shelf's books with what it cost and what came. The same key
+        // answers with the same receipt, so trying again adds nothing.
+        if (purchaseOrderId) {
+          try {
+            for (const line of orderArrivalLines(tx)) {
+              await api.compass.proposeReceipt(line.entryId, {
+                purpose: 'working',
+                quantity: line.grams,
+                unit: 'g',
+                acquisition_kind: 'purchase',
+                idempotency_key: arrivalKey(purchaseOrderId, line.entryId),
+                product_name: line.name,
+                ...(line.type ? { product_type: line.type } : {}),
+              });
+            }
+          } finally {
+            // Today's list of receipts was read before these existed. Left as it
+            // was, "Arrived" on a tea just ordered would not find its receipt and
+            // would shelve the tea with no cost.
+            void queryClient.invalidateQueries({ queryKey: AGENT_KEYS.arriving });
+          }
+        }
+        updateTransaction(tx.id, { recordFailed: false });
       } else if (tx.direction === 'sale') {
         const invoiceNumber = `INV-${new Date().getFullYear()}-${tx.id.slice(0, 8).toUpperCase()}`;
         const lineItems = tx.items

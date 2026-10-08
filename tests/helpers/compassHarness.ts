@@ -9,6 +9,8 @@ const updatedCustomersByPage = new WeakMap<Page, Array<{ id: string; body: Recor
 type RequestMatch = string | RegExp;
 const failuresByPage = new WeakMap<Page, Array<{ match: RequestMatch; left: number }>>();
 const delaysByPage = new WeakMap<Page, Array<{ match: RequestMatch; ms: number }>>();
+type HarnessProduct = Record<string, any>;
+const productsByPage = new WeakMap<Page, HarnessProduct[]>();
 const matches = (match: RequestMatch, key: string) => (typeof match === 'string' ? match === key : match.test(key));
 export const COMPASS_TOKEN = `${enc(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${enc(JSON.stringify({ sub: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', platform_role: 'platform_owner', exp: Math.floor(Date.now() / 1000) + 86400, active_account_id: 'acct-bali', memberships }))}.test`;
 
@@ -20,6 +22,22 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
   failuresByPage.set(page, (options?.failRequests ?? []).map((f) => ({ match: f.match, left: f.times ?? Infinity })));
   delaysByPage.set(page, [...(options?.delayRequests ?? [])]);
   let uploads = 0;
+  // What the real shop keeps when Curate confirms an order, proposes a receipt,
+  // accepts it and puts the tea on the shelf (observed against the real worker on
+  // a local sandbox database, 2026-10-09). Without these the mock answered the
+  // same canned body to every call and could not tell a tea that arrives with its
+  // cost from one that arrives with none.
+  const purchaseOrders: Array<Record<string, any>> = [];
+  const receiptProposals: Array<Record<string, any>> = [];
+  const createdProducts: HarnessProduct[] = [];
+  productsByPage.set(page, createdProducts);
+  const acceptedStatic = new Set<string>();
+  // Customers are read the way the shop sends them: contacts is an array, never a JSON string.
+  const shapeCustomer = (row: Record<string, any>) => {
+    let contacts: any[] = [];
+    try { const v = typeof row.contacts === 'string' ? JSON.parse(row.contacts) : row.contacts; contacts = Array.isArray(v) ? v : []; } catch { contacts = []; }
+    return { ...row, contacts };
+  };
   // The shop's people. Vendors are the ones tagged vendor; creating one adds to this list.
   const customers: Array<Record<string, any>> = [...(options?.customers ?? [{ id: 'vendor-chen', name: 'Chen Family', tags: ['vendor'] }])];
   const sampleSets: Array<Record<string, any>> = [];
@@ -85,7 +103,7 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ syncedIds: (body.entries ?? []).map(entry => entry.id) }) });
     }
     if (requestKey === 'GET /api/customers') {
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(customers) });
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(customers.map(shapeCustomer)) });
     }
     if (requestKey === 'POST /api/customers') {
       const input = route.request().postDataJSON() as Record<string, any>;
@@ -121,7 +139,7 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     const customerMatch = path.match(/^\/api\/customers\/([^/]+)$/);
     if (customerMatch && route.request().method() === 'GET') {
       const found = customers.find((row) => row.id === customerMatch[1]);
-      const lifted = found ? { ...found } : found;
+      const lifted = found ? shapeCustomer(found) : found;
       if (lifted) {
         let list: any[] = [];
         try { const v = typeof lifted.contacts === 'string' ? JSON.parse(lifted.contacts) : lifted.contacts; list = Array.isArray(v) ? v : []; } catch { list = []; }
@@ -212,31 +230,93 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     if (vendorProfileMatch && route.request().method() === 'GET') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ vendor_id: vendorProfileMatch[1], vendor_code: null, contact_people: [], addresses: [], contacts: [] }) });
     // Chinese name suggestions (never typed) and the shelf promotion.
     if (requestKey === 'POST /api/generate-chinese-name') {
-      if (options?.chineseNameFails) return route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'No provider' }) });
+      if (options?.chineseNameFails) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'AI provider unavailable', code: 'provider_unavailable' }) });
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ chineseName: options?.chineseName === undefined ? '孟库古树茶' : options.chineseName, confident: true }) });
     }
     // What the page writes when an agent's find is picked, a to-do is added or
     // ticked, a recording is filed, Drive is saved, and an order is marked sent.
-    if (requestKey === 'POST /api/curate/suggestions/pick') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ picked: 0, dropped: 0 }) });
-    if (requestKey === 'POST /api/curate/todos') return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: `todo-created-${counts.get(requestKey)}` }) });
+    if (requestKey === 'POST /api/curate/suggestions/pick') {
+      const input = (route.request().postDataJSON() ?? {}) as { pick?: string[]; drop?: string[]; as?: string };
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ committed: true, in_curate: (input.pick ?? []).map((id) => ({ suggestion_id: id, tea_id: `tea-from-${id}`, name: id })), dropped: (input.drop ?? []).length, skipped: [], as: input.as ?? 'sample' }) });
+    }
+    if (requestKey === 'POST /api/curate/todos') {
+      const input = (route.request().postDataJSON() ?? {}) as { text?: string };
+      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ added: true, todo_id: `todo-created-${counts.get(requestKey)}`, text: input.text ?? '' }) });
+    }
     if (/^\/api\/curate\/todos\/[^/]+\/done$/.test(path) && route.request().method() === 'POST') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ done: true }) });
     if (requestKey === 'POST /api/curate/said/file') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ parts: options?.saidParts ?? [] }) });
     if (requestKey === 'POST /api/upload-image') { uploads += 1; return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ url: `https://img.test/upload-${uploads}.jpg` }) }); }
     if (requestKey === 'POST /api/curate/drive/save') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ copied: 2, teas: 1 }) });
+    if (requestKey === 'POST /api/purchase-orders') {
+      const input = route.request().postDataJSON() as Record<string, any>;
+      let items: any[] = [];
+      try { items = JSON.parse(input.items_json ?? '[]'); } catch { items = []; }
+      purchaseOrders.push({ id: 'po-created', ...input, items });
+      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 'po-created' }) });
+    }
     if (/^\/api\/purchase-orders\/[^/]+$/.test(path) && route.request().method() === 'PUT') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
+    // A receipt proposal is idempotent by its key: the same key answers the same row (200), a new one makes it (201).
     const proposalMatch = path.match(/^\/api\/compass\/entries\/([^/]+)\/receipt-proposals$/);
     if (proposalMatch && route.request().method() === 'POST') {
       const input = route.request().postDataJSON() as Record<string, any>;
-      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: `proposal-${proposalMatch[1]}`, compass_entry_id: proposalMatch[1], status: 'pending', ...input }) });
+      const existing = receiptProposals.find((row) => row.idempotency_key === input.idempotency_key);
+      if (existing) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(existing) });
+      const row = {
+        id: `proposal-${proposalMatch[1]}`, account_id: accountId, compass_entry_id: proposalMatch[1], import_id: null, import_item_id: null,
+        product_id: null, batch_id: null, product_type: null, status: 'pending', ledger_id: null,
+        created_at: new Date().toISOString(), updated_at: new Date().toISOString(), proposed_by_user_id: 'test-admin-uid', ...input,
+      };
+      receiptProposals.push(row);
+      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(row) });
     }
+    // The shop does not know a tea's cost at promotion: it writes NULL and leaves a
+    // receipt, accepted against an order line, to say what was paid. First promotion
+    // answers 201, a repeat answers 200 with alreadyPromoted.
     const promoteMatch = path.match(/^\/api\/compass\/entries\/([^/]+)\/promote$/);
     if (promoteMatch && route.request().method() === 'POST') {
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: `product-${promoteMatch[1]}`, product: {}, alreadyPromoted: false }) });
+      const entry = compassEntries.find((candidate) => candidate.id === promoteMatch[1]);
+      const already = createdProducts.find((row) => row.source_compass_entry_id === promoteMatch[1]);
+      if (already) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: already.id, product: already, alreadyPromoted: true }) });
+      const product = {
+        id: `product-${promoteMatch[1]}`, account_id: accountId, source_compass_entry_id: promoteMatch[1], given_name: entry?.name ?? '', status: 'Draft', is_public: 0,
+        stock_grams: 0, cost_amount: null, cost_currency: null, cost_currency_source: null, quantity_purchased: null, shipping_rate_per_kg: null, markup_multiplier: null,
+      };
+      createdProducts.push(product);
+      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: product.id, product, alreadyPromoted: false }) });
     }
-    // Accepting a receipt proposal when the tea arrives.
+    // Accepting a receipt proposal when the tea arrives. Like the shop, the cost
+    // comes from the order line the receipt's key names, and from nowhere else.
     const acceptMatch = path.match(/^\/api\/curate\/receipt-proposals\/([^/]+)\/accept$/);
     if (acceptMatch && route.request().method() === 'POST') {
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ proposal: { id: acceptMatch[1], status: 'accepted' }, product_id: 'product-arrived', ledger_id: 'ledger-arrived', alreadyAccepted: false }) });
+      const proposal = receiptProposals.find((row) => row.id === acceptMatch[1]);
+      if (proposal?.status === 'accepted') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ proposal, product_id: proposal.product_id, ledger_id: proposal.ledger_id, alreadyAccepted: true }) });
+      const entryId = proposal?.compass_entry_id ?? options?.pendingReceipts?.map((row) => row as Record<string, any>).find((row) => row.id === acceptMatch[1])?.compass_entry_id ?? null;
+      const key = String(proposal?.idempotency_key ?? '');
+      const keyMatch = key.match(/^order:(.+):([^:]+)$/);
+      const line = keyMatch ? purchaseOrders.find((po) => po.id === keyMatch[1])?.items.find((item: any) => item.compass_entry_id === keyMatch[2]) : undefined;
+      const productId = `product-${entryId ?? acceptMatch[1]}`;
+      if (!createdProducts.some((row) => row.id === productId)) {
+        createdProducts.push({
+          id: productId, account_id: accountId, source_compass_entry_id: entryId, given_name: proposal?.product_name ?? '', status: 'Draft', is_public: 0,
+          stock_grams: proposal?.quantity ?? 0, quantity_purchased: line ? proposal?.quantity ?? null : null,
+          cost_amount: line ? Number(line.line_total) : null, cost_currency: line ? line.currency : null, cost_currency_source: null, shipping_rate_per_kg: null, markup_multiplier: null,
+        });
+      }
+      const accepted = proposal ?? { id: acceptMatch[1] };
+      Object.assign(accepted, { status: 'accepted', product_id: productId, ledger_id: `ledger-${acceptMatch[1]}` });
+      acceptedStatic.add(acceptMatch[1]);
+      const entry = compassEntries.find((candidate) => candidate.id === entryId);
+      if (entry) Object.assign(entry, { status: 'in_stock', draft_product_id: productId });
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ proposal: accepted, product_id: productId, ledger_id: accepted.ledger_id, alreadyAccepted: false }) });
+    }
+    // Receipts waiting for their tea: each one carries the tea's name and vendor, joined from the entry.
+    if (requestKey === 'GET /api/curate/receipt-proposals') {
+      const waiting = receiptProposals.filter((row) => row.status === 'pending').map((row) => {
+        const entry = compassEntries.find((candidate) => candidate.id === row.compass_entry_id);
+        return { id: row.id, compass_entry_id: row.compass_entry_id, product_id: row.product_id, product_name: row.product_name, purpose: row.purpose, quantity: row.quantity, unit: row.unit, acquisition_kind: row.acquisition_kind, created_at: row.created_at, tea_name: entry?.name ?? row.product_name, vendor_name: entry?.vendor_name ?? null };
+      });
+      const staticRows = ((options?.pendingReceipts ?? []) as Array<Record<string, any>>).filter((row) => !acceptedStatic.has(row.id));
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ pending: [...staticRows, ...waiting] }) });
     }
     const responses: Record<string, unknown> = {
       'GET /api/curate/attachments': [], 'GET /api/curate/history': { history: [] },
@@ -250,7 +330,6 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       // A photo read for a label: nothing on it to fill in.
       'POST /api/extract-from-image': {},
       // Confirming an order records the purchase order.
-      'POST /api/purchase-orders': { id: 'po-created' },
       'GET /api/products/public': [], 'GET /api/user/favorites': { favorites: [] },
       'PUT /api/user/favorites': { ok: true },
       'GET /api/tasting-journal': { entries: [] }, 'GET /api/tea-discovery': { profile: null },
@@ -259,7 +338,7 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       'POST /api/incidents': { ok: true },
       'GET /api/platform/incidents': { incidents: [] },
       'GET /api/customers': [{ id: 'vendor-chen', name: 'Chen Family', tags: ['vendor'] }],
-      'GET /api/compass/incoming': [],
+      'GET /api/compass/incoming': { shares: [] },
       'GET /api/vendors': [], 'GET /api/sources': [], 'GET /api/admin/events': [],
       'GET /api/curate/journeys': { journeys: scopedContext?.journeys ?? (options?.contextEmpty ? [] : [{ id: 'journey-taiwan', account_id: 'acct-bali', name: 'Taiwan', season: 'Spring', year: 2026 }]) },
       'GET /api/curate/visits': { visits: scopedContext?.visits ?? (options?.contextEmpty ? [] : [{ id: 'visit-chen', account_id: 'acct-bali', journey_id: 'journey-taiwan', vendor_id: 'vendor-chen', vendor_name: 'Chen Family', place: 'Taipei' }]) },
@@ -267,7 +346,6 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       // Curate v2's Today: nothing from an agent, no to-dos, nothing on the way, Drive not linked.
       'GET /api/curate/suggestions': { waiting: options?.agentSuggestions ?? [] },
       'GET /api/curate/todos': { todos: options?.todos ?? [] },
-      'GET /api/curate/receipt-proposals': { pending: options?.pendingReceipts ?? [] },
       'GET /api/curate/drive': options?.drive ?? { connected: false },
       'POST /api/curate/journeys': { id: 'journey-created', account_id: 'acct-bali', name: 'Yunnan', season: 'Autumn', year: 2026 },
       'PUT /api/curate/journeys/journey-created': { id: 'journey-created', account_id: 'acct-bali', name: 'Yunnan edited', season: 'Autumn', year: 2026 },
@@ -284,6 +362,11 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     }
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(responses[requestKey]) });
   });
+}
+
+/** The products the shop created while the page ran (a promotion, or an accepted receipt), as the shop would hold them. */
+export function compassCreatedProducts(page: Page): HarnessProduct[] {
+  return productsByPage.get(page) ?? [];
 }
 
 /** From now on, requests matching this key (METHOD /path) answer 500: the next `times`, or every one. */
