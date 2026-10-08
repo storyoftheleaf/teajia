@@ -13,6 +13,7 @@ import { BrowseCard } from './BrowseCard';
 import { CompassIcon } from './CompassIcon';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
 import { isUntriaged, entryDisplayTitle, entryIsSample } from './types';
+import { entryHasBeenTasted, entryNeedsTasting } from '../TeaCompass/types';
 import type { TeaCompassEntry, BrowseFilter, BrowseSort } from './types';
 import { LibraryFilterSheet } from './LibraryFilterSheet';
 import { ActiveFilterSummary, activeLibraryFilterCount } from './ActiveFilterSummary';
@@ -67,10 +68,6 @@ function getDateGroup(dateStr: string): string {
   if (diffDays < 2) return 'Yesterday';
   if (diffDays < 7) return date.toLocaleDateString('en-US', { weekday: 'long' });
   return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-}
-
-function hasTastingData(e: TeaCompassEntry): boolean {
-  return !!(e.tasting && Object.values(e.tasting).some((v) => Array.isArray(v) ? v.length > 0 : v != null));
 }
 
 // ─── Section header ──────────────────────────────────────────────────────────
@@ -273,13 +270,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   // ─── Counts (for filter pills) ────────────────────────────────────────────
 
   const counts = useMemo(() => {
-    const toTasteCount = entries.filter((e) =>
-      entryIsSample(e) || (
-        !hasTastingData(e) &&
-        e.status !== 'pass' &&
-        (e.status === 'in_stock' || e.status === 'incoming')
-      )
-    ).length;
+    const toTasteCount = entries.filter(entryNeedsTasting).length;
 
     return {
       all:   entries.length,
@@ -324,7 +315,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
       <AnimatePresence initial={false}>
         {list.map((entry) => {
           const dim = (opts?.dimPassed && entry.status === 'pass') ||
-                      (opts?.dimTasted && hasTastingData(entry));
+                      (opts?.dimTasted && entryHasBeenTasted(entry));
           return (
             <motion.div
               key={entry.id}
@@ -465,7 +456,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         {/* Sample sets */}
         {Array.from(bySet.entries()).map(([setId, setEntries]) => {
           const set = sampleSetMap.get(setId);
-          const tastedCount = setEntries.filter(hasTastingData).length;
+          const tastedCount = setEntries.filter(entryHasBeenTasted).length;
           const allTasted = tastedCount === setEntries.length;
 
           // Decision summary counts, use sampleVerdict if set, else quality fallback
@@ -650,13 +641,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
   const filteredForView = useMemo(() => {
     switch (browseFilter) {
       case 'to_taste':
-        return baseEntries.filter((e) =>
-          entryIsSample(e) || (
-            !hasTastingData(e) &&
-            e.status !== 'pass' &&
-            (e.status === 'in_stock' || e.status === 'incoming')
-          )
-        );
+        return baseEntries.filter(entryNeedsTasting);
       case 'selected':
         return baseEntries.filter((e) => e.decision === 'selected');
       default:

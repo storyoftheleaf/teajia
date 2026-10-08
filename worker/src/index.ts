@@ -136,8 +136,9 @@ import {
 } from './inquiryDomain';
 import { hasTeaAtlasTick, serveAtlas, withTeaAtlasTick } from './atlas';
 import { serveAtlasAdmin } from './atlasAdmin';
+import { workerReleaseResponse, type WorkerReleaseEnv } from './workerRelease';
 
-interface Env {
+interface Env extends WorkerReleaseEnv {
   DB: D1Database;
   WHATSAPP_ORDER_ACCOUNT_ID?: string;
   WHATSAPP_ACCESS_TOKEN?: string;
@@ -28776,6 +28777,7 @@ const handleDriveSaveNow: Handler = async (request, env) => {
 
 // ── Routes ──
 const routes: [string, string, Handler][] = [
+  ['GET', '/api/release', async (_request, env) => workerReleaseResponse(env)],
   // Auth
   ['POST', '/api/auth/login', handleLogin],
   ['POST', '/api/auth/signup', handleSignup],

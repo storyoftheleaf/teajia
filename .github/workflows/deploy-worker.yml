@@ -2,9 +2,9 @@ name: Deploy worker
 
 # This deploys the worker (the API at teajia-api.lightcodes.workers.dev) on
 # every push that touches worker/**, plus on demand from the Actions tab.
-# The frontend is handled separately by deploy-frontend.yml — it does NOT
-# auto-deploy from Pages git (that was a wrong assumption that left
-# production stale; see that workflow's header).
+# Pages independently auto-deploys main to teajiafinal. A coordinated release
+# dispatches this workflow at an immutable candidate tag; only verified Worker
+# bytes authorize the runner to advance main and observe the Pages release.
 #
 # Required GitHub repo secrets:
 #   CLOUDFLARE_API_TOKEN   — Edit Workers permission, scoped to the account
@@ -24,10 +24,22 @@ on:
     paths:
       - 'worker/**'
       - '.github/workflows/deploy-worker.yml'
+      - 'scripts/verify-worker-release*'
+      - 'scripts/publish-verified-release*'
+      - 'scripts/observe-verified-release*'
   # Lets you trigger a deploy manually from any branch (Actions tab → Run workflow).
   # Useful when a fix has landed on a feature branch and you want it live
   # before the branch is merged to main.
   workflow_dispatch:
+    inputs:
+      publish_main_expected:
+        description: 'Expected current main SHA; empty deploys only the Worker'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
 
 concurrency:
   group: deploy-worker
@@ -41,13 +53,41 @@ jobs:
     # runs 158 and 160 on 2026-09-04 both died at exactly the limit, which
     # GitHub reports as "cancelled", so it reads like somebody stopped it
     # rather than like a failure worth looking at.
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
+
+      - name: Persist coordinated release candidate
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_main_expected != ''
+        env:
+          EXPECTED_MAIN_SHA: ${{ inputs.publish_main_expected }}
+          CANDIDATE_SHA: ${{ github.sha }}
+          RELEASE_STATE_PATH: ${{ runner.temp }}/release-state.json
+        run: node scripts/publish-verified-release.mjs --initialize
+
+      - name: Save initial release state
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_main_expected != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-state
+          path: ${{ runner.temp }}/release-state.json
+          if-no-files-found: error
+
+      - name: Preflight coordinated publication access
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_main_expected != ''
+        env:
+          EXPECTED_MAIN_SHA: ${{ inputs.publish_main_expected }}
+          CANDIDATE_SHA: ${{ github.sha }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          RELEASE_STATE_PATH: ${{ runner.temp }}/release-state.json
+        run: node scripts/publish-verified-release.mjs --preflight
 
       - name: Install worker dependencies
         working-directory: worker
@@ -57,6 +97,13 @@ jobs:
       # worker/tests). A failing auth/fulfillment test blocks the deploy.
       - name: Install root dependencies
         run: npm ci
+
+      - name: Worker proof observer tests
+        run: node --test scripts/verify-worker-release.test.mjs
+
+      - name: Coordinated publication observer tests
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_main_expected != ''
+        run: node --test scripts/publish-verified-release.test.mjs scripts/observe-verified-release.test.mjs
 
       - name: Worker tests
         run: npm run test:worker
@@ -95,10 +142,58 @@ jobs:
           workingDirectory: worker
           command: d1 migrations apply teajia-db --remote
 
+      # --var adds the revision binding to the existing config bindings; it
+      # does not replace [vars] or stored secrets. Wrangler is lockfile-pinned.
       - name: Deploy to Cloudflare Workers
-        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CANDIDATE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          npx wrangler deploy --var "RELEASE_GIT_SHA:$CANDIDATE_SHA" | tee "$RUNNER_TEMP/worker-deploy.log"
+
+      - name: Prove exact Worker revision and runtime version
+        env:
+          CANDIDATE_SHA: ${{ github.sha }}
+          WORKER_DEPLOY_LOG: ${{ runner.temp }}/worker-deploy.log
+          WORKER_PROOF_PATH: ${{ runner.temp }}/worker-release-proof.json
+        run: node scripts/verify-worker-release.mjs
+
+      - name: Save Worker proof
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: worker
-          command: deploy
+          name: worker-release-proof
+          path: |
+            ${{ runner.temp }}/worker-release-proof.json
+            ${{ runner.temp }}/worker-deploy.log
+          if-no-files-found: warn
+
+      - name: Observe main publication and prove Pages bytes
+        if: success() && github.event_name == 'workflow_dispatch' && inputs.publish_main_expected != ''
+        env:
+          EXPECTED_MAIN_SHA: ${{ inputs.publish_main_expected }}
+          CANDIDATE_SHA: ${{ github.sha }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          RELEASE_STATE_PATH: ${{ runner.temp }}/release-state.json
+          WORKER_PROOF_PATH: ${{ runner.temp }}/worker-release-proof.json
+        run: node scripts/publish-verified-release.mjs
+
+      - name: Record coordinated release failure
+        if: failure() && github.event_name == 'workflow_dispatch' && inputs.publish_main_expected != ''
+        env:
+          EXPECTED_MAIN_SHA: ${{ inputs.publish_main_expected }}
+          CANDIDATE_SHA: ${{ github.sha }}
+          RELEASE_STATE_PATH: ${{ runner.temp }}/release-state.json
+        run: node scripts/publish-verified-release.mjs --failed
+
+      - name: Save coordinated release result
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.publish_main_expected != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-result
+          path: ${{ runner.temp }}/release-state.json
+          if-no-files-found: warn

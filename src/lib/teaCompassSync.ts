@@ -240,6 +240,18 @@ async function syncCompassEntriesOnce(accountId?: string): Promise<number> {
     // Entries are on the server now, safe to retry any queued promotions.
     await retryPendingPromotions(requestedAccountId);
 
+    // The server may have chosen canonical vendor sets, reused a shelf sample,
+    // or reconciled lifecycle while accepting these writes. Read those facts
+    // back through the guarded merge; a read failure cannot revoke the save.
+    const afterPromotions = useTeaCompassStore.getState();
+    if (acknowledgedIds.size > 0 && afterPromotions.accountScopeId === requestedAccountId
+      && afterPromotions.accountScopeRevision === requestedRevision) {
+      await hydrateCompassEntries(requestedAccountId).catch(() => {});
+      if (hasUnacknowledged) useTeaCompassStore.setState((state) =>
+        state.accountScopeId === requestedAccountId && state.accountScopeRevision === requestedRevision
+          ? { syncError: true } : state);
+    }
+
     return acknowledgedIds.size;
   } catch (err) {
     // Offline or error, do NOT mark entries as synced; they will retry next cycle.
