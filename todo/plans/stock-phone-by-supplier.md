@@ -15,8 +15,8 @@ Adrian checks stock on his phone in the field, and thinks in suppliers first: "I
 
 ## Stages (one pull request each, in this order)
 
-1. **The list and the panel.** Grouping, group lines, rows, tap panel, selection bar, the views sheet behind "All teas ▾" (every existing view, plus new "Not checked" and "In transit"), retail/cost and sort, the ··· tools sheet, Tea / Wares, search across supplier and tea. Done when the 46 checklist items that live on the list are all reachable at 390 px.
-2. **The tea page.** `ProductEditPanel` on the phone gains: a stock block (grams of bought, flags-under, Checked with Count it, In transit), one row of single-tea actions, a jump row that sticks while scrolling, Wholesale and Reorder in Price, previous/next within the current group ("1 of 19 from Lidia"). Note: `sessionReserveGrams` is the public "nearly gone" warning line, not grams held back for sessions; label it that way.
+1. ✅ **The list and the panel.** Shipped 2026-10-08, PR #374. Added beyond the plan: a Stage grouping (the old lifecycle sections), suppliers grouped case-insensitively, a two-line top bar. Grouping, group lines, rows, tap panel, selection bar, the views sheet behind "All teas ▾" (every existing view, plus new "Not checked" and "In transit"), retail/cost and sort, the ··· tools sheet, Tea / Wares, search across supplier and tea. Done when the 46 checklist items that live on the list are all reachable at 390 px.
+2. ✅ **The tea page.** Built 2026-10-08. Wholesale is NOT in it: the admin never loads `wholesale_price`, and adding an editable money field has to go through `enteredNumber()` and the money-default rules, so it is its own small change (see Deferred). `ProductEditPanel` on the phone gains: a stock block (grams of bought, flags-under, Checked with Count it, In transit), one row of single-tea actions, a jump row that sticks while scrolling, Wholesale and Reorder in Price, previous/next within the current group ("1 of 19 from Lidia"). Note: `sessionReserveGrams` is the public "nearly gone" warning line, not grams held back for sessions; label it that way.
 3. **Supplier page and Incoming.** `InventorySourcePanel` gains totals and actions (Count these, Select all, Receive from them, Edit supplier); its tea rows open the tea. Incoming groups receipts by supplier with arrival date, payment state and how it travels. That needs one nullable column, `inventory_receipts.shipping_method` (air, sea cargo, courier, carried), schema only, no default.
 4. **Field tools.** Count mode that walks whatever list is on screen (one supplier, one kind, or everything) one tea at a time with a number pad, saving each as a recount; scan a QR label to open the tea; return to the same group and scroll spot after leaving a tea; changes made with no signal are kept and saved when the connection returns.
 5. **Data clean-up** (migration that moves rows, so a preview page goes to Adrian first, per CLAUDE.md): one spelling per kind (Sheng / Sheng Puer, Shou / Shou Puer, Pu-erh), HangJia's retail outlier ($142,102 at retail), teaware unit counts (all 117 pieces have none).
@@ -24,3 +24,7 @@ Adrian checks stock on his phone in the field, and thinks in suppliers first: "I
 ## Facts measured on the sandbox copy, 2026-10-08
 
 223 teas, 60.5 kg, 37 low, 140 in stock with no checked date, nothing in transit, 28 suppliers, 117 teaware pieces with no unit counts.
+
+## Deferred
+
+- **Wholesale price on the tea page.** Load `wholesale_price` into the admin's Product (useAdminData), show it in Price, and save it through `enteredNumber()` so a cleared field is NULL and a typed 0 is 0.
