@@ -19,7 +19,7 @@ const VENDORS = [
 
 const tab = (page: Page, name: string) => page.getByRole('tab', { name, exact: true });
 const selectedTab = async (page: Page) => {
-  const tabs = await page.getByRole('tab').all();
+  const tabs = await page.getByRole('tablist', { name: 'Screen' }).getByRole('tab').all();
   const lit: string[] = [];
   for (const t of tabs) if ((await t.getAttribute('aria-selected')) === 'true') lit.push((await t.textContent() ?? '').trim());
   return lit;
@@ -370,6 +370,164 @@ test.describe('Curate v2 journeys (phone)', () => {
     await shelve.getByRole('button', { name: 'Shelf: Nannuo 2021' }).click();
     await expect(page.getByTestId('today-section-shelve')).toHaveCount(0);
     expect(compassRequestCount(page, 'POST /api/compass/entries/e-way/promote')).toBe(1);
+  });
+
+  // ── Journey 3: ordering ────────────────────────────────────────────────────
+
+  const BUY_DATA = {
+    customers: [{ id: 'vendor-wang', name: 'Wang Laoshi', tags: ['vendor'], wechat: 'wang-ls' }, { id: 'vendor-li', name: 'Li Tea House', tags: ['vendor'], wechat: 'li-tea' }],
+    rates: [{ currency: 'USD', rate_to_usd: 1, last_updated: new Date().toISOString() }, { currency: 'Yuan', rate_to_usd: 7.1, last_updated: new Date().toISOString() }],
+    compassEntries: [
+      entry({ id: 'b-1', name: 'Mengku Laobanzhang', year: 2018, form: 'Cake', price_amount: 450, price_currency: 'Yuan', tasting: JSON.stringify({ quality: 8, cleanliness: 'clean' }) }),
+      entry({ id: 'b-2', name: 'Bulang Gushu', year: 2020, form: 'Cake', price_amount: 300, price_currency: 'Yuan', tasting: JSON.stringify({ quality: 7, cleanliness: 'clean' }) }),
+      entry({ id: 'b-3', name: 'Nannuo Shan', year: 2021, form: 'Cake', price_amount: 260, price_currency: 'Yuan', vendor_name: 'Li Tea House', vendor_id: 'vendor-li', tasting: JSON.stringify({ quality: 7 }) }),
+    ],
+  };
+  const buyButton = (page: Page) => overlay(page).getByRole('radio', { name: 'Buy', exact: true });
+  const orderRows = (page: Page) => page.getByTestId('order-screen').locator('.border-b').filter({ has: page.getByRole('button', { name: 'Less' }) });
+
+  test('Journey 3: Buy puts the tea on its vendor\'s order, which opens over the tab; Back returns to the tea; Confirm moves the teas to On the way', async ({ page }) => {
+    await installCompassHarness(page, BUY_DATA);
+    await openCurateV2(page, 'today');
+    expect(await sectionTitles(page)).toEqual(['To do', 'To decide']);
+
+    // 1. Open a tea from Today and press Buy: the order opens on top, TODAY still lit.
+    await page.getByTestId('today-section-decide').getByRole('button', { name: /Mengku Laobanzhang/ }).click();
+    await expect(overlay(page)).toHaveAttribute('data-layer', 'face');
+    await buyButton(page).click();
+    await expect(overlay(page)).toHaveAttribute('data-layer', 'order');
+    expect(await selectedTab(page)).toEqual(['Today']);
+    await expect(page.getByTestId('order-vendor')).toHaveText('Wang Laoshi');
+    await expect(orderRows(page)).toHaveCount(1);
+    await expect(orderRows(page).first()).toContainText('Mengku Laobanzhang');
+    await expect(orderRows(page).first()).toContainText('2018');
+    await expect(orderRows(page).first()).toContainText('1 cake');
+    await expect(orderRows(page).first()).toContainText('¥450');
+    await expect(page.getByTestId('curate-order')).toHaveAttribute('data-status', 'draft');
+    // Freight at the shop rate, the rate today, landed in dollars.
+    await expect(page.getByLabel('Grand total')).toContainText('Freight');
+    await expect(page.getByLabel('Grand total')).toContainText('7.10 today');
+    await expect(page.getByLabel('Grand total')).toContainText('Landed');
+    await shot(page, 'j3-1-order-over-today');
+
+    // The amount is changed with + and −, in the same frame as its price.
+    await orderRows(page).first().getByRole('button', { name: 'More' }).click();
+    await expect(orderRows(page).first()).toContainText('2 cakes');
+    await expect(orderRows(page).first()).toContainText('¥900');
+    await orderRows(page).first().getByRole('button', { name: 'Less' }).click();
+    await expect(orderRows(page).first()).toContainText('1 cake');
+
+    // 2. Back returns to the tea (now Selected), then to Today.
+    await backFromHeader(page).click();
+    await expect(overlay(page)).toHaveAttribute('data-layer', 'face');
+    await expect(overlay(page)).toContainText('Mengku Laobanzhang');
+    await expect(buyButton(page)).toHaveAttribute('aria-checked', 'true');
+    expect(await selectedTab(page)).toEqual(['Today']);
+    await shot(page, 'j3-2-back-on-the-tea');
+    await backFromHeader(page).click();
+    await expect(overlay(page)).toHaveCount(0);
+    // Bought, so it no longer waits to be decided; it is being ordered.
+    await expect(page.getByTestId('today-section-decide')).not.toContainText('Mengku Laobanzhang');
+    await expect(page.getByTestId('today-section-way')).toContainText('Mengku Laobanzhang');
+    await expect(page.getByTestId('today-section-way')).toContainText('ordering');
+
+    // 3. A second tea from the same vendor joins the SAME order.
+    await page.getByTestId('today-section-decide').getByRole('button', { name: /Bulang Gushu/ }).click();
+    await buyButton(page).click();
+    await expect(overlay(page)).toHaveAttribute('data-layer', 'order');
+    await expect(orderRows(page)).toHaveCount(2);
+    await expect(orderRows(page).nth(0)).toContainText('Mengku Laobanzhang');
+    await expect(orderRows(page).nth(1)).toContainText('Bulang Gushu');
+    await expect(page.getByTestId('curate-order')).toHaveCount(1);
+    await shot(page, 'j3-3-two-teas-one-order');
+
+    // Buying the same tea again adds no second row.
+    await backFromHeader(page).click();
+    await buyButton(page).click(); // already Buy: toggling off then on is not needed, a second press on the lit Buy re-opens the order
+    await expect(overlay(page)).toHaveAttribute('data-layer', 'order');
+    await expect(orderRows(page)).toHaveCount(2);
+
+    // 4. Message: Chinese then English, Copy for WeChat.
+    await page.getByRole('button', { name: 'Message the vendor about this order' }).click();
+    const message = page.getByRole('dialog');
+    await expect(message).toBeVisible();
+    await expect(message.getByRole('button', { name: /Copy/ })).toBeVisible();
+    await shot(page, 'j3-4-message');
+    await page.keyboard.press('Escape');
+    await expect(message).toHaveCount(0);
+
+    // 5. Confirm: the order is confirmed and recorded; the teas wait under On the way.
+    await page.getByRole('button', { name: 'Confirm purchase' }).click();
+    await expect.poll(() => compassRequestCount(page, 'POST /api/purchase-orders')).toBe(1);
+    await expect(page.getByTestId('curate-order')).toHaveAttribute('data-status', 'confirmed');
+    await shot(page, 'j3-5-confirmed');
+    await backFromHeader(page).click(); // to the tea
+    await backFromHeader(page).click(); // to Today
+    await expect(overlay(page)).toHaveCount(0);
+    expect(await selectedTab(page)).toEqual(['Today']);
+    const way = page.getByTestId('today-section-way');
+    await expect(way).toContainText('Mengku Laobanzhang');
+    await expect(way).toContainText('Bulang Gushu');
+    await expect(way).not.toContainText('ordering');
+    await expect(page.getByTestId('today-section-decide')).not.toContainText('Bulang Gushu');
+    await shot(page, 'j3-6-on-the-way');
+  });
+
+  test('Journey 3: a different vendor starts its own order; Orders lists them and a tap opens the same order screen', async ({ page }) => {
+    await installCompassHarness(page, BUY_DATA);
+    await openCurateV2(page, 'today');
+    await page.getByTestId('today-section-decide').getByRole('button', { name: /Mengku Laobanzhang/ }).click();
+    await buyButton(page).click();
+    await backFromHeader(page).click();
+    await backFromHeader(page).click();
+    await page.getByTestId('today-section-decide').getByRole('button', { name: /Nannuo Shan/ }).click();
+    await buyButton(page).click();
+    await expect(page.getByTestId('order-vendor')).toHaveText('Li Tea House');
+    await expect(orderRows(page)).toHaveCount(1);
+    await backFromHeader(page).click();
+    await backFromHeader(page).click();
+
+    // Orders: one row per order. Tapping a draft opens the same screen over the tab.
+    await tab(page, 'Orders').click();
+    await expect(page.getByTestId('curate-order').filter({ visible: true })).toHaveCount(2);
+    await expect(overlay(page)).toHaveCount(0);
+    await shot(page, 'j3-7-orders-tab');
+    await page.getByRole('button', { name: 'Open the order with Wang Laoshi' }).click();
+    await expect(overlay(page)).toHaveAttribute('data-layer', 'order');
+    expect(await selectedTab(page)).toEqual(['Orders']);
+    await expect(page.getByTestId('order-vendor')).toHaveText('Wang Laoshi');
+    await expect(orderRows(page)).toHaveCount(1);
+    await expect(orderRows(page).first()).toContainText('Mengku Laobanzhang');
+    await shot(page, 'j3-8-order-over-orders');
+
+    // A tea on the order opens on top of it; Back returns to the order, then to Orders.
+    await orderRows(page).first().getByRole('button', { name: 'Mengku Laobanzhang' }).click();
+    await expect(overlay(page)).toHaveAttribute('data-layer', 'face');
+    await backFromHeader(page).click();
+    await expect(overlay(page)).toHaveAttribute('data-layer', 'order');
+    await backFromHeader(page).click();
+    await expect(overlay(page)).toHaveCount(0);
+    expect(await selectedTab(page)).toEqual(['Orders']);
+
+    // Taking the only tea off a draft leaves it empty and the tea no longer ordering.
+    await page.getByRole('button', { name: 'Open the order with Wang Laoshi' }).click();
+    await page.getByTestId('order-screen').getByRole('button', { name: 'remove' }).click();
+    await expect(orderRows(page)).toHaveCount(0);
+    await expect(page.getByTestId('order-screen')).toContainText('Nothing on this order yet');
+    await tab(page, 'Today').click();
+    await expect(page.getByTestId('today-section-way')).not.toContainText('Mengku Laobanzhang');
+  });
+
+  test('Journey 3: a tea with no vendor goes on the order for "No vendor yet"', async ({ page }) => {
+    await installCompassHarness(page, {
+      ...BUY_DATA,
+      compassEntries: [entry({ id: 'b-4', name: 'Nameless Oolong', form: 'Cake', price_amount: 120, price_currency: 'Yuan', vendor_name: null, vendor_id: null, tasting: JSON.stringify({ quality: 6 }) })],
+    });
+    await openCurateV2(page, 'today');
+    await page.getByTestId('today-section-decide').getByRole('button', { name: /Nameless Oolong/ }).click();
+    await buyButton(page).click();
+    await expect(page.getByTestId('order-vendor')).toHaveText('No vendor yet');
+    await expect(orderRows(page)).toHaveCount(1);
   });
 
   test('Chinese name is suggested, never typed: cross leaves it empty, tick saves it', async ({ page }) => {
