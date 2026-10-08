@@ -124,8 +124,8 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
   // heading to sort by it, tap again to reverse (todo/plans/stock-phone-by-supplier.md).
   // The three number columns are fenced by hairlines: a grid you can read down,
   // drawn in the quiet border tone so it separates without adding noise.
-  const COLS = 'grid grid-cols-[minmax(0,1fr)_36px_42px_38px] items-stretch';
-  const NUM = 'flex items-center justify-end pr-1.5 border-l border-tea-border';
+  const COLS = 'grid grid-cols-[minmax(0,1fr)_34px_40px_36px] gap-x-2.5 items-stretch';
+  const NUM = 'flex items-center justify-end';
   const heads: Array<[PhoneSortKey, string, string]> = [
     ['productName', ware ? 'Piece' : 'Tea', 'text-left'],
     ['year', 'Year', 'text-right'],
