@@ -50,17 +50,16 @@ test.describe('Stock on the phone', () => {
     await shot(page, 'grouped');
   });
 
-  test('tapping a tea opens its panel, and Edit everything opens the full page', async ({ page }) => {
+  test('tapping a tea opens its sheet, and Full page opens the full page', async ({ page }) => {
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     const chen = page.getByTestId('stock-phone').getByRole('region', { name: 'Chen Family' });
     await chen.getByRole('button', { name: /Chen Family/ }).first().click();
     await chen.getByRole('button', { name: /^Green Test Tea 01/ }).click();
     const panel = page.getByRole('region', { name: /Green Test Tea 01, at a glance/ });
     await expect(panel).toBeVisible();
-    await expect(panel).toContainText('Counted');
-    await expect(panel).toContainText('Coming');
+    await expect(panel).toContainText(/counted/i);
     await shot(page, 'panel');
-    await panel.getByRole('button', { name: 'Open', exact: true }).click();
+    await panel.getByRole('button', { name: /Full page/ }).click();
     await expect(page.getByText('Quick entry')).toBeVisible();
   });
 
@@ -69,7 +68,7 @@ test.describe('Stock on the phone', () => {
     const chen = page.getByTestId('stock-phone').getByRole('region', { name: 'Chen Family' });
     await chen.getByRole('button', { name: /Chen Family/ }).first().click();
     await chen.getByRole('button', { name: /^Green Test Tea 07/ }).click();
-    await page.getByRole('region', { name: /Green Test Tea 07, at a glance/ }).getByRole('button', { name: 'Open', exact: true }).click();
+    await page.getByRole('region', { name: /Green Test Tea 07, at a glance/ }).getByRole('button', { name: /Full page/ }).click();
 
     const header = page.getByTestId('phone-tea-header');
     await expect(header.getByRole('region', { name: 'On the shelf' })).toContainText('82 g');
@@ -122,21 +121,83 @@ test.describe('Stock on the phone', () => {
     await expect(incoming).toContainText('Red Test Tea 03');
   });
 
-  test('the panel opens Change stock with every movement, and Count it starts on Recount', async ({ page }) => {
+  test('tapping the grams counts the tea: the ledger gets a recount and the list shows it', async ({ page }) => {
+    const sent: Array<Record<string, unknown>> = [];
+    await page.route('**/api/products/test-product-7/movements', async route => {
+      const body = route.request().postDataJSON() as Record<string, unknown>;
+      sent.push(body);
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ after_balance: body.balance }) });
+    });
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     const chen = page.getByTestId('stock-phone').getByRole('region', { name: 'Chen Family' });
     await chen.getByRole('button', { name: /Chen Family/ }).first().click();
     await chen.getByRole('button', { name: /^Green Test Tea 07/ }).click();
-    const panel = page.getByRole('region', { name: /Green Test Tea 07, at a glance/ });
-    await panel.getByRole('button', { name: 'Change stock for Green Test Tea 07' }).click();
-    const movement = page.getByRole('group', { name: 'Movement type' });
-    for (const name of ['Receive', 'Sample use', 'Gift', 'Waste', 'Return', 'Recount', 'Transfer']) {
-      await expect(movement.getByRole('button', { name, exact: true }).or(movement.getByRole('radio', { name, exact: true }))).toBeVisible();
-    }
-    await shot(page, 'change-stock');
-    await page.getByRole('button', { name: 'Cancel' }).click();
-    await panel.getByRole('button', { name: 'Count it' }).click();
-    await expect(page.getByText('Recount', { exact: true }).first()).toBeVisible();
+    const sheet = page.getByRole('region', { name: /Green Test Tea 07, at a glance/ });
+    await expect(sheet.getByRole('button', { name: 'Take some Green Test Tea 07 out' })).toBeVisible();
+    await expect(sheet.getByRole('button', { name: 'Add some Green Test Tea 07' })).toBeVisible();
+    await sheet.getByRole('button', { name: 'Type a new count for Green Test Tea 07' }).click();
+    const box = sheet.getByRole('textbox', { name: 'What is on the shelf' });
+    await expect(box).toBeFocused();
+    await box.fill('64');
+    await box.press('Enter');
+    await expect.poll(() => sent.length).toBe(1);
+    expect(sent[0]).toMatchObject({ movement_type: 'recount', balance: 64, expected_balance: 82, unit: 'g' });
+    await expect(chen.getByRole('button', { name: /^Green Test Tea 07/ })).toContainText('64');
+    await shot(page, 'counted');
+  });
+
+  test('minus takes an amount and a reason, and shows what is left before saving', async ({ page }) => {
+    const sent: Array<Record<string, unknown>> = [];
+    await page.route('**/api/products/test-product-7/movements', async route => {
+      const body = route.request().postDataJSON() as Record<string, unknown>;
+      sent.push(body);
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ after_balance: 82 - Number(body.quantity) }) });
+    });
+    await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
+    const chen = page.getByTestId('stock-phone').getByRole('region', { name: 'Chen Family' });
+    await chen.getByRole('button', { name: /Chen Family/ }).first().click();
+    await chen.getByRole('button', { name: /^Green Test Tea 07/ }).click();
+    const sheet = page.getByRole('region', { name: /Green Test Tea 07, at a glance/ });
+    await sheet.getByRole('button', { name: 'Take some Green Test Tea 07 out' }).click();
+    await expect(sheet.getByRole('radio', { name: 'Sampled' })).toHaveAttribute('aria-checked', 'true');
+    const box = sheet.getByRole('textbox', { name: 'How much went out' });
+    await box.fill('100');
+    await expect(sheet).toContainText('only 82 g there');
+    await expect(sheet.getByRole('button', { name: 'Save' })).toBeDisabled();
+    await box.fill('7');
+    await expect(sheet).toContainText('leaves 75 g');
+    await sheet.getByRole('button', { name: 'Save' }).click();
+    await expect.poll(() => sent.length).toBe(1);
+    expect(sent[0]).toMatchObject({ movement_type: 'sample_use', quantity: 7, expected_balance: 82 });
+  });
+
+  test('tapping the name, the price or Shop changes the tea itself', async ({ page }) => {
+    const writes: Array<Record<string, unknown>> = [];
+    await page.route(/\/api\/products\/test-product-7(\/[a-z-]+)?$/, async route => {
+      if (route.request().method() === 'GET') return route.fallback();
+      writes.push(route.request().postDataJSON() as Record<string, unknown>);
+      await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+    });
+    await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
+    const chen = page.getByTestId('stock-phone').getByRole('region', { name: 'Chen Family' });
+    await chen.getByRole('button', { name: /Chen Family/ }).first().click();
+    await chen.getByRole('button', { name: /^Green Test Tea 07/ }).click();
+    let sheet = page.getByRole('region', { name: /Green Test Tea 07, at a glance/ });
+    await sheet.getByRole('button', { name: 'Rename Green Test Tea 07' }).click();
+    await sheet.getByRole('textbox', { name: 'Rename Green Test Tea 07' }).fill('Spring Dragonwell');
+    await sheet.getByRole('textbox', { name: 'Rename Green Test Tea 07' }).press('Enter');
+    await expect(chen.getByRole('button', { name: /^Spring Dragonwell/ })).toBeVisible();
+    sheet = page.getByRole('region', { name: /Spring Dragonwell, at a glance/ });
+    await sheet.getByRole('button', { name: /Shop price per gram/ }).click();
+    await sheet.getByRole('textbox', { name: /Shop price per gram/ }).fill('0.9');
+    await sheet.getByRole('textbox', { name: /Shop price per gram/ }).press('Enter');
+    const shop = sheet.getByRole('switch', { name: /in the shop/ });
+    const wasOn = (await shop.getAttribute('aria-checked')) === 'true';
+    await shop.click();
+    await expect(shop).toHaveAttribute('aria-checked', wasOn ? 'false' : 'true');
+    await expect.poll(() => writes.length).toBeGreaterThanOrEqual(3);
+    const all = Object.assign({}, ...writes);
+    expect(all).toMatchObject({ product_name: 'Spring Dragonwell', fixed_retail_price_usd: 0.9, is_public: !wasOn });
   });
 
   test('a supplier opens its source panel, from the group line and from a tea', async ({ page }) => {

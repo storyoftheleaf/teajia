@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, ChevronDown, ChevronRight, X as XIcon } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Check, ChevronDown, ChevronRight } from 'lucide-react';
 import type { Product } from '../../../types';
 import type { IncomingInventorySummary } from '../domain';
 import { fmtNum } from '../../../../utils/formatNumber';
+import { PhoneTeaSheet } from './PhoneTeaSheet';
 import { getThemeColor, getThemeTextColor } from '../../../themeUtils';
 import {
   PHONE_GROUP_LABELS, groupStock, isLow, isTeaware, isUnchecked, onHand, sellingPricePerGram,
@@ -65,8 +66,10 @@ export interface PhoneStockListProps {
   incomingByProductId: Readonly<Record<string, IncomingInventorySummary>>;
   onToggleSelect: (id: string) => void;
   onOpenEditor: (product: Product) => void;
-  onChangeStock: (product: Product, trigger: HTMLElement) => void;
-  onRecount: (product: Product, trigger: HTMLElement) => void;
+  /** The same save the full tea page uses: optimistic, then the product row. */
+  onUpdate: (id: string, field: keyof Product, value: unknown) => void;
+  /** Puts a stock-ledger balance into the list after the sheet records a movement. */
+  onMovementRecorded: (productId: string, afterBalance: number, unit: 'g' | 'unit') => void;
   onOpenSource: (product: Product) => void;
   /** The column the list is sorted by, and which way. Groups keep this order inside them. */
   sortKey?: PhoneSortKey | null;
@@ -80,27 +83,13 @@ function money(n: number): string {
   return `$${Math.round(n).toLocaleString('en-US')}`;
 }
 
-function qtyLabel(product: Product): string {
-  const qty = onHand(product);
-  if (isTeaware(product)) return product.quantityUnits == null ? '—' : `${qty} pc`;
-  return `${qty.toLocaleString('en-US')} g`;
-}
-
-function checkedLabel(product: Product): string {
-  if (!product.stockVerifiedAt) return 'never';
-  const d = new Date(product.stockVerifiedAt);
-  return Number.isNaN(d.getTime()) ? 'never' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-}
-
 export const PhoneStockList: React.FC<PhoneStockListProps> = ({
   products, groupBy, priceMode, searchActive, selectedIds, incomingByProductId,
-  onToggleSelect, onOpenEditor, onChangeStock, onRecount, onOpenSource,
+  onToggleSelect, onOpenEditor, onUpdate, onMovementRecorded, onOpenSource,
   sortKey, sortDir = 'asc', onSort,
 }) => {
   const [open, setOpen] = useState<Set<string>>(readOpen);
   const [focusedId, setFocusedId] = useState<string | null>(null);
-  const changeRef = useRef<HTMLButtonElement>(null);
-  const countRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => { try { sessionStorage.setItem(OPEN_KEY, JSON.stringify([...open])); } catch { /* storage blocked */ } }, [open]);
 
@@ -259,50 +248,14 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
       })}
 
       {focused && !selecting && (
-        <section
-          aria-label={`${focused.productName}, at a glance`}
-          className="sheet-behind-nav fixed left-0 right-0 z-drawer rounded-t-xl bg-tea-surface px-5 pt-2"
-        >
-          <div aria-hidden="true" className="mx-auto mb-3 h-[3px] w-8 rounded-full bg-tea-elevated" />
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={() => setFocusedId(null)} aria-label="Close" className="-ml-2 -my-2 flex h-11 w-8 shrink-0 items-center justify-center text-tea-text-sec hover:text-tea-text"><XIcon size={16} aria-hidden="true" /></button>
-            <button type="button" onClick={() => onOpenEditor(focused)} className="min-w-0 flex-1 truncate text-left font-display text-ui-20 font-semibold leading-tight text-tea-text">{focused.productName}</button>
-            <span className={`shrink-0 font-mono text-ui-16 tabular-nums ${isLow(focused) ? 'text-tea-error' : 'text-tea-text'}`}>
-              {isTeaware(focused) ? (focused.quantityUnits ?? '—') : onHand(focused).toLocaleString('en-US')}
-              <span className="ml-0.5 font-sans text-ui-11 text-tea-text-dim">{isTeaware(focused) ? 'pc' : 'g'}</span>
-            </span>
-          </div>
-          <div className="ml-8 mt-0.5 flex items-center gap-1.5 text-ui-12 text-tea-text-sec min-w-0">
-            {!isTeaware(focused) && <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: getThemeColor(focused.type) }} />}{/* color-data: the tea kind's own colour */}
-            <span className="truncate">
-              <span style={isTeaware(focused) ? undefined : { color: getThemeTextColor(focused.type) }}>{focused.type}</span>
-              {focused.year ? <> · <span className="font-mono tabular-nums">{focused.year}</span></> : null}
-              {focused.vendor ? <> · <button type="button" onClick={() => onOpenSource(focused)} className="text-tea-text-sec underline decoration-tea-border underline-offset-2">{focused.vendor}</button></> : null}
-            </span>
-          </div>
-          <dl className="grid grid-cols-3 gap-x-3 gap-y-1.5 mt-3">
-            {([
-              [priceMode === 'cost' ? 'Cost' : (isTeaware(focused) ? '$ ea' : '$/g'), (() => { const pr = priceOf(focused); return pr == null ? '—' : fmtNum(pr); })(), 'num'],
-              ['Flags', isTeaware(focused) ? '—' : `${(focused.lowStockThreshold ?? 0).toLocaleString('en-US')} g`, 'num'],
-              ['Counted', checkedLabel(focused), checkedLabel(focused) === 'never' ? 'warn' : ''],
-              ['Shop', !focused.isPublic ? 'off' : focused.shownInShop === false ? 'hidden' : 'shown', ''],
-              ['Coming', (() => { const c = incomingByProductId[focused.id]; return c?.hasOpenIncoming && c.remainingQuantity > 0 ? `+${fmtNum(c.remainingQuantity)}` : 'nothing'; })(), ''],
-              ['Bought', Number(focused.quantityPurchased) > 0 ? `${Number(focused.quantityPurchased).toLocaleString('en-US')} ${isTeaware(focused) ? 'pc' : 'g'}` : '—', 'num'],
-            ] as const).map(([k, v, tone]) => (
-              <div key={k} className="flex min-w-0 items-baseline justify-between gap-2 border-b border-tea-border pb-1">
-                <dt className="shrink-0 text-ui-10 uppercase tracking-[0.1em] text-tea-text-dim">{k}</dt>
-                <dd className={`truncate text-right ${tone === 'num' ? 'font-mono text-ui-14 tabular-nums text-tea-text' : tone === 'warn' ? 'text-ui-13 text-tea-error' : 'text-ui-13 text-tea-text'}`}>{v}</dd>
-              </div>
-            ))}
-          </dl>
-          <div className="flex items-center mt-4 border-t border-tea-border">
-            <button type="button" onClick={() => onOpenEditor(focused)} className="flex-1 h-11 text-ui-13 text-tea-gold">Open</button>
-            <span aria-hidden="true" className="w-px h-4 bg-tea-border" />
-            <button ref={changeRef} type="button" onClick={() => changeRef.current && onChangeStock(focused, changeRef.current)} aria-label={`Change stock for ${focused.productName}`} className="flex-1 h-11 text-ui-13 text-tea-text">Change stock</button>
-            <span aria-hidden="true" className="w-px h-4 bg-tea-border" />
-            <button ref={countRef} type="button" onClick={() => countRef.current && onRecount(focused, countRef.current)} className="flex-1 h-11 text-ui-13 text-tea-text">Count it</button>
-          </div>
-        </section>
+        <PhoneTeaSheet
+          product={focused}
+          onClose={() => setFocusedId(null)}
+          onOpenEditor={onOpenEditor}
+          onOpenSource={onOpenSource}
+          onUpdate={onUpdate}
+          onMovementRecorded={onMovementRecorded}
+        />
       )}
     </div>
   );
