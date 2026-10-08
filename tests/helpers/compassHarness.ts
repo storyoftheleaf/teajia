@@ -11,6 +11,7 @@ const failuresByPage = new WeakMap<Page, Array<{ match: RequestMatch; left: numb
 const delaysByPage = new WeakMap<Page, Array<{ match: RequestMatch; ms: number }>>();
 type HarnessProduct = Record<string, any>;
 const productsByPage = new WeakMap<Page, HarnessProduct[]>();
+const purchaseOrdersByPage = new WeakMap<Page, Array<Record<string, any>>>();
 const matches = (match: RequestMatch, key: string) => (typeof match === 'string' ? match === key : match.test(key));
 export const COMPASS_TOKEN = `${enc(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${enc(JSON.stringify({ sub: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', platform_role: 'platform_owner', exp: Math.floor(Date.now() / 1000) + 86400, active_account_id: 'acct-bali', memberships }))}.test`;
 
@@ -28,6 +29,7 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
   // same canned body to every call and could not tell a tea that arrives with its
   // cost from one that arrives with none.
   const purchaseOrders: Array<Record<string, any>> = [];
+  purchaseOrdersByPage.set(page, purchaseOrders);
   const receiptProposals: Array<Record<string, any>> = [];
   const createdProducts: HarnessProduct[] = [];
   productsByPage.set(page, createdProducts);
@@ -254,7 +256,13 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       purchaseOrders.push({ id: 'po-created', ...input, items });
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 'po-created' }) });
     }
-    if (/^\/api\/purchase-orders\/[^/]+$/.test(path) && route.request().method() === 'PUT') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
+    // An order the shop does not hold is a 404, not a quiet success (the real worker, 2026-10-09).
+    if (/^\/api\/purchase-orders\/[^/]+$/.test(path) && route.request().method() === 'PUT') {
+      const held = purchaseOrders.some((po) => po.id === path.split('/').pop());
+      return held
+        ? route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) })
+        : route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'Purchase order not found' }) });
+    }
     // A receipt proposal is idempotent by its key: the same key answers the same row (200), a new one makes it (201).
     const proposalMatch = path.match(/^\/api\/compass\/entries\/([^/]+)\/receipt-proposals$/);
     if (proposalMatch && route.request().method() === 'POST') {
@@ -369,6 +377,10 @@ export function compassCreatedProducts(page: Page): HarnessProduct[] {
   return productsByPage.get(page) ?? [];
 }
 
+/** The shop forgets every purchase order it was told about: a later update to one answers 404. */
+export function forgetCompassPurchaseOrders(page: Page) {
+  purchaseOrdersByPage.get(page)?.splice(0);
+}
 /** From now on, requests matching this key (METHOD /path) answer 500: the next `times`, or every one. */
 export function failCompassRequests(page: Page, match: RequestMatch, times = Infinity) {
   failuresByPage.get(page)?.push({ match, left: times });

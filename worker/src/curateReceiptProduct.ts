@@ -1,4 +1,4 @@
-import { canonicalizeCostCurrency } from './costCurrency';
+import { canonicalizeCostCurrency, stampCostCurrencySource } from './costCurrency';
 import { refreshedCurrencyName } from './exchangeRateFeed';
 import { tastingForShop, tastingHasTerms } from './curateImportTasting';
 import { customerTagList } from './customerContactHandles';
@@ -77,5 +77,10 @@ export async function receiptProductDetails(db: D1Database, accountId: string, p
     shipping_rate_per_kg: null, markup_multiplier: null,
   };
   canonicalizeCostCurrency(details);
+  // The order line STATED this currency (it is refused above when it is not
+  // supported, never defaulted), so the product is marked as an answer rather
+  // than left in the unstated backlog a vendor-wide currency fix would rewrite.
+  // Through the shared helper, which marks only a currency that was really given.
+  stampCostCurrencySource(details);
   return details;
 }
