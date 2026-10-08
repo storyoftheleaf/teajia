@@ -193,7 +193,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
       {focused && !selecting && (
         <section
           aria-label={`${focused.productName}, at a glance`}
-          className="fixed left-0 right-0 bottom-nav z-drawer rounded-t-xl border-t border-tea-gold bg-tea-surface px-4 pt-2 pb-3 shadow-xl"
+          className="fixed left-0 right-0 bottom-nav z-drawer rounded-t-xl border-t border-tea-border bg-tea-surface px-4 pt-2 pb-3 shadow-xl"
         >
           <div className="flex items-start gap-3">
             <button type="button" onClick={() => setFocusedId(null)} aria-label="Close" className="tap-target -ml-1 mt-1 text-tea-text-sec hover:text-tea-text"><XIcon size={18} aria-hidden="true" /></button>
