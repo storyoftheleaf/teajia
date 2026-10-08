@@ -8,6 +8,7 @@ import { hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { CaptureCard } from '../../components/CurateV2/CaptureCard';
 import { TASTING_TAXONOMY } from '../../data/tastingTaxonomy';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
+import { PhoneSamplesList } from './inventory/phone/PhoneSamplesList';
 
 type Portion = { id: string; name: string; grams: number | null; status: string; compass_entry_id: string };
 type Holding = { entry: Record<string, any>; stock_grams: number; sample_grams: number | null; samples: Portion[] };
@@ -32,6 +33,8 @@ export function CurateSamplesView({ search = '' }: { search?: string }) {
  const [busy, setBusy] = useState(false);
  const [error, setError] = useState('');
  const [message, setMessage] = useState('');
+ const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
+ useEffect(() => { const mq = window.matchMedia('(max-width: 767px)'); const on = () => setIsMobile(mq.matches); mq.addEventListener('change', on); return () => mq.removeEventListener('change', on); }, []);
  useEffect(() => { setEditing(null); setAction(null); setReview(null); setError(''); setMessage(''); }, [accountId]);
  const refresh = async () => { await client.invalidateQueries({ queryKey: ['curate-samples-only', accountId] }); };
  const start = (next: Action) => {
@@ -75,6 +78,17 @@ export function CurateSamplesView({ search = '' }: { search?: string }) {
  };
  const rows = (holdings.data ?? []).filter(h => `${h.entry.name ?? ''} ${h.entry.chinese_name ?? ''} ${h.entry.vendor_name ?? ''}`.toLowerCase().includes(search.toLowerCase()));
  if (editing) return <div className="min-w-0 overflow-y-auto pb-nav-gap"><button className={button} onClick={async () => { setEditing(null); await refresh(); }}><ArrowLeft size={16} className="inline mr-2" />Back to samples</button><CaptureCard entryId={editing} onReturnToLibrary={() => { setEditing(null); void refresh(); }} onCommit={() => { void refresh(); }} /></div>;
+ // On the phone, samples look exactly like Stock: the same list, the same sheet.
+ // Ordering still uses the form below, shown for just the one tea.
+ if (isMobile && !(action && action.kind === 'order')) return <section aria-label="Samples-only inventory" className="min-w-0 flex-1 overflow-y-auto pb-nav-gap">
+  {error && <p role="alert" className="px-4 py-3 text-ui-14 text-tea-text">{error}</p>}
+  {message && <p role="status" className="px-4 py-3 text-ui-14 text-tea-text">{message}</p>}
+  {holdings.isLoading && <p role="status" className="flex items-center gap-2 p-4 text-ui-14 text-tea-text-dim"><Loader2 size={16} className="animate-spin" />Loading samples…</p>}
+  {holdings.isError && <div role="alert" className="p-4 text-ui-14 text-tea-text">Samples could not be loaded.<button className={button} onClick={() => { void refresh(); }}>Try again</button></div>}
+  {!holdings.isLoading && !holdings.isError && !rows.length && <p className={`${TYPOGRAPHY_CLASSES.bodyLight} p-4 text-tea-text-dim`}>{search ? 'No samples match this search.' : 'No received or tasted samples without full stock yet.'}</p>}
+  {rows.length > 0 && <PhoneSamplesList holdings={rows} onEditTea={id => { void edit(id); }} onOrder={holding => start({ kind: 'order', holding })} onChanged={refresh} />}
+ </section>;
+ const shownRows = isMobile && action?.kind === 'order' ? rows.filter(h => h.entry.id === action.holding.entry.id) : rows;
  return <section aria-label="Samples-only inventory" className="min-w-0 flex-1 overflow-y-auto pb-nav-gap">
   <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-5 border-b border-tea-border">
    <div className="min-w-0 flex-1"><h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Samples only</h2><p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-dim mt-1`}>Received and tasted teas with no full stock. Each physical portion keeps its own grams.</p></div>
@@ -85,7 +99,7 @@ export function CurateSamplesView({ search = '' }: { search?: string }) {
   {holdings.isLoading && <p role="status" className="flex items-center gap-2 p-4 text-ui-14 text-tea-text-dim"><Loader2 size={16} className="animate-spin" />Loading samples…</p>}
   {holdings.isError && <div role="alert" className="p-4 text-ui-14 text-tea-text">Samples could not be loaded.<button className={button} onClick={() => { void refresh(); }}>Try again</button></div>}
   {!holdings.isLoading && !holdings.isError && !rows.length && <p className={`${TYPOGRAPHY_CLASSES.bodyLight} p-4 text-tea-text-dim`}>{search ? 'No samples match this search.' : 'No received or tasted samples without full stock yet.'}</p>}
-  {rows.map(holding => <article key={holding.entry.id} data-testid="curate-sample-row" className="min-w-0 border-b border-tea-border px-4 py-4">
+  {shownRows.map(holding => <article key={holding.entry.id} data-testid="curate-sample-row" className="min-w-0 border-b border-tea-border px-4 py-4">
    <div className="flex flex-wrap items-start justify-between gap-3">
     <div className="min-w-0"><h3 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text break-words`}>{holding.entry.name || holding.entry.chinese_name || 'Unnamed tea'}</h3><p className="mt-1 text-ui-13 text-tea-text-dim">{[holding.entry.year, holding.entry.type, holding.entry.vendor_name].filter(Boolean).join(' · ')}</p></div>
     <div className="flex flex-wrap gap-1"><button className={button} disabled={busy} onClick={() => { void edit(holding.entry.id); }}>Edit tea</button><button className={button} disabled={busy || !holding.entry.vendor_id || holding.entry.price_amount == null || !holding.entry.price_currency} onClick={() => start({ kind: 'order', holding })}>Order tea</button></div>

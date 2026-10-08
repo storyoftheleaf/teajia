@@ -5,6 +5,7 @@ import type { Product } from '../../../types';
 import { fmtNum } from '../../../../utils/formatNumber';
 import { getThemeTextColor } from '../../../themeUtils';
 import { isLow, isTeaware, isUnchecked, onHand, sellingPricePerGram } from './groupStock';
+import { DEFAULT_TASTE_GRAMS } from './PhoneSamplesList';
 
 // The tea's sheet on the phone Stock list. Every value on it is its own control:
 // tap the name, the grams, the price, and type. Nothing here keeps a copy of a
@@ -109,7 +110,8 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
   const openWay = (w: Way) => {
     setWay(w);
     setError('');
-    setAmount(w === 'count' ? String(Math.round(current)) : '');
+    // A sample is usually 5 g, so − opens on Sampled with 5 already typed.
+    setAmount(w === 'count' ? String(Math.round(current)) : w === 'out' ? String(DEFAULT_TASTE_GRAMS) : '');
     if (w === 'out') setWhy('sample_use');
   };
 

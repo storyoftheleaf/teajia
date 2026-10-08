@@ -225,8 +225,11 @@ test.describe('Stock on the phone', () => {
   });
 
   test('Incoming groups deliveries by supplier with how they travel and when they are due', async ({ page }) => {
-    const soon = new Date(Date.now() + 6 * 86_400_000).toISOString().slice(0, 10);
-    const past = new Date(Date.now() - 3 * 86_400_000).toISOString().slice(0, 10);
+    // Local calendar days, the way the screen counts them. toISOString() is UTC,
+    // which in Bali is the previous day until 8 am, and the test went red daily.
+    const localDay = (offset: number) => { const d = new Date(); d.setDate(d.getDate() + offset); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+    const soon = localDay(6);
+    const past = localDay(-3);
     const transportCalls: unknown[] = [];
     await page.route('**/api/inventory/receipts**', route => route.fulfill({ json: [
       { id: 'r1', state: 'in_transit', vendor_name: 'Chen Family', source_kind: 'invoice', source_ref: 'WeChat', eta: soon, transport_mode: 'air', lines: [{ id: 'l1', product_id: 'test-product-1', product_name: 'Green Test Tea 01', expected_quantity: 500, received_quantity: 0, cancelled_quantity: 0, unit: 'g', intended_purpose: 'working' }] },
