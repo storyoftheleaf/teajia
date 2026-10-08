@@ -34,7 +34,7 @@ const TABLES: Record<CurateRecordedEntity, string> = { tea: 'tea_compass_entries
 const keyColumn=(entity:CurateRecordedEntity)=>entity==='vendor_profile'?'vendor_id':'id';
 const FIELDS: Record<CurateEntity, string[]> = {
  tea: ['name','chinese_name','type','form','year','season','storage','origin_country','origin_region','classification','cultivar','description','notes','shop_name','transport_mode','price_amount','price_currency','price_per_unit_grams',...COMPASS_STRUCTURED_COLUMNS],
- vendor: ['name','chinese_name','company','email','phone','whatsapp','address','city','country','notes'],
+ vendor: ['name','chinese_name','company','email','phone','whatsapp','address','city','country','notes','preferred_currency'],
  note: ['text'],transcript:['text'],attachment:[],todo: ['text'], sample: ['grams'],
 };
 
@@ -180,7 +180,7 @@ function cleanFields(entity:CurateEntity, fields:Record<string,unknown>): Row {
    if(value!==null && (typeof value!=='number'||!Number.isFinite(value)||value<0||(key==='price_per_unit_grams'&&value===0))) throw new Error(`${key} must be a nonnegative number (unit grams must be positive) or null`);
    output[key]=value;continue;
   }
-  if(key==='price_currency') { if(value===null) output[key]=null; else { const currency=typeof value==='string'?refreshedCurrencyName(value):null; if(!currency) throw new Error('A price currency must be supported and stated');output[key]=currency;} continue; }
+  if(key==='price_currency' || key==='preferred_currency') { if(value===null) output[key]=null; else { const currency=typeof value==='string'?refreshedCurrencyName(value):null; if(!currency) throw new Error(`${key} must be a supported currency or null`);output[key]=currency;} continue; }
   if (key==='year') { if(value!==null && (!Number.isInteger(value)|| Number(value)<1 || Number(value)>9999)) throw new Error('Year must be an integer or null'); output[key]=value; continue; }
   if(value !== null && typeof value !== 'string') throw new Error(`${key} must be text or null`);
   if(key==='notes' && typeof value==='string' && value.trim()) throw new Error('Use structured fields, not notes. Notes may only be cleared.');
@@ -380,7 +380,7 @@ async function commitCurateMutation(env:ToolEnv,auth:ToolAuth,t:CurateMutationTi
  if(!result[0]?.meta?.changes) return {error:'stale_preview',message:'The record or its physical holdings changed. Preview the correction again.'};
  return {confirmed:true,mutation_id:prepared.mutationId,undo_of:t.undoOf};
 }
-export async function readCurateHistory(env:ToolEnv,auth:ToolAuth,options:{entity_type?:string;entity_id?:string;limit?:number}={}) {
+export async function readCurateHistory(env:ToolEnv,auth:ToolAuth,options:{entity_type?:string;entity_id?:string;limit?:number}={}):Promise<{history:Array<Row & {records:Row[]}>}> {
  await requireCurateManager(env.DB,auth);
  if(options.entity_type && options.entity_type!=='arrival' && !Object.hasOwn(TABLES,options.entity_type)) throw new Error('Unsupported history entity');
  const entityType=options.entity_type??'tea';

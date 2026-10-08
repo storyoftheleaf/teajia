@@ -1,9 +1,10 @@
 import type { ToolAuth, ToolEnv } from './mcpTools/registry';
-import { requireCurateManager, previewCurateMutation, confirmCurateMutation, previewCurateUndo, readCurateHistory } from './curateMutations';
+import { requireCurateManager, confirmCurateMutation, previewCurateUndo, readCurateHistory } from './curateMutations';
 import { readVendorStructuredProfile, prepareVendorStructuredProfileWrite } from './curateVendorProfile';
 import { getCurateQuote, listCurateQuotes, prepareCurateQuoteWrite } from './curateQuotes';
 import { listCurateAttachments, readCurateAttachment, uploadCurateAttachment, type AttachmentTarget } from './curateAttachments';
 import { readCurateHoldings } from './curateHoldings';
+import { curateManageModule } from './mcpTools/curateManage';
 import { curateSupplyTools } from './mcpTools/curateSupply';
 
 async function boundedJson(request:Request) {
@@ -61,7 +62,7 @@ export async function handleCurateWorkspace(request:Request,env:ToolEnv,auth:Too
     if(path==='/api/curate/history')return Response.json(await readCurateHistory(env,auth,{entity_type:url.searchParams.get('entity_type')||undefined,entity_id:url.searchParams.get('entity_id')||undefined}));
     if(path==='/api/curate/correct'){
       const body=await boundedJson(request);
-      return Response.json(body.confirm?await confirmCurateMutation(env,auth,body.confirm):await previewCurateMutation(env,auth,body.command,auth.userEmail || 'Shop app'));
+      return Response.json(await curateManageModule.handlers.curate_correct(env,auth,body.confirm?{confirmation_token:body.confirm}:{...body.command,agent:auth.userEmail || 'Shop app'}));
     }
     if(path==='/api/curate/undo'){
       const body=await boundedJson(request);

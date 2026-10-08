@@ -1,5 +1,5 @@
 import { ROUTE_QUOTES_SCHEMA, CONTACT_PEOPLE_SCHEMA, ADDRESSES_SCHEMA, CONTACTS_SCHEMA } from './curateSchemas';
-import { prepareCurateRecordedWrite, requireCurateManager, previewCurateMutation, confirmCurateMutation } from '../curateMutations';
+import { prepareCurateRecordedWrite, requireCurateManager, previewCurateMutation, confirmCurateMutation, readCurateHistory } from '../curateMutations';
 import { COMPASS_STRUCTURED_COLUMNS, readCompassStructuredPatch, readVendorStructuredPatch, mergeVendorContacts, type VendorStructuredFields, type VendorContactEndpoint } from '../../../src/lib/curateStructuredFields';
 import { prepareVendorStructuredProfileWrite, readVendorStructuredProfile } from '../curateVendorProfile';
 import { validateCompassQuoteLink } from '../curateQuotes';
@@ -245,10 +245,10 @@ function readTasting(args: any): { byCategory: Record<string, string[]>; score: 
 export type VendorRow = {
   id: string; name: string; chinese_name?: string | null; company: string | null; phone: string | null; whatsapp: string | null;
   email: string | null; city: string | null; country: string | null; address: string | null;
-  notes: string | null; contacts: string | null; tags: string | null; type: string | null;
+  notes: string | null; contacts: string | null; tags: string | null; type: string | null; preferred_currency?: string | null;
 };
 
-const VENDOR_COLUMNS = 'id, name, chinese_name, company, phone, whatsapp, email, city, country, address, notes, contacts, tags, type';
+const VENDOR_COLUMNS = 'id, name, chinese_name, company, phone, whatsapp, email, city, country, address, notes, contacts, tags, type, preferred_currency';
 
 function isVendorRow(row: Pick<VendorRow, 'tags' | 'type'>): boolean {
   return /vendor/i.test(row.tags ?? '') || row.type === 'vendor' || row.type === 'supplier';
@@ -677,6 +677,7 @@ export function vendorSummary(v: VendorRow) {
     name: v.name,
     chinese_name: v.chinese_name ?? null,
     company: v.company,
+    preferred_currency: v.preferred_currency ?? null,
     city: v.city,
     country: v.country,
     phone: v.phone,
@@ -704,6 +705,9 @@ const toolGetTea: ToolHandler = async (env, auth, args) => {
     e.vendor_id ? vendorById(env, auth, String(e.vendor_id)) : Promise.resolve(null),
   ]);
   const tasting = readStoredTasting(e.tasting);
+  const recentHistory = await curateManagerAccess(env, auth)
+    ? (await readCurateHistory(env, auth, { entity_type: 'tea', entity_id: id, limit: 5 })).history
+    : [];
   return {
     tea: teaSummary(e),
     details: {
@@ -716,6 +720,17 @@ const toolGetTea: ToolHandler = async (env, auth, args) => {
     notes: notes.results ?? [],
     open_todos: todos.results ?? [],
     vendor: vendor ? vendorSummary(vendor) : null,
+    recent_history: recentHistory.map(m => ({
+      mutation_id: m.id, action: m.command_type, agent: m.agent_name, confirmed_at: m.confirmed_at,
+      undo_of: m.undo_of, undone_by: m.undone_by,
+      changes: m.records.map((record: Record<string, any>) => {
+        const before = parseJson<Record<string, unknown> | null>(record.before_json, null);
+        const after = parseJson<Record<string, unknown> | null>(record.after_json, null);
+        return { entity_type: record.entity_type, entity_id: record.entity_id,
+          fields: [...new Set([...Object.keys(before ?? {}), ...Object.keys(after ?? {})])]
+            .filter(key => JSON.stringify(before?.[key]) !== JSON.stringify(after?.[key])) };
+      }),
+    })),
   };
 };
 
@@ -853,7 +868,7 @@ const VENDOR_TEXT_COLUMNS: Array<[string, string, number]> = [
 const VENDOR_CLEARABLE = new Set([
   ...VENDOR_TEXT_COLUMNS.map(([key]) => key), 'wechat', 'website', 'instagram', 'fax', 'facebook',
   'vendor_code', 'contact_people', 'addresses', 'contacts', 'price_currency', 'storage', 'story',
-  'ships_from', 'route', 'lead_time_days', 'note', 'vendor_note', 'notes',
+  'ships_from', 'route', 'lead_time_days', 'note', 'vendor_note', 'notes', 'preferred_currency',
 ]);
 const VENDOR_CLEAR_CHANNELS = new Set(['phone','email','whatsapp','wechat','website','instagram','fax','facebook']);
 
@@ -888,6 +903,13 @@ const toolSaveVendor: ToolHandler = async (env, auth, args) => {
   const columns: Record<string, string | null> = {};
   const lines: string[] = clear.map(field => `Cleared: ${field}`);
   const profile = readVendorProfile(args, lines);
+  if (args?.preferred_currency !== undefined) {
+    const currency = args.preferred_currency === null ? null
+      : typeof args.preferred_currency === 'string' ? refreshedCurrencyName(args.preferred_currency) : null;
+    if (args.preferred_currency !== null && !currency) throw new Error('preferred_currency must be a supported currency or null');
+    columns.preferred_currency = currency;
+    lines.push(`preferred currency on contact: ${currency ?? '(cleared)'}`);
+  }
   for (const [key, word, max] of VENDOR_TEXT_COLUMNS) {
     const v = str(args?.[key], max);
     if (args?.[key] === null) { columns[key] = null; lines.push(`${word}: (cleared)`); }
@@ -1386,7 +1408,7 @@ const defs: ToolDefinition[] = [
   {
     name: 'curate_get_tea',
     scope: 'inventory:read',
-    description: 'Use this to read everything Curate knows about one tea: fields, price as quoted, tasting with labels, every note and transcript, open to-dos, its vendor card, and what is missing. Use it to write tea.md in Drive.',
+    description: 'Use this to read everything Curate knows about one tea: fields, price as quoted, tasting with labels, every note and transcript, open to-dos, its vendor card, and what is missing. Shop managers also receive the five most recent history entries with changed fields and undo attribution. Use it to write tea.md in Drive.',
     inputSchema: {
       type: 'object',
       properties: { tea_id: { type: 'string', description: 'Tea id from curate_find.' } },
@@ -1455,6 +1477,7 @@ const defs: ToolDefinition[] = [
         note: { type: ['string', 'null'], description: 'Unsupported for agents; structured vendor fields are required.' },
         role: { type: 'string', enum: ['vendor', 'freight', 'warehouse'], description: 'vendor (default), freight (a forwarder or shipping agent), or warehouse (a distributor or storage).' },
         price_currency: { type: ['string', 'null'], description: 'The currency this vendor quotes in, e.g. HKD for a Hong Kong shop. Next time a price from them comes without one, propose this one and read it back.' },
+        preferred_currency: { type: ['string', 'null'], description: 'Preferred currency on the underlying vendor contact. Explicitly independent from the Curate profile price_currency; accepts known currency aliases, null clears.' },
         storage: { type: ['string', 'null'], description: 'How their tea is stored, e.g. "Hong Kong traditional storage".' },
         story: { type: ['string', 'null'], description: 'A fact about them worth telling, e.g. "in business for 70 years". Added under what is already known.' },
         ships_from: { type: ['string', 'null'], description: 'Where their tea leaves from, e.g. "Sheung Wan, Hong Kong".' },

@@ -1088,7 +1088,15 @@ async function toolGetTea(env: Env, auth: McpAuth, args: any) {
        FROM products WHERE id = ? AND account_id = ?`
   ).bind(id, accountId).first() as ProductRow & { description?: string; tasting_notes?: string; cost_amount?: number; cost_currency?: string } | null;
 
-  if (!product) return { error: 'not_found' };
+  if (!product) {
+    // An omitted source may be a Curate ID. Never present it as a product ID,
+    // and never use fallback to reveal private sourcing to an ordinary reader.
+    if (args?.source === undefined && await curateManagerAccess(env, auth)) {
+      const [holding] = await readCurateHoldings(env.DB, accountId, { teaId: id });
+      if (holding) return curateHoldingSummary(holding);
+    }
+    return { error: 'not_found' };
+  }
 
   const ledger = await env.DB.prepare(
     `SELECT delta, balance_after, reason, source_invoice_number, user_email, note, created_at
@@ -1111,7 +1119,13 @@ async function toolGetTea(env: Env, auth: McpAuth, args: any) {
 }
 
 // ── tool: list_low_stock ──
-async function toolListLowStock(env: Env, accountId: string) {
+async function toolListLowStock(env: Env, auth: McpAuth, args: any) {
+  const { accountId } = auth;
+  if (args?.include_samples !== undefined && typeof args.include_samples !== 'boolean') throw new Error('include_samples must be boolean');
+  if (args?.include_samples && (typeof args.sample_threshold_grams !== 'number' || !Number.isFinite(args.sample_threshold_grams) || args.sample_threshold_grams < 0)) {
+    throw new Error('include_samples requires an explicit nonnegative sample_threshold_grams; samples have no automatic reorder threshold');
+  }
+  if (args?.include_samples && !await curateManagerAccess(env, auth)) return { error: 'curate_management_required' };
   const { results } = await env.DB.prepare(
     `SELECT id, given_name, product_name, chinese_name, type, form, year,
             origin_country, origin_region, vendor, stock_grams, quantity_units,
@@ -1125,9 +1139,18 @@ async function toolListLowStock(env: Env, accountId: string) {
       LIMIT 50`
   ).bind(accountId).all();
 
+  const samples = args?.include_samples
+    ? (await readCurateHoldings(env.DB, accountId)).filter(holding => holding.samples.length > 0)
+    : [];
   return {
     items: (results as unknown as ProductRow[]).map(p => productSummary(p)),
     count: results.length,
+    ...(args?.include_samples ? {
+      sample_threshold_grams: args.sample_threshold_grams,
+      samples: samples.filter(holding => holding.sample_grams !== null && holding.sample_grams <= args.sample_threshold_grams).map(holding => curateHoldingSummary(holding)),
+      unmeasured_samples: samples.filter(holding => holding.sample_grams === null).map(holding => curateHoldingSummary(holding)),
+      sample_note: 'Sample balances at or below the requested threshold. Unknown balances are separate; sample grams are never sale stock.',
+    } : {}),
   };
 }
 
@@ -5907,18 +5930,18 @@ const TOOL_DEFS = [
   {
     name: 'get_tea',
     scope: 'inventory:read',
-    description: 'Fetch a product by id (default source product), including last 10 stock-ledger entries. Explicit source curate reads a curate_tea_id with sample portions and separate sale stock; requires shop Curate management access.',
+    description: 'Fetch a product by id, including last 10 stock-ledger entries. When source is omitted and no product matches, Curate managers get a separately labeled Curate holding. Explicit source product disables fallback; source curate reads a curate_tea_id with sample portions and separate sale stock. Curate IDs are never product stock IDs.',
     inputSchema: {
       type: 'object',
-      properties: { id: { type: 'string' }, source: { type: 'string', enum: ['product', 'curate'], default: 'product' } },
+      properties: { id: { type: 'string' }, source: { type: 'string', enum: ['product', 'curate'] } },
       required: ['id'],
     },
   },
   {
     name: 'list_low_stock',
     scope: 'inventory:read',
-    description: 'List sale products whose current stock has fallen below their per-product low-stock threshold. Curate sample portions are excluded.',
-    inputSchema: { type: 'object', properties: {} },
+    description: 'List sale products below their per-product low-stock threshold. Optional include_samples with an explicit sample_threshold_grams adds separate Curate sample balances at or below that threshold, plus unmeasured_samples. Requires Curate management for sample reads; never mixes samples into sale stock.',
+    inputSchema: { type: 'object', properties: { include_samples: { type: 'boolean' }, sample_threshold_grams: { type: 'number', minimum: 0, description: 'Required with include_samples. Explicit remaining-grams threshold, inclusive; zero selects exhausted portions. No automatic sample reorder threshold is assumed.' } }, additionalProperties: false },
   },
   {
     name: 'find_customer',
@@ -6895,7 +6918,7 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
   switch (name) {
     case 'search_tea': result = mcpContent(await toolSearchTea(env, auth, args)); break;
     case 'get_tea': result = mcpContent(await toolGetTea(env, auth, args)); break;
-    case 'list_low_stock': result = mcpContent(await toolListLowStock(env, auth.accountId)); break;
+    case 'list_low_stock': result = mcpContent(await toolListLowStock(env, auth, args)); break;
     case 'find_customer': result = mcpContent(await toolFindCustomer(env, auth.accountId, args)); break;
     case 'get_customer': result = mcpContent(await toolGetCustomer(env, auth.accountId, args)); break;
     case 'get_account_context': result = mcpContent(await toolGetAccountContext(env, auth.accountId)); break;
@@ -6962,7 +6985,7 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
 
 const SERVER_INFO = {
   name: 'teajia-inventory',
-  version: '0.8.0',
+  version: '0.9.0',
   description: 'Teajia inventory, orders, customers and Curate. Ask whats_waiting for pending orders and payments. Use search_tea for products and separate Curate sample holdings; curate_find and curate_get_tea read sourcing records. Curate tools cover structured intake, vendor quotes, attachments and uploads, samples and arrivals. curate_correct edits, clears, deletes, archives or merges records; curate_history and curate_undo preserve attribution; select mutation_id to undo a chosen safe change. curate_drive_photo previews trash or restore of a synced Drive backup. Curate management requires shop ownership or explicit curate_manage permission. Writes use preview and confirmation; curate_promote_tea creates a private zero-stock inventory Draft from a Curate tea; stock and sale tools take product ids only. Available tools depend on token scopes: fetch tools/list after connecting or reconnecting.',
 };
 
@@ -7009,7 +7032,7 @@ export async function mcpFetch(request: Request, env: Env): Promise<Response> {
           protocolVersion: requested || PROTOCOL_VERSION,
           capabilities: { tools: { listChanged: false } },
           serverInfo: SERVER_INFO,
-          instructions: 'Read the current tools/list after connecting or reconnecting. Use curate_find/curate_get_tea for sourcing records, and search_tea for separate product matches and curate_holdings. Call get_tea with source: curate and a curate_tea_id for sample holdings. Curate ids are never product stock/sale ids. Use curate_promote_tea to preview and confirm a private zero-stock Draft product, then use the returned product id for inventory tools. Use curate_correct to edit, clear, delete, archive or merge; curate_history/curate_undo to inspect or undo, with mutation_id for a selected change. Photo unlinking retains its Drive copy; curate_drive_photo separately previews trash or restore. Curate management requires active shop ownership or explicit curate_manage permission; tool visibility also depends on token scopes. Confirm writes only after the user accepts their exact preview.',
+          instructions: 'Read the current tools/list after connecting or reconnecting. Use curate_find/curate_get_tea for sourcing records, and search_tea for separate product matches and curate_holdings. Call get_tea with source: curate and a curate_tea_id for sample holdings. Curate ids are never product stock/sale ids. Use curate_promote_tea to preview and confirm a private zero-stock Draft product, then use the returned product id for inventory tools. Use curate_correct to edit, clear, delete, archive or merge; curate_history/curate_undo to inspect or undo, with mutation_id for a selected change. Photo unlinking retains its Drive copy by default; curate_correct remove_photo with trash_drive:true also previews backup cleanup, and curate_drive_photo separately previews trash or restore. Quotes support structured discount conditions including unknown thresholds; curate_save_vendor edits preferred_currency separately from quoted price_currency. list_low_stock include_samples requires an explicit sample_threshold_grams. Curate management requires active shop ownership or explicit curate_manage permission; tool visibility also depends on token scopes. Confirm writes only after the user accepts their exact preview.',
         });
       }
 

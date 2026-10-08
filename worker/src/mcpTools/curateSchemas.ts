@@ -1,5 +1,5 @@
 /** Public MCP shapes for the private structured evidence validators. */
-import { CONTACT_CHANNELS } from '../../../src/lib/curateStructuredFields';
+import { CONTACT_CHANNELS, DISCOUNT_CONDITION_TYPES } from '../../../src/lib/curateStructuredFields';
 const text = (maxLength = 500) => ({ type: 'string', minLength: 1, maxLength });
 const nullableText = (maxLength = 500) => ({ type: ['string', 'null'], minLength: 1, maxLength });
 const list = (items: Record<string, unknown>) => ({ type: 'array', maxItems: 100, items });
@@ -49,6 +49,12 @@ export const QUOTE_SCHEMA = {
     valid_until: { ...nullableText(), pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
     minimum_order_amount: { type: ['number','null'], minimum: 0, description: 'Supply or clear together with currency.' },
     currency: { ...nullableText(20), description: 'Supported stated currency; supply or clear with minimum_order_amount.' },
+    discount_percent: { type: ['number','null'], minimum: 0, maximum: 100, description: 'Explicit document-level discount evidence; never applied to prices.' },
+    discount_condition_type: { type: ['string','null'], enum: [...DISCOUNT_CONDITION_TYPES, null], description: 'none means unconditional; unknown means the threshold was not stated. Null clears. Conditional discounts require an explicit header or line discount_percent.' },
+    discount_min_amount: { type: ['number','null'], exclusiveMinimum: 0, description: 'Threshold for min_order_amount; supply or clear with discount_min_currency.' },
+    discount_min_currency: { ...nullableText(20), description: 'Supported stated threshold currency; paired with discount_min_amount, independent of quote minimum order currency.' },
+    discount_min_weight_grams: { type: ['number','null'], exclusiveMinimum: 0, description: 'Threshold in grams for min_order_weight.' },
+    discount_min_quantity: { type: ['integer','null'], minimum: 1, description: 'Whole quantity threshold for min_quantity.' },
     payment_terms: nullableText(2000), lines: list(QUOTE_LINE_SCHEMA),
   },
 };

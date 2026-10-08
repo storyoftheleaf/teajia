@@ -979,4 +979,173 @@ test.describe('Curate v2 requests (phone)', () => {
     expect(puts.map((p) => p.body)).toEqual([{ wechat: 'wang-ls' }]);
     expect(compassCreatedCustomers(page)).toEqual([]);
   });
+  // ── Orders come from the shop, not only this phone ──────────────────────────
+  // What the shop's purchase_orders table holds for an order another device made:
+  // items_json is a string, total_usd is 0 when it could not be worked out.
+  const OTHER_DEVICE_LINES = JSON.stringify([
+    { name: 'Mengku Laobanzhang', type: 'Sheng', form: 'Cake', year: 2019, quantity: 2, pricePerUnit: 1200, priceIsPerGram: false, currency: 'Yuan', quantity_grams: 714, line_total: 2400 },
+    { name: 'Jingmai Mao Cha', type: 'Sheng', quantity: 200, pricePerUnit: 4.5, priceIsPerGram: true, currency: 'Yuan' },
+  ]);
+  const shopOrder = (over: Record<string, any>) => ({
+    id: 'po-laptop', vendor_name: 'Chen Family', vendor_id: 'vendor-chen', items_json: OTHER_DEVICE_LINES, total_usd: 464.79,
+    display_currency: 'Yuan', status: 'confirmed', created_at: daysAgo(2), updated_at: daysAgo(2), ...over,
+  });
+  // The phone and the laptop layouts are both in the page (one hidden): count what is seen.
+  const shopRows = (page: Page) => page.getByTestId('curate-shop-order').filter({ visible: true });
+  const localRows = (page: Page) => page.getByTestId('curate-order').filter({ visible: true });
+  const ledgerOnThisDevice = (page: Page) => page.evaluate(async () => {
+    const { useLedgerStore } = await import('/src/lib/ledgerStore.ts');
+    return useLedgerStore.getState().transactions.length;
+  });
+
+  test('a fresh device sees the order the shop holds: vendor, lines, status, date, its money and the dollars', async ({ page }) => {
+    await installCompassHarness(page, { customers: VENDORS, rates: RATES, purchaseOrders: [shopOrder({})] });
+    await openCurateV2(page, 'orders');
+    expect(await ledgerOnThisDevice(page)).toBe(0);
+    await expect(page.getByText('No orders yet')).toHaveCount(0);
+    const order = shopRows(page);
+    await expect(order).toHaveCount(1);
+    await expect(order).toContainText('Chen Family');
+    await expect(order).toContainText('purchase · 2 items · confirmed');
+    await expect(order.getByTestId('shop-order-total')).toHaveText('¥3,300');
+    // Folded until opened, then every line as the shop recorded it.
+    await expect(order).not.toContainText('Jingmai Mao Cha');
+    await order.getByRole('button', { name: "The shop's order with Chen Family" }).click();
+    await expect(order).toContainText('Mengku Laobanzhang');
+    await expect(order).toContainText('2 cakes');
+    await expect(order).toContainText('¥2,400');
+    await expect(order).toContainText('Jingmai Mao Cha');
+    await expect(order).toContainText('200 g');
+    await expect(order).toContainText('¥900');
+    await expect(order.getByTestId('shop-order-total')).toHaveText('¥3,300');
+    await expect(order.getByTestId('shop-order-usd')).toHaveText('$464.79');
+    await expect(order).toContainText('Recorded at the shop');
+    // It is a record: nothing to confirm, remove or change on it.
+    await expect(order.getByRole('button', { name: /Confirm|remove|Delete|Less|More/ })).toHaveCount(0);
+    await expect(shopRows(page)).toHaveCount(1);
+    // Nothing was written to the shop to show it.
+    expect(await ledgerOnThisDevice(page)).toBe(0);
+  });
+
+  test('the vendor card counts the shop\'s orders with that vendor, not only this phone\'s', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS, rates: RATES,
+      purchaseOrders: [shopOrder({}), shopOrder({ id: 'po-older', created_at: daysAgo(9), updated_at: daysAgo(9), status: 'sent' }), shopOrder({ id: 'po-wang', vendor_name: 'Wang Laoshi', vendor_id: 'vendor-wang' })],
+      compassEntries: [entry({ id: 'c-1', name: 'Chen Cake', vendor_name: 'Chen Family', vendor_id: 'vendor-chen' })],
+    });
+    await openCurateV2(page, 'today');
+    await tab(page, 'Vendors').click();
+    await page.getByRole('button', { name: /Chen Family/ }).first().click();
+    const card = page.getByTestId('curate-vendor-card');
+    await expect(card).toContainText('Orders2 · confirmed');
+    await expect(card.getByText('none yet')).toHaveCount(1); // Teaware, not Orders
+    expect(await ledgerOnThisDevice(page)).toBe(0);
+  });
+
+  test('an order made here and the shop\'s record of it are one row, before and after the shop is asked', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS, rates: RATES,
+      purchaseOrders: [shopOrder({ id: 'po-laptop' })],
+      compassEntries: [entry({ id: 'one-1', name: 'Bulang Gushu', year: 2018, form: 'Cake', price_amount: 450, price_currency: 'Yuan', tasting: tasted })],
+    });
+    await openCurateV2(page, 'today');
+    await buyFromToday(page, /Bulang Gushu/);
+    await tab(page, 'Orders').click();
+    await page.getByRole('button', { name: 'Open the order with Wang Laoshi' }).click();
+    await page.getByRole('button', { name: 'Confirm purchase' }).click();
+    await expect.poll(() => compassRequestCount(page, 'POST /api/purchase-orders')).toBe(1);
+    await back(page).click();
+    // The shop now holds two: the laptop's and this one. The list shows this one once.
+    await expect.poll(() => compassRequestCount(page, 'GET /api/purchase-orders')).toBeGreaterThan(1);
+    await expect(localRows(page)).toHaveCount(1);
+    await expect(shopRows(page)).toHaveCount(1);
+    await expect(shopRows(page)).toHaveAttribute('data-order-id', 'po-laptop');
+    await expect(page.getByRole('tab', { name: /^Filter: All, 2 / })).toBeVisible();
+    // A fresh page load (the shop's list read again, this device's order kept) is still one row for it.
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(tab(page, 'Orders')).toBeVisible();
+    await tab(page, 'Orders').click();
+    await expect(page.getByRole('tab', { name: /^Filter: All, 2 / })).toBeVisible();
+    await expect(localRows(page)).toHaveCount(1);
+    await expect(shopRows(page)).toHaveCount(1);
+  });
+
+  test('a shop order with no total shows a dash, never $0, and a line nobody priced says so', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS, rates: RATES,
+      purchaseOrders: [shopOrder({
+        id: 'po-nototal', total_usd: 0,
+        items_json: JSON.stringify([{ name: 'Mengku Laobanzhang', quantity: 1, pricePerUnit: 450, priceIsPerGram: false, currency: 'Yuan', form: 'Cake' }, { name: 'Priceless Cake', quantity: 1, pricePerUnit: null, priceIsPerGram: false, currency: 'Yuan', form: 'Cake' }]),
+      })],
+    });
+    await openCurateV2(page, 'orders');
+    const order = shopRows(page);
+    await expect(order.getByTestId('shop-order-total')).toHaveText('—');
+    await order.getByRole('button', { name: "The shop's order with Chen Family" }).click();
+    await expect(order.getByTestId('shop-order-total')).toHaveText('—');
+    await expect(order.getByTestId('shop-order-usd')).toHaveText('—');
+    await expect(order).toContainText('no price yet');
+    await expect(order).toContainText('Not every tea has a price on this order');
+    expect(await order.innerText()).not.toMatch(/\$0(\.00)?\b|¥0\b/);
+  });
+
+  test('while the shop is being asked it says so, and when it cannot be reached it says that, keeps this device\'s orders and offers to try again', async ({ page }) => {
+    await installCompassHarness(page, { customers: VENDORS, rates: RATES, purchaseOrders: [shopOrder({})] });
+    delayCompassRequests(page, 'GET /api/purchase-orders', 1500);
+    await openCurateV2(page, 'orders');
+    await expect(page.getByTestId('shop-orders-loading').filter({ visible: true })).toHaveText("Loading the shop's orders…");
+    await expect(shopRows(page)).toHaveCount(1);
+    await expect(page.getByTestId('shop-orders-loading').filter({ visible: true })).toHaveCount(0);
+
+    // A device that cannot read the shop, with an order of its own.
+    const other = await page.context().newPage();
+    await installCompassHarness(other, { customers: VENDORS, rates: RATES, purchaseOrders: [shopOrder({})] });
+    failCompassRequests(other, 'GET /api/purchase-orders');
+    await openCurateV2(other, 'orders');
+    const failed = other.getByTestId('shop-orders-failed').filter({ visible: true });
+    await expect(failed).toBeVisible();
+    plain(await failed.innerText());
+    await expect(failed).toContainText("The shop's orders could not be loaded.");
+    await expect(other.getByText('No orders yet')).toHaveCount(0);
+    clearCompassFailures(other);
+    await failed.getByRole('button', { name: 'Try again' }).click();
+    await expect(other.getByTestId('curate-shop-order').filter({ visible: true })).toHaveCount(1);
+    await expect(other.getByTestId('shop-orders-failed').filter({ visible: true })).toHaveCount(0);
+    await other.close();
+  });
+
+  test('with orders on this device and the shop unreachable, the list says it is showing only this device\'s', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS, rates: RATES,
+      compassEntries: [entry({ id: 'dev-1', name: 'Bulang Gushu', year: 2018, form: 'Cake', price_amount: 450, price_currency: 'Yuan', tasting: tasted })],
+    });
+    failCompassRequests(page, 'GET /api/purchase-orders');
+    await openCurateV2(page, 'today');
+    await buyFromToday(page, /Bulang Gushu/);
+    await tab(page, 'Orders').click();
+    await expect(page.getByRole('button', { name: 'Open the order with Wang Laoshi' })).toBeVisible();
+    await expect(page.getByTestId('shop-orders-failed').filter({ visible: true })).toContainText("The shop's orders could not be loaded, so only the orders on this device are shown.");
+  });
+
+  test('a loose tea priced per 100 g, bought through the full form\'s Buy panel, is counted per gram: 200 g at ¥450 per 100 g is ¥900', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS, rates: RATES,
+      compassEntries: [entry({ id: 'g-1', name: 'Jingmai Mao Cha', form: null, price_amount: 450, price_per_unit_grams: 100, price_currency: 'Yuan', tasting: tasted })],
+    });
+    await openCurateV2(page, 'teas');
+    await page.getByRole('button', { name: /^Jingmai Mao Cha/ }).first().click();
+    await overlay(page).getByRole('button', { name: /Edit all fields/ }).click();
+    const footer = overlay(page).getByTestId('capture-action-footer').filter({ visible: true });
+    await footer.getByRole('button', { name: 'Buy', exact: true }).click();
+    await overlay(page).getByRole('spinbutton').last().fill('200');
+    await overlay(page).getByRole('button', { name: 'Add to order' }).click();
+    await expect.poll(() => compassRequestCount(page, 'POST /api/compass/entries/g-1/receipt-proposals')).toBe(1);
+    await back(page).click();
+    await back(page).click();
+    await tab(page, 'Orders').click();
+    await page.getByRole('button', { name: 'Open the order with Wang Laoshi' }).click();
+    // It was ¥90,000: the per-100 g price multiplied by every gram.
+    await expect(page.getByTestId('order-screen').getByLabel('Grand total')).toContainText('¥900');
+    await expect(page.getByTestId('order-screen')).not.toContainText('90,000');
+  });
 });

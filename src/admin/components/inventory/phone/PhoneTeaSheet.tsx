@@ -5,6 +5,7 @@ import type { Product } from '../../../types';
 import { fmtNum } from '../../../../utils/formatNumber';
 import { getThemeTextColor } from '../../../themeUtils';
 import { isLow, isTeaware, isUnchecked, onHand, sellingPricePerGram } from './groupStock';
+import { DEFAULT_TASTE_GRAMS } from './PhoneSamplesList';
 
 // The tea's sheet on the phone Stock list. Every value on it is its own control:
 // tap the name, the grams, the price, and type. Nothing here keeps a copy of a
@@ -109,7 +110,8 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
   const openWay = (w: Way) => {
     setWay(w);
     setError('');
-    setAmount(w === 'count' ? String(Math.round(current)) : '');
+    // A sample is usually 5 g, so − opens on Sampled with 5 already typed.
+    setAmount(w === 'count' ? String(Math.round(current)) : w === 'out' ? String(DEFAULT_TASTE_GRAMS) : '');
     if (w === 'out') setWhy('sample_use');
   };
 
@@ -159,30 +161,30 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
   const ownGiven = given && given.toLowerCase() !== 'unnamed' && given !== product.productName ? given : '';
   const shopOn = Boolean(product.isPublic);
 
-  const cell = 'flex min-w-0 items-baseline justify-between gap-2 border-b border-tea-border pb-1';
-  const term = 'shrink-0 text-ui-10 uppercase tracking-[0.1em] text-tea-text-dim';
-  const numVal = 'font-mono text-ui-14 tabular-nums text-tea-text text-right';
+  const term = 'text-ui-10 uppercase tracking-[0.1em] text-tea-text-dim whitespace-nowrap';
+  const numVal = 'font-mono text-ui-15 tabular-nums text-tea-text';
+  const editBtn = 'relative border-b border-dashed border-tea-border before:absolute before:-inset-y-2 before:-inset-x-1';
 
   return (
     <section
       aria-label={`${product.productName}, at a glance`}
-      className="sheet-behind-nav fixed left-0 right-0 z-drawer rounded-t-xl bg-tea-surface px-5 pt-2"
+      className="sheet-behind-nav fixed left-0 right-0 z-drawer rounded-t-xl bg-tea-surface px-4 pt-1.5"
     >
-      <div aria-hidden="true" className="mx-auto mb-3 h-[3px] w-8 rounded-full bg-tea-elevated" />
+      <div aria-hidden="true" className="mx-auto mb-1.5 h-[3px] w-8 rounded-full bg-tea-elevated" />
       <div className="flex items-center gap-2">
         <button type="button" onClick={onClose} aria-label="Close" className="-ml-2 -my-2 flex h-11 w-8 shrink-0 items-center justify-center text-tea-text-sec hover:text-tea-text"><XIcon size={16} aria-hidden="true" /></button>
         <div className="min-w-0 flex-1">
           <TapField
             value={product.productName || ''}
             label={`Rename ${product.productName}`}
-            className="block w-full truncate font-display text-ui-20 font-semibold leading-tight text-tea-text"
-            inputClassName="font-display text-ui-20 font-semibold leading-tight"
+            className="block w-full truncate font-display text-[23px] font-semibold leading-tight text-tea-text"
+            inputClassName="font-display text-[23px] font-semibold leading-tight"
             onSave={v => onUpdate(product.id, 'productName', v)}
           />
         </div>
         <button type="button" onClick={() => onOpenEditor(product)} className="shrink-0 text-ui-12 text-tea-gold">Full page ›</button>
       </div>
-      <div className="ml-6 mt-0.5 flex items-center gap-1.5 text-ui-12 text-tea-text-sec min-w-0">
+      <div className="ml-6 flex items-center gap-1.5 text-ui-12 text-tea-text-sec min-w-0">
         <span className="shrink-0" style={ware ? undefined : { color: getThemeTextColor(product.type) }}>{product.type}</span>{/* color-data: the tea kind's own colour */}
         <span aria-hidden="true">·</span>
         <TapField
@@ -197,101 +199,115 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
         {product.vendor ? <><span aria-hidden="true">·</span><button type="button" onClick={() => onOpenSource(product)} className="truncate text-tea-text-sec underline decoration-tea-border underline-offset-2">{product.vendor}</button></> : null}
       </div>
 
-      <div className="mt-3 border-y border-tea-border py-2.5">
-        <div className="flex items-center gap-2">
-          <span className={term}>On the shelf</span>
-          <button type="button" onClick={() => openWay('out')} aria-pressed={way === 'out'} aria-label={`Take some ${product.productName} out`}
-            className={`tap-target ml-auto flex items-center justify-center w-9 h-9 rounded-full border text-ui-20 leading-none ${way === 'out' ? 'border-tea-gold text-tea-gold' : 'border-tea-border text-tea-text-sec'}`}>−</button>
-          <button
-            type="button"
-            onClick={() => openWay('count')}
-            aria-pressed={way === 'count'}
-            aria-label={`Type a new count for ${product.productName}`}
-            className={`min-w-[72px] text-center font-mono text-ui-20 tabular-nums border-b border-dashed ${way === 'count' ? 'border-tea-gold' : 'border-tea-border'} ${isLow(product) ? 'text-tea-error' : 'text-tea-text'}`}
-          >
-            {ware && product.quantityUnits == null ? '—' : whole(current)}
-            <span className="ml-0.5 font-sans text-ui-11 text-tea-text-dim">{unitWord}</span>
-          </button>
-          <button type="button" onClick={() => openWay('in')} aria-pressed={way === 'in'} aria-label={`Add some ${product.productName}`}
-            className={`tap-target flex items-center justify-center w-9 h-9 rounded-full border text-ui-20 leading-none ${way === 'in' ? 'border-tea-gold text-tea-gold' : 'border-tea-border text-tea-text-sec'}`}>+</button>
+      {/* One ruled band that reads like the list: a small label over each value.
+          Whether it needs a recount rides in the Shelf label, not a line of its own. */}
+      <div className="mt-2 grid grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-x-3 border-y border-tea-border py-1.5">
+        <div className="min-w-0">
+          <div className={term}>
+            Shelf{' '}
+            <span className={counted ? 'text-tea-text-sec normal-case tracking-normal' : 'text-tea-error normal-case tracking-normal'}>
+              · {counted ?? (isUnchecked(product) ? 'recount' : '—')}
+            </span>
+          </div>
+          <div className="flex items-baseline gap-2.5 mt-0.5">
+            <button type="button" onClick={() => openWay('out')} aria-label={`Take some ${product.productName} out`}
+              className={`relative text-ui-16 leading-none before:absolute before:-inset-3 ${way === 'out' ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>−</button>
+            <button
+              type="button"
+              onClick={() => openWay('count')}
+              aria-label={`Type a new count for ${product.productName}`}
+              className={`${editBtn} ${numVal} ${isLow(product) ? 'text-tea-error' : ''}`}
+            >
+              {ware && product.quantityUnits == null ? '—' : whole(current)}
+              <span className="ml-0.5 font-sans text-ui-10 text-tea-text-dim">{unitWord}</span>
+            </button>
+            <button type="button" onClick={() => openWay('in')} aria-label={`Add some ${product.productName}`}
+              className={`relative text-ui-16 leading-none before:absolute before:-inset-3 ${way === 'in' ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>+</button>
+          </div>
         </div>
-        <p className={`mt-1 text-right text-ui-11 ${counted ? 'text-tea-text-sec' : 'text-tea-error'}`}>
-          {counted ? `counted ${counted}` : isUnchecked(product) ? 'never counted, tap the number to count it' : ''}
-        </p>
-        {way && (
-          <form onSubmit={e => { e.preventDefault(); void saveStock(); }} className="mt-2 grid gap-2">
-            <div className="flex items-baseline gap-2 text-ui-13 text-tea-text-sec">
-              <span className="shrink-0">{way === 'count' ? 'On the shelf now' : way === 'in' ? 'Added' : 'Took out'}</span>
-              <input
-                ref={amountRef}
-                aria-label={way === 'count' ? 'What is on the shelf' : way === 'in' ? 'How much was added' : 'How much went out'}
-                inputMode="decimal"
-                value={amount}
-                onChange={e => setAmount(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Escape') { setWay(null); setError(''); } }}
-                className="w-20 bg-transparent border-0 border-b border-tea-border focus:border-tea-gold outline-none p-0 text-right font-mono text-ui-17 tabular-nums text-tea-text"
-              />
-              <span className="shrink-0">{unitWord}</span>
-              <span className={`ml-auto min-w-0 truncate text-ui-12 ${tooMuch ? 'text-tea-error' : 'text-tea-text-sec'}`}>
-                {tooMuch ? `only ${whole(current)} ${unitWord} there` : next != null && way !== 'count' ? `leaves ${whole(next)} ${unitWord}` : ''}
-              </span>
-            </div>
-            {way === 'out' && (
-              <div role="radiogroup" aria-label="Why it went out" className="flex items-center gap-4 text-ui-13">
-                {OUT_WHY.map(([r, word]) => (
-                  <button key={r} type="button" role="radio" aria-checked={why === r} onClick={() => setWhy(r)}
-                    className={`py-1 ${why === r ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>{word}</button>
-                ))}
-              </div>
-            )}
-            <div className="flex items-center justify-between">
-              <button type="button" onClick={() => { setWay(null); setError(''); }} className="text-ui-13 text-tea-text-sec hover:text-tea-text">Cancel</button>
-              <button type="submit" disabled={!valid || tooMuch || saving} className="cta-solid rounded-full px-5 py-1.5 text-ui-13 disabled:opacity-50">
-                {saving ? 'Saving' : 'Save'}
-              </button>
-            </div>
-          </form>
-        )}
-        {error && <p role="alert" className="mt-1.5 text-ui-12 text-tea-error">{error}</p>}
-      </div>
-
-      <dl className="grid grid-cols-3 gap-x-3 gap-y-1.5 mt-3 mb-1">
-        <div className={cell}>
-          <dt className={term}>{ware ? '$ ea' : '$/g'}</dt>
-          <dd className="min-w-0">
+        <div className="min-w-0 text-right">
+          <div className={term}>Year</div>
+          <div className="mt-0.5">
+            <TapField
+              value={product.year != null ? String(product.year) : ''}
+              label={`Year of ${product.productName}`}
+              numeric
+              allowEmpty
+              display={product.year || '—'}
+              className={`${editBtn} ${numVal}`}
+              inputClassName={`${numVal} w-12 text-right`}
+              onSave={v => onUpdate(product.id, 'year', v)}
+            />
+          </div>
+        </div>
+        <div className="min-w-0 text-right">
+          <div className={term}>{ware ? '$ ea' : '$/g'}</div>
+          <div className="mt-0.5">
             <TapField
               value={product.fixedRetailPriceUSD != null ? String(product.fixedRetailPriceUSD) : ''}
               label={`Shop price per ${ware ? 'piece' : 'gram'} for ${product.productName}`}
               numeric
               allowEmpty
               display={shopPrice == null ? '—' : fmtNum(shopPrice)}
-              className={numVal}
-              inputClassName={`${numVal} w-14`}
+              className={`${editBtn} ${numVal}`}
+              inputClassName={`${numVal} w-12 text-right`}
               onSave={v => onUpdate(product.id, 'fixedRetailPriceUSD', v)}
             />
-          </dd>
+          </div>
         </div>
-        {/* What it cost, per gram and in dollars, beside what it sells for. The
-            invoice itself (amount, currency, how much was bought) is edited on
-            the full page, where those three sit together and mean something. */}
-        <div className={cell}>
-          <dt className={term}>{ware ? 'Cost ea' : 'Cost/g'}</dt>
-          <dd className={numVal}>{costPerUnit == null ? '—' : fmtNum(costPerUnit)}</dd>
+        {/* What it cost per gram in dollars, beside what it sells for. The invoice
+            itself is edited on the full page, where amount, currency and weight sit together. */}
+        <div className="min-w-0 text-right">
+          <div className={term}>{ware ? 'Cost ea' : 'Cost'}</div>
+          <div className={`mt-0.5 inline-block border-b border-transparent ${numVal} text-tea-text-sec`}>{costPerUnit == null ? '—' : fmtNum(costPerUnit)}</div>
         </div>
-        <div className={cell}>
-          <dt className={term}>Shop</dt>
-          <dd>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={shopOn}
-              aria-label={`Show ${product.productName} in the shop`}
-              onClick={() => onUpdate(product.id, 'isPublic', !shopOn)}
-              className={`text-ui-13 ${shopOn ? 'text-tea-text' : 'text-tea-text-dim'}`}
-            >{shopOn ? 'shown' : 'hidden'}</button>
-          </dd>
+        <div className="text-right">
+          <div className={term}>Shop</div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={shopOn}
+            aria-label={`Show ${product.productName} in the shop`}
+            onClick={() => onUpdate(product.id, 'isPublic', !shopOn)}
+            className={`relative mt-1.5 inline-flex h-4 w-7 items-center rounded-full transition-colors before:absolute before:-inset-3 ${shopOn ? 'bg-tea-gold' : 'bg-tea-elevated'}`}
+          >
+            <span aria-hidden="true" className={`h-3 w-3 rounded-full bg-tea-text transition-transform ${shopOn ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+          </button>
         </div>
-      </dl>
+      </div>
+
+      {way && (
+        <form onSubmit={e => { e.preventDefault(); void saveStock(); }} className="border-b border-tea-border">
+          <div className="flex items-center h-10 gap-2 text-ui-13 text-tea-text-sec">
+            <span className="shrink-0">{way === 'count' ? 'On the shelf' : way === 'in' ? 'Added' : 'Took out'}</span>
+            <input
+              ref={amountRef}
+              aria-label={way === 'count' ? 'What is on the shelf' : way === 'in' ? 'How much was added' : 'How much went out'}
+              inputMode="decimal"
+              value={amount}
+              onChange={e => setAmount(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Escape') { setWay(null); setError(''); } }}
+              className="w-14 bg-transparent border-0 border-b border-tea-border focus:border-tea-gold outline-none p-0 text-right font-mono text-ui-15 tabular-nums text-tea-text"
+            />
+            <span className="shrink-0">{unitWord}</span>
+            <span className={`min-w-0 truncate text-ui-11 ${tooMuch ? 'text-tea-error' : 'text-tea-text-dim'}`}>
+              {tooMuch ? `only ${whole(current)} there` : next != null && way !== 'count' ? `leaves ${whole(next)}` : ''}
+            </span>
+            <button type="button" onClick={() => { setWay(null); setError(''); }} className="ml-auto shrink-0 text-ui-13 text-tea-text-sec hover:text-tea-text">Cancel</button>
+            <button type="submit" disabled={!valid || tooMuch || saving} className="shrink-0 text-ui-13 text-tea-gold disabled:text-tea-text-dim">{saving ? 'Saving' : 'Save'}</button>
+          </div>
+          {way === 'out' && (
+            <div role="radiogroup" aria-label="Why it went out" className="flex items-center gap-4 pb-2 -mt-1 text-ui-12">
+              {OUT_WHY.map(([r, word]) => (
+                <button key={r} type="button" role="radio" aria-checked={why === r} onClick={() => setWhy(r)}
+                  className={why === r ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}>{word}</button>
+              ))}
+            </div>
+          )}
+        </form>
+      )}
+      {error && <p role="alert" className="py-1.5 text-ui-12 text-tea-error">{error}</p>}
+      <div className="h-1.5" aria-hidden="true" />
     </section>
   );
 };

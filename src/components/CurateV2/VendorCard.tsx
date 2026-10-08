@@ -7,6 +7,7 @@ import { quotedUnit, tastingLine } from './curateV2Model';
 import { CURRENCY_LABELS } from './PricingRow';
 import { Section } from './TodayView';
 import { VendorInfoPanel } from './VendorInfoPanel';
+import { shopStatusWords, useShopOrders, vendorOrderRows } from './shopOrders';
 import { isVendorTagged } from './VendorPicker';
 import { plainFailure } from './plainFailure';
 import type { TeaCompassEntry, VendorDetails } from './types';
@@ -62,8 +63,9 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
   const teas = all.filter((t) => t.category === 'tea');
   const ware = all.filter((t) => t.category === 'teaware');
   const detailsSource = all.find((t) => t.vendorDetails && Object.values(t.vendorDetails).some((x) => x != null));
-  const orders = useMemo(() => transactions.filter((tx) => tx.direction === 'purchase'
-    && ((vendorId && tx.counterpartyId === vendorId) || tx.counterpartyName?.trim().toLowerCase() === vendor.name.trim().toLowerCase())), [transactions, vendorId, vendor.name]);
+  // The vendor's purchase orders: this device's and the shop's, one row per order, newest first.
+  const shopOrders = useShopOrders();
+  const orders = useMemo(() => vendorOrderRows(transactions, shopOrders.orders, { id: vendorId, name: vendor.name }), [transactions, shopOrders.orders, vendorId, vendor.name]);
   const tasted = teas.filter((t) => tastingLine(t.tasting)).length;
   const bought = teas.filter((t) => t.decision === 'selected' || ['buying', 'incoming', 'in_stock'].includes(String(t.status))).length;
 
@@ -175,7 +177,14 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
         {line('website', 'Website')}
         {fact('Teas', teas.length ? `${teas.length} · ${tasted} tasted · ${bought} bought` : <span className="font-mono text-ui-13 text-tea-text-sec">none yet</span>)}
         {fact('Teaware', ware.length ? ware.map((w) => w.name || 'piece').join(', ') : <span className="font-mono text-ui-13 text-tea-text-sec">none yet</span>)}
-        {fact('Orders', orders.length ? `${orders.length} · ${orders[0].status === 'confirmed' ? 'confirmed' : 'draft'} ${new Date(orders[0].updatedAt || orders[0].createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}` : <span className="font-mono text-ui-13 text-tea-text-sec">none yet</span>)}
+        {fact('Orders', orders.length ? (() => {
+          const newest = orders[0];
+          const status = newest.kind === 'local' ? (newest.tx.status === 'confirmed' ? 'confirmed' : 'draft') : shopStatusWords(newest.order.status);
+          return `${orders.length} · ${status}${newest.at ? ` ${new Date(newest.at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}` : ''}`;
+        })()
+          : shopOrders.loading ? <span className="font-mono text-ui-13 text-tea-text-sec">loading…</span>
+          : shopOrders.failed ? <button type="button" onClick={shopOrders.retry} className="font-mono text-ui-13 text-tea-error">could not load · try again</button>
+          : <span className="font-mono text-ui-13 text-tea-text-sec">none yet</span>)}
         {line('notes', 'Note')}
       </div>
       {error && <p className="px-4 pt-2 font-mono text-ui-12 text-tea-error">{error}</p>}

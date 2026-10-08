@@ -141,7 +141,14 @@ export interface CurateQuoteLine extends Omit<CompassStructuredFields, 'quote_id
   price_currency?: string | null;
   price_per_unit_grams?: number | null;
 }
+export const DISCOUNT_CONDITION_TYPES = ['none', 'min_order_amount', 'min_order_weight', 'min_quantity', 'unknown'] as const;
 export interface CurateQuoteFields {
+  discount_percent?: number | null;
+  discount_condition_type?: typeof DISCOUNT_CONDITION_TYPES[number] | null;
+  discount_min_amount?: number | null;
+  discount_min_currency?: string | null;
+  discount_min_weight_grams?: number | null;
+  discount_min_quantity?: number | null;
   vendor_id?: string;
   reference?: string | null;
   issued_to?: string | null;
@@ -153,17 +160,24 @@ export interface CurateQuoteFields {
   payment_terms?: string | null;
   lines?: CurateQuoteLine[];
 }
-export const QUOTE_HEADER_COLUMNS = ['vendor_id','reference','issued_to','quote_date','validity_days','valid_until','minimum_order_amount','currency','payment_terms'] as const;
+export const QUOTE_HEADER_COLUMNS = ['vendor_id','reference','issued_to','quote_date','validity_days','valid_until','minimum_order_amount','currency','payment_terms','discount_percent','discount_condition_type','discount_min_amount','discount_min_currency','discount_min_weight_grams','discount_min_quantity'] as const;
 export function readQuoteFields(raw: Record<string, unknown>, existing: Record<string, unknown> = {}, currencyName: (value: string) => string | null = canonicalCurrency): CurateQuoteFields {
   known(raw, [...QUOTE_HEADER_COLUMNS, 'lines'], 'quote');
   const patch: CurateQuoteFields = {};
   for (const key of QUOTE_HEADER_COLUMNS) {
     if (raw[key] === undefined) continue;
     if (raw[key] === null) { if (key === 'vendor_id') throw new Error('quote.vendor_id cannot be cleared'); (patch as Record<string, unknown>)[key] = null; continue; }
-    if (key === 'minimum_order_amount') patch[key] = amount(raw[key], key);
+    if (key === 'discount_condition_type') {
+      if (!DISCOUNT_CONDITION_TYPES.includes(raw[key] as typeof DISCOUNT_CONDITION_TYPES[number])) throw new Error('discount_condition_type is invalid');
+      patch[key] = raw[key] as typeof DISCOUNT_CONDITION_TYPES[number];
+    } else if (key === 'discount_percent') patch[key] = amount(raw[key], key, 0, 100);
+    else if (key === 'minimum_order_amount' || key === 'discount_min_amount' || key === 'discount_min_weight_grams') patch[key] = amount(raw[key], key);
+    else if (key === 'discount_min_quantity') {
+      const quantity = amount(raw[key], key); if (!Number.isInteger(quantity)) throw new Error('discount_min_quantity must be a whole quantity'); patch[key] = quantity;
+    }
     else if (key === 'validity_days') {
       const days = amount(raw[key], key); if (!Number.isInteger(days)) throw new Error('validity_days must be whole days'); patch[key] = days;
-    } else if (key === 'currency') {
+    } else if (key === 'currency' || key === 'discount_min_currency') {
       const currency = currencyName(text(raw[key], key, 20)); if (!currency) throw new Error('Quote needs a supported stated currency'); patch[key] = currency;
     } else {
       const value = text(raw[key], key, key === 'payment_terms' ? 2000 : 500);
@@ -175,6 +189,12 @@ export function readQuoteFields(raw: Record<string, unknown>, existing: Record<s
   }
   const merged = { ...existing, ...patch };
   if ((merged.minimum_order_amount == null) !== (merged.currency == null)) throw new Error('Minimum order amount and currency must be supplied or cleared together');
+  if ((merged.discount_min_amount == null) !== (merged.discount_min_currency == null)) throw new Error('Discount minimum amount and currency must be supplied or cleared together');
+  const condition = merged.discount_condition_type;
+  const thresholds = [merged.discount_min_amount, merged.discount_min_weight_grams, merged.discount_min_quantity];
+  const selected = condition === 'min_order_amount' ? 0 : condition === 'min_order_weight' ? 1 : condition === 'min_quantity' ? 2 : -1;
+  if (selected >= 0 && (thresholds[selected] == null || Number(thresholds[selected]) <= 0)) throw new Error(`${condition} requires a positive discount minimum threshold`);
+  if (thresholds.some((value, index) => value != null && index !== selected)) throw new Error('Discount minimum threshold must match discount_condition_type');
   if (raw.lines !== undefined) patch.lines = list(raw.lines, 'lines', item => {
     known(item, ['id','compass_entry_id','vendor_item_number','price_amount','price_currency','price_per_unit_grams','discount_percent','route_quotes'], 'lines');
     const line: CurateQuoteLine = { id: text(item.id, 'lines.id', 100), compass_entry_id: text(item.compass_entry_id, 'lines.compass_entry_id', 100) };
@@ -190,5 +210,8 @@ export function readQuoteFields(raw: Record<string, unknown>, existing: Record<s
     }
     return line;
   });
+  const existingLines = Array.isArray(existing.lines) ? existing.lines as CurateQuoteLine[] : [];
+  const effectiveLines = patch.lines?.map(line => ({ ...existingLines.find(old => old.id === line.id), ...line })) ?? existingLines;
+  if (condition != null && condition !== 'none' && merged.discount_percent == null && !effectiveLines.some(line => line.discount_percent != null)) throw new Error('Discount condition requires an explicit header or line discount_percent');
   return patch;
 }

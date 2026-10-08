@@ -20,6 +20,7 @@ import { OrderMessageSheet } from './OrderMessageSheet';
 import { VendorPicker } from './VendorPicker';
 import { NO_VENDOR_YET, releaseTeaFromOrder } from './orderBuy';
 import { orderLanded, orderMoney, purchaseSpendInUsd } from './curatePricing';
+import { SHOP_ORDERS_KEY, mergeOrders, shopOrderTotals, shopStatusWords, useShopOrders, type ShopOrder } from './shopOrders';
 import { arrivalFields, arrivalKey, orderArrivalLines } from './orderArrivals';
 import { AGENT_KEYS } from './AgentInbox';
 import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
@@ -31,7 +32,8 @@ const CURRENCY_SYMBOLS: Record<Currency, string> = {
 };
 
 function fmtPrice(amount: number, currency: Currency): string {
-  const sym = CURRENCY_SYMBOLS[currency] || '';
+  // A money this table has no symbol for is named by its code, never printed bare.
+  const sym = CURRENCY_SYMBOLS[currency] ?? (currency ? `${currency} ` : '');
   // Whole amounts read the way a vendor says them: ¥2,400, not ¥2,400.00.
   const decimals = ['NT', 'IDR', 'JPY'].includes(currency) || Math.abs(amount - Math.round(amount)) < 0.005 ? 0 : 2;
   return `${sym}${amount.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
@@ -427,6 +429,8 @@ const TransactionCard: React.FC<{
           purchaseOrderId = created?.id;
           // Kept so "Mark as sent" can name the order the shop recorded.
           if (purchaseOrderId) updateTransaction(tx.id, { purchaseOrderId });
+          // The shop's list of orders was read before this one existed.
+          void queryClient.invalidateQueries({ queryKey: SHOP_ORDERS_KEY });
         }
         // One receipt waiting per tea: accepting it on arrival puts the tea on
         // the shelf's books with what it cost and what came. The same key
@@ -484,7 +488,7 @@ const TransactionCard: React.FC<{
       recording.current = false;
       setRecordBusy(false);
     }
-  }, [tx, updateTransaction, rates]);
+  }, [tx, updateTransaction, rates, queryClient]);
 
   const handleConfirm = useCallback(async () => {
     if (recording.current) return;
@@ -514,10 +518,11 @@ const TransactionCard: React.FC<{
       if (!tx.purchaseOrderId) throw new Error('no order');
       await api.purchaseOrders.updateStatus(tx.purchaseOrderId, 'sent');
       updateTransaction(tx.id, { purchaseOrderSent: true });
+      void queryClient.invalidateQueries({ queryKey: SHOP_ORDERS_KEY });
     } catch {
       setSendFailed(true);
     }
-  }, [tx.id, tx.purchaseOrderId, updateTransaction]);
+  }, [tx.id, tx.purchaseOrderId, updateTransaction, queryClient]);
 
   const handleDelete = useCallback(() => {
     if (window.confirm(`Remove this ${isPurchase ? 'purchase' : 'sale'} order?`)) {
@@ -744,6 +749,120 @@ const TransactionCard: React.FC<{
   );
 };
 
+// ─── The shop's order, as another device made it ────────────────────────────
+
+const orderDate = (iso: string) => {
+  const t = new Date(iso);
+  return Number.isNaN(t.getTime()) ? '' : t.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+};
+
+/**
+ * One line of the shop's record: the tea and what it came to on one row, then
+ * its year, type, form and amount in small type under it. Not the local line's
+ * framed amount beside the name: the laptop's list is narrow, and there that
+ * frame leaves the name two letters.
+ */
+const ShopLine: React.FC<{ item: LedgerLineItem; onOpenEntry?: (entryId: string) => void }> = ({ item, onOpenEntry }) => {
+  const perPiece = !item.priceIsPerGram;
+  const qty = perPiece ? (item.quantityUnits ?? 1) : (item.quantityGrams ?? 0);
+  const piece = String(item.form || 'piece').toLowerCase();
+  const qtyWords = perPiece ? `${qty} ${qty === 1 ? piece : `${piece}s`}` : `${qty.toLocaleString()} g`;
+  const kind = [item.year, item.type && item.type !== 'Teaware' ? item.type.toUpperCase() : item.type, item.type !== 'Teaware' ? item.form : undefined].filter((x) => x !== undefined && x !== '');
+  const nameClass = 'min-w-0 break-words text-left font-display text-ui-17 leading-tight text-tea-text';
+  return (
+    <div className="border-b border-tea-border px-4 py-3">
+      <div className="flex items-baseline justify-between gap-3">
+        {item.compassEntryId && onOpenEntry
+          ? <button type="button" onClick={() => onOpenEntry(item.compassEntryId!)} className={`${nameClass} transition-colors hover:text-tea-gold`}>{item.name || 'Unnamed'}</button>
+          : <span className={nameClass}>{item.name || 'Unnamed'}</span>}
+        {item.unpriced
+          ? <span className="shrink-0 text-ui-13 text-tea-text-sec">no price yet</span>
+          : <span className="shrink-0 text-ui-14 font-medium text-tea-text tabular-nums">{fmtPrice(lineTotal(item), item.currency)}</span>}
+      </div>
+      <p className="mt-1 font-mono text-ui-12 tracking-[0.02em] text-tea-text-sec tabular-nums">
+        {kind.length > 0 && <>{kind.join(' · ')} · </>}{qtyWords}
+      </p>
+    </div>
+  );
+};
+
+/**
+ * An order the shop holds that this device does not: made on another phone or
+ * laptop, or before this browser was cleared. It is a record, so it is read-only:
+ * what the shop recorded (vendor, lines, status, total), folded under its
+ * heading. A total the shop could not record is a dash, never $0.
+ */
+const ShopOrderCard: React.FC<{
+  order: ShopOrder;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onOpenEntry?: (entryId: string) => void;
+}> = ({ order, isExpanded, onToggle, onOpenEntry }) => {
+  const getEntry = useTeaCompassStore((s) => s.getEntry);
+  const totals = useMemo(() => shopOrderTotals(order), [order]);
+  const ownText = totals.own ? totals.own.map((part) => fmtPrice(part.amount, part.currency)).join(' + ') : null;
+  const usdText = totals.usd !== null ? `$${totals.usd.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` : null;
+  const headline = ownText ?? usdText ?? '—';
+  const date = orderDate(order.createdAt);
+  // A tea this device has never seen cannot be opened here; the shop's other
+  // device's link into a product is not followed either.
+  const lines = useMemo(() => order.items.map((item) => ({
+    ...item,
+    productId: undefined,
+    compassEntryId: item.compassEntryId && getEntry(item.compassEntryId) ? item.compassEntryId : undefined,
+  })), [order.items, getEntry]);
+  return (
+    <div className="curate-v2 -mx-4 pb-4" data-testid="curate-shop-order" data-order-id={order.id} data-status={order.status}>
+      <div className="flex items-center gap-2 pl-4 pr-2 pt-3">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={isExpanded}
+          aria-label={`The shop's order with ${order.vendorName}`}
+          className="flex min-h-11 min-w-0 flex-1 items-baseline gap-2 text-left focus-visible:outline-none"
+        >
+          <span className="min-w-0 truncate font-display text-ui-26 leading-none text-tea-text">{order.vendorName}</span>
+          <ChevronDown size={14} className={`shrink-0 self-center text-tea-text-dim transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+        </button>
+      </div>
+      <div className="flex items-baseline justify-between gap-3 px-4 pb-3 text-ui-12 text-tea-text-sec tabular-nums">
+        <span>
+          purchase · {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
+          {' · '}<span>{shopStatusWords(order.status)}</span>
+          {date ? ` · ${date}` : ''}
+        </span>
+        {!isExpanded && <span className="text-ui-14 font-medium text-tea-text tabular-nums" data-testid="shop-order-total">{headline}</span>}
+      </div>
+      <div className="mx-4 h-px bg-tea-gold/20" aria-hidden="true" />
+      {isExpanded && (
+        <div className="pb-3">
+          {order.items.length === 0 ? (
+            <p className="px-4 py-4 text-ui-13 text-tea-text-sec">{order.unreadableLines ? "The shop's record of what was on this order could not be read." : 'The shop recorded no teas on this order.'}</p>
+          ) : (
+            lines.map((item) => <ShopLine key={item.id} item={item} onOpenEntry={onOpenEntry} />)
+          )}
+          {order.unreadableLines && order.items.length > 0 && (
+            <p className="px-4 pt-2 font-mono text-ui-12 text-tea-text-sec">Some lines the shop recorded could not be read.</p>
+          )}
+          <div className="px-4 pt-2" aria-label="Grand total">
+            <div className="flex items-baseline justify-between py-1 text-ui-13 text-tea-text-sec tabular-nums">
+              <span>Total</span><span className="text-tea-text" data-testid="shop-order-total">{ownText ?? '—'}</span>
+            </div>
+            <div className="flex items-baseline justify-between py-1 text-ui-13 text-tea-text-sec tabular-nums">
+              <span>In dollars</span><span className="text-tea-text" data-testid="shop-order-usd">{usdText ?? '—'}</span>
+            </div>
+            {order.items.some((item) => item.unpriced) && (
+              <p className="pt-1 font-mono text-ui-12 text-tea-text-sec">Not every tea has a price on this order, so there is no total to show.</p>
+            )}
+          </div>
+          {order.notes && <p className="px-4 pt-2 text-ui-13 text-tea-text-sec">{order.notes}</p>}
+          <p className="px-4 pt-3 font-mono text-ui-12 text-tea-text-sec">Recorded at the shop. This copy is read-only.</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const LazyTeaTagSheet = React.lazy(() => import('./TeaTagSheet'));
 
 // ─── Filter Tabs ────────────────────────────────────────────────────────────
@@ -765,34 +884,41 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
   const transactions = useLedgerStore((s) => s.transactions);
   const createTransaction = useLedgerStore((s) => s.createTransaction);
   const openPurchaseOrder = useAppStore((s) => s.openPurchaseOrder);
-  // All transactions expanded by default
+  // The shop's purchase orders, beside this device's own.
+  const shop = useShopOrders();
+  // All transactions expanded by default; the shop's own orders folded.
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+  const [openShopIds, setOpenShopIds] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<LedgerFilter>('all');
 
+  // One row per order, newest first: an order this device holds that the shop
+  // also recorded is the one row, and the shop's copy is not shown again.
+  const rows = useMemo(() => mergeOrders(transactions, shop.orders), [transactions, shop.orders]);
+
   const counts = useMemo(() => ({
-    all: transactions.length,
-    draft: transactions.filter((t) => t.status === 'draft').length,
-    confirmed: transactions.filter((t) => t.status === 'confirmed').length,
-    purchase: transactions.filter((t) => t.direction === 'purchase').length,
-    sale: transactions.filter((t) => t.direction === 'sale').length,
-  }), [transactions]);
+    all: rows.length,
+    draft: rows.filter((r) => r.kind === 'local' && r.tx.status === 'draft').length,
+    purchase: rows.filter((r) => r.kind === 'shop' || r.tx.direction === 'purchase').length,
+    sale: rows.filter((r) => r.kind === 'local' && r.tx.direction === 'sale').length,
+  }), [rows]);
 
   const filtered = useMemo(() => {
-    let list = [...transactions];
-    if (filter === 'draft') list = list.filter((t) => t.status === 'draft');
-    if (filter === 'confirmed') list = list.filter((t) => t.status === 'confirmed');
-    if (filter === 'purchase') list = list.filter((t) => t.direction === 'purchase');
-    if (filter === 'sale') list = list.filter((t) => t.direction === 'sale');
+    let list = rows;
+    if (filter === 'draft') list = list.filter((r) => r.kind === 'local' && r.tx.status === 'draft');
+    if (filter === 'confirmed') list = list.filter((r) => r.kind === 'shop' || r.tx.status === 'confirmed');
+    if (filter === 'purchase') list = list.filter((r) => r.kind === 'shop' || r.tx.direction === 'purchase');
+    if (filter === 'sale') list = list.filter((r) => r.kind === 'local' && r.tx.direction === 'sale');
     // Apply text search across counterparty name and line item names
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
-      list = list.filter((t) =>
-        (t.counterpartyName || '').toLowerCase().includes(q) ||
-        (t.items || []).some((item) => (item.name || '').toLowerCase().includes(q))
-      );
+      list = list.filter((r) => {
+        const who = r.kind === 'local' ? r.tx.counterpartyName : r.order.vendorName;
+        const items = r.kind === 'local' ? r.tx.items : r.order.items;
+        return (who || '').toLowerCase().includes(q) || (items || []).some((item) => (item.name || '').toLowerCase().includes(q));
+      });
     }
-    return list.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-  }, [transactions, filter, searchQuery]);
+    return list;
+  }, [rows, filter, searchQuery]);
 
   const filterOptions: { value: LedgerFilter; label: string; count: number }[] = [
     { value: 'all', label: 'All', count: counts.all },
@@ -818,10 +944,26 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
     </div>
   );
 
-  if (transactions.length === 0) {
+  // The shop's orders could not be read: what is shown is only this device's, and it says so.
+  const shopFailed = shop.failed && (
+    <div role="alert" data-testid="shop-orders-failed" className="flex items-baseline justify-between gap-3 py-2">
+      <p className="font-body text-ui-13 text-tea-error">
+        {transactions.length === 0
+          ? "The shop's orders could not be loaded."
+          : "The shop's orders could not be loaded, so only the orders on this device are shown."}
+      </p>
+      <button type="button" onClick={shop.retry} className="curate-v2-word tap-target shrink-0">Try again</button>
+    </div>
+  );
+
+  if (rows.length === 0) {
     return (
       <div className="pb-8">
-        <p className="pb-3 pt-1 text-ui-14 text-tea-text-sec">No orders yet. Choose Buy on a tea and it starts one with that vendor.</p>
+        {shop.loading
+          ? <p className="pb-3 pt-1 text-ui-14 text-tea-text-sec" data-testid="shop-orders-loading">Loading the shop's orders…</p>
+          : shop.failed
+            ? shopFailed
+            : <p className="pb-3 pt-1 text-ui-14 text-tea-text-sec">No orders yet. Choose Buy on a tea and it starts one with that vendor.</p>}
         {starters}
       </div>
     );
@@ -847,19 +989,33 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
           </button>
         ))}
       </div>
+      {shopFailed}
+      {shop.loading && <p className="py-2 font-mono text-ui-12 text-tea-text-sec" data-testid="shop-orders-loading">Loading the shop's orders…</p>}
 
-      {filtered.map((tx) => (
+      {filtered.map((row) => row.kind === 'local' ? (
         <TransactionCard
-          key={tx.id}
-          tx={tx}
-          isExpanded={!collapsedIds.has(tx.id)}
+          key={row.tx.id}
+          tx={row.tx}
+          isExpanded={!collapsedIds.has(row.tx.id)}
           onToggle={() => setCollapsedIds(prev => {
             const next = new Set(prev);
-            if (next.has(tx.id)) next.delete(tx.id); else next.add(tx.id);
+            if (next.has(row.tx.id)) next.delete(row.tx.id); else next.add(row.tx.id);
             return next;
           })}
           onOpenEntry={onOpenEntry}
           onOpenOrder={onOpenOrder}
+        />
+      ) : (
+        <ShopOrderCard
+          key={`shop-${row.order.id}`}
+          order={row.order}
+          isExpanded={openShopIds.has(row.order.id)}
+          onToggle={() => setOpenShopIds(prev => {
+            const next = new Set(prev);
+            if (next.has(row.order.id)) next.delete(row.order.id); else next.add(row.order.id);
+            return next;
+          })}
+          onOpenEntry={onOpenEntry}
         />
       ))}
 

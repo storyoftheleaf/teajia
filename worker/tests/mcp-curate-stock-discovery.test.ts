@@ -88,7 +88,8 @@ describe('ordinary inventory discovery includes separate Curate holdings', () =>
     const product = await call(db, 'get_tea', { id: 'product' });
     expect(product).toMatchObject({ id: 'product', display_name: 'Plum', stock_grams: 120, recent_ledger: [] });
     expect(product).not.toHaveProperty('sample_grams');
-    expect(await call(db, 'get_tea', { id: 'known' })).toEqual({ error: 'not_found' });
+    expect(await call(db, 'get_tea', { id: 'known' })).toMatchObject({ entity_type: 'curate_tea', curate_tea_id: 'known', sample_grams: 12 });
+    expect(await call(db, 'get_tea', { id: 'known', source: 'product' })).toEqual({ error: 'not_found' });
     const low = await call(db, 'list_low_stock');
     expect(low.count).toBe(1);
     expect(low.items[0].id).toBe('product');
@@ -97,12 +98,38 @@ describe('ordinary inventory discovery includes separate Curate holdings', () =>
   it('advertises current Curate tools and asks clients to refresh the live list', async () => {
     const db = await setup();
     const initialized = await rpc(db, 'initialize');
-    expect(initialized.result.serverInfo.version).toBe('0.8.0');
+    expect(initialized.result.serverInfo.version).toBe('0.9.0');
     expect(initialized.result.serverInfo.description).toContain('curate_correct');
     expect(initialized.result.instructions).toContain('tools/list');
     expect(initialized.result.capabilities.tools.listChanged).toBe(false);
     const listed = await rpc(db, 'tools/list');
     expect(listed.result.tools.find((tool: any) => tool.name === 'get_tea').inputSchema.properties.source.enum).toEqual(['product', 'curate']);
+    db.close();
+  });
+});
+
+describe('opt-in sample balances in low-stock reads', () => {
+  it('keeps product counts separate, applies the explicit sample threshold, and labels unknown weight', async () => {
+    const db = await setup();
+    const result = await call(db, 'list_low_stock', { include_samples: true, sample_threshold_grams: 12 });
+    expect(result.items.map((item: any) => item.id)).toEqual(['product']);
+    expect(result.count).toBe(1);
+    expect(result.samples.map((item: any) => item.curate_tea_id).sort()).toEqual(['known','zero']);
+    expect(result.samples.every((item: any) => item.entity_type === 'curate_tea' && !('id' in item))).toBe(true);
+    expect(result.unmeasured_samples).toEqual([expect.objectContaining({curate_tea_id:'unknown',sample_grams:null})]);
+    expect((await call(db, 'list_low_stock', {include_samples:true,sample_threshold_grams:0})).samples).toEqual([expect.objectContaining({curate_tea_id:'zero',sample_grams:0})]);
+    expect(await call(db, 'list_low_stock')).not.toHaveProperty('samples');
+    for (const threshold of [undefined,-1,'5']) {
+      const failed = await rpc(db, 'tools/call', {name:'list_low_stock',arguments:{include_samples:true,sample_threshold_grams:threshold}});
+      expect(failed.error.message).toContain('explicit nonnegative sample_threshold_grams');
+    }
+    db.close();
+  });
+  it('does not expose private records through fallback or the optional sample list', async () => {
+    const db = await setup('viewer');
+    expect(await call(db, 'get_tea', {id:'known'})).toEqual({error:'not_found'});
+    expect(await call(db, 'get_tea', {id:'foreign'})).toEqual({error:'not_found'});
+    expect(await call(db, 'list_low_stock', {include_samples:true,sample_threshold_grams:5})).toEqual({error:'curate_management_required'});
     db.close();
   });
 });

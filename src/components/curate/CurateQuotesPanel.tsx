@@ -8,10 +8,10 @@ import { StructuredTeaFields } from '../TeaCompass/StructuredTeaFields';
 
 const inputClass = 'input-field min-h-11 min-w-0 px-3 py-2 text-ui-16';
 const buttonClass = 'tap-target min-h-11 px-3 py-2 text-ui-12 text-tea-text-sec hover:text-tea-text';
-type HeaderKey = 'reference' | 'issued_to' | 'quote_date' | 'validity_days' | 'valid_until' | 'minimum_order_amount' | 'currency' | 'payment_terms';
+type HeaderKey = 'reference' | 'issued_to' | 'quote_date' | 'validity_days' | 'valid_until' | 'minimum_order_amount' | 'currency' | 'payment_terms' | 'discount_percent' | 'discount_condition_type' | 'discount_min_amount' | 'discount_min_currency' | 'discount_min_weight_grams' | 'discount_min_quantity';
 type LineDraft = { id: string; compass_entry_id: string; vendor_item_number: string; price_amount: string; price_currency: string; unitKind: string; price_per_unit_grams: string; discount_percent: string; route_quotes: RouteQuote[] };
 export type QuoteDraft = Record<HeaderKey, string> & { id?: string; requestId?: string; lines: LineDraft[] };
-const emptyDraft = (): QuoteDraft => ({ requestId: crypto.randomUUID(), reference: '', issued_to: '', quote_date: '', validity_days: '', valid_until: '', minimum_order_amount: '', currency: '', payment_terms: '', lines: [] });
+const emptyDraft = (): QuoteDraft => ({ requestId: crypto.randomUUID(), reference: '', issued_to: '', quote_date: '', validity_days: '', valid_until: '', minimum_order_amount: '', currency: '', payment_terms: '', discount_percent: '', discount_condition_type: '', discount_min_amount: '', discount_min_currency: '', discount_min_weight_grams: '', discount_min_quantity: '', lines: [] });
 const optionalText = (value: string) => value.trim() || null;
 const optionalNumber = (value: string) => value.trim() ? Number(value) : null;
 
@@ -28,12 +28,18 @@ export function quoteDraftPayload(vendorId: string, draft: QuoteDraft): CurateQu
   });
   return readQuoteFields({ vendor_id: vendorId, reference: optionalText(draft.reference), issued_to: optionalText(draft.issued_to),
     quote_date: optionalText(draft.quote_date), validity_days: optionalNumber(draft.validity_days), valid_until: optionalText(draft.valid_until),
-    minimum_order_amount: optionalNumber(draft.minimum_order_amount), currency: optionalText(draft.currency), payment_terms: optionalText(draft.payment_terms), lines });
+    minimum_order_amount: optionalNumber(draft.minimum_order_amount), currency: optionalText(draft.currency), payment_terms: optionalText(draft.payment_terms),
+    discount_percent: optionalNumber(draft.discount_percent), discount_condition_type: optionalText(draft.discount_condition_type),
+    discount_min_amount: optionalNumber(draft.discount_min_amount), discount_min_currency: optionalText(draft.discount_min_currency),
+    discount_min_weight_grams: optionalNumber(draft.discount_min_weight_grams), discount_min_quantity: optionalNumber(draft.discount_min_quantity), lines });
 }
-function fromQuote(quote: CurateQuoteFields & { id: string }): QuoteDraft {
+export function quoteToDraft(quote: CurateQuoteFields & { id: string }): QuoteDraft {
   const value = (key: HeaderKey) => String(quote[key] ?? '');
   return { id: quote.id, reference: value('reference'), issued_to: value('issued_to'), quote_date: value('quote_date'), validity_days: value('validity_days'), valid_until: value('valid_until'),
     minimum_order_amount: value('minimum_order_amount'), currency: value('currency'), payment_terms: value('payment_terms'),
+    discount_percent: value('discount_percent'), discount_condition_type: value('discount_condition_type'),
+    discount_min_amount: value('discount_min_amount'), discount_min_currency: value('discount_min_currency'),
+    discount_min_weight_grams: value('discount_min_weight_grams'), discount_min_quantity: value('discount_min_quantity'),
     lines: (quote.lines ?? []).map(line => ({ id: line.id, compass_entry_id: line.compass_entry_id, vendor_item_number: line.vendor_item_number ?? '',
       price_amount: String(line.price_amount ?? ''), price_currency: line.price_currency ?? '',
       unitKind: line.price_per_unit_grams != null ? 'grams' : line.price_amount != null ? 'piece' : '', price_per_unit_grams: String(line.price_per_unit_grams ?? ''),
@@ -65,7 +71,7 @@ export function CurateQuotesPanel({ vendorId }: { vendorId: string }) {
   const open = async (id: string) => {
     const revision = generation.current;
     setError(''); setSaved(false);
-    try { const quote = await api.curateWorkspace.quote(id); if (current(revision)) setDraft(fromQuote(quote)); }
+    try { const quote = await api.curateWorkspace.quote(id); if (current(revision)) setDraft(quoteToDraft(quote)); }
     catch { if (current(revision)) setError('This quote could not be opened. Retry when the connection is available.'); }
   };
   const change = (patch: Partial<QuoteDraft>) => { ++editRevision.current; setDraft(value => value ? { ...value, ...patch } : value); setSaved(false); };
@@ -82,7 +88,7 @@ export function CurateQuotesPanel({ vendorId }: { vendorId: string }) {
       setSaved(editRevision.current === sentEditRevision); setDraft(value => value ? { ...value, id: quote.id } : value);
       try { const quotes = await api.curateWorkspace.quotes(vendorId); if (current(revision)) setHeaders(quotes); } catch { /* The quote save remains acknowledged. */ }
     } catch {
-      if (current(revision)) setError('Could not confirm the save. Check the dates, paired amount and currency, selected teas and price units. Discounts must be from 0 to 100. Retry to confirm.');
+      if (current(revision)) setError('Could not confirm the save. Check the dates, paired amount and currency, selected teas and price units. Discounts must be from 0 to 100; a known condition needs its positive threshold. Retry to confirm.');
     } finally { savingRef.current = false; if (current(revision)) setSaving(false); }
   };
   const field = (label: string, value: string, update: (value: string) => void, type = 'text') => <label className="block min-w-0 space-y-1">
@@ -108,6 +114,31 @@ export function CurateQuotesPanel({ vendorId }: { vendorId: string }) {
           {field('Minimum order amount', draft.minimum_order_amount, minimum_order_amount => change({ minimum_order_amount }), 'number')}
           {field('Minimum order currency', draft.currency, currency => change({ currency }))}
           {field('Payment terms', draft.payment_terms, payment_terms => change({ payment_terms }))}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {field('Quote discount (%)', draft.discount_percent, discount_percent => change({ discount_percent }), 'number')}
+          <label className="block min-w-0 space-y-1">
+            <span className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec`}>Discount condition</span>
+            <select aria-label="Discount condition" className={inputClass} value={draft.discount_condition_type} onChange={event => {
+              const discount_condition_type = event.target.value;
+              change({ discount_condition_type,
+                discount_min_amount: discount_condition_type === 'min_order_amount' ? draft.discount_min_amount : '',
+                discount_min_currency: discount_condition_type === 'min_order_amount' ? draft.discount_min_currency : '',
+                discount_min_weight_grams: discount_condition_type === 'min_order_weight' ? draft.discount_min_weight_grams : '',
+                discount_min_quantity: discount_condition_type === 'min_quantity' ? draft.discount_min_quantity : '' });
+            }}>
+              <option value="">Not recorded</option><option value="none">Unconditional</option>
+              <option value="min_order_amount">Minimum order amount</option><option value="min_order_weight">Minimum order weight</option>
+              <option value="min_quantity">Minimum quantity</option><option value="unknown">Threshold unknown</option>
+            </select>
+            {draft.discount_condition_type === 'unknown' && <span className="block text-ui-12 text-tea-text-sec">Conditional, threshold not known yet.</span>}
+          </label>
+          {draft.discount_condition_type === 'min_order_amount' && <>
+            {field('Discount minimum amount', draft.discount_min_amount, discount_min_amount => change({ discount_min_amount }), 'number')}
+            {field('Discount minimum currency', draft.discount_min_currency, discount_min_currency => change({ discount_min_currency }))}
+          </>}
+          {draft.discount_condition_type === 'min_order_weight' && field('Discount minimum weight (g)', draft.discount_min_weight_grams, discount_min_weight_grams => change({ discount_min_weight_grams }), 'number')}
+          {draft.discount_condition_type === 'min_quantity' && field('Discount minimum quantity', draft.discount_min_quantity, discount_min_quantity => change({ discount_min_quantity }), 'number')}
         </div>
         <div className="space-y-4">
           {draft.lines.map((line, index) => {

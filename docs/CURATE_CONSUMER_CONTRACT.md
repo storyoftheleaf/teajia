@@ -39,7 +39,7 @@ Management requires active shop ownership or explicit `curate_manage` on an acti
 
 Raw `said` transcripts, vendor contacts and business cards, quote recipients, costs, discounts, route prices, internal notes, history and sample holdings are private source material. Access for drafting is not publication approval. Preserve exact attribution and leave unknown years, processing, ages or storage blank.
 
-New private attachments use `ATLAS_BUCKET` and authenticated content downloads. Some legacy photo URLs can already be publicly reachable; that does not make them approved editorial assets. Unlinking a tea photo retains the stored bytes and Drive backup. Drive cleanup is a separate preview/confirm action against its stored mapping; it does not delete R2 bytes.
+New private attachments use `ATLAS_BUCKET` and authenticated content downloads. Some legacy photo URLs can already be publicly reachable; that does not make them approved editorial assets. Unlinking a tea photo retains the stored bytes and Drive backup by default. Explicit `trash_drive:true` includes Drive Trash in the removal preview; each part has its own outcome and undo. Standalone cleanup also uses preview/confirm against the stored mapping; neither path deletes R2 bytes.
 
 Public editorial may reference an already published product by its product ID and existing `/shop/product/:id` route, using approved public catalog fields and images. Private drafts may retain opaque source IDs internally. Do not expose private attachment URLs, vendor contact details, costs or raw transcripts through a public article. Publication continues through the existing editorial workflow and authorization; this contract introduces no editorial backend or source-storage expansion.
 

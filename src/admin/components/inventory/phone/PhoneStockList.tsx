@@ -98,6 +98,24 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
   const expandAll = groupBy === 'none' || searchActive || products.length <= 25;
   const focused = focusedId ? products.find(p => p.id === focusedId) ?? null : null;
   const selecting = selectedIds.size > 0;
+  // The tick circles stay hidden until asked for, like iPhone's edit marks: tap
+  // Select, or hold a tea. That gives the names the room, and ticking is one
+  // deliberate step away rather than a column on every row.
+  const [editMode, setEditMode] = useState(false);
+  const selectMode = editMode || selecting;
+  const holdTimer = React.useRef<number | null>(null);
+  const heldId = React.useRef<string | null>(null);
+  const cancelHold = () => { if (holdTimer.current != null) { window.clearTimeout(holdTimer.current); holdTimer.current = null; } };
+  const startHold = (id: string) => {
+    cancelHold();
+    holdTimer.current = window.setTimeout(() => {
+      holdTimer.current = null;
+      heldId.current = id;
+      setEditMode(true);
+      setFocusedId(null);
+      if (!selectedIds.has(id)) onToggleSelect(id);
+    }, 450);
+  };
 
   const toggleGroup = (key: string) => setOpen(prev => {
     const next = new Set(prev);
@@ -124,8 +142,8 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
 
   return (
     <div data-testid="stock-phone" className={`stock-phone-tone ${focused && !selecting ? 'pb-[300px]' : selecting ? 'pb-[170px]' : ''}`}>
-      <div role="row" className="sticky top-0 z-sticky flex items-center bg-tea-bg pl-9 pr-3 border-b border-tea-border">
-        <div className={`${COLS} flex-1`}>
+      <div role="row" className={`sticky top-0 z-sticky flex items-center bg-tea-bg ${selectMode ? 'pl-9' : 'pl-4'} pr-3 border-b border-tea-border`}>
+        <div className={`${COLS} flex-1 relative`}>
           {heads.map(([key, label, align]) => {
             const on = sortKey === key;
             return (
@@ -141,6 +159,12 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
               </button>
             );
           })}
+          <button
+            type="button"
+            onClick={() => { if (selectMode) { setEditMode(false); selectedIds.forEach(id => onToggleSelect(id)); } else { setEditMode(true); setFocusedId(null); } }}
+            className="absolute left-[4.5rem] top-0 h-8 flex items-center text-ui-11 text-tea-gold before:absolute before:-inset-x-2 before:inset-y-0"
+            style={{ position: 'absolute' }}
+          >{selectMode ? 'Done' : 'Select'}</button>
         </div>
       </div>
 
@@ -171,7 +195,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
                   </span>
                   <span className="shrink-0 text-right text-ui-12 leading-snug">
                     {group.low > 0 && <span className="block text-tea-error">{group.low} low</span>}
-                    {group.unchecked > 0 && <span className="block text-tea-text-sec">{group.unchecked} never counted</span>}
+                    {group.unchecked > 0 && <span className="block text-tea-text-sec">{group.unchecked} to recount</span>}
                   </span>
                 </button>
                 {groupBy === 'vendor' && group.products[0]?.vendor && (
@@ -194,13 +218,13 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
               const qtyTone = qty <= 0 ? 'text-tea-text-dim' : isLow(p) ? 'text-tea-error' : 'text-tea-text';
               return (
                 <div key={p.id} className={`relative flex items-center ${isSel || isFocused ? 'bg-tea-surface' : ''} after:absolute after:left-0 after:right-0 after:bottom-0 after:h-px after:bg-tea-border`}>
-                  {/* One dot, three jobs: its colour is the kind, filled means counted,
-                      hollow means never counted, and tapping it ticks the tea. */}
-                  <button
+                  {/* In select mode, one dot, three jobs: its colour is the kind, filled means
+                      counted, hollow means it needs a recount, and tapping it ticks the tea. */}
+                  {selectMode && <button
                     type="button"
                     onClick={() => onToggleSelect(p.id)}
                     aria-pressed={isSel}
-                    aria-label={`${isSel ? 'Untick' : 'Tick'} ${p.productName}${isUnchecked(p) ? ', never counted' : ''}`}
+                    aria-label={`${isSel ? 'Untick' : 'Tick'} ${p.productName}${isUnchecked(p) ? ', needs a recount' : ''}`}
                     className="relative w-3.5 ml-3 shrink-0 flex items-center justify-center self-stretch before:absolute before:-inset-x-3 before:inset-y-0"
                   >
                     {isSel
@@ -211,12 +235,20 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
                             ? undefined
                             : { borderColor: getThemeColor(p.type), background: isUnchecked(p) ? 'transparent' : getThemeColor(p.type) }}
                         />}{/* color-data: the tea kind's own colour, from themeUtils */}
-                  </button>
+                  </button>}
                   <button
                     type="button"
-                    onClick={() => setFocusedId(isFocused ? null : p.id)}
+                    onPointerDown={() => startHold(p.id)}
+                    onPointerUp={cancelHold}
+                    onPointerLeave={cancelHold}
+                    onPointerCancel={cancelHold}
+                    onContextMenu={e => e.preventDefault()}
+                    onClick={() => {
+                      if (heldId.current === p.id) { heldId.current = null; return; }
+                      if (selectMode) onToggleSelect(p.id); else setFocusedId(isFocused ? null : p.id);
+                    }}
                     aria-expanded={isFocused}
-                    className={`${COLS} flex-1 min-w-0 pl-2.5 pr-3 text-left min-h-[46px]`}
+                    className={`${COLS} flex-1 min-w-0 ${selectMode ? 'pl-2.5' : 'pl-4'} pr-3 text-left min-h-[46px] select-none [-webkit-touch-callout:none]`}
                   >
                     <span className="min-w-0 py-1.5 pr-2">
                       <span className={`block truncate font-display text-ui-17 font-semibold leading-tight ${isFocused || isSel ? 'text-tea-gold' : 'text-tea-text'}`}>{p.productName}</span>
@@ -234,6 +266,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
                           </>;
                         })()}
                         {comingQty > 0 && <span className="shrink-0 text-tea-gold-lt">· +{fmtNum(comingQty)}</span>}
+                        {!selectMode && isUnchecked(p) && <span aria-label="needs a recount" className="shrink-0 w-1.5 h-1.5 rounded-full bg-tea-error" />}
                       </span>
                     </span>
                     <span className={`${NUM} font-mono text-ui-13 tracking-tight text-tea-text tabular-nums`}>{p.year || '—'}</span>
