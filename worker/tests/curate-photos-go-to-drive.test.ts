@@ -189,3 +189,14 @@ describe('an agent adding a photo', () => {
     await expect(curatePhotoTools.handlers.curate_add_photo(env, { ...auth, accountId: 'acc-other' }, { tea_id: 'e-1', image_base64: 'AAAA' })).rejects.toThrow(/No such tea/);
   });
 });
+
+describe('a photo that never left the phone', () => {
+  it('makes no folders and copies nothing', async () => {
+    const { env, db } = setup();
+    const calls = fakeGoogle();
+    await connect(env);
+    db.sqlite.exec(`UPDATE tea_compass_entries SET photos = '["blob:https://www.teajia.com/403bf9d9"]' WHERE id = 'e-1'`);
+    expect(await savePhotosToDrive(env, driveSeal(env), 'acc-shop', 'e-1')).toBe(0);
+    expect(calls.filter(c => c.url.includes('googleapis.com/drive') || c.url.includes('/upload/drive/'))).toHaveLength(0);
+  });
+});
