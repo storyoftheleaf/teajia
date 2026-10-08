@@ -58,6 +58,43 @@ export function todayItems(entries: readonly TeaCompassEntry[]): TodayItem[] {
   return items.sort((a, b) => ACTION_ORDER[a.action] - ACTION_ORDER[b.action]);
 }
 
+export interface TodaySections {
+  /** Tasted and waiting for a choice, plus samples that arrived and want tasting. */
+  decide: TodayItem[];
+  /** Saved without a price. */
+  cost: TodayItem[];
+  /** Arrived, not yet on the shop shelf. */
+  shelve: TodayItem[];
+  /** Ordered or being ordered, with how long it has been. */
+  onTheWay: Array<{ entryId: string; name: string; vendor: string; days: number | null; ordering: boolean }>;
+}
+
+/** Whole days since an ISO time, or null when it is missing or in the future. */
+export function daysSince(iso: string | undefined | null, now: number = Date.now()): number | null {
+  if (!iso) return null;
+  const d = Math.floor((now - new Date(iso).getTime()) / 86_400_000);
+  return Number.isFinite(d) && d >= 0 ? d : null;
+}
+
+/** Today's tea sections, each a different kind of thing; an empty one is simply empty. */
+export function todaySections(entries: readonly TeaCompassEntry[], now: number = Date.now()): TodaySections {
+  const items = todayItems(entries);
+  return {
+    decide: items.filter((i) => i.action === 'taste' || i.action === 'decide'),
+    cost: items.filter((i) => i.action === 'add-cost'),
+    shelve: items.filter((i) => i.action === 'shelf'),
+    onTheWay: entries
+      .filter((e) => (e.status === 'incoming' || e.status === 'buying') && e.decision !== 'passed_on')
+      .map((e) => ({
+        entryId: e.id,
+        name: e.name?.trim() || 'Untitled tea',
+        vendor: e.vendorName?.trim() || '',
+        days: daysSince(e.updatedAt, now),
+        ordering: e.status === 'buying',
+      })),
+  };
+}
+
 export const TODAY_ACTION_LABEL: Record<TodayAction, string> = {
   taste: 'Taste',
   decide: 'Decide',

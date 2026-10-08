@@ -1530,7 +1530,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       {/* ── A TEA, ON TOP of the tab you are on. Back closes it and you are
           exactly where you were; the tab highlight never moved. ── */}
       {topLayer && (
-        <div className="absolute inset-0 z-10 flex flex-col bg-tea-bg" data-testid="curate-tea-overlay" data-layer={topLayer.as}>
+        <div className="absolute inset-0 z-10 flex flex-col border-t border-tea-border bg-tea-surface" data-testid="curate-tea-overlay" data-layer={topLayer.as}>
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-3 pb-nav-gap-lg" style={{ WebkitOverflowScrolling: 'touch' }}>
             {topLayer.as === 'face' ? (
               <div className="mx-auto w-full max-w-xl">

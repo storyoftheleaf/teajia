@@ -6,6 +6,7 @@
 import { test, expect, type Page } from './fixtures';
 import {
   compassCreatedCustomers,
+  compassRequestCount,
   expectNoUnhandledCompassApi,
   installCompassHarness,
   openCurateV2,
@@ -277,5 +278,132 @@ test.describe('Curate v2 journeys (phone)', () => {
     await expect(overlay(page)).toHaveCount(0);
     const after = await scroller.evaluate((el) => el.scrollTop);
     expect(Math.abs(after - before)).toBeLessThanOrEqual(2);
+  });
+
+  // ── Journey 2, 4 and the Chinese name: Today in sections ───────────────────
+
+  const NOW = Date.now();
+  const daysAgo = (n: number) => new Date(NOW - n * 86_400_000).toISOString();
+  const entry = (over: Record<string, any>) => ({
+    category: 'tea', type: 'Sheng', status: 'noted', vendor_name: 'Wang Laoshi', vendor_id: 'vendor-wang',
+    created_at: daysAgo(30), updated_at: daysAgo(30), photos: '[]', audio_clips: '[]', ...over,
+  });
+  const TODAY_DATA = {
+    customers: [{ id: 'vendor-wang', name: 'Wang Laoshi', tags: ['vendor'] }, { id: 'vendor-li', name: 'Li Tea House', tags: ['vendor'], wechat: 'li-tea' }],
+    compassEntries: [
+      entry({ id: 'e-decide', name: 'Mengku Laobanzhang', price_amount: 450, tasting: JSON.stringify({ quality: 8, cleanliness: 'clean' }) }),
+      entry({ id: 'e-sample', name: 'Bulang Sample', price_amount: 300, sample_state: 'received', vendor_name: 'Li Tea House', vendor_id: 'vendor-li' }),
+      entry({ id: 'e-cost', name: 'Jingmai Maocha', price_amount: null }),
+      entry({ id: 'e-way', name: 'Nannuo 2021', price_amount: 260, status: 'incoming', updated_at: daysAgo(6) }),
+      entry({ id: 'e-shelve', name: 'Pasha Cake', price_amount: 420, status: 'in_stock', draft_product_id: null }),
+    ],
+    todos: [{ id: 'todo-1', text: 'confirm the year (about 2016)', compass_entry_id: 'e-decide', vendor_id: null, from_agent: 'GrokBot', created_at: daysAgo(1), tea_name: 'XWT-LB1 有机六堡茶1', vendor_name: null }],
+    agentSuggestions: [{ batch_id: 'batch-1', found_by: 'GrokBot', url: null, vendor: 'Mengku Tea House', contact: null, note: null, found_at: daysAgo(1),
+      teas: [1, 2, 3, 4].map((n) => ({ id: `s${n}`, name: `Find ${n}`, category: 'tea', type: null, year: null, price: null, note: null })) }],
+  };
+  const sectionTitles = (page: Page) => page.locator('[data-testid^="today-section-"] h2').allTextContents();
+
+  test('Journey 2: Today is sections in order; a To decide line opens the tea over Today and Back returns', async ({ page }) => {
+    await installCompassHarness(page, TODAY_DATA);
+    await openCurateV2(page, 'today');
+    await expect(page.getByTestId('today-section-shelve')).toBeVisible();
+    expect(await sectionTitles(page)).toEqual(['From your agent', 'To do', 'To decide', 'Needs a cost', 'Vendors to reach', 'On the way', 'To shelve']);
+
+    const agent = page.getByTestId('today-agent-find');
+    await expect(agent).toContainText('GrokBot');
+    await expect(agent).toContainText('Mengku Tea House · 4 teas');
+    await expect(agent).toContainText('Pick');
+    // To do: the subject first, the task after.
+    await expect(page.getByTestId('today-todo')).toContainText('XWT-LB1 有机六堡茶1');
+    await expect(page.getByTestId('today-todo')).toContainText('confirm the year');
+    await expect(page.getByTestId('today-section-decide')).toContainText('Taste');
+    await expect(page.getByTestId('today-section-vendors')).toContainText('Wang Laoshi');
+    await expect(page.getByTestId('today-section-vendors')).not.toContainText('Li Tea House');
+    await expect(page.getByTestId('today-section-way')).toContainText('6 days');
+    await shot(page, 'j2-today-sections');
+
+    // Tapping a To decide line opens the tea on top; TODAY stays lit; Back returns to the list.
+    const line = page.getByTestId('today-section-decide').getByRole('button', { name: /Mengku Laobanzhang/ });
+    await line.click();
+    await expect(overlay(page)).toBeVisible();
+    await expect(overlay(page)).toContainText('Mengku Laobanzhang');
+    expect(await selectedTab(page)).toEqual(['Today']);
+    await shot(page, 'j2-tea-over-today');
+    await backFromHeader(page).click();
+    await expect(overlay(page)).toHaveCount(0);
+    expect(await selectedTab(page)).toEqual(['Today']);
+    expect(await sectionTitles(page)).toEqual(['From your agent', 'To do', 'To decide', 'Needs a cost', 'Vendors to reach', 'On the way', 'To shelve']);
+  });
+
+  test('Journey 2: an empty section is not shown, and a signed-in Today always offers + A to-do', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: [{ id: 'vendor-li', name: 'Li Tea House', tags: ['vendor'], wechat: 'li-tea' }],
+      compassEntries: [entry({ id: 'e-cost', name: 'Jingmai Maocha', price_amount: null })],
+    });
+    await openCurateV2(page, 'today');
+    await expect(page.getByTestId('today-section-cost')).toBeVisible();
+    expect(await sectionTitles(page)).toEqual(['To do', 'Needs a cost']);
+    await expect(page.getByTestId('today-section-todo').getByRole('button', { name: '+ A to-do' })).toBeVisible();
+    await shot(page, 'j2-few-sections');
+  });
+
+  test('Journey 4: Arrived moves a tea from On the way to To shelve; Shelf promotes it and the line leaves', async ({ page }) => {
+    await installCompassHarness(page, TODAY_DATA);
+    await openCurateV2(page, 'today');
+    const way = page.getByTestId('today-section-way');
+    const shelve = page.getByTestId('today-section-shelve');
+    await expect(way).toContainText('Nannuo 2021');
+    await expect(shelve).not.toContainText('Nannuo 2021');
+
+    await way.getByRole('button', { name: 'Arrived: Nannuo 2021' }).click();
+    await expect(page.getByTestId('today-section-way')).toHaveCount(0);
+    await expect(shelve).toContainText('Nannuo 2021');
+    await expect(shelve).toContainText('Pasha Cake');
+    await shot(page, 'j4-arrived');
+
+    await shelve.getByRole('button', { name: 'Shelf: Pasha Cake' }).click();
+    await expect(shelve).not.toContainText('Pasha Cake');
+    await expect(shelve).toContainText('Nannuo 2021');
+    expect(compassRequestCount(page, 'POST /api/compass/entries/e-shelve/promote')).toBe(1);
+    await shot(page, 'j4-shelved');
+
+    await shelve.getByRole('button', { name: 'Shelf: Nannuo 2021' }).click();
+    await expect(page.getByTestId('today-section-shelve')).toHaveCount(0);
+    expect(compassRequestCount(page, 'POST /api/compass/entries/e-way/promote')).toBe(1);
+  });
+
+  test('Chinese name is suggested, never typed: cross leaves it empty, tick saves it', async ({ page }) => {
+    await installCompassHarness(page, { ...TODAY_DATA, customers: TODAY_DATA.customers });
+    await openCurateV2(page, 'today');
+    await page.getByTestId('today-section-decide').getByRole('button', { name: /Mengku Laobanzhang/ }).click();
+    const row = page.getByTestId('tea-face-chinese');
+    await expect(row).toContainText('suggest');
+    await shot(page, 'cn-1-suggest');
+
+    // ✕ leaves it empty.
+    await row.getByRole('button', { name: 'Suggest a Chinese name' }).click();
+    await expect(page.getByTestId('chinese-suggestion')).toHaveText('孟库古树茶');
+    await shot(page, 'cn-2-suggestion');
+    await row.getByRole('button', { name: 'Discard this Chinese name' }).click();
+    await expect(page.getByTestId('chinese-suggestion')).toHaveCount(0);
+    await expect(row).toContainText('suggest');
+
+    // ✓ saves it, shown as saved (no more suggest).
+    await row.getByRole('button', { name: 'Suggest a Chinese name' }).click();
+    await row.getByRole('button', { name: 'Keep this Chinese name' }).click();
+    await expect(row).toContainText('孟库古树茶');
+    await expect(row.getByRole('button', { name: 'Suggest a Chinese name' })).toHaveCount(0);
+    await shot(page, 'cn-3-kept');
+  });
+
+  test('Chinese name: a failed suggestion says so in a plain sentence and can be retried', async ({ page }) => {
+    await installCompassHarness(page, { ...TODAY_DATA, chineseNameFails: true });
+    await openCurateV2(page, 'today');
+    await page.getByTestId('today-section-decide').getByRole('button', { name: /Mengku Laobanzhang/ }).click();
+    const row = page.getByTestId('tea-face-chinese');
+    await row.getByRole('button', { name: 'Suggest a Chinese name' }).click();
+    await expect(row.getByRole('alert')).toContainText('Could not get a suggestion');
+    await expect(row.getByRole('button', { name: 'Suggest a Chinese name' })).toBeVisible();
+    await shot(page, 'cn-4-error');
   });
 });

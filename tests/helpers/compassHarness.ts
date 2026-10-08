@@ -7,7 +7,7 @@ const requestCounts = new WeakMap<Page, Map<string, number>>();
 const createdCustomersByPage = new WeakMap<Page, Array<Record<string, any>>>();
 export const COMPASS_TOKEN = `${enc(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${enc(JSON.stringify({ sub: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', platform_role: 'platform_owner', exp: Math.floor(Date.now() / 1000) + 86400, active_account_id: 'acct-bali', memberships }))}.test`;
 
-export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; preserveSamplesOnNavigation?: boolean; preserveSampleCartOnNavigation?: boolean; compassSyncLoseResponses?: number; contextEmpty?: boolean; contextFailOnce?: boolean; contextJourneyFailOnce?: boolean; contextVisitFailOnce?: boolean; products?: unknown[]; compassEntries?: unknown[]; contextByAccount?: Record<string, { journeys: unknown[]; visits: unknown[] }>; contextAfterInitial?: { journeys: unknown[]; visits: unknown[] }; contextDelayByAccount?: Record<string, number>; customers?: Array<Record<string, any>> }) {
+export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; preserveSamplesOnNavigation?: boolean; preserveSampleCartOnNavigation?: boolean; compassSyncLoseResponses?: number; contextEmpty?: boolean; contextFailOnce?: boolean; contextJourneyFailOnce?: boolean; contextVisitFailOnce?: boolean; products?: unknown[]; compassEntries?: unknown[]; contextByAccount?: Record<string, { journeys: unknown[]; visits: unknown[] }>; contextAfterInitial?: { journeys: unknown[]; visits: unknown[] }; contextDelayByAccount?: Record<string, number>; customers?: Array<Record<string, any>>; todos?: unknown[]; agentSuggestions?: unknown[]; pendingReceipts?: unknown[]; chineseName?: string | null; chineseNameFails?: boolean }) {
   unhandledByPage.set(page, []);
   requestCounts.set(page, new Map());
   createdCustomersByPage.set(page, []);
@@ -163,6 +163,15 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     }
     const vendorProfileMatch = path.match(/^\/api\/curate\/vendors\/([^/]+)\/profile$/);
     if (vendorProfileMatch && route.request().method() === 'GET') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ vendor_id: vendorProfileMatch[1], vendor_code: null, contact_people: [], addresses: [], contacts: [] }) });
+    // Chinese name suggestions (never typed) and the shelf promotion.
+    if (requestKey === 'POST /api/generate-chinese-name') {
+      if (options?.chineseNameFails) return route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'No provider' }) });
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ chineseName: options?.chineseName === undefined ? '孟库古树茶' : options.chineseName, confident: true }) });
+    }
+    const promoteMatch = path.match(/^\/api\/compass\/entries\/([^/]+)\/promote$/);
+    if (promoteMatch && route.request().method() === 'POST') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: `product-${promoteMatch[1]}`, product: {}, alreadyPromoted: false }) });
+    }
     const responses: Record<string, unknown> = {
       'GET /api/curate/attachments': [], 'GET /api/curate/history': { history: [] },
       'GET /api/auth/me': { id: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', memberships, active_account_id: 'acct-bali' },
@@ -186,9 +195,9 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       'GET /api/curate/visits': { visits: scopedContext?.visits ?? (options?.contextEmpty ? [] : [{ id: 'visit-chen', account_id: 'acct-bali', journey_id: 'journey-taiwan', vendor_id: 'vendor-chen', vendor_name: 'Chen Family', place: 'Taipei' }]) },
       'GET /api/curate/imports': { imports: [] },
       // Curate v2's Today: nothing from an agent, no to-dos, nothing on the way, Drive not linked.
-      'GET /api/curate/suggestions': { waiting: [] },
-      'GET /api/curate/todos': { todos: [] },
-      'GET /api/curate/receipt-proposals': { pending: [] },
+      'GET /api/curate/suggestions': { waiting: options?.agentSuggestions ?? [] },
+      'GET /api/curate/todos': { todos: options?.todos ?? [] },
+      'GET /api/curate/receipt-proposals': { pending: options?.pendingReceipts ?? [] },
       'GET /api/curate/drive': { connected: false },
       'POST /api/curate/journeys': { id: 'journey-created', account_id: 'acct-bali', name: 'Yunnan', season: 'Autumn', year: 2026 },
       'PUT /api/curate/journeys/journey-created': { id: 'journey-created', account_id: 'acct-bali', name: 'Yunnan edited', season: 'Autumn', year: 2026 },
