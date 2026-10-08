@@ -161,7 +161,7 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
             placeholder="Ask Wang about the 2018…"
             aria-label="Add a to-do"
             enterKeyHint="done"
-            className="min-w-0 flex-1 border-0 border-b border-tea-gold bg-transparent py-2 font-display text-ui-17 text-tea-text outline-none placeholder:text-tea-text-dim"
+            className="min-w-0 flex-1 border-0 border-b border-tea-border focus:border-tea-gold bg-transparent py-2 font-display text-ui-17 text-tea-text outline-none placeholder:text-tea-text-dim"
           />
           <button type="submit" disabled={addTodo.isPending} className="tap-target text-ui-13 font-medium text-tea-gold">Add</button>
         </form>
