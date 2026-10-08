@@ -116,8 +116,9 @@ The server is `https://api.teajia.com/mcp`. Two ways in:
 | Claude Code | Token | Already set up: `.mcp.json` reads `TEAJIA_MCP_TOKEN`. Start with `npm run claude`. |
 | ChatGPT | Sign in | Settings › Connectors › Advanced › Developer mode, then Create, URL above, sign-in. After the tools change, press Refresh on the connector and open a new chat. Writing needs a plan that allows developer-mode write tools. |
 | Hermes | Token | `~/.hermes/config.yaml` on the server, see below. |
-| GrokBot | Token, if it runs on the xAI API | In the API call: `{"type":"mcp","server_url":"https://api.teajia.com/mcp","server_label":"teajia","authorization":"<token>"}` |
-| Grok app (grok.com) | Sign in | **Not working yet**: the shop's sign-in only returns to Claude and ChatGPT addresses. See "Not built yet". |
+| GrokBot (Grok Bot, xAI with Cursor) | Sign in | Settings › Plugins › add a custom connector, URL above. It signs in to Teajia; it does not take a pasted key. Desktop and iPhone. |
+| Grok app (grok.com) | Sign in | grok.com/connectors › New Connector › Custom, URL above |
+| A bot on the xAI API | Token | In the API call: `{"type":"mcp","server_url":"https://api.teajia.com/mcp","server_label":"teajia","authorization":"<token>"}` |
 
 Hermes config (`~/.hermes/config.yaml`):
 
@@ -317,10 +318,6 @@ You help Adrian source tea for Teajia through the Teajia tools (server label
 
 ## Not built yet
 
-- **Grok app sign-in.** The shop's sign-in only sends people back to Claude and
-  ChatGPT addresses (`OAUTH_REDIRECT_HOST_ALLOWLIST` in `worker/src/mcp.ts`). The
-  Grok app needs its own address added once it is confirmed. A bot on the xAI
-  API works today with a token.
 - **Sign-in that lasts.** The sign-in gives no refresh token, so ChatGPT may need
   Adrian to sign in again when access runs out.
 - **The tick list in the app.** Suggestions can be picked through an agent
