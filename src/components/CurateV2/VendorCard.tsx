@@ -119,7 +119,7 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Escape') setEditing(null); }}
         aria-label={label}
-        className="min-w-0 flex-1 border-0 border-b border-tea-gold bg-transparent py-1.5 text-right text-ui-15 text-tea-text outline-none"
+        className="min-w-0 flex-1 border-0 border-b border-tea-border focus:border-tea-gold bg-transparent py-1.5 text-right text-ui-15 text-tea-text outline-none"
       />
       <button type="submit" disabled={saving} className="tap-target text-ui-13 font-medium text-tea-gold">{saving ? 'Saving' : 'Save'}</button>
     </form>
