@@ -433,7 +433,7 @@ describe('clear said removes only the previewed exact voice transcripts', () => 
     const id = entries(db)[0].id;
     await confirm(db, 'curate_update_tea', { tea_id: id, said: 'Second exact statement' });
     db.sqlite.prepare('UPDATE tea_compass_entries SET notes = ? WHERE id = ?').run('Legacy story', id);
-    const voice = db.sqlite.prepare("SELECT * FROM notes WHERE compass_entry_id = ? ORDER BY id").all(id) as R[];
+    const voice = db.sqlite.prepare("SELECT * FROM notes WHERE compass_entry_id = ? ORDER BY created_at, id").all(id) as R[];
     db.sqlite.prepare("INSERT INTO notes(id,account_id,compass_entry_id,text,source_type,author_id,author_name,deleted) VALUES(?,?,?,?,?,?,?,?)")
       .run('manual-kept', ACCOUNT, id, 'Handwritten note', 'manual', 'adrian', 'Adrian', 0);
     db.sqlite.prepare("INSERT INTO notes(id,account_id,compass_entry_id,text,source_type,author_id,author_name,deleted) VALUES(?,?,?,?,?,?,?,?)")
