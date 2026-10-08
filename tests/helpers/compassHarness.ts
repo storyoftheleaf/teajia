@@ -15,7 +15,7 @@ const purchaseOrdersByPage = new WeakMap<Page, Array<Record<string, any>>>();
 const matches = (match: RequestMatch, key: string) => (typeof match === 'string' ? match === key : match.test(key));
 export const COMPASS_TOKEN = `${enc(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${enc(JSON.stringify({ sub: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', platform_role: 'platform_owner', exp: Math.floor(Date.now() / 1000) + 86400, active_account_id: 'acct-bali', memberships }))}.test`;
 
-export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; preserveSamplesOnNavigation?: boolean; preserveSampleCartOnNavigation?: boolean; compassSyncLoseResponses?: number; contextEmpty?: boolean; contextFailOnce?: boolean; contextJourneyFailOnce?: boolean; contextVisitFailOnce?: boolean; products?: unknown[]; compassEntries?: unknown[]; contextByAccount?: Record<string, { journeys: unknown[]; visits: unknown[] }>; contextAfterInitial?: { journeys: unknown[]; visits: unknown[] }; contextDelayByAccount?: Record<string, number>; customers?: Array<Record<string, any>>; todos?: unknown[]; agentSuggestions?: unknown[]; pendingReceipts?: unknown[]; chineseName?: string | null; chineseNameFails?: boolean; rates?: unknown[]; saidParts?: unknown[]; drive?: Record<string, unknown>; failRequests?: Array<{ match: RequestMatch; times?: number }>; delayRequests?: Array<{ match: RequestMatch; ms: number }> }) {
+export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; preserveSamplesOnNavigation?: boolean; preserveSampleCartOnNavigation?: boolean; compassSyncLoseResponses?: number; contextEmpty?: boolean; contextFailOnce?: boolean; contextJourneyFailOnce?: boolean; contextVisitFailOnce?: boolean; products?: unknown[]; compassEntries?: unknown[]; contextByAccount?: Record<string, { journeys: unknown[]; visits: unknown[] }>; contextAfterInitial?: { journeys: unknown[]; visits: unknown[] }; contextDelayByAccount?: Record<string, number>; customers?: Array<Record<string, any>>; todos?: unknown[]; agentSuggestions?: unknown[]; pendingReceipts?: unknown[]; chineseName?: string | null; chineseNameFails?: boolean; rates?: unknown[]; saidParts?: unknown[]; drive?: Record<string, unknown>; purchaseOrders?: Array<Record<string, any>>; failRequests?: Array<{ match: RequestMatch; times?: number }>; delayRequests?: Array<{ match: RequestMatch; ms: number }> }) {
   unhandledByPage.set(page, []);
   requestCounts.set(page, new Map());
   createdCustomersByPage.set(page, []);
@@ -28,8 +28,21 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
   // a local sandbox database, 2026-10-09). Without these the mock answered the
   // same canned body to every call and could not tell a tea that arrives with its
   // cost from one that arrives with none.
-  const purchaseOrders: Array<Record<string, any>> = [];
+  // Seeded orders are the shop's other devices' orders, in the columns the
+  // shop's table has (items_json is a string; total_usd is 0, never null).
+  const purchaseOrders: Array<Record<string, any>> = (options?.purchaseOrders ?? []).map((po) => {
+    let items: any[] = [];
+    try { items = JSON.parse(po.items_json ?? '[]'); } catch { items = []; }
+    return { ...po, items };
+  });
   purchaseOrdersByPage.set(page, purchaseOrders);
+  /** A purchase order as GET /api/purchase-orders sends it: the row, in the table's columns (worker/schema.sql), newest first. */
+  const shopRow = (po: Record<string, any>) => ({
+    id: po.id, account_id: 'acct-bali', vendor_name: po.vendor_name ?? null, vendor_id: po.vendor_id ?? null, vendor_contact: po.vendor_contact ?? null,
+    items_json: po.items_json ?? '[]', total_usd: po.total_usd || 0, display_currency: po.display_currency || 'USD', status: po.status || 'pending',
+    message_text: po.message_text ?? null, notes: po.notes ?? null, freight_estimate_json: null,
+    created_at: po.created_at ?? new Date().toISOString(), updated_at: po.updated_at ?? po.created_at ?? new Date().toISOString(),
+  });
   const receiptProposals: Array<Record<string, any>> = [];
   const createdProducts: HarnessProduct[] = [];
   productsByPage.set(page, createdProducts);
@@ -253,12 +266,20 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       const input = route.request().postDataJSON() as Record<string, any>;
       let items: any[] = [];
       try { items = JSON.parse(input.items_json ?? '[]'); } catch { items = []; }
-      purchaseOrders.push({ id: 'po-created', ...input, items });
-      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 'po-created' }) });
+      // The first order the page records is 'po-created'; a second is 'po-created-2', so two orders are two rows.
+      const id = purchaseOrders.some((po) => po.id === 'po-created') ? `po-created-${purchaseOrders.length + 1}` : 'po-created';
+      const at = new Date().toISOString();
+      purchaseOrders.push({ ...input, id, items, created_at: at, updated_at: at });
+      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id }) });
+    }
+    if (requestKey === 'GET /api/purchase-orders') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([...purchaseOrders].map(shopRow).sort((a, b) => b.created_at.localeCompare(a.created_at))) });
     }
     // An order the shop does not hold is a 404, not a quiet success (the real worker, 2026-10-09).
     if (/^\/api\/purchase-orders\/[^/]+$/.test(path) && route.request().method() === 'PUT') {
-      const held = purchaseOrders.some((po) => po.id === path.split('/').pop());
+      const found = purchaseOrders.find((po) => po.id === path.split('/').pop());
+      const held = !!found;
+      if (found) { const body = (route.request().postDataJSON() ?? {}) as Record<string, any>; for (const k of ['status', 'notes', 'message_text']) if (k in body) found[k] = body[k]; found.updated_at = new Date().toISOString(); }
       return held
         ? route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) })
         : route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'Purchase order not found' }) });

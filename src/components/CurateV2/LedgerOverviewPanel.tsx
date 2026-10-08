@@ -8,6 +8,8 @@ import { useRates } from '../../admin/hooks/useAdminData';
 import { formatCurrency } from '../../admin/utils';
 import { rateToUsd } from '../../lib/currency';
 import { purchaseSpendInUsd } from './curatePricing';
+import { shopOrderAsTransaction, shopOrderIsSpend, useShopOrders } from './shopOrders';
+import type { LedgerTransaction } from '../../lib/ledgerStore';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -32,17 +34,29 @@ export const LedgerOverviewPanel: React.FC = () => {
   const { data: rates } = useRates();
   const activeCurrency = useAppStore((s) => s.currency);
 
+  // Orders the shop holds that this device does not (made on another phone or
+  // laptop) are spend too. An order the shop could not read the lines of still
+  // has the dollars it recorded; one with neither is not counted.
+  const shop = useShopOrders();
+  const purchases = useMemo(() => {
+    const held = new Set(transactions.map((t) => t.purchaseOrderId).filter(Boolean));
+    const fromShop: LedgerTransaction[] = [];
+    for (const order of shop.orders) {
+      if (held.has(order.id) || !shopOrderIsSpend(order)) continue;
+      const tx = shopOrderAsTransaction(order);
+      const readable = tx.items.length > 0 && tx.items.every((item) => !item.unpriced) && !order.unreadableLines;
+      if (readable) fromShop.push(tx);
+      else if (order.totalUsd !== null) {
+        fromShop.push({ ...tx, currency: 'USD', items: [{ id: 'shop-total', name: 'Order', type: 'Other', quantityUnits: 1, pricePerUnit: order.totalUsd, priceIsPerGram: false, currency: 'USD', addedAt: tx.createdAt }] });
+      }
+    }
+    return [...transactions.filter((t) => t.direction === 'purchase' && t.status === 'confirmed'), ...fromShop];
+  }, [transactions, shop.orders]);
   // Every confirmed purchase, whatever it was paid in, converted at the shop's
   // rates and shown in the currency the site is set to. This used to keep only
   // purchases paid in the display currency, so with the site on dollars every
   // yuan purchase vanished from the totals.
-  const spend = useMemo(
-    () => purchaseSpendInUsd(
-      transactions.filter((t) => t.direction === 'purchase' && t.status === 'confirmed'),
-      rates,
-    ),
-    [transactions, rates]
-  );
+  const spend = useMemo(() => purchaseSpendInUsd(purchases, rates), [purchases, rates]);
   const confirmed = spend.priced;
   const unpriced = Object.entries(spend.unpricedByCurrency);
   // The admin's formatter, which converts and then rounds once. The shop's
@@ -78,7 +92,7 @@ export const LedgerOverviewPanel: React.FC = () => {
         let cat = 'Tea';
         if (t === 'teaware') cat = 'Teaware';
         else if (t === 'sample' || t === 'samples') cat = 'Samples';
-        else if (t && !['white', 'green', 'yellow', 'oolong', 'black', 'dark', 'puer', 'pu-erh', 'puerh', 'raw', 'ripe', 'tea'].some((k) => t.includes(k))) {
+        else if (t && !['white', 'green', 'yellow', 'oolong', 'black', 'dark', 'puer', 'pu-erh', 'puerh', 'raw', 'ripe', 'sheng', 'shou', 'red', 'herbal', 'tea'].some((k) => t.includes(k))) {
           cat = 'Other';
         }
         categoryMap[cat] += itemsUsd[i];

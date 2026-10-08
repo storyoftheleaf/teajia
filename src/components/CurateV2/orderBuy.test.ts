@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { addTeaToDraftOrder, NO_VENDOR_YET, releaseTeaFromOrder, removeTeaFromDraftOrders } from './orderBuy';
+import { ledgerItemAmount, orderMoney } from './curatePricing';
+import { orderLinePrice } from './curateV2Model';
 import type { TeaCompassEntry } from './types';
 
 const put = (over: Partial<TeaCompassEntry> & { id: string }) => {
@@ -149,5 +151,28 @@ describe('Buy puts a tea on its vendor\'s draft order', () => {
     const items = useLedgerStore.getState().transactions.find((t) => t.id === tx)!.items;
     expect(items[0].unitWeightGrams).toBe(200);
     expect(items[1].unitWeightGrams).toBe(357);
+  });
+});
+
+describe('a tea priced per 100 g is counted per gram on its order (Curate v1 had it as per gram: 200 g of ¥450/100 g came to ¥90,000)', () => {
+  beforeEach(() => {
+    useLedgerStore.setState({ transactions: [], activeTransactionId: null });
+    useTeaCompassStore.setState({ entries: [], pendingEntries: [] });
+  });
+
+  it('Buy on the tea screen: the line is ¥4.5 a gram, so 200 g is ¥900', () => {
+    const id = addTeaToDraftOrder(put({ id: 'l1', name: 'Loose', form: 'Loose', priceAmount: 450, pricePerUnitGrams: 100, vendorName: 'Wang' }))!;
+    const tx = useLedgerStore.getState().transactions.find((t) => t.id === id)!;
+    useLedgerStore.getState().updateLineItem(id, tx.items[0].id, { quantityGrams: 200 });
+    const line = useLedgerStore.getState().transactions.find((t) => t.id === id)!.items[0];
+    expect(line).toMatchObject({ priceIsPerGram: true, pricePerUnit: 4.5 });
+    expect(ledgerItemAmount(line)).toBe(900);
+    expect(orderMoney(useLedgerStore.getState().transactions.find((t) => t.id === id)!).parts).toEqual([{ currency: 'Yuan', amount: 900 }]);
+  });
+
+  it('every other way onto an order reads the same rule: the full form\'s Buy panel, the quick Buy sheet and the order summary all use orderLinePrice', () => {
+    const entry = { category: 'tea' as const, priceAmount: 450, pricePerUnitGrams: 100, form: undefined };
+    const line = { ...orderLinePrice(entry), quantityGrams: 200 };
+    expect(ledgerItemAmount(line as never)).toBe(900);
   });
 });
