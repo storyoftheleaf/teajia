@@ -16337,6 +16337,20 @@ const handleUpdateInventoryReceiptState: Handler = async (request, env, params) 
   return json({ ...receipt, state });
 };
 
+// How a delivery travels (migration 0035). Its own update, not part of create,
+// so the create request's idempotency fingerprint stays what it was. null clears it.
+const RECEIPT_TRANSPORT_MODES = new Set(['air', 'sea', 'land', 'courier']);
+const handleUpdateInventoryReceiptTransport: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'stock'); if ('error' in ctx) return ctx.error;
+  if (String(params.id).startsWith('legacy:')) return json({ error: 'An older in-transit entry has no receipt to update' }, 409);
+  const body = await request.json().catch(() => ({})) as any;
+  const mode = body.transport_mode === null ? null : typeof body.transport_mode === 'string' ? body.transport_mode.trim().toLowerCase() : undefined;
+  if (mode === undefined || (mode !== null && !RECEIPT_TRANSPORT_MODES.has(mode))) return json({ error: 'transport_mode must be air, sea, land, courier or null' }, 400);
+  const result = await env.DB.prepare("UPDATE inventory_receipts SET transport_mode=?, updated_at=datetime('now') WHERE id=? AND account_id=?").bind(mode, params.id, ctx.accountId).run();
+  if (!result.meta?.changes) return json({ error: 'Receipt not found' }, 404);
+  return json({ id: params.id, transport_mode: mode });
+};
+
 const loadReceiptLine = async (env: Env, id: string, accountId: string) => env.DB.prepare(`SELECT l.*, r.state receipt_state, r.vendor_name FROM inventory_receipt_lines l JOIN inventory_receipts r ON r.id=l.receipt_id AND r.account_id=l.account_id WHERE l.id=? AND l.account_id=?`).bind(id,accountId).first() as Promise<any>;
 
 const handleReceiveInventoryLine: Handler = async (request, env, params) => {
@@ -29345,6 +29359,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/inventory/receipts', handleListInventoryReceipts],
   ['POST', '/api/inventory/receipts', handleCreateInventoryReceipt],
   ['PUT', '/api/inventory/receipts/:id/state', handleUpdateInventoryReceiptState],
+  ['PUT', '/api/inventory/receipts/:id/transport', handleUpdateInventoryReceiptTransport],
   ['POST', '/api/inventory/receipt-lines/:id/receive', handleReceiveInventoryLine],
   ['POST', '/api/inventory/receipt-lines/:id/cancel-remaining', handleCancelInventoryLine],
   ['POST', '/api/products/:id/movements', handleCreateStockMovement],

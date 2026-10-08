@@ -40,7 +40,7 @@ export const FastTastingSheet: React.FC<FastTastingSheetProps> = ({ entryId, onO
             <div key={question.q} className="border-b border-tea-border px-4 py-2.5">
               <div className="mb-1.5 flex items-baseline justify-between">
                 <span className="curate-v2-label">{question.label}</span>
-                <span className="text-ui-11 text-tea-text-dim">{question.from}</span>
+                <span className="font-body text-ui-12 italic text-tea-text-dim">{question.from}</span>
               </div>
               <div className={`grid ${cols} gap-1`} role="group" aria-label={question.label}>
                 {question.options.map((option) => {
@@ -51,7 +51,7 @@ export const FastTastingSheet: React.FC<FastTastingSheetProps> = ({ entryId, onO
                       type="button"
                       aria-pressed={on}
                       onClick={() => tap(question.q, option.id)}
-                      className={`min-h-9 whitespace-nowrap rounded border px-0 text-ui-12 transition-colors ${
+                      className={`min-h-9 whitespace-nowrap rounded border px-0 font-mono text-ui-13 transition-colors ${
                         on ? 'border-tea-gold bg-tea-gold/10 font-semibold text-tea-gold' : 'border-tea-border text-tea-text-sec hover:text-tea-text'
                       }`}
                     >
@@ -60,7 +60,7 @@ export const FastTastingSheet: React.FC<FastTastingSheetProps> = ({ entryId, onO
                   );
                 })}
                 {question.q === 'flavour' && entryId && (
-                  <button type="button" onClick={() => onFullTasting(entryId)} className="min-h-9 whitespace-nowrap rounded border border-tea-border text-ui-12 text-tea-gold hover:border-tea-gold">
+                  <button type="button" onClick={() => onFullTasting(entryId)} className="min-h-9 whitespace-nowrap rounded border border-tea-border font-mono text-ui-13 text-tea-gold hover:border-tea-gold">
                     More ›
                   </button>
                 )}

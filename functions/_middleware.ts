@@ -424,9 +424,40 @@ export function isTeaAtlasPath(path: string): boolean {
   return ['/atlas', '/tea-atlas'].some((root) => path === root || path.startsWith(root + '/'));
 }
 
+/**
+ * A built script or style, or a plain "not found" that nobody may keep.
+ *
+ * Pages answers a file this deployment does not have with the SPA shell, a
+ * 200 of HTML. Under /assets/ that answer used to inherit the year-long
+ * `immutable` caching meant for real hashed files, so a script asked for in
+ * the seconds a deploy was landing was stored at Cloudflare's edge AS HTML,
+ * and every browser then refused it as a script: the whole site sat on
+ * "Loading Teajia…" (twice on 2026-10-08). Cloudflare serves its stored copy
+ * before this code runs, so this runs only when a file is not stored yet,
+ * which is the one moment the shell could slip in.
+ */
+export function guardBuiltAsset(response: Response): Response {
+  // A browser checking a file it already holds gets 304 and keeps its copy.
+  if (response.status === 304) return response;
+  const type = response.headers.get('content-type') || '';
+  if (response.ok && !type.includes('text/html')) {
+    const headers = new Headers(response.headers);
+    // _headers does not reach a response that passes through Functions, so the
+    // long caching a hashed file has earned is set here.
+    headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+    headers.set('X-Content-Type-Options', 'nosniff');
+    return new Response(response.body, { status: response.status, headers });
+  }
+  return new Response('Not found', {
+    status: 404,
+    headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+  });
+}
+
 export const onRequest: PagesFunction<Env> = async (context) => {
   const { request, next } = context;
   const url = new URL(request.url);
+  if (url.pathname.startsWith('/assets/')) return guardBuiltAsset(await next());
   // These protocol endpoints must reach the Worker before the SPA fallback.
   if (isWorkerProxyPath(url.pathname)) return proxyToWorker(request, context.env.WORKER_ORIGIN);
   // Normalize trailing slashes but keep "/" as the homepage (not "/read").

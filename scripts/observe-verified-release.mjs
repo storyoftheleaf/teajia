@@ -7,6 +7,49 @@ import { pathToFileURL } from 'node:url';
 const SHA = /^[a-f0-9]{40}$/;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const PROOF_STEP = 'Prove exact Worker revision and runtime version';
+const WORKER_ORIGINS = ['https://api.teajia.com', 'https://teajia.com', 'https://www.teajia.com', 'https://teajia-api.lightcodes.workers.dev'];
+
+export function curlWorkerRelease(url, run = execFileSync) {
+  // Disable curlrc, redirects and non-HTTPS protocols. No authentication is sent.
+  const output = run('/usr/bin/curl', ['--disable', '--silent', '--show-error', '--fail',
+    '--proto', '=https', '--proto-redir', '=https', '--max-redirs', '0',
+    '--connect-timeout', '8', '--max-time', '20', '--max-filesize', '65536',
+    '--header', 'Cache-Control: no-cache', '--write-out', '\n%{http_code}', url],
+  { encoding: 'utf8', timeout: 25000, maxBuffer: 128 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });
+  const split = output.lastIndexOf('\n');
+  const status = output.slice(split + 1);
+  if (!/^2\d\d$/.test(status)) throw new Error('curl HTTP response refused');
+  return JSON.parse(output.slice(0, split));
+}
+
+export async function proveLiveWorker(config, proof, dependencies = {}) {
+  const fetcher = dependencies.fetch ?? fetch;
+  const now = dependencies.now ?? Date.now;
+  const diagnostics = [];
+  for (const origin of WORKER_ORIGINS) {
+    const url = `${origin}/api/release?proof=${config.candidate}-${now()}`;
+    let live;
+    let transport = 'fetch';
+    try {
+      const response = await fetcher(url, { cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(10000) });
+      if (!response.ok) { diagnostics.push(`${origin}: fetch HTTP ${response.status}`); continue; }
+      live = await response.json();
+    } catch (error) {
+      if (error instanceof SyntaxError) { diagnostics.push(`${origin}: fetch invalid JSON`); continue; }
+      transport = 'curl';
+      try { live = curlWorkerRelease(url, dependencies.curlExecute); }
+      catch (error) {
+        // Never persist raw stderr, response bodies or credentials in diagnostics.
+        const reason = error instanceof SyntaxError ? 'invalid JSON' : error.message === 'curl HTTP response refused' ? 'HTTP refused' : 'network/HTTP failure';
+        diagnostics.push(`${origin}: fetch network failure; curl ${reason}`);
+        continue;
+      }
+    }
+    if (live?.revision === config.candidate && live.versionId === proof.versionId) return origin;
+    diagnostics.push(`${origin}: ${transport} revision/version mismatch`);
+  }
+  throw new Error(`No public Worker route matches candidate and artifact version (${diagnostics.join('; ')})`);
+}
 
 export function validateConfig(config) {
   if (!SHA.test(config.candidate) || !SHA.test(config.expectedMain)) throw new Error('Full candidate and expected-main SHAs required');
@@ -61,7 +104,6 @@ export async function observe(configPath, dependencies = {}) {
   const lock = join(stateDir, 'observer.lock'); claimLock(lock);
   const statePath = join(stateDir, 'observer-state.json');
   const command = dependencies.execute ?? execute;
-  const fetcher = dependencies.fetch ?? fetch;
   const wait = dependencies.wait ?? delay;
   const now = dependencies.now ?? Date.now;
   let prior = {};
@@ -81,16 +123,6 @@ export async function observe(configPath, dependencies = {}) {
     writeFileSync(zip, command(config.gh, ['api', `repos/${config.repo}/actions/artifacts/${item.id}/zip`], null), { mode: 0o600 });
     return JSON.parse(command('/usr/bin/unzip', ['-p', zip, name === 'worker-release-proof' ? 'worker-release-proof.json' : 'release-state.json']));
   };
-  const liveWorker = async proof => {
-    for (const origin of ['https://api.teajia.com', 'https://teajia.com', 'https://www.teajia.com', 'https://teajia-api.lightcodes.workers.dev']) {
-      try {
-        const response = await fetcher(`${origin}/api/release?proof=${config.candidate}-${now()}`, { cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(10000) });
-        const live = response.ok ? await response.json() : null;
-        if (live?.revision === config.candidate && live.versionId === proof.versionId) return origin;
-      } catch { /* Try another public route, never retry a deployment. */ }
-    }
-    throw new Error('No public Worker route matches candidate and artifact version');
-  };
   try {
     persist('started');
     const deadline = now() + 40 * 60 * 1000;
@@ -103,7 +135,7 @@ export async function observe(configPath, dependencies = {}) {
         const jobs = api(`actions/runs/${config.runId}/attempts/${config.runAttempt}/jobs?per_page=100`).jobs;
         if (!jobs.some(job => job.steps?.some(step => step.name === PROOF_STEP && step.conclusion === 'success'))) throw new Error('Worker proof step did not succeed in the pinned run attempt');
         const proof = validateProof(config, artifact(artifacts, 'worker-release-proof'));
-        const liveOrigin = await liveWorker(proof);
+        const liveOrigin = await proveLiveWorker(config, proof, dependencies);
         const refs = git('ls-remote', 'origin', 'refs/heads/main', `refs/tags/${config.tag}`, `refs/tags/${config.tag}^{}`);
         const decision = publicationDecision(config, refs);
         persist('worker_verified', { workerProof: proof, liveOrigin });

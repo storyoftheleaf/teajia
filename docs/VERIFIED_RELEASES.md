@@ -16,6 +16,16 @@ a ref, never redeploys on failure, and refuses a competing main revision. The lo
 publisher is needed because the Actions token does not grant workflow-file edits;
 no personal token is copied into CI.
 
+Before any main push, the publisher independently reads the public Worker release
+endpoint and requires both the candidate SHA and the runtime version from the CI
+proof. If Node's request fails at the transport layer, it reads that same URL with
+`/usr/bin/curl`: HTTPS only, no redirects or curl configuration files, an 8-second
+connection limit and 20-second total limit (25-second process ceiling). An explicit
+revision/version mismatch is never overridden by the fallback. Neither transport
+sends authentication. Failed state records distinguish transport/HTTP failure,
+invalid responses and revision/version mismatch without recording response bodies
+or raw subprocess errors. A transport failure never authorizes publication.
+
 For an authorized release:
 
 1. Complete the candidate's checks and commit it. Record the current remote main.

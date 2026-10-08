@@ -116,7 +116,7 @@ export const VendorPickerSheet: React.FC<VendorPickerSheetProps> = ({ open, onOp
         )}
         {!adding && query.trim() && !exact && (
           <button type="button" disabled={saving} onClick={() => void addNew()} className="curate-v2-row w-full text-left">
-            <span className="text-ui-13 font-medium text-tea-gold">＋ Add “{query.trim()}” as a new vendor</span>
+            <span className="text-ui-13 font-medium text-tea-gold">+ Add “{query.trim()}” as a new vendor</span>
           </button>
         )}
         {!adding && options.map((o) => (

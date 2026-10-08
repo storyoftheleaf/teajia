@@ -75,7 +75,7 @@ export const SaidSheet: React.FC<{ entryId: string | null; onClose: () => void }
                 <span className="curate-v2-label">{r.at ? new Date(r.at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : 'Recording'}</span>
                 {f?.applied && <span className="text-ui-12 text-tea-gold">Filed</span>}
               </div>
-              <p className="mx-4 mt-2 border-l border-tea-gold pl-3 text-ui-14 italic leading-relaxed text-tea-text-sec">“{r.text}”</p>
+              <p className="mx-4 mt-2 border-l border-tea-gold pl-3 font-body text-ui-15 italic leading-relaxed text-tea-text-sec">“{r.text}”</p>
               {!f && (
                 <div className="px-4 pt-3">
                   <button type="button" onClick={() => void file(r.key, r.text)} disabled={busy === r.key} className="cta-solid flex min-h-11 w-full items-center justify-center gap-2 rounded-md text-ui-13 font-semibold">
@@ -88,7 +88,7 @@ export const SaidSheet: React.FC<{ entryId: string | null; onClose: () => void }
                   {f.parts.length === 0 && <p className="px-4 py-3 text-ui-13 text-tea-text-sec">Nothing in it to file.</p>}
                   {f.parts.map((p, i) => (
                     <div key={i} className="flex min-h-11 items-center gap-3 border-b border-tea-border px-4">
-                      <span className="w-14 shrink-0 text-ui-11 font-semibold uppercase tracking-[0.1em] text-tea-gold">{SAID_LABEL[p.kind]}</span>
+                      <span className="curate-v2-label w-16 shrink-0 !text-tea-gold">{SAID_LABEL[p.kind]}</span>
                       <span className="min-w-0 flex-1 truncate text-ui-14 text-tea-text">{p.text}</span>
                       {!f.applied ? (
                         <span className="flex shrink-0 items-center gap-1">

@@ -63,7 +63,7 @@ import { isFeaturedButHidden, readInventoryFold, withInventoryFold, withParam } 
 import { InventoryRow } from './inventory/InventoryRow';
 import { QuickEditInlineRow } from './inventory/QuickEditInlineRow';
 import { InventoryActionRail, INVENTORY_ACTION_RAIL_WIDTH } from './inventory/InventoryActionRail';
-import { PhoneStockList, PhoneGroupSwitch, readPhoneGroupBy, writePhoneGroupBy } from './inventory/phone/PhoneStockList';
+import { PhoneStockList, PhoneGroupSwitch, readPhoneGroupBy, writePhoneGroupBy, type PhoneSortKey } from './inventory/phone/PhoneStockList';
 import type { TeaAction } from './inventory/phone/PhoneTeaHeader';
 import { PHONE_GROUP_LABELS, groupStock, type PhoneGroupBy } from './inventory/phone/groupStock';
 import { INVENTORY_WISDOM_PARAM } from './wisdom/config';
@@ -1978,6 +1978,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   }, [phoneList, panelProduct, phoneGroupBy, processedProducts, effectiveIncomingByProductId]);
 
   const receiptId = searchParams.get('receipt');
+
   if (searchParams.get('incoming') === '1' || receiptId) {
     return <div className="h-full flex flex-col overflow-hidden bg-tea-bg"><IncomingReceiptsPanel receiptId={receiptId} onClose={() => { const next = new URLSearchParams(searchParams); next.delete('incoming'); next.delete('receipt'); setSearchParams(next); }} /></div>;
   }
@@ -2248,7 +2249,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     </button>
 
                     {/* find, mobile icon (desktop uses the field above; md:!hidden beats .tap-target) */}
-                    <button ref={isMobile ? mobileSearchTriggerRef : undefined} type="button" onClick={() => setMobileSearchExpanded(true)} aria-label="Search inventory" className="tap-target md:!hidden text-tea-text-sec hover:text-tea-text"><Search size={18} /></button>
+                    <button ref={isMobile ? mobileSearchTriggerRef : undefined} type="button" onClick={() => setMobileSearchExpanded(true)} aria-label="Search inventory" className="tap-target md:!hidden text-tea-text hover:text-tea-text"><Search size={phoneList ? 22 : 18} /></button>
 
                     {/* Glossary, Vendor and Edit left this row for the More menu
                         (2026-09-29, todo/plans/archive/manage-regroup.md): the row holds
@@ -2343,7 +2344,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   return (
     <div
-      className="h-full flex flex-col overflow-hidden bg-tea-bg"
+      className={`h-full flex flex-col overflow-hidden bg-tea-bg ${phoneList ? 'stock-phone-tone' : ''}`}
     >
       {stockViewToggle}
       {/* Inventory options menu shared by the unified header at every width. */}
@@ -2758,6 +2759,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             onChangeStock={stableStockMovement}
             onRecount={stableStockRecount}
             onOpenSource={stableOpenSource}
+            sortKey={(inventorySortConfig[0]?.key as PhoneSortKey | undefined) ?? null}
+            sortDir={inventorySortConfig[0]?.direction ?? 'asc'}
+            onSort={(col) => {
+              const current = inventorySortConfig[0];
+              const same = current?.key === col;
+              setInventorySortConfig([{ key: col as keyof Product, direction: same && current.direction === 'asc' ? 'desc' : 'asc' }]);
+            }}
           />
         ) : (
         <div ref={tableWrapperRef} className="relative w-full max-w-7xl mx-auto px-0 md:px-4 lg:px-6">
@@ -3171,6 +3179,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             product={sourcePanelProduct}
             products={localProducts}
             onClose={() => setSourcePanelProduct(null)}
+            onOpenTea={(p) => { setSourcePanelProduct(null); setPanelProduct(p); }}
+            onSelectAll={(ids) => setSelectedIds(new Set(ids))}
+            onOpenIncoming={openIncoming}
+            incomingByProductId={effectiveIncomingByProductId}
           />
         )}
       </AnimatePresence>
