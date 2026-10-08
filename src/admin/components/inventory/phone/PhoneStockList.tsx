@@ -31,7 +31,9 @@ export function writePhoneGroupBy(by: PhoneGroupBy): void {
 /** The compact Supplier · Kind · None switch. It lives in the page header so
  *  the phone's top is two short lines, not four. */
 export const PhoneGroupSwitch: React.FC<{ value: PhoneGroupBy; onChange: (by: PhoneGroupBy) => void }> = ({ value, onChange }) => (
-  <div role="group" aria-label="Group teas by" className="flex shrink-0 rounded-full border border-tea-border">
+  // A thin outline holding small pills, the chosen one filled; each button is a
+  // full 44px tap area around a 26px pill (the Stock Room mockup's switch).
+  <div role="group" aria-label="Group teas by" className="flex shrink-0 items-center rounded-full border border-tea-border p-0.5">
     {/* None stays in the Adjust sheet: four choices do not fit beside the view name at 375px. */}
     {(['vendor', 'type', 'stage'] as PhoneGroupBy[]).map(by => (
       <button
@@ -39,8 +41,10 @@ export const PhoneGroupSwitch: React.FC<{ value: PhoneGroupBy; onChange: (by: Ph
         type="button"
         aria-pressed={value === by}
         onClick={() => onChange(by)}
-        className={`tap-target h-7 px-2.5 rounded-full text-ui-12 ${value === by ? 'bg-tea-elevated text-tea-gold' : 'text-tea-text-sec'}`}
-      >{PHONE_GROUP_LABELS[by]}</button>
+        className="flex h-11 -my-2 items-center"
+      >
+        <span className={`flex h-[26px] items-center rounded-full px-2.5 text-ui-12 ${value === by ? 'bg-tea-surface text-tea-gold' : 'text-tea-text-dim'}`}>{PHONE_GROUP_LABELS[by]}</span>
+      </button>
     ))}
   </div>
 );
