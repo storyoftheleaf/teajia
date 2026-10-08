@@ -108,7 +108,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
   const priceOf = (p: Product): number | null => (priceMode === 'cost' ? (Number.isFinite(p.costPerGramUSD) ? p.costPerGramUSD : null) : sellingPricePerGram(p));
 
   return (
-    <div data-testid="stock-phone" className={focused && !selecting ? 'pb-[300px]' : selecting ? 'pb-[150px]' : ''}>
+    <div data-testid="stock-phone" className={`stock-phone-tone ${focused && !selecting ? 'pb-[320px]' : selecting ? 'pb-[170px]' : ''}`}>
       {groups.length === 0 && (
         <p className="px-4 py-10 text-center text-ui-14 text-tea-text-sec">Nothing matches this view.</p>
       )}
@@ -193,8 +193,9 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
       {focused && !selecting && (
         <section
           aria-label={`${focused.productName}, at a glance`}
-          className="fixed left-0 right-0 bottom-nav z-drawer rounded-t-xl border-t border-tea-border bg-tea-surface px-4 pt-2 pb-3 shadow-xl"
+          className="sheet-behind-nav fixed left-0 right-0 z-drawer rounded-t-xl bg-tea-surface px-4 pt-2"
         >
+          <div aria-hidden="true" className="mx-auto mb-2 h-1 w-9 rounded-full bg-tea-elevated" />
           <div className="flex items-start gap-3">
             <button type="button" onClick={() => setFocusedId(null)} aria-label="Close" className="tap-target -ml-1 mt-1 text-tea-text-sec hover:text-tea-text"><XIcon size={18} aria-hidden="true" /></button>
             <div className="flex-1 min-w-0">
@@ -223,7 +224,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
             ].map(([k, v]) => (
               <div key={k} className="border-t border-tea-border py-1.5 min-w-0">
                 <dt className="font-mono text-ui-10 uppercase tracking-[0.06em] text-tea-text-sec">{k}</dt>
-                <dd className="truncate text-ui-13 text-tea-text">{v}</dd>
+                <dd className={`truncate text-ui-13 ${k === 'Checked' && v === 'never' ? 'text-tea-error' : 'text-tea-text'}`}>{v}</dd>
               </div>
             ))}
           </dl>

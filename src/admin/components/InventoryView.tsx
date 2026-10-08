@@ -2245,7 +2245,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     </button>
 
                     {/* find, mobile icon (desktop uses the field above; md:!hidden beats .tap-target) */}
-                    <button ref={isMobile ? mobileSearchTriggerRef : undefined} type="button" onClick={() => setMobileSearchExpanded(true)} aria-label="Search inventory" className="tap-target md:!hidden text-tea-text-sec hover:text-tea-text"><Search size={18} /></button>
+                    <button ref={isMobile ? mobileSearchTriggerRef : undefined} type="button" onClick={() => setMobileSearchExpanded(true)} aria-label="Search inventory" className="tap-target md:!hidden text-tea-text hover:text-tea-text"><Search size={phoneList ? 22 : 18} /></button>
 
                     {/* Glossary, Vendor and Edit left this row for the More menu
                         (2026-09-29, todo/plans/archive/manage-regroup.md): the row holds
@@ -2334,7 +2334,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   return (
     <div
-      className="h-full flex flex-col overflow-hidden bg-tea-bg"
+      className={`h-full flex flex-col overflow-hidden bg-tea-bg ${phoneList ? 'stock-phone-tone' : ''}`}
     >
       {/* Inventory options menu shared by the unified header at every width. */}
       <div>

@@ -112,7 +112,7 @@ export const InventoryActionRail: React.FC<InventoryActionRailProps> = ({
       <div
         role="toolbar"
         aria-label="Selection actions"
-        className="fixed left-0 right-0 bottom-nav z-drawer border-t border-tea-border bg-tea-surface px-2 pb-2"
+        className="stock-phone-tone sheet-behind-nav fixed left-0 right-0 z-drawer rounded-t-xl bg-tea-surface px-2 pt-1"
       >
         <div className="flex items-center h-11 px-2">
           <span className="text-ui-14 font-medium text-tea-gold tabular-nums">{selectedCount} {selectedCount === 1 ? 'tea' : 'teas'} selected</span>
