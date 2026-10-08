@@ -3,6 +3,13 @@ import { ChevronDown, ChevronRight, X as XIcon } from 'lucide-react';
 import { api } from '../../../../lib/api';
 import { fmtNum } from '../../../../utils/formatNumber';
 import { getThemeTextColor } from '../../../themeUtils';
+import { TASTING_TAXONOMY } from '../../../../data/tastingTaxonomy';
+import { TapField } from './PhoneTeaSheet';
+
+// The same five tasting categories the laptop samples screen offers.
+const TASTE_CATEGORIES = TASTING_TAXONOMY.categories.filter(c => ['body', 'finish', 'feeling', 'flavor', 'liquor-color'].includes(c.id));
+const termLabel = (id: string): string => TASTE_CATEGORIES.flatMap(c => c.groups.flatMap(g => g.terms)).find(t => t.id === id)?.label ?? id;
+const termCategory = (id: string): string | undefined => TASTE_CATEGORIES.find(c => c.groups.some(g => g.terms.some(t => t.id === id)))?.id;
 
 // Samples on the phone, drawn exactly like the Stock list: grouped by supplier,
 // one slim row per tea, a sheet when you tap it. Only the data differs. A sample
@@ -14,8 +21,8 @@ import { getThemeTextColor } from '../../../themeUtils';
 export type SamplePortion = { id: string; name: string; grams: number | null; status: string; compass_entry_id: string };
 export type SampleHolding = { entry: Record<string, any>; stock_grams: number; sample_grams: number | null; samples: SamplePortion[] };
 
-/** What Adrian usually takes for a tasting. */
-export const DEFAULT_TASTE_GRAMS = 5;
+export { DEFAULT_TASTE_GRAMS } from './groupStock';
+import { DEFAULT_TASTE_GRAMS } from './groupStock';
 
 const whole = (n: number): string => fmtNum(n, Number.isInteger(n) ? 0 : 2);
 const COLS = 'grid grid-cols-[minmax(0,1fr)_34px_48px] gap-x-2.5 items-stretch';
@@ -142,14 +149,17 @@ type Way = 'taste' | 'measure';
 const PortionLine: React.FC<{ portion: SamplePortion; label: string; onChanged: () => void | Promise<void> }> = ({ portion, label, onChanged }) => {
   const [way, setWay] = useState<Way | null>(null);
   const [amount, setAmount] = useState('');
+  const [terms, setTerms] = useState<string[]>([]);
+  const [score, setScore] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { if (way) { inputRef.current?.focus(); inputRef.current?.select(); } }, [way]);
   const grams = portion.grams;
-  const open = (w: Way) => { setWay(w); setError(''); setAmount(w === 'taste' ? String(DEFAULT_TASTE_GRAMS) : grams == null ? '' : String(grams)); };
+  const open = (w: Way) => { setWay(w); setError(''); setTerms([]); setScore(''); setAmount(w === 'taste' ? String(DEFAULT_TASTE_GRAMS) : grams == null ? '' : String(grams)); };
   const typed = Number(amount);
-  const valid = amount.trim() !== '' && Number.isFinite(typed) && typed >= 0;
+  const scoreOk = score.trim() === '' || (Number.isInteger(Number(score)) && Number(score) >= 1 && Number(score) <= 10);
+  const valid = amount.trim() !== '' && Number.isFinite(typed) && typed >= 0 && scoreOk;
   const left = way === 'taste' && valid && grams != null ? grams - typed : null;
   const tooMuch = left != null && left < 0;
   const canTaste = grams != null && portion.status !== 'requested';
@@ -159,7 +169,11 @@ const PortionLine: React.FC<{ portion: SamplePortion; label: string; onChanged: 
     setSaving(true); setError('');
     try {
       const command = way === 'taste'
-        ? { action: 'taste_sample', entity: 'sample', id: portion.id, consumed_grams: typed }
+        ? {
+            action: 'taste_sample', entity: 'sample', id: portion.id, consumed_grams: typed,
+            ...(terms.length ? { tasting: terms.reduce<Record<string, string[]>>((acc, id) => { const c = termCategory(id); if (c) acc[c] = [...(acc[c] ?? []), id]; return acc; }, {}) } : {}),
+            ...(score.trim() ? { score: Number(score) } : {}),
+          }
         : { action: 'edit', entity: 'sample', id: portion.id, fields: { grams: typed } };
       const preview = await api.curateWorkspace.correct(command);
       if (preview.error || !preview.confirmation_token) throw new Error(preview.message || preview.error || 'Could not save.');
@@ -213,6 +227,40 @@ const PortionLine: React.FC<{ portion: SamplePortion; label: string; onChanged: 
           <button type="submit" disabled={!valid || tooMuch || saving} className="shrink-0 text-ui-13 text-tea-gold disabled:text-tea-text-dim">{saving ? 'Saving' : 'Save'}</button>
         </form>
       )}
+      {way === 'taste' && (
+        // Tasting notes and a score ride along with the tasting, one compact row:
+        // picked notes as small removable words, a picker to add one, the score at the end.
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pb-1.5 text-ui-12">
+          {terms.map(id => (
+            <button key={id} type="button" onClick={() => setTerms(prev => prev.filter(t => t !== id))} aria-label={`Remove ${termLabel(id)}`}
+              className="text-tea-gold">{termLabel(id)} ×</button>
+          ))}
+          <select
+            aria-label="Add a tasting note"
+            value=""
+            onChange={e => { const id = e.target.value; if (id) setTerms(prev => prev.includes(id) ? prev : [...prev, id]); }}
+            className="bg-transparent border-0 p-0 text-ui-12 text-tea-text-sec focus:outline-none"
+          >
+            <option value="">{terms.length ? '+ note' : '+ tasting notes'}</option>
+            {TASTE_CATEGORIES.map(c => (
+              <optgroup key={c.id} label={c.name}>
+                {c.groups.flatMap(g => g.terms).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+              </optgroup>
+            ))}
+          </select>
+          <span className="ml-auto flex items-baseline gap-1 text-tea-text-sec">
+            score
+            <input
+              aria-label="Score out of 10"
+              inputMode="numeric"
+              value={score}
+              onChange={e => setScore(e.target.value)}
+              className={`w-7 bg-transparent border-0 border-b border-tea-border focus:border-tea-gold outline-none p-0 text-center font-mono text-ui-13 tabular-nums ${scoreOk ? 'text-tea-text' : 'text-tea-error'}`}
+            />
+            /10
+          </span>
+        </div>
+      )}
       {error && <p role="alert" className="pb-1 text-ui-12 text-tea-error">{error}</p>}
     </div>
   );
@@ -228,12 +276,35 @@ const SampleSheet: React.FC<{
   const e = holding.entry;
   const canOrder = !!e.vendor_id && e.price_amount != null && !!e.price_currency;
   const portions = holding.samples.length ? holding.samples : [];
+  const [renameError, setRenameError] = useState('');
+  const rename = async (name: string) => {
+    setRenameError('');
+    try {
+      const command = { action: 'edit', entity: 'tea', id: e.id, fields: { name } };
+      const preview = await api.curateWorkspace.correct(command);
+      if (preview.error || !preview.confirmation_token) throw new Error(preview.message || preview.error || 'Could not rename.');
+      const done = await api.curateWorkspace.correct(command, preview.confirmation_token);
+      if (done.error) throw new Error(done.message || done.error);
+      await onChanged();
+    } catch (err) {
+      setRenameError(err instanceof Error ? err.message : 'Could not rename. Try again.');
+    }
+  };
   return (
     <section aria-label={`${teaName(holding)}, at a glance`} className="sheet-behind-nav fixed left-0 right-0 z-drawer rounded-t-xl bg-tea-surface px-4 pt-1.5">
       <div aria-hidden="true" className="mx-auto mb-1.5 h-[3px] w-8 rounded-full bg-tea-elevated" />
       <div className="flex items-center gap-2">
         <button type="button" onClick={onClose} aria-label="Close" className="-ml-2 -my-2 flex h-11 w-8 shrink-0 items-center justify-center text-tea-text-sec hover:text-tea-text"><XIcon size={16} aria-hidden="true" /></button>
-        <span className="min-w-0 flex-1 truncate font-display text-[23px] font-semibold leading-tight text-tea-text">{teaName(holding)}</span>
+        <div className="min-w-0 flex-1">
+          <TapField
+            value={String(e.name || '')}
+            label={`Rename ${teaName(holding)}`}
+            display={teaName(holding)}
+            className="block w-full truncate font-display text-[23px] font-semibold leading-tight text-tea-text"
+            inputClassName="font-display text-[23px] font-semibold leading-tight"
+            onSave={name => { void rename(name); }}
+          />
+        </div>
         <button type="button" onClick={onEditTea} className="shrink-0 text-ui-12 text-tea-gold">Full page ›</button>
       </div>
       <div className="ml-6 flex items-center gap-1.5 text-ui-12 text-tea-text-sec min-w-0">
@@ -241,6 +312,7 @@ const SampleSheet: React.FC<{
         {e.year ? <><span aria-hidden="true">·</span><span className="font-mono tabular-nums">{e.year}</span></> : null}
         {e.vendor_name ? <><span aria-hidden="true">·</span><span className="truncate">{e.vendor_name}</span></> : null}
       </div>
+      {renameError && <p role="alert" className="ml-6 text-ui-12 text-tea-error">{renameError}</p>}
       <div className="mt-2 border-t border-tea-border">
         {portions.length === 0
           ? <p className="py-3 text-ui-13 text-tea-text-sec">No sample portion recorded. Add one on the full page.</p>

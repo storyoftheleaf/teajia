@@ -84,6 +84,36 @@ test.describe('Samples on the phone', () => {
     expect(calls[1]).toMatchObject({ confirm: 'tok-1' });
   });
 
+  test('a tasting carries its notes and score, and the name renames the tea', async ({ page }) => {
+    const calls: Array<{ command: Record<string, any>; confirm?: string }> = [];
+    await page.route('**/api/curate/correct', async route => {
+      const body = route.request().postDataJSON() as { command: Record<string, any>; confirm?: string };
+      calls.push(body);
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body.confirm ? { ok: true } : { confirmation_token: 'tok', preview: {} }) });
+    });
+    await page.goto('/admin/stock?stock_view=samples', { waitUntil: 'domcontentloaded' });
+    await page.getByTestId('samples-phone').getByRole('button', { name: /^1958 Aged Raw/ }).click();
+    const sheet = page.getByRole('region', { name: /1958 Aged Raw, at a glance/ });
+    await sheet.getByRole('button', { name: /Log a tasting/ }).click();
+    const picker = sheet.getByRole('combobox', { name: 'Add a tasting note' });
+    const first = await picker.locator('option').nth(1).getAttribute('value');
+    await picker.selectOption(first!);
+    await sheet.getByRole('textbox', { name: 'Score out of 10' }).fill('8');
+    await shot(page, 'notes');
+    await sheet.getByRole('button', { name: 'Save' }).click();
+    await expect.poll(() => calls.length).toBe(2);
+    const sent = calls[0].command;
+    expect(sent).toMatchObject({ action: 'taste_sample', consumed_grams: 5, score: 8 });
+    expect(Object.values(sent.tasting as Record<string, string[]>).flat()).toContain(first);
+
+    await sheet.getByRole('button', { name: /^Rename 1958 Aged Raw/ }).click();
+    await sheet.getByRole('textbox', { name: /^Rename 1958 Aged Raw/ }).fill('1958 Aged Raw, Hong Kong stored');
+    await sheet.getByRole('textbox', { name: /^Rename 1958 Aged Raw/ }).press('Enter');
+    await expect.poll(() => calls.length).toBe(4);
+    expect(calls[2].command).toMatchObject({ action: 'edit', entity: 'tea', id: 'tea-a', fields: { name: '1958 Aged Raw, Hong Kong stored' } });
+    expect(calls[3]).toMatchObject({ confirm: 'tok' });
+  });
+
   test('tapping the grams weighs a portion that was never weighed', async ({ page }) => {
     const calls: Array<{ command: Record<string, unknown>; confirm?: string }> = [];
     await page.route('**/api/curate/correct', async route => {

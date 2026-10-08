@@ -4,8 +4,8 @@ import { ApiError, api } from '../../../../lib/api';
 import type { Product } from '../../../types';
 import { fmtNum } from '../../../../utils/formatNumber';
 import { getThemeTextColor } from '../../../themeUtils';
-import { isLow, isTeaware, isUnchecked, onHand, sellingPricePerGram } from './groupStock';
-import { DEFAULT_TASTE_GRAMS } from './PhoneSamplesList';
+import { DEFAULT_TASTE_GRAMS, isLow, isTeaware, isUnchecked, onHand, sellingPricePerGram } from './groupStock';
+
 
 // The tea's sheet on the phone Stock list. Every value on it is its own control:
 // tap the name, the grams, the price, and type. Nothing here keeps a copy of a
@@ -38,7 +38,7 @@ export interface PhoneTeaSheetProps {
 }
 
 /** A value that becomes its own input when tapped. Saves on Enter or leaving it, only if it changed. */
-const TapField: React.FC<{
+export const TapField: React.FC<{
   value: string;
   label: string;
   display?: React.ReactNode;
