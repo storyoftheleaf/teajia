@@ -1,11 +1,11 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Mic, Square, Loader2 } from 'lucide-react';
-import { useTeaCompassStore } from '../../lib/teaCompassStore';
+import { selectTableEntries, useTeaCompassStore } from '../../lib/teaCompassStore';
 import { parseTeaInput } from './InputParser';
 import { REGION_NAMES } from '../../wisdom';
 import type { TeaCompassEntry } from './types';
 import { linePriceFields, quotedUnit, readLinePrice, tastingLine } from './curateV2Model';
-import { VendorPickerSheet } from './VendorPickerSheet';
+import { VendorPicker } from './VendorPicker';
 import { CURRENCY_LABELS } from './PricingRow';
 import type { Currency } from '../../admin/types';
 
@@ -19,6 +19,8 @@ interface TableListProps {
   onTalk: (entryId: string) => void;
   talkingEntryId: string | null;
   voiceState: 'idle' | 'recording' | 'transcribing' | 'error' | string;
+  /** Bumped by the parent to open the vendor picker (a table was just started elsewhere). */
+  pickVendorSignal?: number;
 }
 
 /**
@@ -28,22 +30,23 @@ interface TableListProps {
  * Typing a name at the top adds the next tea, reading type, year and region out
  * of the line the same way the capture card's name field does.
  */
-export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onTaste, canTalk, onTalk, talkingEntryId, voiceState }) => {
-  const sessionEntryIds = useTeaCompassStore((s) => s.sessionEntryIds);
+export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onTaste, canTalk, onTalk, talkingEntryId, voiceState, pickVendorSignal }) => {
   const currentSessionId = useTeaCompassStore((s) => s.currentSessionId);
   const entries = useTeaCompassStore((s) => s.entries);
   const pendingEntries = useTeaCompassStore((s) => s.pendingEntries);
-  const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
+  const startNewCaptureOnTable = useTeaCompassStore((s) => s.startNewCaptureOnTable);
+  const startNewTable = useTeaCompassStore((s) => s.startNewTable);
+  const setTableVendor = useTeaCompassStore((s) => s.setTableVendor);
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const commitEntry = useTeaCompassStore((s) => s.commitEntry);
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
   const [name, setName] = useState('');
   const [pickingVendor, setPickingVendor] = useState(false);
   const lastVendorName = useTeaCompassStore((s) => s.lastVendorName);
-  const setLastVendor = useTeaCompassStore((s) => s.setLastVendor);
   const lastCurrency = useTeaCompassStore((s) => s.lastCurrency);
   const setLastCurrency = useTeaCompassStore((s) => s.setLastCurrency);
   const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (pickVendorSignal) setPickingVendor(true); }, [pickVendorSignal]);
   // Hold the microphone to talk and let go to stop, as drawn. A quick tap
   // still starts it, and a second tap stops it, for a longer note.
   const holdRef = useRef<{ id: string; since: number; began: boolean } | null>(null);
@@ -61,16 +64,18 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
     if (!hold.began || Date.now() - hold.since > 450) onTalk(id);
   };
 
-  // This table is the current capture run: teas saved in it, plus any draft
-  // in it that already has a name. Newest first.
-  const rows: TeaCompassEntry[] = [
-    ...sessionEntryIds
-      .map((id) => pendingEntries.find((e) => e.id === id))
-      .filter((e): e is TeaCompassEntry => !!e),
-    ...(currentSessionId ? entries.filter((e) => e.sessionId === currentSessionId) : []),
-  ]
-    .filter((e, i, all) => e.category === 'tea' && !!e.name?.trim() && all.findIndex((x) => x.id === e.id) === i)
-    .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
+  // The open table: exactly the teas in this run, drafts and saved, oldest
+  // first. The count in the header is this same list.
+  const rows = useMemo(
+    () => selectTableEntries({ entries, pendingEntries, currentSessionId }),
+    [entries, pendingEntries, currentSessionId],
+  );
+
+  const newTable = () => {
+    startNewTable();
+    setName('');
+    setPickingVendor(true);
+  };
 
   const add = () => {
     const typed = name.trim();
@@ -81,7 +86,7 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
     const text = price?.rest || typed;
     const parsed = parseTeaInput(text, REGION_NAMES);
     const keep = activeEntryId;
-    const id = startNewCapture('tea');
+    const id = startNewCaptureOnTable('tea');
     // The name stays as typed: the reader fills type, form, year and region
     // from it, but "Old oolong" is a name, not "Old" plus a type. Only a
     // standalone year is lifted out, since it has its own column.
@@ -101,17 +106,34 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
     inputRef.current?.focus();
   };
 
+  // No table yet: one line, and nothing else to look at.
+  if (!currentSessionId) {
+    return (
+      <div className="curate-v2 -mx-4 mb-3 border-t border-tea-border">
+        <button type="button" onClick={newTable} data-testid="table-start" className="curate-v2-row w-full text-left">
+          <span className="font-display text-ui-20 text-tea-text">Start a table</span>
+          <span className="flex-1" />
+          <span className="text-ui-13 text-tea-gold">whose?</span>
+        </button>
+        {pickingVendor && (
+          <VendorPicker
+            onCancel={() => setPickingVendor(false)}
+            onPick={(id, vendorName) => { setTableVendor(id ?? null, vendorName); setPickingVendor(false); }}
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="curate-v2 -mx-4 mb-3 border-t border-tea-border">
-      <div className="curate-v2-row gap-0 pr-2">
-      <button type="button" onClick={() => setPickingVendor(true)} aria-label={lastVendorName ? `Table: ${lastVendorName}. Change` : 'Whose table? Choose'} className="flex min-h-12 min-w-0 flex-1 items-center gap-2 text-left">
-        <span className={lastVendorName ? 'curate-v2-name' : 'font-display text-ui-17 text-tea-text-sec'}>{lastVendorName || 'Whose table?'}</span>
-        <span className="flex-1" />
-        <span className="text-ui-12 text-tea-text-dim tabular-nums">
-          {lastVendorName ? `${rows.length} ${rows.length === 1 ? 'tea' : 'teas'} · ` : ''}
-          <span className="text-tea-gold">{lastVendorName ? 'change' : 'choose'}</span>
-        </span>
+    <div className="curate-v2 -mx-4 mb-3 border-t border-tea-border" data-testid="table-list">
+      <div className="curate-v2-row gap-0 pr-2" data-testid="table-header">
+      <button type="button" onClick={() => setPickingVendor((v) => !v)} aria-expanded={pickingVendor} aria-label={lastVendorName ? `Table: ${lastVendorName}. Change` : 'Whose table? Choose'} className="flex min-h-12 min-w-0 items-center gap-2 text-left">
+        <span className={`truncate ${lastVendorName ? 'curate-v2-name' : 'font-display text-ui-17 text-tea-text-sec'}`}>{lastVendorName || 'Whose table?'}</span>
       </button>
+      <span className="shrink-0 pl-2 text-ui-12 text-tea-text-dim tabular-nums" data-testid="table-count">
+        {rows.length} {rows.length === 1 ? 'tea' : 'teas'}
+      </span>
       {/* The table's money: a price typed without a sign is in this. */}
       <label className="relative ml-2 flex min-h-11 shrink-0 items-center border-l border-tea-border pl-3">
         <span className="sr-only">Prices at this table are in</span>
@@ -126,16 +148,19 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
           ))}
         </select>
       </label>
+      <span className="flex-1" />
+      <button type="button" onClick={newTable} className="tap-target shrink-0 text-ui-13 font-medium text-tea-gold">new table</button>
       </div>
-      <VendorPickerSheet
-        open={pickingVendor}
-        onOpenChange={setPickingVendor}
-        onPick={(id, vendorName) => {
-          setLastVendor(id, vendorName);
-          setPickingVendor(false);
-          inputRef.current?.focus();
-        }}
-      />
+      {pickingVendor && (
+        <VendorPicker
+          onCancel={() => setPickingVendor(false)}
+          onPick={(id, vendorName) => {
+            setTableVendor(id ?? null, vendorName);
+            setPickingVendor(false);
+            inputRef.current?.focus();
+          }}
+        />
+      )}
       <div className="curate-v2-row">
         <input
           ref={inputRef}
@@ -162,7 +187,7 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
           >
             <button type="button" onClick={() => onOpen(e.id)} className="flex min-w-0 flex-1 items-baseline gap-2 text-left">
               {e.photos?.[0] && <span className="h-7 w-7 shrink-0 self-center rounded-md bg-cover bg-center" style={{ backgroundImage: `url(${e.photos[0]})` }} aria-hidden="true" />}
-              <span className="curate-v2-name">{e.name?.trim() || 'Untitled tea'}</span>
+              <span className="curate-v2-name">{e.name?.trim() || (e.category === 'teaware' ? 'Untitled teaware' : 'Untitled tea')}</span>
               {tastingLine(e.tasting)
                 ? <span className="min-w-0 truncate text-ui-12 text-tea-gold tabular-nums">{tastingLine(e.tasting).split(' · ').slice(0, 2).join(' · ')}</span>
                 : e.year != null && <span className="text-ui-12 text-tea-text-dim tabular-nums">{e.year}</span>}

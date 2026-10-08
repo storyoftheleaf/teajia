@@ -15,7 +15,6 @@ import { api, hasToken, type CurateImportDetail, type CurateImportFinalizeResult
 import type { CompassCategory, TeaType } from './types';
 import { entryIsSample } from './types';
 import { CompassIcon } from './CompassIcon';
-import { SessionStack } from './SessionStack';
 import { CaptureCard, type CaptureCardActions } from './CaptureCard';
 import { BrowseView } from './BrowseView';
 import { LedgerView } from './LedgerView';
@@ -39,6 +38,9 @@ import { SampleOrderAction } from './SampleOrderAction';
 import { CaptureActionFooter } from './CaptureActionFooter';
 
 export type CompassMode = 'today' | 'sourcing' | 'library' | 'vendors' | 'compare' | 'buying';
+
+/** One screen of a tea, stacked over the tab you are on. */
+interface TeaLayer { id: string; as: 'face' | 'card'; scroll?: number }
 
 interface TeaCompassProps {
   onBack?: () => void;
@@ -92,6 +94,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const activeEntryId = useTeaCompassStore((s) => s.activeEntryId);
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
+  const startNewCaptureOnTable = useTeaCompassStore((s) => s.startNewCaptureOnTable);
+  const startNewTable = useTeaCompassStore((s) => s.startNewTable);
+  const discardEntryRaw = useTeaCompassStore((s) => s.discardEntry);
   const commitEntry = useTeaCompassStore((s) => s.commitEntry);
   const discardEntry = useTeaCompassStore((s) => s.discardEntry);
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
@@ -99,9 +104,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const initialEntryExists = useTeaCompassStore((s) => initialEntryId
     ? s.pendingEntries.some((entry) => entry.id === initialEntryId) || s.entries.some((entry) => entry.id === initialEntryId)
     : false);
-  const isPendingEntry = useTeaCompassStore((s) =>
-    s.activeEntryId != null && s.pendingEntries.some((e) => e.id === s.activeEntryId)
-  );
   const getSessionEntries = useTeaCompassStore((s) => s.getSessionEntries);
   const activeCategory: CompassCategory = useTeaCompassStore((s) => {
     const id = s.activeEntryId;
@@ -125,25 +127,62 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // Tasting (the Tasting Journal) is its own surface at /account/journal, not a Compass mode.
   const [mode, setMode] = useState<CompassMode>(initialMode || 'today');
   const [developmentStarted, setDevelopmentStarted] = useState(false);
-  /** What the Table shows. Its rows by default; a tea opens as its own screen
-   *  (its face), and the full form only for a new tea or "Edit all fields".
-   *  The empty draft the store keeps ready is never shown by itself. */
-  const [faceId, setFaceId] = useState<string | null>(null);
-  const [editId, setEditId] = useState<string | null>(null);
+  /** A tea opens ON TOP of whatever tab you are on, as a stack of screens:
+   *  its face, and over that its full form. The tab underneath stays mounted
+   *  and lit, so closing the last one leaves you on the same tab, the same
+   *  scroll, the same sub-screen. Tapping a tab empties the stack. */
+  const [teaStack, setTeaStack] = useState<TeaLayer[]>([]);
+  const teaStackRef = useRef<TeaLayer[]>([]);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [vendorOpen, setVendorOpen] = useState<{ id?: string; name: string } | null>(null);
   const [saidFor, setSaidFor] = useState<string | null>(null);
-  const faceOpen = mode === 'sourcing' && !!activeEntryId && faceId === activeEntryId;
-  const teaOpen = faceOpen || (mode === 'sourcing' && !!activeEntryId && editId === activeEntryId);
+  const topLayer = teaStack.length ? teaStack[teaStack.length - 1] : null;
+  const faceOpen = topLayer?.as === 'face';
+  const teaOpen = topLayer != null;
+  /** Bumped to open the table's vendor picker (a table was just started). */
+  const [pickVendorSignal, setPickVendorSignal] = useState(0);
+  /** Bumped on every tab tap, so a tab shows its own first screen again. */
+  const [tabKey, setTabKey] = useState(0);
+
+  const setStack = useCallback((next: TeaLayer[]) => {
+    teaStackRef.current = next;
+    setTeaStack(next);
+  }, []);
+  /** A new tea backed out of with nothing entered leaves nothing behind. */
+  const settleLayer = useCallback((layer: TeaLayer, rest: TeaLayer[]) => {
+    if (rest.some((l) => l.id === layer.id)) return;
+    const st = useTeaCompassStore.getState();
+    const pending = st.pendingEntries.find((e) => e.id === layer.id);
+    if (pending && !entryHasDeliberateInput(pending)) discardEntryRaw(layer.id);
+  }, [discardEntryRaw]);
+  /** Put a tea on top: its face, or its full form. */
+  const pushTea = useCallback((id: string, as: 'face' | 'card') => {
+    const stack = teaStackRef.current;
+    const top = stack[stack.length - 1];
+    if (top && top.id === id && (top.as === as || top.as === 'card')) return;
+    useTeaCompassStore.getState().setActiveEntry(id);
+    setStack([...stack, { id, as }]);
+  }, [setStack]);
+  const closeTopTea = useCallback(() => {
+    const stack = teaStackRef.current;
+    if (stack.length === 0) return;
+    const rest = stack.slice(0, -1);
+    settleLayer(stack[stack.length - 1], rest);
+    if (rest.length) useTeaCompassStore.getState().setActiveEntry(rest[rest.length - 1].id);
+    setStack(rest);
+  }, [setStack, settleLayer]);
+  const clearTeaStack = useCallback(() => {
+    const stack = teaStackRef.current;
+    if (stack.length === 0) return;
+    [...stack].reverse().forEach((layer, i, all) => settleLayer(layer, all.slice(i + 1)));
+    setStack([]);
+  }, [setStack, settleLayer]);
 
   // Account changes always swap the isolated draft bucket. Only Source owns
   // capture-shell creation; opening Library or Ledger must remain read-only.
   useEffect(() => {
     switchDraftAccount(activeAccountId);
-    if (mode === 'sourcing' && activeAccountId && !initialDevelopmentProduct && !useTeaCompassStore.getState().activeEntryId) {
-      startNewCapture('tea');
-    }
-  }, [activeAccountId, initialDevelopmentProduct, mode, startNewCapture, switchDraftAccount]);
+  }, [activeAccountId, switchDraftAccount]);
 
   // Incoming pending shares (not yet accepted into compass)
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -206,9 +245,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   useEffect(() => {
     setMode(initialMode || 'today');
   }, [initialMode]);
-
-  // Track whether the user navigated to Capture from the Library (to show back link)
-  const [fromLibrary, setFromLibrary] = useState(false);
 
   // Batch entry mode, rapid-fire name + type row for vendor table sessions
   const [batchMode, setBatchMode] = useState(false);
@@ -331,26 +367,20 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     return () => el.removeEventListener('scroll', onScroll);
   }, [headerCollapsed]);
 
-  // Track just-committed entry for banner
-  const [justCommitted, setJustCommitted] = useState<{ name: string; draftProductId?: string } | null>(null);
-  const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   // Open specific entry if initialEntryId is provided
   useEffect(() => {
     if (initialEntryId && initialEntryExists && getEntry(initialEntryId)) {
-      setActiveEntry(initialEntryId);
-      setFaceId(initialEntryId);
-      setMode('sourcing');
-      setCaptureOption('tea');
+      // A deep link opens the tea on top of the requested tab (Today by default).
+      pushTea(initialEntryId, 'face');
     }
-  }, [initialEntryId, initialEntryExists, getEntry, setActiveEntry]);
+  }, [initialEntryId, initialEntryExists, getEntry, pushTea]);
 
   useEffect(() => { setDevelopmentStarted(false); }, [initialDevelopmentProduct?.id]);
 
   const startInventoryDevelopment = useCallback(() => {
     if (!initialDevelopmentProduct) return;
     const category: CompassCategory = initialDevelopmentProduct.type === 'Teaware' ? 'teaware' : 'tea';
-    const entryId = startNewCapture(category);
+    const entryId = startNewCaptureOnTable(category);
     const validTeaTypes: readonly string[] = ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Teaware'];
     const compassType = initialDevelopmentProduct.type && validTeaTypes.includes(initialDevelopmentProduct.type)
       ? initialDevelopmentProduct.type as TeaType
@@ -360,20 +390,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       ...(compassType ? { type: compassType } : {}),
       draftProductId: initialDevelopmentProduct.id,
     });
-    setActiveEntry(entryId);
-    setMode('sourcing');
-    setCaptureOption(category);
+    pushTea(entryId, 'card');
     setDevelopmentStarted(true);
-  }, [initialDevelopmentProduct, setActiveEntry, startNewCapture, updateEntry]);
+  }, [initialDevelopmentProduct, pushTea, startNewCaptureOnTable, updateEntry]);
 
-  // When activeEntryId changes externally, switch to sourcing mode
-  useEffect(() => {
-    if (activeEntryId && mode !== 'sourcing') {
-      setMode('sourcing');
-    }
-  }, [activeEntryId]);
-
-  const sessionEntries = getSessionEntries();
   // Subscribe to the active entry itself, not only its id. Desktop action-bar
   // readiness must update while fields are edited inside CaptureCard.
   const activeEntry = useTeaCompassStore((state) => activeEntryId
@@ -384,40 +404,14 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   // ── Capture action footer state ─────────────────────────────────────────
   const captureCardActionsRef = useRef<CaptureCardActions | null>(null);
-  // The phone layout mounts its own capture card beside the desktop one, so
-  // each gets its own handle; v2 asks the one actually on screen.
-  const mobileCaptureActionsRef = useRef<CaptureCardActions | null>(null);
   const [captureBuyExpanded, setCaptureBuyExpanded] = useState(false);
   // Done needs a photo OR a name, the promised saveable minimum.
   const captureDoneReady =
     !!activeEntry && ((activeEntry.name || '').trim().length > 0 || activeEntry.photos.length > 0);
 
   const handleNewCapture = useCallback((category?: CompassCategory) => {
-    setEditId(startNewCapture(category || activeCategory));
-    setFaceId(null);
-    setFromLibrary(false);
-    setMode('sourcing');
-  }, [startNewCapture, activeCategory]);
-
-  const handleCategorySwitch = useCallback((category: CompassCategory) => {
-    // If the current entry is still empty, just switch its category instead of creating a new one
-    if (activeEntryId) {
-      const current = getEntry(activeEntryId);
-      if (current && !entryHasDeliberateInput(current)) {
-        const resumable = getSessionEntries().find(
-          (entry) => entry.id !== current.id && entry.category === category && entryHasDeliberateInput(entry),
-        );
-        if (resumable) {
-          setActiveEntry(resumable.id);
-          return;
-        }
-        updateEntry(activeEntryId, { category });
-        return;
-      }
-    }
-    startNewCapture(category);
-    setMode('sourcing');
-  }, [startNewCapture, activeEntryId, getEntry, getSessionEntries, setActiveEntry, updateEntry]);
+    pushTea(startNewCaptureOnTable(category || 'tea'), 'card');
+  }, [pushTea, startNewCaptureOnTable]);
 
   const closeImport = useCallback(() => {
     setImportOpen(false);
@@ -494,31 +488,24 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     }
   }, [activeAccountId, importDetails, queryClient]);
 
-  const handleSelectEntry = useCallback(
-    (id: string) => {
-      setActiveEntry(id);
-      setFromLibrary(true);
-      setMode('sourcing');
-    },
-    [setActiveEntry]
-  );
+  /** Open a tea from a list (Teas, Orders, the detail panel) on top of the tab. */
+  const handleEditEntry = useCallback((id: string) => pushTea(id, 'face'), [pushTea]);
 
-  const handleEditEntry = useCallback(
-    (id: string) => {
-      setFaceId(id);
-      setActiveEntry(id);
-      setFromLibrary(true);
-      setMode('sourcing');
-    },
-    [setActiveEntry]
-  );
+  /** A tea is saved: every screen of it closes, and you are back where you were. */
+  const closeTeaById = useCallback((id: string) => {
+    const stack = teaStackRef.current;
+    let n = stack.length;
+    while (n > 0 && stack[n - 1].id === id) n -= 1;
+    const rest = stack.slice(0, n);
+    if (rest.length) useTeaCompassStore.getState().setActiveEntry(rest[rest.length - 1].id);
+    setStack(rest);
+  }, [setStack]);
 
   const handleCommitEntry = useCallback(() => {
-    // Always clear fromLibrary when committing, the new entry shouldn't inherit it
-    setFromLibrary(false);
-
+    const top = teaStackRef.current[teaStackRef.current.length - 1];
+    const id = top?.id ?? activeEntryId;
     // Capture committed entry info before it's removed from session
-    const committed = activeEntryId ? getEntry(activeEntryId) : null;
+    const committed = id ? getEntry(id) : null;
 
     // If this compass entry is linked to a sample, write tasting data back
     if (committed && entryIsSample(committed) && committed.id && committed.tasting &&
@@ -543,87 +530,37 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       }
     }
 
-    if (committed) {
-      setJustCommitted({ name: committed.name || 'Entry', draftProductId: committed.draftProductId });
-      if (commitTimerRef.current) clearTimeout(commitTimerRef.current);
-      commitTimerRef.current = setTimeout(() => setJustCommitted(null), 5000);
-    }
-
-    // After commit removes the entry from session, check if there are remaining session entries
-    const remaining = getSessionEntries().filter(
-      (e) => e.id !== activeEntryId && entryHasDeliberateInput(e)
-    );
+    if (id) closeTeaById(id);
     // Straight on to the next tea: the cursor goes to the table's name line.
     window.requestAnimationFrame(() => {
       Array.from(document.querySelectorAll<HTMLInputElement>('input[aria-label="Name the next tea"]'))
         .find((input) => input.offsetParent !== null)?.focus();
     });
-    if (remaining.length > 0) {
-      setActiveEntry(remaining[0].id);
-    } else {
-      startNewCapture(
-        activeEntryId ? getEntry(activeEntryId)?.category || 'tea' : 'tea'
-      );
-    }
-    // Burst continuity: the form resets but run + vendor chips stay sticky,
-    // and the scroll returns to the photo hero for the next capture.
-    scrollContainerRef.current?.scrollTo({ top: 0 });
-  }, [getSessionEntries, activeEntryId, setActiveEntry, startNewCapture, getEntry, samplesList, addSampleTasting, setFromLibrary]);
+  }, [activeEntryId, getEntry, samplesList, addSampleTasting, closeTeaById]);
 
   const handleDoneClick = useCallback(() => {
-    if (!activeEntryId) return;
-    commitEntry(activeEntryId);
+    const top = teaStackRef.current[teaStackRef.current.length - 1];
+    const id = top?.id ?? activeEntryId;
+    if (!id) return;
+    commitEntry(id);
     handleCommitEntry();
   }, [activeEntryId, commitEntry, handleCommitEntry]);
-
-  const handleDiscardActive = useCallback(() => {
-    if (!activeEntryId) return;
-    const entry = getEntry(activeEntryId);
-    const hasContent = entry && entryHasDeliberateInput(entry);
-    if (hasContent && !window.confirm('Discard this entry?')) return;
-
-    // Grab remaining session entries before discarding
-    const remaining = getSessionEntries().filter((e) => e.id !== activeEntryId);
-    discardEntry(activeEntryId);
-
-    if (remaining.length > 0) {
-      setActiveEntry(remaining[0].id);
-    } else {
-      startNewCapture(activeCategory);
-    }
-  }, [activeEntryId, getEntry, getSessionEntries, discardEntry, setActiveEntry, startNewCapture, activeCategory]);
-
-  const handleDiscardSessionEntry = useCallback((id: string) => {
-    // Same question the main discard asks: a capture with anything in it is
-    // not thrown away by one stray tap on its ×.
-    const target = getEntry(id);
-    if (target && entryHasDeliberateInput(target) && !window.confirm(`Discard ${target.name?.trim() || 'this capture'}?`)) return;
-    if (id === activeEntryId) {
-      const remaining = getSessionEntries().filter((e) => e.id !== id);
-      discardEntry(id);
-      if (remaining.length > 0) {
-        setActiveEntry(remaining[0].id);
-      } else {
-        startNewCapture(activeCategory);
-      }
-    } else {
-      discardEntry(id);
-    }
-  }, [activeEntryId, getEntry, getSessionEntries, discardEntry, setActiveEntry, startNewCapture, activeCategory]);
 
   // Remember the screen we switched away from, so the header back arrow can
   // return there (Source → Library → back → Source) instead of exiting Curate.
   const [prevMode, setPrevMode] = useState<CompassMode | null>(null);
 
+  /** A tab tap shows that tab's own first screen: any open tea closes, and a
+   *  vendor's card or other sub-screen starts over. */
   const handleSwitchMode = useCallback((newMode: CompassMode) => {
+    clearTeaStack();
+    setVendorOpen(null);
+    setTabKey((k) => k + 1);
     setMode((current) => {
       if (newMode !== current) setPrevMode(current);
       return newMode;
     });
-    if (newMode === 'sourcing' && !activeEntryId) {
-      startNewCapture(activeCategory);
-    }
-  }, [activeEntryId, startNewCapture, activeCategory]);
+  }, [clearTeaStack]);
 
   // ── Curate v2 surfaces ────────────────────────────────────────────────
   const [fastTastingId, setFastTastingId] = useState<string | null>(null);
@@ -631,70 +568,75 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const [talkFor, setTalkFor] = useState<string | null>(null);
   const talkStartPendingRef = useRef(false);
 
-  const visibleCaptureActions = useCallback(() => (
-    typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches
-      ? captureCardActionsRef.current
-      : mobileCaptureActionsRef.current
-  ), []);
-
-  /** Open one tea in the capture card, remembering where we came from so the
-   *  header's back arrow returns there (Today, Vendors, Compare, Teas). */
-  const openTeaFrom = useCallback((entryId: string, from: CompassMode) => {
-    setFaceId(entryId);
-    setActiveEntry(entryId);
-    setFromLibrary(from === 'library');
-    setPrevMode(from);
-    setMode('sourcing');
-  }, [setActiveEntry]);
+  /** Open one tea on top of the tab you are on. The tab does not change. */
+  const openTea = useCallback((entryId: string) => pushTea(entryId, 'face'), [pushTea]);
 
   const openFullTasting = useCallback((entryId: string) => {
     setFastTastingId(null);
-    setFaceId(null);
-    setEditId(entryId);
-    if (activeEntryId !== entryId) setActiveEntry(entryId);
-    if (mode !== 'sourcing') { setPrevMode(mode); setMode('sourcing'); }
-    window.setTimeout(() => visibleCaptureActions()?.openTasting(), 250);
-  }, [activeEntryId, mode, setActiveEntry, visibleCaptureActions]);
+    pushTea(entryId, 'card');
+    window.setTimeout(() => captureCardActionsRef.current?.openTasting(), 250);
+  }, [pushTea]);
 
   /** Buy on a tea: the full card opens on its order part. */
   const openBuy = useCallback((entryId: string) => {
-    if (mode !== 'sourcing') { setPrevMode(mode); setMode('sourcing'); }
-    if (activeEntryId !== entryId) setActiveEntry(entryId);
-    setFaceId(null);
-    setEditId(entryId);
-    window.setTimeout(() => visibleCaptureActions()?.toggleBuy(), 300);
-  }, [mode, activeEntryId, setActiveEntry, visibleCaptureActions]);
+    pushTea(entryId, 'card');
+    window.setTimeout(() => captureCardActionsRef.current?.toggleBuy(), 300);
+  }, [pushTea]);
 
   const handleTodayAct = useCallback((entryId: string, action: TodayAction) => {
     if (action === 'taste') { setFastTastingId(entryId); return; }
-    openTeaFrom(entryId, 'today');
-  }, [openTeaFrom]);
+    openTea(entryId);
+  }, [openTea]);
 
+  /** "Start a table": the Table tab, with a new table asking whose it is.
+   *  A table already open is simply shown; it stays open until a new one is
+   *  started from its own header. */
   const startTable = useCallback(() => {
+    clearTeaStack();
     setPrevMode('today');
     setMode('sourcing');
-    if (!activeEntryId) startNewCapture('tea');
-  }, [activeEntryId, startNewCapture]);
-
-  // Header back: if we came from another screen within Curate, go back to it;
-  // otherwise exit Curate via onBack.
-  const handleHeaderBack = useCallback(() => {
-    // A tea open on the Table closes back to the rows, or to where it was opened from.
-    if (mode === 'sourcing' && activeEntryId && (faceId === activeEntryId || editId === activeEntryId)) {
-      setFaceId(null);
-      setEditId(null);
-      if (prevMode !== null && prevMode !== 'sourcing') { const target = prevMode; setPrevMode(null); setMode(target); }
-      return;
+    if (!useTeaCompassStore.getState().currentSessionId) {
+      startNewTable();
+      setPickVendorSignal((n) => n + 1);
     }
+  }, [clearTeaStack, startNewTable]);
+
+  // Header back: the top tea closes first; then, if we came from another
+  // screen within Curate, go back to it; otherwise exit Curate via onBack.
+  const handleHeaderBack = useCallback(() => {
+    if (teaStackRef.current.length > 0) { closeTopTea(); return; }
     if (prevMode !== null && prevMode !== mode) {
       const target = prevMode;
       setPrevMode(null);
       setMode(target);
-      if (target === 'sourcing' && !activeEntryId) startNewCapture(activeCategory);
       return;
     }
     onBack?.();
-  }, [prevMode, mode, activeEntryId, faceId, editId, startNewCapture, activeCategory, onBack]);
+  }, [prevMode, mode, closeTopTea, onBack]);
+
+  // The Run sheet and "New entry" inside the full form move the active tea;
+  // the card on top follows it.
+  useEffect(() => {
+    const stack = teaStackRef.current;
+    const top = stack[stack.length - 1];
+    if (top?.as === 'card' && activeEntryId && activeEntryId !== top.id && useTeaCompassStore.getState().getEntry(activeEntryId)) {
+      setStack([...stack.slice(0, -1), { id: activeEntryId, as: 'card' }]);
+    }
+  }, [activeEntryId, setStack]);
+
+  // A tea that no longer exists (discarded, deleted) leaves the stack.
+  const topIsPending = useTeaCompassStore((s) => !!topLayer && s.pendingEntries.some((e) => e.id === topLayer.id));
+  const topExists = useTeaCompassStore((s) => !topLayer
+    || s.pendingEntries.some((e) => e.id === topLayer.id)
+    || s.entries.some((e) => e.id === topLayer.id));
+  useEffect(() => {
+    if (!topExists) {
+      const stack = teaStackRef.current;
+      const rest = stack.slice(0, -1);
+      if (rest.length) useTeaCompassStore.getState().setActiveEntry(rest[rest.length - 1].id);
+      setStack(rest);
+    }
+  }, [topExists, setStack]);
 
   // Compass + notes hydration / debounced push / online-retry all live
   // in `useCompassSync` and `useNotesSync` at the app root in `App.tsx`,
@@ -763,13 +705,15 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   const pendingIncomingCount = visibleShares.length;
 
-  const [captureOption, setCaptureOption] = useState<'tea' | 'teaware'>(initialCaptureOption || 'tea');
+  // ?capture=tea|teaware asks for a new tea to be started straight away.
+  const capturePromptedRef = useRef(false);
   useEffect(() => {
-    if (mode !== 'sourcing' || !activeEntry) return;
-    if (captureOption !== activeEntry.category) setCaptureOption(activeEntry.category);
-  }, [activeEntry, captureOption, mode]);
-  const showCaptureActionBar = mode === 'sourcing'
-    && !!activeEntryId && activeEntry?.category !== 'teaware';
+    if (capturePromptedRef.current || !initialCaptureOption || initialEntryId || initialDevelopmentProduct) return;
+    capturePromptedRef.current = true;
+    pushTea(startNewCaptureOnTable(initialCaptureOption), 'card');
+  }, [initialCaptureOption, initialEntryId, initialDevelopmentProduct, pushTea, startNewCaptureOnTable]);
+  // The footer's Buy / Done / Sample sit under the full form of a tea (not teaware).
+  const showCaptureActionBar = topLayer?.as === 'card' && activeEntry?.category !== 'teaware';
 
   // Tab-level search, shared across all tabs; cleared on tab switch
   const [tabSearchQuery, setTabSearchQuery] = useState('');
@@ -784,27 +728,20 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const [pendingLibraryAcquisitionId, setPendingLibraryAcquisitionId] = useState<string | null>(null);
 
   const openLibraryAcquisition = useCallback((id: string) => {
-    setActiveEntry(id);
-    setFromLibrary(true);
     setTastingSelectedEntryId(null);
     setPendingLibraryAcquisitionId(id);
-    setMode('sourcing');
-  }, [setActiveEntry, setFromLibrary]);
+    pushTea(id, 'card');
+  }, [pushTea]);
 
   useEffect(() => {
-    if (mode !== 'sourcing') setPendingLibraryAcquisitionId(null);
-  }, [mode]);
+    if (!teaOpen) setPendingLibraryAcquisitionId(null);
+  }, [teaOpen]);
 
   // Reset search + tasting selection when switching tabs
   useEffect(() => {
     setTabSearchQuery('');
     setTastingSelectedEntryId(null);
   }, [mode]);
-
-  const handleCaptureOption = useCallback((opt: 'tea' | 'teaware') => {
-    setCaptureOption(opt);
-    handleCategorySwitch(opt as CompassCategory);
-  }, [handleCategorySwitch]);
 
   // Tab config
   // Curate v2: five tabs, equal columns, always on one line.
@@ -816,12 +753,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     { id: 'buying', label: 'Orders' },
   ];
   const currentTab = tabs.find((t) => t.id === mode);
-
-  // Inline mic, shown in the Compass header on the sourcing tab for
-  // privileged accounts. Previously hijacked the global nav's center
-  // logo slot via useBottomBarMic; that broke the home affordance, so
-  // voice capture lives contextually here in the panel instead.
-  const showInlineMic = mode === 'sourcing' && isPlatformPrivileged;
 
   // Library, desktop, nothing selected → the list fills the whole pane as a
   // grid (no narrow rail beside an empty detail panel). Selecting an entry
@@ -844,8 +775,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           scroll-up. Resets to revealed when the user is at the top. */}
       <div
         className={`shrink-0 overflow-hidden bg-tea-bg transition-[max-height,opacity] duration-200 ease-out lg:!max-h-none lg:!opacity-100 ${
-          headerCollapsed ? 'max-h-0 opacity-0' : 'max-h-[160px] opacity-100'
-        } ${faceOpen ? 'max-lg:hidden' : ''}`}
+          headerCollapsed && !teaOpen ? 'max-h-0 opacity-0' : 'max-h-[160px] opacity-100'
+        }`}
         style={{ position: 'relative', zIndex: 5 }}
       >
         {/* Row 1: Screen segmented control (Source / Library / Ledger).
@@ -899,9 +830,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 <div className="fixed inset-0 z-[6]" aria-hidden onClick={() => setAddMenuOpen(false)} />
                 <div role="menu" className="absolute right-0 top-full z-[7] mt-1 grid w-52 overflow-hidden rounded-md border border-tea-border bg-tea-elevated py-1 shadow-lg">
                   {([
-                    ['New tea', () => { setPrevMode(mode); handleNewCapture('tea'); }],
-                    ['New teaware', () => { setPrevMode(mode); handleNewCapture('teaware'); }],
-                    ['Import a list or invoice', (el: HTMLButtonElement) => { setMode('sourcing'); beginNewImportFrom(el); }],
+                    ['New tea', () => handleNewCapture('tea')],
+                    ['New teaware', () => handleNewCapture('teaware')],
+                    ['Import a list or invoice', (el: HTMLButtonElement) => beginNewImportFrom(el)],
                     ['Sample list', () => setSampleOrderOpen(true)],
                   ] as Array<[string, (el: HTMLButtonElement) => void]>).map(([label, act]) => (
                     <button key={label} type="button" role="menuitem" onClick={(e) => { setAddMenuOpen(false); act(e.currentTarget); }} className="min-h-11 px-4 text-left text-ui-14 text-tea-text hover:bg-tea-accent-sub">
@@ -936,32 +867,63 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
       </div>
 
-      {/* ── BODY ── */}
-      <div className="flex-1 min-h-0 flex flex-col">
-        {mode === 'today' || mode === 'vendors' || mode === 'compare' ? (
+      {/* ── BODY ──
+          The tab underneath stays mounted while a tea is open on top of it
+          (inert, so it cannot be tapped or focused), which is what keeps its
+          scroll and its sub-screen exactly as they were. */}
+      <div className="relative flex-1 min-h-0 flex flex-col">
+      <div className="flex-1 min-h-0 flex flex-col" inert={teaOpen} data-testid="curate-tab-body">
+        {mode === 'today' || mode === 'vendors' || mode === 'compare' || mode === 'sourcing' ? (
           // Curate v2's own screens: one scroll area at every width.
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-3 pb-nav-gap-lg" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <div className="mx-auto w-full max-w-2xl">
+            <div className="mx-auto w-full max-w-2xl" key={`${mode}-${tabKey}`}>
               {mode === 'today' && (
-                <TodayView onStartTable={startTable} onAct={handleTodayAct} onOpenTea={(id) => openTeaFrom(id, 'today')} onOpenVendor={(v) => { setVendorOpen(v); setPrevMode('today'); setMode('vendors'); }} />
+                <TodayView onStartTable={startTable} onAct={handleTodayAct} onOpenTea={openTea} onOpenVendor={(v) => { setVendorOpen(v); setPrevMode('today'); setMode('vendors'); }} />
               )}
               {mode === 'vendors' && (
                 <VendorsView
                   initialVendor={vendorOpen}
                   onCloseVendor={() => setVendorOpen(null)}
-                  onOpenTea={(id) => openTeaFrom(id, 'vendors')}
-                  onAddTea={(v) => { setPrevMode('vendors'); const id = startNewCapture('tea'); updateEntry(id, { vendorId: v.id, vendorName: v.name }); setEditId(id); setFaceId(null); setFromLibrary(false); setMode('sourcing'); }}
-                  onAddTeaware={(v) => { setPrevMode('vendors'); const id = startNewCapture('teaware'); updateEntry(id, { vendorId: v.id, vendorName: v.name }); setEditId(id); setFaceId(null); setFromLibrary(false); setMode('sourcing'); }}
+                  onOpenTea={openTea}
+                  onAddTea={(v) => { const id = startNewCaptureOnTable('tea'); updateEntry(id, { vendorId: v.id, vendorName: v.name }); pushTea(id, 'card'); }}
+                  onAddTeaware={(v) => { const id = startNewCaptureOnTable('teaware'); updateEntry(id, { vendorId: v.id, vendorName: v.name }); pushTea(id, 'card'); }}
                 />
               )}
               {mode === 'compare' && (
                 <CompareView
                   chosen={compareIds}
                   onChosenChange={setCompareIds}
-                  onOpenTea={(id) => openTeaFrom(id, 'compare')}
+                  onOpenTea={openTea}
                   onBuy={openBuy}
                   onClose={() => { setPrevMode(null); setMode('library'); }}
                 />
+              )}
+              {mode === 'sourcing' && (
+                <>
+                  {initialDevelopmentProduct && !developmentStarted && (
+                    <div className="mb-3 flex flex-wrap items-center gap-3 rounded-md border border-tea-border bg-tea-surface px-3 py-3" role="status">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-display text-ui-15 text-tea-text">Develop {initialDevelopmentProduct.name} in Curate</div>
+                        <div className="text-ui-12 text-tea-text-sec">No encounter is linked yet. Start one deliberately from this inventory record.</div>
+                      </div>
+                      <button type="button" onClick={startInventoryDevelopment} className="min-h-11 px-3 rounded-md bg-tea-accent-sub text-ui-12 text-tea-text hover:bg-tea-gold/10">
+                        Start development
+                      </button>
+                    </div>
+                  )}
+                  {/* Curate v2: the open table, and only it. */}
+                  <TableList
+                    activeEntryId={activeEntryId}
+                    onOpen={openTea}
+                    onTaste={setFastTastingId}
+                    canTalk={isPlatformPrivileged}
+                    onTalk={handleRowTalk}
+                    talkingEntryId={talkFor}
+                    voiceState={voiceState}
+                    pickVendorSignal={pickVendorSignal}
+                  />
+                  {batchMode && <BatchCaptureRow />}
+                </>
               )}
             </div>
           </div>
@@ -972,8 +934,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             ══════════════════════════════════════════════ */}
         <div className="flex flex-col flex-1 min-h-0 lg:hidden">
 
-          {/* Search bar, hidden on sourcing (chips strip takes that role) */}
-          {mode !== 'sourcing' && (
+          {/* Search bar */}
+          {(
             <div className="shrink-0 flex items-center gap-3 px-4 pt-2.5 pb-1">
               <div className="relative min-w-0 flex-1">
                 <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
@@ -1013,106 +975,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               region only needs to clear the BottomTabBar. */}
           <div
             ref={scrollContainerRef}
-            className={`flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-3 ${mode === 'sourcing' ? 'pb-nav-gap-lg scroll-pb-nav-gap-lg' : 'pb-3'}`}
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-3 pb-3"
             role="tabpanel"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
             <AnimatePresence mode="wait">
-              {mode === 'sourcing' ? (
-                <motion.div
-                  key="sourcing"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {/* Tea / Teaware / Samples sub-tabs moved up into the
-                      header row in pass 6, no duplicate segmented
-                      control here. */}
-                  <>
-                      {initialDevelopmentProduct && !developmentStarted && (
-                        <div className="mb-3 flex flex-wrap items-center gap-3 rounded-md border border-tea-border bg-tea-surface px-3 py-3" role="status">
-                          <div className="min-w-0 flex-1">
-                            <div className="font-display text-ui-15 text-tea-text">Develop {initialDevelopmentProduct.name} in Curate</div>
-                            <div className="text-ui-12 text-tea-text-sec">No encounter is linked yet. Start one deliberately from this inventory record.</div>
-                          </div>
-                          <button type="button" onClick={startInventoryDevelopment} className="min-h-11 px-3 rounded-md bg-tea-accent-sub text-ui-12 text-tea-text hover:bg-tea-gold/10">
-                            Start development
-                          </button>
-                        </div>
-                      )}
-                      {/* The old session strip (+ / Batch / Untitled chips)
-                          folded into the Run chip at the top of the capture
-                          card; the SyncIndicator moved there with it. */}
-
-                      {/* Curate v2: the teas on this table, one line each. */}
-                      {(!initialDevelopmentProduct || developmentStarted) && !teaOpen && (
-                        <TableList
-                          activeEntryId={activeEntryId}
-                          onOpen={(id) => { setFaceId(id); setActiveEntry(id); setFromLibrary(false); }}
-                          onTaste={setFastTastingId}
-                          canTalk={isPlatformPrivileged}
-                          onTalk={handleRowTalk}
-                          talkingEntryId={talkFor}
-                          voiceState={voiceState}
-                        />
-                      )}
-
-                      {/* Batch mode row, rapid-fire entry for vendor tables */}
-                      {(!initialDevelopmentProduct || developmentStarted) && batchMode && (
-                        <BatchCaptureRow />
-                      )}
-
-                      {/* Just-committed banner */}
-                      {(!initialDevelopmentProduct || developmentStarted) && <AnimatePresence>
-                        {justCommitted && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="overflow-hidden mb-3"
-                          >
-                            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-tea-gold/10 text-tea-gold text-xs font-medium">
-                              <Check size={14} strokeWidth={2.5} />
-                              <span className="flex-1 truncate">{justCommitted.name} saved</span>
-                              <button
-                                type="button"
-                                onClick={() => { setJustCommitted(null); setMode('library'); }}
-                                className="flex items-center gap-1 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
-                              >
-                                Sessions
-                              </button>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>}
-
-                      {activeEntryId && (!initialDevelopmentProduct || developmentStarted) && faceId === activeEntryId && <TeaFace
-                        entryId={activeEntryId}
-                        onEdit={() => { setEditId(activeEntryId); setFaceId(null); }} onBack={handleHeaderBack} onBuy={openBuy} onOpenSaid={setSaidFor}
-                        onTaste={setFastTastingId}
-                        onFullTasting={openFullTasting}
-                        canTalk={isPlatformPrivileged}
-                        onTalk={handleRowTalk}
-                        talking={talkFor === activeEntryId && (voiceState === 'recording' || voiceState === 'transcribing')}
-                        voiceState={voiceState}
-                        onDone={isPendingEntry ? handleDoneClick : undefined}
-                      />}
-                      {activeEntryId && (!initialDevelopmentProduct || developmentStarted) && faceId !== activeEntryId && (editId === activeEntryId || !!initialDevelopmentProduct) && <CaptureCard
-                        entryId={activeEntryId}
-                        onSwitchToLedger={() => handleSwitchMode('buying')}
-                        onCommit={handleCommitEntry}
-                        onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('library'); } : undefined}
-                        onShare={hasToken() ? () => setShareModalOpen(true) : undefined}
-                        purchasePickerId={`capture-purchase-picker-mobile-${activeEntryId}`}
-                        actionRef={mobileCaptureActionsRef}
-                        openPurchasePicker={pendingLibraryAcquisitionId === activeEntryId}
-                        batchMode={batchMode}
-                        onToggleBatchMode={() => setBatchMode((v) => !v)}
-                      />}
-                    </>
-                </motion.div>
-              ) : mode === 'library' ? (
+              {mode === 'library' ? (
                 <motion.div
                   key="library"
                   initial={{ opacity: 0, x: -20 }}
@@ -1302,11 +1170,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 >
                   <LedgerView
                     embedded
-                    onOpenEntry={(entryId) => {
-                      setFaceId(entryId);
-                      setActiveEntry(entryId);
-                      setMode('sourcing');
-                    }}
+                    onOpenEntry={openTea}
                     searchQuery={tabSearchQuery}
                   />
                 </motion.div>
@@ -1314,32 +1178,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             </AnimatePresence>
           </div>
 
-
-          {/* Voice error toast, floats just above the merged BottomTabBar.
-              The mobile action bar moved into CaptureCard's footer (along
-              with the Done button), so we no longer stack two fixed bars. */}
-          <AnimatePresence>
-            {mode === 'sourcing' && voiceError && (
-              <motion.div
-                key="voice-error"
-                role="status"
-                aria-live="polite"
-                aria-atomic="true"
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 4 }}
-                className="lg:hidden fixed left-0 right-0 z-20 bottom-nav flex flex-wrap items-center justify-center gap-2 text-ui-11 text-tea-error text-center px-4 py-1.5 border-t border-tea-border bg-tea-bg"
-              >
-                <span>{voiceError}</span>
-                {pendingVoiceRecording && (
-                  <span className="inline-flex items-center gap-2">
-                    <button type="button" onClick={() => void retryPendingVoice()} className="tap-target text-tea-text-sec hover:text-tea-text">Retry</button>
-                    <button type="button" onClick={() => void discardPendingVoice()} className="tap-target text-tea-text-sec hover:text-tea-text">Discard</button>
-                  </span>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
 
         </div>
         {/* END MOBILE */}
@@ -1357,9 +1195,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             className={`flex flex-col overflow-hidden ${
               libraryGrid
                 ? 'flex-1 min-w-0'
-                : mode === 'sourcing'
-                  ? 'w-[360px] shrink-0 border-r border-tea-border'
-                  : 'w-[264px] shrink-0 border-r border-tea-border'
+                : 'w-[264px] shrink-0 border-r border-tea-border'
             }`}
           >
 
@@ -1373,8 +1209,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   value={tabSearchQuery}
                   onChange={(e) => setTabSearchQuery(e.target.value)}
                   placeholder={
-                    mode === 'sourcing' ? 'Search teas…'
-                    : mode === 'library' ? 'Search teas'
+                    mode === 'library' ? 'Search teas'
                     : 'Search orders…'
                   }
                   className="w-full min-h-11 bg-tea-surface border border-tea-border text-tea-text text-ui-16 rounded-md pl-9 pr-10 py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors"
@@ -1403,92 +1238,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               style={{ WebkitOverflowScrolling: 'touch', scrollbarGutter: 'stable' }}
             >
               <AnimatePresence mode="wait">
-
-                {/* SOURCING LEFT: toggle + SessionStack + banner + new-entry hint */}
-                {mode === 'sourcing' && (
-                  <motion.div
-                    key="left-sourcing"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex flex-col gap-3"
-                    data-testid="curate-run-rail"
-                  >
-                    {/* Curate v2: the teas on this table, one line each. */}
-                    <div className="-mx-4 mb-1">
-                      <TableList
-                        activeEntryId={activeEntryId}
-                        onOpen={(id) => { setFaceId(id); setActiveEntry(id); setFromLibrary(false); }}
-                        onTaste={setFastTastingId}
-                        canTalk={isPlatformPrivileged}
-                        onTalk={handleRowTalk}
-                        talkingEntryId={talkFor}
-                        voiceState={voiceState}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between border-b border-tea-border pb-2">
-                      <span className="text-ui-12 font-medium text-tea-text">Current run</span>
-                      <span className="text-ui-11 tabular-nums text-tea-text-sec">{sessionEntries.length}</span>
-                    </div>
-
-                    {activeEntry && (
-                      <div
-                        data-testid="curate-active-draft"
-                        className="flex min-h-11 items-center gap-2 rounded-md border border-tea-border bg-tea-accent-sub px-3 text-left"
-                        aria-current="true"
-                      >
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-tea-gold" aria-hidden />
-                        <span className="min-w-0 flex-1 truncate text-ui-13 font-medium text-tea-text">
-                          {activeEntry.name || 'Untitled draft'}
-                        </span>
-                        <span className="text-ui-10 uppercase tracking-[0.08em] text-tea-text-sec">Active</span>
-                      </div>
-                    )}
-
-                    {/* Other drafts in this run. */}
-                    <SessionStack
-                        sessionEntries={sessionEntries}
-                        activeEntryId={activeEntryId}
-                        onSelectEntry={handleSelectEntry}
-                        onDiscardEntry={handleDiscardSessionEntry}
-                      />
-
-                    {/* Just-committed banner */}
-                    <AnimatePresence>
-                      {justCommitted && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-tea-gold/10 text-tea-gold text-xs font-medium">
-                            <Check size={14} strokeWidth={2.5} />
-                            <span className="flex-1 truncate">{justCommitted.name} saved</span>
-                            <button
-                              type="button"
-                              onClick={() => { setJustCommitted(null); setMode('library'); }}
-                              className="flex items-center gap-1 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
-                            >
-                              Sessions
-                            </button>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    {/* New entry hint button */}
-                    <button
-                        type="button"
-                        onClick={() => handleNewCapture()}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-dashed border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/40 text-ui-12 transition-colors"
-                      >
-                        <Plus size={12} />
-                        New Entry
-                      </button>
-                  </motion.div>
-                )}
 
                 {/* TASTING LEFT: shares + co-tasting + BrowseView */}
                 {mode === 'library' && (
@@ -1686,11 +1435,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   >
                     <LedgerView
                       embedded
-                      onOpenEntry={(entryId) => {
-                        setFaceId(entryId);
-                        setActiveEntry(entryId);
-                        setMode('sourcing');
-                      }}
+                      onOpenEntry={openTea}
                       searchQuery={tabSearchQuery}
                     />
                   </motion.div>
@@ -1700,7 +1445,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             </div>
 
             {/* Left column desktop FAB footer: Tasting + Buying only */}
-            {mode !== 'sourcing' && (
+            {(
               <div className="shrink-0 px-4 pb-4 pt-2 border-t border-tea-border">
                 <button
                   type="button"
@@ -1730,75 +1475,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               style={{ WebkitOverflowScrolling: 'touch', scrollbarGutter: 'stable' }}
             >
               <AnimatePresence mode="wait">
-
-                {/* SOURCING RIGHT: CaptureCard */}
-                {mode === 'sourcing' && (
-                  <motion.div
-                    key="right-sourcing"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    data-testid="curate-desktop-canvas"
-                  >
-                    {initialDevelopmentProduct && !developmentStarted ? (
-                      <div className="mb-3 flex flex-wrap items-center gap-3 rounded-md border border-tea-border bg-tea-surface px-3 py-3" role="status">
-                        <div className="min-w-0 flex-1">
-                          <div className="font-display text-ui-15 text-tea-text">Develop {initialDevelopmentProduct.name} in Curate</div>
-                          <div className="text-ui-12 text-tea-text-sec">No encounter is linked yet. Start one deliberately from this inventory record.</div>
-                        </div>
-                        <button type="button" onClick={startInventoryDevelopment} className="min-h-11 px-3 rounded-md bg-tea-accent-sub text-ui-12 text-tea-text hover:bg-tea-gold/10">
-                          Start development
-                        </button>
-                      </div>
-                    ) : activeEntryId && faceId === activeEntryId ? (
-                      <div className="mx-auto w-full max-w-xl">
-                        <TeaFace
-                          entryId={activeEntryId}
-                          onEdit={() => { setEditId(activeEntryId); setFaceId(null); }} onBack={handleHeaderBack} onBuy={openBuy} onOpenSaid={setSaidFor}
-                          onTaste={setFastTastingId}
-                          onFullTasting={openFullTasting}
-                          canTalk={isPlatformPrivileged}
-                          onTalk={handleRowTalk}
-                          talking={talkFor === activeEntryId && (voiceState === 'recording' || voiceState === 'transcribing')}
-                          voiceState={voiceState}
-                          onDone={isPendingEntry ? handleDoneClick : undefined}
-                      />
-                      </div>
-                    ) : activeEntryId && (editId === activeEntryId || !!initialDevelopmentProduct) ? (
-                      <>
-                        {batchMode && <BatchCaptureRow />}
-                        <CaptureCard
-                          entryId={activeEntryId}
-                          onSwitchToLedger={() => handleSwitchMode('buying')}
-                          onCommit={handleCommitEntry}
-                          onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('library'); } : undefined}
-                          actionRef={captureCardActionsRef}
-                          onShare={hasToken() ? () => setShareModalOpen(true) : undefined}
-                          purchasePickerId={`capture-purchase-picker-desktop-${activeEntryId}`}
-                          openPurchasePicker={pendingLibraryAcquisitionId === activeEntryId}
-                          onBuyExpandedChange={setCaptureBuyExpanded}
-                          batchMode={batchMode}
-                          onToggleBatchMode={() => setBatchMode((v) => !v)}
-                        />
-                        {showCaptureActionBar && (
-                          <CaptureActionFooter
-                            className="mx-auto mt-2 w-full max-w-3xl border-t border-tea-border bg-tea-surface px-3 py-2"
-                            onBuy={() => captureCardActionsRef.current?.toggleBuy()}
-                            onDone={handleDoneClick}
-                            onSample={() => captureCardActionsRef.current?.openTasting()}
-                            doneEnabled={!!activeEntryId && captureDoneReady}
-                            doneTestId="compass-done-desktop"
-                            buyExpanded={captureBuyExpanded}
-                            purchasePickerId={`capture-purchase-picker-desktop-${activeEntryId}`}
-                          />
-                        )}
-                      </>
-                    ) : (
-                      <CompassRightEmptyState mode="sourcing" onNewCapture={() => handleNewCapture()} />
-                    )}
-                  </motion.div>
-                )}
 
                 {/* TASTING RIGHT: entry detail panel or empty state */}
                 {mode === 'library' && (
@@ -1841,35 +1517,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               </AnimatePresence>
             </div>
 
-            {/* Right column sticky action bar: Sourcing only, single compact row */}
-            {mode === 'sourcing' && (
-              <div className="shrink-0 border-t border-tea-border">
-                <AnimatePresence>
-                  {voiceError && (
-                    <motion.div
-                      role="status"
-                      aria-live="polite"
-                      aria-atomic="true"
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 4 }}
-                      className="flex flex-wrap items-center justify-center gap-2 text-ui-11 text-tea-error text-center px-4 py-1.5 border-b border-tea-border bg-tea-bg"
-                    >
-                      <span>{voiceError}</span>
-                      {pendingVoiceRecording && (
-                        <span className="inline-flex items-center gap-2">
-                          <button type="button" onClick={() => void retryPendingVoice()} className="tap-target text-tea-text-sec hover:text-tea-text">Retry</button>
-                          <button type="button" onClick={() => void discardPendingVoice()} className="tap-target text-tea-text-sec hover:text-tea-text">Discard</button>
-                        </span>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-              </div>
-            )}
-            {/* END right action bar */}
-
           </div>
           {/* END RIGHT COLUMN */}
 
@@ -1878,7 +1525,88 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         </>)}
 
       </div>
+      {/* END TAB BODY */}
+
+      {/* ── A TEA, ON TOP of the tab you are on. Back closes it and you are
+          exactly where you were; the tab highlight never moved. ── */}
+      {topLayer && (
+        <div className="absolute inset-0 z-10 flex flex-col bg-tea-bg" data-testid="curate-tea-overlay" data-layer={topLayer.as}>
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-3 pb-nav-gap-lg" style={{ WebkitOverflowScrolling: 'touch' }}>
+            {topLayer.as === 'face' ? (
+              <div className="mx-auto w-full max-w-xl">
+                <TeaFace
+                  key={topLayer.id}
+                  entryId={topLayer.id}
+                  onEdit={() => pushTea(topLayer.id, 'card')}
+                  onBack={closeTopTea}
+                  onBuy={openBuy}
+                  onOpenSaid={setSaidFor}
+                  onTaste={setFastTastingId}
+                  onFullTasting={openFullTasting}
+                  canTalk={isPlatformPrivileged}
+                  onTalk={handleRowTalk}
+                  talking={talkFor === topLayer.id && (voiceState === 'recording' || voiceState === 'transcribing')}
+                  voiceState={voiceState}
+                  onDone={topIsPending ? handleDoneClick : undefined}
+                />
+              </div>
+            ) : (
+              <div className="mx-auto w-full max-w-3xl">
+                {batchMode && <BatchCaptureRow />}
+                <CaptureCard
+                  entryId={topLayer.id}
+                  onSwitchToLedger={() => handleSwitchMode('buying')}
+                  onCommit={handleCommitEntry}
+                  onShare={hasToken() ? () => setShareModalOpen(true) : undefined}
+                  actionRef={captureCardActionsRef}
+                  openPurchasePicker={pendingLibraryAcquisitionId === topLayer.id}
+                  onBuyExpandedChange={setCaptureBuyExpanded}
+                  batchMode={batchMode}
+                  onToggleBatchMode={() => setBatchMode((v) => !v)}
+                />
+                {showCaptureActionBar && (
+                  <CaptureActionFooter
+                    className="mx-auto mt-2 w-full max-w-3xl border-t border-tea-border bg-tea-surface px-3 py-2 max-lg:hidden"
+                    onBuy={() => captureCardActionsRef.current?.toggleBuy()}
+                    onDone={handleDoneClick}
+                    onSample={() => captureCardActionsRef.current?.openTasting()}
+                    doneEnabled={captureDoneReady}
+                    doneTestId="compass-done-desktop"
+                    buyExpanded={captureBuyExpanded}
+                    purchasePickerId={`capture-purchase-picker-${topLayer.id}`}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      </div>
       {/* END BODY */}
+
+      {/* Voice error toast, floats just above the bottom bar. */}
+      <AnimatePresence>
+        {voiceError && (mode === 'sourcing' || teaOpen) && (
+          <motion.div
+            key="voice-error"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            className="fixed left-0 right-0 z-20 bottom-nav flex flex-wrap items-center justify-center gap-2 text-ui-11 text-tea-error text-center px-4 py-1.5 border-t border-tea-border bg-tea-bg"
+          >
+            <span>{voiceError}</span>
+            {pendingVoiceRecording && (
+              <span className="inline-flex items-center gap-2">
+                <button type="button" onClick={() => void retryPendingVoice()} className="tap-target text-tea-text-sec hover:text-tea-text">Retry</button>
+                <button type="button" onClick={() => void discardPendingVoice()} className="tap-target text-tea-text-sec hover:text-tea-text">Discard</button>
+              </span>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <SaidSheet entryId={saidFor} onClose={() => setSaidFor(null)} />
       <FastTastingSheet

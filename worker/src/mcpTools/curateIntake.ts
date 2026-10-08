@@ -1,3 +1,4 @@
+import { ROUTE_QUOTES_SCHEMA, CONTACT_PEOPLE_SCHEMA, ADDRESSES_SCHEMA, CONTACTS_SCHEMA } from './curateSchemas';
 import { prepareCurateRecordedWrite, requireCurateManager, previewCurateMutation, confirmCurateMutation } from '../curateMutations';
 import { COMPASS_STRUCTURED_COLUMNS, readCompassStructuredPatch, readVendorStructuredPatch, mergeVendorContacts, type VendorStructuredFields, type VendorContactEndpoint } from '../../../src/lib/curateStructuredFields';
 import { prepareVendorStructuredProfileWrite, readVendorStructuredProfile } from '../curateVendorProfile';
@@ -1330,7 +1331,7 @@ const TEA_FIELD_PROPS = {
   vendor_item_number: { type: ['string', 'null'] },
   discount_percent: { type: ['number', 'null'], minimum: 0, maximum: 100, description: 'Quoted discount only; does not change inventory pricing.' },
   quote_id: { type: ['string', 'null'], description: 'Existing private quote record for this vendor.' },
-  route_quotes: { type: 'array', items: { type: 'object' }, description: 'Explicit route price evidence: id,mode,amount,currency,basis,basis_quantity,price_kind,label?,destination?. [] clears. Never applies freight.' },
+  route_quotes: ROUTE_QUOTES_SCHEMA,
   chinese_name: { type: 'string', description: 'Chinese name, e.g. 易武古树.' },
   category: { type: 'string', enum: ['tea', 'teaware'], description: 'tea (default) or teaware.' },
   type: { type: 'string', description: 'Sheng, Shou, Oolong, White, Red, Green, Dark…' },
@@ -1444,10 +1445,10 @@ const defs: ToolDefinition[] = [
         chinese_name: { type: ['string', 'null'] },
         company: { type: ['string', 'null'] }, wechat: { type: ['string', 'null'] }, whatsapp: { type: ['string', 'null'] }, phone: { type: ['string', 'null'] },
         vendor_code: { type: ['string', 'null'] },
-        contact_people: { type: 'array', items: { type: 'object' } },
-        addresses: { type: 'array', items: { type: 'object' } },
+        contact_people: CONTACT_PEOPLE_SCHEMA,
+        addresses: ADDRESSES_SCHEMA,
         contacts_mode: { type: 'string', enum: ['merge', 'replace'], description: 'merge default appends/edits endpoints by id; replace explicitly replaces the complete list.' },
-        contacts: { type: 'array', items: { type: 'object' }, description: 'Canonical channel/handle endpoints; IDs edit one, others append; [] clears.' },
+        contacts: CONTACTS_SCHEMA,
         fax: { type: ['string', 'null'] }, facebook: { type: ['string', 'null'] },
         email: { type: ['string', 'null'] }, website: { type: ['string', 'null'] }, instagram: { type: ['string', 'null'] },
         address: { type: ['string', 'null'] }, city: { type: ['string', 'null'] }, country: { type: ['string', 'null'] },

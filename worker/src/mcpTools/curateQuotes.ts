@@ -1,3 +1,4 @@
+import { QUOTE_SCHEMA } from './curateSchemas';
 import { getCurateQuote, listCurateQuotes, prepareCurateQuoteWrite } from '../curateQuotes';
 import { agentName, str } from './curateIntake';
 import { INVALID_TICKET, consumeTicket, issueTicket, previewEnvelope } from './tickets';
@@ -32,7 +33,7 @@ const list: ToolHandler = async (env, auth, args) => ({ quotes: await listCurate
 export const curateQuoteTools: ToolModule = {
   area: 'curate-quotes',
   defs: [
-    { name: 'curate_save_quote', scope: 'stock:write', description: 'Save or correct one private supplier quote document linked to its vendor and tea lines. Header contains reference, issued_to, quote_date, validity_days, valid_until, minimum_order_amount/currency and payment_terms. Lines carry explicit quoted prices and route alternatives. Preview then confirm; never changes stock pricing.', inputSchema: { type: 'object', properties: { quote_id: {type:'string'}, quote: {type:'object'}, agent: {type:'string'}, confirm: {type:'string'} }, additionalProperties: false } },
+    { name: 'curate_save_quote', scope: 'stock:write', description: 'Save or correct one private supplier quote document linked to its vendor and tea lines. Header contains reference, issued_to, quote_date, validity_days, valid_until, minimum_order_amount/currency and payment_terms. Lines carry explicit quoted prices and route alternatives. Preview then confirm; never changes stock pricing.', inputSchema: { type: 'object', properties: { quote_id: {type:'string'}, quote: QUOTE_SCHEMA, agent: {type:'string'}, confirm: {type:'string'} }, additionalProperties: false } },
     { name: 'curate_get_quote', scope: 'inventory:read', description: 'Read a private supplier quote header and linked quoted tea snapshots.', inputSchema: { type:'object',properties:{quote_id:{type:'string'},agent:{type:'string'}},required:['quote_id'],additionalProperties:false } },
     { name: 'curate_list_quotes', scope: 'inventory:read', description: 'List active supplier quote documents within this account, optionally for one vendor.', inputSchema: { type:'object',properties:{vendor_id:{type:'string'},agent:{type:'string'}},additionalProperties:false } },
   ], handlers: { curate_save_quote: save, curate_get_quote: get, curate_list_quotes: list },

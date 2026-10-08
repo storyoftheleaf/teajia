@@ -89,6 +89,17 @@ interface TeaCompassState {
   // new id instead of continuing the previous sitting. Uses the existing
   // currentSessionId/lastCaptureAt fields; no new data model.
   startNewRun: () => void;
+  // Curate v2: a table is a run with a vendor. A new table is a new run AND
+  // forgets whose table the last one was, so it never shows the old vendor
+  // while the new one is being picked.
+  startNewTable: () => void;
+  // Add a tea to the open table. A table stays open until a new one is
+  // started, so unlike startNewCapture it never lets six idle hours turn the
+  // next tea into a different run.
+  startNewCaptureOnTable: (category?: CompassCategory) => string;
+  // Name the open table's vendor: remembered for the next teas, and filled
+  // onto every tea already on the table that has none.
+  setTableVendor: (vendorId: string | null, vendorName: string | null) => void;
 
   // Vendor
   setLastVendor: (vendorId: string | null, vendorName: string | null) => void;
@@ -167,6 +178,27 @@ export function entryHasDeliberateInput(entry: TeaCompassEntry): boolean {
 
 /** Backward-compatible alias for consumers outside the retention flow. */
 export const entryHasContent = entryHasDeliberateInput;
+
+/**
+ * The teas on the open table (Curate v2): exactly those whose sessionId is the
+ * current run, drafts and saved, tea and teaware, oldest first. A draft that
+ * has had nothing entered is not a row; a saved tea always is. The Table tab's
+ * rows and its header count both come from here, so they cannot disagree.
+ */
+export function selectTableEntries(
+  state: Pick<TeaCompassState, 'pendingEntries' | 'entries' | 'currentSessionId'>,
+): TeaCompassEntry[] {
+  const sid = state.currentSessionId;
+  if (!sid) return [];
+  const drafts = state.pendingEntries.filter((e) => e.sessionId === sid && entryHasDeliberateInput(e));
+  const saved = state.entries.filter((e) => e.sessionId === sid);
+  // Both lists keep the newest first; reversing before a stable sort keeps
+  // the pour order when two teas share a timestamp.
+  return [...drafts, ...saved]
+    .filter((e, i, all) => all.findIndex((x) => x.id === e.id) === i)
+    .reverse()
+    .sort((a, b) => (a.createdAt ?? '').localeCompare(b.createdAt ?? ''));
+}
 
 interface PersistedCompassDrafts {
   pendingEntries?: TeaCompassEntry[];
@@ -496,6 +528,30 @@ const createdTeaCompassStore = create<TeaCompassState>()(
             sessionEntryIds: s.sessionEntryIds.filter((sid) => sid !== id),
             activeEntryId: s.activeEntryId === id ? null : s.activeEntryId,
           }));
+        }
+      },
+
+      startNewTable: () => {
+        set({ currentSessionId: crypto.randomUUID(), lastCaptureAt: Date.now(), lastVendorId: null, lastVendorName: null });
+      },
+
+      startNewCaptureOnTable: (category = 'tea') => {
+        if (get().currentSessionId) set({ lastCaptureAt: Date.now() });
+        return get().startNewCapture(category);
+      },
+
+      setTableVendor: (vendorId, vendorName) => {
+        const name = vendorName?.trim() || null;
+        set({ lastVendorId: vendorId, lastVendorName: name });
+        if (!name) return;
+        const key = name.toLowerCase();
+        for (const row of selectTableEntries(get())) {
+          const theirs = row.vendorName?.trim();
+          // Only teas with no vendor, or the same name still waiting for its id.
+          const unset = !row.vendorId && (!theirs || theirs.toLowerCase() === key);
+          if (!unset) continue;
+          if (row.vendorName === name && (row.vendorId ?? null) === vendorId) continue;
+          get().updateEntry(row.id, { vendorName: name, ...(vendorId ? { vendorId } : {}) });
         }
       },
 

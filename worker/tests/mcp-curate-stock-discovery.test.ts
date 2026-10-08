@@ -165,3 +165,37 @@ describe('Curate corrections use the existing stock scope and live management ga
     db.close();
   });
 });
+
+
+describe('private attachment upload follows the existing Curate stock grant', () => {
+  const upload = { entity_type: 'tea', entity_id: 'known', role: 'pricelist', filename: 'prices.pdf',
+    mime_type: 'application/pdf', data_base64: btoa('%PDF-1.4 test'), agent: 'Hermes' };
+  it('lets default owner scopes and explicitly authorized stock staff preview private uploads', async () => {
+    for (const role of ['owner','staff'] as const) {
+      const db = await setup(role, role === 'staff', ['inventory:read','stock:write']);
+      const listed = await rpc(db, 'tools/list');
+      const schema = listed.result.tools.find((tool: any) => tool.name === 'curate_upload_attachment').inputSchema;
+      expect(schema.properties.role.enum).toContain('pricelist');
+      expect(schema.properties.role.enum).toContain('businesscard');
+      expect((await call(db, 'curate_upload_attachment', upload)).confirmation_token).toBeTruthy();
+      expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM curate_attachments').get()).toMatchObject({ n: 0 });
+      db.close();
+    }
+  });
+  it('hides and rejects the upload for read-only tokens', async () => {
+    const db = await setup();
+    const listed = await rpc(db, 'tools/list');
+    expect(listed.result.tools.some((tool: any) => tool.name === 'curate_upload_attachment')).toBe(false);
+    expect(await call(db, 'curate_upload_attachment', upload)).toMatchObject({ error: 'insufficient_mcp_scope', required_scope: 'stock:write' });
+    db.close();
+  });
+  it('still refuses stock staff who lack Curate management', async () => {
+    const db = await setup('staff');
+    db.sqlite.prepare('UPDATE account_members SET permissions=? WHERE account_id=? AND user_id=?')
+      .run(JSON.stringify({ bundles: ['stock'] }), ACCOUNT, 'reader');
+    db.sqlite.prepare('UPDATE mcp_tokens SET scopes=?').run(JSON.stringify(['inventory:read','stock:write']));
+    const result = await rpc(db, 'tools/call', { name: 'curate_upload_attachment', arguments: upload });
+    expect(result.error.message).toContain('Curate management requires');
+    db.close();
+  });
+});

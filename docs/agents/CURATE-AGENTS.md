@@ -222,7 +222,7 @@ Read the photo and file its facts into named fields. Upload the source bytes
 with `curate_upload_attachment`: JPEG, PNG, WebP or PDF, up to 6 MiB, as
 `data_base64`, with `filename`, `mime_type`, a role, and the tea, vendor, quote
 or arrival identity. Preview first; resend identical bytes with `confirm`.
-Use roles such as leaf, liquor, label, wrapper, price_list or business_card.
+Use roles such as leaf, liquor, label, wrapper, pricelist or businesscard.
 Private attachments are not automatically published to the shop or Drive.
 
 - **A tea, a label, a wrapper.** Read the name, Chinese name, year, factory,
