@@ -1,3 +1,4 @@
+import { prepareSampleLifecycleSync } from '../curateSampleBridge';
 import type { ToolAuth, ToolDefinition, ToolEnv, ToolHandler, ToolModule } from './registry';
 import { INVALID_TICKET, PENDING_TTL_MS, consumeTicket as consumeShared, issueTicket } from './tickets';
 import { isWordforgeManagedArticle } from '../wordforgeArticleDraft';
@@ -980,9 +981,10 @@ const toolSetSampleStatus: ToolHandler = async (env, auth, args) => {
   const m = await consumeShared<WritingMutation, 'writing.set_sample_status'>(env, confirm, 'writing.set_sample_status', auth);
   if (!m || m.sampleId !== sampleId) return INVALID_TICKET;
 
-  await env.DB.prepare(
+  const lifecycle = await prepareSampleLifecycleSync(env.DB, m.accountId, { sampleId: m.sampleId, status: m.status });
+  await env.DB.batch([env.DB.prepare(
     "UPDATE tea_samples SET status = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?"
-  ).bind(m.status, m.sampleId, m.accountId).run();
+  ).bind(m.status, m.sampleId, m.accountId), ...lifecycle]);
 
   await logWriting(env, m.accountId, m.userEmail, 'SAMPLE_STATUS_SET_MCP',
     `Sample "${row.name}" moved ${m.previousStatus} → ${m.status} via MCP`, 'tea_sample', m.sampleId);

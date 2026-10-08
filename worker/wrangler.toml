@@ -31,6 +31,10 @@ custom_domain = true
 OAUTH_REDIRECT_ORIGIN = "https://teajia-api.lightcodes.workers.dev"
 WORDFORGE_ACCOUNT_ID = "acc_teajia_bali"
 
+# Runtime version identity used by /api/release and exact-revision CI proof.
+[version_metadata]
+binding = "CF_VERSION_METADATA"
+
 [ai]
 binding = "AI"
 

@@ -1,3 +1,4 @@
+import { hydrateCompassEntries } from '../lib/teaCompassSync';
 import {
   api,
   isTokenScopedToAccount,
@@ -230,15 +231,18 @@ export function createSampleRepository(options: {
       // entries before attempting any sample create/update.
       for (const sampleSet of snapshot.sampleSets.filter((item) => item.synced !== true)) {
         if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
+        const members = snapshot.samples.filter((sample) => sample.setId === sampleSet.id);
+        if (!remoteSetsById.has(sampleSet.id) && members.length > 0 && members.every((sample) => sample.compassEntryId)) continue;
         const persisted = sampleSet.accountId === accountId || remoteSetsById.has(sampleSet.id);
         const row = persisted && remoteSetsById.has(sampleSet.id)
           ? await remote.sampleSets.update(sampleSet.id, sampleSetUpdatesToApi(sampleSet), BACKGROUND_REQUEST)
           : await remote.sampleSets.create(sampleSetToApi(sampleSet), BACKGROUND_REQUEST);
         remoteSetsById.set(row.id, row);
       }
+      const canonicalIds = new Map<string, string>();
       for (const sample of snapshot.samples.filter((item) => !item.synced)) {
         if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
-        if (!remoteSetsById.has(sample.setId)) {
+        if (!sample.compassEntryId && !remoteSetsById.has(sample.setId)) {
           throw new Error(`Cannot sync sample ${sample.id}: set ${sample.setId} is not persisted`);
         }
         const persisted = sample.accountId === accountId || remoteSamplesById.has(sample.id);
@@ -246,19 +250,24 @@ export function createSampleRepository(options: {
         const row = persisted && remoteSamplesById.has(sample.id)
           ? await remote.samples.update(sample.id, sampleUpdatesToApi(sample), BACKGROUND_REQUEST)
           : await remote.samples.create(sampleToApi(sample), BACKGROUND_REQUEST);
+        if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
+        canonicalIds.set(sample.id, row.id);
+        if (row.id !== sample.id) remoteSamplesById.delete(sample.id);
+        store.getState().adoptRemoteSample(accountId, sample.id, sampleFromApi(row), sample.updatedAt);
         remoteSamplesById.set(row.id, {
           ...row,
           tastings: row.tastings ?? previous?.tastings ?? [],
         });
       }
       for (const sample of snapshot.samples) {
-        const remoteSample = remoteSamplesById.get(sample.id);
+        const canonicalId = canonicalIds.get(sample.id) ?? sample.id;
+        const remoteSample = remoteSamplesById.get(canonicalId);
         if (!remoteSample) continue;
         const remoteTastingIds = new Set((remoteSample.tastings ?? []).map((tasting) => tasting.id));
         for (const tasting of sample.tastings.filter((item) => !remoteTastingIds.has(item.id))) {
           if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
           if (!remote.samples.addTasting) throw new Error('Sample tasting persistence is unavailable');
-          const created = await remote.samples.addTasting(sample.id, {
+          const created = await remote.samples.addTasting(canonicalId, {
             id: tasting.id,
             tasting: tasting.tasting,
             rating: tasting.rating,
@@ -282,8 +291,8 @@ export function createSampleRepository(options: {
       const current = store.getState();
       const committedSampleIds = snapshot.samples.filter((sample) => (
         !sample.synced
-        && current.samples.find((candidate) => candidate.id === sample.id)?.updatedAt === sample.updatedAt
-      )).map((sample) => sample.id);
+        && current.samples.find((candidate) => candidate.id === (canonicalIds.get(sample.id) ?? sample.id))?.updatedAt === (remoteSamplesById.get(canonicalIds.get(sample.id) ?? sample.id)?.updated_at ?? sample.updatedAt)
+      )).map((sample) => canonicalIds.get(sample.id) ?? sample.id);
       const committedSetIds = snapshot.sampleSets.filter((sampleSet) => (
         sampleSet.synced !== true
         && current.sampleSets.find((candidate) => candidate.id === sampleSet.id)?.updatedAt === sampleSet.updatedAt
@@ -299,6 +308,7 @@ export function createSampleRepository(options: {
         snapshot.sampleSetTombstones,
       )) return { status: 'stale' };
       const active = store.getState().reconcileRemote(accountId, samples, sampleSets);
+      if (active && options.remote === undefined) await hydrateCompassEntries(accountId).catch(() => {});
       return { status: active ? 'synced' : 'stale' };
     },
     async createSet(sampleSet: SampleSet): Promise<SyncedSampleSet> {

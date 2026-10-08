@@ -33,6 +33,7 @@ describe('Compass sync acknowledgements', () => {
   beforeEach(() => {
     syncMock.mockReset();
     listMock.mockReset();
+    listMock.mockResolvedValue({ entries: [] });
     samplesListMock.mockReset();
     samplesListMock.mockResolvedValue({ samples: [] });
     tokenAccount.current = 'acct-a';
@@ -62,22 +63,14 @@ describe('Compass sync acknowledgements', () => {
     expect(useTeaCompassStore.getState().entries[0]?.name).toBe('');
   });
 
-  it('recovers durable batch linkage and lifecycle from server-backed samples', async () => {
-    listMock.mockResolvedValue({ entries: [{
-      ...entry('linked-entry'), synced: undefined, photos: '[]', audio_clips: '[]',
-      decision: 'selected', verdict: 'love', status: 'noted', sample_state: null, sample_set_id: null,
-    }] });
-    samplesListMock.mockResolvedValue({ samples: [{
-      id: 'portion-1', account_id: 'acct-a', compass_entry_id: 'linked-entry', set_id: 'batch-1',
-      status: 'received', tastings: [],
-    }] });
-
+  it('roundtrips private shop and transport fields through the server codec', async () => {
+    listMock.mockResolvedValue({ entries: [{ ...entry('sourcing'), shop_name: '惜物堂', transport_mode: 'air', photos: '[]', audio_clips: '[]' }] });
     await hydrateCompassEntries('acct-a');
-
-    expect(useTeaCompassStore.getState().entries[0]).toMatchObject({
-      id: 'linked-entry', sampleSetId: 'batch-1', sampleState: 'received', isSample: true,
-      decision: 'selected', verdict: 'love', status: 'noted', synced: false,
-    });
+    expect(useTeaCompassStore.getState().entries[0]).toMatchObject({ shopName: '惜物堂', transportMode: 'air', synced: true });
+    useTeaCompassStore.getState().updateEntry('sourcing', { notes: 'changed' });
+    syncMock.mockResolvedValue({ success: true });
+    await syncCompassEntries('acct-a');
+    expect(syncMock.mock.calls[0][0][0]).toMatchObject({ shop_name: '惜物堂', transport_mode: 'air' });
   });
 
   it('never downgrades a durable Compass lifecycle from lagging sample logistics', async () => {
@@ -107,6 +100,48 @@ describe('Compass sync acknowledgements', () => {
     const after = useTeaCompassStore.getState().entries.find((e) => e.id === 'typing')!;
     expect(after.synced).toBe(false);
     expect(after.notes).toBe('typed mid-save');
+  });
+
+  it('rehydrates canonical sample links and lifecycle after an acknowledged save', async () => {
+    useTeaCompassStore.setState({ entries: [{ ...entry('sampled'), sampleState: 'requested' }] });
+    syncMock.mockResolvedValue({ syncedIds: ['sampled'] });
+    listMock.mockResolvedValue({ entries: [{ ...entry('sampled'), sample_state: 'received', sample_set_id: 'canonical-vendor-set', photos: '[]', audio_clips: '[]' }] });
+    expect(await syncCompassEntries('acct-a')).toBe(1);
+    expect(useTeaCompassStore.getState().entries[0]).toMatchObject({ sampleState: 'received', sampleSetId: 'canonical-vendor-set', synced: true });
+  });
+
+  it('keeps newer local edits dirty when canonical hydration is in flight', async () => {
+    useTeaCompassStore.setState({ entries: [entry('editing')] });
+    syncMock.mockResolvedValue({ syncedIds: ['editing'] });
+    listMock.mockImplementation(async () => {
+      useTeaCompassStore.getState().updateEntry('editing', { notes: 'New note during refresh' });
+      return { entries: [{ ...entry('editing'), notes: 'Saved note', photos: '[]', audio_clips: '[]' }] };
+    });
+    expect(await syncCompassEntries('acct-a')).toBe(1);
+    expect(useTeaCompassStore.getState().entries[0]).toMatchObject({ notes: 'New note during refresh', synced: false });
+  });
+
+  it('retains acknowledgement when the canonical refresh fails', async () => {
+    useTeaCompassStore.setState({ entries: [entry('saved')] });
+    syncMock.mockResolvedValue({ syncedIds: ['saved'] });
+    listMock.mockRejectedValue(new Error('Read unavailable'));
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(await syncCompassEntries('acct-a')).toBe(1);
+    expect(useTeaCompassStore.getState().entries[0]).toMatchObject({ id: 'saved', synced: true });
+    expect(useTeaCompassStore.getState().syncError).toBe(false);
+    warning.mockRestore();
+  });
+
+  it('ignores a canonical read after leaving and returning to the same account', async () => {
+    useTeaCompassStore.setState({ entries: [entry('saved')] });
+    syncMock.mockResolvedValue({ syncedIds: ['saved'] });
+    listMock.mockImplementation(async () => {
+      useTeaCompassStore.getState().switchAccount('acct-b');
+      useTeaCompassStore.getState().switchAccount('acct-a');
+      return { entries: [{ ...entry('foreign-generation'), photos: '[]', audio_clips: '[]' }] };
+    });
+    expect(await syncCompassEntries('acct-a')).toBe(1);
+    expect(useTeaCompassStore.getState().entries.map(row => row.id)).toEqual(['saved']);
   });
 
   it('runs one sync at a time', async () => {
@@ -143,7 +178,7 @@ describe('Compass sync acknowledgements', () => {
     await hydrateCompassEntries('acct-a');
 
     expect(listMock).toHaveBeenCalledWith(undefined, { background: true });
-    expect(samplesListMock).toHaveBeenCalledWith(undefined, { background: true });
+    expect(samplesListMock).not.toHaveBeenCalled();
 
     syncMock.mockResolvedValue({ synced: 1, syncedIds: ['pending'] });
     useTeaCompassStore.setState({ entries: [entry('pending')] });
@@ -227,7 +262,7 @@ describe('Compass sync acknowledgements', () => {
     syncMock.mockResolvedValue({ synced: 1, syncedIds: ['b-unsynced'] });
     await hydrateCompassEntries('acct-b');
     expect(await syncCompassEntries('acct-b')).toBe(1);
-    expect(listMock).toHaveBeenCalledTimes(1);
+    expect(listMock).toHaveBeenCalledTimes(2);
     expect(syncMock).toHaveBeenCalledTimes(1);
   });
 

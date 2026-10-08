@@ -16,6 +16,8 @@ const CAMEL_TO_SNAKE: Record<string, string> = {
   capacityMl: 'capacity_ml',
   vendorId: 'vendor_id',
   vendorName: 'vendor_name',
+  shopName: 'shop_name',
+  transportMode: 'transport_mode',
   linkedCustomerId: 'linked_customer_id',
   audioClips: 'audio_clips',
   buyQuantityGrams: 'buy_quantity_grams',
@@ -238,6 +240,18 @@ async function syncCompassEntriesOnce(accountId?: string): Promise<number> {
     // Entries are on the server now, safe to retry any queued promotions.
     await retryPendingPromotions(requestedAccountId);
 
+    // The server may have chosen canonical vendor sets, reused a shelf sample,
+    // or reconciled lifecycle while accepting these writes. Read those facts
+    // back through the guarded merge; a read failure cannot revoke the save.
+    const afterPromotions = useTeaCompassStore.getState();
+    if (acknowledgedIds.size > 0 && afterPromotions.accountScopeId === requestedAccountId
+      && afterPromotions.accountScopeRevision === requestedRevision) {
+      await hydrateCompassEntries(requestedAccountId).catch(() => {});
+      if (hasUnacknowledged) useTeaCompassStore.setState((state) =>
+        state.accountScopeId === requestedAccountId && state.accountScopeRevision === requestedRevision
+          ? { syncError: true } : state);
+    }
+
     return acknowledgedIds.size;
   } catch (err) {
     // Offline or error, do NOT mark entries as synced; they will retry next cycle.
@@ -265,10 +279,7 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
   useTeaCompassStore.getState().setHydrationStatus('loading');
 
   try {
-    const [data, sampleData] = await Promise.all([
-      api.compass.list(undefined, BACKGROUND_REQUEST),
-      api.samples.list(undefined, BACKGROUND_REQUEST).catch(() => ({ samples: [] })),
-    ]);
+    const data = await api.compass.list(undefined, BACKGROUND_REQUEST);
     const current = useTeaCompassStore.getState();
     if (current.accountScopeId !== requestedAccountId || current.accountScopeRevision !== requestedRevision) return;
     const rawServerIds = new Set<string>((data.entries || []).map((r: any) => r.id));
@@ -278,40 +289,8 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
     // Drop them from BOTH the server set and local state so a not-yet-deleted
     // row can't reappear here (the "I deleted it and it came back" bug).
     const deleted = new Set(store.deletedIds);
-    const linkedSamples = new Map<string, any>();
-    for (const sample of sampleData.samples ?? []) {
-      // The API is newest-first. One encounter may have appeared in several
-      // historical batches; its current queue link is the newest portion.
-      if (sample.compass_entry_id && !linkedSamples.has(sample.compass_entry_id)) {
-        linkedSamples.set(sample.compass_entry_id, sample);
-      }
-    }
     const serverEntries: TeaCompassEntry[] = (data.entries || [])
       .map(toCamelCase)
-      .map((entry: TeaCompassEntry) => {
-        const sample = linkedSamples.get(entry.id);
-        if (!sample) return entry;
-        const sampleStateCandidate = Array.isArray(sample.tastings) && sample.tastings.length > 0
-          ? 'tasted'
-          : sample.status === 'requested'
-            ? 'requested'
-            : sample.status === 'received' || sample.status === 'untasted'
-              ? 'received'
-              : undefined;
-        const lifecycleRank = { requested: 1, received: 2, tasted: 3 } as const;
-        const sampleState = sampleStateCandidate && (
-          !entry.sampleState || lifecycleRank[sampleStateCandidate] > lifecycleRank[entry.sampleState]
-        ) ? sampleStateCandidate : entry.sampleState ?? undefined;
-        const sampleSetId = sample.set_id || entry.sampleSetId;
-        const recovered = sampleSetId !== entry.sampleSetId || (sampleState != null && sampleState !== entry.sampleState);
-        return {
-          ...entry,
-          isSample: true,
-          sampleSetId,
-          ...(sampleState ? { sampleState } : {}),
-          synced: recovered ? false : entry.synced,
-        };
-      })
       .filter((e: TeaCompassEntry) => !deleted.has(e.id));
     const localEntries = store.entries.filter(e => !deleted.has(e.id));
 

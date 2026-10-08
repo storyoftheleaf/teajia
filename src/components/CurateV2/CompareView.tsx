@@ -15,6 +15,8 @@ interface CompareViewProps {
   onChosenChange: (ids: string[]) => void;
   onOpenTea: (entryId: string) => void;
   onClose: () => void;
+  /** Buy opens the tea's order part. */
+  onBuy?: (entryId: string) => void;
 }
 
 interface Figures {
@@ -39,8 +41,9 @@ const answerLabel = (q: FastQuestion, ids: string[]) =>
  * figure in each row across the cards is gold. Tapping a card opens that tea;
  * coming back lands on the same comparison.
  */
-export const CompareView: React.FC<CompareViewProps> = ({ chosen, onChosenChange, onOpenTea, onClose }) => {
+export const CompareView: React.FC<CompareViewProps> = ({ chosen, onChosenChange, onOpenTea, onClose, onBuy }) => {
   const entries = useTeaCompassStore((s) => s.entries);
+  const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const { data: rates } = useRates();
   const freight = useShopFreightDefault();
   const [picking, setPicking] = useState(chosen.length < 2);
@@ -61,9 +64,14 @@ export const CompareView: React.FC<CompareViewProps> = ({ chosen, onChosenChange
   const best = useMemo(() => {
     const min = (xs: (number | null)[]) => { const v = xs.filter((x): x is number => x != null); return v.length > 1 ? Math.min(...v) : null; };
     const max = (xs: (number | null)[]) => { const v = xs.filter((x): x is number => x != null); return v.length > 1 ? Math.max(...v) : null; };
+    const rank = (q: FastQuestion, order: string[]) => max(figures.map((f) => { const id = readFast(f.entry.tasting)[q][0]; const i = id ? order.indexOf(id) : -1; return i < 0 ? null : order.length - i; }));
     return {
       shelf: min(figures.map((f) => f.shelf)),
+      perGram: min(figures.map((f) => f.perGram)),
       score: max(figures.map((f) => f.entry.tasting?.quality ?? null)),
+      clean: rank('clean', ['clean', 'some-edge', 'rough']),
+      drying: rank('drying', ['none', 'finish-dry', 'dry']),
+      stays: rank('stays', ['lingering', 'finish-long', 'finish-medium', 'finish-short']),
     };
   }, [figures]);
 
@@ -110,39 +118,47 @@ export const CompareView: React.FC<CompareViewProps> = ({ chosen, onChosenChange
         <span className="flex-1 font-display text-ui-26 text-tea-text">Compare</span>
         <button type="button" onClick={() => setPicking(true)} className="tap-target text-ui-12 font-medium text-tea-gold">Change teas</button>
       </div>
-      <div className="grid gap-3 px-4">
+      <div className="grid gap-2.5 px-4" data-testid="compare-cards">
         {figures.map(({ entry, perGram, shelf }) => {
           const a = readFast(entry.tasting);
           const sym = CURRENCY_LABELS[entry.priceCurrency] ?? '';
-          const rows: Array<[string, string, boolean?]> = [
-            ['Paid', entry.priceAmount != null ? `${sym}${entry.priceAmount.toLocaleString()} ${quotedUnit(entry)}`.trim() : 'add'],
-            ['Per gram', perGram != null ? `${sym}${perGram.toFixed(2)}` : '—'],
-            ['Shelf', shelf != null ? `$${shelf.toFixed(2)} / g` : '—', shelf != null && shelf === best.shelf],
-            ['Year', entry.year != null ? String(entry.year) : '—'],
-            ['Score', entry.tasting?.quality != null ? `${entry.tasting.quality} / 10` : '—', entry.tasting?.quality != null && entry.tasting.quality === best.score],
-            ['Clean', answerLabel('clean', a.clean) || '—'],
-            ['Drying', answerLabel('drying', a.drying) || '—'],
-            ['Body', answerLabel('weight', a.weight) || '—'],
-            ['Tastes of', answerLabel('flavour', a.flavour) || '—'],
-            ['Stays', answerLabel('stays', a.stays) || '—'],
+          const pos = (q: FastQuestion, order: string[]) => { const id = a[q][0]; const i = id ? order.indexOf(id) : -1; return i < 0 ? null : order.length - i; };
+          // Nine figures, three to a row, so a whole tea reads at a glance and three teas fit on one screen.
+          const cells: Array<[string, string, boolean]> = [
+            ['Paid', entry.priceAmount != null ? `${sym}${entry.priceAmount.toLocaleString()}` : '—', false],
+            ['Per g', perGram != null ? `${sym}${perGram.toFixed(2)}` : '—', perGram != null && perGram === best.perGram],
+            ['Shelf', shelf != null ? `$${shelf.toFixed(2)}` : '—', shelf != null && shelf === best.shelf],
+            ['Score', entry.tasting?.quality != null ? String(entry.tasting.quality) : '—', entry.tasting?.quality != null && entry.tasting.quality === best.score],
+            ['Clean', answerLabel('clean', a.clean) || '—', pos('clean', ['clean', 'some-edge', 'rough']) === best.clean && best.clean != null],
+            ['Drying', answerLabel('drying', a.drying) || '—', pos('drying', ['none', 'finish-dry', 'dry']) === best.drying && best.drying != null],
+            ['Body', answerLabel('weight', a.weight) || '—', false],
+            ['Stays', answerLabel('stays', a.stays) || '—', pos('stays', ['lingering', 'finish-long', 'finish-medium', 'finish-short']) === best.stays && best.stays != null],
+            ['Tastes', answerLabel('flavour', a.flavour.slice(0, 2)) || '—', false],
           ];
+          const unit = quotedUnit(entry);
           return (
-            <button key={entry.id} type="button" onClick={() => onOpenTea(entry.id)} className="w-full rounded-md border border-tea-border bg-tea-surface/40 text-left transition-colors hover:border-tea-gold">
-              <div className="flex items-baseline gap-2 border-b border-tea-border px-3 py-2.5">
-                <span className="curate-v2-name min-w-0 flex-1 truncate font-display text-ui-20 text-tea-text">{entry.name}</span>
-                {entry.vendorName && <span className="text-ui-12 text-tea-text-dim">{entry.vendorName}</span>}
-                <span className="text-ui-12 text-tea-gold">Open ›</span>
+            <article key={entry.id} className="overflow-hidden rounded-md border border-tea-border bg-tea-surface/40">
+              <div className="flex items-center gap-2 border-b border-tea-border pl-3 pr-1">
+                <button type="button" onClick={() => onOpenTea(entry.id)} className="grid min-h-11 min-w-0 flex-1 py-1.5 text-left">
+                  <span className="curate-v2-name truncate">{entry.name}</span>
+                  <span className="truncate text-ui-12 text-tea-text-dim tabular-nums">{[entry.vendorName, entry.year, unit && `per ${unit}`].filter(Boolean).join(' · ')}</span>
+                </button>
+                <button type="button" onClick={() => updateEntry(entry.id, entry.sampleState ? { sampleState: null } : { sampleState: 'requested', isSample: true, decision: 'considering' })} aria-pressed={!!entry.sampleState} className={`tap-target px-2 text-ui-12 font-medium ${entry.sampleState ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>Sample</button>
+                <button type="button" onClick={() => { updateEntry(entry.id, { decision: 'selected' }); onBuy?.(entry.id); }} className={`tap-target px-2 text-ui-12 font-medium ${entry.decision === 'selected' ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>Buy</button>
               </div>
-              {rows.map(([k, v, win]) => (
-                <div key={k} className="flex items-baseline justify-between gap-3 px-3 py-1.5">
-                  <span className="curate-v2-label">{k}</span>
-                  <span className={`truncate text-ui-13 tabular-nums ${win ? 'font-semibold text-tea-gold' : 'text-tea-text-sec'}`}>{v}</span>
-                </div>
-              ))}
-            </button>
+              <div className="grid grid-cols-3">
+                {cells.map(([k, v, win], i) => (
+                  <div key={k} className={`min-w-0 px-3 py-1.5 ${i % 3 ? 'border-l border-tea-border' : ''} ${i >= 3 ? 'border-t border-tea-border' : ''}`}>
+                    <div className="curate-v2-label">{k}</div>
+                    <div className={`truncate text-ui-14 tabular-nums ${win ? 'font-semibold text-tea-gold' : v === '—' ? 'text-tea-text-dim' : 'text-tea-text'}`}>{v}</div>
+                  </div>
+                ))}
+              </div>
+            </article>
           );
         })}
       </div>
+      <p className="px-4 pt-2 text-ui-12 text-tea-text-dim">Gold is the better figure. Tap a name to open the tea.</p>
       <div className="pb-nav-gap" />
     </div>
   );

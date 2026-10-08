@@ -82,9 +82,18 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     if (requestKey === 'POST /api/admin/samples') {
       const input = route.request().postDataJSON() as Record<string, any>;
       const now = new Date().toISOString();
-      const row = { ...input, account_id: accountId, created_at: now, updated_at: now, tastings: [] };
-      samples.push(row);
-      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(row) });
+      const entry = input.compass_entry_id ? compassEntries.find(entry => entry.id === input.compass_entry_id) : undefined;
+      if (input.compass_entry_id && !entry) return route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'Curate entry not found' }) });
+      let setId = input.set_id;
+      if (entry) {
+        setId = `vendor-set-${entry.vendor_id ?? entry.vendor_name ?? 'unassigned'}`;
+        if (!sampleSets.some(set => set.id === setId)) sampleSets.push({ id: setId, name: `Sample list — ${entry.vendor_name ?? 'Unassigned'}`, source_id: entry.vendor_id, source_name: entry.vendor_name, purpose: 'sourcing', account_id: accountId, created_at: now, updated_at: now });
+      }
+      const previous = entry ? samples.find(sample => sample.compass_entry_id === entry.id) : samples.find(sample => sample.id === input.id);
+      const row = previous ?? { ...input, id: entry ? `canonical-sample-${entry.id}` : input.id, set_id: setId, account_id: accountId, created_at: now, updated_at: now, tastings: [] };
+      if (!previous) samples.push(row);
+      if (entry) Object.assign(entry, { sample_state: row.status === 'requested' ? 'requested' : ['received', 'untasted'].includes(row.status) ? 'received' : 'tasted', sample_set_id: row.set_id, updated_at: now });
+      return route.fulfill({ status: previous ? 200 : 201, contentType: 'application/json', body: JSON.stringify(row) });
     }
     const sampleSetMatch = path.match(/^\/api\/admin\/sample-sets\/([^/]+)$/);
     if (sampleSetMatch && route.request().method() === 'PUT') {
@@ -106,6 +115,8 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       const index = samples.findIndex(row => row.id === sampleMatch[1]);
       const row = { ...(samples[index] ?? { id: sampleMatch[1], account_id: accountId }), ...route.request().postDataJSON(), updated_at: new Date().toISOString() };
       if (index >= 0) samples[index] = row; else samples.push(row);
+      const entry = compassEntries.find(entry => entry.id === row.compass_entry_id);
+      if (entry) Object.assign(entry, { sample_state: row.status === 'requested' ? 'requested' : ['received', 'untasted'].includes(row.status) ? 'received' : 'tasted', sample_set_id: row.set_id, updated_at: row.updated_at });
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(row) });
     }
     if (sampleMatch && route.request().method() === 'DELETE') {
@@ -113,12 +124,22 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       if (index >= 0) samples.splice(index, 1);
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
     }
+    const publicSampleMatch = path.match(/^\/api\/samples\/([^/]+)$/);
+    if (publicSampleMatch && route.request().method() === 'GET') {
+      const sample = samples.find(row => row.id === publicSampleMatch[1]);
+      return route.fulfill({ status: sample ? 200 : 404, contentType: 'application/json', body: JSON.stringify(sample ?? { error: 'Sample not found' }) });
+    }
     const tastingMatch = path.match(/^\/api\/samples\/([^/]+)\/tastings$/);
     if (tastingMatch && route.request().method() === 'POST') {
       const input = route.request().postDataJSON() as Record<string, any>;
       const tasting = { id: input.id ?? crypto.randomUUID(), sample_id: tastingMatch[1], ...input, created_at: new Date().toISOString() };
       const sample = samples.find(row => row.id === tastingMatch[1]);
-      if (sample) sample.tastings = [...(sample.tastings ?? []), tasting];
+      if (sample) {
+        if (!(sample.tastings ?? []).some((row: { id: string }) => row.id === tasting.id)) sample.tastings = [...(sample.tastings ?? []), tasting];
+        sample.status = 'tasted';
+        const entry = compassEntries.find(entry => entry.id === sample.compass_entry_id);
+        if (entry) Object.assign(entry, { sample_state: 'tasted', sample_set_id: sample.set_id });
+      }
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(tasting) });
     }
     const responses: Record<string, unknown> = {

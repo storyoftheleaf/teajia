@@ -1,3 +1,4 @@
+import { prepareCompassSampleWrite } from '../curateSampleBridge';
 /**
  * Curate for agents: the same sourcing work the app does, reachable from
  * Claude, ChatGPT, Hermes or GrokBot through the shop's MCP connection.
@@ -495,6 +496,10 @@ type TeaWrite = {
   todo: string | null;
   vendor: VendorPlan | null;
   sample: boolean;
+  sampleState?: 'requested' | 'received' | 'tasted';
+  sampleGrams?: number;
+  photos?: string[];
+  photosMode?: 'append' | 'replace';
   agent: string;
 };
 
@@ -520,6 +525,19 @@ function readTeaWrite(args: any, label: string, vendor: VendorPlan | null): { wr
   const tasting = readTasting(args);
   const clear = Array.isArray(args?.clear) ? args.clear.map((c: unknown) => String(c)) : [];
   for (const c of clear) if (!CLEARABLE.has(c)) throw new Error(`clear: ${c} cannot be cleared here. Clearable: ${[...CLEARABLE].join(', ')}`);
+  if (args?.sample_state !== undefined && !['requested', 'received', 'tasted'].includes(args.sample_state)) throw new Error('sample_state must be requested, received or tasted');
+  if (args?.sample_grams !== undefined && (typeof args.sample_grams !== 'number' || !Number.isFinite(args.sample_grams) || args.sample_grams < 0)) throw new Error('sample_grams must be a non-negative finite number');
+  let photos: string[] | undefined;
+  if (args?.photos !== undefined) {
+    if (!Array.isArray(args.photos) || args.photos.length > 50) throw new Error('photos must be a list of at most 50 hosted HTTPS URLs');
+    photos = args.photos.map((photo: unknown) => {
+      if (typeof photo !== 'string') throw new Error('photos must be hosted HTTPS URLs');
+      let url: URL; try { url = new URL(photo); } catch { throw new Error('photos must be hosted HTTPS URLs'); }
+      if (url.protocol !== 'https:' || url.username || url.password || !url.hostname.includes('.')) throw new Error('photos must be hosted HTTPS URLs');
+      return url.href;
+    });
+  }
+  if (args?.photos_mode !== undefined && !['append', 'replace'].includes(args.photos_mode)) throw new Error('photos_mode must be append or replace');
   const write: TeaWrite = {
     values: fields.values,
     clear,
@@ -530,7 +548,11 @@ function readTeaWrite(args: any, label: string, vendor: VendorPlan | null): { wr
     vendorNote: str(args?.vendor_note, 4000),
     todo: str(args?.todo, 500),
     vendor,
-    sample: args?.sample === true,
+    sample: args?.sample === true || args?.sample_state !== undefined || args?.sample_grams !== undefined,
+    sampleState: args?.sample_state,
+    sampleGrams: args?.sample_grams,
+    photos,
+    photosMode: args?.photos_mode ?? 'append',
     agent: agentName(args),
   };
   const lines: string[] = [];
@@ -541,7 +563,8 @@ function readTeaWrite(args: any, label: string, vendor: VendorPlan | null): { wr
   if (write.said) lines.push(`What Adrian said, kept whole · ${write.said.length} characters`);
   if (write.vendorNote) lines.push(`On the vendor's card · ${write.vendorNote}`);
   if (write.todo) lines.push(`To do · ${write.todo}`);
-  if (write.sample) lines.push('Marked as a sample to request');
+  if (write.sample) lines.push(`Sample shelf · ${write.sampleState ?? 'keep existing state, requested for a new sample'}; ${write.sampleGrams === undefined ? 'existing grams kept; new sample uses 10 g request default (not measured received weight)' : `${write.sampleGrams} g`}`);
+  if (photos !== undefined) lines.push(`Photos · ${write.photosMode} ${photos.length} hosted photo(s)`);
   for (const c of clear) lines.push(`Cleared · ${c}`);
   return { write, lines };
 }
@@ -555,7 +578,14 @@ async function commitTeaWrite(env: ToolEnv, auth: ToolAuth, entryId: string, w: 
     else if (c === 'vendor') { values.vendor_id = null; values.vendor_name = null; }
     else values[c] = null;
   }
-  if (w.sample) values.sample_state = 'requested';
+  const current = isNew ? null : await entryById(env, auth, entryId);
+  if (!isNew && !current) throw new Error('That tea is no longer in Curate.');
+  if (w.sample) values.sample_state = w.sampleState ?? current?.sample_state ?? 'requested';
+  if (w.photos !== undefined) {
+    const existing = parseJson<string[]>(current?.photos, []);
+    values.photos = JSON.stringify(w.photosMode === 'replace' ? w.photos : [...new Set([...existing, ...w.photos])]);
+  }
+  let postWrite: Record<string, any> = { ...current, ...values, id: entryId, account_id: auth.accountId, user_id: auth.userId };
 
   const statements: D1PreparedStatement[] = [];
   if (isNew) {
@@ -572,19 +602,20 @@ async function commitTeaWrite(env: ToolEnv, auth: ToolAuth, entryId: string, w: 
       if (w.score != null) merged.quality = w.score;
       row.tasting = JSON.stringify(merged);
     }
+    postWrite = { ...postWrite, ...row };
     const cols = Object.keys(row);
     statements.push(env.DB.prepare(
       `INSERT INTO tea_compass_entries (id, user_id, account_id, ${cols.join(', ')}, created_at, updated_at)
        VALUES (?, ?, ?, ${cols.map(() => '?').join(', ')}, datetime('now'), datetime('now'))`
     ).bind(entryId, auth.userId, auth.accountId, ...cols.map(c => row[c])));
   } else {
-    const current = await entryById(env, auth, entryId);
     if (!current) throw new Error('That tea is no longer in Curate.');
     if (w.tasting || w.score != null) {
       const merged = w.tasting ? mergeProductTasting(current.tasting, w.tasting).next : readStoredTasting(current.tasting);
       if (w.score != null) merged.quality = w.score;
       values.tasting = JSON.stringify(merged);
     }
+    postWrite = { ...postWrite, ...values };
     const cols = Object.keys(values);
     if (cols.length) {
       statements.push(env.DB.prepare(
@@ -592,6 +623,10 @@ async function commitTeaWrite(env: ToolEnv, auth: ToolAuth, entryId: string, w: 
          WHERE id = ? AND account_id = ? AND user_id = ?`
       ).bind(...cols.map(c => values[c]), entryId, auth.accountId, auth.userId));
     }
+  }
+  if (postWrite.sample_state) {
+    const bridge = await prepareCompassSampleWrite(env.DB, auth, postWrite, { entryId, state: w.tasting || w.score != null ? 'tasted' : values.sample_state as any, grams: w.sampleGrams });
+    statements.push(...bridge.statements);
   }
   const author = `Adrian (via ${w.agent})`;
   if (w.said) {
@@ -1158,6 +1193,7 @@ async function commitPick(env: ToolEnv, auth: ToolAuth, t: PickTicket) {
         WHERE id = ? AND account_id = ? AND state = 'waiting'`
     ).bind(entryId, sid, auth.accountId).run();
     if (!(claimed.meta?.changes ?? 0)) { skipped.push(sid); continue; }
+    const sampleStatements = t.as === 'sample' ? (await prepareCompassSampleWrite(env.DB, auth, { ...row, id: entryId, account_id: auth.accountId, user_id: auth.userId }, { entryId, state: 'requested' })).statements : [];
     await env.DB.batch([
       env.DB.prepare(
         `INSERT INTO tea_compass_entries (id, user_id, account_id, ${cols.join(', ')}, created_at, updated_at)
@@ -1167,6 +1203,7 @@ async function commitPick(env: ToolEnv, auth: ToolAuth, t: PickTicket) {
         `INSERT INTO notes (id, account_id, compass_entry_id, text, source_type, author_id, author_name, visibility, created_at)
          VALUES (?, ?, ?, ?, 'manual', ?, ?, 'private', datetime('now'))`
       ).bind(crypto.randomUUID(), auth.accountId, entryId, note ? `${source}. ${note}` : `${source}.`, auth.userId, r.from_agent ?? t.agent),
+      ...sampleStatements,
     ]);
     created.push({ suggestion_id: sid, tea_id: entryId, name: r.name });
   }
@@ -1265,7 +1302,11 @@ const FILING_PROPS = {
   said: { type: 'string', description: 'What Adrian said, verbatim and whole (the transcript). Kept as a voice note on the tea, whatever else is filed.' },
   vendor_note: { type: 'string', description: 'Something about the vendor rather than the tea ("will have the 2018 in spring"). Appended to the vendor\'s card with today\'s date.' },
   todo: { type: 'string', description: 'A reminder ("ask Wang about the 2018"). Becomes an open to-do on this tea.' },
-  sample: { type: 'boolean', description: 'true to mark this tea as a sample to request.' },
+  sample: { type: 'boolean', description: 'true puts the tea on the sample shelf; preserves existing received/tasted state.' },
+  sample_state: { type: 'string', enum: ['requested', 'received', 'tasted'], description: 'Sample lifecycle, shared with the shelf.' },
+  sample_grams: { type: 'number', minimum: 0, description: 'Explicit sample grams, zero included. Omitted keeps existing grams; new requests use the established 10 g default, not measured weight.' },
+  photos: { type: 'array', items: { type: 'string' }, description: 'Hosted HTTPS photo URLs.' },
+  photos_mode: { type: 'string', enum: ['append', 'replace'], description: 'append (default) keeps existing photos; replace replaces the list, including clearing with [].' },
   vendor_id: { type: 'string', description: 'The vendor id from curate_find.' },
   vendor_name: { type: 'string', description: 'The vendor by name. Matches an existing vendor, or adds a new one with just this name.' },
   agent: AGENT_PROP,

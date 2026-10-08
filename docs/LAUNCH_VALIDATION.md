@@ -24,6 +24,11 @@ These checks are required before claiming a real-world launch. Fixtures, local m
 - [ ] **Approve Barry's real material.** Adrian supplies or approves Barry's contributor profile, article attribution, pull quotes, and personal voice. Exercise the real contributor → article → public profile path without inventing or silently rewriting Barry's words.
 - [ ] **Perform the manual editorial-boundary and smoke walkthrough.** On the deployed build, walk commerce, authentication, account switching, Read, Curate, events, Journal/Favorites/Cellar, contributor publishing, public bylines, and contact fallback. Confirm drafts do not leak, legacy author fallback remains readable, account boundaries hold in visible behavior, mobile bottom navigation does not cover actions, and the inquiry model has not become automated checkout.
 
+## Curate inventory data review
+
+- [ ] **Verify the live Curate owner and backfill preview.** Confirm the MCP user/account matches Adrian's app; run the [read-only review](CURATE_INVENTORY_REVIEW.md) and approve missing shelf samples, including the three handoff XWT received assertions, before confirming writes. Review empty unnamed sets and repeated portions separately; do not delete them automatically.
+- [ ] **Decide freight allocation.** Choose weight or purchase-value allocation, how air/sea costs apply, and whether a proposed per-tea rate replaces the shop freight setting. Recorded shipment costs do not change shelf pricing until this decision is implemented and reviewed.
+
 ## B. Editorial decisions and work
 
 These are real launch-quality inputs, not engineering substitutions.

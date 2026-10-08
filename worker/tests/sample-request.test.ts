@@ -92,6 +92,8 @@ async function requestSample(db: SampleRequestDb): Promise<Response> {
 }
 
 class AdminSampleDb {
+  async batch(statements: Array<{ run: () => Promise<unknown> }>) { return Promise.all(statements.map(statement => statement.run())); }
+
   sampleSets = new Map<string, Record<string, unknown>>([
     ['set-a', { id: 'set-a', account_id: ACCOUNT_ID, name: 'Existing', purpose: 'sourcing', shared_with: '[]', panel_account_ids: '[]', created_at: '2026-01-01', updated_at: '2026-01-01' }],
     ['set-other', { id: 'set-other', account_id: 'another-account', name: 'Other', purpose: 'sourcing', shared_with: '[]', panel_account_ids: '[]', created_at: '2026-01-01', updated_at: '2026-01-01' }],
@@ -119,7 +121,7 @@ class AdminSampleDb {
           const row = this.samples.get(String(values[0]));
           return row ? { id: row.id, account_id: row.account_id } : null;
         }
-        if (normalized.includes('select * from tea_samples where id = ? and account_id = ?')) {
+        if ((normalized.includes('select * from tea_samples where id = ? and account_id = ?') || normalized.includes('select compass_entry_id from tea_samples where id = ? and account_id = ?'))) {
           const row = this.samples.get(String(values[0]));
           return row?.account_id === values[1] ? row : null;
         }
