@@ -3161,6 +3161,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             product={sourcePanelProduct}
             products={localProducts}
             onClose={() => setSourcePanelProduct(null)}
+            onOpenTea={(p) => { setSourcePanelProduct(null); setPanelProduct(p); }}
+            onSelectAll={(ids) => setSelectedIds(new Set(ids))}
+            onOpenIncoming={openIncoming}
+            incomingByProductId={effectiveIncomingByProductId}
           />
         )}
       </AnimatePresence>

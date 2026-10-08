@@ -869,6 +869,7 @@ CREATE TABLE IF NOT EXISTS inventory_receipts (
     created_by_user_id TEXT NOT NULL REFERENCES users(id),
     idempotency_key TEXT NOT NULL,
     request_fingerprint TEXT NOT NULL,
+    transport_mode TEXT CHECK (transport_mode IS NULL OR transport_mode IN ('air', 'sea', 'land', 'courier')),
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE(account_id, idempotency_key)

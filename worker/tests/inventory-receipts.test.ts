@@ -142,6 +142,24 @@ describe('inventory receipt endpoints', () => {
     expect((await receiptRequest(db, '/api/inventory/receipts/receipt-a/state', { method: 'PUT', body: JSON.stringify({ state: 'planned' }) })).status).toBe(409);
   });
 
+  it('records how a delivery travels, clears it with null, and refuses other words, viewers and other accounts', async () => {
+    const db = ReceiptDb.seededWithReceipt();
+    const put = (body: unknown, path = '/api/inventory/receipts/receipt-a/transport') => receiptRequest(db, path, { method: 'PUT', body: JSON.stringify(body) });
+    const set = await put({ transport_mode: 'Air' });
+    expect(set.status).toBe(200);
+    expect(db.receipts.get('receipt-a')?.transport_mode).toBe('air');
+    expect((await put({ transport_mode: 'boat' })).status).toBe(400);
+    expect((await put({})).status).toBe(400);
+    expect(db.receipts.get('receipt-a')?.transport_mode).toBe('air');
+    expect((await put({ transport_mode: null })).status).toBe(200);
+    expect(db.receipts.get('receipt-a')?.transport_mode).toBeNull();
+    expect((await put({ transport_mode: 'sea' }, '/api/inventory/receipts/receipt-missing/transport')).status).toBe(404);
+    expect((await put({ transport_mode: 'sea' }, '/api/inventory/receipts/legacy:product-a/transport')).status).toBe(409);
+    db.role = 'viewer';
+    expect((await put({ transport_mode: 'sea' })).status).toBe(403);
+    expect(db.receipts.get('receipt-a')?.transport_mode).toBeNull();
+  });
+
   it('treats response-loss replays of state changes and cancellation as success', async () => {
     const db = ReceiptDb.seededWithReceipt();
     const stateBody = JSON.stringify({ state: 'ordered' });

@@ -147,6 +147,41 @@ test.describe('Stock on the phone', () => {
     await expect(page.getByText('Stock from this source')).toHaveCount(0);
   });
 
+  test('the supplier page sums the supplier, opens its teas, and ticks them all', async ({ page }) => {
+    await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('button', { name: 'Supplier details for Mountain Source' }).click();
+    const glance = page.getByRole('region', { name: 'This supplier at a glance' });
+    await expect(glance).toContainText('32');
+    await expect(glance).toContainText('Not checked');
+    await shot(page, 'supplier');
+    await glance.getByRole('button', { name: 'Select all 32' }).click();
+    await expect(page.getByRole('toolbar', { name: 'Selection actions' })).toContainText('32 teas selected');
+    await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Clear' }).click();
+
+    await page.getByRole('button', { name: 'Supplier details for Mountain Source' }).click();
+    await page.getByRole('button', { name: /^Open Oolong Test Tea 02/ }).click();
+    await expect(page.getByTestId('phone-tea-header')).toBeVisible();
+  });
+
+  test('Incoming groups deliveries by supplier with how they travel and when they are due', async ({ page }) => {
+    const soon = new Date(Date.now() + 6 * 86_400_000).toISOString().slice(0, 10);
+    const past = new Date(Date.now() - 3 * 86_400_000).toISOString().slice(0, 10);
+    const transportCalls: unknown[] = [];
+    await page.route('**/api/inventory/receipts**', route => route.fulfill({ json: [
+      { id: 'r1', state: 'in_transit', vendor_name: 'Chen Family', source_kind: 'invoice', source_ref: 'WeChat', eta: soon, transport_mode: 'air', lines: [{ id: 'l1', product_id: 'test-product-1', product_name: 'Green Test Tea 01', expected_quantity: 500, received_quantity: 0, cancelled_quantity: 0, unit: 'g', intended_purpose: 'working' }] },
+      { id: 'r2', state: 'ordered', vendor_name: 'Old Tree Co', source_kind: 'invoice', eta: past, transport_mode: null, lines: [{ id: 'l2', product_id: 'test-product-3', product_name: 'Red Test Tea 03', expected_quantity: 300, received_quantity: 0, cancelled_quantity: 0, unit: 'g', intended_purpose: 'working' }] },
+    ] }));
+    await page.route('**/api/inventory/receipts/*/transport', route => { transportCalls.push(route.request().postDataJSON()); return route.fulfill({ json: { ok: true } }); });
+    await page.goto('/admin/stock?incoming=1', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('region', { name: 'Coming from Chen Family' })).toContainText('due in 6 days');
+    await expect(page.getByRole('region', { name: 'Coming from Old Tree Co' })).toContainText('3 days late');
+    await shot(page, 'incoming');
+    await page.getByRole('combobox', { name: 'How the delivery from Old Tree Co travels' }).selectOption('sea');
+    await expect.poll(() => transportCalls).toEqual([{ transport_mode: 'sea' }]);
+    await page.getByRole('button', { name: 'Air', exact: true }).click();
+    await expect(page.getByRole('region', { name: 'Coming from Old Tree Co' })).toHaveCount(0);
+  });
+
   test('search narrows the list by supplier and opens the groups that match', async ({ page }) => {
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     await page.getByRole('button', { name: 'Search inventory' }).first().click();
