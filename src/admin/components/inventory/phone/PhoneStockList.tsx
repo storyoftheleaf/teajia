@@ -171,7 +171,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
                   </span>
                   <span className="shrink-0 text-right text-ui-12 leading-snug">
                     {group.low > 0 && <span className="block text-tea-error">{group.low} low</span>}
-                    {group.unchecked > 0 && <span className="block text-tea-text-sec">{group.unchecked} never counted</span>}
+                    {group.unchecked > 0 && <span className="block text-tea-text-sec">{group.unchecked} to recount</span>}
                   </span>
                 </button>
                 {groupBy === 'vendor' && group.products[0]?.vendor && (
@@ -195,12 +195,12 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
               return (
                 <div key={p.id} className={`relative flex items-center ${isSel || isFocused ? 'bg-tea-surface' : ''} after:absolute after:left-0 after:right-0 after:bottom-0 after:h-px after:bg-tea-border`}>
                   {/* One dot, three jobs: its colour is the kind, filled means counted,
-                      hollow means never counted, and tapping it ticks the tea. */}
+                      hollow means it needs a recount, and tapping it ticks the tea. */}
                   <button
                     type="button"
                     onClick={() => onToggleSelect(p.id)}
                     aria-pressed={isSel}
-                    aria-label={`${isSel ? 'Untick' : 'Tick'} ${p.productName}${isUnchecked(p) ? ', never counted' : ''}`}
+                    aria-label={`${isSel ? 'Untick' : 'Tick'} ${p.productName}${isUnchecked(p) ? ', needs a recount' : ''}`}
                     className="relative w-3.5 ml-3 shrink-0 flex items-center justify-center self-stretch before:absolute before:-inset-x-3 before:inset-y-0"
                   >
                     {isSel

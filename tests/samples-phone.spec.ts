@@ -63,7 +63,7 @@ test.describe('Samples on the phone', () => {
     await sheet.getByRole('button', { name: /Log a tasting/ }).click();
     const box = sheet.getByRole('textbox', { name: 'Grams tasted' });
     await expect(box).toHaveValue('5');
-    await expect(sheet).toContainText('leaves 20 g');
+    await expect(sheet).toContainText('leaves 20');
     await shot(page, 'tasting');
     await sheet.getByRole('button', { name: 'Save' }).click();
     await expect.poll(() => calls.length).toBe(2);
@@ -81,7 +81,7 @@ test.describe('Samples on the phone', () => {
     await page.goto('/admin/stock?stock_view=samples', { waitUntil: 'domcontentloaded' });
     await page.getByTestId('samples-phone').getByRole('button', { name: /^Wild Moonlight/ }).click();
     const sheet = page.getByRole('region', { name: /Wild Moonlight, at a glance/ });
-    await expect(sheet).toContainText('not weighed');
+    await expect(sheet).toContainText('weigh it');
     await expect(sheet.getByRole('button', { name: /Log a tasting/ })).toBeDisabled();
     await sheet.getByRole('button', { name: /Weigh/ }).click();
     await sheet.getByRole('textbox', { name: 'Grams left in the sample' }).fill('30');

@@ -57,7 +57,7 @@ test.describe('Stock on the phone', () => {
     await chen.getByRole('button', { name: /^Green Test Tea 01/ }).click();
     const panel = page.getByRole('region', { name: /Green Test Tea 01, at a glance/ });
     await expect(panel).toBeVisible();
-    await expect(panel).toContainText(/counted/i);
+    await expect(panel).toContainText(/Shelf/);
     await shot(page, 'panel');
     await panel.getByRole('button', { name: /Full page/ }).click();
     await expect(page.getByText('Quick entry')).toBeVisible();
@@ -162,10 +162,10 @@ test.describe('Stock on the phone', () => {
     await expect(sheet.getByRole('radio', { name: 'Sampled' })).toHaveAttribute('aria-checked', 'true');
     const box = sheet.getByRole('textbox', { name: 'How much went out' });
     await box.fill('100');
-    await expect(sheet).toContainText('only 82 g there');
+    await expect(sheet).toContainText('only 82 there');
     await expect(sheet.getByRole('button', { name: 'Save' })).toBeDisabled();
     await box.fill('7');
-    await expect(sheet).toContainText('leaves 75 g');
+    await expect(sheet).toContainText('leaves 75');
     await sheet.getByRole('button', { name: 'Save' }).click();
     await expect.poll(() => sent.length).toBe(1);
     expect(sent[0]).toMatchObject({ movement_type: 'sample_use', quantity: 7, expected_balance: 82 });
@@ -213,7 +213,7 @@ test.describe('Stock on the phone', () => {
     await page.getByRole('button', { name: 'Supplier details for Mountain Source' }).click();
     const glance = page.getByRole('region', { name: 'This supplier at a glance' });
     await expect(glance).toContainText('32');
-    await expect(glance).toContainText('Not checked');
+    await expect(glance).toContainText('To recount');
     await shot(page, 'supplier');
     await glance.getByRole('button', { name: 'Select all 32' }).click();
     await expect(page.getByRole('toolbar', { name: 'Selection actions' })).toContainText('32 teas selected');

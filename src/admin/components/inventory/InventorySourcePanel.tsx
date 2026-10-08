@@ -128,7 +128,7 @@ export function InventorySourcePanel({ product, products, onClose, onOpenTea, on
               ['On the shelf', [totals.grams > 0 || totals.pieces === 0 ? `${totals.grams.toLocaleString('en-US')} g` : null, totals.pieces > 0 ? `${totals.pieces} pc` : null].filter(Boolean).join(' · ')],
               ['At retail', `$${Math.round(totals.value).toLocaleString('en-US')}`],
               ['Low', String(totals.low)],
-              ['Not checked', String(totals.unchecked)],
+              ['To recount', String(totals.unchecked)],
               ['Coming', totals.coming > 0 ? `+${totals.coming.toLocaleString('en-US')}` : 'nothing'],
             ] as const).map(([label, value]) => (
               <div key={label} className="border-t border-tea-border py-2 min-w-0">

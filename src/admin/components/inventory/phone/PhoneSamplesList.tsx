@@ -156,43 +156,46 @@ const PortionLine: React.FC<{ portion: SamplePortion; label: string; onChanged: 
     }
   };
 
+  const term = 'text-ui-10 uppercase tracking-[0.1em] text-tea-text-dim whitespace-nowrap';
   return (
-    <div className="py-2.5 border-b border-tea-border">
-      <div className="flex items-center gap-2">
-        <span className="min-w-0 truncate text-ui-10 uppercase tracking-[0.1em] text-tea-text-dim">{label}</span>
-        <button type="button" disabled={!canTaste} onClick={() => open('taste')} aria-pressed={way === 'taste'} aria-label={`Log a tasting from ${label}`}
-          className={`tap-target ml-auto flex items-center justify-center w-9 h-9 rounded-full border text-ui-20 leading-none disabled:opacity-40 ${way === 'taste' ? 'border-tea-gold text-tea-gold' : 'border-tea-border text-tea-text-sec'}`}>−</button>
-        <button type="button" onClick={() => open('measure')} aria-pressed={way === 'measure'} aria-label={`Weigh ${label}`}
-          className={`min-w-[72px] text-center font-mono text-ui-20 tabular-nums border-b border-dashed ${way === 'measure' ? 'border-tea-gold' : 'border-tea-border'} text-tea-text`}>
-          {grams == null ? '—' : whole(grams)}<span className="ml-0.5 font-sans text-ui-11 text-tea-text-dim">g</span>
-        </button>
+    <div className="py-1.5 border-b border-tea-border">
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <div className={term}>
+            {label}{grams == null && <span className="text-tea-error normal-case tracking-normal"> · weigh it</span>}
+          </div>
+          <div className="flex items-baseline gap-2.5 mt-0.5">
+            <button type="button" disabled={!canTaste} onClick={() => open('taste')} aria-label={`Log a tasting from ${label}`}
+              className={`relative text-ui-16 leading-none before:absolute before:-inset-3 disabled:opacity-40 ${way === 'taste' ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>−</button>
+            <button type="button" onClick={() => open('measure')} aria-label={`Weigh ${label}`}
+              className={`relative border-b border-dashed before:absolute before:-inset-y-2 before:-inset-x-1 font-mono text-ui-15 tabular-nums text-tea-text ${way === 'measure' ? 'border-tea-gold' : 'border-tea-border'}`}>
+              {grams == null ? '—' : whole(grams)}<span className="ml-0.5 font-sans text-ui-10 text-tea-text-dim">g</span>
+            </button>
+          </div>
+        </div>
+        <span className="pb-0.5 text-ui-11 text-tea-text-sec">{portion.status}</span>
       </div>
-      {grams == null && !way && <p className="mt-1 text-right text-ui-11 text-tea-error">not weighed, tap the number to weigh it</p>}
       {way && (
-        <form onSubmit={e => { e.preventDefault(); void save(); }} className="mt-2 grid gap-2">
-          <div className="flex items-baseline gap-2 text-ui-13 text-tea-text-sec">
-            <span className="shrink-0">{way === 'taste' ? 'Tasted' : 'Weighs now'}</span>
-            <input
-              ref={inputRef}
-              aria-label={way === 'taste' ? 'Grams tasted' : 'Grams left in the sample'}
-              inputMode="decimal"
-              value={amount}
-              onChange={e => setAmount(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Escape') setWay(null); }}
-              className="w-20 bg-transparent border-0 border-b border-tea-border focus:border-tea-gold outline-none p-0 text-right font-mono text-ui-17 tabular-nums text-tea-text"
-            />
-            <span className="shrink-0">g</span>
-            <span className={`ml-auto min-w-0 truncate text-ui-12 ${tooMuch ? 'text-tea-error' : 'text-tea-text-sec'}`}>
-              {tooMuch ? `only ${whole(grams ?? 0)} g there` : left != null ? `leaves ${whole(left)} g` : ''}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <button type="button" onClick={() => setWay(null)} className="text-ui-13 text-tea-text-sec hover:text-tea-text">Cancel</button>
-            <button type="submit" disabled={!valid || tooMuch || saving} className="cta-solid rounded-full px-5 py-1.5 text-ui-13 disabled:opacity-50">{saving ? 'Saving' : 'Save'}</button>
-          </div>
+        <form onSubmit={e => { e.preventDefault(); void save(); }} className="flex items-center h-10 gap-2 text-ui-13 text-tea-text-sec">
+          <span className="shrink-0">{way === 'taste' ? 'Tasted' : 'Weighs'}</span>
+          <input
+            ref={inputRef}
+            aria-label={way === 'taste' ? 'Grams tasted' : 'Grams left in the sample'}
+            inputMode="decimal"
+            value={amount}
+            onChange={e => setAmount(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Escape') setWay(null); }}
+            className="w-14 bg-transparent border-0 border-b border-tea-gold outline-none p-0 text-right font-mono text-ui-15 tabular-nums text-tea-text"
+          />
+          <span className="shrink-0">g</span>
+          <span className={`min-w-0 truncate text-ui-11 ${tooMuch ? 'text-tea-error' : 'text-tea-text-dim'}`}>
+            {tooMuch ? `only ${whole(grams ?? 0)} there` : left != null ? `leaves ${whole(left)}` : ''}
+          </span>
+          <button type="button" onClick={() => setWay(null)} className="ml-auto shrink-0 text-ui-13 text-tea-text-sec hover:text-tea-text">Cancel</button>
+          <button type="submit" disabled={!valid || tooMuch || saving} className="shrink-0 text-ui-13 text-tea-gold disabled:text-tea-text-dim">{saving ? 'Saving' : 'Save'}</button>
         </form>
       )}
-      {error && <p role="alert" className="mt-1.5 text-ui-12 text-tea-error">{error}</p>}
+      {error && <p role="alert" className="pb-1 text-ui-12 text-tea-error">{error}</p>}
     </div>
   );
 };
@@ -208,24 +211,24 @@ const SampleSheet: React.FC<{
   const canOrder = !!e.vendor_id && e.price_amount != null && !!e.price_currency;
   const portions = holding.samples.length ? holding.samples : [];
   return (
-    <section aria-label={`${teaName(holding)}, at a glance`} className="sheet-behind-nav fixed left-0 right-0 z-drawer rounded-t-xl bg-tea-surface px-5 pt-2">
-      <div aria-hidden="true" className="mx-auto mb-3 h-[3px] w-8 rounded-full bg-tea-elevated" />
+    <section aria-label={`${teaName(holding)}, at a glance`} className="sheet-behind-nav fixed left-0 right-0 z-drawer rounded-t-xl bg-tea-surface px-4 pt-1.5">
+      <div aria-hidden="true" className="mx-auto mb-1.5 h-[3px] w-8 rounded-full bg-tea-elevated" />
       <div className="flex items-center gap-2">
         <button type="button" onClick={onClose} aria-label="Close" className="-ml-2 -my-2 flex h-11 w-8 shrink-0 items-center justify-center text-tea-text-sec hover:text-tea-text"><XIcon size={16} aria-hidden="true" /></button>
-        <span className="min-w-0 flex-1 truncate font-display text-ui-20 font-semibold leading-tight text-tea-text">{teaName(holding)}</span>
+        <span className="min-w-0 flex-1 truncate font-display text-[23px] font-semibold leading-tight text-tea-text">{teaName(holding)}</span>
         <button type="button" onClick={onEditTea} className="shrink-0 text-ui-12 text-tea-gold">Full page ›</button>
       </div>
-      <div className="ml-6 mt-0.5 flex items-center gap-1.5 text-ui-12 text-tea-text-sec min-w-0">
+      <div className="ml-6 flex items-center gap-1.5 text-ui-12 text-tea-text-sec min-w-0">
         <span className="shrink-0" style={{ color: getThemeTextColor(String(e.type || '')) }}>{e.type || 'Tea'}</span>
         {e.year ? <><span aria-hidden="true">·</span><span className="font-mono tabular-nums">{e.year}</span></> : null}
         {e.vendor_name ? <><span aria-hidden="true">·</span><span className="truncate">{e.vendor_name}</span></> : null}
       </div>
-      <div className="mt-3 border-t border-tea-border">
+      <div className="mt-2 border-t border-tea-border">
         {portions.length === 0
           ? <p className="py-3 text-ui-13 text-tea-text-sec">No sample portion recorded. Add one on the full page.</p>
           : portions.map((p, i) => <PortionLine key={p.id} portion={p} label={p.name || (portions.length > 1 ? `Sample ${i + 1}` : 'Sample')} onChanged={onChanged} />)}
       </div>
-      <div className="flex items-center justify-between gap-3 mt-3 mb-1">
+      <div className="flex items-center justify-between gap-3 h-9">
         <span className="text-ui-12 text-tea-text-sec">{holding.stock_grams > 0 ? `${whole(holding.stock_grams)} g in full stock` : 'none in full stock'}</span>
         <button type="button" disabled={!canOrder} onClick={onOrder} className="text-ui-13 text-tea-gold disabled:text-tea-text-dim">{canOrder ? 'Order this tea' : 'Add supplier and price to order'}</button>
       </div>
