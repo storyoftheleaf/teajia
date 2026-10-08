@@ -71,11 +71,16 @@ class MovementStatement {
         source[column] = sourceAfter; destination[column] = destinationAfter; source.stock_known_at = knownAt; destination.stock_known_at = knownAt; source.stock_movement_guard = movementGuard; destination.stock_movement_guard = movementGuard;
         return { meta: { changes: 2 } };
       }
-      const [newBalance, knownAt, movementGuard, id, account, expected] = this.values;
+      const verifies = sql.includes('stock_verified_at = ?');
+      const [newBalance, knownAt, ...rest] = this.values;
+      const verifiedAt = verifies ? rest.shift() : undefined;
+      const [movementGuard, id, account, expected] = rest;
       const row = this.db.products.get(id); if (!row || row.account_id !== account) return { meta: { changes: 0 } };
       const column = sql.includes('quantity_units') ? 'quantity_units' : 'stock_grams';
       if (Number(row[column] || 0) !== Number(expected)) return { meta: { changes: 0 } };
-      row[column] = newBalance; row.stock_known_at = knownAt; row.stock_movement_guard = movementGuard; return { meta: { changes: 1 } };
+      row[column] = newBalance; row.stock_known_at = knownAt; row.stock_movement_guard = movementGuard;
+      if (verifies) row.stock_verified_at = verifiedAt;
+      return { meta: { changes: 1 } };
     }
     if (sql.startsWith('update product_listings')) {
       const [newBalance, , productId, account, guard] = this.values;
@@ -162,6 +167,14 @@ describe('POST product stock movements', () => {
     const db = new MovementDb(); db.products.get('tea')!.stock_grams = 0;
     const response = await movementRequest(db, 'tea', body('recount', { quantity: undefined, balance: 0, expected_balance: 0, idempotency_key: 'zero-count' }));
     expect(response.status).toBe(201); expect(db.ledger).toHaveLength(1); expect(db.ledger[0]).toMatchObject({ delta: 0, movement_type: 'recount' }); expect(db.products.get('tea')?.stock_known_at).toBeTruthy();
+  });
+  it('a recount marks the tea counted, and any other movement leaves that alone', async () => {
+    const db = new MovementDb(); db.products.get('tea')!.stock_verified_at = null;
+    expect((await movementRequest(db, 'tea', body('waste', { quantity: 2, idempotency_key: 'waste-before-count' }))).status).toBe(201);
+    expect(db.products.get('tea')?.stock_verified_at).toBeNull();
+    const before = Number(db.products.get('tea')?.stock_grams);
+    expect((await movementRequest(db, 'tea', body('recount', { quantity: undefined, balance: 5, expected_balance: before, idempotency_key: 'first-count' }))).status).toBe(201);
+    expect(db.products.get('tea')?.stock_verified_at).toBeTruthy();
   });
   it('enforces product, destination, and account scope', async () => {
     expect((await movementRequest(new MovementDb(), 'other', body('sale'))).status).toBe(404);

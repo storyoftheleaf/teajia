@@ -2756,8 +2756,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             incomingByProductId={effectiveIncomingByProductId}
             onToggleSelect={(id) => toggleSelectId(id, productIndexMap.get(id) ?? 0, false)}
             onOpenEditor={stableOpenPanel}
-            onChangeStock={stableStockMovement}
-            onRecount={stableStockRecount}
+            onUpdate={handleProductUpdate}
+            onMovementRecorded={handleMovementRecorded}
             onOpenSource={stableOpenSource}
             sortKey={(inventorySortConfig[0]?.key as PhoneSortKey | undefined) ?? null}
             sortDir={inventorySortConfig[0]?.direction ?? 'asc'}

@@ -16220,7 +16220,12 @@ async function applyStockMovement(env: Env, ctx: MovementContext, productId: str
           (SELECT COALESCE(${column}, 0) FROM products WHERE id = ? AND account_id = ?) = ? AND
           (SELECT COALESCE(${column}, 0) FROM products WHERE id = ? AND account_id = ?) = ?`)
       .bind(productId, after, destinationAfter, knownAt, movementGuard, ctx.accountId, productId, destination.id, productId, ctx.accountId, current, destination.id, ctx.accountId, destinationBefore)
-    : env.DB.prepare(`UPDATE products SET ${column} = ?, stock_known_at = ?, stock_movement_guard = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND ${column} = ?`).bind(after, knownAt, movementGuard, productId, ctx.accountId, current);
+    // A recount IS a count: it stamps stock_verified_at too, whichever door it
+    // came through, so "never counted" clears the moment someone counts.
+    : env.DB.prepare(`UPDATE products SET ${column} = ?, stock_known_at = ?,${input.movement_type === 'recount' ? ' stock_verified_at = ?,' : ''} stock_movement_guard = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND ${column} = ?`)
+      .bind(...(input.movement_type === 'recount'
+        ? [after, knownAt, knownAt, movementGuard, productId, ctx.accountId, current]
+        : [after, knownAt, movementGuard, productId, ctx.accountId, current]));
   const statements: D1PreparedStatement[] = [stockUpdate];
   if (input.unit === 'g') statements.push(env.DB.prepare(`UPDATE product_listings SET stock_grams = ?, stock_known_at = ?, updated_at = datetime('now') WHERE legacy_product_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = legacy_product_id AND account_id = product_listings.account_id AND stock_movement_guard = ?)`).bind(after, knownAt, productId, ctx.accountId, movementGuard));
   statements.push(buildStockMovementLedgerInsert(env, {
