@@ -37,17 +37,25 @@ export interface CurateShelfPreview {
  */
 export function curateShelfPreview(input: {
   costAmount: number;
+  /** The weight the price covers. For teaware this is the number of pieces the
+   *  price covers (one), and the figure that comes back is per piece. */
   grams: number;
   currency: string;
   rates: readonly ExchangeRate[] | null | undefined;
   shopFreightPerKgUsd: number;
+  /** Teaware is priced per piece with its freight already inside that price,
+   *  so it carries none. The shop's own pricing reads it the same way. */
+  isTeaware?: boolean;
 }): CurateShelfPreview | null {
-  const { costAmount, grams, currency, rates, shopFreightPerKgUsd } = input;
-  if (!(costAmount >= 0) || !(grams > 0) || !rates) return null;
+  const { costAmount, grams, currency, rates, shopFreightPerKgUsd, isTeaware = false } = input;
+  // `null >= 0` is true in JavaScript: a tea with no price would otherwise be
+  // priced as a free one, at its freight alone. Only a real number is a price.
+  if (typeof costAmount !== 'number' || !(costAmount >= 0) || !(grams > 0) || !rates) return null;
   const rate = isUnrecordedCurrency(currency) ? 1 : rateToUsd(rates, currency);
-  const freightPerKgSource = shopRateInCurrency(shopFreightPerKgUsd, rate);
-  if (freightPerKgSource === null) return null;
-  const priced = calculatePricing(costAmount, freightPerKgSource, grams, currency, [...rates]);
+  const shopFreightPerKgSource = shopRateInCurrency(shopFreightPerKgUsd, rate);
+  if (shopFreightPerKgSource === null) return null;
+  const freightPerKgSource = isTeaware ? 0 : shopFreightPerKgSource;
+  const priced = calculatePricing(costAmount, freightPerKgSource, grams, currency, [...rates], isTeaware);
   if (!priced.rateUsed) return null;
   return {
     costPerGramSource: costAmount / grams,

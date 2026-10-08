@@ -3,7 +3,7 @@ import { hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { StructuredTeaFields } from './StructuredTeaFields';
 import { CardHeading, CardLine, PickLine, SheetRow } from './CardParts';
 import { TasteRows } from './TasteRows';
-import { orderLinePrice } from './curateV2Model';
+import { currencyForNewPrice, orderLinePrice, pieceWeightGrams, shownCurrency } from './curateV2Model';
 import { draftOrderFor, orderLineMoney, sameMoney } from './orderBuy';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -138,6 +138,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const commitEntry = useTeaCompassStore((s) => s.commitEntry);
   const setLastCurrency = useTeaCompassStore((s) => s.setLastCurrency);
+  const tableCurrency = useTeaCompassStore((s) => s.lastCurrency);
   const setLastVendor = useTeaCompassStore((s) => s.setLastVendor);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
@@ -745,6 +746,15 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     update(updates);
   };
 
+  // The money beside the price. A tea with no price whose currency was never
+  // picked shows the open table's money (else Yuan), not a stamped 'NT'; it is
+  // stored only when a price is typed next to it.
+  const shownMoney = shownCurrency(entry, tableCurrency);
+  const handlePriceChange = (priceAmount: number | undefined) => {
+    const currency = priceAmount != null ? currencyForNewPrice(entry, tableCurrency) : undefined;
+    update(currency ? { priceAmount, priceCurrency: currency } : { priceAmount });
+  };
+
   const handleCurrencyChange = (currency: Currency) => {
     update({ priceCurrency: currency });
     setLastCurrency(currency);
@@ -917,9 +927,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       year: entry.year,
       quantityGrams: unitBased ? undefined : buyingQty,
       quantityUnits: unitBased ? buyingQty : undefined,
-      unitWeightGrams: (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '')
-        ? (DEFAULT_GRAMS[entry.form!] ?? 100)
-        : undefined,
+      unitWeightGrams: pieceWeightGrams(entry) ?? undefined,
       ...orderLineMoney(entry, orderCurrency),
       compassEntryId: entry.id,
     });
@@ -1022,7 +1030,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               {total != null && (
                 <div className="curate-v2-line">
                   <span className="curate-v2-label">Comes to</span>
-                  <span className="flex-1 text-right font-mono text-ui-15 tabular-nums text-tea-gold">{CURRENCY_SYMBOLS[entry.priceCurrency || 'NT'] ?? ''}{Math.round(total).toLocaleString()}</span>
+                  <span className="flex-1 text-right font-mono text-ui-15 tabular-nums text-tea-gold">{CURRENCY_SYMBOLS[entry.priceCurrency || 'Yuan'] ?? ''}{Math.round(total).toLocaleString()}</span>
                 </div>
               )}
 
@@ -1438,8 +1446,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           <section data-testid="curate-cluster-buying" data-zone="purchase">
             <PricingRow
               priceAmount={entry.priceAmount}
-              priceCurrency={entry.priceCurrency || 'NT'}
-              onPriceChange={(priceAmount) => update({ priceAmount })}
+              priceCurrency={shownMoney}
+              onPriceChange={handlePriceChange}
               onCurrencyChange={handleCurrencyChange}
               unit={{
                 mode: 'count',
@@ -1599,8 +1607,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         <section data-testid="curate-cluster-buying" data-zone="purchase">
           <PricingRow
             priceAmount={entry.priceAmount}
-            priceCurrency={entry.priceCurrency}
-            onPriceChange={(priceAmount) => update({ priceAmount })}
+            priceCurrency={shownMoney}
+            onPriceChange={handlePriceChange}
             onCurrencyChange={handleCurrencyChange}
             unit={{
               mode: 'grams',
@@ -1616,7 +1624,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             <RetailPricePreview
               costAmount={entry.priceAmount}
               grams={entry.pricePerUnitGrams}
-              currency={entry.priceCurrency}
+              currency={shownMoney}
             />
           )}
         </section>

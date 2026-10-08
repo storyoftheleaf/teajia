@@ -9,9 +9,9 @@
  * never disagree. Nothing here invents a term.
  */
 import type { TastingData } from '../../types';
-import { currencyInText } from '../../lib/currency';
-import type { Currency } from '../../admin/types';
-import type { TeaCompassEntry } from './types';
+import { currencyInText, isUnrecordedCurrency, rateToUsd } from '../../lib/currency';
+import type { Currency, ExchangeRate } from '../../admin/types';
+import { DEFAULT_GRAMS, type TeaCompassEntry } from './types';
 
 // ── Today ────────────────────────────────────────────────────────────────
 
@@ -105,6 +105,72 @@ export const TODAY_ACTION_LABEL: Record<TodayAction, string> = {
 // ── Price, the way the vendor said it ────────────────────────────────────
 
 const PIECE_FORMS = ['Cake', 'Brick', 'Tuo'];
+
+/**
+ * What one piece weighs: the weight written on the tea, else the form's usual
+ * (a cake 357 g). Null for anything that is not a pressed piece. The shelf
+ * price, Compare and an order's freight all read this one answer; Compare and
+ * the order used to take the form's usual weight and ignore a 200 g cake that
+ * had been entered as 200, so the same tea had one weight on its own screen and
+ * another in the comparison and on the order.
+ */
+export function pieceWeightGrams(entry: Pick<TeaCompassEntry, 'form' | 'pricePerUnitGrams'>): number | null {
+  if (!entry.form || !PIECE_FORMS.includes(entry.form)) return null;
+  if (entry.pricePerUnitGrams && entry.pricePerUnitGrams > 0) return entry.pricePerUnitGrams;
+  return DEFAULT_GRAMS[entry.form] ?? null;
+}
+
+/**
+ * What one gram of a tea cost, in dollars, for ranking teas against each other.
+ * Infinity when it cannot be worked out (no price, no weight, teaware, or a
+ * currency the shop has no rate for), so such a tea sorts last. Never a rate of
+ * 1: a yuan price read as dollars would rank as seven times what it cost, and
+ * a plain `price / grams` ranked NT$ and yuan teas by their bare numbers.
+ */
+export function costPerGramUsd(
+  entry: Pick<TeaCompassEntry, 'category' | 'priceAmount' | 'priceCurrency' | 'form' | 'pricePerUnitGrams'>,
+  rates: readonly ExchangeRate[] | null | undefined,
+): number {
+  if (entry.category === 'teaware' || entry.priceAmount == null) return Number.POSITIVE_INFINITY;
+  const grams = pieceWeightGrams(entry) ?? (entry.pricePerUnitGrams && entry.pricePerUnitGrams > 0 ? entry.pricePerUnitGrams : null);
+  if (!grams) return Number.POSITIVE_INFINITY;
+  const rate = isUnrecordedCurrency(entry.priceCurrency) ? 1 : rateToUsd(rates, entry.priceCurrency);
+  if (!rate || !(rate > 0)) return Number.POSITIVE_INFINITY;
+  return entry.priceAmount / grams / rate;
+}
+
+/**
+ * The money to show beside a tea's price, which for a tea with no price yet and
+ * no currency ever picked is not the stored one.
+ *
+ * Every entry carries a `priceCurrency`, but for one that came back from the
+ * shop with no price the stored value is a stamp, not an answer: the sync stamps
+ * 'NT' on a missing currency, and `touchedFields` (how this store tells a choice
+ * from an inherited default) does not travel. Showing that 'NT' meant a yuan
+ * price typed without noticing was stored as Taiwan dollars. So until a price
+ * exists or the currency has been picked, the money shown is the open table's,
+ * else Yuan (Adrian's rule, 2026-09-07: unstated currency means yuan). Once a
+ * price is on the tea, or the currency was picked, the stored value is the
+ * answer. `currencyForNewPrice` is the half that stores it, and only when a
+ * price is typed.
+ */
+export function shownCurrency(
+  entry: Pick<TeaCompassEntry, 'priceAmount' | 'priceCurrency' | 'touchedFields'>,
+  tableCurrency?: Currency | null,
+): Currency {
+  if (entry.touchedFields?.includes('priceCurrency')) return entry.priceCurrency;
+  if (entry.priceAmount != null) return entry.priceCurrency;
+  return tableCurrency || 'Yuan';
+}
+
+/** The currency to write together with a price typed onto a tea that has none: the one shown beside it. */
+export function currencyForNewPrice(
+  entry: Pick<TeaCompassEntry, 'priceAmount' | 'priceCurrency' | 'touchedFields'>,
+  tableCurrency?: Currency | null,
+): Currency | undefined {
+  if (entry.priceAmount != null || entry.touchedFields?.includes('priceCurrency')) return undefined;
+  return shownCurrency(entry, tableCurrency);
+}
 
 /** The unit a price was quoted in: "cake", "jin", "liang", "g", or "100 g". */
 export function quotedUnit(entry: Pick<TeaCompassEntry, 'form' | 'pricePerUnitGrams' | 'category'>): string {

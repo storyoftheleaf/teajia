@@ -14,7 +14,7 @@ import { canonicalCurrency } from '../../lib/currency';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { DEFAULT_GRAMS, type TeaForm } from './types';
-import { orderLinePrice } from './curateV2Model';
+import { orderLinePrice, pieceWeightGrams } from './curateV2Model';
 
 export const NO_VENDOR_YET = 'No vendor yet';
 
@@ -85,7 +85,7 @@ export function addTeaToDraftOrder(entryId: string): string | null {
       year: entry.year,
       quantityGrams: piece ? undefined : grams,
       quantityUnits: piece ? 1 : undefined,
-      unitWeightGrams: piece && entry.form && entry.category !== 'teaware' ? DEFAULT_GRAMS[entry.form as TeaForm] : undefined,
+      unitWeightGrams: piece && entry.form && entry.category !== 'teaware' ? (pieceWeightGrams(entry) ?? DEFAULT_GRAMS[entry.form as TeaForm]) : undefined,
       ...orderLineMoney(entry, orderCurrency),
       compassEntryId: entry.id,
     });

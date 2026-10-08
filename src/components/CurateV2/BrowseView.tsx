@@ -1,4 +1,5 @@
-import { quotedUnit } from './curateV2Model';
+import { costPerGramUsd, quotedUnit } from './curateV2Model';
+import { useRates } from '../../admin/hooks/useAdminData';
 import { CURRENCY_LABELS } from './PricingRow';
 import React, { useMemo, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
@@ -31,11 +32,6 @@ const SORT_LABELS: Record<BrowseSort, string> = {
 
 function scoreOf(e: TeaCompassEntry): number {
   return e.tasting?.quality ?? e.tasting?.rating ?? -1;
-}
-
-function pricePerGram(e: TeaCompassEntry): number {
-  if (e.category === 'teaware' || !e.priceAmount || !e.pricePerUnitGrams) return Number.POSITIVE_INFINITY;
-  return e.priceAmount / e.pricePerUnitGrams;
 }
 
 interface BrowseViewProps {
@@ -214,6 +210,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     return [journey?.name, journey?.season, journey?.year, visit?.place, visit?.vendor_name, visit?.notes].filter(Boolean).join(' ');
   }, [journeyMap, visitMap]);
 
+  const { data: rates } = useRates();
   // Reusable sort applied to flat lists (and to "All" when not sorting by date).
   const sortEntries = React.useCallback((list: TeaCompassEntry[]): TeaCompassEntry[] => {
     const arr = [...list];
@@ -223,13 +220,18 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
       case 'score':
         return arr.sort((a, b) => scoreOf(b) - scoreOf(a) || byDateDesc(a, b));
       case 'price':
-        return arr.sort((a, b) => pricePerGram(a) - pricePerGram(b) || byDateDesc(a, b));
+        return arr.sort((a, b) => {
+          const pa = costPerGramUsd(a, rates);
+          const pb = costPerGramUsd(b, rates);
+          // Infinity - Infinity is NaN: two teas with no figure fall through to the date.
+          return (pa === pb ? 0 : pa < pb ? -1 : 1) || byDateDesc(a, b);
+        });
       case 'name':
         return arr.sort((a, b) => (a.name || '￿').localeCompare(b.name || '￿'));
       default:
         return arr.sort(byDateDesc);
     }
-  }, [browseSort]);
+  }, [browseSort, rates]);
 
   const sampleSetMap = useMemo(
     () => new Map(sampleSets.map((s) => [s.id, s])),

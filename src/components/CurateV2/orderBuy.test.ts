@@ -140,4 +140,14 @@ describe('Buy puts a tea on its vendor\'s draft order', () => {
     removeTeaFromDraftOrders(c);
     expect(useLedgerStore.getState().transactions.find((t) => t.id === sent)!.items).toHaveLength(1);
   });
+
+  it('a cake entered as 200 g is carried on the order at 200 g, as its own screen prices it', () => {
+    const a = put({ id: 'a', vendorName: 'Wang', vendorId: 'v1', pricePerUnitGrams: 200 });
+    const b = put({ id: 'b', vendorName: 'Wang', vendorId: 'v1' });
+    const tx = addTeaToDraftOrder(a)!;
+    addTeaToDraftOrder(b);
+    const items = useLedgerStore.getState().transactions.find((t) => t.id === tx)!.items;
+    expect(items[0].unitWeightGrams).toBe(200);
+    expect(items[1].unitWeightGrams).toBe(357);
+  });
 });

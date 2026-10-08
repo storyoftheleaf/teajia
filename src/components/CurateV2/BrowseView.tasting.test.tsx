@@ -7,6 +7,7 @@ vi.mock('../../lib/teaCompassStore', async (loadOriginal) => {
   const original = await loadOriginal<typeof import('../../lib/teaCompassStore')>();
   return { ...original, useTeaCompassStore: Object.assign((selector?: (state: any) => unknown) => selector ? selector(fixture.state) : fixture.state, original.useTeaCompassStore) };
 });
+vi.mock('../../admin/hooks/useAdminData', () => ({ useRates: () => ({ data: undefined }) }));
 vi.mock('./BrowseCard', () => ({ BrowseCard: ({ entry }: { entry: { name: string } }) => <div>{entry.name}</div> }));
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { createEmptyEntry } from './types';

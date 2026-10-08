@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import taxonomy from '../../data/teajia-tasting-taxonomy.json';
-import { FAST_TASTING, applyFast, linePriceFields, orderLinePrice, quotedUnit, readFast, readLinePrice, tastingLine, todayItems, todaySections } from './curateV2Model';
+import { FAST_TASTING, applyFast, costPerGramUsd, currencyForNewPrice, linePriceFields, pieceWeightGrams, shownCurrency, orderLinePrice, quotedUnit, readFast, readLinePrice, tastingLine, todayItems, todaySections } from './curateV2Model';
+import type { ExchangeRate } from '../../admin/types';
 import { createEmptyEntry, type TeaCompassEntry } from './types';
 
 const entry = (over: Partial<TeaCompassEntry>): TeaCompassEntry => ({
@@ -140,5 +141,60 @@ describe('orderLinePrice', () => {
   it('prices a cake or teaware per piece', () => {
     expect(orderLinePrice({ category: 'tea', priceAmount: 450, form: 'Cake', pricePerUnitGrams: 357 })).toEqual({ pricePerUnit: 450, priceIsPerGram: false });
     expect(orderLinePrice({ category: 'teaware', priceAmount: 800 })).toEqual({ pricePerUnit: 800, priceIsPerGram: false });
+  });
+});
+
+describe('the money shown beside a price nobody has entered', () => {
+  // What the shop sync hands back for a tea with no price: the currency is the
+  // stamp 'NT', and touchedFields (a local-only record) does not travel.
+  const hydrated = (over: Partial<TeaCompassEntry> = {}) =>
+    ({ ...entry({ priceCurrency: 'NT', priceAmount: undefined }), touchedFields: undefined, ...over }) as TeaCompassEntry;
+
+  it('is Yuan for a tea that came back with no price, not the stamped NT', () => {
+    expect(shownCurrency(hydrated())).toBe('Yuan');
+  });
+
+  it('is the open table\'s money when there is one', () => {
+    expect(shownCurrency(hydrated(), 'HKD')).toBe('HKD');
+  });
+
+  it('still does not trust the stamp after an unrelated edit made touchedFields an array', () => {
+    expect(shownCurrency(hydrated({ touchedFields: ['name'] }), 'Yuan')).toBe('Yuan');
+  });
+
+  it('is the stored money once a price is on the tea, or the currency was picked', () => {
+    expect(shownCurrency(hydrated({ priceAmount: 1800 }), 'Yuan')).toBe('NT');
+    expect(shownCurrency(hydrated({ touchedFields: ['priceCurrency'] }), 'Yuan')).toBe('NT');
+  });
+
+  it('stores the shown money only when a price is typed, and only once', () => {
+    expect(currencyForNewPrice(hydrated(), 'Yuan')).toBe('Yuan');
+    expect(currencyForNewPrice(hydrated({ priceAmount: 12 }), 'Yuan')).toBeUndefined();
+    expect(currencyForNewPrice(hydrated({ touchedFields: ['priceCurrency'] }), 'Yuan')).toBeUndefined();
+  });
+});
+
+describe('what a piece weighs, and what a gram cost', () => {
+  const rates: ExchangeRate[] = [
+    { currency: 'USD', rateToUSD: 1 },
+    { currency: 'Yuan', rateToUSD: 7 },
+    { currency: 'NT', rateToUSD: 30 },
+  ];
+  it('a cake weighs what was written on it, else its usual 357 g', () => {
+    expect(pieceWeightGrams({ form: 'Cake' })).toBe(357);
+    expect(pieceWeightGrams({ form: 'Cake', pricePerUnitGrams: 200 })).toBe(200);
+    expect(pieceWeightGrams({ form: 'Loose', pricePerUnitGrams: 100 })).toBeNull();
+  });
+  it('ranks teas bought in different money by their dollars, not their bare numbers', () => {
+    const yuan = costPerGramUsd(entry({ priceAmount: 700, priceCurrency: 'Yuan', pricePerUnitGrams: 100, form: 'Loose' }), rates);
+    const nt = costPerGramUsd(entry({ priceAmount: 600, priceCurrency: 'NT', pricePerUnitGrams: 100, form: 'Loose' }), rates);
+    expect(yuan).toBeCloseTo(1, 10);
+    expect(nt).toBeCloseTo(0.2, 10);
+    expect(nt).toBeLessThan(yuan);
+  });
+  it('has no figure for a currency without a rate, a tea without a price, or teaware', () => {
+    expect(costPerGramUsd(entry({ priceAmount: 5, priceCurrency: 'HKD', pricePerUnitGrams: 100 }), rates)).toBe(Infinity);
+    expect(costPerGramUsd(entry({ priceAmount: undefined, pricePerUnitGrams: 100 }), rates)).toBe(Infinity);
+    expect(costPerGramUsd(entry({ category: 'teaware', priceAmount: 40, priceCurrency: 'USD', pricePerUnitGrams: 1 }), rates)).toBe(Infinity);
   });
 });

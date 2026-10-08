@@ -310,7 +310,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
   }, [buyingEntries, quantities]);
 
   // Common currency (all items should share one)
-  const currency = buyingEntries[0]?.priceCurrency ?? 'NT';
+  const currency = buyingEntries[0]?.priceCurrency ?? 'Yuan';
 
   const getOrCreatePurchaseTransaction = useLedgerStore((s) => s.getOrCreatePurchaseTransaction);
   const addLineItem = useLedgerStore((s) => s.addLineItem);

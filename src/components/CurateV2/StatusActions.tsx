@@ -77,7 +77,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
     if (!entry) return;
 
     const vendorName = entry.vendorName || 'Unknown Vendor';
-    const currency = entry.priceCurrency || 'NT';
+    const currency = entry.priceCurrency || 'Yuan';
 
     const txId = getOrCreatePurchaseTransaction(vendorName, currency, entry.vendorId);
     const unitBased = entry.category === 'teaware' || isUnitBased(entry.form);

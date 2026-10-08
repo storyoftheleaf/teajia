@@ -28,7 +28,7 @@ function detectIntents(text: string): DetectedIntent[] {
        shorthands included, is already an alias in the shared map (src/lib/
        currency.ts). A second copy of that mapping here was a second chance
        for the shop's key to be missed, so this reads the one map. */
-    const currency = canonicalCurrency(sym) ?? 'NT';
+    const currency = canonicalCurrency(sym) ?? 'Yuan';
     const key = `price-${amount}-${currency}`;
     if (!seen.has(key) && !isNaN(amount)) {
       seen.add(key);

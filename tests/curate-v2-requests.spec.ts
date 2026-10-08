@@ -754,6 +754,38 @@ test.describe('Curate v2 requests (phone)', () => {
     expect(errors).toEqual([]);
   });
 
+  test('Edit all fields on a tea the shop holds with no price: the money shown is Yuan, not a stamped NT, and is stored only when a price is typed', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS, rates: RATES,
+      compassEntries: [
+        entry({ id: 'np-1', name: 'Unpriced Tea', form: 'Cake', price_amount: null, price_currency: null, tasting: tasted }),
+        entry({ id: 'np-2', name: 'Chosen Tea', form: 'Cake', price_amount: null, price_currency: null, tasting: tasted }),
+      ],
+    });
+    const sent = record(page);
+    await openCurateV2(page, 'teas');
+    await page.getByRole('button', { name: /^Unpriced Tea/ }).first().click();
+    await overlay(page).getByRole('button', { name: /Edit all fields/ }).click();
+    const card = overlay(page);
+    const currency = card.getByRole('combobox', { name: 'Currency' });
+    await expect(currency).toHaveValue('Yuan');
+    // Looking at it stores nothing.
+    expect(synced(sent).has('np-1')).toBe(false);
+    await card.getByRole('spinbutton', { name: 'Price' }).fill('1200');
+    await expect.poll(() => synced(sent).get('np-1')?.price_amount).toBe(1200);
+    expect(synced(sent).get('np-1')).toMatchObject({ price_amount: 1200, price_currency: 'Yuan' });
+    await back(page).click();
+    await back(page).click();
+
+    // A money the person picked is theirs.
+    await page.getByRole('button', { name: /^Chosen Tea/ }).first().click();
+    await overlay(page).getByRole('button', { name: /Edit all fields/ }).click();
+    await overlay(page).getByRole('combobox', { name: 'Currency' }).selectOption('NT');
+    await overlay(page).getByRole('spinbutton', { name: 'Price' }).fill('1800');
+    await expect.poll(() => synced(sent).get('np-2')?.price_amount).toBe(1800);
+    expect(synced(sent).get('np-2')).toMatchObject({ price_amount: 1800, price_currency: 'NT' });
+  });
+
   test('photos: two added back to back are both kept, a failed upload says so and keeps the first, and nothing but the photo list changes', async ({ page }) => {
     await installCompassHarness(page, {
       customers: VENDORS, rates: RATES,

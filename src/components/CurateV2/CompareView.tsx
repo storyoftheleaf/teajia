@@ -3,9 +3,10 @@ import { ArrowLeft } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
 import { curateShelfPreview } from './curatePricing';
-import { FAST_TASTING, quotedUnit, readFast, type FastQuestion } from './curateV2Model';
+import { FAST_TASTING, pieceWeightGrams, quotedUnit, readFast, type FastQuestion } from './curateV2Model';
 import { CURRENCY_LABELS } from './PricingRow';
-import { DEFAULT_GRAMS, type TeaCompassEntry } from './types';
+import type { TeaCompassEntry } from './types';
+import { isUnrecordedCurrency, rateToUsd } from '../../lib/currency';
 import { Section } from './TodayView';
 
 interface CompareViewProps {
@@ -22,14 +23,13 @@ interface CompareViewProps {
 interface Figures {
   entry: TeaCompassEntry;
   perGram: number | null;
+  /** The same cost per gram in dollars, so teas bought in different money compare. */
+  perGramUsd: number | null;
   shelf: number | null;
 }
 
-const PIECE_FORMS = ['Cake', 'Brick', 'Tuo'];
-
 function gramsForPrice(e: TeaCompassEntry): number | null {
-  if (e.form && PIECE_FORMS.includes(e.form)) return DEFAULT_GRAMS[e.form] ?? null;
-  return e.pricePerUnitGrams && e.pricePerUnitGrams > 0 ? e.pricePerUnitGrams : null;
+  return pieceWeightGrams(e) ?? (e.pricePerUnitGrams && e.pricePerUnitGrams > 0 ? e.pricePerUnitGrams : null);
 }
 
 const answerLabel = (q: FastQuestion, ids: string[]) =>
@@ -56,9 +56,13 @@ export const CompareView: React.FC<CompareViewProps> = ({ chosen, onChosenChange
     .filter((e): e is TeaCompassEntry => !!e)
     .map((entry) => {
       const grams = gramsForPrice(entry);
-      if (entry.priceAmount == null || !grams) return { entry, perGram: null, shelf: null };
+      if (entry.priceAmount == null || !grams) return { entry, perGram: null, perGramUsd: null, shelf: null };
       const preview = curateShelfPreview({ costAmount: entry.priceAmount, grams, currency: entry.priceCurrency, rates, shopFreightPerKgUsd: freight.perKgUsd });
-      return { entry, perGram: entry.priceAmount / grams, shelf: preview?.retailPerGramUsd ?? null };
+      const perGram = entry.priceAmount / grams;
+      // A tea bought in yuan and one bought in Taiwan dollars are compared in
+      // dollars; a currency with no rate is left out of the ranking, never read at 1.
+      const rate = isUnrecordedCurrency(entry.priceCurrency) ? 1 : rateToUsd(rates, entry.priceCurrency);
+      return { entry, perGram, perGramUsd: rate && rate > 0 ? perGram / rate : null, shelf: preview?.retailPerGramUsd ?? null };
     }), [chosen, teas, rates, freight.perKgUsd]);
 
   const best = useMemo(() => {
@@ -67,7 +71,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ chosen, onChosenChange
     const rank = (q: FastQuestion, order: string[]) => max(figures.map((f) => { const id = readFast(f.entry.tasting)[q][0]; const i = id ? order.indexOf(id) : -1; return i < 0 ? null : order.length - i; }));
     return {
       shelf: min(figures.map((f) => f.shelf)),
-      perGram: min(figures.map((f) => f.perGram)),
+      perGramUsd: min(figures.map((f) => f.perGramUsd)),
       score: max(figures.map((f) => f.entry.tasting?.quality ?? null)),
       clean: rank('clean', ['clean', 'some-edge', 'rough']),
       drying: rank('drying', ['none', 'finish-dry', 'dry']),
@@ -116,14 +120,14 @@ export const CompareView: React.FC<CompareViewProps> = ({ chosen, onChosenChange
         <button type="button" onClick={() => setPicking(true)} className="tap-target font-mono text-ui-13 text-tea-gold">Change teas</button>
       </div>
       <div className="grid gap-2.5 px-4" data-testid="compare-cards">
-        {figures.map(({ entry, perGram, shelf }) => {
+        {figures.map(({ entry, perGram, perGramUsd, shelf }) => {
           const a = readFast(entry.tasting);
           const sym = CURRENCY_LABELS[entry.priceCurrency] ?? '';
           const pos = (q: FastQuestion, order: string[]) => { const id = a[q][0]; const i = id ? order.indexOf(id) : -1; return i < 0 ? null : order.length - i; };
           // Nine figures, three to a row, so a whole tea reads at a glance and three teas fit on one screen.
           const cells: Array<[string, string, boolean]> = [
             ['Paid', entry.priceAmount != null ? `${sym}${entry.priceAmount.toLocaleString()}` : '—', false],
-            ['Per g', perGram != null ? `${sym}${perGram.toFixed(2)}` : '—', perGram != null && perGram === best.perGram],
+            ['Per g', perGram != null ? `${sym}${perGram.toFixed(2)}` : '—', perGramUsd != null && perGramUsd === best.perGramUsd],
             ['Shelf', shelf != null ? `$${shelf.toFixed(2)}` : '—', shelf != null && shelf === best.shelf],
             ['Score', entry.tasting?.quality != null ? String(entry.tasting.quality) : '—', entry.tasting?.quality != null && entry.tasting.quality === best.score],
             ['Clean', answerLabel('clean', a.clean) || '—', pos('clean', ['clean', 'some-edge', 'rough']) === best.clean && best.clean != null],
