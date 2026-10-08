@@ -27,6 +27,7 @@
 // admin UI's invariants.
 
 import { customerTagList } from './customerContactHandles';
+import { readVendorDependencies, vendorHasDependencies, deleteUnreferencedVendor } from './vendorDependencies';
 import { combineToolModules, type ToolModule } from './mcpTools/registry';
 import { PENDING_TTL_MS as TICKET_PENDING_TTL_MS } from './mcpTools/tickets';
 import { transferToolModule } from './mcpTools/transfer';
@@ -42,6 +43,7 @@ import { curateArrivalTools } from './mcpTools/curateArrivals';
 import { curateAttachmentTools } from './mcpTools/curateAttachments';
 import { curateManageModule } from './mcpTools/curateManage';
 import { curateQuoteTools } from './mcpTools/curateQuotes';
+import { curatePromotionTools } from './mcpTools/curatePromotion';
 import type { CurateReceiptService } from './mcpTools/registry';
 import { resolveShopFreightDefault, shippingPerGramUsd } from './shippingRate';
 import { deductStockForPaidInvoice } from './orderLifecycle';
@@ -3076,8 +3078,8 @@ async function commitUpsertVendorContact(
 
 // ── tool: remove_vendor_contact (preview / confirm) ──
 // Delete a vendor (customer tagged "vendor") that is no longer referenced.
-// Guarded: refuses if any product still links to it as vendor_id, any invoice
-// still references it, or any curate vendor group resolves to it. Scoped to
+// Guarded against every durable vendor/contact reference, including archived
+// Curate evidence and physical sample holdings. Scoped to
 // stock:write so the operator can clean up duplicate/abandoned vendor rows.
 async function toolRemoveVendorContact(env: Env, auth: McpAuth, args: any) {
   const customerId = String(args?.customer_id || '').trim();
@@ -3091,15 +3093,8 @@ async function toolRemoveVendorContact(env: Env, auth: McpAuth, args: any) {
 
   let tags: string[] = [];
   tags = customerTagList(customer.tags);
-  const [productLinks, invoiceLinks, groupLinks] = await Promise.all([
-    env.DB.prepare('SELECT COUNT(*) AS n FROM products WHERE vendor_id = ? AND account_id = ?').bind(customerId, auth.accountId).first<{ n: number }>(),
-    env.DB.prepare('SELECT COUNT(*) AS n FROM invoices WHERE customer_id = ? AND account_id = ?').bind(customerId, auth.accountId).first<{ n: number }>(),
-    env.DB.prepare('SELECT COUNT(*) AS n FROM curate_import_vendor_groups WHERE resolved_vendor_customer_id = ? AND account_id = ?').bind(customerId, auth.accountId).first<{ n: number }>(),
-  ]);
-  const productCount = Number(productLinks?.n ?? 0);
-  const invoiceCount = Number(invoiceLinks?.n ?? 0);
-  const groupCount = Number(groupLinks?.n ?? 0);
-  const referenced = productCount > 0 || invoiceCount > 0 || groupCount > 0;
+  const references = await readVendorDependencies(env.DB, auth.accountId, customerId);
+  const referenced = vendorHasDependencies(references);
 
   if (!confirm) {
     const token = await issueConfirmationToken(env, {
@@ -3109,7 +3104,7 @@ async function toolRemoveVendorContact(env: Env, auth: McpAuth, args: any) {
       preview: {
         action: 'remove_vendor_contact',
         vendor: { id: customerId, name: customer.name, is_vendor_tagged: tags.includes('vendor') },
-        references: { products: productCount, invoices: invoiceCount, vendor_groups: groupCount },
+        references,
         will_refuse: referenced,
         note: referenced ? 'This vendor is still referenced and will be refused on confirm.' : 'No references — the customer row will be deleted.',
       },
@@ -3122,10 +3117,15 @@ async function toolRemoveVendorContact(env: Env, auth: McpAuth, args: any) {
   if (!pending || pending.kind !== 'remove_vendor_contact' || pending.customerId !== customerId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
-  if (referenced) return { error: 'vendor_still_referenced', references: { products: productCount, invoices: invoiceCount, vendor_groups: groupCount } };
+  if (referenced) return { error: 'vendor_still_referenced', references };
 
-  await env.DB.prepare('DELETE FROM customers WHERE id = ? AND account_id = ?')
-    .bind(customerId, auth.accountId).run();
+  const deleted = await deleteUnreferencedVendor(env.DB, auth.accountId, customerId);
+  if (!deleted.meta.changes) {
+    const currentReferences = await readVendorDependencies(env.DB, auth.accountId, customerId);
+    return vendorHasDependencies(currentReferences)
+      ? { error: 'vendor_still_referenced', references: currentReferences }
+      : { error: 'not_found' };
+  }
   await env.DB.prepare(
     `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
      VALUES (?, 'VENDOR_CONTACT_REMOVE_MCP', ?, ?, 'customer', ?, ?)`
@@ -6297,7 +6297,7 @@ const TOOL_DEFS = [
   {
     name: 'remove_vendor_contact',
     scope: 'stock:write',
-    description: 'Delete a vendor (customer tagged "vendor") that is no longer referenced. Refuses if any product links to it as vendor, any invoice references it, or any curate import vendor group resolves to it. Two-step preview/confirm. Use to clean up duplicate/abandoned vendor rows created by mistake.',
+    description: 'Delete the entire unreferenced vendor customer record, not one named contact person. Refuses any durable references, including Curate teas, samples, quotes, orders, products and history, even when archived. Two-step preview/confirm. Use curate_save_vendor to edit contact people; use curate_correct archive or merge for vendors with history.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -6789,6 +6789,7 @@ const TOOL_MODULES: ToolModule[] = [
   curateAttachmentTools,
   curateManageModule,
   curateQuoteTools,
+  curatePromotionTools,
 ];
 
 const { defs: MODULE_TOOL_DEFS, handlers: MODULE_TOOL_HANDLERS } = combineToolModules(TOOL_MODULES);
@@ -6959,8 +6960,8 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
 
 const SERVER_INFO = {
   name: 'teajia-inventory',
-  version: '0.6.0',
-  description: 'Teajia inventory, orders, customers and Curate. Ask whats_waiting for pending orders and payments. Use search_tea for products and separate Curate sample holdings; curate_find and curate_get_tea read sourcing records. Curate tools cover structured intake, vendor quotes, attachments and uploads, samples and arrivals. curate_correct edits, clears, deletes, archives or merges records; curate_history and curate_undo preserve attribution. Curate management requires shop ownership or explicit curate_manage permission. Writes use preview and confirmation; stock and sale tools take product ids only. Available tools depend on token scopes: fetch tools/list after connecting or reconnecting.',
+  version: '0.7.0',
+  description: 'Teajia inventory, orders, customers and Curate. Ask whats_waiting for pending orders and payments. Use search_tea for products and separate Curate sample holdings; curate_find and curate_get_tea read sourcing records. Curate tools cover structured intake, vendor quotes, attachments and uploads, samples and arrivals. curate_correct edits, clears, deletes, archives or merges records; curate_history and curate_undo preserve attribution. Curate management requires shop ownership or explicit curate_manage permission. Writes use preview and confirmation; curate_promote_tea creates a private zero-stock inventory Draft from a Curate tea; stock and sale tools take product ids only. Available tools depend on token scopes: fetch tools/list after connecting or reconnecting.',
 };
 
 // Default to the current rev (structured output + tool annotations). We echo
@@ -7006,7 +7007,7 @@ export async function mcpFetch(request: Request, env: Env): Promise<Response> {
           protocolVersion: requested || PROTOCOL_VERSION,
           capabilities: { tools: { listChanged: false } },
           serverInfo: SERVER_INFO,
-          instructions: 'Read the current tools/list after connecting or reconnecting. Use curate_find/curate_get_tea for sourcing records, and search_tea for separate product matches and curate_holdings. Call get_tea with source: curate and a curate_tea_id for sample holdings. Curate ids are never product stock/sale ids. Use curate_correct to edit, clear, delete, archive or merge; curate_history/curate_undo to inspect or undo. Curate management requires active shop ownership or explicit curate_manage permission; tool visibility also depends on token scopes. Confirm writes only after the user accepts their exact preview.',
+          instructions: 'Read the current tools/list after connecting or reconnecting. Use curate_find/curate_get_tea for sourcing records, and search_tea for separate product matches and curate_holdings. Call get_tea with source: curate and a curate_tea_id for sample holdings. Curate ids are never product stock/sale ids. Use curate_promote_tea to preview and confirm a private zero-stock Draft product, then use the returned product id for inventory tools. Use curate_correct to edit, clear, delete, archive or merge; curate_history/curate_undo to inspect or undo. Curate management requires active shop ownership or explicit curate_manage permission; tool visibility also depends on token scopes. Confirm writes only after the user accepts their exact preview.',
         });
       }
 

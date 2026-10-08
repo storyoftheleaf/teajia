@@ -1,3 +1,4 @@
+import { promoteCompassEntry, CompassPromotionError } from './curatePromotion';
 import {
   mcpFetch, publicMcpFetch, mcpAdminMintToken, mcpAdminListTokens, mcpAdminRevokeToken,
   oauthProtectedResourceMetadata, oauthAuthorizationServerMetadata,
@@ -12,7 +13,7 @@ import {
   type CurateImportContext,
 } from './curateImports';
 import { prepareCompassSampleWrite, prepareSampleLifecycleSync, compassStateForSample } from './curateSampleBridge';
-import { receiptProductDetails, compassVendorId } from './curateReceiptProduct';
+import { receiptProductDetails } from './curateReceiptProduct';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { shippingPerGramUsd, resolveShopFreightDefault } from './shippingRate';
 import { deductStockForPaidInvoice } from './orderLifecycle';
@@ -15828,142 +15829,18 @@ const handlePromoteCompassEntry: Handler = async (request, env, params) => {
 
   if (!entry) return json({ error: 'Compass entry not found' }, 404);
 
-  if (entry.draft_product_id) {
-    const existing = await env.DB.prepare(
-      'SELECT * FROM products WHERE id = ? AND account_id = ?'
-    ).bind(entry.draft_product_id, accountId).first();
-    if (existing) return json({ id: entry.draft_product_id, product: existing, alreadyPromoted: true });
-    // Stale link — fall through and create a new product, then re-link.
+  try {
+    const result = await promoteCompassEntry(env.DB, accountId, entry);
+    if (result.status === 201) await auditPlatformActingWrite(env, ctx, 'product.created', 'product', result.id, {
+      product_name: result.product?.product_name,
+      promoted_from_compass: entry.id,
+    });
+    const { status, ...response } = result;
+    return json(response, status);
+  } catch (error) {
+    if (error instanceof CompassPromotionError) return json({ error: error.message }, error.status);
+    throw error;
   }
-
-  // Compatibility repair and concurrency fast-path: an older/parallel write
-  // may have created the product before the Compass link became visible.
-  const identityProduct = await env.DB.prepare(
-    'SELECT * FROM products WHERE account_id = ? AND source_compass_entry_id = ?'
-  ).bind(accountId, entry.id).first() as Record<string, any> | null;
-  if (identityProduct) {
-    await env.DB.prepare(
-      "UPDATE tea_compass_entries SET draft_product_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?"
-    ).bind(identityProduct.id, entry.id, accountId).run();
-    return json({ id: identityProduct.id, product: identityProduct, alreadyPromoted: true });
-  }
-
-  const isTeaware = entry.category === 'teaware';
-
-  let photos: string[] = [];
-  try { photos = entry.photos ? JSON.parse(entry.photos) : []; } catch { photos = []; }
-
-  // Photo + vendor is a complete capture; the name can come later. Auto-name
-  // from vendor + capture date so the record can enter the library unnamed.
-  let name = (entry.name as string | null)?.trim();
-  if (!name) {
-    const vendor = (entry.vendor_name as string | null)?.trim();
-    if (!vendor && photos.length === 0) {
-      return json({ error: 'Cannot promote: entry needs a name, or a photo + vendor' }, 400);
-    }
-    const captured = new Date((entry.created_at as string) || Date.now());
-    const dateLabel = isNaN(captured.getTime())
-      ? ''
-      : captured.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    name = [vendor, dateLabel].filter(Boolean).join(' · ') || 'Unnamed tea';
-  }
-  // Only words the shop can print reach the product, and the page drops its
-  // "potential profile" note only when there are such words: a score or a note
-  // alone is not the shop's tasting.
-  const shopTasting = tastingForShop(entry.tasting);
-  const tasting = Object.keys(shopTasting).length ? JSON.stringify(shopTasting) : null;
-
-  const productType = isTeaware ? 'Teaware' : (entry.type || 'Misc');
-  // Captured buying quantity is intent/evidence, not received stock. Only a
-  // reviewed receipt or stock movement may add a positive physical balance.
-  const stockGrams = 0;
-  const quantityUnits = isTeaware ? 0 : null;
-
-  let vendorId: string | null;
-  try { vendorId = await compassVendorId(env.DB, accountId, entry); }
-  catch (error) { return json({ error: (error as Error).message }, 400); }
-
-  const productId = crypto.randomUUID();
-  const cols: Record<string, any> = {
-    id: productId,
-    account_id: accountId,
-    type: productType,
-    form: entry.form ?? null,
-    given_name: name,
-    chinese_name: entry.chinese_name ?? null,
-    product_name: name,
-    year: entry.year != null ? String(entry.year) : null,
-    origin_region: entry.origin_region ?? null,
-    description: null,
-    image_url: photos[0] ?? null,
-    additional_images: JSON.stringify(photos.slice(1)),
-    // The bag shot from capture keeps its own slot so later product photo
-    // edits never lose it. Replaceable deliberately, never displaced.
-    bag_photo_url: photos[0] ?? null,
-    status: 'Draft',
-    // Inventory creation and storefront publication are independent choices.
-    // Schema defaults predate that boundary, so private must be explicit.
-    is_public: 0,
-    shown_in_shop: 0,
-    vendor: entry.vendor_name ?? null,
-    vendor_id: vendorId,
-    stock_grams: stockGrams,
-    stock_known_at: new Date().toISOString(),
-    // A vendor quote is a unit price, not a paid batch cost. Acceptance of a
-    // reviewed order arrival supplies both its line total and bought quantity.
-    cost_amount: null,
-    cost_currency: null,
-    quantity_purchased: null,
-    quantity_units: quantityUnits,
-    material: entry.material ?? null,
-    capacity_ml: entry.capacity_ml ?? null,
-    teaware_category: entry.teaware_category ?? null,
-    tasting: tasting ?? '{}',
-    tasting_source: tastingHasTerms(shopTasting) ? 'owner' : null,
-    tea_key: entry.tea_key ?? null,
-    source_compass_entry_id: entry.id,
-  };
-  // The same canonicalisation every other write door runs, so a compass entry
-  // carrying 'cny' or 'hkd' promotes to the shop's own spelling instead of a
-  // currency the exchange table has no row for. No-op when the entry's
-  // currency was never stated, which is what leaves cost_currency NULL above.
-  canonicalizeCostCurrency(cols);
-
-  /* A compass entry records what Adrian saw, not what it cost to bring here. It
-     carries no freight rate and no markup, so both are NULL and the tea follows
-     the shop on each. Omitted they would have been 0 and 2.5. */
-  nameProductColumns(cols);
-  const colNames = Object.keys(cols);
-  const placeholders = colNames.map(() => '?').join(', ');
-  // The unique encounter identity plus one D1 batch makes promotion atomic:
-  // a racing loser inserts nothing and both link to the canonical product.
-  await env.DB.batch([
-    env.DB.prepare(
-      `INSERT OR IGNORE INTO products (${colNames.join(', ')}) VALUES (${placeholders})`
-    ).bind(...colNames.map((c) => cols[c])),
-    env.DB.prepare(
-      `UPDATE tea_compass_entries
-       SET draft_product_id = (SELECT id FROM products WHERE account_id = ? AND source_compass_entry_id = ?),
-           updated_at = datetime('now')
-       WHERE id = ? AND user_id = ? AND account_id = ?`
-    ).bind(accountId, entry.id, entry.id, entry.user_id, accountId),
-  ]);
-
-  const canonical = await env.DB.prepare(
-    'SELECT * FROM products WHERE account_id = ? AND source_compass_entry_id = ?'
-  ).bind(accountId, entry.id).first() as Record<string, any> | null;
-  if (!canonical) return json({ error: 'Inventory record could not be created' }, 500);
-
-  const created = await env.DB.prepare(
-    'SELECT * FROM products WHERE id = ? AND account_id = ?'
-  ).bind(canonical.id, accountId).first();
-
-  await auditPlatformActingWrite(env, ctx, 'product.created', 'product', canonical.id, {
-    product_name: name,
-    promoted_from_compass: entry.id,
-  });
-
-  return json({ id: canonical.id, product: created, alreadyPromoted: canonical.id !== productId }, canonical.id === productId ? 201 : 200);
 };
 
 const RECEIPT_MUTABLE_FIELDS = new Set([

@@ -4,6 +4,8 @@
 
 ## 2026-10
 
+- 2026-10-09 — **Curate agent access and inventory identity.** An explicitly authorized shop-scoped capability repairs the existing OAuth identity without weakening management checks. `curate_promote_tea` previews and confirms a private inventory Draft or reuses its existing product, preserving unknown cost and sample balances. Legacy vendor deletion now reports and atomically protects Curate teas, samples, quotes and all durable contact references, including archived records.
+
 - 2026-10-09 — **Curate editor saves hydrated teas correctly.** Sync sends only editable fields, retaining import provenance and archive metadata for reading. Country names and structured route prices now use the Worker’s accepted wire format. This fixes the live PE1 “Not saved” error without weakening field validation or changing its recorded sample weight. The prior workspace release was independently verified live as build `muzqjfkv`; the i64 agent bridge reads the same Curate sample balances as Inventory.
 
 - 2026-10-08 — **Curate acceptance fixes.** Ordinary inventory search now discovers private sample holdings separately from sale stock; explicit `said` clearing previews exact transcripts and supports guarded undo. Default agent write scopes include Curate correction/deletion/merge/undo while retaining active shop-management checks. MCP discovery and agent instructions describe the new fields and tools. Legacy “Loose Leaf” records open safely in both tea editors. Authorized LKY/XWT samples and structured data were confirmed live, retaining original transcripts.

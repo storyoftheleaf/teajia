@@ -18,6 +18,8 @@ Private evidence uses the existing private `ATLAS_BUCKET` binding under a separa
 
 ## Samples and orders
 
+`curate_promote_tea` previews and confirms an inventory identity for an existing tea. It reuses an existing product or creates a private Draft with unknown paid cost and zero stock. It preserves sample holdings; reviewed arrivals supply purchased quantities and cost. `curate_undo` can remove a newly created draft only while every product field remains unchanged and no dependent work references it. Undo of an existing product link never deletes that product.
+
 Inventory's **Samples only** filter reads Curate teas marked received or tasted with no full stock on hand. It shows linked operational sample grams separately from saleable stock, including distinct portions from merged records. No grams entered is unknown, never an invented balance. Archived portions are excluded. Each row opens the tea editor.
 
 **Log tasting** requires explicit consumed grams, including zero when no leaf was used. Its review shows the change before confirmation; it reduces only that sample portion, marks it tasted and can record taxonomy terms and a score. **Order** carries the same tea ID and supplier into the existing reviewed supplier-order flow. Arrival acceptance and physical stock receipt keep their existing separate confirmations.
@@ -30,7 +32,9 @@ Inventory's **Samples only** filter reads Curate teas marked received or tasted 
 
 `curate_history` reads these records and the notes, transcripts, to-dos, sample portions, quote lines and file changes associated with a parent record. MCP to-do changes and linked sample-status changes share the same preview, attributed history and guarded undo; merged sample portions update their surviving tea. History starts with this feature; it cannot reconstruct older unrecorded edits. `curate_undo` previews the last confirmed shop change. Confirmation verifies the exact affected records and relevant physical holdings have not changed. Undo appends history, preserves existing receipts and tastings, and archives newly created pristine sample portions instead of destroying evidence.
 
-Every agent mutation uses preview and confirmation. The caller must have its MCP scope (`stock:write` for Curate corrections and undo) and active shop owner membership, or explicit `curate_manage` permission on a staff/admin membership. MCP version 0.6.0 advertises the current Curate tools and fields; cached connectors must reload `tools/list`. Existing catalog administration remains owner-only. Authorized managers see all active Curate records in the selected account, preserving the original author. This never grants another account's records.
+Every agent mutation uses preview and confirmation. The caller must have its MCP scope (`stock:write` for Curate corrections and undo) and active shop owner membership, or explicit `curate_manage` permission on a staff/admin membership. MCP version 0.7.0 advertises the current Curate tools and fields; cached connectors must reload `tools/list`. Platform access alone does not imply Curate management: an existing OAuth identity also needs that active shop membership. Capability grants apply on the next request without replacing its token. Existing catalog administration remains owner-only. Authorized managers see all active Curate records in the selected account, preserving the original author. This never grants another account's records.
+
+`remove_vendor_contact` counts every durable vendor/contact reference, including Curate teas, samples, quotes, archived records and history. Both confirmation and the atomic deletion statement refuse referenced vendors. Use Curate archive/merge for records with history.
 
 ## Existing LKY/XWT data
 
@@ -45,3 +49,5 @@ The initial workspace revision `5f9845f0` was independently proven live as build
 New unweighed portions carry `grams_known=0`; serializers return NULL grams until a measurement is confirmed. The numeric legacy storage default is never displayed as that portion's balance. Existing recorded balances are preserved. Public sourcing-set responses remove supplier metadata and supplier-derived set titles.
 
 Acceptance follow-up: 2,147 Worker tests passed before the final history/to-do fixes; 638 relevant Curate/agent tests and 37 writing/status tests passed for those fixes. Eight desktop/mobile sample workflows, 25 release-runner tests, frontend TypeScript, the unchanged Worker typecheck ratchet, color lint and production build passed. Final publication proof remains in the immutable release artifacts.
+
+OAuth access follow-up: production membership was granted only to the authorized existing OAuth identity, with `curate_manage:true` for the selected shop. The management gate remains enforced on every request. Local verification covers 2,222 Worker tests (full run plus the two corrected fixture/source-location checks), frontend TypeScript, the unchanged 37-error Worker baseline, color lint and Worker bundling. Promotion includes guarded undo of pristine new drafts; publication remains tied to the release artifacts.

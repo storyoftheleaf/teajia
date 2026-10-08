@@ -97,7 +97,7 @@ describe('ordinary inventory discovery includes separate Curate holdings', () =>
   it('advertises current Curate tools and asks clients to refresh the live list', async () => {
     const db = await setup();
     const initialized = await rpc(db, 'initialize');
-    expect(initialized.result.serverInfo.version).toBe('0.6.0');
+    expect(initialized.result.serverInfo.version).toBe('0.7.0');
     expect(initialized.result.serverInfo.description).toContain('curate_correct');
     expect(initialized.result.instructions).toContain('tools/list');
     expect(initialized.result.capabilities.tools.listChanged).toBe(false);
@@ -118,6 +118,8 @@ describe('Curate corrections use the existing stock scope and live management ga
       expect(listed.result.tools.find((tool: any) => tool.name === name)?.annotations)
         .toMatchObject({ readOnlyHint: false, destructiveHint: true });
     }
+    expect(listed.result.tools.some((tool: any) => tool.name === 'curate_promote_tea')).toBe(true);
+    expect((await call(db, 'curate_promote_tea', { tea_id: 'unknown' })).preview.creates).toMatchObject({ status: 'Draft', stock_grams: 0, cost_amount: null });
     const preview = await call(db, 'curate_correct', correction);
     expect(preview.confirmation_token).toBeTruthy();
     expect((db.sqlite.prepare("SELECT name FROM tea_compass_entries WHERE id='known'").get() as any).name).toBe('known tea');
@@ -196,6 +198,40 @@ describe('private attachment upload follows the existing Curate stock grant', ()
     db.sqlite.prepare('UPDATE mcp_tokens SET scopes=?').run(JSON.stringify(['inventory:read','stock:write']));
     const result = await rpc(db, 'tools/call', { name: 'curate_upload_attachment', arguments: upload });
     expect(result.error.message).toContain('Curate management requires');
+    db.close();
+  });
+});
+
+
+describe('existing platform OAuth identity needs explicit shop Curate access', () => {
+  it('unblocks the same token immediately when its own shop membership is granted, without broadening platform access', async () => {
+    const db = await setup('owner', false, ['inventory:read', 'stock:write']);
+    db.sqlite.prepare("UPDATE users SET platform_role='platform_owner' WHERE id='reader'").run();
+    db.sqlite.prepare("DELETE FROM account_members WHERE user_id='reader' AND account_id=?").run(ACCOUNT);
+    const listed = await rpc(db, 'tools/list');
+    expect(listed.result.tools.some((tool: any) => tool.name === 'curate_correct')).toBe(true);
+    for (const name of ['curate_history', 'curate_stock', 'curate_correct']) {
+      const result = await rpc(db, 'tools/call', { name, arguments: { entity: 'tea', id: 'known', action: 'archive' } });
+      expect(result.error.message).toContain('Curate management requires');
+    }
+    db.sqlite.prepare("INSERT INTO account_members(account_id,user_id,role,status,permissions) VALUES(?,'reader','staff','active',?)")
+      .run(ACCOUNT, JSON.stringify({ curate_manage: true }));
+    expect(await call(db, 'curate_history', { entity_type: 'tea', entity_id: 'known' })).toMatchObject({ history: [] });
+    expect((await call(db, 'curate_stock', { tea_id: 'known' })).holdings[0]).toMatchObject({ sample_grams: 12, stock_grams: 120 });
+    expect(await call(db, 'curate_list_attachments', { entity_type: 'tea', entity_id: 'known' })).toMatchObject({ attachments: [] });
+    db.sqlite.prepare('UPDATE tea_compass_entries SET photos=? WHERE id=?').run(JSON.stringify(['https://example.com/leaf.jpg']), 'known');
+    for (const action of ['delete', 'archive', 'merge', 'remove_photo']) {
+      expect((await call(db, 'curate_correct', { entity: 'tea', id: 'known', action, target_id: 'unknown', photo: 'https://example.com/leaf.jpg' })).confirmation_token).toBeTruthy();
+    }
+    expect((db.sqlite.prepare("SELECT archived_at,deleted_at FROM tea_compass_entries WHERE id='known'").get())).toEqual({ archived_at: null, deleted_at: null });
+    const edit = await call(db, 'curate_correct', { entity: 'tea', id: 'known', action: 'edit', fields: { name: 'Granted agent edit' } });
+    expect(await call(db, 'curate_correct', { confirmation_token: edit.confirmation_token })).toMatchObject({ confirmed: true });
+    const undo = await call(db, 'curate_undo');
+    expect(undo.confirmation_token).toBeTruthy();
+    db.sqlite.prepare("DELETE FROM account_members WHERE user_id='reader' AND account_id=?").run(ACCOUNT);
+    const refused = await rpc(db, 'tools/call', { name: 'curate_undo', arguments: { confirmation_token: undo.confirmation_token } });
+    expect(refused.error.message).toContain('Curate management requires');
+    expect((db.sqlite.prepare("SELECT name FROM tea_compass_entries WHERE id='known'").get() as any).name).toBe('Granted agent edit');
     db.close();
   });
 });

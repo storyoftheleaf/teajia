@@ -383,9 +383,11 @@ describe('a door that cannot know the cost says so, rather than letting the defa
 
   it('the compass promotion does not confuse a unit quote with a batch cost', () => {
     const door = worker_.slice(worker_.indexOf('handlePromoteCompassEntry'), worker_.indexOf('const RECEIPT_MUTABLE_FIELDS'));
-    expect(door).not.toMatch(/cost_amount: Number\(entry\.price_amount/);
-    expect(door).toMatch(/cost_amount: null/);
-    expect(door).toMatch(/cost_currency: null/);
+    expect(door).toMatch(/promoteCompassEntry\(env\.DB/);
+    const service = stripComments(read('../src/curatePromotion.ts'));
+    expect(service).not.toMatch(/cost_amount: Number\(entry\.price_amount/);
+    expect(service).toMatch(/cost_amount: null/);
+    expect(service).toMatch(/cost_currency: null/);
   });
 
   it('the margin warning declines rather than assume dollars', () => {

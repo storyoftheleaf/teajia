@@ -612,8 +612,11 @@ describe('the REST product write doors canonicalise cost_currency too, not only 
      `product_listings` mirror for as long as this guard existed and passed. */
   const worker_ = stripComments(read('worker/src/index.ts'));
 
-  it('index.ts calls the shared canonicaliser at every door that writes cost_currency', () => {
-    const calls = worker_.match(/canonicalizeCostCurrency\(/g) ?? [];
+  it('REST and its shared promotion service canonicalise every cost_currency write door', () => {
+    const promotion = stripComments(read('worker/src/curatePromotion.ts'));
+    const calls = (worker_ + promotion).match(/canonicalizeCostCurrency\(/g) ?? [];
+    expect(worker_).toMatch(/promoteCompassEntry\(env\.DB/);
+    expect(promotion).toMatch(/canonicalizeCostCurrency\(cols\)/);
     // One call per door: single create, bulk create, applyProductUpdate
     // (shared by catalog/stock/commercial updates), and the compass promotion.
     expect(calls.length).toBeGreaterThanOrEqual(4);
