@@ -218,14 +218,19 @@ export async function savePhotosToDrive(env: DriveEnv, sealed: DriveCrypto, acco
   const done = await env.DB.prepare('SELECT photo_url FROM curate_drive_files WHERE account_id = ? AND compass_entry_id = ?')
     .bind(accountId, entryId).all<{ photo_url: string }>();
   const have = new Set((done.results ?? []).map(r => r.photo_url));
-  const todo = photos.filter(p => !have.has(p));
+  // Only a photo the shop actually holds can be copied. A `blob:` address is a
+  // picture that never left the phone it was taken on.
+  const todo = photos.filter(p => !have.has(p) && /^https:\/\//.test(p));
   if (!todo.length) return 0;
-  const token = await accessToken(env, sealed, link);
-  const folder = await teaFolder(env, token, accountId, entry);
+  let token: string | null = null;
+  let folder: string | null = null;
   let copied = 0;
   for (const url of todo) {
     const file = await photoBytes(env, url);
     if (!file) continue;
+    // Folders are made only once there is a photo to put in them.
+    token ??= await accessToken(env, sealed, link);
+    folder ??= await teaFolder(env, token, accountId, entry);
     const stamp = new Date().toISOString().slice(0, 10);
     const name = `${folderName(entry.name, 'Tea')} ${stamp} ${photos.indexOf(url) + 1}.${extFor(file.type)}`;
     const up = await uploadFile(token, folder, name, file);

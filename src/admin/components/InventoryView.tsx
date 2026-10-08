@@ -62,6 +62,9 @@ import { isFeaturedButHidden, readInventoryFold, withInventoryFold, withParam } 
 import { InventoryRow } from './inventory/InventoryRow';
 import { QuickEditInlineRow } from './inventory/QuickEditInlineRow';
 import { InventoryActionRail, INVENTORY_ACTION_RAIL_WIDTH } from './inventory/InventoryActionRail';
+import { PhoneStockList, PhoneGroupSwitch, readPhoneGroupBy, writePhoneGroupBy } from './inventory/phone/PhoneStockList';
+import type { TeaAction } from './inventory/phone/PhoneTeaHeader';
+import { PHONE_GROUP_LABELS, groupStock, type PhoneGroupBy } from './inventory/phone/groupStock';
 import { INVENTORY_WISDOM_PARAM } from './wisdom/config';
 import { readWisdomScope } from './wisdom/usage';
 import { useInventoryProducts } from './inventory/useInventoryProducts';
@@ -753,6 +756,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const splitView = !!panelProduct;
   const effectiveRowHeight = ROW_HEIGHT;
   const mobileHScroll = isMobile && !splitView;
+  // The phone's stock list (todo/plans/stock-phone-by-supplier.md). Edit mode,
+  // the glossary cards and the Pending AI feed keep their own layouts.
+  const phoneList = isMobile && !isEditMode && !glossaryMode && filterType !== 'Pending';
+  const [phoneGroupBy, setPhoneGroupByState] = useState<PhoneGroupBy>(readPhoneGroupBy);
+  const setPhoneGroupBy = (by: PhoneGroupBy) => { setPhoneGroupByState(by); writePhoneGroupBy(by); };
 
   const splitViewCols = useMemo(() => {
     const essential = inventoryCategory === 'teaware'
@@ -1901,7 +1909,41 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     }
   }, [handleProductUpdate, showToast, setIsBulkApplying]);
 
+  // The phone tea page's action row (stage 2, todo/plans/stock-phone-by-supplier.md)
+  // runs the selection bar's own handlers on that one tea. They read the
+  // selection, so the tea is selected first and the handler runs once the
+  // selection has rendered, never against the selection before it.
+  const [pendingTeaAction, setPendingTeaAction] = useState<{ action: TeaAction; id: string } | null>(null);
+  const handleTeaAction = useCallback((action: TeaAction, product: Product) => {
+    setSelectedIds(new Set([product.id]));
+    setPendingTeaAction({ action, id: product.id });
+  }, []);
+
   // Send selected products to a new sample set and navigate to /admin/samples
+  useEffect(() => {
+    if (!pendingTeaAction) return;
+    if (selectedIds.size !== 1 || !selectedIds.has(pendingTeaAction.id)) return;
+    const { action, id } = pendingTeaAction;
+    setPendingTeaAction(null);
+    const product = localProducts.find(p => p.id === id);
+    switch (action) {
+      case 'collect': setAddToCollectionOpen(true); break;
+      case 'publish': void handleBulkVisibility(true); break;
+      case 'invoice': setInvoiceFromInventoryOpen(true); break;
+      case 'star': void handleBulkFeature(); break;
+      case 'sample': handleSendToSamples(); break;
+      case 'share': setShareToNetworkOpen(true); break;
+      case 'archive': void handleBulkArchive(); break;
+      case 'journal': {
+        const summary = effectivePersonalTastingByProductId[id] ?? { count: 0 };
+        if (summary.count > 0) navigate(buildPersonalJournalHref(id, summary));
+        else if (product) setPersonalTastingProduct(product);
+        break;
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingTeaAction, selectedIds]);
+
   const handleSendToSamples = () => {
     const selected = localProducts.filter(p => selectedIds.has(p.id));
     if (selected.length === 0) return;
@@ -1964,8 +2006,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // is a full-screen overlay (no margin needed for it), but the action rail is a
   // 60px edge strip on EVERY screen size, so the row content must give up that
   // 60px when the rail is open or the stock number and price hide beneath it.
+  // On the phone, previous / next on the tea page step through the tea's own
+  // group ("1 / 20 from Lidia"), so walking one supplier's shelf stays in it.
+  const panelGroup = useMemo(() => {
+    if (!phoneList || !panelProduct || phoneGroupBy === 'none') return null;
+    return groupStock(processedProducts, phoneGroupBy, effectiveIncomingByProductId).find(g => g.products.some(p => p.id === panelProduct.id)) ?? null;
+  }, [phoneList, panelProduct, phoneGroupBy, processedProducts, effectiveIncomingByProductId]);
+
   const contentRightMargin = isMobile
-    ? (railOpen ? INVENTORY_ACTION_RAIL_WIDTH : 0)
+    ? (railOpen && !phoneList ? INVENTORY_ACTION_RAIL_WIDTH : 0)
     : (panelProduct ? panelWidth : 0) + (railOpen ? INVENTORY_ACTION_RAIL_WIDTH : 0);
 
   // Sort keys shared by the desktop Sort menu and the mobile Adjust fold.
@@ -2025,10 +2074,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             {(['retail', 'cost'] as const).map(m => <button key={m} type="button" onClick={() => setPriceMode(m)} className={`flex-1 rounded-xl px-3 py-3 text-base transition-colors ${priceMode === m ? 'bg-tea-gold/[0.10] text-tea-gold font-semibold' : 'text-tea-text hover:bg-tea-gold/[0.06]'}`}>{m === 'retail' ? 'Retail' : 'Cost'}</button>)}
           </div>
           <div className="px-3 pt-1 pb-1.5 font-mono text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim">Group by</div>
-          {GROUPBY_OPTIONS.map(opt => {
-            const selected = (inventoryGroupBy || '') === opt.value;
-            return <SheetOption key={opt.value} label={opt.label} selected={selected} onSelect={() => setInventoryGroupBy(opt.value || null)} />;
-          })}
+          {phoneList
+            ? (Object.keys(PHONE_GROUP_LABELS) as PhoneGroupBy[]).map(by => <SheetOption key={by} label={PHONE_GROUP_LABELS[by]} selected={phoneGroupBy === by} onSelect={() => setPhoneGroupBy(by)} />)
+            : GROUPBY_OPTIONS.map(opt => {
+              const selected = (inventoryGroupBy || '') === opt.value;
+              return <SheetOption key={opt.value} label={opt.label} selected={selected} onSelect={() => setInventoryGroupBy(opt.value || null)} />;
+            })}
           <div className="px-3 pt-3 pb-1.5 font-mono text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim">Sort by</div>
           {SORT_OPTIONS.map(([key, label]) => {
             const current = inventorySortConfig[0];
@@ -2053,7 +2104,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <div
               data-testid="inventory-primary-row"
               data-inventory-header-row
-              className="static flex h-[52px] w-full max-w-full items-center gap-1 md:gap-4 px-3 md:px-4 whitespace-nowrap overflow-visible"
+              className={`static flex ${phoneList ? 'h-11' : 'h-[52px]'} w-full max-w-full items-center gap-1 md:gap-4 px-3 md:px-4 whitespace-nowrap overflow-visible`}
             >
               <div className="flex items-end gap-2 md:gap-4 shrink-0">
                 <button type="button" aria-pressed={inventoryCategory === 'tea'} onClick={() => onCategoryChange?.('tea')} className={corpusBtn(inventoryCategory === 'tea')}>Tea</button>
@@ -2225,6 +2276,33 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               const attentionViews = allViews.filter(view => !purposeIds.has(view.id));
               const selectView = (view: typeof allViews[number]) => { setGlossaryMode(false); setActiveView(view.id); setInventoryColumns(view.columns); setInventorySortConfig(view.sortConfig); setFilterType(view.filterType); setInventoryGroupBy(view.groupBy); };
               const lensBtn = (active: boolean) => `tap-target relative font-display text-ui-16 font-medium leading-none whitespace-nowrap ${active ? 'text-tea-gold after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:bg-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`;
+              if (phoneList) {
+                // The phone's second line, all of it on one row: which teas
+                // (every view in one menu), how they are grouped, and Adjust.
+                const current = allViews.find(view => view.id === activeViewId);
+                const currentName = current ? (current.name || VIEW_FILTER_LABELS[current.filterType] || current.filterType) : 'All';
+                return (
+                  <div data-testid="inventory-purpose-row" data-inventory-header-row className="static flex h-11 w-full max-w-full items-center gap-2 px-3 border-b border-tea-border overflow-visible">
+                    <div className="relative min-w-0">
+                      <button type="button" onClick={() => setViewTabsExpanded(!viewTabsExpanded)} aria-expanded={viewTabsExpanded} aria-haspopup="menu" aria-label={`Showing ${currentName}. Choose which teas to show`} className="tap-target inline-flex max-w-full items-center gap-1 font-display text-ui-17 font-medium leading-none text-tea-text">
+                        <span className="truncate">{currentName}</span>
+                        <span className="font-mono text-ui-11 text-tea-text-sec">{processedProducts.length}</span>
+                        <ChevronDown size={14} className="shrink-0 text-tea-text-sec" aria-hidden="true" />
+                      </button>
+                      {viewTabsExpanded && (
+                        <div role="menu" className="absolute left-0 top-full mt-1 z-popover w-56 max-h-[70vh] overflow-y-auto rounded-md border border-tea-border bg-tea-elevated py-1 shadow-xl">
+                          {purposeViews.map(view => <button key={view.id} role="menuitem" onClick={() => { selectView(view); setViewTabsExpanded(false); }} className={`block w-full px-3 py-2.5 text-left text-ui-14 hover:bg-tea-accent-sub ${activeViewId === view.id ? 'text-tea-gold' : 'text-tea-text'}`}>{view.name || VIEW_FILTER_LABELS[view.filterType] || view.filterType}</button>)}
+                          {attentionViews.length > 0 && <div className="my-1 border-t border-tea-border" />}
+                          {attentionViews.map(view => <button key={view.id} role="menuitem" onClick={() => { selectView(view); setViewTabsExpanded(false); }} className={`block w-full px-3 py-2 text-left text-ui-13 hover:bg-tea-accent-sub ${activeViewId === view.id ? 'text-tea-gold' : 'text-tea-text-sec'}`}>{view.name || VIEW_FILTER_LABELS[view.filterType] || view.filterType}</button>)}
+                        </div>
+                      )}
+                    </div>
+                    <span className="flex-1" />
+                    <PhoneGroupSwitch value={phoneGroupBy} onChange={setPhoneGroupBy} />
+                    {adjustMenu}
+                  </div>
+                );
+              }
               return (
                 <div data-testid="inventory-purpose-row" data-inventory-header-row className="static flex min-h-12 w-full max-w-full flex-wrap items-center gap-2 md:gap-5 px-3 md:px-4 border-b border-tea-border overflow-visible">
                   <div data-testid="inventory-purpose-lenses" className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 md:gap-x-5">
@@ -2657,6 +2735,21 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         {/* On a phone this data-heavy table goes edge-to-edge: no side gutter, no
             card border, no rounding (those only chrome a narrow column on a small
             screen and steal width). Desktop keeps the bordered card. */}
+        {phoneList ? (
+          <PhoneStockList
+            products={processedProducts}
+            groupBy={phoneGroupBy}
+            priceMode={priceMode}
+            searchActive={searchQuery.trim().length > 0}
+            selectedIds={selectedIds}
+            incomingByProductId={effectiveIncomingByProductId}
+            onToggleSelect={(id) => toggleSelectId(id, productIndexMap.get(id) ?? 0, false)}
+            onOpenEditor={stableOpenPanel}
+            onChangeStock={stableStockMovement}
+            onRecount={stableStockRecount}
+            onOpenSource={stableOpenSource}
+          />
+        ) : (
         <div ref={tableWrapperRef} className="relative w-full max-w-7xl mx-auto px-0 md:px-4 lg:px-6">
           <div className="bg-tea-surface border-y md:border border-tea-border md:rounded-xl overflow-visible">
 
@@ -2936,6 +3029,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           )}
           </div>
         </div>
+        )}
 
       </div>
 
@@ -3001,6 +3095,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         onCollect={() => setAddToCollectionOpen(true)}
         onArchive={handleBulkArchive}
         onClear={() => { setSelectedIds(new Set()); lastSelectedIdxRef.current = null; }}
+        placement={phoneList ? 'bottom' : 'side'}
+        onSelectAll={() => setSelectedIds(new Set(processedProducts.map(p => p.id)))}
+        selectAllCount={processedProducts.length}
       />
 
       {/* --- FEATURE 5: RECORD PANEL (Side Panel) ---
@@ -3013,9 +3110,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         rates={rates}
         onClose={() => setPanelProduct(null)}
         onUpdate={handleProductUpdate}
-        products={processedProducts}
+        products={panelGroup ? panelGroup.products : processedProducts}
         onNavigate={(p) => setPanelProduct(p)}
-        filterLabel={filterType !== 'All' ? (VIEW_FILTER_LABELS[filterType] || filterType) : undefined}
+        filterLabel={panelGroup ? `from ${panelGroup.label}` : filterType !== 'All' ? (VIEW_FILTER_LABELS[filterType] || filterType) : undefined}
+        onRecount={stableStockRecount}
+        onTeaAction={phoneList ? handleTeaAction : undefined}
+        incoming={(() => {
+          const c = livePanelProduct ? effectiveIncomingByProductId[livePanelProduct.id] : undefined;
+          return c?.hasOpenIncoming && c.remainingQuantity > 0 ? { quantity: c.remainingQuantity, eta: livePanelProduct?.inTransitEta ?? null } : null;
+        })()}
         onShowStorePreview={(p) => setDetailsProduct(p)}
         onOpenStockMovement={stableStockMovement}
         canPublish={livePanelProduct ? canPublishInventoryProduct(livePanelProduct) : false}

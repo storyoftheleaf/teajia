@@ -32,7 +32,7 @@ export const DriveLine: React.FC = () => {
   const saveNow = useMutation({
     mutationFn: () => api.compass.driveSaveNow(),
     onSuccess: (r) => {
-      setNote(r.copied ? `${r.copied} photo${r.copied === 1 ? '' : 's'} copied to Drive.` : 'Every photo is already in Drive.');
+      setNote(r.copied ? `${r.copied} photo${r.copied === 1 ? '' : 's'} copied to Drive.` : 'No photos waiting to copy. New ones go to Drive as they are taken.');
       queryClient.invalidateQueries({ queryKey: KEY });
     },
   });

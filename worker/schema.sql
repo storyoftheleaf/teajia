@@ -2087,6 +2087,17 @@ CREATE TABLE IF NOT EXISTS incident_ledger (
 CREATE INDEX IF NOT EXISTS idx_incident_ledger_status_severity_last_seen
   ON incident_ledger(status, severity, last_seen DESC);
 
+-- Telegram alerts sent about ledger problems; counted per UTC day for the cap.
+CREATE TABLE IF NOT EXISTS problem_alerts (
+  id TEXT PRIMARY KEY,
+  incident_id TEXT,
+  signature TEXT,
+  kind TEXT,
+  sent_at TEXT NOT NULL DEFAULT (datetime('now')),
+  ok INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_problem_alerts_sent_at ON problem_alerts(sent_at);
+
 -- Head-admin revision flags for canonical public Tea Reference sections.
 -- Page metadata and the public snapshot are derived server-side; exact private
 -- evidence remains in the local provenance package and never enters D1.
