@@ -116,7 +116,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ chosen, onChosenChange
       <div className="flex items-baseline gap-2 px-4 pb-2">
         <button type="button" onClick={onClose} className="tap-target -ml-1 self-center text-tea-text-sec hover:text-tea-text" aria-label="Back to teas"><ArrowLeft size={18} /></button>
         <span className="flex-1 font-display text-ui-26 text-tea-text">Compare</span>
-        <button type="button" onClick={() => setPicking(true)} className="tap-target text-ui-12 font-medium text-tea-gold">Change teas</button>
+        <button type="button" onClick={() => setPicking(true)} className="tap-target font-mono text-ui-13 text-tea-gold">Change teas</button>
       </div>
       <div className="grid gap-2.5 px-4" data-testid="compare-cards">
         {figures.map(({ entry, perGram, shelf }) => {
@@ -143,8 +143,8 @@ export const CompareView: React.FC<CompareViewProps> = ({ chosen, onChosenChange
                   <span className="curate-v2-name truncate">{entry.name}</span>
                   <span className="truncate text-ui-12 text-tea-text-dim tabular-nums">{[entry.vendorName, entry.year, unit && `per ${unit}`].filter(Boolean).join(' · ')}</span>
                 </button>
-                <button type="button" onClick={() => updateEntry(entry.id, entry.sampleState ? { sampleState: null } : { sampleState: 'requested', isSample: true, decision: 'considering' })} aria-pressed={!!entry.sampleState} className={`tap-target px-2 text-ui-12 font-medium ${entry.sampleState ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>Sample</button>
-                <button type="button" onClick={() => { updateEntry(entry.id, { decision: 'selected' }); onBuy?.(entry.id); }} className={`tap-target px-2 text-ui-12 font-medium ${entry.decision === 'selected' ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>Buy</button>
+                <button type="button" onClick={() => updateEntry(entry.id, entry.sampleState ? { sampleState: null } : { sampleState: 'requested', isSample: true, decision: 'considering' })} aria-pressed={!!entry.sampleState} className={`tap-target px-2 font-mono text-ui-13 ${entry.sampleState ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>Sample</button>
+                <button type="button" onClick={() => { updateEntry(entry.id, { decision: 'selected' }); onBuy?.(entry.id); }} className={`tap-target px-2 font-mono text-ui-13 ${entry.decision === 'selected' ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>Buy</button>
               </div>
               <div className="grid grid-cols-3">
                 {cells.map(([k, v, win], i) => (

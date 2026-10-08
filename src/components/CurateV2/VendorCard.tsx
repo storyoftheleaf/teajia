@@ -146,7 +146,7 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
           <ArrowLeft size={18} />
         </button>
         <span className="min-w-0 flex-1 truncate font-display text-[30px] leading-none text-tea-text">{vendor.name}</span>
-        {orders.length > 0 && <span className="pr-2 text-ui-12 font-medium text-tea-gold">Working with</span>}
+        {orders.length > 0 && <span className="pr-2 font-mono text-ui-13 text-tea-gold">Working with</span>}
       </div>
       <div className="border-t border-tea-border">
         {line('chinese_name', 'Chinese', undefined, true)}
@@ -202,8 +202,8 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
         </button>
       ))}
       <div className="grid grid-cols-2 gap-2 px-4 pt-3">
-        <button type="button" onClick={() => onAddTeaware({ id: vendorId, name: vendor.name })} className="min-h-11 rounded-md border border-tea-border text-ui-13 text-tea-text-sec hover:text-tea-text">＋ Teaware</button>
-        <button type="button" onClick={() => onAddTea({ id: vendorId, name: vendor.name })} className="min-h-11 rounded-md border border-tea-border text-ui-13 text-tea-text-sec hover:text-tea-text">＋ Tea</button>
+        <button type="button" onClick={() => onAddTeaware({ id: vendorId, name: vendor.name })} className="min-h-11 rounded-md border border-tea-border text-ui-13 text-tea-text-sec hover:text-tea-text">+ Teaware</button>
+        <button type="button" onClick={() => onAddTea({ id: vendorId, name: vendor.name })} className="min-h-11 rounded-md border border-tea-border text-ui-13 text-tea-text-sec hover:text-tea-text">+ Tea</button>
       </div>
     </div>
   );

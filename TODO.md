@@ -3,6 +3,7 @@
 > This is a small inbox, not the roadmap. The authoritative priorities are [docs/CONSOLIDATED_DIRECTION.md](docs/CONSOLIDATED_DIRECTION.md), and the only active build checklists are in [docs/tracks/](docs/tracks/).
 
 ## Soon
+- [ ] Stop a deploy from caching a missing script as a web page for a year (the shop showed "Loading Teajia…" twice on 2026-10-08: /assets/* is cached immutable, and a script missing mid-deploy gets the home page instead) _(band: agent-runnable)_ _(effort: moderate)_
 
 - [ ] Stock on the phone, grouped by who you bought from, with every current function kept (five stages, one pull request each) _(band: agent-runnable)_ _(effort: deep)_ → Plan: [stock-phone-by-supplier.md](todo/plans/stock-phone-by-supplier.md)
 - [ ] Curate: work through the fix-now picks from the review; Curate v2 is live at /admin/compass/v2 beside the current one until Adrian switches _(band: agent-runnable)_ _(effort: deep)_ → Plan: [curate-fix-now.md](todo/plans/curate-fix-now.md) · Design: [curate-next.md](todo/plans/curate-next.md)

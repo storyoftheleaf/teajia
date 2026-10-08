@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, ChevronDown, Coffee, FileText, Loader2, Mic, Square } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Loader2, Square } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useNotesStore } from '../../lib/notesStore';
 import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
@@ -120,7 +120,7 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
   };
   // The one thing still missing is the gold button: tasting first, then a word about it.
   const next: 'taste' | 'talk' | 'note' = !tasting && !isTeaware ? 'taste' : canTalk ? 'talk' : 'note';
-  const act = (k: typeof next) => `flex min-h-12 items-center justify-center gap-2 rounded-md border text-ui-13 font-medium ${
+  const act = (k: typeof next) => `flex min-h-12 items-center justify-center gap-2 rounded border font-mono text-ui-12 uppercase tracking-[0.14em] ${
     next === k ? 'border-tea-gold bg-tea-gold/10 text-tea-gold' : 'border-tea-border text-tea-text-sec hover:text-tea-text'
   }`;
 
@@ -179,7 +179,7 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
       <div className={`grid gap-2 px-4 pt-3 ${canTalk ? 'grid-cols-3' : 'grid-cols-2'}`} role="group" aria-label="Do with this tea">
         {!isTeaware && (
           <button type="button" onClick={() => onTaste(entry.id)} className={act('taste')}>
-            <Coffee size={15} strokeWidth={1.6} /> Taste
+            Taste
           </button>
         )}
         {canTalk && (
@@ -191,12 +191,12 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
           >
             {talking && voiceState === 'transcribing' ? <Loader2 size={15} className="animate-spin" />
               : talking ? <Square size={12} fill="currentColor" strokeWidth={0} />
-              : <Mic size={15} strokeWidth={1.6} />}
+              : null}
             {talking ? (voiceState === 'transcribing' ? 'Writing' : 'Stop') : 'Talk'}
           </button>
         )}
         <button type="button" onClick={() => setNoteOpen((v) => !v)} aria-expanded={noteOpen} className={noteOpen ? 'flex min-h-12 items-center justify-center gap-2 rounded-md border border-tea-gold text-ui-13 font-medium text-tea-gold' : act('note')}>
-          <FileText size={15} strokeWidth={1.6} /> Note
+          Note
         </button>
       </div>
 
@@ -214,7 +214,7 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
         </div>
       )}
 
-      <div className="mx-4 mt-3 grid grid-cols-3 overflow-hidden rounded-md border border-tea-border" role="radiogroup" aria-label="Decision" data-testid="tea-face-decision">
+      <div className="mx-4 mt-3 grid grid-cols-3 overflow-hidden rounded border border-tea-border" role="radiogroup" aria-label="Decision" data-testid="tea-face-decision">
         {(['pass', 'sample', 'buy'] as const).map((c, i) => (
           <button
             key={c}
@@ -222,7 +222,7 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
             role="radio"
             aria-checked={choice === c}
             onClick={() => choose(c)}
-            className={`min-h-11 text-ui-11 font-semibold uppercase tracking-[0.1em] ${i ? 'border-l border-tea-border' : ''} ${
+            className={`min-h-11 font-mono text-ui-11 uppercase tracking-[0.16em] ${i ? 'border-l border-tea-border' : ''} ${
               choice === c ? 'bg-tea-gold/15 text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
             }`}
           >
@@ -240,11 +240,11 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
           className="flex min-h-11 w-full items-center gap-2 px-4 text-left"
           data-testid="tea-face-said"
         >
-          <span className="flex-1 text-ui-13 text-tea-text-sec">
-            <span className="font-medium text-tea-text">What you said</span>
-            {' · '}{said.length ? `${said.length} recording${said.length === 1 ? '' : 's'}` : 'nothing yet'}
+          <span className="flex flex-1 items-baseline gap-2">
+            <span className="curate-v2-label">What you said</span>
+            <span className="text-ui-13 text-tea-text-sec tabular-nums">{said.length ? `${said.length} recording${said.length === 1 ? '' : 's'}` : 'nothing yet'}</span>
           </span>
-          {said.length > 0 && <span className="flex items-center gap-1 text-ui-13 text-tea-gold">Open <ChevronDown size={14} className={saidOpen ? 'rotate-180' : ''} /></span>}
+          {said.length > 0 && <span className="flex items-center gap-1 font-mono text-ui-13 text-tea-gold">Open <ChevronDown size={14} className={saidOpen ? 'rotate-180' : ''} /></span>}
         </button>
         {saidOpen && !onOpenSaid && (
           <ul className="grid gap-3 px-4 pb-3">

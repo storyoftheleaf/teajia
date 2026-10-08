@@ -27,7 +27,7 @@ import { GramSlider } from './GramSlider';
 export const CURRENCY_LABELS: Record<Currency, string> = {
   NT: 'NT$',
   USD: '$',
-  Yuan: 'CN¥',
+  Yuan: '¥',
   MYR: 'RM',
   IDR: 'Rp',
   JPY: 'JP¥',

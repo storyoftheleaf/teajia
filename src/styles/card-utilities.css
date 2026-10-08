@@ -4914,18 +4914,26 @@ body.cart-panel-open .commerce-dock {
 }
 
 /* ── Curate v2 ─────────────────────────────────────────────────────────────
-   The second Curate (src/components/CurateV2, /admin/compass/v2). Every figure
-   uses lining, even-width numbers so prices, weights and years sit on the
-   line and stack in columns; Cormorant's default old-style figures drop below
-   it. Labels are small spaced capitals in the sans face, never below 10px. */
+   The second Curate (src/components/CurateV2, /admin/compass/v2), dressed as
+   the shop and Stock are: names in Cormorant, every figure and every small
+   capital label in Lora (the site's `num` face), rows with room to breathe,
+   and thin frames rather than filled pills or round blobs. Figures are lining
+   and even-width so prices and weights stack in columns. */
 .curate-v2,
 .curate-v2 .font-display {
   font-variant-numeric: lining-nums tabular-nums;
 }
+/* Every figure in Curate reads in Lora, as the shop's prices and Stock's counts do. */
+.curate-v2 .tabular-nums {
+  font-family: var(--font-mono);
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  letter-spacing: 0.005em;
+}
 .curate-v2-label {
+  font-family: var(--font-mono);
   font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
+  font-weight: 500;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--tea-text-dim);
 }
@@ -4933,32 +4941,53 @@ body.cart-panel-open .commerce-dock {
 .curate-v2-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 48px;
-  padding: 0 16px;
+  gap: 10px;
+  min-height: 58px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--tea-border);
   white-space: nowrap;
 }
 .curate-v2 .curate-v2-name {
   font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
   font-feature-settings: 'lnum' 1;
-  font-size: 18px;
-  line-height: 1.1;
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 1.15;
   color: var(--tea-text);
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
 }
+/* A small framed box, the shop's year and price frame: Taste, a mic, − and +. */
+.curate-v2-frame {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--tea-border);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--tea-text-sec);
+  transition: color 0.15s, border-color 0.15s;
+}
+.curate-v2-frame:hover { color: var(--tea-text); border-color: rgb(var(--tea-gold-rgb) / 0.5); }
+.curate-v2-frame[aria-pressed='true'],
+.curate-v2-frame.is-on { color: var(--tea-gold); border-color: var(--tea-gold); }
 .curate-v2-tabs {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 .curate-v2-tab {
-  min-height: 44px;
+  min-height: 46px;
   white-space: nowrap;
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--tea-text-dim);
   box-shadow: inset 0 -1px 0 transparent;

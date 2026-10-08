@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Coffee, Mic, Square, Loader2 } from 'lucide-react';
+import { Mic, Square, Loader2 } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { parseTeaInput } from './InputParser';
 import { REGION_NAMES } from '../../wisdom';
@@ -180,9 +180,9 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
               type="button"
               onClick={() => onTaste(e.id)}
               aria-label={`Fast tasting for ${e.name || 'this tea'}`}
-              className="tap-target flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-tea-border text-tea-text-sec hover:text-tea-text"
+              className={`curate-v2-frame shrink-0 ${tastingLine(e.tasting) ? "is-on" : ""}`}
             >
-              <Coffee size={14} strokeWidth={1.6} />
+              Taste
             </button>
             {canTalk && (
               <button
@@ -193,13 +193,11 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
                 onContextMenu={(ev) => ev.preventDefault()}
                 onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onTalk(e.id); } }}
                 aria-label={talking ? `Stop recording for ${e.name || 'this tea'}` : `Talk about ${e.name || 'this tea'}`}
-                className={`tap-target flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors ${
-                  talking ? 'border-tea-gold bg-tea-gold/10 text-tea-gold' : 'border-tea-border text-tea-text-sec hover:text-tea-text'
-                }`}
+                className={`curate-v2-frame w-[40px] shrink-0 px-0 ${talking ? "is-on" : ""}`}
               >
                 {talking && voiceState === 'transcribing' ? <Loader2 size={13} className="animate-spin" />
                   : talking ? <Square size={11} fill="currentColor" strokeWidth={0} />
-                  : <Mic size={14} strokeWidth={1.6} />}
+                  : <Mic size={14} strokeWidth={1.4} />}
               </button>
             )}
           </div>

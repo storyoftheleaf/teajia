@@ -96,7 +96,7 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
         </ol>
       )}
       {waitingCount === 0 && entries.length > 0 && (
-        <p className="px-4 py-4 text-ui-13 text-tea-text-sec">Nothing waiting. Open Table to taste, or ＋ Tea to add one.</p>
+        <p className="px-4 py-4 text-ui-13 text-tea-text-sec">Nothing waiting. Open Table to taste, or + Tea to add one.</p>
       )}
 
       {groups.map((g) => (
@@ -104,7 +104,7 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
           <span className="curate-v2-name">From {g.found_by || 'your agent'}</span>
           <span className="min-w-0 truncate text-ui-12 text-tea-text-dim">{[g.vendor, `${g.teas.length} found`].filter(Boolean).join(' · ')}</span>
           <span className="flex-1" />
-          <span className="text-ui-12 font-medium text-tea-gold">Pick</span>
+          <span className="font-mono text-ui-13 text-tea-gold">Pick</span>
         </button>
       ))}
 
@@ -128,7 +128,7 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
           <span className="curate-v2-name">{v.name}</span>
           <span className="text-ui-12 text-tea-text-dim">vendor</span>
           <span className="flex-1" />
-          <span className="text-ui-12 font-medium text-tea-gold">Add WeChat</span>
+          <span className="font-mono text-ui-13 text-tea-gold">Add WeChat</span>
         </button>
       ))}
 
@@ -146,7 +146,7 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
             <span className="curate-v2-name">{item.name}</span>
             {item.who && <span className="text-ui-12 text-tea-text-dim">{item.who}</span>}
             <span className="flex-1" />
-            <span className="text-ui-12 font-medium text-tea-gold">{TODAY_ACTION_LABEL[item.action]}</span>
+            <span className="font-mono text-ui-13 text-tea-gold">{TODAY_ACTION_LABEL[item.action]}</span>
           </button>
         );
       })}
@@ -167,7 +167,7 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
         </form>
       ) : hasToken() && (
         <button type="button" onClick={() => setAdding(true)} className="curate-v2-row w-full text-left">
-          <span className="text-ui-13 text-tea-text-dim">＋ A to-do</span>
+          <span className="text-ui-13 text-tea-text-dim">+ A to-do</span>
         </button>
       )}
       {(tick.isError || addTodo.isError) && <p className="px-4 py-2 text-ui-12 text-tea-error">{errorText(tick.error ?? addTodo.error)}</p>}
@@ -197,7 +197,7 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
                     {[r.vendor_name, `${r.quantity}${r.unit === 'g' ? ' g' : r.quantity === 1 ? ' piece' : ' pieces'}`, days != null ? `${days} d` : null].filter(Boolean).join(' · ')}
                   </span>
                 </button>
-                <button type="button" onClick={() => arrived.mutate(r.id)} disabled={arrived.isPending && arrived.variables === r.id} className="tap-target text-ui-12 font-medium text-tea-gold">Arrived</button>
+                <button type="button" onClick={() => arrived.mutate(r.id)} disabled={arrived.isPending && arrived.variables === r.id} className="tap-target font-mono text-ui-13 text-tea-gold">Arrived</button>
               </div>
             );
           })}
@@ -211,9 +211,13 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
   );
 };
 
+/** A section as the shop draws one: the word large, a two-digit count, a gold hairline. */
 export const Section: React.FC<{ title: string; count?: number }> = ({ title, count }) => (
-  <div className="flex items-baseline justify-between border-b border-tea-border px-4 pb-2 pt-4">
-    <span className="font-display text-ui-20 text-tea-text">{title}</span>
-    {count != null && <span className="text-ui-12 font-medium text-tea-text-dim tabular-nums">{count}</span>}
+  <div className="px-4 pt-7 first:pt-3">
+    <div className="flex items-baseline justify-between pb-2.5">
+      <span className="font-display text-ui-26 font-normal tracking-[0.02em] text-tea-text">{title}</span>
+      {count != null && <span className="text-ui-11 text-tea-text-dim tabular-nums">{String(count).padStart(2, '0')}</span>}
+    </div>
+    <div className="h-px bg-tea-gold/20" aria-hidden="true" />
   </div>
 );

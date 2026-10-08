@@ -33,7 +33,7 @@ import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData'
 // ─── Currency helpers ────────────────────────────────────────────────────────
 
 const CURRENCY_SYMBOLS: Record<Currency, string> = {
-  USD: '$', NT: 'NT$', Yuan: 'CN¥', IDR: 'Rp', JPY: 'JP¥', MYR: 'RM', HKD: 'HK$', AUD: 'A$', UNK: '',
+  USD: '$', NT: 'NT$', Yuan: '¥', IDR: 'Rp', JPY: 'JP¥', MYR: 'RM', HKD: 'HK$', AUD: 'A$', UNK: '',
 };
 
 function fmtPrice(amount: number, currency: Currency): string {
@@ -77,75 +77,53 @@ const LineItemRow: React.FC<{
 
   const currentQty = isUnitBased ? (item.quantityUnits ?? 1) : (item.quantityGrams ?? 100);
 
-  return (
-    <div className="border-b border-tea-border px-4 py-2">
-      <div className="flex items-center gap-2">
-        {/* Name + meta */}
-        <div className="flex-1 min-w-0">
-          {item.compassEntryId && onOpenEntry ? (
-            <button
-              onClick={() => onOpenEntry(item.compassEntryId!)}
-              className="curate-v2-name block w-full truncate text-left transition-colors hover:text-tea-gold"
-            >
-              {item.name || 'Unnamed'}
-            </button>
-          ) : item.productId ? (
-            <button
-              onClick={() => navigate(`/admin/stock?panel=${encodeURIComponent(item.productId!)}`)}
-              className="curate-v2-name block w-full truncate text-left transition-colors hover:text-tea-gold"
-            >
-              {item.name || 'Unnamed'}
-            </button>
-          ) : (
-            <p className="curate-v2-name truncate">
-              {item.name || 'Unnamed'}
-            </p>
-          )}
-          {(item.type || item.form || item.year) && (
-            <p className="mt-0.5 text-ui-12 text-tea-text-dim tabular-nums">
-              {[item.type, item.form, item.year].filter(Boolean).join(' · ')}
-            </p>
-          )}
-        </div>
+  // "2 cakes", "1 piece", "500 g": the amount the way it is ordered.
+  const piece = String(item.form || (item.type === 'Teaware' ? 'piece' : 'piece')).toLowerCase();
+  const qtyWords = isUnitBased ? `${currentQty} ${currentQty === 1 ? piece : `${piece}s`}` : `${currentQty.toLocaleString()} g`;
+  const nameClass = 'curate-v2-name block w-full truncate text-left transition-colors hover:text-tea-gold';
 
-        {/* Quantity control */}
-        <div className="flex items-center gap-1 shrink-0">
-          <button
-            type="button"
-            onClick={() => handleQtyChange(currentQty - (isUnitBased ? 1 : 25))}
-            className="w-7 h-7 rounded-full bg-tea-surface flex items-center justify-center text-tea-text-sec active:bg-tea-elevated transition-colors"
-          >
-            <Minus size={11} />
-          </button>
-          <div className="flex items-baseline gap-0.5">
+  return (
+    <div className="border-b border-tea-border px-4 py-3.5">
+      <div className="flex items-start gap-3">
+        {/* The year in a small frame, as the shop shows it. */}
+        <span className="mt-0.5 flex h-[38px] w-[46px] shrink-0 items-center justify-center rounded-[3px] border border-tea-border text-ui-13 text-tea-text-sec tabular-nums">
+          {item.year ?? '—'}
+        </span>
+        <div className="min-w-0 flex-1">
+          {item.compassEntryId && onOpenEntry ? (
+            <button onClick={() => onOpenEntry(item.compassEntryId!)} className={nameClass}>{item.name || 'Unnamed'}</button>
+          ) : item.productId ? (
+            <button onClick={() => navigate(`/admin/stock?panel=${encodeURIComponent(item.productId!)}`)} className={nameClass}>{item.name || 'Unnamed'}</button>
+          ) : (
+            <p className="curate-v2-name truncate">{item.name || 'Unnamed'}</p>
+          )}
+          {(item.type || item.form || item.chineseName) && (
+            <p className="mt-1 truncate font-sans text-ui-12 tracking-[0.02em] text-tea-text-sec">
+              {item.type && <span className="uppercase">{item.type}</span>}
+              {item.type && item.form && item.type !== 'Teaware' && <><span className="px-1.5 text-tea-text-dim">&middot;</span><span>{item.form}</span></>}
+              {item.chineseName && <><span className="px-1.5 text-tea-text-dim">&middot;</span><span className="text-tea-text-dim" style={{ fontFamily: "'Noto Serif SC', serif" }}>{item.chineseName}</span></>}
+            </p>
+          )}
+          <button type="button" onClick={onRemove} className="mt-1 text-ui-11 text-tea-text-dim transition-colors hover:text-tea-text-sec">remove</button>
+        </div>
+        {/* Amount and price in one frame, − and + beneath it. */}
+        <div className="flex shrink-0 flex-col items-stretch gap-1.5">
+          <div className="flex h-[38px] items-center justify-between gap-3 rounded-[3px] border border-tea-border px-3">
+            <span className="text-ui-13 text-tea-text-sec tabular-nums">{qtyWords}</span>
+            <span className="text-ui-14 font-medium text-tea-text tabular-nums">{fmtPrice(total, item.currency)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <button type="button" aria-label="Less" onClick={() => handleQtyChange(currentQty - (isUnitBased ? 1 : 25))} className="curate-v2-frame h-8 w-9 min-w-0 px-0"><Minus size={12} strokeWidth={1.5} /></button>
             <input
               type="number"
               value={currentQty}
+              aria-label="Amount"
               onChange={(e) => handleQtyChange(Math.max(1, parseInt(e.target.value) || 1))}
               onWheel={(e) => (e.target as HTMLElement).blur()}
-              className="w-10 text-center text-tea-text text-xs font-medium bg-transparent num border-none outline-none"
+              className="w-14 border-none bg-transparent text-center text-ui-11 uppercase tracking-[0.14em] text-tea-text-dim outline-none tabular-nums"
             />
-            <span className="text-tea-text-dim text-ui-10 num">{isUnitBased ? '×' : 'g'}</span>
+            <button type="button" aria-label="More" onClick={() => handleQtyChange(currentQty + (isUnitBased ? 1 : 25))} className="curate-v2-frame h-8 w-9 min-w-0 px-0"><Plus size={12} strokeWidth={1.5} /></button>
           </div>
-          <button
-            type="button"
-            onClick={() => handleQtyChange(currentQty + (isUnitBased ? 1 : 25))}
-            className="w-7 h-7 rounded-full bg-tea-surface flex items-center justify-center text-tea-text-sec active:bg-tea-elevated transition-colors"
-          >
-            <Plus size={11} />
-          </button>
-        </div>
-
-        {/* Price + remove */}
-        <div className="shrink-0 text-right">
-          <p className="text-ui-14 font-medium text-tea-text-sec tabular-nums">{fmtPrice(total, item.currency)}</p>
-          <button
-            type="button"
-            onClick={onRemove}
-            className="mt-0.5 text-ui-12 text-tea-text-dim transition-colors hover:text-tea-text-sec"
-          >
-            remove
-          </button>
         </div>
       </div>
     </div>
@@ -238,7 +216,7 @@ const TransactionPhotos: React.FC<{ txId: string; photos: string[] }> = ({ txId,
             type="button"
             onClick={handleCapture}
             disabled={uploading}
-            className={`flex items-center gap-1.5 py-2 px-3 rounded-xl bg-tea-surface text-tea-text-dim text-ui-11 transition-colors active:text-tea-text-sec ${
+            className={`flex items-center gap-1.5 py-2 text-tea-text-dim text-ui-12 transition-colors hover:text-tea-text-sec ${
               uploading ? 'animate-pulse' : ''
             }`}
           >
@@ -445,7 +423,7 @@ const TransactionCard: React.FC<{
   }, [tx.id, isPurchase, removeTransaction]);
 
   return (
-    <div className="curate-v2 -mx-4 border-b border-tea-border" data-testid="curate-order">
+    <div className="curate-v2 -mx-4 pb-4" data-testid="curate-order">
       {/* Curate v2: the vendor as the heading, what the order is in small
           words, the total and Message on the right, as drawn. */}
       <div className="flex items-center gap-2 pl-4 pr-2 pt-3">
@@ -459,19 +437,20 @@ const TransactionCard: React.FC<{
           <ChevronDown size={14} className={`shrink-0 self-center text-tea-text-dim transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
         </button>
         {isPurchase && tx.items.length > 0 && (
-          <button type="button" onClick={() => setMessageOpen(true)} className="tap-target px-2 text-ui-13 font-medium text-tea-gold" aria-label="Message the vendor about this order">
+          <button type="button" onClick={() => setMessageOpen(true)} className="tap-target px-2 font-mono text-ui-13 tracking-[0.04em] text-tea-gold" aria-label="Message the vendor about this order">
             Message
           </button>
         )}
       </div>
-      <div className="flex items-baseline justify-between gap-3 border-b border-tea-border px-4 pb-2.5 text-ui-12 text-tea-text-sec">
-        <span className="flex items-center gap-1.5">
-          <DirectionIcon size={13} className="text-tea-gold" />
-          <span className="font-medium text-tea-text">{isPurchase ? 'Purchase' : 'Sale'}</span>
-          <span>· {isDraft ? 'draft' : 'confirmed'} · {tx.items.length} {tx.items.length === 1 ? 'item' : 'items'}{(tx.photos?.length ?? 0) > 0 ? ` · ${tx.photos.length} photo${tx.photos.length === 1 ? '' : 's'}` : ''}</span>
+      <div className="flex items-baseline justify-between gap-3 px-4 pb-3 text-ui-12 text-tea-text-sec tabular-nums">
+        <span>
+          {isPurchase ? 'purchase' : 'sale'} · {tx.items.length} {tx.items.length === 1 ? 'item' : 'items'}
+          {' · '}<span className={isDraft ? 'text-tea-gold' : ''}>{isDraft ? 'draft' : 'confirmed'}</span>
+          {(tx.photos?.length ?? 0) > 0 ? ` · ${tx.photos.length} photo${tx.photos.length === 1 ? '' : 's'}` : ''}
         </span>
         {!isExpanded && <span className="text-ui-14 font-medium text-tea-text tabular-nums">{fmtPrice(total, tx.currency)}</span>}
       </div>
+      <div className="mx-4 h-px bg-tea-gold/20" aria-hidden="true" />
 
       {/* Expanded body */}
       <AnimatePresence initial={false}>
@@ -686,15 +665,15 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
   const starters = (
     <div className="curate-v2 -mx-4 border-t border-tea-border">
       <button type="button" onClick={() => openPurchaseOrder()} className="curate-v2-row w-full text-left">
-        <span className="text-ui-14 font-medium text-tea-gold">＋ Purchase order</span>
+        <span className="text-ui-14 font-medium text-tea-gold">+ Purchase order</span>
         <span className="flex-1" />
         <span className="text-ui-12 text-tea-text-dim">several teas from one vendor</span>
       </button>
       <button type="button" onClick={() => createTransaction('purchase', '', useTeaCompassStore.getState().lastCurrency)} className="curate-v2-row w-full text-left">
-        <span className="text-ui-14 text-tea-text-sec">＋ Quick purchase note</span>
+        <span className="text-ui-14 text-tea-text-sec">+ Quick purchase note</span>
       </button>
       <button type="button" onClick={() => createTransaction('sale', '', 'USD')} className="curate-v2-row w-full text-left">
-        <span className="text-ui-14 text-tea-text-sec">＋ Quick sale</span>
+        <span className="text-ui-14 text-tea-text-sec">+ Quick sale</span>
       </button>
     </div>
   );
