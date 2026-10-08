@@ -84,6 +84,7 @@ import {
 } from './eventDomain';
 import { candidateToApi, impressionToApi, journalRowToNotes, parseCandidateInput } from './tastingNoteCuration';
 import { deliverVerificationCode, deliveryFailureBody } from './verificationDelivery';
+import { alertForProblem } from './problemAlerts';
 import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, recordHealthProblem, clearHealthProblem, type IncidentStatus } from './incidents';
 import {
   deleteWisdomVerification,
@@ -169,6 +170,9 @@ interface Env {
   SENDER_EMAIL?: string;
   SENDER_NAME?: string;
   RESEND_API_KEY?: string;
+  // Optional worker secrets: both set means a new high/critical problem sends one Telegram message
+  TELEGRAM_BOT_TOKEN?: string;
+  TELEGRAM_CHAT_ID?: string;
   // Optional — set to enable Google OAuth sign-in
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
@@ -28349,10 +28353,12 @@ async function handleCreateIncident(request: Request, env: Env): Promise<Respons
   try {
     const raw = await request.json();
     const incident = normalizeIncidentInput(raw as Record<string, unknown>);
-    const row = await upsertIncident(env.DB, incident, {
+    const { row, change } = await upsertIncident(env.DB, incident, {
       accountId,
       userId: claims.sub,
     });
+    // Never throws and is bounded by a 5s timeout; a failed alert must not fail the report.
+    await alertForProblem(env, { row, change });
     return json({ incident: incidentToApi(row || { id: null, signature: incident.signature }) }, 201);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Invalid incident';
@@ -29564,7 +29570,7 @@ async function reportStaleExchangeRates(env: Env, lastRefresh?: RateRefreshResul
   // Only past the threshold does this reach the ledger: one failed hour is not
   // a problem, a week of them is. The reason the last attempt failed rides on
   // the message, because the worker keeps no logs to find it in afterwards.
-  await recordHealthProblem(env.DB, {
+  const write = await recordHealthProblem(env.DB, {
     signature: RATES_STALE_SIGNATURE,
     category: 'server',
     severity: 'high',
@@ -29573,6 +29579,7 @@ async function reportStaleExchangeRates(env: Env, lastRefresh?: RateRefreshResul
     errorCode: 'rates_stale',
     message: staleRatesMessage(stale, lastRefresh?.reason),
   });
+  await alertForProblem(env, write);
 }
 
 export default {

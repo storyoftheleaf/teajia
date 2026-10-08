@@ -113,16 +113,28 @@ export function incidentToApi(row: Record<string, unknown>) {
   return { ...rest, sample };
 }
 
+/** What a write did to the ledger: opened a row, reopened a resolved one, or only counted. */
+export type IncidentChange = 'new' | 'reopened' | 'repeat';
+export interface IncidentWrite {
+  row: Record<string, unknown> | null;
+  change: IncidentChange;
+}
+
 export async function upsertIncident(
   db: D1Database,
   incident: NormalizedIncident,
   context: { accountId?: string | null; userId?: string | null },
-) {
+): Promise<IncidentWrite> {
   const id = crypto.randomUUID();
   const sampleJson = JSON.stringify(incident.sample);
   // The ledger has a global UNIQUE(signature). Include the verified tenant in
   // that key so one store's report cannot reopen or escalate another's row.
   const signature = `${context.accountId ?? '__global__'}:${incident.signature}`.slice(0, 240);
+  // Read the status first so the caller can tell a new problem from a repeat.
+  // Not atomic with the upsert; two simultaneous first reports may both read
+  // "new", which costs at most one extra alert, and the daily cap bounds that.
+  const before = await db.prepare('SELECT status FROM incident_ledger WHERE signature = ?')
+    .bind(signature).first<{ status: string }>();
   await db.prepare(`
     INSERT INTO incident_ledger
       (id, signature, category, severity, status, first_seen, last_seen, occurrence_count,
@@ -150,7 +162,9 @@ export async function upsertIncident(
     incident.route, incident.method, incident.httpStatus, incident.errorCode,
     incident.safeMessage, incident.deployment, context.accountId ?? null, context.userId ?? null, sampleJson,
   ).run();
-  return db.prepare('SELECT * FROM incident_ledger WHERE signature = ?').bind(signature).first<Record<string, unknown>>();
+  const row = await db.prepare('SELECT * FROM incident_ledger WHERE signature = ?').bind(signature).first<Record<string, unknown>>();
+  const change: IncidentChange = !before ? 'new' : before.status === 'resolved' ? 'reopened' : 'repeat';
+  return { row, change };
 }
 
 /**
@@ -180,7 +194,7 @@ export interface HealthProblemInput {
   httpStatus?: number | null;
 }
 
-export async function recordHealthProblem(db: D1Database, input: HealthProblemInput) {
+export async function recordHealthProblem(db: D1Database, input: HealthProblemInput): Promise<IncidentWrite> {
   const normalized = normalizeIncidentInput({
     category: input.category ?? 'server',
     severity: input.severity ?? 'high',
