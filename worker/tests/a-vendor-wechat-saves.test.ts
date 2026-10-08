@@ -101,5 +101,11 @@ describe('a vendor created from Curate', () => {
     const rows = await list.json() as Array<{ name: string; tags: string[] }>;
     expect(rows.find((r) => r.name === 'Old vendor')?.tags).toEqual(['vendor']);
     expect(rows.find((r) => r.name === 'Wang Laoshi')?.tags).toEqual(['vendor']);
+
+    // The contact's own page read the same column and failed the same way:
+    // on 2026-10-06 both answered 500 for one bare-word vendor.
+    const one = await call(db, '/api/customers/old-1');
+    expect(one.status).toBe(200);
+    expect((await one.json() as { tags: string[] }).tags).toEqual(['vendor']);
   });
 });
