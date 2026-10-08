@@ -22,6 +22,7 @@ import { LedgerView } from './LedgerView';
 import { useVoiceRecorder } from './useVoiceRecorder';
 import { TodayView } from './TodayView';
 import { TableList } from './TableList';
+import { TeaFace } from './TeaFace';
 import { VendorsView } from './VendorsView';
 import { CompareView } from './CompareView';
 import { FastTastingSheet } from './FastTastingSheet';
@@ -489,8 +490,14 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     [setActiveEntry]
   );
 
+  /** The tea shown as its read-at-a-glance face rather than the full card.
+   *  Opening a tea shows its face; "Edit all fields" or a brand new tea shows
+   *  the full card, so typing a first name never flips the screen. */
+  const [faceId, setFaceId] = useState<string | null>(null);
+
   const handleEditEntry = useCallback(
     (id: string) => {
+      setFaceId(id);
       setActiveEntry(id);
       setFromLibrary(true);
       setMode('sourcing');
@@ -625,6 +632,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   /** Open one tea in the capture card, remembering where we came from so the
    *  header's back arrow returns there (Today, Vendors, Compare, Teas). */
   const openTeaFrom = useCallback((entryId: string, from: CompassMode) => {
+    setFaceId(entryId);
     setActiveEntry(entryId);
     setFromLibrary(from === 'library');
     setPrevMode(from);
@@ -633,6 +641,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   const openFullTasting = useCallback((entryId: string) => {
     setFastTastingId(null);
+    setFaceId(null);
     if (activeEntryId !== entryId) setActiveEntry(entryId);
     if (mode !== 'sourcing') { setPrevMode(mode); setMode('sourcing'); }
     window.setTimeout(() => visibleCaptureActions()?.openTasting(), 250);
@@ -1064,7 +1073,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       {(!initialDevelopmentProduct || developmentStarted) && (
                         <TableList
                           activeEntryId={activeEntryId}
-                          onOpen={(id) => { setActiveEntry(id); setFromLibrary(false); }}
+                          onOpen={(id) => { setFaceId(id); setActiveEntry(id); setFromLibrary(false); }}
                           onTaste={setFastTastingId}
                           canTalk={isPlatformPrivileged}
                           onTalk={handleRowTalk}
@@ -1102,7 +1111,18 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         )}
                       </AnimatePresence>}
 
-                      {activeEntryId && (!initialDevelopmentProduct || developmentStarted) && <CaptureCard
+                      {activeEntryId && (!initialDevelopmentProduct || developmentStarted) && faceId === activeEntryId && <TeaFace
+                        entryId={activeEntryId}
+                        onEdit={() => setFaceId(null)}
+                        onTaste={setFastTastingId}
+                        onFullTasting={openFullTasting}
+                        canTalk={isPlatformPrivileged}
+                        onTalk={handleRowTalk}
+                        talking={talkFor === activeEntryId && (voiceState === 'recording' || voiceState === 'transcribing')}
+                        voiceState={voiceState}
+                        onDone={isPendingEntry ? handleDoneClick : undefined}
+                      />}
+                      {activeEntryId && (!initialDevelopmentProduct || developmentStarted) && faceId !== activeEntryId && <CaptureCard
                         entryId={activeEntryId}
                         onSwitchToLedger={() => handleSwitchMode('buying')}
                         onCommit={handleCommitEntry}
@@ -1307,6 +1327,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   <LedgerView
                     embedded
                     onOpenEntry={(entryId) => {
+                      setFaceId(entryId);
                       setActiveEntry(entryId);
                       setMode('sourcing');
                     }}
@@ -1422,7 +1443,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     <div className="-mx-4 mb-1">
                       <TableList
                         activeEntryId={activeEntryId}
-                        onOpen={(id) => { setActiveEntry(id); setFromLibrary(false); }}
+                        onOpen={(id) => { setFaceId(id); setActiveEntry(id); setFromLibrary(false); }}
                         onTaste={setFastTastingId}
                         canTalk={isPlatformPrivileged}
                         onTalk={handleRowTalk}
@@ -1690,6 +1711,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     <LedgerView
                       embedded
                       onOpenEntry={(entryId) => {
+                        setFaceId(entryId);
                         setActiveEntry(entryId);
                         setMode('sourcing');
                       }}
@@ -1752,6 +1774,20 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         <button type="button" onClick={startInventoryDevelopment} className="min-h-11 px-3 rounded-md bg-tea-accent-sub text-ui-12 text-tea-text hover:bg-tea-gold/10">
                           Start development
                         </button>
+                      </div>
+                    ) : activeEntryId && faceId === activeEntryId ? (
+                      <div className="mx-auto w-full max-w-xl">
+                        <TeaFace
+                          entryId={activeEntryId}
+                          onEdit={() => setFaceId(null)}
+                          onTaste={setFastTastingId}
+                          onFullTasting={openFullTasting}
+                          canTalk={isPlatformPrivileged}
+                          onTalk={handleRowTalk}
+                          talking={talkFor === activeEntryId && (voiceState === 'recording' || voiceState === 'transcribing')}
+                          voiceState={voiceState}
+                          onDone={isPendingEntry ? handleDoneClick : undefined}
+                      />
                       </div>
                     ) : activeEntryId ? (
                       <>
