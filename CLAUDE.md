@@ -102,6 +102,8 @@ Read `docs/COLOR_RULES.md` before writing any component styles.
 
 - **Connection notices wait.** The offline bar (`NetworkStatus`) appears only after 8 seconds offline, and "Back online" only follows a bar that was shown. The request-failed pill (`NetworkErrorNotice`) waits 4 seconds and stands down if a request succeeds meanwhile. Wifi flickers used to flash both.
 - **The site's own bookkeeping is not recovery.** Filing an incident or reading the ledger (`reportIncident: false`) never fires `NETWORK_RECOVERED_EVENT`; when it did, every slow request's notice was cancelled by the report about it.
+- **The agent fixes a problem and then marks it, never the other way round** (Adrian, 2026-10-08: "I shouldn't mark them fixed. You should fix them and when they are fixed you mark them yourself"). Resolve a row only once the fix is live, with `resolution_ref` naming the commit or PR. Clearing rows as merely quiet is not fixing them.
+- **A page that loses its files to a deploy reloads into the new build** instead of showing "Something went wrong": the root `ErrorBoundary` asks `reloadIntoNewerBuild` in [src/lib/versionCheck.ts](src/lib/versionCheck.ts), which shares the version check's 30-second cooldown so it cannot loop. Enforced by `tests/stale-build-reload.spec.ts`.
 - **A new server-side health check uses the same pair**: `recordHealthProblem` when it fails, `clearHealthProblem` when it passes, one fixed signature, so it shows on Needs fixing and clears itself.
 - Enforced by [worker/tests/exchange-rate-sources-and-ledger.test.ts](worker/tests/exchange-rate-sources-and-ledger.test.ts), [src/lib/incidentWords.test.ts](src/lib/incidentWords.test.ts), `tests/site-fixes.spec.ts` and `tests/network-banner.spec.ts`.
 
