@@ -11,6 +11,8 @@ import {
   setCurateImportJourney, updateCurateImportGroup, updateCurateImportItem, uploadCurateImportEvidence, curateImportChat,
   type CurateImportContext,
 } from './curateImports';
+import { prepareCompassSampleWrite, prepareSampleLifecycleSync, compassStateForSample } from './curateSampleBridge';
+import { receiptProductDetails, compassVendorId } from './curateReceiptProduct';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { shippingPerGramUsd, resolveShopFreightDefault } from './shippingRate';
 import { deductStockForPaidInvoice } from './orderLifecycle';
@@ -15636,6 +15638,13 @@ async function validateCompassContext(env: Env, accountId: string, values: Parti
   return sampleSet ? null : json({ error: 'Sample set not found' }, 404);
 }
 
+async function compassSampleStatements(env: Env, accountId: string, userId: string, entry: Record<string, any>, tastingChanged = false) {
+  if (!entry.sample_state) return [];
+  return (await prepareCompassSampleWrite(env.DB, { accountId, userId }, entry, {
+    entryId: entry.id, state: tastingChanged && tastingHasTerms(tastingForShop(entry.tasting)) ? 'tasted' : entry.sample_state,
+  })).statements;
+}
+
 const handleGetCompassEntries: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
@@ -15678,9 +15687,12 @@ const handleCreateCompassEntry: Handler = async (request, env) => {
   const placeholders = ['id', 'user_id', 'account_id', ...present].map(() => '?').join(', ');
   const colNames = ['id', 'user_id', 'account_id', ...present].join(', ');
 
-  await env.DB.prepare(
+  let sampleStatements: D1PreparedStatement[];
+  try { sampleStatements = await compassSampleStatements(env, accountId, userId, { ...decoded.values, id, user_id: userId, account_id: accountId }, decoded.values.tasting !== undefined); }
+  catch (error) { return json({ error: (error as Error).message }, 400); }
+  await env.DB.batch([env.DB.prepare(
     `INSERT INTO tea_compass_entries (${colNames}) VALUES (${placeholders})`
-  ).bind(id, userId, accountId, ...present.map(column => decoded.values[column])).run();
+  ).bind(id, userId, accountId, ...present.map(column => decoded.values[column])), ...sampleStatements]);
 
   const created = await env.DB.prepare(
     'SELECT * FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?'
@@ -15696,7 +15708,7 @@ const handleUpdateCompassEntry: Handler = async (request, env, params, execCtx) 
   const body = await request.json() as Record<string, unknown>;
   const decoded = decodeCompassWrite(body, true);
   if ('error' in decoded) return decoded.error;
-  const existingContext = await env.DB.prepare('SELECT journey_id, visit_id FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?').bind(params.id, userId, accountId).first() as Record<string, unknown> | null;
+  const existingContext = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?').bind(params.id, userId, accountId).first() as Record<string, unknown> | null;
   if (!existingContext) return json({ error: 'Compass entry not found' }, 404);
   const contextError = await validateCompassContext(env, accountId, decoded.values, existingContext);
   if (contextError) return contextError;
@@ -15704,10 +15716,13 @@ const handleUpdateCompassEntry: Handler = async (request, env, params, execCtx) 
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(
+  let sampleStatements: D1PreparedStatement[];
+  try { sampleStatements = await compassSampleStatements(env, accountId, userId, { ...existingContext, ...decoded.values, id: params.id, user_id: userId, account_id: accountId }, decoded.values.tasting !== undefined); }
+  catch (error) { return json({ error: (error as Error).message }, 400); }
+  await env.DB.batch([env.DB.prepare(
     `UPDATE tea_compass_entries SET ${sets}, updated_at = datetime('now')
      WHERE id = ? AND user_id = ? AND account_id = ?`
-  ).bind(...cols.map(column => decoded.values[column]), params.id, userId, accountId).run();
+  ).bind(...cols.map(column => decoded.values[column]), params.id, userId, accountId), ...sampleStatements]);
 
   const updated = await env.DB.prepare(
     'SELECT * FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?'
@@ -15823,12 +15838,9 @@ const handlePromoteCompassEntry: Handler = async (request, env, params) => {
   const stockGrams = 0;
   const quantityUnits = isTeaware ? 0 : null;
 
-  const vendorId = await resolveVendorId(
-    env,
-    entry.vendor_name as string | null | undefined,
-    undefined,
-    accountId,
-  );
+  let vendorId: string | null;
+  try { vendorId = await compassVendorId(env.DB, accountId, entry); }
+  catch (error) { return json({ error: (error as Error).message }, 400); }
 
   const productId = crypto.randomUUID();
   const cols: Record<string, any> = {
@@ -15856,23 +15868,10 @@ const handlePromoteCompassEntry: Handler = async (request, env, params) => {
     vendor_id: vendorId,
     stock_grams: stockGrams,
     stock_known_at: new Date().toISOString(),
-    /* Carried from the compass entry, or NULL, and never a zero or a dollar
-       this shop invented.
-
-       `Number(entry.price_amount ?? 0) || 0` made an entry Adrian scouted
-       without a price into a tea that cost nothing, and `?? 'USD'` answered a
-       missing unit with a guess. Both halves have to travel together or
-       neither does: an amount with no currency is not a cost, and this entry's
-       own `price_currency` is itself `DEFAULT 'NT'`, so its silence is not
-       evidence of anything.
-
-       No `cost_currency_source` stamp for the same reason. What arrives here
-       is what the compass row happens to hold, which is not the same as Adrian
-       having answered the question. It stays in the backlog that
-       `list_unstated_costs` reports. */
-    ...(entry.price_amount != null && currencyStated(entry.price_currency)
-      ? { cost_amount: Number(entry.price_amount), cost_currency: entry.price_currency }
-      : { cost_amount: null, cost_currency: null }),
+    // A vendor quote is a unit price, not a paid batch cost. Acceptance of a
+    // reviewed order arrival supplies both its line total and bought quantity.
+    cost_amount: null,
+    cost_currency: null,
     quantity_purchased: null,
     quantity_units: quantityUnits,
     material: entry.material ?? null,
@@ -16045,10 +16044,8 @@ const handleRejectReceiptProposal: Handler = async (request, env, params) => {
   return json(await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first());
 };
 
-const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
-  const ctx = await requireBundle(request, env, 'stock');
-  if ('error' in ctx) return ctx.error;
-  const proposal = await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first() as Record<string, any> | null;
+async function acceptCurateReceipt(env: Env, ctx: { accountId: string; userId: string; email?: string | null }, proposalId: string): Promise<Response> {
+  const proposal = await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(proposalId, ctx.accountId).first() as Record<string, any> | null;
   if (!proposal) return json({ error: 'Receipt proposal not found' }, 404);
   if (proposal.status === 'accepted') return json({ proposal, product_id: proposal.product_id, ledger_id: proposal.ledger_id, alreadyAccepted: true });
   if (proposal.status !== 'pending') return json({ error: 'Rejected receipt cannot be accepted' }, 409);
@@ -16056,6 +16053,9 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
   try { decoded = decodeReceiptProposal(proposal); }
   catch (error) { return json({ error: (error as Error).message }, 400); }
   const inventory = receiptInventoryValues(decoded);
+  let receiptDetails: Record<string, any>;
+  try { receiptDetails = await receiptProductDetails(env.DB, ctx.accountId, proposal); }
+  catch (error) { return json({ error: (error as Error).message }, 400); }
   const existingProduct = proposal.product_id ? await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(proposal.product_id, ctx.accountId).first() as Record<string, any> | null : null;
   if (proposal.product_id && !existingProduct) return json({ error: 'Linked product not found' }, 404);
   const conflict = purposeConflict(existingProduct, decoded.purpose);
@@ -16065,6 +16065,20 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
   const now = new Date().toISOString();
   const statements: D1PreparedStatement[] = [];
   if (existingProduct) {
+    // Promotion may have created an empty, unpriced draft before the order.
+    // Its first receipt can supply a batch cost; never reprice stocked holdings.
+    if (receiptDetails.cost_amount != null && proposal.compass_entry_id && decoded.unit === 'g') {
+      statements.push(env.DB.prepare(`UPDATE products SET cost_amount = ?, cost_currency = ?, quantity_purchased = ?
+        WHERE id = ? AND account_id = ? AND source_compass_entry_id = ?
+          AND cost_amount IS NULL AND quantity_purchased IS NULL AND COALESCE(stock_grams, 0) = 0`)
+        .bind(receiptDetails.cost_amount, receiptDetails.cost_currency, receiptDetails.quantity_purchased, productId, ctx.accountId, proposal.compass_entry_id));
+      statements.push(env.DB.prepare(`UPDATE product_listings SET
+        cost_amount = (SELECT cost_amount FROM products WHERE id = ? AND account_id = ?),
+        cost_currency = (SELECT cost_currency FROM products WHERE id = ? AND account_id = ?),
+        quantity_purchased = (SELECT quantity_purchased FROM products WHERE id = ? AND account_id = ?)
+        WHERE legacy_product_id = ? AND account_id = ?`)
+        .bind(productId, ctx.accountId, productId, ctx.accountId, productId, ctx.accountId, productId, ctx.accountId));
+    }
     const amountColumn = decoded.unit === 'g' ? 'stock_grams' : 'quantity_units';
     statements.push(env.DB.prepare(`UPDATE products SET inventory_purpose = ?, is_sample = ?, is_personal = ?, ${amountColumn} = COALESCE(${amountColumn}, 0) + ?, stock_known_at = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
       .bind(inventory.inventory_purpose, inventory.is_sample, inventory.is_personal, decoded.quantity, now, productId, ctx.accountId));
@@ -16076,28 +16090,18 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
     const name = String(proposal.product_name || 'Unnamed item');
     const type = String(proposal.product_type || (decoded.unit === 'unit' ? 'Teaware' : 'Misc'));
     const slug = await mintProductSlug(env, { product_name: name, given_name: name }, productId);
-    /* `cost_amount` is named as NULL rather than left out. Left out, the column
-       default answers 0, and 0 is a free tea: the draft lands priced at zero
-       times three and nobody sees it, because it is created hidden. This door
-       genuinely does not know the cost yet, and NULL is how a row says that.
-       `shipping_rate_per_kg` and `markup_multiplier` are named for the same
-       reason and were the two this comment used to leave out: the live table
-       answers 0 and 2.5 for a column an INSERT does not mention, which is a tea
-       that ships free at a markup the shop stopped using. */
-    statements.push(env.DB.prepare(`INSERT INTO products
-      (id, account_id, type, product_name, given_name, slug, status, stock_grams, quantity_units,
-       inventory_purpose, is_sample, is_personal, stock_known_at, is_public, shown_in_shop, source_compass_entry_id, owner_user_id,
-       cost_amount, shipping_rate_per_kg, markup_multiplier)
-      VALUES (?, ?, ?, ?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, NULL, NULL, NULL)`)
-      .bind(productId, ctx.accountId, type, name, name, slug, inventory.stock_grams ?? 0, inventory.quantity_units,
-        inventory.inventory_purpose, inventory.is_sample, inventory.is_personal, now, proposal.compass_entry_id ?? null, ctx.userId));
-    statements.push(...buildProductMirrorInserts(env, productId, ctx.accountId, {
-      product_name: name, type, status: 'Draft', stock_grams: inventory.stock_grams ?? 0,
-      quantity_units: inventory.quantity_units, inventory_purpose: inventory.inventory_purpose,
-      is_sample: inventory.is_sample, is_personal: inventory.is_personal,
+    const columns: Record<string, any> = nameProductColumns({
+      id: productId, account_id: ctx.accountId, type, product_name: name, given_name: name, slug,
+      status: 'Draft', stock_grams: inventory.stock_grams ?? 0, quantity_units: inventory.quantity_units,
+      inventory_purpose: inventory.inventory_purpose, is_sample: inventory.is_sample, is_personal: inventory.is_personal,
       stock_known_at: now, is_public: 0, shown_in_shop: 0,
       source_compass_entry_id: proposal.compass_entry_id ?? null, owner_user_id: ctx.userId,
-    }));
+      ...receiptDetails,
+    });
+    const columnNames = Object.keys(columns);
+    statements.push(env.DB.prepare(`INSERT INTO products (${columnNames.join(', ')}) VALUES (${columnNames.map(() => '?').join(', ')})`)
+      .bind(...columnNames.map(column => columns[column])));
+    statements.push(...buildProductMirrorInserts(env, productId, ctx.accountId, columns));
   }
   const movementUnit = decoded.unit === 'g' ? 'gram' : 'unit';
   const balanceExpression = existingProduct
@@ -16107,7 +16111,9 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
     (id, product_id, delta, balance_after, movement_unit, reason, user_email, note, batch_id, account_id, receipt_proposal_id)
     VALUES (?, ?, ?, ${balanceExpression}, ?, 'PURCHASE_RECEIPT', ?, ?, ?, ?, ?)`)
     .bind(ledgerId, productId, decoded.quantity, ...(existingProduct ? [productId, ctx.accountId] : [decoded.quantity]), movementUnit, ctx.email ?? null, `Curate ${decoded.acquisition_kind}`, proposal.batch_id ?? null, ctx.accountId, proposal.id));
-  if (proposal.compass_entry_id) statements.push(env.DB.prepare('UPDATE tea_compass_entries SET draft_product_id = ?, updated_at = datetime(\'now\') WHERE id = ? AND account_id = ?').bind(productId, proposal.compass_entry_id, ctx.accountId));
+  if (proposal.compass_entry_id) statements.push(env.DB.prepare("UPDATE tea_compass_entries SET draft_product_id = ?, status = 'in_stock', updated_at = datetime('now') WHERE id = ? AND account_id = ?").bind(productId, proposal.compass_entry_id, ctx.accountId));
+  if (proposal.compass_entry_id) statements.push(env.DB.prepare("UPDATE tea_samples SET product_id = ?, updated_at = datetime('now') WHERE compass_entry_id = ? AND account_id = ?")
+    .bind(productId, proposal.compass_entry_id, ctx.accountId));
   statements.push(env.DB.prepare(`UPDATE curate_receipt_proposals SET status = 'accepted', product_id = ?, ledger_id = ?, reviewed_by_user_id = ?, reviewed_at = ?, updated_at = ? WHERE id = ? AND account_id = ? AND status = 'pending'`)
     .bind(productId, ledgerId, ctx.userId, now, now, proposal.id, ctx.accountId));
   try {
@@ -16118,6 +16124,12 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
     throw error;
   }
   return json({ proposal: await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(proposal.id, ctx.accountId).first(), product_id: productId, ledger_id: ledgerId, alreadyAccepted: false });
+}
+
+const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'stock');
+  if ('error' in ctx) return ctx.error;
+  return acceptCurateReceipt(env, ctx, params.id);
 };
 
 const RECEIPT_STATES = new Set(['planned', 'ordered', 'in_transit', 'partially_received', 'received', 'cancelled']);
@@ -16507,10 +16519,11 @@ const handleSyncCompassEntries: Handler = async (request, env, _params, execCtx)
   }
 
   const stmts: D1PreparedStatement[] = [];
+  const entryStatementIndexes: number[] = [];
   for (const entry of body.entries) {
     const decoded = decodeCompassWrite(entry, false);
     if ('error' in decoded) return decoded.error;
-    const existingContext = await env.DB.prepare('SELECT journey_id, visit_id FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?').bind(entry.id, userId, accountId).first() as Record<string, unknown> | null;
+    const existingContext = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?').bind(entry.id, userId, accountId).first() as Record<string, unknown> | null;
     const contextError = await validateCompassContext(env, accountId, decoded.values, existingContext);
     if (contextError) return contextError;
     if (typeof entry.id !== 'string' || !entry.id) return json({ error: 'Compass entry id required' }, 400);
@@ -16523,16 +16536,24 @@ const handleSyncCompassEntries: Handler = async (request, env, _params, execCtx)
     // D1 returns meta.changes=1 for an acknowledged row and 0 for a collision.
     const conflictUpdates = updates.length > 0 ? updates : ['id = excluded.id'];
     const conflictAction = `DO UPDATE SET ${conflictUpdates.join(', ')} WHERE tea_compass_entries.user_id = excluded.user_id AND tea_compass_entries.account_id = excluded.account_id`;
+    entryStatementIndexes.push(stmts.length);
     stmts.push(env.DB.prepare(
       `INSERT INTO tea_compass_entries (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})
        ON CONFLICT(id) ${conflictAction}`
     ).bind(entry.id, userId, accountId, ...present.map(column => decoded.values[column])));
+    // A sync collision must never attach samples to somebody else's entry.
+    const owner = await env.DB.prepare('SELECT user_id, account_id FROM tea_compass_entries WHERE id = ?').bind(entry.id).first<{ user_id: string; account_id: string }>();
+    if (!owner || (owner.user_id === userId && owner.account_id === accountId)) {
+      try { stmts.push(...await compassSampleStatements(env, accountId, userId, { ...existingContext, ...decoded.values, id: entry.id, user_id: userId, account_id: accountId }, decoded.values.tasting !== undefined)); }
+      catch (error) { return json({ error: (error as Error).message }, 400); }
+    }
   }
 
   const results = stmts.length > 0 ? await env.DB.batch(stmts) : [];
   const syncedIds: string[] = [];
   const conflicts: string[] = [];
-  results.forEach((result, index) => {
+  entryStatementIndexes.forEach((statementIndex, index) => {
+    const result = results[statementIndex];
     const id = String(body.entries[index].id);
     if (Number(result.meta?.changes ?? 0) > 0) syncedIds.push(id);
     else conflicts.push(id);
@@ -17841,7 +17862,8 @@ const handleAddSampleTasting: Handler = async (request, env, params) => {
     }
   }
 
-  await env.DB.prepare(
+  const lifecycle = await prepareSampleLifecycleSync(env.DB, accountId, { sampleId: params.id, status: 'tasted', hasTasting: true });
+  await env.DB.batch([env.DB.prepare(
     `INSERT OR IGNORE INTO tea_sample_tastings (id, account_id, sample_id, taster_id, taster_name, tasting, rating, verdict, would_buy, personal_note)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
@@ -17855,11 +17877,7 @@ const handleAddSampleTasting: Handler = async (request, env, params) => {
     body.verdict || 'neutral',
     body.wouldBuy ? 1 : 0,
     body.personalNote || null,
-  ).run();
-
-  await env.DB.prepare(
-    "UPDATE tea_samples SET updated_at = datetime('now') WHERE id = ?"
-  ).bind(params.id).run();
+  ), ...lifecycle]);
 
   // ── Feature 3: Auto-tag customer from sample verdict ─────────────────────
   const verdict = body.verdict || 'neutral';
@@ -18950,6 +18968,19 @@ const handleListSamples: Handler = async (request, env) => {
   return json({ samples: rows.map((row) => ({ ...parseSampleRow(row), tastings: tastingsBySample.get(row.id as string) ?? [] })) });
 };
 
+async function validateSampleLinks(env: Env, accountId: string, body: Record<string, any>): Promise<Response | null> {
+  for (const [field, table] of [['source_id', 'customers'], ['product_id', 'products'], ['compass_entry_id', 'tea_compass_entries']] as const) {
+    if (body[field] != null && !await env.DB.prepare(`SELECT id FROM ${table} WHERE id = ? AND account_id = ?`).bind(body[field], accountId).first()) {
+      return json({ error: `${field} is outside the active account` }, 400);
+    }
+  }
+  if (body.status !== undefined) {
+    try { compassStateForSample(body.status); } catch { return json({ error: 'Invalid sample status' }, 400); }
+  }
+  if (body.grams !== undefined && (typeof body.grams !== 'number' || !Number.isFinite(body.grams) || body.grams < 0)) return json({ error: 'grams must be a non-negative finite number' }, 400);
+  return null;
+}
+
 // Admin: POST /api/admin/samples
 const handleCreateSample: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'gather');
@@ -18964,6 +18995,22 @@ const handleCreateSample: Handler = async (request, env) => {
   if (typeof body.set_id !== 'string' || !body.set_id) {
     return json({ error: 'set_id required' }, 400);
   }
+  const linkError = await validateSampleLinks(env, accountId, body);
+  if (linkError) return linkError;
+  if (body.compass_entry_id) {
+    const entry = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?').bind(body.compass_entry_id, userId, accountId).first<Record<string, any>>();
+    if (!entry) return json({ error: 'Curate tea not found for this user and account' }, 404);
+    try {
+      const bridge = await prepareCompassSampleWrite(env.DB, { accountId, userId }, entry, {
+        entryId: entry.id, state: body.status ? compassStateForSample(body.status) : entry.sample_state ?? 'requested',
+        grams: body.grams, preferredSampleId: id,
+      });
+      await env.DB.batch(bridge.statements);
+      const row = await env.DB.prepare('SELECT * FROM tea_samples WHERE id = ? AND account_id = ?').bind(bridge.sampleId, accountId).first<Record<string, any>>();
+      return json(parseSampleRow(row!), 201);
+    } catch (error) { return json({ error: (error as Error).message }, 400); }
+  }
+
   const ownedSet = await env.DB.prepare(
     'SELECT id FROM tea_sample_sets WHERE id = ? AND account_id = ?'
   ).bind(body.set_id, accountId).first();
@@ -19019,10 +19066,17 @@ const handleUpdateSample: Handler = async (request, env, params) => {
   const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+  const linkError = await validateSampleLinks(env, accountId, body);
+  if (linkError) return linkError;
+  if (body.compass_entry_id && !await env.DB.prepare('SELECT id FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?').bind(body.compass_entry_id, ctx.userId, accountId).first()) {
+    return json({ error: 'Curate tea not found for this user and account' }, 404);
+  }
   const validated = validatedUpdateFields(body, SAMPLE_UPDATE_FIELDS);
   if ('error' in validated) return validated.error;
   const cols = validated.fields;
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
+  const existingSample = await env.DB.prepare('SELECT * FROM tea_samples WHERE id = ? AND account_id = ?').bind(params.id, accountId).first<Record<string, any>>();
+  if (!existingSample) return json({ error: 'Sample not found' }, 404);
 
   if (cols.includes('set_id')) {
     const ownedSet = await env.DB.prepare(
@@ -19038,9 +19092,10 @@ const handleUpdateSample: Handler = async (request, env, params) => {
   }
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(
+  const lifecycle = await prepareSampleLifecycleSync(env.DB, accountId, { sampleId: params.id, status: body.status ?? existingSample.status });
+  await env.DB.batch([env.DB.prepare(
     `UPDATE tea_samples SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
-  ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
+  ).bind(...cols.map(c => body[c] ?? null), params.id, accountId), ...lifecycle]);
 
   const userEmail = getUserEmail(request);
   await buildActivityLog(env, 'sample_updated', `Sample ${params.id} updated`, userEmail, 'sample', params.id, accountId).run();
@@ -29629,7 +29684,10 @@ export default {
     // and uses its own bearer-token auth (mcp_tokens), not the JWT/X-Teajia-Account
     // pair. Handle GET (health) and POST (RPC) here; other methods 405.
     if (url.pathname === '/mcp') {
-      const response = await mcpFetch(request, env);
+      const response = await mcpFetch(request, {
+        ...env,
+        curateReceipts: { accept: (scope, proposalId) => acceptCurateReceipt(env, scope, proposalId) },
+      });
       return cors(response, corsOrigin);
     }
 

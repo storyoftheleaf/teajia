@@ -141,9 +141,8 @@ describe('sample account isolation', () => {
     const entry = { id: 'entry-1', synced: false } as any;
     await expect(saveSampleBatchLifecycle({
       accountId: 'acct-a', draft: operation, isCurrentAccount: () => true,
-      persistSamples: async () => undefined, getCompassEntry: () => entry,
-      updateCompassEntry: (_id, updates) => Object.assign(entry, updates),
-      persistCompass: async () => { throw new Error('Compass offline'); },
+      persistSamples: async () => undefined,
+      refreshCompass: async () => { throw new Error('Compass offline'); },
       clearList: () => { beforeReload.getState().completePendingOperation(operation.sampleSet.id); },
     })).rejects.toThrow('Compass offline');
 
@@ -155,8 +154,7 @@ describe('sample account isolation', () => {
     await saveSampleBatchLifecycle({
       accountId: 'acct-a', draft: afterReload.getState().pendingOperation!, isCurrentAccount: () => true,
       persistSamples: async (draft) => { retriedIds.push(draft.sampleSet.id, ...draft.samples.map(sample => sample.id)); },
-      getCompassEntry: () => entry, updateCompassEntry: (_id, updates) => Object.assign(entry, updates),
-      persistCompass: async () => { entry.synced = true; },
+      refreshCompass: async () => { entry.synced = true; },
       clearList: () => { afterReload.getState().completePendingOperation('stable-set'); },
     });
     expect(retriedIds).toEqual(['stable-set', 'stable-sample']);

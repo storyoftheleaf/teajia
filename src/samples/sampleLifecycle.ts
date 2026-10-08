@@ -1,6 +1,5 @@
-import type { CompassSampleState, TeaCompassEntry } from '../components/TeaCompass/types';
 import type { PendingSampleBatchOperation, SampleCartItem } from './sampleCartStore';
-import { createEmptySample, createEmptySampleSet, type SampleStatus, type TeaSample } from './types';
+import { createEmptySample, createEmptySampleSet, type TeaSample } from './types';
 
 export type SampleBatchDraft = PendingSampleBatchOperation;
 
@@ -43,30 +42,12 @@ export function buildSampleBatchDraft(
   return { signature: sampleListSignature(items), sampleSet, samples };
 }
 
-export function requestedCompassUpdate(sampleSetId: string): Pick<TeaCompassEntry, 'isSample' | 'sampleState' | 'sampleSetId'> {
-  return { isSample: true, sampleState: 'requested', sampleSetId };
-}
-
-/** Logistics and tasting only advance the sample lifecycle. They never infer a
- * sourcing decision, stock status, or tasting verdict. */
-export function compassLifecycleForSample(sample: {
-  status: SampleStatus;
-  tastings: Array<{ id: string }>;
-}): CompassSampleState | undefined {
-  if (sample.tastings.length > 0) return 'tasted';
-  if (sample.status === 'requested') return 'requested';
-  if (sample.status === 'received' || sample.status === 'untasted') return 'received';
-  return undefined;
-}
-
 export async function saveSampleBatchLifecycle(options: {
   accountId: string;
   draft: SampleBatchDraft;
   isCurrentAccount: (accountId: string) => boolean;
   persistSamples: (draft: SampleBatchDraft) => Promise<void>;
-  getCompassEntry: (id: string) => TeaCompassEntry | undefined;
-  updateCompassEntry: (id: string, update: Partial<TeaCompassEntry>) => void;
-  persistCompass: (entryIds: string[]) => Promise<void>;
+  refreshCompass: () => Promise<void>;
   clearList: () => void;
 }): Promise<void> {
   const assertAccount = () => {
@@ -79,21 +60,7 @@ export async function saveSampleBatchLifecycle(options: {
   await options.persistSamples(options.draft);
   assertAccount();
 
-  const linkedIds = Array.from(new Set(options.draft.samples
-    .map((sample) => sample.compassEntryId)
-    .filter((id): id is string => Boolean(id))));
-  const missingIds = linkedIds.filter((id) => !options.getCompassEntry(id));
-  if (missingIds.length > 0) {
-    throw new Error(`The sample batch was saved, but Compass entry ${missingIds.join(', ')} could not be linked. Retry if the entry returns, or discard the saved draft to unlock and edit this list.`);
-  }
-  const updatedIds: string[] = [];
-  for (const id of linkedIds) {
-    if (options.getCompassEntry(id)) {
-      options.updateCompassEntry(id, requestedCompassUpdate(options.draft.sampleSet.id));
-      updatedIds.push(id);
-    }
-  }
-  if (updatedIds.length > 0) await options.persistCompass(updatedIds);
+  await options.refreshCompass();
   assertAccount();
   options.clearList();
 }

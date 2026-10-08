@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compassEntryToProductDraft, createEmptyEntry, type TeaCompassEntry } from './types';
+import { compassEntryToProductDraft, createEmptyEntry, entryHasBeenTasted, entryNeedsTasting, type TeaCompassEntry } from './types';
 
 /**
  * Item 5: the capture card used to open on Taiwan dollars and, worse, send
@@ -53,5 +53,22 @@ describe('compassEntryToProductDraft cost_currency', () => {
     delete (legacy as { touchedFields?: string[] }).touchedFields;
     const draft = compassEntryToProductDraft(legacy);
     expect(draft.cost_currency).toBe('HKD');
+  });
+});
+
+
+describe('sample lifecycle evidence in the Library tasting queue', () => {
+  it('counts a shelf tasting even without published taxonomy notes', () => {
+    const entry = { ...createEmptyEntry(), sampleState: 'tasted' as const, tasting: undefined };
+    expect(entryHasBeenTasted(entry)).toBe(true);
+    expect(entryNeedsTasting(entry)).toBe(false);
+  });
+  it('queues requested and received samples, and untasted inventory only', () => {
+    const entry = createEmptyEntry();
+    expect(entryNeedsTasting({ ...entry, sampleState: 'requested' })).toBe(true);
+    expect(entryNeedsTasting({ ...entry, sampleState: 'received' })).toBe(true);
+    expect(entryNeedsTasting({ ...entry, status: 'in_stock' })).toBe(true);
+    expect(entryNeedsTasting({ ...entry, status: 'noted' })).toBe(false);
+    expect(entryNeedsTasting({ ...entry, status: 'in_stock', tasting: { notes: ['orchid'] } })).toBe(false);
   });
 });

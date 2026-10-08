@@ -43,6 +43,7 @@ The personal records are deliberately separate and stay that way: **Journal** is
 ## How it is built
 
 - **Accounts.** Every account is its own store: catalogue, stock, prices, currency, customers, invoices. Kinds are platform (Adrian), location (a tea room), master (a tea master with no address). One database, every table scoped by account id, one gatekeeper that resolves the acting account on every request.
+- **Curate to stock.** A sourcing sample marked in Curate, in the app or through an agent, has one linked shelf portion in its vendor's open sourcing batch. The server owns sample lifecycle synchronization; a tasting never invents stock or a purchase decision. Reviewed supplier arrivals create private drafts with the tea's details and the exact order line's batch cost. Vendor quotes alone never become batch costs. Recorded freight remains separate from the shop's freight setting.
 - **Network.** A tea profile has an originator and a curator. A store carries a network tea by making its own listing over it. Cross-store movement routes through the platform account.
 - **Money rules** (in full in `CLAUDE.md`): freight is a per-kilo rate on the account, inside the ×3 markup; one exchange-rate table refreshed daily; nothing entered is NULL and zero is zero; a tea is not created without its cost and its currency.
 - **Events** are a closed state machine: draft, published, registration closed, completed, archived. A completed session can become a recap and then a magazine draft.

@@ -62,22 +62,14 @@ describe('Compass sync acknowledgements', () => {
     expect(useTeaCompassStore.getState().entries[0]?.name).toBe('');
   });
 
-  it('recovers durable batch linkage and lifecycle from server-backed samples', async () => {
-    listMock.mockResolvedValue({ entries: [{
-      ...entry('linked-entry'), synced: undefined, photos: '[]', audio_clips: '[]',
-      decision: 'selected', verdict: 'love', status: 'noted', sample_state: null, sample_set_id: null,
-    }] });
-    samplesListMock.mockResolvedValue({ samples: [{
-      id: 'portion-1', account_id: 'acct-a', compass_entry_id: 'linked-entry', set_id: 'batch-1',
-      status: 'received', tastings: [],
-    }] });
-
+  it('roundtrips private shop and transport fields through the server codec', async () => {
+    listMock.mockResolvedValue({ entries: [{ ...entry('sourcing'), shop_name: '惜物堂', transport_mode: 'air', photos: '[]', audio_clips: '[]' }] });
     await hydrateCompassEntries('acct-a');
-
-    expect(useTeaCompassStore.getState().entries[0]).toMatchObject({
-      id: 'linked-entry', sampleSetId: 'batch-1', sampleState: 'received', isSample: true,
-      decision: 'selected', verdict: 'love', status: 'noted', synced: false,
-    });
+    expect(useTeaCompassStore.getState().entries[0]).toMatchObject({ shopName: '惜物堂', transportMode: 'air', synced: true });
+    useTeaCompassStore.getState().updateEntry('sourcing', { notes: 'changed' });
+    syncMock.mockResolvedValue({ success: true });
+    await syncCompassEntries('acct-a');
+    expect(syncMock.mock.calls[0][0][0]).toMatchObject({ shop_name: '惜物堂', transport_mode: 'air' });
   });
 
   it('never downgrades a durable Compass lifecycle from lagging sample logistics', async () => {
@@ -143,7 +135,7 @@ describe('Compass sync acknowledgements', () => {
     await hydrateCompassEntries('acct-a');
 
     expect(listMock).toHaveBeenCalledWith(undefined, { background: true });
-    expect(samplesListMock).toHaveBeenCalledWith(undefined, { background: true });
+    expect(samplesListMock).not.toHaveBeenCalled();
 
     syncMock.mockResolvedValue({ synced: 1, syncedIds: ['pending'] });
     useTeaCompassStore.setState({ entries: [entry('pending')] });

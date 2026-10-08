@@ -18,8 +18,7 @@ import { TastingSession } from '../components/tasting/TastingSession';
 import { TastingProfileStrip } from '../components/tasting/TastingProfileStrip';
 import { SampleOrderModal } from '../components/samples/SampleOrderModal';
 import { QuickInvoiceModal } from '../admin/components/QuickInvoiceModal';
-import { useTeaCompassStore } from '../lib/teaCompassStore';
-import { compassLifecycleForSample } from '../samples/sampleLifecycle';
+import { hydrateCompassEntries } from '../lib/teaCompassSync';
 import { sampleFromApi } from '../samples/sampleRepository';
 
 /* ─── Verdict icons ─── */
@@ -43,7 +42,6 @@ const SamplePage: React.FC = () => {
   const addTastingToStore = useSampleStore((s) => s.addTasting);
   const updateStatus = useSampleStore((s) => s.updateSampleStatus);
   const updateSample = useSampleStore((s) => s.updateSample);
-  const updateCompassEntry = useTeaCompassStore((s) => s.updateEntry);
 
   const { toasts, dismiss, showError } = useToast();
 
@@ -117,6 +115,7 @@ const SamplePage: React.FC = () => {
     wouldBuy?: boolean,
   ) => {
     if (!sample) return;
+    const accountId = useSampleStore.getState().accountScopeId;
 
     const tasting: SampleTasting = {
       id: crypto.randomUUID(),
@@ -132,17 +131,10 @@ const SamplePage: React.FC = () => {
 
     // Write to sample store (sourcing record)
     addTastingToStore(sample.id, tasting);
-    if (sample.compassEntryId) {
-      updateCompassEntry(sample.compassEntryId, {
-        isSample: true,
-        sampleState: 'tasted',
-        sampleSetId: sample.setId,
-      });
-    }
-
     // Sync to server
     try {
       await api.samples.addTasting(sample.id, {
+        id: tasting.id,
         tasting: tastingData,
         rating: tasting.rating,
         verdict: verdict ?? 'neutral',
@@ -150,6 +142,7 @@ const SamplePage: React.FC = () => {
         personalNote: tasting.personalNote,
         tasterName: tasting.tasterName,
       });
+      if (accountId && useSampleStore.getState().accountScopeId === accountId) void hydrateCompassEntries(accountId).catch(() => {});
     } catch {
       console.warn('Sample tasting failed to sync, saved locally');
     }
@@ -159,27 +152,27 @@ const SamplePage: React.FC = () => {
       tastings: [...(prev.tastings || []), tasting],
       status: ['requested', 'received', 'untasted'].includes(prev.status) ? 'tasted' : prev.status,
     } : prev);
-  }, [sample, isAdmin, addTastingToStore, updateCompassEntry]);
+  }, [sample, isAdmin, addTastingToStore]);
 
   const handleStatusChange = useCallback((newStatus: SampleStatus) => {
     if (!sample) return;
+    const accountId = useSampleStore.getState().accountScopeId;
     const prevStatus = sample.status;
-    const previousCompassState = sample.compassEntryId
-      ? useTeaCompassStore.getState().entries.find(entry => entry.id === sample.compassEntryId)?.sampleState
-      : undefined;
     updateStatus(sample.id, newStatus);
-    if (sample.compassEntryId) {
-      const sampleState = compassLifecycleForSample({ ...sample, status: newStatus });
-      if (sampleState) updateCompassEntry(sample.compassEntryId, { isSample: true, sampleState, sampleSetId: sample.setId });
-    }
     setSample((prev) => prev ? { ...prev, status: newStatus } : prev);
-    api.samples.update(sample.id, { status: newStatus }).catch(() => {
+    api.samples.update(sample.id, { status: newStatus }).then(() => {
+      if (accountId && useSampleStore.getState().accountScopeId === accountId) {
+        void hydrateCompassEntries(accountId).catch(() => {});
+      }
+    }, () => {
+      if (useSampleStore.getState().accountScopeId !== accountId) return;
+      const current = useSampleStore.getState().getSample(sample.id);
+      if (current && current.status !== newStatus) return;
       updateStatus(sample.id, prevStatus);
-      if (sample.compassEntryId) updateCompassEntry(sample.compassEntryId, { sampleState: previousCompassState ?? null });
-      setSample((prev) => prev ? { ...prev, status: prevStatus } : prev);
+      setSample((prev) => prev?.id === sample.id && prev.status === newStatus ? { ...prev, status: prevStatus } : prev);
       showError('Status update failed, please try again');
     });
-  }, [sample, updateStatus, showError, updateCompassEntry]);
+  }, [sample, updateStatus, showError]);
 
   const handleSaveEdit = useCallback(() => {
     if (!sample) return;

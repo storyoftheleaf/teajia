@@ -9,7 +9,7 @@ import {
   saveSampleBatchLifecycle,
 } from '../../samples/sampleLifecycle';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
-import { syncCompassEntries } from '../../lib/teaCompassSync';
+import { hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { useAppStore } from '../../lib/store';
 
 const GRAM_PRESETS = [5, 10, 15, 25, 50];
@@ -91,28 +91,9 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
   const addSample = useSampleStore((s) => s.addSample);
   const addSampleSet = useSampleStore((s) => s.addSampleSet);
   const accountScopeId = useSampleStore((s) => s.accountScopeId);
-  const discardSampleSet = useSampleStore((s) => s.discardSampleSet);
 
-  /**
-   * Taking a tea out of the Sample list has to take it out of both places.
-   *
-   * A tea in the list is represented twice: as a row in the sample cart, and
-   * as marks on its Curate entry (isSample, sampleState, sampleSetId). The
-   * remove control only cleared the row, so the entry went on calling itself a
-   * requested sample while belonging to no list at all, and the Library kept
-   * showing it as one. The undo path a hundred lines below already clears both,
-   * which is what this now matches.
-   */
-  const removeSample = useCallback((itemId: string, compassEntryId?: string | null) => {
+  const removeSample = useCallback((itemId: string, _compassEntryId?: string | null) => {
     removeItem(itemId);
-    if (!compassEntryId) return;
-    const entry = useTeaCompassStore.getState().entries.find((candidate) => candidate.id === compassEntryId);
-    if (!entry) return;
-    useTeaCompassStore.getState().updateEntry(compassEntryId, {
-      isSample: false,
-      sampleState: null,
-      sampleSetId: undefined,
-    });
   }, [removeItem]);
 
   const [savedConfirm, setSavedConfirm] = useState(false);
@@ -186,15 +167,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
           const result = await sampleRepository.sync(accountId);
           if (result.status !== 'synced') throw new Error('The sample batch did not finish syncing. Retry when the connection is available.');
         },
-        getCompassEntry: (id) => useTeaCompassStore.getState().entries.find((entry) => entry.id === id),
-        updateCompassEntry: (id, update) => useTeaCompassStore.getState().updateEntry(id, update),
-        persistCompass: async (entryIds) => {
-          await syncCompassEntries(accountId);
-          const current = useTeaCompassStore.getState();
-          if (current.accountScopeId !== accountId || entryIds.some((id) => !current.entries.find((entry) => entry.id === id)?.synced)) {
-            throw new Error('The batch was saved, but Library linkage is still pending. Retry to finish linking it.');
-          }
-        },
+        refreshCompass: () => hydrateCompassEntries(accountId),
         clearList: () => {
           if (!completePendingOperation(draft.sampleSet.id)) {
             throw new Error('The sample batch was saved, but the list changed before completion. Review the current list before saving again.');
@@ -220,66 +193,16 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
     setDiscarding(true);
     setDiscardError(null);
     try {
-      const compassBefore = useTeaCompassStore.getState();
-      if (compassBefore.accountScopeId !== accountId) {
-        throw new Error('The pending batch Library is no longer active. Return to that account and retry.');
-      }
-      const operationEntryIds = new Set(operation.samples
-        .map((sample) => sample.compassEntryId)
-        .filter((id): id is string => Boolean(id)));
-      const linkedEntries = compassBefore.entries
-        .filter((entry) => entry.sampleSetId === operation.sampleSet.id)
-        .map((entry) => ({
-          id: entry.id,
-          sampleSetId: entry.sampleSetId,
-          sampleState: entry.sampleState,
-          isSample: entry.isSample,
-        }));
-      for (const entry of linkedEntries) {
-        useTeaCompassStore.getState().updateEntry(entry.id, {
-          sampleSetId: undefined,
-          sampleState: null,
-          isSample: false,
-        });
-      }
-      const retryingUnlinkIds = useTeaCompassStore.getState().entries
-        .filter((entry) => (
-          operationEntryIds.has(entry.id)
-          && entry.sampleSetId == null
-          && entry.sampleState == null
-          && !entry.synced
-        ))
-        .map((entry) => entry.id);
-      const unlinkIds = Array.from(new Set([...linkedEntries.map((entry) => entry.id), ...retryingUnlinkIds]));
-      await syncCompassEntries(accountId);
-      const compassAfter = useTeaCompassStore.getState();
-      if (
-        useAppStore.getState().activeAccountId !== accountId
-        || compassAfter.accountScopeId !== accountId
-        || unlinkIds.some((id) => {
-          const entry = compassAfter.entries.find((candidate) => candidate.id === id);
-          return !entry || !entry.synced || entry.sampleSetId != null || entry.sampleState != null || entry.isSample === true;
-        })
-      ) {
-        throw new Error('The saved draft is still linked in Library. It remains locked; retry discard when the connection is available.');
-      }
-
-      discardSampleSet(operation.sampleSet.id);
-      const result = await sampleRepository.sync(accountId);
-      const sampleState = useSampleStore.getState();
-      const cartState = useSampleCartStore.getState();
-      if (
-        result.status !== 'synced'
-        || useAppStore.getState().activeAccountId !== accountId
-        || sampleState.accountScopeId !== accountId
-        || cartState.accountScopeId !== accountId
-        || cartState.pendingOperation?.sampleSet.id !== operation.sampleSet.id
-        || sampleState.getSampleSet(operation.sampleSet.id)
-        || sampleState.samples.some((sample) => sample.setId === operation.sampleSet.id)
-        || sampleState.sampleSetTombstones.includes(operation.sampleSet.id)
-      ) {
-        throw new Error('The saved draft could not be removed yet. It remains locked; retry discard when the connection is available.');
-      }
+      // A persisted request may have reused an existing vendor set or sample.
+      // Unlocking this cart must never delete those canonical server records.
+      const local = useSampleStore.getState();
+      const unsavedIds = operation.samples.filter((sample) => {
+        const current = local.getSample(sample.id);
+        return current && !current.accountId;
+      }).map((sample) => sample.id);
+      for (const id of unsavedIds) local.removeSample(id);
+      const draftSet = local.getSampleSet(operation.sampleSet.id);
+      if (draftSet && !draftSet.accountId) local.removeSampleSet(draftSet.id);
       if (!releasePendingOperation(operation.sampleSet.id)) {
         throw new Error('The active pending batch changed before cleanup completed. Its list remains locked.');
       }

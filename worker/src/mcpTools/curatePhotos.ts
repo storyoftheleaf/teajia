@@ -5,10 +5,11 @@
  * the shop keeps it exactly as the app keeps one Adrian takes: a copy in the
  * shop's media store on the tea's card, and a copy in the tea's folder in the
  * shop's Google Drive when Drive is connected. One step: a photo on a Curate
- * tea changes nothing on the shop's shelf.
+ * tea is also copied onto an existing linked sample.
  */
 
 import { driveSeal, driveStatus, savePhotosToDrive, teaDriveFiles, type DriveEnv } from '../curateDrive';
+import { prepareCompassSampleWrite } from '../curateSampleBridge';
 import { entryById, str } from './curateIntake';
 import type { ToolDefinition, ToolEnv, ToolHandler, ToolModule } from './registry';
 
@@ -56,8 +57,9 @@ const toolAddPhoto: ToolHandler = async (rawEnv, auth, args) => {
   let photos: string[] = [];
   try { photos = JSON.parse(String(entry.photos || '[]')); } catch { photos = []; }
   photos = [...(Array.isArray(photos) ? photos : []), url];
-  await env.DB.prepare(`UPDATE tea_compass_entries SET photos = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND user_id = ?`)
-    .bind(JSON.stringify(photos), teaId, auth.accountId, auth.userId).run();
+  const bridgeStatements = entry.sample_state ? (await prepareCompassSampleWrite(env.DB, auth, { ...entry, photos: JSON.stringify(photos) }, { entryId: teaId })).statements : [];
+  await env.DB.batch([env.DB.prepare(`UPDATE tea_compass_entries SET photos = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND user_id = ?`)
+    .bind(JSON.stringify(photos), teaId, auth.accountId, auth.userId), ...bridgeStatements]);
 
   const status = await driveStatus(env, auth.accountId);
   let drive: Record<string, unknown> = { saved: false, why: 'Google Drive is not connected. Adrian connects it on Curate Today.' };

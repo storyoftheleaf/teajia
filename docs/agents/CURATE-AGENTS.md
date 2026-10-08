@@ -156,6 +156,39 @@ and so on. The Hermes skill for this is in the i64os repo at
 Always pass `agent` with your name ("GrokBot", "Hermes", "ChatGPT", "Claude"). It
 is shown beside what you wrote.
 
+## Samples and arrivals
+
+`curate_add_tea`, `curate_update_tea` and sampled suggestion picks now create
+or reuse the tea's linked shelf sample in the vendor's open sourcing batch.
+Use `sample_state: "received"` and `sample_grams` when Adrian says what arrived.
+`sample: true` keeps an existing lifecycle state. Omitted grams preserve the
+existing amount; a new request uses the established 10 g request default,
+explicitly shown in the preview. That default is not measured received weight.
+An explicit zero remains zero. These writes still require preview and confirm.
+
+Sample status is synchronized by the server: requested stays requested;
+received/untasted means received; tasted/favorite/ordering/ordered/passed means
+tasted. This changes neither a purchase decision nor physical stock, and never
+fabricates a tasting verdict. Curate tasting terms advance a linked sample;
+guest shelf tastings retain their own authorship.
+
+`photos` accepts hosted HTTPS URLs on tea add/update, with `photos_mode` equal
+to `append` (default) or `replace`. Photos also reach the linked sample. Existing
+`curate_add_photo` media/Drive behavior is retained and propagates photos too.
+`shop_name` and `transport_mode` round-trip through app sync.
+
+`curate_list_arrivals` reads pending receipts in the active account.
+`curate_approve_arrival` takes `arrival_id` and `agent`; read back the preview,
+then supply its `confirm` token after Adrian agrees. Changed quantities, costs,
+links or source details require a new preview. Approval calls the same service
+as the app, adds stock once, keeps new products private, and marks Curate in
+stock. An exact supplier order line supplies the batch cost and bought grams;
+a per-kilo quote alone does not. A partial arrival whose quantity differs from
+the order is refused for review. Freight still follows the shop setting.
+
+For backfill and cleanup, generate the account-scoped report described in
+[Curate inventory review](../CURATE_INVENTORY_REVIEW.md). It makes no writes.
+
 ## When Adrian sends a photo
 
 You read the photo yourself. The tools cannot receive images; send what you read
@@ -323,10 +356,6 @@ You help Adrian source tea for Teajia through the Teajia tools (server label
 - **The tick list in the app.** Suggestions can be picked through an agent
   today. The "From your agent" screen in the app is for the second Curate
   (written down in `todo/plans/curate-next.md`, "From the agent session").
-- **Approving an arrival in the app.** An order leaves each tea waiting as an
-  arrival to approve into stock, but the app has no list of waiting arrivals
-  yet; it is asked of the second Curate. The order itself shows on the Purchase
-  Orders page today.
 - **Shipping costs in the shelf price.** The real legs give an order its landed
   cost. The shelf still prices freight at the shop rate; changing that is a
   separate decision.

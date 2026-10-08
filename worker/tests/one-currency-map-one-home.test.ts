@@ -719,7 +719,7 @@ describe('the REST doors store the shop spelling, driven through the running rou
     expect(listingRow(db, id)?.cost_currency).toBe('Yuan');
   });
 
-  it('the Tea Compass promotion stores the shop spelling for a lower-cased currency', async () => {
+  it('the Tea Compass promotion leaves unit-quoted money unset until a batch is received', async () => {
     const db = database();
     db.sqlite.prepare(
       `INSERT INTO tea_compass_entries (id, user_id, account_id, name, category, price_amount, price_currency)
@@ -728,6 +728,6 @@ describe('the REST doors store the shop spelling, driven through the running rou
     const res = await call(db, 'POST', '/api/compass/entries/r3-compass-entry/promote', {});
     expect(res.status).toBe(201);
     const { id } = await res.json() as { id: string };
-    expect(productRow(db, id)?.cost_currency).toBe('Yuan');
+    expect(db.sqlite.prepare('SELECT cost_amount, cost_currency FROM products WHERE id = ?').get(id)).toMatchObject({ cost_amount: null, cost_currency: null });
   });
 });

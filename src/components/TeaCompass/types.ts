@@ -132,6 +132,8 @@ export interface TeaCompassEntry {
   // Vendor
   vendorId?: string;
   vendorName?: string;
+  shopName?: string;
+  transportMode?: string;
   vendorDetails?: VendorDetails;
   /** Customer record ID for the vendor, links compass entry to a customer profile */
   linkedCustomerId?: string;
@@ -195,6 +197,18 @@ export interface TeaCompassEntry {
  * rows created before sample_state existed. */
 export function entryIsSample(entry: Pick<TeaCompassEntry, 'sampleState' | 'isSample'>): boolean {
   return entry.sampleState != null || entry.isSample === true;
+}
+
+/** Shelf lifecycle is tasting evidence even when its notes have not been
+ * published into the Curate taxonomy. */
+export function entryHasBeenTasted(entry: Pick<TeaCompassEntry, 'sampleState' | 'tasting'>): boolean {
+  return entry.sampleState === 'tasted' || Boolean(entry.tasting && Object.values(entry.tasting)
+    .some((value) => Array.isArray(value) ? value.length > 0 : value != null));
+}
+
+export function entryNeedsTasting(entry: Pick<TeaCompassEntry, 'sampleState' | 'isSample' | 'tasting' | 'status'>): boolean {
+  return !entryHasBeenTasted(entry) && (entryIsSample(entry)
+    || (entry.status !== 'pass' && (entry.status === 'in_stock' || entry.status === 'incoming')));
 }
 
 // Gram presets by form

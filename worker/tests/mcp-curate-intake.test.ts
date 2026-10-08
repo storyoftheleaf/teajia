@@ -294,7 +294,7 @@ describe('a pick in the app lands the same rows as a pick through an agent', () 
   it('pickSuggestions and curate_pick_suggestions write identical teas, vendor and note', async () => {
     const from = { url: 'https://wangtea.cn', vendor_name: 'Wang Laoshi', contact: 'WeChat wang_tea' };
     const shape = (db: SqliteD1) => ({
-      tea: (({ id, created_at, updated_at, vendor_id, ...rest }) => rest)(entries(db)[0]),
+      tea: (({ id, created_at, updated_at, vendor_id, sample_set_id, ...rest }) => rest)(entries(db)[0]),
       vendor: (({ id, created_at, updated_at, notes, ...rest }) => rest)(vendors(db)[0]),
       note: (db.sqlite.prepare('SELECT text, source_type FROM notes').get() as R),
     });
