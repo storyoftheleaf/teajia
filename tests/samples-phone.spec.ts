@@ -50,6 +50,19 @@ test.describe('Samples on the phone', () => {
     await shot(page, 'list');
   });
 
+  test('is the Stock page with sample rows: same top bar, and the Kind switch regroups', async ({ page }) => {
+    await page.goto('/admin/stock?stock_view=samples', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('button', { name: 'Kind', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Supplier', exact: true })).toBeVisible();
+    const list = page.getByTestId('samples-phone');
+    await expect(list.getByRole('region', { name: 'Boyuan Tea Shop' })).toBeVisible();
+    await page.getByRole('button', { name: 'Kind', exact: true }).click();
+    await expect(list.getByRole('region', { name: 'Sheng Puer' })).toBeVisible();
+    await expect(list.getByRole('region', { name: 'White' })).toBeVisible();
+    await page.getByRole('button', { name: 'Supplier', exact: true }).click();
+    await shot(page, 'same-page');
+  });
+
   test('minus logs a tasting with 5 g ready, and Save confirms it', async ({ page }) => {
     const calls: Array<{ command: Record<string, unknown>; confirm?: string }> = [];
     await page.route('**/api/curate/correct', async route => {

@@ -2340,7 +2340,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const stockViewToggle = <div aria-label="Inventory source" className="flex flex-wrap shrink-0 gap-1 border-b border-tea-border px-3 py-1">
     {[{value:'stock',label:'Stock inventory'},{value:'samples',label:'Samples only'}].map(view => <button key={view.value} type="button" aria-pressed={(view.value==='samples')===samplesOnly} onClick={() => setSearchParams(previous => withParam(previous,'stock_view',view.value==='samples'?'samples':null),{replace:true})} className={`tap-target min-h-11 rounded-md px-3 text-ui-13 ${(view.value==='samples')===samplesOnly?'text-tea-gold bg-tea-accent-sub':'text-tea-text-sec hover:bg-tea-accent-sub'}`}>{view.label}</button>)}
   </div>;
-  if (samplesOnly) return <div className="h-full min-w-0 flex flex-col overflow-hidden bg-tea-bg">{stockViewToggle}<CurateSamplesView search={externalSearchQuery} /></div>;
+  // On the phone, Samples is the same page as Stock: same top bar, search and
+  // Supplier / Kind switch, only the rows differ. The laptop keeps its own screen.
+  if (samplesOnly && !phoneList) return <div className="h-full min-w-0 flex flex-col overflow-hidden bg-tea-bg">{stockViewToggle}<CurateSamplesView search={externalSearchQuery} /></div>;
 
   return (
     <div
@@ -2746,7 +2748,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         {/* On a phone this data-heavy table goes edge-to-edge: no side gutter, no
             card border, no rounding (those only chrome a narrow column on a small
             screen and steal width). Desktop keeps the bordered card. */}
-        {phoneList ? (
+        {phoneList && samplesOnly ? (
+          <CurateSamplesView search={searchQuery} groupBy={phoneGroupBy} embedded />
+        ) : phoneList ? (
           <PhoneStockList
             products={processedProducts}
             groupBy={phoneGroupBy}
