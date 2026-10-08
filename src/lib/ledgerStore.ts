@@ -271,15 +271,20 @@ const createdLedgerStore = create<LedgerState>()(
         return target.id;
       },
 
-      // Find or create a draft purchase transaction for a vendor
+      // Find or create a draft purchase transaction for a vendor IN ONE MONEY.
+      // An order has one currency (its total and its purchase order are written
+      // in it), so a tea priced in NT$ opens its own draft beside the vendor's ¥
+      // one instead of being added up under ¥. Matching on the name alone is how
+      // one order came to hold ¥450 + NT$1,800 and show ¥2,250.
       getOrCreatePurchaseTransaction: (vendorName, currency, vendorId) => {
         const state = get();
-        // Look for an existing draft purchase from the same vendor
+        const money = (c: string | undefined) => canonicalCurrency(c) ?? c;
         const existing = state.transactions.find(
           (tx) =>
             tx.status === 'draft' &&
             tx.direction === 'purchase' &&
-            tx.counterpartyName === vendorName
+            (vendorId && tx.counterpartyId ? tx.counterpartyId === vendorId : tx.counterpartyName === vendorName) &&
+            money(tx.currency) === money(currency)
         );
         if (existing) {
           set({ activeTransactionId: existing.id });

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { curateShelfPreview, purchaseSpendInUsd } from './curatePricing';
+import { curateShelfPreview, orderMoney, purchaseOrderTotalUsd, purchaseSpendInUsd } from './curatePricing';
 import { calculatePricing } from '../../admin/utils';
 import type { LedgerTransaction } from '../../lib/ledgerStore';
 import type { ExchangeRate } from '../../admin/types';
@@ -95,5 +95,39 @@ describe('Curate holds no pricing of its own', () => {
     expect(store).not.toMatch(/shippingRatePerKg/);
     expect(card).not.toMatch(/shippingRatePerKg/);
     expect(card).not.toMatch(/\)\s*\*\s*3\b/);
+  });
+});
+
+describe('an order\'s money (v1 ledger)', () => {
+  const tx = (items: Array<Partial<import('../../lib/ledgerStore').LedgerLineItem>>, currency = 'Yuan'): LedgerTransaction => ({
+    id: 'tx-1', direction: 'purchase', counterpartyName: 'Wang Laoshi', counterpartyId: 'vendor-wang', status: 'draft',
+    currency: currency as never, createdAt: '', updatedAt: '', photos: [],
+    items: items.map((item, i) => ({ id: `l-${i}`, addedAt: '', name: `Tea ${i}`, quantityUnits: 1, priceIsPerGram: false, pricePerUnit: 0, currency: 'Yuan', ...item })) as never,
+  });
+
+  it('never adds yuan and Taiwan dollars into one figure', () => {
+    const money = orderMoney(tx([{ pricePerUnit: 450, currency: 'Yuan' }, { pricePerUnit: 1800, currency: 'NT' }]));
+    expect(money.mixed).toBe(true);
+    expect(money.parts).toEqual([{ currency: 'Yuan', amount: 450 }, { currency: 'NT', amount: 1800 }]);
+  });
+
+  it('counts one money as one figure, and leaves a tea with no price out', () => {
+    const money = orderMoney(tx([{ pricePerUnit: 450 }, { pricePerUnit: 300 }, { pricePerUnit: 0, unpriced: true }]));
+    expect(money).toMatchObject({ mixed: false, parts: [{ currency: 'Yuan', amount: 750 }], unpriced: 1 });
+  });
+
+  it('records total_usd in dollars, converted at the shop\'s rates', () => {
+    expect(purchaseOrderTotalUsd(tx([{ pricePerUnit: 450 }]), rates)).toBeCloseTo(450 / 7, 2);
+    // A basket holding two moneys converts each line in its own.
+    expect(purchaseOrderTotalUsd(tx([{ pricePerUnit: 700 }, { pricePerUnit: 3200, currency: 'NT' }]), rates)).toBe(200);
+  });
+
+  it('leaves total_usd out when a currency has no rate, never reading it at 1', () => {
+    expect(purchaseOrderTotalUsd(tx([{ pricePerUnit: 450, currency: 'HKD' }], 'HKD'), rates)).toBeUndefined();
+    expect(purchaseOrderTotalUsd(tx([{ pricePerUnit: 450 }]), null)).toBeUndefined();
+  });
+
+  it('leaves total_usd out when a tea has no price yet, rather than understating the order', () => {
+    expect(purchaseOrderTotalUsd(tx([{ pricePerUnit: 450 }, { pricePerUnit: 0, unpriced: true }]), rates)).toBeUndefined();
   });
 });

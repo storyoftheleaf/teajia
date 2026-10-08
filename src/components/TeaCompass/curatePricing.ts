@@ -14,8 +14,8 @@
  * preview uses, which reads `SHOP_MARKUP_MULTIPLIER`.
  */
 import { calculatePricing } from '../../admin/utils';
-import type { ExchangeRate } from '../../admin/types';
-import { isUnrecordedCurrency, rateToUsd } from '../../lib/currency';
+import type { Currency, ExchangeRate } from '../../admin/types';
+import { canonicalCurrency, isUnrecordedCurrency, rateToUsd } from '../../lib/currency';
 import { shopRateInCurrency } from '../../lib/shippingRate';
 import type { LedgerLineItem, LedgerTransaction } from '../../lib/ledgerStore';
 
@@ -107,4 +107,57 @@ export function purchaseSpendInUsd(
     priced.push({ tx, usd: itemsUsd.reduce((a, b) => a + b, 0), itemsUsd });
   }
   return { priced, unpricedByCurrency };
+}
+
+/** Two spellings of one money ("Yuan", "CNY") are the same money. */
+export const sameMoney = (a: string | undefined, b: string | undefined) =>
+  (canonicalCurrency(a) ?? a) === (canonicalCurrency(b) ?? b);
+
+export interface OrderMoney {
+  /** The order's money: the one every priced line is in (the order's own when it has none). */
+  currency: Currency;
+  /** Priced lines in more than one money. Added up as one figure they would label
+   *  one money's number with another's symbol, so no single total exists. */
+  mixed: boolean;
+  /** What the priced lines come to, in each money they are in. */
+  parts: Array<{ currency: Currency; amount: number }>;
+  /** Lines nobody has priced: they are in no total. */
+  unpriced: number;
+}
+
+/**
+ * An order counted in the money its lines are actually in. A line carries its
+ * own currency; an order is meant to hold one, but a draft made before that
+ * was enforced can hold two, and then the honest total is each money on its
+ * own. Summing them under the order's symbol is how ¥450 + NT$1,800 was shown
+ * as ¥2,250.
+ */
+export function orderMoney(tx: Pick<LedgerTransaction, 'items' | 'currency'>): OrderMoney {
+  const parts: OrderMoney['parts'] = [];
+  let unpriced = 0;
+  for (const item of tx.items) {
+    if (item.unpriced) { unpriced += 1; continue; }
+    const money = (item.currency || tx.currency) as Currency;
+    const found = parts.find((part) => sameMoney(part.currency, money));
+    if (found) found.amount += ledgerItemAmount(item);
+    else parts.push({ currency: money, amount: ledgerItemAmount(item) });
+  }
+  if (parts.length === 0) parts.push({ currency: tx.currency, amount: 0 });
+  return { currency: parts[0].currency, mixed: parts.length > 1, parts, unpriced };
+}
+
+/**
+ * What a confirmed purchase order records as `total_usd`: the order converted
+ * at the shop's rates, or undefined when there is no honest dollar figure.
+ * Undefined when a line's currency has no rate (never read at 1, which stored
+ * ¥450 as $450) and when a line has no price yet (a total with a blank counted
+ * as zero records the order as cheaper than it was). Rounded to cents.
+ */
+export function purchaseOrderTotalUsd(
+  tx: LedgerTransaction,
+  rates: readonly ExchangeRate[] | null | undefined,
+): number | undefined {
+  if (tx.items.length === 0 || tx.items.some((item) => item.unpriced)) return undefined;
+  const usd = purchaseSpendInUsd([tx], rates).priced[0]?.usd;
+  return usd === undefined ? undefined : Math.round(usd * 100) / 100;
 }

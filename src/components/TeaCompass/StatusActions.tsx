@@ -93,6 +93,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
       pricePerUnit: entry.priceAmount ?? 0,
       priceIsPerGram: !unitBased && !!entry.pricePerUnitGrams,
       currency,
+      ...(entry.priceAmount == null ? { unpriced: true as const } : {}),
       compassEntryId: entry.id,
     });
 

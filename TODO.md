@@ -33,6 +33,8 @@ Everything below the ten is in the report's "Later" bucket: false-success delete
 
 ## Untriaged
 
+- [ ] Purchase orders: let an order with no dollar total be stored as "unknown" instead of $0 (the column refuses empty today, and the live table has no orders yet, so now is the cheap time) _(band: agent-runnable)_ _(effort: moderate)_
+- [ ] Curate v1: a tea priced per 100 g is added to an order at that price PER GRAM, so 200 g of a ¥450/100 g tea is counted as ¥90,000 (v2 divides; v1's three Buy paths do not) _(band: agent-runnable)_ _(effort: quick)_
 - [ ] Tea Atlas: let the owner replace or remove a source added from the admin; today a wrong split can only be republished under a new name _(band: agent-runnable)_ _(effort: moderate)_
 - [ ] Tea Atlas: write Obsidian notes for sources added from the admin, so the vault and the web package stay the same shape _(band: agent-runnable)_ _(effort: moderate)_
 - [ ] Tea Atlas: open teajia.com/tea-atlas signed in and check search, an article and its pictures — the signed-in view has not been seen by anyone yet _(band: you-required)_ _(effort: quick)_

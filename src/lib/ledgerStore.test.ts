@@ -58,3 +58,26 @@ describe('Naming the vendor of a draft that had none', () => {
     expect(useLedgerStore.getState().transactions.filter((t) => t.status === 'draft' && t.counterpartyName.toLowerCase() === 'li tea house')).toHaveLength(1);
   });
 });
+
+describe('A vendor\'s draft is found by vendor AND money', () => {
+  beforeEach(() => useLedgerStore.setState({ transactions: [], activeTransactionId: null }));
+
+  it('opens a second draft for the same vendor when the tea is priced in another money', () => {
+    const yuan = useLedgerStore.getState().getOrCreatePurchaseTransaction('Wang Laoshi', 'Yuan', 'vendor-wang');
+    const nt = useLedgerStore.getState().getOrCreatePurchaseTransaction('Wang Laoshi', 'NT', 'vendor-wang');
+    expect(nt).not.toBe(yuan);
+    expect(useLedgerStore.getState().transactions.map((tx) => tx.currency).sort()).toEqual(['NT', 'Yuan']);
+  });
+
+  it('reuses the draft in the same money, whatever it is spelled', () => {
+    const yuan = useLedgerStore.getState().getOrCreatePurchaseTransaction('Wang Laoshi', 'Yuan', 'vendor-wang');
+    expect(useLedgerStore.getState().getOrCreatePurchaseTransaction('Wang Laoshi', 'CNY' as never, 'vendor-wang')).toBe(yuan);
+    expect(useLedgerStore.getState().transactions).toHaveLength(1);
+  });
+
+  it('matches on the vendor\'s id when both sides have one, not only on the name', () => {
+    const wang = useLedgerStore.getState().getOrCreatePurchaseTransaction('Wang Laoshi', 'Yuan', 'vendor-wang');
+    expect(useLedgerStore.getState().getOrCreatePurchaseTransaction('wang laoshi', 'Yuan', 'vendor-wang')).toBe(wang);
+    expect(useLedgerStore.getState().getOrCreatePurchaseTransaction('Wang Laoshi', 'Yuan', 'vendor-other')).not.toBe(wang);
+  });
+});

@@ -35,7 +35,7 @@ import { EncounterContext } from './EncounterContext';
 import { DecisionControl } from './DecisionControl';
 import { CaptureContextChips } from './CaptureContextChips';
 import { CaptureActionFooter } from './CaptureActionFooter';
-import { curateShelfPreview } from './curatePricing';
+import { curateShelfPreview, sameMoney } from './curatePricing';
 import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
 
 type ParseableField = 'type' | 'form' | 'year' | 'season' | 'storage' | 'region';
@@ -238,15 +238,19 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       if (tx.status !== 'draft') continue;
       for (const item of tx.items) {
         if (item.compassEntryId !== entry.id) continue;
+        // An amount in another money is never written into a line counted in
+        // this one: the line keeps what was ordered.
+        if (entry.priceAmount != null && !sameMoney(item.currency || tx.currency, entry.priceCurrency)) continue;
         const newPrice = entry.priceAmount ?? 0;
+        const blank = entry.priceAmount == null;
         const unitBased = entry.category === 'teaware' || (['Cake','Brick','Tuo'] as string[]).includes(entry.form || '');
         const newIsPerGram = !unitBased && !!entry.pricePerUnitGrams;
-        if (item.pricePerUnit !== newPrice || item.priceIsPerGram !== newIsPerGram) {
-          updItem(tx.id, item.id, { pricePerUnit: newPrice, priceIsPerGram: newIsPerGram });
+        if (item.pricePerUnit !== newPrice || item.priceIsPerGram !== newIsPerGram || !!item.unpriced !== blank) {
+          updItem(tx.id, item.id, { pricePerUnit: newPrice, priceIsPerGram: newIsPerGram, unpriced: blank ? true : undefined });
         }
       }
     }
-  }, [entry?.priceAmount, entry?.pricePerUnitGrams, entry?.form, entry?.category]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [entry?.priceAmount, entry?.priceCurrency, entry?.pricePerUnitGrams, entry?.form, entry?.category]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Parser state
   const userTapped = useRef<Set<ParseableField>>(new Set());
@@ -948,6 +952,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       pricePerUnit: entry.priceAmount ?? 0,
       priceIsPerGram: !unitBased && !!entry.pricePerUnitGrams,
       currency,
+      // No price yet is no price: the 0 above is a placeholder, not a figure.
+      ...(entry.priceAmount == null ? { unpriced: true as const } : {}),
       compassEntryId: entry.id,
     });
     setReceiptBusy(true);
