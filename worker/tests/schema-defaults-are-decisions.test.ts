@@ -70,9 +70,7 @@ const NUMERIC_DEFAULTS: Record<string, string> = {
 const MONEY_DEFAULTS: Record<string, string> = {
   // Honest zeros: each starts a row that genuinely has none of this yet.
   shipping_cost_usd: 'an invoice with no shipping charged really did cost nothing to ship',
-  // DEBT on purchase_orders: NOT NULL there too, so an order Curate could not
-  // convert to dollars is stored as 0 when the honest answer is NULL.
-  total_usd: 'a running total, zero before a single line exists; DEBT on purchase_orders, where 0 also stands for "could not be converted"',
+  total_usd: 'a running total, zero before a single line exists',
   total_tastings: 'a count of things that have happened, and none have',
   // DEBT, and the one that cost money. 0 on a cost is a free tea, not an
   // unrecorded one. Every door now either REQUIRES the cost (the form, the bulk

@@ -95,6 +95,26 @@ back returns to Today with the list as it was, the line gone if it is done.
   band (surface vs page), clearer row dividers, secondary text at least
   tea-text-sec where it carries meaning, the open tea on a raised surface.
 
+## Status, 9 October 2026 (after ten passes)
+
+All four journeys are built and live (main `a415c9cb`, served inside the
+`162d218c` build). Held by `tests/curate-v2-journeys.spec.ts` (journeys, looks)
+and `tests/curate-v2-requests.spec.ts` (every request body, every failure path,
+orders from the shop). Pass 8 and 9 walked the real worker on a local
+database; a tea bought in v2 shelves with its cost, currency (marked stated)
+and stock.
+
+Left open, deliberately:
+- Light mode: the gold action words measure 4.21:1 on the Today band, under
+  4.5. Fixing it darkens the site's gold token everywhere; Adrian's call.
+- A local order confirmed before `purchaseOrderId` was kept cannot be matched
+  to its shop record (the worker does not store `po_number`), so it can show
+  twice on that one device.
+- The full tasting is the shared journal component dressed by CSS inside
+  Curate; its liquor-colour strip keeps rounded ends.
+- Chinese characters outside the site's Noto Serif SC subset fall to the
+  phone's system CJK serif; a phone without one uses its default.
+
 ## How each loop is checked
 
 `tests/curate-v2-journeys.spec.ts` walks journeys 1-4 on the phone size with

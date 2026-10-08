@@ -21737,13 +21737,11 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
     body.vendor_id || null,
     body.vendor_contact || null,
     body.items_json || '[]',
-    // DEBT: an absent total means Curate could not convert the order to
-    // dollars (a currency with no rate, a tea with no price yet), and the
-    // honest answer is NULL. `purchase_orders.total_usd` is `NOT NULL DEFAULT
-    // 0` in the migration ledger (0000) and SQLite cannot drop a NOT NULL in
-    // place, so until a migration rewrites the column, 0 here means "unknown",
-    // never "free". Do not read it as a spend figure.
-    body.total_usd || 0,
+    // An absent total means Curate could not convert the order to dollars (a
+    // currency with no rate, a tea with no price yet), so it is stored as
+    // unknown, never as 0: 0 reads as an order that cost nothing. A stated 0
+    // is kept. Migration 0040 lets the column hold NULL.
+    typeof body.total_usd === 'number' && Number.isFinite(body.total_usd) ? body.total_usd : null,
     body.display_currency || 'USD',
     body.status || 'pending',
     body.message_text || null,
