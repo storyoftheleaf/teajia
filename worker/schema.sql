@@ -2374,7 +2374,7 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
   vendor_id TEXT,
   vendor_contact TEXT,
   items_json TEXT NOT NULL DEFAULT '[]',
-  total_usd REAL NOT NULL DEFAULT 0,
+  total_usd REAL,
   display_currency TEXT NOT NULL DEFAULT 'USD',
   status TEXT NOT NULL DEFAULT 'pending',
   message_text TEXT,

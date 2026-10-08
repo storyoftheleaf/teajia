@@ -540,7 +540,8 @@ export interface PurchaseOrder {
   vendor_id?: string | null;
   vendor_contact?: string | null;
   items_json: string; // JSON string of line items
-  total_usd: number;
+  /** Null when the order could not be converted to dollars (no rate, or a tea with no price yet). */
+  total_usd: number | null;
   display_currency: string;
   status: string;
   notes?: string | null;
