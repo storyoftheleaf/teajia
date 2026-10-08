@@ -120,3 +120,8 @@ Next:
 9. What you said, folded at the bottom of a tea, opened on tap.
 10. Keyboard on the laptop: Enter adds, Tab moves to price, a key opens the fast tasting.
 - From the agent session (0032): agents write purchase_orders with message_text and one pending curate_receipt_proposals row per tea. v2 needs an **Arriving** list with Accept, since today a proposal shows only inline on one capture card. shop_name and transport_mode exist on tea_compass_entries but are not in the sync codec yet.
+
+## Built 2026-10-08
+- The tea screen as drawn: opening a tea shows facts as one-line rows (cost, shelf, from, vendor, tasting), Taste/Talk/Note, the decision, and what was said folded at the bottom (idea 9). "Edit all fields" opens the full card. `TeaFace.tsx`.
+- From your agent, To do and Arriving on Today (ideas 6, the agent asks above, and the Arriving list). The app's routes call the same `pickSuggestions`, `addTodo`, `markTodoDone` the agent tools do. `AgentInbox.tsx`, routes beside the receipt routes in `worker/src/index.ts`.
+- Still open from the agent asks: the missing words on rows (idea 5), the vendor's website on its card (idea 7), and showing "who added it".
