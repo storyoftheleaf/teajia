@@ -279,6 +279,8 @@ CREATE TABLE IF NOT EXISTS invoices (
     account_id TEXT NOT NULL,
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     invoice_number TEXT NOT NULL,
+    create_idempotency_key TEXT,
+    create_fingerprint TEXT,
     customer_name TEXT,
     customer_whatsapp TEXT,
     customer_id TEXT,              -- FK to customers table
@@ -425,6 +427,9 @@ CREATE INDEX IF NOT EXISTS idx_stock_holds_product ON stock_holds(account_id, pr
 CREATE UNIQUE INDEX IF NOT EXISTS idx_invoices_account_invoice_number_active
   ON invoices(account_id, invoice_number)
   WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_invoices_account_create_key
+  ON invoices(account_id, create_idempotency_key)
+  WHERE create_idempotency_key IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_invoices_fulfillment_claim
   ON invoices(account_id, fulfillment_claim_token);
 CREATE TRIGGER IF NOT EXISTS trg_products_nonnegative_stock
@@ -2370,6 +2375,8 @@ CREATE TABLE IF NOT EXISTS profile_suggestions (
 CREATE TABLE IF NOT EXISTS purchase_orders (
   id TEXT PRIMARY KEY,
   account_id TEXT NOT NULL,
+  create_request_key TEXT,
+  create_request_fingerprint TEXT,
   vendor_name TEXT,
   vendor_id TEXT,
   vendor_contact TEXT,
@@ -2382,6 +2389,21 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
   freight_estimate_json TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS purchase_orders_account_create_request_key
+  ON purchase_orders(account_id, create_request_key)
+  WHERE create_request_key IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS intake_commit_operations (
+  id TEXT NOT NULL,
+  account_id TEXT NOT NULL,
+  batch_id TEXT,
+  request_fingerprint TEXT NOT NULL,
+  payload_json TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'completed')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  completed_at TEXT,
+  PRIMARY KEY (account_id, id)
 );
 
 CREATE TABLE IF NOT EXISTS refresh_tokens (

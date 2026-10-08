@@ -53,14 +53,35 @@ const saveDraft = () => page.getByRole('button', { name: 'Save draft' });
 const textOf = async (locator: ReturnType<Page['locator']>) => (await locator.allTextContents()).join(' ');
 
 describe('QuickInvoiceModal linked sales behavior', () => {
-  it('holds a second create when the first invoice response is lost', async () => {
+  it('retries the same create key when the first invoice response is lost', async () => {
     await open({ prefill: { customerName: 'Buyer', items: [{ name: 'Custom tea', quantity: 5, unit: 'g', price: 2 }] } });
     await page.evaluate(() => (window as any).quickInvoiceTest.loseInvoiceResponse());
     await saveDraft().click();
-    await page.getByText('The invoice may have saved. Check Orders for this customer before starting another invoice.').waitFor();
-    expect(await saveDraft().isDisabled()).toBe(true);
-    expect(await page.getByRole('button', { name: 'Save + Share' }).isDisabled()).toBe(true);
+    await page.getByRole('button', { name: 'Retry save' }).waitFor();
     expect(await page.evaluate(() => (window as any).quickInvoiceTest.invoiceCalls().length)).toBe(1);
+    await page.getByPlaceholder('Name or search existing customer…').fill('Edited after timeout');
+    await page.evaluate(() => (window as any).quickInvoiceTest.restoreInvoiceResponse());
+    await page.getByRole('button', { name: 'Retry save' }).click();
+    await expect.poll(() => page.evaluate(() => (window as any).quickInvoiceTest.invoiceCalls().length)).toBe(2);
+    const calls = await page.evaluate(() => (window as any).quickInvoiceTest.invoiceCalls());
+    expect(calls[0].key).toBe(calls[1].key);
+    expect(calls[0].invoice).toEqual(calls[1].invoice);
+    expect(calls[0].items).toEqual(calls[1].items);
+    expect(await page.evaluate(() => localStorage.getItem('teajia:pending-invoice-create:account-a'))).toBeNull();
+  }, 15_000);
+
+  it('recovers the committed invoice after the modal remounts without storing customer details', async () => {
+    await open({ prefill: { customerName: 'Buyer', items: [{ name: 'Custom tea', quantity: 5, unit: 'g', price: 2 }] } });
+    await page.evaluate(() => (window as any).quickInvoiceTest.loseInvoiceResponse());
+    await saveDraft().click();
+    await page.getByRole('button', { name: 'Retry save' }).waitFor();
+    const stored = await page.evaluate(() => localStorage.getItem('teajia:pending-invoice-create:account-a'));
+    expect(stored).toMatch(/^[A-Za-z0-9_-]{16,128}$/);
+    expect(stored).not.toContain('Buyer');
+    await page.evaluate(() => (window as any).quickInvoiceTest.mount());
+    await page.getByRole('dialog', { name: 'Invoice saved' }).waitFor();
+    expect(await page.getByText('Invoice INV-1 was saved').count()).toBe(1);
+    expect(await page.evaluate(() => (window as any).quickInvoiceTest.invoiceCalls().length)).toBe(0);
   }, 15_000);
 
   it('fetches on open and renders only verified active tea suggestions with truthful Teaware copy', async () => {
