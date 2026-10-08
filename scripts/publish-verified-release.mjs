@@ -50,8 +50,8 @@ export async function run(env = process.env, initialize = false, dependencies = 
   persist('worker_pending');
   if (initialize === true) return state;
   const deadline = now() + 20 * 60_000;
-  const read = async url => {
-    const response = await fetch(url, { signal: AbortSignal.timeout(30_000), cache: 'no-store' });
+  const read = async (url, timeout = 30_000) => {
+    const response = await fetch(url, { signal: AbortSignal.timeout(timeout), cache: 'no-store' });
     if (!response.ok) {
       const parsed = new URL(url);
       const error = new Error(`Read failed: ${parsed.host}${parsed.pathname} HTTP ${response.status}`);
@@ -68,10 +68,23 @@ export async function run(env = process.env, initialize = false, dependencies = 
     if (!response.ok || !body.success) throw new Error(`Pages API failed (${response.status}); check token Pages access`);
     return body.result;
   };
-  const worker = async () => {
-    const proof = await (await read(`https://api.teajia.com/api/release?revision=${candidate}`)).json();
-    if (proof.revision !== candidate || !proof.versionId) throw new Error('Live Worker does not match the candidate');
-    return proof;
+  let workerRead = 0;
+  const worker = async (versionId, allowPropagation = false) => {
+    const workerDeadline = Math.min(deadline, now() + 3 * 60_000);
+    do {
+      if (allowPropagation && now() >= workerDeadline) break;
+      try {
+        const timeout = allowPropagation ? Math.max(1, Math.min(30_000, workerDeadline - now())) : 30_000;
+        const proof = await (await read(`https://api.teajia.com/api/release?revision=${candidate}&proof=${now()}-${++workerRead}`, timeout)).json();
+        if (proof?.revision === candidate && proof.versionId === versionId) return proof;
+        if (!allowPropagation) throw new Error('Worker version changed during publication; inspect competing release');
+      } catch (error) {
+        if (!allowPropagation || (!error.retryable && !(error instanceof TypeError) && error.name !== 'TimeoutError' && error.name !== 'AbortError')) throw error;
+      }
+      if (now() >= workerDeadline) break;
+      await sleep(Math.min(15_000, workerDeadline - now()));
+    } while (now() < workerDeadline);
+    throw new Error('Live Worker does not match the candidate and recorded runtime version after bounded propagation reads; resume observation without redeploying');
   };
   const artifact = async origin => {
     const versionBytes = Buffer.from(await (await read(`${origin}/version.json?proof=${candidate}`)).arrayBuffer());
@@ -96,10 +109,10 @@ export async function run(env = process.env, initialize = false, dependencies = 
       return state;
     }
     const deployed = JSON.parse(readFileSync(env.WORKER_PROOF_PATH, 'utf8'));
-    const workerProof = await worker();
-    if (deployed.status !== 'worker_verified' || deployed.revision !== candidate || deployed.versionId !== workerProof.versionId) {
+    if (deployed.status !== 'worker_verified' || deployed.revision !== candidate || typeof deployed.versionId !== 'string' || !deployed.versionId) {
       throw new Error('Worker differs from this run’s recorded deployment artifact');
     }
+    const workerProof = await worker(deployed.versionId, true);
     persist('worker_verified', { worker: workerProof });
     let main = git('ls-remote', 'origin', 'refs/heads/main').split(/\s/)[0];
     if (main !== candidate && main !== expected) throw new Error('Main changed; integrate it into a new candidate before publishing');
@@ -148,7 +161,7 @@ export async function run(env = process.env, initialize = false, dependencies = 
       await sleep(15_000);
     }
     if (!proofMatches(immutable, live)) throw new Error('Production bytes differ from the candidate deployment; resume observation');
-    const finalWorker = await worker();
+    const finalWorker = await worker(workerProof.versionId);
     if (finalWorker.versionId !== workerProof.versionId) throw new Error('Worker version changed during publication; inspect competing release');
     persist('live', { buildId: immutable.buildId, liveUrl: 'https://teajia.com', completedAt: new Date().toISOString() });
     if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY,

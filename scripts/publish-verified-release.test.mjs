@@ -34,13 +34,22 @@ function fixture(t, options = {}) {
   let main = options.main || expected;
   let clock = 0;
   let immutableReads = 0;
+  let workerReads = 0;
+  const workerUrls = [];
+  const gitReads = [];
   const mutations = [];
   const fetch = async url => {
     const path = new URL(url).pathname;
     if (path.endsWith('/deployments')) assert.equal(new URL(url).searchParams.get('per_page'), '20');
     if (path.endsWith('/deployments')) return Response.json({ success: true, result: [{ id: 'd1', environment: 'production', deployment_trigger: { metadata: { commit_hash: candidate } }, latest_stage: { status: 'success' }, url: 'https://abc.teajiafinal.pages.dev' }] });
     if (path.includes('/pages/projects/')) return Response.json({ success: true, result: { production_branch: 'main', domains: ['teajia.com'] } });
-    if (path === '/api/release') return Response.json({ revision: options.workerRevision || candidate, versionId: 'v1' });
+    if (path === '/api/release') {
+      workerReads++; workerUrls.push(url);
+      const response = options.workerResponses?.[Math.min(workerReads - 1, options.workerResponses.length - 1)];
+      if (response instanceof Error) throw response;
+      if (typeof response === 'number') return new Response('', { status: response });
+      return Response.json(response ?? { revision: options.workerRevision || candidate, versionId: 'v1' });
+    }
     if (path === '/version.json') return Response.json({ buildId: 42 });
     if (path === '/') return new Response('<script src="/assets/app.js"></script>');
     if (new URL(url).host === 'abc.teajiafinal.pages.dev' && path === '/assets/app.js') {
@@ -51,17 +60,57 @@ function fixture(t, options = {}) {
     return new Response('app bytes');
   };
   const git = (...args) => {
+    gitReads.push(args);
     if (args[0] === 'ls-remote') return `${main}\trefs/heads/main`;
     if (args[0] === 'merge-base') return '';
     if (args[0] === 'push') { mutations.push(args); main = candidate; return ''; }
     throw new Error(`unexpected git ${args}`);
   };
-  return { env, dependencies: { fetch, git, now: () => clock, sleep: async () => { main = candidate; clock += options.assetAlwaysMissing ? 20 * 60_000 : 15_000; } }, mutations, immutableReads: () => immutableReads, state: () => JSON.parse(readFileSync(env.RELEASE_STATE_PATH, 'utf8')) };
+  return { env, dependencies: { fetch, git, now: () => clock, sleep: async ms => { main = candidate; clock += options.assetAlwaysMissing ? 20 * 60_000 : ms; } }, mutations, gitReads, workerUrls, workerReads: () => workerReads, immutableReads: () => immutableReads, state: () => JSON.parse(readFileSync(env.RELEASE_STATE_PATH, 'utf8')) };
 }
 test('never advances main for a different live worker', async t => {
   const f = fixture(t, { workerRevision: 'c'.repeat(40) });
   await assert.rejects(run(f.env, false, f.dependencies), /Worker does not match/);
   assert.equal(f.mutations.length, 0); assert.equal(f.state().state, 'failed');
+  assert.equal(f.workerReads(), 12); assert.equal(f.gitReads.length, 0);
+});
+test('waits for exact Worker revision AND recorded version with a fresh proof URL on every read', async t => {
+  const f = fixture(t, { workerResponses: [
+    { revision: 'c'.repeat(40), versionId: 'v1' },
+    { revision: 'a'.repeat(40), versionId: 'stale-version' },
+    { revision: 'a'.repeat(40), versionId: 'v1' },
+  ] });
+  await run(f.env, false, f.dependencies);
+  assert.equal(f.state().state, 'live');
+  assert.equal(f.state().worker.versionId, 'v1');
+  assert.equal(f.workerReads(), 4);
+  assert.equal(new Set(f.workerUrls).size, 4);
+  assert.equal(f.mutations.length, 0);
+});
+test('retries transient Worker HTTP and transport failures without publication', async t => {
+  const f = fixture(t, { workerResponses: [503, new TypeError('network unavailable'), { revision: 'a'.repeat(40), versionId: 'v1' }] });
+  await run(f.env, false, f.dependencies);
+  assert.equal(f.state().state, 'live'); assert.equal(f.workerReads(), 4); assert.equal(f.mutations.length, 0);
+});
+test('permanent wrong version or transient failure remains bounded and fails before Git reads', async t => {
+  for (const response of [{ revision: 'a'.repeat(40), versionId: 'wrong' }, 503, new TypeError('offline')]) {
+    const f = fixture(t, { workerResponses: [response] });
+    await assert.rejects(run(f.env, false, f.dependencies), /after bounded propagation reads/);
+    assert.equal(f.workerReads(), 12); assert.equal(f.gitReads.length, 0); assert.equal(f.state().state, 'failed');
+  }
+});
+test('a changed final Worker version or revision fails immediately instead of waiting for it to return', async t => {
+  for (const final of [{ revision: 'a'.repeat(40), versionId: 'v2' }, { revision: 'c'.repeat(40), versionId: 'v1' }]) {
+    const f = fixture(t, { workerResponses: [{ revision: 'a'.repeat(40), versionId: 'v1' }, final] });
+    await assert.rejects(run(f.env, false, f.dependencies), /Worker version changed during publication/);
+    assert.equal(f.workerReads(), 2); assert.equal(f.state().state, 'failed'); assert.equal(f.mutations.length, 0);
+  }
+});
+test('invalid recorded Worker artifact fails before any public Worker read', async t => {
+  const f = fixture(t);
+  writeFileSync(f.env.WORKER_PROOF_PATH, JSON.stringify({ status: 'worker_verified', revision: 'c'.repeat(40), versionId: 'v1' }));
+  await assert.rejects(run(f.env, false, f.dependencies), /recorded deployment artifact/);
+  assert.equal(f.workerReads(), 0); assert.equal(f.gitReads.length, 0);
 });
 test('never advances main over a competing release', async t => {
   const f = fixture(t, { main: 'c'.repeat(40) });
