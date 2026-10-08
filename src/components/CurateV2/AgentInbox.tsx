@@ -43,7 +43,7 @@ export const Tick: React.FC<{ on: boolean; label: string; onClick: () => void; r
     onClick={onClick}
     className="-ml-2.5 flex h-11 w-11 shrink-0 items-center justify-center"
   >
-    <span className={`flex h-[17px] w-[17px] items-center justify-center border ${round ? 'rounded-full' : 'rounded-[3px]'} ${on ? 'cta-solid border-tea-gold' : 'border-tea-text-dim text-transparent'}`}>
+    <span className={`flex h-[17px] w-[17px] items-center justify-center border ${round ? 'rounded-full' : 'rounded-[3px]'} ${on ? 'border-tea-gold text-tea-gold' : 'border-tea-text-dim text-transparent'}`}>
       <Check size={12} strokeWidth={2.75} />
     </span>
   </button>
@@ -85,7 +85,7 @@ export const AgentFindsSheet: React.FC<{ group: CurateSuggestionGroup | null; on
         {(group.vendor || host) && (
           <div className="flex items-baseline justify-between gap-3 border-b border-tea-border px-4 py-2.5">
             <span className="curate-v2-name">{group.vendor || 'Unknown vendor'}</span>
-            {host && <span className="truncate text-ui-12 text-tea-text-sec">{host}</span>}
+            {host && <span className="truncate font-mono text-ui-12 text-tea-text-sec">{host}</span>}
           </div>
         )}
         {group.note && <p className="border-b border-tea-border px-4 py-2 text-ui-13 text-tea-text-sec">{group.note}</p>}
@@ -99,7 +99,7 @@ export const AgentFindsSheet: React.FC<{ group: CurateSuggestionGroup | null; on
                 <span className="curate-v2-name">{t.year != null && !t.name.includes(String(t.year)) ? `${t.year} ${t.name}` : t.name}</span>
                 <span className="flex-1" />
                 {t.price && (
-                  <span className="text-ui-13 font-medium text-tea-text-sec tabular-nums">
+                  <span className="font-mono text-ui-13 text-tea-text-sec tabular-nums">
                     {sym}{Number(t.price.amount).toLocaleString()}{per && <span className="ml-1 text-ui-12 font-normal text-tea-text-sec">{per}</span>}
                   </span>
                 )}
@@ -108,13 +108,13 @@ export const AgentFindsSheet: React.FC<{ group: CurateSuggestionGroup | null; on
           );
         })}
         <div className="grid grid-cols-2 gap-2 px-4 pt-3">
-          <button type="button" onClick={onClose} className="min-h-11 rounded-md border border-tea-border text-ui-13 font-medium text-tea-text-sec hover:text-tea-text">Not now</button>
-          <button type="button" onClick={() => pick.mutate()} disabled={pick.isPending || kept.size === 0} className="cta-solid min-h-11 rounded-md text-ui-13 font-semibold disabled:opacity-50">
+          <button type="button" onClick={onClose} className="curate-v2-frame is-tall is-wide">Not now</button>
+          <button type="button" onClick={() => pick.mutate()} disabled={pick.isPending || kept.size === 0} className="curate-v2-frame is-on is-tall is-wide disabled:opacity-50">
             {kept.size ? `Add ${kept.size} to samples` : 'Tick the ones you want'}
           </button>
         </div>
-        {kept.size > 0 && rest > 0 && <p className="px-4 pt-2 text-ui-12 text-tea-text-sec">The other {rest} are cleared.</p>}
-        {pick.isError && <p className="px-4 pt-2 text-ui-12 text-tea-error">{errorText(pick.error)}</p>}
+        {kept.size > 0 && rest > 0 && <p className="px-4 pt-2 font-mono text-ui-12 text-tea-text-sec">The other {rest} are cleared.</p>}
+        {pick.isError && <p className="px-4 pt-2 font-mono text-ui-12 text-tea-error">{errorText(pick.error)}</p>}
       </div>
     </BottomSheet>
   );

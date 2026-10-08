@@ -146,15 +146,15 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
               <span className="font-display text-ui-20 text-tea-gold tabular-nums">{i + 1}</span>
               <span className="min-w-0">
                 <span className="block font-display text-ui-17 text-tea-text">{title}</span>
-                <span className="block text-ui-13 text-tea-text-sec">{body}</span>
+                <span className="block font-body text-ui-14 leading-relaxed text-tea-text-sec">{body}</span>
               </span>
             </li>
           ))}
-          <li className="pt-3"><button type="button" onClick={onStartTable} className="cta-solid w-full rounded-md py-3 text-ui-13 font-semibold">Start a table</button></li>
+          <li className="pt-3"><button type="button" onClick={onStartTable} className="curate-v2-frame is-on is-tall is-wide uppercase tracking-[0.16em]">Start a table</button></li>
         </ol>
       )}
       {waitingCount === 0 && entries.length > 0 && (
-        <p className="px-4 py-4 text-ui-13 text-tea-text-sec">Nothing waiting. Open Table to taste, or + Tea to add one.</p>
+        <p className="px-4 py-4 font-body text-ui-14 text-tea-text-sec">Nothing waiting. Open Table to taste, or + Tea to add one.</p>
       )}
 
       {groups.length > 0 && (
@@ -203,14 +203,14 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
                 enterKeyHint="done"
                 className="min-w-0 flex-1 border-0 border-b border-tea-border focus:border-tea-gold bg-transparent py-2 font-display text-ui-17 text-tea-text outline-none placeholder:text-tea-text-sec"
               />
-              <button type="submit" disabled={addTodo.isPending} className="tap-target justify-end text-ui-13 font-medium text-tea-gold">Add</button>
+              <button type="submit" disabled={addTodo.isPending} className="curate-v2-word tap-target justify-end">Add</button>
             </form>
           ) : (
             <button type="button" onClick={() => setAdding(true)} className="curate-v2-row w-full text-left">
               <span className="font-mono text-ui-13 text-tea-text-sec">+ A to-do</span>
             </button>
           )}
-          {(tick.isError || addTodo.isError) && <p className="px-4 py-2 text-ui-12 text-tea-error">{errorText(tick.error ?? addTodo.error)}</p>}
+          {(tick.isError || addTodo.isError) && <p className="px-4 py-2 font-mono text-ui-12 text-tea-error">{errorText(tick.error ?? addTodo.error)}</p>}
         </Band>
       )}
 

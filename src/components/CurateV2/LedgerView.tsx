@@ -4,8 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronDown,
-  Minus,
-  Plus,
   X,
   ChevronLeft,
   ChevronRight,
@@ -93,7 +91,7 @@ const LineItemRow: React.FC<{
             <p className="curate-v2-name truncate">{item.name || 'Unnamed'}</p>
           )}
           {(item.type || item.form || item.chineseName) && (
-            <p className="mt-1 truncate font-sans text-ui-12 tracking-[0.02em] text-tea-text-sec">
+            <p className="mt-1 truncate font-mono text-ui-12 tracking-[0.02em] text-tea-text-sec">
               {item.type && <span className="uppercase">{item.type}</span>}
               {item.type && item.form && item.type !== 'Teaware' && <><span className="px-1.5 text-tea-text-sec">&middot;</span><span>{item.form}</span></>}
               {item.chineseName && <><span className="px-1.5 text-tea-text-sec">&middot;</span><span className="text-tea-text-sec" style={{ fontFamily: "'Noto Serif SC', serif" }}>{item.chineseName}</span></>}
@@ -108,16 +106,16 @@ const LineItemRow: React.FC<{
             <span className="text-ui-14 font-medium text-tea-text tabular-nums">{fmtPrice(total, item.currency)}</span>
           </div>
           {!readOnly && <div className="flex items-center justify-between">
-            <button type="button" aria-label="Less" onClick={() => handleQtyChange(currentQty - (isUnitBased ? 1 : 25))} className="curate-v2-frame h-8 w-9 min-w-0 px-0"><Minus size={12} strokeWidth={1.5} /></button>
+            <button type="button" aria-label="Less" onClick={() => handleQtyChange(currentQty - (isUnitBased ? 1 : 25))} className="curate-v2-frame h-8 w-9 min-w-0 px-0 text-ui-15">−</button>
             <input
               type="number"
               value={currentQty}
               aria-label="Amount"
               onChange={(e) => handleQtyChange(Math.max(1, parseInt(e.target.value) || 1))}
               onWheel={(e) => (e.target as HTMLElement).blur()}
-              className="w-14 border-none bg-transparent text-center text-ui-11 uppercase tracking-[0.14em] text-tea-text-dim outline-none tabular-nums"
+              className="w-14 border-none bg-transparent text-center font-mono text-ui-12 tracking-[0.14em] text-tea-text-sec outline-none tabular-nums"
             />
-            <button type="button" aria-label="More" onClick={() => handleQtyChange(currentQty + (isUnitBased ? 1 : 25))} className="curate-v2-frame h-8 w-9 min-w-0 px-0"><Plus size={12} strokeWidth={1.5} /></button>
+            <button type="button" aria-label="More" onClick={() => handleQtyChange(currentQty + (isUnitBased ? 1 : 25))} className="curate-v2-frame h-8 w-9 min-w-0 px-0 text-ui-15">+</button>
           </div>}
         </div>
       </div>
@@ -295,7 +293,9 @@ const TransactionCard: React.FC<{
   onOpenOrder?: (txId: string) => void;
   /** The order's own screen: always open, the heading is just a heading. */
   detail?: boolean;
-}> = ({ tx, isExpanded, onToggle, onOpenEntry, onOpenOrder, detail }) => {
+  /** The order's lines moved into another draft: show that one instead. */
+  onSwitchOrder?: (txId: string) => void;
+}> = ({ tx, isExpanded, onToggle, onOpenEntry, onOpenOrder, detail, onSwitchOrder }) => {
   const removeLineItem = useLedgerStore((s) => s.removeLineItem);
   const updateCompassEntry = useTeaCompassStore((s) => s.updateEntry);
   const listRow = !detail && !!onOpenOrder;
@@ -362,15 +362,17 @@ const TransactionCard: React.FC<{
   // An order for "No vendor yet" cannot be confirmed: someone has to be named first.
   const needsVendor = isPurchase && !tx.counterpartyId && (!tx.counterpartyName?.trim() || tx.counterpartyName === NO_VENDOR_YET);
   const [choosingVendor, setChoosingVendor] = useState(false);
-  const updateTransaction = useLedgerStore((s) => s.updateTransaction);
-  /** The vendor goes onto the order and onto every tea on it. */
+  const adoptVendor = useLedgerStore((s) => s.adoptVendor);
+  /** The vendor goes onto the order and onto every tea on it. A vendor that
+   *  already has a draft takes these lines into it, and that draft opens. */
   const assignVendor = useCallback((id: string | undefined, name: string) => {
-    updateTransaction(tx.id, { counterpartyName: name, counterpartyId: id });
+    const kept = adoptVendor(tx.id, name, id);
     for (const item of tx.items) {
       if (item.compassEntryId) updateCompassEntry(item.compassEntryId, { vendorName: name, vendorId: id });
     }
     setChoosingVendor(false);
-  }, [tx.id, tx.items, updateTransaction, updateCompassEntry]);
+    if (kept !== tx.id) onSwitchOrder?.(kept);
+  }, [tx.id, tx.items, adoptVendor, updateCompassEntry, onSwitchOrder]);
 
   const handleConfirm = useCallback(async () => {
     confirmTransaction(tx.id);
@@ -558,7 +560,7 @@ const TransactionCard: React.FC<{
                         key="confirmed"
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md bg-tea-gold/20 text-tea-gold text-xs font-medium"
+                        className="flex min-h-11 items-center font-mono text-ui-13 uppercase tracking-[0.16em] text-tea-gold"
                       >
                         Confirmed
                       </motion.div>
@@ -568,7 +570,7 @@ const TransactionCard: React.FC<{
                         type="button"
                         onClick={() => setChoosingVendor((v) => !v)}
                         aria-expanded={choosingVendor}
-                        className="min-h-11 rounded-md cta-solid px-4 text-ui-13 font-semibold"
+                        className="curate-v2-frame is-on is-tall uppercase tracking-[0.16em]"
                       >
                         Choose the vendor
                       </button>
@@ -578,7 +580,7 @@ const TransactionCard: React.FC<{
                         type="button"
                         onClick={handleConfirm}
                         whileTap={{ scale: 0.98 }}
-                        className="min-h-11 rounded-md cta-solid px-4 text-ui-13 font-semibold"
+                        className="curate-v2-frame is-on is-tall uppercase tracking-[0.16em]"
                       >
                         {isPurchase ? 'Confirm purchase' : 'Confirm sale'}
                       </motion.button>
@@ -719,7 +721,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
   const starters = (
     <div className="curate-v2 -mx-4 border-t border-tea-border">
       <button type="button" onClick={() => openPurchaseOrder()} className="curate-v2-row w-full text-left">
-        <span className="font-mono text-ui-13 font-medium text-tea-gold">+ Purchase order</span>
+        <span className="font-mono text-ui-13 text-tea-gold">+ Purchase order</span>
         <span className="flex-1" />
         <span className="font-mono text-ui-12 text-tea-text-sec">several teas from one vendor</span>
       </button>
@@ -785,10 +787,10 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
  * inline, always open. Opened over the tab you are on (after Buy on a tea, or
  * from a row in Orders); the teas on it open their own tea on top of it.
  */
-export const OrderScreen: React.FC<{ txId: string; onOpenEntry?: (entryId: string) => void }> = ({ txId, onOpenEntry }) => {
+export const OrderScreen: React.FC<{ txId: string; onOpenEntry?: (entryId: string) => void; onSwitchOrder?: (txId: string) => void }> = ({ txId, onOpenEntry, onSwitchOrder }) => {
   const tx = useLedgerStore((s) => s.transactions.find((t) => t.id === txId));
   if (!tx) return null;
-  return <TransactionCard tx={tx} isExpanded onToggle={() => {}} onOpenEntry={onOpenEntry} detail />;
+  return <TransactionCard tx={tx} isExpanded onToggle={() => {}} onOpenEntry={onOpenEntry} onSwitchOrder={onSwitchOrder} detail />;
 };
 
 export default LedgerView;

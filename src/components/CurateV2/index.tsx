@@ -94,6 +94,8 @@ const CompassRightEmptyState: React.FC<{
 // ─── Main Tea Compass ────────────────────────────────────────────────────
 
 export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, initialEntryId, initialDevelopmentProduct, initialCaptureOption, initialSampleOrder, initialSampleSetId, onSampleOrderRouteClose }) => {
+  // Compare needs two teas to set side by side: with fewer, the action is not offered.
+  const compareTeaCount = useTeaCompassStore((s) => s.entries.filter((e) => e.category === 'tea' && e.name?.trim()).length);
   const activeEntryId = useTeaCompassStore((s) => s.activeEntryId);
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
@@ -181,6 +183,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     const top = stack[stack.length - 1];
     if (top && top.as === 'order' && top.id === txId) return;
     setStack([...stack, { id: txId, as: 'order' }]);
+  }, [setStack]);
+  /** The order on top has been merged into another draft: that one takes its place. */
+  const switchTopOrder = useCallback((txId: string) => {
+    const stack = teaStackRef.current;
+    const top = stack[stack.length - 1];
+    if (!top || top.as !== 'order') return;
+    setStack([...stack.slice(0, -1), { id: txId, as: 'order' }]);
   }, [setStack]);
   const clearTeaStack = useCallback(() => {
     const stack = teaStackRef.current;
@@ -776,7 +785,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const libraryGrid = mode === 'library' && !tastingSelectedEntryId;
 
   return (
-    <div className="flex flex-col relative h-full min-h-0 bg-tea-bg">
+    <div className="curate-v2 flex flex-col relative h-full min-h-0 bg-tea-bg">
       {/* ── HEADER (single row prototype) ──
           [back] [Source ▾] [Tea/Teaware/Samples on sourcing] [share/sync]
 
@@ -835,22 +844,22 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               onClick={() => setAddMenuOpen((v) => !v)}
               aria-expanded={addMenuOpen}
               aria-haspopup="menu"
-              className="tap-target flex min-h-11 items-center gap-1 px-1 text-ui-13 font-medium text-tea-gold"
+              className="curate-v2-word tap-target flex min-h-11 items-center gap-1 px-1 text-ui-14"
             >
-              <Plus size={13} />
+              <span aria-hidden>+</span>
               Tea
             </button>
             {addMenuOpen && (
               <>
                 <div className="fixed inset-0 z-[6]" aria-hidden onClick={() => setAddMenuOpen(false)} />
-                <div role="menu" className="absolute right-0 top-full z-[7] mt-1 grid w-52 overflow-hidden rounded-md border border-tea-border bg-tea-elevated py-1 shadow-lg">
+                <div role="menu" className="absolute right-0 top-full z-[7] mt-1 grid w-52 overflow-hidden rounded-[3px] border border-tea-border bg-tea-elevated shadow-lg">
                   {([
                     ['New tea', () => handleNewCapture('tea')],
                     ['New teaware', () => handleNewCapture('teaware')],
                     ['Import a list or invoice', (el: HTMLButtonElement) => beginNewImportFrom(el)],
                     ['Sample list', () => setSampleOrderOpen(true)],
                   ] as Array<[string, (el: HTMLButtonElement) => void]>).map(([label, act]) => (
-                    <button key={label} type="button" role="menuitem" onClick={(e) => { setAddMenuOpen(false); act(e.currentTarget); }} className="min-h-11 px-4 text-left text-ui-14 text-tea-text hover:bg-tea-accent-sub">
+                    <button key={label} type="button" role="menuitem" onClick={(e) => { setAddMenuOpen(false); act(e.currentTarget); }} className="min-h-12 border-b border-tea-border px-4 text-left font-display text-ui-17 text-tea-text last:border-b-0 hover:text-tea-gold">
                       {label}
                     </button>
                   ))}
@@ -963,7 +972,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       ? 'Search teas'
                       : 'Search orders…'
                   }
-                  className="w-full min-h-11 bg-tea-surface border border-tea-border text-tea-text text-ui-16 rounded-md pl-3 pr-10 py-2 outline-none placeholder:text-tea-text-sec focus:border-tea-gold transition-colors"
+                  className="w-full min-h-11 rounded-[3px] border border-tea-border bg-transparent py-2 pl-3 pr-10 font-mono text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold transition-colors"
                 />
                 {tabSearchQuery && (
                   <button
@@ -976,8 +985,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   </button>
                 )}
               </div>
-              {mode === 'library' && (
-                <button type="button" onClick={() => { setPrevMode('library'); setMode('compare'); }} className="tap-target min-h-11 shrink-0 text-ui-13 font-medium text-tea-gold">
+              {mode === 'library' && compareTeaCount >= 2 && (
+                <button type="button" onClick={() => { setPrevMode('library'); setMode('compare'); }} className="curate-v2-word tap-target min-h-11 shrink-0">
                   Compare
                 </button>
               )}
@@ -1204,7 +1213,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           >
 
             {/* Search bar (desktop) */}
-            <div className="shrink-0 flex items-center gap-3 px-4 pt-2.5 pb-1">
+            <div className="mx-auto flex w-full max-w-2xl shrink-0 items-center gap-3 px-4 pt-2.5 pb-1">
               <div className="relative min-w-0 flex-1">
                 <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
                 <input
@@ -1216,7 +1225,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     mode === 'library' ? 'Search teas'
                     : 'Search orders…'
                   }
-                  className="w-full min-h-11 bg-tea-surface border border-tea-border text-tea-text text-ui-16 rounded-md pl-9 pr-10 py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors"
+                  className="w-full min-h-11 rounded-[3px] border border-tea-border bg-transparent py-2 pl-9 pr-10 font-mono text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold transition-colors"
                 />
                 {tabSearchQuery && (
                   <button
@@ -1229,8 +1238,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   </button>
                 )}
               </div>
-              {mode === 'library' && (
-                <button type="button" onClick={() => { setPrevMode('library'); setMode('compare'); }} className="tap-target min-h-11 shrink-0 text-ui-13 font-medium text-tea-gold">
+              {mode === 'library' && compareTeaCount >= 2 && (
+                <button type="button" onClick={() => { setPrevMode('library'); setMode('compare'); }} className="curate-v2-word tap-target min-h-11 shrink-0">
                   Compare
                 </button>
               )}
@@ -1247,6 +1256,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 {mode === 'library' && (
                   <motion.div
                     key="left-tasting"
+                    className="mx-auto w-full max-w-2xl"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
@@ -1424,6 +1434,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       selectedEntryId={tastingSelectedEntryId}
                       gridMode={libraryGrid}
                       onAcquireEntry={openLibraryAcquisition}
+                      onOpenTea={openTea}
                     />
                   </motion.div>
                 )}
@@ -1432,6 +1443,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 {mode === 'buying' && (
                   <motion.div
                     key="left-buying"
+                    className="mx-auto w-full max-w-2xl"
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
@@ -1451,16 +1463,16 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
             {/* Left column desktop FAB footer: Tasting + Buying only */}
             {(
-              <div className="shrink-0 px-4 pb-4 pt-2 border-t border-tea-border">
-                <button
-                  type="button"
-                  onClick={() => handleNewCapture()}
-                  className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-tea-gold/40 text-tea-gold bg-tea-gold/5 hover:bg-tea-gold/10 text-ui-12 font-semibold tracking-[0.06em] transition-colors"
-                  style={{ fontFamily: 'var(--font-display)' }}
-                >
-                  <Plus size={13} />
-                  New Entry
-                </button>
+              <div className="shrink-0 border-t border-tea-border px-4 pb-4 pt-2">
+                <div className="mx-auto w-full max-w-2xl">
+                  <button
+                    type="button"
+                    onClick={() => handleNewCapture()}
+                    className="curate-v2-frame is-tall is-wide uppercase tracking-[0.16em]"
+                  >
+                    + New entry
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -1539,7 +1551,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-3 pb-nav-gap-lg" style={{ WebkitOverflowScrolling: 'touch' }}>
             {topLayer.as === 'order' ? (
               <div className="mx-auto w-full max-w-xl" data-testid="order-screen">
-                <OrderScreen key={topLayer.id} txId={topLayer.id} onOpenEntry={openTea} />
+                <OrderScreen key={topLayer.id} txId={topLayer.id} onOpenEntry={openTea} onSwitchOrder={switchTopOrder} />
               </div>
             ) : topLayer.as === 'face' ? (
               <div className="mx-auto w-full max-w-xl">
@@ -1560,7 +1572,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 />
               </div>
             ) : (
-              <div className="mx-auto w-full max-w-3xl">
+              <div className="mx-auto w-full max-w-xl">
                 {batchMode && <BatchCaptureRow />}
                 <CaptureCard
                   entryId={topLayer.id}
@@ -1575,7 +1587,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 />
                 {showCaptureActionBar && (
                   <CaptureActionFooter
-                    className="mx-auto mt-2 w-full max-w-3xl border-t border-tea-border bg-tea-surface px-3 py-2 max-lg:hidden"
+                    className="-mx-4 max-lg:hidden lg:mx-0"
                     onBuy={() => captureCardActionsRef.current?.toggleBuy()}
                     onDone={handleDoneClick}
                     onSample={() => captureCardActionsRef.current?.openTasting()}

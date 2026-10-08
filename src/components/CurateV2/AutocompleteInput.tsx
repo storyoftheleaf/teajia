@@ -197,14 +197,14 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
         spellCheck={false}
         data-1p-ignore
         data-lpignore="true"
-        className={`text-base ${className ?? ''}`}
+        className={className ?? 'text-base'}
       />
 
       {/* Search results dropdown */}
       {showSearchDropdown && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-tea-surface border border-tea-border rounded-xl shadow-lg max-h-52 overflow-y-auto">
+        <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-52 overflow-y-auto rounded-[3px] border border-tea-border bg-tea-surface text-left shadow-lg">
           {filtered.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-tea-text-dim italic">No matches, add as new</div>
+            <div className="px-3 py-2 font-body text-ui-14 italic text-tea-text-sec">No matches, add as new</div>
           ) : (
             filtered.map((suggestion, idx) => {
               const data = itemData?.[suggestion];
@@ -220,15 +220,15 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
                   onMouseEnter={() => setHighlightedIndex(idx)}
                 >
                   <div>
-                    <div className="text-sm text-tea-text">{renderHighlighted(suggestion)}</div>
+                    <div className="font-display text-ui-17 text-tea-text">{renderHighlighted(suggestion)}</div>
                     {subtitle && (
-                      <div className="text-ui-11 text-tea-text-dim">{subtitle}</div>
+                      <div className="font-mono text-ui-11 text-tea-text-sec">{subtitle}</div>
                     )}
                   </div>
                   <button
                     type="button"
                     onMouseDown={(e) => handleDismiss(suggestion, e)}
-                    className="text-tea-text-dim/0 group-hover:text-tea-text-dim hover:!text-tea-text transition-colors ml-2 shrink-0"
+                    className="ml-2 shrink-0 text-tea-text-dim/0 transition-colors group-hover:text-tea-text-sec hover:!text-tea-text"
                     aria-label="Remove suggestion"
                   >
                     <X size={10} />
@@ -242,15 +242,15 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
 
       {/* Hint chips, shown on empty focus when a type is selected */}
       {showHints && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-tea-surface border border-tea-border rounded-xl shadow-lg p-2">
-          <p className="text-ui-10 text-tea-text-dim uppercase tracking-[0.1em] mb-1.5 px-1">Examples</p>
+        <div className="absolute left-0 right-0 top-full z-30 mt-1 rounded-[3px] border border-tea-border bg-tea-surface p-2 text-left shadow-lg">
+          <p className="curate-v2-label mb-1.5 px-1">Examples</p>
           <div className="flex flex-wrap gap-1.5">
             {hintSuggestions.map((hint) => (
               <button
                 key={hint}
                 type="button"
                 onMouseDown={(e) => { e.preventDefault(); handleSelect(hint); }}
-                className="text-ui-12 text-tea-text-sec bg-tea-elevated px-2.5 py-1 rounded-full hover:text-tea-text transition-colors"
+                className="curate-v2-frame"
               >
                 {hint}
               </button>

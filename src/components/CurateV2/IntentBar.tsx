@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { Sparkles, X } from 'lucide-react';
 import type { TeaCompassEntry } from './types';
 import { canonicalCurrency } from '../../lib/currency';
 
@@ -106,9 +105,8 @@ export const IntentBar: React.FC<IntentBarProps> = ({ entry, onApply }) => {
   };
 
   return (
-    <div className="flex items-center gap-2 px-1 flex-wrap">
-      <Sparkles size={11} className="text-tea-gold/60 shrink-0" />
-      <span className="text-ui-12 text-tea-text-dim shrink-0">Detected:</span>
+    <div className="curate-v2 flex flex-wrap items-center gap-2 px-4 py-1">
+      <span className="curate-v2-label shrink-0">Seen</span>
       {actionable.map((intent) => {
         const key = `${intent.type}-${intent.value}`;
         return (
@@ -116,17 +114,17 @@ export const IntentBar: React.FC<IntentBarProps> = ({ entry, onApply }) => {
             <button
               type="button"
               onClick={() => handleApply(intent)}
-              className="tap-target min-h-11 px-1 text-ui-12 text-tea-gold/80 hover:text-tea-gold underline underline-offset-2 decoration-dashed transition-colors"
+              className="curate-v2-frame is-tall tabular-nums"
             >
               {intent.label}
             </button>
             <button
               type="button"
               onClick={() => handleDismiss(intent)}
-              className="tap-target min-h-11 min-w-11 text-ui-12 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+              className="tap-target min-h-11 min-w-11 font-mono text-ui-13 text-tea-text-sec hover:text-tea-text"
               aria-label={`Dismiss detected ${intent.label}`}
             >
-              <X size={8} />
+              ×
             </button>
           </span>
         );

@@ -78,7 +78,7 @@ export const VendorsView: React.FC<VendorsViewProps> = ({ onOpenTea, onAddTea, o
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search vendors"
             aria-label="Search vendors"
-            className="min-h-11 w-full rounded-md border border-tea-border bg-tea-surface py-2 pl-3 pr-9 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold"
+            className="min-h-11 w-full rounded-[3px] border border-tea-border bg-transparent py-2 pl-3 pr-9 font-mono text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold"
           />
           {query && (
             <button type="button" onClick={() => setQuery('')} className="tap-target absolute right-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec" aria-label="Clear search">

@@ -89,7 +89,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ chosen, onChosenChange
         </div>
         <div className="relative px-4 pb-2">
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search teas" aria-label="Search teas"
-            className="min-h-11 w-full rounded-md border border-tea-border bg-tea-surface py-2 pl-3 pr-3 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold" />
+            className="min-h-11 w-full rounded-[3px] border border-tea-border bg-transparent py-2 pl-3 pr-3 font-mono text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold" />
         </div>
         {shown.slice(0, 80).map((t) => {
           const on = chosen.includes(t.id);

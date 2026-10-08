@@ -1,6 +1,5 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { X } from 'lucide-react';
 
 interface DuplicateNudgeProps {
   matchedEntry: {
@@ -47,51 +46,23 @@ export const DuplicateNudge: React.FC<DuplicateNudgeProps> = ({
       transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
       className="overflow-hidden"
     >
-      <div className="bg-tea-surface border border-tea-border rounded px-2.5 py-1.5 flex flex-wrap items-center gap-2 min-w-0">
-        <p className="text-ui-12 text-tea-text-sec flex-1 min-w-0 truncate whitespace-nowrap" title={`Logged "${matchedEntry.name}"${vendor} ${date}`}>
-          Logged <span className="text-tea-text">"{matchedEntry.name}"</span>{vendor} &middot; {date}
+      <div className="curate-v2 border-b border-tea-border px-4 py-3">
+        <p className="min-w-0 font-mono text-ui-13 text-tea-text-sec" title={`Logged "${matchedEntry.name}"${vendor} ${date}`}>
+          Logged <span className="font-display text-ui-17 text-tea-text">"{matchedEntry.name}"</span>{vendor} &middot; {date}
         </p>
-        {/* `pill-dense`, deliberately, and this is the justification the class
-            asks for. This is not a toolbar: it is a one-line notice inside the
-            Curate capture form, and Same / Different are two words inside the
-            sentence they answer. At the full 44px floor the three controls made
-            a 47px band out of a 26px strip and pushed the form the warning is
-            about below the fold on a 390px screen, which is the opposite of
-            what a warning is for. The row is behind the admin login and driven
-            by a pointer at a bench; 28px clears the WCAG 2.5.8 AA target size.
-            The dismiss X keeps the full floor, because it is an icon with no
-            word beside it to enlarge its own target. */}
-        <div className="flex items-center gap-1 shrink-0">
-          <button
-            type="button"
-            onClick={onSameTea}
-            className="pill pill-dense curate-duplicate-action text-tea-gold"
-          >
-            Same
-          </button>
+        <div className="flex flex-wrap items-center gap-2 pt-2">
+          <button type="button" onClick={onSameTea} className="curate-v2-frame is-tall">Same</button>
           {onCopyDetails && (
-            <button
-              type="button"
-              onClick={onCopyDetails}
-              className="pill pill-dense curate-duplicate-action text-tea-gold"
-            >
-              Copy details
-            </button>
+            <button type="button" onClick={onCopyDetails} className="curate-v2-frame is-tall">Copy details</button>
           )}
-          <button
-            type="button"
-            onClick={onDifferentTea}
-            className="pill pill-dense curate-duplicate-action text-tea-gold"
-          >
-            Different
-          </button>
+          <button type="button" onClick={onDifferentTea} className="curate-v2-frame is-tall">Different</button>
           <button
             type="button"
             onClick={onDismiss}
-            className="tap-target ml-0.5 min-h-11 min-w-11 text-ui-12 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+            className="curate-v2-word tap-target ml-auto min-h-11 px-1 text-tea-text-sec"
             aria-label="Dismiss duplicate warning"
           >
-            <X size={12} />
+            dismiss
           </button>
         </div>
       </div>

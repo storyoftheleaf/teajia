@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Check, Loader2, X } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { BottomSheet } from '../shared/BottomSheet';
 import { api } from '../../lib/api';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
@@ -66,7 +66,7 @@ export const SaidSheet: React.FC<{ entryId: string | null; onClose: () => void }
   return (
     <BottomSheet open={!!entryId} onOpenChange={(o) => { if (!o) onClose(); }} title="What you said" description={entry.name || undefined} large>
       <div className="curate-v2 pb-nav-gap" data-testid="said-sheet">
-        {recordings.length === 0 && <p className="px-4 py-4 text-ui-13 text-tea-text-sec">Nothing said about this tea yet. Hold the microphone on its row to talk.</p>}
+        {recordings.length === 0 && <p className="px-4 py-4 font-body text-ui-14 text-tea-text-sec">Nothing said about this tea yet. Hold the microphone on its row to talk.</p>}
         {recordings.map((r) => {
           const f = filingFor(r.key);
           return (
@@ -78,7 +78,7 @@ export const SaidSheet: React.FC<{ entryId: string | null; onClose: () => void }
               <p className="mx-4 mt-2 border-l border-tea-gold pl-3 font-body text-ui-15 italic leading-relaxed text-tea-text-sec">“{r.text}”</p>
               {!f && (
                 <div className="px-4 pt-3">
-                  <button type="button" onClick={() => void file(r.key, r.text)} disabled={busy === r.key} className="cta-solid flex min-h-11 w-full items-center justify-center gap-2 rounded-md text-ui-13 font-semibold">
+                  <button type="button" onClick={() => void file(r.key, r.text)} disabled={busy === r.key} className="curate-v2-frame is-on is-tall is-wide gap-2 uppercase tracking-[0.14em]">
                     {busy === r.key ? <><Loader2 size={14} className="animate-spin" /> Filing</> : 'File it, part by part'}
                   </button>
                 </div>
@@ -89,11 +89,11 @@ export const SaidSheet: React.FC<{ entryId: string | null; onClose: () => void }
                   {f.parts.map((p, i) => (
                     <div key={i} className="flex min-h-11 items-center gap-3 border-b border-tea-border px-4">
                       <span className="curate-v2-label w-16 shrink-0 !text-tea-gold">{SAID_LABEL[p.kind]}</span>
-                      <span className="min-w-0 flex-1 truncate text-ui-14 text-tea-text">{p.text}</span>
+                      <span className="min-w-0 flex-1 truncate font-mono text-ui-14 text-tea-text">{p.text}</span>
                       {!f.applied ? (
                         <span className="flex shrink-0 items-center gap-1">
-                          <button type="button" aria-label={`Keep: ${p.text}`} aria-pressed={f.keep[i]} onClick={() => save(r.key, { ...f, keep: f.keep.map((k, j) => (j === i ? true : k)) })} className={`tap-target flex h-8 w-8 items-center justify-center rounded-full ${f.keep[i] ? 'text-tea-gold' : 'text-tea-text-dim'}`}><Check size={16} /></button>
-                          <button type="button" aria-label={`Leave out: ${p.text}`} aria-pressed={!f.keep[i]} onClick={() => save(r.key, { ...f, keep: f.keep.map((k, j) => (j === i ? false : k)) })} className={`tap-target flex h-8 w-8 items-center justify-center rounded-full ${!f.keep[i] ? 'text-tea-text' : 'text-tea-text-dim'}`}><X size={16} /></button>
+                          <button type="button" aria-label={`Keep: ${p.text}`} aria-pressed={f.keep[i]} onClick={() => save(r.key, { ...f, keep: f.keep.map((k, j) => (j === i ? true : k)) })} className={`curate-v2-frame is-slim h-9 min-w-[44px] ${f.keep[i] ? 'is-on' : ''}`}>keep</button>
+                          <button type="button" aria-label={`Leave out: ${p.text}`} aria-pressed={!f.keep[i]} onClick={() => save(r.key, { ...f, keep: f.keep.map((k, j) => (j === i ? false : k)) })} className={`curate-v2-frame is-slim h-9 min-w-[44px] ${!f.keep[i] ? 'is-on' : ''}`}>skip</button>
                         </span>
                       ) : (
                         <span className={`shrink-0 text-ui-12 ${f.keep[i] ? 'text-tea-gold' : 'text-tea-text-dim'}`}>{f.keep[i] ? (p.kind === 'story' || p.kind === 'vendor' ? 'source kept' : 'filed') : 'left out'}</span>
@@ -103,7 +103,7 @@ export const SaidSheet: React.FC<{ entryId: string | null; onClose: () => void }
                   {f.parts.some((p) => p.kind === 'story' || p.kind === 'vendor') && <p className="px-4 pt-2 text-ui-12 text-tea-text-dim">Story and vendor claims stay in this recording. Review them in the tea or vendor details before filing them as facts.</p>}
                   {!f.applied && f.parts.length > 0 && (
                     <div className="px-4 pt-3">
-                      <button type="button" onClick={() => void apply(r.key)} className="cta-solid min-h-11 w-full rounded-md text-ui-13 font-semibold">
+                      <button type="button" onClick={() => void apply(r.key)} className="curate-v2-frame is-on is-tall is-wide uppercase tracking-[0.14em]">
                         File {f.keep.filter(Boolean).length} {f.keep.filter(Boolean).length === 1 ? 'part' : 'parts'}
                       </button>
                     </div>

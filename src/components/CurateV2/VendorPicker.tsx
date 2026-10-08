@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, X } from 'lucide-react';
 import { api, hasToken } from '../../lib/api';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 
@@ -131,21 +130,21 @@ export const VendorPicker: React.FC<VendorPickerProps> = ({ onPick, onCancel, au
           placeholder={adding ? 'Vendor name' : placeholder}
           aria-label={adding ? 'New vendor name' : 'Search or add a vendor'}
           enterKeyHint={adding ? 'done' : 'search'}
-          className="min-h-11 min-w-0 flex-1 rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold"
+          className="min-h-11 min-w-0 flex-1 rounded-[3px] border border-tea-border bg-transparent px-3 py-2 font-mono text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold"
         />
         {adding && (
           <button
             type="button"
             disabled={!typed}
             onClick={() => void createVendor(typed)}
-            className="cta-solid tap-target min-h-11 rounded-md px-4 text-ui-13 font-semibold disabled:opacity-40"
+            className="curate-v2-frame is-on is-tall tap-target disabled:opacity-40"
           >
             Add
           </button>
         )}
         {onCancel && (
-          <button type="button" onClick={onCancel} aria-label="Close vendor list" className="tap-target flex min-h-11 min-w-11 items-center justify-center text-tea-text-sec hover:text-tea-text">
-            <X size={16} />
+          <button type="button" onClick={onCancel} aria-label="Close vendor list" className="curate-v2-word tap-target flex min-h-11 items-center justify-center text-tea-text-sec hover:text-tea-text">
+            close
           </button>
         )}
       </div>
@@ -160,15 +159,14 @@ export const VendorPicker: React.FC<VendorPickerProps> = ({ onPick, onCancel, au
             data-testid="vendor-picker-new"
             className="curate-v2-row w-full text-left"
           >
-            <Plus size={14} strokeWidth={2.5} className="text-tea-gold" />
-            <span className="text-ui-15 font-medium text-tea-gold">{typed ? `New vendor "${typed}"` : 'New vendor…'}</span>
+            <span className="font-mono text-ui-14 text-tea-gold">{typed ? `+ New vendor "${typed}"` : '+ New vendor…'}</span>
           </button>
           <div className="max-h-[50vh] overflow-y-auto">
             {rows.map((v) => (
               <button key={v.id ?? v.name} type="button" onClick={() => choose(v)} className="curate-v2-row w-full text-left">
                 <span className="curate-v2-name">{v.name}</span>
                 <span className="flex-1" />
-                {v.recent && <span className="text-ui-12 text-tea-text-sec">recent</span>}
+                {v.recent && <span className="curate-v2-label">recent</span>}
               </button>
             ))}
           </div>

@@ -15,7 +15,7 @@ interface Props {
 }
 
 type Editor = { kind: 'journey'; item?: CurateJourney } | { kind: 'visit'; item?: CurateVisit } | null;
-const inputClass = 'min-h-11 w-full rounded-md border border-tea-border bg-tea-surface px-3 text-ui-14 text-tea-text focus:border-tea-gold focus:outline-none';
+const inputClass = 'min-h-11 w-full rounded-[3px] border border-tea-border bg-transparent px-3 font-mono text-ui-14 text-tea-text focus:border-tea-gold focus:outline-none';
 
 export function normalizeCustomerTags(tags: unknown): string[] {
   let value = tags;

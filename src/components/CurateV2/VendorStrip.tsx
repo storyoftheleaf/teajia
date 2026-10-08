@@ -1,11 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  MapPin, X, Check, Phone,
-  MessageCircle, ExternalLink,
-  Contact, Image, Link, Loader2, AlertCircle,
-} from 'lucide-react';
 import { api, hasToken } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { VendorPicker } from './VendorPicker';
@@ -348,8 +343,17 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
     vendorDetails.whatsapp || vendorDetails.wechat || vendorDetails.line
   );
 
+  const contactWords = !!(vendorDetails?.phone || vendorDetails?.whatsapp || vendorDetails?.wechat || vendorDetails?.line);
+  const detailField = (label: string, input: React.ReactNode) => (
+    <label className="curate-v2-line">
+      <span className="curate-v2-label">{label}</span>
+      {input}
+    </label>
+  );
+  const menuItem = 'curate-v2-sheetrow !min-h-12 !text-ui-15 font-mono';
+
   return (
-    <div className="space-y-0">
+    <div className="curate-v2 space-y-0">
       {/* Hidden storefront file input, mounted at top level so the inline
           thumbnail can trigger it whether or not the contact menu is open.
           No camera lock: the shop photo can come from gallery or camera. */}
@@ -357,77 +361,62 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
         onChange={(e) => handleContactFileChange(e, 'storefrontUrl')} />
 
       {/* ── Strip row ── */}
-      <div className="flex items-center gap-2 text-ui-12 text-tea-text-sec py-1">
-        {/* Contact button */}
-        {showContactMenu && <div className="relative flex-shrink-0" ref={contactMenuRef}>
+      <div className="flex items-center gap-3 py-1">
+        {showContactMenu && <div className="relative shrink-0" ref={contactMenuRef}>
           <button
             type="button"
             onClick={() => setContactMenuOpen((o) => !o)}
-            className={`tap-target flex min-h-11 min-w-11 items-center justify-center rounded-md text-ui-12 transition-colors ${
-              contactMenuOpen || hasDetails ? 'bg-tea-gold/15 text-tea-gold rounded-md' : 'bg-tea-surface text-tea-text-sec hover:text-tea-text'
-            }`}
+            className={`curate-v2-frame is-tall ${contactMenuOpen || hasDetails ? 'is-on' : ''}`}
             aria-label="Vendor contact options"
+            aria-expanded={contactMenuOpen}
           >
-            <Contact size={16} strokeWidth={1.5} />
+            Contact
           </button>
 
-          {/* Contact popover menu */}
           <AnimatePresence>
             {contactMenuOpen && (
               <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
                 transition={{ duration: 0.15 }}
-                className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-xl p-1.5 shadow-lg border border-tea-border min-w-[180px]"
+                className="absolute left-0 top-full z-20 mt-1 min-w-[220px] overflow-hidden rounded-[3px] border border-tea-border bg-tea-surface shadow-lg"
               >
-                  <button
-                    type="button"
-                    onClick={() => storefrontRef.current?.click()}
-                    disabled={photoUploading != null}
-                    className="tap-target flex min-h-11 items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-ui-12 text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors disabled:opacity-60"
-                  >
-                    <Image size={14} strokeWidth={1.5} />
-                    <span>{photoUploading === 'storefrontUrl' ? 'Uploading…' : vendorDetails?.storefrontUrl ? 'Update storefront' : 'Storefront photo'}</span>
-                    {photoUploading === 'storefrontUrl' ? (
-                      <Loader2 size={14} className="ml-auto animate-spin text-tea-gold" />
-                    ) : vendorDetails?.storefrontUrl ? (
-                      <img src={mediaUrl(vendorDetails.storefrontUrl)} alt="Storefront" className="ml-auto w-7 h-7 rounded object-cover border border-tea-border" loading="lazy" />
-                    ) : null}
-                  </button>
-                  {photoError && (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 text-ui-12 text-tea-error">
-                      <AlertCircle size={12} />
-                      <span>Photo didn't save. Check your connection and try again.</span>
-                    </div>
+                <button
+                  type="button"
+                  onClick={() => storefrontRef.current?.click()}
+                  disabled={photoUploading != null}
+                  className={menuItem}
+                >
+                  <span>{photoUploading === 'storefrontUrl' ? 'Uploading…' : vendorDetails?.storefrontUrl ? 'Update storefront' : 'Storefront photo'}</span>
+                  {photoUploading !== 'storefrontUrl' && vendorDetails?.storefrontUrl && (
+                    <img src={mediaUrl(vendorDetails.storefrontUrl)} alt="Storefront" className="h-7 w-7 rounded-[3px] border border-tea-border object-cover" loading="lazy" />
                   )}
-                  <button
-                    type="button"
-                    onClick={() => { handleGeoPin(); setContactMenuOpen(false); }}
-                    className="tap-target flex min-h-11 items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-ui-12 text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors"
-                  >
-                    <MapPin size={14} strokeWidth={1.5} />
-                    <span>{vendorDetails?.lat != null ? 'Update location' : 'Drop pin'}</span>
-                    {vendorDetails?.lat != null && <Check size={12} className="ml-auto text-tea-gold" />}
-                  </button>
-                  <div className="h-px bg-tea-border my-1" />
-                  <button
-                    type="button"
-                    onClick={() => { setDetailsOpen((o) => !o); setContactMenuOpen(false); }}
-                    className="tap-target flex min-h-11 items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-ui-12 text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors"
-                  >
-                    <Phone size={14} strokeWidth={1.5} />
-                    <span>{(vendorDetails?.phone || vendorDetails?.whatsapp || vendorDetails?.wechat || vendorDetails?.line) ? 'Contact details' : 'Add contact link'}</span>
-                    {(vendorDetails?.phone || vendorDetails?.whatsapp || vendorDetails?.wechat || vendorDetails?.line) && (
-                      <Check size={12} className="ml-auto text-tea-gold" />
-                    )}
-                  </button>
-                </motion.div>
+                </button>
+                {photoError && (
+                  <p role="alert" className="px-4 py-2 font-mono text-ui-12 text-tea-error">Photo didn't save. Check your connection and try again.</p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => { handleGeoPin(); setContactMenuOpen(false); }}
+                  className={menuItem}
+                >
+                  <span>{vendorDetails?.lat != null ? 'Update location' : 'Drop pin'}</span>
+                  {vendorDetails?.lat != null && <span className="text-ui-12 text-tea-gold">set</span>}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setDetailsOpen((o) => !o); setContactMenuOpen(false); }}
+                  className={`${menuItem} !border-b-0`}
+                >
+                  <span>{contactWords ? 'Contact details' : 'Add contact link'}</span>
+                  {contactWords && <span className="text-ui-12 text-tea-gold">set</span>}
+                </button>
+              </motion.div>
             )}
           </AnimatePresence>
         </div>}
-        {/* Storefront photo, shown inline so it's actually visible once added,
-            not hidden inside the contact menu. Tap to update. */}
+        {/* Storefront photo, shown inline so it's actually visible once added. Tap to update. */}
         {vendorDetails?.storefrontUrl && (
           <button
             type="button"
@@ -438,7 +427,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
             <img
               src={mediaUrl(vendorDetails.storefrontUrl)}
               alt="Storefront"
-              className="w-9 h-9 rounded-md object-cover border border-tea-border"
+              className="h-9 w-9 rounded-[3px] border border-tea-border object-cover"
               loading="lazy"
             />
           </button>
@@ -450,7 +439,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               onClick={() => setPickerOpen((o) => !o)}
               aria-expanded={pickerOpen}
               aria-label={`Vendor: ${vendorName}. Change`}
-              className="tap-target min-h-11 truncate text-ui-12 hover:text-tea-gold transition-colors py-1"
+              className="curate-v2-name tap-target min-h-11 flex-1 text-left transition-colors hover:text-tea-gold"
             >
               {vendorName}
             </button>
@@ -458,9 +447,9 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               type="button"
               onClick={() => { setPickerOpen(false); onClear(); }}
               aria-label="Clear vendor"
-              className="tap-target min-h-11 min-w-11 text-tea-text-dim hover:text-tea-text-sec transition-colors flex-shrink-0 p-1"
+              className="curate-v2-word tap-target min-h-11 shrink-0 px-1 text-tea-text-sec"
             >
-              <X size={14} />
+              clear
             </button>
           </>
         ) : null}
@@ -486,12 +475,12 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               key="linked"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="flex items-center gap-1.5 mt-1 text-ui-12 text-tea-text-dim"
+              className="flex items-center gap-3 font-mono text-ui-12 text-tea-text-sec"
             >
-              <Link size={10} className="shrink-0" />
+              <span className="curate-v2-label shrink-0">Supplier</span>
               <a
                 href={`/admin/people?customer=${linkedCustomerId}`}
-                className="tap-target min-h-11 flex flex-1 items-center truncate hover:text-tea-text-sec transition-colors"
+                className="tap-target flex min-h-11 flex-1 items-center truncate hover:text-tea-text"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -500,10 +489,10 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               <button
                 type="button"
                 onClick={() => { onLinkedCustomerChange(undefined); setSuggestDismissed(false); }}
-                className="tap-target min-h-11 min-w-11 hover:text-tea-text-sec transition-colors shrink-0"
+                className="curate-v2-word tap-target min-h-11 shrink-0 text-tea-text-sec"
                 aria-label="Unlink supplier"
               >
-                <X size={10} />
+                unlink
               </button>
             </motion.div>
           ) : suggestedCustomer && !suggestDismissed ? (
@@ -511,25 +500,25 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               key="suggest"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="flex items-center gap-2 mt-1 text-ui-12"
+              className="flex items-center gap-3 font-mono text-ui-13"
             >
-              <span className="flex-1 text-tea-text-dim truncate">
-                Matches <span className="text-tea-text-sec">{suggestedCustomer.name}</span>
+              <span className="min-w-0 flex-1 truncate text-tea-text-sec">
+                Matches <span className="font-display text-ui-17 text-tea-text">{suggestedCustomer.name}</span>
               </span>
               <button
                 type="button"
                 onClick={() => { onLinkedCustomerChange(suggestedCustomer.id); setSuggestDismissed(true); setSuggestedCustomer(null); }}
-                className="tap-target min-h-11 text-tea-gold font-medium hover:text-tea-gold/70 transition-colors shrink-0"
+                className="curate-v2-word tap-target min-h-11 shrink-0"
               >
                 Link
               </button>
               <button
                 type="button"
                 onClick={() => { setSuggestDismissed(true); setSuggestedCustomer(null); }}
-                className="tap-target min-h-11 min-w-11 text-tea-text-sec hover:text-tea-text-sec transition-colors shrink-0"
+                className="curate-v2-word tap-target min-h-11 shrink-0 text-tea-text-sec"
                 aria-label="Dismiss"
               >
-                <X size={10} />
+                skip
               </button>
             </motion.div>
           ) : vendorId ? (
@@ -539,16 +528,15 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               transition={{ duration: 0.15 }}
               type="button"
               onClick={() => onLinkedCustomerChange(vendorId)}
-              className="tap-target mt-1 flex min-h-11 items-center gap-1 text-ui-12 text-tea-text-dim/50 hover:text-tea-text-dim transition-colors"
+              className="curate-v2-word tap-target flex min-h-11 items-center text-tea-text-sec"
             >
-              <Link size={10} />
               Link supplier profile
             </motion.button>
           ) : null}
         </AnimatePresence>
       )}
 
-      {/* ── Vendor details expandable (triggered by contact icon) ── */}
+      {/* ── Vendor details expandable (triggered by Contact) ── */}
       {!pickerOpen && (
         <AnimatePresence>
           {detailsOpen && (
@@ -557,20 +545,18 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               animate={PANEL_ANIMATE}
               exit={PANEL_EXIT}
               transition={PANEL_TRANSITION}
-              className="overflow-hidden"
+              className="-mx-4 overflow-hidden"
             >
-              <div className="pt-2 pb-1 space-y-3">
+              <div className="space-y-0 pt-2">
                 {saveError && (
-                  <p className="flex items-center gap-1.5 text-ui-12 text-tea-error">
-                    <AlertCircle size={12} />
+                  <p className="px-4 pb-2 font-mono text-ui-12 text-tea-error">
                     Details didn't reach the server. Kept on this phone, retrying as you edit.
                   </p>
                 )}
-                {/* Photos & location summary (if any) */}
                 {(vendorDetails?.storefrontUrl || vendorDetails?.lat != null) && (
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex flex-wrap items-center gap-3 px-4 pb-2">
                     {vendorDetails?.storefrontUrl && (
-                      <img src={mediaUrl(vendorDetails.storefrontUrl)} alt="Storefront" className="w-10 h-10 rounded object-cover" loading="lazy" />
+                      <img src={mediaUrl(vendorDetails.storefrontUrl)} alt="Storefront" className="h-10 w-10 rounded-[3px] border border-tea-border object-cover" loading="lazy" />
                     )}
                     {vendorDetails?.lat != null && vendorDetails?.lng != null && (
                       // OpenStreetMap rather than Google Maps: Google is blocked in
@@ -579,121 +565,85 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                         href={`https://www.openstreetmap.org/?mlat=${vendorDetails.lat}&mlon=${vendorDetails.lng}#map=16/${vendorDetails.lat}/${vendorDetails.lng}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="tap-target flex min-h-11 items-center gap-1.5 text-ui-12 text-tea-text-dim hover:text-tea-gold transition-colors"
+                        className="curate-v2-word tap-target flex min-h-11 items-center tabular-nums"
                       >
-                        <MapPin size={12} />
-                        <span className="num">{vendorDetails.lat.toFixed(4)}, {vendorDetails.lng.toFixed(4)}</span>
-                        <ExternalLink size={11} />
+                        {vendorDetails.lat.toFixed(4)}, {vendorDetails.lng.toFixed(4)}
                       </a>
                     )}
                   </div>
                 )}
 
-                {/* Tappable contact links, open the vendor in WhatsApp / phone /
-                    LINE, or copy the WeChat ID (WeChat has no reliable web link).
-                    This is what "link to contact" means: one tap to reach them. */}
+                {/* Tappable contact links: one tap to reach them. WeChat has no
+                    reliable web link, so it copies the ID. */}
                 {(vendorDetails?.whatsapp || vendorDetails?.wechat || vendorDetails?.line || vendorDetails?.phone) && (
-                  <div className="flex items-center gap-1.5 flex-wrap">
+                  <div className="flex flex-wrap items-center gap-2 px-4 pb-2">
                     {vendorDetails?.whatsapp && (
                       <a
                         href={`https://wa.me/${vendorDetails.whatsapp.replace(/[^\d]/g, '')}`}
                         target="_blank" rel="noopener noreferrer"
-                        className="tap-target inline-flex min-h-11 items-center gap-1 px-2 py-1 rounded-md bg-tea-gold/[0.08] text-tea-gold text-ui-12 hover:bg-tea-gold/[0.14] transition-colors"
+                        className="curate-v2-frame is-tall"
                       >
-                        <MessageCircle size={11} /> WhatsApp
+                        WhatsApp
                       </a>
                     )}
                     {vendorDetails?.wechat && (
                       <button
                         type="button"
                         onClick={() => { navigator.clipboard?.writeText(vendorDetails.wechat!); }}
-                        className="tap-target inline-flex min-h-11 items-center gap-1 px-2 py-1 rounded-md bg-tea-gold/[0.08] text-tea-gold text-ui-12 hover:bg-tea-gold/[0.14] transition-colors"
+                        className="curate-v2-frame is-tall"
                         title="Copy WeChat ID"
                       >
-                        <MessageCircle size={11} /> WeChat
+                        WeChat
                       </button>
                     )}
                     {vendorDetails?.line && (
                       <a
                         href={`https://line.me/ti/p/~${vendorDetails.line.replace(/^[@~]/, '')}`}
                         target="_blank" rel="noopener noreferrer"
-                        className="tap-target inline-flex min-h-11 items-center gap-1 px-2 py-1 rounded-md bg-tea-gold/[0.08] text-tea-gold text-ui-12 hover:bg-tea-gold/[0.14] transition-colors"
+                        className="curate-v2-frame is-tall"
                       >
-                        <MessageCircle size={11} /> LINE
+                        LINE
                       </a>
                     )}
                     {vendorDetails?.phone && (
                       <a
                         href={`tel:${vendorDetails.phone.replace(/[^\d+]/g, '')}`}
-                        className="tap-target inline-flex min-h-11 items-center gap-1 px-2 py-1 rounded-md bg-tea-gold/[0.08] text-tea-gold text-ui-12 hover:bg-tea-gold/[0.14] transition-colors"
+                        className="curate-v2-frame is-tall"
                       >
-                        <Phone size={11} /> Call
+                        Call
                       </a>
                     )}
                   </div>
                 )}
 
-                {/* Contact fields */}
-                <div className="space-y-1.5">
-                  {/* Location, paste a map link or coordinates from any maps app.
-                      Works without Google Maps (blocked in China); the GPS pin
-                      button elsewhere remains the at-the-shop shortcut. */}
-                  <div className="flex items-center gap-2">
-                    <MapPin size={14} className="text-tea-text-dim shrink-0" />
-                    <input
-                      type="text"
-                      value={locInput}
-                      onChange={(e) => { setLocInput(e.target.value); if (locError) setLocError(false); }}
-                      onBlur={commitLocation}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitLocation(); } }}
-                      placeholder="Paste map link or 'lat, lng'"
-                      className="min-h-11 flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
-                    />
-                  </div>
-                  {locError && (
-                    <p className="text-ui-12 text-tea-error pl-6">Couldn't read coordinates from that. Try a "lat, lng" pair.</p>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <Phone size={14} className="text-tea-text-dim shrink-0" />
-                    <input
-                      type="tel"
-                      value={vendorDetails?.phone || ''}
-                      onChange={(e) => updateDetail('phone', e.target.value || undefined)}
-                      placeholder="Phone"
-                      className="min-h-11 flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MessageCircle size={14} className="text-tea-text-dim shrink-0" />
-                    <input
-                      type="text"
-                      value={vendorDetails?.whatsapp || ''}
-                      onChange={(e) => updateDetail('whatsapp', e.target.value || undefined)}
-                      placeholder="WhatsApp"
-                      className="min-h-11 flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MessageCircle size={14} className="text-tea-text-dim shrink-0" />
-                    <input
-                      type="text"
-                      value={vendorDetails?.wechat || ''}
-                      onChange={(e) => updateDetail('wechat', e.target.value || undefined)}
-                      placeholder="WeChat"
-                      className="min-h-11 flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MessageCircle size={14} className="text-tea-text-dim shrink-0" />
-                    <input
-                      type="text"
-                      value={vendorDetails?.line || ''}
-                      onChange={(e) => updateDetail('line', e.target.value || undefined)}
-                      placeholder="LINE"
-                      className="min-h-11 flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
-                    />
-                  </div>
-                </div>
+                {/* Location: paste a map link or coordinates from any maps app.
+                    Works without Google Maps (blocked in China). */}
+                {detailField('Location', (
+                  <input
+                    type="text"
+                    value={locInput}
+                    onChange={(e) => { setLocInput(e.target.value); if (locError) setLocError(false); }}
+                    onBlur={commitLocation}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitLocation(); } }}
+                    placeholder="Paste map link or 'lat, lng'"
+                    className="curate-v2-field"
+                  />
+                ))}
+                {locError && (
+                  <p className="px-4 pt-1 font-mono text-ui-12 text-tea-error">Couldn't read coordinates from that. Try a "lat, lng" pair.</p>
+                )}
+                {detailField('Phone', (
+                  <input type="tel" value={vendorDetails?.phone || ''} onChange={(e) => updateDetail('phone', e.target.value || undefined)} placeholder="Phone" className="curate-v2-field" />
+                ))}
+                {detailField('WhatsApp', (
+                  <input type="text" value={vendorDetails?.whatsapp || ''} onChange={(e) => updateDetail('whatsapp', e.target.value || undefined)} placeholder="WhatsApp" className="curate-v2-field" />
+                ))}
+                {detailField('WeChat', (
+                  <input type="text" value={vendorDetails?.wechat || ''} onChange={(e) => updateDetail('wechat', e.target.value || undefined)} placeholder="WeChat" className="curate-v2-field" />
+                ))}
+                {detailField('LINE', (
+                  <input type="text" value={vendorDetails?.line || ''} onChange={(e) => updateDetail('line', e.target.value || undefined)} placeholder="LINE" className="curate-v2-field" />
+                ))}
               </div>
             </motion.div>
           )}

@@ -4923,6 +4923,15 @@ body.cart-panel-open .commerce-dock {
 .curate-v2 .font-display {
   font-variant-numeric: lining-nums tabular-nums;
 }
+/* Anything in Curate that does not name its own face reads in Lora, never the sans. */
+.curate-v2 { font-family: var(--font-mono); }
+/* A typed field shows it has focus by its gold underline, not by a ringed box. */
+.curate-v2 input:focus,
+.curate-v2 textarea:focus,
+.curate-v2 select:focus,
+.curate-v2 input:focus-visible,
+.curate-v2 textarea:focus-visible,
+.curate-v2 select:focus-visible { outline: none; box-shadow: none; }
 /* Every figure in Curate reads in Lora, as the shop's prices and Stock's counts do. */
 .curate-v2 .tabular-nums {
   font-family: var(--font-mono);
@@ -4996,6 +5005,171 @@ body.cart-panel-open .commerce-dock {
   color: var(--tea-gold);
   box-shadow: inset 0 -1px 0 var(--tea-gold);
 }
+
+/* ── Curate v2: the full "Edit all fields" card ────────────────────────────
+   The card is TeaFace with every field editable: a Lora capital label down the
+   left, the value on the right, a divider under each line. Choices are thin
+   frames that turn gold when chosen. No pills, no fills, no sliders. */
+.curate-v2-frame.is-tall { height: 44px; }
+.curate-v2-frame.is-name { font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif; font-size: 17px; letter-spacing: 0; }
+.curate-v2-frame.is-slim { min-width: 0; padding: 0; }
+.curate-v2-frame.is-wide { width: 100%; justify-content: center; }
+.curate-v2-frame:disabled { color: var(--tea-text-sec); cursor: not-allowed; }
+.curate-v2-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+  padding: 4px 16px;
+  border-bottom: 1px solid var(--tea-border);
+  transition: box-shadow 0.15s;
+}
+.curate-v2-line:focus-within { box-shadow: inset 0 -1px 0 var(--tea-gold); }
+.curate-v2-line > .curate-v2-label { flex: none; }
+/* A value typed straight into a line: right-aligned Lora, no box. */
+.curate-v2-field {
+  flex: 1 1 0;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  background: transparent;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  letter-spacing: 0.005em;
+  color: var(--tea-text);
+  -moz-appearance: textfield;
+}
+.curate-v2-field::-webkit-inner-spin-button,
+.curate-v2-field::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.curate-v2-field::placeholder { color: var(--tea-text-dim); }
+/* A name typed into a line reads in Cormorant, as a name does everywhere else. */
+.curate-v2-field.is-name {
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
+  font-feature-settings: 'lnum' 1;
+  font-size: 19px;
+}
+.curate-v2-field.is-hanzi { font-family: 'Noto Serif SC', serif; font-size: 17px; }
+.curate-v2-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  padding: 0;
+  min-height: 44px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  color: var(--tea-text);
+  text-align: right;
+  text-align-last: right;
+}
+.curate-v2-select option { background: var(--tea-surface); color: var(--tea-text); }
+/* The tea's name, set large above its lines, as TeaFace sets it. */
+.curate-v2-namefield {
+  display: block;
+  width: 100%;
+  min-height: 56px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  background: transparent;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
+  font-feature-settings: 'lnum' 1;
+  font-size: 31px;
+  line-height: 1.1;
+  color: var(--tea-text);
+}
+.curate-v2-namefield::placeholder { color: var(--tea-text-dim); }
+/* A section heading inside the card: the word large, a gold hairline under it. */
+.curate-v2-heading {
+  padding: 28px 16px 0;
+}
+.curate-v2-heading h3 {
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
+  font-size: 26px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+  color: var(--tea-text);
+  padding-bottom: 10px;
+}
+.curate-v2-heading::after { content: ''; display: block; height: 1px; background: rgb(var(--tea-gold-rgb) / 0.2); }
+/* A choice in a sheet or a wrapped set: a thin frame, left aligned. */
+.curate-v2-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 14px;
+  border: 1px solid var(--tea-border);
+  border-radius: 3px;
+  text-align: left;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
+  font-size: 19px;
+  color: var(--tea-text-sec);
+  transition: color 0.15s, border-color 0.15s;
+}
+.curate-v2-choice:hover { color: var(--tea-text); }
+.curate-v2-choice[aria-pressed='true'] { color: var(--tea-gold); border-color: var(--tea-gold); }
+/* A choice in a list inside a sheet: a full-width line. */
+.curate-v2-sheetrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 56px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--tea-border);
+  text-align: left;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
+  font-size: 20px;
+  color: var(--tea-text);
+}
+.curate-v2-sheetrow[aria-pressed='true'] { color: var(--tea-gold); }
+.curate-v2-sheetrow .curate-v2-label { color: var(--tea-text-dim); }
+/* A plain gold word that acts: Done, add, suggest. No frame, no fill. */
+.curate-v2-word {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: var(--tea-gold);
+}
+.curate-v2-word:disabled { color: var(--tea-text-sec); cursor: not-allowed; }
+/* A fold-away block (details/summary) shows a plus or a minus, never a triangle. */
+.curate-v2 details > summary { list-style: none; justify-content: space-between; }
+.curate-v2 details > summary::-webkit-details-marker { display: none; }
+.curate-v2 details > summary::after { content: '+'; font-family: var(--font-mono); font-size: 16px; color: var(--tea-text-sec); }
+.curate-v2 details[open] > summary::after { content: '\2212'; }
+.curate-v2 input[type='file'] { font-family: var(--font-mono); }
+.curate-v2 input[type='file']::file-selector-button {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: transparent;
+  color: var(--tea-text-sec);
+  border: 1px solid var(--tea-border);
+  border-radius: 3px;
+  padding: 8px 12px;
+  margin-right: 10px;
+}
+/* The note field of the card (NoteThread, shared): one thin frame, serif text. */
+.curate-v2-notes .tasting-voice-field {
+  background: transparent;
+  border-radius: 3px;
+  box-shadow: none;
+}
+.curate-v2-notes .tasting-voice-field:focus-within { border-color: var(--tea-gold); box-shadow: none; }
+.curate-v2-notes textarea { font-size: 17px; }
+.curate-v2-notes .tasting-voice-btn { color: var(--tea-text-sec); border-left: 1px solid var(--tea-border); }
+.curate-v2-notes .tasting-voice-btn:hover { color: var(--tea-gold); }
 
 /* ── Stock on the phone: quieter layers (2026-10-08) ──────────────────────
    Why the Stock Room mockup read better than the live screen, kept to colour:

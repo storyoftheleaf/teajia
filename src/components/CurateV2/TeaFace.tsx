@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, ChevronDown, Loader2, Square } from 'lucide-react';
+import { ArrowLeft, Loader2, Square } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useNotesStore } from '../../lib/notesStore';
 import { api } from '../../lib/api';
@@ -53,7 +53,7 @@ const Row: React.FC<{ label: string; children: React.ReactNode; onClick?: () => 
   const body = (
     <>
       <span className="curate-v2-label shrink-0">{label}</span>
-      <span className="flex min-w-0 flex-1 items-baseline justify-end gap-1.5 truncate text-right text-ui-14 text-tea-text">{children}</span>
+      <span className="flex min-w-0 flex-1 items-baseline justify-end gap-1.5 truncate text-right font-mono text-ui-14 text-tea-text">{children}</span>
     </>
   );
   const cls = 'flex min-h-11 w-full items-center gap-3 border-b border-tea-border px-4 text-left';
@@ -109,7 +109,7 @@ const ChineseRow: React.FC<{ entry: TeaCompassEntry; onEdit: () => void }> = ({ 
   }
   return (
     <Row label="Chinese" testId="tea-face-chinese">
-      {state === 'error' && <span className="min-w-0 truncate text-ui-12 text-tea-text-sec" role="alert">{problem}</span>}
+      {state === 'error' && <span className="min-w-0 truncate font-mono text-ui-12 text-tea-text-sec" role="alert">{problem}</span>}
       <button type="button" onClick={() => void suggest()} disabled={state === 'loading'} className="tap-target shrink-0 justify-end font-mono text-ui-13 text-tea-gold" aria-label="Suggest a Chinese name">
         {state === 'loading' ? '…' : 'suggest'}
       </button>
@@ -117,7 +117,7 @@ const ChineseRow: React.FC<{ entry: TeaCompassEntry; onEdit: () => void }> = ({ 
   );
 };
 
-const add = <span className="text-ui-13 text-tea-text-sec">add</span>;
+const add = <span className="font-mono text-ui-13 text-tea-text-sec">add</span>;
 
 type Choice = 'pass' | 'sample' | 'buy';
 
@@ -196,14 +196,14 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
           <div className="absolute left-2 top-2">{back}</div>
           <div className="absolute inset-x-4 bottom-2 flex items-baseline justify-between gap-3">
             <h2 className="min-w-0 truncate font-display text-[31px] leading-none text-tea-text">{entry.name?.trim() || 'Untitled tea'}</h2>
-            {kind && <span className="shrink-0 text-ui-12 text-tea-text-sec tabular-nums">{kind}</span>}
+            {kind && <span className="shrink-0 font-mono text-ui-12 text-tea-text-sec tabular-nums">{kind}</span>}
           </div>
         </div>
       ) : (
         <div className="flex items-center gap-1 border-b border-tea-border px-2 pb-2.5 pt-2 lg:px-4">
           {back}
           <h2 className="min-w-0 flex-1 truncate font-display text-[31px] leading-none text-tea-text">{entry.name?.trim() || 'Untitled tea'}</h2>
-          {kind && <span className="shrink-0 pr-2 text-ui-12 text-tea-text-sec tabular-nums">{kind}</span>}
+          {kind && <span className="shrink-0 pr-2 font-mono text-ui-12 text-tea-text-sec tabular-nums">{kind}</span>}
         </div>
       )}
 
@@ -211,17 +211,17 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
         {entry.priceAmount != null ? (
           <>
             <span className="font-medium tabular-nums">{sym}{entry.priceAmount.toLocaleString()}</span>
-            {unit && <span className="text-ui-12 text-tea-text-sec">per {unit}</span>}
+            {unit && <span className="font-mono text-ui-12 text-tea-text-sec">per {unit}</span>}
           </>
         ) : add}
       </Row>
       {!isTeaware && (
         <Row label="Shelf" testId="tea-face-shelf" onClick={preview ? undefined : onEdit}>
           {preview
-            ? <><span className="font-medium tabular-nums text-tea-gold">${preview.retailPerGramUsd.toFixed(2)} / g</span>{weight?.assumed && <span className="text-ui-12 text-tea-text-sec tabular-nums">at {weight.grams} g</span>}</>
-            : entry.priceAmount != null && weight ? <span className="text-ui-13 text-tea-text-sec">no rate for {sym || entry.priceCurrency} yet</span>
-            : entry.priceAmount != null ? <span className="text-ui-13 text-tea-text-sec">add the weight</span>
-            : <span className="text-ui-13 text-tea-text-sec">after the cost</span>}
+            ? <><span className="font-medium tabular-nums text-tea-gold">${preview.retailPerGramUsd.toFixed(2)} / g</span>{weight?.assumed && <span className="font-mono text-ui-12 text-tea-text-sec tabular-nums">at {weight.grams} g</span>}</>
+            : entry.priceAmount != null && weight ? <span className="font-mono text-ui-13 text-tea-text-sec">no rate for {sym || entry.priceCurrency} yet</span>
+            : entry.priceAmount != null ? <span className="font-mono text-ui-13 text-tea-text-sec">add the weight</span>
+            : <span className="font-mono text-ui-13 text-tea-text-sec">after the cost</span>}
         </Row>
       )}
       <Row label="From" onClick={onEdit}>{place ? <span className="font-display text-ui-17">{place}</span> : add}</Row>
@@ -302,7 +302,7 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
             <span className="curate-v2-label">What you said</span>
             <span className="text-ui-13 text-tea-text-sec tabular-nums">{said.length ? `${said.length} recording${said.length === 1 ? '' : 's'}` : 'nothing yet'}</span>
           </span>
-          {said.length > 0 && <span className="flex items-center gap-1 font-mono text-ui-13 text-tea-gold">Open <ChevronDown size={14} className={saidOpen ? 'rotate-180' : ''} /></span>}
+          {said.length > 0 && <span className="font-mono text-ui-13 text-tea-gold">{saidOpen ? 'Close' : 'Open'}</span>}
         </button>
         {saidOpen && !onOpenSaid && (
           <ul className="grid gap-3 px-4 pb-3">
@@ -315,13 +315,13 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
 
       <div className="flex items-center justify-between gap-3 px-4 pt-1">
         {!isTeaware ? (
-          <button type="button" onClick={() => onFullTasting(entry.id)} className="min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text">Full tasting</button>
+          <button type="button" onClick={() => onFullTasting(entry.id)} className="min-h-11 font-mono text-ui-12 text-tea-text-sec hover:text-tea-text">Full tasting</button>
         ) : <span />}
-        <button type="button" onClick={onEdit} className="min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text" data-testid="tea-face-edit">Edit all fields</button>
+        <button type="button" onClick={onEdit} className="min-h-11 font-mono text-ui-12 text-tea-text-sec hover:text-tea-text" data-testid="tea-face-edit">Edit all fields</button>
       </div>
       {onDone && (
-        <div className="px-4 pt-2">
-          <button type="button" onClick={onDone} className="cta-solid min-h-12 w-full rounded-md text-ui-14 font-semibold" data-testid="tea-face-done">Done</button>
+        <div className="flex justify-end px-4 pt-1">
+          <button type="button" onClick={onDone} className="curate-v2-word tap-target min-h-11 px-1 text-ui-14" data-testid="tea-face-done">Done</button>
         </div>
       )}
     </article>

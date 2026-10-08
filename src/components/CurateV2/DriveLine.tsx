@@ -61,31 +61,31 @@ export const DriveLine: React.FC = () => {
     <div className="border-b border-tea-border px-4 py-3" data-testid="curate-drive-line">
       <div className="flex min-h-11 items-center gap-3">
         <span className="min-w-0 flex-1">
-          <span className="block text-ui-14 text-tea-text">
+          <span className="block font-display text-ui-17 text-tea-text">
             {!s.connected ? 'Save photos to Google Drive' : s.needs_reconnect ? 'Google Drive needs connecting again' : 'Photos are saved to Google Drive'}
           </span>
-          <span className="block truncate text-ui-12 text-tea-text-sec">
+          <span className="block truncate font-mono text-ui-12 text-tea-text-sec">
             {!s.connected ? 'A folder for each vendor and tea' : s.email ?? 'Teajia Curate folder'}
           </span>
         </span>
         {(!s.connected || s.needs_reconnect) && isOwner && (
-          <button type="button" onClick={() => connect.mutate()} disabled={connect.isPending} className="min-h-11 rounded-md border border-tea-border px-3 text-ui-13 font-medium text-tea-text hover:border-tea-gold">
+          <button type="button" onClick={() => connect.mutate()} disabled={connect.isPending} className="curate-v2-frame is-tall shrink-0 uppercase tracking-[0.14em]">
             {s.needs_reconnect ? 'Reconnect' : 'Connect'}
           </button>
         )}
         {s.connected && !s.needs_reconnect && s.folder_url && (
-          <a href={s.folder_url} target="_blank" rel="noreferrer" className="min-h-11 content-center text-ui-13 font-medium text-tea-gold">
+          <a href={s.folder_url} target="_blank" rel="noreferrer" className="curate-v2-word min-h-11 content-center">
             Open folder
           </a>
         )}
         {s.connected && !s.needs_reconnect && !s.folder_url && (
-          <button type="button" onClick={() => saveNow.mutate()} disabled={saveNow.isPending} className="min-h-11 text-ui-13 font-medium text-tea-gold">
+          <button type="button" onClick={() => saveNow.mutate()} disabled={saveNow.isPending} className="curate-v2-word min-h-11">
             {saveNow.isPending ? 'Copying…' : 'Copy photos now'}
           </button>
         )}
       </div>
       {(note || connect.isError || saveNow.isError) && (
-        <p className={`text-ui-12 ${connect.isError || saveNow.isError ? 'text-tea-error' : 'text-tea-text-sec'}`}>
+        <p className={`font-mono text-ui-12 ${connect.isError || saveNow.isError ? 'text-tea-error' : 'text-tea-text-sec'}`}>
           {connect.isError ? (connect.error as Error).message : saveNow.isError ? (saveNow.error as Error).message : note}
         </p>
       )}

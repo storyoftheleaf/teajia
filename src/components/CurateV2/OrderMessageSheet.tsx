@@ -51,16 +51,16 @@ export const OrderMessageSheet: React.FC<OrderMessageSheetProps> = ({ tx, onOpen
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={10}
-          className="w-full rounded border border-tea-border bg-tea-surface p-3 font-body text-ui-15 leading-relaxed text-tea-text outline-none focus:border-tea-gold"
+          className="w-full rounded-[3px] border border-tea-border bg-transparent p-3 font-body text-ui-15 leading-relaxed text-tea-text outline-none focus:border-tea-gold"
         />
-        <button type="button" onClick={() => void copy()} className="cta-solid flex min-h-12 items-center justify-center gap-2 rounded-md text-ui-14 font-semibold">
+        <button type="button" onClick={() => void copy()} className="curate-v2-frame is-on is-tall is-wide uppercase tracking-[0.14em]">
           {copied ? 'Copied' : 'Copy for WeChat'}
         </button>
         <a
           href={whatsappLink(text, number)}
           target="_blank"
           rel="noreferrer"
-          className="flex min-h-11 items-center justify-center rounded-md border border-tea-border text-ui-13 font-medium text-tea-text-sec hover:text-tea-text"
+          className="curate-v2-frame is-tall is-wide normal-case tracking-normal"
         >
           {number ? 'Open WhatsApp to this vendor' : 'Open WhatsApp'}
         </a>

@@ -123,7 +123,7 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
         <button type="button" onClick={newTable} data-testid="table-start" className="curate-v2-row w-full text-left">
           <span className="font-display text-ui-20 text-tea-text">Start a table</span>
           <span className="flex-1" />
-          <span className="text-ui-13 text-tea-gold">whose?</span>
+          <span className="font-mono text-ui-13 text-tea-gold">whose?</span>
         </button>
         {pickingVendor && (
           <VendorPicker
@@ -150,7 +150,7 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
         <select
           value={lastCurrency}
           onChange={(e) => setLastCurrency(e.target.value as Currency)}
-          className="appearance-none bg-transparent pr-1 text-ui-13 font-medium text-tea-gold outline-none"
+          className="appearance-none bg-transparent pr-1 font-mono text-ui-14 text-tea-gold outline-none"
           aria-label="Currency at this table"
         >
           {(['Yuan', 'NT', 'HKD', 'USD', 'JPY', 'IDR', 'MYR', 'AUD'] as Currency[]).map((c) => (
@@ -159,7 +159,7 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
         </select>
       </label>
       <span className="flex-1" />
-      <button type="button" onClick={newTable} className="tap-target shrink-0 text-ui-13 font-medium text-tea-gold">new table</button>
+      <button type="button" onClick={newTable} className="curate-v2-word tap-target shrink-0">new table</button>
       </div>
       {pickingVendor && (
         <VendorPicker
@@ -193,7 +193,7 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
                   {unit && <span className="ml-1 text-ui-12 font-normal text-tea-text-sec">{unit}</span>}
                 </span>
               ) : (
-                <span className="text-ui-12 text-tea-text-sec">add cost</span>
+                <span className="font-mono text-ui-12 text-tea-text-sec">add cost</span>
               )}
             </button>
             <button
@@ -241,7 +241,7 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
           className="min-w-0 flex-1 border-0 border-b border-tea-border bg-transparent py-2 font-display text-ui-17 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold"
         />
         {name.trim() && (
-          <button type="button" onClick={add} className="tap-target text-ui-13 font-medium text-tea-gold">Add</button>
+          <button type="button" onClick={add} className="curate-v2-word tap-target">Add</button>
         )}
       </div>}
     </div>

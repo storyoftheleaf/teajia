@@ -930,29 +930,18 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           <button
             type="button"
             onClick={openScanner}
-            className={`${btnCls} curate-action shrink-0`}
+            className={`curate-v2-frame is-tall shrink-0 uppercase tracking-[0.14em] ${justExtracted ? 'is-on' : ''}`}
             aria-label="Scan label"
             title="Scan label"
             data-curate-action
-            data-curate-compact-target
           >
-            <span
-              className={`curate-compact-chrome border transition-colors ${
-                justExtracted
-                  ? 'border-tea-gold bg-tea-accent-sub text-tea-gold'
-                  : 'border-tea-border text-tea-text-sec hover:text-tea-text'
-              }`}
-              data-curate-compact-chrome
-            >
-              {justExtracted ? <Check size={btnIcon} /> : <Sparkles size={btnIcon} strokeWidth={1.5} />}
-              <span>{justExtracted ? 'Label read' : 'Scan'}</span>
-            </span>
+            {justExtracted ? 'Label read' : 'Scan'}
           </button>
         </div>
 
         {/* A permanent two-cell landmark: it never changes size, so adding a
             photo does not make the context row jump or relocate its actions. */}
-        <div className="flex h-11 w-[88px] shrink-0 overflow-hidden rounded-md border border-tea-border bg-tea-surface" data-testid="curate-photo-slot">
+        <div className="flex h-11 min-w-[88px] shrink-0 overflow-hidden rounded-[3px] border border-tea-border" data-testid="curate-photo-slot">
           {validPhotos[0] ? (
             <button
               type="button"
@@ -968,7 +957,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             >
               <img src={mediaUrl(validPhotos[0])} alt="Photo 1" className="pointer-events-none h-full w-full object-cover" />
               {validPhotos.length > 1 && (
-                <span className="absolute bottom-0.5 right-0.5 rounded-md bg-tea-bg px-1 text-ui-12 tabular-nums text-tea-text">+{validPhotos.length - 1}</span>
+                <span className="absolute bottom-0.5 right-0.5 rounded-[3px] bg-tea-bg px-1 font-mono text-ui-12 tabular-nums text-tea-text">+{validPhotos.length - 1}</span>
               )}
             </button>
           ) : pendingPreviews[0] ? (
@@ -993,13 +982,12 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="curate-action h-11 w-[88px] gap-1.5 text-tea-text-sec hover:text-tea-text"
+              className="curate-action h-11 w-[88px] font-mono text-ui-12 uppercase tracking-[0.14em] text-tea-text-sec hover:text-tea-text"
               aria-label="Add photo"
               title="Add photo"
               data-curate-action
             >
-              <Camera size={btnIcon} strokeWidth={1.5} />
-              <span>Photo</span>
+              Photo
             </button>
           )}
 
@@ -1007,12 +995,12 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="curate-action h-11 w-11 text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
+              className="curate-action h-11 w-11 font-mono text-ui-17 text-tea-text-sec hover:text-tea-text"
               aria-label="Add another photo"
               title="Add another photo"
               data-curate-action
             >
-              <ImagePlus size={btnIcon} strokeWidth={1.5} />
+              +
             </button>
           )}
         </div>

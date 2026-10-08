@@ -676,7 +676,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         </p>
         <button
           onClick={onNewCapture}
-          className="tap-target min-h-11 px-8 py-3 cta-solid text-ui-12 font-semibold transition-colors rounded-md"
+          className="curate-v2-frame is-on is-tall px-8 uppercase tracking-[0.16em]"
         >
           Begin
         </button>
@@ -697,8 +697,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             value={internalSearchQuery}
             onChange={(e) => setInternalSearchQuery(e.target.value)}
             placeholder="Search by name, region, vendor…"
-            className="w-full min-h-11 bg-tea-surface text-tea-text text-ui-16 rounded-md border border-tea-border pl-9 pr-10 py-2
-                       outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40"
+            className="w-full min-h-11 rounded-[3px] border border-tea-border bg-transparent py-2 pl-9 pr-10 font-mono text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold"
           />
           {internalSearchQuery && (
             <button

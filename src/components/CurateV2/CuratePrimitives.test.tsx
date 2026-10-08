@@ -165,12 +165,13 @@ describe('Curate presentation primitives', () => {
 });
 
 describe('Capture adapters', () => {
-  it('preserves Capture footer test ids, Buy disclosure ARIA, Done state, and optional Sample', () => {
+  it('preserves Capture footer test ids, Buy disclosure ARIA and Done state, and sets Pass, Sample and Buy in one frame with Done after', () => {
     const html = renderToStaticMarkup(
       <CaptureActionFooter
         onBuy={() => undefined}
         onDone={() => undefined}
         onSample={() => undefined}
+        onPass={() => undefined}
         doneEnabled={false}
         buyExpanded
         purchasePickerId="purchase-picker"
@@ -184,33 +185,33 @@ describe('Capture adapters', () => {
     expect(html).toContain('aria-expanded="true"');
     expect(html).toContain('aria-controls="purchase-picker"');
     expect(html).toContain('data-visual-state="disabled-neutral"');
-    expect(html).toContain('>Sample</span>');
-    expect(html.indexOf('Buy')).toBeLessThan(html.indexOf('Done'));
-    expect(html.indexOf('Done')).toBeLessThan(html.indexOf('Sample'));
-
-    const footerTag = html.match(/<div[^>]*data-testid="capture-action-footer"[^>]*>/)?.[0];
-    expect(footerTag).toContain('grid');
-    expect(footerTag).toContain('grid-cols-3');
-    expect(footerTag).toContain('gap-2');
-    expect(footerTag).toContain('capture-footer-shell');
-    expect(footerTag).not.toContain('curate-action-band');
+    expect(html).toContain('>Sample</button>');
+    // The three choices in TeaFace's order, then Done as a plain word.
+    expect(html.indexOf('>Pass<')).toBeLessThan(html.indexOf('>Sample<'));
+    expect(html.indexOf('>Sample<')).toBeLessThan(html.indexOf('>Buy<'));
+    expect(html.indexOf('>Buy<')).toBeLessThan(html.indexOf('>Done<'));
+    expect(html).toContain('repeat(3, minmax(0, 1fr))');
+    expect(html).toContain('capture-footer-shell');
+    expect(html).not.toContain('cta-solid');
   });
 
-  it('keeps the two-column Buy then Done layout when Sample is absent', () => {
+  it('shows two cells, Pass and Buy, when there is no Sample, and still ends on Done', () => {
     const html = renderToStaticMarkup(
       <CaptureActionFooter
         onBuy={() => undefined}
         onDone={() => undefined}
+        onPass={() => undefined}
         doneEnabled
         buyExpanded={false}
         purchasePickerId="purchase-picker"
       />,
     );
 
-    const footerTag = html.match(/<div[^>]*data-testid="capture-action-footer"[^>]*>/)?.[0];
-    expect(footerTag).toContain('grid-cols-2');
-    expect(html.indexOf('Buy')).toBeLessThan(html.indexOf('Done'));
+    expect(html).toContain('repeat(2, minmax(0, 1fr))');
+    expect(html.indexOf('>Pass<')).toBeLessThan(html.indexOf('>Buy<'));
+    expect(html.indexOf('>Buy<')).toBeLessThan(html.indexOf('>Done<'));
     expect(html).not.toContain('Sample');
+    expect(html).toContain('data-visual-state="primary"');
   });
 
   it('renders Capture details through the shared controlled disclosure', () => {

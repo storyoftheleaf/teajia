@@ -734,4 +734,121 @@ test.describe('Curate v2 journeys (phone)', () => {
     await expect(page.getByTestId('compare-cards').locator('article')).toHaveCount(2);
     await shot(page, 'review-compare');
   });
+
+  // ── Review pass 2 ──────────────────────────────────────────────────────────
+
+  const fontOf = (loc: ReturnType<Page['locator']>) => loc.evaluate((el) => getComputedStyle(el).fontFamily);
+
+  test('Edit all fields: the full card is TeaFace with every field open (Lora labels, thin frames, no slider, no fills)', async ({ page }) => {
+    await installCompassHarness(page, {
+      ...BUY_DATA,
+      compassEntries: [entry({ id: 'f-card', name: 'Card Tea', year: 2019, form: 'Cake', price_amount: 450, price_currency: 'Yuan', price_per_unit_grams: 357,
+        tasting: JSON.stringify({ quality: 8, body: ['full'], finish: ['long'], flavor: ['sweet'] }) })],
+    });
+    await openCurateV2(page, 'teas');
+    await page.getByRole('button', { name: /^Card Tea/ }).first().click();
+    await overlay(page).getByRole('button', { name: /Edit all fields/ }).click();
+    const card = overlay(page);
+    await expect(card).toHaveAttribute('data-layer', 'card');
+    // Lora capital label on the left of each line, as the face has them.
+    const label = card.locator('.curate-v2-line .curate-v2-label').first();
+    expect(await fontOf(label)).toContain('Lora');
+    // The score is a row of ten thin numbered frames, not a slider; the usual weights are frames too.
+    await expect(card.getByRole('slider')).toHaveCount(0);
+    const score = card.getByRole('radiogroup', { name: 'Quality rating' });
+    await expect(score.getByRole('radio')).toHaveCount(10);
+    await expect(score.getByRole('radio', { name: '8' })).toHaveClass(/is-on/);
+    await expect(card.getByRole('group', { name: 'Usual weights' }).getByRole('button').first()).toBeVisible();
+    // Body, Finish and Flavor are thin gold frames (3px corners), never round chips.
+    const body = card.getByRole('group', { name: 'Body' }).getByRole('button', { name: /Remove/ }).first();
+    await expect(body).toBeVisible();
+    expect(await body.evaluate((el) => parseFloat(getComputedStyle(el).borderTopLeftRadius))).toBeLessThanOrEqual(4);
+    // Pass · Sample · Buy in one frame, Done a plain word: nothing filled.
+    const footer = card.getByTestId('capture-action-footer').filter({ visible: true });
+    for (const word of ['Pass', 'Sample', 'Buy']) await expect(footer.getByRole('button', { name: word, exact: true })).toBeVisible();
+    const done = footer.getByRole('button', { name: /^Done/ });
+    await expect(done).toBeVisible();
+    expect(await done.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
+    await expect(card.locator('.cta-solid')).toHaveCount(0);
+    // Pass marks the tea passed on, and again takes it back.
+    await footer.getByRole('button', { name: 'Pass', exact: true }).click();
+    await expect(card.getByRole('radio', { name: 'Passed on' })).toHaveAttribute('aria-checked', 'true');
+    // No sideways scroll and every field still there.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    for (const name of ['Price', 'Grams', 'Currency']) await expect(card.getByLabel(name, { exact: true })).toBeVisible();
+    await shot(page, 'review2-card');
+  });
+
+  test('Value cells that say "add" read in Lora, on the tea screen and the vendor card', async ({ page }) => {
+    await installCompassHarness(page, TODAY_DATA);
+    await openCurateV2(page, 'teas');
+    await page.getByRole('button', { name: /^Jingmai Maocha/ }).first().click();
+    const cost = overlay(page).getByTestId('tea-face-cost');
+    await expect(cost).toContainText('add');
+    expect(await fontOf(cost.getByText('add', { exact: true }))).toContain('Lora');
+    expect(await fontOf(overlay(page).getByText('add', { exact: true }).last())).toContain('Lora');
+    await backFromHeader(page).click();
+    await tab(page, 'Vendors').click();
+    await page.getByRole('button', { name: /Wang Laoshi/ }).first().click();
+    const card = page.getByTestId('curate-vendor-card');
+    await expect(card.getByText('add', { exact: true }).first()).toBeVisible();
+    for (const cell of await card.getByText('add', { exact: true }).all()) expect(await fontOf(cell)).toContain('Lora');
+  });
+
+  for (const [label, entries, offered] of [
+    ['no teas', [] as Array<Record<string, any>>, false],
+    ['one tea', [entry({ id: 'solo', name: 'Only Tea', price_amount: 100 })], false],
+    ['two teas', [entry({ id: 'one', name: 'First Tea', price_amount: 100 }), entry({ id: 'two', name: 'Second Tea', price_amount: 200 })], true],
+  ] as const) {
+    test(`Compare is offered only when there are two teas to compare (${label})`, async ({ page }) => {
+      await installCompassHarness(page, { compassEntries: entries });
+      await openCurateV2(page, 'teas');
+      if (entries.length) await expect(page.getByRole('button', { name: /Tea/ }).first()).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Compare', exact: true })).toHaveCount(offered ? 1 : 0);
+    });
+  }
+
+  test('Choosing the vendor on a "No vendor yet" order moves its teas into that vendor\'s draft and opens it: never two drafts for one vendor', async ({ page }) => {
+    await installCompassHarness(page, {
+      ...BUY_DATA,
+      compassEntries: [
+        ...BUY_DATA.compassEntries.slice(0, 1),
+        entry({ id: 'b-4', name: 'Nameless Oolong', form: 'Cake', price_amount: 120, price_currency: 'Yuan', vendor_name: null, vendor_id: null, tasting: JSON.stringify({ quality: 6 }) }),
+      ],
+    });
+    await openCurateV2(page, 'today');
+    // Wang's draft already holds Mengku.
+    await page.getByTestId('today-section-decide').getByRole('button', { name: /Mengku Laobanzhang/ }).click();
+    await buyButton(page).click();
+    await expect(page.getByTestId('order-vendor')).toHaveText('Wang Laoshi');
+    await backFromHeader(page).click();
+    await backFromHeader(page).click();
+    // The nameless tea starts its own draft.
+    await page.getByTestId('today-section-decide').getByRole('button', { name: /Nameless Oolong/ }).click();
+    await buyButton(page).click();
+    await expect(page.getByTestId('order-vendor')).toHaveText('No vendor yet');
+    await page.getByRole('button', { name: 'Choose the vendor' }).click();
+    await page.getByTestId('order-vendor-picker').getByTestId('vendor-picker').getByRole('button', { name: 'Wang Laoshi' }).click();
+    // The order on screen is now Wang's, holding both teas.
+    await expect(overlay(page)).toHaveAttribute('data-layer', 'order');
+    await expect(page.getByTestId('order-vendor')).toHaveText('Wang Laoshi');
+    await expect(orderRows(page)).toHaveCount(2);
+    await expect(orderRows(page).nth(0)).toContainText('Mengku Laobanzhang');
+    await expect(orderRows(page).nth(1)).toContainText('Nameless Oolong');
+    // One draft in Orders, not two.
+    await backFromHeader(page).click();
+    await backFromHeader(page).click();
+    await tab(page, 'Orders').click();
+    await expect(page.getByTestId('curate-order').filter({ visible: true })).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Open the order with Wang Laoshi' })).toHaveCount(1);
+  });
+
+  test('Orders tab: "+ Purchase order" is set like its neighbours (normal weight, single word gap)', async ({ page }) => {
+    await installCompassHarness(page, {});
+    await openCurateV2(page, 'orders');
+    const word = page.getByText('+ Purchase order', { exact: true }).filter({ visible: true });
+    await expect(word).toBeVisible();
+    expect(await word.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('400');
+    expect(await word.evaluate((el) => getComputedStyle(el).wordSpacing)).toMatch(/^(normal|0px)$/);
+  });
 });

@@ -40,7 +40,7 @@ export const SyncIndicator: React.FC = () => {
   if (syncing) {
     return (
       <div
-        className="inline-flex items-center gap-1.5 text-tea-gold text-ui-12 font-medium"
+        className="inline-flex items-center gap-1.5 text-tea-gold font-mono text-ui-12"
         aria-live="polite"
       >
         <span>Syncing</span>
@@ -51,7 +51,7 @@ export const SyncIndicator: React.FC = () => {
   if (showSavedFlash) {
     return (
       <div
-        className="inline-flex items-center gap-1.5 text-tea-gold text-ui-12 font-medium"
+        className="inline-flex items-center gap-1.5 text-tea-gold font-mono text-ui-12"
         aria-live="polite"
       >
         <span>Saved</span>
@@ -68,7 +68,7 @@ export const SyncIndicator: React.FC = () => {
       <button
         type="button"
         onClick={handleSync}
-        className="tap-target inline-flex items-center gap-1.5 text-tea-error text-ui-12 font-medium"
+        className="tap-target inline-flex items-center gap-1.5 text-tea-error font-mono text-ui-12"
         aria-label="Couldn't save to the server. Tap to retry."
         title="Couldn't reach the server. Tap to retry."
       >
@@ -81,7 +81,7 @@ export const SyncIndicator: React.FC = () => {
     <button
       type="button"
       onClick={handleSync}
-      className="tap-target inline-flex items-center gap-1.5 text-tea-gold text-ui-12 font-medium"
+      className="tap-target inline-flex items-center gap-1.5 text-tea-gold font-mono text-ui-12"
       aria-label={`${unsyncedCount} unsaved ${unsyncedCount === 1 ? 'entry' : 'entries'}, tap to sync`}
       title={`${unsyncedCount} unsaved, tap to sync`}
     >

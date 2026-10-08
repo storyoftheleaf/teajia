@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ChevronDown } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { api, hasToken } from '../../lib/api';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useLedgerStore } from '../../lib/ledgerStore';
@@ -119,15 +119,15 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Escape') setEditing(null); }}
         aria-label={label}
-        className="min-w-0 flex-1 border-0 border-b border-tea-border focus:border-tea-gold bg-transparent py-1.5 text-right text-ui-15 text-tea-text outline-none"
+        className="min-w-0 flex-1 border-0 border-b border-tea-border bg-transparent py-1.5 text-right font-mono text-ui-15 text-tea-text outline-none focus:border-tea-gold"
       />
-      <button type="submit" disabled={saving} className="tap-target text-ui-13 font-medium text-tea-gold">{saving ? 'Saving' : 'Save'}</button>
+      <button type="submit" disabled={saving} className="curate-v2-word tap-target">{saving ? 'Saving' : 'Save'}</button>
     </form>
   ) : (
     <button key={f} type="button" onClick={() => start(f)} className="flex min-h-11 w-full items-center gap-3 border-b border-tea-border px-4 text-left">
       <span className="curate-v2-label w-20 shrink-0">{label}</span>
-      <span className="min-w-0 flex-1 truncate text-right text-ui-14 text-tea-text" style={zh ? { fontFamily: "'Noto Serif SC', serif" } : undefined}>
-        {value[f] || <span className="text-ui-13 text-tea-text-sec">{hint ?? 'add'}</span>}
+      <span className="min-w-0 flex-1 truncate text-right font-mono text-ui-14 text-tea-text" style={zh ? { fontFamily: "'Noto Serif SC', serif" } : undefined}>
+        {value[f] || <span className="font-mono text-ui-13 text-tea-text-sec">{hint ?? 'add'}</span>}
       </span>
     </button>
   );
@@ -135,7 +135,7 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
   const fact = (label: string, children: React.ReactNode) => (
     <div key={label} className="flex min-h-11 items-center gap-3 border-b border-tea-border px-4">
       <span className="curate-v2-label w-20 shrink-0">{label}</span>
-      <span className="min-w-0 flex-1 truncate text-right text-ui-14 text-tea-text tabular-nums">{children}</span>
+      <span className="min-w-0 flex-1 truncate text-right font-mono text-ui-14 text-tea-text tabular-nums">{children}</span>
     </div>
   );
 
@@ -154,16 +154,16 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
         {line('wechat', 'WeChat', 'add · or photo their card')}
         {line('whatsapp', 'WhatsApp')}
         {line('website', 'Website')}
-        {fact('Teas', teas.length ? `${teas.length} · ${tasted} tasted · ${bought} bought` : <span className="text-ui-13 text-tea-text-sec">none yet</span>)}
-        {fact('Teaware', ware.length ? ware.map((w) => w.name || 'piece').join(', ') : <span className="text-ui-13 text-tea-text-sec">none yet</span>)}
-        {fact('Orders', orders.length ? `${orders.length} · ${orders[0].status === 'confirmed' ? 'confirmed' : 'draft'} ${new Date(orders[0].updatedAt || orders[0].createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}` : <span className="text-ui-13 text-tea-text-sec">none yet</span>)}
+        {fact('Teas', teas.length ? `${teas.length} · ${tasted} tasted · ${bought} bought` : <span className="font-mono text-ui-13 text-tea-text-sec">none yet</span>)}
+        {fact('Teaware', ware.length ? ware.map((w) => w.name || 'piece').join(', ') : <span className="font-mono text-ui-13 text-tea-text-sec">none yet</span>)}
+        {fact('Orders', orders.length ? `${orders.length} · ${orders[0].status === 'confirmed' ? 'confirmed' : 'draft'} ${new Date(orders[0].updatedAt || orders[0].createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}` : <span className="font-mono text-ui-13 text-tea-text-sec">none yet</span>)}
         {line('notes', 'Note')}
       </div>
-      {error && <p className="px-4 pt-2 text-ui-12 text-tea-error">{error}</p>}
+      {error && <p className="px-4 pt-2 font-mono text-ui-12 text-tea-error">{error}</p>}
 
       <button type="button" onClick={() => setMoreOpen((v) => !v)} aria-expanded={moreOpen} className="flex min-h-11 w-full items-center gap-2 border-b border-tea-border px-4 text-left">
-        <span className="flex-1 text-ui-13 text-tea-text-sec">Card, storefront and map</span>
-        <ChevronDown size={14} className={`text-tea-text-sec ${moreOpen ? 'rotate-180' : ''}`} />
+        <span className="curate-v2-label flex-1">Card, storefront and map</span>
+        <span className="font-mono text-ui-15 text-tea-text-sec" aria-hidden>{moreOpen ? '−' : '+'}</span>
       </button>
       {moreOpen && (
         <div className="border-b border-tea-border px-4 py-3">
@@ -189,7 +189,7 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
             <span className="flex-1" />
             {t.priceAmount != null
               ? <span className="text-ui-13 font-medium text-tea-text-sec tabular-nums">{sym}{t.priceAmount.toLocaleString()}{unit && <span className="ml-1 text-ui-12 font-normal text-tea-text-sec">{unit}</span>}</span>
-              : <span className="text-ui-12 text-tea-text-sec">add cost</span>}
+              : <span className="font-mono text-ui-12 text-tea-text-sec">add cost</span>}
           </button>
         );
       })}
@@ -202,8 +202,8 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
         </button>
       ))}
       <div className="grid grid-cols-2 gap-2 px-4 pt-3">
-        <button type="button" onClick={() => onAddTeaware({ id: vendorId, name: vendor.name })} className="min-h-11 rounded-md border border-tea-border text-ui-13 text-tea-text-sec hover:text-tea-text">+ Teaware</button>
-        <button type="button" onClick={() => onAddTea({ id: vendorId, name: vendor.name })} className="min-h-11 rounded-md border border-tea-border text-ui-13 text-tea-text-sec hover:text-tea-text">+ Tea</button>
+        <button type="button" onClick={() => onAddTeaware({ id: vendorId, name: vendor.name })} className="curate-v2-frame is-tall">+ Teaware</button>
+        <button type="button" onClick={() => onAddTea({ id: vendorId, name: vendor.name })} className="curate-v2-frame is-tall">+ Tea</button>
       </div>
     </div>
   );

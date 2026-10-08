@@ -77,6 +77,13 @@ interface LedgerState {
   getConfirmedTransactions: () => LedgerTransaction[];
   getActiveTransaction: () => LedgerTransaction | undefined;
   getOrCreatePurchaseTransaction: (vendorName: string, currency: Currency, vendorId?: string) => string;
+  /**
+   * Names the vendor of a draft purchase that had none. If that vendor already
+   * has a draft purchase of its own, the lines move into it and the nameless
+   * draft goes, so there is never a second draft for one vendor. Returns the
+   * id of the draft that holds the lines afterwards.
+   */
+  adoptVendor: (transactionId: string, vendorName: string, vendorId?: string) => string;
 }
 
 const createdLedgerStore = create<LedgerState>()(
@@ -222,6 +229,29 @@ const createdLedgerStore = create<LedgerState>()(
         const state = get();
         if (!state.activeTransactionId) return undefined;
         return state.transactions.find((tx) => tx.id === state.activeTransactionId);
+      },
+
+      adoptVendor: (transactionId, vendorName, vendorId) => {
+        const state = get();
+        const source = state.transactions.find((tx) => tx.id === transactionId);
+        if (!source) return transactionId;
+        const sameVendor = (tx: LedgerTransaction) =>
+          (!!vendorId && tx.counterpartyId === vendorId)
+          || tx.counterpartyName?.trim().toLowerCase() === vendorName.trim().toLowerCase();
+        const target = source.status === 'draft' && source.direction === 'purchase'
+          ? state.transactions.find((tx) => tx.id !== transactionId && tx.status === 'draft' && tx.direction === 'purchase' && sameVendor(tx))
+          : undefined;
+        if (!target) {
+          get().updateTransaction(transactionId, { counterpartyName: vendorName, counterpartyId: vendorId });
+          return transactionId;
+        }
+        // A tea already on the vendor's draft is updated, never doubled.
+        for (const { id: _id, addedAt: _addedAt, ...line } of source.items) get().addLineItem(target.id, line);
+        set((s) => ({
+          transactions: s.transactions.filter((tx) => tx.id !== transactionId),
+          activeTransactionId: target.id,
+        }));
+        return target.id;
       },
 
       // Find or create a draft purchase transaction for a vendor

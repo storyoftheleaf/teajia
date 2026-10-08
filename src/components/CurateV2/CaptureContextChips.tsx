@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import { Check, ChevronDown, Plus, RotateCcw, X, Zap } from 'lucide-react';
 import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompassStore';
 import type { CompassCategory } from './types';
 import { BottomSheet } from '../shared/BottomSheet';
@@ -83,62 +82,50 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-x-1.5">
+    <div className="curate-v2">
       <button
         type="button"
         onClick={() => setRunSheetOpen(true)}
         aria-haspopup="dialog"
         aria-expanded={runSheetOpen}
-        className={`curate-support pill-quiet shrink-0 ${runSheetOpen ? 'pill-quiet-on' : ''}`}
+        className="curate-v2-line w-full text-left"
         data-curate-action
       >
-        <span className="truncate">{runLabel}</span>
-        
+        <span className="curate-v2-label">Table</span>
+        <span className={`flex-1 truncate text-right font-mono text-ui-13 ${runActive ? 'text-tea-text' : 'text-tea-gold'}`}>{runLabel}</span>
       </button>
-
-      <span className="shrink-0 text-tea-text-sec" aria-hidden>·</span>
 
       <button
         type="button"
         onClick={onToggleVendor}
         aria-expanded={vendorOpen}
-        className={`curate-support pill-quiet min-w-0 ${vendorOpen ? 'pill-quiet-on' : ''}`}
+        className="curate-v2-line w-full text-left"
         data-curate-action
       >
-        <span className="truncate">{vendorName || 'Vendor'}</span>
-        <ChevronDown
-          size={12}
-          className={`shrink-0 text-tea-text-sec transition-transform ${vendorOpen ? 'rotate-180' : ''}`}
-        />
+        <span className="curate-v2-label">Vendor</span>
+        <span className={`flex-1 truncate text-right ${vendorName ? 'font-display text-ui-17 text-tea-text' : 'font-mono text-ui-13 text-tea-gold'}`}>{vendorName || 'choose'}</span>
       </button>
 
-      {onShare && (
-        <button
-          type="button"
-          onClick={onShare}
-          aria-label="Share"
-          className="curate-support pill-quiet shrink-0"
-          data-curate-action
-        >
-          Share
-        </button>
-      )}
-
-      <span className="ml-auto shrink-0 md:hidden">
-        <button
-          type="button"
-          onClick={() => startNewCapture(category)}
-          aria-label="Start a new entry"
-          className="curate-support pill-quiet"
-          data-curate-action
-        >
-          New tea
-        </button>
-      </span>
-
-      <div className="shrink-0 pl-1 md:ml-auto">
-        <SyncIndicator />
-      </div>
+      <div className="curate-v2-line min-h-12 justify-end gap-5">
+          <span className="curate-v2-label mr-auto">Entry</span>
+          <SyncIndicator />
+          {onShare && (
+            <button type="button" onClick={onShare} aria-label="Share" className="curate-v2-word tap-target" data-curate-action>
+              Share
+            </button>
+          )}
+          <span className="md:hidden">
+            <button
+              type="button"
+              onClick={() => startNewCapture(category)}
+              aria-label="Start a new entry"
+              className="curate-v2-word tap-target"
+              data-curate-action
+            >
+              New tea
+            </button>
+          </span>
+        </div>
 
       {/* Run sheet: this sitting's drafts plus the session controls that
           used to live in the strip above the card. */}
@@ -148,45 +135,34 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
         title="This table"
         description="Captures from this sitting stay grouped together"
       >
-        <div className="flex flex-col gap-0.5 px-1 pb-1">
+        <div className="curate-v2 flex flex-col pb-1">
           {sessionEntries.map((entry) => {
             const isActive = entry.id === activeEntryId;
             return (
-              <div
-                key={entry.id}
-                className={`flex items-center gap-2 rounded-xl px-3 py-1 ${
-                  isActive ? 'bg-tea-accent-sub' : ''
-                }`}
-              >
+              <div key={entry.id} className="flex items-center border-b border-tea-border pr-2">
                 <button
                   type="button"
                   onClick={() => { setActiveEntry(entry.id); setRunSheetOpen(false); }}
-                  className="flex min-w-0 flex-1 items-center gap-2 py-2 text-left text-base text-tea-text"
+                  aria-pressed={isActive}
+                  className="curate-v2-sheetrow min-w-0 flex-1 border-b-0"
                 >
-                  {isActive && <Check size={13} strokeWidth={3} className="shrink-0 text-tea-gold" />}
-                  <span className="truncate">{entry.name || 'Untitled'}</span>
+                  <span className="min-w-0 flex-1 truncate">{entry.name || 'Untitled'}</span>
+                  {isActive && <span className="font-mono text-ui-11 uppercase tracking-[0.16em] text-tea-gold">open</span>}
                 </button>
                 <button
                   type="button"
                   onClick={() => handleDiscard(entry.id)}
                   aria-label={`Discard ${entry.name || 'untitled entry'}`}
-                  className="tap-target shrink-0 p-1.5 text-tea-text-sec transition-colors hover:text-tea-text-sec"
+                  className="curate-v2-word tap-target shrink-0 px-2 text-tea-text-sec"
                 >
-                  <X size={13} />
+                  discard
                 </button>
               </div>
             );
           })}
 
-          <div className="my-1.5 border-t border-tea-border" />
-
-          <button
-            type="button"
-            onClick={() => { startNewCapture(category); setRunSheetOpen(false); }}
-            className="flex items-center gap-2.5 rounded-xl px-3 py-3 text-left text-base font-medium text-tea-text transition-colors hover:bg-tea-accent-sub"
-          >
-            <Plus size={16} className="shrink-0 text-tea-text-sec" />
-            New entry
+          <button type="button" onClick={() => { startNewCapture(category); setRunSheetOpen(false); }} className="curate-v2-sheetrow">
+            <span>New entry</span>
           </button>
 
           {onToggleBatchMode && (
@@ -194,21 +170,15 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
               type="button"
               onClick={() => { onToggleBatchMode(); setRunSheetOpen(false); }}
               aria-pressed={batchMode}
-              className="flex items-center gap-2.5 rounded-xl px-3 py-3 text-left text-base font-medium text-tea-text transition-colors hover:bg-tea-accent-sub"
+              className="curate-v2-sheetrow"
             >
-              <Zap size={16} className={`shrink-0 ${batchMode ? 'text-tea-gold' : 'text-tea-text-sec'}`} />
               <span className="flex-1">Rapid entry</span>
-              {batchMode && <Check size={14} className="shrink-0 text-tea-gold" />}
+              {batchMode && <span className="font-mono text-ui-11 uppercase tracking-[0.16em] text-tea-gold">on</span>}
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={handleStartNewRun}
-            className="flex items-center gap-2.5 rounded-xl px-3 py-3 text-left text-base font-medium text-tea-text transition-colors hover:bg-tea-accent-sub"
-          >
-            <RotateCcw size={15} className="shrink-0 text-tea-text-sec" />
-            Start a new table
+          <button type="button" onClick={handleStartNewRun} className="curate-v2-sheetrow">
+            <span>Start a new table</span>
           </button>
         </div>
       </BottomSheet>
