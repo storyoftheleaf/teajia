@@ -8,7 +8,7 @@ function setup() {
  const db=new SqliteD1(false);
  db.exec(`CREATE TABLE account_members(account_id TEXT,user_id TEXT,role TEXT,permissions TEXT,status TEXT);
  CREATE TABLE tea_compass_entries(id TEXT PRIMARY KEY,account_id TEXT,user_id TEXT,name TEXT,notes TEXT,tasting TEXT,photos TEXT,price_amount REAL,price_currency TEXT,price_per_unit_grams REAL,sample_state TEXT,draft_product_id TEXT,updated_at TEXT);
- CREATE TABLE customers(id TEXT PRIMARY KEY,account_id TEXT,name TEXT,notes TEXT,updated_at TEXT);
+ CREATE TABLE customers(id TEXT PRIMARY KEY,account_id TEXT,name TEXT,notes TEXT,updated_at TEXT,tags TEXT,type TEXT);
  CREATE TABLE curate_todos(id TEXT PRIMARY KEY,account_id TEXT,text TEXT,done_at TEXT);
  CREATE TABLE notes(id TEXT PRIMARY KEY,account_id TEXT,compass_entry_id TEXT,text TEXT,source_type TEXT,author_id TEXT,author_name TEXT,deleted INTEGER);
  CREATE TABLE tea_samples(id TEXT PRIMARY KEY,account_id TEXT,compass_entry_id TEXT,source_id TEXT,grams REAL,status TEXT);
@@ -23,8 +23,8 @@ function setup() {
  INSERT INTO tea_compass_entries VALUES('tea','a','other','Original','notes','{"quality":8,"flavor":["honey","wood"]}','["photo"]',10,'Yuan',100,'received','product','old');
  INSERT INTO tea_compass_entries VALUES('target','a','owner','Target',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'old');
  INSERT INTO tea_compass_entries VALUES('foreign','b','owner','Foreign',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'old');
- INSERT INTO customers VALUES('vendor','a','Vendor','before','old');
- INSERT INTO customers VALUES('vendor2','a','Other',NULL,'old');
+ INSERT INTO customers VALUES('vendor','a','Vendor','before','old','["vendor"]','vendor');
+ INSERT INTO customers VALUES('vendor2','a','Other',NULL,'old','["vendor"]','vendor');
  INSERT INTO tea_samples VALUES('sample','a','tea','vendor',25,'untasted');
  INSERT INTO tea_samples VALUES('sample2','a','target','vendor2',10,'tasted');
  INSERT INTO tea_sample_tastings VALUES('tasting','a','sample2','{"quality":7}');
@@ -176,6 +176,61 @@ describe('confirmed Curate corrections',()=>{
   expect(row(db,'products','product').quantity).toBe(100);
   await apply(env,{action:'taste_sample',entity:'sample',id:'sample',consumed_grams:0});
   expect(row(db,'tea_samples','sample')).toMatchObject({grams:0,grams_known:1,status:'tasted'});
+ });
+
+ it('shows individual transcript, note, todo and sample corrections on their tea while exact child reads stay exact',async()=>{
+  const {db,env}=setup();
+  db.exec("ALTER TABLE curate_todos ADD COLUMN compass_entry_id TEXT; UPDATE notes SET source_type='voice' WHERE id='said'; UPDATE curate_todos SET compass_entry_id='tea' WHERE id='todo';");
+  await apply(env,{action:'edit',entity:'transcript',id:'said',fields:{text:'Exact correction'}});
+  await apply(env,{action:'delete',entity:'transcript',id:'said'});
+  await apply(env,{action:'close',entity:'todo',id:'todo'});
+  await apply(env,{action:'edit',entity:'sample',id:'sample',fields:{grams:12}});
+  db.exec("INSERT INTO notes VALUES('tea-manual','a','tea','Old manual note','manual','owner','Owner',0)");
+  await apply(env,{action:'delete',entity:'note',id:'tea-manual'});
+  // A note on another tea and another shop must not leak into this parent.
+  db.exec("INSERT INTO notes VALUES('unrelated','a','target','Another tea','manual','owner','Owner',0); INSERT INTO notes VALUES('foreign-note','b','foreign','Foreign','manual','owner','Owner',0);");
+  await apply(env,{action:'delete',entity:'note',id:'unrelated'});
+  const other={...auth,accountId:'b'};
+  const p=await previewCurateMutation(env,other,{action:'delete',entity:'note',id:'foreign-note'});
+  await confirmCurateMutation(env,other,p.confirmation_token);
+  const history=(await readCurateHistory(env,auth,{entity_type:'tea',entity_id:'tea'})).history;
+  expect(history).toHaveLength(5);
+  expect(history.map(m=>m.records[0].entity_type).sort()).toEqual(['note','sample','todo','transcript','transcript']);
+  expect((await readCurateHistory(env,auth,{entity_type:'transcript',entity_id:'said'})).history).toHaveLength(2);
+  expect((await readCurateHistory(env,auth,{entity_type:'tea',entity_id:'target'})).history).toHaveLength(1);
+  // Parent attribution comes from the recorded facts even after a later move.
+  db.exec("UPDATE notes SET compass_entry_id='target' WHERE id='said'");
+  expect((await readCurateHistory(env,auth,{entity_type:'tea',entity_id:'tea'})).history).toHaveLength(5);
+ });
+ it('shows vendor todos, profile and quote evidence only under their related vendor',async()=>{
+  const {db,env}=setup();
+  db.exec("ALTER TABLE curate_todos ADD COLUMN vendor_id TEXT; UPDATE curate_todos SET vendor_id='vendor' WHERE id='todo'; CREATE TABLE curate_quotes(id TEXT PRIMARY KEY,account_id TEXT,vendor_id TEXT,reference TEXT); CREATE TABLE curate_quote_lines(id TEXT PRIMARY KEY,account_id TEXT,quote_id TEXT,compass_entry_id TEXT,price_amount REAL); CREATE TABLE curate_vendor_profiles(vendor_id TEXT PRIMARY KEY,account_id TEXT,story TEXT); INSERT INTO curate_quotes VALUES('q','a','vendor','Old'); INSERT INTO curate_quotes VALUES('unrelated-q','a','vendor2','Other'); INSERT INTO curate_quote_lines VALUES('line','a','q','tea',10); INSERT INTO curate_vendor_profiles VALUES('vendor','a','Old story');");
+  await apply(env,{action:'close',entity:'todo',id:'todo'});
+  function record(entityType:any,entityId:string,before:any,after:any) {
+   const prepared=prepareCurateRecordedWrite(db as any,auth,{commandType:`${entityType}:edit`,changes:[{entityType,entityId,before,after}]});
+   db.batch(prepared.statements as any);
+  }
+  for(const [entityType,table,id,key,value] of [['quote','curate_quotes','q','reference','New'],['quote_line','curate_quote_lines','line','price_amount',20],['quote','curate_quotes','unrelated-q','reference','Changed'],['vendor_profile','curate_vendor_profiles','vendor','story','New story']] as const) {
+   const before=entityType==='vendor_profile'?db.prepare('SELECT * FROM curate_vendor_profiles WHERE vendor_id=?').bind(id).first<any>():row(db,table,id);
+   record(entityType,id,before,{...before,[key]:value});
+  }
+  const history=(await readCurateHistory(env,auth,{entity_type:'vendor',entity_id:'vendor'})).history;
+  expect(history).toHaveLength(4);
+  expect(history.map(m=>m.records[0].entity_type).sort()).toEqual(['quote','quote_line','todo','vendor_profile']);
+  expect((await readCurateHistory(env,auth,{entity_type:'quote',entity_id:'q'})).history).toHaveLength(1);
+  expect((await readCurateHistory(env,auth,{entity_type:'tea',entity_id:'tea'})).history).toHaveLength(1);
+ });
+
+ it('refuses ordinary customers as vendor sources and merge targets while allowing sourcing roles',async()=>{
+  const {db,env}=setup();
+  db.exec(`INSERT INTO customers(id,account_id,name,notes,updated_at,tags,type) VALUES('buyer','a','Customer',NULL,'old','["customer"]','customer'); INSERT INTO customers(id,account_id,name,notes,updated_at,tags,type) VALUES('freight','a','Forwarder',NULL,'old','["freight"]','logistics'); INSERT INTO customers(id,account_id,name,notes,updated_at,tags,type) VALUES('warehouse','a','Warehouse',NULL,'old','["warehouse"]','logistics'); INSERT INTO customers(id,account_id,name,notes,updated_at,tags,type) VALUES('supplier','a','Supplier',NULL,'old','[]','supplier');`);
+  for(const action of ['delete','archive','edit'] as const) await expect(previewCurateMutation(env,auth,{action,entity:'vendor',id:'buyer',...(action==='edit'?{fields:{notes:null}}:{})})).rejects.toThrow('Only Curate vendors');
+  await expect(previewCurateMutation(env,auth,{action:'merge',entity:'vendor',id:'vendor',target_id:'buyer'})).rejects.toThrow('Only Curate vendors');
+  for(const id of ['freight','warehouse','supplier']) {
+   const p=await previewCurateMutation(env,auth,{action:'edit',entity:'vendor',id,fields:{name:'Recorded'}});
+   expect(p.confirmation_token).toBeTruthy();
+  }
+  expect((await readCurateHistory(env,auth)).history).toHaveLength(0);
  });
 
 });

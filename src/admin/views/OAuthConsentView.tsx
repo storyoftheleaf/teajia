@@ -45,7 +45,7 @@ const SCOPE_DEFS: ScopeDef[] = [
   { scope: 'inventory:read', label: 'inventory:read', description: 'Search teas, view stock', group: 'read', defaultChecked: true },
   { scope: 'customers:read', label: 'customers:read', description: 'Look up customers', group: 'read', defaultChecked: true },
   { scope: 'sales:read', label: 'sales:read', description: 'List + read invoices, sales summaries', group: 'read', defaultChecked: true },
-  { scope: 'stock:write', label: 'stock:write', description: 'Add / remove stock, create teas', group: 'operator', defaultChecked: true },
+  { scope: 'stock:write', label: 'stock:write', description: 'Manage stock and Curate records; Curate edit, delete and undo require shop management permission and confirmation', group: 'operator', defaultChecked: true },
   { scope: 'sales:write', label: 'sales:write', description: 'Create / fill / void invoices', group: 'operator', defaultChecked: true },
   { scope: 'catalog:write', label: 'catalog:write', description: 'Pricing, thresholds, archive', group: 'owner', defaultChecked: false },
   { scope: 'customers:write', label: 'customers:write', description: 'Create / update customers', group: 'owner', defaultChecked: false },

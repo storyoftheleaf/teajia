@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { previewCurateUndo, confirmCurateMutation, readCurateHistory } from '../src/curateMutations';
 import { SqliteD1, seedIdentity } from './helpers/sqliteD1';
 import { curateIntakeTools, markTodoDone, pickSuggestions, readQuotedPrice, teaMissing } from '../src/mcpTools/curateIntake';
 
@@ -316,7 +317,7 @@ describe('a pick in the app lands the same rows as a pick through an agent', () 
 
   it('markTodoDone ticks a to-do once, only in its own shop', async () => {
     const db = makeDb();
-    const added = await call(db, 'curate_todo', { action: 'add', text: 'Ask Wang' });
+    const { result: added } = await confirm(db, 'curate_todo', { action: 'add', text: 'Ask Wang' });
     expect(await markTodoDone({ DB: db } as any, { accountId: OTHER }, added.todo_id)).toBe(false);
     expect(await markTodoDone({ DB: db } as any, { accountId: ACCOUNT }, added.todo_id)).toBe(true);
     expect(await markTodoDone({ DB: db } as any, { accountId: ACCOUNT }, added.todo_id)).toBe(false);
@@ -326,9 +327,9 @@ describe('a pick in the app lands the same rows as a pick through an agent', () 
 describe('to-dos', () => {
   it('are added, listed as open, and ticked off', async () => {
     const db = makeDb();
-    const added = await call(db, 'curate_todo', { action: 'add', text: 'Ask Wang about the 2018', agent: 'Hermes' });
+    const { result: added } = await confirm(db, 'curate_todo', { action: 'add', text: 'Ask Wang about the 2018', agent: 'Hermes' });
     expect((await call(db, 'curate_whats_missing', {})).todos).toHaveLength(1);
-    await call(db, 'curate_todo', { action: 'done', todo_id: added.todo_id });
+    await confirm(db, 'curate_todo', { action: 'done', todo_id: added.todo_id });
     expect((await call(db, 'curate_whats_missing', {})).todos).toHaveLength(0);
   });
 });
@@ -421,5 +422,81 @@ describe('through the real MCP endpoint, the way an agent reaches it', () => {
     const refused = await rpc(db, bearer, 'tools/call', { name: 'curate_add_tea', arguments: { name: 'Nope' } });
     expect(JSON.stringify(refused)).toMatch(/scope|stock:write|not allowed|forbidden/i);
     expect(entries(db)).toHaveLength(0);
+  });
+});
+
+
+describe('clear said removes only the previewed exact voice transcripts', () => {
+  async function setup() {
+    const db = makeDb();
+    await confirm(db, 'curate_add_tea', { name: 'Transcript tea', said: 'First exact statement' });
+    const id = entries(db)[0].id;
+    await confirm(db, 'curate_update_tea', { tea_id: id, said: 'Second exact statement' });
+    db.sqlite.prepare('UPDATE tea_compass_entries SET notes = ? WHERE id = ?').run('Legacy story', id);
+    const voice = db.sqlite.prepare("SELECT * FROM notes WHERE compass_entry_id = ? ORDER BY id").all(id) as R[];
+    db.sqlite.prepare("INSERT INTO notes(id,account_id,compass_entry_id,text,source_type,author_id,author_name,deleted) VALUES(?,?,?,?,?,?,?,?)")
+      .run('manual-kept', ACCOUNT, id, 'Handwritten note', 'manual', 'adrian', 'Adrian', 0);
+    db.sqlite.prepare("INSERT INTO notes(id,account_id,compass_entry_id,text,source_type,author_id,author_name,deleted) VALUES(?,?,?,?,?,?,?,?)")
+      .run('old-voice', ACCOUNT, id, 'Already removed', 'voice', 'adrian', 'Adrian', 1);
+    return { db, id, voice };
+  }
+  it('names every affected transcript without writing, then softdeletes and audits exactly those rows; undo restores them', async () => {
+    const { db, id, voice } = await setup();
+    const historyBefore = db.sqlite.prepare('SELECT COUNT(*) AS n FROM curate_mutations').get() as R;
+    const p = await call(db, 'curate_update_tea', { tea_id: id, clear: ['said'] });
+    expect(p.preview.transcripts_to_clear).toEqual(voice.map(({id,text,author_name,created_at}) => ({id,text,author_name,created_at})));
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM curate_mutations').get()).toEqual(historyBefore);
+    expect(db.sqlite.prepare("SELECT COUNT(*) AS n FROM notes WHERE source_type='voice' AND deleted=0").get()).toMatchObject({n:2});
+    const result = await call(db, 'curate_update_tea', { tea_id: id, confirm: p.confirmation_token });
+    expect(result.committed).toBe(true);
+    expect(db.sqlite.prepare("SELECT id,deleted FROM notes ORDER BY id").all()).toEqual(expect.arrayContaining([
+      ...voice.map(row => ({id:row.id,deleted:1})), {id:'manual-kept',deleted:0}, {id:'old-voice',deleted:1},
+    ]));
+    expect(entries(db)[0].notes).toBe('Legacy story');
+    const env = {DB:db} as any;
+    const history = await readCurateHistory(env, auth());
+    expect(history.history[0].records.filter((row:R) => row.entity_type==='transcript')).toHaveLength(2);
+    const undo = await previewCurateUndo(env, auth());
+    expect(await confirmCurateMutation(env, auth(), undo.confirmation_token)).toMatchObject({confirmed:true});
+    expect(db.sqlite.prepare("SELECT COUNT(*) AS n FROM notes WHERE source_type='voice' AND deleted=0").get()).toMatchObject({n:2});
+    expect(entries(db)[0].notes).toBe('Legacy story');
+  });
+  it('keeps transcripts belonging to another tea or shop', async () => {
+    const {db,id} = await setup();
+    await confirm(db,'curate_add_tea',{name:'Another tea',said:'Other tea voice'});
+    await confirm(db,'curate_add_tea',{name:'Foreign tea',said:'Foreign voice'},auth({accountId:OTHER,userId:'stranger'}));
+    await confirm(db,'curate_update_tea',{tea_id:id,clear:['said']});
+    const active = db.sqlite.prepare("SELECT text FROM notes WHERE source_type='voice' AND deleted=0 ORDER BY text").all();
+    expect(active).toEqual([{text:'Foreign voice'},{text:'Other tea voice'}]);
+  });
+  it('clear note leaves voice and manual rows alone', async () => {
+    const {db,id} = await setup();
+    await confirm(db,'curate_update_tea',{tea_id:id,clear:['note']});
+    expect(entries(db)[0].notes).toBeNull();
+    expect(db.sqlite.prepare("SELECT COUNT(*) AS n FROM notes WHERE deleted=0").get()).toMatchObject({n:3});
+  });
+  it('refuses stale edits, newly added voice rows and replacement IDs atomically', async () => {
+    for (const race of ['edit', 'add', 'replace', 'tea']) {
+      const {db,id,voice} = await setup();
+      const p = await call(db,'curate_update_tea',{tea_id:id,clear:['said'],shop_name:'Must not apply'});
+      const before = (db.sqlite.prepare('SELECT COUNT(*) AS n FROM curate_mutations').get() as R).n;
+      if (race === 'edit') db.sqlite.prepare('UPDATE notes SET text=? WHERE id=?').run('Changed since preview',voice[0].id);
+      if (race === 'tea') db.sqlite.prepare('UPDATE tea_compass_entries SET description=? WHERE id=?').run('Changed tea',id);
+      if (race === 'replace') db.sqlite.prepare('UPDATE notes SET deleted=1 WHERE id=?').run(voice[0].id);
+      if (race === 'add' || race === 'replace') db.sqlite.prepare("INSERT INTO notes(id,account_id,compass_entry_id,text,source_type,author_id,author_name,deleted) VALUES(?,?,?,?,?,?,?,?)").run('new-voice',ACCOUNT,id,'Not in preview','voice','adrian','Adrian',0);
+      expect(await call(db,'curate_update_tea',{tea_id:id,confirm:p.confirmation_token})).toMatchObject({error:'stale_preview'});
+      expect(entries(db)[0].shop_name).toBeNull();
+      expect((db.sqlite.prepare('SELECT COUNT(*) AS n FROM curate_mutations').get() as R).n).toBe(before);
+      expect(db.sqlite.prepare('SELECT deleted FROM notes WHERE id=?').get(voice[1].id)).toMatchObject({deleted:0});
+    }
+  });
+  it('refuses an ambiguous clear-and-append and exposes the actual clear enum', async () => {
+    const {db,id} = await setup();
+    await expect(call(db,'curate_update_tea',{tea_id:id,clear:['said'],said:'Replacement'})).rejects.toThrow(/either clear said/);
+    await expect(call(db,'curate_update_tea',{tea_id:id,clear:['said'],vendor_name:'New vendor'})).rejects.toThrow(/Save the new vendor separately/);
+    expect(vendors(db)).toHaveLength(0);
+    await expect(call(db,'curate_update_tea',{tea_id:id,clear:'said'})).rejects.toThrow(/field list/);
+    const def = curateIntakeTools.defs.find(def => def.name==='curate_update_tea')!;
+    expect((def.inputSchema as any).properties.clear.items.enum).toEqual(expect.arrayContaining(['said','note','notes','age_quoted','route_quotes']));
   });
 });

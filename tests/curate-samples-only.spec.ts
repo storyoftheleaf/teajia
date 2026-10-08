@@ -2,9 +2,9 @@ import { expect, test, type Page } from './fixtures';
 const enc=(value:object)=>Buffer.from(JSON.stringify(value)).toString('base64url');
 const membership={account_id:'acct',account_name:'Test shop',role:'owner',bundles:['catalog','stock','publish']};
 const token=`${enc({alg:'HS256',typ:'JWT'})}.${enc({sub:'owner',email:'owner@test',role:'owner',active_account_id:'acct',memberships:[membership],exp:Math.floor(Date.now()/1000)+86400})}.sig`;
-async function seed(page:Page, unknown=false) {
+async function seed(page:Page, unknown=false, form?:string) {
  let grams:number|null=unknown?null:25; const requests:any[]=[];
- const tea={id:'sample-tea',account_id:'acct',user_id:'owner',name:'Mountain Oolong',vendor_id:'vendor',vendor_name:'Lin',type:'Oolong',sample_state:'received',price_amount:100,price_currency:'Yuan',price_per_unit_grams:500,status:'noted',category:'tea',created_at:'2026-10-01T00:00:00Z',updated_at:'2026-10-01T00:00:00Z'};
+ const tea={id:'sample-tea',account_id:'acct',user_id:'owner',name:'Mountain Oolong',vendor_id:'vendor',vendor_name:'Lin',type:'Oolong',form,sample_state:'received',price_amount:100,price_currency:'Yuan',price_per_unit_grams:500,status:'noted',category:'tea',created_at:'2026-10-01T00:00:00Z',updated_at:'2026-10-01T00:00:00Z'};
  await page.addInitScript(({jwt,m})=>{
   localStorage.setItem('teajia_token',jwt);
   localStorage.setItem('teajia-storage',JSON.stringify({version:2,state:{activeAccountId:'acct',activeUserId:'owner',memberships:[m]}}));
@@ -71,8 +71,9 @@ test('inventory toggle opens real sample portions and zero consumption is explic
  expect(requests.filter(r=>r.kind==='taste')).toHaveLength(1);expect(requests[0].body.confirm).toBeUndefined();
 });
 
-test('Edit tea loads the existing Curate capture form for the same record',async({page})=>{
- await seed(page);await page.goto('/admin/inventory?stock_view=samples');
+test('Edit tea loads the existing Curate capture form for a legacy Loose Leaf record',async({page})=>{
+ await seed(page,false,'Loose Leaf');
+ await page.goto('/admin/inventory?stock_view=samples');
  await page.getByRole('button',{name:'Edit tea',exact:true}).click();
  await expect(page.getByRole('button',{name:'Back to samples'})).toBeVisible();
  await expect(page.locator('input[value="Mountain Oolong"]')).toBeVisible();

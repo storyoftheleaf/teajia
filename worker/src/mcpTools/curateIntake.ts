@@ -1,4 +1,4 @@
-import { prepareCurateRecordedWrite, requireCurateManager } from '../curateMutations';
+import { prepareCurateRecordedWrite, requireCurateManager, previewCurateMutation, confirmCurateMutation } from '../curateMutations';
 import { COMPASS_STRUCTURED_COLUMNS, readCompassStructuredPatch, readVendorStructuredPatch, mergeVendorContacts, type VendorStructuredFields, type VendorContactEndpoint } from '../../../src/lib/curateStructuredFields';
 import { prepareVendorStructuredProfileWrite, readVendorStructuredProfile } from '../curateVendorProfile';
 import { validateCompassQuoteLink } from '../curateQuotes';
@@ -27,8 +27,8 @@ import { prepareCompassSampleWrite } from '../curateSampleBridge';
  *     and becomes a tea only when Adrian picks it. The pick is the approval, so
  *     the suggestion itself is written in one step; a ticket in front of a list
  *     whose whole purpose is to be approved later would be the same yes twice.
- *   - A to-do ("remind me to ask Wang about the 2018") is his own scratch line.
- *     One step, and it can be ticked off the same way.
+ *   - A to-do is a shop record too: agent changes preview, confirm and enter
+ *     the same attributed history and undo ledger as other Curate records.
  *
  * Money rules, from CLAUDE.md, applied here rather than restated:
  *   - A price is an amount AND a currency, or it is refused. The currency is
@@ -486,6 +486,7 @@ type TeaWrite = {
   score: number | null;
   note: string | null;
   said: string | null;
+  clearSaid?: { tea: Record<string, any>; transcripts: Record<string, any>[] };
   vendorNote: string | null;
   todo: string | null;
   vendor: VendorPlan | null;
@@ -512,13 +513,15 @@ type CurateTicket = AddTeaTicket | UpdateTeaTicket | SaveVendorTicket | PickTick
 
 const CLEARABLE = new Set(['chinese_name', 'type', 'form', 'season', 'storage', 'origin_country', 'origin_region',
   'cultivar', 'description', 'year', 'era', 'price', 'vendor', 'teaware_category', 'material', 'capacity_ml',
-  'shop_name', 'transport_mode', 'note', 'notes', ...COMPASS_STRUCTURED_COLUMNS]);
+  'shop_name', 'transport_mode', 'note', 'notes', 'said', ...COMPASS_STRUCTURED_COLUMNS]);
 
 function readTeaWrite(args: any, label: string, vendor: VendorPlan | null): { write: TeaWrite; lines: string[] } {
   if (str(args?.vendor_note, 4000)) throw new Error('Agent vendor notes are disabled: use a structured vendor field');
   const fields = readTeaFields(args, label);
   const tasting = readTasting(args);
+  if (args?.clear !== undefined && !Array.isArray(args.clear)) throw new Error('clear must be a field list');
   const clear = Array.isArray(args?.clear) ? args.clear.map((c: unknown) => String(c)) : [];
+  if (clear.includes('said') && str(args?.said, 20000)) throw new Error('Choose either clear said or a new said transcript; preview them separately');
   for (const c of clear) if (!CLEARABLE.has(c)) throw new Error(`clear: ${c} cannot be cleared here. Clearable: ${[...CLEARABLE].join(', ')}`);
   if (args?.sample_state !== undefined && !['requested', 'received', 'tasted'].includes(args.sample_state)) throw new Error('sample_state must be requested, received or tasted');
   if (args?.sample_grams !== undefined && (typeof args.sample_grams !== 'number' || !Number.isFinite(args.sample_grams) || args.sample_grams < 0)) throw new Error('sample_grams must be a non-negative finite number');
@@ -573,6 +576,7 @@ async function commitTeaWrite(env: ToolEnv, auth: ToolAuth, entryId: string, w: 
   const values: Record<string, unknown> = { ...w.values };
   if (vendor) Object.assign(values, { vendor_id: vendor.id, vendor_name: vendor.name });
   for (const field of w.clear) {
+    if (field === 'said') continue;
     if (field === 'price') Object.assign(values, { price_amount: null, price_currency: null, price_per_unit_grams: null });
     else if (field === 'vendor') Object.assign(values, { vendor_id: null, vendor_name: null });
     else values[field === 'note' ? 'notes' : field] = field === 'route_quotes' ? '[]' : null;
@@ -600,6 +604,20 @@ async function commitTeaWrite(env: ToolEnv, auth: ToolAuth, entryId: string, w: 
     after = bridge.teaAfter;
     guards = (bridge as typeof bridge & { guards?: typeof guards }).guards ?? [];
   } else changes.push({ entityType: 'tea', entityId: entryId, before: current, after });
+  if (w.clear.includes('said')) {
+    if (!w.clearSaid) throw new Error('Preview the transcript clear again');
+    // Pin both the selected records and their membership to the read-back.
+    // The membership guard is confirmation-only: undo restores those records.
+    guards.push({
+      sql: `(SELECT COUNT(*) FROM notes WHERE account_id = ? AND compass_entry_id = ? AND source_type = 'voice' AND COALESCE(deleted, 0) = 0) = ? AND NOT EXISTS(SELECT 1 FROM notes WHERE account_id = ? AND compass_entry_id = ? AND source_type = 'voice' AND COALESCE(deleted, 0) = 0 AND id NOT IN (SELECT value FROM json_each(?)))`,
+      values: [auth.accountId, entryId, w.clearSaid.transcripts.length, auth.accountId, entryId, JSON.stringify(w.clearSaid.transcripts.map(row => row.id))],
+      confirmationOnly: true,
+    });
+    // A concurrent tea edit also invalidates this preview, including bridged sample writes.
+    const teaChange = changes.find(change => change.entityType === 'tea' && change.entityId === entryId);
+    if (teaChange) teaChange.before = w.clearSaid.tea;
+    for (const transcript of w.clearSaid.transcripts) changes.push({ entityType: 'transcript', entityId: transcript.id, before: transcript, after: { ...transcript, deleted: 1 } });
+  }
   if (w.said) {
     const id = crypto.randomUUID();
     changes.push({ entityType: 'transcript', entityId: id, before: null, after: {
@@ -615,7 +633,10 @@ async function commitTeaWrite(env: ToolEnv, auth: ToolAuth, entryId: string, w: 
     } });
   }
   const recorded = prepareCurateRecordedWrite(env.DB, auth, { commandType: isNew ? 'tea:create' : 'tea:update', agent: w.agent, changes, guards });
-  await env.DB.batch([...recorded.statements, recorded.assertion]);
+  if (w.clearSaid) {
+    const results = await env.DB.batch(recorded.statements);
+    if (!results[0]?.meta?.changes) return { error: 'stale_preview', message: 'The tea or its transcripts changed. Preview the clear again.' };
+  } else await env.DB.batch([...recorded.statements, recorded.assertion]);
   const row = await entryById(env, auth, entryId);
   return { committed: true, mutation_id: recorded.mutationId, tea: row ? teaSummary(row) : { id: entryId } };
 }
@@ -677,7 +698,7 @@ const toolGetTea: ToolHandler = async (env, auth, args) => {
     env.DB.prepare(`SELECT id, text, source_type, author_name, created_at FROM notes
                     WHERE account_id = ? AND compass_entry_id = ? AND (deleted IS NULL OR deleted = 0) ORDER BY created_at ASC`)
       .bind(auth.accountId, id).all(),
-    env.DB.prepare('SELECT id, text, created_at FROM curate_todos WHERE account_id = ? AND compass_entry_id = ? AND done_at IS NULL ORDER BY created_at ASC')
+    env.DB.prepare('SELECT id, text, created_at FROM curate_todos WHERE account_id = ? AND compass_entry_id = ? AND done_at IS NULL AND deleted_at IS NULL ORDER BY created_at ASC')
       .bind(auth.accountId, id).all(),
     e.vendor_id ? vendorById(env, auth, String(e.vendor_id)) : Promise.resolve(null),
   ]);
@@ -727,7 +748,7 @@ const toolWhatsMissing: ToolHandler = async (env, auth, args) => {
          FROM curate_todos t
          LEFT JOIN tea_compass_entries e ON e.id = t.compass_entry_id
          LEFT JOIN customers c ON c.id = t.vendor_id
-        WHERE t.account_id = ? AND t.done_at IS NULL ORDER BY t.created_at ASC`
+        WHERE t.account_id = ? AND t.done_at IS NULL AND t.deleted_at IS NULL ORDER BY t.created_at ASC`
     ).bind(auth.accountId).all(),
     env.DB.prepare(
       `SELECT COUNT(*) AS n FROM curate_suggestions WHERE account_id = ? AND state = 'waiting'`
@@ -801,6 +822,14 @@ const toolUpdateTea: ToolHandler = async (env, auth, args) => {
   const vendor = await planVendor(env, auth, str(args?.vendor_id, 80), str(args?.vendor_name, 200));
   const { write, lines } = readTeaWrite(args, current.name ?? 'this tea', vendor);
   if (!lines.length) throw new Error('Nothing to change. Pass at least one field, price, tasting, score, note, said, vendor_note or todo.');
+  let transcriptsToClear: Record<string, any>[] | undefined;
+  if (write.clear.includes('said')) {
+    if (vendor?.isNew) throw new Error('Save the new vendor separately before previewing clear said');
+    transcriptsToClear = (await env.DB.prepare(`SELECT * FROM notes WHERE account_id = ? AND compass_entry_id = ? AND source_type = 'voice' AND COALESCE(deleted, 0) = 0 ORDER BY created_at, id`).bind(auth.accountId, id).all<Record<string, any>>()).results ?? [];
+    write.clearSaid = { tea: current, transcripts: transcriptsToClear };
+    lines.push(`Remove ${transcriptsToClear.length} exact voice transcript(s); manual notes are kept; the legacy notes field changes only if explicitly cleared`);
+    for (const transcript of transcriptsToClear) lines.push(`Transcript ${transcript.id} · ${transcript.author_name ?? 'Unknown author'} · ${transcript.created_at} · ${transcript.text}`);
+  }
   const before = teaSummary(current);
   const ticket: UpdateTeaTicket = { kind: 'curate:update_tea', accountId: auth.accountId, userId: auth.userId, entryId: id, write };
   const token = await issueTicket(env, ticket, auth.tokenId);
@@ -808,6 +837,7 @@ const toolUpdateTea: ToolHandler = async (env, auth, args) => {
     action: 'curate_update_tea',
     read_back: `File these on "${current.name ?? 'this tea'}". Adrian can keep or drop each line; to drop one, preview again without it.`,
     will_file: lines,
+    ...(transcriptsToClear ? { transcripts_to_clear: transcriptsToClear.map(({ id, text, author_name, created_at }) => ({ id, text, author_name, created_at })) } : {}),
     before,
   }, token);
 };
@@ -1110,7 +1140,7 @@ export async function openTodos(env: ToolEnv, accountId: string) {
        FROM curate_todos t
        LEFT JOIN tea_compass_entries e ON e.id = t.compass_entry_id
        LEFT JOIN customers c ON c.id = t.vendor_id
-      WHERE t.account_id = ? AND t.done_at IS NULL ORDER BY t.created_at ASC LIMIT 200`
+      WHERE t.account_id = ? AND t.done_at IS NULL AND t.deleted_at IS NULL ORDER BY t.created_at ASC LIMIT 200`
   ).bind(accountId).all<Record<string, any>>();
   return r.results ?? [];
 }
@@ -1135,9 +1165,9 @@ export async function addTodo(env: ToolEnv, auth: ToolAuth, input: { text?: unkn
   return { added: true, todo_id: id, text };
 }
 
-/** Tick a to-do off, for the app's Today list. Same write as `curate_todo` done. */
+/** Tick a to-do off for the app's existing Today list contract. */
 export async function markTodoDone(env: ToolEnv, auth: Pick<ToolAuth, 'accountId'>, todoId: string): Promise<boolean> {
-  const r = await env.DB.prepare(`UPDATE curate_todos SET done_at = datetime('now') WHERE id = ? AND account_id = ? AND done_at IS NULL`)
+  const r = await env.DB.prepare(`UPDATE curate_todos SET done_at = datetime('now') WHERE id = ? AND account_id = ? AND done_at IS NULL AND deleted_at IS NULL`)
     .bind(todoId, auth.accountId).run();
   return (r.meta?.changes ?? 0) > 0;
 }
@@ -1222,19 +1252,52 @@ async function attachSourceToVendor(env: ToolEnv, auth: ToolAuth, vendorId: stri
     .bind(...binds, vendorId, auth.accountId).run();
 }
 
-// ── Tool: curate_todo (one step: Adrian's own scratch line) ──────────────────
+// ── Tool: curate_todo — preview/confirm, with attributed history and undo ────
 
 const toolTodo: ToolHandler = async (env, auth, args) => {
-  const action = str(args?.action, 10);
-  if (action === 'done') {
-    const id = str(args?.todo_id, 80);
-    if (!id) throw new Error('todo_id is required to tick a to-do off');
-    const r = await env.DB.prepare(`UPDATE curate_todos SET done_at = datetime('now') WHERE id = ? AND account_id = ? AND done_at IS NULL`)
-      .bind(id, auth.accountId).run();
-    return (r.meta?.changes ?? 0) ? { done: true, todo_id: id } : { error: 'not_found_or_already_done' };
+  await requireCurateManager(env.DB, auth);
+  const confirm = str(args?.confirm, 200);
+  if (confirm) {
+    const ticket = await consumeTicket<{ kind: 'curate:todo'; accountId: string; userId: string; agent: string; todo: Record<string, any> }, 'curate:todo'>(env, confirm, 'curate:todo', auth);
+    if (!ticket) return confirmCurateMutation(env, auth, confirm);
+    if (ticket.userId !== auth.userId) return INVALID_TICKET;
+    const recorded = prepareCurateRecordedWrite(env.DB, auth, {
+      commandType: 'todo:add', agent: ticket.agent,
+      changes: [{ entityType: 'todo', entityId: ticket.todo.id, before: null, after: ticket.todo }],
+    });
+    await env.DB.batch([...recorded.statements, recorded.assertion]);
+    return { confirmed: true, added: true, todo_id: ticket.todo.id, text: ticket.todo.text, mutation_id: recorded.mutationId };
   }
-  if (action !== 'add') throw new Error("action must be 'add' or 'done'");
-  return addTodo(env, auth, { ...args, agent: agentName(args) });
+  const action = str(args?.action, 10);
+  if (action === 'done' || action === 'edit' || action === 'delete') {
+    const id = str(args?.todo_id, 80);
+    if (!id) throw new Error('todo_id is required');
+    if (action === 'edit') {
+      return previewCurateMutation(env, auth, {
+        entity: 'todo', id, action: 'edit', fields: { text: args?.text },
+      }, agentName(args));
+    }
+    return previewCurateMutation(env, auth, {
+      entity: 'todo', id, action: action === 'done' ? 'close' : 'delete',
+    }, agentName(args));
+  }
+  if (action !== 'add') throw new Error("action must be 'add', 'done', 'edit' or 'delete'");
+  const text = str(args?.text, 500);
+  if (!text) throw new Error('text is required');
+  const teaId = str(args?.tea_id, 80);
+  let vendorId = str(args?.vendor_id, 80);
+  if (teaId) {
+    const tea = await entryById(env, auth, teaId);
+    if (!tea) throw new Error('No such tea in Curate (tea_id)');
+    vendorId = vendorId ?? (tea.vendor_id ? String(tea.vendor_id) : null);
+  }
+  if (vendorId && !await vendorById(env, auth, vendorId)) throw new Error('No such vendor (vendor_id)');
+  const agent = agentName(args);
+  const todo = { id: crypto.randomUUID(), account_id: auth.accountId, created_by_user_id: auth.userId,
+    text, compass_entry_id: teaId, vendor_id: vendorId, from_agent: agent,
+    done_at: null, deleted_at: null, created_at: new Date().toISOString() };
+  const token = await issueTicket(env, { kind: 'curate:todo', accountId: auth.accountId, userId: auth.userId, agent, todo }, auth.tokenId);
+  return previewEnvelope({ action: 'todo:add', changes: [{ entity: 'todo', id: todo.id, before: null, after: todo }] }, token);
 };
 
 // ── Definitions ───────────────────────────────────────────────────────────────
@@ -1296,7 +1359,7 @@ const FILING_PROPS = {
   todo: { type: 'string', description: 'A reminder ("ask Wang about the 2018"). Becomes an open to-do on this tea.' },
   sample: { type: 'boolean', description: 'true puts the tea on the sample shelf; preserves existing received/tasted state.' },
   sample_state: { type: 'string', enum: ['requested', 'received', 'tasted'], description: 'Sample lifecycle, shared with the shelf.' },
-  sample_grams: { type: 'number', minimum: 0, description: 'Explicit sample grams, zero included. Omitted keeps existing grams; new requests use the established 10 g default, not measured weight.' },
+  sample_grams: { type: 'number', minimum: 0, description: 'Explicit sample grams, zero included. Omitted keeps existing measured grams; a new request has unknown weight (null) until measured.' },
   photos: { type: 'array', items: { type: 'string' }, description: 'Hosted HTTPS photo URLs.' },
   photos_mode: { type: 'string', enum: ['append', 'replace'], description: 'append (default) keeps existing photos; replace replaces the list, including clearing with [].' },
   vendor_id: { type: 'string', description: 'The vendor id from curate_find.' },
@@ -1354,7 +1417,8 @@ const defs: ToolDefinition[] = [
   {
     name: 'curate_update_tea',
     scope: 'stock:write',
-    description: 'Correct structured tea facts, quoted price, tasting terms, score, an exact transcript or a to-do. Only supplied fields change. Use clear to deliberately empty a field; clear note empties the legacy notes column. Agent note/vendor_note writing is disabled. Every mutation is previewed and confirmed.',
+    annotations: { destructiveHint: true },
+    description: 'Correct structured tea facts, quoted price, tasting terms, score, an exact transcript or a to-do. Only supplied fields change. Use clear to deliberately empty a field; clear note/notes empties only the legacy notes column; clear said removes only active exact voice transcripts, with their IDs and text in the preview. Manual notes are kept. Agent note/vendor_note writing is disabled. Every mutation is previewed and confirmed.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1362,7 +1426,7 @@ const defs: ToolDefinition[] = [
         name: { type: 'string', description: 'A corrected name.' },
         ...TEA_FIELD_PROPS,
         ...FILING_PROPS,
-        clear: { type: 'array', items: { type: 'string' }, description: 'Fields to empty on purpose, e.g. ["price"] when a price was wrong. Never send an empty value instead.' },
+        clear: { type: 'array', items: { type: 'string', enum: [...CLEARABLE] }, description: 'Fields to empty on purpose; said soft-deletes active voice transcripts only, note/notes clears the legacy notes column only. E.g. ["price"] when a price was wrong. Never send an empty value instead.' },
       },
       required: ['tea_id'],
       additionalProperties: false,
@@ -1473,18 +1537,19 @@ const defs: ToolDefinition[] = [
   {
     name: 'curate_todo',
     scope: 'stock:write',
-    description: 'Use this for a reminder Adrian says ("remind me to ask Wang about the 2018"), attached to a tea or vendor, or to tick one off. One step. Open to-dos show in curate_whats_missing.',
+    annotations: { destructiveHint: true },
+    description: 'Add, complete, edit or delete a shop reminder attached to a tea or vendor. Every change previews first; confirm only after Adrian accepts the exact preview. Changes enter attributed Curate history and can be undone. Requires shop Curate management. Open, undeleted reminders show in curate_whats_missing.',
     inputSchema: {
       type: 'object',
       properties: {
-        action: { type: 'string', enum: ['add', 'done'] },
-        text: { type: 'string', description: 'For add: the reminder.' },
+        action: { type: 'string', enum: ['add', 'done', 'edit', 'delete'] },
+        text: { type: 'string', description: 'For add or edit: the reminder.' },
         tea_id: { type: 'string', description: 'For add: the tea it is about.' },
         vendor_id: { type: 'string', description: 'For add: the vendor it is about.' },
-        todo_id: { type: 'string', description: 'For done: the to-do id.' },
+        todo_id: { type: 'string', description: 'For done, edit or delete: the to-do id.' },
         agent: AGENT_PROP,
+        confirm: CONFIRM_PROP,
       },
-      required: ['action'],
       additionalProperties: false,
     },
   },

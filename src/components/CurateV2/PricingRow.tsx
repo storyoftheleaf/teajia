@@ -201,7 +201,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
           reacts automatically when CaptureCard resets grams to the new
           form's default (see CaptureCard.handleFormSelect). */}
       {unit.mode === 'grams' && (() => {
-        const presets = unit.form ? GRAM_PRESETS[unit.form] : GRAM_PRESETS.Loose;
+        const presets = unit.form ? (GRAM_PRESETS[unit.form] ?? []) : GRAM_PRESETS.Loose;
         if (presets.length === 0) return null;
         return (
           <GramSlider

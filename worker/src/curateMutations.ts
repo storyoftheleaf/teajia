@@ -48,6 +48,13 @@ async function load(env: ToolEnv, account: string, entity: CurateRecordedEntity,
  if (!Object.hasOwn(TABLES, entity)) throw new Error('Unsupported Curate entity');
  const row = await env.DB.prepare(`SELECT * FROM ${TABLES[entity]} WHERE ${keyColumn(entity)} = ? AND account_id = ?`).bind(id,account).first<Row>();
  if (!row) throw new Error('Record not found in this shop');
+ if(entity==='vendor') {
+  let tags:unknown=[]; try { tags=JSON.parse(row.tags??'[]'); } catch { tags=String(row.tags??'').split(/[,;\s]+/); }
+  const sourcingTags=Array.isArray(tags)?tags.map(tag=>String(tag).toLowerCase()):[];
+  if(!['vendor','supplier'].includes(String(row.type??'').toLowerCase()) && !sourcingTags.some(tag=>['vendor','freight','warehouse'].includes(tag))) {
+   throw new Error('Only Curate vendors, freight forwarders and warehouses may be managed here');
+  }
+ }
  if(entity==='transcript' && row.source_type!=='voice') throw new Error('The record is not an exact said transcript');
  if (entity === 'note' || entity === 'transcript') {
   if (!row.compass_entry_id) throw new Error('Only notes attached to a shop Curate tea may be corrected here');
@@ -354,9 +361,29 @@ async function commitCurateMutation(env:ToolEnv,auth:ToolAuth,t:CurateMutationTi
 export async function readCurateHistory(env:ToolEnv,auth:ToolAuth,options:{entity_type?:string;entity_id?:string;limit?:number}={}) {
  await requireCurateManager(env.DB,auth);
  if(options.entity_type && options.entity_type!=='arrival' && !Object.hasOwn(TABLES,options.entity_type)) throw new Error('Unsupported history entity');
- const filter=options.entity_id?` AND EXISTS(SELECT 1 FROM curate_mutation_records r WHERE r.mutation_id = m.id AND r.account_id = m.account_id AND ((r.entity_id = ? AND r.entity_type = ?) OR (r.entity_type='attachment' AND EXISTS(SELECT 1 FROM curate_attachments a WHERE a.id=r.entity_id AND a.account_id=m.account_id AND a.entity_id=? AND a.entity_type=?))))`:'';
+ const entityType=options.entity_type??'tea';
+ const relationValues:any[]=[];
+ let related='';
+ if(options.entity_id && entityType==='tea') {
+  related=` OR (r.entity_type IN ('note','transcript','todo','sample','quote_line') AND EXISTS(
+   SELECT 1 FROM json_each(json_array(json(r.before_json),json(r.after_json))) snapshot
+   WHERE json_extract(snapshot.value,'$.account_id')=m.account_id AND json_extract(snapshot.value,'$.compass_entry_id')=?))`;
+  relationValues.push(options.entity_id);
+ } else if(options.entity_id && entityType==='vendor') {
+  related=` OR (r.entity_type IN ('todo','quote','vendor_profile') AND EXISTS(
+   SELECT 1 FROM json_each(json_array(json(r.before_json),json(r.after_json))) snapshot
+   WHERE json_extract(snapshot.value,'$.account_id')=m.account_id AND json_extract(snapshot.value,'$.vendor_id')=?))
+   OR (r.entity_type='quote_line' AND EXISTS(
+    SELECT 1 FROM json_each(json_array(json(r.before_json),json(r.after_json))) snapshot
+    JOIN curate_quotes q ON q.id=json_extract(snapshot.value,'$.quote_id') AND q.account_id=m.account_id
+    WHERE json_extract(snapshot.value,'$.account_id')=m.account_id AND q.vendor_id=?))`;
+  relationValues.push(options.entity_id,options.entity_id);
+ }
+ // Read parent relations from recorded before/after facts: a later move must
+ // not erase the parent's history. Exact child reads remain exact child reads.
+ const filter=options.entity_id?` AND EXISTS(SELECT 1 FROM curate_mutation_records r WHERE r.mutation_id = m.id AND r.account_id = m.account_id AND ((r.entity_id = ? AND r.entity_type = ?) OR (r.entity_type='attachment' AND EXISTS(SELECT 1 FROM curate_attachments a WHERE a.id=r.entity_id AND a.account_id=m.account_id AND a.entity_id=? AND a.entity_type=?))${related}))`:'';
  const rows=await env.DB.prepare(`SELECT m.* FROM curate_mutations m WHERE m.account_id = ?${filter} ORDER BY m.confirmed_at DESC,m.rowid DESC LIMIT ?`)
- .bind(auth.accountId,...(options.entity_id?[options.entity_id,options.entity_type??'tea',options.entity_id,options.entity_type??'tea']:[]),Math.min(100,Math.max(1,options.limit??20))).all<Row>();
+ .bind(auth.accountId,...(options.entity_id?[options.entity_id,entityType,options.entity_id,entityType,...relationValues]:[]),Math.min(100,Math.max(1,options.limit??20))).all<Row>();
  return {history:await Promise.all((rows.results??[]).map(async m=>({...m,records:(await env.DB.prepare('SELECT entity_type,entity_id,before_json,after_json FROM curate_mutation_records WHERE mutation_id = ? AND account_id = ?').bind(m.id,auth.accountId).all()).results})))};
 }
 export async function previewCurateUndo(env:ToolEnv,auth:ToolAuth,agent='an agent') {

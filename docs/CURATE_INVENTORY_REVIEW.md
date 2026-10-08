@@ -30,7 +30,10 @@ previews can attach missing shelf samples using `sample_state` and, when known,
 active linked portion, so rerunning an approved update does not duplicate it.
 Deleting empty batches or merging repeats remains a separate decision.
 
-Live access was unavailable during this build (`curate_find` returned a fetch
-failure), so no live account ownership, count, backfill or cleanup is claimed.
+Live follow-up on 2026-10-08 verified shop-wide access and confirmed the
+authorized LKY/XWT sample and structured-field cleanup. See
+[Curate workspace](CURATE_WORKSPACE.md#existing-lkyxwt-data) for the exact scope.
+The separate empty-set and ambiguous-duplicate report remains a review, not
+a claim that those unrelated records were changed.
 Freight allocation and richer cross-surface tasting summaries remain separate
 work; shop tasting publication remains deliberate.

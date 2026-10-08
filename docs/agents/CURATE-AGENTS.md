@@ -3,7 +3,7 @@
 How Claude, ChatGPT, Hermes and GrokBot help Adrian source tea through Curate,
 and land everything in the same place the app does.
 
-Written 2026-10-07. The tools are in `worker/src/mcpTools/curateIntake.ts`; the
+Updated 2026-10-08. The tools are in `worker/src/mcpTools/curateIntake.ts`; the
 tests that prove where each one writes are in
 `worker/tests/mcp-curate-intake.test.ts`.
 
@@ -19,7 +19,7 @@ tests that prove where each one writes are in
 3. **Read back, then confirm.** Every tool that changes a tea or a vendor answers
    first with a preview and a `confirmation_token`. Read the preview to Adrian in
    plain words. Only when he says yes, call the same tool again with
-   `confirm: <token>`. A token lasts 5 minutes and works once.
+   `confirm: <token>` (corrections and undo use `confirmation_token` instead). A token lasts 5 minutes and works once.
 4. **A price is an amount, a currency and a unit, or it is not a price.** "Twelve
    hundred a cake" is `{amount: 1200, currency: "Yuan", per: "piece"}`. If he did
    not say the currency, work it out from what he did say (bought in Hong Kong,
@@ -103,10 +103,10 @@ The server is `https://api.teajia.com/mcp`. Two ways in:
 
 - **A token** (Claude Code, Hermes, a bot on the xAI API). Adrian mints it at
   [teajia.com/admin/mcp-tokens](https://www.teajia.com/admin/mcp-tokens). It is
-  shown once. The Curate tools need two boxes ticked, and both are ticked by
-  default: `inventory:read` and `stock:write`. A **Read only** token can use
-  `curate_find`, `curate_get_tea`, `curate_whats_missing` and
-  `curate_list_suggestions`, and nothing else.
+  shown once. Curate reads use `inventory:read`; writes, including correction
+  and undo, use `stock:write`. Both are selected by default. Management operations
+  also require active shop owner membership or explicit `curate_manage` on a
+  staff/admin membership. Read-only tokens cannot mutate records.
 - **Sign in** (claude.ai, ChatGPT). The app asks Adrian to sign in to Teajia and
   approve; no token is pasted anywhere.
 
@@ -144,11 +144,11 @@ and so on. The Hermes skill for this is in the i64os repo at
 | `curate_whats_missing` | The list of gaps, cost first, each with a question ready to ask | read |
 | `curate_list_suggestions` | Teas waiting for Adrian's yes or no, grouped by who found them | read |
 | `curate_add_tea` | A tea Adrian tells you about. Name is enough | preview, confirm |
-| `curate_update_tea` | Fill or file anything on a tea: fields, price, tasting, score, story note, the transcript, a vendor note, a to-do | preview, confirm |
+| `curate_update_tea` | Fill or file anything on a tea: fields, price, tasting, score, structured facts, the transcript, a to-do | preview, confirm |
 | `curate_save_vendor` | Add a vendor (name is enough) or add to its card. Only what you pass changes | preview, confirm |
 | `curate_pick_suggestions` | Adrian's picks become Curate teas (samples to request by default); the rest are dropped | preview, confirm |
 | `curate_suggest_teas` | Teas you found, into his suggestions list, with where they came from | one step |
-| `curate_todo` | A reminder on a tea or vendor, or tick one off | one step |
+| `curate_todo` | Add, edit, complete or delete a reminder on a tea or vendor | preview, confirm |
 | `curate_get_vendor` | A vendor's card, what the shop knows about how they work, shipping cost per leg, their teas, orders and to-dos | read |
 | `curate_record_freight` | A shipping cost Adrian reports, per vendor and leg (or shared) | preview, confirm |
 | `curate_order` | An order to a vendor: the message to copy, the landed cost, an arrival to approve | preview, confirm |
@@ -156,14 +156,41 @@ and so on. The Hermes skill for this is in the i64os repo at
 Always pass `agent` with your name ("GrokBot", "Hermes", "ChatGPT", "Claude"). It
 is shown beside what you wrote.
 
+## Structured fields, corrections and discovery
+
+Use tea fields `age_quoted`, `grade`, `pack_size_grams`, `pack_size_label`,
+`vendor_item_number`, `discount_percent` and `route_quotes`. Keep quoted age
+as quoted; do not invent a harvest year. Vendor cards accept `vendor_code`,
+`contact_people`, `contacts` and labelled `addresses`. Quote terms belong in
+`curate_save_quote`, including reference, date, validity, minimum order,
+payment terms, recipient and linked tea lines. Do not file facts into notes.
+
+`curate_correct` handles whole tea/vendor `delete` or `archive`, duplicate
+`merge` (source `id`, survivor `target_id`), transcript corrections, to-do
+close/edit/delete, term/score removal and individual photo removal. Read
+`curate_history` for a record; `curate_undo` previews the last confirmed shop
+change. Each mutation is reviewed before confirmation and refuses stale data.
+Deleting a record retains history and physical holdings for safe recovery.
+
+`curate_update_tea` supports `clear:["said"]` for all active voice transcripts
+on that tea. `clear:["note"]` clears the legacy tea notes field only. Individual
+note/transcript IDs come from `curate_get_tea`; use `curate_correct` to remove
+one. Vendor fields have their own explicit `clear` list.
+
+The authoritative schemas come from MCP `tools/list`, including every accepted
+structured field. Reconnect or refresh a client's cached tools after an update.
+A missing tool may also mean the token lacks its scope; active shop membership
+is checked again when it runs. An agent must never infer missing functionality
+from an old connector description.
+
 ## Samples and arrivals
 
 `curate_add_tea`, `curate_update_tea` and sampled suggestion picks now create
 or reuse the tea's linked shelf sample in the vendor's open sourcing batch.
 Use `sample_state: "received"` and `sample_grams` when Adrian says what arrived.
 `sample: true` keeps an existing lifecycle state. Omitted grams preserve the
-existing amount; a new request uses the established 10 g request default,
-explicitly shown in the preview. That default is not measured received weight.
+existing amount; a new unweighed sample is returned as unknown (`null`).
+Never invent a measured balance.
 An explicit zero remains zero. These writes still require preview and confirm.
 
 Sample status is synchronized by the server: requested stays requested;
@@ -191,8 +218,12 @@ For backfill and cleanup, generate the account-scoped report described in
 
 ## When Adrian sends a photo
 
-You read the photo yourself. The tools cannot receive images; send what you read
-as text.
+Read the photo and file its facts into named fields. Upload the source bytes
+with `curate_upload_attachment`: JPEG, PNG, WebP or PDF, up to 6 MiB, as
+`data_base64`, with `filename`, `mime_type`, a role, and the tea, vendor, quote
+or arrival identity. Preview first; resend identical bytes with `confirm`.
+Use roles such as leaf, liquor, label, wrapper, price_list or business_card.
+Private attachments are not automatically published to the shop or Drive.
 
 - **A tea, a label, a wrapper.** Read the name, Chinese name, year, factory,
   weight. `curate_find` first: if it is already there, `curate_update_tea`;
@@ -206,9 +237,8 @@ as text.
   price per unit as invoiced). The order itself, its freight and the rate on the
   day, is entered in the app for now (Orders). Say so.
 
-Then put the photo on the tea with `curate_add_photo`: an https link, or the image
-itself as base64. The shop shows it on the tea and copies it into that tea's
-Drive folder for you.
+For existing hosted tea photos, `curate_add_photo` still accepts HTTPS links.
+For local files and private supplier evidence, use `curate_upload_attachment`.
 
 Example, a label:
 
@@ -246,7 +276,7 @@ each part.
 5. Save the recording and append the transcript to `said.md` in Drive.
 
 An unknown tasting word is refused by name. Pick the nearest term from the
-taxonomy, or put the word in `note` instead.
+taxonomy. If there is no matching term, report the missing term; never put it in notes.
 
 ## When Adrian sends a link to a vendor's website
 
@@ -341,11 +371,21 @@ You help Adrian source tea for Teajia through the Teajia tools (server label
 - A price is {amount, currency, per}. per is gram, liang, jin, kg or piece (a
   cake, brick or teapot). Never guess a currency: ask. Leave price out if none.
 - Tasting words go in as term ids from the shop's taxonomy (full, honey,
-  finish-long, feeling-cooling…). If a word is refused, put it in note.
+  finish-long, feeling-cooling…). Never use notes as a fallback. If a fact has
+  no field, report the missing field so it can be built.
 - When he talks about a tea, also pass his whole transcript as said.
 - "What's missing?": curate_whats_missing, then ask one question at a time
   and write each answer back.
-- Photos: read them yourself and send what you read as text.
+- Photos/files: read their facts into named fields and attach their bytes with
+  curate_upload_attachment using the appropriate role and record ID.
+- Corrections, deletion and merge: curate_correct; history: curate_history;
+  undo the last confirmed change: curate_undo. Corrections and undo confirm
+  with confirmation_token, not confirm.
+- Stock: search_tea includes separate curate_holdings; curate_stock reads sample
+  grams and full stock from the same records as Inventory. Unknown grams stay null.
+- Clear all voice transcripts only when asked, with clear:["said"] on
+  curate_update_tea. For one transcript, use its id from curate_get_tea and
+  curate_correct with entity:"transcript" and action:"delete".
 - Keep replies short. Name things by what they are, not by tool names.
 ```
 
@@ -359,6 +399,3 @@ You help Adrian source tea for Teajia through the Teajia tools (server label
 - **Shipping costs in the shelf price.** The real legs give an order its landed
   cost. The shelf still prices freight at the shop rate; changing that is a
   separate decision.
-- **Photos on a vendor.** `curate_add_photo` takes a tea. A business card's
-  details go in with `curate_save_vendor`; the card photo itself is added in the
-  app for now.

@@ -34,7 +34,8 @@ import { curationTools } from './mcpTools/curation';
 import { eventsToolModule } from './mcpTools/events';
 import { writingToolModule } from './mcpTools/writing';
 import { costCurrencyTools } from './mcpTools/costCurrency';
-import { curateIntakeTools } from './mcpTools/curateIntake';
+import { curateIntakeTools, curateManagerAccess } from './mcpTools/curateIntake';
+import { readCurateHoldings } from './curateHoldings';
 import { curateSupplyTools } from './mcpTools/curateSupply';
 import { curatePhotoTools } from './mcpTools/curatePhotos';
 import { curateArrivalTools } from './mcpTools/curateArrivals';
@@ -1004,11 +1005,30 @@ async function commitCreateTea(env: Env, m: Extract<PendingMutation, { kind: 'cr
 }
 
 // ── tool: search_tea ──
-async function toolSearchTea(env: Env, accountId: string, args: any) {
+function curateHoldingSummary(holding: Awaited<ReturnType<typeof readCurateHoldings>>[number], score?: number) {
+  return {
+    entity_type: 'curate_tea',
+    curate_tea_id: holding.entry.id,
+    name: holding.entry.name,
+    chinese_name: holding.entry.chinese_name ?? null,
+    vendor_name: holding.entry.vendor_name ?? null,
+    vendor_item_number: holding.entry.vendor_item_number ?? null,
+    sample_grams: holding.sample_grams,
+    stock_grams: holding.stock_grams,
+    sample_portions: holding.samples.map(sample => ({
+      sample_id: sample.id, set_id: sample.set_id, name: sample.name,
+      grams: sample.grams, status: sample.status,
+    })),
+    ...(typeof score === 'number' ? { match_score: Math.round(score * 100) / 100 } : {}),
+  };
+}
+
+async function toolSearchTea(env: Env, auth: McpAuth, args: any) {
+  const { accountId } = auth;
   const query = String(args?.query || '').trim();
   const limit = Math.min(Math.max(Number(args?.limit) || 5, 1), 20);
   if (!query) {
-    return { matches: [], note: 'No query provided.' };
+    return { matches: [], curate_holdings: [], note: 'No query provided.' };
   }
 
   const { results } = await env.DB.prepare(
@@ -1028,16 +1048,34 @@ async function toolSearchTea(env: Env, accountId: string, args: any) {
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 
+  const curateHoldings = await curateManagerAccess(env, auth)
+    ? (await readCurateHoldings(env.DB, accountId)).map(holding => ({
+        holding,
+        score: scoreMatch(query, [holding.entry.name, holding.entry.chinese_name,
+          holding.entry.vendor_name, holding.entry.vendor_item_number, holding.entry.origin_region,
+          String(holding.entry.year ?? '')]),
+      })).filter(item => item.score > 0.3).sort((a, b) => b.score - a.score).slice(0, limit)
+    : [];
+
   return {
     matches: scored.map(s => productSummary(s.product, s.score)),
+    curate_holdings: curateHoldings.map(item => curateHoldingSummary(item.holding, item.score)),
     ambiguous: scored.length >= 2 && scored[0].score - scored[1].score < 0.1,
   };
 }
 
 // ── tool: get_tea ──
-async function toolGetTea(env: Env, accountId: string, args: any) {
+async function toolGetTea(env: Env, auth: McpAuth, args: any) {
+  const { accountId } = auth;
   const id = String(args?.id || '').trim();
   if (!id) throw new Error('id is required');
+  const source = args?.source ?? 'product';
+  if (source !== 'product' && source !== 'curate') throw new Error('source must be product or curate');
+  if (source === 'curate') {
+    if (!await curateManagerAccess(env, auth)) return { error: 'curate_management_required' };
+    const [holding] = await readCurateHoldings(env.DB, accountId, { teaId: id });
+    return holding ? curateHoldingSummary(holding) : { error: 'not_found' };
+  }
 
   const product = await env.DB.prepare(
     `SELECT id, given_name, product_name, chinese_name, type, form, year,
@@ -5855,7 +5893,7 @@ const TOOL_DEFS = [
   {
     name: 'search_tea',
     scope: 'inventory:read',
-    description: 'Fuzzy-search tea inventory by name, Chinese name, region, or vendor. Returns up to `limit` matches with stock + match score. Use this first whenever the user names a tea ambiguously.',
+    description: 'Fuzzy-search product inventory and, for Curate managers, shop Curate holdings by name, Chinese name, region, vendor, or vendor item number. Product matches keep product ids; separate curate_holdings carry curate_tea_id and sample portions with nullable sample_grams. Sample grams are separate from sale stock. Use get_tea with source curate for a Curate id; never send it to product stock or sale tools.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -5868,17 +5906,17 @@ const TOOL_DEFS = [
   {
     name: 'get_tea',
     scope: 'inventory:read',
-    description: 'Fetch full record for one tea by id, including last 10 stock-ledger entries.',
+    description: 'Fetch a product by id (default source product), including last 10 stock-ledger entries. Explicit source curate reads a curate_tea_id with sample portions and separate sale stock; requires shop Curate management access.',
     inputSchema: {
       type: 'object',
-      properties: { id: { type: 'string' } },
+      properties: { id: { type: 'string' }, source: { type: 'string', enum: ['product', 'curate'], default: 'product' } },
       required: ['id'],
     },
   },
   {
     name: 'list_low_stock',
     scope: 'inventory:read',
-    description: 'List teas whose current stock has fallen below their per-product low-stock threshold.',
+    description: 'List sale products whose current stock has fallen below their per-product low-stock threshold. Curate sample portions are excluded.',
     inputSchema: { type: 'object', properties: {} },
   },
   {
@@ -6852,8 +6890,8 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
 
   let result;
   switch (name) {
-    case 'search_tea': result = mcpContent(await toolSearchTea(env, auth.accountId, args)); break;
-    case 'get_tea': result = mcpContent(await toolGetTea(env, auth.accountId, args)); break;
+    case 'search_tea': result = mcpContent(await toolSearchTea(env, auth, args)); break;
+    case 'get_tea': result = mcpContent(await toolGetTea(env, auth, args)); break;
     case 'list_low_stock': result = mcpContent(await toolListLowStock(env, auth.accountId)); break;
     case 'find_customer': result = mcpContent(await toolFindCustomer(env, auth.accountId, args)); break;
     case 'get_customer': result = mcpContent(await toolGetCustomer(env, auth.accountId, args)); break;
@@ -6921,8 +6959,8 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
 
 const SERVER_INFO = {
   name: 'teajia-inventory',
-  version: '0.5.0',
-  description: 'Voice-controlled inventory, invoicing and the order process for Teajia. Ask whats_waiting first: it answers what needs you right now across order requests nobody has answered, orders still unpriced, payments customers have reported, and orders paid but not sent. Read tools also cover tea search, account context, customer dossiers, invoice lookup/listing, order requests, payment reports and sales summaries. Write tools cover turning an order request into a draft order, confirming a reported payment, recording a payment you saw arrive, creating teas, stock adjustments, creating/voiding/fulfilling invoices, marking invoices paid, customer create/update/tag, vendor linking, catalog archive + pricing, and (with owner-tier tokens) account settings and exchange rates.',
+  version: '0.6.0',
+  description: 'Teajia inventory, orders, customers and Curate. Ask whats_waiting for pending orders and payments. Use search_tea for products and separate Curate sample holdings; curate_find and curate_get_tea read sourcing records. Curate tools cover structured intake, vendor quotes, attachments and uploads, samples and arrivals. curate_correct edits, clears, deletes, archives or merges records; curate_history and curate_undo preserve attribution. Curate management requires shop ownership or explicit curate_manage permission. Writes use preview and confirmation; stock and sale tools take product ids only. Available tools depend on token scopes: fetch tools/list after connecting or reconnecting.',
 };
 
 // Default to the current rev (structured output + tool annotations). We echo
@@ -6968,6 +7006,7 @@ export async function mcpFetch(request: Request, env: Env): Promise<Response> {
           protocolVersion: requested || PROTOCOL_VERSION,
           capabilities: { tools: { listChanged: false } },
           serverInfo: SERVER_INFO,
+          instructions: 'Read the current tools/list after connecting or reconnecting. Use curate_find/curate_get_tea for sourcing records, and search_tea for separate product matches and curate_holdings. Call get_tea with source: curate and a curate_tea_id for sample holdings. Curate ids are never product stock/sale ids. Use curate_correct to edit, clear, delete, archive or merge; curate_history/curate_undo to inspect or undo. Curate management requires active shop ownership or explicit curate_manage permission; tool visibility also depends on token scopes. Confirm writes only after the user accepts their exact preview.',
         });
       }
 

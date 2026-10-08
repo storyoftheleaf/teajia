@@ -29,6 +29,7 @@ export async function run(env = process.env, initialize = false, dependencies = 
   const fetch = dependencies.fetch || globalThis.fetch;
   const git = dependencies.git || gitCommand;
   const sleep = dependencies.sleep || delay;
+  const now = dependencies.now || Date.now;
   const candidate = env.CANDIDATE_SHA;
   const expected = env.EXPECTED_MAIN_SHA;
   validateRelease(candidate, expected);
@@ -48,10 +49,15 @@ export async function run(env = process.env, initialize = false, dependencies = 
   };
   persist('worker_pending');
   if (initialize === true) return state;
-  const deadline = Date.now() + 20 * 60_000;
+  const deadline = now() + 20 * 60_000;
   const read = async url => {
     const response = await fetch(url, { signal: AbortSignal.timeout(30_000), cache: 'no-store' });
-    if (!response.ok) throw new Error(`Read failed: ${new URL(url).host} HTTP ${response.status}`);
+    if (!response.ok) {
+      const parsed = new URL(url);
+      const error = new Error(`Read failed: ${parsed.host}${parsed.pathname} HTTP ${response.status}`);
+      error.retryable = response.status === 404 || response.status === 429 || response.status >= 500;
+      throw error;
+    }
     return response;
   };
   const cf = async suffix => {
@@ -100,7 +106,7 @@ export async function run(env = process.env, initialize = false, dependencies = 
     if (main !== candidate) {
       git('merge-base', '--is-ancestor', expected, candidate);
       persist('awaiting_main', { publisher: 'local authenticated release observer' });
-      while (main === expected && Date.now() < deadline) {
+      while (main === expected && now() < deadline) {
         await sleep(15_000);
         main = git('ls-remote', 'origin', 'refs/heads/main').split(/\s/)[0];
       }
@@ -108,7 +114,7 @@ export async function run(env = process.env, initialize = false, dependencies = 
     if (main !== candidate) throw new Error('Main did not advance to the candidate; inspect the local publisher state');
     persist('pages_pending');
     let deployment;
-    while (Date.now() < deadline) {
+    while (now() < deadline) {
       deployment = productionDeployment(await cf('/deployments?per_page=20'), candidate);
       const status = deployment?.latest_stage?.status;
       if (['failure', 'canceled'].includes(status)) throw new Error(`Pages deployment ${status}: ${deployment.id}`);
@@ -119,10 +125,22 @@ export async function run(env = process.env, initialize = false, dependencies = 
     const origin = new URL(deployment.url).origin;
     if (!/^https:\/\/[a-z0-9-]+\.teajiafinal\.pages\.dev$/.test(origin)) throw new Error('Unexpected immutable Pages deployment URL');
     persist('pages_verified', { deploymentId: deployment.id, deploymentUrl: origin });
-    const immutable = await artifact(origin);
+    // Pages can report success before every immutable asset reaches the edge.
+    // Rebuild the entire proof on each read-only attempt; no missing hash is accepted.
+    let immutable;
+    let immutableError;
+    while (now() < deadline) {
+      try { immutable = await artifact(origin); break; }
+      catch (error) {
+        if (!error.retryable && !(error instanceof TypeError) && error.name !== 'TimeoutError' && error.name !== 'AbortError') throw error;
+        immutableError = error;
+      }
+      await sleep(15_000);
+    }
+    if (!immutable) throw new Error(`Immutable deployment proof timed out: ${immutableError?.message ?? 'release deadline reached'}; resume observation without redeploying`);
     persist('live_pending', { proof: immutable });
     let live;
-    while (Date.now() < deadline) {
+    while (now() < deadline) {
       try {
         live = await artifact('https://teajia.com');
         if (proofMatches(immutable, live)) break;
