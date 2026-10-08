@@ -197,7 +197,7 @@ test.describe('Stock on the phone', () => {
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     const chen = page.getByTestId('stock-phone').getByRole('region', { name: 'Chen Family' });
     await chen.getByRole('button', { name: /Chen Family/ }).first().click();
-    const price = page.getByRole('columnheader', { name: /\$ \/ g/ });
+    const price = page.getByRole('columnheader', { name: /\$\s*\/\s*g/ });
     await price.click();
     await expect(price).toHaveAttribute('aria-sort', 'ascending');
     const prices = async () => (await chen.locator('button[aria-expanded] > span:last-child').allInnerTexts()).map(Number);

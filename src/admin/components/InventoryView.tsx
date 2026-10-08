@@ -1977,14 +1977,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   }, [phoneList, panelProduct, phoneGroupBy, processedProducts, effectiveIncomingByProductId]);
 
   const receiptId = searchParams.get('receipt');
-  // Hooks above every early return below (Incoming, loading, error): a hook
-  // after them changes the hook count between renders and React throws.
-  // On the phone, previous / next on the tea page step through the tea's own
-  // group ("1 / 20 from Lidia"), so walking one supplier's shelf stays in it.
-  const panelGroup = useMemo(() => {
-    if (!phoneList || !panelProduct || phoneGroupBy === 'none') return null;
-    return groupStock(processedProducts, phoneGroupBy, effectiveIncomingByProductId).find(g => g.products.some(p => p.id === panelProduct.id)) ?? null;
-  }, [phoneList, panelProduct, phoneGroupBy, processedProducts, effectiveIncomingByProductId]);
 
   if (searchParams.get('incoming') === '1' || receiptId) {
     return <div className="h-full flex flex-col overflow-hidden bg-tea-bg"><IncomingReceiptsPanel receiptId={receiptId} onClose={() => { const next = new URLSearchParams(searchParams); next.delete('incoming'); next.delete('receipt'); setSearchParams(next); }} /></div>;
