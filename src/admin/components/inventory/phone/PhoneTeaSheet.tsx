@@ -216,7 +216,7 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
               type="button"
               onClick={() => openWay('count')}
               aria-label={`Type a new count for ${product.productName}`}
-              className={`${editBtn} ${numVal} ${way === 'count' ? 'border-tea-gold' : ''} ${isLow(product) ? 'text-tea-error' : ''}`}
+              className={`${editBtn} ${numVal} ${isLow(product) ? 'text-tea-error' : ''}`}
             >
               {ware && product.quantityUnits == null ? '—' : whole(current)}
               <span className="ml-0.5 font-sans text-ui-10 text-tea-text-dim">{unitWord}</span>
@@ -287,7 +287,7 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
               value={amount}
               onChange={e => setAmount(e.target.value)}
               onKeyDown={e => { if (e.key === 'Escape') { setWay(null); setError(''); } }}
-              className="w-14 bg-transparent border-0 border-b border-tea-gold outline-none p-0 text-right font-mono text-ui-15 tabular-nums text-tea-text"
+              className="w-14 bg-transparent border-0 border-b border-tea-border focus:border-tea-gold outline-none p-0 text-right font-mono text-ui-15 tabular-nums text-tea-text"
             />
             <span className="shrink-0">{unitWord}</span>
             <span className={`min-w-0 truncate text-ui-11 ${tooMuch ? 'text-tea-error' : 'text-tea-text-dim'}`}>

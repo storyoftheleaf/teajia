@@ -168,7 +168,7 @@ const PortionLine: React.FC<{ portion: SamplePortion; label: string; onChanged: 
             <button type="button" disabled={!canTaste} onClick={() => open('taste')} aria-label={`Log a tasting from ${label}`}
               className={`relative text-ui-16 leading-none before:absolute before:-inset-3 disabled:opacity-40 ${way === 'taste' ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>−</button>
             <button type="button" onClick={() => open('measure')} aria-label={`Weigh ${label}`}
-              className={`relative border-b border-dashed before:absolute before:-inset-y-2 before:-inset-x-1 font-mono text-ui-15 tabular-nums text-tea-text ${way === 'measure' ? 'border-tea-gold' : 'border-tea-border'}`}>
+              className={`relative border-b border-dashed before:absolute before:-inset-y-2 before:-inset-x-1 font-mono text-ui-15 tabular-nums text-tea-text border-tea-border`}>
               {grams == null ? '—' : whole(grams)}<span className="ml-0.5 font-sans text-ui-10 text-tea-text-dim">g</span>
             </button>
           </div>
@@ -185,7 +185,7 @@ const PortionLine: React.FC<{ portion: SamplePortion; label: string; onChanged: 
             value={amount}
             onChange={e => setAmount(e.target.value)}
             onKeyDown={e => { if (e.key === 'Escape') setWay(null); }}
-            className="w-14 bg-transparent border-0 border-b border-tea-gold outline-none p-0 text-right font-mono text-ui-15 tabular-nums text-tea-text"
+            className="w-14 bg-transparent border-0 border-b border-tea-border focus:border-tea-gold outline-none p-0 text-right font-mono text-ui-15 tabular-nums text-tea-text"
           />
           <span className="shrink-0">g</span>
           <span className={`min-w-0 truncate text-ui-11 ${tooMuch ? 'text-tea-error' : 'text-tea-text-dim'}`}>

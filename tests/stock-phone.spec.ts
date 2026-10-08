@@ -93,6 +93,9 @@ test.describe('Stock on the phone', () => {
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     const chen = page.getByTestId('stock-phone').getByRole('region', { name: 'Chen Family' });
     await chen.getByRole('button', { name: /Chen Family/ }).first().click();
+    // The circles are hidden until Select is tapped.
+    await expect(chen.getByRole('button', { name: 'Tick Green Test Tea 01' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Select', exact: true }).click();
     await chen.getByRole('button', { name: 'Tick Green Test Tea 01' }).click();
     const bar = page.getByRole('toolbar', { name: 'Selection actions' });
     await expect(bar).toContainText('1 tea selected');
@@ -106,6 +109,24 @@ test.describe('Stock on the phone', () => {
     await shot(page, 'selected-more');
     // The bottom nav stays on screen while teas are ticked.
     await expect(page.getByRole('button', { name: 'Your Table' }).last()).toBeVisible();
+  });
+
+  test('holding a tea brings up the circles with that tea ticked, and Done puts them away', async ({ page }) => {
+    await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
+    const chen = page.getByTestId('stock-phone').getByRole('region', { name: 'Chen Family' });
+    await chen.getByRole('button', { name: /Chen Family/ }).first().click();
+    const row = chen.getByRole('button', { name: /^Green Test Tea 07/ });
+    const box = await row.boundingBox();
+    if (!box) throw new Error('row not on screen');
+    await page.mouse.move(box.x + box.width / 3, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(650);
+    await page.mouse.up();
+    await expect(chen.getByRole('button', { name: /^Untick Green Test Tea 07/ })).toBeVisible();
+    await expect(page.getByRole('toolbar', { name: 'Selection actions' })).toContainText('1 tea selected');
+    await expect(page.getByRole('region', { name: /at a glance/ })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Done', exact: true }).click();
+    await expect(chen.getByRole('button', { name: /Tick Green Test Tea/ })).toHaveCount(0);
   });
 
   test('Stage keeps the lifecycle sections in order, with the incoming tea in Incoming', async ({ page }) => {
