@@ -134,15 +134,17 @@ describe('a share of the shipping is added, or the line is refused', () => {
     const src = readFileSync(join(ROOT, 'src/admin/views/IntakeWorkspace.tsx'), 'utf8');
     const commit = src.indexOf('const commit = useCallback(async () => {');
     const guard = src.indexOf('if (products.length === 0)');
-    const bulkWrite = src.indexOf('for (let i = 0; i < products.length;', guard);
+    const savedPlan = src.indexOf('api.intakeCommits.save(importId,', guard);
+    const replay = src.indexOf('await runSavedPlan(plan);', savedPlan);
     expect(commit).toBeGreaterThan(-1);
     expect(guard).toBeGreaterThan(commit);
-    expect(bulkWrite).toBeGreaterThan(guard);
+    expect(savedPlan).toBeGreaterThan(guard);
+    expect(replay).toBeGreaterThan(savedPlan);
     // The commit cannot close staging before this guard. When there are no
-    // priced products, it shows the refusal and returns before the bulk write
-    // or the success-only finishImport helper can run.
+    // priced products, it shows the refusal and returns before saving a plan
+    // or replaying any inventory and purchase writes.
     expect(src.slice(commit, guard)).not.toMatch(/finishImport\(|setSources\(\[\]\)|setItems\(\[\]\)|navigate\(/);
-    const refusedBranch = src.slice(guard, bulkWrite);
+    const refusedBranch = src.slice(guard, savedPlan);
     expect(refusedBranch).toMatch(/showToast\([^;]+, 'error'\);/);
     expect(refusedBranch).toMatch(/\breturn;/);
     expect(refusedBranch).not.toMatch(/finishImport\(|setSources\(\[\]\)|setItems\(\[\]\)|navigate\(/);
