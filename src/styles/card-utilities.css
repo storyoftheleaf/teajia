@@ -4977,8 +4977,8 @@ body.cart-panel-open .commerce-dock {
    stays #22201c: it is tuned for reading outdoors (see tailwind.css). Mixed
    from the theme's own tokens, so light mode follows on its own. */
 .stock-phone-tone {
-  --tea-text-sec: color-mix(in srgb, rgb(var(--tea-text-sec-rgb)) 82%, var(--tea-bg));
-  --tea-border: color-mix(in srgb, var(--tea-elevated) 75%, var(--tea-bg));
+  /* Full-strength text, and hairlines you can actually see between teas. */
+  --tea-border: color-mix(in srgb, rgb(var(--tea-text-sec-rgb)) 24%, var(--tea-bg));
 }
 /* A sheet that rises from behind the bottom bar: no top rule, a soft shadow
    upward, its foot tucked under the floating nav. */

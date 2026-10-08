@@ -135,7 +135,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
 
   return (
     <div data-testid="stock-phone" className={`stock-phone-tone ${focused && !selecting ? 'pb-[300px]' : selecting ? 'pb-[170px]' : ''}`}>
-      <div role="row" className="sticky top-0 z-sticky flex items-center bg-tea-bg pl-7 pr-3 border-b border-tea-border">
+      <div role="row" className="sticky top-0 z-sticky flex items-center bg-tea-bg pl-9 pr-3 border-b border-tea-border">
         <div className={`${COLS} flex-1`}>
           {heads.map(([key, label, align]) => {
             const on = sortKey === key;
@@ -164,12 +164,12 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
         return (
           <section key={group.key} aria-label={group.label}>
             {groupBy !== 'none' && (
-              <div className="flex items-stretch">
+              <div className="flex items-stretch bg-tea-surface border-y border-tea-border">
                 <button
                   type="button"
                   onClick={() => toggleGroup(group.key)}
                   aria-expanded={isOpen}
-                  className="flex-1 min-w-0 flex items-end justify-between gap-3 pl-5 pr-2 pt-4 pb-1.5 text-left"
+                  className="flex-1 min-w-0 flex items-end justify-between gap-3 pl-5 pr-2 pt-3 pb-2 text-left"
                 >
                   <span className="min-w-0">
                     <span className="flex items-center gap-1.5">
@@ -212,12 +212,12 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
                     onClick={() => onToggleSelect(p.id)}
                     aria-pressed={isSel}
                     aria-label={`${isSel ? 'Untick' : 'Tick'} ${p.productName}${isUnchecked(p) ? ', never counted' : ''}`}
-                    className="tap-target w-5 ml-1 shrink-0 flex items-center justify-center self-stretch"
+                    className="relative w-3.5 ml-3 shrink-0 flex items-center justify-center self-stretch before:absolute before:-inset-x-3 before:inset-y-0"
                   >
                     {isSel
-                      ? <span className="w-[14px] h-[14px] rounded-full cta-solid flex items-center justify-center"><Check size={9} strokeWidth={3.5} aria-hidden="true" /></span>
+                      ? <span className="w-4 h-4 rounded-full cta-solid flex items-center justify-center"><Check size={9} strokeWidth={3.5} aria-hidden="true" /></span>
                       : <span
-                          className="w-[9px] h-[9px] rounded-full border-[1.5px]"
+                          className="w-3.5 h-3.5 rounded-full border-2"
                           style={isTeaware(p)
                             ? undefined
                             : { borderColor: getThemeColor(p.type), background: isUnchecked(p) ? 'transparent' : getThemeColor(p.type) }}
@@ -227,26 +227,27 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
                     type="button"
                     onClick={() => setFocusedId(isFocused ? null : p.id)}
                     aria-expanded={isFocused}
-                    className={`${COLS} flex-1 min-w-0 pl-1 pr-3 text-left min-h-[46px]`}
+                    className={`${COLS} flex-1 min-w-0 pl-2.5 pr-3 text-left min-h-[46px]`}
                   >
                     <span className="min-w-0 py-1.5 pr-2">
                       <span className={`block truncate font-display text-ui-17 font-semibold leading-tight ${isFocused || isSel ? 'text-tea-gold' : 'text-tea-text'}`}>{p.productName}</span>
                       <span className="flex items-center gap-1.5 text-ui-11 leading-tight text-tea-text-sec min-w-0">
                         {(() => {
-                          // The second line is the name Adrian gives a tea; the kind
-                          // is already in the dot's colour. With no given name, the kind.
+                          // The second line is the kind in its own colour, then the name
+                          // Adrian gives the tea when it has one.
                           const given = (p.givenName || '').trim();
                           const own = given && given.toLowerCase() !== 'unnamed' && given !== p.productName ? given : '';
                           if (groupBy === 'type') return <span className="truncate">{own || p.vendor || p.type}</span>;
                           if (isTeaware(p)) return <span className="truncate">{own || p.teawareCategory || 'Teaware'}</span>;
-                          return own
-                            ? <span className="truncate">{own}</span>
-                            : <span className="truncate" style={{ color: getThemeTextColor(p.type) }}>{p.type}</span>;
+                          return <>
+                            <span className="shrink-0" style={{ color: getThemeTextColor(p.type) }}>{p.type}</span>
+                            {own && <span className="truncate">· {own}</span>}
+                          </>;
                         })()}
                         {comingQty > 0 && <span className="shrink-0 text-tea-gold-lt">· +{fmtNum(comingQty)}</span>}
                       </span>
                     </span>
-                    <span className={`${NUM} font-mono text-ui-13 tracking-tight text-tea-text-sec tabular-nums`}>{p.year || '—'}</span>
+                    <span className={`${NUM} font-mono text-ui-13 tracking-tight text-tea-text tabular-nums`}>{p.year || '—'}</span>
                     <span className={`${NUM} font-mono text-ui-13 tracking-tight tabular-nums ${qtyTone}`}>{isTeaware(p) ? (p.quantityUnits == null ? '—' : qty) : qty.toLocaleString('en-US')}</span>
                     <span className={`${NUM} font-mono text-ui-13 tracking-tight text-tea-text tabular-nums`}>{price != null ? fmtNum(price) : '—'}</span>
                   </button>
