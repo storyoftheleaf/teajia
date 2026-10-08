@@ -143,7 +143,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
                 role="columnheader"
                 aria-sort={on ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
                 onClick={() => onSort?.(key)}
-                className={`h-9 ${align} text-ui-10 uppercase tracking-[0.12em] ${on ? 'text-tea-gold' : 'text-tea-text-dim'}`}
+                className={`h-8 ${align} text-ui-10 uppercase tracking-[0.12em] ${on ? 'text-tea-gold' : 'text-tea-text-dim'}`}
               >
                 {label}{on ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
               </button>
@@ -166,7 +166,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
                   type="button"
                   onClick={() => toggleGroup(group.key)}
                   aria-expanded={isOpen}
-                  className="flex-1 min-w-0 flex items-end justify-between gap-3 pl-5 pr-2 pt-5 pb-2 text-left"
+                  className="flex-1 min-w-0 flex items-end justify-between gap-3 pl-5 pr-2 pt-4 pb-1.5 text-left"
                 >
                   <span className="min-w-0">
                     <span className="flex items-center gap-1.5">
@@ -217,11 +217,11 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
                     type="button"
                     onClick={() => setFocusedId(isFocused ? null : p.id)}
                     aria-expanded={isFocused}
-                    className={`${COLS} flex-1 min-w-0 py-2.5 pr-4 text-left min-h-[52px]`}
+                    className={`${COLS} flex-1 min-w-0 py-1.5 pr-4 text-left min-h-[46px]`}
                   >
                     <span className="min-w-0">
                       <span className={`block truncate font-display text-ui-17 font-semibold leading-tight ${isFocused || isSel ? 'text-tea-gold' : 'text-tea-text'}`}>{p.productName}</span>
-                      <span className="flex items-center gap-1.5 mt-0.5 text-ui-12 text-tea-text-sec min-w-0">
+                      <span className="flex items-center gap-1.5 text-ui-11 leading-tight text-tea-text-sec min-w-0">
                         {!isTeaware(p) && <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: getThemeColor(p.type) }} />}{/* color-data: the tea kind's own colour, from themeUtils */}
                         <span className="shrink-0 whitespace-nowrap" style={isTeaware(p) ? undefined : { color: getThemeTextColor(p.type) }}>{groupBy === 'type' ? (p.vendor || p.type) : (isTeaware(p) ? (p.teawareCategory || 'Teaware') : p.type)}</span>
                         {comingQty > 0 && <span className="truncate text-tea-gold-lt">· +{fmtNum(comingQty)} coming</span>}
@@ -264,18 +264,18 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
               {focused.vendor ? <> · <button type="button" onClick={() => onOpenSource(focused)} className="text-tea-text-sec underline decoration-tea-border underline-offset-2">{focused.vendor}</button></> : null}
             </span>
           </div>
-          <dl className="grid grid-cols-3 gap-x-3 gap-y-2.5 mt-3.5">
+          <dl className="grid grid-cols-2 gap-x-5 gap-y-1.5 mt-3">
             {([
               [priceMode === 'cost' ? 'Cost' : (isTeaware(focused) ? '$ each' : '$ / g'), (() => { const pr = priceOf(focused); return pr == null ? '—' : fmtNum(pr); })(), 'num'],
               ['Flags under', isTeaware(focused) ? '—' : `${(focused.lowStockThreshold ?? 0).toLocaleString('en-US')} g`, 'num'],
               ['Counted', checkedLabel(focused), checkedLabel(focused) === 'never' ? 'warn' : ''],
-              ['In the shop', !focused.isPublic ? 'off' : focused.shownInShop === false ? 'listed, hidden' : 'shown', ''],
+              ['In the shop', !focused.isPublic ? 'off' : focused.shownInShop === false ? 'hidden' : 'shown', ''],
               ['Coming', (() => { const c = incomingByProductId[focused.id]; return c?.hasOpenIncoming && c.remainingQuantity > 0 ? `+${fmtNum(c.remainingQuantity)}` : 'nothing'; })(), ''],
               ['Bought', Number(focused.quantityPurchased) > 0 ? `${Number(focused.quantityPurchased).toLocaleString('en-US')} ${isTeaware(focused) ? 'pc' : 'g'}` : '—', 'num'],
             ] as const).map(([k, v, tone]) => (
-              <div key={k} className="min-w-0">
-                <dt className="text-ui-10 uppercase tracking-[0.1em] text-tea-text-dim">{k}</dt>
-                <dd className={`truncate mt-0.5 ${tone === 'num' ? 'font-mono text-ui-15 tabular-nums text-tea-text' : tone === 'warn' ? 'text-ui-14 text-tea-error' : 'text-ui-14 text-tea-text'}`}>{v}</dd>
+              <div key={k} className="flex min-w-0 items-baseline justify-between gap-2 border-b border-tea-border pb-1">
+                <dt className="shrink-0 text-ui-10 uppercase tracking-[0.1em] text-tea-text-dim">{k}</dt>
+                <dd className={`truncate text-right ${tone === 'num' ? 'font-mono text-ui-14 tabular-nums text-tea-text' : tone === 'warn' ? 'text-ui-13 text-tea-error' : 'text-ui-13 text-tea-text'}`}>{v}</dd>
               </div>
             ))}
           </dl>
