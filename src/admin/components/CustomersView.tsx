@@ -121,6 +121,9 @@ const CHANNEL_CONFIG: Record<ContactChannel, { label: string; Icon: React.Elemen
   instagram: { label: 'Instagram', Icon: AtSign },
   telegram:  { label: 'Telegram',  Icon: Send },
   signal:    { label: 'Signal',    Icon: Lock },
+  fax:       { label: 'Fax',       Icon: Phone },
+  facebook:  { label: 'Facebook',  Icon: AtSign },
+  website:   { label: 'Website',   Icon: ExternalLink },
   other:     { label: 'Other',     Icon: Hash },
 };
 

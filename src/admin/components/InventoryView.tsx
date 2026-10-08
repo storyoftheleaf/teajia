@@ -1,3 +1,4 @@
+import { CurateSamplesView } from './CurateSamplesView';
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
@@ -2334,10 +2335,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           </div>
   );
 
+  const samplesOnly = searchParams.get('stock_view') === 'samples';
+  const stockViewToggle = <div aria-label="Inventory source" className="flex flex-wrap shrink-0 gap-1 border-b border-tea-border px-3 py-1">
+    {[{value:'stock',label:'Stock inventory'},{value:'samples',label:'Samples only'}].map(view => <button key={view.value} type="button" aria-pressed={(view.value==='samples')===samplesOnly} onClick={() => setSearchParams(previous => withParam(previous,'stock_view',view.value==='samples'?'samples':null),{replace:true})} className={`tap-target min-h-11 rounded-md px-3 text-ui-13 ${(view.value==='samples')===samplesOnly?'text-tea-gold bg-tea-accent-sub':'text-tea-text-sec hover:bg-tea-accent-sub'}`}>{view.label}</button>)}
+  </div>;
+  if (samplesOnly) return <div className="h-full min-w-0 flex flex-col overflow-hidden bg-tea-bg">{stockViewToggle}<CurateSamplesView search={externalSearchQuery} /></div>;
+
   return (
     <div
       className="h-full flex flex-col overflow-hidden bg-tea-bg"
     >
+      {stockViewToggle}
       {/* Inventory options menu shared by the unified header at every width. */}
       <div>
             {showOptions && !isMobile && (

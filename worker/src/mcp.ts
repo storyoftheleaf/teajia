@@ -38,6 +38,9 @@ import { curateIntakeTools } from './mcpTools/curateIntake';
 import { curateSupplyTools } from './mcpTools/curateSupply';
 import { curatePhotoTools } from './mcpTools/curatePhotos';
 import { curateArrivalTools } from './mcpTools/curateArrivals';
+import { curateAttachmentTools } from './mcpTools/curateAttachments';
+import { curateManageModule } from './mcpTools/curateManage';
+import { curateQuoteTools } from './mcpTools/curateQuotes';
 import type { CurateReceiptService } from './mcpTools/registry';
 import { resolveShopFreightDefault, shippingPerGramUsd } from './shippingRate';
 import { deductStockForPaidInvoice } from './orderLifecycle';
@@ -109,7 +112,8 @@ type Env = {
   CURATE_IMPORT_ANALYSIS_MODEL?: string;
   CURATE_IMPORT_FALLBACK_MODEL?: string;
   CURATE_IMPORT_GROQ_VISION_MODEL?: string;
-  MEDIA_BUCKET?: unknown;
+  MEDIA_BUCKET?: R2Bucket;
+  ATLAS_BUCKET?: R2Bucket;
   AI?: unknown;
   IMAGES?: unknown;
 };
@@ -6744,6 +6748,9 @@ const TOOL_MODULES: ToolModule[] = [
   curateSupplyTools,
   curatePhotoTools,
   curateArrivalTools,
+  curateAttachmentTools,
+  curateManageModule,
+  curateQuoteTools,
 ];
 
 const { defs: MODULE_TOOL_DEFS, handlers: MODULE_TOOL_HANDLERS } = combineToolModules(TOOL_MODULES);

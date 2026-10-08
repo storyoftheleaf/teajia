@@ -11,6 +11,7 @@ import { SqliteD1, seedIdentity, signedToken } from './helpers/sqliteD1';
  * Google is faked here; what is measured is what the shop asks it to do.
  */
 
+const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRqoAAAAASUVORK5CYII=';
 const JWT = 'drive-secret';
 const KEY = 'drive-seal-key-for-tests-only-0123456789';
 const databases: SqliteD1[] = [];
@@ -43,7 +44,7 @@ function fakeGoogle(opts: { refreshFails?: boolean } = {}) {
     if (url.startsWith('https://www.googleapis.com/oauth2/v2/userinfo')) return Response.json({ email: 'adrian@gmail.test' });
     if (url.startsWith('https://www.googleapis.com/drive/v3/files')) return Response.json({ id: `folder-${++n}` });
     if (url.startsWith('https://www.googleapis.com/upload/drive/v3/files')) return Response.json({ id: `file-${++n}`, webViewLink: `https://drive.google.com/file/d/file-${n}/view` });
-    if (url.startsWith('https://pics.example/')) return new Response(new Uint8Array([1, 2, 3]), { headers: { 'Content-Type': 'image/jpeg' } });
+    if (url.startsWith('https://pics.example/')) return new Response(Uint8Array.from(atob(PNG), char => char.charCodeAt(0)), { headers: { 'Content-Type': 'image/png' } });
     return new Response('not faked', { status: 599 });
   });
   vi.stubGlobal('fetch', fetchMock);
@@ -160,33 +161,48 @@ describe('a photo on a Curate tea', () => {
 describe('an agent adding a photo', () => {
   const auth = { accountId: 'acc-shop', userId: 'adrian', userEmail: 'a@test.dev', tokenId: 't', creatorTier: 'owner' } as any;
 
-  it('puts it on the tea and in its Drive folder, from a link', async () => {
+  it('previews a linked image then confirms it into private storage without public or Drive copying', async () => {
     const { env, db, bucket } = setup();
-    fakeGoogle();
+    const privateBucket = new Bucket(); env.ATLAS_BUCKET = privateBucket;
+    const calls = fakeGoogle();
     await connect(env);
-    const out = await curatePhotoTools.handlers.curate_add_photo(env, auth, { tea_id: 'e-1', image_url: 'https://pics.example/label.jpg' }) as R;
-    expect(out.added).toBe(true);
-    expect(out.photos_on_tea).toBe(2);
-    expect(out.drive.saved).toBe(true);
-    expect(out.drive.folder_url).toMatch(/^https:\/\/drive\.google\.com\/drive\/folders\//);
-    expect([...bucket.objects.keys()].some(k => k.startsWith('accounts/acc-shop/curate/e-1/'))).toBe(true);
-    expect(JSON.parse((db.sqlite.prepare(`SELECT photos FROM tea_compass_entries WHERE id = 'e-1'`).get() as R).photos)).toHaveLength(2);
+    const args = { tea_id: 'e-1', image_url: 'https://pics.example/label.png', role: 'label', filename: 'label.png' };
+    const preview = await curatePhotoTools.handlers.curate_add_photo(env, auth, args) as R;
+    expect(preview.confirmation_token).toBeTruthy();
+    expect(privateBucket.objects.size).toBe(0);
+    const result = await curatePhotoTools.handlers.curate_add_photo(env, auth, { ...args, confirm: preview.confirmation_token }) as R;
+    expect(result.confirmed).toBe(true);
+    expect(result.attachment).toMatchObject({ role: 'label', filename: 'label.png' });
+    expect(privateBucket.objects.size).toBe(1);
+    expect([...privateBucket.objects.keys()][0]).toMatch(/^curate\/attachments\/acc-shop\//);
+    expect(bucket.objects.size).toBe(1);
+    expect(calls.filter(call => call.url.includes('/upload/drive/') || call.url.includes('/drive/v3/files'))).toHaveLength(0);
+    expect(JSON.parse((db.sqlite.prepare("SELECT photos FROM tea_compass_entries WHERE id='e-1'").get() as R).photos)).toHaveLength(1);
   });
 
-  it('keeps the photo on the tea and says why when Drive is not connected', async () => {
-    const { env } = setup();
-    fakeGoogle();
-    const out = await curatePhotoTools.handlers.curate_add_photo(env, auth, { tea_id: 'e-1', image_base64: btoa('xyz'), mime_type: 'image/png' }) as R;
-    expect(out.added).toBe(true);
-    expect(out.drive).toMatchObject({ saved: false });
-    expect(out.drive.why).toMatch(/not connected/);
+  it('confirms a valid image privately even when Drive is not connected', async () => {
+    const { env, db } = setup();
+    const privateBucket = new Bucket(); env.ATLAS_BUCKET = privateBucket;
+    const calls = fakeGoogle();
+    const args = { tea_id: 'e-1', image_base64: PNG, mime_type: 'image/png', role: 'pricelist', filename: 'price-list.png' };
+    const preview = await curatePhotoTools.handlers.curate_add_photo(env, auth, args) as R;
+    expect(preview.confirmation_token).toBeTruthy();
+    expect(privateBucket.objects.size).toBe(0);
+    const result = await curatePhotoTools.handlers.curate_add_photo(env, auth, { ...args, confirm: preview.confirmation_token }) as R;
+    expect(result.confirmed).toBe(true);
+    expect(result.attachment).toMatchObject({ role: 'pricelist' });
+    expect(privateBucket.objects.size).toBe(1);
+    expect(calls).toHaveLength(0);
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM curate_drive_files').get()).toMatchObject({ n: 0 });
   });
 
-  it('refuses something that is not a photo, and a tea that is not this shop\'s', async () => {
+  it('refuses nonimages and unauthorized shop targets before private storage is touched', async () => {
     const { env } = setup();
+    const privateBucket = new Bucket(); env.ATLAS_BUCKET = privateBucket;
     fakeGoogle();
     await expect(curatePhotoTools.handlers.curate_add_photo(env, auth, { tea_id: 'e-1', image_base64: 'AAAA', mime_type: 'application/pdf' })).rejects.toThrow(/mime_type/);
-    await expect(curatePhotoTools.handlers.curate_add_photo(env, { ...auth, accountId: 'acc-other' }, { tea_id: 'e-1', image_base64: 'AAAA' })).rejects.toThrow(/No such tea/);
+    await expect(curatePhotoTools.handlers.curate_add_photo(env, { ...auth, accountId: 'acc-other' }, { tea_id: 'e-1', image_base64: PNG, mime_type: 'image/png' })).rejects.toThrow(/ownership|capability/i);
+    expect(privateBucket.objects.size).toBe(0);
   });
 });
 

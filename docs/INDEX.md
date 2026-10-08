@@ -68,3 +68,5 @@ These explain how to perform operating tasks. They do not track whether launch o
 - Shipped work gets a dated `CHANGELOG.md` entry.
 - Reference docs describe current behavior; they do not carry independent roadmaps or launch checklists.
 - A stale plan is retired instead of being kept beside current direction.
+
+- [Curate workspace](CURATE_WORKSPACE.md): structured tea/vendor/quote facts, private evidence, Samples only, agent corrections and undo.

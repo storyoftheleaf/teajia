@@ -107,7 +107,7 @@ const cases = [
   ['inventory', '/api/products', '/api/products/product-b/stock', 'PUT', { stock_grams: 999 }, /where p\.account_id\s*=\s*\?/],
   ['curate journeys', '/api/curate/journeys', '/api/curate/journeys/journey-b', 'PUT', { name: 'changed' }, /where account_id\s*=\s*\?/],
   ['curate visits', '/api/curate/visits', '/api/curate/visits/visit-b', 'PUT', { notes: 'changed' }, /where account_id\s*=\s*\?/],
-  ['curate records', '/api/compass/entries', '/api/compass/entries/entry-b', 'PUT', { notes: 'changed' }, /where user_id\s*=\s*\? and account_id\s*=\s*\?/],
+  ['curate records', '/api/compass/entries', '/api/compass/entries/entry-b', 'PUT', { notes: 'changed' }, /where account_id\s*=\s*\?/],
 ] as const;
 
 describe('cross-account resource isolation', () => {

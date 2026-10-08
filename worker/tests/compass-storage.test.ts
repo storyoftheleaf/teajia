@@ -105,7 +105,7 @@ describe('Compass storage safety', () => {
       conflicts: ['collision'],
     });
     expect(db.rows.get('accepted')?.price_amount).toBe(25);
-    expect(db.rows.get('collision')?.price_amount).toBeUndefined();
+    expect(db.rows.get('collision')?.price_amount).toBeNull();
   });
 
   it('preserves created_at during an acknowledged upsert', async () => {

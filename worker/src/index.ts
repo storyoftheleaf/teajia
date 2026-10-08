@@ -137,6 +137,9 @@ import {
 import { hasTeaAtlasTick, serveAtlas, withTeaAtlasTick } from './atlas';
 import { serveAtlasAdmin } from './atlasAdmin';
 import { workerReleaseResponse, type WorkerReleaseEnv } from './workerRelease';
+import { handleCurateWorkspace } from './curateWorkspaceRoutes';
+import { validateCompassQuoteLink } from './curateQuotes';
+import { requireCurateManager, prepareCurateRecordedWrite } from './curateMutations';
 
 interface Env extends WorkerReleaseEnv {
   DB: D1Database;
@@ -7629,7 +7632,7 @@ const handleGetCustomers: Handler = async (request, env) => {
         ) as event_count
       FROM customers c
       LEFT JOIN invoices i ON i.customer_id = c.id AND i.status = 'Filled' AND i.account_id = ?
-      WHERE c.account_id = ? ${typeClause} ${relationshipClause}
+      WHERE c.account_id = ? AND c.deleted_at IS NULL AND c.archived_at IS NULL AND c.merged_into_id IS NULL ${typeClause} ${relationshipClause}
       GROUP BY c.id
       ORDER BY c.created_at DESC
     `).bind(accountId, accountId, ...typeBinds, ...relationshipBinds).all();
@@ -7637,7 +7640,7 @@ const handleGetCustomers: Handler = async (request, env) => {
     result = await env.DB.prepare(`
       SELECT c.*, 0 as order_count, 0 as total_spent_usd, NULL as last_order_date, 0 as event_count
       FROM customers c
-      WHERE c.account_id = ? ${typeClause}
+      WHERE c.account_id = ? AND c.deleted_at IS NULL AND c.archived_at IS NULL AND c.merged_into_id IS NULL ${typeClause}
       ORDER BY c.created_at DESC
     `).bind(accountId, ...typeBinds).all();
   }
@@ -10286,7 +10289,7 @@ const handleListCustomersByTag: Handler = async (request, env, params) => {
     `SELECT c.id, c.name, c.phone, c.whatsapp
      FROM customer_tags ct
      JOIN customers c ON c.id = ct.customer_id
-     WHERE ct.account_id = ? AND ct.tag = ? AND c.account_id = ?
+     WHERE ct.account_id = ? AND ct.tag = ? AND c.account_id = ? AND c.deleted_at IS NULL AND c.archived_at IS NULL AND c.merged_into_id IS NULL
      ORDER BY c.name ASC`
   ).bind(accountId, tag, accountId).all();
 
@@ -15620,19 +15623,28 @@ const handleDeleteCurateVisit: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
-// ── Tea Compass (personal field notes, scoped per account + user) ──
+// Curate is the shop intake workspace. Other personal records stay user-owned.
+async function canManageCurate(env: Env, accountId: string, userId: string) {
+  try { await requireCurateManager(env.DB, { accountId, userId }); return true; }
+  catch { return false; }
+}
+
 
 function decodeCompassWrite(body: Record<string, unknown>, rejectUnknown: boolean):
   | { values: Partial<Record<CompassColumn, unknown>> }
   | { error: Response } {
+  try {
   const decoded = decodeCompassWriteCodec(body, rejectUnknown);
   if ('unknownField' in decoded) return { error: json({ error: `Unknown Compass field: ${decoded.unknownField}` }, 400) };
   if ('invalidDecision' in decoded) return { error: json({ error: 'decision must be considering, selected, passed_on, or null' }, 400) };
   if ('invalidSampleState' in decoded) return { error: json({ error: 'sample_state must be requested, received, tasted, or null' }, 400) };
   return decoded;
+  } catch (error) { return { error: json({ error: (error as Error).message }, 400) }; }
 }
 
 async function validateCompassContext(env: Env, accountId: string, values: Partial<Record<CompassColumn, unknown>>, existing?: Record<string, unknown> | null): Promise<Response | null> {
+  try { await validateCompassQuoteLink(env.DB, accountId, { ...existing, ...values }); }
+  catch (error) { return json({ error: (error as Error).message }, 400); }
   const error = await validateCurateContextPair(env, accountId, values, existing);
   if (error) return json({ error }, 400);
   if (values.sample_set_id === undefined || values.sample_set_id === null) return null;
@@ -15658,8 +15670,9 @@ const handleGetCompassEntries: Handler = async (request, env) => {
   const status = url.searchParams.get('status');
   const vendorId = url.searchParams.get('vendor_id');
 
-  let query = 'SELECT * FROM tea_compass_entries WHERE user_id = ? AND account_id = ?';
-  const binds: any[] = [userId, accountId];
+  const manager = await canManageCurate(env, accountId, userId);
+  let query = 'SELECT * FROM tea_compass_entries WHERE account_id = ? AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL' + (manager ? '' : ' AND user_id = ?');
+  const binds: any[] = [accountId, ...(manager ? [] : [userId])];
 
   if (status) {
     query += ' AND status = ?';
@@ -15675,33 +15688,45 @@ const handleGetCompassEntries: Handler = async (request, env) => {
   return json({ entries: result.results });
 };
 
+async function prepareAuditedCompassWrite(env: Env, scope: { accountId: string; userId: string }, before: Record<string, any> | null, entry: Record<string, any>, commandType: string, tastingChanged = false, preferredSetId?: string) {
+  let changes: Parameters<typeof prepareCurateRecordedWrite>[2]['changes'] = [];
+  let guards: NonNullable<Parameters<typeof prepareCurateRecordedWrite>[2]['guards']> = [];
+  if (entry.sample_state) {
+    const bridge = await prepareCompassSampleWrite(env.DB, { accountId: scope.accountId, userId: entry.user_id }, entry, {
+      entryId: entry.id, state: tastingChanged && tastingHasTerms(tastingForShop(entry.tasting)) ? 'tasted' : entry.sample_state, preferredSetId,
+    });
+    changes = bridge.changes; guards = bridge.guards;
+  } else changes.push({ entityType: 'tea', entityId: entry.id, before, after: entry });
+  return prepareCurateRecordedWrite(env.DB, scope, { commandType, agent: 'Shop app', changes, guards });
+}
+
 const handleCreateCompassEntry: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
-
+  const manager = await canManageCurate(env, accountId, userId);
   const body = await request.json() as Record<string, unknown>;
-  const decoded = decodeCompassWrite(body, false);
+  const decoded = decodeCompassWrite(body, manager);
   if ('error' in decoded) return decoded.error;
   const contextError = await validateCompassContext(env, accountId, decoded.values);
   if (contextError) return contextError;
-
   const id = typeof body.id === 'string' && body.id ? body.id : crypto.randomUUID();
-  const present = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
-  const placeholders = ['id', 'user_id', 'account_id', ...present].map(() => '?').join(', ');
-  const colNames = ['id', 'user_id', 'account_id', ...present].join(', ');
-
-  let sampleStatements: D1PreparedStatement[];
-  try { sampleStatements = await compassSampleStatements(env, accountId, userId, { ...decoded.values, id, user_id: userId, account_id: accountId }, decoded.values.tasting !== undefined); }
-  catch (error) { return json({ error: (error as Error).message }, 400); }
-  await env.DB.batch([env.DB.prepare(
-    `INSERT INTO tea_compass_entries (${colNames}) VALUES (${placeholders})`
-  ).bind(id, userId, accountId, ...present.map(column => decoded.values[column])), ...sampleStatements]);
-
-  const created = await env.DB.prepare(
-    'SELECT * FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?'
-  ).bind(id, userId, accountId).first();
-  return json(created, 201);
+  if (await env.DB.prepare('SELECT id FROM tea_compass_entries WHERE id = ?').bind(id).first()) return json({ error: 'Compass entry id already exists; use update or sync' }, 409);
+  const entry = { ...(manager ? { price_amount: null, price_currency: null, price_per_unit_grams: null } : {}), ...decoded.values, id, user_id: userId, account_id: accountId };
+  try {
+    if (manager) {
+      const now = new Date().toISOString();
+      const write = await prepareAuditedCompassWrite(env, ctx, null, { created_at: now, updated_at: now, ...entry }, 'tea:app_create', decoded.values.tasting !== undefined, typeof decoded.values.sample_set_id === 'string' ? decoded.values.sample_set_id : undefined);
+      await env.DB.batch([...write.statements, write.assertion]);
+    } else {
+      const present = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
+      const columns = ['id','user_id','account_id',...present];
+      const sample = await compassSampleStatements(env, accountId, userId, entry, decoded.values.tasting !== undefined);
+      await env.DB.batch([env.DB.prepare(`INSERT INTO tea_compass_entries (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`)
+        .bind(id, userId, accountId, ...present.map(column => decoded.values[column])), ...sample]);
+    }
+  } catch (error) { return json({ error: (error as Error).message }, 400); }
+  return json(await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ?').bind(id, accountId).first(), 201);
 };
 
 const handleUpdateCompassEntry: Handler = async (request, env, params, execCtx) => {
@@ -15709,28 +15734,32 @@ const handleUpdateCompassEntry: Handler = async (request, env, params, execCtx) 
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
 
+  const manager = await canManageCurate(env, accountId, userId);
   const body = await request.json() as Record<string, unknown>;
   const decoded = decodeCompassWrite(body, true);
   if ('error' in decoded) return decoded.error;
-  const existingContext = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?').bind(params.id, userId, accountId).first() as Record<string, unknown> | null;
+  const existingContext = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ? AND (user_id = ? OR ? = 1) AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL').bind(params.id, accountId, userId, manager ? 1 : 0).first() as Record<string, unknown> | null;
   if (!existingContext) return json({ error: 'Compass entry not found' }, 404);
   const contextError = await validateCompassContext(env, accountId, decoded.values, existingContext);
   if (contextError) return contextError;
   const cols = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
-  const sets = cols.map(c => `${c} = ?`).join(', ');
-  let sampleStatements: D1PreparedStatement[];
-  try { sampleStatements = await compassSampleStatements(env, accountId, userId, { ...existingContext, ...decoded.values, id: params.id, user_id: userId, account_id: accountId }, decoded.values.tasting !== undefined); }
-  catch (error) { return json({ error: (error as Error).message }, 400); }
-  await env.DB.batch([env.DB.prepare(
-    `UPDATE tea_compass_entries SET ${sets}, updated_at = datetime('now')
-     WHERE id = ? AND user_id = ? AND account_id = ?`
-  ).bind(...cols.map(column => decoded.values[column]), params.id, userId, accountId), ...sampleStatements]);
+  try {
+    const after = { ...existingContext, ...decoded.values, id: params.id, account_id: accountId, user_id: existingContext.user_id, updated_at: new Date().toISOString() };
+    if (manager) {
+      const write = await prepareAuditedCompassWrite(env, ctx, existingContext, after, 'tea:app_edit', decoded.values.tasting !== undefined, typeof decoded.values.sample_set_id === 'string' && !(decoded.values.vendor_id !== undefined && decoded.values.vendor_id !== existingContext.vendor_id && decoded.values.sample_set_id === existingContext.sample_set_id) ? decoded.values.sample_set_id : undefined);
+      await env.DB.batch([...write.statements, write.assertion]);
+    } else {
+      const sample = await compassSampleStatements(env, accountId, String(existingContext.user_id), after, decoded.values.tasting !== undefined);
+      await env.DB.batch([env.DB.prepare(`UPDATE tea_compass_entries SET ${cols.map(column => `${column} = ?`).join(', ')}, updated_at = datetime('now') WHERE id = ? AND user_id = ? AND account_id = ?`)
+        .bind(...cols.map(column => decoded.values[column]), params.id, userId, accountId), ...sample]);
+    }
+  } catch (error) { return json({ error: (error as Error).message }, 400); }
 
   const updated = await env.DB.prepare(
-    'SELECT * FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?'
-  ).bind(params.id, userId, accountId).first() as Record<string, any> | null;
+    'SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ? AND (user_id = ? OR ? = 1)'
+  ).bind(params.id, accountId, userId, manager ? 1 : 0).first() as Record<string, any> | null;
 
   // Feature 2: Propagate tasting data to the linked draft product when tasting is updated.
   // If this compass entry has a promoted product (draft_product_id) and the update includes
@@ -15739,7 +15768,7 @@ const handleUpdateCompassEntry: Handler = async (request, env, params, execCtx) 
   // and the brewing the admin wrote, and a re-taste in Curate used to replace
   // the whole column and delete them. Only the term categories this tasting
   // carries words in are replaced, and only with words the shop can print.
-  if (updated && updated.draft_product_id && decoded.values.tasting !== undefined) {
+  if (!manager && updated && updated.draft_product_id && decoded.values.tasting !== undefined) {
     try {
       const product = await env.DB.prepare('SELECT tasting FROM products WHERE id = ? AND account_id = ?')
         .bind(updated.draft_product_id, accountId).first() as { tasting?: string | null } | null;
@@ -15769,12 +15798,18 @@ const handleUpdateCompassEntry: Handler = async (request, env, params, execCtx) 
 const handleDeleteCompassEntry: Handler = async (request, env, params) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
-  const { accountId, userId } = ctx;
-
-  await env.DB.prepare(
-    'DELETE FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?'
-  ).bind(params.id, userId, accountId).run();
-
+  const manager = await canManageCurate(env, ctx.accountId, ctx.userId);
+  const entry = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ? AND (user_id = ? OR ? = 1)')
+    .bind(params.id, ctx.accountId, ctx.userId, manager ? 1 : 0).first<Record<string, any>>();
+  if (!entry) return json({ error: 'Compass entry not found' }, 404);
+  if (entry.deleted_at) return json({ success: true, alreadyDeleted: true });
+  const now = new Date().toISOString();
+  if (manager) {
+    const write = prepareCurateRecordedWrite(env.DB, ctx, { commandType: 'tea:app_delete', agent: 'Shop app',
+      changes: [{ entityType: 'tea', entityId: params.id, before: entry, after: { ...entry, deleted_at: now, updated_at: now } }] });
+    await env.DB.batch([...write.statements, write.assertion]);
+  } else await env.DB.prepare('UPDATE tea_compass_entries SET deleted_at = ?, updated_at = ? WHERE id = ? AND user_id = ? AND account_id = ?')
+    .bind(now, now, params.id, ctx.userId, ctx.accountId).run();
   return json({ success: true });
 };
 
@@ -15785,9 +15820,10 @@ const handlePromoteCompassEntry: Handler = async (request, env, params) => {
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
 
+  const manager = await canManageCurate(env, accountId, userId);
   const entry = await env.DB.prepare(
-    'SELECT * FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?'
-  ).bind(params.id, userId, accountId).first() as Record<string, any> | null;
+    'SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ? AND (user_id = ? OR ? = 1) AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL'
+  ).bind(params.id, accountId, userId, manager ? 1 : 0).first() as Record<string, any> | null;
 
   if (!entry) return json({ error: 'Compass entry not found' }, 404);
 
@@ -15909,7 +15945,7 @@ const handlePromoteCompassEntry: Handler = async (request, env, params) => {
        SET draft_product_id = (SELECT id FROM products WHERE account_id = ? AND source_compass_entry_id = ?),
            updated_at = datetime('now')
        WHERE id = ? AND user_id = ? AND account_id = ?`
-    ).bind(accountId, entry.id, entry.id, userId, accountId),
+    ).bind(accountId, entry.id, entry.id, entry.user_id, accountId),
   ]);
 
   const canonical = await env.DB.prepare(
@@ -15947,9 +15983,10 @@ function purposeConflict(product: Record<string, any> | null, intendedPurpose: s
 const handleCreateReceiptProposal: Handler = async (request, env, params) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
+  const manager = await canManageCurate(env, ctx.accountId, ctx.userId);
   const entry = await env.DB.prepare(
-    'SELECT id, name, type, category, draft_product_id, import_item_id FROM tea_compass_entries WHERE id = ? AND account_id = ? AND user_id = ?'
-  ).bind(params.id, ctx.accountId, ctx.userId).first() as Record<string, any> | null;
+    'SELECT id, name, type, category, draft_product_id, import_item_id FROM tea_compass_entries WHERE id = ? AND account_id = ? AND (user_id = ? OR ? = 1) AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL'
+  ).bind(params.id, ctx.accountId, ctx.userId, manager ? 1 : 0).first() as Record<string, any> | null;
   if (!entry) return json({ error: 'Compass entry not found' }, 404);
   const body = await request.json() as Record<string, unknown>;
   let decoded;
@@ -16517,6 +16554,7 @@ const handleSyncCompassEntries: Handler = async (request, env, _params, execCtx)
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
 
+  const manager = await canManageCurate(env, accountId, userId);
   const body = await request.json() as { entries: Record<string, any>[] };
   if (!Array.isArray(body.entries)) {
     return json({ error: 'entries array required' }, 400);
@@ -16524,33 +16562,36 @@ const handleSyncCompassEntries: Handler = async (request, env, _params, execCtx)
 
   const stmts: D1PreparedStatement[] = [];
   const entryStatementIndexes: number[] = [];
+  const seen = new Set<string>();
   for (const entry of body.entries) {
-    const decoded = decodeCompassWrite(entry, false);
+    if (typeof entry.id !== 'string' || !entry.id || seen.has(entry.id)) return json({ error: 'Unique Compass entry ids required' }, 400);
+    seen.add(entry.id);
+    const decoded = decodeCompassWrite(entry, manager);
     if ('error' in decoded) return decoded.error;
-    const existingContext = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?').bind(entry.id, userId, accountId).first() as Record<string, unknown> | null;
-    const contextError = await validateCompassContext(env, accountId, decoded.values, existingContext);
-    if (contextError) return contextError;
-    if (typeof entry.id !== 'string' || !entry.id) return json({ error: 'Compass entry id required' }, 400);
-    const present = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
-    const columns = ['id', 'user_id', 'account_id', ...present];
-    const updates = present
-      .filter(column => column !== 'created_at')
-      .map(column => `${column} = excluded.${column}`);
-    // Even an id-only retry performs an ownership-scoped no-value update so
-    // D1 returns meta.changes=1 for an acknowledged row and 0 for a collision.
-    const conflictUpdates = updates.length > 0 ? updates : ['id = excluded.id'];
-    const conflictAction = `DO UPDATE SET ${conflictUpdates.join(', ')} WHERE tea_compass_entries.user_id = excluded.user_id AND tea_compass_entries.account_id = excluded.account_id`;
+    const owner = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ?').bind(entry.id).first<Record<string, any>>();
     entryStatementIndexes.push(stmts.length);
-    stmts.push(env.DB.prepare(
-      `INSERT INTO tea_compass_entries (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})
-       ON CONFLICT(id) ${conflictAction}`
-    ).bind(entry.id, userId, accountId, ...present.map(column => decoded.values[column])));
-    // A sync collision must never attach samples to somebody else's entry.
-    const owner = await env.DB.prepare('SELECT user_id, account_id FROM tea_compass_entries WHERE id = ?').bind(entry.id).first<{ user_id: string; account_id: string }>();
-    if (!owner || (owner.user_id === userId && owner.account_id === accountId)) {
-      try { stmts.push(...await compassSampleStatements(env, accountId, userId, { ...existingContext, ...decoded.values, id: entry.id, user_id: userId, account_id: accountId }, decoded.values.tasting !== undefined)); }
-      catch (error) { return json({ error: (error as Error).message }, 400); }
+    if (owner && (owner.account_id !== accountId || (!manager && owner.user_id !== userId) || owner.deleted_at || owner.archived_at || owner.merged_into_id)) {
+      entryStatementIndexes[entryStatementIndexes.length - 1] = -1; continue;
     }
+    const contextError = await validateCompassContext(env, accountId, decoded.values, owner);
+    if (contextError) return contextError;
+    const entryOwner = owner?.user_id ?? userId;
+    const now = new Date().toISOString();
+    const after = { ...(owner ?? (manager ? { price_amount: null, price_currency: null, price_per_unit_grams: null } : {})),
+      ...decoded.values, id: entry.id, account_id: accountId, user_id: entryOwner, created_at: owner?.created_at ?? decoded.values.created_at ?? now, updated_at: now };
+    try {
+      if (manager) {
+        const write = await prepareAuditedCompassWrite(env, ctx, owner, after, 'tea:app_sync', decoded.values.tasting !== undefined, typeof decoded.values.sample_set_id === 'string' && !(owner && decoded.values.vendor_id !== undefined && decoded.values.vendor_id !== owner.vendor_id && decoded.values.sample_set_id === owner.sample_set_id) ? decoded.values.sample_set_id : undefined);
+        stmts.push(...write.statements, write.assertion);
+      } else {
+        const present = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
+        const columns = ['id','user_id','account_id',...present];
+        const updates = present.filter(column => column !== 'created_at').map(column => `${column} = excluded.${column}`);
+        stmts.push(env.DB.prepare(`INSERT INTO tea_compass_entries (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')}) ON CONFLICT(id) DO UPDATE SET ${(updates.length ? updates : ['id = excluded.id']).join(', ')} WHERE tea_compass_entries.user_id = excluded.user_id AND tea_compass_entries.account_id = excluded.account_id`)
+          .bind(entry.id, entryOwner, accountId, ...present.map(column => decoded.values[column])));
+        stmts.push(...await compassSampleStatements(env, accountId, entryOwner, after, decoded.values.tasting !== undefined));
+      }
+    } catch (error) { return json({ error: (error as Error).message }, 400); }
   }
 
   const results = stmts.length > 0 ? await env.DB.batch(stmts) : [];
@@ -16559,7 +16600,7 @@ const handleSyncCompassEntries: Handler = async (request, env, _params, execCtx)
   entryStatementIndexes.forEach((statementIndex, index) => {
     const result = results[statementIndex];
     const id = String(body.entries[index].id);
-    if (Number(result.meta?.changes ?? 0) > 0) syncedIds.push(id);
+    if (Number(result?.meta?.changes ?? 0) > 0) syncedIds.push(id);
     else conflicts.push(id);
   });
 
@@ -17764,6 +17805,8 @@ function stripSampleSource(sample: Record<string, any>): Record<string, any> {
 function parseSampleRow(row: Record<string, any>): Record<string, any> {
   return {
     ...row,
+    grams: row.grams_known === 0 ? null : row.grams,
+    grams_known: row.grams_known !== 0,
     photos: row.photos ? JSON.parse(row.photos) : [],
     source_contact: row.source_contact ? JSON.parse(row.source_contact) : null,
   };
@@ -17787,7 +17830,7 @@ function parseTastingRow(row: Record<string, any>): Record<string, any> {
 
 // Public: GET /api/samples/:id
 const handleGetSample: Handler = async (request, env, params) => {
-  const sample = await env.DB.prepare('SELECT * FROM tea_samples WHERE id = ?').bind(params.id).first();
+  const sample = await env.DB.prepare('SELECT * FROM tea_samples WHERE id = ? AND archived_at IS NULL').bind(params.id).first();
   if (!sample) return json({ error: 'Sample not found' }, 404);
 
   const tastings = await env.DB.prepare(
@@ -17813,7 +17856,7 @@ const handleGetSamplesBySet: Handler = async (request, env, params) => {
   if (!set) return json({ error: 'Sample set not found' }, 404);
 
   const samples = await env.DB.prepare(
-    'SELECT * FROM tea_samples WHERE set_id = ? ORDER BY created_at DESC'
+    'SELECT * FROM tea_samples WHERE set_id = ? AND archived_at IS NULL ORDER BY created_at DESC'
   ).bind(params.setId).all();
 
   const insider = await canSeeSampleSource(request, env, (set as Record<string, unknown>).account_id);
@@ -17823,17 +17866,19 @@ const handleGetSamplesBySet: Handler = async (request, env, params) => {
     return insider ? parsed : stripSampleSource(parsed);
   });
 
-  return json({
-    set: parseSampleSetRow(set as Record<string, any>),
-    samples: parsedSamples,
-  });
+  let parsedSet = parseSampleSetRow(set as Record<string, any>);
+  if (!insider) {
+    const { source_id, source_name, notes, user_id, shared_with, panel_account_ids, ...publicSet } = parsedSet;
+    parsedSet = { ...publicSet, name: parsedSet.purpose === 'sourcing' || (source_name && String(parsedSet.name).includes(String(source_name))) ? 'Tea samples' : parsedSet.name };
+  }
+  return json({ set: parsedSet, samples: parsedSamples });
 };
 
 // Public/Guest: POST /api/samples/:id/tastings
 // Resolve account from the sample row so tastings carry the same account_id.
 const handleAddSampleTasting: Handler = async (request, env, params) => {
   const sample = await env.DB.prepare(
-    'SELECT id, account_id FROM tea_samples WHERE id = ?'
+    'SELECT id, account_id FROM tea_samples WHERE id = ? AND archived_at IS NULL'
   ).bind(params.id).first();
   if (!sample) return json({ error: 'Sample not found' }, 404);
   const accountId = (sample.account_id as string) || BALI_ACCOUNT_ID;
@@ -18943,7 +18988,7 @@ const handleListSamples: Handler = async (request, env) => {
   const setId = url.searchParams.get('setId');
   const status = url.searchParams.get('status');
 
-  let query = 'SELECT * FROM tea_samples WHERE account_id = ?';
+  let query = 'SELECT * FROM tea_samples WHERE account_id = ? AND archived_at IS NULL';
   const binds: any[] = [accountId];
 
   if (setId) {
@@ -18961,7 +19006,7 @@ const handleListSamples: Handler = async (request, env) => {
   const tastings = await env.DB.prepare(
     `SELECT tst.* FROM tea_sample_tastings tst
      JOIN tea_samples s ON s.id = tst.sample_id
-     WHERE s.account_id = ? ORDER BY tst.created_at ASC`
+     WHERE s.account_id = ? AND s.archived_at IS NULL ORDER BY tst.created_at ASC`
   ).bind(accountId).all();
   const tastingsBySample = new Map<string, Record<string, any>[]>();
   for (const tasting of tastings.results as Record<string, any>[]) {
@@ -19002,15 +19047,19 @@ const handleCreateSample: Handler = async (request, env) => {
   const linkError = await validateSampleLinks(env, accountId, body);
   if (linkError) return linkError;
   if (body.compass_entry_id) {
-    const entry = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?').bind(body.compass_entry_id, userId, accountId).first<Record<string, any>>();
+    const manager = await canManageCurate(env, accountId, userId);
+    const entry = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ? AND (user_id = ? OR ? = 1) AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL').bind(body.compass_entry_id, accountId, userId, manager ? 1 : 0).first<Record<string, any>>();
     if (!entry) return json({ error: 'Curate tea not found for this user and account' }, 404);
     try {
-      const bridge = await prepareCompassSampleWrite(env.DB, { accountId, userId }, entry, {
+      const bridge = await prepareCompassSampleWrite(env.DB, { accountId, userId: entry.user_id }, entry, {
         entryId: entry.id, state: body.status ? compassStateForSample(body.status) : entry.sample_state ?? 'requested',
         grams: body.grams, preferredSampleId: id,
       });
-      await env.DB.batch(bridge.statements);
-      const row = await env.DB.prepare('SELECT * FROM tea_samples WHERE id = ? AND account_id = ?').bind(bridge.sampleId, accountId).first<Record<string, any>>();
+      if (manager) {
+        const write = prepareCurateRecordedWrite(env.DB, ctx, { commandType: 'sample:app_create', agent: 'Shop app', changes: bridge.changes, guards: bridge.guards });
+        await env.DB.batch([...write.statements, write.assertion]);
+      } else await env.DB.batch(bridge.statements);
+      const row = await env.DB.prepare('SELECT * FROM tea_samples WHERE id = ? AND account_id = ? AND archived_at IS NULL').bind(bridge.sampleId, accountId).first<Record<string, any>>();
       return json(parseSampleRow(row!), 201);
     } catch (error) { return json({ error: (error as Error).message }, 400); }
   }
@@ -19027,7 +19076,7 @@ const handleCreateSample: Handler = async (request, env) => {
     'created_by', 'user_id',
   ];
   const present = cols.filter(c => body[c] !== undefined);
-  const allCols = ['id', 'account_id', ...present];
+  const allCols = ['id', 'account_id', ...present, 'grams_known'];
   if (!present.includes('user_id')) allCols.push('user_id');
   if (!present.includes('created_by')) allCols.push('created_by');
 
@@ -19042,6 +19091,7 @@ const handleCreateSample: Handler = async (request, env) => {
     }
     values.push(val);
   }
+  values.push(body.grams === undefined ? 0 : 1);
   if (!present.includes('user_id')) values.push(userId);
   if (!present.includes('created_by')) values.push(userEmail || 'admin');
 
@@ -19052,7 +19102,7 @@ const handleCreateSample: Handler = async (request, env) => {
   await buildActivityLog(env, 'sample_created', `Sample ${body.name || id} created`, userEmail, 'sample', id, accountId).run();
 
   const created = await env.DB.prepare(
-    'SELECT * FROM tea_samples WHERE id = ? AND account_id = ?'
+    'SELECT * FROM tea_samples WHERE id = ? AND account_id = ? AND archived_at IS NULL'
   ).bind(id, accountId).first();
   return json(parseSampleRow(created as Record<string, any>), 201);
 };
@@ -19072,14 +19122,15 @@ const handleUpdateSample: Handler = async (request, env, params) => {
   const body = await request.json() as Record<string, any>;
   const linkError = await validateSampleLinks(env, accountId, body);
   if (linkError) return linkError;
-  if (body.compass_entry_id && !await env.DB.prepare('SELECT id FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?').bind(body.compass_entry_id, ctx.userId, accountId).first()) {
+  const manager = await canManageCurate(env, accountId, ctx.userId);
+  if (body.compass_entry_id && !await env.DB.prepare('SELECT id FROM tea_compass_entries WHERE id = ? AND account_id = ? AND (user_id = ? OR ? = 1) AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL').bind(body.compass_entry_id, accountId, ctx.userId, manager ? 1 : 0).first()) {
     return json({ error: 'Curate tea not found for this user and account' }, 404);
   }
   const validated = validatedUpdateFields(body, SAMPLE_UPDATE_FIELDS);
   if ('error' in validated) return validated.error;
   const cols = validated.fields;
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
-  const existingSample = await env.DB.prepare('SELECT * FROM tea_samples WHERE id = ? AND account_id = ?').bind(params.id, accountId).first<Record<string, any>>();
+  const existingSample = await env.DB.prepare('SELECT * FROM tea_samples WHERE id = ? AND account_id = ? AND archived_at IS NULL').bind(params.id, accountId).first<Record<string, any>>();
   if (!existingSample) return json({ error: 'Sample not found' }, 404);
 
   if (cols.includes('set_id')) {
@@ -19095,7 +19146,7 @@ const handleUpdateSample: Handler = async (request, env, params) => {
     }
   }
 
-  const sets = cols.map(c => `${c} = ?`).join(', ');
+  const sets = cols.map(c => `${c} = ?`).join(', ') + (cols.includes('grams') ? ', grams_known = 1' : '');
   const lifecycle = await prepareSampleLifecycleSync(env.DB, accountId, { sampleId: params.id, status: body.status ?? existingSample.status });
   await env.DB.batch([env.DB.prepare(
     `UPDATE tea_samples SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
@@ -19105,7 +19156,7 @@ const handleUpdateSample: Handler = async (request, env, params) => {
   await buildActivityLog(env, 'sample_updated', `Sample ${params.id} updated`, userEmail, 'sample', params.id, accountId).run();
 
   const updated = await env.DB.prepare(
-    'SELECT * FROM tea_samples WHERE id = ? AND account_id = ?'
+    'SELECT * FROM tea_samples WHERE id = ? AND account_id = ? AND archived_at IS NULL'
   ).bind(params.id, accountId).first();
   if (!updated) return json({ error: 'Sample not found' }, 404);
   return json(parseSampleRow(updated as Record<string, any>));
@@ -19232,41 +19283,24 @@ const handleDeleteSampleSet: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
-
-  const owned = await env.DB.prepare(
-    'SELECT id FROM tea_sample_sets WHERE id = ? AND account_id = ?'
-  ).bind(params.id, accountId).first();
-  if (!owned) return json({ error: 'Sample set not found' }, 404);
-
-  const samples = await env.DB.prepare(
-    'SELECT id FROM tea_samples WHERE set_id = ? AND account_id = ?'
-  ).bind(params.id, accountId).all();
-  const sampleIds = (samples.results as Record<string, any>[]).map(s => s.id);
-
-  const deletes: D1PreparedStatement[] = [
-    env.DB.prepare(
-      `UPDATE tea_compass_entries
-       SET sample_set_id = NULL, sample_state = NULL, updated_at = datetime('now')
-       WHERE sample_set_id = ? AND account_id = ?`
-    ).bind(params.id, accountId),
-  ];
-  if (sampleIds.length > 0) {
-    const placeholders = sampleIds.map(() => '?').join(', ');
-    deletes.push(env.DB.prepare(
-      `DELETE FROM tea_sample_tastings WHERE sample_id IN (${placeholders})`
-    ).bind(...sampleIds));
-  }
-  deletes.push(
-    env.DB.prepare('DELETE FROM tea_samples WHERE set_id = ? AND account_id = ?')
-      .bind(params.id, accountId),
-    env.DB.prepare('DELETE FROM tea_sample_sets WHERE id = ? AND account_id = ?')
-      .bind(params.id, accountId),
-  );
-  await env.DB.batch(deletes);
-
-  const userEmail = getUserEmail(request);
-  await buildActivityLog(env, 'sample_set_deleted', `Sample set ${params.id} deleted (${sampleIds.length} samples)`, userEmail, 'sample_set', params.id, accountId).run();
-
+  const set = await env.DB.prepare('SELECT * FROM tea_sample_sets WHERE id = ? AND account_id = ?').bind(params.id, accountId).first<Record<string, any>>();
+  if (!set) return json({ error: 'Sample set not found' }, 404);
+  const now = new Date().toISOString();
+  const samples = await env.DB.prepare('SELECT * FROM tea_samples WHERE set_id = ? AND account_id = ? AND archived_at IS NULL').bind(params.id, accountId).all<Record<string, any>>();
+  const teas = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE sample_set_id = ? AND account_id = ?').bind(params.id, accountId).all<Record<string, any>>();
+  if (await canManageCurate(env, accountId, ctx.userId)) {
+    const changes: Parameters<typeof prepareCurateRecordedWrite>[2]['changes'] = [
+      { entityType: 'sample_set', entityId: set.id, before: set, after: { ...set, archived: 1, updated_at: now } },
+      ...samples.results.map(sample => ({ entityType: 'sample' as const, entityId: sample.id, before: sample, after: { ...sample, archived_at: now, updated_at: now } })),
+      ...teas.results.map(tea => ({ entityType: 'tea' as const, entityId: tea.id, before: tea, after: { ...tea, sample_set_id: null, sample_state: null, updated_at: now } })),
+    ];
+    const write = prepareCurateRecordedWrite(env.DB, ctx, { commandType: 'sample_set:app_archive', agent: 'Shop app', changes });
+    await env.DB.batch([...write.statements, write.assertion]);
+  } else await env.DB.batch([
+    env.DB.prepare('UPDATE tea_sample_sets SET archived = 1, updated_at = ? WHERE id = ? AND account_id = ?').bind(now, params.id, accountId),
+    env.DB.prepare('UPDATE tea_samples SET archived_at = ?, updated_at = ? WHERE set_id = ? AND account_id = ? AND archived_at IS NULL').bind(now, now, params.id, accountId),
+    env.DB.prepare('UPDATE tea_compass_entries SET sample_set_id = NULL, sample_state = NULL, updated_at = ? WHERE sample_set_id = ? AND account_id = ?').bind(now, params.id, accountId),
+  ]);
   return json({ success: true });
 };
 
@@ -22112,7 +22146,7 @@ const handleGetMySamples: Handler = async (request, env) => {
                 AND (tst.taster_id = ? OR tst.taster_id = ?)
             ) as last_tasted_at
      FROM tea_samples ts
-     WHERE ts.account_id = ?
+     WHERE ts.account_id = ? AND ts.archived_at IS NULL
        AND (
          ts.user_id = ?
          OR ts.id IN (
@@ -29799,6 +29833,16 @@ export default {
         console.error('Tea Atlas admin error:', err);
         return cors(json({ error: 'Not found' }, 404), corsOrigin);
       }
+    }
+
+    if (/^\/api\/curate\/(?:vendors\/[^/]+\/profile|quotes(?:\/[^/]+)?|attachments(?:\/[^/]+\/content)?|holdings|history|correct|undo|order)$/.test(url.pathname)) {
+      const ctx = await requireAccount(request, env);
+      if ('error' in ctx) return ctx.error;
+      const response = await handleCurateWorkspace(request, env, {
+        accountId: ctx.accountId, userId: ctx.userId, userEmail: ctx.email,
+        tokenId: `app:${ctx.userId}`, creatorTier: ctx.role,
+      });
+      return cors(response, corsOrigin);
     }
 
     const match = matchRoute(request.method, url.pathname, routes);

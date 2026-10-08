@@ -1,3 +1,6 @@
+import { CurateRecordTools } from '../curate/CurateRecordTools';
+import { hydrateCompassEntries } from '../../lib/teaCompassSync';
+import { StructuredTeaFields } from './StructuredTeaFields';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Droplets, Loader2, Minus, Plus, Sparkles } from 'lucide-react';
@@ -676,6 +679,14 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   // ── Guard: entry must exist (after all hooks) ─────────────────────────
 
   if (!entry) return null;
+
+  // A local capture ID is not proof that the record reached the server.
+  // Hydrated account ownership remains present while later edits are dirty.
+  const isPersistedRecord = entry.synced || Boolean((entry as TeaCompassEntry & { account_id?: string }).account_id);
+  const recordTools = isPersistedRecord ? <CurateRecordTools entityType="tea" entityId={entry.id} onChanged={() => {
+    const account = useTeaCompassStore.getState().accountScopeId;
+    if (account) void hydrateCompassEntries(account);
+  }} /> : null;
 
   const shellClass = 'surface-warm relative mx-auto w-full max-w-3xl space-y-2 px-3 md:px-5';
   // The capture itself stays tightly bounded; the owning mobile scroll region
@@ -1551,6 +1562,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         />
         </section>
 
+        {recordTools}
+
         <section className="curate-cluster curate-zone-notes space-y-1.5" data-testid="curate-cluster-notes" data-zone="notes">
         <FieldLabel>Notes</FieldLabel>
         <NoteThread
@@ -1799,6 +1812,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           )}
         </div>
       </section>
+
+      {entry.category === 'tea' && <StructuredTeaFields entry={entry} onChange={update} />}
+      {recordTools}
 
       {/* Duplicate nudge */}
       <AnimatePresence>

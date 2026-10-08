@@ -51,7 +51,6 @@ async function deepForest(db: SqliteD1) {
     tasting: { flavor: ['smoky'], feeling: ['calming'], finish: ['finish-dry'] },
     wants: 'considering', ships_by: 'sea',
     description: 'A calm, smoky shou with the soft depth of Hong Kong storage.',
-    note: 'Yee On has been in business for 70 years',
     said: 'I have this 2008 cooked puer I just got from Yee On Tea. A hundred dollars per hundred grams. Smoky, calming, slightly dry. Interested in buying. Call it Deep Forest. Ships by boat to Bali.',
   });
   return db.sqlite.prepare("SELECT * FROM tea_compass_entries WHERE name = '2008 Shou'").get() as R;
@@ -141,7 +140,8 @@ describe('"I want one kilo of it"', () => {
     const po = db.sqlite.prepare('SELECT * FROM purchase_orders').get() as R;
     expect(po).toMatchObject({ vendor_name: 'Yee On Tea', status: 'pending', display_currency: 'HKD', total_usd: 128.21 });
     expect(po.message_text).toMatch(/熟普洱/);
-    expect(po.notes).toMatch(/Landed about \$161\.52/);
+    expect(po.notes).toBeNull();
+    expect(JSON.parse(po.freight_estimate_json).landed_estimate_usd).toBeCloseTo(161.52, 2);
     expect(JSON.parse(po.items_json)[0]).toMatchObject({ product_name: 'Deep Forest', quantity_grams: 1000, compass_entry_id: tea.id });
 
     const arrival = db.sqlite.prepare('SELECT * FROM curate_receipt_proposals').get() as R;
@@ -185,7 +185,7 @@ describe('"I want one kilo of it"', () => {
 describe('import and export contacts stay out of the vendor list', () => {
   it('a freight forwarder is its own contact, tagged freight, not offered as a vendor', async () => {
     const db = makeDb();
-    await confirm(db, 'curate_save_vendor', { name: 'Bali Sea Cargo', role: 'freight', whatsapp: '+62 811', note: 'Handles the Guangzhou to Benoa boat' });
+    await confirm(db, 'curate_save_vendor', { name: 'Bali Sea Cargo', role: 'freight', whatsapp: '+62 811', route: 'Guangzhou to Benoa boat' });
     const row = db.sqlite.prepare("SELECT type, tags FROM customers WHERE name = 'Bali Sea Cargo'").get() as R;
     expect(row.type).toBe('logistics');
     expect(JSON.parse(row.tags)).toEqual(['freight']);

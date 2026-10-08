@@ -60,6 +60,6 @@ describe('Compass decision', () => {
       body: JSON.stringify({ id: 'no-inference', buy_quantity_grams: 100, status: 'in_stock', verdict: 'love' }),
     });
     expect(response.status).toBe(201);
-    expect((await response.json() as Record<string, unknown>).decision).toBeUndefined();
+    expect((await response.json() as Record<string, unknown>).decision).toBeNull();
   });
 });

@@ -1,0 +1,87 @@
+import { test, expect } from './fixtures';
+import { installCompassHarness, expectNoUnhandledCompassApi } from './helpers/compassHarness';
+
+test('vendor people, contact channels, addresses and quote lines stay structured', async ({ page }, testInfo) => {
+  await installCompassHarness(page, { compassEntries: [{ id: 'tea-1', vendor_id: 'vendor-1', name: 'LKY PE1', category: 'tea', type: 'Shou', status: 'noted', notes: '', photos: '[]', audio_clips: '[]', created_at: '2026-10-08', updated_at: '2026-10-08' }] });
+  const legacy = [{ channel: 'email', handle: 'kate@example.com' }, { channel: 'email', handle: 'info@example.com', label: 'Office' }];
+  let profile: any = { vendor_id: 'vendor-1', vendor_code: null, contact_people: [], addresses: [], contacts: legacy };
+  let quote: any = null;
+  const vendorWrites: any[] = [];
+  const quoteWrites: any[] = [];
+  await page.route('**/api/customers/vendor-1', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'vendor-1', name: 'Lam Kie Yuen', tags: ['vendor'], contacts: legacy }) }));
+  await page.route('**/api/customers/vendor-1/products', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+  await page.route('**/api/customers/vendor-1/supplied-products', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+  for (const path of ['purchase-orders', 'inventory/receipts*']) await page.route(`**/api/${path}`, route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+  await page.route('**/api/curate/vendors/vendor-1/profile', async route => {
+    if (route.request().method() === 'PUT') { const input = route.request().postDataJSON(); vendorWrites.push(input); profile = { ...profile, ...input }; }
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(profile) });
+  });
+  await page.route('**/api/curate/quotes*', async route => {
+    if (route.request().method() === 'POST') { const input = route.request().postDataJSON(); quoteWrites.push(input); quote = { ...input, id: 'quote-1' }; }
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(route.request().method() === 'POST' ? quote : quote ? [{ ...quote, lines: undefined }] : []) });
+  });
+  await page.route('**/api/curate/quotes/quote-1', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(quote) }));
+  await page.goto('/admin/vendors/vendor-1');
+  const vendor = page.getByTestId('curate-vendor-fields');
+  await vendor.locator('summary').click();
+  await expect(vendor.getByLabel('Contact 1 value')).toHaveValue('kate@example.com');
+  await expect(vendor.getByLabel('Contact 2 value')).toHaveValue('info@example.com');
+  await vendor.getByLabel('Vendor code').fill('LKY');
+  await vendor.getByRole('button', { name: 'Add contact person', exact: true }).click();
+  await vendor.getByLabel('Person 1 name').fill('Kate Ng');
+  await vendor.getByLabel('Person 1 title').fill('Assistant Sales & Marketing Manager');
+  await vendor.getByRole('button', { name: 'Add contact channel', exact: true }).click();
+  await vendor.getByLabel('Contact 3 channel').selectOption('fax');
+  await vendor.getByLabel('Contact 3 value').fill('+852 1234 5678');
+  await vendor.getByLabel('Contact 3 person').selectOption({ label: 'Kate Ng' });
+  await vendor.getByRole('button', { name: 'Add contact channel', exact: true }).click();
+  await vendor.getByLabel('Contact 4 channel').selectOption('facebook');
+  await vendor.getByLabel('Contact 4 value').fill('facebook.com/lamkieyuen');
+  await vendor.getByRole('button', { name: 'Add address', exact: true }).click();
+  await vendor.getByLabel('Address 1 label').fill('Office');
+  await vendor.getByLabel('Address 1 address').fill('Queen’s Road');
+  await vendor.getByLabel('Address 1 city').fill('Hong Kong');
+  await vendor.getByRole('button', { name: 'Save vendor details', exact: true }).click();
+  await expect(vendor.getByRole('status')).toHaveText('Vendor details saved');
+  expect(vendorWrites[0]).toMatchObject({ vendor_code: 'LKY', contacts_mode: 'replace', contact_people: [{ name: 'Kate Ng', title: 'Assistant Sales & Marketing Manager' }], addresses: [{ label: 'Office', address: 'Queen’s Road', city: 'Hong Kong' }] });
+  expect(vendorWrites[0].contacts.slice(0, 2)).toEqual(legacy);
+  expect(vendorWrites[0].contacts[2]).toMatchObject({ channel: 'fax', handle: '+852 1234 5678', person_id: vendorWrites[0].contact_people[0].id });
+
+  const quotes = page.getByTestId('curate-quotes-panel');
+  await quotes.locator('summary').first().click();
+  await quotes.getByRole('button', { name: 'New vendor quote', exact: true }).click();
+  await quotes.getByLabel('Quote reference').fill('LKY-2026');
+  await quotes.getByLabel('Issued to').fill('Adrian');
+  await quotes.getByLabel('Quote date').fill('2026-10-08');
+  await quotes.getByLabel('Validity (days)').fill('30');
+  await quotes.getByLabel('Minimum order amount').fill('100');
+  await quotes.getByLabel('Minimum order currency').fill('HKD');
+  await quotes.getByLabel('Payment terms').fill('Bank transfer');
+  await quotes.getByRole('button', { name: 'Add quote line', exact: true }).click();
+  await quotes.getByLabel('Line 1 tea').selectOption({ label: 'LKY PE1' });
+  await quotes.getByLabel('Line 1 vendor item').fill('PE1');
+  await quotes.getByLabel('Line 1 amount').fill('500');
+  await quotes.getByLabel('Line 1 currency').fill('HKD');
+  await quotes.getByLabel('Line 1 price unit').selectOption('grams');
+  await quotes.getByLabel('Line 1 unit weight (g)').fill('1000');
+  await quotes.getByLabel('Line 1 discount (%)').fill('25');
+  const routes = quotes.getByTestId('structured-tea-fields');
+  await routes.locator('summary').click();
+  await routes.getByRole('button', { name: 'Add route quote', exact: true }).click();
+  const route = routes.getByRole('group', { name: 'Route quote editor' });
+  await route.getByRole('combobox', { name: 'Route', exact: true }).selectOption('air');
+  await route.getByLabel('Quoted amount').fill('650');
+  await route.getByLabel('Quote currency').fill('HKD');
+  await route.getByRole('combobox', { name: 'Price basis', exact: true }).selectOption('kg');
+  await route.getByLabel('Basis quantity').fill('1');
+  await route.getByRole('combobox', { name: 'Price includes', exact: true }).selectOption('landed');
+  await route.getByRole('button', { name: 'Save route quote', exact: true }).click();
+  await quotes.getByRole('button', { name: 'Save vendor quote', exact: true }).click();
+  await expect(quotes.getByRole('status')).toHaveText('Vendor quote saved');
+  expect(quoteWrites[0]).toMatchObject({ vendor_id: 'vendor-1', reference: 'LKY-2026', validity_days: 30, minimum_order_amount: 100, currency: 'HKD', payment_terms: 'Bank transfer', lines: [{ compass_entry_id: 'tea-1', price_amount: 500, price_currency: 'HKD', price_per_unit_grams: 1000, discount_percent: 25, route_quotes: [{ mode: 'air', amount: 650, currency: 'HKD', basis: 'kg', basis_quantity: 1, price_kind: 'landed' }] }] });
+  expect(quoteWrites[0]).not.toHaveProperty('notes');
+  await quotes.getByLabel('Line 1 amount').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `/tmp/teajia-vendor-quote-${testInfo.project.name.replace(/ /g, '-')}.png`, fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await expectNoUnhandledCompassApi(page);
+});

@@ -290,9 +290,12 @@ export type ContactRelationshipKind =
   | 'contributor'
   | 'personal_connection';
 
-export type ContactChannel = 'phone' | 'email' | 'whatsapp' | 'wechat' | 'line' | 'instagram' | 'telegram' | 'signal' | 'other';
+export type ContactChannel = 'phone' | 'email' | 'whatsapp' | 'wechat' | 'line' | 'instagram' | 'telegram' | 'signal' | 'fax' | 'facebook' | 'website' | 'other';
 
 export interface ContactEntry {
+  id?: string;
+  label?: string;
+  person_id?: string;
   channel: ContactChannel;
   handle: string;
 }

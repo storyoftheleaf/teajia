@@ -1041,6 +1041,14 @@ CREATE TABLE IF NOT EXISTS tea_compass_entries (
   decision TEXT CHECK (decision IS NULL OR decision IN ('considering', 'selected', 'passed_on')),
   sample_state TEXT CHECK (sample_state IS NULL OR sample_state IN ('requested', 'received', 'tasted')),
   sample_set_id TEXT REFERENCES tea_sample_sets(id),
+  age_quoted TEXT,
+  grade TEXT,
+  pack_size_grams REAL CHECK (pack_size_grams IS NULL OR pack_size_grams > 0),
+  pack_size_label TEXT,
+  vendor_item_number TEXT,
+  discount_percent REAL CHECK (discount_percent IS NULL OR discount_percent BETWEEN 0 AND 100),
+  quote_id TEXT REFERENCES curate_quotes(id),
+  route_quotes TEXT,
   journey_id TEXT,
   visit_id TEXT,
   import_item_id TEXT,
@@ -1093,6 +1101,7 @@ CREATE TABLE IF NOT EXISTS tea_samples (
   set_id TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'untasted',
   grams REAL NOT NULL DEFAULT 10,
+  grams_known INTEGER NOT NULL DEFAULT 1 CHECK (grams_known IN (0,1)),
   notes TEXT,
   photos TEXT DEFAULT '[]',
   account_id TEXT,
@@ -1100,7 +1109,8 @@ CREATE TABLE IF NOT EXISTS tea_samples (
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   created_by TEXT NOT NULL DEFAULT 'admin',
-  user_id TEXT
+  user_id TEXT,
+  archived_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS tea_sample_tastings (
@@ -2367,6 +2377,7 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
   status TEXT NOT NULL DEFAULT 'pending',
   message_text TEXT,
   notes TEXT,
+  freight_estimate_json TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -2773,6 +2784,9 @@ CREATE TABLE IF NOT EXISTS curate_vendor_profiles (
   ships_from TEXT,
   route TEXT,
   lead_time_days INTEGER,
+  vendor_code TEXT,
+  contact_people TEXT,
+  addresses TEXT,
   updated_by_agent TEXT,
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -2828,3 +2842,93 @@ CREATE TABLE IF NOT EXISTS curate_drive_files (
   UNIQUE (account_id, compass_entry_id, photo_url)
 );
 CREATE INDEX IF NOT EXISTS idx_curate_drive_files_entry ON curate_drive_files(account_id, compass_entry_id);
+
+CREATE TABLE IF NOT EXISTS curate_quotes (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  vendor_id TEXT NOT NULL REFERENCES customers(id),
+  reference TEXT,
+  issued_to TEXT,
+  quote_date TEXT,
+  validity_days INTEGER CHECK (validity_days IS NULL OR validity_days >= 0),
+  valid_until TEXT,
+  minimum_order_amount REAL CHECK (minimum_order_amount IS NULL OR minimum_order_amount >= 0),
+  currency TEXT,
+  payment_terms TEXT,
+  created_by_user_id TEXT NOT NULL,
+  created_by_agent TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  archived_at TEXT,
+  CHECK ((minimum_order_amount IS NULL) = (currency IS NULL))
+);
+CREATE INDEX idx_curate_quotes_vendor ON curate_quotes(account_id, vendor_id, archived_at);
+CREATE TABLE IF NOT EXISTS curate_quote_lines (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  quote_id TEXT NOT NULL REFERENCES curate_quotes(id),
+  compass_entry_id TEXT NOT NULL REFERENCES tea_compass_entries(id),
+  vendor_item_number TEXT,
+  price_amount REAL CHECK (price_amount IS NULL OR price_amount >= 0),
+  price_currency TEXT,
+  price_per_unit_grams REAL CHECK (price_per_unit_grams IS NULL OR price_per_unit_grams > 0),
+  discount_percent REAL CHECK (discount_percent IS NULL OR discount_percent BETWEEN 0 AND 100),
+  route_quotes TEXT,
+  archived_at TEXT,
+  CHECK ((price_amount IS NULL) = (price_currency IS NULL))
+);
+CREATE INDEX idx_curate_quote_lines_quote ON curate_quote_lines(account_id, quote_id);
+
+-- Private evidence. Nothing here copies business documents into public media.
+CREATE TABLE IF NOT EXISTS curate_media_assets (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  object_key TEXT NOT NULL UNIQUE,
+  filename TEXT NOT NULL,
+  mime_type TEXT NOT NULL,
+  size_bytes INTEGER NOT NULL,
+  sha256 TEXT NOT NULL,
+  state TEXT NOT NULL DEFAULT 'attached',
+  created_by_user_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  deleted_at TEXT,
+  UNIQUE(account_id, id)
+);
+CREATE TABLE IF NOT EXISTS curate_attachments (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  asset_id TEXT NOT NULL,
+  entity_type TEXT NOT NULL CHECK(entity_type IN ('tea','vendor','arrival','quote')),
+  entity_id TEXT NOT NULL,
+  role TEXT NOT NULL CHECK(role IN ('leaf','liquor','wrapper','label','pricelist','businesscard','source_document')),
+  position INTEGER NOT NULL DEFAULT 0,
+  created_by_user_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  deleted_at TEXT,
+  FOREIGN KEY(account_id, asset_id) REFERENCES curate_media_assets(account_id, id)
+);
+CREATE INDEX IF NOT EXISTS idx_curate_attachment_entity ON curate_attachments(account_id,entity_type,entity_id,deleted_at);
+
+-- Correcting a Curate record never destroys its provenance or physical holdings.
+ALTER TABLE tea_compass_entries ADD COLUMN archived_at TEXT;
+ALTER TABLE tea_compass_entries ADD COLUMN deleted_at TEXT;
+ALTER TABLE tea_compass_entries ADD COLUMN merged_into_id TEXT;
+ALTER TABLE customers ADD COLUMN archived_at TEXT;
+ALTER TABLE customers ADD COLUMN deleted_at TEXT;
+ALTER TABLE customers ADD COLUMN merged_into_id TEXT;
+ALTER TABLE curate_todos ADD COLUMN deleted_at TEXT;
+CREATE TABLE curate_mutations (
+ id TEXT PRIMARY KEY, account_id TEXT NOT NULL, command_type TEXT NOT NULL,
+ actor_user_id TEXT NOT NULL, actor_token_id TEXT, agent_name TEXT,
+ confirmed_at TEXT NOT NULL, undo_of TEXT, idempotency_key TEXT NOT NULL,
+ guards_json TEXT NOT NULL DEFAULT '[]',
+ UNIQUE(account_id, idempotency_key)
+);
+CREATE TABLE curate_mutation_records (
+ mutation_id TEXT NOT NULL REFERENCES curate_mutations(id), account_id TEXT NOT NULL,
+ entity_type TEXT NOT NULL, entity_id TEXT NOT NULL,
+ before_json TEXT NOT NULL, after_json TEXT NOT NULL,
+ PRIMARY KEY(mutation_id, entity_type, entity_id)
+);
+CREATE INDEX idx_curate_mutations_history ON curate_mutations(account_id, confirmed_at DESC);
+CREATE INDEX idx_curate_mutation_records_entity ON curate_mutation_records(account_id, entity_type, entity_id);

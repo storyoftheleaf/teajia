@@ -1,3 +1,7 @@
+import { prepareCurateRecordedWrite, requireCurateManager } from '../curateMutations';
+import { COMPASS_STRUCTURED_COLUMNS, readCompassStructuredPatch, readVendorStructuredPatch, mergeVendorContacts, type VendorStructuredFields, type VendorContactEndpoint } from '../../../src/lib/curateStructuredFields';
+import { prepareVendorStructuredProfileWrite, readVendorStructuredProfile } from '../curateVendorProfile';
+import { validateCompassQuoteLink } from '../curateQuotes';
 import { prepareCompassSampleWrite } from '../curateSampleBridge';
 /**
  * Curate for agents: the same sourcing work the app does, reachable from
@@ -148,8 +152,13 @@ const WANTS: Record<string, { decision: string; status: string; said: string }> 
 
 /** The tea fields an agent may set, read into compass column values. */
 function readTeaFields(args: any, label: string): { values: Record<string, unknown>; price: QuotedPrice | null; lines: string[] } {
-  const values: Record<string, unknown> = {};
-  const lines: string[] = [];
+  if (str(args?.note, 8000)) throw new Error('Agent notes are disabled: build or use the structured field for this information');
+  const allowed = new Set([...Object.keys(TEA_FIELD_PROPS), ...Object.keys(FILING_PROPS), 'name', 'tea_id', 'clear']);
+  const unknown = Object.keys(args ?? {}).find(key => !allowed.has(key));
+  if (unknown) throw new Error(`${unknown} has no structured tea field`);
+  const structured = readCompassStructuredPatch(args ?? {}, refreshedCurrencyName);
+  const values: Record<string, unknown> = Object.fromEntries(Object.entries(structured).map(([key, value]) => [key, key === 'route_quotes' ? JSON.stringify(value) : value]));
+  const lines: string[] = Object.entries(structured).map(([key, value]) => `${key}: ${value === null ? '(cleared)' : JSON.stringify(value)}`);
   const simple: Array<[string, string, number]> = [
     ['name', 'name', 300], ['chinese_name', 'Chinese name', 200], ['type', 'type', 80],
     ['form', 'form', 80], ['season', 'season', 40], ['storage', 'storage', 80],
@@ -244,7 +253,7 @@ function isVendorRow(row: Pick<VendorRow, 'tags' | 'type'>): boolean {
   return /vendor/i.test(row.tags ?? '') || row.type === 'vendor' || row.type === 'supplier';
 }
 
-type ContactLike = { channel?: string; handle?: string; type?: string; value?: string; label?: string };
+type ContactLike = { id?: string; person_id?: string; channel?: string; handle?: string; type?: string; value?: string; label?: string };
 
 /** Contacts as the admin reads them ({channel, handle}), tolerating the older {type, value} rows. */
 function readContacts(raw: unknown): ContactLike[] {
@@ -274,13 +283,13 @@ function vendorReach(row: VendorRow) {
 
 async function findVendors(env: ToolEnv, auth: ToolAuth, name: string): Promise<VendorRow[]> {
   const rows = await env.DB.prepare(
-    `SELECT ${VENDOR_COLUMNS} FROM customers WHERE account_id = ? AND LOWER(TRIM(name)) = LOWER(TRIM(?))`
+    `SELECT ${VENDOR_COLUMNS} FROM customers WHERE account_id = ? AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL AND LOWER(TRIM(name)) = LOWER(TRIM(?))`
   ).bind(auth.accountId, name).all<VendorRow>();
   return rows.results ?? [];
 }
 
 export async function vendorById(env: ToolEnv, auth: ToolAuth, id: string): Promise<VendorRow | null> {
-  return env.DB.prepare(`SELECT ${VENDOR_COLUMNS} FROM customers WHERE id = ? AND account_id = ?`)
+  return env.DB.prepare(`SELECT ${VENDOR_COLUMNS} FROM customers WHERE id = ? AND account_id = ? AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL`)
     .bind(id, auth.accountId).first<VendorRow>();
 }
 
@@ -335,11 +344,12 @@ function newVendorStatements(env: ToolEnv, auth: ToolAuth, id: string, name: str
 
 /** What the shop knows about how a vendor works. Every field optional; only what is sent changes. */
 export type VendorProfileWrite = {
-  price_currency?: string; storage?: string; story?: string; ships_from?: string; route?: string; lead_time_days?: number;
+  price_currency?: string | null; storage?: string | null; story?: string | null; ships_from?: string | null; route?: string | null; lead_time_days?: number | null;
 };
 
 function readVendorProfile(args: any, lines: string[]): VendorProfileWrite {
   const profile: VendorProfileWrite = {};
+  if (args?.price_currency === null) { profile.price_currency = null; lines.push('price currency: (cleared)'); }
   const typed = str(args?.price_currency, 20);
   if (typed) {
     if (/^unk$/i.test(typed)) throw new Error("'UNK' is not a currency");
@@ -350,10 +360,13 @@ function readVendorProfile(args: any, lines: string[]): VendorProfileWrite {
   }
   for (const [key, word] of [['storage', 'stores tea'], ['ships_from', 'ships from'], ['route', 'route home']] as const) {
     const v = str(args?.[key], 500);
-    if (v) { profile[key] = v; lines.push(`${word}: ${v}`); }
+    if (args?.[key] === null) { profile[key] = null; lines.push(`${word}: (cleared)`); }
+    else if (v) { profile[key] = v; lines.push(`${word}: ${v}`); }
   }
   const story = str(args?.story, 2000);
+  if (args?.story === null) { profile.story = null; lines.push('story: (cleared)'); }
   if (story) { profile.story = story; lines.push(`their story: ${story}`); }
+  if (args?.lead_time_days === null) { profile.lead_time_days = null; lines.push('lead time: (cleared)'); }
   if (args?.lead_time_days != null && args.lead_time_days !== '') {
     const days = Number(args.lead_time_days);
     if (!Number.isInteger(days) || days < 0) throw new Error('lead_time_days must be a whole number of days');
@@ -361,32 +374,6 @@ function readVendorProfile(args: any, lines: string[]): VendorProfileWrite {
     lines.push(`takes about ${days} days to arrive`);
   }
   return profile;
-}
-
-async function writeVendorProfile(env: ToolEnv, auth: ToolAuth, vendorId: string, p: VendorProfileWrite, agent: string) {
-  if (!Object.keys(p).length) return;
-  const current = await env.DB.prepare('SELECT * FROM curate_vendor_profiles WHERE vendor_id = ? AND account_id = ?')
-    .bind(vendorId, auth.accountId).first<Record<string, any>>();
-  // The story grows: a new fact is added under what is already known, dated.
-  const story = p.story
-    ? (current?.story ? `${current.story}\n${datedLine(agent, p.story)}` : datedLine(agent, p.story))
-    : current?.story ?? null;
-  const merged = {
-    price_currency: p.price_currency ?? current?.price_currency ?? null,
-    storage: p.storage ?? current?.storage ?? null,
-    story,
-    ships_from: p.ships_from ?? current?.ships_from ?? null,
-    route: p.route ?? current?.route ?? null,
-    lead_time_days: p.lead_time_days ?? current?.lead_time_days ?? null,
-  };
-  await env.DB.prepare(
-    `INSERT INTO curate_vendor_profiles (vendor_id, account_id, price_currency, storage, story, ships_from, route, lead_time_days, updated_by_agent, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-     ON CONFLICT(vendor_id) DO UPDATE SET price_currency = excluded.price_currency, storage = excluded.storage, story = excluded.story,
-       ships_from = excluded.ships_from, route = excluded.route, lead_time_days = excluded.lead_time_days,
-       updated_by_agent = excluded.updated_by_agent, updated_at = excluded.updated_at
-     WHERE curate_vendor_profiles.account_id = excluded.account_id`
-  ).bind(vendorId, auth.accountId, merged.price_currency, merged.storage, merged.story, merged.ships_from, merged.route, merged.lead_time_days, agent).run();
 }
 
 async function ensureVendorRelationship(env: ToolEnv, auth: ToolAuth, customerId: string) {
@@ -424,10 +411,16 @@ export function datedLine(agent: string, text: string): string {
 
 export type EntryRow = Record<string, any> & { id: string; name: string | null };
 
-export async function entryById(env: ToolEnv, auth: ToolAuth, id: string): Promise<EntryRow | null> {
-  return env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ? AND user_id = ?')
-    .bind(id, auth.accountId, auth.userId).first<EntryRow>();
+export async function curateManagerAccess(env: ToolEnv, auth: Pick<ToolAuth, 'accountId' | 'userId'>): Promise<boolean> {
+  try { await requireCurateManager(env.DB, auth); return true; } catch { return false; }
 }
+const ACTIVE_TEAS = 'deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL';
+export async function entryById(env: ToolEnv, auth: ToolAuth, id: string): Promise<EntryRow | null> {
+  const manager = await curateManagerAccess(env, auth);
+  return env.DB.prepare(`SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ? AND ${ACTIVE_TEAS} ${manager ? '' : 'AND user_id = ?'}`)
+    .bind(id, auth.accountId, ...(manager ? [] : [auth.userId])).first<EntryRow>();
+}
+
 
 /** What a Curate tea is still missing, most important first: cost, then where it is from. */
 export function teaMissing(e: Record<string, any>): string[] {
@@ -477,6 +470,7 @@ function teaSummary(e: Record<string, any>) {
     status: e.status ?? null,
     decision: e.decision ?? null,
     sample_state: e.sample_state ?? null,
+    ...Object.fromEntries(COMPASS_STRUCTURED_COLUMNS.map(key => [key, key === 'route_quotes' ? parseJson(e[key], []) : e[key] ?? null])),
     missing,
   };
 }
@@ -507,8 +501,8 @@ type AddTeaTicket = { kind: 'curate:add_tea'; accountId: string; userId: string;
 type UpdateTeaTicket = { kind: 'curate:update_tea'; accountId: string; userId: string; entryId: string; write: TeaWrite };
 type SaveVendorTicket = {
   kind: 'curate:save_vendor'; accountId: string; vendorId: string | null; name: string; agent: string;
-  rename: string | null; columns: Record<string, string>; contacts: Array<{ channel: string; handle: string; label?: string }>;
-  note: string | null; role: ContactRole; profile: VendorProfileWrite;
+  rename: string | null; columns: Record<string, string | null>; contacts: Array<{ channel: string; handle: string; label?: string }>;
+  note: string | null; role: ContactRole; profile: VendorProfileWrite; structured?: VendorStructuredFields; clear?: string[];
 };
 type PickTicket = {
   kind: 'curate:pick'; accountId: string; userId: string; agent: string;
@@ -518,9 +512,10 @@ type CurateTicket = AddTeaTicket | UpdateTeaTicket | SaveVendorTicket | PickTick
 
 const CLEARABLE = new Set(['chinese_name', 'type', 'form', 'season', 'storage', 'origin_country', 'origin_region',
   'cultivar', 'description', 'year', 'era', 'price', 'vendor', 'teaware_category', 'material', 'capacity_ml',
-  'shop_name', 'transport_mode']);
+  'shop_name', 'transport_mode', 'note', 'notes', ...COMPASS_STRUCTURED_COLUMNS]);
 
 function readTeaWrite(args: any, label: string, vendor: VendorPlan | null): { write: TeaWrite; lines: string[] } {
+  if (str(args?.vendor_note, 4000)) throw new Error('Agent vendor notes are disabled: use a structured vendor field');
   const fields = readTeaFields(args, label);
   const tasting = readTasting(args);
   const clear = Array.isArray(args?.clear) ? args.clear.map((c: unknown) => String(c)) : [];
@@ -570,109 +565,75 @@ function readTeaWrite(args: any, label: string, vendor: VendorPlan | null): { wr
 }
 
 async function commitTeaWrite(env: ToolEnv, auth: ToolAuth, entryId: string, w: TeaWrite, isNew: boolean) {
+  if (w.note || w.vendorNote) throw new Error('Agent notes are disabled; preview structured fields instead');
+  await requireCurateManager(env.DB, auth);
   const vendor = await resolveVendorAtCommit(env, auth, w.vendor, w.agent);
-  const values: Record<string, unknown> = { ...w.values };
-  if (vendor) { values.vendor_id = vendor.id; values.vendor_name = vendor.name; }
-  for (const c of w.clear) {
-    if (c === 'price') { values.price_amount = null; values.price_currency = null; values.price_per_unit_grams = null; }
-    else if (c === 'vendor') { values.vendor_id = null; values.vendor_name = null; }
-    else values[c] = null;
-  }
   const current = isNew ? null : await entryById(env, auth, entryId);
-  if (!isNew && !current) throw new Error('That tea is no longer in Curate.');
+  if (!isNew && !current) throw new Error('That tea is no longer active in Curate.');
+  const values: Record<string, unknown> = { ...w.values };
+  if (vendor) Object.assign(values, { vendor_id: vendor.id, vendor_name: vendor.name });
+  for (const field of w.clear) {
+    if (field === 'price') Object.assign(values, { price_amount: null, price_currency: null, price_per_unit_grams: null });
+    else if (field === 'vendor') Object.assign(values, { vendor_id: null, vendor_name: null });
+    else values[field === 'note' ? 'notes' : field] = field === 'route_quotes' ? '[]' : null;
+  }
   if (w.sample) values.sample_state = w.sampleState ?? current?.sample_state ?? 'requested';
-  if (w.photos !== undefined) {
-    const existing = parseJson<string[]>(current?.photos, []);
-    values.photos = JSON.stringify(w.photosMode === 'replace' ? w.photos : [...new Set([...existing, ...w.photos])]);
+  if (w.photos !== undefined) values.photos = JSON.stringify(w.photosMode === 'replace' ? w.photos : [...new Set([...parseJson<string[]>(current?.photos, []), ...w.photos])]);
+  if (w.tasting || w.score != null) {
+    const tasting = w.tasting ? mergeProductTasting(current?.tasting, w.tasting).next : readStoredTasting(current?.tasting);
+    if (w.score != null) tasting.quality = w.score;
+    values.tasting = JSON.stringify(tasting);
   }
-  let postWrite: Record<string, any> = { ...current, ...values, id: entryId, account_id: auth.accountId, user_id: auth.userId };
-
-  const statements: D1PreparedStatement[] = [];
-  if (isNew) {
-    const row: Record<string, unknown> = {
-      category: 'tea',
-      status: 'noted',
-      // Named so the table's DEFAULT 'NT' cannot answer for a price nobody gave.
-      price_amount: null, price_currency: null, price_per_unit_grams: null,
-      photos: '[]', audio_clips: '[]',
-      ...values,
-    };
-    if (w.tasting || w.score != null) {
-      const merged = w.tasting ? mergeProductTasting(null, w.tasting).next : {};
-      if (w.score != null) merged.quality = w.score;
-      row.tasting = JSON.stringify(merged);
-    }
-    postWrite = { ...postWrite, ...row };
-    const cols = Object.keys(row);
-    statements.push(env.DB.prepare(
-      `INSERT INTO tea_compass_entries (id, user_id, account_id, ${cols.join(', ')}, created_at, updated_at)
-       VALUES (?, ?, ?, ${cols.map(() => '?').join(', ')}, datetime('now'), datetime('now'))`
-    ).bind(entryId, auth.userId, auth.accountId, ...cols.map(c => row[c])));
-  } else {
-    if (!current) throw new Error('That tea is no longer in Curate.');
-    if (w.tasting || w.score != null) {
-      const merged = w.tasting ? mergeProductTasting(current.tasting, w.tasting).next : readStoredTasting(current.tasting);
-      if (w.score != null) merged.quality = w.score;
-      values.tasting = JSON.stringify(merged);
-    }
-    postWrite = { ...postWrite, ...values };
-    const cols = Object.keys(values);
-    if (cols.length) {
-      statements.push(env.DB.prepare(
-        `UPDATE tea_compass_entries SET ${cols.map(c => `${c} = ?`).join(', ')}, updated_at = datetime('now')
-         WHERE id = ? AND account_id = ? AND user_id = ?`
-      ).bind(...cols.map(c => values[c]), entryId, auth.accountId, auth.userId));
-    }
-  }
-  if (postWrite.sample_state) {
-    const bridge = await prepareCompassSampleWrite(env.DB, auth, postWrite, { entryId, state: w.tasting || w.score != null ? 'tasted' : values.sample_state as any, grams: w.sampleGrams });
-    statements.push(...bridge.statements);
-  }
-  const author = `Adrian (via ${w.agent})`;
+  const now = new Date().toISOString();
+  let after: Record<string, any> = {
+    ...(current ?? { category: 'tea', status: 'noted', price_amount: null, price_currency: null, price_per_unit_grams: null, photos: '[]', audio_clips: '[]', created_at: now }),
+    ...values, id: entryId, account_id: auth.accountId, user_id: current?.user_id ?? auth.userId, updated_at: now,
+  };
+  await validateCompassQuoteLink(env.DB, auth.accountId, after);
+  let changes: Parameters<typeof prepareCurateRecordedWrite>[2]['changes'] = [];
+  let guards: NonNullable<Parameters<typeof prepareCurateRecordedWrite>[2]['guards']> = [];
+  if (after.sample_state) {
+    const bridge = await prepareCompassSampleWrite(env.DB, { accountId: auth.accountId, userId: after.user_id }, after, {
+      entryId, state: w.tasting || w.score != null ? 'tasted' : values.sample_state as any, grams: w.sampleGrams,
+    });
+    changes = bridge.changes;
+    after = bridge.teaAfter;
+    guards = (bridge as typeof bridge & { guards?: typeof guards }).guards ?? [];
+  } else changes.push({ entityType: 'tea', entityId: entryId, before: current, after });
   if (w.said) {
-    statements.push(env.DB.prepare(
-      `INSERT INTO notes (id, account_id, compass_entry_id, text, source_type, author_id, author_name, visibility, created_at)
-       VALUES (?, ?, ?, ?, 'voice', ?, ?, 'private', datetime('now'))`
-    ).bind(crypto.randomUUID(), auth.accountId, entryId, w.said, auth.userId, author));
-  }
-  if (w.note) {
-    statements.push(env.DB.prepare(
-      `INSERT INTO notes (id, account_id, compass_entry_id, text, source_type, author_id, author_name, visibility, created_at)
-       VALUES (?, ?, ?, ?, 'manual', ?, ?, 'private', datetime('now'))`
-    ).bind(crypto.randomUUID(), auth.accountId, entryId, w.note, auth.userId, author));
-  }
-  const vendorIdForExtras = vendor?.id ?? (isNew ? null : (await entryById(env, auth, entryId))?.vendor_id ?? null);
-  if (w.vendorNote) {
-    if (!vendorIdForExtras) throw new Error('vendor_note needs the tea to have a vendor. Pass vendor_name or vendor_id too.');
-    statements.push(env.DB.prepare(
-      `UPDATE customers SET notes = CASE WHEN notes IS NULL OR notes = '' THEN ? ELSE notes || char(10) || ? END,
-         updated_at = datetime('now') WHERE id = ? AND account_id = ?`
-    ).bind(datedLine(w.agent, w.vendorNote), datedLine(w.agent, w.vendorNote), vendorIdForExtras, auth.accountId));
+    const id = crypto.randomUUID();
+    changes.push({ entityType: 'transcript', entityId: id, before: null, after: {
+      id, account_id: auth.accountId, compass_entry_id: entryId, text: w.said, source_type: 'voice',
+      author_id: auth.userId, author_name: `Adrian (via ${w.agent})`, visibility: 'private', created_at: now,
+    } });
   }
   if (w.todo) {
-    statements.push(env.DB.prepare(
-      `INSERT INTO curate_todos (id, account_id, created_by_user_id, text, compass_entry_id, vendor_id, from_agent)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).bind(crypto.randomUUID(), auth.accountId, auth.userId, w.todo, entryId, vendorIdForExtras, w.agent));
+    const id = crypto.randomUUID();
+    changes.push({ entityType: 'todo', entityId: id, before: null, after: {
+      id, account_id: auth.accountId, created_by_user_id: auth.userId, text: w.todo,
+      compass_entry_id: entryId, vendor_id: after.vendor_id ?? null, from_agent: w.agent, created_at: now,
+    } });
   }
-  if (statements.length) await env.DB.batch(statements);
-  const after = await entryById(env, auth, entryId);
-  return { committed: true, tea: after ? teaSummary(after) : { id: entryId } };
+  const recorded = prepareCurateRecordedWrite(env.DB, auth, { commandType: isNew ? 'tea:create' : 'tea:update', agent: w.agent, changes, guards });
+  await env.DB.batch([...recorded.statements, recorded.assertion]);
+  const row = await entryById(env, auth, entryId);
+  return { committed: true, mutation_id: recorded.mutationId, tea: row ? teaSummary(row) : { id: entryId } };
 }
 
 // ── Tool: curate_find ─────────────────────────────────────────────────────────
 
 const toolFind: ToolHandler = async (env, auth, args) => {
+  const manager = await curateManagerAccess(env, auth);
   const q = str(args?.query, 120);
   const limit = Math.min(Math.max(Number(args?.limit) || 20, 1), 50);
   const like = q ? `%${q.toLowerCase()}%` : null;
   const teas = await env.DB.prepare(
-    `SELECT * FROM tea_compass_entries WHERE account_id = ? AND user_id = ?
+    `SELECT * FROM tea_compass_entries WHERE account_id = ? AND ${ACTIVE_TEAS} ${manager ? '' : 'AND user_id = ?'}
        ${like ? 'AND (LOWER(COALESCE(name, \'\')) LIKE ? OR LOWER(COALESCE(chinese_name, \'\')) LIKE ? OR LOWER(COALESCE(vendor_name, \'\')) LIKE ?)' : ''}
      ORDER BY updated_at DESC LIMIT ?`
-  ).bind(auth.accountId, auth.userId, ...(like ? [like, like, like] : []), limit).all<EntryRow>();
+  ).bind(auth.accountId, ...(manager ? [] : [auth.userId]), ...(like ? [like, like, like] : []), limit).all<EntryRow>();
   const vendors = await env.DB.prepare(
-    `SELECT ${VENDOR_COLUMNS} FROM customers WHERE account_id = ?
+    `SELECT ${VENDOR_COLUMNS} FROM customers WHERE account_id = ? AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL
        AND (tags LIKE '%vendor%' OR type IN ('vendor', 'supplier'))
        ${like ? 'AND (LOWER(name) LIKE ? OR LOWER(COALESCE(company, \'\')) LIKE ?)' : ''}
      ORDER BY updated_at DESC LIMIT ?`
@@ -739,12 +700,13 @@ const toolGetTea: ToolHandler = async (env, auth, args) => {
 
 const toolWhatsMissing: ToolHandler = async (env, auth, args) => {
   const limit = Math.min(Math.max(Number(args?.limit) || 15, 1), 50);
+  const manager = await curateManagerAccess(env, auth);
   const teas = await env.DB.prepare(
-    `SELECT * FROM tea_compass_entries WHERE account_id = ? AND user_id = ?
+    `SELECT * FROM tea_compass_entries WHERE account_id = ? AND ${ACTIVE_TEAS} ${manager ? '' : 'AND user_id = ?'}
        AND COALESCE(status, 'noted') NOT IN ${CLOSED_STATUSES}
        AND COALESCE(decision, '') != 'passed_on'
      ORDER BY updated_at DESC`
-  ).bind(auth.accountId, auth.userId).all<EntryRow>();
+  ).bind(auth.accountId, ...(manager ? [] : [auth.userId])).all<EntryRow>();
   const teaGaps = (teas.results ?? [])
     .map(e => ({ e, missing: teaMissing(e) }))
     .filter(x => x.missing.length > 0);
@@ -793,6 +755,7 @@ const toolWhatsMissing: ToolHandler = async (env, auth, args) => {
 // ── Tool: curate_add_tea ──────────────────────────────────────────────────────
 
 const toolAddTea: ToolHandler = async (env, auth, args) => {
+  assertKnownToolInput('curate_add_tea', args);
   const confirm = str(args?.confirm, 100);
   if (confirm) {
     const t = await consumeTicket<CurateTicket, 'curate:add_tea'>(env, confirm, 'curate:add_tea', auth);
@@ -804,9 +767,10 @@ const toolAddTea: ToolHandler = async (env, auth, args) => {
   const vendor = await planVendor(env, auth, str(args?.vendor_id, 80), str(args?.vendor_name, 200));
   const { write, lines } = readTeaWrite(args, name, vendor);
   write.values.name = name;
+  const manager = await curateManagerAccess(env, auth);
   const same = await env.DB.prepare(
-    `SELECT id, name, vendor_name FROM tea_compass_entries WHERE account_id = ? AND user_id = ? AND LOWER(TRIM(name)) = LOWER(TRIM(?)) LIMIT 5`
-  ).bind(auth.accountId, auth.userId, name).all();
+    `SELECT id, name, vendor_name FROM tea_compass_entries WHERE account_id = ? AND ${ACTIVE_TEAS} ${manager ? '' : 'AND user_id = ?'} AND LOWER(TRIM(name)) = LOWER(TRIM(?)) LIMIT 5`
+  ).bind(auth.accountId, ...(manager ? [] : [auth.userId]), name).all();
   const entryId = crypto.randomUUID();
   const ticket: AddTeaTicket = { kind: 'curate:add_tea', accountId: auth.accountId, userId: auth.userId, entryId, write };
   const token = await issueTicket(env, ticket, auth.tokenId);
@@ -822,6 +786,7 @@ const toolAddTea: ToolHandler = async (env, auth, args) => {
 // ── Tool: curate_update_tea ───────────────────────────────────────────────────
 
 const toolUpdateTea: ToolHandler = async (env, auth, args) => {
+  assertKnownToolInput('curate_update_tea', args);
   const confirm = str(args?.confirm, 100);
   if (confirm) {
     const t = await consumeTicket<CurateTicket, 'curate:update_tea'>(env, confirm, 'curate:update_tea', auth);
@@ -853,13 +818,27 @@ const VENDOR_TEXT_COLUMNS: Array<[string, string, number]> = [
   ['address', 'address', 500], ['city', 'city', 200], ['country', 'country', 100],
 ];
 
+const VENDOR_CLEARABLE = new Set([
+  ...VENDOR_TEXT_COLUMNS.map(([key]) => key), 'wechat', 'website', 'instagram', 'fax', 'facebook',
+  'vendor_code', 'contact_people', 'addresses', 'contacts', 'price_currency', 'storage', 'story',
+  'ships_from', 'route', 'lead_time_days', 'note', 'vendor_note', 'notes',
+]);
+const VENDOR_CLEAR_CHANNELS = new Set(['phone','email','whatsapp','wechat','website','instagram','fax','facebook']);
+
 const toolSaveVendor: ToolHandler = async (env, auth, args) => {
+  assertKnownToolInput('curate_save_vendor', args);
   const confirm = str(args?.confirm, 100);
   if (confirm) {
     const t = await consumeTicket<CurateTicket, 'curate:save_vendor'>(env, confirm, 'curate:save_vendor', auth);
     if (!t) return INVALID_TICKET;
     return commitSaveVendor(env, auth, t);
   }
+  const clear: string[] = Array.isArray(args?.clear) ? args.clear.map(String) : [];
+  if (args?.clear !== undefined && !Array.isArray(args.clear)) throw new Error('clear must be a field list');
+  for (const field of clear) if (!VENDOR_CLEARABLE.has(field)) throw new Error(`${field} cannot be cleared on a vendor`);
+  const rawArgs = args;
+  args = { ...args };
+  for (const field of clear) args[field] = ['contact_people','addresses','contacts'].includes(field) ? [] : null;
   const vendorId = str(args?.vendor_id, 80);
   const name = str(args?.name, 200);
   if (!vendorId && !name) throw new Error('name is required (or vendor_id to change an existing vendor). A name is all a vendor needs.');
@@ -874,23 +853,32 @@ const toolSaveVendor: ToolHandler = async (env, auth, args) => {
     if (same.length > 1) throw new Error(`More than one ${ROLE_WORD[role]} is called "${name}": ${same.map(v => v.id).join(', ')}. Pass vendor_id instead.`);
     existing = same[0] ?? null;
   }
-  const columns: Record<string, string> = {};
-  const lines: string[] = [];
+  const columns: Record<string, string | null> = {};
+  const lines: string[] = clear.map(field => `Cleared: ${field}`);
   const profile = readVendorProfile(args, lines);
   for (const [key, word, max] of VENDOR_TEXT_COLUMNS) {
     const v = str(args?.[key], max);
-    if (v != null) { columns[key] = v; lines.push(`${word}: ${v}`); }
+    if (args?.[key] === null) { columns[key] = null; lines.push(`${word}: (cleared)`); }
+    else if (v != null) { columns[key] = v; lines.push(`${word}: ${v}`); }
   }
-  const contacts: Array<{ channel: string; handle: string; label?: string }> = [];
+  const contacts: VendorContactEndpoint[] = [];
   const wechat = str(args?.wechat, 100);
   if (wechat) { contacts.push({ channel: 'wechat', handle: wechat }); lines.push(`WeChat: ${wechat}`); }
   if (columns.whatsapp) contacts.push({ channel: 'whatsapp', handle: columns.whatsapp });
   if (columns.phone) contacts.push({ channel: 'phone', handle: columns.phone });
+  if (columns.email) contacts.push({ channel: 'email', handle: columns.email });
   const website = str(args?.website, 300);
-  if (website) { contacts.push({ channel: 'other', handle: website, label: 'website' }); lines.push(`website: ${website}`); }
+  if (website) { contacts.push({ channel: 'website', handle: website }); lines.push(`website: ${website}`); }
   const instagram = str(args?.instagram, 100);
   if (instagram) { contacts.push({ channel: 'instagram', handle: instagram }); lines.push(`Instagram: ${instagram}`); }
-  const note = str(args?.note, 4000);
+  const structured = readVendorStructuredPatch(args ?? {});
+  for (const channel of ['fax', 'facebook'] as const) {
+    const handle = str(args?.[channel], 500); if (handle) contacts.push({ channel, handle });
+  }
+  for (const [key, value] of Object.entries(structured)) lines.push(`${key}: ${JSON.stringify(value)}`);
+  if (existing && Object.keys(structured).length) await prepareVendorStructuredProfileWrite(env.DB, { ...auth, agent: agentName(args) }, existing.id, structured as Record<string, unknown>);
+  if (str(rawArgs?.note, 4000) || str(rawArgs?.vendor_note, 4000)) throw new Error('Agent vendor notes are disabled: use a structured vendor field');
+  const note = null;
   if (note) lines.push(`note on the card: ${note}`);
   const rename = vendorId ? str(args?.name, 200) : null;
   if (rename && existing && rename !== existing.name) lines.unshift(`rename to: ${rename}`);
@@ -898,7 +886,7 @@ const toolSaveVendor: ToolHandler = async (env, auth, args) => {
   const ticket: SaveVendorTicket = {
     kind: 'curate:save_vendor', accountId: auth.accountId, vendorId: existing?.id ?? null,
     name: existing?.name ?? name!, agent, rename: rename && existing && rename !== existing.name ? rename : null,
-    columns, contacts, note, role, profile,
+    columns, contacts, note, role, profile, structured, clear,
   };
   const token = await issueTicket(env, ticket, auth.tokenId);
   return previewEnvelope({
@@ -914,45 +902,50 @@ const toolSaveVendor: ToolHandler = async (env, auth, args) => {
 };
 
 async function commitSaveVendor(env: ToolEnv, auth: ToolAuth, t: SaveVendorTicket) {
+  if (t.note) throw new Error('Agent vendor notes are disabled; preview structured fields instead');
+  await requireCurateManager(env.DB, auth);
   let id = t.vendorId;
-  let row: VendorRow | null = id ? await vendorById(env, auth, id) : null;
-  if (id && !row) throw new Error('That vendor was removed after the preview. Preview again.');
   const role: ContactRole = t.role ?? 'vendor';
   if (!id) {
-    const again = (await findVendors(env, auth, t.name)).filter(r => hasRole(r, role));
-    if (again.length === 1) { id = again[0].id; row = again[0]; }
-    else {
-      id = crypto.randomUUID();
-      await env.DB.batch(newVendorStatements(env, auth, id, t.name, t.agent, role));
-      row = await vendorById(env, auth, id);
-    }
+    const again = (await findVendors(env, auth, t.name)).filter(row => hasRole(row, role));
+    if (again.length > 1) throw new Error('Vendor name became ambiguous; preview again');
+    id = again[0]?.id ?? crypto.randomUUID();
   }
-  // Merge contacts: a new handle replaces the same channel's, nothing else is touched.
-  const contacts = readContacts(row!.contacts).filter(c =>
-    !t.contacts.some(n => (n.label === 'website' ? contactChannel(c) === 'website' : contactChannel(c) === n.channel)));
-  const merged = [...contacts, ...t.contacts];
-  const tags = parseJson<unknown>(row!.tags, []);
-  const tagList = Array.isArray(tags) ? tags.map(String) : (row!.tags ? [String(row!.tags)] : []);
-  if (!tagList.some(tag => new RegExp(ROLE_TAG[role], 'i').test(tag))) tagList.push(ROLE_TAG[role]);
-  const sets: string[] = ['contacts = ?', 'tags = ?'];
-  const binds: unknown[] = [JSON.stringify(merged), JSON.stringify(tagList)];
-  for (const [key, value] of Object.entries(t.columns)) { sets.push(`${key} = ?`); binds.push(value); }
-  if (t.rename) { sets.push('name = ?'); binds.push(t.rename); }
-  if (t.note) {
-    sets.push(`notes = CASE WHEN notes IS NULL OR notes = '' THEN ? ELSE notes || char(10) || ? END`);
-    binds.push(datedLine(t.agent, t.note), datedLine(t.agent, t.note));
+  const before = await env.DB.prepare('SELECT * FROM customers WHERE id = ? AND account_id = ?').bind(id, auth.accountId).first<Record<string, any>>();
+  if (t.vendorId && !before) throw new Error('Vendor was removed after preview');
+  const now = new Date().toISOString();
+  const contactsBefore = readContacts(before?.contacts).map(contact => ({ ...contact, channel: contactChannel(contact) ?? 'other', handle: contactHandle(contact) ?? '' }));
+  let contacts = t.structured?.contacts === undefined ? contactsBefore
+    : t.structured.contacts_mode === 'replace' ? t.structured.contacts : mergeVendorContacts(contactsBefore, t.structured.contacts);
+  if (t.contacts.length) contacts = mergeVendorContacts(contacts, t.contacts);
+  contacts = contacts.filter(contact => !(t.clear ?? []).some(field => VENDOR_CLEAR_CHANNELS.has(field) && contact.channel === field));
+  const profileBefore = await env.DB.prepare('SELECT * FROM curate_vendor_profiles WHERE vendor_id = ?').bind(id).first<Record<string, any>>();
+  if (profileBefore && profileBefore.account_id !== auth.accountId) throw new Error('Vendor profile belongs to another account');
+  const people = t.structured?.contact_people ?? parseJson<Array<{id:string}>>(profileBefore?.contact_people, []);
+  for (const contact of contacts) if (contact.person_id && !people.some(person => person.id === contact.person_id)) throw new Error(`Contact refers to missing person ${contact.person_id}`);
+  const tags = parseJson<string[]>(before?.tags, []);
+  if (!tags.includes(ROLE_TAG[role])) tags.push(ROLE_TAG[role]);
+  const after: Record<string, any> = { ...(before ?? { id, account_id: auth.accountId, name: t.name, type: ROLE_TYPE[role], source: `curate (added by ${t.agent})`, created_at: now }),
+    ...t.columns, contacts: JSON.stringify(contacts), tags: JSON.stringify(tags), updated_at: now };
+  if (t.rename) after.name = t.rename;
+  if ((t.clear ?? []).some(field => ['note','vendor_note','notes'].includes(field))) after.notes = null;
+  const changes: Parameters<typeof prepareCurateRecordedWrite>[2]['changes'] = [{ entityType: 'vendor', entityId: id, before, after }];
+  const profileFields: Record<string, any> = { ...(t.profile ?? {}) };
+  for (const key of ['vendor_code','contact_people','addresses'] as const) if (t.structured?.[key] !== undefined) profileFields[key] = key === 'vendor_code' ? t.structured[key] : JSON.stringify(t.structured[key]);
+  if (Object.keys(profileFields).length) {
+    if (profileFields.story) profileFields.story = profileBefore?.story ? `${profileBefore.story}\n${datedLine(t.agent, profileFields.story)}` : datedLine(t.agent, profileFields.story);
+    changes.push({ entityType: 'vendor_profile', entityId: id, before: profileBefore,
+      after: { ...(profileBefore ?? {}), vendor_id: id, account_id: auth.accountId, ...profileFields, updated_by_agent: t.agent, updated_at: now } });
   }
-  await env.DB.prepare(`UPDATE customers SET ${sets.join(', ')}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
-    .bind(...binds, id, auth.accountId).run();
-  if (role === 'vendor') await ensureVendorRelationship(env, auth, id!);
-  await writeVendorProfile(env, auth, id!, t.profile ?? {}, t.agent);
   if (t.rename) {
-    // The tea rows carry the vendor's name beside its id; keep them saying the same thing.
-    await env.DB.prepare('UPDATE tea_compass_entries SET vendor_name = ?, updated_at = datetime(\'now\') WHERE vendor_id = ? AND account_id = ?')
-      .bind(t.rename, id, auth.accountId).run();
+    const teas = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE vendor_id = ? AND account_id = ?').bind(id, auth.accountId).all<Record<string, any>>();
+    for (const tea of teas.results) changes.push({ entityType: 'tea', entityId: tea.id, before: tea, after: { ...tea, vendor_name: t.rename, updated_at: now } });
   }
-  const after = await vendorById(env, auth, id!);
-  return { committed: true, vendor: after ? vendorSummary(after) : { id } };
+  const write = prepareCurateRecordedWrite(env.DB, auth, { commandType: before ? 'vendor:update' : 'vendor:create', agent: t.agent, changes });
+  await env.DB.batch([...write.statements, write.assertion]);
+  if (role === 'vendor') await ensureVendorRelationship(env, auth, id);
+  const vendor = await vendorById(env, auth, id);
+  return { committed: true, mutation_id: write.mutationId, vendor: vendor ? vendorSummary(vendor) : { id }, structured: await readVendorStructuredProfile(env.DB, auth, id) };
 }
 
 // ── Tool: curate_suggest_teas (one step: the inbox is not the shop) ─────────
@@ -960,13 +953,15 @@ async function commitSaveVendor(env: ToolEnv, auth: ToolAuth, t: SaveVendorTicke
 const MAX_SUGGESTIONS = 50;
 
 const toolSuggestTeas: ToolHandler = async (env, auth, args) => {
+  assertKnownToolInput('curate_suggest_teas', args);
   const agent = str(args?.agent, 60);
   if (!agent) throw new Error('agent is required: say who found these (GrokBot, Hermes, ChatGPT, Claude…), so Adrian knows where they came from.');
   const from = (args?.from && typeof args.from === 'object') ? args.from : {};
   const fromUrl = str(from.url, 500);
   const fromVendor = str(from.vendor_name, 200);
   const fromContact = str(from.contact, 500);
-  const fromNote = str(from.note, 2000);
+  if (str(from.note, 2000)) throw new Error('Agent source notes are disabled: use structured source/provenance fields');
+  const fromNote = null;
   if (!fromUrl && !fromVendor) throw new Error('from.url or from.vendor_name is required: a suggestion carries where it came from.');
   const teas = Array.isArray(args?.teas) ? args.teas : [];
   if (!teas.length) throw new Error('teas is required: at least one tea with a name.');
@@ -1171,6 +1166,7 @@ async function commitPick(env: ToolEnv, auth: ToolAuth, t: PickTicket) {
     }
     const f = parseJson<Record<string, any>>(r.fields_json, {});
     const note = f.note as string | undefined;
+    if (note) throw new Error('Stored suggestion notes must be moved into structured fields before picking');
     delete f.note;
     const entryId = crypto.randomUUID();
     const row: Record<string, unknown> = {
@@ -1185,9 +1181,6 @@ async function commitPick(env: ToolEnv, auth: ToolAuth, t: PickTicket) {
       ...(t.as === 'sample' ? { sample_state: 'requested' } : { decision: 'considering' }),
     };
     const cols = Object.keys(row);
-    const source = `Suggested by ${r.from_agent ?? 'an agent'}`
-      + (r.from_url ? ` from ${r.from_url}` : r.from_vendor_name ? ` from ${r.from_vendor_name}` : '')
-      + (r.from_contact ? `. Contact: ${r.from_contact}` : '');
     const claimed = await env.DB.prepare(
       `UPDATE curate_suggestions SET state = 'picked', compass_entry_id = ?, decided_at = datetime('now')
         WHERE id = ? AND account_id = ? AND state = 'waiting'`
@@ -1199,10 +1192,6 @@ async function commitPick(env: ToolEnv, auth: ToolAuth, t: PickTicket) {
         `INSERT INTO tea_compass_entries (id, user_id, account_id, ${cols.join(', ')}, created_at, updated_at)
          VALUES (?, ?, ?, ${cols.map(() => '?').join(', ')}, datetime('now'), datetime('now'))`
       ).bind(entryId, auth.userId, auth.accountId, ...cols.map(c => row[c])),
-      env.DB.prepare(
-        `INSERT INTO notes (id, account_id, compass_entry_id, text, source_type, author_id, author_name, visibility, created_at)
-         VALUES (?, ?, ?, ?, 'manual', ?, ?, 'private', datetime('now'))`
-      ).bind(crypto.randomUUID(), auth.accountId, entryId, note ? `${source}. ${note}` : `${source}.`, auth.userId, r.from_agent ?? t.agent),
       ...sampleStatements,
     ]);
     created.push({ suggestion_id: sid, tea_id: entryId, name: r.name });
@@ -1222,17 +1211,11 @@ async function attachSourceToVendor(env: ToolEnv, auth: ToolAuth, vendorId: stri
   if (!row) return;
   const contacts = readContacts(row.contacts);
   const additions: ContactLike[] = [];
-  if (r.from_url && !contacts.some(c => contactChannel(c) === 'website')) additions.push({ channel: 'other', handle: r.from_url, label: 'website' });
+  if (r.from_url && !contacts.some(c => contactChannel(c) === 'website')) additions.push({ channel: 'website', handle: r.from_url });
   const sets: string[] = [];
   const binds: unknown[] = [];
   if (additions.length) { sets.push('contacts = ?'); binds.push(JSON.stringify([...contacts, ...additions])); }
-  if (r.from_contact) {
-    const line = datedLine(r.from_agent ?? 'an agent', `contact found with suggestions: ${r.from_contact}`);
-    if (!(row.notes ?? '').includes(r.from_contact)) {
-      sets.push(`notes = CASE WHEN notes IS NULL OR notes = '' THEN ? ELSE notes || char(10) || ? END`);
-      binds.push(line, line);
-    }
-  }
+  // Contact evidence remains on curate_suggestions.from_contact with its agent/source URL.
   if (!sets.length) return;
   await env.DB.prepare(`UPDATE customers SET ${sets.join(', ')}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
     .bind(...binds, vendorId, auth.accountId).run();
@@ -1276,6 +1259,14 @@ const TASTING_PROP = {
   additionalProperties: false,
 };
 const TEA_FIELD_PROPS = {
+  age_quoted: { type: ['string', 'null'], description: 'Age as stated, e.g. about 20 years; never derive a vintage.' },
+  grade: { type: ['string', 'null'] },
+  pack_size_grams: { type: ['number', 'null'], exclusiveMinimum: 0 },
+  pack_size_label: { type: ['string', 'null'] },
+  vendor_item_number: { type: ['string', 'null'] },
+  discount_percent: { type: ['number', 'null'], minimum: 0, maximum: 100, description: 'Quoted discount only; does not change inventory pricing.' },
+  quote_id: { type: ['string', 'null'], description: 'Existing private quote record for this vendor.' },
+  route_quotes: { type: 'array', items: { type: 'object' }, description: 'Explicit route price evidence: id,mode,amount,currency,basis,basis_quantity,price_kind,label?,destination?. [] clears. Never applies freight.' },
   chinese_name: { type: 'string', description: 'Chinese name, e.g. 易武古树.' },
   category: { type: 'string', enum: ['tea', 'teaware'], description: 'tea (default) or teaware.' },
   type: { type: 'string', description: 'Sheng, Shou, Oolong, White, Red, Green, Dark…' },
@@ -1298,9 +1289,9 @@ const TEA_FIELD_PROPS = {
 const FILING_PROPS = {
   tasting: TASTING_PROP,
   score: { type: 'number', description: 'Adrian\'s overall score, 1 to 10.' },
-  note: { type: 'string', description: 'A story note about the tea (trees, the maker, history). Goes to the tea\'s notes thread.' },
+  note: { type: 'string', description: 'Unsupported for agents. Use a named structured field; nonempty note inputs are refused.' },
   said: { type: 'string', description: 'What Adrian said, verbatim and whole (the transcript). Kept as a voice note on the tea, whatever else is filed.' },
-  vendor_note: { type: 'string', description: 'Something about the vendor rather than the tea ("will have the 2018 in spring"). Appended to the vendor\'s card with today\'s date.' },
+  vendor_note: { type: 'string', description: 'Unsupported for agents. Use structured vendor fields; nonempty values are refused.' },
   todo: { type: 'string', description: 'A reminder ("ask Wang about the 2018"). Becomes an open to-do on this tea.' },
   sample: { type: 'boolean', description: 'true puts the tea on the sample shelf; preserves existing received/tasted state.' },
   sample_state: { type: 'string', enum: ['requested', 'received', 'tasted'], description: 'Sample lifecycle, shared with the shelf.' },
@@ -1362,7 +1353,7 @@ const defs: ToolDefinition[] = [
   {
     name: 'curate_update_tea',
     scope: 'stock:write',
-    description: 'Use this to fill in or file anything about a tea already in Curate: a field, the price as quoted, tasting terms, a score, a story note, the whole transcript of what Adrian said, a note for the vendor\'s card, a to-do. Only what you pass changes. Two steps (preview, then confirm). The preview lists each filed line so Adrian can keep or drop each; to drop one, preview again without it.',
+    description: 'Correct structured tea facts, quoted price, tasting terms, score, an exact transcript or a to-do. Only supplied fields change. Use clear to deliberately empty a field; clear note empties the legacy notes column. Agent note/vendor_note writing is disabled. Every mutation is previewed and confirmed.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1379,23 +1370,31 @@ const defs: ToolDefinition[] = [
   {
     name: 'curate_save_vendor',
     scope: 'stock:write',
-    description: 'Use this to add a vendor, freight forwarder or warehouse (a name is enough) or to add to their card: contacts (company, WeChat, WhatsApp, phone, email, website, Instagram, address, city, country), a dated note, and what the shop knows about how a vendor works (the currency they quote in, how they store tea, their story, where they ship from, the route home, days to arrive). Only what you pass changes; nothing on the card is wiped. Use it after a business card or a WhatsApp/WeChat screenshot, or after researching a vendor online. All private. Two steps (preview, then confirm).',
+    description: 'Create or correct a private shop vendor, forwarder or warehouse using structured contact, address and vendor-profile fields. Multiple same-channel endpoints are preserved unless explicitly cleared or replaced. clear names fields to empty deliberately, including note/vendor_note legacy-column aliases. Agent note writing is disabled. Preview then confirm every write.',
     inputSchema: {
       type: 'object',
       properties: {
         name: { type: 'string', description: 'Vendor name. Matches an existing vendor by name, or adds a new one. With vendor_id, renames.' },
         vendor_id: { type: 'string', description: 'The vendor id from curate_find, to change an existing vendor.' },
-        company: { type: 'string' }, wechat: { type: 'string' }, whatsapp: { type: 'string' }, phone: { type: 'string' },
-        email: { type: 'string' }, website: { type: 'string' }, instagram: { type: 'string' },
-        address: { type: 'string' }, city: { type: 'string' }, country: { type: 'string' },
-        note: { type: 'string', description: 'Appended to the card with today\'s date.' },
+        company: { type: ['string', 'null'] }, wechat: { type: ['string', 'null'] }, whatsapp: { type: ['string', 'null'] }, phone: { type: ['string', 'null'] },
+        vendor_code: { type: ['string', 'null'] },
+        contact_people: { type: 'array', items: { type: 'object' } },
+        addresses: { type: 'array', items: { type: 'object' } },
+        contacts_mode: { type: 'string', enum: ['merge', 'replace'], description: 'merge default appends/edits endpoints by id; replace explicitly replaces the complete list.' },
+        contacts: { type: 'array', items: { type: 'object' }, description: 'Canonical channel/handle endpoints; IDs edit one, others append; [] clears.' },
+        fax: { type: ['string', 'null'] }, facebook: { type: ['string', 'null'] },
+        email: { type: ['string', 'null'] }, website: { type: ['string', 'null'] }, instagram: { type: ['string', 'null'] },
+        address: { type: ['string', 'null'] }, city: { type: ['string', 'null'] }, country: { type: ['string', 'null'] },
+        note: { type: ['string', 'null'], description: 'Unsupported for agents; structured vendor fields are required.' },
         role: { type: 'string', enum: ['vendor', 'freight', 'warehouse'], description: 'vendor (default), freight (a forwarder or shipping agent), or warehouse (a distributor or storage).' },
-        price_currency: { type: 'string', description: 'The currency this vendor quotes in, e.g. HKD for a Hong Kong shop. Next time a price from them comes without one, propose this one and read it back.' },
-        storage: { type: 'string', description: 'How their tea is stored, e.g. "Hong Kong traditional storage".' },
-        story: { type: 'string', description: 'A fact about them worth telling, e.g. "in business for 70 years". Added under what is already known.' },
-        ships_from: { type: 'string', description: 'Where their tea leaves from, e.g. "Sheung Wan, Hong Kong".' },
-        route: { type: 'string', description: 'The way home in words, e.g. "courier Hong Kong to Guangzhou, then boat Guangzhou to Bali".' },
-        lead_time_days: { type: 'number', description: 'About how many days from order to arrival.' },
+        price_currency: { type: ['string', 'null'], description: 'The currency this vendor quotes in, e.g. HKD for a Hong Kong shop. Next time a price from them comes without one, propose this one and read it back.' },
+        storage: { type: ['string', 'null'], description: 'How their tea is stored, e.g. "Hong Kong traditional storage".' },
+        story: { type: ['string', 'null'], description: 'A fact about them worth telling, e.g. "in business for 70 years". Added under what is already known.' },
+        ships_from: { type: ['string', 'null'], description: 'Where their tea leaves from, e.g. "Sheung Wan, Hong Kong".' },
+        route: { type: ['string', 'null'], description: 'The way home in words, e.g. "courier Hong Kong to Guangzhou, then boat Guangzhou to Bali".' },
+        lead_time_days: { type: ['number', 'null'], description: 'About how many days from order to arrival.' },
+        clear: { type: 'array', items: { type: 'string', enum: [...VENDOR_CLEARABLE] }, description: 'Fields to clear deliberately. Contact channel names remove that channel only; contacts/people/addresses clear their arrays. note/vendor_note/notes clear the legacy vendor notes column.' },
+        vendor_note: { type: ['string', 'null'], description: 'Unsupported for writing; clear alias only.' },
         agent: AGENT_PROP,
         confirm: CONFIRM_PROP,
       },
@@ -1417,7 +1416,7 @@ const defs: ToolDefinition[] = [
             url: { type: 'string', description: 'The page you read, e.g. https://wangtea.cn/shop.' },
             vendor_name: { type: 'string', description: 'The vendor or shop selling them.' },
             contact: { type: 'string', description: 'Contact you found: WeChat id, phone, email.' },
-            note: { type: 'string', description: 'Anything else about the source.' },
+            note: { type: 'string', description: 'Unsupported for agents; use the named source/provenance fields.' },
           },
           additionalProperties: false,
         },
@@ -1432,7 +1431,7 @@ const defs: ToolDefinition[] = [
               origin_country: { type: 'string' }, origin_region: { type: 'string' }, description: { type: 'string' },
               teaware_category: { type: 'string' }, material: { type: 'string' }, capacity_ml: { type: 'number' },
               price: PRICE_PROP,
-              note: { type: 'string', description: 'Why it might interest Adrian, or anything not in a field.' },
+              note: { type: 'string', description: 'Unsupported for agents; unknown facts need structured fields.' },
             },
             required: ['name'],
             additionalProperties: false,
@@ -1505,3 +1504,10 @@ export const curateIntakeTools: ToolModule = {
     curate_todo: toolTodo,
   },
 };
+
+function assertKnownToolInput(name: string, args: Record<string, unknown> = {}) {
+  const definition = defs.find(def => def.name === name)!;
+  const properties = definition.inputSchema.properties as Record<string, unknown>;
+  const unknown = Object.keys(args).find(key => !(key in properties));
+  if (unknown) throw new Error(`${unknown} has no field on ${name}; build a structured field instead of filing it in notes`);
+}

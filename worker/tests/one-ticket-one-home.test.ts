@@ -48,7 +48,15 @@ describe('no module re-implements the ticket', () => {
       expect(src, `${file} holds its own copy of the ticket TTL`)
         .not.toMatch(/^const \w*TTL_MS\s*=\s*\d/m);
       if (/confirmation_token|consumeShared|consumeTicket\(/.test(src)) {
-        expect(src, `${file} uses tickets but does not import them`).toMatch(/from '\.\/tickets'/);
+        if (file === 'curateManage.ts') {
+          // This thin MCP adapter delegates the same gate used by the app.
+          expect(src).toMatch(/from '\.\.\/curateMutations'/);
+          const service = read('../src/curateMutations.ts');
+          expect(service).toMatch(/from '\.\/mcpTools\/tickets'/);
+          expect(service).not.toMatch(/^(export )?async function (issueTicket|consumeTicket)/m);
+          expect(service).toMatch(/consumeTicket</);
+          expect(service).toMatch(/issueTicket\(/);
+        } else expect(src, `${file} uses tickets but does not import them`).toMatch(/from '\.\/tickets'/);
       }
     });
   }

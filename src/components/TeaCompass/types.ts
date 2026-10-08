@@ -1,3 +1,4 @@
+import type { RouteQuote } from '../../lib/curateStructuredFields';
 import type { TastingData } from '../../types';
 import type { Currency } from '../../admin/types';
 import {
@@ -115,6 +116,16 @@ export interface TeaCompassEntry {
   pricePerUnitGrams?: number;
   sellPrice?: number;          // Retail sell price per gram (on tags + flows to inventory)
 
+  // Structured sourcing evidence. Empty fields are explicitly null, never notes.
+  ageQuoted?: string | null;
+  grade?: string | null;
+  packSizeGrams?: number | null;
+  packSizeLabel?: string | null;
+  vendorItemNumber?: string | null;
+  discountPercent?: number | null;
+  quoteId?: string | null;
+  routeQuotes?: RouteQuote[];
+
   // Category
   category: CompassCategory;
 
@@ -132,8 +143,8 @@ export interface TeaCompassEntry {
   // Vendor
   vendorId?: string;
   vendorName?: string;
-  shopName?: string;
-  transportMode?: string;
+  shopName?: string | null;
+  transportMode?: string | null;
   vendorDetails?: VendorDetails;
   /** Customer record ID for the vendor, links compass entry to a customer profile */
   linkedCustomerId?: string;

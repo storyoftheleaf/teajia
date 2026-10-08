@@ -35,6 +35,7 @@ function fixture(t, options = {}) {
   const mutations = [];
   const fetch = async url => {
     const path = new URL(url).pathname;
+    if (path.endsWith('/deployments')) assert.equal(new URL(url).searchParams.get('per_page'), '20');
     if (path.endsWith('/deployments')) return Response.json({ success: true, result: [{ id: 'd1', environment: 'production', deployment_trigger: { metadata: { commit_hash: candidate } }, latest_stage: { status: 'success' }, url: 'https://abc.teajiafinal.pages.dev' }] });
     if (path.includes('/pages/projects/')) return Response.json({ success: true, result: { production_branch: 'main', domains: ['teajia.com'] } });
     if (path === '/api/release') return Response.json({ revision: options.workerRevision || candidate, versionId: 'v1' });

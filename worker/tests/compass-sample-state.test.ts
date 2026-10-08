@@ -20,7 +20,7 @@ describe('Compass sample lifecycle', () => {
     const explicitOnly = await compassRequest(db, '/api/compass/entries', {
       method: 'POST', body: JSON.stringify({ id: 'explicit-only', status: 'in_stock', tasting: { quality: 9 } }),
     });
-    expect((await explicitOnly.json() as Record<string, unknown>).sample_state).toBeUndefined();
+    expect((await explicitOnly.json() as Record<string, unknown>).sample_state).toBeNull();
   });
 
   it('keeps one mutually exclusive durable value through sync', async () => {
@@ -52,7 +52,7 @@ describe('Compass sample lifecycle', () => {
     expect(db.rows.get('linked-a')?.sample_set_id).toBe('set-a');
   });
 
-  it('unlinks only account-owned Compass rows before deleting a sample set and its children', async () => {
+  it('archives owned portions and unlinks only account-owned Compass rows while preserving tasting history', async () => {
     const db = new FakeDb();
     db.sampleSets.set('set-a', { id: 'set-a', account_id: 'account-a' });
     db.samples.set('sample-a', { id: 'sample-a', set_id: 'set-a', account_id: 'account-a' });
@@ -69,9 +69,9 @@ describe('Compass sample lifecycle', () => {
     const response = await compassRequest(db, '/api/admin/sample-sets/set-a', { method: 'DELETE' });
 
     expect(response.status).toBe(200);
-    expect(db.sampleSets.has('set-a')).toBe(false);
-    expect(db.samples.has('sample-a')).toBe(false);
-    expect(db.sampleTastings.has('sample-a')).toBe(false);
+    expect(db.sampleSets.get('set-a')).toMatchObject({ archived: 1 });
+    expect(db.samples.get('sample-a')?.archived_at).toBeTruthy();
+    expect(db.sampleTastings.has('sample-a')).toBe(true);
     expect(db.rows.get('linked-a')).toMatchObject({
       sample_set_id: null, sample_state: null, decision: 'selected', verdict: 'love', status: 'noted',
     });

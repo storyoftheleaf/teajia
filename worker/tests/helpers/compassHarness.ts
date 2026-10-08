@@ -1,3 +1,4 @@
+import { SqliteD1, seedIdentity } from './sqliteD1';
 import worker from '../../src/index';
 
 const JWT_SECRET = 'test-secret';
@@ -260,5 +261,37 @@ export async function compassRequest(
   headers.set('X-Teajia-Account', accountId);
   if (options.body) headers.set('Content-Type', 'application/json');
   const request = new Request(`https://worker.test${path}`, { ...options, headers });
-  return worker.fetch(request, { DB: db, JWT_SECRET } as any);
+  // Exercise actual SQL defaults, foreign keys, transaction gates and ownership.
+  // Keep maps only as convenient fixture input/output for these older tests.
+  const sqlite = new SqliteD1('migrations');
+  sqlite.sqlite.exec('PRAGMA foreign_keys = OFF');
+  seedIdentity(sqlite, { userId, accountId, role: 'owner' });
+  for (const row of db.rows.values()) seedIdentity(sqlite, { userId: row.user_id, accountId: row.account_id });
+  const tables: Array<[string, Map<string, any>]> = [
+    ['customers', db.customers], ['tea_sample_sets', db.sampleSets],
+    ['curate_journeys', db.journeys], ['curate_visits', db.visits],
+    ['tea_compass_entries', db.rows], ['tea_samples', db.samples], ['tea_sample_tastings', db.sampleTastings],
+  ];
+  for (const [table, rows] of tables) {
+    const columns = new Set((sqlite.sqlite.prepare(`PRAGMA table_info(${table})`).all() as any[]).map(column => column.name));
+    for (const row of rows.values()) {
+      const values = Object.fromEntries(Object.entries(row).filter(([key]) => columns.has(key)));
+      if (table === 'tea_sample_tastings' && !values.sample_id) {
+        const mapKey = [...rows].find(([, value]) => value === row)?.[0];
+        values.sample_id = mapKey;
+      }
+      const keys = Object.keys(values);
+      sqlite.sqlite.prepare(`INSERT OR REPLACE INTO ${table} (${keys.join(',')}) VALUES (${keys.map(() => '?').join(',')})`).run(...keys.map(key => values[key]));
+    }
+  }
+  sqlite.sqlite.exec('PRAGMA foreign_keys = ON');
+  try {
+    const response = await worker.fetch(request, { DB: sqlite, JWT_SECRET } as any);
+    for (const [table, rows] of tables) {
+      rows.clear();
+      for (const row of sqlite.sqlite.prepare(`SELECT * FROM ${table}`).all() as any[]) rows.set(table === 'tea_sample_tastings' ? row.sample_id : row.id, row);
+    }
+    return response;
+  } finally { sqlite.close(); }
+
 }

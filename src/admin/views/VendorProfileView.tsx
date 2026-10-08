@@ -1,3 +1,6 @@
+import { CurateRecordTools } from '../../components/curate/CurateRecordTools';
+import { CurateQuotesPanel } from '../../components/curate/CurateQuotesPanel';
+import { CurateVendorFields } from '../../components/curate/CurateVendorFields';
 /**
  * VendorProfileView, /admin/vendors/:vendorId
  *
@@ -223,6 +226,10 @@ export const VendorProfileView: React.FC = () => {
             ))}
           </div>
         </section>
+
+        <CurateVendorFields vendorId={vendorId!} />
+        <CurateQuotesPanel vendorId={vendorId!} />
+        <CurateRecordTools entityType="vendor" entityId={vendorId!} />
 
         {/* Products supplied */}
         <section className="bg-tea-surface border border-tea-border rounded-xl p-5">

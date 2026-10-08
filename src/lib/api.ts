@@ -2835,6 +2835,21 @@ export const api = {
     },
   },
 
+  curateWorkspace: {
+    attachmentBlob: (id: string): Promise<Blob> => authedBlobFetch(`${API_URL}/api/curate/attachments/${encodeURIComponent(id)}/content`),
+    vendor: (id: string): Promise<any> => authedFetch(`${API_URL}/api/curate/vendors/${encodeURIComponent(id)}/profile`),
+    saveVendor: (id: string, patch: Record<string, unknown>): Promise<any> => authedFetch(`${API_URL}/api/curate/vendors/${encodeURIComponent(id)}/profile`, { method: 'PUT', body: JSON.stringify(patch) }),
+    quotes: (vendorId?: string): Promise<any[]> => authedFetch(`${API_URL}/api/curate/quotes${vendorId ? `?vendor_id=${encodeURIComponent(vendorId)}` : ''}`),
+    quote: (id: string): Promise<any> => authedFetch(`${API_URL}/api/curate/quotes/${encodeURIComponent(id)}`),
+    saveQuote: (input: Record<string, unknown>, id?: string): Promise<any> => authedFetch(`${API_URL}/api/curate/quotes${id ? `/${encodeURIComponent(id)}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(input) }),
+    attachments: (entityType: string, entityId: string): Promise<any[]> => authedFetch(`${API_URL}/api/curate/attachments?entity_type=${encodeURIComponent(entityType)}&entity_id=${encodeURIComponent(entityId)}`),
+    upload: (input: Record<string, unknown>): Promise<any> => authedFetch(`${API_URL}/api/curate/attachments`, { method: 'POST', body: JSON.stringify(input) }),
+    holdings: (samplesOnly = false, teaId?: string): Promise<any[]> => authedFetch(`${API_URL}/api/curate/holdings?samples_only=${samplesOnly}${teaId ? `&tea_id=${encodeURIComponent(teaId)}` : ''}`),
+    history: (entityType: string, entityId: string): Promise<any> => authedFetch(`${API_URL}/api/curate/history?entity_type=${encodeURIComponent(entityType)}&entity_id=${encodeURIComponent(entityId)}`),
+    correct: (command: Record<string, unknown>, confirm?: string): Promise<any> => authedFetch(`${API_URL}/api/curate/correct`, { method: 'POST', body: JSON.stringify({ command, confirm }) }),
+    undo: (confirm?: string): Promise<any> => authedFetch(`${API_URL}/api/curate/undo`, { method: 'POST', body: JSON.stringify({ confirm }) }),
+    order: (input: Record<string, unknown>): Promise<any> => authedFetch(`${API_URL}/api/curate/order`, { method: 'POST', body: JSON.stringify(input) }),
+  },
   compass: {
     list: async (params?: { status?: string; vendor_id?: string }, options: ApiBackgroundOptions = {}) => {
       const qp = new URLSearchParams();

@@ -91,17 +91,17 @@ describe('a tea needs only a name', () => {
       year: '2019', season: 'Spring', origin_region: 'Yiwu', origin_country: 'China', type: 'Sheng', form: 'Cake',
       price: { amount: 1200, currency: 'yuan', per: 'piece' },
       tasting: { body: ['full'], flavor: ['honey'], finish: ['finish-long'] }, score: 8,
-      note: 'Trees about 300 years old', said,
-      vendor_note: 'Will have the 2018 in spring', todo: 'Ask Wang about the 2018',
+      age_quoted: 'about 20 years', said,
+      todo: 'Ask Wang about the 2018',
     });
     const [row] = entries(db);
     expect(row).toMatchObject({ year: 2019, origin_region: 'Yiwu', price_amount: 1200, price_currency: 'Yuan', price_per_unit_grams: null, vendor_name: 'Wang Laoshi' });
     expect(JSON.parse(row.tasting)).toEqual({ body: ['full'], flavor: ['honey'], finish: ['finish-long'], quality: 8 });
     const [vendor] = vendors(db);
     expect(row.vendor_id).toBe(vendor.id);
-    expect(vendor.notes).toMatch(/Will have the 2018 in spring/);
+    expect(vendor.notes).toBeNull();
     const notes = db.sqlite.prepare('SELECT * FROM notes WHERE compass_entry_id = ? ORDER BY source_type').all(row.id) as R[];
-    expect(notes.map(n => n.source_type)).toEqual(['manual', 'voice']);
+    expect(notes.map(n => n.source_type)).toEqual(['voice']);
     expect(notes.find(n => n.source_type === 'voice')!.text).toBe(said);
     const todo = db.sqlite.prepare('SELECT * FROM curate_todos').get() as R;
     expect(todo).toMatchObject({ text: 'Ask Wang about the 2018', compass_entry_id: row.id, vendor_id: vendor.id, done_at: null });
@@ -177,15 +177,16 @@ describe('vendors start as a name and grow', () => {
 
   it('adding a WeChat later keeps the phone and the notes (the old tool wiped them)', async () => {
     const db = makeDb();
-    await confirm(db, 'curate_save_vendor', { name: 'Wang Laoshi', phone: '+86 138', note: 'Fangcun market' });
+    await confirm(db, 'curate_save_vendor', { name: 'Wang Laoshi', phone: '+86 138', address: 'Fangcun market' });
     await confirm(db, 'curate_save_vendor', { name: 'Wang Laoshi', wechat: 'wang_tea', website: 'https://wangtea.cn' });
     const [v] = vendors(db);
     expect(v.phone).toBe('+86 138');
-    expect(v.notes).toMatch(/Fangcun market/);
+    expect(v.address).toBe('Fangcun market');
+    expect(v.notes).toBeNull();
     const contacts = JSON.parse(v.contacts);
     expect(contacts).toContainEqual({ channel: 'wechat', handle: 'wang_tea' });
     expect(contacts).toContainEqual({ channel: 'phone', handle: '+86 138' });
-    expect(contacts).toContainEqual({ channel: 'other', handle: 'https://wangtea.cn', label: 'website' });
+    expect(contacts).toContainEqual({ channel: 'website', handle: 'https://wangtea.cn' });
     expect(vendors(db)).toHaveLength(1);
   });
 
@@ -253,10 +254,10 @@ describe('the GrokBot example: ten teas found, three picked', () => {
     expect(rows.find(r => r.name === '2008 Fuding White')).toMatchObject({ price_amount: null, price_currency: null });
 
     const [vendor] = vendors(db);
-    expect(JSON.parse(vendor.contacts)).toContainEqual({ channel: 'other', handle: 'https://wangtea.cn', label: 'website' });
-    expect(vendor.notes).toMatch(/wang_tea/);
-    const note = db.sqlite.prepare('SELECT text FROM notes WHERE compass_entry_id = ?').get(yiwu.id) as R;
-    expect(note.text).toMatch(/Suggested by GrokBot from https:\/\/wangtea.cn/);
+    expect(JSON.parse(vendor.contacts)).toContainEqual({ channel: 'website', handle: 'https://wangtea.cn' });
+    expect(vendor.notes).toBeNull();
+    expect(db.sqlite.prepare('SELECT text FROM notes WHERE compass_entry_id = ?').get(yiwu.id)).toBeUndefined();
+    expect(db.sqlite.prepare('SELECT from_contact, from_url, from_agent FROM curate_suggestions WHERE compass_entry_id = ?').get(yiwu.id)).toMatchObject({ from_contact: 'WeChat wang_tea', from_url: 'https://wangtea.cn', from_agent: 'GrokBot' });
 
     expect((await call(db, 'curate_list_suggestions', {})).waiting).toHaveLength(0);
   });

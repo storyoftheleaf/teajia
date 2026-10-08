@@ -142,7 +142,10 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       }
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(tasting) });
     }
+    const vendorProfileMatch = path.match(/^\/api\/curate\/vendors\/([^/]+)\/profile$/);
+    if (vendorProfileMatch && route.request().method() === 'GET') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ vendor_id: vendorProfileMatch[1], vendor_code: null, contact_people: [], addresses: [], contacts: [] }) });
     const responses: Record<string, unknown> = {
+      'GET /api/curate/attachments': [], 'GET /api/curate/history': { history: [] },
       'GET /api/auth/me': { id: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', memberships, active_account_id: 'acct-bali' },
       'POST /api/auth/refresh': { token: COMPASS_TOKEN },
       'GET /api/accounts/me': { memberships, active_account_id: 'acct-bali' },

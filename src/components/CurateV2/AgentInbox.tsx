@@ -6,6 +6,7 @@ import { hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { useAppStore } from '../../lib/store';
 import { CURRENCY_LABELS } from './PricingRow';
 import { Section } from './TodayView';
+import { CurateRecordTools } from '../curate/CurateRecordTools';
 
 const KEYS = {
   suggestions: ['curate', 'agent-suggestions'] as const,
@@ -188,7 +189,7 @@ export const AgentInbox: React.FC<{ onOpenTea: (entryId: string) => void }> = ({
         <section data-testid="agent-arriving">
           <Section title="Arriving" count={pending.length} />
           {pending.map((r) => (
-            <div key={r.id} className="curate-v2-row">
+            <div key={r.id}><div className="curate-v2-row">
               <button
                 type="button"
                 onClick={() => r.compass_entry_id && onOpenTea(r.compass_entry_id)}
@@ -206,7 +207,7 @@ export const AgentInbox: React.FC<{ onOpenTea: (entryId: string) => void }> = ({
               >
                 Arrived
               </button>
-            </div>
+            </div><details className="px-4 py-2"><summary className="min-h-11 cursor-pointer text-ui-12 text-tea-text-sec">Arrival files &amp; history</summary><CurateRecordTools entityType="arrival" entityId={r.id} /></details></div>
           ))}
           {arrived.isError && <p className="px-4 py-2 text-ui-12 text-tea-error">{errorText(arrived.error)}</p>}
         </section>

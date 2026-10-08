@@ -109,7 +109,7 @@ export async function run(env = process.env, initialize = false, dependencies = 
     persist('pages_pending');
     let deployment;
     while (Date.now() < deadline) {
-      deployment = productionDeployment(await cf('/deployments?per_page=100'), candidate);
+      deployment = productionDeployment(await cf('/deployments?per_page=20'), candidate);
       const status = deployment?.latest_stage?.status;
       if (['failure', 'canceled'].includes(status)) throw new Error(`Pages deployment ${status}: ${deployment.id}`);
       if (status === 'success') break;

@@ -38,6 +38,8 @@ export interface CurateReceiptService {
 
 export interface ToolEnv {
   DB: D1Database;
+  MEDIA_BUCKET?: R2Bucket;
+  ATLAS_BUCKET?: R2Bucket;
   curateReceipts?: CurateReceiptService;
 }
 

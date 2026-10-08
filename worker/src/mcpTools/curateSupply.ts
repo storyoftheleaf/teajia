@@ -1,3 +1,6 @@
+import { requireCurateManager } from '../curateMutations';
+import { readVendorStructuredProfile } from '../curateVendorProfile';
+import { listCurateQuotes } from '../curateQuotes';
 /**
  * The back office of a Curate tea: what a vendor costs to buy from, what it
  * costs to bring their tea home, and the order Adrian sends them.
@@ -30,7 +33,7 @@
  */
 import { refreshedCurrencyName, REFRESHED_CURRENCIES } from '../exchangeRateFeed';
 import {
-  agentName, datedLine, entryById, parseJson, planVendor, readQuotedPrice, resolveVendorAtCommit, str,
+  agentName, datedLine, entryById, curateManagerAccess, parseJson, planVendor, readQuotedPrice, resolveVendorAtCommit, str,
   teaMissing, TRANSPORT_MODES, vendorById, vendorSummary, type VendorPlan,
 } from './curateIntake';
 import type { ToolAuth, ToolDefinition, ToolEnv, ToolHandler, ToolModule } from './registry';
@@ -115,10 +118,12 @@ type FreightTicket = {
 };
 
 const toolRecordFreight: ToolHandler = async (env, auth, args) => {
+  if (str(args?.note, 1000)) throw new Error('Agent notes are disabled: use a structured freight field');
   const confirm = str(args?.confirm, 100);
   if (confirm) {
     const t = await consumeTicket<FreightTicket, 'curate:freight'>(env, confirm, 'curate:freight', auth);
     if (!t) return INVALID_TICKET;
+    if (t.note) throw new Error('Agent notes are disabled; preview structured freight fields instead');
     const vendor = t.vendorPlan ? await resolveVendorAtCommit(env, auth, t.vendorPlan, t.agent) : null;
     const id = crypto.randomUUID();
     await env.DB.prepare(
@@ -160,7 +165,7 @@ const toolRecordFreight: ToolHandler = async (env, auth, args) => {
   const reading = legReading({ id: '', vendor_id: vendorPlan?.id ?? null, leg, mode, total_amount: amount, currency, weight_kg: weightKg, transit_days: transitDays, observed_on: observedOn, note: null }, rates);
   const ticket: FreightTicket = {
     kind: 'curate:freight', accountId: auth.accountId, vendorId: vendorPlan?.id ?? null, vendorPlan, agent: agentName(args),
-    leg, mode, total: amount, currency, weightKg, transitDays, observedOn, note: str(args?.note, 1000),
+    leg, mode, total: amount, currency, weightKg, transitDays, observedOn, note: null,
   };
   const token = await issueTicket(env, ticket, auth.tokenId);
   return previewEnvelope({
@@ -182,10 +187,11 @@ type OrderLine = {
 type OrderTicket = {
   kind: 'curate:order'; accountId: string; userId: string; agent: string; vendorPlan: VendorPlan;
   currency: string; lines: OrderLine[]; total: number; totalUsd: number; message: string; notes: string;
-  shipsBy: string | null;
+  shipsBy: string | null; freightEstimate?: Record<string, unknown>;
 };
 
 const toolOrder: ToolHandler = async (env, auth, args) => {
+  if (str(args?.note, 1000)) throw new Error('Agent notes are disabled: use structured order fields');
   const confirm = str(args?.confirm, 100);
   if (confirm) {
     const t = await consumeTicket<OrderTicket, 'curate:order'>(env, confirm, 'curate:order', auth);
@@ -277,7 +283,8 @@ const toolOrder: ToolHandler = async (env, auth, args) => {
   }
   const ticket: OrderTicket = {
     kind: 'curate:order', accountId: auth.accountId, userId: auth.userId, agent: agentName(args), vendorPlan,
-    currency: currency!, lines, total, totalUsd, message, notes: [landed, ...freightLines, str(args?.note, 1000)].filter(Boolean).join('\n'), shipsBy,
+    currency: currency!, lines, total, totalUsd, message, notes: '', shipsBy,
+    freightEstimate: { legs: legs.map(({id,leg,mode,total_amount,currency,weight_kg,observed_on}) => ({id,leg,mode,total_amount,currency,weight_kg,observed_on})), weight_kg: weightKg, goods_usd: totalUsd, freight_usd: freightKnown ? freightUsd : null, landed_estimate_usd: freightKnown ? totalUsd + freightUsd : null, recorded_at: new Date().toISOString(), estimated_only: true },
   };
   const token = await issueTicket(env, ticket, auth.tokenId);
   return previewEnvelope({
@@ -291,6 +298,8 @@ const toolOrder: ToolHandler = async (env, auth, args) => {
 };
 
 async function commitOrder(env: ToolEnv, auth: ToolAuth, t: OrderTicket) {
+  await requireCurateManager(env.DB, auth);
+  for (const line of t.lines) if (!await entryById(env, auth, line.entryId)) throw new Error('Order tea is no longer active in this account');
   const vendor = await resolveVendorAtCommit(env, auth, t.vendorPlan, t.agent);
   if (!vendor) throw new Error('No vendor for this order.');
   const card = await vendorById(env, auth, vendor.id);
@@ -305,9 +314,9 @@ async function commitOrder(env: ToolEnv, auth: ToolAuth, t: OrderTicket) {
   }));
   const statements: D1PreparedStatement[] = [
     env.DB.prepare(
-      `INSERT INTO purchase_orders (id, account_id, vendor_name, vendor_id, vendor_contact, items_json, total_usd, display_currency, status, message_text, notes, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)`
-    ).bind(poId, auth.accountId, vendor.name, vendor.id, contact, JSON.stringify(items), Math.round(t.totalUsd * 100) / 100, t.currency, t.message, t.notes, now, now),
+      `INSERT INTO purchase_orders (id, account_id, vendor_name, vendor_id, vendor_contact, items_json, total_usd, display_currency, status, message_text, notes, freight_estimate_json, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)`
+    ).bind(poId, auth.accountId, vendor.name, vendor.id, contact, JSON.stringify(items), Math.round(t.totalUsd * 100) / 100, t.currency, t.message, null, t.freightEstimate ? JSON.stringify(t.freightEstimate) : null, now, now),
   ];
   for (const l of t.lines) {
     statements.push(env.DB.prepare(
@@ -317,8 +326,8 @@ async function commitOrder(env: ToolEnv, auth: ToolAuth, t: OrderTicket) {
     statements.push(env.DB.prepare(
       `UPDATE tea_compass_entries SET decision = 'selected', status = 'buying', buy_quantity_grams = ?,
          vendor_id = COALESCE(vendor_id, ?), vendor_name = COALESCE(vendor_name, ?)${t.shipsBy ? ', transport_mode = ?' : ''}, updated_at = datetime('now')
-       WHERE id = ? AND account_id = ? AND user_id = ?`
-    ).bind(l.grams, vendor.id, vendor.name, ...(t.shipsBy ? [t.shipsBy] : []), l.entryId, auth.accountId, auth.userId));
+       WHERE id = ? AND account_id = ?`
+    ).bind(l.grams, vendor.id, vendor.name, ...(t.shipsBy ? [t.shipsBy] : []), l.entryId, auth.accountId));
   }
   await env.DB.batch(statements);
   return {
@@ -326,7 +335,7 @@ async function commitOrder(env: ToolEnv, auth: ToolAuth, t: OrderTicket) {
     purchase_order_id: poId,
     where: 'Purchase Orders page (/admin/purchase-orders) and the vendor\'s page; arrivals wait to be approved into stock.',
     message_to_copy: t.message,
-    notes: t.notes,
+    freight_estimate: t.freightEstimate ?? null,
   };
 }
 
@@ -345,10 +354,11 @@ const toolGetVendor: ToolHandler = async (env, auth, args) => {
   }
   const card = await vendorById(env, auth, id);
   if (!card) return { error: 'not_found' };
+  const manager = await curateManagerAccess(env, auth);
   const [profile, teas, orders, todos, rates] = await Promise.all([
     env.DB.prepare('SELECT * FROM curate_vendor_profiles WHERE vendor_id = ? AND account_id = ?').bind(id, auth.accountId).first<Record<string, any>>(),
-    env.DB.prepare('SELECT * FROM tea_compass_entries WHERE account_id = ? AND user_id = ? AND vendor_id = ? ORDER BY updated_at DESC LIMIT 50')
-      .bind(auth.accountId, auth.userId, id).all<Record<string, any>>(),
+    env.DB.prepare(`SELECT * FROM tea_compass_entries WHERE account_id = ? AND vendor_id = ? AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL ${manager ? '' : 'AND user_id = ?'} ORDER BY updated_at DESC LIMIT 50`)
+      .bind(auth.accountId, id, ...(manager ? [] : [auth.userId])).all<Record<string, any>>(),
     env.DB.prepare('SELECT id, status, total_usd, display_currency, items_json, message_text, created_at FROM purchase_orders WHERE account_id = ? AND vendor_id = ? ORDER BY created_at DESC LIMIT 20')
       .bind(auth.accountId, id).all<Record<string, any>>(),
     env.DB.prepare('SELECT id, text, created_at FROM curate_todos WHERE account_id = ? AND vendor_id = ? AND done_at IS NULL').bind(auth.accountId, id).all(),
@@ -358,6 +368,8 @@ const toolGetVendor: ToolHandler = async (env, auth, args) => {
   const shared = await currentLegs(env, auth, null);
   return {
     card: vendorSummary(card),
+    structured: await readVendorStructuredProfile(env.DB, auth, id),
+    quotes: await listCurateQuotes(env.DB, auth, id),
     tags: parseJson<unknown>(card.tags, []),
     knows: profile ? {
       quotes_in: profile.price_currency, storage: profile.storage, story: profile.story,

@@ -83,16 +83,24 @@ describe('Curate arrivals read and confirmed stock service', () => {
     expect(result).toEqual({ error: 'purpose_conflict', status: 409 });
     expect(result).not.toHaveProperty('committed');
   });
-  it('existing one-step photo upload also updates the linked shelf sample', async () => {
+  it('legacy photo tool previews then stores role-labelled private evidence without public copying', async () => {
     const { env, db } = setup();
     const entry = db.sqlite.prepare("SELECT * FROM tea_compass_entries WHERE id='tea'").get() as any;
     db.batch((await prepareCompassSampleWrite(db as any, auth, entry, { entryId: 'tea' })).statements as any);
     const put = vi.fn(async () => undefined);
-    const result = await curatePhotoTools.handlers.curate_add_photo({ ...env, MEDIA_BUCKET: { put } }, auth, { tea_id: 'tea', image_base64: btoa('photo-bytes'), mime_type: 'image/jpeg' }) as any;
+    const publicPut = vi.fn(async () => undefined);
+    const args = { tea_id: 'tea', image_base64: btoa(String.fromCharCode(255, 216, 255, 1)), mime_type: 'image/jpeg', role: 'pricelist', filename: 'quote.jpg' };
+    const privateEnv = { ...env, ATLAS_BUCKET: { put }, MEDIA_BUCKET: { put: publicPut } };
+    const preview = await curatePhotoTools.handlers.curate_add_photo(privateEnv, auth, args) as any;
+    expect(preview.confirmation_token).toBeTruthy();
+    expect(put).not.toHaveBeenCalled();
+    const result = await curatePhotoTools.handlers.curate_add_photo(privateEnv, auth, { ...args, confirm: preview.confirmation_token }) as any;
+    expect(result.confirmed).toBe(true);
+    expect(result.attachment).toMatchObject({ role: 'pricelist', entity_type: 'tea', entity_id: 'tea' });
     expect(put).toHaveBeenCalledTimes(1);
-    expect(result.added).toBe(true);
-    const shelf = db.sqlite.prepare("SELECT photos FROM tea_samples WHERE compass_entry_id='tea'").get() as any;
-    expect(JSON.parse(shelf.photos)).toEqual([result.photo_url]);
+    expect(publicPut).not.toHaveBeenCalled();
+    expect(db.sqlite.prepare("SELECT photos FROM tea_compass_entries WHERE id='tea'").get()).toMatchObject({ photos: '[]' });
+    expect(db.sqlite.prepare("SELECT photos FROM tea_samples WHERE compass_entry_id='tea'").get()).toMatchObject({ photos: '[]' });
   });
 });
 describe('arrival tools through the authenticated HTTP MCP route', () => {

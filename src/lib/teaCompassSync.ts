@@ -1,3 +1,4 @@
+import { COMPASS_STRUCTURED_CAMEL } from './curateStructuredFields';
 import { useTeaCompassStore } from './teaCompassStore';
 import { api, hasToken, isTokenScopedToAccount, isTransientApiError } from './api';
 import { normalizeCompassEntry, type TeaCompassEntry } from '../components/TeaCompass/types';
@@ -7,6 +8,7 @@ const BACKGROUND_REQUEST = { background: true } as const;
 // ── Case conversion helpers ──
 
 const CAMEL_TO_SNAKE: Record<string, string> = {
+  ...Object.fromEntries(Object.entries(COMPASS_STRUCTURED_CAMEL).map(([snake, camel]) => [camel, snake])),
   chineseName: 'chinese_name',
   originRegion: 'origin_region',
   priceAmount: 'price_amount',
@@ -51,7 +53,7 @@ function toSnakeCase(entry: TeaCompassEntry): Record<string, any> {
     // verdict it is an independent sourcing choice with matching API/DB naming.
 
     // Serialize arrays/objects to JSON strings for D1
-    if (snakeKey === 'photos' || snakeKey === 'audio_clips' || snakeKey === 'tasting') {
+    if (snakeKey === 'photos' || snakeKey === 'audio_clips' || snakeKey === 'tasting' || snakeKey === 'route_quotes') {
       result[snakeKey] = value != null ? JSON.stringify(value) : null;
     } else {
       result[snakeKey] = value ?? null;
@@ -69,9 +71,9 @@ function toCamelCase(row: Record<string, any>): TeaCompassEntry {
     const camelKey = SNAKE_TO_CAMEL[key] || key;
 
     // Parse JSON strings back to objects/arrays
-    if (key === 'photos' || key === 'audio_clips' || key === 'tasting') {
+    if (key === 'photos' || key === 'audio_clips' || key === 'tasting' || key === 'route_quotes') {
       try {
-        result[camelKey] = value ? JSON.parse(value as string) : (key === 'tasting' ? undefined : []);
+        result[camelKey] = typeof value === 'string' ? (value ? JSON.parse(value) : (key === 'tasting' ? undefined : [])) : value ?? (key === 'tasting' ? undefined : []);
       } catch {
         result[camelKey] = key === 'tasting' ? undefined : [];
       }

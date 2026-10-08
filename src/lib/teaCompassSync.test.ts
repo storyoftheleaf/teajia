@@ -73,6 +73,29 @@ describe('Compass sync acknowledgements', () => {
     expect(syncMock.mock.calls[0][0][0]).toMatchObject({ shop_name: '惜物堂', transport_mode: 'air' });
   });
 
+  it('roundtrips structured sourcing fields, route arrays, zero and explicit clears', async () => {
+    const route = { id: 'air-quote', mode: 'air' as const, amount: 0, currency: 'HKD', basis: 'kg' as const, basis_quantity: 1, price_kind: 'landed' as const };
+    useTeaCompassStore.setState({ entries: [{ ...entry('structured'), ageQuoted: 'About 20 years', grade: 'Special', packSizeGrams: 357,
+      packSizeLabel: 'Cake', vendorItemNumber: 'PE1', discountPercent: 0, quoteId: 'vendor-quote', shopName: 'Shop name', transportMode: 'air', routeQuotes: [route] }] });
+    syncMock.mockResolvedValue({ syncedIds: ['structured'] });
+    listMock.mockImplementation(async () => ({ entries: syncMock.mock.calls.at(-1)![0] }));
+    expect(await syncCompassEntries('acct-a')).toBe(1);
+    const payload = syncMock.mock.calls[0][0][0];
+    expect(payload).toMatchObject({ age_quoted: 'About 20 years', grade: 'Special', pack_size_grams: 357, pack_size_label: 'Cake', vendor_item_number: 'PE1', discount_percent: 0, quote_id: 'vendor-quote' });
+    expect(JSON.parse(payload.route_quotes)).toEqual([route]);
+    expect(useTeaCompassStore.getState().entries[0]).toMatchObject({ routeQuotes: [route], discountPercent: 0, quoteId: 'vendor-quote' });
+    useTeaCompassStore.getState().updateEntry('structured', { ageQuoted: null, grade: null, packSizeGrams: null, packSizeLabel: null, vendorItemNumber: null, discountPercent: null, quoteId: null, shopName: null, transportMode: null, routeQuotes: [] });
+    await syncCompassEntries('acct-a');
+    expect(syncMock.mock.calls.at(-1)![0][0]).toMatchObject({ age_quoted: null, grade: null, pack_size_grams: null, pack_size_label: null, vendor_item_number: null, discount_percent: null, quote_id: null, shop_name: null, transport_mode: null, route_quotes: '[]' });
+  });
+
+  it('hydrates route quotes already decoded as arrays without discarding evidence', async () => {
+    const route = { id: 'sea-quote', mode: 'sea', amount: 20, currency: 'HKD', basis: 'total', basis_quantity: 1, price_kind: 'tea_only' };
+    listMock.mockResolvedValue({ entries: [{ ...entry('array-route'), route_quotes: [route], photos: [], audio_clips: [] }] });
+    await hydrateCompassEntries('acct-a');
+    expect(useTeaCompassStore.getState().entries[0]).toMatchObject({ routeQuotes: [route], synced: true });
+  });
+
   it('never downgrades a durable Compass lifecycle from lagging sample logistics', async () => {
     listMock.mockResolvedValue({ entries: [{
       ...entry('already-tasted'), synced: undefined, photos: '[]', audio_clips: '[]',
