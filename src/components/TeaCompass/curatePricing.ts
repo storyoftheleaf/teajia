@@ -161,3 +161,20 @@ export function purchaseOrderTotalUsd(
   const usd = purchaseSpendInUsd([tx], rates).priced[0]?.usd;
   return usd === undefined ? undefined : Math.round(usd * 100) / 100;
 }
+
+/**
+ * What an order line carries for a tea's price. A tea sold by the piece (a
+ * cake, a brick, teaware) is priced per piece. A loose tea priced "per N
+ * grams" is priced PER GRAM on the line, because the line multiplies by grams:
+ * putting the per-100 g figure there as if it were per gram counted 200 g of a
+ * ¥450/100 g tea as ¥90,000. A loose tea with no gram size is its price whole.
+ */
+export function ledgerLinePrice(
+  priceAmount: number | null | undefined,
+  pricePerUnitGrams: number | null | undefined,
+  soldByPiece: boolean,
+): { pricePerUnit: number; priceIsPerGram: boolean } {
+  const amount = priceAmount ?? 0;
+  if (soldByPiece || !pricePerUnitGrams || pricePerUnitGrams <= 0) return { pricePerUnit: amount, priceIsPerGram: false };
+  return { pricePerUnit: amount / pricePerUnitGrams, priceIsPerGram: true };
+}

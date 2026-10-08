@@ -35,7 +35,7 @@ import { EncounterContext } from './EncounterContext';
 import { DecisionControl } from './DecisionControl';
 import { CaptureContextChips } from './CaptureContextChips';
 import { CaptureActionFooter } from './CaptureActionFooter';
-import { curateShelfPreview, sameMoney } from './curatePricing';
+import { curateShelfPreview, ledgerLinePrice, sameMoney } from './curatePricing';
 import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
 
 type ParseableField = 'type' | 'form' | 'year' | 'season' | 'storage' | 'region';
@@ -241,10 +241,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         // An amount in another money is never written into a line counted in
         // this one: the line keeps what was ordered.
         if (entry.priceAmount != null && !sameMoney(item.currency || tx.currency, entry.priceCurrency)) continue;
-        const newPrice = entry.priceAmount ?? 0;
         const blank = entry.priceAmount == null;
         const unitBased = entry.category === 'teaware' || (['Cake','Brick','Tuo'] as string[]).includes(entry.form || '');
-        const newIsPerGram = !unitBased && !!entry.pricePerUnitGrams;
+        const { pricePerUnit: newPrice, priceIsPerGram: newIsPerGram } = ledgerLinePrice(entry.priceAmount, entry.pricePerUnitGrams, unitBased);
         if (item.pricePerUnit !== newPrice || item.priceIsPerGram !== newIsPerGram || !!item.unpriced !== blank) {
           updItem(tx.id, item.id, { pricePerUnit: newPrice, priceIsPerGram: newIsPerGram, unpriced: blank ? true : undefined });
         }
@@ -949,8 +948,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       unitWeightGrams: (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '')
         ? (DEFAULT_GRAMS[entry.form!] ?? 100)
         : undefined,
-      pricePerUnit: entry.priceAmount ?? 0,
-      priceIsPerGram: !unitBased && !!entry.pricePerUnitGrams,
+      ...ledgerLinePrice(entry.priceAmount, entry.pricePerUnitGrams, unitBased),
       currency,
       // No price yet is no price: the 0 above is a placeholder, not a figure.
       ...(entry.priceAmount == null ? { unpriced: true as const } : {}),

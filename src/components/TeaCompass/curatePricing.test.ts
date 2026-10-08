@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { curateShelfPreview, orderMoney, purchaseOrderTotalUsd, purchaseSpendInUsd } from './curatePricing';
+import { curateShelfPreview, ledgerItemAmount, ledgerLinePrice, orderMoney, purchaseOrderTotalUsd, purchaseSpendInUsd } from './curatePricing';
 import { calculatePricing } from '../../admin/utils';
 import type { LedgerTransaction } from '../../lib/ledgerStore';
 import type { ExchangeRate } from '../../admin/types';
@@ -129,5 +129,23 @@ describe('an order\'s money (v1 ledger)', () => {
 
   it('leaves total_usd out when a tea has no price yet, rather than understating the order', () => {
     expect(purchaseOrderTotalUsd(tx([{ pricePerUnit: 450 }, { pricePerUnit: 0, unpriced: true }]), rates)).toBeUndefined();
+  });
+});
+
+describe('an order line\'s price (v1 ledger)', () => {
+  it('prices a loose tea sold "per 100 g" per gram, so 200 g of ¥450/100 g is ¥900, not ¥90,000', () => {
+    const price = ledgerLinePrice(450, 100, false);
+    expect(price).toEqual({ pricePerUnit: 4.5, priceIsPerGram: true });
+    const line = { id: 'l', addedAt: '', name: 'Jingmai', quantityGrams: 200, currency: 'Yuan' as const, ...price };
+    expect(ledgerItemAmount(line)).toBe(900);
+  });
+
+  it('prices a cake or teaware by the piece, whatever gram size is written beside it', () => {
+    expect(ledgerLinePrice(1200, 357, true)).toEqual({ pricePerUnit: 1200, priceIsPerGram: false });
+  });
+
+  it('takes a loose tea with no gram size as its price whole, and no price as a placeholder 0', () => {
+    expect(ledgerLinePrice(300, undefined, false)).toEqual({ pricePerUnit: 300, priceIsPerGram: false });
+    expect(ledgerLinePrice(undefined, 100, false)).toEqual({ pricePerUnit: 0, priceIsPerGram: true });
   });
 });

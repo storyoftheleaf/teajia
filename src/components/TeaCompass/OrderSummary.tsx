@@ -6,6 +6,7 @@ import { useLedgerStore } from '../../lib/ledgerStore';
 import type { TeaCompassEntry, TeaForm } from './types';
 import { GRAM_PRESETS, DEFAULT_GRAMS } from './types';
 import type { Currency } from '../../admin/types';
+import { ledgerLinePrice } from './curatePricing';
 
 interface OrderSummaryProps {
   open: boolean;
@@ -354,8 +355,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
         quantityGrams: unitBased ? undefined : qty,
         quantityUnits: unitBased ? qty : undefined,
         unitWeightGrams: unitBased && entry.form ? getDefaultGrams(entry.form) : undefined,
-        pricePerUnit: entry.priceAmount ?? 0,
-        priceIsPerGram: !unitBased && !!entry.pricePerUnitGrams,
+        ...ledgerLinePrice(entry.priceAmount, entry.pricePerUnitGrams, unitBased),
         currency: lineCurrency,
         ...(entry.priceAmount == null ? { unpriced: true as const } : {}),
         compassEntryId: entry.id,
