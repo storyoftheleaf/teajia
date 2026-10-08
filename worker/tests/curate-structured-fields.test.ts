@@ -6,7 +6,7 @@ import { prepareVendorStructuredProfileWrite, readVendorStructuredProfile } from
 import { getCurateQuote, prepareCurateQuoteWrite, validateCompassQuoteLink } from '../src/curateQuotes';
 import { curateIntakeTools } from '../src/mcpTools/curateIntake';
 import { curateQuoteTools } from '../src/mcpTools/curateQuotes';
-import { previewCurateUndo, confirmCurateMutation } from '../src/curateMutations';
+import { previewCurateUndo, previewCurateMutation, confirmCurateMutation } from '../src/curateMutations';
 const databases: SqliteD1[] = [];
 afterEach(() => { for (const db of databases.splice(0)) db.close(); });
 const auth = { accountId: 'a', userId: 'owner', userEmail: 'owner@test.dev', tokenId: 'token', creatorTier: 'account_owner' } as any;
@@ -170,5 +170,10 @@ describe('agent tea fields, visibility and history', () => {
     }
     await intake(db, 'curate_update_tea', { tea_id: 'tea', said: 'These are the exact words.' });
     expect(db.sqlite.prepare("SELECT text,source_type FROM notes WHERE compass_entry_id='tea'").get()).toMatchObject({ text: 'These are the exact words.', source_type: 'voice' });
+    const read = await curateIntakeTools.handlers.curate_get_tea({ DB: db } as any, auth, { tea_id: 'tea' }) as any;
+    expect(read.notes[0].id).toEqual(expect.any(String));
+    const correction = await previewCurateMutation({ DB: db } as any, auth, { entity: 'transcript', id: read.notes[0].id, action: 'edit', fields: { text: 'Corrected exact words.' } }, 'Codex');
+    await confirmCurateMutation({ DB: db } as any, auth, correction.confirmation_token);
+    expect(db.sqlite.prepare('SELECT text FROM notes WHERE id=?').get(read.notes[0].id)).toMatchObject({ text: 'Corrected exact words.' });
   });
 });

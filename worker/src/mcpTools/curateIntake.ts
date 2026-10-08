@@ -674,7 +674,7 @@ const toolGetTea: ToolHandler = async (env, auth, args) => {
   const e = await entryById(env, auth, id);
   if (!e) return { error: 'not_found' };
   const [notes, todos, vendor] = await Promise.all([
-    env.DB.prepare(`SELECT text, source_type, author_name, created_at FROM notes
+    env.DB.prepare(`SELECT id, text, source_type, author_name, created_at FROM notes
                     WHERE account_id = ? AND compass_entry_id = ? AND (deleted IS NULL OR deleted = 0) ORDER BY created_at ASC`)
       .bind(auth.accountId, id).all(),
     env.DB.prepare('SELECT id, text, created_at FROM curate_todos WHERE account_id = ? AND compass_entry_id = ? AND done_at IS NULL ORDER BY created_at ASC')
