@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { curateShelfPreview, orderLanded, purchaseSpendInUsd } from './curatePricing';
+import { curateShelfPreview, orderLanded, orderMoney, purchaseSpendInUsd } from './curatePricing';
 import { calculatePricing } from '../../admin/utils';
 import type { LedgerTransaction } from '../../lib/ledgerStore';
 import type { ExchangeRate } from '../../admin/types';
@@ -120,5 +120,36 @@ describe('orderLanded', () => {
 
   it('declines when the currency has no rate', () => {
     expect(orderLanded({ currency: 'HKD' as any, items: [] }, rates, 12)).toBeNull();
+  });
+});
+
+describe('an order counted in the money its lines are in', () => {
+  it('one money: one figure, in that money', () => {
+    const money = orderMoney(tx('a', 'Yuan', [{ price: 450, units: 1 }, { price: 300, units: 2 }]));
+    expect(money).toMatchObject({ currency: 'Yuan', mixed: false, unpriced: 0 });
+    expect(money.parts).toEqual([{ currency: 'Yuan', amount: 1050 }]);
+  });
+
+  it('two moneys (a draft made before orders held one) are two figures, never summed under one symbol, and have no landed figure', () => {
+    const mixed = tx('b', 'Yuan', [{ price: 450, units: 1 }, { price: 1800, units: 1, currency: 'NT' }]);
+    const money = orderMoney(mixed);
+    expect(money.mixed).toBe(true);
+    expect(money.parts).toEqual([{ currency: 'Yuan', amount: 450 }, { currency: 'NT', amount: 1800 }]);
+    expect(orderLanded(mixed, rates, shopFreightPerKgUsd)).toBeNull();
+  });
+
+  it('a line with no price yet is in no total and is counted, not read as nothing', () => {
+    const order = tx('c', 'Yuan', [{ price: 450, units: 1 }, { price: 0, units: 1 }]);
+    order.items[1].unpriced = true;
+    order.items[1].currency = 'NT';
+    const money = orderMoney(order);
+    expect(money).toMatchObject({ currency: 'Yuan', mixed: false, unpriced: 1 });
+    expect(money.parts).toEqual([{ currency: 'Yuan', amount: 450 }]);
+  });
+
+  it('spellings of one money are one money', () => {
+    const money = orderMoney(tx('d', 'Yuan', [{ price: 100, units: 1 }, { price: 50, units: 1, currency: 'CNY' }]));
+    expect(money.mixed).toBe(false);
+    expect(money.parts[0].amount).toBe(150);
   });
 });

@@ -18,11 +18,15 @@ function amount(item: LedgerLineItem, lang: 'zh' | 'en'): string {
   return lang === 'zh' ? '1件' : '1';
 }
 
+/** The stand-ins an order carries before anyone is named; they are never a name to greet. */
+export const isPlaceholderVendor = (name: string | undefined | null) => /^(unknown vendor|no vendor yet)$/i.test((name ?? '').trim());
+
 export function orderMessage(tx: Pick<LedgerTransaction, 'counterpartyName' | 'items' | 'direction'>): { zh: string; en: string; both: string } {
-  // An order with no vendor on it carries the placeholder 'Unknown Vendor';
-  // the greeting then simply says hello.
+  // An order with no vendor on it carries a placeholder ('No vendor yet', or the
+  // older 'Unknown Vendor'); the greeting then simply says hello rather than
+  // greeting the placeholder.
   const named = tx.counterpartyName?.trim() || '';
-  const who = /^unknown vendor$/i.test(named) ? '' : named;
+  const who = isPlaceholderVendor(named) ? '' : named;
   const items = tx.items.filter((i) => i.name?.trim());
   const zhLines = items.map((i) => `${i.chineseName?.trim() || i.name.trim()}${i.year ? ` ${i.year}` : ''} ${amount(i, 'zh')}`);
   const enLines = items.map((i) => `${i.name.trim()}${i.year ? ` ${i.year}` : ''}, ${amount(i, 'en')}`);

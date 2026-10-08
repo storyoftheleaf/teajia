@@ -59,7 +59,19 @@ export const SaidSheet: React.FC<{ entryId: string | null; onClose: () => void }
     const chosen = f.parts.filter((_, i) => f.keep[i]);
     const { updates, todos } = applySaidParts(entry, chosen);
     if (Object.keys(updates).length) updateEntry(entry.id, updates);
-    for (const text of todos) await api.compass.addTodo({ text, tea_id: entry.id }).catch(() => {});
+    // A to-do that did not reach the shop is not "filed": the sheet stays open on
+    // just those, so trying again cannot add the ones that did arrive a second time.
+    const sent = new Set<string>();
+    for (const text of todos) {
+      try { await api.compass.addTodo({ text, tea_id: entry.id }); sent.add(text); } catch { /* said below */ }
+    }
+    if (sent.size < todos.length) {
+      const left = f.parts.map((p, i) => ({ p, k: f.keep[i] })).filter(({ p, k }) => !(k && p.kind === 'todo' && sent.has(p.text)));
+      save(key, { ...f, parts: left.map(({ p }) => p), keep: left.map(({ k }) => k) });
+      setError('A to-do could not be saved. Check the connection and file again.');
+      return;
+    }
+    setError(null);
     save(key, { ...f, applied: true });
   };
 
@@ -92,8 +104,8 @@ export const SaidSheet: React.FC<{ entryId: string | null; onClose: () => void }
                       <span className="min-w-0 flex-1 truncate font-mono text-ui-14 text-tea-text">{p.text}</span>
                       {!f.applied ? (
                         <span className="flex shrink-0 items-center gap-1">
-                          <button type="button" aria-label={`Keep: ${p.text}`} aria-pressed={f.keep[i]} onClick={() => save(r.key, { ...f, keep: f.keep.map((k, j) => (j === i ? true : k)) })} className={`curate-v2-frame is-slim h-9 min-w-[44px] ${f.keep[i] ? 'is-on' : ''}`}>keep</button>
-                          <button type="button" aria-label={`Leave out: ${p.text}`} aria-pressed={!f.keep[i]} onClick={() => save(r.key, { ...f, keep: f.keep.map((k, j) => (j === i ? false : k)) })} className={`curate-v2-frame is-slim h-9 min-w-[44px] ${!f.keep[i] ? 'is-on' : ''}`}>skip</button>
+                          <button type="button" aria-label={`Keep: ${p.text}`} aria-pressed={f.keep[i]} onClick={() => save(r.key, { ...f, keep: f.keep.map((k, j) => (j === i ? true : k)) })} className={`curate-v2-frame is-slim h-9 !min-w-[44px] shrink-0 ${f.keep[i] ? 'is-on' : ''}`}>keep</button>
+                          <button type="button" aria-label={`Leave out: ${p.text}`} aria-pressed={!f.keep[i]} onClick={() => save(r.key, { ...f, keep: f.keep.map((k, j) => (j === i ? false : k)) })} className={`curate-v2-frame is-slim h-9 !min-w-[44px] shrink-0 ${!f.keep[i] ? 'is-on' : ''}`}>skip</button>
                         </span>
                       ) : (
                         <span className={`shrink-0 text-ui-12 ${f.keep[i] ? 'text-tea-gold' : 'text-tea-text-sec'}`}>{f.keep[i] ? (p.kind === 'story' || p.kind === 'vendor' ? 'source kept' : 'filed') : 'left out'}</span>

@@ -220,7 +220,7 @@ export const LedgerOverviewPanel: React.FC = () => {
         <button
           type="button"
           onClick={() => openPurchaseOrder()}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-tea-gold/10 text-tea-gold text-ui-12 font-semibold hover:bg-tea-gold/15 transition-colors mb-2"
+          className="w-full min-h-11 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-tea-gold/10 text-tea-gold text-ui-12 font-semibold hover:bg-tea-gold/15 transition-colors mb-2"
         >
           <ShoppingBag size={13} />
           Purchase Order Builder
@@ -230,7 +230,7 @@ export const LedgerOverviewPanel: React.FC = () => {
           <button
             type="button"
             onClick={() => createTransaction('purchase', '', useTeaCompassStore.getState().lastCurrency)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-tea-border text-tea-text-sec text-ui-12 hover:bg-tea-surface transition-colors"
+            className="flex-1 min-h-11 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-tea-border text-tea-text-sec text-ui-12 hover:bg-tea-surface transition-colors"
           >
             <ArrowDownLeft size={13} />
             Quick Note
@@ -238,7 +238,7 @@ export const LedgerOverviewPanel: React.FC = () => {
           <button
             type="button"
             onClick={() => createTransaction('sale', '', 'USD')}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-tea-border text-tea-text-sec text-ui-12 hover:bg-tea-surface transition-colors"
+            className="flex-1 min-h-11 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-tea-border text-tea-text-sec text-ui-12 hover:bg-tea-surface transition-colors"
           >
             <ArrowUpRight size={13} />
             Quick Sale

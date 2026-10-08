@@ -4,6 +4,7 @@ import { StructuredTeaFields } from './StructuredTeaFields';
 import { CardHeading, CardLine, PickLine, SheetRow } from './CardParts';
 import { TasteRows } from './TasteRows';
 import { orderLinePrice } from './curateV2Model';
+import { draftOrderFor, orderLineMoney, sameMoney } from './orderBuy';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Fuse from 'fuse.js';
@@ -145,7 +146,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const customEras = useTeaCompassStore((s) => s.customEras);
   const addCustomEra = useTeaCompassStore((s) => s.addCustomEra);
 
-  const getOrCreatePurchaseTransaction = useLedgerStore((s) => s.getOrCreatePurchaseTransaction);
   const addLineItem = useLedgerStore((s) => s.addLineItem);
   const transactions = useLedgerStore((s) => s.transactions);
 
@@ -208,13 +208,17 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       if (tx.status !== 'draft') continue;
       for (const item of tx.items) {
         if (item.compassEntryId !== entry.id) continue;
+        // An amount in another money is never written into an order that is
+        // counted in this one: the line keeps what was ordered.
+        if (entry.priceAmount != null && !sameMoney(tx.currency, entry.priceCurrency)) continue;
         const { pricePerUnit: newPrice, priceIsPerGram: newIsPerGram } = orderLinePrice(entry);
-        if (item.pricePerUnit !== newPrice || item.priceIsPerGram !== newIsPerGram) {
-          updItem(tx.id, item.id, { pricePerUnit: newPrice, priceIsPerGram: newIsPerGram });
+        const blank = entry.priceAmount == null;
+        if (item.pricePerUnit !== newPrice || item.priceIsPerGram !== newIsPerGram || !!item.unpriced !== blank) {
+          updItem(tx.id, item.id, { pricePerUnit: newPrice, priceIsPerGram: newIsPerGram, unpriced: blank ? true : undefined });
         }
       }
     }
-  }, [entry?.priceAmount, entry?.pricePerUnitGrams, entry?.form, entry?.category]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [entry?.priceAmount, entry?.priceCurrency, entry?.pricePerUnitGrams, entry?.form, entry?.category]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Parser state
   const userTapped = useRef<Set<ParseableField>>(new Set());
@@ -891,9 +895,15 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const buyStep = unitBased ? 1 : 25;
 
   const handleAddToLedger = async () => {
-    const vendorName = entry.vendorName || 'Unknown Vendor';
-    const currency = (entry.priceCurrency || 'NT') as Currency;
-    const txId = getOrCreatePurchaseTransaction(vendorName, currency, entry.vendorId);
+    // The same drafts the tea screen's Buy uses: one per vendor and money, and
+    // a tea with no vendor waits on "No vendor yet", where it cannot be
+    // confirmed until someone is named.
+    const txId = draftOrderFor(
+      { name: entry.vendorName ?? '', id: entry.vendorId },
+      entry.priceAmount != null ? (entry.priceCurrency || undefined) as Currency | undefined : undefined,
+      (useTeaCompassStore.getState().lastCurrency || 'Yuan') as Currency,
+    );
+    const orderCurrency = (useLedgerStore.getState().transactions.find((t) => t.id === txId)?.currency ?? 'Yuan') as Currency;
     addLineItem(txId, {
       name: entry.name || 'Unnamed',
       chineseName: entry.chineseName,
@@ -905,8 +915,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       unitWeightGrams: (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '')
         ? (DEFAULT_GRAMS[entry.form!] ?? 100)
         : undefined,
-      ...orderLinePrice(entry),
-      currency,
+      ...orderLineMoney(entry, orderCurrency),
       compassEntryId: entry.id,
     });
     setReceiptBusy(true);

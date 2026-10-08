@@ -5,12 +5,14 @@ const memberships = [{ account_id: 'acct-bali', account_name: 'Teajia Bali', rol
 const unhandledByPage = new WeakMap<Page, string[]>();
 const requestCounts = new WeakMap<Page, Map<string, number>>();
 const createdCustomersByPage = new WeakMap<Page, Array<Record<string, any>>>();
+const updatedCustomersByPage = new WeakMap<Page, Array<{ id: string; body: Record<string, any> }>>();
 export const COMPASS_TOKEN = `${enc(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${enc(JSON.stringify({ sub: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', platform_role: 'platform_owner', exp: Math.floor(Date.now() / 1000) + 86400, active_account_id: 'acct-bali', memberships }))}.test`;
 
-export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; preserveSamplesOnNavigation?: boolean; preserveSampleCartOnNavigation?: boolean; compassSyncLoseResponses?: number; contextEmpty?: boolean; contextFailOnce?: boolean; contextJourneyFailOnce?: boolean; contextVisitFailOnce?: boolean; products?: unknown[]; compassEntries?: unknown[]; contextByAccount?: Record<string, { journeys: unknown[]; visits: unknown[] }>; contextAfterInitial?: { journeys: unknown[]; visits: unknown[] }; contextDelayByAccount?: Record<string, number>; customers?: Array<Record<string, any>>; todos?: unknown[]; agentSuggestions?: unknown[]; pendingReceipts?: unknown[]; chineseName?: string | null; chineseNameFails?: boolean; rates?: unknown[] }) {
+export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; preserveSamplesOnNavigation?: boolean; preserveSampleCartOnNavigation?: boolean; compassSyncLoseResponses?: number; contextEmpty?: boolean; contextFailOnce?: boolean; contextJourneyFailOnce?: boolean; contextVisitFailOnce?: boolean; products?: unknown[]; compassEntries?: unknown[]; contextByAccount?: Record<string, { journeys: unknown[]; visits: unknown[] }>; contextAfterInitial?: { journeys: unknown[]; visits: unknown[] }; contextDelayByAccount?: Record<string, number>; customers?: Array<Record<string, any>>; todos?: unknown[]; agentSuggestions?: unknown[]; pendingReceipts?: unknown[]; chineseName?: string | null; chineseNameFails?: boolean; rates?: unknown[]; saidParts?: unknown[] }) {
   unhandledByPage.set(page, []);
   requestCounts.set(page, new Map());
   createdCustomersByPage.set(page, []);
+  updatedCustomersByPage.set(page, []);
   // The shop's people. Vendors are the ones tagged vendor; creating one adds to this list.
   const customers: Array<Record<string, any>> = [...(options?.customers ?? [{ id: 'vendor-chen', name: 'Chen Family', tags: ['vendor'] }])];
   const sampleSets: Array<Record<string, any>> = [];
@@ -77,10 +79,40 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       createdCustomersByPage.get(page)?.push(input);
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: row.id }) });
     }
+    // Saving a field on a vendor: the way the shop's server does it, a handle
+    // (wechat, instagram) is folded into the contacts list and a contacts list
+    // sent in a body REPLACES the stored one.
+    const customerPut = path.match(/^\/api\/customers\/([^/]+)$/);
+    if (customerPut && route.request().method() === 'PUT') {
+      const index = customers.findIndex((row) => row.id === customerPut[1]);
+      if (index < 0) return route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'Customer not found' }) });
+      const body = { ...(route.request().postDataJSON() as Record<string, any>) };
+      const parse = (raw: unknown): any[] => { try { const v = typeof raw === 'string' ? JSON.parse(raw) : raw; return Array.isArray(v) ? v : []; } catch { return []; } };
+      let contacts = parse(body.contacts ?? customers[index].contacts);
+      let touched = Array.isArray(body.contacts);
+      for (const channel of ['wechat', 'instagram']) {
+        if (!(channel in body)) continue;
+        contacts = contacts.filter((c) => c.channel !== channel);
+        if (body[channel]) contacts.push({ channel, handle: body[channel] });
+        delete body[channel];
+        touched = true;
+      }
+      if (touched) body.contacts = JSON.stringify(contacts);
+      customers[index] = { ...customers[index], ...body };
+      updatedCustomersByPage.get(page)?.push({ id: customerPut[1], body: route.request().postDataJSON() });
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
+    }
+    // The shop's server lifts a handle back out of contacts when it reads a customer.
     const customerMatch = path.match(/^\/api\/customers\/([^/]+)$/);
     if (customerMatch && route.request().method() === 'GET') {
       const found = customers.find((row) => row.id === customerMatch[1]);
-      return route.fulfill({ status: found ? 200 : 404, contentType: 'application/json', body: JSON.stringify(found ?? { error: 'Customer not found' }) });
+      const lifted = found ? { ...found } : found;
+      if (lifted) {
+        let list: any[] = [];
+        try { const v = typeof lifted.contacts === 'string' ? JSON.parse(lifted.contacts) : lifted.contacts; list = Array.isArray(v) ? v : []; } catch { list = []; }
+        for (const channel of ['wechat', 'instagram']) if (!lifted[channel]) { const hit = list.find((c) => c.channel === channel && c.handle); if (hit) lifted[channel] = hit.handle; }
+      }
+      return route.fulfill({ status: found ? 200 : 404, contentType: 'application/json', body: JSON.stringify(lifted ?? { error: 'Customer not found' }) });
     }
     if (requestKey === 'GET /api/compass/entries') {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ entries: compassEntries }) });
@@ -168,6 +200,19 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       if (options?.chineseNameFails) return route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'No provider' }) });
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ chineseName: options?.chineseName === undefined ? '孟库古树茶' : options.chineseName, confident: true }) });
     }
+    // What the page writes when an agent's find is picked, a to-do is added or
+    // ticked, a recording is filed, Drive is saved, and an order is marked sent.
+    if (requestKey === 'POST /api/curate/suggestions/pick') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ picked: 0, dropped: 0 }) });
+    if (requestKey === 'POST /api/curate/todos') return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: `todo-created-${counts.get(requestKey)}` }) });
+    if (/^\/api\/curate\/todos\/[^/]+\/done$/.test(path) && route.request().method() === 'POST') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ done: true }) });
+    if (requestKey === 'POST /api/curate/said/file') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ parts: options?.saidParts ?? [] }) });
+    if (requestKey === 'POST /api/curate/drive/save') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ copied: 2, teas: 1 }) });
+    if (/^\/api\/purchase-orders\/[^/]+$/.test(path) && route.request().method() === 'PUT') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
+    const proposalMatch = path.match(/^\/api\/compass\/entries\/([^/]+)\/receipt-proposals$/);
+    if (proposalMatch && route.request().method() === 'POST') {
+      const input = route.request().postDataJSON() as Record<string, any>;
+      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: `proposal-${proposalMatch[1]}`, compass_entry_id: proposalMatch[1], status: 'pending', ...input }) });
+    }
     const promoteMatch = path.match(/^\/api\/compass\/entries\/([^/]+)\/promote$/);
     if (promoteMatch && route.request().method() === 'POST') {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: `product-${promoteMatch[1]}`, product: {}, alreadyPromoted: false }) });
@@ -221,6 +266,11 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     }
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(responses[requestKey]) });
   });
+}
+
+/** Every PUT /api/customers/:id the page made, as sent. */
+export function compassUpdatedCustomers(page: Page): Array<{ id: string; body: Record<string, any> }> {
+  return updatedCustomersByPage.get(page) ?? [];
 }
 
 /** The bodies of every customer the page created through POST /api/customers. */

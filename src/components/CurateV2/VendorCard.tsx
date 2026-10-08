@@ -7,6 +7,7 @@ import { quotedUnit, tastingLine } from './curateV2Model';
 import { CURRENCY_LABELS } from './PricingRow';
 import { Section } from './TodayView';
 import { VendorInfoPanel } from './VendorInfoPanel';
+import { isVendorTagged } from './VendorPicker';
 import type { TeaCompassEntry, VendorDetails } from './types';
 
 interface Contact { channel: string; handle: string; label?: string }
@@ -86,22 +87,39 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
       let id = vendorId;
       if (!id) {
         // A vendor known only by name becomes a vendor record the first time something is saved.
-        const made: any = await api.customers.create({ name: vendor.name, tags: ['vendor'], source: 'compass' });
+        // The shop may already have this vendor under the same name (any case):
+        // that is the record to write to, never a second one.
+        const shop: any = await api.customers.list();
+        const known = ((shop?.customers || shop || []) as any[]).find((c) => isVendorTagged(c.tags) && String(c.name ?? '').trim().toLowerCase() === vendor.name.trim().toLowerCase());
+        const made: any = known ?? await api.customers.create({ name: vendor.name, tags: ['vendor'], source: 'compass' });
         id = made?.id;
         if (id) { setVendorId(id); for (const t of all) if (!t.vendorId) updateEntry(t.id, { vendorId: id }); }
       }
       if (!id) throw new Error('This vendor could not be saved yet.');
       const body: Record<string, unknown> = {};
       if (f === 'chinese_name') body.chinese_name = text || null;
-      if (f === 'where') body.city = text || null;
+      // "Where" is one line the person edits whole (it was shown joined from address,
+      // city and country), so it is stored whole: the older parts it replaces are
+      // cleared, or they would come back beside it the next time the card opens.
+      if (f === 'where') Object.assign(body, { city: text || null, address: null, country: null });
       if (f === 'wechat') body.wechat = text || null;
       if (f === 'whatsapp') body.whatsapp = text || null;
       if (f === 'notes') body.notes = text || null;
       if (f === 'website') {
-        body.contacts = [...contactsOf(record).filter((c) => !(c.label === 'website' || /^https?:\/\//i.test(c.handle))), ...(text ? [{ channel: 'other', handle: text, label: 'website' }] : [])];
+        // The list is written whole, so it starts from what the shop holds NOW:
+        // this screen's copy does not have a handle saved a moment ago (WeChat is
+        // kept in the same list), and writing from it would erase that handle.
+        const stored: any = await api.customers.get(id);
+        body.contacts = [...contactsOf(stored).filter((c) => !(c.label === 'website' || /^https?:\/\//i.test(c.handle))), ...(text ? [{ channel: 'other', handle: text, label: 'website' }] : [])];
       }
       const saved: any = await api.customers.update(id, body);
-      setRecord(saved && typeof saved === 'object' && saved.name ? saved : { ...(record ?? { name: vendor.name }), ...body, ...(f === 'where' ? { address: null, country: null } : {}) } as Record_);
+      setRecord(saved && typeof saved === 'object' && saved.name ? saved : { ...(record ?? { name: vendor.name }), ...body } as Record_);
+      // The teas keep their own copy of the vendor's handles (the card and storefront
+      // panel below saves from it). It follows what was just saved, or opening that
+      // panel would write the older handle back over this one.
+      if (f === 'wechat' || f === 'whatsapp') {
+        for (const t of all) if (t.vendorDetails) updateEntry(t.id, { vendorDetails: { ...t.vendorDetails, [f]: text || undefined } });
+      }
       setEditing(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'That did not save. Try again.');

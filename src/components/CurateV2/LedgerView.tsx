@@ -17,8 +17,8 @@ import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { OrderMessageSheet } from './OrderMessageSheet';
 import { VendorPicker } from './VendorPicker';
-import { NO_VENDOR_YET } from './orderBuy';
-import { orderLanded, purchaseSpendInUsd } from './curatePricing';
+import { NO_VENDOR_YET, releaseTeaFromOrder } from './orderBuy';
+import { orderLanded, orderMoney, purchaseSpendInUsd } from './curatePricing';
 import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
 
 // ─── Currency helpers ────────────────────────────────────────────────────────
@@ -73,7 +73,8 @@ const LineItemRow: React.FC<{
   // "2 cakes", "1 piece", "500 g": the amount the way it is ordered.
   const piece = String(item.form || (item.type === 'Teaware' ? 'piece' : 'piece')).toLowerCase();
   const qtyWords = isUnitBased ? `${currentQty} ${currentQty === 1 ? piece : `${piece}s`}` : `${currentQty.toLocaleString()} g`;
-  const nameClass = 'curate-v2-name block w-full truncate text-left transition-colors hover:text-tea-gold';
+  // The name is the way into the tea: its hit area is a finger tall, not a line of text tall.
+  const nameClass = 'curate-v2-name -my-3 block w-full truncate py-3 text-left transition-colors hover:text-tea-gold';
 
   return (
     <div className="border-b border-tea-border px-4 py-3.5">
@@ -103,7 +104,9 @@ const LineItemRow: React.FC<{
         <div className="flex shrink-0 flex-col items-stretch gap-1.5">
           <div className="flex h-[38px] items-center justify-between gap-3 rounded-[3px] border border-tea-border px-3">
             <span className="text-ui-13 text-tea-text-sec tabular-nums">{qtyWords}</span>
-            <span className="text-ui-14 font-medium text-tea-text tabular-nums">{fmtPrice(total, item.currency)}</span>
+            {item.unpriced
+              ? <span className="text-ui-13 text-tea-text-sec">no price yet</span>
+              : <span className="text-ui-14 font-medium text-tea-text tabular-nums">{fmtPrice(total, item.currency)}</span>}
           </div>
           {!readOnly && <div className="flex items-center justify-between">
             <button type="button" aria-label="Less" onClick={() => handleQtyChange(currentQty - (isUnitBased ? 1 : 25))} className="curate-v2-frame h-8 w-9 min-w-0 px-0 text-ui-15">−</button>
@@ -113,7 +116,7 @@ const LineItemRow: React.FC<{
               aria-label="Amount"
               onChange={(e) => handleQtyChange(Math.max(1, parseInt(e.target.value) || 1))}
               onWheel={(e) => (e.target as HTMLElement).blur()}
-              className="w-14 border-none bg-transparent text-center font-mono text-ui-12 tracking-[0.14em] text-tea-text-sec outline-none tabular-nums"
+              className="h-11 w-14 border-none bg-transparent text-center font-mono text-ui-12 tracking-[0.14em] text-tea-text-sec outline-none tabular-nums"
             />
             <button type="button" aria-label="More" onClick={() => handleQtyChange(currentQty + (isUnitBased ? 1 : 25))} className="curate-v2-frame h-8 w-9 min-w-0 px-0 text-ui-15">+</button>
           </div>}
@@ -304,12 +307,10 @@ const TransactionCard: React.FC<{
   /** A tea taken off a draft order is no longer being ordered. */
   const removeLine = useCallback((item: LedgerLineItem) => {
     removeLineItem(tx.id, item.id);
-    if (item.compassEntryId && tx.status === 'draft') {
-      const e = useTeaCompassStore.getState().getEntry(item.compassEntryId);
-      if (e?.status === 'buying') updateCompassEntry(item.compassEntryId, { status: 'noted' });
-    }
-  }, [tx.id, tx.status, removeLineItem, updateCompassEntry]);
+    if (item.compassEntryId && tx.status === 'draft') releaseTeaFromOrder(item.compassEntryId);
+  }, [tx.id, tx.status, removeLineItem]);
   const confirmTransaction = useLedgerStore((s) => s.confirmTransaction);
+  const updateTransaction = useLedgerStore((s) => s.updateTransaction);
   const removeTransaction = useLedgerStore((s) => s.removeTransaction);
   const [justConfirmed, setJustConfirmed] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -344,10 +345,12 @@ const TransactionCard: React.FC<{
     }
   }, [tx]);
 
-  const total = useMemo(
-    () => tx.items.reduce((sum, item) => sum + lineTotal(item), 0),
-    [tx.items]
-  );
+  // The order counted in the money its lines are in: one figure when they share
+  // a money, each on its own when they do not, never one money's number under
+  // another's symbol. Lines with no price yet are in no total and are said so.
+  const money = useMemo(() => orderMoney(tx), [tx]);
+  const totalText = money.parts.map((part) => fmtPrice(part.amount, part.currency)).join(' + ');
+  const allUnpriced = tx.items.length > 0 && money.unpriced === tx.items.length;
   const { data: rates } = useRates();
   const shopFreight = useShopFreightDefault();
   const landed = useMemo(() => orderLanded(tx, rates, shopFreight.perKgUsd), [tx, rates, shopFreight.perKgUsd]);
@@ -360,7 +363,8 @@ const TransactionCard: React.FC<{
   // Only the vendor having been messaged counts as sent, not the order being recorded.
   const [markedSent, setMarkedSent] = useState(false);
   // An order for "No vendor yet" cannot be confirmed: someone has to be named first.
-  const needsVendor = isPurchase && !tx.counterpartyId && (!tx.counterpartyName?.trim() || tx.counterpartyName === NO_VENDOR_YET);
+  // ("Unknown Vendor" is the older placeholder, left on drafts made before this one.)
+  const needsVendor = isPurchase && !tx.counterpartyId && (!tx.counterpartyName?.trim() || tx.counterpartyName === NO_VENDOR_YET || /^unknown vendor$/i.test(tx.counterpartyName.trim()));
   const [choosingVendor, setChoosingVendor] = useState(false);
   const adoptVendor = useLedgerStore((s) => s.adoptVendor);
   /** The vendor goes onto the order and onto every tea on it. A vendor that
@@ -394,8 +398,11 @@ const TransactionCard: React.FC<{
         // total_usd is dollars: the order's own money is converted at the shop's
         // rates, and left out when a currency has no rate (never read at 1,
         // which would store ¥2,400 as $2,400).
-        const totalAmount = purchaseSpendInUsd([tx], rates).priced[0]?.usd;
-        await api.purchaseOrders.create({
+        // A total is only written when every line has a price: a total with
+        // blanks counted as zero would record the order as cheaper than it is.
+        const complete = tx.items.length > 0 && tx.items.every((item) => !item.unpriced);
+        const totalAmount = complete ? purchaseSpendInUsd([tx], rates).priced[0]?.usd : undefined;
+        const created = await api.purchaseOrders.create({
           po_number: `PO-${tx.id.slice(0, 8).toUpperCase()}`,
           vendor_name: tx.counterpartyName || 'Unknown',
           vendor_id: tx.counterpartyId || undefined,
@@ -406,13 +413,17 @@ const TransactionCard: React.FC<{
             form: item.form,
             year: item.year,
             quantity: item.priceIsPerGram ? (item.quantityGrams ?? 0) : (item.quantityUnits ?? 1),
-            pricePerUnit: item.pricePerUnit,
+            // No price yet is no price, not a price of nothing.
+            pricePerUnit: item.unpriced ? null : item.pricePerUnit,
             priceIsPerGram: item.priceIsPerGram,
+            currency: item.currency,
           }))),
           total_usd: totalAmount === undefined ? undefined : Math.round(totalAmount * 100) / 100,
           display_currency: tx.currency,
           status: 'confirmed',
         });
+        // Kept so "Mark as sent" can name the order the shop recorded.
+        if (created?.id) updateTransaction(tx.id, { purchaseOrderId: created.id });
         setPoSaved(true);
       } catch {
         // Non-critical: PO exists locally in ledger store
@@ -450,7 +461,7 @@ const TransactionCard: React.FC<{
         // Non-critical, sale exists locally in ledger store
       }
     }
-  }, [tx, confirmTransaction, rates]);
+  }, [tx, confirmTransaction, updateTransaction, rates]);
 
   const handleDelete = useCallback(() => {
     if (window.confirm(`Remove this ${isPurchase ? 'purchase' : 'sale'} order?`)) {
@@ -493,7 +504,7 @@ const TransactionCard: React.FC<{
           {' · '}<span className={isDraft ? 'text-tea-gold' : ''}>{isDraft ? 'draft' : 'confirmed'}</span>
           {(tx.photos?.length ?? 0) > 0 ? ` · ${tx.photos.length} photo${tx.photos.length === 1 ? '' : 's'}` : ''}
         </span>
-        {!showBody && <span className="text-ui-14 font-medium text-tea-text tabular-nums">{fmtPrice(total, tx.currency)}</span>}
+        {!showBody && <span className="text-ui-14 font-medium text-tea-text tabular-nums">{allUnpriced ? 'no price yet' : totalText}</span>}
       </div>
       <div className="mx-4 h-px bg-tea-gold/20" aria-hidden="true" />
 
@@ -534,14 +545,14 @@ const TransactionCard: React.FC<{
                   {landed && isPurchase && (
                     <>
                       <div className="flex items-baseline justify-between py-1 text-ui-13 text-tea-text-sec tabular-nums">
-                        <span>Teas</span><span className="text-tea-text">{fmtPrice(landed.subtotal, tx.currency)}</span>
+                        <span>Teas</span><span className="text-tea-text">{fmtPrice(landed.subtotal, money.currency)}</span>
                       </div>
                       <div className="flex items-baseline justify-between py-1 text-ui-13 text-tea-text-sec tabular-nums">
-                        <span>Freight · {landed.weightKg.toFixed(1)} kg at {fmtPrice(landed.freightPerKg, tx.currency)}</span><span className="text-tea-text">{fmtPrice(landed.freight, tx.currency)}</span>
+                        <span>Freight · {landed.weightKg.toFixed(1)} kg at {fmtPrice(landed.freightPerKg, money.currency)}</span><span className="text-tea-text">{fmtPrice(landed.freight, money.currency)}</span>
                       </div>
                       {landed.perUsd !== 1 && (
                         <div className="flex items-baseline justify-between py-1 text-ui-13 text-tea-text-sec tabular-nums">
-                          <span>{fmtPrice(landed.subtotal + landed.freight, tx.currency)} at {landed.perUsd.toFixed(2)} today</span><span />
+                          <span>{fmtPrice(landed.subtotal + landed.freight, money.currency)} at {landed.perUsd.toFixed(2)} today</span><span />
                         </div>
                       )}
                     </>
@@ -549,9 +560,14 @@ const TransactionCard: React.FC<{
                   <div className="mt-1 flex items-baseline justify-between border-t border-tea-border pt-2.5">
                     <span className="text-ui-13 text-tea-text-sec">{landed && isPurchase ? 'Landed' : 'Total'}</span>
                     <span className="text-ui-20 font-semibold text-tea-gold tabular-nums">
-                      {landed && isPurchase ? `$${Math.round(landed.landedUsd).toLocaleString()}` : fmtPrice(total, tx.currency)}
+                      {landed && isPurchase && !allUnpriced ? `$${Math.round(landed.landedUsd).toLocaleString()}` : allUnpriced ? 'no price yet' : totalText}
                     </span>
                   </div>
+                  {money.unpriced > 0 && !allUnpriced && (
+                    <p className="pt-1.5 font-mono text-ui-12 text-tea-text-sec" data-testid="order-unpriced-note">
+                      {money.unpriced === 1 ? '1 tea has' : `${money.unpriced} teas have`} no price yet and {money.unpriced === 1 ? 'is' : 'are'} left out of this.
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -629,7 +645,10 @@ const TransactionCard: React.FC<{
                     type="button"
                     onClick={async () => {
                       try {
-                        await api.purchaseOrders.updateStatus(tx.id.slice(0, 8).toUpperCase(), 'sent');
+                        // The order the shop recorded, by its own id. (This used to
+                        // send the first eight letters of the local id, which names
+                        // no order, so "Marked as sent" changed nothing anywhere.)
+                        if (tx.purchaseOrderId) await api.purchaseOrders.updateStatus(tx.purchaseOrderId, 'sent');
                         setMarkedSent(true);
                       } catch {
                         // Status update failed silently
@@ -727,7 +746,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
       <button type="button" onClick={() => openPurchaseOrder()} className="curate-v2-row w-full text-left">
         <span className="font-mono text-ui-13 text-tea-gold">+ Purchase order</span>
         <span className="flex-1" />
-        <span className="font-mono text-ui-12 text-tea-text-sec">several teas from one vendor</span>
+        <span className="font-mono text-ui-12 text-tea-text-sec lg:hidden">several teas from one vendor</span>
       </button>
       <button type="button" onClick={() => createTransaction('purchase', '', useTeaCompassStore.getState().lastCurrency)} className="curate-v2-row w-full text-left">
         <span className="font-mono text-ui-13 text-tea-text-sec">+ Quick purchase note</span>
@@ -749,8 +768,10 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
 
   return (
     <div className="pb-8">
-      {/* Which orders: four equal columns on one line, never a sideways scroll. */}
-      <div className="curate-v2-tabs -mx-4 mb-1 border-b border-tea-border" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }} role="tablist" aria-label="Which orders">
+      {/* Which orders: four equal columns on one line on a phone, never a sideways
+          scroll; in the narrow list beside the overview on a laptop, two by two,
+          because four would print over each other there. */}
+      <div className="curate-v2-tabs -mx-4 mb-1 !grid-cols-4 border-b border-tea-border lg:!grid-cols-2" role="tablist" aria-label="Which orders">
         {filterOptions.map((opt) => (
           <button
             key={opt.value}

@@ -57,10 +57,14 @@ export const VendorsView: React.FC<VendorsViewProps> = ({ onOpenTea, onAddTea, o
     const byKey = new Map<string, Vendor & { teas: TeaCompassEntry[] }>();
     const keyOf = (id: string | undefined, name: string) => id || `name:${name.trim().toLowerCase()}`;
     for (const v of remote) byKey.set(keyOf(v.id, v.name), { ...v, teas: [] });
+    // A tea that names a vendor the shop has, without carrying its id (an agent's
+    // find, an older capture), belongs to that vendor's line, not to a second
+    // "name only" line for the same person whose card would then make a second record.
+    const shopByName = new Map(remote.filter((v) => v.id).map((v) => [v.name.trim().toLowerCase(), keyOf(v.id, v.name)]));
     for (const e of entries) {
       const name = e.vendorName?.trim();
       if (!name && !e.vendorId) continue;
-      const key = keyOf(e.vendorId, name || '');
+      const key = e.vendorId ? keyOf(e.vendorId, name || '') : (shopByName.get((name || '').toLowerCase()) ?? keyOf(undefined, name || ''));
       const found = byKey.get(key) ?? { id: e.vendorId, name: name || 'Vendor', teas: [] };
       found.teas.push(e);
       byKey.set(key, found);

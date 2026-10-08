@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BottomSheet } from './CurateSheet';
 import { api, hasToken } from '../../lib/api';
 import type { LedgerTransaction } from '../../lib/ledgerStore';
-import { orderMessage, whatsappLink } from './orderMessage';
+import { isPlaceholderVendor, orderMessage, whatsappLink } from './orderMessage';
 
 interface OrderMessageSheetProps {
   tx: LedgerTransaction | null;
@@ -44,7 +44,7 @@ export const OrderMessageSheet: React.FC<OrderMessageSheetProps> = ({ tx, onOpen
   };
 
   return (
-    <BottomSheet open={!!tx} onOpenChange={onOpenChange} title={tx?.counterpartyName && !/^unknown vendor$/i.test(tx.counterpartyName.trim()) ? `Message ${tx.counterpartyName}` : 'Message the vendor'} description="Written from the order. Edit it before you send." large>
+    <BottomSheet open={!!tx} onOpenChange={onOpenChange} title={tx?.counterpartyName && !isPlaceholderVendor(tx.counterpartyName) ? `Message ${tx.counterpartyName}` : 'Message the vendor'} description="Written from the order. Edit it before you send." large>
       <div className="grid gap-3 px-4 pb-nav-gap">
         <textarea
           id="order-message-text"

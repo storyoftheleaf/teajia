@@ -40,17 +40,20 @@ export const VendorPicker: React.FC<VendorPickerProps> = ({ onPick, onCancel, au
   const [adding, setAdding] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // The shop's vendors, once they have arrived. A name typed before then is
+  // checked against them again before any record is made (the list is slow on a
+  // poor connection, and a vendor typed at the table is often the first thing done).
+  const listing = useRef<Promise<Vendor[]> | null>(null);
+  const listed = useRef(false);
   useEffect(() => {
     if (!hasToken()) return;
     let live = true;
-    api.customers.list()
-      .then((res: any) => {
-        if (!live) return;
-        setShopVendors(((res?.customers || res || []) as any[])
-          .filter((c) => isVendorTagged(c.tags))
-          .map((c) => ({ id: c.id, name: c.name })));
-      })
-      .catch(() => {});
+    listing.current = api.customers.list()
+      .then((res: any) => ((res?.customers || res || []) as any[])
+        .filter((c) => isVendorTagged(c.tags))
+        .map((c) => ({ id: c.id, name: c.name })) as Vendor[])
+      .catch(() => [] as Vendor[]);
+    listing.current.then((list) => { listed.current = true; if (live) setShopVendors(list); });
     return () => { live = false; };
   }, []);
 
@@ -103,6 +106,10 @@ export const VendorPicker: React.FC<VendorPickerProps> = ({ onPick, onCancel, au
     }
     onPick(undefined, name);
     if (!hasToken()) return;
+    if (!listed.current && listing.current) {
+      const arrived = (await listing.current).find((v) => v.id && v.name.trim().toLowerCase() === key);
+      if (arrived) { onPick(arrived.id, arrived.name); return; }
+    }
     try {
       const res = await api.customers.create({ name, tags: ['vendor'], source: 'compass' });
       const id = (res as { id?: string } | null)?.id;

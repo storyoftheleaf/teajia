@@ -7,6 +7,7 @@ import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData'
 import { curateShelfPreview } from './curatePricing';
 import { quotedUnit, tastingLine } from './curateV2Model';
 import { CURRENCY_LABELS } from './PricingRow';
+import { removeTeaFromDraftOrders } from './orderBuy';
 import { DEFAULT_GRAMS } from './types';
 import type { TeaCompassEntry } from './types';
 
@@ -164,6 +165,8 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
     : entry.decision === 'selected' ? 'buy'
     : entry.sampleState ? 'sample' : null;
   const choose = (c: Choice) => {
+    // Changing your mind after Buy takes the tea off its draft order.
+    if (c !== 'buy' && choice === 'buy') removeTeaFromDraftOrders(entry.id);
     if (c === 'pass') updateEntry(entry.id, { decision: choice === 'pass' ? null : 'passed_on' });
     if (c === 'sample') updateEntry(entry.id, choice === 'sample'
       ? { sampleState: null, decision: null }

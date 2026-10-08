@@ -14,8 +14,8 @@
  * preview uses, which reads `SHOP_MARKUP_MULTIPLIER`.
  */
 import { calculatePricing } from '../../admin/utils';
-import type { ExchangeRate } from '../../admin/types';
-import { isUnrecordedCurrency, rateToUsd } from '../../lib/currency';
+import type { Currency, ExchangeRate } from '../../admin/types';
+import { canonicalCurrency, isUnrecordedCurrency, rateToUsd } from '../../lib/currency';
 import { shopRateInCurrency } from '../../lib/shippingRate';
 import type { LedgerLineItem, LedgerTransaction } from '../../lib/ledgerStore';
 
@@ -109,6 +109,39 @@ export function purchaseSpendInUsd(
   return { priced, unpricedByCurrency };
 }
 
+export interface OrderMoney {
+  /** The order's money: the one every priced line is in (the order's own when it has none). */
+  currency: Currency;
+  /** Priced lines in more than one money. Added up as one figure they would label
+   *  one money's number with another's symbol, so no single total exists. */
+  mixed: boolean;
+  /** What the priced lines come to, in each money they are in. */
+  parts: Array<{ currency: Currency; amount: number }>;
+  /** Lines nobody has priced: they are in no total and are said so. */
+  unpriced: number;
+}
+
+/**
+ * An order counted in the money its lines are actually in. A line carries its
+ * own currency; the order is expected to hold one, but a draft made before
+ * that was enforced can hold two, and then the honest total is each money on
+ * its own. A line with no price yet has no money and contributes nothing.
+ */
+export function orderMoney(tx: Pick<LedgerTransaction, 'items' | 'currency'>): OrderMoney {
+  const parts: OrderMoney['parts'] = [];
+  let unpriced = 0;
+  for (const item of tx.items) {
+    if (item.unpriced) { unpriced += 1; continue; }
+    const money = (item.currency || tx.currency) as Currency;
+    const key = canonicalCurrency(money) ?? money;
+    const found = parts.find((part) => (canonicalCurrency(part.currency) ?? part.currency) === key);
+    if (found) found.amount += ledgerItemAmount(item);
+    else parts.push({ currency: money, amount: ledgerItemAmount(item) });
+  }
+  if (parts.length === 0) parts.push({ currency: tx.currency, amount: 0 });
+  return { currency: parts[0].currency, mixed: parts.length > 1, parts, unpriced };
+}
+
 export interface OrderLanded {
   /** What the teas cost, in the order's currency. */
   subtotal: number;
@@ -135,14 +168,17 @@ export function orderLanded(
   rates: readonly ExchangeRate[] | null | undefined,
   shopFreightPerKgUsd: number,
 ): OrderLanded | null {
-  const perUsd = isUnrecordedCurrency(tx.currency) ? 1 : rateToUsd(rates, tx.currency);
+  // Two moneys on one order have no single landed figure.
+  const money = orderMoney(tx);
+  if (money.mixed) return null;
+  const perUsd = isUnrecordedCurrency(money.currency) ? 1 : rateToUsd(rates, money.currency);
   if (!perUsd) return null;
   const freightPerKg = shopRateInCurrency(shopFreightPerKgUsd, perUsd);
   if (freightPerKg === null) return null;
   let subtotal = 0;
   let grams = 0;
   for (const item of tx.items) {
-    subtotal += ledgerItemAmount(item);
+    if (!item.unpriced) subtotal += ledgerItemAmount(item);
     if (item.type === 'Teaware') continue;
     if (item.priceIsPerGram) grams += item.quantityGrams ?? 0;
     else grams += (item.quantityUnits ?? 1) * (item.unitWeightGrams ?? PIECE_GRAMS[String(item.form)] ?? 0);

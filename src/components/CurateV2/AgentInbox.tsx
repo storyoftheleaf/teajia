@@ -98,7 +98,7 @@ export const AgentFindsSheet: React.FC<{ group: CurateSuggestionGroup | null; on
           return (
             <div key={t.id} className="curate-v2-row">
               <Tick on={kept.has(t.id)} label={`Keep ${t.name}`} onClick={() => toggle(t.id)} />
-              <button type="button" onClick={() => toggle(t.id)} className="flex min-w-0 flex-1 items-baseline gap-2 text-left">
+              <button type="button" onClick={() => toggle(t.id)} className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left">
                 <span className="curate-v2-name">{t.year != null && !t.name.includes(String(t.year)) ? `${t.year} ${t.name}` : t.name}</span>
                 <span className="flex-1" />
                 {t.price && (
