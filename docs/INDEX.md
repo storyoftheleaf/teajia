@@ -70,3 +70,4 @@ These explain how to perform operating tasks. They do not track whether launch o
 - A stale plan is retired instead of being kept beside current direction.
 
 - [Curate workspace](CURATE_WORKSPACE.md): structured tea/vendor/quote facts, private evidence, Samples only, agent corrections and undo.
+- [Curate consumer contract](CURATE_CONSUMER_CONTRACT.md): shared identities, agent/browser operations and editorial privacy boundaries.
