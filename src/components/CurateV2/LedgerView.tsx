@@ -174,7 +174,7 @@ const TransactionPhotos: React.FC<{ txId: string; photos: string[] }> = ({ txId,
         {...(photos.length === 0 ? { capture: 'environment' } : {})}
       />
 
-      <div className="pt-2">
+      <div className="px-4 pt-2">
         {photos.length > 0 ? (
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             {photos.map((url, i) => (
@@ -298,8 +298,24 @@ const TransactionCard: React.FC<{
   isExpanded: boolean;
   onToggle: () => void;
   onOpenEntry?: (entryId: string) => void;
-}> = ({ tx, isExpanded, onToggle, onOpenEntry }) => {
+  /** In a list: tapping the order opens its own screen instead of unfolding it. */
+  onOpenOrder?: (txId: string) => void;
+  /** The order's own screen: always open, the heading is just a heading. */
+  detail?: boolean;
+}> = ({ tx, isExpanded, onToggle, onOpenEntry, onOpenOrder, detail }) => {
   const removeLineItem = useLedgerStore((s) => s.removeLineItem);
+  const updateCompassEntry = useTeaCompassStore((s) => s.updateEntry);
+  const listRow = !detail && !!onOpenOrder;
+  const showBody = detail || (!listRow && isExpanded);
+
+  /** A tea taken off a draft order is no longer being ordered. */
+  const removeLine = useCallback((item: LedgerLineItem) => {
+    removeLineItem(tx.id, item.id);
+    if (item.compassEntryId && tx.status === 'draft') {
+      const e = useTeaCompassStore.getState().getEntry(item.compassEntryId);
+      if (e?.status === 'buying') updateCompassEntry(item.compassEntryId, { status: 'noted' });
+    }
+  }, [tx.id, tx.status, removeLineItem, updateCompassEntry]);
   const confirmTransaction = useLedgerStore((s) => s.confirmTransaction);
   const removeTransaction = useLedgerStore((s) => s.removeTransaction);
   const [justConfirmed, setJustConfirmed] = useState(false);
@@ -354,6 +370,14 @@ const TransactionCard: React.FC<{
     confirmTransaction(tx.id);
     setJustConfirmed(true);
     setTimeout(() => setJustConfirmed(false), 1500);
+    // Ordered, not arrived: the teas on a confirmed purchase wait under "On the way".
+    if (tx.direction === 'purchase') {
+      const compass = useTeaCompassStore.getState();
+      for (const item of tx.items) {
+        const e = item.compassEntryId ? compass.getEntry(item.compassEntryId) : undefined;
+        if (e && e.status !== 'in_stock') compass.updateEntry(e.id, { status: 'incoming' });
+      }
+    }
 
     // A confirmed purchase order records acquisition intent only. Inventory is
     // created or increased later through a reviewed receipt/Inventory action.
@@ -423,19 +447,28 @@ const TransactionCard: React.FC<{
   }, [tx.id, isPurchase, removeTransaction]);
 
   return (
-    <div className="curate-v2 -mx-4 pb-4" data-testid="curate-order">
+    <div className="curate-v2 -mx-4 pb-4" data-testid="curate-order" data-order-id={tx.id} data-status={tx.status}>
       {/* Curate v2: the vendor as the heading, what the order is in small
           words, the total and Message on the right, as drawn. */}
       <div className="flex items-center gap-2 pl-4 pr-2 pt-3">
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-expanded={isExpanded}
-          className="flex min-h-11 min-w-0 flex-1 items-baseline gap-2 text-left focus-visible:outline-none"
-        >
-          <span className="min-w-0 truncate font-display text-ui-26 leading-none text-tea-text">{tx.counterpartyName || (isPurchase ? 'Vendor' : 'Customer')}</span>
-          <ChevronDown size={14} className={`shrink-0 self-center text-tea-text-dim transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-        </button>
+        {detail ? (
+          <h2 className="flex min-h-11 min-w-0 flex-1 items-center" data-testid="order-vendor">
+            <span className="min-w-0 truncate font-display text-ui-26 leading-none text-tea-text">{tx.counterpartyName || (isPurchase ? 'Vendor' : 'Customer')}</span>
+          </h2>
+        ) : (
+          <button
+            type="button"
+            onClick={listRow ? () => onOpenOrder!(tx.id) : onToggle}
+            aria-expanded={listRow ? undefined : isExpanded}
+            aria-label={listRow ? `Open the order with ${tx.counterpartyName || (isPurchase ? 'a vendor' : 'a customer')}` : undefined}
+            className="flex min-h-11 min-w-0 flex-1 items-baseline gap-2 text-left focus-visible:outline-none"
+          >
+            <span className="min-w-0 truncate font-display text-ui-26 leading-none text-tea-text">{tx.counterpartyName || (isPurchase ? 'Vendor' : 'Customer')}</span>
+            {listRow
+              ? <ChevronRight size={14} className="shrink-0 self-center text-tea-text-dim" />
+              : <ChevronDown size={14} className={`shrink-0 self-center text-tea-text-dim transition-transform ${isExpanded ? 'rotate-180' : ''}`} />}
+          </button>
+        )}
         {isPurchase && tx.items.length > 0 && (
           <button type="button" onClick={() => setMessageOpen(true)} className="tap-target px-2 font-mono text-ui-13 tracking-[0.04em] text-tea-gold" aria-label="Message the vendor about this order">
             Message
@@ -448,13 +481,13 @@ const TransactionCard: React.FC<{
           {' · '}<span className={isDraft ? 'text-tea-gold' : ''}>{isDraft ? 'draft' : 'confirmed'}</span>
           {(tx.photos?.length ?? 0) > 0 ? ` · ${tx.photos.length} photo${tx.photos.length === 1 ? '' : 's'}` : ''}
         </span>
-        {!isExpanded && <span className="text-ui-14 font-medium text-tea-text tabular-nums">{fmtPrice(total, tx.currency)}</span>}
+        {!showBody && <span className="text-ui-14 font-medium text-tea-text tabular-nums">{fmtPrice(total, tx.currency)}</span>}
       </div>
       <div className="mx-4 h-px bg-tea-gold/20" aria-hidden="true" />
 
       {/* Expanded body */}
       <AnimatePresence initial={false}>
-        {isExpanded && (
+        {showBody && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
@@ -472,7 +505,7 @@ const TransactionCard: React.FC<{
                     key={item.id}
                     item={item}
                     txId={tx.id}
-                    onRemove={() => removeLineItem(tx.id, item.id)}
+                    onRemove={() => removeLine(item)}
                     onOpenEntry={onOpenEntry}
                   />
                 ))
@@ -619,9 +652,11 @@ interface LedgerViewProps {
   onOpenEntry?: (entryId: string) => void;
   /** External search query from the tab-level search bar */
   searchQuery?: string;
+  /** Open one order on its own screen, on top of this tab. */
+  onOpenOrder?: (txId: string) => void;
 }
 
-export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, searchQuery = '' }) => {
+export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, searchQuery = '', onOpenOrder }) => {
   const transactions = useLedgerStore((s) => s.transactions);
   const createTransaction = useLedgerStore((s) => s.createTransaction);
   const openPurchaseOrder = useAppStore((s) => s.openPurchaseOrder);
@@ -717,12 +752,24 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
             return next;
           })}
           onOpenEntry={onOpenEntry}
+          onOpenOrder={onOpenOrder}
         />
       ))}
 
       <div className="pt-6">{starters}</div>
     </div>
   );
+};
+
+/**
+ * One order on its own screen: the same rendering the Orders tab used to show
+ * inline, always open. Opened over the tab you are on (after Buy on a tea, or
+ * from a row in Orders); the teas on it open their own tea on top of it.
+ */
+export const OrderScreen: React.FC<{ txId: string; onOpenEntry?: (entryId: string) => void }> = ({ txId, onOpenEntry }) => {
+  const tx = useLedgerStore((s) => s.transactions.find((t) => t.id === txId));
+  if (!tx) return null;
+  return <TransactionCard tx={tx} isExpanded onToggle={() => {}} onOpenEntry={onOpenEntry} detail />;
 };
 
 export default LedgerView;

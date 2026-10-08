@@ -17,7 +17,9 @@ import { entryIsSample } from './types';
 import { CompassIcon } from './CompassIcon';
 import { CaptureCard, type CaptureCardActions } from './CaptureCard';
 import { BrowseView } from './BrowseView';
-import { LedgerView } from './LedgerView';
+import { LedgerView, OrderScreen } from './LedgerView';
+import { useLedgerStore } from '../../lib/ledgerStore';
+import { addTeaToDraftOrder } from './orderBuy';
 import { useVoiceRecorder } from './useVoiceRecorder';
 import { TodayView } from './TodayView';
 import { TableList } from './TableList';
@@ -39,8 +41,9 @@ import { CaptureActionFooter } from './CaptureActionFooter';
 
 export type CompassMode = 'today' | 'sourcing' | 'library' | 'vendors' | 'compare' | 'buying';
 
-/** One screen of a tea, stacked over the tab you are on. */
-interface TeaLayer { id: string; as: 'face' | 'card'; scroll?: number }
+/** One screen stacked over the tab you are on: a tea's face, its full form, or
+ *  an order (then `id` is the order's id, not a tea's). */
+interface TeaLayer { id: string; as: 'face' | 'card' | 'order'; scroll?: number }
 
 interface TeaCompassProps {
   onBack?: () => void;
@@ -168,9 +171,17 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     if (stack.length === 0) return;
     const rest = stack.slice(0, -1);
     settleLayer(stack[stack.length - 1], rest);
-    if (rest.length) useTeaCompassStore.getState().setActiveEntry(rest[rest.length - 1].id);
+    const below = rest[rest.length - 1];
+    if (below && below.as !== 'order') useTeaCompassStore.getState().setActiveEntry(below.id);
     setStack(rest);
   }, [setStack, settleLayer]);
+  /** Put an order on top: after Buy on a tea, or from a row in Orders. */
+  const pushOrder = useCallback((txId: string) => {
+    const stack = teaStackRef.current;
+    const top = stack[stack.length - 1];
+    if (top && top.as === 'order' && top.id === txId) return;
+    setStack([...stack, { id: txId, as: 'order' }]);
+  }, [setStack]);
   const clearTeaStack = useCallback(() => {
     const stack = teaStackRef.current;
     if (stack.length === 0) return;
@@ -577,11 +588,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     window.setTimeout(() => captureCardActionsRef.current?.openTasting(), 250);
   }, [pushTea]);
 
-  /** Buy on a tea: the full card opens on its order part. */
+  /** Buy on a tea: it joins its vendor's draft order and the order opens on top. */
   const openBuy = useCallback((entryId: string) => {
-    pushTea(entryId, 'card');
-    window.setTimeout(() => captureCardActionsRef.current?.toggleBuy(), 300);
-  }, [pushTea]);
+    const txId = addTeaToDraftOrder(entryId);
+    if (txId) pushOrder(txId);
+  }, [pushOrder]);
 
   const handleTodayAct = useCallback((entryId: string, action: TodayAction) => {
     if (action === 'taste') { setFastTastingId(entryId); return; }
@@ -625,15 +636,19 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   }, [activeEntryId, setStack]);
 
   // A tea that no longer exists (discarded, deleted) leaves the stack.
-  const topIsPending = useTeaCompassStore((s) => !!topLayer && s.pendingEntries.some((e) => e.id === topLayer.id));
-  const topExists = useTeaCompassStore((s) => !topLayer
+  const topIsPending = useTeaCompassStore((s) => !!topLayer && topLayer.as !== 'order' && s.pendingEntries.some((e) => e.id === topLayer.id));
+  const topTeaExists = useTeaCompassStore((s) => !topLayer
+    || topLayer.as === 'order'
     || s.pendingEntries.some((e) => e.id === topLayer.id)
     || s.entries.some((e) => e.id === topLayer.id));
+  const topOrderExists = useLedgerStore((s) => !topLayer || topLayer.as !== 'order' || s.transactions.some((t) => t.id === topLayer.id));
+  const topExists = topTeaExists && topOrderExists;
   useEffect(() => {
     if (!topExists) {
       const stack = teaStackRef.current;
       const rest = stack.slice(0, -1);
-      if (rest.length) useTeaCompassStore.getState().setActiveEntry(rest[rest.length - 1].id);
+      const below = rest[rest.length - 1];
+      if (below && below.as !== 'order') useTeaCompassStore.getState().setActiveEntry(below.id);
       setStack(rest);
     }
   }, [topExists, setStack]);
@@ -1171,6 +1186,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   <LedgerView
                     embedded
                     onOpenEntry={openTea}
+                    onOpenOrder={pushOrder}
                     searchQuery={tabSearchQuery}
                   />
                 </motion.div>
@@ -1436,6 +1452,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     <LedgerView
                       embedded
                       onOpenEntry={openTea}
+                      onOpenOrder={pushOrder}
                       searchQuery={tabSearchQuery}
                     />
                   </motion.div>
@@ -1532,7 +1549,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       {topLayer && (
         <div className="absolute inset-0 z-10 flex flex-col border-t border-tea-border bg-tea-surface" data-testid="curate-tea-overlay" data-layer={topLayer.as}>
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-3 pb-nav-gap-lg" style={{ WebkitOverflowScrolling: 'touch' }}>
-            {topLayer.as === 'face' ? (
+            {topLayer.as === 'order' ? (
+              <div className="mx-auto w-full max-w-xl" data-testid="order-screen">
+                <OrderScreen key={topLayer.id} txId={topLayer.id} onOpenEntry={openTea} />
+              </div>
+            ) : topLayer.as === 'face' ? (
               <div className="mx-auto w-full max-w-xl">
                 <TeaFace
                   key={topLayer.id}
