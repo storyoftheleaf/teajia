@@ -135,6 +135,7 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       'POST /api/tasting-journal/sync': { syncedIds: [] },
       'GET /api/notes': { notes: [] }, 'POST /api/notes/sync': { syncedIds: [] },
       'POST /api/incidents': { ok: true },
+      'GET /api/platform/incidents': { incidents: [] },
       'GET /api/customers': [{ id: 'vendor-chen', name: 'Chen Family', tags: ['vendor'] }],
       'GET /api/compass/incoming': [],
       'GET /api/vendors': [], 'GET /api/sources': [], 'GET /api/admin/events': [],
