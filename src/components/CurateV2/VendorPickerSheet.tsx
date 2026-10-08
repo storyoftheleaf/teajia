@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Plus, Search } from 'lucide-react';
 import { BottomSheet } from '../shared/BottomSheet';
 import { api, hasToken } from '../../lib/api';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
@@ -28,10 +28,15 @@ export const VendorPickerSheet: React.FC<VendorPickerSheetProps> = ({ open, onOp
   const [remote, setRemote] = useState<Array<{ id: string; name: string }>>([]);
   const [query, setQuery] = useState('');
   const [saving, setSaving] = useState(false);
+  // "New vendor" sits first, so a vendor you know is new is one tap and a
+  // name, without searching the list for someone who is not on it.
+  const [adding, setAdding] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open || !hasToken()) return;
     setQuery('');
+    setAdding(false);
     api.customers.list()
       .then((res: any) => setRemote(((res?.customers || res || []) as any[]).filter((c) => isVendor(c.tags)).map((c) => ({ id: c.id, name: c.name }))))
       .catch(() => {});
@@ -74,24 +79,47 @@ export const VendorPickerSheet: React.FC<VendorPickerSheetProps> = ({ open, onOp
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange} title="Whose table?" description="Optional. Add it later if you don't know yet." large>
       <div className="curate-v2 pb-nav-gap">
-        <div className="relative px-4 pb-2">
-          <Search size={13} className="pointer-events-none absolute left-7 top-1/2 -translate-y-1/2 text-tea-text-dim" />
+        <button
+          type="button"
+          onClick={() => { setAdding((v) => !v); window.setTimeout(() => inputRef.current?.focus(), 0); }}
+          aria-pressed={adding}
+          data-testid="vendor-picker-new"
+          className="curate-v2-row w-full text-left"
+        >
+          <Plus size={16} className="text-tea-gold" />
+          <span className="text-ui-15 font-medium text-tea-gold">New vendor</span>
+          <span className="flex-1" />
+          {adding && <span className="text-ui-12 text-tea-text-dim">type the name below</span>}
+        </button>
+        <div className="relative px-4 py-2">
+          {adding
+            ? <Plus size={13} className="pointer-events-none absolute left-7 top-1/2 -translate-y-1/2 text-tea-gold" />
+            : <Search size={13} className="pointer-events-none absolute left-7 top-1/2 -translate-y-1/2 text-tea-text-dim" />}
           <input
+            ref={inputRef}
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && query.trim() && !exact) void addNew(); }}
-            placeholder="Type a name"
-            aria-label="Search or add a vendor"
+            onKeyDown={(e) => { if (e.key === 'Enter' && query.trim() && (adding || !exact)) void addNew(); }}
+            placeholder={adding ? 'New vendor’s name' : 'Search your vendors'}
+            aria-label={adding ? 'New vendor name' : 'Search or add a vendor'}
+            enterKeyHint={adding ? 'done' : 'search'}
             className="min-h-11 w-full rounded-md border border-tea-border bg-tea-surface py-2 pl-9 pr-3 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold"
           />
         </div>
-        {query.trim() && !exact && (
+        {adding && query.trim() && (
+          <div className="px-4 pb-3">
+            <button type="button" disabled={saving} onClick={() => void addNew()} className="cta-solid min-h-11 w-full rounded-md text-ui-14 font-semibold">
+              Add {query.trim()}
+            </button>
+          </div>
+        )}
+        {!adding && query.trim() && !exact && (
           <button type="button" disabled={saving} onClick={() => void addNew()} className="curate-v2-row w-full text-left">
             <span className="text-ui-13 font-medium text-tea-gold">＋ Add “{query.trim()}” as a new vendor</span>
           </button>
         )}
-        {options.map((o) => (
+        {!adding && options.map((o) => (
           <button key={o.id || o.name} type="button" onClick={() => onPick(o.id ?? null, o.name)} className="curate-v2-row w-full text-left">
             <span className="curate-v2-name">{o.name}</span>
             <span className="flex-1" />
