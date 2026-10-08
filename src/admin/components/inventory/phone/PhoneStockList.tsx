@@ -206,7 +206,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
               type="button"
               onClick={() => changeRef.current && onChangeStock(focused, changeRef.current)}
               aria-label={`Change stock for ${focused.productName}`}
-              className="shrink-0 min-w-[80px] h-12 px-2 rounded-md border border-tea-gold flex flex-col items-center justify-center"
+              className="shrink-0 min-w-[80px] h-12 px-2 rounded-md border border-tea-border flex flex-col items-center justify-center"
             >
               <span className={`font-mono text-ui-17 ${isLow(focused) ? 'text-tea-gold' : 'text-tea-text'}`}>{qtyLabel(focused)}</span>
               <span className="text-ui-10 text-tea-gold">change</span>
@@ -228,7 +228,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
             ))}
           </dl>
           <div className="grid grid-cols-[1.4fr_1fr_1fr] gap-2 mt-2">
-            <button type="button" onClick={() => onOpenEditor(focused)} className="h-10 rounded-md border border-tea-gold text-ui-13 text-tea-gold">Edit everything</button>
+            <button type="button" onClick={() => onOpenEditor(focused)} className="h-10 rounded-md border border-tea-border text-ui-13 text-tea-gold">Edit everything</button>
             <button ref={countRef} type="button" onClick={() => countRef.current && onRecount(focused, countRef.current)} className="h-10 rounded-md border border-tea-border text-ui-13 text-tea-text">Count it</button>
             <button type="button" onClick={() => onOpenSource(focused)} disabled={!focused.vendor} className="h-10 rounded-md border border-tea-border text-ui-13 text-tea-text disabled:opacity-40">Supplier</button>
           </div>
