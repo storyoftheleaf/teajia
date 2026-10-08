@@ -4,11 +4,15 @@ const enc = (s: string) => Buffer.from(s).toString('base64url');
 const memberships = [{ account_id: 'acct-bali', account_name: 'Teajia Bali', role: 'owner', slug: 'teajia-bali' }];
 const unhandledByPage = new WeakMap<Page, string[]>();
 const requestCounts = new WeakMap<Page, Map<string, number>>();
+const createdCustomersByPage = new WeakMap<Page, Array<Record<string, any>>>();
 export const COMPASS_TOKEN = `${enc(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${enc(JSON.stringify({ sub: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', platform_role: 'platform_owner', exp: Math.floor(Date.now() / 1000) + 86400, active_account_id: 'acct-bali', memberships }))}.test`;
 
-export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; preserveSamplesOnNavigation?: boolean; preserveSampleCartOnNavigation?: boolean; compassSyncLoseResponses?: number; contextEmpty?: boolean; contextFailOnce?: boolean; contextJourneyFailOnce?: boolean; contextVisitFailOnce?: boolean; products?: unknown[]; compassEntries?: unknown[]; contextByAccount?: Record<string, { journeys: unknown[]; visits: unknown[] }>; contextAfterInitial?: { journeys: unknown[]; visits: unknown[] }; contextDelayByAccount?: Record<string, number> }) {
+export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; preserveSamplesOnNavigation?: boolean; preserveSampleCartOnNavigation?: boolean; compassSyncLoseResponses?: number; contextEmpty?: boolean; contextFailOnce?: boolean; contextJourneyFailOnce?: boolean; contextVisitFailOnce?: boolean; products?: unknown[]; compassEntries?: unknown[]; contextByAccount?: Record<string, { journeys: unknown[]; visits: unknown[] }>; contextAfterInitial?: { journeys: unknown[]; visits: unknown[] }; contextDelayByAccount?: Record<string, number>; customers?: Array<Record<string, any>> }) {
   unhandledByPage.set(page, []);
   requestCounts.set(page, new Map());
+  createdCustomersByPage.set(page, []);
+  // The shop's people. Vendors are the ones tagged vendor; creating one adds to this list.
+  const customers: Array<Record<string, any>> = [...(options?.customers ?? [{ id: 'vendor-chen', name: 'Chen Family', tags: ['vendor'] }])];
   const sampleSets: Array<Record<string, any>> = [];
   const samples: Array<Record<string, any>> = [];
   const compassEntries: Array<Record<string, any>> = (options?.compassEntries ?? (options?.sampleCart ?? []).flatMap((raw) => {
@@ -62,6 +66,21 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
         return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Compass sync response was lost' }) });
       }
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ syncedIds: (body.entries ?? []).map(entry => entry.id) }) });
+    }
+    if (requestKey === 'GET /api/customers') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(customers) });
+    }
+    if (requestKey === 'POST /api/customers') {
+      const input = route.request().postDataJSON() as Record<string, any>;
+      const row = { ...input, id: `customer-created-${customers.length + 1}` };
+      customers.push(row);
+      createdCustomersByPage.get(page)?.push(input);
+      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: row.id }) });
+    }
+    const customerMatch = path.match(/^\/api\/customers\/([^/]+)$/);
+    if (customerMatch && route.request().method() === 'GET') {
+      const found = customers.find((row) => row.id === customerMatch[1]);
+      return route.fulfill({ status: found ? 200 : 404, contentType: 'application/json', body: JSON.stringify(found ?? { error: 'Customer not found' }) });
     }
     if (requestKey === 'GET /api/compass/entries') {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ entries: compassEntries }) });
@@ -166,6 +185,11 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       'GET /api/curate/journeys': { journeys: scopedContext?.journeys ?? (options?.contextEmpty ? [] : [{ id: 'journey-taiwan', account_id: 'acct-bali', name: 'Taiwan', season: 'Spring', year: 2026 }]) },
       'GET /api/curate/visits': { visits: scopedContext?.visits ?? (options?.contextEmpty ? [] : [{ id: 'visit-chen', account_id: 'acct-bali', journey_id: 'journey-taiwan', vendor_id: 'vendor-chen', vendor_name: 'Chen Family', place: 'Taipei' }]) },
       'GET /api/curate/imports': { imports: [] },
+      // Curate v2's Today: nothing from an agent, no to-dos, nothing on the way, Drive not linked.
+      'GET /api/curate/suggestions': { waiting: [] },
+      'GET /api/curate/todos': { todos: [] },
+      'GET /api/curate/receipt-proposals': { pending: [] },
+      'GET /api/curate/drive': { connected: false },
       'POST /api/curate/journeys': { id: 'journey-created', account_id: 'acct-bali', name: 'Yunnan', season: 'Autumn', year: 2026 },
       'PUT /api/curate/journeys/journey-created': { id: 'journey-created', account_id: 'acct-bali', name: 'Yunnan edited', season: 'Autumn', year: 2026 },
       'DELETE /api/curate/journeys/journey-created': { success: true },
@@ -183,6 +207,11 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
   });
 }
 
+/** The bodies of every customer the page created through POST /api/customers. */
+export function compassCreatedCustomers(page: Page): Array<Record<string, any>> {
+  return createdCustomersByPage.get(page) ?? [];
+}
+
 export function compassRequestCount(page: Page, requestKey: string): number {
   return requestCounts.get(page)?.get(requestKey) ?? 0;
 }
@@ -194,4 +223,11 @@ export async function expectNoUnhandledCompassApi(page: Page) {
 export async function openCompass(page: Page) {
   await page.goto('/admin/compass', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('tab', { name: 'Source', exact: true })).toHaveAttribute('aria-selected', 'true', { timeout: 15_000 });
+}
+
+/** Opens Curate v2 (the rebuilt Curate) on a tab the route can name: today, table, teas or orders. */
+export async function openCurateV2(page: Page, tab: 'today' | 'table' | 'teas' | 'orders' = 'today') {
+  await page.goto(`/admin/compass/v2${tab === 'today' ? '' : `?tab=${tab}`}`, { waitUntil: 'domcontentloaded' });
+  const label = { today: 'Today', table: 'Table', teas: 'Teas', orders: 'Orders' }[tab];
+  await expect(page.getByRole('tab', { name: label, exact: true })).toHaveAttribute('aria-selected', 'true', { timeout: 15_000 });
 }

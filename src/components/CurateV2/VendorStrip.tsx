@@ -2,13 +2,13 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  MapPin, X, Plus, Check, Phone,
+  MapPin, X, Check, Phone,
   MessageCircle, ExternalLink,
   Contact, Image, Link, Loader2, AlertCircle,
 } from 'lucide-react';
 import { api, hasToken } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
-import { useTeaCompassStore } from '../../lib/teaCompassStore';
+import { VendorPicker } from './VendorPicker';
 import type { VendorDetails } from './types';
 
 /* ── Location parsing ───────────────────────────────────────
@@ -93,19 +93,12 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
   const [contactMenuOpen, setContactMenuOpen] = useState(false);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loadingVendors, setLoadingVendors] = useState(false);
-  const [creatingNew, setCreatingNew] = useState(false);
-  const [newName, setNewName] = useState('');
   const [geoState, setGeoState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const [locInput, setLocInput] = useState('');
   const [locError, setLocError] = useState(false);
   // Photo upload feedback, which photo is uploading, and whether the last try failed.
   const [photoUploading, setPhotoUploading] = useState<null | 'businessCardUrl' | 'storefrontUrl'>(null);
   const [photoError, setPhotoError] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchOpen, setSearchOpen] = useState(false);
-  const newNameRef = useRef<HTMLInputElement>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
-  const searchDropdownRef = useRef<HTMLDivElement>(null);
   const contactMenuRef = useRef<HTMLDivElement>(null);
   const storefrontRef = useRef<HTMLInputElement>(null);
 
@@ -139,19 +132,6 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
     setSuggestedCustomer(match ?? null);
   }, [vendorName, vendors, linkedCustomerId, suggestDismissed]);
 
-  // Recent vendors from compass store
-  const entries = useTeaCompassStore((s) => s.entries);
-  const recentVendors = React.useMemo(() => {
-    const seen = new Map<string, string>();
-    for (const e of entries) {
-      if (e.vendorName && !seen.has(e.vendorName)) {
-        seen.set(e.vendorName, e.vendorId || '');
-        if (seen.size >= 5) break;
-      }
-    }
-    return Array.from(seen, ([name, id]) => ({ name, id }));
-  }, [entries]);
-
   // Fetch vendor list from API (customers with tag containing 'vendor')
   useEffect(() => {
     if (vendors.length > 0) return;
@@ -169,18 +149,10 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
       .finally(() => setLoadingVendors(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-focus new name input
-  useEffect(() => {
-    if (creatingNew) {
-      setTimeout(() => newNameRef.current?.focus(), 50);
-    }
-  }, [creatingNew]);
-
   // Load vendor details from customers API when selecting a known vendor
   const handleSelectVendor = async (id: string | undefined, name: string) => {
     onVendorSelect(id, name);
     setPickerOpen(false);
-    setCreatingNew(false);
 
     // Pre-populate vendor details from customer record
     if (id && hasToken()) {
@@ -203,29 +175,6 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
           }
         }
       } catch { /* offline or no record, fine */ }
-    }
-  };
-
-  const handleCreateVendor = async () => {
-    const trimmed = newName.trim();
-    if (!trimmed) return;
-    setNewName('');
-    // Create a real customer record NOW, tagged vendor, without an id the
-    // debounced details save below is guarded off, so a vendor typed fresh at
-    // a fair had NO server home: their storefront photo/location lived only in
-    // client-only entry state. Selection happens immediately (capture never
-    // waits on the network); the id is attached when the create lands.
-    handleSelectVendor(undefined, trimmed);
-    if (!hasToken()) return;
-    try {
-      const { id } = await api.customers.create({ name: trimmed, tags: 'vendor', source: 'compass' });
-      if (id) {
-        setVendors((prev) => [{ id, name: trimmed, tags: 'vendor' }, ...prev]);
-        onVendorSelect(id, trimmed);
-      }
-    } catch {
-      // Offline, vendor stays name-only. Details are preserved on the entry
-      // (client-only fields survive hydrate) and can be re-linked later.
     }
   };
 
@@ -356,21 +305,6 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [contactMenuOpen]);
-
-  // Close search dropdown on outside click
-  useEffect(() => {
-    if (!searchOpen) return;
-    const handleClick = (e: MouseEvent) => {
-      if (
-        searchRef.current && !searchRef.current.contains(e.target as Node) &&
-        searchDropdownRef.current && !searchDropdownRef.current.contains(e.target as Node)
-      ) {
-        setSearchOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [searchOpen]);
 
   const handleContactFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -514,157 +448,35 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
             <button
               type="button"
               onClick={() => setPickerOpen((o) => !o)}
+              aria-expanded={pickerOpen}
+              aria-label={`Vendor: ${vendorName}. Change`}
               className="tap-target min-h-11 truncate text-ui-12 hover:text-tea-gold transition-colors py-1"
             >
               {vendorName}
             </button>
             <button
               type="button"
-              onClick={onClear}
+              onClick={() => { setPickerOpen(false); onClear(); }}
+              aria-label="Clear vendor"
               className="tap-target min-h-11 min-w-11 text-tea-text-dim hover:text-tea-text-sec transition-colors flex-shrink-0 p-1"
             >
               <X size={14} />
             </button>
           </>
-        ) : (
-          <div className="flex-1 min-w-0 relative">
-            <input
-              ref={searchRef}
-              type="text"
-              value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); }}
-              onFocus={() => setSearchOpen(true)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && searchQuery.trim()) {
-                  handleSelectVendor(undefined, searchQuery.trim());
-                  setSearchQuery('');
-                  setSearchOpen(false);
-                }
-                if (e.key === 'Escape') { setSearchOpen(false); setSearchQuery(''); }
-              }}
-              placeholder="Select vendor..."
-              className="min-h-11 w-full input-warm text-base rounded-md px-3 py-2.5 outline-none placeholder:text-tea-text-dim focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
-            />
-            <AnimatePresence>
-              {searchOpen && (
-                <motion.div
-                  ref={searchDropdownRef}
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  transition={{ duration: 0.12 }}
-                  className="absolute top-full left-0 right-0 z-30 mt-1 bg-tea-surface rounded-xl shadow-lg border border-tea-border overflow-hidden"
-                  style={{ minWidth: '200px' }}
-                >
-                  {/* New vendor, always first */}
-                  <button
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      if (searchQuery.trim()) {
-                        handleSelectVendor(undefined, searchQuery.trim());
-                        setSearchQuery('');
-                      } else {
-                        setCreatingNew(true);
-                        setPickerOpen(true);
-                      }
-                      setSearchOpen(false);
-                    }}
-                    className="tap-target flex min-h-11 items-center gap-2 w-full px-3 py-2 text-left text-ui-12 text-tea-gold hover:bg-tea-gold/[0.08] transition-colors"
-                  >
-                    <Plus size={12} strokeWidth={2.5} />
-                    {searchQuery.trim() ? `New vendor "${searchQuery.trim()}"` : 'New vendor…'}
-                  </button>
-
-                  {/* Filtered vendor list */}
-                  {(() => {
-                    const q = searchQuery.toLowerCase();
-                    const seen = new Set<string>();
-                    const rows: { id?: string; name: string; isRecent?: boolean }[] = [];
-
-                    for (const v of recentVendors) {
-                      if (!seen.has(v.name) && (!q || v.name.toLowerCase().includes(q))) {
-                        seen.add(v.name);
-                        rows.push({ id: v.id || undefined, name: v.name, isRecent: true });
-                      }
-                    }
-                    for (const v of vendors) {
-                      if (!seen.has(v.name) && (!q || v.name.toLowerCase().includes(q))) {
-                        seen.add(v.name);
-                        rows.push({ id: v.id, name: v.name });
-                      }
-                    }
-
-                    if (rows.length === 0) return null;
-                    return (
-                      <div className="border-t border-tea-border max-h-48 overflow-y-auto">
-                        {rows.map((v) => (
-                          <button
-                            key={v.id ?? v.name}
-                            type="button"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              handleSelectVendor(v.id, v.name);
-                              setSearchQuery('');
-                              setSearchOpen(false);
-                            }}
-                            className="tap-target flex min-h-11 items-center justify-between w-full px-3 py-2 text-left text-ui-12 text-tea-text-sec hover:bg-tea-gold/[0.06] hover:text-tea-text transition-colors"
-                          >
-                            <span>{v.name}</span>
-                            {v.isRecent && <span className="text-ui-12 text-tea-text-dim shrink-0 ml-2">recent</span>}
-                          </button>
-                        ))}
-                      </div>
-                    );
-                  })()}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        )}
+        ) : null}
       </div>
 
-      {/* ── New vendor input (only when creating) ── */}
-      <AnimatePresence>
-        {pickerOpen && creatingNew && (
-          <motion.div
-            initial={PANEL_INITIAL}
-            animate={PANEL_ANIMATE}
-            exit={PANEL_EXIT}
-            transition={PANEL_TRANSITION}
-            className="overflow-hidden"
-          >
-            <div className="pt-2 pb-1">
-              <div className="flex items-center gap-2">
-                <input
-                  ref={newNameRef}
-                  type="text"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleCreateVendor()}
-                  placeholder="Vendor name"
-                  className="min-h-11 flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
-                />
-                <button
-                  type="button"
-                  onClick={handleCreateVendor}
-                  disabled={!newName.trim()}
-                  className="tap-target min-h-11 cta-solid font-semibold text-ui-12 uppercase tracking-[0.08em] px-4 py-2.5 rounded-md disabled:opacity-40 transition-opacity"
-                >
-                  Add
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setCreatingNew(false); setNewName(''); setPickerOpen(false); }}
-                  className="tap-target min-h-11 min-w-11 text-tea-text-dim p-2"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* ── The one vendor picker: open whenever there is no vendor yet, or the name was tapped ── */}
+      {(!vendorName || pickerOpen) && (
+        <div className="-mx-4">
+          <VendorPicker
+            autoFocus
+            placeholder="Select vendor…"
+            onPick={handleSelectVendor}
+            onCancel={vendorName ? () => setPickerOpen(false) : undefined}
+          />
+        </div>
+      )}
 
       {/* ── Supplier link, single row, three mutually exclusive states ── */}
       {onLinkedCustomerChange && (
