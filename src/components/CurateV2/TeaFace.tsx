@@ -94,14 +94,13 @@ const ChineseRow: React.FC<{ entry: TeaCompassEntry; onEdit: () => void }> = ({ 
     }
   };
 
-  const hanzi = { fontFamily: "'Noto Serif SC', serif" };
   if (entry.chineseName) {
-    return <Row label="Chinese" onClick={onEdit} testId="tea-face-chinese"><span style={hanzi}>{entry.chineseName}</span></Row>;
+    return <Row label="Chinese" onClick={onEdit} testId="tea-face-chinese"><span className="curate-v2-hanzi">{entry.chineseName}</span></Row>;
   }
   if (suggestion) {
     return (
       <Row label="Chinese" testId="tea-face-chinese">
-        <span className="text-ui-17" style={hanzi} data-testid="chinese-suggestion">{suggestion}</span>
+        <span className="curate-v2-hanzi text-ui-17" data-testid="chinese-suggestion">{suggestion}</span>
         <button type="button" onClick={() => { updateEntry(entry.id, { chineseName: suggestion }); setSuggestion(null); }} className="tap-target shrink-0 justify-end pl-2 font-mono text-ui-13 text-tea-gold" aria-label="Keep this Chinese name">✓ keep</button>
         <button type="button" onClick={() => setSuggestion(null)} className="tap-target shrink-0 justify-end pl-2 font-mono text-ui-13 text-tea-text-sec" aria-label="Discard this Chinese name">✕</button>
       </Row>
@@ -194,16 +193,18 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
         <div className="relative h-56 bg-cover bg-center" style={{ backgroundImage: `url(${photo})` }}>
           <div className="absolute inset-0 bg-gradient-to-t from-tea-surface via-tea-surface/10 to-transparent" aria-hidden />
           <div className="absolute left-2 top-2">{back}</div>
-          <div className="absolute inset-x-4 bottom-2 flex items-baseline justify-between gap-3">
-            <h2 className="min-w-0 truncate font-display text-[31px] leading-none text-tea-text">{entry.name?.trim() || 'Untitled tea'}</h2>
-            {kind && <span className="shrink-0 font-mono text-ui-12 text-tea-text-sec tabular-nums">{kind}</span>}
+          <div className="absolute inset-x-4 bottom-2 min-w-0">
+            <h2 className="break-words font-display text-[31px] leading-[1.08] text-tea-text line-clamp-3">{entry.name?.trim() || 'Untitled tea'}</h2>
+            {kind && <p className="mt-1 font-mono text-ui-12 text-tea-text-sec tabular-nums">{kind}</p>}
           </div>
         </div>
       ) : (
         <div className="flex items-center gap-1 border-b border-tea-border px-2 pb-2.5 pt-2 lg:px-4">
           {back}
-          <h2 className="min-w-0 flex-1 truncate font-display text-[31px] leading-none text-tea-text">{entry.name?.trim() || 'Untitled tea'}</h2>
-          {kind && <span className="shrink-0 pr-2 font-mono text-ui-12 text-tea-text-sec tabular-nums">{kind}</span>}
+          <div className="min-w-0 flex-1 pr-2">
+            <h2 className="break-words font-display text-[31px] leading-[1.08] text-tea-text line-clamp-3">{entry.name?.trim() || 'Untitled tea'}</h2>
+            {kind && <p className="mt-1 font-mono text-ui-12 text-tea-text-sec tabular-nums">{kind}</p>}
+          </div>
         </div>
       )}
 

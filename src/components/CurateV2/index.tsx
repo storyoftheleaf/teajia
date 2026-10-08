@@ -140,6 +140,19 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const teaStackRef = useRef<TeaLayer[]>([]);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [vendorOpen, setVendorOpen] = useState<{ id?: string; name: string } | null>(null);
+  /** A vendor's card opened from a Today line: it sits over Today (TODAY stays lit) and Back returns to the list. */
+  const [todayVendor, setTodayVendor] = useState<{ id?: string; name: string } | null>(null);
+  const bodyScrollRef = useRef<HTMLDivElement>(null);
+  const todayScrollRef = useRef(0);
+  const openTodayVendor = useCallback((v: { id?: string; name: string }) => {
+    todayScrollRef.current = bodyScrollRef.current?.scrollTop ?? 0;
+    setTodayVendor(v);
+    if (bodyScrollRef.current) bodyScrollRef.current.scrollTop = 0;
+  }, []);
+  const closeTodayVendor = useCallback(() => {
+    setTodayVendor(null);
+    window.requestAnimationFrame(() => { if (bodyScrollRef.current) bodyScrollRef.current.scrollTop = todayScrollRef.current; });
+  }, []);
   const [saidFor, setSaidFor] = useState<string | null>(null);
   const topLayer = teaStack.length ? teaStack[teaStack.length - 1] : null;
   const faceOpen = topLayer?.as === 'face';
@@ -575,6 +588,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const handleSwitchMode = useCallback((newMode: CompassMode) => {
     clearTeaStack();
     setVendorOpen(null);
+    setTodayVendor(null);
     setTabKey((k) => k + 1);
     setMode((current) => {
       if (newMode !== current) setPrevMode(current);
@@ -619,6 +633,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
    *  started from its own header. */
   const startTable = useCallback(() => {
     clearTeaStack();
+    setTodayVendor(null);
     setPrevMode('today');
     setMode('sourcing');
     if (!useTeaCompassStore.getState().currentSessionId) {
@@ -631,6 +646,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // screen within Curate, go back to it; otherwise exit Curate via onBack.
   const handleHeaderBack = useCallback(() => {
     if (teaStackRef.current.length > 0) { closeTopTea(); return; }
+    if (todayVendor) { closeTodayVendor(); return; }
     if (prevMode !== null && prevMode !== mode) {
       const target = prevMode;
       setPrevMode(null);
@@ -638,7 +654,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       return;
     }
     onBack?.();
-  }, [prevMode, mode, closeTopTea, onBack]);
+  }, [prevMode, mode, closeTopTea, todayVendor, closeTodayVendor, onBack]);
 
   // The Run sheet and "New entry" inside the full form move the active tea;
   // the card on top follows it.
@@ -905,10 +921,24 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       <div className="flex-1 min-h-0 flex flex-col" inert={teaOpen} style={teaOpen ? { visibility: 'hidden' } : undefined} data-testid="curate-tab-body">
         {mode === 'today' || mode === 'vendors' || mode === 'compare' || mode === 'sourcing' ? (
           // Curate v2's own screens: one scroll area at every width.
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-3 pb-nav-gap-lg" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div ref={bodyScrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-3 pb-nav-gap-lg" style={{ WebkitOverflowScrolling: 'touch' }}>
             <div className="mx-auto w-full max-w-2xl" key={`${mode}-${tabKey}`}>
               {mode === 'today' && (
-                <TodayView onStartTable={startTable} onAct={handleTodayAct} onOpenTea={openTea} onOpenVendor={(v) => { setVendorOpen(v); setPrevMode('today'); setMode('vendors'); }} />
+                <>
+                  <div hidden={!!todayVendor}>
+                    <TodayView onStartTable={startTable} onAct={handleTodayAct} onOpenTea={openTea} onOpenVendor={openTodayVendor} />
+                  </div>
+                  {todayVendor && (
+                    <VendorsView
+                      onStartTable={startTable}
+                      initialVendor={todayVendor}
+                      onCloseVendor={closeTodayVendor}
+                      onOpenTea={openTea}
+                      onAddTea={(v) => { const id = startNewCaptureOnTable('tea'); updateEntry(id, { vendorId: v.id, vendorName: v.name }); pushTea(id, 'card'); }}
+                      onAddTeaware={(v) => { const id = startNewCaptureOnTable('teaware'); updateEntry(id, { vendorId: v.id, vendorName: v.name }); pushTea(id, 'card'); }}
+                    />
+                  )}
+                </>
               )}
               {mode === 'vendors' && (
                 <VendorsView

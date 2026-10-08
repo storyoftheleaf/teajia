@@ -18,7 +18,7 @@ import { compressImage } from '../../lib/imageCompressor';
 import { OrderMessageSheet } from './OrderMessageSheet';
 import { VendorPicker } from './VendorPicker';
 import { NO_VENDOR_YET } from './orderBuy';
-import { orderLanded } from './curatePricing';
+import { orderLanded, purchaseSpendInUsd } from './curatePricing';
 import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
 
 // ─── Currency helpers ────────────────────────────────────────────────────────
@@ -94,7 +94,7 @@ const LineItemRow: React.FC<{
             <p className="mt-1 truncate font-mono text-ui-12 tracking-[0.02em] text-tea-text-sec">
               {item.type && <span className="uppercase">{item.type}</span>}
               {item.type && item.form && item.type !== 'Teaware' && <><span className="px-1.5 text-tea-text-sec">&middot;</span><span>{item.form}</span></>}
-              {item.chineseName && <><span className="px-1.5 text-tea-text-sec">&middot;</span><span className="text-tea-text-sec" style={{ fontFamily: "'Noto Serif SC', serif" }}>{item.chineseName}</span></>}
+              {item.chineseName && <><span className="px-1.5 text-tea-text-sec">&middot;</span><span className="curate-v2-hanzi text-tea-text-sec">{item.chineseName}</span></>}
             </p>
           )}
           {!readOnly && <button type="button" onClick={onRemove} className="tap-target mt-1 text-ui-12 text-tea-text-sec transition-colors hover:text-tea-text">remove</button>}
@@ -391,10 +391,14 @@ const TransactionCard: React.FC<{
     // created or increased later through a reviewed receipt/Inventory action.
     if (tx.direction === 'purchase') {
       try {
-        const totalAmount = tx.items.reduce((sum, item) => sum + lineTotal(item), 0);
+        // total_usd is dollars: the order's own money is converted at the shop's
+        // rates, and left out when a currency has no rate (never read at 1,
+        // which would store ¥2,400 as $2,400).
+        const totalAmount = purchaseSpendInUsd([tx], rates).priced[0]?.usd;
         await api.purchaseOrders.create({
           po_number: `PO-${tx.id.slice(0, 8).toUpperCase()}`,
           vendor_name: tx.counterpartyName || 'Unknown',
+          vendor_id: tx.counterpartyId || undefined,
           items_json: JSON.stringify(tx.items.map(item => ({
             name: item.name,
             chineseName: item.chineseName,
@@ -405,7 +409,7 @@ const TransactionCard: React.FC<{
             pricePerUnit: item.pricePerUnit,
             priceIsPerGram: item.priceIsPerGram,
           }))),
-          total_usd: totalAmount,
+          total_usd: totalAmount === undefined ? undefined : Math.round(totalAmount * 100) / 100,
           display_currency: tx.currency,
           status: 'confirmed',
         });
@@ -446,7 +450,7 @@ const TransactionCard: React.FC<{
         // Non-critical, sale exists locally in ledger store
       }
     }
-  }, [tx, confirmTransaction]);
+  }, [tx, confirmTransaction, rates]);
 
   const handleDelete = useCallback(() => {
     if (window.confirm(`Remove this ${isPurchase ? 'purchase' : 'sale'} order?`)) {

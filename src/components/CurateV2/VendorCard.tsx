@@ -126,7 +126,7 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
   ) : (
     <button key={f} type="button" onClick={() => start(f)} className="flex min-h-11 w-full items-center gap-3 border-b border-tea-border px-4 text-left">
       <span className="curate-v2-label w-20 shrink-0">{label}</span>
-      <span className="min-w-0 flex-1 truncate text-right font-mono text-ui-14 text-tea-text" style={zh ? { fontFamily: "'Noto Serif SC', serif" } : undefined}>
+      <span className={`min-w-0 flex-1 truncate text-right font-mono text-ui-14 text-tea-text ${zh ? 'curate-v2-hanzi' : ''}`}>
         {value[f] || <span className="font-mono text-ui-13 text-tea-text-sec">{hint ?? 'add'}</span>}
       </span>
     </button>

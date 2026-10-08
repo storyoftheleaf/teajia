@@ -4930,8 +4930,16 @@ body.cart-panel-open .commerce-dock {
 .curate-v2 .font-display {
   font-variant-numeric: lining-nums tabular-nums;
 }
+/* Chinese in Curate (a tea's name, a vendor's) reads in a serif, never the sans.
+   Noto Serif SC is loaded for the few hundred glyphs the site already uses, so
+   any other character fell past it to the system's default CJK face, which is a
+   heavy sans on Apple devices. The system's own CJK serifs follow it here. */
+.curate-v2 { --curate-cjk: 'Songti SC', 'STSong', 'Noto Serif CJK SC', 'Source Han Serif SC', 'SimSun'; }
 /* Anything in Curate that does not name its own face reads in Lora, never the sans. */
-.curate-v2 { font-family: var(--font-mono); }
+.curate-v2 { font-family: 'Lora', 'Noto Serif SC', var(--curate-cjk), Georgia, serif; }
+.curate-v2 .font-mono { font-family: 'Lora', 'Noto Serif SC', var(--curate-cjk), Georgia, serif; }
+.curate-v2 .font-display { font-family: 'Cormorant Garamond', 'Noto Serif SC', var(--curate-cjk), Georgia, serif; }
+.curate-v2 .curate-v2-hanzi { font-family: 'Noto Serif SC', var(--curate-cjk), serif; }
 /* A typed field shows it has focus by its gold underline, not by a ringed box. */
 .curate-v2 input:focus,
 .curate-v2 textarea:focus,
@@ -4941,7 +4949,7 @@ body.cart-panel-open .commerce-dock {
 .curate-v2 select:focus-visible { outline: none; box-shadow: none; }
 /* Every figure in Curate reads in Lora, as the shop's prices and Stock's counts do. */
 .curate-v2 .tabular-nums {
-  font-family: var(--font-mono);
+  font-family: 'Lora', 'Noto Serif SC', var(--curate-cjk), Georgia, serif;
   font-feature-settings: 'tnum' 1, 'lnum' 1;
   letter-spacing: 0.005em;
 }
@@ -4964,7 +4972,7 @@ body.cart-panel-open .commerce-dock {
   white-space: nowrap;
 }
 .curate-v2 .curate-v2-name {
-  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', var(--curate-cjk), Georgia, serif;
   font-feature-settings: 'lnum' 1;
   font-size: 19px;
   font-weight: 500;
@@ -5062,7 +5070,7 @@ body.cart-panel-open .commerce-dock {
 .curate-v2-field::placeholder { color: var(--tea-text-dim); }
 /* A name typed into a line reads in Cormorant, as a name does everywhere else. */
 .curate-v2-field.is-name {
-  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', var(--curate-cjk), Georgia, serif;
   font-feature-settings: 'lnum' 1;
   font-size: 19px;
 }

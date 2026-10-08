@@ -93,6 +93,14 @@ export const VendorPicker: React.FC<VendorPickerProps> = ({ onPick, onCancel, au
     if (!name) return;
     setQuery('');
     setAdding(false);
+    // A name the shop already has (in any case) is that vendor: one tap on it,
+    // never a second record for the same person.
+    const key = name.toLowerCase();
+    const known = [...shopVendors, ...recent].find((v) => v.id && v.name.trim().toLowerCase() === key);
+    if (known) {
+      onPick(known.id, known.name);
+      return;
+    }
     onPick(undefined, name);
     if (!hasToken()) return;
     try {

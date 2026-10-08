@@ -96,11 +96,11 @@ export const SaidSheet: React.FC<{ entryId: string | null; onClose: () => void }
                           <button type="button" aria-label={`Leave out: ${p.text}`} aria-pressed={!f.keep[i]} onClick={() => save(r.key, { ...f, keep: f.keep.map((k, j) => (j === i ? false : k)) })} className={`curate-v2-frame is-slim h-9 min-w-[44px] ${!f.keep[i] ? 'is-on' : ''}`}>skip</button>
                         </span>
                       ) : (
-                        <span className={`shrink-0 text-ui-12 ${f.keep[i] ? 'text-tea-gold' : 'text-tea-text-dim'}`}>{f.keep[i] ? (p.kind === 'story' || p.kind === 'vendor' ? 'source kept' : 'filed') : 'left out'}</span>
+                        <span className={`shrink-0 text-ui-12 ${f.keep[i] ? 'text-tea-gold' : 'text-tea-text-sec'}`}>{f.keep[i] ? (p.kind === 'story' || p.kind === 'vendor' ? 'source kept' : 'filed') : 'left out'}</span>
                       )}
                     </div>
                   ))}
-                  {f.parts.some((p) => p.kind === 'story' || p.kind === 'vendor') && <p className="px-4 pt-2 text-ui-12 text-tea-text-dim">Story and vendor claims stay in this recording. Review them in the tea or vendor details before filing them as facts.</p>}
+                  {f.parts.some((p) => p.kind === 'story' || p.kind === 'vendor') && <p className="px-4 pt-2 text-ui-12 text-tea-text-sec">Story and vendor claims stay in this recording. Review them in the tea or vendor details before filing them as facts.</p>}
                   {!f.applied && f.parts.length > 0 && (
                     <div className="px-4 pt-3">
                       <button type="button" onClick={() => void apply(r.key)} className="curate-v2-frame is-on is-tall is-wide uppercase tracking-[0.14em]">

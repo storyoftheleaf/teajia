@@ -1080,4 +1080,92 @@ test.describe('Curate v2 journeys (phone)', () => {
     expect(await selectedTab(page)).toEqual(['Table']);
     await expect(page.getByTestId('table-count')).toHaveText('1 tea');
   });
+  // ── Review pass 4 ───────────────────────────────────────────────────────
+
+  test('Journey 1: typing a vendor the shop already has (any case) picks that vendor and creates no second record', async ({ page }) => {
+    await installCompassHarness(page, { customers: VENDORS });
+    await openCurateV2(page, 'table');
+    await page.getByTestId('table-start').click();
+    const picker = page.getByTestId('vendor-picker');
+    await picker.getByRole('textbox', { name: 'Search or add a vendor' }).fill('wang laoshi');
+    await picker.getByRole('textbox', { name: 'Search or add a vendor' }).press('Enter');
+    await expect(header(page)).toContainText('Wang Laoshi');
+    await addTea(page, 'Yiwu Gushu 2019 ¥1200/cake');
+    await page.waitForTimeout(400);
+    expect(compassCreatedCustomers(page)).toEqual([]);
+    const saved = await page.evaluate(() => {
+      const raw = JSON.parse(localStorage.getItem('teajia-compass') || '{}');
+      const all = Object.values(raw.state?.entriesByAccount ?? {}).flat() as Array<{ name: string; vendorName?: string; vendorId?: string }>;
+      return all.filter((e) => /Yiwu/.test(e.name)).map((e) => `${e.vendorName}|${e.vendorId}`);
+    });
+    expect(saved).toEqual(['Wang Laoshi|vendor-wang']);
+  });
+
+  test('Journey 3: Confirm records the purchase order in dollars (converted at the shop rate) and against the vendor', async ({ page }) => {
+    await installCompassHarness(page, BUY_DATA);
+    const posted: Array<Record<string, any>> = [];
+    page.on('request', (req) => { if (req.method() === 'POST' && /\/api\/purchase-orders$/.test(req.url())) posted.push(req.postDataJSON()); });
+    await openCurateV2(page, 'today');
+    await page.getByTestId('today-section-decide').getByRole('button', { name: /Mengku Laobanzhang/ }).click();
+    await buyButton(page).click();
+    await expect(overlay(page)).toHaveAttribute('data-layer', 'order');
+    await page.getByRole('button', { name: 'Confirm purchase' }).click();
+    await expect.poll(() => posted.length).toBe(1);
+    expect(posted[0].display_currency).toBe('Yuan');
+    expect(posted[0].vendor_id).toBe('vendor-wang');
+    // ¥450 at 7.1 to the dollar, not "450 dollars".
+    expect(posted[0].total_usd).toBeCloseTo(450 / 7.1, 2);
+  });
+  test('Chinese in a name and in the hanzi rows falls to a CJK serif, never the default sans', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS,
+      compassEntries: [entry({ id: 'zh-1', name: 'Mengku', chinese_name: '勐库古树茶', price_amount: 100 })],
+      todos: [{ id: 'todo-zh', text: 'confirm the year', compass_entry_id: 'zh-1', vendor_id: null, from_agent: 'GrokBot', created_at: daysAgo(1), tea_name: 'XWT-LB1 有机六堡茶1', vendor_name: null }],
+    });
+    await openCurateV2(page, 'today');
+    const stack = async (sel: string) => page.locator(sel).first().evaluate((el) => getComputedStyle(el).fontFamily);
+    const cjkSerif = /Songti SC|Noto Serif CJK SC|Source Han Serif SC|SimSun/;
+    expect(await stack('[data-testid="today-todo"] .curate-v2-name')).toMatch(cjkSerif);
+    await page.getByTestId('today-todo').getByRole('button', { name: /XWT-LB1/ }).click();
+    await expect(page.getByTestId('tea-face-chinese')).toContainText('勐库古树茶');
+    expect(await stack('[data-testid="tea-face-chinese"] .curate-v2-hanzi')).toMatch(cjkSerif);
+  });
+  test('Tea screen: a long name wraps to a second line instead of being cut at 390px', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS,
+      compassEntries: [entry({ id: 'long-1', name: 'Mengku Laobanzhang Gushu', year: 2018, tasting: JSON.stringify({ quality: 8 }), price_amount: 450 })],
+    });
+    await openCurateV2(page, 'today');
+    await page.getByTestId('today-section-decide').getByRole('button', { name: /Mengku Laobanzhang Gushu/ }).click();
+    const h = overlay(page).getByRole('heading', { level: 2 });
+    await expect(h).toContainText('Mengku Laobanzhang Gushu');
+    const box = await h.evaluate((el) => ({ clipped: el.scrollHeight > el.clientHeight + 1, lines: Math.round(el.clientHeight / parseFloat(getComputedStyle(el).lineHeight)) }));
+    expect(box.clipped).toBe(false);
+    expect(box.lines).toBeGreaterThanOrEqual(2);
+  });
+  test('Journey 2: a Vendors to reach line opens the vendor card over Today (TODAY stays lit); both Backs return to Today', async ({ page }) => {
+    await installCompassHarness(page, TODAY_DATA);
+    await openCurateV2(page, 'today');
+    const line = page.getByTestId('today-section-vendors').getByRole('button', { name: /Wang Laoshi/ });
+    await line.click();
+    await expect(page.getByRole('button', { name: 'Back to vendors' })).toBeVisible();
+    expect(await selectedTab(page)).toEqual(['Today']);
+    // The header Back returns to the Today list.
+    await backFromHeader(page).click();
+    expect(await selectedTab(page)).toEqual(['Today']);
+    await expect(page.getByTestId('today-section-vendors')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Back to vendors' })).toHaveCount(0);
+    // The card's own arrow returns to Today too, not to the vendor list.
+    await line.click();
+    await page.getByRole('button', { name: 'Back to vendors' }).click();
+    await expect(page.getByTestId('today-section-vendors')).toBeVisible();
+    expect(await selectedTab(page)).toEqual(['Today']);
+    // A tab tap still shows that tab's own screen.
+    await line.click();
+    await tab(page, 'Vendors').click();
+    await expect(page.getByRole('button', { name: 'Back to vendors' })).toHaveCount(0);
+    expect(await selectedTab(page)).toEqual(['Vendors']);
+    await tab(page, 'Today').click();
+    await expect(page.getByTestId('today-section-vendors')).toBeVisible();
+  });
 });
