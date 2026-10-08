@@ -109,7 +109,7 @@ export const FAST_TASTING: ReadonlyArray<{ q: FastQuestion; label: string; from:
   ] },
   { q: 'flavour', label: 'Tastes of', from: 'flavour', multi: true, options: [
     { id: 'sweet', label: 'Sweet' }, { id: 'floral', label: 'Floral' }, { id: 'fruity', label: 'Fruity' }, { id: 'woody', label: 'Woody' },
-    { id: 'earthy', label: 'Earthy' }, { id: 'roasted', label: 'Roasted' }, { id: 'mineral', label: 'Mineral' }, { id: 'nutty', label: 'Nutty' },
+    { id: 'earthy', label: 'Earthy' }, { id: 'roasted', label: 'Roasted' }, { id: 'mineral', label: 'Mineral' },
   ] },
   { q: 'stays', label: 'Stays', from: 'movement', options: [
     { id: 'finish-short', label: 'Short' }, { id: 'finish-medium', label: 'Medium' }, { id: 'finish-long', label: 'Long' }, { id: 'lingering', label: 'Lingers' },

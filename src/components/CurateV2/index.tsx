@@ -23,6 +23,7 @@ import { useVoiceRecorder } from './useVoiceRecorder';
 import { TodayView } from './TodayView';
 import { TableList } from './TableList';
 import { TeaFace } from './TeaFace';
+import { SaidSheet } from './SaidSheet';
 import { VendorsView } from './VendorsView';
 import { CompareView } from './CompareView';
 import { FastTastingSheet } from './FastTastingSheet';
@@ -124,6 +125,16 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // Tasting (the Tasting Journal) is its own surface at /account/journal, not a Compass mode.
   const [mode, setMode] = useState<CompassMode>(initialMode || 'today');
   const [developmentStarted, setDevelopmentStarted] = useState(false);
+  /** What the Table shows. Its rows by default; a tea opens as its own screen
+   *  (its face), and the full form only for a new tea or "Edit all fields".
+   *  The empty draft the store keeps ready is never shown by itself. */
+  const [faceId, setFaceId] = useState<string | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [vendorOpen, setVendorOpen] = useState<{ id?: string; name: string } | null>(null);
+  const [saidFor, setSaidFor] = useState<string | null>(null);
+  const faceOpen = mode === 'sourcing' && !!activeEntryId && faceId === activeEntryId;
+  const teaOpen = faceOpen || (mode === 'sourcing' && !!activeEntryId && editId === activeEntryId);
 
   // Account changes always swap the isolated draft bucket. Only Source owns
   // capture-shell creation; opening Library or Ledger must remain read-only.
@@ -328,6 +339,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   useEffect(() => {
     if (initialEntryId && initialEntryExists && getEntry(initialEntryId)) {
       setActiveEntry(initialEntryId);
+      setFaceId(initialEntryId);
       setMode('sourcing');
       setCaptureOption('tea');
     }
@@ -381,7 +393,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     !!activeEntry && ((activeEntry.name || '').trim().length > 0 || activeEntry.photos.length > 0);
 
   const handleNewCapture = useCallback((category?: CompassCategory) => {
-    startNewCapture(category || activeCategory);
+    setEditId(startNewCapture(category || activeCategory));
+    setFaceId(null);
     setFromLibrary(false);
     setMode('sourcing');
   }, [startNewCapture, activeCategory]);
@@ -489,11 +502,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     },
     [setActiveEntry]
   );
-
-  /** The tea shown as its read-at-a-glance face rather than the full card.
-   *  Opening a tea shows its face; "Edit all fields" or a brand new tea shows
-   *  the full card, so typing a first name never flips the screen. */
-  const [faceId, setFaceId] = useState<string | null>(null);
 
   const handleEditEntry = useCallback(
     (id: string) => {
@@ -642,10 +650,20 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const openFullTasting = useCallback((entryId: string) => {
     setFastTastingId(null);
     setFaceId(null);
+    setEditId(entryId);
     if (activeEntryId !== entryId) setActiveEntry(entryId);
     if (mode !== 'sourcing') { setPrevMode(mode); setMode('sourcing'); }
     window.setTimeout(() => visibleCaptureActions()?.openTasting(), 250);
   }, [activeEntryId, mode, setActiveEntry, visibleCaptureActions]);
+
+  /** Buy on a tea: the full card opens on its order part. */
+  const openBuy = useCallback((entryId: string) => {
+    if (mode !== 'sourcing') { setPrevMode(mode); setMode('sourcing'); }
+    if (activeEntryId !== entryId) setActiveEntry(entryId);
+    setFaceId(null);
+    setEditId(entryId);
+    window.setTimeout(() => visibleCaptureActions()?.toggleBuy(), 300);
+  }, [mode, activeEntryId, setActiveEntry, visibleCaptureActions]);
 
   const handleTodayAct = useCallback((entryId: string, action: TodayAction) => {
     if (action === 'taste') { setFastTastingId(entryId); return; }
@@ -661,6 +679,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // Header back: if we came from another screen within Curate, go back to it;
   // otherwise exit Curate via onBack.
   const handleHeaderBack = useCallback(() => {
+    // A tea open on the Table closes back to the rows, or to where it was opened from.
+    if (mode === 'sourcing' && activeEntryId && (faceId === activeEntryId || editId === activeEntryId)) {
+      setFaceId(null);
+      setEditId(null);
+      if (prevMode !== null && prevMode !== 'sourcing') { const target = prevMode; setPrevMode(null); setMode(target); }
+      return;
+    }
     if (prevMode !== null && prevMode !== mode) {
       const target = prevMode;
       setPrevMode(null);
@@ -669,7 +694,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       return;
     }
     onBack?.();
-  }, [prevMode, mode, activeEntryId, startNewCapture, activeCategory, onBack]);
+  }, [prevMode, mode, activeEntryId, faceId, editId, startNewCapture, activeCategory, onBack]);
 
   // Compass + notes hydration / debounced push / online-retry all live
   // in `useCompassSync` and `useNotesSync` at the app root in `App.tsx`,
@@ -820,7 +845,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       <div
         className={`shrink-0 overflow-hidden bg-tea-bg transition-[max-height,opacity] duration-200 ease-out lg:!max-h-none lg:!opacity-100 ${
           headerCollapsed ? 'max-h-0 opacity-0' : 'max-h-[160px] opacity-100'
-        }`}
+        } ${faceOpen ? 'max-lg:hidden' : ''}`}
         style={{ position: 'relative', zIndex: 5 }}
       >
         {/* Row 1: Screen segmented control (Source / Library / Ledger).
@@ -848,7 +873,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               onCaptureTea={() => {
                 setSampleOrderOpen(false);
                 setSampleOrderManaging(false);
-                handleCaptureOption('tea');
+                handleNewCapture('tea');
                 window.requestAnimationFrame(() => Array.from(document.querySelectorAll<HTMLInputElement>('input[placeholder^="Tea name"]')).find(input => input.offsetParent !== null)?.focus());
               }}
               onBrowseLibrary={() => {
@@ -856,15 +881,37 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 setSampleOrderManaging(false);
                 handleSwitchMode('library');
               }}
+              hideWhenEmpty
             />
-          <button
-            type="button"
-            onClick={() => { setPrevMode(mode); handleNewCapture(); }}
-            className="tap-target flex min-h-11 shrink-0 items-center gap-1 px-1 text-ui-13 font-medium text-tea-gold"
-          >
-            <Plus size={13} />
-            Tea
-          </button>
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setAddMenuOpen((v) => !v)}
+              aria-expanded={addMenuOpen}
+              aria-haspopup="menu"
+              className="tap-target flex min-h-11 items-center gap-1 px-1 text-ui-13 font-medium text-tea-gold"
+            >
+              <Plus size={13} />
+              Tea
+            </button>
+            {addMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-[6]" aria-hidden onClick={() => setAddMenuOpen(false)} />
+                <div role="menu" className="absolute right-0 top-full z-[7] mt-1 grid w-52 overflow-hidden rounded-md border border-tea-border bg-tea-elevated py-1 shadow-lg">
+                  {([
+                    ['New tea', () => { setPrevMode(mode); handleNewCapture('tea'); }],
+                    ['New teaware', () => { setPrevMode(mode); handleNewCapture('teaware'); }],
+                    ['Import a list or invoice', (el: HTMLButtonElement) => { setMode('sourcing'); beginNewImportFrom(el); }],
+                    ['Sample list', () => setSampleOrderOpen(true)],
+                  ] as Array<[string, (el: HTMLButtonElement) => void]>).map(([label, act]) => (
+                    <button key={label} type="button" role="menuitem" onClick={(e) => { setAddMenuOpen(false); act(e.currentTarget); }} className="min-h-11 px-4 text-left text-ui-14 text-tea-text hover:bg-tea-accent-sub">
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Row 2: the five screens, equal columns, always one line. */}
@@ -887,80 +934,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           })}
         </div>
 
-        {/* Row 2: capture method. Only relevant
-            inside Source, so it appears only there; Library and Ledger
-            collapse to the single Row 1, keeping their header clean. The
-            session draft strip is NOT here, it scrolls with the page
-            content below, so the header holds at two sticky rows. */}
-        {mode === 'sourcing' && (
-          <div className="flex h-10 items-center gap-1 border-b border-tea-border px-2 sm:px-4">
-            <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4" role="tablist" aria-label="Capture method">
-              {/* The samples panel still renders for deep links
-                  (?tab=samples) until its migration lands. */}
-              {([
-                { id: 'tea', label: 'Tea' },
-                { id: 'teaware', label: 'Teaware' },
-                { id: 'import', label: 'Import' },
-              ] as const).map((opt) => {
-                const active = opt.id === 'import' ? importOpen : captureOption === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={active}
-                    onClick={(event) => opt.id === 'import' ? beginNewImportFrom(event.currentTarget) : handleCaptureOption(opt.id)}
-                    className="curate-compact-target shrink-0"
-                    data-curate-compact-target
-                  >
-                    <span
-                      className={`curate-compact-chrome border-b px-2 text-ui-12 font-medium transition-colors ${
-                        active ? 'border-tea-gold text-tea-text' : 'border-transparent text-tea-text-sec hover:text-tea-text'
-                      }`}
-                      data-curate-compact-chrome
-                    >
-                      {opt.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            {showInlineMic && (
-              <button
-                type="button"
-                onClick={handleVoicePress}
-                disabled={voiceState === 'transcribing'}
-                aria-label={
-                  voiceState === 'recording' ? 'Stop recording'
-                  : voiceState === 'transcribing' ? 'Transcribing'
-                  : 'Record voice note'
-                }
-                title={
-                  voiceState === 'recording' ? 'Stop recording'
-                  : voiceState === 'transcribing' ? 'Transcribing…'
-                  : 'Record voice note'
-                }
-                className={`tap-target relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md transition-colors ${
-                  voiceState === 'recording'
-                    ? 'border border-tea-gold/60 bg-tea-gold/10 text-tea-gold'
-                    : voiceState === 'error'
-                      ? 'text-tea-error hover:bg-tea-accent-sub'
-                      : voiceState === 'transcribing'
-                        ? 'text-tea-text-dim cursor-wait'
-                        : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub'
-                }`}
-              >
-                {voiceState === 'recording' ? (
-                  <Square size={12} fill="currentColor" strokeWidth={0} />
-                ) : voiceState === 'transcribing' ? (
-                  <Loader2 size={14} className="animate-spin" strokeWidth={1.75} />
-                ) : (
-                  <Mic size={14} strokeWidth={1.75} />
-                )}
-              </button>
-            )}
-          </div>
-        )}
       </div>
 
       {/* ── BODY ── */}
@@ -970,13 +943,15 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-3 pb-nav-gap-lg" style={{ WebkitOverflowScrolling: 'touch' }}>
             <div className="mx-auto w-full max-w-2xl">
               {mode === 'today' && (
-                <TodayView onStartTable={startTable} onAct={handleTodayAct} onOpenTea={(id) => openTeaFrom(id, 'today')} />
+                <TodayView onStartTable={startTable} onAct={handleTodayAct} onOpenTea={(id) => openTeaFrom(id, 'today')} onOpenVendor={(v) => { setVendorOpen(v); setPrevMode('today'); setMode('vendors'); }} />
               )}
               {mode === 'vendors' && (
                 <VendorsView
+                  initialVendor={vendorOpen}
+                  onCloseVendor={() => setVendorOpen(null)}
                   onOpenTea={(id) => openTeaFrom(id, 'vendors')}
-                  onAddTea={(v) => { setPrevMode('vendors'); const id = startNewCapture('tea'); updateEntry(id, { vendorId: v.id, vendorName: v.name }); setFromLibrary(false); setMode('sourcing'); }}
-                  onAddTeaware={(v) => { setPrevMode('vendors'); const id = startNewCapture('teaware'); updateEntry(id, { vendorId: v.id, vendorName: v.name }); setFromLibrary(false); setMode('sourcing'); }}
+                  onAddTea={(v) => { setPrevMode('vendors'); const id = startNewCapture('tea'); updateEntry(id, { vendorId: v.id, vendorName: v.name }); setEditId(id); setFaceId(null); setFromLibrary(false); setMode('sourcing'); }}
+                  onAddTeaware={(v) => { setPrevMode('vendors'); const id = startNewCapture('teaware'); updateEntry(id, { vendorId: v.id, vendorName: v.name }); setEditId(id); setFaceId(null); setFromLibrary(false); setMode('sourcing'); }}
                 />
               )}
               {mode === 'compare' && (
@@ -984,6 +959,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   chosen={compareIds}
                   onChosenChange={setCompareIds}
                   onOpenTea={(id) => openTeaFrom(id, 'compare')}
+                  onBuy={openBuy}
                   onClose={() => { setPrevMode(null); setMode('library'); }}
                 />
               )}
@@ -1070,7 +1046,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                           card; the SyncIndicator moved there with it. */}
 
                       {/* Curate v2: the teas on this table, one line each. */}
-                      {(!initialDevelopmentProduct || developmentStarted) && (
+                      {(!initialDevelopmentProduct || developmentStarted) && !teaOpen && (
                         <TableList
                           activeEntryId={activeEntryId}
                           onOpen={(id) => { setFaceId(id); setActiveEntry(id); setFromLibrary(false); }}
@@ -1113,7 +1089,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
                       {activeEntryId && (!initialDevelopmentProduct || developmentStarted) && faceId === activeEntryId && <TeaFace
                         entryId={activeEntryId}
-                        onEdit={() => setFaceId(null)}
+                        onEdit={() => { setEditId(activeEntryId); setFaceId(null); }} onBack={handleHeaderBack} onBuy={openBuy} onOpenSaid={setSaidFor}
                         onTaste={setFastTastingId}
                         onFullTasting={openFullTasting}
                         canTalk={isPlatformPrivileged}
@@ -1122,7 +1098,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         voiceState={voiceState}
                         onDone={isPendingEntry ? handleDoneClick : undefined}
                       />}
-                      {activeEntryId && (!initialDevelopmentProduct || developmentStarted) && faceId !== activeEntryId && <CaptureCard
+                      {activeEntryId && (!initialDevelopmentProduct || developmentStarted) && faceId !== activeEntryId && (editId === activeEntryId || !!initialDevelopmentProduct) && <CaptureCard
                         entryId={activeEntryId}
                         onSwitchToLedger={() => handleSwitchMode('buying')}
                         onCommit={handleCommitEntry}
@@ -1779,7 +1755,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       <div className="mx-auto w-full max-w-xl">
                         <TeaFace
                           entryId={activeEntryId}
-                          onEdit={() => setFaceId(null)}
+                          onEdit={() => { setEditId(activeEntryId); setFaceId(null); }} onBack={handleHeaderBack} onBuy={openBuy} onOpenSaid={setSaidFor}
                           onTaste={setFastTastingId}
                           onFullTasting={openFullTasting}
                           canTalk={isPlatformPrivileged}
@@ -1789,7 +1765,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                           onDone={isPendingEntry ? handleDoneClick : undefined}
                       />
                       </div>
-                    ) : activeEntryId ? (
+                    ) : activeEntryId && (editId === activeEntryId || !!initialDevelopmentProduct) ? (
                       <>
                         {batchMode && <BatchCaptureRow />}
                         <CaptureCard
@@ -1904,6 +1880,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       </div>
       {/* END BODY */}
 
+      <SaidSheet entryId={saidFor} onClose={() => setSaidFor(null)} />
       <FastTastingSheet
         entryId={fastTastingId}
         onOpenChange={(open) => { if (!open) setFastTastingId(null); }}

@@ -31,7 +31,7 @@ const TABLES: Record<CurateRecordedEntity, string> = { tea: 'tea_compass_entries
 const keyColumn=(entity:CurateRecordedEntity)=>entity==='vendor_profile'?'vendor_id':'id';
 const FIELDS: Record<CurateEntity, string[]> = {
  tea: ['name','chinese_name','type','form','year','season','storage','origin_country','origin_region','classification','cultivar','description','notes','shop_name','transport_mode','price_amount','price_currency','price_per_unit_grams',...COMPASS_STRUCTURED_COLUMNS],
- vendor: ['name','company','email','phone','whatsapp','address','city','country','notes'],
+ vendor: ['name','chinese_name','company','email','phone','whatsapp','address','city','country','notes'],
  note: ['text'],transcript:['text'],attachment:[],todo: ['text'], sample: ['grams'],
 };
 
@@ -124,7 +124,7 @@ function mergeList(target:Row[],source:Row[]):{rows:Row[];ids:Map<string,string>
 }
 async function vendorMergeChanges(env:ToolEnv,auth:ToolAuth,source:Row,target:Row,now:string,agent:string):Promise<{target:Row;changes:Change[];guards:CurateGuard[]}> {
  const changes:Change[]=[];const guards:CurateGuard[]=[];const next={...target};
- for(const field of ['company','email','phone','whatsapp','address','city','country','notes']) if((next[field]==null||next[field]==='') && source[field]!=null) next[field]=source[field];
+ for(const field of ['chinese_name','company','email','phone','whatsapp','address','city','country','notes']) if((next[field]==null||next[field]==='') && source[field]!=null) next[field]=source[field];
  const sourceProfile=await env.DB.prepare('SELECT * FROM curate_vendor_profiles WHERE vendor_id = ? AND account_id = ?').bind(source.id,auth.accountId).first<Row>();
  const targetProfile=await env.DB.prepare('SELECT * FROM curate_vendor_profiles WHERE vendor_id = ? AND account_id = ?').bind(target.id,auth.accountId).first<Row>();
  const people=mergeList(storedList(targetProfile?.contact_people),storedList(sourceProfile?.contact_people));

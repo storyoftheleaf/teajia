@@ -145,13 +145,14 @@ describe('agent tea fields, visibility and history', () => {
   });
   it('clears vendor contact channels, nullable profile fields and legacy note aliases explicitly', async () => {
     const db = setup();
-    await intake(db, 'curate_save_vendor', { vendor_id: 'vendor', email: 'one@example.com', phone: '+852123', wechat: 'vendor-handle', vendor_code: 'LKY', storage: 'Hong Kong', addresses: [{ id: 'shop', label: 'Shop', address: 'Address' }] });
+    await intake(db, 'curate_save_vendor', { vendor_id: 'vendor', chinese_name: '林奇苑', email: 'one@example.com', phone: '+852123', wechat: 'vendor-handle', vendor_code: 'LKY', storage: 'Hong Kong', addresses: [{ id: 'shop', label: 'Shop', address: 'Address' }] });
+    expect(db.sqlite.prepare("SELECT chinese_name FROM customers WHERE id='vendor'").get()).toMatchObject({ chinese_name: '林奇苑' });
     db.sqlite.prepare("UPDATE customers SET notes='Old factual note' WHERE id='vendor'").run();
-    await intake(db, 'curate_save_vendor', { vendor_id: 'vendor', clear: ['email','note','storage','vendor_code','addresses'] });
+    await intake(db, 'curate_save_vendor', { vendor_id: 'vendor', clear: ['chinese_name','email','note','storage','vendor_code','addresses'] });
     const profile = await readVendorStructuredProfile(db as any, auth, 'vendor');
     expect(profile).toMatchObject({ vendor_code: null, addresses: [] });
     expect(profile?.contacts.map((contact: any) => contact.channel)).toEqual(['wechat','phone']);
-    expect(db.sqlite.prepare("SELECT email,notes,phone FROM customers WHERE id='vendor'").get()).toMatchObject({ email: null, notes: null, phone: '+852123' });
+    expect(db.sqlite.prepare("SELECT chinese_name,email,notes,phone FROM customers WHERE id='vendor'").get()).toMatchObject({ chinese_name: null, email: null, notes: null, phone: '+852123' });
     expect(db.sqlite.prepare("SELECT storage FROM curate_vendor_profiles WHERE vendor_id='vendor'").get()).toMatchObject({ storage: null });
   });
   it('quote confirmations refuse header/line changes made after the preview', async () => {

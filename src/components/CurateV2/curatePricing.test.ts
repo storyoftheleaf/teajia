@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { curateShelfPreview, purchaseSpendInUsd } from './curatePricing';
+import { curateShelfPreview, orderLanded, purchaseSpendInUsd } from './curatePricing';
 import { calculatePricing } from '../../admin/utils';
 import type { LedgerTransaction } from '../../lib/ledgerStore';
 import type { ExchangeRate } from '../../admin/types';
@@ -95,5 +95,30 @@ describe('Curate holds no pricing of its own', () => {
     expect(store).not.toMatch(/shippingRatePerKg/);
     expect(card).not.toMatch(/shippingRatePerKg/);
     expect(card).not.toMatch(/\)\s*\*\s*3\b/);
+  });
+});
+
+describe('orderLanded', () => {
+  const rates = [{ currency: 'Yuan', rateToUSD: 7, lastUpdated: '' }] as any;
+  const item = (over: Record<string, unknown>) => ({ id: 'x', name: 'Tea', pricePerUnit: 1, priceIsPerGram: false, currency: 'Yuan', addedAt: '', ...over }) as any;
+
+  it('adds freight on the tea weight at the shop rate, and lands it in dollars', () => {
+    const out = orderLanded({
+      currency: 'Yuan' as any,
+      items: [
+        item({ form: 'Cake', quantityUnits: 2, pricePerUnit: 1200 }),
+        item({ priceIsPerGram: true, quantityGrams: 500, pricePerUnit: 0.48 }),
+        item({ type: 'Teaware', quantityUnits: 1, pricePerUnit: 800 }),
+      ],
+    }, rates, 85 / 7)!;
+    expect(out.subtotal).toBeCloseTo(2400 + 240 + 800);
+    expect(out.weightKg).toBeCloseTo(1.214);
+    expect(out.freightPerKg).toBeCloseTo(85);
+    expect(out.freight).toBeCloseTo(103.19, 1);
+    expect(out.landedUsd).toBeCloseTo((3440 + 103.19) / 7, 1);
+  });
+
+  it('declines when the currency has no rate', () => {
+    expect(orderLanded({ currency: 'HKD' as any, items: [] }, rates, 12)).toBeNull();
   });
 });

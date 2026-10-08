@@ -17,6 +17,7 @@ for (const [tree, path] of [['Curate', '/admin/compass'], ['CurateV2', '/admin/c
     });
     await page.route('**/api/curate/attachments/agent-photo/content', route => route.fulfill({ status: 200, contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64') }));
     await page.goto(`${path}?entry=structured-tea`);
+    if (tree === 'CurateV2') await page.getByRole('button', { name: 'Edit all fields', exact: true }).click();
     const tools = page.getByRole('region', { name: 'Files and change history' }).filter({ visible: true }).first();
     await expect(tools.getByRole('button', { name: /agent-leaf.png/ })).toBeVisible();
     await tools.getByRole('button', { name: 'View photo', exact: true }).click();

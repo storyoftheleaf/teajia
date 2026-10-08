@@ -27,6 +27,8 @@ import { useAppStore } from '../../lib/store';
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { OrderMessageSheet } from './OrderMessageSheet';
+import { orderLanded } from './curatePricing';
+import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
 
 // ─── Currency helpers ────────────────────────────────────────────────────────
 
@@ -36,7 +38,8 @@ const CURRENCY_SYMBOLS: Record<Currency, string> = {
 
 function fmtPrice(amount: number, currency: Currency): string {
   const sym = CURRENCY_SYMBOLS[currency] || '';
-  const decimals = ['NT', 'IDR', 'JPY'].includes(currency) ? 0 : 2;
+  // Whole amounts read the way a vendor says them: ¥2,400, not ¥2,400.00.
+  const decimals = ['NT', 'IDR', 'JPY'].includes(currency) || Math.abs(amount - Math.round(amount)) < 0.005 ? 0 : 2;
   return `${sym}${amount.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
 }
 
@@ -75,31 +78,31 @@ const LineItemRow: React.FC<{
   const currentQty = isUnitBased ? (item.quantityUnits ?? 1) : (item.quantityGrams ?? 100);
 
   return (
-    <div className="py-2.5 border-b border-tea-border last:border-b-0">
+    <div className="border-b border-tea-border px-4 py-2">
       <div className="flex items-center gap-2">
         {/* Name + meta */}
         <div className="flex-1 min-w-0">
           {item.compassEntryId && onOpenEntry ? (
             <button
               onClick={() => onOpenEntry(item.compassEntryId!)}
-              className="text-tea-text hover:text-tea-gold font-serif text-ui-13 text-left transition-colors truncate block w-full"
+              className="curate-v2-name block w-full truncate text-left transition-colors hover:text-tea-gold"
             >
               {item.name || 'Unnamed'}
             </button>
           ) : item.productId ? (
             <button
               onClick={() => navigate(`/admin/stock?panel=${encodeURIComponent(item.productId!)}`)}
-              className="text-tea-text hover:text-tea-gold font-serif text-ui-13 text-left transition-colors truncate block w-full"
+              className="curate-v2-name block w-full truncate text-left transition-colors hover:text-tea-gold"
             >
               {item.name || 'Unnamed'}
             </button>
           ) : (
-            <p className="text-tea-text font-serif text-ui-13 truncate">
+            <p className="curate-v2-name truncate">
               {item.name || 'Unnamed'}
             </p>
           )}
           {(item.type || item.form || item.year) && (
-            <p className="text-tea-text-dim text-ui-10 num mt-0.5">
+            <p className="mt-0.5 text-ui-12 text-tea-text-dim tabular-nums">
               {[item.type, item.form, item.year].filter(Boolean).join(' · ')}
             </p>
           )}
@@ -135,11 +138,11 @@ const LineItemRow: React.FC<{
 
         {/* Price + remove */}
         <div className="shrink-0 text-right">
-          <p className="text-tea-text text-ui-13 font-serif num">{fmtPrice(total, item.currency)}</p>
+          <p className="text-ui-14 font-medium text-tea-text-sec tabular-nums">{fmtPrice(total, item.currency)}</p>
           <button
             type="button"
             onClick={onRemove}
-            className="text-tea-text-dim hover:text-tea-text-sec text-ui-10 uppercase tracking-wide transition-colors mt-0.5"
+            className="mt-0.5 text-ui-12 text-tea-text-dim transition-colors hover:text-tea-text-sec"
           >
             remove
           </button>
@@ -358,6 +361,9 @@ const TransactionCard: React.FC<{
     () => tx.items.reduce((sum, item) => sum + lineTotal(item), 0),
     [tx.items]
   );
+  const { data: rates } = useRates();
+  const shopFreight = useShopFreightDefault();
+  const landed = useMemo(() => orderLanded(tx, rates, shopFreight.perKgUsd), [tx, rates, shopFreight.perKgUsd]);
 
   const isPurchase = tx.direction === 'purchase';
   const isDraft = tx.status === 'draft';
@@ -439,46 +445,33 @@ const TransactionCard: React.FC<{
   }, [tx.id, isPurchase, removeTransaction]);
 
   return (
-    <div className="bg-tea-surface rounded-xl overflow-hidden transition-colors">
-      {/* Header, always visible */}
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={isExpanded}
-        className={`w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-tea-elevated active:bg-tea-surface transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none ${isExpanded ? 'bg-tea-elevated/30' : ''}`}
-      >
-        <DirectionIcon
-          size={16}
-          className={isPurchase ? 'text-tea-gold shrink-0' : 'text-tea-gold-lt shrink-0'}
-        />
-        <div className="flex-1 min-w-0">
-          <p className="text-tea-text text-sm font-serif truncate">
-            {tx.counterpartyName || 'Unnamed'}
-          </p>
-          <p className="text-tea-text-sec text-ui-11 uppercase tracking-[0.08em]">
-            {directionLabel} · {tx.items.length} {tx.items.length === 1 ? 'item' : 'items'}
-            {(tx.photos?.length ?? 0) > 0 && ` · ${tx.photos.length} photo${tx.photos.length === 1 ? '' : 's'}`}
-          </p>
-        </div>
-
-        {/* Status */}
-        <span className={`badge-status ${isDraft ? 'badge-status-gold' : 'badge-status-default'}`}>
-          {isDraft ? 'Draft' : 'Confirmed'}
-        </span>
-
-        {/* Total */}
-        <span className="text-tea-text text-sm font-serif num shrink-0">
-          {fmtPrice(total, tx.currency)}
-        </span>
-
-        <motion.span
-          animate={{ rotate: isExpanded ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
-          className="text-tea-text-sec shrink-0"
+    <div className="curate-v2 -mx-4 border-b border-tea-border" data-testid="curate-order">
+      {/* Curate v2: the vendor as the heading, what the order is in small
+          words, the total and Message on the right, as drawn. */}
+      <div className="flex items-center gap-2 pl-4 pr-2 pt-3">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={isExpanded}
+          className="flex min-h-11 min-w-0 flex-1 items-baseline gap-2 text-left focus-visible:outline-none"
         >
-          <ChevronDown size={14} />
-        </motion.span>
-      </button>
+          <span className="min-w-0 truncate font-display text-ui-26 leading-none text-tea-text">{tx.counterpartyName || (isPurchase ? 'Vendor' : 'Customer')}</span>
+          <ChevronDown size={14} className={`shrink-0 self-center text-tea-text-dim transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+        </button>
+        {isPurchase && tx.items.length > 0 && (
+          <button type="button" onClick={() => setMessageOpen(true)} className="tap-target px-2 text-ui-13 font-medium text-tea-gold" aria-label="Message the vendor about this order">
+            Message
+          </button>
+        )}
+      </div>
+      <div className="flex items-baseline justify-between gap-3 border-b border-tea-border px-4 pb-2.5 text-ui-12 text-tea-text-sec">
+        <span className="flex items-center gap-1.5">
+          <DirectionIcon size={13} className="text-tea-gold" />
+          <span className="font-medium text-tea-text">{isPurchase ? 'Purchase' : 'Sale'}</span>
+          <span>· {isDraft ? 'draft' : 'confirmed'} · {tx.items.length} {tx.items.length === 1 ? 'item' : 'items'}{(tx.photos?.length ?? 0) > 0 ? ` · ${tx.photos.length} photo${tx.photos.length === 1 ? '' : 's'}` : ''}</span>
+        </span>
+        {!isExpanded && <span className="text-ui-14 font-medium text-tea-text tabular-nums">{fmtPrice(total, tx.currency)}</span>}
+      </div>
 
       {/* Expanded body */}
       <AnimatePresence initial={false}>
@@ -490,10 +483,10 @@ const TransactionCard: React.FC<{
             transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
             className="overflow-hidden"
           >
-            <div className="px-3 pb-3 border-t border-tea-border">
+            <div className="pb-3">
               {/* Line items */}
               {tx.items.length === 0 ? (
-                <p className="text-tea-text-sec text-sm font-serif italic py-6 text-center">Nothing here yet.</p>
+                <p className="px-4 py-4 text-ui-13 text-tea-text-sec">Nothing on this order yet. Choose Buy on a tea to add it.</p>
               ) : (
                 tx.items.map((item) => (
                   <LineItemRow
@@ -509,18 +502,36 @@ const TransactionCard: React.FC<{
               {/* Photos */}
               <TransactionPhotos txId={tx.id} photos={tx.photos || []} />
 
-              {/* Grand total */}
+              {/* Totals, as drawn: freight on the tea weight at the shop rate,
+                  the rate today, and what it lands at in dollars. */}
               {tx.items.length > 0 && (
-                <div className="flex items-baseline justify-between pt-3 border-t border-tea-border" aria-label="Grand total">
-                  <span className="text-tea-text-sec text-ui-11 uppercase tracking-[0.15em]">Total</span>
-                  <span className="text-tea-text text-sm font-serif num">
-                    {fmtPrice(total, tx.currency)}
-                  </span>
+                <div className="px-4 pt-2" aria-label="Grand total">
+                  {landed && isPurchase && (
+                    <>
+                      <div className="flex items-baseline justify-between py-1 text-ui-13 text-tea-text-dim tabular-nums">
+                        <span>Teas</span><span className="text-tea-text-sec">{fmtPrice(landed.subtotal, tx.currency)}</span>
+                      </div>
+                      <div className="flex items-baseline justify-between py-1 text-ui-13 text-tea-text-dim tabular-nums">
+                        <span>Freight · {landed.weightKg.toFixed(1)} kg at {fmtPrice(landed.freightPerKg, tx.currency)}</span><span className="text-tea-text-sec">{fmtPrice(landed.freight, tx.currency)}</span>
+                      </div>
+                      {landed.perUsd !== 1 && (
+                        <div className="flex items-baseline justify-between py-1 text-ui-13 text-tea-text-dim tabular-nums">
+                          <span>{fmtPrice(landed.subtotal + landed.freight, tx.currency)} at {landed.perUsd.toFixed(2)} today</span><span />
+                        </div>
+                      )}
+                    </>
+                  )}
+                  <div className="mt-1 flex items-baseline justify-between border-t border-tea-border pt-2.5">
+                    <span className="text-ui-13 text-tea-text-sec">{landed && isPurchase ? 'Landed' : 'Total'}</span>
+                    <span className="text-ui-20 font-semibold text-tea-gold tabular-nums">
+                      {landed && isPurchase ? `$${Math.round(landed.landedUsd).toLocaleString()}` : fmtPrice(total, tx.currency)}
+                    </span>
+                  </div>
                 </div>
               )}
 
               {/* Actions */}
-              <div className="flex items-center gap-2 mt-3">
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 px-4">
                 {isDraft && tx.items.length > 0 && (
                   <AnimatePresence mode="wait">
                     {justConfirmed ? (
@@ -539,9 +550,9 @@ const TransactionCard: React.FC<{
                         type="button"
                         onClick={handleConfirm}
                         whileTap={{ scale: 0.98 }}
-                        className="py-1.5 px-3 rounded-md cta-solid font-semibold text-xs uppercase tracking-[0.08em] transition-all"
+                        className="min-h-11 rounded-md cta-solid px-4 text-ui-13 font-semibold"
                       >
-                        {isPurchase ? 'Purchase' : 'Sale'}
+                        {isPurchase ? 'Confirm purchase' : 'Confirm sale'}
                       </motion.button>
                     )}
                   </AnimatePresence>
@@ -552,7 +563,7 @@ const TransactionCard: React.FC<{
                   <button
                     type="button"
                     onClick={() => setShowTagSheet(true)}
-                    className="pill flex items-center gap-1"
+                    className="tap-target flex min-h-11 items-center gap-1 text-ui-13 text-tea-text-sec hover:text-tea-text"
                     aria-label="Print tea tags"
                   >
                     <Tag size={12} />
@@ -560,23 +571,12 @@ const TransactionCard: React.FC<{
                   </button>
                 )}
 
-                {isPurchase && tx.items.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setMessageOpen(true)}
-                    className="pill flex items-center gap-1 text-tea-gold"
-                    aria-label="Message the vendor about this order"
-                  >
-                    <Send size={12} />
-                    Message
-                  </button>
-                )}
 
                 <button
                   type="button"
                   onClick={handleSharePdf}
                   disabled={pdfLoading || tx.items.length === 0}
-                  className="pill flex items-center gap-1 disabled:opacity-30"
+                  className="tap-target flex min-h-11 items-center gap-1 text-ui-13 text-tea-text-sec hover:text-tea-text disabled:opacity-30"
                   aria-label="Share as PDF"
                 >
                   <Share2 size={12} className={pdfLoading ? 'animate-pulse' : ''} />
@@ -586,7 +586,7 @@ const TransactionCard: React.FC<{
                 <button
                   type="button"
                   onClick={handleDelete}
-                  className="pill flex items-center gap-1"
+                  className="tap-target flex min-h-11 items-center gap-1 text-ui-13 text-tea-text-sec hover:text-tea-text"
                   aria-label="Delete transaction"
                 >
                   <Trash2 size={12} />
@@ -604,9 +604,9 @@ const TransactionCard: React.FC<{
                         // Status update failed silently
                       }
                     }}
-                    className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-tea-surface text-tea-text text-ui-11 font-medium uppercase tracking-[0.08em] active:bg-tea-elevated transition-colors"
+                    className="tap-target flex min-h-11 items-center gap-1 text-ui-13 text-tea-text-sec hover:text-tea-text"
                   >
-                    <Check size={14} /> {poSaved ? 'Sent' : 'Mark as Sent'}
+                    <Check size={13} /> {poSaved ? 'Sent' : 'Mark as sent'}
                   </button>
                 )}
               </div>
@@ -682,118 +682,66 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
     { value: 'sale', label: 'Sales', count: counts.sale },
   ];
 
+  // Starting an order, in words: a purchase from a vendor, a note, or a sale.
+  const starters = (
+    <div className="curate-v2 -mx-4 border-t border-tea-border">
+      <button type="button" onClick={() => openPurchaseOrder()} className="curate-v2-row w-full text-left">
+        <span className="text-ui-14 font-medium text-tea-gold">＋ Purchase order</span>
+        <span className="flex-1" />
+        <span className="text-ui-12 text-tea-text-dim">several teas from one vendor</span>
+      </button>
+      <button type="button" onClick={() => createTransaction('purchase', '', useTeaCompassStore.getState().lastCurrency)} className="curate-v2-row w-full text-left">
+        <span className="text-ui-14 text-tea-text-sec">＋ Quick purchase note</span>
+      </button>
+      <button type="button" onClick={() => createTransaction('sale', '', 'USD')} className="curate-v2-row w-full text-left">
+        <span className="text-ui-14 text-tea-text-sec">＋ Quick sale</span>
+      </button>
+    </div>
+  );
+
   if (transactions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-14 animate-[fadeIn_0.4s_ease-out]">
-        <div className="w-20 h-20 rounded-full bg-tea-gold/8 flex items-center justify-center mb-5 shadow-[0_0_30px_var(--tea-accent-sub)]">
-          <ShoppingBag className="w-8 h-8 text-tea-gold/40" />
-        </div>
-        <h3 className="font-serif text-lg text-tea-text mb-1.5 tracking-wide">No orders yet</h3>
-        <p className="text-ui-13 text-tea-text-sec font-serif text-center max-w-[240px] leading-relaxed mb-8">
-          Choose Buy on a tea, or start an order here.
-        </p>
-        <div className="flex flex-col gap-2 w-full max-w-xs">
-          <button
-            onClick={() => openPurchaseOrder()}
-            className="w-full px-5 py-3 cta-solid text-ui-10 font-semibold uppercase tracking-[0.08em] transition-colors flex items-center justify-center gap-2"
-          >
-            <ShoppingBag size={14} />
-            Purchase Order Builder
-          </button>
-          <div className="flex gap-2">
-            <button
-              onClick={() => createTransaction('purchase', '', useTeaCompassStore.getState().lastCurrency)}
-              className="flex-1 px-4 py-2.5 bg-tea-surface text-tea-text-sec text-ui-10 font-semibold uppercase tracking-[0.08em] transition-colors active:text-tea-text"
-            >
-              Quick Note
-            </button>
-            <button
-              onClick={() => createTransaction('sale', '', 'USD')}
-              className="flex-1 px-4 py-2.5 bg-tea-surface text-tea-text-sec text-ui-10 font-semibold uppercase tracking-[0.08em] transition-colors active:text-tea-text"
-            >
-              Quick Sale
-            </button>
-          </div>
-        </div>
+      <div className="pb-8">
+        <p className="pb-3 pt-1 text-ui-14 text-tea-text-sec">No orders yet. Choose Buy on a tea and it starts one with that vendor.</p>
+        {starters}
       </div>
     );
   }
 
   return (
-    <div className="space-y-5 pb-8 animate-[fadeIn_0.3s_ease-out]">
-      {/* Filter row */}
-      <div className="flex items-center">
-        <div className="flex gap-1.5 overflow-x-auto -mx-4 px-4 pb-1 scrollbar-hide">
-          {filterOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setFilter(opt.value)}
-              aria-label={`Filter: ${opt.label}, ${opt.count} transactions`}
-              aria-pressed={filter === opt.value}
-              className={filter === opt.value ? 'pill-active' : 'pill'}
-            >
-              <>{opt.label}{opt.count > 0 && <span className="num ml-1 opacity-70">{opt.count}</span>}</>
-            </button>
-          ))}
-        </div>
+    <div className="pb-8">
+      {/* Which orders: four equal columns on one line, never a sideways scroll. */}
+      <div className="curate-v2-tabs -mx-4 mb-1 border-b border-tea-border" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }} role="tablist" aria-label="Which orders">
+        {filterOptions.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            role="tab"
+            onClick={() => setFilter(opt.value)}
+            aria-label={`Filter: ${opt.label}, ${opt.count} transactions`}
+            aria-selected={filter === opt.value}
+            className="curate-v2-tab"
+          >
+            {opt.label}{opt.count > 0 && <span className="ml-1 tabular-nums">{opt.count}</span>}
+          </button>
+        ))}
       </div>
 
-      {/* Transaction list */}
-      <div className="space-y-2">
-        <AnimatePresence initial={false}>
-          {filtered.map((tx) => (
-            <motion.div
-              key={tx.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-            >
-              <TransactionCard
-                tx={tx}
-                isExpanded={!collapsedIds.has(tx.id)}
-                onToggle={() => setCollapsedIds(prev => {
-                  const next = new Set(prev);
-                  if (next.has(tx.id)) next.delete(tx.id); else next.add(tx.id);
-                  return next;
-                })}
-                onOpenEntry={onOpenEntry}
-              />
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+      {filtered.map((tx) => (
+        <TransactionCard
+          key={tx.id}
+          tx={tx}
+          isExpanded={!collapsedIds.has(tx.id)}
+          onToggle={() => setCollapsedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(tx.id)) next.delete(tx.id); else next.add(tx.id);
+            return next;
+          })}
+          onOpenEntry={onOpenEntry}
+        />
+      ))}
 
-      {/* Quick create buttons */}
-      <div className="flex flex-col gap-2 pt-4 border-t border-tea-border">
-        <div className="flex gap-2">
-          <button
-            onClick={() => {
-              createTransaction('purchase', '', useTeaCompassStore.getState().lastCurrency);
-            }}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-tea-gold/5 text-tea-text-sec text-ui-11 font-semibold uppercase tracking-[0.08em] active:text-tea-text transition-colors"
-          >
-            <ArrowDownLeft size={14} />
-            Quick Note
-          </button>
-          <button
-            onClick={() => {
-              createTransaction('sale', '', 'USD');
-            }}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-tea-surface text-tea-text-sec text-ui-11 font-semibold uppercase tracking-[0.08em] active:text-tea-text transition-colors"
-          >
-            <ArrowUpRight size={14} />
-            Quick Sale
-          </button>
-        </div>
-        <button
-          onClick={() => openPurchaseOrder()}
-          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl cta-solid text-ui-11 font-semibold uppercase tracking-[0.08em] transition-colors"
-        >
-          <ShoppingBag size={14} />
-          Full Purchase Order Builder
-        </button>
-      </div>
+      <div className="pt-6">{starters}</div>
     </div>
   );
 };

@@ -242,12 +242,12 @@ function readTasting(args: any): { byCategory: Record<string, string[]>; score: 
 // ── Vendors ───────────────────────────────────────────────────────────────────
 
 export type VendorRow = {
-  id: string; name: string; company: string | null; phone: string | null; whatsapp: string | null;
+  id: string; name: string; chinese_name?: string | null; company: string | null; phone: string | null; whatsapp: string | null;
   email: string | null; city: string | null; country: string | null; address: string | null;
   notes: string | null; contacts: string | null; tags: string | null; type: string | null;
 };
 
-const VENDOR_COLUMNS = 'id, name, company, phone, whatsapp, email, city, country, address, notes, contacts, tags, type';
+const VENDOR_COLUMNS = 'id, name, chinese_name, company, phone, whatsapp, email, city, country, address, notes, contacts, tags, type';
 
 function isVendorRow(row: Pick<VendorRow, 'tags' | 'type'>): boolean {
   return /vendor/i.test(row.tags ?? '') || row.type === 'vendor' || row.type === 'supplier';
@@ -653,6 +653,7 @@ export function vendorSummary(v: VendorRow) {
   return {
     id: v.id,
     name: v.name,
+    chinese_name: v.chinese_name ?? null,
     company: v.company,
     city: v.city,
     country: v.country,
@@ -814,7 +815,7 @@ const toolUpdateTea: ToolHandler = async (env, auth, args) => {
 // ── Tool: curate_save_vendor ──────────────────────────────────────────────────
 
 const VENDOR_TEXT_COLUMNS: Array<[string, string, number]> = [
-  ['company', 'company', 200], ['phone', 'phone', 50], ['whatsapp', 'WhatsApp', 50], ['email', 'email', 200],
+  ['chinese_name', 'Chinese name', 200], ['company', 'company', 200], ['phone', 'phone', 50], ['whatsapp', 'WhatsApp', 50], ['email', 'email', 200],
   ['address', 'address', 500], ['city', 'city', 200], ['country', 'country', 100],
 ];
 
@@ -1376,6 +1377,7 @@ const defs: ToolDefinition[] = [
       properties: {
         name: { type: 'string', description: 'Vendor name. Matches an existing vendor by name, or adds a new one. With vendor_id, renames.' },
         vendor_id: { type: 'string', description: 'The vendor id from curate_find, to change an existing vendor.' },
+        chinese_name: { type: ['string', 'null'] },
         company: { type: ['string', 'null'] }, wechat: { type: ['string', 'null'] }, whatsapp: { type: ['string', 'null'] }, phone: { type: ['string', 'null'] },
         vendor_code: { type: ['string', 'null'] },
         contact_people: { type: 'array', items: { type: 'object' } },
