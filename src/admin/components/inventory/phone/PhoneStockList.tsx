@@ -164,7 +164,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
         return (
           <section key={group.key} aria-label={group.label}>
             {groupBy !== 'none' && (
-              <div className="flex items-stretch bg-tea-surface border-y border-tea-border">
+              <div className="flex items-stretch bg-tea-surface border-b border-tea-border">
                 <button
                   type="button"
                   onClick={() => toggleGroup(group.key)}
