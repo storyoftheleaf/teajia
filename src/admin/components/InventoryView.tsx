@@ -62,7 +62,7 @@ import { isFeaturedButHidden, readInventoryFold, withInventoryFold, withParam } 
 import { InventoryRow } from './inventory/InventoryRow';
 import { QuickEditInlineRow } from './inventory/QuickEditInlineRow';
 import { InventoryActionRail, INVENTORY_ACTION_RAIL_WIDTH } from './inventory/InventoryActionRail';
-import { PhoneStockList, PhoneGroupSwitch, readPhoneGroupBy, writePhoneGroupBy } from './inventory/phone/PhoneStockList';
+import { PhoneStockList, PhoneGroupSwitch, readPhoneGroupBy, writePhoneGroupBy, type PhoneSortKey } from './inventory/phone/PhoneStockList';
 import type { TeaAction } from './inventory/phone/PhoneTeaHeader';
 import { PHONE_GROUP_LABELS, groupStock, type PhoneGroupBy } from './inventory/phone/groupStock';
 import { INVENTORY_WISDOM_PARAM } from './wisdom/config';
@@ -2748,6 +2748,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             onChangeStock={stableStockMovement}
             onRecount={stableStockRecount}
             onOpenSource={stableOpenSource}
+            sortKey={(inventorySortConfig[0]?.key as PhoneSortKey | undefined) ?? null}
+            sortDir={inventorySortConfig[0]?.direction ?? 'asc'}
+            onSort={(col) => {
+              const current = inventorySortConfig[0];
+              const same = current?.key === col;
+              setInventorySortConfig([{ key: col as keyof Product, direction: same && current.direction === 'asc' ? 'desc' : 'asc' }]);
+            }}
           />
         ) : (
         <div ref={tableWrapperRef} className="relative w-full max-w-7xl mx-auto px-0 md:px-4 lg:px-6">
