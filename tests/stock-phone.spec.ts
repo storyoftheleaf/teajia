@@ -57,7 +57,7 @@ test.describe('Stock on the phone', () => {
     await chen.getByRole('button', { name: /^Green Test Tea 01/ }).click();
     const panel = page.getByRole('region', { name: /Green Test Tea 01, at a glance/ });
     await expect(panel).toBeVisible();
-    await expect(panel).toContainText(/counted/i);
+    await expect(panel).toContainText(/Shelf/);
     await shot(page, 'panel');
     await panel.getByRole('button', { name: /Full page/ }).click();
     await expect(page.getByText('Quick entry')).toBeVisible();
@@ -93,6 +93,9 @@ test.describe('Stock on the phone', () => {
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     const chen = page.getByTestId('stock-phone').getByRole('region', { name: 'Chen Family' });
     await chen.getByRole('button', { name: /Chen Family/ }).first().click();
+    // The circles are hidden until Select is tapped.
+    await expect(chen.getByRole('button', { name: 'Tick Green Test Tea 01' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Select', exact: true }).click();
     await chen.getByRole('button', { name: 'Tick Green Test Tea 01' }).click();
     const bar = page.getByRole('toolbar', { name: 'Selection actions' });
     await expect(bar).toContainText('1 tea selected');
@@ -106,6 +109,24 @@ test.describe('Stock on the phone', () => {
     await shot(page, 'selected-more');
     // The bottom nav stays on screen while teas are ticked.
     await expect(page.getByRole('button', { name: 'Your Table' }).last()).toBeVisible();
+  });
+
+  test('holding a tea brings up the circles with that tea ticked, and Done puts them away', async ({ page }) => {
+    await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
+    const chen = page.getByTestId('stock-phone').getByRole('region', { name: 'Chen Family' });
+    await chen.getByRole('button', { name: /Chen Family/ }).first().click();
+    const row = chen.getByRole('button', { name: /^Green Test Tea 07/ });
+    const box = await row.boundingBox();
+    if (!box) throw new Error('row not on screen');
+    await page.mouse.move(box.x + box.width / 3, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(650);
+    await page.mouse.up();
+    await expect(chen.getByRole('button', { name: /^Untick Green Test Tea 07/ })).toBeVisible();
+    await expect(page.getByRole('toolbar', { name: 'Selection actions' })).toContainText('1 tea selected');
+    await expect(page.getByRole('region', { name: /at a glance/ })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Done', exact: true }).click();
+    await expect(chen.getByRole('button', { name: /Tick Green Test Tea/ })).toHaveCount(0);
   });
 
   test('Stage keeps the lifecycle sections in order, with the incoming tea in Incoming', async ({ page }) => {
@@ -162,10 +183,10 @@ test.describe('Stock on the phone', () => {
     await expect(sheet.getByRole('radio', { name: 'Sampled' })).toHaveAttribute('aria-checked', 'true');
     const box = sheet.getByRole('textbox', { name: 'How much went out' });
     await box.fill('100');
-    await expect(sheet).toContainText('only 82 g there');
+    await expect(sheet).toContainText('only 82 there');
     await expect(sheet.getByRole('button', { name: 'Save' })).toBeDisabled();
     await box.fill('7');
-    await expect(sheet).toContainText('leaves 75 g');
+    await expect(sheet).toContainText('leaves 75');
     await sheet.getByRole('button', { name: 'Save' }).click();
     await expect.poll(() => sent.length).toBe(1);
     expect(sent[0]).toMatchObject({ movement_type: 'sample_use', quantity: 7, expected_balance: 82 });
@@ -213,7 +234,7 @@ test.describe('Stock on the phone', () => {
     await page.getByRole('button', { name: 'Supplier details for Mountain Source' }).click();
     const glance = page.getByRole('region', { name: 'This supplier at a glance' });
     await expect(glance).toContainText('32');
-    await expect(glance).toContainText('Not checked');
+    await expect(glance).toContainText('To recount');
     await shot(page, 'supplier');
     await glance.getByRole('button', { name: 'Select all 32' }).click();
     await expect(page.getByRole('toolbar', { name: 'Selection actions' })).toContainText('32 teas selected');
@@ -225,8 +246,11 @@ test.describe('Stock on the phone', () => {
   });
 
   test('Incoming groups deliveries by supplier with how they travel and when they are due', async ({ page }) => {
-    const soon = new Date(Date.now() + 6 * 86_400_000).toISOString().slice(0, 10);
-    const past = new Date(Date.now() - 3 * 86_400_000).toISOString().slice(0, 10);
+    // Local calendar days, the way the screen counts them. toISOString() is UTC,
+    // which in Bali is the previous day until 8 am, and the test went red daily.
+    const localDay = (offset: number) => { const d = new Date(); d.setDate(d.getDate() + offset); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+    const soon = localDay(6);
+    const past = localDay(-3);
     const transportCalls: unknown[] = [];
     await page.route('**/api/inventory/receipts**', route => route.fulfill({ json: [
       { id: 'r1', state: 'in_transit', vendor_name: 'Chen Family', source_kind: 'invoice', source_ref: 'WeChat', eta: soon, transport_mode: 'air', lines: [{ id: 'l1', product_id: 'test-product-1', product_name: 'Green Test Tea 01', expected_quantity: 500, received_quantity: 0, cancelled_quantity: 0, unit: 'g', intended_purpose: 'working' }] },
