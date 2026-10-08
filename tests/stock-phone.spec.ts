@@ -64,6 +64,32 @@ test.describe('Stock on the phone', () => {
     await expect(page.getByText('Quick entry')).toBeVisible();
   });
 
+  test('the full tea page opens on its stock, steps through its supplier, and acts on the one tea', async ({ page }) => {
+    await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
+    const chen = page.getByTestId('stock-phone').getByRole('region', { name: 'Chen Family' });
+    await chen.getByRole('button', { name: /Chen Family/ }).first().click();
+    await chen.getByRole('button', { name: /^Green Test Tea 07/ }).click();
+    await page.getByRole('region', { name: /Green Test Tea 07, at a glance/ }).getByRole('button', { name: 'Edit everything' }).click();
+
+    const header = page.getByTestId('phone-tea-header');
+    await expect(header.getByRole('region', { name: 'On the shelf' })).toContainText('82 g');
+    await expect(header.getByRole('region', { name: 'On the shelf' })).toContainText('Checked');
+    // Previous / next walk the tea's own supplier, not the whole shelf.
+    await expect(page.getByText(/from Chen Family/i)).toBeVisible();
+    await expect(page.getByText(/\/ 32/)).toBeVisible();
+
+    const jump = header.getByRole('navigation', { name: 'Jump to a section' });
+    for (const name of ['Details', 'Photos', 'Tasting', 'Story', 'Shop']) {
+      await expect(jump.getByRole('button', { name, exact: true })).toBeVisible();
+    }
+    const fits = await jump.evaluate(el => el.scrollWidth <= el.clientWidth + 1);
+    expect(fits).toBe(true);
+    await shot(page, 'tea-page');
+
+    await header.getByRole('button', { name: 'Add this tea to a collection' }).click();
+    await expect(page.getByText('1 item selected')).toBeVisible();
+  });
+
   test('ticking teas shows the action bar above the nav with every action', async ({ page }) => {
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     const chen = page.getByTestId('stock-phone').getByRole('region', { name: 'Chen Family' });

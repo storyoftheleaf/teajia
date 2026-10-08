@@ -63,7 +63,8 @@ import { InventoryRow } from './inventory/InventoryRow';
 import { QuickEditInlineRow } from './inventory/QuickEditInlineRow';
 import { InventoryActionRail, INVENTORY_ACTION_RAIL_WIDTH } from './inventory/InventoryActionRail';
 import { PhoneStockList, PhoneGroupSwitch, readPhoneGroupBy, writePhoneGroupBy } from './inventory/phone/PhoneStockList';
-import { PHONE_GROUP_LABELS, type PhoneGroupBy } from './inventory/phone/groupStock';
+import type { TeaAction } from './inventory/phone/PhoneTeaHeader';
+import { PHONE_GROUP_LABELS, groupStock, type PhoneGroupBy } from './inventory/phone/groupStock';
 import { INVENTORY_WISDOM_PARAM } from './wisdom/config';
 import { readWisdomScope } from './wisdom/usage';
 import { useInventoryProducts } from './inventory/useInventoryProducts';
@@ -1908,7 +1909,41 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     }
   }, [handleProductUpdate, showToast, setIsBulkApplying]);
 
+  // The phone tea page's action row (stage 2, todo/plans/stock-phone-by-supplier.md)
+  // runs the selection bar's own handlers on that one tea. They read the
+  // selection, so the tea is selected first and the handler runs once the
+  // selection has rendered, never against the selection before it.
+  const [pendingTeaAction, setPendingTeaAction] = useState<{ action: TeaAction; id: string } | null>(null);
+  const handleTeaAction = useCallback((action: TeaAction, product: Product) => {
+    setSelectedIds(new Set([product.id]));
+    setPendingTeaAction({ action, id: product.id });
+  }, []);
+
   // Send selected products to a new sample set and navigate to /admin/samples
+  useEffect(() => {
+    if (!pendingTeaAction) return;
+    if (selectedIds.size !== 1 || !selectedIds.has(pendingTeaAction.id)) return;
+    const { action, id } = pendingTeaAction;
+    setPendingTeaAction(null);
+    const product = localProducts.find(p => p.id === id);
+    switch (action) {
+      case 'collect': setAddToCollectionOpen(true); break;
+      case 'publish': void handleBulkVisibility(true); break;
+      case 'invoice': setInvoiceFromInventoryOpen(true); break;
+      case 'star': void handleBulkFeature(); break;
+      case 'sample': handleSendToSamples(); break;
+      case 'share': setShareToNetworkOpen(true); break;
+      case 'archive': void handleBulkArchive(); break;
+      case 'journal': {
+        const summary = effectivePersonalTastingByProductId[id] ?? { count: 0 };
+        if (summary.count > 0) navigate(buildPersonalJournalHref(id, summary));
+        else if (product) setPersonalTastingProduct(product);
+        break;
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingTeaAction, selectedIds]);
+
   const handleSendToSamples = () => {
     const selected = localProducts.filter(p => selectedIds.has(p.id));
     if (selected.length === 0) return;
@@ -1971,6 +2006,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // is a full-screen overlay (no margin needed for it), but the action rail is a
   // 60px edge strip on EVERY screen size, so the row content must give up that
   // 60px when the rail is open or the stock number and price hide beneath it.
+  // On the phone, previous / next on the tea page step through the tea's own
+  // group ("1 / 20 from Lidia"), so walking one supplier's shelf stays in it.
+  const panelGroup = useMemo(() => {
+    if (!phoneList || !panelProduct || phoneGroupBy === 'none') return null;
+    return groupStock(processedProducts, phoneGroupBy, effectiveIncomingByProductId).find(g => g.products.some(p => p.id === panelProduct.id)) ?? null;
+  }, [phoneList, panelProduct, phoneGroupBy, processedProducts, effectiveIncomingByProductId]);
+
   const contentRightMargin = isMobile
     ? (railOpen && !phoneList ? INVENTORY_ACTION_RAIL_WIDTH : 0)
     : (panelProduct ? panelWidth : 0) + (railOpen ? INVENTORY_ACTION_RAIL_WIDTH : 0);
@@ -3068,9 +3110,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         rates={rates}
         onClose={() => setPanelProduct(null)}
         onUpdate={handleProductUpdate}
-        products={processedProducts}
+        products={panelGroup ? panelGroup.products : processedProducts}
         onNavigate={(p) => setPanelProduct(p)}
-        filterLabel={filterType !== 'All' ? (VIEW_FILTER_LABELS[filterType] || filterType) : undefined}
+        filterLabel={panelGroup ? `from ${panelGroup.label}` : filterType !== 'All' ? (VIEW_FILTER_LABELS[filterType] || filterType) : undefined}
+        onRecount={stableStockRecount}
+        onTeaAction={phoneList ? handleTeaAction : undefined}
+        incoming={(() => {
+          const c = livePanelProduct ? effectiveIncomingByProductId[livePanelProduct.id] : undefined;
+          return c?.hasOpenIncoming && c.remainingQuantity > 0 ? { quantity: c.remainingQuantity, eta: livePanelProduct?.inTransitEta ?? null } : null;
+        })()}
         onShowStorePreview={(p) => setDetailsProduct(p)}
         onOpenStockMovement={stableStockMovement}
         canPublish={livePanelProduct ? canPublishInventoryProduct(livePanelProduct) : false}
