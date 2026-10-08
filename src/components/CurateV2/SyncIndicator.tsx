@@ -1,5 +1,4 @@
 import React, { useCallback, useState } from 'react';
-import { Cloud, CloudOff, Loader2 } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { syncCompassEntries } from '../../lib/teaCompassSync';
 
@@ -41,10 +40,9 @@ export const SyncIndicator: React.FC = () => {
   if (syncing) {
     return (
       <div
-        className="inline-flex items-center gap-1.5 px-2 h-7 rounded-md bg-tea-gold/[0.08] text-tea-gold text-ui-11 font-medium"
+        className="inline-flex items-center gap-1.5 text-tea-gold text-ui-12 font-medium"
         aria-live="polite"
       >
-        <Loader2 size={12} className="animate-spin" />
         <span>Syncing</span>
       </div>
     );
@@ -53,10 +51,9 @@ export const SyncIndicator: React.FC = () => {
   if (showSavedFlash) {
     return (
       <div
-        className="inline-flex items-center gap-1.5 px-2 h-7 rounded-md bg-tea-gold/[0.08] text-tea-gold text-ui-11 font-medium"
+        className="inline-flex items-center gap-1.5 text-tea-gold text-ui-12 font-medium"
         aria-live="polite"
       >
-        <Cloud size={12} />
         <span>Saved</span>
       </div>
     );
@@ -71,11 +68,10 @@ export const SyncIndicator: React.FC = () => {
       <button
         type="button"
         onClick={handleSync}
-        className="tap-target inline-flex items-center gap-1.5 px-2 h-7 rounded-md bg-tea-error/[0.10] text-tea-error border border-tea-error/30 hover:bg-tea-error/[0.16] transition-colors text-ui-11 font-medium"
+        className="tap-target inline-flex items-center gap-1.5 text-tea-error text-ui-12 font-medium"
         aria-label="Couldn't save to the server. Tap to retry."
         title="Couldn't reach the server. Tap to retry."
       >
-        <CloudOff size={12} strokeWidth={1.75} />
         <span>Not saved. Retry</span>
       </button>
     );
@@ -85,11 +81,10 @@ export const SyncIndicator: React.FC = () => {
     <button
       type="button"
       onClick={handleSync}
-      className="tap-target inline-flex items-center gap-1.5 px-2 h-7 rounded-md bg-tea-gold/[0.08] text-tea-gold border border-tea-gold/30 hover:bg-tea-gold/[0.14] transition-colors text-ui-11 font-medium"
+      className="tap-target inline-flex items-center gap-1.5 text-tea-gold text-ui-12 font-medium"
       aria-label={`${unsyncedCount} unsaved ${unsyncedCount === 1 ? 'entry' : 'entries'}, tap to sync`}
       title={`${unsyncedCount} unsaved, tap to sync`}
     >
-      <CloudOff size={12} strokeWidth={1.75} />
       <span className="tabular-nums">{unsyncedCount}</span>
       <span>unsaved</span>
     </button>

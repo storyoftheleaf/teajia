@@ -27,7 +27,7 @@ interface TableListProps {
  * The teas on this table, one line each: name, then the price as the vendor
  * said it, then a cup (fast tasting) and a microphone (talk about this tea).
  * A tea with a photo shows a small one; a tea without looks the same, minus it.
- * Typing a name at the top adds the next tea, reading type, year and region out
+ * Typing a name in the line at the bottom adds the next tea, reading type, year and region out
  * of the line the same way the capture card's name field does.
  */
 export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onTaste, canTalk, onTalk, talkingEntryId, voiceState, pickVendorSignal }) => {
@@ -46,7 +46,15 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
   const lastCurrency = useTeaCompassStore((s) => s.lastCurrency);
   const setLastCurrency = useTeaCompassStore((s) => s.setLastCurrency);
   const inputRef = useRef<HTMLInputElement>(null);
+  const entryRowRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (pickVendorSignal) setPickingVendor(true); }, [pickVendorSignal]);
+  // The line for the next tea is hidden while a vendor is being chosen; when
+  // the picker closes after a choice, the cursor goes back to it.
+  const wasPicking = useRef(false);
+  useEffect(() => {
+    if (wasPicking.current && !pickingVendor) inputRef.current?.focus();
+    wasPicking.current = pickingVendor;
+  }, [pickingVendor]);
   // Hold the microphone to talk and let go to stop, as drawn. A quick tap
   // still starts it, and a second tap stops it, for a longer note.
   const holdRef = useRef<{ id: string; since: number; began: boolean } | null>(null);
@@ -104,12 +112,14 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
     if (keep) setActiveEntry(keep);
     setName('');
     inputRef.current?.focus();
+    // The next tea is typed below the last one poured: keep that line in sight.
+    window.requestAnimationFrame(() => entryRowRef.current?.scrollIntoView({ block: 'nearest' }));
   };
 
   // No table yet: one line, and nothing else to look at.
   if (!currentSessionId) {
     return (
-      <div className="curate-v2 -mx-4 mb-3 border-t border-tea-border">
+      <div className="curate-v2 -mx-4 -mt-3 mb-3">
         <button type="button" onClick={newTable} data-testid="table-start" className="curate-v2-row w-full text-left">
           <span className="font-display text-ui-20 text-tea-text">Start a table</span>
           <span className="flex-1" />
@@ -126,12 +136,12 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
   }
 
   return (
-    <div className="curate-v2 -mx-4 mb-3 border-t border-tea-border" data-testid="table-list">
+    <div className="curate-v2 -mx-4 -mt-3 mb-3" data-testid="table-list">
       <div className="curate-v2-row gap-0 pr-2" data-testid="table-header">
       <button type="button" onClick={() => setPickingVendor((v) => !v)} aria-expanded={pickingVendor} aria-label={lastVendorName ? `Table: ${lastVendorName}. Change` : 'Whose table? Choose'} className="flex min-h-12 min-w-0 items-center gap-2 text-left">
         <span className={`truncate ${lastVendorName ? 'curate-v2-name' : 'font-display text-ui-17 text-tea-text-sec'}`}>{lastVendorName || 'Whose table?'}</span>
       </button>
-      <span className="shrink-0 pl-2 text-ui-12 text-tea-text-dim tabular-nums" data-testid="table-count">
+      <span className="shrink-0 pl-2 text-ui-12 text-tea-text-sec tabular-nums" data-testid="table-count">
         {rows.length} {rows.length === 1 ? 'tea' : 'teas'}
       </span>
       {/* The table's money: a price typed without a sign is in this. */}
@@ -161,21 +171,6 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
           }}
         />
       )}
-      <div className="curate-v2-row">
-        <input
-          ref={inputRef}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') add(); }}
-          enterKeyHint="next"
-          placeholder="Name the next tea, and its price if you have it…"
-          aria-label="Name the next tea"
-          className="min-w-0 flex-1 border-0 border-b border-tea-border bg-transparent py-2 font-display text-ui-17 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold"
-        />
-        {name.trim() && (
-          <button type="button" onClick={add} className="tap-target text-ui-13 font-medium text-tea-gold">Add</button>
-        )}
-      </div>
       {rows.map((e) => {
         const unit = quotedUnit(e);
         const talking = talkingEntryId === e.id && (voiceState === 'recording' || voiceState === 'transcribing');
@@ -190,15 +185,15 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
               <span className="curate-v2-name">{e.name?.trim() || (e.category === 'teaware' ? 'Untitled teaware' : 'Untitled tea')}</span>
               {tastingLine(e.tasting)
                 ? <span className="min-w-0 truncate text-ui-12 text-tea-gold tabular-nums">{tastingLine(e.tasting).split(' · ').slice(0, 2).join(' · ')}</span>
-                : e.year != null && <span className="text-ui-12 text-tea-text-dim tabular-nums">{e.year}</span>}
+                : e.year != null && <span className="text-ui-12 text-tea-text-sec tabular-nums">{e.year}</span>}
               <span className="flex-1" />
               {e.priceAmount != null ? (
                 <span className="text-ui-13 font-medium text-tea-text-sec tabular-nums">
                   {sym}{e.priceAmount.toLocaleString()}
-                  {unit && <span className="ml-1 text-ui-12 font-normal text-tea-text-dim">{unit}</span>}
+                  {unit && <span className="ml-1 text-ui-12 font-normal text-tea-text-sec">{unit}</span>}
                 </span>
               ) : (
-                <span className="text-ui-12 text-tea-text-dim">add cost</span>
+                <span className="text-ui-12 text-tea-text-sec">add cost</span>
               )}
             </button>
             <button
@@ -234,6 +229,21 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
           <span className="text-tea-gold">{holding ? 'let go to stop' : 'tap the square to stop'}</span>
         </div>
       )}
+      {!pickingVendor && <div className="curate-v2-row" ref={entryRowRef} data-testid="table-entry">
+        <input
+          ref={inputRef}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') add(); }}
+          enterKeyHint="next"
+          placeholder="Name the next tea, and its price if you have it…"
+          aria-label="Name the next tea"
+          className="min-w-0 flex-1 border-0 border-b border-tea-border bg-transparent py-2 font-display text-ui-17 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold"
+        />
+        {name.trim() && (
+          <button type="button" onClick={add} className="tap-target text-ui-13 font-medium text-tea-gold">Add</button>
+        )}
+      </div>}
     </div>
   );
 };

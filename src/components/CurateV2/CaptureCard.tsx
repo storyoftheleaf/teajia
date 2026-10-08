@@ -712,11 +712,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     if (account) void hydrateCompassEntries(account);
   }} /> : null;
 
-  const shellClass = 'surface-warm relative mx-auto w-full max-w-3xl space-y-2 px-3 md:px-5';
+  const shellClass = 'surface-warm relative mx-auto w-full max-w-3xl space-y-2 px-0 md:px-5';
   // The capture itself stays tightly bounded; the owning mobile scroll region
   // supplies bottom-nav clearance so that space is not painted as part of the
   // sourcing sheet.
-  const mobileShellClass = `${shellClass} curate-source-sheet py-1.5 lg:py-3`;
+  const mobileShellClass = `${shellClass} py-1.5 lg:py-3`;
   const sourceShellClass = 'curate-context-band curate-zone-context px-1';
   const fieldClass = 'curate-field field-recessed px-3 py-2.5';
   const tallFieldClass = 'curate-field field-recessed px-3 py-2.5';

@@ -100,7 +100,7 @@ export const AgentFindsSheet: React.FC<{ group: CurateSuggestionGroup | null; on
                 <span className="flex-1" />
                 {t.price && (
                   <span className="text-ui-13 font-medium text-tea-text-sec tabular-nums">
-                    {sym}{Number(t.price.amount).toLocaleString()}{per && <span className="ml-1 text-ui-12 font-normal text-tea-text-dim">{per}</span>}
+                    {sym}{Number(t.price.amount).toLocaleString()}{per && <span className="ml-1 text-ui-12 font-normal text-tea-text-sec">{per}</span>}
                   </span>
                 )}
               </button>
@@ -113,7 +113,7 @@ export const AgentFindsSheet: React.FC<{ group: CurateSuggestionGroup | null; on
             {kept.size ? `Add ${kept.size} to samples` : 'Tick the ones you want'}
           </button>
         </div>
-        {kept.size > 0 && rest > 0 && <p className="px-4 pt-2 text-ui-12 text-tea-text-dim">The other {rest} are cleared.</p>}
+        {kept.size > 0 && rest > 0 && <p className="px-4 pt-2 text-ui-12 text-tea-text-sec">The other {rest} are cleared.</p>}
         {pick.isError && <p className="px-4 pt-2 text-ui-12 text-tea-error">{errorText(pick.error)}</p>}
       </div>
     </BottomSheet>

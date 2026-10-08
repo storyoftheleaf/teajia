@@ -91,8 +91,12 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
     onSuccess: () => { setNewTodo(''); setAdding(false); queryClient.invalidateQueries({ queryKey: AGENT_KEYS.todos }); },
   });
   const arrived = useMutation({
-    mutationFn: (id: string) => api.compass.acceptReceiptProposal(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: AGENT_KEYS.arriving }),
+    mutationFn: (r: { id: string; compass_entry_id?: string | null }) => api.compass.acceptReceiptProposal(r.id),
+    // Accepting the receipt also puts the tea itself on its way to the shelf.
+    onSuccess: (_res, r) => {
+      if (r.compass_entry_id) updateEntry(r.compass_entry_id, { status: 'in_stock' });
+      queryClient.invalidateQueries({ queryKey: AGENT_KEYS.arriving });
+    },
   });
 
   /** It is here: the tea now waits under "To shelve". */
@@ -108,7 +112,11 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
   };
 
   const openTodos = todos.filter((t) => !done.has(t.id));
-  const wayCount = sections.onTheWay.length + arriving.length;
+  // A tea with a pending receipt proposal is one line, not two: the proposal
+  // row wins (its Arrived accepts the receipt AND shelves the tea).
+  const proposed = useMemo(() => new Set(arriving.map((r) => r.compass_entry_id).filter(Boolean) as string[]), [arriving]);
+  const onTheWay = useMemo(() => sections.onTheWay.filter((w) => !proposed.has(w.entryId)), [sections.onTheWay, proposed]);
+  const wayCount = onTheWay.length + arriving.length;
   const waitingCount = groups.length + openTodos.length + sections.decide.length + sections.cost.length
     + vendorGaps.length + wayCount + sections.shelve.length;
 
@@ -130,7 +138,7 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
         // First time here: how a tea gets from a vendor's table to the shelf.
         <ol className="grid gap-0 px-4 pt-2">
           {[
-            ['At the table', 'Open Table, type each tea’s name and price as the vendor says it, tap the cup to taste.'],
+            ['At the table', 'Open Table, type each tea’s name and price as the vendor says it, tap Taste on a row.'],
             ['Decide', 'Each tea waits here until you choose Pass, Sample or Buy. Compare a few in Teas.'],
             ['Order and shelve', 'Orders writes the message to the vendor. When a tea arrives, it goes on the shelf from here.'],
           ].map(([title, body], i) => (
@@ -229,7 +237,7 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
 
       {wayCount > 0 && (
         <Band id="way" title="On the way" count={wayCount}>
-          {sections.onTheWay.map((w) => {
+          {onTheWay.map((w) => {
             const e = byId.get(w.entryId);
             return (
               <div key={w.entryId} className="curate-v2-row" style={wash(e?.type)} data-testid="today-on-the-way">
@@ -251,7 +259,7 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
                     {[r.vendor_name, `${r.quantity}${r.unit === 'g' ? ' g' : r.quantity === 1 ? ' piece' : ' pieces'}`, days != null ? dayWord(days) : null].filter(Boolean).join(' · ')}
                   </Detail>
                 </button>
-                <button type="button" onClick={() => arrived.mutate(r.id)} disabled={arrived.isPending && arrived.variables === r.id} className="tap-target shrink-0 justify-end font-mono text-ui-13 text-tea-gold" aria-label={`Arrived: ${r.tea_name || r.product_name || 'a tea'}`}>Arrived</button>
+                <button type="button" onClick={() => arrived.mutate(r)} disabled={arrived.isPending && arrived.variables?.id === r.id} className="tap-target shrink-0 justify-end font-mono text-ui-13 text-tea-gold" aria-label={`Arrived: ${r.tea_name || r.product_name || 'a tea'}`}>Arrived</button>
               </div><details className="px-4 py-2"><summary className="min-h-11 cursor-pointer font-mono text-ui-13 text-tea-text-sec">Arrival files &amp; history</summary><CurateRecordTools entityType="arrival" entityId={r.id} /></details></div>
             );
           })}

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, Search } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
 import { curateShelfPreview } from './curatePricing';
@@ -83,30 +83,27 @@ export const CompareView: React.FC<CompareViewProps> = ({ chosen, onChosenChange
         <div className="flex items-baseline gap-2 px-4 pb-2">
           <button type="button" onClick={onClose} className="tap-target -ml-1 self-center text-tea-text-sec hover:text-tea-text" aria-label="Back to teas"><ArrowLeft size={18} /></button>
           <span className="flex-1 font-display text-ui-26 text-tea-text">Compare</span>
-          <span className="text-ui-12 text-tea-text-dim tabular-nums">{chosen.length} picked</span>
+          {chosen.length >= 2
+            ? <button type="button" onClick={() => setPicking(false)} className="tap-target font-mono text-ui-13 text-tea-gold">Compare {chosen.length} teas</button>
+            : <span className="text-ui-12 text-tea-text-sec tabular-nums">{chosen.length} picked, choose 2 or more</span>}
         </div>
         <div className="relative px-4 pb-2">
-          <Search size={13} className="pointer-events-none absolute left-7 top-1/2 -translate-y-1/2 text-tea-text-dim" />
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search teas" aria-label="Search teas"
-            className="min-h-11 w-full rounded-md border border-tea-border bg-tea-surface py-2 pl-9 pr-3 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold" />
+            className="min-h-11 w-full rounded-md border border-tea-border bg-tea-surface py-2 pl-3 pr-3 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold" />
         </div>
         {shown.slice(0, 80).map((t) => {
           const on = chosen.includes(t.id);
           return (
             <button key={t.id} type="button" onClick={() => toggle(t.id)} aria-pressed={on} className="curate-v2-row w-full text-left">
-              <span className={`h-4 w-4 shrink-0 rounded-md border ${on ? 'border-tea-gold bg-tea-gold' : 'border-tea-border'}`} aria-hidden="true" />
+              <span className={`h-4 w-4 shrink-0 rounded-[3px] border ${on ? 'border-tea-gold bg-tea-gold' : 'border-tea-text-sec'}`} aria-hidden="true" />
               <span className="curate-v2-name">{t.name}</span>
-              {t.vendorName && <span className="text-ui-12 text-tea-text-dim">{t.vendorName}</span>}
+              {t.vendorName && <span className="min-w-0 truncate font-mono text-ui-12 text-tea-text-sec">{t.vendorName}</span>}
               <span className="flex-1" />
               {t.year != null && <span className="text-ui-12 text-tea-text-sec tabular-nums">{t.year}</span>}
             </button>
           );
         })}
-        <div className="sticky bottom-0 bg-tea-bg px-4 pt-3 pb-nav-gap">
-          <button type="button" disabled={chosen.length < 2} onClick={() => setPicking(false)} className="cta-solid min-h-11 w-full rounded-md text-ui-13 font-semibold disabled:opacity-40">
-            Compare {chosen.length || ''} {chosen.length === 1 ? 'tea' : 'teas'}
-          </button>
-        </div>
+        <div className="pb-nav-gap" />
       </div>
     );
   }
@@ -141,7 +138,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ chosen, onChosenChange
               <div className="flex items-center gap-2 border-b border-tea-border pl-3 pr-1">
                 <button type="button" onClick={() => onOpenTea(entry.id)} className="grid min-h-11 min-w-0 flex-1 py-1.5 text-left">
                   <span className="curate-v2-name truncate">{entry.name}</span>
-                  <span className="truncate text-ui-12 text-tea-text-dim tabular-nums">{[entry.vendorName, entry.year, unit && `per ${unit}`].filter(Boolean).join(' · ')}</span>
+                  <span className="truncate text-ui-12 text-tea-text-sec tabular-nums">{[entry.vendorName, entry.year, unit && `per ${unit}`].filter(Boolean).join(' · ')}</span>
                 </button>
                 <button type="button" onClick={() => updateEntry(entry.id, entry.sampleState ? { sampleState: null } : { sampleState: 'requested', isSample: true, decision: 'considering' })} aria-pressed={!!entry.sampleState} className={`tap-target px-2 font-mono text-ui-13 ${entry.sampleState ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>Sample</button>
                 <button type="button" onClick={() => { updateEntry(entry.id, { decision: 'selected' }); onBuy?.(entry.id); }} className={`tap-target px-2 font-mono text-ui-13 ${entry.decision === 'selected' ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>Buy</button>
@@ -150,7 +147,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ chosen, onChosenChange
                 {cells.map(([k, v, win], i) => (
                   <div key={k} className={`min-w-0 px-3 py-1.5 ${i % 3 ? 'border-l border-tea-border' : ''} ${i >= 3 ? 'border-t border-tea-border' : ''}`}>
                     <div className="curate-v2-label">{k}</div>
-                    <div className={`truncate text-ui-14 tabular-nums ${win ? 'font-semibold text-tea-gold' : v === '—' ? 'text-tea-text-dim' : 'text-tea-text'}`}>{v}</div>
+                    <div className={`truncate text-ui-14 tabular-nums ${win ? 'font-semibold text-tea-gold' : v === '—' ? 'text-tea-text-sec' : 'text-tea-text'}`}>{v}</div>
                   </div>
                 ))}
               </div>
@@ -158,7 +155,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ chosen, onChosenChange
           );
         })}
       </div>
-      <p className="px-4 pt-2 text-ui-12 text-tea-text-dim">Gold is the better figure. Tap a name to open the tea.</p>
+      <p className="px-4 pt-2 text-ui-12 text-tea-text-sec">Gold is the better figure. Tap a name to open the tea.</p>
       <div className="pb-nav-gap" />
     </div>
   );

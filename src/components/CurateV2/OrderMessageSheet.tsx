@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { Check, Copy } from 'lucide-react';
 import { BottomSheet } from '../shared/BottomSheet';
 import { api, hasToken } from '../../lib/api';
 import type { LedgerTransaction } from '../../lib/ledgerStore';
@@ -55,7 +54,7 @@ export const OrderMessageSheet: React.FC<OrderMessageSheetProps> = ({ tx, onOpen
           className="w-full rounded border border-tea-border bg-tea-surface p-3 font-body text-ui-15 leading-relaxed text-tea-text outline-none focus:border-tea-gold"
         />
         <button type="button" onClick={() => void copy()} className="cta-solid flex min-h-12 items-center justify-center gap-2 rounded-md text-ui-14 font-semibold">
-          {copied ? <><Check size={16} /> Copied</> : <><Copy size={16} /> Copy for WeChat</>}
+          {copied ? 'Copied' : 'Copy for WeChat'}
         </button>
         <a
           href={whatsappLink(text, number)}

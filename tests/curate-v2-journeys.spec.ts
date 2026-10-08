@@ -564,4 +564,174 @@ test.describe('Curate v2 journeys (phone)', () => {
     await expect(row.getByRole('button', { name: 'Suggest a Chinese name' })).toBeVisible();
     await shot(page, 'cn-4-error');
   });
+
+  // ── The review pass: what was found wrong looking at screenshots ───────────
+
+  test('Table: the entry line sits BELOW the rows (newest at the bottom) and stays in sight after adding', async ({ page }) => {
+    await installCompassHarness(page, { customers: VENDORS });
+    await openCurateV2(page, 'table');
+    await page.getByTestId('table-start').click();
+    await page.getByTestId('vendor-picker').getByRole('button', { name: 'Wang Laoshi' }).click();
+    for (let i = 1; i <= 12; i += 1) await addTea(page, `Row Tea ${i} 2019 ¥${100 + i}/cake`);
+    const lastRow = page.getByRole('button', { name: /^Row Tea 12/ });
+    const lastBox = (await lastRow.boundingBox())!;
+    const lineBox = (await nameLine(page).boundingBox())!;
+    expect(lineBox.y).toBeGreaterThan(lastBox.y);
+    // Just added: the line is on screen, ready for the next tea.
+    await expect(nameLine(page)).toBeInViewport();
+    // While a vendor is being chosen the entry line steps aside.
+    await header(page).getByRole('button', { name: 'new table' }).click();
+    await expect(page.getByTestId('vendor-picker')).toBeVisible();
+    await expect(nameLine(page)).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(nameLine(page)).toBeVisible();
+  });
+
+  test('A tea opens as one clean layer: no second hairline, the tab behind is hidden, TEAS stays lit from the Teas tab', async ({ page }) => {
+    await installCompassHarness(page, TODAY_DATA);
+    await openCurateV2(page, 'teas');
+    await page.getByRole('button', { name: /^Mengku Laobanzhang/ }).first().click();
+    await expect(overlay(page)).toBeVisible();
+    expect(await selectedTab(page)).toEqual(['Teas']);
+    const edge = await overlay(page).evaluate((el) => getComputedStyle(el).borderTopWidth);
+    expect(edge).toBe('0px');
+    await expect(page.getByTestId('curate-tab-body')).toHaveCSS('visibility', 'hidden');
+    await backFromHeader(page).click();
+    await expect(overlay(page)).toHaveCount(0);
+    await expect(page.getByTestId('curate-tab-body')).toHaveCSS('visibility', 'visible');
+    expect(await selectedTab(page)).toEqual(['Teas']);
+    // The list holds its own gutters at phone width: nothing runs to an edge.
+    const row = page.getByRole('button', { name: /^Mengku Laobanzhang/ }).first();
+    const box = (await row.boundingBox())!;
+    expect(box.x).toBeLessThanOrEqual(1);
+    const text = (await row.locator('.curate-v2-name').boundingBox())!;
+    expect(text.x).toBeGreaterThanOrEqual(15);
+  });
+
+  test('Tea screen: a frame is gold only when that thing is done (Taste = tasted, Talk = recording, Note = a note exists)', async ({ page }) => {
+    await installCompassHarness(page, {
+      ...TODAY_DATA,
+      compassEntries: [
+        entry({ id: 'f-bare', name: 'Bare Tea', price_amount: 100 }),
+        entry({ id: 'f-tasted', name: 'Tasted Tea', price_amount: 100, tasting: JSON.stringify({ quality: 8 }) }),
+      ],
+    });
+    await openCurateV2(page, 'teas');
+    const frames = (page: Page) => page.getByRole('group', { name: 'Do with this tea' });
+    await page.getByRole('button', { name: /^Bare Tea/ }).first().click();
+    for (const word of ['Taste', 'Note']) await expect(frames(page).getByRole('button', { name: word, exact: true })).not.toHaveClass(/border-tea-gold/);
+    // Talk is offered only where voice is allowed; when it is, it is not gold until it is recording.
+    for (const talk of await frames(page).getByRole('button', { name: /^Talk/ }).all()) await expect(talk).not.toHaveClass(/border-tea-gold/);
+    // A note exists: Note is gold. Typing opens the box; the frame is gold once there are words.
+    await frames(page).getByRole('button', { name: 'Note', exact: true }).click();
+    await expect(frames(page).getByRole('button', { name: 'Note', exact: true })).not.toHaveClass(/border-tea-gold/);
+    await overlay(page).getByRole('textbox', { name: 'Note' }).fill('Ask about storage');
+    await expect(frames(page).getByRole('button', { name: 'Note', exact: true })).toHaveClass(/border-tea-gold/);
+    await backFromHeader(page).click();
+    await page.getByRole('button', { name: /^Tasted Tea/ }).first().click();
+    await expect(frames(page).getByRole('button', { name: 'Taste', exact: true })).toHaveClass(/border-tea-gold/);
+    await expect(frames(page).getByRole('button', { name: 'Note', exact: true })).not.toHaveClass(/border-tea-gold/);
+  });
+
+  test('Orders tab: rows hold 16px gutters, full-strength text, no slide-in fade', async ({ page }) => {
+    await installCompassHarness(page, BUY_DATA);
+    await openCurateV2(page, 'today');
+    await page.getByTestId('today-section-decide').getByRole('button', { name: /Mengku Laobanzhang/ }).click();
+    await buyButton(page).click();
+    await backFromHeader(page).click();
+    await backFromHeader(page).click();
+    await tab(page, 'Orders').click();
+    const card = page.getByTestId('curate-order').filter({ visible: true }).first();
+    await expect(card).toBeVisible();
+    // No animation wrapper fading or sliding the list in.
+    const wrapper = card.locator('xpath=ancestor::div[contains(@class,"pb-8")][1]/..');
+    expect(await wrapper.evaluate((el) => ({ o: getComputedStyle(el).opacity, t: getComputedStyle(el).transform }))).toEqual({ o: '1', t: 'none' });
+    const heading = (await card.getByRole('button', { name: /Open the order with Wang Laoshi/ }).boundingBox())!;
+    expect(heading.x).toBeGreaterThanOrEqual(15);
+    const msg = (await card.getByRole('button', { name: /Message the vendor/ }).boundingBox())!;
+    const vw = page.viewportSize()!.width;
+    expect(msg.x + msg.width).toBeLessThanOrEqual(vw - 8);
+    expect(msg.x + msg.width).toBeGreaterThanOrEqual(vw - 24);
+  });
+
+  test('Orders: an order for "No vendor yet" cannot be confirmed until a vendor is chosen, and the choice goes onto the teas', async ({ page }) => {
+    await installCompassHarness(page, {
+      ...BUY_DATA,
+      compassEntries: [entry({ id: 'b-4', name: 'Nameless Oolong', form: 'Cake', price_amount: 120, price_currency: 'Yuan', vendor_name: null, vendor_id: null, tasting: JSON.stringify({ quality: 6 }) })],
+    });
+    await openCurateV2(page, 'today');
+    await page.getByTestId('today-section-decide').getByRole('button', { name: /Nameless Oolong/ }).click();
+    await buyButton(page).click();
+    await expect(page.getByTestId('order-vendor')).toHaveText('No vendor yet');
+    await expect(page.getByRole('button', { name: 'Confirm purchase' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Choose the vendor' }).click();
+    const picker = page.getByTestId('order-vendor-picker').getByTestId('vendor-picker');
+    await expect(picker).toBeVisible();
+    await picker.getByRole('button', { name: 'Wang Laoshi' }).click();
+    await expect(page.getByTestId('order-vendor')).toHaveText('Wang Laoshi');
+    await expect(page.getByRole('button', { name: 'Choose the vendor' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Confirm purchase' })).toBeVisible();
+    // The tea now has the vendor too.
+    const vendors = await page.evaluate(() => {
+      const raw = JSON.parse(localStorage.getItem('teajia-compass') || '{}');
+      const all = Object.values(raw.state?.entriesByAccount ?? {}).flat() as Array<{ name: string; vendorName?: string; vendorId?: string }>;
+      return all.filter((e) => e.name === 'Nameless Oolong').map((e) => `${e.vendorName}|${e.vendorId}`);
+    });
+    expect(vendors).toEqual(['Wang Laoshi|vendor-wang']);
+  });
+
+  test('Orders: a confirmed order is read-only (no remove, no less, no more)', async ({ page }) => {
+    await installCompassHarness(page, BUY_DATA);
+    await openCurateV2(page, 'today');
+    await page.getByTestId('today-section-decide').getByRole('button', { name: /Mengku Laobanzhang/ }).click();
+    await buyButton(page).click();
+    await expect(page.getByTestId('order-screen').getByRole('button', { name: 'remove' })).toHaveCount(1);
+    await page.getByRole('button', { name: 'Confirm purchase' }).click();
+    await expect(page.getByTestId('curate-order')).toHaveAttribute('data-status', 'confirmed');
+    await expect(page.getByTestId('order-screen').getByRole('button', { name: 'remove' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Less' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'More' })).toHaveCount(0);
+    await expect(page.getByRole('spinbutton', { name: 'Amount' })).toHaveCount(0);
+    await expect(orderRows(page)).toHaveCount(0); // rows without steppers are not the editable kind
+    await expect(page.getByTestId('order-screen')).toContainText('1 cake');
+  });
+
+  test('On the way: a tea and its pending receipt are ONE row; its Arrived accepts the receipt and shelves the tea', async ({ page }) => {
+    await installCompassHarness(page, {
+      ...TODAY_DATA,
+      pendingReceipts: [{ id: 'rp-1', account_id: 'acct-bali', compass_entry_id: 'e-way', tea_name: 'Nannuo 2021', vendor_name: 'Wang Laoshi', quantity: 2, unit: 'unit', status: 'pending', created_at: daysAgo(6) }],
+    });
+    await openCurateV2(page, 'today');
+    const way = page.getByTestId('today-section-way');
+    await expect(way).toBeVisible();
+    await expect(way.getByText('Nannuo 2021')).toHaveCount(1);
+    await expect(way.getByRole('button', { name: /^Arrived:/ })).toHaveCount(1);
+    await way.getByRole('button', { name: 'Arrived: Nannuo 2021' }).click();
+    await expect.poll(() => compassRequestCount(page, 'POST /api/curate/receipt-proposals/rp-1/accept')).toBe(1);
+    await expect(page.getByTestId('today-section-shelve')).toContainText('Nannuo 2021');
+  });
+
+  test('Teas tab: a row opens the tea screen on top (TEAS lit), not an in-place card', async ({ page }) => {
+    await installCompassHarness(page, TODAY_DATA);
+    await openCurateV2(page, 'teas');
+    await page.getByRole('button', { name: /^Jingmai Maocha/ }).first().click();
+    await expect(overlay(page)).toHaveAttribute('data-layer', 'face');
+    await expect(overlay(page)).toContainText('Jingmai Maocha');
+    expect(await selectedTab(page)).toEqual(['Teas']);
+    await backFromHeader(page).click();
+    await expect(overlay(page)).toHaveCount(0);
+    expect(await selectedTab(page)).toEqual(['Teas']);
+  });
+
+  test('Compare: choosing teas has its action in the header (no mid-list button) and shows results', async ({ page }) => {
+    await installCompassHarness(page, TODAY_DATA);
+    await openCurateV2(page, 'teas');
+    await page.getByRole('button', { name: 'Compare', exact: true }).click();
+    await expect(page.getByRole('button', { name: /^Compare \d+ teas/ })).toHaveCount(0);
+    await page.getByRole('button', { name: /^Mengku Laobanzhang/ }).click();
+    await page.getByRole('button', { name: /^Jingmai Maocha/ }).click();
+    await page.getByRole('button', { name: 'Compare 2 teas' }).click();
+    await expect(page.getByTestId('compare-cards').locator('article')).toHaveCount(2);
+    await shot(page, 'review-compare');
+  });
 });

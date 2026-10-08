@@ -3,21 +3,12 @@ import { mediaUrl } from '../../lib/mediaUrl';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowDownLeft,
-  ArrowUpRight,
   ChevronDown,
   Minus,
   Plus,
-  Trash2,
-  Check,
-  ShoppingBag,
-  Share2,
-  Camera,
   X,
   ChevronLeft,
   ChevronRight,
-  Tag,
-  Send,
 } from 'lucide-react';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
@@ -27,6 +18,8 @@ import { useAppStore } from '../../lib/store';
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { OrderMessageSheet } from './OrderMessageSheet';
+import { VendorPicker } from './VendorPicker';
+import { NO_VENDOR_YET } from './orderBuy';
 import { orderLanded } from './curatePricing';
 import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
 
@@ -57,7 +50,9 @@ const LineItemRow: React.FC<{
   txId: string;
   onRemove: () => void;
   onOpenEntry?: (entryId: string) => void;
-}> = ({ item, txId, onRemove, onOpenEntry }) => {
+  /** A confirmed order is a record: nothing on it can be taken off or changed. */
+  readOnly?: boolean;
+}> = ({ item, txId, onRemove, onOpenEntry, readOnly }) => {
   const navigate = useNavigate();
   const updateLineItem = useLedgerStore((s) => s.updateLineItem);
   const total = lineTotal(item);
@@ -100,11 +95,11 @@ const LineItemRow: React.FC<{
           {(item.type || item.form || item.chineseName) && (
             <p className="mt-1 truncate font-sans text-ui-12 tracking-[0.02em] text-tea-text-sec">
               {item.type && <span className="uppercase">{item.type}</span>}
-              {item.type && item.form && item.type !== 'Teaware' && <><span className="px-1.5 text-tea-text-dim">&middot;</span><span>{item.form}</span></>}
-              {item.chineseName && <><span className="px-1.5 text-tea-text-dim">&middot;</span><span className="text-tea-text-dim" style={{ fontFamily: "'Noto Serif SC', serif" }}>{item.chineseName}</span></>}
+              {item.type && item.form && item.type !== 'Teaware' && <><span className="px-1.5 text-tea-text-sec">&middot;</span><span>{item.form}</span></>}
+              {item.chineseName && <><span className="px-1.5 text-tea-text-sec">&middot;</span><span className="text-tea-text-sec" style={{ fontFamily: "'Noto Serif SC', serif" }}>{item.chineseName}</span></>}
             </p>
           )}
-          <button type="button" onClick={onRemove} className="mt-1 text-ui-11 text-tea-text-dim transition-colors hover:text-tea-text-sec">remove</button>
+          {!readOnly && <button type="button" onClick={onRemove} className="tap-target mt-1 text-ui-12 text-tea-text-sec transition-colors hover:text-tea-text">remove</button>}
         </div>
         {/* Amount and price in one frame, − and + beneath it. */}
         <div className="flex shrink-0 flex-col items-stretch gap-1.5">
@@ -112,7 +107,7 @@ const LineItemRow: React.FC<{
             <span className="text-ui-13 text-tea-text-sec tabular-nums">{qtyWords}</span>
             <span className="text-ui-14 font-medium text-tea-text tabular-nums">{fmtPrice(total, item.currency)}</span>
           </div>
-          <div className="flex items-center justify-between">
+          {!readOnly && <div className="flex items-center justify-between">
             <button type="button" aria-label="Less" onClick={() => handleQtyChange(currentQty - (isUnitBased ? 1 : 25))} className="curate-v2-frame h-8 w-9 min-w-0 px-0"><Minus size={12} strokeWidth={1.5} /></button>
             <input
               type="number"
@@ -123,7 +118,7 @@ const LineItemRow: React.FC<{
               className="w-14 border-none bg-transparent text-center text-ui-11 uppercase tracking-[0.14em] text-tea-text-dim outline-none tabular-nums"
             />
             <button type="button" aria-label="More" onClick={() => handleQtyChange(currentQty + (isUnitBased ? 1 : 25))} className="curate-v2-frame h-8 w-9 min-w-0 px-0"><Plus size={12} strokeWidth={1.5} /></button>
-          </div>
+          </div>}
         </div>
       </div>
     </div>
@@ -182,7 +177,7 @@ const TransactionPhotos: React.FC<{ txId: string; photos: string[] }> = ({ txId,
                 <img
                   src={mediaUrl(url)}
                   alt={`Photo ${i + 1}`}
-                  className="w-16 h-16 rounded-xl object-cover cursor-pointer"
+                  className="w-16 h-16 rounded-[3px] object-cover cursor-pointer"
                   onClick={() => setViewerIndex(i)}
                 />
                 <button
@@ -191,7 +186,7 @@ const TransactionPhotos: React.FC<{ txId: string; photos: string[] }> = ({ txId,
                     e.stopPropagation();
                     removePhoto(txId, i);
                   }}
-                  className="absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center rounded-full bg-tea-surface text-tea-text-dim"
+                  className="tap-target absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center rounded-full bg-tea-surface text-tea-text-sec"
                 >
                   <X size={10} strokeWidth={2.5} />
                 </button>
@@ -201,13 +196,12 @@ const TransactionPhotos: React.FC<{ txId: string; photos: string[] }> = ({ txId,
               type="button"
               onClick={handleCapture}
               disabled={uploading}
-              className={`w-16 h-16 flex flex-col items-center justify-center shrink-0 rounded-xl bg-tea-surface ${
+              className={`w-16 h-16 flex flex-col items-center justify-center shrink-0 rounded-[3px] border border-tea-border ${
                 uploading ? 'animate-pulse' : ''
               }`}
             >
-              <Plus size={16} className="text-tea-text-dim" />
-              <span className="text-ui-9 text-tea-text-dim mt-0.5">
-                {uploading ? '...' : 'Add'}
+              <span className="text-ui-12 text-tea-text-sec">
+                {uploading ? '…' : 'Add'}
               </span>
             </button>
           </div>
@@ -216,12 +210,11 @@ const TransactionPhotos: React.FC<{ txId: string; photos: string[] }> = ({ txId,
             type="button"
             onClick={handleCapture}
             disabled={uploading}
-            className={`flex items-center gap-1.5 py-2 text-tea-text-dim text-ui-12 transition-colors hover:text-tea-text-sec ${
+            className={`tap-target flex min-h-11 items-center gap-1.5 font-mono text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text ${
               uploading ? 'animate-pulse' : ''
             }`}
           >
-            <Camera size={14} />
-            {uploading ? 'Uploading...' : 'Add photo'}
+            {uploading ? 'Uploading…' : 'Add photo'}
           </button>
         )}
       </div>
@@ -361,10 +354,23 @@ const TransactionCard: React.FC<{
 
   const isPurchase = tx.direction === 'purchase';
   const isDraft = tx.status === 'draft';
-  const DirectionIcon = isPurchase ? ArrowDownLeft : ArrowUpRight;
   const directionLabel = isPurchase ? 'Purchasing from' : 'Selling to';
 
   const [poSaved, setPoSaved] = useState(false);
+  // Only the vendor having been messaged counts as sent, not the order being recorded.
+  const [markedSent, setMarkedSent] = useState(false);
+  // An order for "No vendor yet" cannot be confirmed: someone has to be named first.
+  const needsVendor = isPurchase && !tx.counterpartyId && (!tx.counterpartyName?.trim() || tx.counterpartyName === NO_VENDOR_YET);
+  const [choosingVendor, setChoosingVendor] = useState(false);
+  const updateTransaction = useLedgerStore((s) => s.updateTransaction);
+  /** The vendor goes onto the order and onto every tea on it. */
+  const assignVendor = useCallback((id: string | undefined, name: string) => {
+    updateTransaction(tx.id, { counterpartyName: name, counterpartyId: id });
+    for (const item of tx.items) {
+      if (item.compassEntryId) updateCompassEntry(item.compassEntryId, { vendorName: name, vendorId: id });
+    }
+    setChoosingVendor(false);
+  }, [tx.id, tx.items, updateTransaction, updateCompassEntry]);
 
   const handleConfirm = useCallback(async () => {
     confirmTransaction(tx.id);
@@ -507,6 +513,7 @@ const TransactionCard: React.FC<{
                     txId={tx.id}
                     onRemove={() => removeLine(item)}
                     onOpenEntry={onOpenEntry}
+                    readOnly={!isDraft}
                   />
                 ))
               )}
@@ -520,14 +527,14 @@ const TransactionCard: React.FC<{
                 <div className="px-4 pt-2" aria-label="Grand total">
                   {landed && isPurchase && (
                     <>
-                      <div className="flex items-baseline justify-between py-1 text-ui-13 text-tea-text-dim tabular-nums">
-                        <span>Teas</span><span className="text-tea-text-sec">{fmtPrice(landed.subtotal, tx.currency)}</span>
+                      <div className="flex items-baseline justify-between py-1 text-ui-13 text-tea-text-sec tabular-nums">
+                        <span>Teas</span><span className="text-tea-text">{fmtPrice(landed.subtotal, tx.currency)}</span>
                       </div>
-                      <div className="flex items-baseline justify-between py-1 text-ui-13 text-tea-text-dim tabular-nums">
-                        <span>Freight · {landed.weightKg.toFixed(1)} kg at {fmtPrice(landed.freightPerKg, tx.currency)}</span><span className="text-tea-text-sec">{fmtPrice(landed.freight, tx.currency)}</span>
+                      <div className="flex items-baseline justify-between py-1 text-ui-13 text-tea-text-sec tabular-nums">
+                        <span>Freight · {landed.weightKg.toFixed(1)} kg at {fmtPrice(landed.freightPerKg, tx.currency)}</span><span className="text-tea-text">{fmtPrice(landed.freight, tx.currency)}</span>
                       </div>
                       {landed.perUsd !== 1 && (
-                        <div className="flex items-baseline justify-between py-1 text-ui-13 text-tea-text-dim tabular-nums">
+                        <div className="flex items-baseline justify-between py-1 text-ui-13 text-tea-text-sec tabular-nums">
                           <span>{fmtPrice(landed.subtotal + landed.freight, tx.currency)} at {landed.perUsd.toFixed(2)} today</span><span />
                         </div>
                       )}
@@ -553,9 +560,18 @@ const TransactionCard: React.FC<{
                         animate={{ opacity: 1, scale: 1 }}
                         className="flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md bg-tea-gold/20 text-tea-gold text-xs font-medium"
                       >
-                        <Check size={12} />
                         Confirmed
                       </motion.div>
+                    ) : needsVendor ? (
+                      <button
+                        key="choose-vendor"
+                        type="button"
+                        onClick={() => setChoosingVendor((v) => !v)}
+                        aria-expanded={choosingVendor}
+                        className="min-h-11 rounded-md cta-solid px-4 text-ui-13 font-semibold"
+                      >
+                        Choose the vendor
+                      </button>
                     ) : (
                       <motion.button
                         key="confirm-btn"
@@ -575,10 +591,9 @@ const TransactionCard: React.FC<{
                   <button
                     type="button"
                     onClick={() => setShowTagSheet(true)}
-                    className="tap-target flex min-h-11 items-center gap-1 text-ui-13 text-tea-text-sec hover:text-tea-text"
+                    className="tap-target flex min-h-11 items-center gap-1 font-mono text-ui-13 text-tea-text-sec hover:text-tea-text"
                     aria-label="Print tea tags"
                   >
-                    <Tag size={12} />
                     Tags
                   </button>
                 )}
@@ -588,20 +603,18 @@ const TransactionCard: React.FC<{
                   type="button"
                   onClick={handleSharePdf}
                   disabled={pdfLoading || tx.items.length === 0}
-                  className="tap-target flex min-h-11 items-center gap-1 text-ui-13 text-tea-text-sec hover:text-tea-text disabled:opacity-30"
+                  className="tap-target flex min-h-11 items-center gap-1 font-mono text-ui-13 text-tea-text-sec hover:text-tea-text disabled:opacity-30"
                   aria-label="Share as PDF"
                 >
-                  <Share2 size={12} className={pdfLoading ? 'animate-pulse' : ''} />
-                  PDF
+                  {pdfLoading ? '…' : 'PDF'}
                 </button>
 
                 <button
                   type="button"
                   onClick={handleDelete}
-                  className="tap-target flex min-h-11 items-center gap-1 text-ui-13 text-tea-text-sec hover:text-tea-text"
+                  className="tap-target flex min-h-11 items-center gap-1 font-mono text-ui-13 text-tea-text-sec hover:text-tea-text"
                   aria-label="Delete transaction"
                 >
-                  <Trash2 size={12} />
                   Delete
                 </button>
 
@@ -611,17 +624,23 @@ const TransactionCard: React.FC<{
                     onClick={async () => {
                       try {
                         await api.purchaseOrders.updateStatus(tx.id.slice(0, 8).toUpperCase(), 'sent');
-                        setPoSaved(true);
+                        setMarkedSent(true);
                       } catch {
                         // Status update failed silently
                       }
                     }}
-                    className="tap-target flex min-h-11 items-center gap-1 text-ui-13 text-tea-text-sec hover:text-tea-text"
+                    className="tap-target flex min-h-11 items-center gap-1 font-mono text-ui-13 text-tea-text-sec hover:text-tea-text"
                   >
-                    <Check size={13} /> {poSaved ? 'Sent' : 'Mark as sent'}
+                    {markedSent ? 'Marked as sent' : 'Mark as sent'}
                   </button>
                 )}
               </div>
+              {needsVendor && isDraft && choosingVendor && (
+                <div className="mt-2 border-t border-tea-border" data-testid="order-vendor-picker">
+                  <p className="px-4 pt-3 font-mono text-ui-12 text-tea-text-sec">Whose order is this?</p>
+                  <VendorPicker onPick={assignVendor} onCancel={() => setChoosingVendor(false)} />
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -700,15 +719,15 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
   const starters = (
     <div className="curate-v2 -mx-4 border-t border-tea-border">
       <button type="button" onClick={() => openPurchaseOrder()} className="curate-v2-row w-full text-left">
-        <span className="text-ui-14 font-medium text-tea-gold">+ Purchase order</span>
+        <span className="font-mono text-ui-13 font-medium text-tea-gold">+ Purchase order</span>
         <span className="flex-1" />
-        <span className="text-ui-12 text-tea-text-dim">several teas from one vendor</span>
+        <span className="font-mono text-ui-12 text-tea-text-sec">several teas from one vendor</span>
       </button>
       <button type="button" onClick={() => createTransaction('purchase', '', useTeaCompassStore.getState().lastCurrency)} className="curate-v2-row w-full text-left">
-        <span className="text-ui-14 text-tea-text-sec">+ Quick purchase note</span>
+        <span className="font-mono text-ui-13 text-tea-text-sec">+ Quick purchase note</span>
       </button>
       <button type="button" onClick={() => createTransaction('sale', '', 'USD')} className="curate-v2-row w-full text-left">
-        <span className="text-ui-14 text-tea-text-sec">+ Quick sale</span>
+        <span className="font-mono text-ui-13 text-tea-text-sec">+ Quick sale</span>
       </button>
     </div>
   );

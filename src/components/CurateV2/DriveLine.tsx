@@ -64,7 +64,7 @@ export const DriveLine: React.FC = () => {
           <span className="block text-ui-14 text-tea-text">
             {!s.connected ? 'Save photos to Google Drive' : s.needs_reconnect ? 'Google Drive needs connecting again' : 'Photos are saved to Google Drive'}
           </span>
-          <span className="block truncate text-ui-12 text-tea-text-dim">
+          <span className="block truncate text-ui-12 text-tea-text-sec">
             {!s.connected ? 'A folder for each vendor and tea' : s.email ?? 'Teajia Curate folder'}
           </span>
         </span>

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Check, ChevronDown, Plus, RotateCcw, Share2, X, Zap } from 'lucide-react';
+import { Check, ChevronDown, Plus, RotateCcw, X, Zap } from 'lucide-react';
 import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompassStore';
 import type { CompassCategory } from './types';
 import { BottomSheet } from '../shared/BottomSheet';
@@ -57,10 +57,10 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
 
   const runActive = currentSessionId != null;
   const runLabel = !runActive
-    ? 'No run'
+    ? 'No table'
     : sessionEntries.length > 1
-      ? `Run · ${sessionEntries.length}`
-      : 'Run';
+      ? `Table · ${sessionEntries.length}`
+      : 'Table';
 
   const handleDiscard = (id: string) => {
     // A capture with anything in it asks first; an empty draft just goes.
@@ -83,7 +83,7 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
   };
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex flex-wrap items-center gap-x-1.5">
       <button
         type="button"
         onClick={() => setRunSheetOpen(true)}
@@ -93,10 +93,10 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
         data-curate-action
       >
         <span className="truncate">{runLabel}</span>
-        <ChevronDown size={12} className="shrink-0 text-tea-text-dim" />
+        
       </button>
 
-      <span className="shrink-0 text-tea-text-dim" aria-hidden>·</span>
+      <span className="shrink-0 text-tea-text-sec" aria-hidden>·</span>
 
       <button
         type="button"
@@ -108,7 +108,7 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
         <span className="truncate">{vendorName || 'Vendor'}</span>
         <ChevronDown
           size={12}
-          className={`shrink-0 text-tea-text-dim transition-transform ${vendorOpen ? 'rotate-180' : ''}`}
+          className={`shrink-0 text-tea-text-sec transition-transform ${vendorOpen ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -120,7 +120,7 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
           className="curate-support pill-quiet shrink-0"
           data-curate-action
         >
-          <Share2 size={13} aria-hidden="true" />
+          Share
         </button>
       )}
 
@@ -132,7 +132,7 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
           className="curate-support pill-quiet"
           data-curate-action
         >
-          <Plus size={14} aria-hidden="true" />
+          New tea
         </button>
       </span>
 
@@ -145,7 +145,7 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
       <BottomSheet
         open={runSheetOpen}
         onOpenChange={setRunSheetOpen}
-        title="This run"
+        title="This table"
         description="Captures from this sitting stay grouped together"
       >
         <div className="flex flex-col gap-0.5 px-1 pb-1">
@@ -170,7 +170,7 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
                   type="button"
                   onClick={() => handleDiscard(entry.id)}
                   aria-label={`Discard ${entry.name || 'untitled entry'}`}
-                  className="tap-target shrink-0 p-1.5 text-tea-text-dim transition-colors hover:text-tea-text-sec"
+                  className="tap-target shrink-0 p-1.5 text-tea-text-sec transition-colors hover:text-tea-text-sec"
                 >
                   <X size={13} />
                 </button>
@@ -208,7 +208,7 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
             className="flex items-center gap-2.5 rounded-xl px-3 py-3 text-left text-base font-medium text-tea-text transition-colors hover:bg-tea-accent-sub"
           >
             <RotateCcw size={15} className="shrink-0 text-tea-text-sec" />
-            Start a new run
+            Start a new table
           </button>
         </div>
       </BottomSheet>

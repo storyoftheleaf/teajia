@@ -887,7 +887,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           (inert, so it cannot be tapped or focused), which is what keeps its
           scroll and its sub-screen exactly as they were. */}
       <div className="relative flex-1 min-h-0 flex flex-col">
-      <div className="flex-1 min-h-0 flex flex-col" inert={teaOpen} data-testid="curate-tab-body">
+      <div className="flex-1 min-h-0 flex flex-col" inert={teaOpen} style={teaOpen ? { visibility: 'hidden' } : undefined} data-testid="curate-tab-body">
         {mode === 'today' || mode === 'vendors' || mode === 'compare' || mode === 'sourcing' ? (
           // Curate v2's own screens: one scroll area at every width.
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-3 pb-nav-gap-lg" style={{ WebkitOverflowScrolling: 'touch' }}>
@@ -953,7 +953,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           {(
             <div className="shrink-0 flex items-center gap-3 px-4 pt-2.5 pb-1">
               <div className="relative min-w-0 flex-1">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
                 <input
                   ref={mobileSearchInputRef}
                   type="text"
@@ -964,7 +963,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       ? 'Search teas'
                       : 'Search orders…'
                   }
-                  className="w-full min-h-11 bg-tea-surface border border-tea-border text-tea-text text-ui-16 rounded-md pl-9 pr-10 py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors"
+                  className="w-full min-h-11 bg-tea-surface border border-tea-border text-tea-text text-ui-16 rounded-md pl-3 pr-10 py-2 outline-none placeholder:text-tea-text-sec focus:border-tea-gold transition-colors"
                 />
                 {tabSearchQuery && (
                   <button
@@ -996,13 +995,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           >
             <AnimatePresence mode="wait">
               {mode === 'library' ? (
-                <motion.div
-                  key="library"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.2 }}
-                >
+                <div key="library">
                   {/* Pending incoming shares, require explicit accept/decline */}
                   {visibleShares.length > 0 && (
                     <div className="mb-4 space-y-2">
@@ -1173,23 +1166,18 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     onNewCapture={handleNewCapture}
                     externalSearchQuery={tabSearchQuery}
                     onAcquireEntry={openLibraryAcquisition}
+                    onOpenTea={openTea}
                   />
-                </motion.div>
+                </div>
               ) : (
-                <motion.div
-                  key="buying"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.2 }}
-                >
+                <div key="buying">
                   <LedgerView
                     embedded
                     onOpenEntry={openTea}
                     onOpenOrder={pushOrder}
                     searchQuery={tabSearchQuery}
                   />
-                </motion.div>
+                </div>
               )}
             </AnimatePresence>
           </div>
@@ -1547,7 +1535,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       {/* ── A TEA, ON TOP of the tab you are on. Back closes it and you are
           exactly where you were; the tab highlight never moved. ── */}
       {topLayer && (
-        <div className="absolute inset-0 z-10 flex flex-col border-t border-tea-border bg-tea-surface" data-testid="curate-tea-overlay" data-layer={topLayer.as}>
+        <div className="absolute inset-0 z-10 flex flex-col bg-tea-surface" data-testid="curate-tea-overlay" data-layer={topLayer.as}>
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-3 pb-nav-gap-lg" style={{ WebkitOverflowScrolling: 'touch' }}>
             {topLayer.as === 'order' ? (
               <div className="mx-auto w-full max-w-xl" data-testid="order-screen">

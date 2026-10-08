@@ -3,14 +3,13 @@ import { CURRENCY_LABELS } from './PricingRow';
 import React, { useMemo, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { useNavigate } from 'react-router-dom';
-import { Search, X, Trash2, Heart, ThumbsUp, Minus, ThumbsDown, ListChecks, ChevronRight } from 'lucide-react';
+import { Search, X, Heart, ThumbsUp, Minus, ThumbsDown } from 'lucide-react';
 import { SessionReview } from './SessionReview';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import Fuse from 'fuse.js';
 import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useSampleStore } from '../../samples/sampleStore';
 import { BrowseCard } from './BrowseCard';
-import { CompassIcon } from './CompassIcon';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
 import { isUntriaged, entryDisplayTitle, entryIsSample } from './types';
 import { entryHasBeenTasted, entryNeedsTasting } from '../TeaCompass/types';
@@ -49,6 +48,8 @@ interface BrowseViewProps {
   /** Desktop: which entry is currently shown in the right detail panel */
   selectedEntryId?: string | null;
   onAcquireEntry?: (id: string) => void;
+  /** Curate v2: a tea opens as its own screen on top of this tab (Back returns here). */
+  onOpenTea?: (id: string) => void;
   /**
    * Desktop: when true, cards lay out as a responsive multi-column grid that
    * fills the full width instead of a single stacked column. Used in Library
@@ -73,14 +74,15 @@ function getDateGroup(dateStr: string): string {
 // ─── Section header ──────────────────────────────────────────────────────────
 
 const SectionHeader: React.FC<{ label: React.ReactNode; count: number; right?: React.ReactNode }> = ({ label, count, right }) => (
-  <div className="flex items-center justify-between mb-2.5">
-    <span className="text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec font-medium font-serif">
-      {label}
-    </span>
-    <span className="flex items-center gap-2">
-      {right}
-      <span className="text-ui-12 text-tea-text-dim num">{count}</span>
-    </span>
+  <div className="curate-v2 pt-6" data-testid="browse-section">
+    <div className="flex items-baseline justify-between gap-3 pb-2.5">
+      <h2 className="min-w-0 font-display text-ui-26 font-normal tracking-[0.02em] text-tea-text">{label}</h2>
+      <span className="flex shrink-0 items-baseline gap-3">
+        {right}
+        <span className="text-ui-11 text-tea-text-sec tabular-nums">{String(count).padStart(2, '0')}</span>
+      </span>
+    </div>
+    <div className="h-px bg-tea-gold/20" aria-hidden="true" />
   </div>
 );
 
@@ -142,7 +144,7 @@ const PhotoTile: React.FC<{
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture, externalSearchQuery, onSelectEntry, selectedEntryId, gridMode, onAcquireEntry }) => {
+export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture, externalSearchQuery, onSelectEntry, selectedEntryId, gridMode, onAcquireEntry, onOpenTea }) => {
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
   const { entries, browseFilter, setBrowseFilter, browseSort, setBrowseSort, browseLayout, setBrowseLayout, libraryFilters, setLibraryFilters, removeEntry, updateEntry, hydrationStatus } = useTeaCompassStore();
@@ -307,11 +309,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
     dimTasted?: boolean;
     tasteQueueActive?: boolean;
   }) => (
-    <div
-      className={
-        'space-y-1.5'
-      }
-    >
+    <div className="-mx-4">
       <AnimatePresence initial={false}>
         {list.map((entry) => {
           const dim = (opts?.dimPassed && entry.status === 'pass') ||
@@ -329,7 +327,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                   <button type="button" onClick={() => setExpandedRowId(null)} className="curate-v2-row w-full text-left" aria-expanded="true">
                     <span className="curate-v2-name">{entry.name || 'Untitled tea'}</span>
                     <span className="flex-1" />
-                    <span className="text-ui-12 text-tea-text-dim">Close</span>
+                    <span className="font-mono text-ui-13 text-tea-gold">Close</span>
                   </button>
                   <BrowseCard
                     entry={entry}
@@ -341,7 +339,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                   />
                 </div>
               ) : (
-                <V2TeaRow entry={entry} onOpen={() => setExpandedRowId(entry.id)} />
+                <V2TeaRow entry={entry} onOpen={() => (onOpenTea ? onOpenTea(entry.id) : setExpandedRowId(entry.id))} />
               )}
             </motion.div>
           );
@@ -369,7 +367,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
       grouped.get(key)!.push(entry);
     }
     return (
-      <div className="space-y-5">
+      <div>
         {Array.from(grouped.entries()).map(([date, group]) => (
           <div key={date}>
             <SectionHeader label={date} count={group.length} />
@@ -672,11 +670,8 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
   if (entries.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 animate-[fadeIn_0.4s_ease-out]">
-        <div className="w-20 h-20 rounded-full bg-tea-gold/8 flex items-center justify-center mb-5 shadow-[0_0_30px_var(--tea-accent-sub)]">
-          <CompassIcon className="w-9 h-9 text-tea-gold/30" />
-        </div>
-        <h3 className="font-serif text-ui-16 text-tea-text mb-1.5 tracking-wide">No teas yet</h3>
-        <p className="text-ui-12 text-tea-text-sec text-center max-w-[240px] leading-relaxed mb-8 font-serif">
+        <h3 className="font-display text-ui-26 text-tea-text mb-1.5">No teas yet</h3>
+        <p className="text-ui-14 text-tea-text-sec text-center max-w-[260px] leading-relaxed mb-8">
           Every tea has a story. Start capturing the ones you taste, want, and buy.
         </p>
         <button
@@ -723,66 +718,53 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             2. view controls (how to view it: sort + photo grid)
           "New" was removed here, it duplicated the header "+ NEW" and the
           empty-pane "+ New Entry". Text-only labels per the chrome rule. */}
-      <div data-testid="library-controls" className="flex flex-wrap items-center gap-2">
-        {/* Group 1: status filters */}
-        {filterOptions.map((opt) => (
+      <div data-testid="library-controls" className="curate-v2 -mx-4">
+        {/* Which teas: three equal columns on one line, as Orders does. */}
+        <div className="curate-v2-tabs border-b border-tea-border" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+          {filterOptions.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setBrowseFilter(opt.value)}
+              aria-pressed={browseFilter === opt.value}
+              className="curate-v2-tab"
+              style={browseFilter === opt.value ? { color: 'var(--tea-gold)', boxShadow: 'inset 0 -1px 0 var(--tea-gold)' } : undefined}
+            >
+              <span>{opt.label}</span>
+              <span className="ml-1.5 tabular-nums">{opt.count}</span>
+            </button>
+          ))}
+        </div>
+        {/* How to look at them: plain words, gold when something is set. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-5 px-4">
           <button
-            key={opt.value}
             type="button"
-            onClick={() => setBrowseFilter(opt.value)}
-            className={`tap-target inline-flex min-h-11 items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
-              browseFilter === opt.value
-                ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
-                : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
-            }`}
+            onClick={() => setFilterSheetOpen(true)}
+            className={`tap-target min-h-11 font-mono text-ui-13 ${activeLibraryFilterCount(libraryFilters) ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}
+            aria-label={activeLibraryFilterCount(libraryFilters) ? `${activeLibraryFilterCount(libraryFilters)} filters` : 'Filters'}
           >
-            <span>{opt.label}</span>
-            <span className="text-ui-12 text-tea-text-dim tabular-nums">{opt.count}</span>
+            {activeLibraryFilterCount(libraryFilters) ? `${activeLibraryFilterCount(libraryFilters)} filter${activeLibraryFilterCount(libraryFilters) === 1 ? '' : 's'}` : 'Filters'}
           </button>
-        ))}
-
-        {/* Hairline divider between "what to show" and "how to view it" */}
-        <div className="self-center h-5 w-px bg-tea-border mx-1" aria-hidden />
-
-        <button
-          type="button"
-          onClick={() => setFilterSheetOpen(true)}
-          className={`tap-target inline-flex min-h-11 items-center rounded-md border px-3 text-ui-12 transition-colors ${activeLibraryFilterCount(libraryFilters) ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub'}`}
-          aria-label={activeLibraryFilterCount(libraryFilters) ? `${activeLibraryFilterCount(libraryFilters)} filters` : 'Filters'}
-        >
-          {activeLibraryFilterCount(libraryFilters) ? `${activeLibraryFilterCount(libraryFilters)} filter${activeLibraryFilterCount(libraryFilters) === 1 ? '' : 's'}` : 'Filters'}
-        </button>
-
-        {/* Group 2: view controls */}
-        {/* Sort, opens a sheet of the four orderings. Active when not the
-            default recency sort, so the user can see they've reordered. */}
-        <button
-          type="button"
-          onClick={() => setSortSheetOpen(true)}
-          className={`tap-target inline-flex min-h-11 items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
-            browseSort !== 'recent'
-              ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
-              : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
-          }`}
-          title="Sort"
-        >
-          <span>{SORT_LABELS[browseSort]}</span>
-        </button>
-        {/* Photos layout toggle, swap the list for a grid of bag shots.
-            A view control, so it lives with Sort, not in the filter row. */}
-        <button
-          type="button"
-          onClick={() => setBrowseLayout(browseLayout === 'photos' ? 'list' : 'photos')}
-          className={`tap-target inline-flex min-h-11 items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
-            browseLayout === 'photos'
-              ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
-              : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
-          }`}
-          title={browseLayout === 'photos' ? 'Back to list' : 'Photo grid'}
-          aria-pressed={browseLayout === 'photos'}
-        >
-          <span>{browseLayout === 'photos' ? 'List' : 'Photos'}</span>
-        </button>
+          {/* Sort opens a sheet of the four orderings; gold when it is not the default. */}
+          <button
+            type="button"
+            onClick={() => setSortSheetOpen(true)}
+            className={`tap-target min-h-11 font-mono text-ui-13 ${browseSort !== 'recent' ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}
+            title="Sort"
+          >
+            {SORT_LABELS[browseSort]}
+          </button>
+          {/* Photos swaps the list for a grid of bag shots. */}
+          <button
+            type="button"
+            onClick={() => setBrowseLayout(browseLayout === 'photos' ? 'list' : 'photos')}
+            className={`tap-target min-h-11 font-mono text-ui-13 ${browseLayout === 'photos' ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}
+            title={browseLayout === 'photos' ? 'Back to list' : 'Photo grid'}
+            aria-pressed={browseLayout === 'photos'}
+          >
+            {browseLayout === 'photos' ? 'List' : 'Photos'}
+          </button>
+        </div>
       </div>
 
       <ActiveFilterSummary
@@ -833,8 +815,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
             className="overflow-hidden"
           >
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-tea-surface text-ui-12">
-              <Trash2 size={12} className="text-tea-text-dim shrink-0" />
+            <div className="flex items-center gap-2 border-y border-tea-border py-2 text-ui-12">
               <span className="flex-1 text-tea-text-sec">
                 {emptyEntries.length} entries have no name, notes, or tasting data
               </span>
@@ -848,10 +829,10 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
               <button
                 type="button"
                 onClick={() => setCleanupDismissed(true)}
-                className="tap-target flex min-h-11 min-w-11 shrink-0 items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors ml-1"
+                className="tap-target flex min-h-11 shrink-0 items-center justify-center font-mono text-tea-text-sec hover:text-tea-text transition-colors ml-1"
                 aria-label="Dismiss cleanup"
               >
-                <X size={12} />
+                Dismiss
               </button>
             </div>
           </motion.div>
@@ -870,17 +851,13 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
-            className="tap-target block min-h-11 w-full overflow-hidden text-left"
+            className="block min-h-11 w-full overflow-hidden text-left"
           >
-            <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-tea-gold/8 border border-tea-gold/20">
-              <ListChecks size={15} className="text-tea-gold shrink-0" />
-              <span className="flex-1 min-w-0 text-ui-12 text-tea-text">
-                <span className="font-semibold">{untriaged.length} tasted teas</span> waiting to be sorted
+            <div className="flex items-baseline gap-3 border-y border-tea-gold/30 py-3">
+              <span className="min-w-0 flex-1 text-ui-13 text-tea-text">
+                <span className="font-mono">{untriaged.length}</span> tasted teas waiting to be sorted
               </span>
-              <span className="flex items-center gap-0.5 text-ui-12 text-tea-gold font-medium shrink-0">
-                Review
-                <ChevronRight size={13} />
-              </span>
+              <span className="shrink-0 font-mono text-ui-13 text-tea-gold">Review</span>
             </div>
           </motion.button>
         )}
@@ -947,21 +924,24 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
 };
 
 
-/** Curate v2's one-line tea row: name, year, who sold it, then the price as
- *  quoted and the score, anchored right. */
+/** Curate v2's tea row: the name in full, who sold it and when beneath, the
+ *  price as quoted and the score anchored right. */
 const V2TeaRow: React.FC<{ entry: TeaCompassEntry; onOpen: () => void }> = ({ entry, onOpen }) => {
   const sym = CURRENCY_LABELS[entry.priceCurrency] ?? '';
   const unit = quotedUnit(entry);
+  const sub = [entry.year, entry.vendorName?.trim()].filter((x) => x != null && String(x).trim()).join(' · ');
   return (
     <button type="button" onClick={onOpen} className="curate-v2 curate-v2-row w-full text-left" aria-expanded="false">
-      <span className="curate-v2-name">{entry.name || 'Untitled tea'}</span>
-      {entry.year != null && <span className="text-ui-12 text-tea-text-dim tabular-nums">{entry.year}</span>}
-      {entry.vendorName && <span className="min-w-0 truncate text-ui-12 text-tea-text-dim">{entry.vendorName}</span>}
-      <span className="flex-1" />
-      {entry.tasting?.quality != null && <span className="text-ui-12 text-tea-text-sec tabular-nums">{entry.tasting.quality}/10</span>}
-      {entry.priceAmount != null
-        ? <span className="text-ui-13 font-medium text-tea-text-sec tabular-nums">{sym}{entry.priceAmount.toLocaleString()}{unit && <span className="ml-1 text-ui-12 font-normal text-tea-text-dim">{unit}</span>}</span>
-        : <span className="text-ui-12 text-tea-text-dim">add cost</span>}
+      <span className="grid min-w-0 flex-1 gap-0.5">
+        <span className="curate-v2-name">{entry.name || 'Untitled tea'}</span>
+        {sub && <span className="truncate font-mono text-ui-12 text-tea-text-sec tabular-nums">{sub}</span>}
+      </span>
+      <span className="grid shrink-0 justify-items-end gap-0.5">
+        {entry.priceAmount != null
+          ? <span className="text-ui-13 font-medium text-tea-text tabular-nums">{sym}{entry.priceAmount.toLocaleString()}{unit && <span className="ml-1 text-ui-12 font-normal text-tea-text-sec">{unit}</span>}</span>
+          : <span className="text-ui-12 text-tea-text-sec">add cost</span>}
+        {entry.tasting?.quality != null && <span className="text-ui-12 text-tea-gold tabular-nums">{entry.tasting.quality}/10</span>}
+      </span>
     </button>
   );
 };

@@ -174,10 +174,12 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
       onBuy?.(entry.id);
     }
   };
-  // The one thing still missing is the gold button: tasting first, then a word about it.
-  const next: 'taste' | 'talk' | 'note' = !tasting && !isTeaware ? 'taste' : canTalk ? 'talk' : 'note';
-  const act = (k: typeof next) => `flex min-h-12 items-center justify-center gap-2 rounded border font-mono text-ui-12 uppercase tracking-[0.14em] ${
-    next === k ? 'border-tea-gold bg-tea-gold/10 text-tea-gold' : 'border-tea-border text-tea-text-sec hover:text-tea-text'
+  // A frame is gold only when that thing is DONE: Taste once it has been
+  // tasted, Talk while it is recording, Note once a note exists. Never a hint
+  // about what to do next.
+  const hasNote = !!entry.notes?.trim();
+  const frame = (done: boolean) => `flex min-h-12 items-center justify-center gap-2 rounded border font-mono text-ui-12 uppercase tracking-[0.14em] transition-colors ${
+    done ? 'border-tea-gold text-tea-gold' : 'border-tea-border text-tea-text-sec hover:text-tea-text'
   }`;
 
   const back = onBack && (
@@ -234,7 +236,7 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
 
       <div className={`grid gap-2 px-4 pt-3 ${canTalk ? 'grid-cols-3' : 'grid-cols-2'}`} role="group" aria-label="Do with this tea">
         {!isTeaware && (
-          <button type="button" onClick={() => onTaste(entry.id)} className={act('taste')}>
+          <button type="button" onClick={() => onTaste(entry.id)} className={frame(!!tasting)} aria-pressed={!!tasting}>
             Taste
           </button>
         )}
@@ -243,7 +245,7 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
             type="button"
             onClick={() => onTalk(entry.id)}
             aria-label={talking ? 'Stop recording' : 'Talk about this tea'}
-            className={talking ? 'flex min-h-12 items-center justify-center gap-2 rounded-md border border-tea-gold bg-tea-gold/15 text-ui-13 font-medium text-tea-gold' : act('talk')}
+            className={frame(talking)} aria-pressed={talking}
           >
             {talking && voiceState === 'transcribing' ? <Loader2 size={15} className="animate-spin" />
               : talking ? <Square size={12} fill="currentColor" strokeWidth={0} />
@@ -251,7 +253,7 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
             {talking ? (voiceState === 'transcribing' ? 'Writing' : 'Stop') : 'Talk'}
           </button>
         )}
-        <button type="button" onClick={() => setNoteOpen((v) => !v)} aria-expanded={noteOpen} className={noteOpen ? 'flex min-h-12 items-center justify-center gap-2 rounded-md border border-tea-gold text-ui-13 font-medium text-tea-gold' : act('note')}>
+        <button type="button" onClick={() => setNoteOpen((v) => !v)} aria-expanded={noteOpen} className={frame(hasNote)}>
           Note
         </button>
       </div>

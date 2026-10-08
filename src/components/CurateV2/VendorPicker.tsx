@@ -168,7 +168,7 @@ export const VendorPicker: React.FC<VendorPickerProps> = ({ onPick, onCancel, au
               <button key={v.id ?? v.name} type="button" onClick={() => choose(v)} className="curate-v2-row w-full text-left">
                 <span className="curate-v2-name">{v.name}</span>
                 <span className="flex-1" />
-                {v.recent && <span className="text-ui-12 text-tea-text-dim">recent</span>}
+                {v.recent && <span className="text-ui-12 text-tea-text-sec">recent</span>}
               </button>
             ))}
           </div>

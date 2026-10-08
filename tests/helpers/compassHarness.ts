@@ -172,6 +172,11 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     if (promoteMatch && route.request().method() === 'POST') {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: `product-${promoteMatch[1]}`, product: {}, alreadyPromoted: false }) });
     }
+    // Accepting a receipt proposal when the tea arrives.
+    const acceptMatch = path.match(/^\/api\/curate\/receipt-proposals\/([^/]+)\/accept$/);
+    if (acceptMatch && route.request().method() === 'POST') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ proposal: { id: acceptMatch[1], status: 'accepted' }, product_id: 'product-arrived', ledger_id: 'ledger-arrived', alreadyAccepted: false }) });
+    }
     const responses: Record<string, unknown> = {
       'GET /api/curate/attachments': [], 'GET /api/curate/history': { history: [] },
       'GET /api/auth/me': { id: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', memberships, active_account_id: 'acct-bali' },

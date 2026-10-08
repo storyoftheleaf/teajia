@@ -127,7 +127,7 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
     <button key={f} type="button" onClick={() => start(f)} className="flex min-h-11 w-full items-center gap-3 border-b border-tea-border px-4 text-left">
       <span className="curate-v2-label w-20 shrink-0">{label}</span>
       <span className="min-w-0 flex-1 truncate text-right text-ui-14 text-tea-text" style={zh ? { fontFamily: "'Noto Serif SC', serif" } : undefined}>
-        {value[f] || <span className="text-ui-13 text-tea-text-dim">{hint ?? 'add'}</span>}
+        {value[f] || <span className="text-ui-13 text-tea-text-sec">{hint ?? 'add'}</span>}
       </span>
     </button>
   );
@@ -154,16 +154,16 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
         {line('wechat', 'WeChat', 'add · or photo their card')}
         {line('whatsapp', 'WhatsApp')}
         {line('website', 'Website')}
-        {fact('Teas', teas.length ? `${teas.length} · ${tasted} tasted · ${bought} bought` : <span className="text-ui-13 text-tea-text-dim">none yet</span>)}
-        {fact('Teaware', ware.length ? ware.map((w) => w.name || 'piece').join(', ') : <span className="text-ui-13 text-tea-text-dim">none yet</span>)}
-        {fact('Orders', orders.length ? `${orders.length} · ${orders[0].status === 'confirmed' ? 'confirmed' : 'draft'} ${new Date(orders[0].updatedAt || orders[0].createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}` : <span className="text-ui-13 text-tea-text-dim">none yet</span>)}
+        {fact('Teas', teas.length ? `${teas.length} · ${tasted} tasted · ${bought} bought` : <span className="text-ui-13 text-tea-text-sec">none yet</span>)}
+        {fact('Teaware', ware.length ? ware.map((w) => w.name || 'piece').join(', ') : <span className="text-ui-13 text-tea-text-sec">none yet</span>)}
+        {fact('Orders', orders.length ? `${orders.length} · ${orders[0].status === 'confirmed' ? 'confirmed' : 'draft'} ${new Date(orders[0].updatedAt || orders[0].createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}` : <span className="text-ui-13 text-tea-text-sec">none yet</span>)}
         {line('notes', 'Note')}
       </div>
       {error && <p className="px-4 pt-2 text-ui-12 text-tea-error">{error}</p>}
 
       <button type="button" onClick={() => setMoreOpen((v) => !v)} aria-expanded={moreOpen} className="flex min-h-11 w-full items-center gap-2 border-b border-tea-border px-4 text-left">
         <span className="flex-1 text-ui-13 text-tea-text-sec">Card, storefront and map</span>
-        <ChevronDown size={14} className={`text-tea-text-dim ${moreOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown size={14} className={`text-tea-text-sec ${moreOpen ? 'rotate-180' : ''}`} />
       </button>
       {moreOpen && (
         <div className="border-b border-tea-border px-4 py-3">
@@ -185,11 +185,11 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
           <button key={t.id} type="button" onClick={() => onOpenTea(t.id)} className="curate-v2-row w-full text-left">
             <span className="curate-v2-name">{t.name || 'Untitled tea'}</span>
             {taste ? <span className="min-w-0 truncate text-ui-12 text-tea-gold tabular-nums">{taste}</span>
-              : t.year != null && <span className="text-ui-12 text-tea-text-dim tabular-nums">{t.year}</span>}
+              : t.year != null && <span className="text-ui-12 text-tea-text-sec tabular-nums">{t.year}</span>}
             <span className="flex-1" />
             {t.priceAmount != null
-              ? <span className="text-ui-13 font-medium text-tea-text-sec tabular-nums">{sym}{t.priceAmount.toLocaleString()}{unit && <span className="ml-1 text-ui-12 font-normal text-tea-text-dim">{unit}</span>}</span>
-              : <span className="text-ui-12 text-tea-text-dim">add cost</span>}
+              ? <span className="text-ui-13 font-medium text-tea-text-sec tabular-nums">{sym}{t.priceAmount.toLocaleString()}{unit && <span className="ml-1 text-ui-12 font-normal text-tea-text-sec">{unit}</span>}</span>
+              : <span className="text-ui-12 text-tea-text-sec">add cost</span>}
           </button>
         );
       })}
