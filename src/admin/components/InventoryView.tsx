@@ -1,4 +1,5 @@
 import { CurateSamplesView } from './CurateSamplesView';
+import { CurateSampleTableRows } from './inventory/CurateSampleTableRows';
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
@@ -2338,19 +2339,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           </div>
   );
 
-  const samplesOnly = searchParams.get('stock_view') === 'samples';
-  const stockViewToggle = <div aria-label="Inventory source" className="flex flex-wrap shrink-0 gap-1 border-b border-tea-border px-3 py-1">
-    {[{value:'stock',label:'Stock inventory'},{value:'samples',label:'Samples only'}].map(view => <button key={view.value} type="button" aria-pressed={(view.value==='samples')===samplesOnly} onClick={() => setSearchParams(previous => withParam(previous,'stock_view',view.value==='samples'?'samples':null),{replace:true})} className={`tap-target min-h-11 rounded-md px-3 text-ui-13 ${(view.value==='samples')===samplesOnly?'text-tea-gold bg-tea-accent-sub':'text-tea-text-sec hover:bg-tea-accent-sub'}`}>{view.label}</button>)}
-  </div>;
-  // On the phone, Samples is the same page as Stock: same top bar, search and
-  // Supplier / Kind switch, only the rows differ. The laptop keeps its own screen.
-  if (samplesOnly && !phoneList) return <div className="h-full min-w-0 flex flex-col overflow-hidden bg-tea-bg">{stockViewToggle}<CurateSamplesView search={externalSearchQuery} /></div>;
 
   return (
     <div
       className={`h-full flex flex-col overflow-hidden bg-tea-bg ${phoneList ? 'stock-phone-tone' : ''}`}
     >
-      {!phoneList && stockViewToggle}
       {/* Inventory options menu shared by the unified header at every width. */}
       <div>
             {showOptions && !isMobile && (
@@ -2946,6 +2939,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   </div>
                 );
               })}
+              {filterType === 'Samples' && !splitView && (
+                <div hidden={curateSampleCount === 0}>
+                  <div className="flex items-center gap-3 px-5 py-2.5 bg-tea-surface border-b border-tea-border">
+                    <span className="font-display text-ui-15 text-tea-text">Curate samples</span>
+                    <span className="label-caps text-tea-text-dim">{curateSampleCount} items</span>
+                  </div>
+                  <table className="w-full table-fixed border-collapse inv-tight" style={mobileTableStyle}>
+                    <colgroup>{renderCols.map(renderColEl)}</colgroup>
+                    <tbody>
+                      <CurateSampleTableRows colKeys={renderCols.map(col => col.key)} search={searchQuery} rowHeight={effectiveRowHeight} onCount={setCurateSampleCount} />
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           ) : (
             /* --- FLAT TABLE (with virtualization) --- */
@@ -3031,6 +3038,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           </React.Fragment>
                         );
                     })}
+                    {filterType === 'Samples' && !splitView && (
+                <CurateSampleTableRows colKeys={renderCols.map(col => col.key)} search={searchQuery} rowHeight={effectiveRowHeight} onCount={setCurateSampleCount} />
+              )}
                 </tbody>
             </table>
           )}
@@ -3041,7 +3051,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           {processedProducts.length > 0 && (
             <div className="px-5 py-3 border-t border-tea-border flex items-center justify-between bg-tea-surface">
               <span className="font-serif text-ui-13 text-tea-text-dim tabular-nums">
-                {processedProducts.length} of {localProducts.length}
+                {processedProducts.length + (filterType === 'Samples' ? curateSampleCount : 0)} of {localProducts.length + (filterType === 'Samples' ? curateSampleCount : 0)}
               </span>
               {processedProducts.length < localProducts.length && (
                 <span className="text-ui-12 text-tea-text-dim">Refine filters to surface more</span>
@@ -3055,7 +3065,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           </>}
           </div>
 
-          {filterType !== 'Pending' && !glossaryMode && processedProducts.length === 0 && (
+          {filterType !== 'Pending' && !glossaryMode && processedProducts.length === 0 && !(filterType === 'Samples' && curateSampleCount > 0) && (
             <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
               <Leaf size={28} strokeWidth={1.25} className="text-tea-text-dim mb-3" />
               <div className="font-display text-ui-17 text-tea-text">Nothing here yet</div>
