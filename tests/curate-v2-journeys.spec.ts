@@ -561,13 +561,17 @@ test.describe('Curate v2 journeys (phone)', () => {
     await openCurateV2(page, 'teas');
     const banner = page.getByRole('tabpanel').getByTestId('browse-cleanup');
     await expect(banner).toContainText('3 entries have no name');
+    await banner.scrollIntoViewIfNeeded();
+    await shot(page, 'cleanup-1-offered');
     await banner.getByRole('button', { name: 'Clean up' }).click();
     await expect(banner).toContainText('Delete these 3 empty entries?');
+    await shot(page, 'cleanup-2-asks');
     await banner.getByRole('button', { name: 'Keep' }).click();
     await expect(banner).toContainText('3 entries have no name');
     await banner.getByRole('button', { name: 'Clean up' }).click();
     await banner.getByRole('button', { name: 'Delete' }).click();
     await expect(banner).toHaveCount(0);
+    await shot(page, 'cleanup-3-done');
     expect(popups).toBe(0);
   });
 
