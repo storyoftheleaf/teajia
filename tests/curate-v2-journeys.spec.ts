@@ -530,6 +530,29 @@ test.describe('Curate v2 journeys (phone)', () => {
     await expect(orderRows(page)).toHaveCount(1);
   });
 
+  test('Orders: Delete asks in place (never a browser popup); Keep leaves it, Remove removes it', async ({ page }) => {
+    let popups = 0;
+    page.on('dialog', (d) => { popups += 1; void d.dismiss(); });
+    await installCompassHarness(page, {
+      ...BUY_DATA,
+      compassEntries: [entry({ id: 'b-4', name: 'Nameless Oolong', form: 'Cake', price_amount: 120, price_currency: 'Yuan', vendor_name: null, vendor_id: null, tasting: JSON.stringify({ quality: 6 }) })],
+    });
+    await openCurateV2(page, 'today');
+    await page.getByTestId('today-section-decide').getByRole('button', { name: /Nameless Oolong/ }).click();
+    await buyButton(page).click();
+    await expect(orderRows(page)).toHaveCount(1);
+    await page.getByRole('button', { name: 'Delete transaction' }).click();
+    const ask = page.getByTestId('order-delete-confirm');
+    await expect(ask).toContainText('Remove this purchase order?');
+    await ask.getByRole('button', { name: 'Keep' }).click();
+    await expect(ask).toHaveCount(0);
+    await expect(orderRows(page)).toHaveCount(1);
+    await page.getByRole('button', { name: 'Delete transaction' }).click();
+    await page.getByTestId('order-delete-confirm').getByRole('button', { name: 'Remove' }).click();
+    await expect(page.getByTestId('curate-order')).toHaveCount(0);
+    expect(popups).toBe(0);
+  });
+
   test('Chinese name is suggested, never typed: cross leaves it empty, tick saves it', async ({ page }) => {
     await installCompassHarness(page, { ...TODAY_DATA, customers: TODAY_DATA.customers });
     await openCurateV2(page, 'today');

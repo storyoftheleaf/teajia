@@ -524,11 +524,13 @@ const TransactionCard: React.FC<{
     }
   }, [tx.id, tx.purchaseOrderId, updateTransaction, queryClient]);
 
+  // Delete asks in place, not in a browser popup: a popup breaks the page's
+  // dress, and in-app browsers and webviews often block it, which made Delete
+  // do nothing at all.
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const handleDelete = useCallback(() => {
-    if (window.confirm(`Remove this ${isPurchase ? 'purchase' : 'sale'} order?`)) {
-      removeTransaction(tx.id);
-    }
-  }, [tx.id, isPurchase, removeTransaction]);
+    removeTransaction(tx.id);
+  }, [tx.id, removeTransaction]);
 
   return (
     <div className="curate-v2 -mx-4 pb-4" data-testid="curate-order" data-order-id={tx.id} data-status={tx.status}>
@@ -692,14 +694,22 @@ const TransactionCard: React.FC<{
                   {pdfLoading ? '…' : 'PDF'}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  className="tap-target flex min-h-11 items-center gap-1 font-mono text-ui-13 text-tea-text-sec hover:text-tea-text"
-                  aria-label="Delete transaction"
-                >
-                  Delete
-                </button>
+                {confirmingDelete ? (
+                  <span className="flex min-h-11 items-center gap-3 font-mono text-ui-13" data-testid="order-delete-confirm">
+                    <span className="text-tea-text-sec">Remove this {isPurchase ? 'purchase' : 'sale'} order?</span>
+                    <button type="button" onClick={handleDelete} className="tap-target text-tea-gold hover:text-tea-text">Remove</button>
+                    <button type="button" onClick={() => setConfirmingDelete(false)} className="tap-target text-tea-text-sec hover:text-tea-text">Keep</button>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingDelete(true)}
+                    className="tap-target flex min-h-11 items-center gap-1 font-mono text-ui-13 text-tea-text-sec hover:text-tea-text"
+                    aria-label="Delete transaction"
+                  >
+                    Delete
+                  </button>
+                )}
 
                 {/* Sent only means something once the shop has the order to name. */}
                 {isPurchase && !isDraft && tx.purchaseOrderId && (
