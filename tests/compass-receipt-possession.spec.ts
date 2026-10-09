@@ -82,7 +82,7 @@ test('retrying a failed receipt proposal keeps exactly one local purchase line',
   })).toBe(1);
 });
 
-test('unbagging clears both sample representations', async ({ page }) => {
+test('removing a tea from the Sample list takes it off the list and leaves its Curate sample status to the shop', async ({ page }) => {
   await installCompassHarness(page, { sampleCart: [{ id: 'bagged-entry', name: 'Bagged tea', compassEntryId: 'bagged-entry' }] });
   await openCompass(page);
   await page.evaluate(async () => {
@@ -91,16 +91,20 @@ test('unbagging clears both sample representations', async ({ page }) => {
     const entry = { ...createEmptyEntry('tea'), id: 'bagged-entry', name: 'Bagged tea', isSample: true, sampleState: 'requested', status: 'noted' };
     useTeaCompassStore.setState({ entries: [entry], pendingEntries: [], activeEntryId: entry.id });
   });
-  // There is no 'Bagged' toggle any more: that vocabulary went with the sample
-  // states, which are requested / received / tasted. Taking a tea back out of
-  // the sample list is done from the list itself, which is also where the two
-  // representations are actually reconciled.
+  // The Sample list is a picking list for the next batch. Since 2fdccb55 a
+  // tea's sample status ("requested", "received", "tasted") is the shop's own
+  // record, written by the worker with the sample it describes and read back
+  // into Curate; the list no longer edits it from the browser. So taking a tea
+  // off the list removes the row and nothing else: the tea is still the
+  // requested sample the shop recorded. (Until then the list cleared those
+  // marks itself, which is what this test used to assert.)
   await page.getByRole('button', { name: /Sample list/ }).first().click();
   await page.getByRole('button', { name: 'Remove Bagged tea from Sample list' }).click();
+  await expect(page.getByRole('button', { name: 'Remove Bagged tea from Sample list' })).toHaveCount(0);
   expect(await page.evaluate(async () => {
+    const { useSampleCartStore } = await import('/src/samples/sampleCartStore.ts');
     const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
-    const { entryIsSample } = await import('/src/components/TeaCompass/types.ts');
     const entry = useTeaCompassStore.getState().getEntry('bagged-entry')!;
-    return { isSample: entry.isSample, sampleState: entry.sampleState, entryIsSample: entryIsSample(entry) };
-  })).toEqual({ isSample: false, sampleState: null, entryIsSample: false });
+    return { onList: useSampleCartStore.getState().items.length, isSample: entry.isSample, sampleState: entry.sampleState };
+  })).toEqual({ onList: 0, isSample: true, sampleState: 'requested' });
 });
