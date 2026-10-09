@@ -64,7 +64,12 @@ test.describe('Curate compact sourcing canvas', () => {
 
     const canvasBox = await canvas.boundingBox();
     expect(canvasBox).not.toBeNull();
-    expect(canvasBox!.height).toBeLessThanOrEqual(760);
+    // 760 held the empty canvas at about 727px. On 2026-10-08 (95be3608) the
+    // "Tea details & sourcing" section joined it, folded shut to one 44px row
+    // (57px with its spacing), which measures 784px. The bound moves by that
+    // row and no more: a section that arrives open, or a second new row,
+    // still fails here.
+    expect(canvasBox!.height).toBeLessThanOrEqual(800);
 
     const decisionChrome = canvas.getByTestId('curate-decision-control').locator('[data-decision-rail]').first();
     expect((await decisionChrome.boundingBox())!.height).toBeLessThanOrEqual(36);
