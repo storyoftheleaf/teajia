@@ -116,3 +116,6 @@ export function groupStock(products: readonly Product[], by: PhoneGroupBy, incom
     return a.label.localeCompare(b.label);
   });
 }
+
+/** What Adrian usually takes for a tasting: the − on Stock and Samples opens with this typed. */
+export const DEFAULT_TASTE_GRAMS = 5;

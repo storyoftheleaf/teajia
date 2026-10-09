@@ -761,6 +761,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // the glossary cards and the Pending AI feed keep their own layouts.
   const phoneList = isMobile && !isEditMode && !glossaryMode && filterType !== 'Pending';
   const [phoneGroupBy, setPhoneGroupByState] = useState<PhoneGroupBy>(readPhoneGroupBy);
+  // Curate samples shown in the Samples view, so its count includes them.
+  const [curateSampleCount, setCurateSampleCount] = useState(0);
   const setPhoneGroupBy = (by: PhoneGroupBy) => { setPhoneGroupByState(by); writePhoneGroupBy(by); };
 
   const splitViewCols = useMemo(() => {
@@ -2290,7 +2292,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="relative min-w-0">
                       <button type="button" onClick={() => setViewTabsExpanded(!viewTabsExpanded)} aria-expanded={viewTabsExpanded} aria-haspopup="menu" aria-label={`Showing ${currentName}. Choose which teas to show`} className="tap-target inline-flex max-w-full items-center gap-1 font-display text-ui-17 font-medium leading-none text-tea-text">
                         <span className="truncate">{currentName}</span>
-                        <span className="font-mono text-ui-11 text-tea-text-sec">{processedProducts.length}</span>
+                        <span className="font-mono text-ui-11 text-tea-text-sec">{processedProducts.length + (current?.filterType === 'Samples' ? curateSampleCount : 0)}</span>
                         <ChevronDown size={14} className="shrink-0 text-tea-text-sec" aria-hidden="true" />
                       </button>
                       {viewTabsExpanded && (
@@ -2348,7 +2350,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     <div
       className={`h-full flex flex-col overflow-hidden bg-tea-bg ${phoneList ? 'stock-phone-tone' : ''}`}
     >
-      {stockViewToggle}
+      {!phoneList && stockViewToggle}
       {/* Inventory options menu shared by the unified header at every width. */}
       <div>
             {showOptions && !isMobile && (
@@ -2748,10 +2750,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         {/* On a phone this data-heavy table goes edge-to-edge: no side gutter, no
             card border, no rounding (those only chrome a narrow column on a small
             screen and steal width). Desktop keeps the bordered card. */}
-        {phoneList && samplesOnly ? (
-          <CurateSamplesView search={searchQuery} groupBy={phoneGroupBy} embedded />
-        ) : phoneList ? (
+        {phoneList ? (<>
           <PhoneStockList
+            emptyText={filterType === 'Samples' ? null : undefined}
             products={processedProducts}
             groupBy={phoneGroupBy}
             priceMode={priceMode}
@@ -2771,6 +2772,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               setInventorySortConfig([{ key: col as keyof Product, direction: same && current.direction === 'asc' ? 'desc' : 'asc' }]);
             }}
           />
+          {filterType === 'Samples' && (
+            <CurateSamplesView
+              search={searchQuery}
+              groupBy={phoneGroupBy}
+              embedded
+              rowsOnly
+              onCount={setCurateSampleCount}
+              sortKey={(inventorySortConfig[0]?.key as string | undefined) ?? null}
+              sortDir={inventorySortConfig[0]?.direction ?? 'asc'}
+            />
+          )}
+        </>
         ) : (
         <div ref={tableWrapperRef} className="relative w-full max-w-7xl mx-auto px-0 md:px-4 lg:px-6">
           <div className="bg-tea-surface border-y md:border border-tea-border md:rounded-xl overflow-visible">

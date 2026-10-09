@@ -59,6 +59,8 @@ function readOpen(): Set<string> {
 
 export interface PhoneStockListProps {
   products: Product[];
+  /** What to say when nothing matches; null says nothing (another list follows). */
+  emptyText?: string | null;
   groupBy: PhoneGroupBy;
   priceMode: 'retail' | 'cost';
   searchActive: boolean;
@@ -84,7 +86,7 @@ function money(n: number): string {
 }
 
 export const PhoneStockList: React.FC<PhoneStockListProps> = ({
-  products, groupBy, priceMode, searchActive, selectedIds, incomingByProductId,
+  products, emptyText = 'Nothing matches this view.', groupBy, priceMode, searchActive, selectedIds, incomingByProductId,
   onToggleSelect, onOpenEditor, onUpdate, onMovementRecorded, onOpenSource,
   sortKey, sortDir = 'asc', onSort,
 }) => {
@@ -153,7 +155,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
                 role="columnheader"
                 aria-sort={on ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
                 onClick={() => onSort?.(key)}
-                className={`h-8 ${align === 'text-right' ? `${NUM} ` : 'text-left '}text-ui-10 uppercase tracking-[0.06em] ${on ? 'text-tea-gold' : 'text-tea-text-dim'}`}
+                className={`h-8 whitespace-nowrap ${align === 'text-right' ? `${NUM} ` : 'text-left '}text-ui-10 uppercase tracking-[0.06em] ${on ? 'text-tea-gold' : 'text-tea-text-dim'}`}
               >
                 {label}{on ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
               </button>
@@ -168,8 +170,8 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
         </div>
       </div>
 
-      {groups.length === 0 && (
-        <p className="px-4 py-10 text-center text-ui-14 text-tea-text-sec">Nothing matches this view.</p>
+      {groups.length === 0 && emptyText && (
+        <p className="px-4 py-10 text-center text-ui-14 text-tea-text-sec">{emptyText}</p>
       )}
 
       {groups.map(group => {

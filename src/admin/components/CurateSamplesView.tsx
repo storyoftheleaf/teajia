@@ -19,7 +19,7 @@ const control = 'min-h-11 w-full rounded-md border border-tea-border bg-tea-bg p
 const button = 'tap-target min-h-11 rounded-md px-3 text-ui-13 text-tea-text-sec hover:bg-tea-accent-sub focus-visible:outline focus-visible:outline-tea-gold disabled:opacity-50';
 const categories = TASTING_TAXONOMY.categories.filter(c => ['body','finish','feeling','flavor','liquor-color'].includes(c.id));
 
-export function CurateSamplesView({ search = '', groupBy = 'vendor', embedded = false }: { search?: string; groupBy?: PhoneGroupBy; embedded?: boolean }) {
+export function CurateSamplesView({ search = '', groupBy = 'vendor', embedded = false, rowsOnly = false, sortKey = null, sortDir = 'asc', onCount }: { search?: string; groupBy?: PhoneGroupBy; embedded?: boolean; rowsOnly?: boolean; sortKey?: string | null; sortDir?: 'asc' | 'desc'; onCount?: (n: number) => void }) {
  const accountId = useAppStore(s => s.activeAccountId);
  const client = useQueryClient();
  const holdings = useQuery<Holding[]>({ queryKey: ['curate-samples-only', accountId], queryFn: () => api.curateWorkspace.holdings(true), enabled: !!accountId });
@@ -77,7 +77,9 @@ export function CurateSamplesView({ search = '', groupBy = 'vendor', embedded = 
   } catch (e) { setReview(null); setError(e instanceof Error ? e.message : 'The change could not be confirmed. Review it again.'); }
   finally { setBusy(false); }
  };
- const rows = (holdings.data ?? []).filter(h => `${h.entry.name ?? ''} ${h.entry.chinese_name ?? ''} ${h.entry.vendor_name ?? ''}`.toLowerCase().includes(search.toLowerCase()));
+ const allRows = holdings.data ?? [];
+ useEffect(() => { onCount?.(allRows.length); }, [allRows.length, onCount]);
+ const rows = allRows.filter(h => `${h.entry.name ?? ''} ${h.entry.chinese_name ?? ''} ${h.entry.vendor_name ?? ''}`.toLowerCase().includes(search.toLowerCase()));
  if (editing) return <div className="min-w-0 overflow-y-auto pb-nav-gap"><button className={button} onClick={async () => { setEditing(null); await refresh(); }}><ArrowLeft size={16} className="inline mr-2" />Back to samples</button><CaptureCard entryId={editing} onReturnToLibrary={() => { setEditing(null); void refresh(); }} onCommit={() => { void refresh(); }} /></div>;
  // On the phone, samples look exactly like Stock: the same list, the same sheet.
  // Ordering still uses the form below, shown for just the one tea.
@@ -87,7 +89,7 @@ export function CurateSamplesView({ search = '', groupBy = 'vendor', embedded = 
   {holdings.isLoading && <p role="status" className="flex items-center gap-2 p-4 text-ui-14 text-tea-text-dim"><Loader2 size={16} className="animate-spin" />Loading samples…</p>}
   {holdings.isError && <div role="alert" className="p-4 text-ui-14 text-tea-text">Samples could not be loaded.<button className={button} onClick={() => { void refresh(); }}>Try again</button></div>}
   {!holdings.isLoading && !holdings.isError && !rows.length && <p className={`${TYPOGRAPHY_CLASSES.bodyLight} p-4 text-tea-text-dim`}>{search ? 'No samples match this search.' : 'No received or tasted samples without full stock yet.'}</p>}
-  {rows.length > 0 && <PhoneSamplesList holdings={rows} groupBy={groupBy} onEditTea={id => { void edit(id); }} onOrder={holding => start({ kind: 'order', holding })} onChanged={refresh} />}
+  {rows.length > 0 && <PhoneSamplesList holdings={rows} groupBy={groupBy} rowsOnly={rowsOnly} sortKey={sortKey} sortDir={sortDir} onEditTea={id => { void edit(id); }} onOrder={holding => start({ kind: 'order', holding })} onChanged={refresh} />}
  </section>;
  const shownRows = isMobile && action?.kind === 'order' ? rows.filter(h => h.entry.id === action.holding.entry.id) : rows;
  return <section aria-label="Samples-only inventory" className="min-w-0 flex-1 overflow-y-auto pb-nav-gap">
