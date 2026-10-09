@@ -1,7 +1,7 @@
 import React from 'react';
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { buildTermIndex, linkTermsInTree, splitTerms } from './glossaryTerms';
+import { buildTermIndex, linkSelectedTermsInTree, linkTermsInTree, splitTerms } from './glossaryTerms';
 import { GLOSSARY_TERMS, type GlossaryTerm } from '../data/glossary';
 
 const T = (id: string, term: string, extra: Partial<GlossaryTerm> = {}): GlossaryTerm =>
@@ -80,6 +80,23 @@ describe('a hand-built story tree', () => {
     const Field = ({ children }: { children: string }) => React.createElement('span', null, children);
     (Field as unknown as { noGlossaryTerms: boolean }).noGlossaryTerms = true;
     expect(link(React.createElement(Field, null, 'gaiwan'))).not.toContain('<mark');
+  });
+
+  it('links only a selected first-mention field and links it once', () => {
+    const html = renderToStaticMarkup(
+      React.createElement('p', null,
+        linkSelectedTermsInTree(
+          'A gaiwan beside a puerh cake and another gaiwan.',
+          index,
+          new Set(['gaiwan']),
+          (id, text, key) => React.createElement('mark', { key, 'data-id': id }, text),
+        ),
+      ),
+    );
+    expect(html).toContain('<mark data-id="gaiwan">gaiwan</mark>');
+    expect(html).toContain('beside a puerh cake and another gaiwan.');
+    expect(html).not.toContain('data-id="puerh"');
+    expect(html.match(/data-id="gaiwan"/g)).toHaveLength(1);
   });
 });
 

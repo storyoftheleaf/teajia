@@ -26,7 +26,7 @@ function collectErrors(page: Page): string[] {
 test('Porcelain and Tea: "gaiwan" opens its definition and closes again', async ({ page }) => {
   const errors = collectErrors(page);
   await page.goto('/read/porcelain-and-tea', { waitUntil: 'domcontentloaded' });
-  await expect(page).toHaveTitle('Shangyin Qiwu · Porcelain and Tea · Teajia');
+  await expect(page).toHaveTitle('Yan Jinwen · Porcelain and Tea · Teajia');
 
   const term = page.locator('[data-term-link="gaiwan"]');
   await expect(term, 'first mention is linked, and only once').toHaveCount(1);

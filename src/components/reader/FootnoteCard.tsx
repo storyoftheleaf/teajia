@@ -77,9 +77,11 @@ const FootnoteCard: React.FC<FootnoteCardProps> = ({
     }, 250);
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('resize', onDismiss);
     return () => {
       window.clearTimeout(t);
       window.removeEventListener('scroll', onDismiss);
+      window.removeEventListener('resize', onDismiss);
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('pointerdown', handlePointerDown);
     };

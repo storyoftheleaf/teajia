@@ -129,3 +129,14 @@ export function linkTermsInTree(
   };
   return walk(node);
 }
+
+/** Links only the term ids selected for a text field. */
+export function linkSelectedTermsInTree(
+  node: React.ReactNode,
+  index: TermIndex,
+  selected: ReadonlySet<string>,
+  renderTerm: (termId: string, text: string, key: string) => React.ReactNode,
+): React.ReactNode {
+  const seen = new Set([...index.byForm.values()].filter((id) => !selected.has(id)));
+  return linkTermsInTree(node, index, seen, renderTerm);
+}

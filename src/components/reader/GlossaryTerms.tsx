@@ -26,10 +26,14 @@ interface ScopeCtx {
   openId: string | null;
   open: (termId: string, trigger: HTMLElement) => void;
   close: () => void;
+  fieldTermIds?: ReadonlyMap<string, ReadonlySet<string>>;
 }
 const Ctx = createContext<ScopeCtx | null>(null);
 
-export const GlossaryScope: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const GlossaryScope: React.FC<{
+  children: React.ReactNode;
+  fieldTermIds?: ReadonlyMap<string, ReadonlySet<string>>;
+}> = ({ children, fieldTermIds }) => {
   const [state, setState] = useState<{ term: GlossaryTerm; anchor: FootnoteAnchor } | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
 
@@ -47,7 +51,7 @@ export const GlossaryScope: React.FC<{ children: React.ReactNode }> = ({ childre
     triggerRef.current?.focus({ preventScroll: true });
   }, []);
 
-  const value = useMemo(() => ({ openId: state?.term.id ?? null, open, close }), [state, open, close]);
+  const value = useMemo(() => ({ openId: state?.term.id ?? null, open, close, fieldTermIds }), [state, open, close, fieldTermIds]);
 
   return (
     <Ctx.Provider value={value}>
@@ -65,6 +69,10 @@ export const GlossaryScope: React.FC<{ children: React.ReactNode }> = ({ childre
     </Ctx.Provider>
   );
 };
+
+export function useGlossaryFieldTermIds(field: string): ReadonlySet<string> | undefined {
+  return useContext(Ctx)?.fieldTermIds?.get(field);
+}
 
 /** The tappable word. Outside a scope it renders as plain text. */
 export const TermLink: React.FC<{ termId: string; children: React.ReactNode }> = ({ termId, children }) => {
