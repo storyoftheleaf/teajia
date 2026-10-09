@@ -143,3 +143,26 @@ test.describe('Samples on the phone', () => {
     expect(calls[0].command).toMatchObject({ action: 'edit', entity: 'sample', id: 'portion-b', fields: { grams: 30 } });
   });
 });
+
+test.describe('Samples on the laptop', () => {
+  test.skip(({ isMobile }) => !!isMobile, 'laptop layout only');
+
+  test.beforeEach(async ({ page }) => {
+    await injectAuth(page);
+    await mockInventoryApi(page);
+    await page.route('**/api/curate/holdings**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(HOLDINGS) }));
+  });
+
+  test('Samples is a view of the one table: Curate samples are rows with their grams, and open in Curate', async ({ page }) => {
+    await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('button', { name: 'Samples only' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Samples', exact: true }).first().click();
+    const rows = page.getByTestId('curate-sample-table-row');
+    await expect(rows).toHaveCount(2);
+    await expect(rows.filter({ hasText: '1958 Aged Raw' })).toContainText('25');
+    await expect(page.getByText('No products match the current filter.')).toHaveCount(0);
+    await shot(page, 'laptop');
+    await page.getByRole('button', { name: 'Open 1958 Aged Raw in Curate' }).click();
+    await expect(page).toHaveURL(/\/admin\/compass\?entry=tea-a/);
+  });
+});
