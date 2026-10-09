@@ -981,7 +981,7 @@ test.describe('Curate v2 requests (phone)', () => {
   });
   // ── Orders come from the shop, not only this phone ──────────────────────────
   // What the shop's purchase_orders table holds for an order another device made:
-  // items_json is a string, total_usd is 0 when it could not be worked out.
+  // items_json is a string, total_usd is NULL when it could not be worked out.
   const OTHER_DEVICE_LINES = JSON.stringify([
     { name: 'Mengku Laobanzhang', type: 'Sheng', form: 'Cake', year: 2019, quantity: 2, pricePerUnit: 1200, priceIsPerGram: false, currency: 'Yuan', quantity_grams: 714, line_total: 2400 },
     { name: 'Jingmai Mao Cha', type: 'Sheng', quantity: 200, pricePerUnit: 4.5, priceIsPerGram: true, currency: 'Yuan' },
@@ -1074,7 +1074,7 @@ test.describe('Curate v2 requests (phone)', () => {
     await installCompassHarness(page, {
       customers: VENDORS, rates: RATES,
       purchaseOrders: [shopOrder({
-        id: 'po-nototal', total_usd: 0,
+        id: 'po-nototal', total_usd: null,
         items_json: JSON.stringify([{ name: 'Mengku Laobanzhang', quantity: 1, pricePerUnit: 450, priceIsPerGram: false, currency: 'Yuan', form: 'Cake' }, { name: 'Priceless Cake', quantity: 1, pricePerUnit: null, priceIsPerGram: false, currency: 'Yuan', form: 'Cake' }]),
       })],
     });
@@ -1087,6 +1087,20 @@ test.describe('Curate v2 requests (phone)', () => {
     await expect(order).toContainText('no price yet');
     await expect(order).toContainText('Not every tea has a price on this order');
     expect(await order.innerText()).not.toMatch(/\$0(\.00)?\b|¥0\b/);
+  });
+
+  test('a shop order recorded at $0 (a free order) shows $0: only a total nobody could work out is a dash', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS, rates: RATES,
+      purchaseOrders: [shopOrder({
+        id: 'po-free', total_usd: 0,
+        items_json: JSON.stringify([{ name: 'Gift Sample', quantity: 1, pricePerUnit: 0, priceIsPerGram: false, currency: 'Yuan', form: 'Cake' }]),
+      })],
+    });
+    await openCurateV2(page, 'orders');
+    const order = shopRows(page);
+    await order.getByRole('button', { name: "The shop's order with Chen Family" }).click();
+    await expect(order.getByTestId('shop-order-usd')).toHaveText('$0');
   });
 
   test('while the shop is being asked it says so, and when it cannot be reached it says that, keeps this device\'s orders and offers to try again', async ({ page }) => {

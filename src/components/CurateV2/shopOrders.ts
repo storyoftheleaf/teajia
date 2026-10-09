@@ -16,9 +16,11 @@
  *     not shown twice.
  *   - `useShopOrders` is the read, once, with the states a screen has to say.
  *
- * A total the shop could not record is NULL in the shop's own words, but the
- * column is NOT NULL DEFAULT 0 (migration 0000, see handleCreatePurchaseOrder),
- * so a stored 0 means "unknown", never "free": it is shown as a dash.
+ * A dollar total the shop could not work out is stored as NULL (migration
+ * 0040; before it the column was NOT NULL DEFAULT 0) and is shown as a dash,
+ * never as $0. Every door that writes the column now writes NULL for unknown,
+ * so a stored 0 is a real $0 and is kept: nothing entered is NULL, anything
+ * entered is the number, zero included.
  */
 import { useQuery } from '@tanstack/react-query';
 import { api, type PurchaseOrder } from '../../lib/api';
@@ -104,8 +106,8 @@ export function shopOrderOf(po: PurchaseOrder): ShopOrder {
     vendorId: text(po.vendor_id) ?? null,
     status: text(po.status) ?? 'pending',
     currency,
-    // 0 is "the shop could not say" (see the header), never a spend of nothing.
-    totalUsd: usd !== undefined && usd > 0 ? usd : null,
+    // NULL is "the shop could not say" (see the header); a recorded 0 is $0.
+    totalUsd: usd ?? null,
     createdAt,
     updatedAt: text(po.updated_at) ?? createdAt,
     items,

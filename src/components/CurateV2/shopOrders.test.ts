@@ -6,7 +6,7 @@ import { isVendorOrder, mergeOrders, shopOrderIsSpend, shopOrderOf, shopOrderTot
 /** A row as the shop's table holds it (worker/schema.sql purchase_orders). */
 const row = (over: Partial<PurchaseOrder> & { id: string }): PurchaseOrder => ({
   account_id: 'acct-bali', vendor_name: 'Wang Laoshi', vendor_id: 'vendor-wang', vendor_contact: null,
-  items_json: '[]', total_usd: 0, display_currency: 'USD', status: 'pending', message_text: null, notes: null,
+  items_json: '[]', total_usd: null, display_currency: 'USD', status: 'pending', message_text: null, notes: null,
   created_at: '2026-10-08T05:00:00.000Z', updated_at: '2026-10-08T05:00:00.000Z', ...over,
 } as PurchaseOrder);
 
@@ -31,13 +31,13 @@ describe('reading an order the shop holds', () => {
     expect(totals.usd).toBe(549.3);
   });
 
-  it('a total the shop stored as 0 is unknown, never a spend of nothing', () => {
+  it('a total the shop recorded as 0 is $0: unknown is stored as NULL now, so a 0 is somebody\'s answer', () => {
     const order = shopOrderOf(row({ id: 'po-2', items_json: curateLines, total_usd: 0, display_currency: 'Yuan' }));
-    expect(order.totalUsd).toBeNull();
-    expect(shopOrderTotals(order).usd).toBeNull();
+    expect(order.totalUsd).toBe(0);
+    expect(shopOrderTotals(order).usd).toBe(0);
   });
 
-  it('a total that is NULL or absent (the column is becoming nullable) is unknown too: a dash, never $0, never read as zero', () => {
+  it('a total that is NULL or absent is unknown: a dash, never $0, never read as zero', () => {
     for (const total of [null, undefined]) {
       const po = { ...row({ id: 'po-null', items_json: '[]', display_currency: 'Yuan' }), total_usd: total } as unknown as PurchaseOrder;
       if (total === undefined) delete (po as Partial<PurchaseOrder>).total_usd;
@@ -50,7 +50,7 @@ describe('reading an order the shop holds', () => {
 
   it('a line nobody priced makes the own-money total unknown (a total with blanks reads cheaper than the order is)', () => {
     const items = JSON.stringify([{ name: 'A', quantity: 1, pricePerUnit: 100, priceIsPerGram: false, currency: 'Yuan' }, { name: 'B', quantity: 1, pricePerUnit: null, priceIsPerGram: false, currency: 'Yuan' }]);
-    const order = shopOrderOf(row({ id: 'po-3', items_json: items, total_usd: 0, display_currency: 'Yuan' }));
+    const order = shopOrderOf(row({ id: 'po-3', items_json: items, total_usd: null, display_currency: 'Yuan' }));
     expect(order.items[1].unpriced).toBe(true);
     expect(shopOrderTotals(order)).toEqual({ own: null, usd: null });
   });

@@ -29,7 +29,9 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
   // same canned body to every call and could not tell a tea that arrives with its
   // cost from one that arrives with none.
   // Seeded orders are the shop's other devices' orders, in the columns the
-  // shop's table has (items_json is a string; total_usd is 0, never null).
+  // shop's table has (items_json is a string; total_usd is NULL when the
+  // order could not be converted to dollars, as the worker writes it since
+  // migration 0040, and a recorded 0 stays 0).
   const purchaseOrders: Array<Record<string, any>> = (options?.purchaseOrders ?? []).map((po) => {
     let items: any[] = [];
     try { items = JSON.parse(po.items_json ?? '[]'); } catch { items = []; }
@@ -39,7 +41,7 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
   /** A purchase order as GET /api/purchase-orders sends it: the row, in the table's columns (worker/schema.sql), newest first. */
   const shopRow = (po: Record<string, any>) => ({
     id: po.id, account_id: 'acct-bali', vendor_name: po.vendor_name ?? null, vendor_id: po.vendor_id ?? null, vendor_contact: po.vendor_contact ?? null,
-    items_json: po.items_json ?? '[]', total_usd: po.total_usd || 0, display_currency: po.display_currency || 'USD', status: po.status || 'pending',
+    items_json: po.items_json ?? '[]', total_usd: typeof po.total_usd === 'number' && Number.isFinite(po.total_usd) ? po.total_usd : null, display_currency: po.display_currency || 'USD', status: po.status || 'pending',
     message_text: po.message_text ?? null, notes: po.notes ?? null, freight_estimate_json: null,
     created_at: po.created_at ?? new Date().toISOString(), updated_at: po.updated_at ?? po.created_at ?? new Date().toISOString(),
   });

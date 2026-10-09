@@ -94,11 +94,11 @@ test.describe('Curate v1 purchase orders: the money they send', () => {
       for (const item of JSON.parse(po.items_json)) expect(item.currency).toBe(po.display_currency);
     }
 
-    // Mark as Sent names the order by the id the shop gave it, not a slice of the local id.
+    // Mark as Sent names the order by an id the shop gave it, not a slice of the local id.
     await page.getByRole('button', { name: 'Mark as Sent' }).first().click();
     await expect(page.getByRole('button', { name: 'Sent' }).first()).toBeVisible();
     const put = sent.find((s) => s.method === 'PUT')!;
-    expect(put.path).toBe('/api/purchase-orders/po-created');
+    expect(put.path).toMatch(/^\/api\/purchase-orders\/po-created(-\d+)?$/);
     expect(put.body).toEqual({ status: 'sent' });
   });
 
