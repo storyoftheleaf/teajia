@@ -1807,7 +1807,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           />
 
           {/* Retail price preview, only for tea with cost + grams entered */}
-          {entry.category === 'tea' && entry.priceAmount && entry.pricePerUnitGrams && !unitBased && (
+          {entry.category === 'tea' && entry.priceAmount != null && entry.pricePerUnitGrams && !unitBased && (
             <RetailPricePreview
               costAmount={entry.priceAmount}
               grams={entry.pricePerUnitGrams}
