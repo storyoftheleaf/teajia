@@ -18,6 +18,13 @@ async function shot(page: Page, name: string) {
   await page.screenshot({ path: path.join(SHOTS_DIR, `${name}.png`) });
 }
 
+async function openSamples(page: Page) {
+  // Samples is a view of the one Stock list, picked from the same menu as Working or Personal.
+  await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('button', { name: /Choose which teas to show/ }).click();
+  await page.getByRole('menuitem', { name: 'Samples', exact: true }).click();
+}
+
 const HOLDINGS = [
   {
     entry: { id: 'tea-a', name: '1958 Aged Raw', type: 'Sheng Puer', year: 1958, vendor_name: 'Boyuan Tea Shop', vendor_id: 'v1', price_amount: 900, price_currency: 'Yuan' },
@@ -41,7 +48,7 @@ test.describe('Samples on the phone', () => {
   });
 
   test('looks like Stock: grouped by supplier, slim rows, sample grams in a column', async ({ page }) => {
-    await page.goto('/admin/stock?stock_view=samples', { waitUntil: 'domcontentloaded' });
+    await openSamples(page);
     const list = page.getByTestId('samples-phone');
     await expect(list.getByRole('region', { name: 'Boyuan Tea Shop' })).toContainText('2 samples');
     await expect(list.getByRole('button', { name: /^1958 Aged Raw/ })).toContainText('25');
@@ -50,8 +57,11 @@ test.describe('Samples on the phone', () => {
     await shot(page, 'list');
   });
 
-  test('is the Stock page with sample rows: same top bar, and the Kind switch regroups', async ({ page }) => {
-    await page.goto('/admin/stock?stock_view=samples', { waitUntil: 'domcontentloaded' });
+  test('Samples is a view of the Stock list: no separate bar, same headings, Kind regroups', async ({ page }) => {
+    await openSamples(page);
+    await expect(page.getByRole('button', { name: 'Samples only' })).toHaveCount(0);
+    await expect(page.getByRole('columnheader', { name: /Stock/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Showing Samples/ })).toContainText('2');
     await expect(page.getByRole('button', { name: 'Kind', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Supplier', exact: true })).toBeVisible();
     const list = page.getByTestId('samples-phone');
@@ -70,7 +80,7 @@ test.describe('Samples on the phone', () => {
       calls.push(body);
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body.confirm ? { ok: true } : { confirmation_token: 'tok-1', preview: {} }) });
     });
-    await page.goto('/admin/stock?stock_view=samples', { waitUntil: 'domcontentloaded' });
+    await openSamples(page);
     await page.getByTestId('samples-phone').getByRole('button', { name: /^1958 Aged Raw/ }).click();
     const sheet = page.getByRole('region', { name: /1958 Aged Raw, at a glance/ });
     await sheet.getByRole('button', { name: /Log a tasting/ }).click();
@@ -91,7 +101,7 @@ test.describe('Samples on the phone', () => {
       calls.push(body);
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body.confirm ? { ok: true } : { confirmation_token: 'tok', preview: {} }) });
     });
-    await page.goto('/admin/stock?stock_view=samples', { waitUntil: 'domcontentloaded' });
+    await openSamples(page);
     await page.getByTestId('samples-phone').getByRole('button', { name: /^1958 Aged Raw/ }).click();
     const sheet = page.getByRole('region', { name: /1958 Aged Raw, at a glance/ });
     await sheet.getByRole('button', { name: /Log a tasting/ }).click();
@@ -121,7 +131,7 @@ test.describe('Samples on the phone', () => {
       calls.push(body);
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body.confirm ? { ok: true } : { confirmation_token: 'tok-2', preview: {} }) });
     });
-    await page.goto('/admin/stock?stock_view=samples', { waitUntil: 'domcontentloaded' });
+    await openSamples(page);
     await page.getByTestId('samples-phone').getByRole('button', { name: /^Wild Moonlight/ }).click();
     const sheet = page.getByRole('region', { name: /Wild Moonlight, at a glance/ });
     await expect(sheet).toContainText('weigh it');

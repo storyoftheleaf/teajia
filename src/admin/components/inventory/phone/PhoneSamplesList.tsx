@@ -35,6 +35,10 @@ export interface PhoneSamplesListProps {
   holdings: SampleHolding[];
   /** The Stock page's Supplier / Kind / Stage switch. Samples have no stage, so Stage groups by supplier. */
   groupBy?: 'vendor' | 'type' | 'stage' | 'none';
+  /** Inside the Stock list: no header of its own, Stock's columns, and Stock's sort. */
+  rowsOnly?: boolean;
+  sortKey?: string | null;
+  sortDir?: 'asc' | 'desc';
   onEditTea: (id: string) => void;
   onOrder: (holding: SampleHolding) => void;
   onChanged: () => void | Promise<void>;
@@ -42,8 +46,13 @@ export interface PhoneSamplesListProps {
 
 type SampleSort = 'name' | 'year' | 'grams';
 
-export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, groupBy = 'vendor', onEditTea, onOrder, onChanged }) => {
-  const [sort, setSort] = useState<{ key: SampleSort; dir: 'asc' | 'desc' }>({ key: 'name', dir: 'asc' });
+export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, groupBy = 'vendor', rowsOnly = false, sortKey = null, sortDir = 'asc', onEditTea, onOrder, onChanged }) => {
+  const [ownSort, setSort] = useState<{ key: SampleSort; dir: 'asc' | 'desc' }>({ key: 'name', dir: 'asc' });
+  // In the Stock list the column headings above sort these rows too.
+  const sort: { key: SampleSort; dir: 'asc' | 'desc' } = rowsOnly
+    ? { key: sortKey === 'year' ? 'year' : sortKey === 'stockGrams' ? 'grams' : 'name', dir: sortDir }
+    : ownSort;
+  const cols = rowsOnly ? 'grid grid-cols-[minmax(0,1fr)_34px_40px_36px] gap-x-2.5 items-stretch' : COLS;
   const onSort = (key: SampleSort) => setSort(prev => ({ key, dir: prev.key === key && prev.dir === 'asc' ? 'desc' : 'asc' }));
   const [open, setOpen] = useState<Set<string>>(() => new Set());
   const [focusedId, setFocusedId] = useState<string | null>(null);
@@ -69,7 +78,7 @@ export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, gr
 
   return (
     <div data-testid="samples-phone" className={`stock-phone-tone ${focused ? 'pb-[300px]' : ''}`}>
-      <div role="row" className="sticky top-0 z-sticky flex items-center bg-tea-bg pl-4 pr-3 border-b border-tea-border">
+      {!rowsOnly && <div role="row" className="sticky top-0 z-sticky flex items-center bg-tea-bg pl-4 pr-3 border-b border-tea-border">
         <div className={`${COLS} flex-1`}>
           {([['name', 'Tea'], ['year', 'Year'], ['grams', 'Sample']] as const).map(([key, label], i) => {
             const on = sort.key === key;
@@ -81,7 +90,7 @@ export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, gr
             );
           })}
         </div>
-      </div>
+      </div>}
       {groups.map(group => {
         const isOpen = expandAll || open.has(group.key);
         const grams = group.rows.reduce((sum, h) => sum + Number(h.sample_grams ?? 0), 0);
@@ -113,7 +122,7 @@ export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, gr
                     data-testid="curate-sample-row"
                     aria-expanded={isFocused}
                     onClick={() => setFocusedId(isFocused ? null : h.entry.id)}
-                    className={`${COLS} flex-1 min-w-0 pl-4 pr-3 text-left min-h-[46px]`}
+                    className={`${cols} flex-1 min-w-0 pl-4 pr-3 text-left min-h-[46px]`}
                   >
                     <span className="min-w-0 py-1.5 pr-2">
                       <span className={`block truncate font-display text-ui-17 font-semibold leading-tight ${isFocused ? 'text-tea-gold' : 'text-tea-text'}`}>{teaName(h)}</span>
@@ -124,6 +133,7 @@ export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, gr
                     </span>
                     <span className="flex items-center justify-end font-mono text-ui-13 tracking-tight text-tea-text tabular-nums">{h.entry.year || '—'}</span>
                     <span className="flex items-center justify-end font-mono text-ui-13 tracking-tight text-tea-text tabular-nums">{empty ? '—' : whole(Number(h.sample_grams))}</span>
+                    {rowsOnly && <span className="flex items-center justify-end font-mono text-ui-13 text-tea-text-dim">—</span>}
                   </button>
                 </div>
               );
