@@ -21877,10 +21877,14 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
   if (requestKey && (requestKey.length > 160 || !/^[A-Za-z0-9:_-]+$/.test(requestKey))) {
     return restError(400, 'Invalid purchase request key', 'invalid_idempotency_key');
   }
+  // Match the value written below: an unknown total and a stated zero are
+  // different requests, even when every other purchase-order field matches.
+  const totalUsd = typeof body.total_usd === 'number' && Number.isFinite(body.total_usd)
+    ? body.total_usd : null;
   const fingerprint = requestKey ? await sha256Hex(JSON.stringify({
     vendor_name: body.vendor_name.trim(), vendor_id: body.vendor_id || null,
     vendor_contact: body.vendor_contact || null, items_json: body.items_json || '[]',
-    total_usd: body.total_usd ?? 0, display_currency: body.display_currency || 'USD',
+    total_usd: totalUsd, display_currency: body.display_currency || 'USD',
     status: body.status || 'pending', message_text: body.message_text || null,
     notes: body.notes || null,
   })) : null;
@@ -21908,7 +21912,7 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
     // currency with no rate, a tea with no price yet), so it is stored as
     // unknown, never as 0: 0 reads as an order that cost nothing. A stated 0
     // is kept. Migration 0040 lets the column hold NULL.
-    typeof body.total_usd === 'number' && Number.isFinite(body.total_usd) ? body.total_usd : null,
+    totalUsd,
     body.display_currency || 'USD',
     body.status || 'pending',
     body.message_text || null,
