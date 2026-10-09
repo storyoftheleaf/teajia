@@ -61,10 +61,16 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
       ? `Table · ${sessionEntries.length}`
       : 'Table';
 
-  const handleDiscard = (id: string) => {
-    // A capture with anything in it asks first; an empty draft just goes.
+  // A capture with anything in it asks first, on its own row rather than in a
+  // browser popup, which in-app browsers often block; an empty draft just goes.
+  const [confirmingDiscardId, setConfirmingDiscardId] = React.useState<string | null>(null);
+  const handleDiscard = (id: string, confirmed = false) => {
     const target = sessionEntries.find((e) => e.id === id);
-    if (target && entryHasDeliberateInput(target) && !window.confirm(`Discard ${target.name?.trim() || 'this capture'}?`)) return;
+    if (target && entryHasDeliberateInput(target) && !confirmed) {
+      setConfirmingDiscardId(id);
+      return;
+    }
+    setConfirmingDiscardId(null);
     if (id === activeEntryId) {
       const remaining = sessionEntries.filter((e) => e.id !== id);
       discardEntry(id);
@@ -149,14 +155,34 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
                   <span className="min-w-0 flex-1 truncate">{entry.name || 'Untitled'}</span>
                   {isActive && <span className="font-mono text-ui-11 uppercase tracking-[0.16em] text-tea-gold">open</span>}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => handleDiscard(entry.id)}
-                  aria-label={`Discard ${entry.name || 'untitled entry'}`}
-                  className="curate-v2-word tap-target shrink-0 px-2 text-tea-text-sec"
-                >
-                  discard
-                </button>
+                {confirmingDiscardId === entry.id ? (
+                  <span className="flex shrink-0 items-center gap-1" data-testid="discard-confirm">
+                    <span className="font-mono text-ui-12 text-tea-text-sec">discard?</span>
+                    <button
+                      type="button"
+                      onClick={() => handleDiscard(entry.id, true)}
+                      className="curate-v2-word tap-target shrink-0 px-2 text-tea-gold"
+                    >
+                      yes
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingDiscardId(null)}
+                      className="curate-v2-word tap-target shrink-0 px-2 text-tea-text-sec"
+                    >
+                      keep
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleDiscard(entry.id)}
+                    aria-label={`Discard ${entry.name || 'untitled entry'}`}
+                    className="curate-v2-word tap-target shrink-0 px-2 text-tea-text-sec"
+                  >
+                    discard
+                  </button>
+                )}
               </div>
             );
           })}

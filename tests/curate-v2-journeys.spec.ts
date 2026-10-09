@@ -553,6 +553,24 @@ test.describe('Curate v2 journeys (phone)', () => {
     expect(popups).toBe(0);
   });
 
+  test('Teas: Clean up asks in place (never a browser popup); Keep leaves the empty entries, Delete removes them', async ({ page }) => {
+    let popups = 0;
+    page.on('dialog', (d) => { popups += 1; void d.dismiss(); });
+    const blank = (id: string) => entry({ id, name: '', type: null, vendor_name: null, vendor_id: null, price_amount: null, price_currency: null });
+    await installCompassHarness(page, { ...TODAY_DATA, compassEntries: [...TODAY_DATA.compassEntries, blank('x-1'), blank('x-2'), blank('x-3')] });
+    await openCurateV2(page, 'teas');
+    const banner = page.getByRole('tabpanel').getByTestId('browse-cleanup');
+    await expect(banner).toContainText('3 entries have no name');
+    await banner.getByRole('button', { name: 'Clean up' }).click();
+    await expect(banner).toContainText('Delete these 3 empty entries?');
+    await banner.getByRole('button', { name: 'Keep' }).click();
+    await expect(banner).toContainText('3 entries have no name');
+    await banner.getByRole('button', { name: 'Clean up' }).click();
+    await banner.getByRole('button', { name: 'Delete' }).click();
+    await expect(banner).toHaveCount(0);
+    expect(popups).toBe(0);
+  });
+
   test('Chinese name is suggested, never typed: cross leaves it empty, tick saves it', async ({ page }) => {
     await installCompassHarness(page, { ...TODAY_DATA, customers: TODAY_DATA.customers });
     await openCurateV2(page, 'today');

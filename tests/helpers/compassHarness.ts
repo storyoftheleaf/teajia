@@ -167,6 +167,14 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     if (requestKey === 'GET /api/compass/entries') {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ entries: compassEntries }) });
     }
+    // As handleDeleteCompassEntry answers: 404 for an unknown id, success otherwise.
+    const entryDelete = path.match(/^\/api\/compass\/entries\/([^/]+)$/);
+    if (entryDelete && route.request().method() === 'DELETE') {
+      const index = compassEntries.findIndex((row) => row.id === entryDelete[1]);
+      if (index < 0) return route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'Compass entry not found' }) });
+      compassEntries.splice(index, 1);
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
+    }
     if (requestKey === 'GET /api/admin/sample-sets') {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ sets: sampleSets }) });
     }

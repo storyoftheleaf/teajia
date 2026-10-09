@@ -292,9 +292,12 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     [entries]
   );
 
+  // Clean up asks on its own line, not in a browser popup, which in-app
+  // browsers often block (the button then did nothing).
+  const [confirmingCleanup, setConfirmingCleanup] = useState(false);
   const handleCleanup = () => {
-    if (!window.confirm(`Delete ${emptyEntries.length} entries with no name, notes, or tasting data?`)) return;
     emptyEntries.forEach((e) => removeEntry(e.id));
+    setConfirmingCleanup(false);
     setCleanupDismissed(true);
   };
 
@@ -809,25 +812,48 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
             className="overflow-hidden"
           >
-            <div className="flex items-center gap-2 border-y border-tea-border py-2 text-ui-12">
+            <div className="flex items-center gap-2 border-y border-tea-border py-2 text-ui-12" data-testid="browse-cleanup">
               <span className="flex-1 text-tea-text-sec">
-                {emptyEntries.length} entries have no name, notes, or tasting data
+                {confirmingCleanup
+                  ? `Delete these ${emptyEntries.length} empty entries?`
+                  : `${emptyEntries.length} entries have no name, notes, or tasting data`}
               </span>
-              <button
-                type="button"
-                onClick={handleCleanup}
-                className="tap-target min-h-11 text-tea-error hover:text-tea-error font-medium transition-colors shrink-0"
-              >
-                Clean up
-              </button>
-              <button
-                type="button"
-                onClick={() => setCleanupDismissed(true)}
-                className="tap-target flex min-h-11 shrink-0 items-center justify-center font-mono text-tea-text-sec hover:text-tea-text transition-colors ml-1"
-                aria-label="Dismiss cleanup"
-              >
-                Dismiss
-              </button>
+              {confirmingCleanup ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleCleanup}
+                    className="tap-target min-h-11 text-tea-error hover:text-tea-error font-medium transition-colors shrink-0"
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingCleanup(false)}
+                    className="tap-target flex min-h-11 shrink-0 items-center justify-center font-mono text-tea-text-sec hover:text-tea-text transition-colors ml-1"
+                  >
+                    Keep
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingCleanup(true)}
+                    className="tap-target min-h-11 text-tea-error hover:text-tea-error font-medium transition-colors shrink-0"
+                  >
+                    Clean up
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCleanupDismissed(true)}
+                    className="tap-target flex min-h-11 shrink-0 items-center justify-center font-mono text-tea-text-sec hover:text-tea-text transition-colors ml-1"
+                    aria-label="Dismiss cleanup"
+                  >
+                    Dismiss
+                  </button>
+                </>
+              )}
             </div>
           </motion.div>
         )}
