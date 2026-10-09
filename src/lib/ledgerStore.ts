@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Currency } from '../admin/types';
+import { canonicalCurrency } from './currency';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -21,6 +22,9 @@ export interface LedgerLineItem {
   pricePerUnit: number;      // Price per gram or per unit
   priceIsPerGram: boolean;   // true = price/gram, false = price/unit
   currency: Currency;
+  /** Nobody has said what this costs yet: pricePerUnit is a placeholder 0,
+   *  not a price, and the line is left out of every total. */
+  unpriced?: boolean;
 
   // Link back to source
   compassEntryId?: string;   // If added from Tea Compass
@@ -46,6 +50,12 @@ export interface LedgerTransaction {
   // State
   status: 'draft' | 'confirmed';
   currency: Currency;
+  /** The purchase order the shop recorded when this was confirmed. */
+  purchaseOrderId?: string;
+  /** Confirmed here but the shop did not take the purchase order (or invoice): Curate says so and offers it again. */
+  recordFailed?: boolean;
+  /** The vendor has been messaged: the shop's purchase order is marked sent. */
+  purchaseOrderSent?: boolean;
 
   createdAt: string;
   updatedAt: string;
@@ -64,7 +74,7 @@ interface LedgerState {
   addLineItem: (transactionId: string, item: Omit<LedgerLineItem, 'id' | 'addedAt'>) => string;
   updateLineItem: (transactionId: string, itemId: string, updates: Partial<LedgerLineItem>) => void;
   removeLineItem: (transactionId: string, itemId: string) => void;
-  updateTransaction: (transactionId: string, updates: Partial<Pick<LedgerTransaction, 'counterpartyName' | 'counterpartyId' | 'currency' | 'status'>>) => void;
+  updateTransaction: (transactionId: string, updates: Partial<Pick<LedgerTransaction, 'counterpartyName' | 'counterpartyId' | 'currency' | 'status' | 'purchaseOrderId' | 'recordFailed' | 'purchaseOrderSent'>>) => void;
   addPhoto: (transactionId: string, url: string) => void;
   removePhoto: (transactionId: string, index: number) => void;
   removeTransaction: (transactionId: string) => void;
@@ -77,6 +87,13 @@ interface LedgerState {
   getConfirmedTransactions: () => LedgerTransaction[];
   getActiveTransaction: () => LedgerTransaction | undefined;
   getOrCreatePurchaseTransaction: (vendorName: string, currency: Currency, vendorId?: string) => string;
+  /**
+   * Names the vendor of a draft purchase that had none. If that vendor already
+   * has a draft purchase of its own, the lines move into it and the nameless
+   * draft goes, so there is never a second draft for one vendor. Returns the
+   * id of the draft that holds the lines afterwards.
+   */
+  adoptVendor: (transactionId: string, vendorName: string, vendorId?: string) => string;
 }
 
 const createdLedgerStore = create<LedgerState>()(
@@ -224,15 +241,50 @@ const createdLedgerStore = create<LedgerState>()(
         return state.transactions.find((tx) => tx.id === state.activeTransactionId);
       },
 
-      // Find or create a draft purchase transaction for a vendor
+      adoptVendor: (transactionId, vendorName, vendorId) => {
+        const state = get();
+        const source = state.transactions.find((tx) => tx.id === transactionId);
+        if (!source) return transactionId;
+        const sameVendor = (tx: LedgerTransaction) =>
+          (!!vendorId && tx.counterpartyId === vendorId)
+          || tx.counterpartyName?.trim().toLowerCase() === vendorName.trim().toLowerCase();
+        // Lines are merged only into a draft counted in the same money: an
+        // order has one currency, and adding ¥ lines into an NT$ draft would
+        // total them under the wrong symbol.
+        // (Lines with no price yet are in no money, so they go anywhere.)
+        const sourcePriced = source.items.some((item) => !item.unpriced);
+        const sameMoney = (tx: LedgerTransaction) => !sourcePriced
+          || (canonicalCurrency(tx.currency) ?? tx.currency) === (canonicalCurrency(source.currency) ?? source.currency);
+        const target = source.status === 'draft' && source.direction === 'purchase'
+          ? state.transactions.find((tx) => tx.id !== transactionId && tx.status === 'draft' && tx.direction === 'purchase' && sameVendor(tx) && sameMoney(tx))
+          : undefined;
+        if (!target) {
+          get().updateTransaction(transactionId, { counterpartyName: vendorName, counterpartyId: vendorId });
+          return transactionId;
+        }
+        // A tea already on the vendor's draft is updated, never doubled.
+        for (const { id: _id, addedAt: _addedAt, ...line } of source.items) get().addLineItem(target.id, line.unpriced ? { ...line, currency: target.currency } : line);
+        set((s) => ({
+          transactions: s.transactions.filter((tx) => tx.id !== transactionId),
+          activeTransactionId: target.id,
+        }));
+        return target.id;
+      },
+
+      // Find or create a draft purchase transaction for a vendor IN ONE MONEY.
+      // An order has one currency (its total and its purchase order are written
+      // in it), so a tea priced in NT$ opens its own draft beside the vendor's ¥
+      // one instead of being added up under ¥. Matching on the name alone is how
+      // one order came to hold ¥450 + NT$1,800 and show ¥2,250.
       getOrCreatePurchaseTransaction: (vendorName, currency, vendorId) => {
         const state = get();
-        // Look for an existing draft purchase from the same vendor
+        const money = (c: string | undefined) => canonicalCurrency(c) ?? c;
         const existing = state.transactions.find(
           (tx) =>
             tx.status === 'draft' &&
             tx.direction === 'purchase' &&
-            tx.counterpartyName === vendorName
+            (vendorId && tx.counterpartyId ? tx.counterpartyId === vendorId : tx.counterpartyName === vendorName) &&
+            money(tx.currency) === money(currency)
         );
         if (existing) {
           set({ activeTransactionId: existing.id });

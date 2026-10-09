@@ -2,6 +2,7 @@ import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Font } from '@react-pdf/renderer';
 import type { LedgerTransaction, LedgerLineItem } from '../../lib/ledgerStore';
 import type { Currency } from '../../admin/types';
+import { orderMoney } from './curatePricing';
 
 Font.register({
   family: 'Plus Jakarta Sans',
@@ -89,7 +90,9 @@ interface LedgerPdfProps {
 
 export const LedgerPdf: React.FC<LedgerPdfProps> = ({ transaction }) => {
   const isPurchase = transaction.direction === 'purchase';
-  const grandTotal = transaction.items.reduce((sum, item) => sum + lineTotal(item), 0);
+  // Each money on its own when the lines are in more than one: one money's
+  // number is never printed under another's symbol.
+  const grandTotal = orderMoney(transaction).parts.map((part) => fmtPrice(part.amount, part.currency)).join(' + ');
   const date = new Date(transaction.createdAt).toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric',
   });
@@ -158,7 +161,7 @@ export const LedgerPdf: React.FC<LedgerPdfProps> = ({ transaction }) => {
         <View style={s.totalRow}>
           <Text style={s.totalLabel}>Total</Text>
           <Text style={s.totalValue}>
-            {fmtPrice(grandTotal, transaction.currency)}
+            {grandTotal}
           </Text>
         </View>
 

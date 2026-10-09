@@ -31,7 +31,7 @@ test.describe('creator profile, sparse (Wei Chen)', () => {
 
     // No hub: not one cell exists for her. And no divider for absent things.
     await expect(page.getByTestId('profile-hub')).toHaveCount(0);
-    for (const missing of ['profile-gallery', 'profile-words', 'profile-teas', 'profile-hosting', 'profile-house', 'profile-reach']) {
+    for (const missing of ['profile-gallery', 'profile-words', 'profile-teas', 'profile-where', 'profile-reach']) {
       await expect(page.getByTestId(missing)).toHaveCount(0);
     }
     for (const absent of ['hands on', 'the teas', 'hosting', 'my table', 'reach me']) expect(lower).not.toContain(absent);

@@ -6,6 +6,9 @@ Status: the starred-note curation loop is shipped; the active queue contains onl
 
 ## Active queue
 
+- [ ] **Show tasting summaries across Curate and shelf samples.** The server now synchronizes lifecycle and preserves separate tasting authorship; add read-only summaries on each surface without publishing a shop tasting or merging guest verdicts into the owner's taxonomy.
+
+
 - [ ] **Fix shared-tea acceptance destination and model.** `handleCompassAcceptShare` writes accepted shares to `tea_compass_entries`, then sends the recipient to `/account/journal`, whose source of truth is the tasting journal. Choose the intended member outcome, write to the matching model, and route the recipient to the surface where the accepted tea actually appears.
 
 - [ ] **Add Compass capability gates.** The six Compass entry handlers use `requireAccount` without the `catalog` capability boundary. Align read/write authorization with the intended operator roles and hide the Compass admin entry when the active account lacks access.

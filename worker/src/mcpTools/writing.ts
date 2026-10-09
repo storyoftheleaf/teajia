@@ -1,3 +1,6 @@
+import { compassStateForSample } from '../curateSampleBridge';
+import { captureCurateSampleGuards, prepareCurateRecordedWrite, requireCurateManager, type CurateRecordedChange, type CurateGuard } from '../curateMutations';
+import { sha256Hex } from '../inquiryDomain';
 import type { ToolAuth, ToolDefinition, ToolEnv, ToolHandler, ToolModule } from './registry';
 import { INVALID_TICKET, PENDING_TTL_MS, consumeTicket as consumeShared, issueTicket } from './tickets';
 import { isWordforgeManagedArticle } from '../wordforgeArticleDraft';
@@ -102,6 +105,7 @@ type WritingMutation =
       kind: 'writing.set_sample_status';
       accountId: string; userEmail: string; sampleId: string;
       status: SampleStatus; previousStatus: string;
+      curate?: { userId: string; agent: string; changes: CurateRecordedChange[]; guards: CurateGuard[] };
     };
 
 
@@ -791,7 +795,8 @@ function sampleToApi(row: Record<string, any>) {
     tea_key: row.tea_key,
     set_id: row.set_id,
     status: row.status,
-    grams: row.grams,
+    grams: row.grams_known === 0 ? null : row.grams,
+    grams_known: row.grams_known !== 0,
     created_by: row.created_by,
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -953,15 +958,51 @@ const toolSetSampleStatus: ToolHandler = async (env, auth, args) => {
   const confirm = args?.confirm ? String(args.confirm) : null;
 
   const row = await env.DB.prepare(
-    'SELECT id, name, status, set_id, created_by FROM tea_samples WHERE id = ? AND account_id = ?'
+    'SELECT * FROM tea_samples WHERE id = ? AND account_id = ?'
   ).bind(sampleId, auth.accountId).first() as Record<string, any> | null;
   if (!row) return { error: 'not_found' };
 
   if (!confirm) {
+    let curate: Extract<WritingMutation, { kind: 'writing.set_sample_status' }>['curate'];
+    if (row.compass_entry_id) {
+      await requireCurateManager(env.DB, auth);
+      if (row.archived_at) throw new Error('This sample portion is archived');
+      let tea = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ?')
+        .bind(row.compass_entry_id, auth.accountId).first<Record<string, any>>();
+      if (!tea) throw new Error('The sample is not linked to a Curate tea in this shop');
+      const redirects: CurateGuard[] = [];
+      const visited = new Set<string>();
+      while (tea.merged_into_id) {
+        if (visited.has(tea.id) || visited.size >= 20) throw new Error('The tea merge chain is invalid');
+        visited.add(tea.id);
+        // The sample retains its historical identity; a changed redirect must
+        // invalidate confirmation and undo rather than misfile its lifecycle.
+        const keys = Object.keys(tea).sort();
+        redirects.push({
+          sql: `EXISTS(SELECT 1 FROM tea_compass_entries snap WHERE snap.id = ? AND snap.account_id = ? AND NOT EXISTS(SELECT 1 FROM json_each(?) expected WHERE CASE expected.key ${keys.map(k => `WHEN '${k}' THEN snap."${k}"`).join(' ')} END IS NOT expected.value))`,
+          values: [tea.id, auth.accountId, JSON.stringify(tea)],
+        });
+        tea = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ?')
+          .bind(tea.merged_into_id, auth.accountId).first<Record<string, any>>();
+        if (!tea) throw new Error('The sample is not linked to a Curate tea in this shop');
+      }
+      if (tea.deleted_at || tea.archived_at) throw new Error('Correct the inactive tea link before changing the sample status');
+      const now = new Date().toISOString();
+      curate = {
+        userId: auth.userId,
+        agent: typeof args.agent === 'string' && args.agent.trim() ? args.agent.trim().slice(0, 100) : 'MCP set_sample_status',
+        changes: [
+          { entityType: 'sample', entityId: sampleId, before: row, after: { ...row, status, updated_at: now } },
+          { entityType: 'tea', entityId: tea.id, before: tea, after: { ...tea, sample_state: compassStateForSample(status), sample_set_id: row.set_id, updated_at: now } },
+        ],
+        guards: [...redirects, ...await captureCurateSampleGuards(env.DB, auth.accountId, sampleId, row.product_id ?? tea.draft_product_id)],
+      };
+    }
     const token = await issueTicket(env, {
       kind: 'writing.set_sample_status',
       accountId: auth.accountId, userEmail: auth.userEmail, sampleId,
       status: status as SampleStatus, previousStatus: String(row.status),
+      ...(curate ? { curate } : {}),
     }, auth.tokenId);
     return {
       preview: {
@@ -970,6 +1011,7 @@ const toolSetSampleStatus: ToolHandler = async (env, auth, args) => {
         current_status: row.status,
         new_status: status,
         already_in_target_state: row.status === status,
+        ...(curate ? { changes: curate.changes, undoable: true } : {}),
         note: 'Status only. This does not record a tasting, move stock, or write to the sample\'s notes.',
       },
       confirmation_token: token,
@@ -980,9 +1022,26 @@ const toolSetSampleStatus: ToolHandler = async (env, auth, args) => {
   const m = await consumeShared<WritingMutation, 'writing.set_sample_status'>(env, confirm, 'writing.set_sample_status', auth);
   if (!m || m.sampleId !== sampleId) return INVALID_TICKET;
 
-  await env.DB.prepare(
-    "UPDATE tea_samples SET status = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?"
-  ).bind(m.status, m.sampleId, m.accountId).run();
+  let mutationId: string | undefined;
+  if (m.curate) {
+    if (m.curate.userId !== auth.userId) return INVALID_TICKET;
+    await requireCurateManager(env.DB, auth);
+    const prepared = prepareCurateRecordedWrite(env.DB, auth, {
+      commandType: 'sample:set_status', agent: m.curate.agent,
+      changes: m.curate.changes, guards: m.curate.guards, idempotencyKey: await sha256Hex(confirm),
+    });
+    const result = await env.DB.batch(prepared.statements);
+    if (!result[0]?.meta?.changes) return { error: 'stale_preview', message: 'The sample, linked tea or physical holdings changed. Preview the status again.' };
+    mutationId = prepared.mutationId;
+  } else {
+    // A formerly unlinked sample must be previewed with Curate authority after linking.
+    if (row.compass_entry_id) return { error: 'stale_preview', message: 'The sample is now linked to Curate. Preview the status again.' };
+    if (row.archived_at) throw new Error('No sample in this account');
+    const result = await env.DB.prepare(
+      "UPDATE tea_samples SET status = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND compass_entry_id IS NULL AND archived_at IS NULL"
+    ).bind(m.status, m.sampleId, m.accountId).run();
+    if (!result.meta?.changes) return { error: 'stale_preview', message: 'The sample link changed. Preview the status again.' };
+  }
 
   await logWriting(env, m.accountId, m.userEmail, 'SAMPLE_STATUS_SET_MCP',
     `Sample "${row.name}" moved ${m.previousStatus} → ${m.status} via MCP`, 'tea_sample', m.sampleId);
@@ -993,6 +1052,7 @@ const toolSetSampleStatus: ToolHandler = async (env, auth, args) => {
     sample_id: m.sampleId,
     previous_status: m.previousStatus,
     status: m.status,
+    ...(mutationId ? { mutation_id: mutationId } : {}),
   };
 };
 
@@ -1135,6 +1195,7 @@ const defs: ToolDefinition[] = [
       properties: {
         set_id: { type: 'string', description: 'Only samples in this set (from list_sample_sets).' },
         status: { type: 'string', description: 'requested | received | untasted | tasted | favorite | ordering | ordered | passed' },
+        agent: { type: 'string', description: 'Agent name recorded in Curate history for linked samples.' },
         query: { type: 'string', description: 'Free-text match on sample name, Chinese name or source name.' },
         limit: { type: 'number', description: 'Max samples to return (default 50, max 200).' },
       },

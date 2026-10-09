@@ -77,6 +77,34 @@ describe('sample repository', () => {
     expect(remote.sampleSets.remove).toHaveBeenCalledWith('server-set');
   });
 
+  it('preserves pending edits when a draft resolves to an already dirty canonical sample', () => {
+    useSampleStore.getState().switchAccount('acct-a');
+    useSampleStore.getState().addSample({ ...createEmptySample('draft-set'), id: 'draft', updatedAt: 'draft-time' });
+    useSampleStore.getState().addSample({ ...createEmptySample('server-set'), id: 'canonical', notes: 'Unsaved owner note', updatedAt: 'local-time' });
+    useSampleStore.getState().adoptRemoteSample('acct-a', 'draft', { ...createEmptySample('server-set'), id: 'canonical', notes: 'Server note', updatedAt: 'server-time' }, 'draft-time');
+    expect(useSampleStore.getState().samples).toHaveLength(1);
+    expect(useSampleStore.getState().samples[0]).toMatchObject({ id: 'canonical', notes: 'Unsaved owner note', updatedAt: 'local-time', synced: false });
+  });
+
+  it('adopts reused sample identity and sends pending tastings to the canonical row', async () => {
+    useSampleStore.getState().switchAccount('acct-a');
+    const set = { ...createEmptySampleSet(), id: 'draft-set' };
+    const sample = { ...createEmptySample(set.id), id: 'draft-sample', compassEntryId: 'compass-1',
+      tastings: [{ id: 'taste-1', tasterId: 'admin', tasting: {}, verdict: 'neutral' as const, wouldBuy: false, createdAt: 'now' }] };
+    useSampleStore.getState().addSampleSet(set);
+    useSampleStore.getState().addSample(sample);
+    const tastingRow = { id: 'taste-1', sample_id: 'server-sample', account_id: 'acct-a', taster_id: 'admin', tasting: {}, verdict: 'neutral', would_buy: false, created_at: 'now' };
+    const remote = {
+      sampleSets: { list: vi.fn().mockResolvedValue({ sets: [remoteSet] }), create: vi.fn().mockResolvedValue({ ...remoteSet, id: 'draft-set' }), update: vi.fn(), remove: vi.fn() },
+      samples: { list: vi.fn().mockResolvedValue({ samples: [remoteSample] }), create: vi.fn().mockResolvedValue(remoteSample), update: vi.fn(), remove: vi.fn(), addTasting: vi.fn().mockResolvedValue(tastingRow) },
+    };
+    await createSampleRepository({ remote, isReady: () => true }).sync('acct-a');
+    expect(remote.sampleSets.create).not.toHaveBeenCalled();
+    expect(remote.samples.addTasting).toHaveBeenCalledWith('server-sample', expect.objectContaining({ id: 'taste-1' }), expect.anything());
+    expect(useSampleStore.getState().samples.map((item) => item.id)).toEqual(['server-sample']);
+    expect(useSampleStore.getState().samples[0].setId).toBe('server-set');
+  });
+
   it('hydrates only when account and token are ready, without applying a stale response', async () => {
     let release!: () => void;
     const gate = new Promise<void>((resolve) => { release = resolve; });

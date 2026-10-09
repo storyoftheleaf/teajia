@@ -3,7 +3,7 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * The Immortals' Cliff: Legend · N°13
+ * The Immortals' Cliff: Legend
  * The Da Hong Pao mother trees of Wuyi: six bushes, a red robe, and a retirement.
  * Ported pixel-faithfully from the tea-article-redesign mockup.
  */
@@ -15,9 +15,9 @@ import {
 } from './immersive';
 
 const moreLinks = [
-  { to: '/read/craft', kicker: 'The Craft · N°14', title: 'The Pot That Remembers', blurb: 'Yixing purple clay, and pots that age with you.' },
-  { to: '/read/rock-remembers', kicker: 'Conversation · N°02', title: 'The Rock Remembers', blurb: 'A Wuyi roaster on the same red cliffs.' },
-  { to: '/read/field-study', kicker: 'Field Study · N°12', title: 'The Water Before the Leaf', blurb: 'The overlooked half of every cup.' },
+  { to: '/read/craft', kicker: 'The Craft', title: 'The Pot That Remembers', blurb: 'Yixing purple clay, and pots that age with you.' },
+  { to: '/read/rock-remembers', kicker: 'Conversation', title: 'The Rock Remembers', blurb: 'A Wuyi roaster on the same red cliffs.' },
+  { to: '/read/field-study', kicker: 'Field Study', title: 'The Water Before the Leaf', blurb: 'The overlooked half of every cup.' },
 ];
 
 // ─── Shared sub-styles ───────────────────────────────────────────────────────
@@ -83,7 +83,7 @@ const LegendImmortalsCliff: React.FC = () => {
   return (
     <ImmersiveRoot rootRef={rootRef}>
       <Helmet><title>The Immortals' Cliff · Teajia</title></Helmet>
-      <ImmersiveNav eyebrow="Legend · N°13" progress={progress} />
+      <ImmersiveNav eyebrow="Legend" progress={progress} />
       <AccentSwatches accent={accent} setAccent={setAccent} />
 
       <article style={{ position: 'relative', zIndex: 1 }}>
@@ -285,7 +285,7 @@ const LegendImmortalsCliff: React.FC = () => {
             There is something fitting in a culture that decided its most precious tea was worth more left unpicked than sold, that the bushes themselves, ancient and stubborn on their ledge, mattered more than the cup. The immortals keep their cliff. We make do, very happily, with their descendants.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
-            A Legend, retold by Teajia &nbsp;·&nbsp; N°13
+            A Legend, retold by Teajia
           </div>
         </section>
 

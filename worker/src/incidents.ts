@@ -113,16 +113,28 @@ export function incidentToApi(row: Record<string, unknown>) {
   return { ...rest, sample };
 }
 
+/** What a write did to the ledger: opened a row, reopened a resolved one, or only counted. */
+export type IncidentChange = 'new' | 'reopened' | 'repeat';
+export interface IncidentWrite {
+  row: Record<string, unknown> | null;
+  change: IncidentChange;
+}
+
 export async function upsertIncident(
   db: D1Database,
   incident: NormalizedIncident,
   context: { accountId?: string | null; userId?: string | null },
-) {
+): Promise<IncidentWrite> {
   const id = crypto.randomUUID();
   const sampleJson = JSON.stringify(incident.sample);
   // The ledger has a global UNIQUE(signature). Include the verified tenant in
   // that key so one store's report cannot reopen or escalate another's row.
   const signature = `${context.accountId ?? '__global__'}:${incident.signature}`.slice(0, 240);
+  // Read the status first so the caller can tell a new problem from a repeat.
+  // Not atomic with the upsert; two simultaneous first reports may both read
+  // "new", which costs at most one extra alert, and the daily cap bounds that.
+  const before = await db.prepare('SELECT status FROM incident_ledger WHERE signature = ?')
+    .bind(signature).first<{ status: string }>();
   await db.prepare(`
     INSERT INTO incident_ledger
       (id, signature, category, severity, status, first_seen, last_seen, occurrence_count,
@@ -139,6 +151,8 @@ export async function upsertIncident(
       END,
       status = CASE WHEN incident_ledger.status = 'resolved' THEN 'open' ELSE incident_ledger.status END,
       resolved_at = CASE WHEN incident_ledger.status = 'resolved' THEN NULL ELSE incident_ledger.resolved_at END,
+      resolution_ref = CASE WHEN incident_ledger.status = 'resolved' THEN NULL ELSE incident_ledger.resolution_ref END,
+      safe_message = excluded.safe_message,
       sample_json = CASE
         WHEN length(excluded.sample_json) > length(incident_ledger.sample_json) THEN excluded.sample_json
         ELSE incident_ledger.sample_json
@@ -148,5 +162,63 @@ export async function upsertIncident(
     incident.route, incident.method, incident.httpStatus, incident.errorCode,
     incident.safeMessage, incident.deployment, context.accountId ?? null, context.userId ?? null, sampleJson,
   ).run();
-  return db.prepare('SELECT * FROM incident_ledger WHERE signature = ?').bind(signature).first<Record<string, unknown>>();
+  const row = await db.prepare('SELECT * FROM incident_ledger WHERE signature = ?').bind(signature).first<Record<string, unknown>>();
+  const change: IncidentChange = !before ? 'new' : before.status === 'resolved' ? 'reopened' : 'repeat';
+  return { row, change };
+}
+
+/**
+ * Server-side health problems: the cron's way of putting a standing fault in
+ * the same ledger the site's other problems live in.
+ *
+ * `message` here is written by this codebase, never by a client, which is why
+ * it is allowed to say more than the one-sentence category classification
+ * `normalizeIncidentInput` forces on reported incidents. That rule exists to
+ * keep client narrative out of the AI repair queue; a sentence built from our
+ * own counters and our own failure strings is not that.
+ *
+ * The signature is the caller's and FIXED, so an hourly check upserts one row
+ * rather than opening a new one each tick. A row that was resolved and goes bad
+ * again reopens (`upsertIncident` flips resolved back to open, clears the
+ * resolution and counts the occurrence), which is what makes a recurring fault
+ * visible as a recurring fault instead of a series of unrelated tickets.
+ */
+export interface HealthProblemInput {
+  signature: string;
+  category?: IncidentCategory;
+  severity?: IncidentSeverity;
+  route?: string;
+  method?: string;
+  errorCode: string;
+  message: string;
+  httpStatus?: number | null;
+}
+
+export async function recordHealthProblem(db: D1Database, input: HealthProblemInput): Promise<IncidentWrite> {
+  const normalized = normalizeIncidentInput({
+    category: input.category ?? 'server',
+    severity: input.severity ?? 'high',
+    signature: input.signature,
+    route: input.route,
+    method: input.method,
+    http_status: input.httpStatus ?? null,
+    error_code: input.errorCode,
+  });
+  normalized.safeMessage = input.message.replace(/\s+/g, ' ').trim().slice(0, MAX_STRING_LENGTH);
+  return upsertIncident(db, normalized, { accountId: null, userId: null });
+}
+
+/**
+ * The problem has gone away: mark it resolved, once. Idempotent and cheap, so a
+ * check can call it on every healthy tick without first asking whether there is
+ * anything to clear. Returns whether a row actually changed.
+ */
+export async function clearHealthProblem(db: D1Database, signature: string, ref: string): Promise<boolean> {
+  const key = `__global__:${slug(signature, signature)}`.slice(0, 240);
+  const result = await db.prepare(`
+    UPDATE incident_ledger
+       SET status = 'resolved', resolved_at = datetime('now'), resolution_ref = ?
+     WHERE signature = ? AND status != 'resolved'
+  `).bind(ref.slice(0, 200), key).run();
+  return Number(result.meta?.changes ?? 0) > 0;
 }

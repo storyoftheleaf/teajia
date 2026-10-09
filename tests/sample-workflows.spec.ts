@@ -129,6 +129,7 @@ test.describe('sample portions and physical holdings stay distinct', () => {
     await openCompass(page);
     await page.getByRole('button', { name: 'Sample list (1)' }).first().click();
     await page.getByRole('button', { name: 'Save as sample batch' }).click();
+    await expect(page.getByText('Saved as sample batch. List cleared.')).toBeVisible();
     const identity = await page.evaluate(() => {
       const state = JSON.parse(localStorage.getItem('teajia-samples') || '{}').state;
       return { setId: state.sampleSets[0].id, sample: state.samples[0] };
@@ -185,6 +186,30 @@ test.describe('sample portions and physical holdings stay distinct', () => {
 
 test.describe('Sample list and Sample batches interface', () => {
   test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));
+
+  test('retains a successful shelf status when the Curate refresh fails', async ({ page }) => {
+    await installCompassHarness(page, { sampleCart: [CART_ITEM], preserveSamplesOnNavigation: true });
+    await openCompass(page);
+    await page.getByRole('button', { name: 'Sample list (1)' }).first().click();
+    await page.getByRole('button', { name: 'Save as sample batch' }).click();
+    await expect(page.getByText('Saved as sample batch. List cleared.')).toBeVisible();
+    const id = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-samples') || '{}').state.samples[0].id);
+    await page.goto(`/s/${id}`);
+    const selector = page.getByRole('group', { name: 'Status selector' });
+    await expect(selector).toBeVisible();
+    await page.route('**/api/compass/entries*', route => route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'Curate read unavailable' }) }));
+    const written = page.waitForResponse(response => response.request().method() === 'PUT' && response.url().includes(`/api/admin/samples/${id}`));
+    await selector.getByRole('button', { name: 'Favorite', exact: true }).click();
+    expect((await written).status()).toBe(200);
+    await expect.poll(() => page.evaluate(async () => {
+      // @ts-expect-error Vite source modules are available in Playwright.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      return useTeaCompassStore.getState().hydrationStatus;
+    })).toBe('error');
+    const status = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-samples') || '{}').state.samples[0].status);
+    expect(status).toBe('favorite');
+    await expect(page.getByText('Status update failed, please try again')).toBeHidden();
+  });
 
   test('does not create an untitled batch until a name is confirmed', async ({ page }) => {
     await installCompassHarness(page);

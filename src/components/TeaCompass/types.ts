@@ -1,3 +1,4 @@
+import type { RouteQuote } from '../../lib/curateStructuredFields';
 import type { TastingData } from '../../types';
 import type { Currency } from '../../admin/types';
 import {
@@ -115,6 +116,16 @@ export interface TeaCompassEntry {
   pricePerUnitGrams?: number;
   sellPrice?: number;          // Retail sell price per gram (on tags + flows to inventory)
 
+  // Structured sourcing evidence. Empty fields are explicitly null, never notes.
+  ageQuoted?: string | null;
+  grade?: string | null;
+  packSizeGrams?: number | null;
+  packSizeLabel?: string | null;
+  vendorItemNumber?: string | null;
+  discountPercent?: number | null;
+  quoteId?: string | null;
+  routeQuotes?: RouteQuote[];
+
   // Category
   category: CompassCategory;
 
@@ -132,6 +143,8 @@ export interface TeaCompassEntry {
   // Vendor
   vendorId?: string;
   vendorName?: string;
+  shopName?: string | null;
+  transportMode?: string | null;
   vendorDetails?: VendorDetails;
   /** Customer record ID for the vendor, links compass entry to a customer profile */
   linkedCustomerId?: string;
@@ -195,6 +208,18 @@ export interface TeaCompassEntry {
  * rows created before sample_state existed. */
 export function entryIsSample(entry: Pick<TeaCompassEntry, 'sampleState' | 'isSample'>): boolean {
   return entry.sampleState != null || entry.isSample === true;
+}
+
+/** Shelf lifecycle is tasting evidence even when its notes have not been
+ * published into the Curate taxonomy. */
+export function entryHasBeenTasted(entry: Pick<TeaCompassEntry, 'sampleState' | 'tasting'>): boolean {
+  return entry.sampleState === 'tasted' || Boolean(entry.tasting && Object.values(entry.tasting)
+    .some((value) => Array.isArray(value) ? value.length > 0 : value != null));
+}
+
+export function entryNeedsTasting(entry: Pick<TeaCompassEntry, 'sampleState' | 'isSample' | 'tasting' | 'status'>): boolean {
+  return !entryHasBeenTasted(entry) && (entryIsSample(entry)
+    || (entry.status !== 'pass' && (entry.status === 'in_stock' || entry.status === 'incoming')));
 }
 
 // Gram presets by form

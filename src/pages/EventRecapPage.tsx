@@ -317,7 +317,7 @@ const EventRecapPage: React.FC = () => {
   useEffect(() => {
     if (!data?.event) return;
     document.title = `${data.event.title}: Recap · Teajia`;
-    return () => { document.title = 'Teajia | Tea Journal'; };
+    return () => { document.title = 'Teajia · A Home for Tea'; };
   }, [data]);
 
   if (isLoading) {

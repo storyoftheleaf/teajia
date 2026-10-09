@@ -1,11 +1,10 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { api } from '../../../lib/api';
 import { isTouch } from '../../../pages/read/imageUtils';
 import { galleryPlacement } from '../../../components/people/profileFormat';
 import type { ContributorGalleryImage } from '../../../types';
 import { ACTION, Count, Line, QUIET } from './parts';
 import { CropStrip, FocusPicker, type Crop } from './PhotoPlace';
-import { imagesFrom, preparePhoto } from './photoUpload';
+import { imagesFrom, preparePhoto, usePhotoUploader } from './photoUpload';
 import { mediaUrl } from '../../../lib/mediaUrl';
 
 const TOUCH = isTouch();
@@ -57,6 +56,7 @@ export function GalleryPlace({ images, update, onBusy, takeRef }: Props) {
   const [byAddress, setByAddress] = useState(false);
   const [address, setAddress] = useState('');
   const counter = useRef(0);
+  const uploader = usePhotoUploader();
 
   const busy = pending.some(item => !item.error);
   useEffect(() => { onBusy?.(busy); }, [busy, onBusy]);
@@ -67,9 +67,9 @@ export function GalleryPlace({ images, update, onBusy, takeRef }: Props) {
   const send = async (item: Pending) => {
     try {
       const ready = await preparePhoto(item.file);
-      const url = await api.uploadImageProgress(ready, progress => {
+      const url = await uploader(ready, progress => {
         setPending(current => current.map(entry => entry.key === item.key ? { ...entry, progress: Math.max(0.05, Math.min(0.98, progress)) } : entry));
-      }, { filename: ready.name || 'photo.jpg' });
+      });
       update(current => current.length >= GALLERY_IMAGE_LIMIT ? current : [...current, { image_url: url, caption: null, focus: null }]);
       setPending(current => current.filter(entry => entry.key !== item.key));
       URL.revokeObjectURL(item.preview);

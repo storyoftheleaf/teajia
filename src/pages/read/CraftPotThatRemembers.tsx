@@ -3,7 +3,7 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * The Pot That Remembers: The Craft of Tea, N°14
+ * The Pot That Remembers: The Craft of Tea
  * A Yixing zisha teapot essay: the clay, the seasoning, and the patina of years.
  * Ported pixel-faithfully from the tea-article-redesign mockup.
  */
@@ -15,8 +15,8 @@ import {
 } from './immersive';
 
 const moreLinks = [
-  { to: '/read/earth-water-fire', kicker: 'Conversation · N°03', title: 'Earth, Water, Fire', blurb: 'A Jingdezhen potter on the vessels of tea.' },
-  { to: '/read/legend', kicker: 'Legend · N°13', title: "The Immortals' Cliff", blurb: 'The Da Hong Pao mother trees of Wuyi.' },
+  { to: '/read/earth-water-fire', kicker: 'Conversation', title: 'Earth, Water, Fire', blurb: 'A Jingdezhen potter on the vessels of tea.' },
+  { to: '/read/legend', kicker: 'Legend', title: "The Immortals' Cliff", blurb: 'The Da Hong Pao mother trees of Wuyi.' },
   { to: '/read/leaf-to-liquor', kicker: 'The Craft of Tea', title: 'All Fourteen Pieces', blurb: 'Back to the full contents.' },
 ];
 
@@ -94,7 +94,7 @@ const CraftPotThatRemembers: React.FC = () => {
   return (
     <ImmersiveRoot rootRef={rootRef}>
       <Helmet><title>The Pot That Remembers · Teajia</title></Helmet>
-      <ImmersiveNav eyebrow="The Craft · N°14" progress={progress} />
+      <ImmersiveNav eyebrow="The Craft" progress={progress} />
       <AccentSwatches accent={accent} setAccent={setAccent} />
 
       <article style={{ position: 'relative', zIndex: 1 }}>
@@ -313,7 +313,7 @@ const CraftPotThatRemembers: React.FC = () => {
             In a world of objects designed to forget, wiped clean, reset, replaced, the Yixing pot insists on the opposite. It keeps everything. It asks for one tea, a little ritual, and a great deal of time, and in return it gives you something almost no other vessel can: a memory you can drink. Choose your pot, and your tea, with care. You may be choosing for your grandchildren.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
-            The Craft of Tea by Teajia &nbsp;·&nbsp; N°14
+            The Craft of Tea by Teajia
           </div>
         </section>
 

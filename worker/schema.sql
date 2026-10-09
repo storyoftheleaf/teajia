@@ -172,6 +172,7 @@ CREATE TABLE IF NOT EXISTS customers (
     account_id TEXT NOT NULL,
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     name TEXT NOT NULL,
+    chinese_name TEXT,
     company TEXT,
     email TEXT,
     phone TEXT,
@@ -821,6 +822,19 @@ CREATE UNIQUE INDEX IF NOT EXISTS uniq_payment_share_links_invoice
 CREATE UNIQUE INDEX IF NOT EXISTS uniq_payment_share_links_contributor_open
   ON payment_share_links(contributor_id) WHERE invoice_id IS NULL;
 
+-- A Read story is published or taken down from the story itself (migration
+-- 0030). One row per /read path; a row overrides ARTICLE_LIVE in both
+-- directions, no row means the map decides.
+CREATE TABLE IF NOT EXISTS read_publish_state (
+  path TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  state TEXT NOT NULL CHECK (state IN ('live', 'draft')),
+  changed_by TEXT,
+  changed_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_read_publish_state_account
+  ON read_publish_state(account_id);
+
 -- 5b. Password Reset Tokens Table
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
@@ -856,6 +870,7 @@ CREATE TABLE IF NOT EXISTS inventory_receipts (
     created_by_user_id TEXT NOT NULL REFERENCES users(id),
     idempotency_key TEXT NOT NULL,
     request_fingerprint TEXT NOT NULL,
+    transport_mode TEXT CHECK (transport_mode IS NULL OR transport_mode IN ('air', 'sea', 'land', 'courier')),
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE(account_id, idempotency_key)
@@ -1028,6 +1043,14 @@ CREATE TABLE IF NOT EXISTS tea_compass_entries (
   decision TEXT CHECK (decision IS NULL OR decision IN ('considering', 'selected', 'passed_on')),
   sample_state TEXT CHECK (sample_state IS NULL OR sample_state IN ('requested', 'received', 'tasted')),
   sample_set_id TEXT REFERENCES tea_sample_sets(id),
+  age_quoted TEXT,
+  grade TEXT,
+  pack_size_grams REAL CHECK (pack_size_grams IS NULL OR pack_size_grams > 0),
+  pack_size_label TEXT,
+  vendor_item_number TEXT,
+  discount_percent REAL CHECK (discount_percent IS NULL OR discount_percent BETWEEN 0 AND 100),
+  quote_id TEXT REFERENCES curate_quotes(id),
+  route_quotes TEXT,
   journey_id TEXT,
   visit_id TEXT,
   import_item_id TEXT,
@@ -1080,6 +1103,7 @@ CREATE TABLE IF NOT EXISTS tea_samples (
   set_id TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'untasted',
   grams REAL NOT NULL DEFAULT 10,
+  grams_known INTEGER NOT NULL DEFAULT 1 CHECK (grams_known IN (0,1)),
   notes TEXT,
   photos TEXT DEFAULT '[]',
   account_id TEXT,
@@ -1087,7 +1111,8 @@ CREATE TABLE IF NOT EXISTS tea_samples (
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   created_by TEXT NOT NULL DEFAULT 'admin',
-  user_id TEXT
+  user_id TEXT,
+  archived_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS tea_sample_tastings (
@@ -2074,6 +2099,17 @@ CREATE TABLE IF NOT EXISTS incident_ledger (
 CREATE INDEX IF NOT EXISTS idx_incident_ledger_status_severity_last_seen
   ON incident_ledger(status, severity, last_seen DESC);
 
+-- Telegram alerts sent about ledger problems; counted per UTC day for the cap.
+CREATE TABLE IF NOT EXISTS problem_alerts (
+  id TEXT PRIMARY KEY,
+  incident_id TEXT,
+  signature TEXT,
+  kind TEXT,
+  sent_at TEXT NOT NULL DEFAULT (datetime('now')),
+  ok INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_problem_alerts_sent_at ON problem_alerts(sent_at);
+
 -- Head-admin revision flags for canonical public Tea Reference sections.
 -- Page metadata and the public snapshot are derived server-side; exact private
 -- evidence remains in the local provenance package and never enters D1.
@@ -2338,11 +2374,12 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
   vendor_id TEXT,
   vendor_contact TEXT,
   items_json TEXT NOT NULL DEFAULT '[]',
-  total_usd REAL NOT NULL DEFAULT 0,
+  total_usd REAL,
   display_currency TEXT NOT NULL DEFAULT 'USD',
   status TEXT NOT NULL DEFAULT 'pending',
   message_text TEXT,
   notes TEXT,
+  freight_estimate_json TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -2698,3 +2735,223 @@ CREATE INDEX IF NOT EXISTS idx_story_versions_slug
   ON story_content_versions(account_id, story_slug, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_wisdom_verifications_account_entry
   ON wisdom_entry_verifications(account_id, entry_kind, entry_id);
+
+-- Migration 0031: agent suggestions waiting for Adrian's tick, and Curate to-dos.
+CREATE TABLE IF NOT EXISTS curate_suggestions (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  created_by_user_id TEXT NOT NULL,
+  -- One delivery from one agent: "GrokBot read wangtea.cn" is one batch.
+  batch_id TEXT NOT NULL,
+  from_agent TEXT,
+  from_url TEXT,
+  from_vendor_name TEXT,
+  from_contact TEXT,
+  from_note TEXT,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL CHECK (category IN ('tea', 'teaware')),
+  fields_json TEXT NOT NULL,
+  state TEXT NOT NULL DEFAULT 'waiting' CHECK (state IN ('waiting', 'picked', 'dropped')),
+  compass_entry_id TEXT,
+  decided_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_curate_suggestions_waiting
+  ON curate_suggestions(account_id, state, created_at);
+
+CREATE TABLE IF NOT EXISTS curate_todos (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  created_by_user_id TEXT NOT NULL,
+  text TEXT NOT NULL,
+  compass_entry_id TEXT,
+  vendor_id TEXT,
+  from_agent TEXT,
+  done_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_curate_todos_open
+  ON curate_todos(account_id, done_at, created_at);
+
+-- Migration 0032: vendor knowledge, freight legs, and two Curate tea facts.
+ALTER TABLE tea_compass_entries ADD COLUMN shop_name TEXT;
+ALTER TABLE tea_compass_entries ADD COLUMN transport_mode TEXT;
+
+CREATE TABLE IF NOT EXISTS curate_vendor_profiles (
+  vendor_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  price_currency TEXT,
+  storage TEXT,
+  story TEXT,
+  ships_from TEXT,
+  route TEXT,
+  lead_time_days INTEGER,
+  vendor_code TEXT,
+  contact_people TEXT,
+  addresses TEXT,
+  updated_by_agent TEXT,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_curate_vendor_profiles_account
+  ON curate_vendor_profiles(account_id);
+
+CREATE TABLE IF NOT EXISTS curate_freight_costs (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  vendor_id TEXT,
+  leg TEXT NOT NULL,
+  mode TEXT CHECK (mode IS NULL OR mode IN ('air', 'sea', 'land', 'courier')),
+  total_amount REAL NOT NULL CHECK (total_amount >= 0),
+  currency TEXT NOT NULL,
+  weight_kg REAL NOT NULL CHECK (weight_kg > 0),
+  transit_days INTEGER,
+  observed_on TEXT NOT NULL,
+  note TEXT,
+  from_agent TEXT,
+  created_by_user_id TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_curate_freight_costs_leg
+  ON curate_freight_costs(account_id, vendor_id, leg, observed_on);
+
+CREATE TABLE IF NOT EXISTS curate_drive_links (
+  account_id TEXT PRIMARY KEY,
+  connected_by_user_id TEXT NOT NULL,
+  google_email TEXT,
+  refresh_token_encrypted TEXT NOT NULL,
+  root_folder_id TEXT,
+  last_error TEXT,
+  connected_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS curate_drive_folders (
+  account_id TEXT NOT NULL,
+  folder_key TEXT NOT NULL,
+  folder_id TEXT NOT NULL,
+  name TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (account_id, folder_key)
+);
+
+CREATE TABLE IF NOT EXISTS curate_drive_files (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  compass_entry_id TEXT,
+  photo_url TEXT NOT NULL,
+  drive_file_id TEXT NOT NULL,
+  web_view_link TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (account_id, compass_entry_id, photo_url)
+);
+CREATE INDEX IF NOT EXISTS idx_curate_drive_files_entry ON curate_drive_files(account_id, compass_entry_id);
+
+CREATE TABLE IF NOT EXISTS curate_quotes (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  vendor_id TEXT NOT NULL REFERENCES customers(id),
+  reference TEXT,
+  issued_to TEXT,
+  quote_date TEXT,
+  validity_days INTEGER CHECK (validity_days IS NULL OR validity_days >= 0),
+  valid_until TEXT,
+  minimum_order_amount REAL CHECK (minimum_order_amount IS NULL OR minimum_order_amount >= 0),
+  currency TEXT,
+  payment_terms TEXT,
+  discount_percent REAL CHECK (discount_percent IS NULL OR discount_percent BETWEEN 0 AND 100),
+  discount_condition_type TEXT CHECK (discount_condition_type IS NULL OR discount_condition_type IN ('none','min_order_amount','min_order_weight','min_quantity','unknown')),
+  discount_min_amount REAL CHECK (discount_min_amount IS NULL OR discount_min_amount > 0),
+  discount_min_currency TEXT CHECK ((discount_min_amount IS NULL) = (discount_min_currency IS NULL)),
+  discount_min_weight_grams REAL CHECK (discount_min_weight_grams IS NULL OR discount_min_weight_grams > 0),
+  discount_min_quantity INTEGER CHECK (discount_min_quantity IS NULL OR (discount_min_quantity > 0 AND discount_min_quantity = CAST(discount_min_quantity AS INTEGER))),
+  created_by_user_id TEXT NOT NULL,
+  created_by_agent TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  archived_at TEXT,
+  CHECK ((minimum_order_amount IS NULL) = (currency IS NULL))
+);
+CREATE INDEX idx_curate_quotes_vendor ON curate_quotes(account_id, vendor_id, archived_at);
+CREATE TABLE IF NOT EXISTS curate_quote_lines (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  quote_id TEXT NOT NULL REFERENCES curate_quotes(id),
+  compass_entry_id TEXT NOT NULL REFERENCES tea_compass_entries(id),
+  vendor_item_number TEXT,
+  price_amount REAL CHECK (price_amount IS NULL OR price_amount >= 0),
+  price_currency TEXT,
+  price_per_unit_grams REAL CHECK (price_per_unit_grams IS NULL OR price_per_unit_grams > 0),
+  discount_percent REAL CHECK (discount_percent IS NULL OR discount_percent BETWEEN 0 AND 100),
+  route_quotes TEXT,
+  archived_at TEXT,
+  CHECK ((price_amount IS NULL) = (price_currency IS NULL))
+);
+CREATE INDEX idx_curate_quote_lines_quote ON curate_quote_lines(account_id, quote_id);
+
+-- Private evidence. Nothing here copies business documents into public media.
+CREATE TABLE IF NOT EXISTS curate_media_assets (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  object_key TEXT NOT NULL UNIQUE,
+  filename TEXT NOT NULL,
+  mime_type TEXT NOT NULL,
+  size_bytes INTEGER NOT NULL,
+  sha256 TEXT NOT NULL,
+  state TEXT NOT NULL DEFAULT 'attached',
+  created_by_user_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  deleted_at TEXT,
+  UNIQUE(account_id, id)
+);
+CREATE TABLE IF NOT EXISTS curate_attachments (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  asset_id TEXT NOT NULL,
+  entity_type TEXT NOT NULL CHECK(entity_type IN ('tea','vendor','arrival','quote')),
+  entity_id TEXT NOT NULL,
+  role TEXT NOT NULL CHECK(role IN ('leaf','liquor','wrapper','label','pricelist','businesscard','source_document')),
+  position INTEGER NOT NULL DEFAULT 0,
+  created_by_user_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  deleted_at TEXT,
+  FOREIGN KEY(account_id, asset_id) REFERENCES curate_media_assets(account_id, id)
+);
+CREATE INDEX IF NOT EXISTS idx_curate_attachment_entity ON curate_attachments(account_id,entity_type,entity_id,deleted_at);
+
+-- Correcting a Curate record never destroys its provenance or physical holdings.
+ALTER TABLE tea_compass_entries ADD COLUMN archived_at TEXT;
+ALTER TABLE tea_compass_entries ADD COLUMN deleted_at TEXT;
+ALTER TABLE tea_compass_entries ADD COLUMN merged_into_id TEXT;
+ALTER TABLE customers ADD COLUMN archived_at TEXT;
+ALTER TABLE customers ADD COLUMN deleted_at TEXT;
+ALTER TABLE customers ADD COLUMN merged_into_id TEXT;
+ALTER TABLE curate_todos ADD COLUMN deleted_at TEXT;
+CREATE TABLE curate_mutations (
+ id TEXT PRIMARY KEY, account_id TEXT NOT NULL, command_type TEXT NOT NULL,
+ actor_user_id TEXT NOT NULL, actor_token_id TEXT, agent_name TEXT,
+ confirmed_at TEXT NOT NULL, undo_of TEXT, idempotency_key TEXT NOT NULL,
+ guards_json TEXT NOT NULL DEFAULT '[]',
+ UNIQUE(account_id, idempotency_key)
+);
+CREATE TABLE curate_mutation_records (
+ mutation_id TEXT NOT NULL REFERENCES curate_mutations(id), account_id TEXT NOT NULL,
+ entity_type TEXT NOT NULL, entity_id TEXT NOT NULL,
+ before_json TEXT NOT NULL, after_json TEXT NOT NULL,
+ PRIMARY KEY(mutation_id, entity_type, entity_id)
+);
+CREATE INDEX idx_curate_mutations_history ON curate_mutations(account_id, confirmed_at DESC);
+CREATE INDEX idx_curate_mutation_records_entity ON curate_mutation_records(account_id, entity_type, entity_id);
+
+-- External Drive changes have their own durable audit, never a local Curate undo.
+CREATE TABLE IF NOT EXISTS curate_drive_photo_operations (
+ id TEXT PRIMARY KEY, account_id TEXT NOT NULL, mapping_id TEXT NOT NULL,
+ compass_entry_id TEXT NOT NULL, photo_url TEXT NOT NULL, drive_file_id TEXT NOT NULL,
+ action TEXT NOT NULL CHECK(action IN ('trash','restore')),
+ status TEXT NOT NULL CHECK(status IN ('pending','succeeded','failed','unknown')),
+ attempt_id TEXT NOT NULL,
+ actor_user_id TEXT NOT NULL, actor_token_id TEXT NOT NULL, agent_name TEXT NOT NULL,
+ connection_fingerprint TEXT NOT NULL, before_json TEXT NOT NULL, after_json TEXT,
+ attempts_json TEXT NOT NULL DEFAULT '[]',
+ error TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_curate_drive_photo_inflight ON curate_drive_photo_operations(account_id, drive_file_id) WHERE status IN ('pending','unknown');
+CREATE INDEX IF NOT EXISTS idx_curate_drive_photo_history ON curate_drive_photo_operations(account_id, compass_entry_id, created_at DESC);

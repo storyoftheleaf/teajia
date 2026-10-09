@@ -164,6 +164,14 @@ export default function DeveloperDocsPage() {
           Everything that has been designed and built into Teajia, as written down. {docs.length} documents,
           newest thinking and shipped work both. Owner-only.
         </p>
+        {/* The walk-throughs were their own Your Table tile until 2026-09-29. */}
+        <button
+          type="button"
+          onClick={() => navigate('/account/briefing')}
+          className="tap-target -mt-4 mb-8 inline-flex items-center text-ui-13 text-tea-gold hover:text-tea-gold-lt transition-colors"
+        >
+          Walk-throughs: run it, test it
+        </button>
 
         {grouped.map(({ group, items }) => (
           <section key={group} className="mb-8">

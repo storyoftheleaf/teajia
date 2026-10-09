@@ -14,6 +14,10 @@ Releases 1–3 of the launch-to-real-use program are implemented on the branch a
 
 The real-world launch is not complete. Deployment, production-data judgment, real operators, mainland conditions, and approved editorial content cannot be proven by local fixtures. Their single checklist is [LAUNCH_VALIDATION.md](LAUNCH_VALIDATION.md).
 
+## Curate update, 2026-10-08
+
+The [Curate workspace](CURATE_WORKSPACE.md) adds structured vendor/tea/quote fields, private source-file uploads, corrections and guarded undo, account-wide manager access, and the Samples only inventory view with explicit tasting consumption and orders. Implementation and release proof are separate: deployment status lives in release artifacts. Existing LKY/XWT cleanup remains pending a successful scoped live read.
+
 ## One technical discrepancy remains
 
 The reading-memory/saved-story system is still conceptually dead: it must either become a real, durable user feature or be removed completely. Until that choice is implemented and verified, the technical program cannot honestly be called closed. This is the only remaining in-scope technical discrepancy; Track 1 owns it.

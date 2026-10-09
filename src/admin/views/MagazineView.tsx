@@ -1,13 +1,34 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, Plus, Loader2, RefreshCw, FileText } from 'lucide-react';
+import { BookOpen, Plus, Loader2, RefreshCw, FileText, ExternalLink } from 'lucide-react';
 import { api } from '../../lib/api';
+import { useAppStore } from '../store';
 import { useToast } from '../components/Toast';
 import { ArticleEditorModal } from '../components/ArticleEditorModal';
 import { STATUS_PILL_STYLES } from '../constants';
 import type { DbArticle } from '../../types';
 
 type TabFilter = 'all' | 'draft' | 'published';
+
+// Adrian's story workshop: the page on his studio Mac where interviews are dropped in and every
+// decision on a story is a button (~/builds/mag-preview.mjs). It is reachable only from his own
+// devices over Tailscale, so the link shows only to the platform owner; for anyone else it would
+// be a dead address.
+export const STORY_WORKSHOP_URL = 'http://100.90.156.97:8766/';
+export const canSeeStoryWorkshop = (platformRole: string | null | undefined) => platformRole === 'platform_owner';
+
+export const StoryWorkshopLink: React.FC = () => (
+  <a
+    href={STORY_WORKSHOP_URL}
+    target="_blank"
+    rel="noreferrer"
+    title="Your story workshop on the studio Mac (needs Tailscale on this device)"
+    className="tap-target inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text text-xs font-semibold transition-colors shrink-0"
+  >
+    <ExternalLink size={13} />
+    Story workshop
+  </a>
+);
 
 function formatDate(iso?: string): string {
   if (!iso) return '';
@@ -17,6 +38,7 @@ function formatDate(iso?: string): string {
 export const MagazineView: React.FC = () => {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
+  const isPlatformOwner = canSeeStoryWorkshop(useAppStore(s => s.platformRole));
   const [tab, setTab] = useState<TabFilter>('all');
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<DbArticle | null>(null);
@@ -82,6 +104,8 @@ export const MagazineView: React.FC = () => {
         >
           <RefreshCw size={14} className={isRefetching ? 'animate-spin' : ''} />
         </button>
+
+        {isPlatformOwner && <StoryWorkshopLink />}
 
         <button
           onClick={handleNewArticle}

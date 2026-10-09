@@ -82,9 +82,36 @@ interface StoryEditorBarProps {
   /** Tuck the not-editing trigger into the window's top-right corner, tiny,
    *  for a page whose photograph runs to that edge (the home page). */
   corner?: boolean;
+  /** The page's top bar carries the trigger as a word (EditWord), so the bar
+   *  shows nothing until editing starts. */
+  inBar?: boolean;
 }
 
-const StoryEditorBar: React.FC<StoryEditorBarProps> = ({ corner = false }) => {
+/**
+ * The owner's way into editing, as a word in a Read piece's top bar beside
+ * Share and set exactly like it: no pill, no border, no blur. It replaced a
+ * floating pill that sat just under Share and read as a second control
+ * fighting the first. Nothing shows to a visitor, or once editing starts
+ * (the toolbar's "done editing" takes over).
+ */
+export const EditWord: React.FC = () => {
+  const { isOwner, editing, setEditing } = useStoryEdit();
+  if (!isOwner || editing) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => setEditing(true)}
+      className="tj-share"
+      data-testid="read-edit-bar"
+      title="Owner editing"
+      style={{ flexShrink: 0, background: 'none', border: 0, cursor: 'pointer', padding: '12px 4px', margin: '-12px 0', fontFamily: 'var(--font-sans)', fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--tj-read-taupe)' }}
+    >
+      Edit
+    </button>
+  );
+};
+
+const StoryEditorBar: React.FC<StoryEditorBarProps> = ({ corner = false, inBar = false }) => {
   const {
     isOwner, editing, setEditing, previewVisitor, setPreviewVisitor,
     dirty, saving, publish, versions, refreshVersions, restore,
@@ -114,7 +141,9 @@ const StoryEditorBar: React.FC<StoryEditorBarProps> = ({ corner = false }) => {
     setShowGaps(false);
   };
 
-  // Not editing: just a faint, low-key trigger that stays out of the way.
+  // Not editing: just a faint, low-key trigger that stays out of the way,
+  // unless the page's top bar already carries it.
+  if (!editing && inBar) return null;
   if (!editing) {
     return (
       <div style={corner ? { ...barWrap(false), top: 'calc(env(safe-area-inset-top, 0px) + 4px)', right: 4 } : barWrap(false)}>

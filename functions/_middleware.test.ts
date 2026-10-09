@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { canonicalUrlFor, isTeaAtlasPath, isWorkerProxyPath, onRequest, resolveStaticReadMeta, STATIC_META } from './_middleware';
+import { canonicalUrlFor, isTeaAtlasPath, isWorkerProxyPath, onRequest, readPublishStatesAtEdge, resetReadStatesCacheForTests, resolveStaticReadMeta, STATIC_META } from './_middleware';
 import { ARTICLE_LIVE, isReadPathPublic, isUngatedReadPath } from '../src/pages/read/articleLive';
 
 describe('Pages protocol proxy', () => {
@@ -161,9 +161,58 @@ describe('a draft does not claim its own URL as canonical', () => {
   });
 });
 
+describe('a story published or taken down from its own page', () => {
+  // Migration 0030: a stored state overrides ARTICLE_LIVE in both directions,
+  // and the edge must say the same thing to a crawler that the page says to a
+  // visitor. No stored state, or no way to read it, leaves the map deciding.
+  afterEach(() => { resetReadStatesCacheForTests(); vi.unstubAllGlobals(); });
+
+  it('gives a draft published from the page its own meta', () => {
+    expect(ARTICLE_LIVE['/read/history']).toBe(false);
+    expect(resolveStaticReadMeta('/read/history')?.title).toBe('Not found · Teajia');
+    const meta = resolveStaticReadMeta('/read/history', { '/read/history': 'live' });
+    expect(meta?.title).toBe('Ten Thousand Mornings · Teajia');
+    expect(canonicalUrlFor(meta!, '/read/history')).toBe('https://www.teajia.com/read/history');
+    // No share card was drawn for it, so no picture is promised that is not there.
+    expect(meta?.image).toBeUndefined();
+  });
+
+  it('gives a live story taken down from the page not-found meta', () => {
+    expect(ARTICLE_LIVE['/read/porcelain-and-tea']).toBe(true);
+    const meta = resolveStaticReadMeta('/read/porcelain-and-tea', { '/read/porcelain-and-tea': 'draft' });
+    expect(meta?.title).toBe('Not found · Teajia');
+    expect(canonicalUrlFor(meta!, '/read/porcelain-and-tea')).toBe('https://www.teajia.com/read');
+  });
+
+  it('reads the states from the worker, once per fifteen seconds', async () => {
+    const upstream = vi.fn(async () => Response.json({ states: { '/read/history': 'live', '/read/x': 'nonsense' } }));
+    const origin = new URL('https://worker.example');
+    expect(await readPublishStatesAtEdge(origin, upstream as any, 1_000)).toEqual({ '/read/history': 'live' });
+    expect(await readPublishStatesAtEdge(origin, upstream as any, 10_000)).toEqual({ '/read/history': 'live' });
+    expect(upstream).toHaveBeenCalledTimes(1);
+    await readPublishStatesAtEdge(origin, upstream as any, 20_000);
+    expect(upstream).toHaveBeenCalledTimes(2);
+    expect(String((upstream.mock.calls[0] as unknown[])[0])).toBe('https://worker.example/api/public/read/publish-state');
+  });
+
+  it('falls back to the map when the worker fails, so a live story is never hidden', async () => {
+    for (const failing of [
+      vi.fn(async () => new Response('down', { status: 503 })),
+      vi.fn(async () => { throw new TypeError('network'); }),
+      vi.fn(async () => new Response('<html>shell</html>', { headers: { 'content-type': 'text/html' } })),
+    ]) {
+      resetReadStatesCacheForTests();
+      const states = await readPublishStatesAtEdge(new URL('https://worker.example'), failing as any);
+      expect(states).toBeUndefined();
+      expect(resolveStaticReadMeta('/read/porcelain-and-tea', states)?.title).toBe('Porcelain and Tea · Teajia');
+      expect(resolveStaticReadMeta('/read/history', states)?.title).toBe('Not found · Teajia');
+    }
+  });
+});
+
 describe('Tea Atlas pages are a 404 at the edge for everyone', () => {
   it('serves the shell with a 404 status and noindex, whoever asks', async () => {
-    for (const path of ['/tea-atlas', '/tea-atlas/', '/tea-atlas/read/2012-02-p03-answering-some-puerh-questions', '/tea-atlas/search?q=puerh']) {
+    for (const path of ['/atlas', '/atlas/', '/atlas/read/2012-02-p03-answering-some-puerh-questions', '/atlas/search?q=puerh', '/tea-atlas', '/tea-atlas/', '/tea-atlas/read/2012-02-p03-answering-some-puerh-questions', '/tea-atlas/search?q=puerh']) {
       const next = vi.fn(async () => new Response('<html>SPA</html>', { headers: { 'content-type': 'text/html' } }));
       const response = await onRequest({ request: new Request(`https://www.teajia.com${path}`), env: {}, next } as any);
       expect(response.status, path).toBe(404);
@@ -175,5 +224,37 @@ describe('Tea Atlas pages are a 404 at the edge for everyone', () => {
   it('leaves neighbouring paths alone', async () => {
     expect(isTeaAtlasPath('/tea-atlas-other')).toBe(false);
     expect(isTeaAtlasPath('/read/atlas')).toBe(false);
+    expect(isTeaAtlasPath('/atlases')).toBe(false);
+  });
+});
+
+describe('built scripts and styles', () => {
+  const ask = (path: string, answer: Response) =>
+    onRequest({ request: new Request(`https://www.teajia.com${path}`), env: {}, next: async () => answer } as any) as Promise<Response>;
+
+  it('a script this deployment does not have is a plain not-found nobody may keep, never the shop page', async () => {
+    const shell = new Response('<!doctype html><title>Teajia</title>', { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=31536000, immutable' } });
+    const res = await ask('/assets/index-NOTYET.js', shell);
+    expect(res.status).toBe(404);
+    expect(res.headers.get('cache-control')).toBe('no-store');
+    expect(res.headers.get('content-type')).not.toContain('html');
+  });
+
+  it('a real script passes with its long caching', async () => {
+    const js = new Response('export {}', { status: 200, headers: { 'Content-Type': 'application/javascript' } });
+    const res = await ask('/assets/index-B2nVYaFK.js', js);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe('export {}');
+    expect(res.headers.get('cache-control')).toBe('public, max-age=31536000, immutable');
+  });
+
+  it('a browser revalidating a script it holds keeps its copy', async () => {
+    const res = await ask('/assets/index-B2nVYaFK.js', new Response(null, { status: 304 }));
+    expect(res.status).toBe(304);
+  });
+
+  it('every /assets/ request reaches this guard', async () => {
+    const routes = JSON.parse((await import('node:fs')).readFileSync(new URL('../public/_routes.json', import.meta.url), 'utf8'));
+    expect(routes.include).toContain('/assets/*');
   });
 });

@@ -15,7 +15,8 @@ const profileFixture = {
 test('profile leads with the first pull quote and lists every quoting article under Words', async ({ page }) => {
   await page.route('**/api/people/publishing-fixture', route => route.fulfill({ json: profileFixture }));
   await page.goto('/people/publishing-fixture');
-  await expect(page.getByTestId('profile-quote')).toContainText('First synthetic quote.');
+  // The pull quote no longer opens In my words (2026-09-29); the quoting articles are still listed under Words.
+  await expect(page.getByTestId('profile-quote')).toHaveCount(0);
   const words = page.getByTestId('profile-words');
   await expect(words.getByRole('link', { name: /First Source/ })).toHaveAttribute('href', '/article/first-source');
   await expect(words.getByRole('link', { name: /Second Source/ })).toHaveAttribute('href', '/article/second-source');
@@ -25,9 +26,11 @@ test('profile leads with the first pull quote and lists every quoting article un
   await expect(words).not.toContainText('Quoted in');
   // The cover carries the first line of the origin in the person's words; the quote opens the words below it.
   await expect(page.getByTestId('profile-cover')).toContainText('Synthetic origin.');
-  // The cover owns that sentence, so In my words does not repeat it (2026-09-21).
-  await expect(page.getByTestId('profile-words-of-mine')).not.toContainText('Synthetic origin.');
-  await expect(page.getByTestId('profile-words-of-mine')).toContainText('Synthetic inspirations.');
+  // The cover owns that sentence, and who taught them is no longer printed,
+  // so this person has nothing more to say under In my words and the section
+  // does not appear at all, rather than standing empty (2026-09-29).
+  await expect(page.getByTestId('profile-words-of-mine')).toHaveCount(0);
+  await expect(page.locator('body')).not.toContainText('Synthetic inspirations.');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
 });
 
@@ -111,4 +114,23 @@ test('contributors directory page renders the list', async ({ page }) => {
   expect(filtered, 'Console errors on /people').toHaveLength(0);
 
   await page.screenshot({ path: 'test-results/people-index.png', fullPage: true });
+});
+
+// A Read story features whoever it links on /people, with no tagging by hand
+// (scripts/read-story-people.mjs), and Contact sits beside Pay at the top so
+// nobody scrolls to reach them (Adrian, 2026-09-29). It opens at his OLD address,
+// which must land on the new one (src/pages/renamedPeople.tsx).
+test('a person linked in a Read story finds the story under Words, and Contact is at the top', async ({ page }) => {
+  await page.route('**/api/people/yan-jinwen', route => route.fulfill({ json: {
+    ...profileFixture, id: 'yan-jinwen', display_name: 'Yan Jinwen', role: 'Porcelain restorer', pull_quotes: [],
+    links: [{ platform: 'wechat', value: 'yan_jinwen', qr_image_url: null }],
+  } }));
+  await page.goto('/people/shangyin-qiwu?t=keep#words');
+  await expect(page).toHaveURL(/\/people\/yan-jinwen\?t=keep#words$/);
+  const words = page.getByTestId('profile-words');
+  await expect(words.getByRole('link', { name: /Porcelain and Tea/ })).toHaveAttribute('href', '/read/porcelain-and-tea');
+  const hub = page.getByTestId('profile-hub');
+  await expect(hub.getByRole('link', { name: 'Words' })).toHaveAttribute('href', '#words');
+  await expect(hub.getByRole('link', { name: 'Contact' })).toHaveAttribute('href', '#reach');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
 });

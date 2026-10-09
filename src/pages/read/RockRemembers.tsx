@@ -3,11 +3,12 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * The Rock Remembers: Conversations over Tea, N°02
+ * The Rock Remembers: Conversations over Tea
  * A Wuyi rock-tea roaster on fire, patience and lineage.
  * Ported pixel-faithfully from the tea-article-redesign mockup.
  */
 import React, { useState } from 'react';
+import { ConversationByline } from './conversation/Byline';
 import { Helmet } from 'react-helmet-async';
 import {
   C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
@@ -15,9 +16,9 @@ import {
 } from './immersive';
 
 const moreLinks = [
-  { to: '/read/earth-water-fire', kicker: 'Conversation · N°03', title: 'Earth, Water, Fire', blurb: 'A Jingdezhen potter on the vessels that hold the tea.' },
-  { to: '/read/before-the-mist', kicker: 'Field Notes · N°04', title: 'Before the Mist Burns Away', blurb: 'A photo-essay from a Yunnan spring harvest.' },
-  { to: '/read/leaf-to-liquor', kicker: 'The Art of Tea · N°01', title: 'From Leaf to Liquor', blurb: 'How a single leaf becomes the six colours of tea.' },
+  { to: '/read/earth-water-fire', kicker: 'Conversation', title: 'Earth, Water, Fire', blurb: 'A Jingdezhen potter on the vessels that hold the tea.' },
+  { to: '/read/before-the-mist', kicker: 'Field Notes', title: 'Before the Mist Burns Away', blurb: 'A photo-essay from a Yunnan spring harvest.' },
+  { to: '/read/leaf-to-liquor', kicker: 'The Art of Tea', title: 'From Leaf to Liquor', blurb: 'How a single leaf becomes the six colours of tea.' },
 ];
 
 const qa = (q: string, body: React.ReactNode) => ({ q, body });
@@ -92,28 +93,21 @@ const RockRemembers: React.FC = () => {
   return (
     <ImmersiveRoot rootRef={rootRef}>
       <Helmet><title>The Rock Remembers · Teajia</title></Helmet>
-      <ImmersiveNav eyebrow="Conversations · N°02" progress={progress} />
+      <ImmersiveNav progress={progress} />
       <AccentSwatches accent={accent} setAccent={setAccent} />
 
       <article style={{ position: 'relative', zIndex: 1 }}>
         {/* COVER */}
-        <header style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,360px),1fr))', alignItems: 'stretch', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)', minHeight: '90vh' }}>
-          <div style={{ position: 'relative', order: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(36px,6vw,84px) clamp(24px,5vw,72px)' }}>
-            <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.34em', textTransform: 'uppercase', color: C.gold, marginBottom: 28 }}>Conversations over Tea</div>
+        <header className="tj-cover-dissolve" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,360px),1fr))', alignItems: 'stretch', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)', minHeight: '90vh' }}>
+          <div className="tj-cover-text" style={{ position: 'relative', order: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(36px,6vw,84px) clamp(24px,5vw,72px)' }}>
             <h1 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(46px,7vw,92px)', lineHeight: 0.98, letterSpacing: '-0.015em', color: C.cream, margin: 0 }}>
               The Rock<br /><span style={{ fontStyle: 'italic', color: C.gold }}>Remembers</span>
             </h1>
             <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(16px,2vw,20px)', lineHeight: 1.5, color: C.taupe, margin: '26px 0 0', maxWidth: 440 }}>
               High in the Wuyi cliffs, a fourth-generation roaster tends a fire that never quite goes out, and listens for the moment his tea is ready to speak.
             </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 'clamp(30px,5vw,46px)', paddingTop: 24, borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.16)' }}>
-              <div>
-                <div style={{ fontFamily: F.display, fontSize: 24, color: C.ink, lineHeight: 1 }}>Chén Wǔ <span style={{ fontFamily: F.cn, color: C.taupe, fontSize: 20 }}>陈武</span></div>
-                <div style={{ fontFamily: F.ui, fontSize: 10.5, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim, marginTop: 8 }}>Rock-tea roaster · Wuyishan, Fujian</div>
-              </div>
-            </div>
           </div>
-          <div style={{ position: 'relative', order: 1, overflow: 'hidden', minHeight: '48vh', background: 'linear-gradient(155deg,#2a2117 0%,var(--tj-read-bg) 80%)' }}>
+          <div className="tj-cover-photo" style={{ position: 'relative', order: 1, overflow: 'hidden', minHeight: '48vh', background: 'linear-gradient(155deg,#2a2117 0%,var(--tj-read-bg) 80%)' }}>
             <div aria-hidden="true" style={{ ...grainCss('0.8', 150), opacity: 0.08 }} />
             <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 50% at 50% 28%, rgb(var(--tj-read-gold-rgb) / 0.16), transparent 64%)' }} />
             <div aria-hidden="true" style={{ position: 'absolute', top: '52%', left: '50%', transform: 'translate(-50%,-50%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(38vw,300px)', lineHeight: 1, color: 'rgb(var(--tj-read-gold-rgb) / 0.07)' }}>陈</div>
@@ -122,6 +116,8 @@ const RockRemembers: React.FC = () => {
             <div style={{ position: 'absolute', left: 'clamp(18px,3vw,28px)', bottom: 'clamp(18px,3vw,26px)', fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim }}>Portrait, in his roasting room</div>
           </div>
         </header>
+
+        <ConversationByline people={[{ name: 'Chén Wǔ', nameCn: '陈武' }]} minutes={3} />
 
         {/* STANDFIRST */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(20px,4vw,44px)' }}>
@@ -241,7 +237,6 @@ const RockRemembers: React.FC = () => {
           <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: C.taupe, margin: 0 }}>
             By the time we leave, the mist has burned away and the cliffs stand clear and red against the sky. Chén Wǔ does not see us out; he is bent over the baskets, listening to the fire. The tea, he says, is almost ready to tell him something.
           </p>
-          <div style={colophon}>Interview by Teajia &nbsp;·&nbsp; Conversations over Tea &nbsp;·&nbsp; N°02</div>
         </section>
 
         <MoreFooter links={moreLinks} />
@@ -255,7 +250,6 @@ const plateLabel: React.CSSProperties = { position: 'absolute', left: 14, bottom
 const cap: React.CSSProperties = { fontFamily: F.body, fontStyle: 'italic', fontSize: 13, lineHeight: 1.5, color: C.dim, marginTop: 12 };
 const briefK: React.CSSProperties = { fontFamily: F.ui, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.dim };
 const briefV: React.CSSProperties = { fontFamily: F.body, fontSize: 15, color: C.ink, textAlign: 'right' };
-const colophon: React.CSSProperties = { marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 };
 
 const Meter: React.FC<{ label: string; value: string; pct: number }> = ({ label, value, pct }) => (
   <div>

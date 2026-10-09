@@ -10,7 +10,7 @@ import AtlasSourcePage from './pages/AtlasSourcePage';
 import AtlasTopicPage from './pages/AtlasTopicPage';
 
 // The Tea Atlas reader, loaded only after the server has said this person may
-// read it (AtlasGate). Routes are relative to /tea-atlas; docs/TEA_ATLAS.md.
+// read it (AtlasGate). Routes are relative to /atlas (old /tea-atlas links forward); docs/TEA_ATLAS.md.
 // "Add a source" is its own chunk (it carries pdf.js), fetched only by the
 // person who opens it; the server decides whether that person may use it.
 const AtlasAddSourcePage = lazy(() => import('./pages/AtlasAddSourcePage'));

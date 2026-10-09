@@ -30,7 +30,7 @@
 // an edge bundle that only needs one plain object. articleLive.ts carries
 // nothing but that object and a pure function, so importing it here adds
 // nothing else to the bundle.
-import { isReadPathPublic } from '../src/pages/read/articleLive';
+import { isCuratedReadPath, isReadPathPublic, type ReadPublishOverrides } from '../src/pages/read/articleLive';
 
 interface Meta {
   title: string;
@@ -162,13 +162,70 @@ const NOT_FOUND_META: Meta = {
  * shown only if it is marked live or is one of the named exceptions (/read
  * itself and the leaf-to-liquor routes), and anything else is a draft.
  */
-export function resolveStaticReadMeta(path: string): Meta | null {
+/**
+ * The picture a chat app shows under a pasted link to a published Read piece:
+ * its own share card, the same drawing the Share button sends, made by
+ * `npm run share:cards`. functions/shareCards.test.ts fails when a
+ * published piece has no card, or its card no longer matches the piece.
+ */
+export function readShareCardPath(path: string): string {
+  return `/read/${path.split('/').pop()}/share.jpg`;
+}
+
+export function resolveStaticReadMeta(path: string, states?: ReadPublishOverrides | null): Meta | null {
   const meta = STATIC_META[path] || null;
   if (!meta) return null;
   if (path === '/read' || path.startsWith('/read/')) {
-    if (!isReadPathPublic(path)) return NOT_FOUND_META;
+    if (!isReadPathPublic(path, states)) return NOT_FOUND_META;
   }
+  // Share cards are drawn at build time for the pieces the MAP calls live
+  // (functions/shareCards.test.ts holds that). A piece published from its own
+  // page since then has no card yet, so it keeps the site's default picture
+  // rather than pointing a chat app at a file that is not there.
+  if (path.startsWith('/read/') && !meta.image && isReadPathPublic(path)) return { ...meta, image: `${SITE}${readShareCardPath(path)}` };
   return meta;
+}
+
+/**
+ * The states Adrian set from a story's own page (Publish / Unpublish,
+ * migration 0030), as the crawler meta needs them: a story published from the
+ * page must stop answering a crawler with not-found meta, and one taken down
+ * must start. Asked of the worker's public read, kept for fifteen seconds in
+ * this isolate so a burst of scrapers costs one request, and bounded so a slow
+ * API never holds a page. Any failure answers undefined, and the caller uses
+ * ARTICLE_LIVE alone: a bad minute never hides a live story.
+ */
+const READ_STATES_TTL_MS = 15_000;
+let readStatesCache: { at: number; states: ReadPublishOverrides } | null = null;
+
+export async function readPublishStatesAtEdge(
+  workerOrigin: URL,
+  fetcher: typeof fetch = fetch,
+  now: number = Date.now(),
+): Promise<ReadPublishOverrides | undefined> {
+  if (readStatesCache && now - readStatesCache.at < READ_STATES_TTL_MS) return readStatesCache.states;
+  try {
+    const res = await fetcher(new URL('/api/public/read/publish-state', workerOrigin).toString(), {
+      signal: AbortSignal.timeout(1500),
+    });
+    if (!res.ok) return undefined;
+    const body = (await res.json()) as { states?: unknown };
+    const raw = body?.states;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+    const states: Record<string, 'live' | 'draft'> = {};
+    for (const [p, s] of Object.entries(raw as Record<string, unknown>)) {
+      if (s === 'live' || s === 'draft') states[p] = s;
+    }
+    readStatesCache = { at: now, states };
+    return states;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Tests only: forget the isolate's cached states. */
+export function resetReadStatesCacheForTests() {
+  readStatesCache = null;
 }
 
 interface Env { WORKER_ORIGIN?: string }
@@ -363,12 +420,44 @@ class HeadRewriter {
 }
 
 export function isTeaAtlasPath(path: string): boolean {
-  return path === '/tea-atlas' || path.startsWith('/tea-atlas/');
+  // /atlas is the address; /tea-atlas is where it lived until 2026-10-04 and still forwards.
+  return ['/atlas', '/tea-atlas'].some((root) => path === root || path.startsWith(root + '/'));
+}
+
+/**
+ * A built script or style, or a plain "not found" that nobody may keep.
+ *
+ * Pages answers a file this deployment does not have with the SPA shell, a
+ * 200 of HTML. Under /assets/ that answer used to inherit the year-long
+ * `immutable` caching meant for real hashed files, so a script asked for in
+ * the seconds a deploy was landing was stored at Cloudflare's edge AS HTML,
+ * and every browser then refused it as a script: the whole site sat on
+ * "Loading Teajia…" (twice on 2026-10-08). Cloudflare serves its stored copy
+ * before this code runs, so this runs only when a file is not stored yet,
+ * which is the one moment the shell could slip in.
+ */
+export function guardBuiltAsset(response: Response): Response {
+  // A browser checking a file it already holds gets 304 and keeps its copy.
+  if (response.status === 304) return response;
+  const type = response.headers.get('content-type') || '';
+  if (response.ok && !type.includes('text/html')) {
+    const headers = new Headers(response.headers);
+    // _headers does not reach a response that passes through Functions, so the
+    // long caching a hashed file has earned is set here.
+    headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+    headers.set('X-Content-Type-Options', 'nosniff');
+    return new Response(response.body, { status: response.status, headers });
+  }
+  return new Response('Not found', {
+    status: 404,
+    headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+  });
 }
 
 export const onRequest: PagesFunction<Env> = async (context) => {
   const { request, next } = context;
   const url = new URL(request.url);
+  if (url.pathname.startsWith('/assets/')) return guardBuiltAsset(await next());
   // These protocol endpoints must reach the Worker before the SPA fallback.
   if (isWorkerProxyPath(url.pathname)) return proxyToWorker(request, context.env.WORKER_ORIGIN);
   // Normalize trailing slashes but keep "/" as the homepage (not "/read").
@@ -390,7 +479,16 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     return new Response(shell.body, { status: 404, headers });
   }
 
-  let meta: Meta | null = resolveStaticReadMeta(path);
+  // A curated Read story's state may have been set from its own page, which
+  // the map alone does not know. Only a crawler is shown this meta for any
+  // reason, so only a crawler pays the (cached, bounded) request for it, the
+  // same rule the article and product lookups below follow.
+  let readStates: ReadPublishOverrides | undefined;
+  if (STATIC_META[path] && isCuratedReadPath(path) && CRAWLER_RE.test(request.headers.get('user-agent') || '')) {
+    const workerOrigin = configuredWorkerOrigin(context.env.WORKER_ORIGIN);
+    if (workerOrigin) readStates = await readPublishStatesAtEdge(workerOrigin);
+  }
+  let meta: Meta | null = resolveStaticReadMeta(path, readStates);
 
   // Dynamic DB-backed article — only pay the API call for crawlers.
   if (!meta && path.startsWith('/article/')) {

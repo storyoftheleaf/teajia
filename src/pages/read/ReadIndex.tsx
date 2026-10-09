@@ -23,7 +23,8 @@ import {
   useReadingProgress, useImmersiveChrome, useReveals,
   ACCENTS,
 } from './immersive';
-import { isArticleVisible, useIsReadOwner } from './publishGate';
+import { isArticleVisible, useIsReadOwner, useReadPublishState } from './publishGate';
+import type { ReadPublishOverrides } from './articleLive';
 
 // ── Seed-article filter (kept from original ReadIndex) ───────────────────────
 const SEED_ARTICLE_TITLES = new Set([
@@ -57,7 +58,7 @@ export function numberWord(n: number): string {
 // meta the Pages function writes. A visitor sees only a piece marked live; the
 // owner sees every piece (drafts dimmed and tagged). Flip a piece live there,
 // and it publishes everywhere in one edit.
-type IndexItem = { n: string; rubric: string; title: string; dek: string; href: string };
+type IndexItem = { rubric: string; title: string; dek: string; href: string };
 type IndexGroup = { label: string; glyph: string; items: IndexItem[] };
 
 const INDEX_GROUPS: IndexGroup[] = [
@@ -65,39 +66,39 @@ const INDEX_GROUPS: IndexGroup[] = [
     label: 'The interactive issue',
     glyph: '◇',
     items: [
-      { n: 'N°01', rubric: 'The Art of Tea', title: 'From Leaf to Liquor', dek: 'How a single leaf becomes the six colours of tea.',            href: '/read/leaf-to-liquor' },
-      { n: 'N°05', rubric: 'Ritual',    title: 'Seven Steeps',           dek: 'The same leaves, brewed seven ways, scroll to pour.',          href: '/read/ritual' },
-      { n: 'N°06', rubric: 'Geography', title: 'A Map of Mountains',     dek: 'An interactive atlas of China’s tea terroir.',             href: '/read/atlas' },
-      { n: 'N°07', rubric: 'History',   title: 'Ten Thousand Mornings',  dek: 'Five thousand years of tea, along one moving line.',           href: '/read/history' },
-      { n: 'N°08', rubric: 'Tasting',   title: 'The Vocabulary of Taste',dek: 'A turning flavour wheel and a tasting radar.',                 href: '/read/tasting' },
+      { rubric: 'The Art of Tea', title: 'From Leaf to Liquor', dek: 'How a single leaf becomes the six colours of tea.',            href: '/read/leaf-to-liquor' },
+      { rubric: 'Ritual',    title: 'Seven Steeps',           dek: 'The same leaves, brewed seven ways, scroll to pour.',          href: '/read/ritual' },
+      { rubric: 'Geography', title: 'A Map of Mountains',     dek: 'An interactive atlas of China’s tea terroir.',             href: '/read/atlas' },
+      { rubric: 'History',   title: 'Ten Thousand Mornings',  dek: 'Five thousand years of tea, along one moving line.',           href: '/read/history' },
+      { rubric: 'Tasting',   title: 'The Vocabulary of Taste',dek: 'A turning flavour wheel and a tasting radar.',                 href: '/read/tasting' },
     ],
   },
   {
     label: 'Conversations over tea',
     glyph: '¶',
     items: [
-      { n: 'N°02', rubric: 'Conversation', title: 'The Rock Remembers', dek: 'A Wuyi roaster on fire, patience and lineage.',               href: '/read/rock-remembers' },
-      { n: 'N°03', rubric: 'Conversation', title: 'Earth, Water, Fire', dek: 'A Jingdezhen potter on the vessels that hold tea.',           href: '/read/earth-water-fire' },
-      { n: 'N°09', rubric: 'A Tea House',  title: 'Quiet Hours',        dek: 'Building a Melbourne tea house, told in two voices.',         href: '/read/tea-house' },
-      { n: 'N°15', rubric: 'The Craft',    title: 'Porcelain and Tea',  dek: 'The world is tattered, but we are still mending it.', href: '/read/porcelain-and-tea' },
+      { rubric: 'Conversation', title: 'The Rock Remembers', dek: 'A Wuyi roaster on fire, patience and lineage.',               href: '/read/rock-remembers' },
+      { rubric: 'Conversation', title: 'Earth, Water, Fire', dek: 'A Jingdezhen potter on the vessels that hold tea.',           href: '/read/earth-water-fire' },
+      { rubric: 'A Tea House',  title: 'Quiet Hours',        dek: 'Building a Melbourne tea house, told in two voices.',         href: '/read/tea-house' },
+      { rubric: 'The Craft',    title: 'Porcelain and Tea',  dek: 'The world is tattered, but we are still mending it.', href: '/read/porcelain-and-tea' },
     ],
   },
   {
     label: 'Journeys & field notes',
     glyph: '∞',
     items: [
-      { n: 'N°04', rubric: 'Field Notes', title: 'Before the Mist',          dek: 'A photo essay from a Yunnan spring dawn.',              href: '/read/before-the-mist' },
-      { n: 'N°10', rubric: 'First Person', title: 'The Long Way to the Cup',  dek: 'From Hong Kong to Bali, learning to taste.',           href: '/read/essay' },
-      { n: 'N°11', rubric: 'Field Notes', title: 'Two Rooms in Bali',         dek: 'Jackfruit wood, charcoal and bonsai light.',            href: '/read/field-notes' },
+      { rubric: 'Field Notes', title: 'Before the Mist',          dek: 'A photo essay from a Yunnan spring dawn.',              href: '/read/before-the-mist' },
+      { rubric: 'First Person', title: 'The Long Way to the Cup',  dek: 'From Hong Kong to Bali, learning to taste.',           href: '/read/essay' },
+      { rubric: 'Field Notes', title: 'Two Rooms in Bali',         dek: 'Jackfruit wood, charcoal and bonsai light.',            href: '/read/field-notes' },
     ],
   },
   {
     label: 'Long reads',
     glyph: '◊',
     items: [
-      { n: 'N°12', rubric: 'Field Study', title: 'The Water Before the Leaf', dek: 'The overlooked half of every cup, water.',             href: '/read/field-study' },
-      { n: 'N°13', rubric: 'Legend',      title: 'The Immortals’ Cliff', dek: 'The Da Hong Pao mother trees of Wuyi.',                href: '/read/legend' },
-      { n: 'N°14', rubric: 'The Craft',   title: 'The Pot That Remembers',    dek: 'Yixing purple clay, and pots that age with you.',      href: '/read/craft' },
+      { rubric: 'Field Study', title: 'The Water Before the Leaf', dek: 'The overlooked half of every cup, water.',             href: '/read/field-study' },
+      { rubric: 'Legend',      title: 'The Immortals’ Cliff', dek: 'The Da Hong Pao mother trees of Wuyi.',                href: '/read/legend' },
+      { rubric: 'The Craft',   title: 'The Pot That Remembers',    dek: 'Yixing purple clay, and pots that age with you.',      href: '/read/craft' },
     ],
   },
 ];
@@ -151,9 +152,11 @@ const IndexRow: React.FC<{ item: IndexItem; draft?: boolean }> = ({ item, draft 
 // ── Group block component ────────────────────────────────────────────────────
 // `isAdmin` decides the audience: the owner sees every row (drafts dimmed +
 // tagged); a visitor sees only live rows. A group with no visible rows for the
-// current audience renders nothing.
-const GroupBlock: React.FC<{ group: IndexGroup; isAdmin: boolean }> = ({ group, isAdmin }) => {
-  const visible = group.items.filter((it) => isArticleVisible(it.href, isAdmin));
+// current audience renders nothing. `states` is what Adrian set from the page
+// (Publish / Unpublish), which overrides the map; a draft is whatever a
+// visitor would not be shown under it.
+const GroupBlock: React.FC<{ group: IndexGroup; isAdmin: boolean; states: ReadPublishOverrides }> = ({ group, isAdmin, states }) => {
+  const visible = group.items.filter((it) => isArticleVisible(it.href, isAdmin, states));
   if (visible.length === 0) return null;
   return (
     <div style={{ marginTop: 38 }}>
@@ -170,7 +173,7 @@ const GroupBlock: React.FC<{ group: IndexGroup; isAdmin: boolean }> = ({ group, 
         </span>
       </div>
       {visible.map((item) => (
-        <IndexRow key={item.href} item={item} draft={isAdmin && !isArticleVisible(item.href, false)} />
+        <IndexRow key={item.href} item={item} draft={isAdmin && !isArticleVisible(item.href, false, states)} />
       ))}
     </div>
   );
@@ -209,7 +212,7 @@ const LeadCover: React.FC = () => {
       </div>
       <div style={{ position: 'relative', padding: 'clamp(22px,3vw,30px)' }}>
         <div style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.26em', textTransform: 'uppercase', color: C.gold, marginBottom: 14 }}>
-          The Lead · N°15 · Conversations over tea
+          The Lead · Conversations over tea
         </div>
         <div style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(34px,4.4vw,46px)', lineHeight: 0.98, color: 'var(--tj-read-cream)' }}>
           Porcelain{' '}
@@ -323,8 +326,15 @@ const ReadIndex: React.FC = () => {
 
   // How many pieces the current audience can see. A visitor counts only live
   // pieces; the owner counts all of them. Drives the masthead + contents labels.
+  //
+  // What Adrian set from a story's own page (Publish / Unpublish) overrides
+  // the map, so every count and filter below reads `states`. A visitor's list
+  // waits until those states are read (or the read gives up and the map
+  // decides), so a story taken down is never listed for a moment first.
+  const { states, settled } = useReadPublishState();
+  const ready = isAdmin || settled;
   const allItems = INDEX_GROUPS.flatMap((g) => g.items);
-  const liveCount = allItems.filter((it) => isArticleVisible(it.href, false)).length;
+  const liveCount = allItems.filter((it) => isArticleVisible(it.href, false, states)).length;
   const shownCount = isAdmin ? allItems.length : liveCount;
   const piecesLabel = `${numberWord(shownCount)} ${shownCount === 1 ? 'piece' : 'pieces'}`;
   // May the current audience see the piece at this route. Used to gate the
@@ -332,9 +342,9 @@ const ReadIndex: React.FC = () => {
   // cannot open while the owner always sees the full designed rail. It is the
   // same call the route, the rail at the foot of each article and the crawler
   // meta make, rather than a fourth spelling of one question.
-  const canSee = (href: string) => isArticleVisible(href, isAdmin);
+  const canSee = (href: string) => ready && isArticleVisible(href, isAdmin, states);
 
-  const rootRef = useReveals([isAdmin]);
+  const rootRef = useReveals([isAdmin, ready, states]);
   const progress = useReadingProgress();
 
   return (
@@ -391,11 +401,11 @@ const ReadIndex: React.FC = () => {
               <span style={{ flex: 1, height: 1, background: 'rgb(var(--tj-read-gold-rgb) / 0.18)' }} />
               <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.1em', color: C.dim }}>{piecesLabel}</span>
             </div>
-            {INDEX_GROUPS.map((group) => (
-              <GroupBlock key={group.label} group={group} isAdmin={isAdmin} />
+            {ready && INDEX_GROUPS.map((group) => (
+              <GroupBlock key={group.label} group={group} isAdmin={isAdmin} states={states} />
             ))}
             {/* Public empty state, only when a visitor has no live pieces yet. */}
-            {!isAdmin && liveCount === 0 && (
+            {!isAdmin && settled && liveCount === 0 && (
               <p style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 18, lineHeight: 1.55, color: C.dim, margin: '38px 2px 0', maxWidth: 460 }}>
                 The first pieces are being set in type. Come back soon, the kettle is on.
               </p>
@@ -418,7 +428,7 @@ const ReadIndex: React.FC = () => {
               {canSee('/read/legend') && (
               <SecondaryCover
                 to="/read/legend"
-                kicker="Legend · N°13"
+                kicker="Legend"
                 title={<>The Immortals&rsquo; <span style={{ fontStyle: 'italic', color: C.gold }}>Cliff</span></>}
                 svgOpacity={0.5}
                 bgGradient="linear-gradient(150deg,#3a2418,#181009)"
@@ -434,7 +444,7 @@ const ReadIndex: React.FC = () => {
               {canSee('/read/tea-house') && (
               <SecondaryCover
                 to="/read/tea-house"
-                kicker="A Tea House · N°09"
+                kicker="A Tea House"
                 title={<>Quiet <span style={{ fontStyle: 'italic', color: C.gold }}>Hours</span></>}
                 svgOpacity={0.45}
                 bgGradient="linear-gradient(150deg,#22271a,#13120b)"

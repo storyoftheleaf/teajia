@@ -612,8 +612,11 @@ describe('the REST product write doors canonicalise cost_currency too, not only 
      `product_listings` mirror for as long as this guard existed and passed. */
   const worker_ = stripComments(read('worker/src/index.ts'));
 
-  it('index.ts calls the shared canonicaliser at every door that writes cost_currency', () => {
-    const calls = worker_.match(/canonicalizeCostCurrency\(/g) ?? [];
+  it('REST and its shared promotion service canonicalise every cost_currency write door', () => {
+    const promotion = stripComments(read('worker/src/curatePromotion.ts'));
+    const calls = (worker_ + promotion).match(/canonicalizeCostCurrency\(/g) ?? [];
+    expect(worker_).toMatch(/promoteCompassEntry\(env\.DB/);
+    expect(promotion).toMatch(/canonicalizeCostCurrency\(cols\)/);
     // One call per door: single create, bulk create, applyProductUpdate
     // (shared by catalog/stock/commercial updates), and the compass promotion.
     expect(calls.length).toBeGreaterThanOrEqual(4);
@@ -719,7 +722,7 @@ describe('the REST doors store the shop spelling, driven through the running rou
     expect(listingRow(db, id)?.cost_currency).toBe('Yuan');
   });
 
-  it('the Tea Compass promotion stores the shop spelling for a lower-cased currency', async () => {
+  it('the Tea Compass promotion leaves unit-quoted money unset until a batch is received', async () => {
     const db = database();
     db.sqlite.prepare(
       `INSERT INTO tea_compass_entries (id, user_id, account_id, name, category, price_amount, price_currency)
@@ -728,6 +731,6 @@ describe('the REST doors store the shop spelling, driven through the running rou
     const res = await call(db, 'POST', '/api/compass/entries/r3-compass-entry/promote', {});
     expect(res.status).toBe(201);
     const { id } = await res.json() as { id: string };
-    expect(productRow(db, id)?.cost_currency).toBe('Yuan');
+    expect(db.sqlite.prepare('SELECT cost_amount, cost_currency FROM products WHERE id = ?').get(id)).toMatchObject({ cost_amount: null, cost_currency: null });
   });
 });

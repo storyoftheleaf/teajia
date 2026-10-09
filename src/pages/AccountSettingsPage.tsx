@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import { api, setToken } from '../lib/api';
 import { ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
@@ -36,6 +37,10 @@ function PrimarySubmit({ label, loading }: { label: string; loading: boolean }) 
 export default function AccountSettingsPage() {
   const navigate = useNavigate();
   const auth = useAuth();
+  // The public Tea Master identity is one link inside, shown only to someone
+  // who has one or may start one; for anyone else that page would refuse them.
+  const profileQuery = useQuery({ queryKey: ['profile', 'self'], queryFn: api.profile.getSelf, enabled: auth.isAuthenticated });
+  const hasPublicIdentity = Boolean(profileQuery.data?.profile || profileQuery.data?.can_create);
   const { theme, toggleTheme } = useTheme();
 
   const [editName, setEditName] = useState(auth.user?.name || '');
@@ -171,9 +176,13 @@ export default function AccountSettingsPage() {
 
       {/* Header */}
       <div>
-        <h1 className="h2">Account Settings</h1>
-        <p className="label-caps text-tea-text-dim mt-1">Profile · Security</p>
-        <a href="/account/profile" className="tap-target mt-3 inline-flex text-ui-13 text-tea-gold transition-colors hover:text-tea-gold-lt">Tea Master profile</a>
+        {/* "Profile" since 2026-09-29: the Your Table tile has one name, and
+            "settings" is only ever the shop's, in Manage. */}
+        <h1 className="h2">Profile</h1>
+        <p className="label-caps text-tea-text-dim mt-1">Name · Sign-in · Appearance</p>
+        {hasPublicIdentity && (
+          <a href="/account/profile" className="tap-target mt-3 inline-flex text-ui-13 text-tea-gold transition-colors hover:text-tea-gold-lt">Public profile and payment</a>
+        )}
       </div>
 
       {/* Identity card */}

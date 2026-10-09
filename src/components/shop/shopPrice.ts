@@ -4,6 +4,9 @@ import { useRates } from '../../admin/hooks/useAdminData';
 import { formatCurrency } from '../../admin/utils';
 import type { Currency, ExchangeRate } from '../../admin/types';
 import { fmtShopPrice, fmtShopPricePerGram } from '../../utils/formatNumber';
+import { CURRENCY_SYMBOLS } from '../../utils/currency';
+import { isoCurrencyCode, rateToUsd } from '../../lib/currency';
+import type { CostCurrency } from '../../types';
 
 /**
  * What a tea costs, in the currency the reader chose.
@@ -102,6 +105,26 @@ export interface ShopPrice {
    * message so the basket the customer sends names its own currency.
    */
   code: string;
+  /**
+   * The symbol of the money the figures are actually printed in, for a list
+   * that names its currency once and shows bare numbers under it.
+   *
+   * Not the currency the reader chose: when the rate table has no row for it,
+   * `formatCurrency` prints dollars, and a heading reading "Rp" over dollar
+   * figures would misprice the whole column. So this asks the same lookup the
+   * formatter asks.
+   */
+  symbol: string;
+  /**
+   * A total led by the currency's short symbol, touching it, instead of its
+   * code: "$15", "Rp269k", "NT$1,652", "JP¥26,301". That is how each of these
+   * currencies is written where it is spent, so the pair reads as one unit of
+   * money; "15 $" was tried for a day and reads as a French price. The code
+   * on every row ("IDR 269k") was the widest thing in the list. The symbol is
+   * `symbol` above, so a currency with no rate reads as the dollars it really
+   * is.
+   */
+  symbolTotal: (usd: number) => string;
   /** A total, rounded up to a whole unit, as the shop has always quoted totals. */
   total: (usd: number) => string;
   /**
@@ -140,6 +163,8 @@ export function useShopPrice(): ShopPrice {
   // USD needs no table, and an empty table is not a reason to invent a rate.
   const localised = currency !== 'USD' && rates.length > 0;
   const code = localised ? currency : 'USD';
+  const quotedIn = localised && rateToUsd(rates, currency) !== null ? isoCurrencyCode(currency) : 'USD';
+  const symbol = CURRENCY_SYMBOLS[quotedIn as CostCurrency] ?? quotedIn;
 
   const total = useCallback(
     (usd: number) => (localised ? formatCurrency(Math.ceil(usd), currency, rates) : fmtShopPrice(usd)),
@@ -161,6 +186,17 @@ export function useShopPrice(): ShopPrice {
   const plainTotal = useCallback(
     (usd: number) => stripCode(total(usd)),
     [total],
+  );
+
+  // A leading "~" (a rate we do not hold) or minus stays in front of the
+  // symbol, because both change what the figure means.
+  const symbolTotal = useCallback(
+    (usd: number) => {
+      const plain = plainTotal(usd);
+      const lead = /^[~-]/.test(plain) ? plain[0] : '';
+      return lead + symbol + plain.slice(lead.length);
+    },
+    [plainTotal, symbol],
   );
 
   const rate = useCallback(
@@ -194,7 +230,7 @@ export function useShopPrice(): ShopPrice {
   );
 
   return useMemo(
-    () => ({ localised, code, total, plainTotal, perGram, rate, perGramExact }),
-    [localised, code, total, plainTotal, perGram, rate, perGramExact],
+    () => ({ localised, code, symbol, symbolTotal, total, plainTotal, perGram, rate, perGramExact }),
+    [localised, code, symbol, symbolTotal, total, plainTotal, perGram, rate, perGramExact],
   );
 }

@@ -346,6 +346,7 @@ describe('every door, including the ones no test drives', () => {
     ['index.ts', stripComments(read('../src/index.ts'))],
     ['mcp.ts', stripComments(read('../src/mcp.ts'))],
     ['curateImports.ts', stripComments(read('../src/curateImports.ts'))],
+    ['curatePromotion.ts', stripComments(read('../src/curatePromotion.ts'))],
   ];
 
   it('names all three columns, or passes its column bag through nameProductColumns', () => {

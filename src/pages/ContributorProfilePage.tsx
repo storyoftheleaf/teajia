@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { ContributorIdentityMark } from '../components/shared/ContributorIdentityMark';
 import { PLATFORM_NAMES } from '../components/people/PlatformMark';
 import {
@@ -38,6 +38,9 @@ import type {
   ContributorTeaSelectionRef,
 } from '../types';
 import { mediaUrl } from '../lib/mediaUrl';
+import { isReadPathPublic, type ReadPublishOverrides } from './read/articleLive';
+import { useKnownReadOverrides } from './read/publishGate';
+import storyPeople from './read/storyPeople.generated.json';
 
 // /people/:slug. A creator's public page, phone first: the page that goes in
 // an Instagram or WeChat bio. Built to the "Profile" board of the Creator
@@ -74,7 +77,7 @@ function articleHref(slug: string, anchor?: string | null): string {
   return `/article/${encodeURIComponent(slug)}${anchor ? `#${anchor}` : ''}`;
 }
 
-function wordRows(data: ContributorProfile): WordRow[] {
+function wordRows(data: ContributorProfile, readStates?: ReadPublishOverrides): WordRow[] {
   const authored = data.articles.map((article: ContributorArticleRef): WordRow => ({
     key: `wrote-${article.slug}`,
     href: articleHref(article.slug),
@@ -104,7 +107,13 @@ function wordRows(data: ContributorProfile): WordRow[] {
       title: article.title,
       dek: [article.subtitle, article.quote_anchor ? passage : mention].filter(Boolean).join(' ') || null,
     }));
-  return [...authored, ...quoted, ...featured];
+  // The Read stories this person appears in, found from the stories' own
+  // links to their page (scripts/read-story-people.mjs), so nobody has to tag
+  // them by hand. Only stories a visitor can open are listed.
+  const stories = (storyPeople as Array<{ href: string; title: string; dek: string | null; people: string[] }>)
+    .filter(story => story.people.includes(data.id) && isReadPathPublic(story.href, readStates))
+    .map((story): WordRow => ({ key: `read-${story.href}`, href: story.href, title: story.title, dek: story.dek }));
+  return [...stories, ...authored, ...quoted, ...featured];
 }
 
 // ── The teas ──────────────────────────────────────────────────────────────────
@@ -190,6 +199,8 @@ export default function ContributorProfilePage() {
   const { slug } = useParams<{ slug: string }>();
   const { data, isLoading, isError, error, refetch } = useContributor(slug);
   const rootRef = useReveals([data?.id]);
+  // A Read story published or taken down from its own page, once this browser knows.
+  const readStates = useKnownReadOverrides();
   const progress = useReadingProgress();
 
   useEffect(() => {
@@ -230,16 +241,14 @@ export default function ContributorProfilePage() {
   const kicker = coverKicker(data.role, data.location_line);
   const coverLine = ownLine(data);
 
-  // In my words: the quote, then two paragraphs, now first and then where it
-  // began, with the sentence the cover already said taken out of the first.
-  const quote = data.pull_quotes[0]?.pull_quote
-    ?? data.articles.find(article => article.pull_quote)?.pull_quote
-    ?? null;
-  const paragraphs = wordsAfterCoverLine(data).slice(0, 2);
-  const hasWords = Boolean(quote || paragraphs.length);
+  // In my words: one passage in their own voice, with the sentence the cover
+  // already said taken out. No pull quote and no second passage (Adrian,
+  // 2026-09-29: "cut both"; one passage lands harder than three).
+  const paragraphs = wordsAfterCoverLine(data).slice(0, 1);
+  const hasWords = paragraphs.length > 0;
 
   const gallery = data.gallery_images;
-  const rows = wordRows(data);
+  const rows = wordRows(data, readStates);
   const collection = data.collection;
   const teas = data.tea_selection;
   const shownTeas = teas.slice(0, 3);
@@ -260,6 +269,8 @@ export default function ContributorProfilePage() {
   const cells = [
     rows.length > 0 ? { id: 'words', label: 'Words', href: '#words' } : null,
     hasTeas ? { id: 'teas', label: 'Teas', href: '#teas' } : null,
+    // Contact and Pay sit at the top so a visitor can reach or pay them without scrolling.
+    data.links.length > 0 ? { id: 'contact', label: 'Contact', href: '#reach' } : null,
     canPay ? { id: 'pay', label: 'Pay', href: payHref, route: true } : null,
   ].filter((cell): cell is NonNullable<typeof cell> => cell !== null);
 
@@ -291,7 +302,26 @@ export default function ContributorProfilePage() {
             {data.chinese_name && <p className="mt-2 text-[22px] leading-none tracking-[0.08em] text-tea-readgold" style={{ fontFamily: "'Ma Shan Zheng','Noto Serif SC',cursive" }}>{data.chinese_name}</p>}
             {coverLine && <Dek className="mt-3 max-w-[30ch] text-ui-14">{coverLine}</Dek>}
           </Cover>
-          {/* The hub: three cells at most, side by side, sharing the width. */}
+          {/* Where to find them, as one line under the name and only when there
+              is something: the event they host next, and their own table.
+              These were two whole sections further down until 2026-09-29. */}
+          {(hosting || house) && (
+            <p className={`${SIDE} mt-3 flex flex-wrap items-center gap-x-2 font-sans text-ui-13 leading-relaxed text-tea-text-sec`} data-testid="profile-where">
+              {hosting && (
+                <Link to={`/event/${encodeURIComponent(hosting.slug)}`} className="tap-target underline decoration-tea-border underline-offset-4 transition-colors hover:text-tea-text">
+                  Hosting {hosting.title}, {formatEventLong(hosting.event_date)}
+                </Link>
+              )}
+              {hosting && house && <span aria-hidden="true">·</span>}
+              {house && (
+                <Link to={`/store/${encodeURIComponent(house.slug)}`} className="tap-target underline decoration-tea-border underline-offset-4 transition-colors hover:text-tea-text">
+                  My table: {house.name}
+                </Link>
+              )}
+            </p>
+          )}
+          {/* The hub: three cells at most, side by side, sharing the width. It
+              stays: someone who came to pay should not have to scroll. */}
           <HubCells cells={cells} testId="profile-hub" />
         </header>
 
@@ -300,7 +330,6 @@ export default function ContributorProfilePage() {
           <Section testId="profile-words-of-mine">
             <div className={SIDE}>
               <GroupHead label="In my words" />
-              {quote && <p className="mt-3.5 max-w-[22ch] font-display text-ui-26 font-light leading-[1.2] text-tea-text" data-testid="profile-quote">“{quote}”</p>}
               {paragraphs.map((paragraph, index) => (
                 <p key={index} className={`font-body text-ui-15 leading-[1.65] text-tea-text ${index === 0 ? 'mt-[18px]' : 'mt-3.5'}`}>{paragraph}</p>
               ))}
@@ -365,35 +394,6 @@ export default function ContributorProfilePage() {
                   And {countWord(moreTeas)} more, in the {collection ? 'collection' : 'selection'}
                 </a>
               )}
-            </div>
-          </Section>
-        )}
-
-        {/* ── Hosting ────────────────────────────────────────────────────── */}
-        {hosting && (
-          <Section id="hosting" testId="profile-hosting">
-            <div className={SIDE}>
-              <GroupHead label="Hosting" />
-              {/* Canvas version 22: no rubric. The title, then the day, time, place and places line as the dek. */}
-              <IndexRow
-                to={`/event/${encodeURIComponent(hosting.slug)}`}
-                title={hosting.title}
-                dek={[`${formatEventLong(hosting.event_date)}, at ${hosting.location_name ?? hosting.account_name}.`, hosting.subtitle ? `${hosting.subtitle}.` : null].filter(Boolean).join(' ')}
-              />
-            </div>
-          </Section>
-        )}
-
-        {/* ── My table ───────────────────────────────────────────────────── */}
-        {house && (
-          <Section id="house" testId="profile-house">
-            <div className={SIDE}>
-              <GroupHead label="My table" />
-              <IndexRow
-                to={`/store/${encodeURIComponent(house.slug)}`}
-                title={house.name}
-                dek={`My shop and sessions${house.location_city ? ` in ${house.location_city}` : ''}, and how to find the door.`}
-              />
             </div>
           </Section>
         )}

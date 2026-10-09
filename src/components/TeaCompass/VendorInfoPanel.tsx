@@ -1,3 +1,5 @@
+import { CurateRecordTools } from '../curate/CurateRecordTools';
+import { CurateVendorFields } from '../curate/CurateVendorFields';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -20,7 +22,7 @@ interface VendorInfoPanelProps {
 
 type UploadState = 'idle' | 'loading' | 'done';
 
-export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = ({
+const VendorInfoPanelContent: React.FC<VendorInfoPanelProps> = ({
   vendorName,
   vendorId,
   vendorDetails,
@@ -363,6 +365,19 @@ export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = ({
       </button>
     </div>
   );
+};
+
+
+
+
+export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = props => {
+  return <div className="space-y-3">
+    <VendorInfoPanelContent {...props} />
+    {props.vendorId && <>
+      <CurateVendorFields vendorId={props.vendorId} />
+      <CurateRecordTools entityType="vendor" entityId={props.vendorId} />
+    </>}
+  </div>;
 };
 
 export default VendorInfoPanel;

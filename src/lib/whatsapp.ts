@@ -197,7 +197,7 @@ export function buildStatusMessage(opts: {
   }
   if (opts.total) lines.push('', `Total: ${opts.total}`);
   if (opts.note) lines.push('', opts.note);
-  lines.push('', 'Thank you for choosing Teajia.');
+  lines.push('', 'Thank you for choosing Teajia. Come share a cup.');
   if (opts.payUrl) lines.push('', `Pay here: ${opts.payUrl}`);
 
   return lines.join('\n');

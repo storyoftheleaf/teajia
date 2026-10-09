@@ -1,11 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BowlSteam, CalendarBlank, Heart, Tray, ArrowsLeftRight, Wrench, Path, BookOpen, Books, Compass, Package, IdentificationCard, Receipt, Flask, Footprints, GearSix } from '@phosphor-icons/react';
-import { NeedsAttention, daysWord } from './primitives';
+import { BowlSteam, CalendarBlank, Heart, ArrowsLeftRight, Wrench, Path, BookOpen, Books, Package, IdentificationCard, Receipt, Footprints, Warning } from '@phosphor-icons/react';
+import { daysWord } from './primitives';
 import type { TeaMasterReadiness } from '../readiness/teaMasterReadiness';
 import type { AttentionItem } from '../../lib/api';
 import type { PayAccessTable } from '../profile/types';
 import { PayAccessRequestRow, soFarLine } from '../profile/PayAccessPanel';
+import { ATLAS_ROOT } from '../../atlas/atlasPaths';
 
 interface LaunchpadTile {
   id: string;
@@ -38,6 +39,8 @@ interface LaunchpadViewProps {
   manageEntryPath: string;
   /** Platform staff only: the walk-throughs and the docs library. */
   isPlatformOwner: boolean;
+  /** Open site problems seen in the last two weeks. Platform owner only; 0 for everyone else. */
+  siteProblemCount?: number;
   /**
    * The server has said this person may read the Tea Atlas. The tile exists
    * only on that yes; to anyone else the library stays invisible.
@@ -114,22 +117,9 @@ function formatEventDay(iso: string): string {
 }
 
 // ── What needs you ────────────────────────────────────────────────────────
-// The order system announces work in four places. This gathers it into one
-// list, oldest waiter first, and each row says what kind of waiting it is so
-// it can be understood without being opened.
-
-/** At most this many rows; the rest are named by the frontispiece and live in Orders. */
-const ATTENTION_ROW_CAP = 6;
-
-/** Past this, a wait has gone on long enough to earn the bronze dot. */
-const URGENT_AFTER_HOURS = 48;
-
-const ATTENTION_NOTE: Record<AttentionItem['kind'], string> = {
-  request: 'nobody has answered',
-  unpriced: 'waiting to be priced',
-  claim: 'payment reported, unchecked',
-  unsent: 'paid, not sent',
-};
+// The order system announces work in four places. Your Table speaks it as one
+// sentence, oldest waiter named, and one line that opens Today in Manage,
+// where the list itself lives (2026-09-29).
 
 function hoursWaiting(iso: string, now: number): number {
   const started = new Date(iso).getTime();
@@ -244,6 +234,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
   hasManageRoom,
   manageEntryPath,
   isPlatformOwner,
+  siteProblemCount = 0,
   canReadAtlas = false,
   membershipsCount,
   pendingInvoiceCount,
@@ -292,17 +283,10 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
     () => (attentionItems ? sortByWaiting(attentionItems) : null),
     [attentionItems],
   );
-  const shownWaiting = waiting ? waiting.slice(0, ATTENTION_ROW_CAP) : [];
-  const waitingIsTruncated = waiting != null && waiting.length > ATTENTION_ROW_CAP;
-
-  const attentionRows = shownWaiting.map(item => ({
-    id: `${item.kind}-${item.id}`,
-    label: item.label,
-    note: ATTENTION_NOTE[item.kind],
-    meta: item.meta ?? waitPhrase(item.waiting_since),
-    urgent: hoursWaiting(item.waiting_since, Date.now()) >= URGENT_AFTER_HOURS,
-    onClick: () => { onClose(); navigate(item.href); },
-  }));
+  // The list itself lives on Today in Manage (2026-09-29). Here it is one
+  // line, so the shop's work is counted in one place and Your Table stays the
+  // person's own room. Someone whose Manage does not open on Today goes to Sales.
+  const waitingDoor = manageEntryPath === '/admin/dashboard' ? manageEntryPath : '/admin/activity';
 
   // The frontispiece speaks the queue when it knows it, and stays on the old
   // voice when it does not, so it never claims a calm it has not measured.
@@ -321,7 +305,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
   const tiles: LaunchpadTile[] = [
     {
       id: 'steep',
-      verb: 'steep',
+      verb: 'journal',
       hint: journalLastTea
         ? `${journalLastTea} · ${formatRelativeShort(journalLastAt)}`
         : 'begin a session',
@@ -337,12 +321,19 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       onClick: onOpenEvents,
     },
     {
+      // Everything kept: teas you favourited and collections someone shared
+      // with you (their own tile until 2026-09-29), so an unopened share
+      // lights this tile.
       id: 'remember',
       verb: 'remember',
-      hint: collectionCount > 0
-        ? `${collectionCount} tea${collectionCount === 1 ? '' : 's'} kept`
-        : 'no favorites yet',
+      hint: inboundUnreadCount > 0
+        ? inboundUnreadCount === 1 ? 'one share to open' : `${inboundUnreadCount} shares to open`
+        : collectionCount > 0
+          ? `${collectionCount} tea${collectionCount === 1 ? '' : 's'} kept`
+          : 'kept & shared with you',
       icon: <Heart {...ICON_PROPS} />,
+      badge: inboundUnreadCount > 0 ? inboundUnreadCount : undefined,
+      accent: inboundUnreadCount > 0,
       onClick: () => { onClose(); navigate('/account/collection'); },
     },
     {
@@ -362,11 +353,14 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       onClick: () => { onClose(); navigate('/discover'); },
     },
     {
+      // Name, sign-in and appearance, with the public Tea Master identity one
+      // link inside for those who have one. The account tile folded in here
+      // on 2026-09-29, so "settings" is only ever the shop's.
       id: 'profile',
       verb: 'profile',
-      hint: 'public identity & payment',
+      hint: 'name, sign-in, identity',
       icon: <IdentificationCard {...ICON_PROPS} />,
-      onClick: () => { onClose(); navigate('/account/profile'); },
+      onClick: () => { onClose(); navigate('/account/settings'); },
     },
     // The person's own records. Every one of these is theirs, not the shop's:
     // what they bought, the samples they asked for, where they have been,
@@ -376,16 +370,9 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
     {
       id: 'orders',
       verb: 'orders',
-      hint: 'what you have bought',
+      hint: 'bought & samples sent',
       icon: <Receipt {...ICON_PROPS} />,
       onClick: () => { onClose(); navigate('/account/orders'); },
-    },
-    {
-      id: 'samples',
-      verb: 'samples',
-      hint: 'tasting samples',
-      icon: <Flask {...ICON_PROPS} />,
-      onClick: () => { onClose(); navigate('/account/samples'); },
     },
     {
       id: 'journey',
@@ -394,31 +381,13 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       icon: <Footprints {...ICON_PROPS} />,
       onClick: () => { onClose(); navigate('/account/journey'); },
     },
-    {
-      id: 'collections',
-      verb: 'collections',
-      hint: inboundUnreadCount > 0
-        ? inboundUnreadCount === 1 ? 'one share to open' : `${inboundUnreadCount} shares to open`
-        : 'shared with you',
-      icon: <Tray {...ICON_PROPS} />,
-      badge: inboundUnreadCount > 0 ? inboundUnreadCount : undefined,
-      accent: inboundUnreadCount > 0,
-      onClick: () => { onClose(); navigate('/account/collections'); },
-    },
     ...(canReadAtlas ? [{
       id: 'atlas',
       verb: 'tea atlas',
       hint: 'the reading library',
       icon: <Books {...ICON_PROPS} />,
-      onClick: () => { onClose(); navigate('/tea-atlas'); },
+      onClick: () => { onClose(); navigate(ATLAS_ROOT); },
     } as LaunchpadTile] : []),
-    {
-      id: 'account',
-      verb: 'account',
-      hint: 'name, email, password',
-      icon: <GearSix {...ICON_PROPS} />,
-      onClick: () => { onClose(); navigate('/account/settings'); },
-    },
     ...(membershipsCount > 1 ? [{
       id: 'switch',
       verb: 'switch',
@@ -446,18 +415,18 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
     // Both destination pages admit platform staff only and say so on arrival,
     // so offering them to a shop owner is offering a door that refuses them.
     ...(isPlatformOwner ? [{
-      id: 'briefing',
-      verb: 'walk-throughs',
-      hint: 'run it, test it',
-      icon: <Compass {...ICON_PROPS} />,
-      onClick: () => { onClose(); navigate('/account/briefing'); },
-    } as LaunchpadTile] : []),
-    ...(isPlatformOwner ? [{
       id: 'docs',
       verb: 'library',
-      hint: 'everything we built',
+      hint: 'docs & walk-throughs',
       icon: <BookOpen {...ICON_PROPS} />,
       onClick: () => { onClose(); navigate('/account/docs'); },
+    } as LaunchpadTile,
+    {
+      id: 'fixes',
+      verb: 'fixes',
+      hint: siteProblemCount > 0 ? 'site problems to resolve' : 'nothing needs fixing',
+      icon: <Warning {...ICON_PROPS} />,
+      onClick: () => { onClose(); navigate('/account/fixes'); },
     } as LaunchpadTile] : []),
   ];
 
@@ -498,6 +467,32 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
         <div className="font-display italic text-[18px] text-tea-text mt-2">
           {frontispiece}
         </div>
+        {/* What needs you: the sentence above names the queue; the list itself
+            lives on Today in Manage, so here it is one line that goes there. */}
+        {waiting != null && waiting.length > 0 && (
+          <button
+            type="button"
+            onClick={() => { onClose(); navigate(waitingDoor); }}
+            className="mt-1 py-2 font-display italic text-ui-15 text-tea-text-sec hover:text-tea-text transition-colors"
+            aria-label="What needs you, in Manage"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            {waitingDoor === '/admin/dashboard' ? 'open them in today.' : 'open them in sales.'}
+          </button>
+        )}
+        {/* Site problems: for the platform owner only, and only while there is
+            something to do. They never appear as a banner on the live site. */}
+        {isPlatformOwner && siteProblemCount > 0 && (
+          <button
+            type="button"
+            onClick={() => { onClose(); navigate('/account/fixes'); }}
+            className="mt-1 py-2 font-display italic text-ui-15 text-tea-text-sec hover:text-tea-text transition-colors"
+            aria-label="Site problems to fix"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            {siteProblemCount === 1 ? '1 site problem to fix.' : `${siteProblemCount} site problems to fix.`}
+          </button>
+        )}
       </div>
 
       {/* ── Setting up ────────────────────────────────────────────────────
@@ -524,29 +519,6 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
               {setupNext.detail}
             </span>
           </button>
-        </section>
-      )}
-
-      {/* ── What needs you ────────────────────────────────────────────────
-          One list for work the shop announces in four separate places,
-          oldest waiter first. Each row says what kind of waiting it is, so
-          it reads without being opened. Absent entirely when nothing is
-          waiting, the frontispiece above carries that. */}
-      {attentionRows.length > 0 && (
-        <section className="mb-10" aria-label="What needs you">
-          <div className="font-sans text-ui-11 text-tea-text-dim uppercase tracking-[0.18em] mb-2">
-            What needs you
-          </div>
-          <NeedsAttention items={attentionRows} className="" />
-          {waitingIsTruncated && (
-            <button
-              onClick={() => { onClose(); navigate('/admin/activity?tab=orders'); }}
-              className="mt-3 py-2 -my-0.5 font-display italic text-ui-15 text-tea-text-sec hover:text-tea-text transition-colors"
-              style={{ WebkitTapHighlightColor: 'transparent' }}
-            >
-              the rest are in orders.
-            </button>
-          )}
         </section>
       )}
 

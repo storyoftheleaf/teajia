@@ -88,6 +88,7 @@
  * a mis-heard digit is the failure that preview exists to catch.
  */
 
+import { customerTagList } from '../customerContactHandles';
 import {
   EVENT_TRANSITIONS,
   reservePartySeats,
@@ -804,7 +805,7 @@ const recordEventRsvp: ToolHandler = async (env, auth, args) => {
     if (customer) {
       customerId = customer.id;
       try {
-        const tags = typeof customer.tags === 'string' ? JSON.parse(customer.tags) : customer.tags;
+        const tags = customerTagList(customer.tags);
         if (Array.isArray(tags) && tags.some((t: string) => String(t).toLowerCase() === 'golden')) accessTier = 'golden';
       } catch { /* a malformed tags blob is not a reason to refuse a seat */ }
     }

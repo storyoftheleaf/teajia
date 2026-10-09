@@ -5,7 +5,10 @@ function token() {
   return `${enc({ alg: 'HS256', typ: 'JWT' })}.${enc({ sub: 'admin', email: 'admin@test', role: 'owner', exp: Math.floor(Date.now() / 1000) + 86400, active_account_id: 'acct', memberships: [{ account_id: 'acct', role: 'owner' }] })}.sig`;
 }
 
-test('inventory purpose labels fit at phone, tablet, and desktop widths', async ({ page }, testInfo) => {
+// Below 768px the purpose views live in the phone's one-line view menu
+// (stock-phone.spec.ts), so the labels are measured where they are a row.
+test('inventory purpose labels fit at tablet and desktop widths', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === 'Mobile Chrome', 'The phone shows these in a menu, not a row');
   const jwt = token();
   await page.addInitScript(value => {
     localStorage.setItem('teajia_token', value);
@@ -26,11 +29,19 @@ test('inventory purpose labels fit at phone, tablet, and desktop widths', async 
   const row = page.getByTestId('inventory-purpose-row');
   const personal = row.getByRole('button', { name: 'Personal', exact: true });
   await expect(personal).toBeVisible({ timeout: 15_000 });
-  for (const width of [390, 768, 1440]) {
+  for (const width of [768, 1440]) {
     await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
     await expect(personal).toBeVisible();
-    const geometry = await personal.evaluate(element => ({ clientWidth: element.clientWidth, scrollWidth: element.scrollWidth }));
-    expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
+    // Measure in the page's own typeface. Before Cormorant arrives the button is
+    // sized for the fallback face and, for one frame after the swap, the text is
+    // wider than its box; that was measured as a clipped label about one run in
+    // three (2026-09-29) and never lasted past the swap. A label that truly does
+    // not fit still fails: the poll gives up after five seconds.
+    await page.evaluate(() => document.fonts.ready);
+    await expect.poll(
+      () => personal.evaluate(element => element.scrollWidth - element.clientWidth),
+      { message: `Personal fits its box at ${width}px`, timeout: 5_000 },
+    ).toBeLessThanOrEqual(0);
     await page.screenshot({ path: testInfo.outputPath(`inventory-purpose-${width}.png`), fullPage: false });
   }
 });

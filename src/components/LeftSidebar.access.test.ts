@@ -26,23 +26,21 @@ const SHOP_OWNER: AdminNavAccess = {
 };
 
 const EVERY_ENTRY = [
-  'dashboard', 'inventory', 'collections', 'orders', 'people',
-  'events', 'magazine', 'wisdom', 'network', 'settings',
+  'curate', 'inventory', 'orders', 'people', 'events', 'publish', 'settings',
 ];
 
 describe('what the Manage navigation offers', () => {
-  it('shows only the Wisdom entry to a delegated publisher', () => {
-    expect(getVisibleAdminItemIds({ ...NOTHING, hasPublish: true }, ['dashboard', 'wisdom', 'events']))
-      .toEqual(['wisdom']);
+  it('shows only Publish to a delegated publisher', () => {
+    expect(getVisibleAdminItemIds({ ...NOTHING, hasPublish: true }, EVERY_ENTRY))
+      .toEqual(['people', 'publish']);
   });
 
   it('offers nothing to someone with no capabilities at all', () => {
-    expect(getVisibleAdminItemIds(NOTHING, ['dashboard', 'wisdom', 'settings'])).toEqual([]);
+    expect(getVisibleAdminItemIds(NOTHING, EVERY_ENTRY)).toEqual([]);
   });
 
   it('keeps the complete navigation for the platform staff', () => {
-    expect(getVisibleAdminItemIds({ ...NOTHING, isAdmin: true }, ['dashboard', 'wisdom', 'settings']))
-      .toEqual(['dashboard', 'wisdom', 'settings']);
+    expect(getVisibleAdminItemIds({ ...NOTHING, isAdmin: true }, EVERY_ENTRY)).toEqual(EVERY_ENTRY);
   });
 
   /**
@@ -54,17 +52,18 @@ describe('what the Manage navigation offers', () => {
     expect(getVisibleAdminItemIds(SHOP_OWNER, EVERY_ENTRY)).toEqual(EVERY_ENTRY);
   });
 
-  it('gives a seller Orders and People without the owner-only workshop', () => {
+  it('gives a seller Sales and People without the owner-only workshop', () => {
     const seller: AdminNavAccess = { ...NOTHING, hasSell: true };
     const visible = getVisibleAdminItemIds(seller, EVERY_ENTRY);
-    expect(visible).toContain('orders');
-    expect(visible).toContain('people');
-    expect(visible).toContain('network');
-    expect(visible).not.toContain('dashboard');
-    expect(visible).not.toContain('inventory');
+    expect(visible).toEqual(['orders', 'people']);
   });
 
-  it('keeps People for a gatherer, who may not open Orders', () => {
+  it('keeps Settings for an access manager, opening on Members', () => {
+    const accessManager: AdminNavAccess = { ...NOTHING, hasMembers: true };
+    expect(getVisibleAdminItemIds(accessManager, EVERY_ENTRY)).toEqual(['people', 'settings']);
+  });
+
+  it('keeps People for a gatherer, who may not open Sales', () => {
     const gatherer: AdminNavAccess = { ...NOTHING, hasGather: true };
     const visible = getVisibleAdminItemIds(gatherer, EVERY_ENTRY);
     expect(visible).toContain('people');
@@ -76,6 +75,7 @@ describe('what the Manage navigation offers', () => {
     const visible = getVisibleAdminItemIds(stockOnly, EVERY_ENTRY);
     expect(visible).toContain('inventory');
     expect(visible).not.toContain('events');
-    expect(visible).not.toContain('magazine');
+    expect(visible).not.toContain('publish');
+    expect(visible).not.toContain('curate');
   });
 });

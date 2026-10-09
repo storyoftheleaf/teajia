@@ -30,6 +30,7 @@ interface SampleStoreState {
   outboxRevision: number;
   switchAccount: (accountId: string | null) => void;
   reconcileRemote: (accountId: string, samples: TeaSample[], sampleSets: SampleSet[]) => boolean;
+  adoptRemoteSample: (accountId: string, localId: string, remote: TeaSample, expectedUpdatedAt: string) => boolean;
   markRemoteCommitted: (accountId: string, sampleIds: string[], sampleSetIds: string[]) => boolean;
   clearRemoteTombstones: (accountId: string, sampleIds: string[], sampleSetIds: string[]) => boolean;
 
@@ -215,6 +216,30 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
             },
           },
         }));
+        return true;
+      },
+
+      adoptRemoteSample: (accountId, localId, remote, expectedUpdatedAt) => {
+        if (get().accountScopeId !== accountId) return false;
+        set((state) => {
+          const local = state.samples.find((sample) => sample.id === localId);
+          if (!local) return state;
+          const existingCanonical = state.samples.find((sample) => sample.id === remote.id && sample.id !== localId && !sample.synced);
+          const canonical = existingCanonical
+            ? { ...existingCanonical, setId: remote.setId, accountId, synced: false,
+                tastings: Array.from(new Map([...local.tastings, ...existingCanonical.tastings].map((tasting) => [tasting.id, tasting])).values()) }
+            : local.updatedAt === expectedUpdatedAt
+              ? { ...remote, tastings: local.tastings, synced: false }
+              : { ...local, id: remote.id, setId: remote.setId, accountId, synced: false };
+          return {
+            samples: [...state.samples.filter((sample) => sample.id !== localId && sample.id !== remote.id), canonical],
+            activeSampleId: state.activeSampleId === localId ? remote.id : state.activeSampleId,
+            sampleSets: state.sampleSets.map((sampleSet) => ({ ...sampleSet,
+              sampleIds: sampleSet.sampleIds.filter((id) => id !== localId && id !== remote.id)
+                .concat(sampleSet.id === remote.setId ? [remote.id] : []),
+            })),
+          };
+        });
         return true;
       },
 

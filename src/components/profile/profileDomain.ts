@@ -326,16 +326,16 @@ export function favoriteWriteFromTea(tea: FavoriteTea): FavoriteWrite {
 
 export function profileStatus(profile: SelfProfile): { label: string; detail: string } {
   if (profile.is_published || profile.publication_state === 'published') {
-    return { label: 'Published', detail: 'Your public Tea Master profile is live.' };
+    return { label: 'Published', detail: 'Your page is live for everyone to read.' };
   }
   if (profile.approval_state === 'pending' || profile.publication_state === 'awaiting_approval') {
-    return { label: 'Awaiting approval', detail: 'Your draft is saved. An owner must approve publication.' };
+    return { label: 'Awaiting approval', detail: 'Saved. Teajia will look it over before it goes live.' };
   }
   if (profile.approval_state === 'changes_requested') {
-    return { label: 'Changes requested', detail: 'Update the profile, then save a new draft for review.' };
+    return { label: 'Changes requested', detail: 'Teajia asked for a change. Read the note below, make it, and save again.' };
   }
   if (profile.publication_state === 'unpublished') {
-    return { label: 'Unpublished', detail: 'The profile is private. Your draft and public material are preserved.' };
+    return { label: 'Unpublished', detail: 'Your page is down. Everything you wrote is kept.' };
   }
-  return { label: 'Draft', detail: 'Complete the basics and save them for owner review.' };
+  return { label: 'Draft', detail: 'Fill in your card and your story, then save. Teajia looks it over before it goes live.' };
 }

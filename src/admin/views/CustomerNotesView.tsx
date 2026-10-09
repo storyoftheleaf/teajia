@@ -10,7 +10,7 @@ import { CustomerNotesReview } from '../components/CustomerNotesReview';
 export default function CustomerNotesView() {
   return (
     <div className="mx-auto w-full max-w-[760px] px-4 py-6 lg:px-6">
-      <h1 className="m-0 font-display text-ui-26 leading-tight text-tea-text">Tasting notes</h1>
+      <h1 className="m-0 font-display text-ui-26 leading-tight text-tea-text">Guest notes</h1>
       <p className="mt-1.5 max-w-[52ch] text-ui-12 leading-relaxed text-tea-text-sec">
         What people have written about your teas. Publish one and it appears on
         that tea under the name you give it, beside your own note.

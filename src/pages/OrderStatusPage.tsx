@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { sameCurrency } from '../lib/currency';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search } from 'lucide-react';
 import { api } from '../lib/api';
@@ -101,7 +102,7 @@ const OrderStatusPage: React.FC = () => {
     Boolean(inquiry?.payment?.pay_url || shouldOfferPaymentClaim(inquiry?.payment));
   const formatStoredUsd = (amount: number) => {
     const safe = Number.isFinite(amount) ? amount : 0;
-    if (inquiry?.currency === shopPrice.code) return shopPrice.total(safe);
+    if (sameCurrency(inquiry?.currency, shopPrice.code)) return shopPrice.total(safe);
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',

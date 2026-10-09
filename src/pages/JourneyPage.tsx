@@ -232,7 +232,7 @@ const JourneyEditorial: React.FC<{ onVerify: () => void }> = ({ onVerify }) => (
         What followed was not a business plan. It was years of learning, studying under traditional masters in Taiwan, making sourcing trips through Fujian and Yunnan, sitting at tables where the conversation went on for hours because the tea demanded it. A practice that deepened the longer it ran, accumulating knowledge the way old trees accumulate rings.
       </p>
       <p className="body-prose">
-        TeajiA grew out of that practice. Not to scale it, but to share it, carefully, and only with people who want to drink tea the way it deserves to be drunk.
+        Teajia grew out of that practice. Not to scale it, but to share it, carefully, and only with people who want to drink tea the way it deserves to be drunk.
       </p>
     </section>
 
@@ -302,7 +302,7 @@ const JourneyEditorial: React.FC<{ onVerify: () => void }> = ({ onVerify }) => (
         Your record at the table
       </h2>
       <p className="body-prose mb-4">
-        If you have attended a TeajiA gathering, your sessions, tasting notes, and tea map are here, a quiet record of every tea you have shared with us. Verify your contact to see your personal journey.
+        If you have attended a Teajia gathering, your sessions, tasting notes, and tea map are here, a quiet record of every tea you have shared with us. Verify your contact to see your personal journey.
       </p>
       <p className="body-prose mb-8">
         The record grows with each session. Over time, it becomes something worth keeping.
@@ -317,7 +317,7 @@ const JourneyEditorial: React.FC<{ onVerify: () => void }> = ({ onVerify }) => (
 
     {/* Footer mark */}
     <div className="pt-12 text-center">
-      <p className="label-caps text-tea-text-dim">TeajiA</p>
+      <p className="label-caps text-tea-text-dim">Teajia</p>
     </div>
   </div>
 );

@@ -1,3 +1,4 @@
+import { COMPASS_STRUCTURED_CAMEL, COMPASS_STRUCTURED_COLUMNS } from './curateStructuredFields';
 import { useTeaCompassStore } from './teaCompassStore';
 import { api, hasToken, isTokenScopedToAccount, isTransientApiError } from './api';
 import { normalizeCompassEntry, type TeaCompassEntry } from '../components/TeaCompass/types';
@@ -7,8 +8,10 @@ const BACKGROUND_REQUEST = { background: true } as const;
 // ── Case conversion helpers ──
 
 const CAMEL_TO_SNAKE: Record<string, string> = {
+  ...Object.fromEntries(Object.entries(COMPASS_STRUCTURED_CAMEL).map(([snake, camel]) => [camel, snake])),
   chineseName: 'chinese_name',
   originRegion: 'origin_region',
+  originCountry: 'origin_country',
   priceAmount: 'price_amount',
   priceCurrency: 'price_currency',
   pricePerUnitGrams: 'price_per_unit_grams',
@@ -16,6 +19,8 @@ const CAMEL_TO_SNAKE: Record<string, string> = {
   capacityMl: 'capacity_ml',
   vendorId: 'vendor_id',
   vendorName: 'vendor_name',
+  shopName: 'shop_name',
+  transportMode: 'transport_mode',
   linkedCustomerId: 'linked_customer_id',
   audioClips: 'audio_clips',
   buyQuantityGrams: 'buy_quantity_grams',
@@ -37,19 +42,36 @@ const SNAKE_TO_CAMEL: Record<string, string> = Object.fromEntries(
   Object.entries(CAMEL_TO_SNAKE).map(([k, v]) => [v, k])
 );
 
+// Only writable Compass columns cross the sync boundary. Hydrated rows retain
+// provenance/lifecycle metadata for reading, and local state keeps its own fields.
+// The strict worker codec remains the authority; the sync test pins this list to it.
+const COMPASS_SYNC_COLUMNS = new Set<string>([
+  'id', ...COMPASS_STRUCTURED_COLUMNS,
+  'name', 'chinese_name', 'type', 'form', 'year', 'season', 'storage',
+  'origin_country', 'origin_region', 'classification', 'cultivar', 'producer', 'description',
+  'tea_key', 'price_amount', 'price_currency', 'price_per_unit_grams',
+  'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
+  'vendor_id', 'vendor_name', 'shop_name', 'transport_mode', 'linked_customer_id', 'notes',
+  'tasting', 'photos', 'audio_clips', 'status', 'buy_quantity_grams', 'buy_quantity_units',
+  'buy_total', 'verdict', 'decision', 'sample_state', 'sample_set_id', 'session_id',
+  'journey_id', 'visit_id', 'draft_product_id', 'source_entry_id', 'created_at', 'updated_at',
+]);
+
 function toSnakeCase(entry: TeaCompassEntry): Record<string, any> {
   const result: Record<string, any> = {};
   for (const [key, value] of Object.entries(entry)) {
-    // Skip client-only fields
-    if (key === 'synced' || key === 'vendorDetails' || key === 'touchedFields' || key === 'draftAccountId' || key === 'isSample') continue;
-
     const snakeKey = CAMEL_TO_SNAKE[key] || key;
+    if (!COMPASS_SYNC_COLUMNS.has(snakeKey)) continue;
 
     // `decision` intentionally passes through unchanged: unlike status and
     // verdict it is an independent sourcing choice with matching API/DB naming.
 
-    // Serialize arrays/objects to JSON strings for D1
-    if (snakeKey === 'photos' || snakeKey === 'audio_clips' || snakeKey === 'tasting') {
+    // Legacy JSON fields retain their wire format. Structured route quotes stay
+    // arrays for worker validation; the worker encodes them for D1.
+    if (snakeKey === 'route_quotes') {
+      // Routes clear as an empty array in the strict API contract.
+      result[snakeKey] = value ?? [];
+    } else if (snakeKey === 'photos' || snakeKey === 'audio_clips' || snakeKey === 'tasting') {
       result[snakeKey] = value != null ? JSON.stringify(value) : null;
     } else {
       result[snakeKey] = value ?? null;
@@ -67,9 +89,9 @@ function toCamelCase(row: Record<string, any>): TeaCompassEntry {
     const camelKey = SNAKE_TO_CAMEL[key] || key;
 
     // Parse JSON strings back to objects/arrays
-    if (key === 'photos' || key === 'audio_clips' || key === 'tasting') {
+    if (key === 'photos' || key === 'audio_clips' || key === 'tasting' || key === 'route_quotes') {
       try {
-        result[camelKey] = value ? JSON.parse(value as string) : (key === 'tasting' ? undefined : []);
+        result[camelKey] = typeof value === 'string' ? (value ? JSON.parse(value) : (key === 'tasting' ? undefined : [])) : value ?? (key === 'tasting' ? undefined : []);
       } catch {
         result[camelKey] = key === 'tasting' ? undefined : [];
       }
@@ -175,7 +197,17 @@ export async function retryPendingDeletes(accountId?: string): Promise<void> {
 
 // ── Sync unsynced entries to D1 ──
 
+// One sync at a time. Two overlapping pushes could each acknowledge the
+// other's snapshot; the second caller waits for the first instead.
+let syncInFlight: Promise<number> | null = null;
+
 export async function syncCompassEntries(accountId?: string): Promise<number> {
+  if (syncInFlight) return syncInFlight;
+  syncInFlight = syncCompassEntriesOnce(accountId).finally(() => { syncInFlight = null; });
+  return syncInFlight;
+}
+
+async function syncCompassEntriesOnce(accountId?: string): Promise<number> {
   if (!hasToken()) return 0;
   const initial = useTeaCompassStore.getState();
   const requestedAccountId = accountId ?? initial.accountScopeId;
@@ -197,6 +229,12 @@ export async function syncCompassEntries(accountId?: string): Promise<number> {
     return 0;
   }
 
+  // What each entry looked like when it was sent. An edit typed while this
+  // request is in the air changes updatedAt, and that entry must stay unsynced
+  // so the edit goes out next time: marking it synced here is how a note typed
+  // during a save used to be shown as saved and then lost to the server copy.
+  const sentVersion = new Map(unsynced.map(entry => [entry.id, entry.updatedAt]));
+
   try {
     const payload = unsynced.map(toSnakeCase);
     const result = await api.compass.sync(payload, BACKGROUND_REQUEST);
@@ -214,13 +252,25 @@ export async function syncCompassEntries(accountId?: string): Promise<number> {
     // state. A protected id collision remains unsynced and retries visibly.
     useTeaCompassStore.setState((state) => ({
       entries: state.accountScopeId === requestedAccountId
-        ? state.entries.map(e => acknowledgedIds.has(e.id) ? { ...e, synced: true } : e)
+        ? state.entries.map(e => acknowledgedIds.has(e.id) && e.updatedAt === sentVersion.get(e.id) ? { ...e, synced: true } : e)
         : state.entries,
       syncError: state.accountScopeId === requestedAccountId ? hasUnacknowledged : state.syncError,
     }));
 
     // Entries are on the server now, safe to retry any queued promotions.
     await retryPendingPromotions(requestedAccountId);
+
+    // The server may have chosen canonical vendor sets, reused a shelf sample,
+    // or reconciled lifecycle while accepting these writes. Read those facts
+    // back through the guarded merge; a read failure cannot revoke the save.
+    const afterPromotions = useTeaCompassStore.getState();
+    if (acknowledgedIds.size > 0 && afterPromotions.accountScopeId === requestedAccountId
+      && afterPromotions.accountScopeRevision === requestedRevision) {
+      await hydrateCompassEntries(requestedAccountId).catch(() => {});
+      if (hasUnacknowledged) useTeaCompassStore.setState((state) =>
+        state.accountScopeId === requestedAccountId && state.accountScopeRevision === requestedRevision
+          ? { syncError: true } : state);
+    }
 
     return acknowledgedIds.size;
   } catch (err) {
@@ -249,10 +299,7 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
   useTeaCompassStore.getState().setHydrationStatus('loading');
 
   try {
-    const [data, sampleData] = await Promise.all([
-      api.compass.list(undefined, BACKGROUND_REQUEST),
-      api.samples.list(undefined, BACKGROUND_REQUEST).catch(() => ({ samples: [] })),
-    ]);
+    const data = await api.compass.list(undefined, BACKGROUND_REQUEST);
     const current = useTeaCompassStore.getState();
     if (current.accountScopeId !== requestedAccountId || current.accountScopeRevision !== requestedRevision) return;
     const rawServerIds = new Set<string>((data.entries || []).map((r: any) => r.id));
@@ -262,40 +309,8 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
     // Drop them from BOTH the server set and local state so a not-yet-deleted
     // row can't reappear here (the "I deleted it and it came back" bug).
     const deleted = new Set(store.deletedIds);
-    const linkedSamples = new Map<string, any>();
-    for (const sample of sampleData.samples ?? []) {
-      // The API is newest-first. One encounter may have appeared in several
-      // historical batches; its current queue link is the newest portion.
-      if (sample.compass_entry_id && !linkedSamples.has(sample.compass_entry_id)) {
-        linkedSamples.set(sample.compass_entry_id, sample);
-      }
-    }
     const serverEntries: TeaCompassEntry[] = (data.entries || [])
       .map(toCamelCase)
-      .map((entry: TeaCompassEntry) => {
-        const sample = linkedSamples.get(entry.id);
-        if (!sample) return entry;
-        const sampleStateCandidate = Array.isArray(sample.tastings) && sample.tastings.length > 0
-          ? 'tasted'
-          : sample.status === 'requested'
-            ? 'requested'
-            : sample.status === 'received' || sample.status === 'untasted'
-              ? 'received'
-              : undefined;
-        const lifecycleRank = { requested: 1, received: 2, tasted: 3 } as const;
-        const sampleState = sampleStateCandidate && (
-          !entry.sampleState || lifecycleRank[sampleStateCandidate] > lifecycleRank[entry.sampleState]
-        ) ? sampleStateCandidate : entry.sampleState ?? undefined;
-        const sampleSetId = sample.set_id || entry.sampleSetId;
-        const recovered = sampleSetId !== entry.sampleSetId || (sampleState != null && sampleState !== entry.sampleState);
-        return {
-          ...entry,
-          isSample: true,
-          sampleSetId,
-          ...(sampleState ? { sampleState } : {}),
-          synced: recovered ? false : entry.synced,
-        };
-      })
       .filter((e: TeaCompassEntry) => !deleted.has(e.id));
     const localEntries = store.entries.filter(e => !deleted.has(e.id));
 

@@ -23,11 +23,14 @@ interface BottomSheetProps {
   /** When true, lets the sheet expand close to full-screen (~92% viewport)
    *  for content-heavy pickers like the clay swatch grid. */
   large?: boolean;
+  /** Extra class on the sheet itself. A surface that dresses its sheets differently
+   *  (Curate) passes its own scope here; with none, the sheet is exactly as before. */
+  className?: string;
   children: React.ReactNode;
 }
 
 export const BottomSheet: React.FC<BottomSheetProps> = ({
-  open, onOpenChange, title, description, large = false, children,
+  open, onOpenChange, title, description, large = false, className, children,
 }) => {
   const maxHeight = large ? '92vh' : '78vh';
 
@@ -36,7 +39,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 z-modal bg-black/55 backdrop-blur-sm" />
         <Drawer.Content
-          className="fixed bottom-0 left-0 right-0 z-modal flex flex-col rounded-t-3xl border-t border-tea-border outline-none focus:outline-none"
+          className={`fixed bottom-0 left-0 right-0 z-modal flex flex-col rounded-t-3xl border-t border-tea-border outline-none focus:outline-none${className ? ` ${className}` : ''}`}
           style={{
             maxHeight,
             background: 'rgb(var(--tea-bg-rgb) / 0.92)',
@@ -64,13 +67,13 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             </button>
             <div className="flex-1 min-w-0">
               <Drawer.Title
-                className="text-base text-tea-text font-medium truncate"
+                className="bottom-sheet-title text-base text-tea-text font-medium truncate"
                 style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.02em' }}
               >
                 {title}
               </Drawer.Title>
               {description && (
-                <Drawer.Description className="text-ui-11 text-tea-text-sec truncate">
+                <Drawer.Description className="bottom-sheet-description text-ui-11 text-tea-text-sec truncate">
                   {description}
                 </Drawer.Description>
               )}
@@ -120,7 +123,7 @@ export const SheetOption: React.FC<SheetOptionProps> = ({
     type="button"
     onClick={onSelect}
     aria-pressed={selected}
-    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-colors ${
+    className={`sheet-option w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-colors ${
       selected
         ? 'bg-tea-gold/[0.10] text-tea-gold'
         : 'text-tea-text hover:bg-tea-gold/[0.06] active:bg-tea-gold/[0.10]'

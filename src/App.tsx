@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate, useParams, type Location } from 'react-router-dom';
+import { FollowRenamedPerson } from './pages/renamedPeople';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { TEA_REFERENCE_ROUTE_PATHS } from './wisdom/reference/previewMode';
 import { useArticleAccess } from './pages/read/publishGate';
@@ -70,8 +71,14 @@ function ArticleRouteSwitch() {
 // component when it actually renders, so a blocked route never triggers that
 // chunk's fetch, it renders ReadNotFound's own (separately lazy) chunk
 // instead.
+//
+// Since 2026-10-01 the map is the default, not the whole answer: a story can
+// be published or taken down from its own page, and that state is read from
+// the API once per page load. While a visitor's read is in flight the route
+// waits on the loader; it settles to the map if the read fails.
 const ArticleGate: React.FC<{ href: string; children: React.ReactNode }> = ({ href, children }) => {
   const allowed = useArticleAccess(href);
+  if (allowed === 'pending') return <EmblemLoader />;
   if (!allowed) {
     return (
       <ErrorBoundary>
@@ -122,6 +129,7 @@ const DeveloperDocsPage = import.meta.env.DEV
       </div>
     );
 const BriefingPage = lazy(() => import('./pages/BriefingPage'));
+const SiteFixesPage = lazy(() => import('./pages/SiteFixesPage'));
 const SessionPage = lazy(() => import('./pages/SessionPage'));
 const JoinPage = lazy(() => import('./pages/JoinPage'));
 const TableCardPage = lazy(() => import('./pages/TableCardPage'));
@@ -222,6 +230,7 @@ import { SiteMenu } from './components/SiteMenu';
 import { sellUnitOf, wholePieceOf } from './lib/teaPricing';
 import { AdvisePage } from './components/AdvisePage';
 import AboutPage from './AboutPage';
+import PrivacyPage from './pages/PrivacyPage';
 // The home page. Imported statically, as the page it replaced was: it is the
 // route most visitors land on, and behind lazy() the first paint is the shell
 // with the page a round trip behind it. On a phone that is long enough for the
@@ -243,6 +252,7 @@ import { ScrollProgressBar, shouldShowGlobalScrollProgress } from './components/
 import { AnimatedRoutes } from './components/shared/AnimatedRoutes';
 import { SiteNotFound } from './components/SiteNotFound';
 import AtlasGate from './atlas/AtlasGate';
+import OldAtlasRedirect from './atlas/OldAtlasRedirect';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
 
 // View Transitions API feature detection (#46)
@@ -433,7 +443,7 @@ const AppContent = () => {
   // Update document title on section change
   useEffect(() => {
     const titles: Record<Section, string> = {
-      HOME: 'Teajia | Tea Journal',
+      HOME: 'Teajia · A Home for Tea',
       MAGAZINE: 'Magazine · Teajia',
       LEARN: 'Craft · Teajia',
       SHOP: 'Shop · Teajia',
@@ -442,7 +452,7 @@ const AppContent = () => {
       YOUR_TABLE: 'Your Table · Teajia',
       ABOUT: 'About · Teajia',
     };
-    document.title = titles[activeSection] ?? 'Teajia | Tea Journal';
+    document.title = titles[activeSection] ?? 'Teajia · A Home for Tea';
   }, [activeSection]);
 
   const setActiveSection = useCallback((section: Section) => {
@@ -1252,6 +1262,7 @@ const AppContent = () => {
                   <ErrorBoundary><Suspense fallback={<WisdomFallback />}><TeaTypePage /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />
+                <Route path="/privacy" element={<ErrorBoundary><PrivacyPage /></ErrorBoundary>} />
                 <Route path="/mcp" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><McpPage /></Suspense></ErrorBoundary>} />
                 {/* /compass is admin-only at /admin/compass, public route removed.
                     Members use /account/journal for tasting; Compass is sourcing + ledger only. */}
@@ -1269,7 +1280,8 @@ const AppContent = () => {
                 <Route path="/account/orders/:id" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><OrderDetailPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/samples" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SampleHistoryPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/docs" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><DeveloperDocsPage /></Suspense></ErrorBoundary>} />
-                <Route path="/account/briefing" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><BriefingPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/fixes" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SiteFixesPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/briefing"element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><BriefingPage /></Suspense></ErrorBoundary>} />
                 {/* Design harnesses: reachable while developing (and by the browser
                     suite, which runs the dev server), never on the live site. */}
                 {import.meta.env.DEV && (<>
@@ -1320,15 +1332,15 @@ const AppContent = () => {
                 <Route path="/people/:slug" element={
                   <ErrorBoundary>
                     <Suspense fallback={<EmblemLoader />}>
-                      <ContributorProfilePage />
+                      <FollowRenamedPerson><ContributorProfilePage /></FollowRenamedPerson>
                     </Suspense>
                   </ErrorBoundary>
                 } />
                 <Route path="/people/:slug/favorites" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><ProfileFavoritesPage /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><FollowRenamedPerson><ProfileFavoritesPage /></FollowRenamedPerson></Suspense></ErrorBoundary>
                 } />
                 <Route path="/people/:slug/pay" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><ProfilePaymentPage /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><FollowRenamedPerson><ProfilePaymentPage /></FollowRenamedPerson></Suspense></ErrorBoundary>
                 } />
                 <Route path="/people" element={
                   <ErrorBoundary>
@@ -1339,7 +1351,8 @@ const AppContent = () => {
                 } />
                 {/* Tea Atlas: private library. The gate asks the server and shows
                     the same 404 below to anyone without access (docs/TEA_ATLAS.md). */}
-                <Route path="/tea-atlas/*" element={<AtlasGate />} />
+                <Route path="/atlas/*" element={<AtlasGate />} />
+                <Route path="/tea-atlas/*" element={<OldAtlasRedirect />} />
                 {/* 404 Page */}
                 <Route path="*" element={<SiteNotFound onReturnHome={() => setActiveSection('HOME')} />} />
               </Routes>

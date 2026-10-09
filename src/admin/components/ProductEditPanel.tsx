@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { PhoneTeaHeader, type TeaAction } from './inventory/phone/PhoneTeaHeader';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -733,7 +734,7 @@ export const ImageManager = ({ product, onUpdate }: {
   const handleEnhance = async (slotIndex: number) => {
     setOpenMenu(null);
     if (!hasOpenAIKey) {
-      showToast('Add an OpenAI API key in Account Settings → Integrations to enable AI enhance.', 'error');
+      showToast('Add an OpenAI API key in Settings → Integrations to enable AI enhance.', 'error');
       return;
     }
     setEnhancingSlot(slotIndex);
@@ -929,6 +930,12 @@ export interface ProductEditPanelProps {
   onShowStorePreview?: (product: Product) => void;
   /** Opens movement-first stock entry instead of directly overwriting stock. */
   onOpenStockMovement?: (product: Product, trigger: HTMLElement) => void;
+  /** Phone tea page: Count it opens the movement panel on Recount. */
+  onRecount?: (product: Product, trigger: HTMLElement) => void;
+  /** Phone tea page: the single-tea actions (collection, publish, invoice...). */
+  onTeaAction?: (action: TeaAction, product: Product) => void;
+  /** Phone tea page: what is on the way for this tea, if anything. */
+  incoming?: { quantity: number; eta?: string | null } | null;
   /** False when this holding is not yet eligible for public shop visibility. */
   canPublish?: boolean;
 }
@@ -951,6 +958,9 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   rightOffset = 0,
   onShowStorePreview,
   onOpenStockMovement,
+  onRecount,
+  onTeaAction,
+  incoming,
   canPublish = true,
 }) => {
   const navigate = useNavigate();
@@ -1347,6 +1357,8 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               )}
             </div>
 
+            <PhoneTeaHeader product={product} incoming={incoming} onChangeStock={onOpenStockMovement} onRecount={onRecount} onAction={onTeaAction} />
+
             {/* Visibility / promotion / classification toggles.
                   Lives directly under the identity card: these get toggled
                   daily and shouldn't be hidden in a collapsible. Single flex-wrap
@@ -1428,7 +1440,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   product can be entered top-to-bottom without expanding sections.
                   Visibility/promotion toggles moved out, they live in the
                   always-visible bar above this card. */}
-            <div className="admin-card mx-3 mb-3 px-4 pt-4 pb-4">
+            <div id="tea-section-details" className="admin-card mx-3 mb-3 px-4 pt-4 pb-4 scroll-mt-12">
               <div className="flex items-baseline justify-between mb-4 pb-2.5 border-b border-admin-border">
                 <span className="font-sans text-ui-14 font-medium text-admin-text leading-[1.35]">Quick entry</span>
                 <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.06em]">Auto-saves</span>
@@ -1760,16 +1772,17 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             </div>
 
             {/* 2. Images: flat, no section header */}
-            <div className="px-3 mb-3">
+            <div id="tea-section-photos" className="px-3 mb-3 scroll-mt-12">
               <ImageManager product={product} onUpdate={(field, value) => handleUpdate(product.id, field, value)} />
             </div>
 
             {/* 3. Tasting Profile. Tap to open the editor modal. Card matches the
                   collapsible section styling so the panel reads as one rhythm. */}
             <button
+              id="tea-section-tasting"
               onClick={() => setTastingEditorProduct(product)}
               aria-label={flattenedTastingCount > 0 ? `Edit tasting profile (${flattenedTastingCount} notes)` : 'Add tasting profile'}
-              className="admin-card admin-card-interactive w-[calc(100%-1.5rem)] mx-3 mb-3 px-4 py-3.5 flex items-center justify-between gap-3 group text-left"
+              className="admin-card admin-card-interactive w-[calc(100%-1.5rem)] mx-3 mb-3 px-4 py-3.5 scroll-mt-12 flex items-center justify-between gap-3 group text-left"
             >
               <span className="min-w-0 flex flex-col">
                 <span className="block font-sans text-ui-14 font-medium text-admin-text leading-[1.35]">Tasting profile</span>
@@ -1801,6 +1814,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 button above the collapsibles. */}
 
             {/* 7. Story & Background */}
+            <div id="tea-section-story" className="scroll-mt-12" />
             <CollapsibleSection title="Story & background" description="Personal voice, terroir, processing, and lore." defaultOpen={false}>
               <div className="space-y-5">
                 {/* Inline tasting-notes editor. Lists every voice / written note
@@ -1863,6 +1877,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 bar under the identity card. What stays here is what's actually
                 occasional: the collections this product belongs to and the
                 outbound links (encounter, orders, full story page). */}
+            <div id="tea-section-placement" className="scroll-mt-12" />
             <CollapsibleSection title="Placement" description="Collections and outbound links." defaultOpen={false}>
               {/* Collections, curated bundles this product is in. */}
               <div>

@@ -100,13 +100,13 @@ export function validateQuickInvoiceLinkedItems(
 const CONTACT_ICONS: Record<ContactChannel, React.ElementType> = {
   phone: Phone, email: Mail, whatsapp: MessageCircle,
   wechat: MessagesSquare, line: Hash, instagram: AtSign,
-  telegram: Send, signal: Lock, other: Hash,
+  telegram: Send, signal: Lock, other: Hash, fax: Phone, facebook: AtSign, website: AtSign,
 };
 
 const CONTACT_LABELS: Record<ContactChannel, string> = {
   phone: 'Phone', email: 'Email', whatsapp: 'WA',
   wechat: 'WeChat', line: 'Line', instagram: 'IG',
-  telegram: 'TG', signal: 'Signal', other: 'Other',
+  telegram: 'TG', signal: 'Signal', other: 'Other', fax: 'Fax', facebook: 'Facebook', website: 'Website',
 };
 
 interface QuickInvoiceModalPrefill {

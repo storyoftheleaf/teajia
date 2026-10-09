@@ -25,13 +25,42 @@ import {
   isReadPathPublic,
   isUngatedReadPath,
   UNGATED_READ_PATHS,
+  type ReadPublishOverrides,
 } from './articleLive';
 export { ARTICLE_LIVE, isArticleVisible, isReadPathPublic, isUngatedReadPath, UNGATED_READ_PATHS };
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useAppStore } from '../../lib/store';
 import { AUTH_TOKEN_CHANGED_EVENT, getTokenClaims } from '../../lib/api';
 import type { AccountMembership } from '../../types';
+import {
+  getReadPublishSnapshot,
+  loadReadPublishState,
+  subscribeReadPublishState,
+  type ReadPublishSnapshot,
+} from './readPublishState';
+
+/**
+ * The stored states Adrian set from the page (Publish / Unpublish), read once
+ * per page load. Until the read settles `settled` is false; after a failure it
+ * is true with no states, so the map decides. Every surface that names a story
+ * passes `states` to `isArticleVisible`, so one press reaches all of them.
+ */
+export function useReadPublishState(): ReadPublishSnapshot {
+  const snap = useSyncExternalStore(subscribeReadPublishState, getReadPublishSnapshot, getReadPublishSnapshot);
+  useEffect(() => { void loadReadPublishState(); }, []);
+  return snap;
+}
+
+/**
+ * The stored states this page already knows, WITHOUT asking the API. For the
+ * surfaces outside /read that list a Read story (Craft, a person's page): they
+ * honour a press as soon as this browser has read the states, and otherwise
+ * fall back to the map, rather than adding a request to every page they render.
+ */
+export function useKnownReadOverrides(): ReadPublishOverrides {
+  return useSyncExternalStore(subscribeReadPublishState, getReadPublishSnapshot, getReadPublishSnapshot).states;
+}
 
 /**
  * Does this membership make its holder one of the people the drafts belong to.
@@ -107,8 +136,19 @@ export function useIsReadOwner(): boolean {
   }, [isDevAdmin, tokenRevision]);
 }
 
-/** The gate as a hook: is this route visible to whoever is looking at it now. */
-export function useArticleAccess(href: string): boolean {
+/**
+ * The gate as a hook: is this route visible to whoever is looking at it now.
+ *
+ * 'pending' while a visitor's stored states are still being read: the map
+ * alone cannot answer, because a row may have published a draft or taken a
+ * live story down, so the route waits on its loader rather than flashing the
+ * wrong page. The read is bounded and settles to the map on failure. The
+ * owner sees every route anyway and never waits.
+ */
+export function useArticleAccess(href: string): boolean | 'pending' {
   const isOwner = useIsReadOwner();
-  return isArticleVisible(href, isOwner);
+  const { states, settled } = useReadPublishState();
+  if (isOwner) return true;
+  if (!settled) return 'pending';
+  return isArticleVisible(href, false, states);
 }

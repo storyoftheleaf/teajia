@@ -226,7 +226,7 @@ const EventLanding: React.FC = () => {
     }
 
     return () => {
-      document.title = 'Teajia | Tea Journal';
+      document.title = 'Teajia · A Home for Tea';
     };
   }, [event]);
 

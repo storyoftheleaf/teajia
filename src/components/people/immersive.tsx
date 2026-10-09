@@ -91,7 +91,7 @@ export function HubCells({ cells, testId }: { cells: HubCell[]; testId?: string 
   return (
     <nav aria-label="On this page" data-testid={testId} className="mt-4 flex flex-wrap border-l border-t border-tea-border">
       {cells.map(cell => {
-        const className = 'tj-people-tab flex h-12 flex-[1_1_33%] items-center justify-center border-b border-r border-tea-border font-sans text-ui-10 font-medium uppercase tracking-[0.18em] text-tea-text-dim transition-colors';
+        const className = 'tj-people-tab flex h-12 min-w-0 flex-1 items-center justify-center border-b border-r border-tea-border font-sans text-ui-10 font-medium uppercase tracking-[0.18em] text-tea-text-dim transition-colors';
         return cell.route ? (
           <Link key={cell.id} to={cell.href} className={className} data-testid={`hub-${cell.id}`}>{cell.label}</Link>
         ) : (

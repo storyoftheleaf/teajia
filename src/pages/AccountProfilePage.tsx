@@ -58,7 +58,7 @@ export default function AccountProfilePage() {
         <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-gold`}>Tea Master identity</p>
         <h1 className={`${TYPOGRAPHY_CLASSES.h1} mt-3 text-tea-text`}>Your public profile</h1>
         <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-4 max-w-[62ch] text-tea-text-sec`}>One identity for your tea selections, writing, favorites, and payment destinations across every associated store.</p>
-        <a href="/account/settings" className="tap-target mt-4 inline-flex text-ui-13 text-tea-gold transition-colors hover:text-tea-gold-lt">Account settings</a>
+        <a href="/account/settings" className="tap-target mt-4 inline-flex text-ui-13 text-tea-gold transition-colors hover:text-tea-gold-lt">Name, sign-in and appearance</a>
       </header>
 
       {!profile ? (
@@ -163,7 +163,7 @@ function NewProfileForm({ name, onCreate }: { name: string; onCreate: (value: Se
   const submit = async (event: React.FormEvent) => {
     event.preventDefault(); setSaving(true); setError(null);
     try {
-      await onCreate({ id: slug, display_name: displayName, business_name: null, beginnings: bio, chinese_name: null, now_text: null, inspirations: null, closing: null, location_line: null, languages: [], avatar_url: null, portrait_url: null, links: [] });
+      await onCreate({ id: slug, display_name: displayName, business_name: null, beginnings: bio, chinese_name: null, role: null, now_text: null, inspirations: null, closing: null, location_line: null, languages: [], avatar_url: null, portrait_url: null, portrait_focus: null, links: [] });
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'The profile draft could not be created.'); }
     finally { setSaving(false); }
   };

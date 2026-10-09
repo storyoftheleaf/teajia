@@ -1,18 +1,21 @@
+import { COMPASS_STRUCTURED_COLUMNS, readCompassStructuredPatch } from '../../src/lib/curateStructuredFields';
+import { refreshedCurrencyName } from './exchangeRateFeed';
 import {
   CANONICAL_IMPORT_FIELDS,
   canonicalImportToCompassValues,
   normalizeCanonicalImportRecord,
 } from './curateImportCanonical';
 
-export const COMPASS_JSON_COLUMNS = new Set(['tasting', 'photos', 'audio_clips']);
+export const COMPASS_JSON_COLUMNS = new Set(['tasting', 'photos', 'audio_clips', 'route_quotes']);
 export const COMPASS_DECISIONS = new Set(['considering', 'selected', 'passed_on']);
 export const COMPASS_SAMPLE_STATES = new Set(['requested', 'received', 'tasted']);
 export const COMPASS_COLUMNS = [
+  ...COMPASS_STRUCTURED_COLUMNS,
   'name', 'chinese_name', 'type', 'form', 'year', 'season', 'storage',
   'origin_country', 'origin_region', 'classification', 'cultivar', 'producer', 'description',
   'tea_key', 'price_amount', 'price_currency', 'price_per_unit_grams',
   'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
-  'vendor_id', 'vendor_name', 'linked_customer_id', 'notes', 'tasting', 'photos', 'audio_clips',
+  'vendor_id', 'vendor_name', 'shop_name', 'transport_mode', 'linked_customer_id', 'notes', 'tasting', 'photos', 'audio_clips',
   'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total', 'verdict', 'decision', 'sample_state', 'sample_set_id', 'session_id',
   'journey_id', 'visit_id',
   'draft_product_id', 'source_entry_id', 'created_at', 'updated_at',
@@ -39,9 +42,10 @@ export function decodeCompassWrite(body: Record<string, unknown>, rejectUnknown:
   if (body.sample_state !== undefined && body.sample_state !== null && !COMPASS_SAMPLE_STATES.has(String(body.sample_state))) {
     return { invalidSampleState: true };
   }
+  const structured = readCompassStructuredPatch(body, refreshedCurrencyName);
   const values: Partial<Record<CompassColumn, unknown>> = {};
   for (const column of COMPASS_COLUMNS) {
-    if (body[column] !== undefined) values[column] = encodeCompassValue(column, body[column]);
+    if (body[column] !== undefined) values[column] = encodeCompassValue(column, Object.prototype.hasOwnProperty.call(structured, column) ? (structured as Record<string, unknown>)[column] : body[column]);
   }
   return { values };
 }

@@ -365,11 +365,10 @@ describe('a door that cannot know the cost says so, rather than letting the defa
    * than the bug. What they must not do is stay silent, because silence is
    * answered by `DEFAULT 0`, and 0 reads as free.
    */
-  it('the receipt proposal names the column as NULL', () => {
-    const door = worker_.slice(worker_.indexOf('handleAcceptReceiptProposal'));
-    const insert = door.slice(door.indexOf('INSERT INTO products'), door.indexOf('INSERT INTO products') + 700);
-    expect(insert, 'the insert stopped naming cost_amount, so the default answers again')
-      .toMatch(/cost_amount/);
+  it('the receipt proposal explicitly names money columns before inserting', () => {
+    const door = worker_.slice(worker_.indexOf('async function acceptCurateReceipt'), worker_.indexOf('const RECEIPT_STATES'));
+    expect(door).toMatch(/nameProductColumns\(/);
+    expect(door).toMatch(/receiptProductDetails\(/);
   });
 
   it('the cellar placement states a null cost in its body', () => {
@@ -382,19 +381,13 @@ describe('a door that cannot know the cost says so, rather than letting the defa
     expect(door.slice(0, 2000)).toMatch(/'cost_amount'/);
   });
 
-  it('the compass promotion carries the entry price or nothing, never a zero or a dollar', () => {
-    /* A tea Adrian scouted without a price became a tea that cost nothing:
-       `Number(entry.price_amount ?? 0) || 0`. And `entry.price_currency ?? 'USD'`
-       answered a missing unit with a guess, on a column that is itself
-       `DEFAULT 'NT'`, so its silence was never evidence of anything. Both
-       halves travel together or neither does: an amount with no currency is
-       not a cost, and storing one would be read at a rate of 1. */
-    const door = worker_.slice(worker_.indexOf('handlePromoteCompassEntry'));
-    const body = door.slice(0, 4000);
-    expect(body).not.toMatch(/Number\(entry\.price_amount \?\? 0\)/);
-    expect(body).not.toMatch(/entry\.price_currency \?\? 'USD'/);
-    expect(body).toMatch(/currencyStated\(entry\.price_currency\)/);
-    expect(body).toMatch(/cost_amount: null, cost_currency: null/);
+  it('the compass promotion does not confuse a unit quote with a batch cost', () => {
+    const door = worker_.slice(worker_.indexOf('handlePromoteCompassEntry'), worker_.indexOf('const RECEIPT_MUTABLE_FIELDS'));
+    expect(door).toMatch(/promoteCompassEntry\(env\.DB/);
+    const service = stripComments(read('../src/curatePromotion.ts'));
+    expect(service).not.toMatch(/cost_amount: Number\(entry\.price_amount/);
+    expect(service).toMatch(/cost_amount: null/);
+    expect(service).toMatch(/cost_currency: null/);
   });
 
   it('the margin warning declines rather than assume dollars', () => {

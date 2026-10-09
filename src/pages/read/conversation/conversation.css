@@ -1,0 +1,416 @@
+/*
+ * The conversation template's layout. Two widths and one spacing scale, shared
+ * by every conversation, instead of six widths and five clamps typed by hand
+ * into each article. Colours come only from the reader's own tokens.
+ *
+ * The spine: every run of words, large or small, starts at the reading
+ * column's left edge. Large lines may run wider to the right; only
+ * photographs go wider on both sides.
+ */
+.tj-conv {
+  font-variant-numeric: oldstyle-nums;
+  --conv-col: 592px;
+  --conv-wide: 1040px;
+  --conv-gutter: 24px;
+  --conv-s1: clamp(28px, 4vw, 44px);
+  --conv-s2: clamp(44px, 6vw, 84px);
+  --conv-s3: clamp(64px, 9vw, 120px);
+  --conv-gap: clamp(10px, 1.6vw, 18px);
+}
+
+/* ── The reading column ─────────────────────────────────────────────────── */
+.tj-conv-col {
+  max-width: calc(var(--conv-col) + 2 * var(--conv-gutter));
+  margin: var(--conv-s2) auto;
+  padding: 0 var(--conv-gutter);
+}
+.tj-conv-col + .tj-conv-col { margin-top: calc(-1 * var(--conv-s2) + var(--conv-s1)); }
+
+/* Both voices share the reading face, as a printed interview sets them.
+   Adrian's turn is in cream, his answer in the reading tone, and each turn
+   carries its speaker's name: hung in the margin on a wide screen, set
+   above the turn on a phone. */
+.tj-conv-turn { position: relative; }
+.tj-conv-q:not(:first-child) { margin-top: var(--conv-s1); }
+.tj-conv-who {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tj-read-dim);
+  margin-bottom: 6px;
+}
+@media (min-width: 1100px) {
+  .tj-conv-col > .tj-conv-turn > .tj-conv-who,
+  .tj-conv-spine > .tj-conv-turn > .tj-conv-who {
+    position: absolute;
+    right: 100%;
+    top: 0.62em;
+    margin: 0 36px 0 0;
+    white-space: nowrap;
+    text-align: right;
+  }
+}
+.tj-conv-q-text {
+  font-family: var(--font-body);
+  font-size: clamp(16px, 2vw, 18px);
+  line-height: 1.8;
+  color: var(--tj-read-cream);
+  margin: 0 0 14px;
+  text-wrap: pretty;
+}
+.tj-conv-turn + .tj-conv-turn:not(.tj-conv-q) { margin-top: 0; }
+
+/* His answer: the reading face. */
+.tj-conv-a {
+  font-family: var(--font-body);
+  font-size: clamp(16px, 2vw, 18px);
+  line-height: 1.8;
+  color: var(--tj-read-taupe);
+  margin: 0 0 16px;
+  text-wrap: pretty;
+}
+.tj-conv-a:last-child { margin-bottom: 0; }
+/* Adrian telling the story: his voice, a shade brighter than the subject's words, no name. */
+.tj-conv-told {
+  font-family: var(--font-body);
+  font-size: clamp(16px, 2vw, 18px);
+  line-height: 1.8;
+  color: var(--tj-read-ink);
+  margin: 0 0 16px;
+  text-wrap: pretty;
+}
+.tj-conv-told:last-child { margin-bottom: 0; }
+.tj-conv-told + .tj-conv-turn { margin-top: 0; }
+.tj-conv-em { font-style: italic; color: var(--tj-read-warm); }
+.tj-conv-cn { font-family: 'Noto Serif SC', serif; }
+.tj-conv-a .tj-conv-cn { color: var(--tj-gold, var(--tj-read-gold-default)); }
+
+.tj-sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* ── A sentence set large, hung on the column's left edge ──────────────── */
+.tj-conv-spine {
+  max-width: calc(var(--conv-wide) + 2 * var(--conv-gutter));
+  margin: var(--conv-s2) auto;
+  padding-right: var(--conv-gutter);
+  padding-left: max(var(--conv-gutter), calc((min(100%, var(--conv-wide) + 2 * var(--conv-gutter)) - var(--conv-col)) / 2));
+  box-sizing: border-box;
+}
+.tj-conv-line {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 300;
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+  color: var(--tj-read-cream);
+  margin: 0;
+  text-wrap: balance;
+}
+/* Large lines run long and quiet: one or two lines each, never a short phrase
+   stacked three or four deep, which shouts (Adrian, 2026-09-29). */
+[data-size='xl'] > .tj-conv-line { font-size: clamp(32px, 4.2vw, 54px); max-width: 24ch; letter-spacing: -0.018em; }
+[data-size='l'] > .tj-conv-line { font-size: clamp(28px, 3.3vw, 42px); max-width: 28ch; }
+[data-size='m'] > .tj-conv-line { font-size: clamp(24px, 2.6vw, 33px); max-width: 32ch; }
+/* Beside a photograph the column is narrow, so a large line steps down again. */
+.tj-conv-side-words [data-size] > .tj-conv-line { font-size: clamp(24px, 2.4vw, 31px); max-width: none; }
+.tj-conv-gold { font-weight: 400; color: var(--tj-gold-lt, var(--tj-read-gold-lt-default)); }
+
+/* ── Photographs ────────────────────────────────────────────────────────── */
+.tj-conv-figure {
+  max-width: calc(var(--conv-wide) + 2 * var(--conv-gutter));
+  margin: var(--conv-s2) auto;
+  padding: 0 var(--conv-gutter);
+}
+.tj-conv-figure[data-narrow] { max-width: calc(688px + 2 * var(--conv-gutter)); }
+.tj-conv-photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: var(--conv-gap);
+}
+@media (min-width: 700px) {
+  .tj-conv-photos[data-stagger] > :nth-child(2) { margin-top: clamp(0px, 8vw, 110px); }
+}
+.tj-conv-caption {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--tj-read-dim);
+  margin: 12px 0 0;
+  max-width: var(--conv-col);
+}
+.tj-conv-bleed { position: relative; margin: var(--conv-s2) 0; height: clamp(480px, 86vh, 880px); }
+
+/* ── A photograph beside words: the words start at the photograph's top ── */
+.tj-conv-side {
+  max-width: 1148px;
+  margin: var(--conv-s2) auto;
+  padding: 0 var(--conv-gutter);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: clamp(28px, 5vw, 72px);
+  align-items: start;
+}
+.tj-conv-side-words { padding-top: clamp(0px, 2vw, 24px); }
+.tj-conv-side-words > [data-size] { margin-bottom: 22px; }
+.tj-conv-side-words > [data-size]:last-child { margin-bottom: 0; }
+@media (min-width: 700px) {
+  .tj-conv-side[data-flip] > .tj-conv-side-words { order: 1; }
+}
+
+/* ── Words on a photograph's empty space ────────────────────────────────── */
+.tj-conv-onphoto { position: relative; max-width: calc(820px + 2 * var(--conv-gutter)); margin: var(--conv-s2) auto; padding: 0 var(--conv-gutter); }
+.tj-conv-onphoto-frame { position: relative; }
+.tj-conv-onphoto-words {
+  position: absolute; z-index: 2; left: 0; top: clamp(36px, 8%, 90px);
+  padding: 0 clamp(40px, 7vw, 80px); max-width: 27ch; box-sizing: content-box;
+  font-family: var(--font-display); font-style: italic; font-weight: 300;
+  font-size: clamp(26px, 3.4vw, 42px); line-height: 1.12; margin: 0; pointer-events: none;
+}
+
+/* ── A Chinese word hung in the margin beside its words ─────────────────── */
+.tj-conv-glyph { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px; align-items: start; }
+.tj-conv-glyph-mark {
+  writing-mode: vertical-rl;
+  font-family: 'Noto Serif SC', serif; font-weight: 200;
+  font-size: clamp(56px, 12vw, 140px); line-height: 1; letter-spacing: 0.08em;
+  color: var(--tj-gold, var(--tj-read-gold-default)); opacity: 0.85;
+}
+@media (min-width: 1000px) {
+  .tj-conv-glyph { display: block; position: relative; }
+  .tj-conv-glyph-mark { position: absolute; right: 100%; top: 0; margin-right: clamp(32px, 4vw, 56px); }
+}
+.tj-conv-glyph [data-size] { margin: 0 0 22px; }
+.tj-conv-col > [data-size] { margin: var(--conv-s1) 0; }
+
+/* ── Contents, under the intro ──────────────────────────────────────────── */
+.tj-conv-contents { list-style: none; margin: var(--conv-s1) 0 0; padding: 0; border-top: 1px solid rgb(var(--tj-read-gold-rgb) / 0.16); }
+.tj-conv-contents li { border-bottom: 1px solid rgb(var(--tj-read-gold-rgb) / 0.16); }
+.tj-conv-contents a {
+  display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: baseline; gap: 12px;
+  min-height: 44px; padding: 12px 0; text-decoration: none; color: var(--tj-read-cream);
+}
+.tj-conv-contents a:hover .tj-conv-contents-title,
+.tj-conv-contents a:focus-visible .tj-conv-contents-title { color: var(--tj-gold-lt, var(--tj-read-gold-lt-default)); }
+.tj-conv-contents a:focus-visible { outline: 1px solid rgb(var(--tj-read-gold-rgb) / 0.6); outline-offset: 4px; }
+.tj-conv-contents-part { font-family: var(--font-sans); font-size: 12px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--tj-read-dim); }
+.tj-conv-contents-title { font-family: var(--font-display); font-size: clamp(21px, 2.4vw, 24px); line-height: 1.2; transition: color 200ms; }
+
+/* ── The saying and the close ───────────────────────────────────────────── */
+.tj-conv-saying { max-width: calc(var(--conv-wide) + 2 * var(--conv-gutter)); margin: var(--conv-s3) auto var(--conv-s2); padding: 0 var(--conv-gutter); text-align: center; }
+.tj-conv-saying .tj-conv-line { max-width: 30ch; margin: 0 auto; }
+.tj-conv-close { max-width: calc(760px + 2 * var(--conv-gutter)); margin: 0 auto; padding: 0 var(--conv-gutter); }
+.tj-conv-credit {
+  max-width: calc(var(--conv-col) + 2 * var(--conv-gutter));
+  margin: var(--conv-s2) auto 0; padding: 0 var(--conv-gutter) clamp(96px, 12vw, 140px);
+  text-align: center; font-family: var(--font-body); font-size: 16px; line-height: 1.75; color: var(--tj-read-taupe);
+}
+.tj-conv-credit p { margin: 0; text-wrap: balance; }
+.tj-conv-credit p + p { font-style: italic; color: var(--tj-read-dim); margin-top: 6px; }
+.tj-conv-credit p.tj-conv-credit-links { font-style: normal; display: flex; justify-content: center; flex-wrap: wrap; gap: 0 22px; margin-top: 10px; font-size: 15px; }
+.tj-conv-credit-links a { color: var(--tj-read-taupe); text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; transition: color 200ms; }
+.tj-conv-credit-links a:hover, .tj-conv-credit-links a:focus-visible { color: var(--tj-gold-lt, var(--tj-read-gold-lt-default)); }
+
+.tj-conv-follow { max-width: var(--conv-col); margin-top: 18px; }
+
+/* ── Larger reading type on a large screen ──────────────────────────────── */
+@media (min-width: 1100px) {
+  .tj-conv { --conv-col: 640px; }
+  .tj-conv-a, .tj-conv-q-text, .tj-conv-told { font-size: 20px; line-height: 1.75; }
+  .tj-conv-caption { font-size: 16px; }
+}
+
+/* ── The story form: their words in quotation marks, brightest; Adrian's telling one step quieter ── */
+.tj-conv[data-form="story"] .tj-conv-a { color: var(--tj-read-ink); }
+/* Adrian's telling wears the look of his opening and close (Adrian, 2026-10-01: "give my telling
+   its own look"), so a reader who met his voice in the first paragraph knows it wherever it returns:
+   the same face, size and tone, and no quotation marks, because he is telling, not being quoted. */
+.tj-conv[data-form="story"] .tj-conv-told { color: var(--tj-read-voice); }
+/* Everywhere Adrian speaks in a story he is sand, at the size of the words around him: colour
+   tells the voices apart, size does not (Adrian, 2026-10-01: "color is easier to tell"). His opening
+   and close keep the lede size they have always had; his telling in the body is body size. */
+.tj-conv[data-form="story"] .tj-conv-intro-text,
+.tj-conv[data-form="story"] .tj-conv-q-text { color: var(--tj-read-voice); }
+/* Each paragraph of theirs opens AND closes its own quotation marks, the opening mark hung
+   outside the column. Print closes only the last paragraph of a run, but readers took the open
+   end for a mistake, and our paragraphs are often separate pieces of the conversation, so each
+   one is its own quote (Adrian, 2026-10-01). */
+.tj-conv[data-form="story"] .tj-conv-a::before { content: '\201C'; margin-left: -0.42em; }
+.tj-conv[data-form="story"] .tj-conv-a::after { content: '\201D'; }
+/* A question Adrian kept: his words, in italics and sand, never in quotation marks, because he is
+   telling the story, not being quoted (Adrian, 2026-10-01: "No marks on my questions also"). */
+.tj-conv[data-form="story"] .tj-conv-q-text { font-style: italic; color: var(--tj-read-voice); }
+/* The hook on the cover, in place of the dek. */
+.tj-conv-cover-hook {
+  font-family: var(--font-display); font-style: italic; font-weight: 400;
+  font-size: clamp(21px, 2.1vw, 28px); line-height: 1.35; color: var(--tj-read-cream);
+  margin: clamp(22px, 3vw, 34px) 0 0; max-width: 24ch; text-wrap: balance;
+}
+.tj-conv-cover-hook::before { content: '\201C'; margin-left: -0.42em; }
+.tj-conv-cover-hook::after { content: '\201D'; }
+
+/* A quote mark opening a large line hangs outside it, so the words align. */
+.tj-conv-hang { margin-left: -0.42em; }
+
+/* ── The intro ──────────────────────────────────────────────────────────── */
+.tj-conv-intro { margin-top: var(--conv-s3); }
+.tj-conv-intro-text { font-family: var(--font-body); font-size: clamp(19px, 2.3vw, 23px); line-height: 1.7; color: var(--tj-read-ink); margin: 0; }
+
+/* ── The cover: the portrait takes the screen, the title sits in the dark ─ */
+@media (min-width: 701px) {
+  .tj-conv-cover {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+    min-height: calc(100svh - 57px);
+  }
+  .tj-conv-cover-photo { position: relative; overflow: hidden; min-height: 560px; }
+  .tj-conv-cover-text {
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: clamp(40px, 6vw, 96px) clamp(32px, 5vw, 88px) clamp(56px, 9vh, 120px);
+  }
+}
+@media (max-width: 700px) {
+  .tj-conv-cover { display: grid; }
+  .tj-conv-cover-photo { position: relative; overflow: hidden; }
+  .tj-conv-cover-text { padding: 0 24px 8px; }
+}
+.tj-conv-title {
+  font-family: var(--font-display); font-weight: 300;
+  font-size: clamp(56px, 8.2vw, 120px); line-height: 0.92; letter-spacing: -0.025em;
+  color: var(--tj-read-cream); margin: 0;
+}
+.tj-conv-title-2 { font-style: italic; font-weight: 400; color: var(--tj-gold, var(--tj-read-gold-default)); }
+.tj-conv-dek {
+  font-family: var(--font-body); font-style: italic; font-size: clamp(17px, 1.6vw, 21px); line-height: 1.5;
+  color: var(--tj-read-taupe); margin: clamp(22px, 3vw, 34px) 0 0; max-width: 26ch; text-wrap: balance;
+}
+
+/* ── The typeset cover: a story sent before its photographs ───────────────
+   Modelled on the template-style Read covers (Seven Steeps, The Long Way to
+   the Cup): centred on the plain ground, the title and its bronze italic
+   second line, a short rule, then the hook. Same title type as the photo
+   cover, so a story keeps its face when the portrait arrives. */
+.tj-conv-cover-typeset {
+  min-height: calc(84svh - 57px);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  padding: clamp(56px, 10vw, 120px) var(--conv-gutter);
+}
+.tj-conv-cover-rule {
+  display: block; width: 54px; height: 1px;
+  background: var(--tj-gold, var(--tj-read-gold-default)); opacity: 0.6;
+  margin: clamp(26px, 3.4vw, 36px) auto 0;
+}
+.tj-conv-cover-typeset .tj-conv-cover-hook,
+.tj-conv-cover-typeset .tj-conv-dek { margin-left: auto; margin-right: auto; }
+
+/* ── A part opens as a spread ───────────────────────────────────────────── */
+.tj-conv-spread { margin: var(--conv-s3) 0 var(--conv-s2); scroll-margin-top: 57px; }
+.tj-conv-spread-photo { position: relative; aspect-ratio: 4 / 5; }
+.tj-conv-spread-head { display: flex; flex-direction: column; align-items: flex-start; padding: 32px var(--conv-gutter) 0; }
+.tj-conv-spread-part {
+  font-family: var(--font-sans); font-size: 12px; font-weight: 500; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--tj-gold, var(--tj-read-gold-default));
+}
+.tj-conv-spread-title {
+  font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 3.2vw, 46px);
+  line-height: 1.08; letter-spacing: -0.012em; color: var(--tj-read-cream); margin: 14px 0 0; text-wrap: balance; max-width: 22ch;
+}
+.tj-conv-spread-rule { width: 40px; height: 1px; margin-top: 28px; background: var(--tj-gold, var(--tj-read-gold-default)); }
+@media (min-width: 900px) {
+  .tj-conv-spread { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); min-height: min(92svh, 940px); }
+  .tj-conv-spread-photo { aspect-ratio: auto; min-height: 100%; }
+  .tj-conv-spread-head { justify-content: center; padding: 0 clamp(40px, 7vw, 120px); }
+  .tj-conv-spread[data-flip] { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); }
+  .tj-conv-spread[data-flip] > .tj-conv-spread-photo { order: 1; }
+}
+
+/* ── A photograph run to the page edge, with narrow words against it ──── */
+@media (min-width: 900px) {
+  .tj-conv-side[data-bleed] {
+    max-width: none; padding: 0;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+    gap: clamp(40px, 6vw, 104px); align-items: center;
+  }
+  .tj-conv-side[data-bleed] > .tj-conv-side-words { justify-self: end; max-width: 440px; padding: 0 0 0 var(--conv-gutter); }
+  .tj-conv-side[data-bleed][data-flip] { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+  .tj-conv-side[data-bleed][data-flip] > .tj-conv-side-words { justify-self: start; padding: 0 var(--conv-gutter) 0 0; }
+  .tj-conv-figure[data-offset='right'] { max-width: 820px; margin-right: 0; padding-right: 0; }
+  .tj-conv-figure[data-offset='left'] { max-width: 820px; margin-left: 0; padding-left: 0; }
+}
+
+/* ── The end mark ───────────────────────────────────────────────────────── */
+.tj-conv-endmark {
+  display: block; margin: clamp(28px, 4vw, 44px) auto 0;
+  font-family: 'Noto Serif SC', serif; font-size: 22px; line-height: 1;
+  color: var(--tj-gold, var(--tj-read-gold-default));
+}
+
+/* ── The site's menus step back while the reader moves down ─────────────── */
+html[data-tj-reading='quiet'] [data-testid='left-sidebar'] { opacity: 0.12; }
+html[data-tj-reading='quiet'] [data-testid='left-sidebar']:hover,
+html[data-tj-reading='quiet'] [data-testid='left-sidebar']:focus-within { opacity: 1; }
+html[data-tj-reading='quiet'] [data-testid='bottom-tab-bar'] { translate: 0 calc(100% + 24px); opacity: 0; pointer-events: none; }
+[data-testid='left-sidebar'] { transition: opacity 500ms ease, width 300ms; }
+[data-testid='bottom-tab-bar'] { transition: translate 300ms ease, opacity 300ms ease, transform 200ms; }
+@media (prefers-reduced-motion: reduce) {
+  [data-testid='left-sidebar'], [data-testid='bottom-tab-bar'] { transition: none; }
+}
+
+/* The telling that opens the story sits under the intro, in its size and tone. */
+.tj-conv-intro-told { font-size: clamp(19px, 2.3vw, 23px); line-height: 1.7; color: var(--tj-read-ink); margin: 1em 0 0; }
+.tj-conv-closing { margin-top: var(--conv-s2); }
+
+/* ── Reading on a phone ─────────────────────────────────────────────────────
+   One paragraph gap everywhere, a larger one only where the voice changes,
+   tighter leading for a narrow column, and plain wrapping: `pretty` aims each
+   line short of the edge, which on a 38-letter line reads as a ragged column. */
+@media (max-width: 700px) {
+  .tj-conv-a, .tj-conv-told, .tj-conv-q-text {
+    line-height: 1.65;
+    margin-bottom: 18px;
+    text-wrap: wrap;
+  }
+  .tj-conv-q-text { margin-bottom: 18px; }
+  .tj-conv-a + .tj-conv-told,
+  .tj-conv-turn + .tj-conv-told,
+  .tj-conv-told + .tj-conv-turn,
+  .tj-conv-told + .tj-conv-a { margin-top: 34px; }
+  .tj-conv-who { margin-bottom: 8px; }
+  .tj-conv-col + .tj-conv-col { margin-top: calc(-1 * var(--conv-s2) + 34px); }
+  /* Words that carry on beside a photograph: on a phone the photograph drops below,
+     so the words continue at the paragraph gap, not a section gap. */
+  .tj-conv-col:has(+ .tj-conv-side) { margin-bottom: 18px; }
+  .tj-conv-col + .tj-conv-side { margin-top: 18px; }
+  .tj-conv-side-words { padding-top: 0; }
+}
+
+/* Large lines in a story are the subject's words too, never Adrian's, so they carry the
+   same marks as the small ones. Every piece a reader sees on its own (a large line, the
+   paragraph after it, words set on a photograph) opens and closes its own marks, so it
+   still reads as a quote wherever a photo or a change of size breaks it up (Adrian,
+   2026-10-01). The closing saying brings its own marks. */
+.tj-conv[data-form="story"] [data-size] > .tj-conv-line::before,
+.tj-conv[data-form="story"] .tj-conv-onphoto-words::before { content: '\201C'; margin-left: -0.42em; }
+.tj-conv[data-form="story"] [data-size] > .tj-conv-line::after,
+.tj-conv[data-form="story"] .tj-conv-onphoto-words::after { content: '\201D'; }
+.tj-conv[data-form="story"] .tj-conv-saying .tj-conv-line::before,
+.tj-conv[data-form="story"] .tj-conv-saying .tj-conv-line::after { content: none; }
+
+/* In a story Adrian's opening and close are the size of every other line, his and theirs:
+   the sand tells his voice apart, not the size (Adrian, 2026-10-01: "I want them to be the same"). */
+.tj-conv[data-form="story"] .tj-conv-intro-text,
+.tj-conv[data-form="story"] .tj-conv-intro-told { font-size: clamp(16px, 2vw, 18px); line-height: 1.8; }
+@media (min-width: 1100px) {
+  .tj-conv[data-form="story"] .tj-conv-intro-text,
+  .tj-conv[data-form="story"] .tj-conv-intro-told { font-size: 20px; line-height: 1.75; }
+}
+@media (max-width: 700px) {
+  .tj-conv[data-form="story"] .tj-conv-intro-text,
+  .tj-conv[data-form="story"] .tj-conv-intro-told { line-height: 1.65; }
+}

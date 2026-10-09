@@ -128,6 +128,8 @@ async function chooseMovement(page: Page, label: string) {
   await page.getByRole('group', { name: 'Movement type' }).getByRole('button', { name: label, exact: true }).click();
 }
 
+test.skip(({ isMobile }) => isMobile, 'Drives the laptop ledger; the phone opens the same panels from its supplier list, covered in stock-phone.spec.ts');
+
 test.beforeEach(async ({ page }) => {
   await install(page);
   await page.goto('/admin/stock');

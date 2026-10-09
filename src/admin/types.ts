@@ -42,7 +42,8 @@ export interface CurateReceiptProposal {
 }
 export type InventoryReceiptState = 'planned' | 'ordered' | 'in_transit' | 'partially_received' | 'received' | 'cancelled';
 export interface InventoryReceiptLine { id: string; product_id: string; product_name: string; expected_quantity: number; received_quantity: number; cancelled_quantity: number; current_on_hand?: number; unit: 'g' | 'unit'; intended_purpose: InventoryPurpose; source_kind?: string; source_ref?: string | null; }
-export interface InventoryReceipt { id: string; state: InventoryReceiptState; vendor_name?: string | null; source_kind: string; source_ref?: string | null; eta?: string | null; legacy?: boolean; lines: InventoryReceiptLine[]; }
+export type ReceiptTransportMode = 'air' | 'sea' | 'land' | 'courier';
+export interface InventoryReceipt { id: string; state: InventoryReceiptState; vendor_name?: string | null; source_kind: string; source_ref?: string | null; eta?: string | null; transport_mode?: ReceiptTransportMode | null; legacy?: boolean; lines: InventoryReceiptLine[]; }
 
 import type { TastingData } from '../types';
 
@@ -290,9 +291,12 @@ export type ContactRelationshipKind =
   | 'contributor'
   | 'personal_connection';
 
-export type ContactChannel = 'phone' | 'email' | 'whatsapp' | 'wechat' | 'line' | 'instagram' | 'telegram' | 'signal' | 'other';
+export type ContactChannel = 'phone' | 'email' | 'whatsapp' | 'wechat' | 'line' | 'instagram' | 'telegram' | 'signal' | 'fax' | 'facebook' | 'website' | 'other';
 
 export interface ContactEntry {
+  id?: string;
+  label?: string;
+  person_id?: string;
   channel: ContactChannel;
   handle: string;
 }

@@ -32,8 +32,15 @@
  * `Env` in index.ts the same way and for the same reason: a module states what
  * it reads rather than inheriting everything the worker happens to have.
  */
+export interface CurateReceiptService {
+  accept: (scope: { accountId: string; userId: string; email?: string }, proposalId: string) => Promise<Response>;
+}
+
 export interface ToolEnv {
   DB: D1Database;
+  MEDIA_BUCKET?: R2Bucket;
+  ATLAS_BUCKET?: R2Bucket;
+  curateReceipts?: CurateReceiptService;
 }
 
 /** The scopes a module may ask for. Mirrors MCP_SCOPES in mcp.ts. */

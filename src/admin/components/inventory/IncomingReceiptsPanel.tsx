@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Loader2, PackageCheck } from 'lucide-react';
 import { api, ApiError } from '../../../lib/api';
 import { useAppStore } from '../../../lib/store';
-import type { InventoryReceipt } from '../../types';
+import type { InventoryReceipt, ReceiptTransportMode } from '../../types';
+import { TRANSPORT_LABELS, dueLabel, groupIncoming } from './incomingGroups';
 
 interface PendingReceive {
   lineId: string;
@@ -35,6 +36,7 @@ export function IncomingReceiptsPanel({ onClose, receiptId }: { onClose: () => v
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [stale, setStale] = useState(false);
+  const [modeFilter, setModeFilter] = useState<'all' | ReceiptTransportMode>('all');
   const [pendingReceive, setPendingReceive] = useState<PendingReceive | null>(() => readPendingReceive(pendingKey));
   const pendingReceiveRef = useRef<PendingReceive | null>(pendingReceive);
   const workingRef = useRef(false);
@@ -183,10 +185,20 @@ export function IncomingReceiptsPanel({ onClose, receiptId }: { onClose: () => v
         : <button onClick={() => void load()} className="ml-2 min-h-11 underline text-tea-text-sec hover:text-tea-text">Try again</button>}</div>}
       {loading && <div className="py-16 flex justify-center"><Loader2 className="animate-spin text-tea-gold"/></div>}
       {!loading && visibleReceipts.length === 0 && <div className="py-16 text-center"><PackageCheck className="mx-auto text-tea-text-sec mb-3"/><p className="font-display text-ui-17 text-tea-text">{receiptId ? 'Receipt not found' : 'Nothing on the way'}</p></div>}
-      {visibleReceipts.map(receipt => <article key={receipt.id} className="border border-tea-border bg-tea-surface rounded-xl overflow-hidden">
+      {visibleReceipts.length > 0 && <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-ui-12 text-tea-text-sec">
+        <span><span className="font-mono text-tea-text">{visibleReceipts.length}</span> {visibleReceipts.length === 1 ? 'delivery' : 'deliveries'}</span>
+        <span className="flex-1" />
+        {(['all', ...Object.keys(TRANSPORT_LABELS)] as Array<'all' | ReceiptTransportMode>).filter(mode => mode === 'all' || visibleReceipts.some(r => r.transport_mode === mode)).map(mode => <button key={mode} type="button" aria-pressed={modeFilter === mode} onClick={() => setModeFilter(mode)} className={`min-h-9 px-3 rounded-full border text-ui-12 ${modeFilter === mode ? 'border-tea-gold text-tea-gold' : 'border-tea-border text-tea-text-sec'}`}>{mode === 'all' ? 'All' : TRANSPORT_LABELS[mode]}</button>)}
+      </div>}
+      {groupIncoming(visibleReceipts.filter(r => modeFilter === 'all' || r.transport_mode === modeFilter)).map(group => <section key={group.key} aria-label={`Coming from ${group.label}`} className="space-y-2">
+        <div className="flex items-baseline justify-between gap-3 pt-2">
+          <h3 className="font-display text-ui-17 text-tea-text">{group.label}</h3>
+          <span className="font-mono text-ui-11 text-tea-text-sec">{[group.remainingGrams > 0 ? `${group.remainingGrams.toLocaleString('en-US')} g` : null, group.remainingUnits > 0 ? `${group.remainingUnits} pc` : null].filter(Boolean).join(' · ') || 'nothing left to arrive'}</span>
+        </div>
+        {group.receipts.map(receipt => <article key={receipt.id} className="border border-tea-border bg-tea-surface rounded-xl overflow-hidden">
         <header className="px-4 py-3 border-b border-tea-border flex flex-wrap items-start justify-between gap-2">
-          <div><div className="font-display text-ui-15 text-tea-text">{receipt.vendor_name || (receipt.legacy ? 'Earlier incoming stock' : 'Incoming receipt')}</div><div className="text-ui-11 text-tea-text-sec">{[receipt.source_kind, receipt.source_ref].filter(Boolean).join(' · ')}</div></div>
-          <div className="flex flex-wrap items-center gap-2"><span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-sec">{receipt.state.replace('_',' ')}</span>{!receipt.legacy && receipt.state === 'planned' && <button disabled={Boolean(working || stale || pendingReceive)} onClick={() => void act(receipt.id, () => api.inventoryReceipts.updateState(receipt.id, 'ordered'))} className="min-h-11 px-3 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Mark ordered</button>}{!receipt.legacy && receipt.state === 'ordered' && <button disabled={Boolean(working || stale || pendingReceive)} onClick={() => void act(receipt.id, () => api.inventoryReceipts.updateState(receipt.id, 'in_transit'))} className="min-h-11 px-3 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Mark in transit</button>}</div>
+          <div><div className="text-ui-11 text-tea-text-sec">{[receipt.source_kind, receipt.source_ref].filter(Boolean).join(' · ')}</div>{(() => { const due = dueLabel(receipt.eta); return due ? <div className={`text-ui-12 ${due.late ? 'text-tea-error' : 'text-tea-text-sec'}`}>{due.text}</div> : null; })()}</div>
+          <div className="flex flex-wrap items-center gap-2"><span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-sec">{receipt.state.replace('_',' ')}</span>{!receipt.legacy && <label className="text-ui-11 text-tea-text-sec"><span className="sr-only">How it travels</span><select aria-label={`How the delivery from ${receipt.vendor_name || 'this supplier'} travels`} value={receipt.transport_mode ?? ''} disabled={Boolean(working || stale || pendingReceive)} onChange={event => { const mode = (event.target.value || null) as ReceiptTransportMode | null; void act(`transport:${receipt.id}`, () => api.inventoryReceipts.updateTransport(receipt.id, mode)); }} className="min-h-11 rounded-md border border-tea-border bg-tea-bg px-2 text-ui-12 text-tea-text disabled:opacity-50"><option value="">How it travels</option>{(Object.keys(TRANSPORT_LABELS) as ReceiptTransportMode[]).map(mode => <option key={mode} value={mode}>{TRANSPORT_LABELS[mode]}</option>)}</select></label>}{!receipt.legacy && receipt.state === 'planned' && <button disabled={Boolean(working || stale || pendingReceive)} onClick={() => void act(receipt.id, () => api.inventoryReceipts.updateState(receipt.id, 'ordered'))} className="min-h-11 px-3 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Mark ordered</button>}{!receipt.legacy && receipt.state === 'ordered' && <button disabled={Boolean(working || stale || pendingReceive)} onClick={() => void act(receipt.id, () => api.inventoryReceipts.updateState(receipt.id, 'in_transit'))} className="min-h-11 px-3 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Mark in transit</button>}</div>
         </header>
         <div className="divide-y divide-tea-border">{receipt.lines.map(line => {
           const expected = Number(line.expected_quantity); const received = Number(line.received_quantity); const cancelled = Number(line.cancelled_quantity); const remaining = Math.max(0, expected - received - cancelled);
@@ -197,6 +209,7 @@ export function IncomingReceiptsPanel({ onClose, receiptId }: { onClose: () => v
           </div>;
         })}</div>
       </article>)}
+      </section>)}
     </div>
   </section>;
 }

@@ -11,6 +11,7 @@
 | [PILLAR.md](PILLAR.md) | What the site is and how it works, in one read; the file every session is pointed at first |
 | [STATE_OF_THE_SITE.md](STATE_OF_THE_SITE.md) | Concise verified snapshot of what exists and what remains |
 | [CONSOLIDATED_DIRECTION.md](CONSOLIDATED_DIRECTION.md) | Current product map and the three active engineering tracks |
+| [VERIFIED_RELEASES.md](VERIFIED_RELEASES.md) | Worker-first background publishing and exact-revision live proof |
 | [LAUNCH_VALIDATION.md](LAUNCH_VALIDATION.md) | **Only canonical checklist for Adrian, operator, editorial, deployed-environment, and other external validation** |
 | [CHANGELOG.md](CHANGELOG.md) | Dated implementation history |
 | [VISION.md](VISION.md) | Product philosophy, audience, and boundaries |
@@ -67,3 +68,6 @@ These explain how to perform operating tasks. They do not track whether launch o
 - Shipped work gets a dated `CHANGELOG.md` entry.
 - Reference docs describe current behavior; they do not carry independent roadmaps or launch checklists.
 - A stale plan is retired instead of being kept beside current direction.
+
+- [Curate workspace](CURATE_WORKSPACE.md): structured tea/vendor/quote facts, private evidence, Samples only, agent corrections and undo.
+- [Curate consumer contract](CURATE_CONSUMER_CONTRACT.md): shared identities, agent/browser operations and editorial privacy boundaries.

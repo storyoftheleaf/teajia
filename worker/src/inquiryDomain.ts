@@ -1,4 +1,5 @@
 import { quoteGrams, sellUnitOf, wholePieceOf } from '../../src/lib/teaPricing';
+import { canonicalCurrency, isoCurrencyCode } from '../../src/lib/currency';
 
 const TRACKING_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,128}$/;
 
@@ -226,8 +227,14 @@ export function normalizeCartInquiry(body: Record<string, unknown>): CartInquiry
     }
   }
 
-  const currency = typeof body.currency === 'string' ? body.currency.trim().toUpperCase() : '';
-  if (!/^[A-Z]{3}$/.test(currency)) {
+  /* Read through the shop's one alias map, so a client that sends the shop's
+     own key ('Yuan', 'NT') is stored as the ISO code rather than refused. An
+     unrecognised spelling that is not already three letters is still refused:
+     isoCurrencyCode answers USD for those, and money must never become dollars
+     by default. */
+  const spelled = typeof body.currency === 'string' ? canonicalCurrency(body.currency) : null;
+  const currency = spelled ? isoCurrencyCode(spelled) : '';
+  if (!spelled || !/^[A-Z]{3}$/.test(currency) || (currency === 'USD' && spelled.toUpperCase() !== 'USD')) {
     return { ok: false, error: 'Currency must be a three-letter code' };
   }
 

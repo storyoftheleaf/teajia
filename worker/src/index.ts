@@ -1,24 +1,34 @@
+import { promoteCompassEntry, CompassPromotionError } from './curatePromotion';
 import {
   mcpFetch, publicMcpFetch, mcpAdminMintToken, mcpAdminListTokens, mcpAdminRevokeToken,
   oauthProtectedResourceMetadata, oauthAuthorizationServerMetadata,
   oauthRegister, oauthAuthorize, oauthAuthorizeRequestInfo, oauthAuthorizeDecision, oauthToken,
 } from './mcp';
+import { mergeProductTasting, tastingForShop, tastingHasTerms, tastingTermsSupplied } from './curateImportTasting';
+import { customerTagList, customerTagsForStore, foldHandlesIntoContacts, HANDLE_CHANNELS, withContactHandles } from './customerContactHandles';
 import {
   abandonCurateImport, acceptCurateImportItem, addCurateImportItem, addCurateImportSource, analyzeCurateImport, createCurateImport, getCurateImport,
   createVendorForCurateImportGroup, finalizeCurateImportRequest, getCurateImportEvidence, listIncompleteCurateImports, mergeCurateImportItem,
   setCurateImportJourney, updateCurateImportGroup, updateCurateImportItem, uploadCurateImportEvidence, curateImportChat,
   type CurateImportContext,
 } from './curateImports';
+import { prepareCompassSampleWrite, prepareSampleLifecycleSync, compassStateForSample } from './curateSampleBridge';
+import { receiptProductDetails } from './curateReceiptProduct';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { shippingPerGramUsd, resolveShopFreightDefault } from './shippingRate';
 import { deductStockForPaidInvoice } from './orderLifecycle';
 import { internationalWhatsAppNumber } from '../../src/lib/whatsappContact';
 import { buildCustomerOrderNotificationInsert, processPendingCustomerOrderNotifications } from './whatsappOrderNotifications';
 import { FX_FEED_CURRENCY_MAP, refreshedCurrencyName } from './exchangeRateFeed';
-import { SHOP_MARKUP_MULTIPLIER, CURATOR_FALLBACK_MARKUP } from './markup';
+import { fetchLiveRates, staleRateRows, staleRatesMessage, type RateRefreshResult, type RateRow } from './exchangeRateSources';
+import { SHOP_MARKUP_MULTIPLIER, CURATOR_FALLBACK_MARKUP } from './markup'; import { mentionNeedles } from './peopleMentions';
 import { costNeedsCurrency, createMissingCost, currencyStated, stampCostCurrencySource, canonicalizeCostCurrency, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
 import { nameProductColumns } from './productDefaults';
 import { validateCurateContextPair } from './curateContextValidation';
+import { addTodo, markTodoDone, openTodos, pickSuggestions, waitingSuggestions } from './mcpTools/curateIntake';
+import { decryptSecret, encryptSecret } from './secretSeal';
+import { fileSaid } from './curateSaidFiling';
+import { driveConsentUrl, driveSeal, driveStatus, forgetDrive, saveDriveConsent, savePhotosToDrive, savePhotosToDriveQuietly } from './curateDrive';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import {
   deriveConfirmedInvoiceLine,
@@ -78,7 +88,8 @@ import {
 } from './eventDomain';
 import { candidateToApi, impressionToApi, journalRowToNotes, parseCandidateInput } from './tastingNoteCuration';
 import { deliverVerificationCode, deliveryFailureBody } from './verificationDelivery';
-import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, type IncidentStatus } from './incidents';
+import { handoffToRepair } from './problemAlerts';
+import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, recordHealthProblem, clearHealthProblem, type IncidentStatus } from './incidents';
 import {
   deleteWisdomVerification,
   getWisdomVerification,
@@ -100,7 +111,7 @@ import {
   type PaymentMethodRow,
   normalizePhotoFocus,
 } from './profileDomain';
-import { decidePayAccess, isShareTokenShaped, mintShareToken, PAY_LINK_PARAM, withShareToken } from './payAccessDomain';
+import { decidePayAccess, isShareTokenShaped, mintShareToken, PAY_LINK_PARAM, withShareToken } from './payAccessDomain'; import { mayEditReadMagazine, parseReadPublishRequest, publishStatesFromRows } from './readPublishDomain';
 import {
   deriveWisdomFindings,
   nodeKey,
@@ -127,8 +138,12 @@ import {
 } from './inquiryDomain';
 import { hasTeaAtlasTick, serveAtlas, withTeaAtlasTick } from './atlas';
 import { serveAtlasAdmin } from './atlasAdmin';
+import { workerReleaseResponse, type WorkerReleaseEnv } from './workerRelease';
+import { handleCurateWorkspace } from './curateWorkspaceRoutes';
+import { validateCompassQuoteLink } from './curateQuotes';
+import { requireCurateManager, prepareCurateRecordedWrite } from './curateMutations';
 
-interface Env {
+interface Env extends WorkerReleaseEnv {
   DB: D1Database;
   WHATSAPP_ORDER_ACCOUNT_ID?: string;
   WHATSAPP_ACCESS_TOKEN?: string;
@@ -207,6 +222,8 @@ interface Env {
   NEWSLETTER_LIMITER?: RateLimiterBinding;
   // Scoped machine credential used only by the repository incident-queue exporter.
   INCIDENT_EXPORT_TOKEN?: string;
+  /** Shared with i64os: sent to it as x-i64os-repair-secret, accepted from it as x-teajia-repair-secret on the incident PATCH only. */
+  I64OS_REPAIR_SECRET?: string;
   WORDFORGE_INTEGRATION_TOKEN?: string;
   WORDFORGE_ACCOUNT_ID?: string;
 }
@@ -397,66 +414,6 @@ function isAuthed(request: Request): string | null {
   const auth = request.headers.get('Authorization');
   if (!auth?.startsWith('Bearer ')) return null;
   return auth.slice(7);
-}
-
-// ── BYOK secret encryption (AES-GCM via HKDF-derived key) ──
-// Used for per-account third-party API keys stored in D1. The wrapping key
-// is derived from KEY_ENCRYPTION_SECRET so the same plaintext encrypts to
-// different ciphertexts each call (12-byte random IV, prepended to output).
-async function deriveAesKey(secret: string): Promise<CryptoKey> {
-  const enc = new TextEncoder();
-  const baseKey = await crypto.subtle.importKey(
-    'raw', enc.encode(secret), 'HKDF', false, ['deriveKey'],
-  );
-  return crypto.subtle.deriveKey(
-    { name: 'HKDF', hash: 'SHA-256', salt: enc.encode('teajia/byok/v1'), info: enc.encode('account-secret') },
-    baseKey,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt', 'decrypt'],
-  );
-}
-
-function bytesToB64(bytes: Uint8Array): string {
-  let s = '';
-  for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
-  return btoa(s);
-}
-
-function b64ToBytes(s: string): Uint8Array {
-  const bin = atob(s);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
-}
-
-export async function encryptSecret(plaintext: string, env: Env): Promise<string> {
-  if (!env.KEY_ENCRYPTION_SECRET) {
-    throw new Error('KEY_ENCRYPTION_SECRET not configured');
-  }
-  const key = await deriveAesKey(env.KEY_ENCRYPTION_SECRET);
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = new Uint8Array(
-    await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(plaintext)),
-  );
-  // Prefix the IV so we don't need a second column.
-  const combined = new Uint8Array(iv.length + ct.length);
-  combined.set(iv, 0);
-  combined.set(ct, iv.length);
-  return bytesToB64(combined);
-}
-
-export async function decryptSecret(b64: string, env: Env): Promise<string> {
-  if (!env.KEY_ENCRYPTION_SECRET) {
-    throw new Error('KEY_ENCRYPTION_SECRET not configured');
-  }
-  const key = await deriveAesKey(env.KEY_ENCRYPTION_SECRET);
-  const buf = b64ToBytes(b64);
-  if (buf.length < 13) throw new Error('Encrypted payload too short');
-  const iv = buf.slice(0, 12);
-  const ct = buf.slice(12);
-  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
-  return new TextDecoder().decode(pt);
 }
 
 function parseToken(token: string): TokenClaims | null {
@@ -877,6 +834,19 @@ async function requireBundle(
   if ('error' in ctx) return ctx;
   if (ctx.bundles.includes(bundle)) return ctx;
   return { error: restError(403, 'Insufficient bundle for this action', 'insufficient_bundle', { required_bundle: bundle }) };
+}
+
+/**
+ * Sourcing work in Curate: anyone who gathers samples or curates the catalogue.
+ * A viewer is neither. Sample lists carry the supplier's name and contact, and
+ * journeys and visits are shared by the whole shop, so a viewer may not read
+ * the one or change the other.
+ */
+async function requireSourcing(request: Request, env: Env): Promise<AccountCtx | { error: Response }> {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx;
+  if (ctx.bundles.includes('gather') || ctx.bundles.includes('catalog')) return ctx;
+  return { error: restError(403, 'Sourcing needs the gather or catalog permission', 'insufficient_bundle', { required_bundle: 'gather' }) };
 }
 
 // Some actions are reserved to the account's owner tier specifically (not just
@@ -2583,6 +2553,9 @@ const handleGoogleCallback: Handler = async (request, env) => {
   // From here on, errors and success land the user back where they started.
   const returnPath = await verifyOAuthState(state, env.JWT_SECRET);
   if (!returnPath) return Response.redirect(`${appOrigin}/admin?oauth_error=invalid_state`, 302);
+  // Connecting the shop's Google Drive comes back through this same registered
+  // callback; its signed state says whose shop and where to land.
+  if (returnPath.startsWith('/curate-drive|')) return finishDriveConnect(request, env, code, returnPath);
   const sep = returnPath.includes('?') ? '&' : '?';
   const errRedirect = (e: string) => Response.redirect(`${appOrigin}${returnPath}${sep}oauth_error=${e}`, 302);
 
@@ -7661,7 +7634,7 @@ const handleGetCustomers: Handler = async (request, env) => {
         ) as event_count
       FROM customers c
       LEFT JOIN invoices i ON i.customer_id = c.id AND i.status = 'Filled' AND i.account_id = ?
-      WHERE c.account_id = ? ${typeClause} ${relationshipClause}
+      WHERE c.account_id = ? AND c.deleted_at IS NULL AND c.archived_at IS NULL AND c.merged_into_id IS NULL ${typeClause} ${relationshipClause}
       GROUP BY c.id
       ORDER BY c.created_at DESC
     `).bind(accountId, accountId, ...typeBinds, ...relationshipBinds).all();
@@ -7669,7 +7642,7 @@ const handleGetCustomers: Handler = async (request, env) => {
     result = await env.DB.prepare(`
       SELECT c.*, 0 as order_count, 0 as total_spent_usd, NULL as last_order_date, 0 as event_count
       FROM customers c
-      WHERE c.account_id = ? ${typeClause}
+      WHERE c.account_id = ? AND c.deleted_at IS NULL AND c.archived_at IS NULL AND c.merged_into_id IS NULL ${typeClause}
       ORDER BY c.created_at DESC
     `).bind(accountId, ...typeBinds).all();
   }
@@ -7699,7 +7672,7 @@ const handleGetCustomers: Handler = async (request, env) => {
   ).map(c => ({
     ...c,
     contacts: typeof c.contacts === 'string' ? JSON.parse(c.contacts || '[]') : (c.contacts ?? []),
-    tags: typeof c.tags === 'string' ? JSON.parse(c.tags || '[]') : (c.tags ?? []),
+    tags: customerTagList(c.tags),
     contact_tags: tagMap.get(c.id) || [],
     relationship_kinds: relationshipMap.get(c.id) || [],
   }));
@@ -7721,9 +7694,9 @@ const handleGetCustomer: Handler = async (request, env, params) => {
   } catch { /* customer_id column may not exist yet */ }
 
   const parsed = {
-    ...customer,
+    ...withContactHandles(customer as Record<string, unknown>),
     contacts: typeof customer.contacts === 'string' ? JSON.parse(customer.contacts || '[]') : (customer.contacts ?? []),
-    tags: typeof customer.tags === 'string' ? JSON.parse(customer.tags || '[]') : (customer.tags ?? []),
+    tags: customerTagList(customer.tags),
     relationship_kinds: relationships,
     orders,
   };
@@ -7951,9 +7924,9 @@ const CONTRIBUTOR_WRITE_FIELDS = [
 const CONTRIBUTOR_FOCUS_FIELDS = ['portrait_focus', 'avatar_focus'] as const;
 
 const PROFILE_SELF_FIELDS = [
-  'display_name', 'business_name', 'chinese_name', 'pronouns', 'location_line', 'active_since', 'languages',
+  'display_name', 'business_name', 'chinese_name', 'role', 'pronouns', 'location_line', 'active_since', 'languages',
   'beginnings', 'now_text', 'now_stamp', 'now_updated_at', 'inspirations', 'closing',
-  'avatar_url', 'portrait_url', 'portrait_caption', 'voice_clip_url', 'voice_clip_caption',
+  'avatar_url', 'portrait_url', 'portrait_focus', 'portrait_caption', 'voice_clip_url', 'voice_clip_caption',
   'pouring_today_product_id', 'pouring_today_note', 'where_to_find_text', 'links',
 ] as const;
 
@@ -9764,7 +9737,7 @@ const handleCreateCustomer: Handler = async (request, env) => {
   delete body.account_id;
   const id = crypto.randomUUID();
 
-  if (Array.isArray(body.tags)) body.tags = JSON.stringify(body.tags);
+  if (body.tags !== undefined) body.tags = customerTagsForStore(body.tags);
   if (Array.isArray(body.contacts)) body.contacts = JSON.stringify(body.contacts);
 
   await env.DB.prepare(
@@ -9801,10 +9774,16 @@ const handleUpdateCustomer: Handler = async (request, env, params) => {
 
   const body = await request.json() as Record<string, any>;
   delete body.account_id;
-  if (Array.isArray(body.tags)) body.tags = JSON.stringify(body.tags);
+  if (body.tags !== undefined) body.tags = customerTagsForStore(body.tags);
   if (Array.isArray(body.contacts)) body.contacts = JSON.stringify(body.contacts);
+  // `customers` has no wechat/instagram column: those handles live in contacts.
+  if (HANDLE_CHANNELS.some((c) => Object.prototype.hasOwnProperty.call(body, c))) {
+    const row = await env.DB.prepare('SELECT contacts FROM customers WHERE id = ? AND account_id = ?')
+      .bind(params.id, accountId).first() as { contacts?: string } | null;
+    foldHandlesIntoContacts(body, row?.contacts);
+  }
 
-  const CUSTOMER_ALLOWED_COLS = new Set(['name','email','phone','notes','tags','address','city','country','source','vip','preferred_currency','instagram','wechat','whatsapp','line','referred_by','type','company','contacts','business_card_photo','storefront_photo','latitude','longitude']);
+  const CUSTOMER_ALLOWED_COLS = new Set(['name','chinese_name','email','phone','notes','tags','address','city','country','source','vip','preferred_currency','whatsapp','line','referred_by','type','company','contacts','business_card_photo','storefront_photo','latitude','longitude']);
   const cols = Object.keys(body).filter(k => CUSTOMER_ALLOWED_COLS.has(k));
   if (cols.length > 0) {
     const sets = cols.map(c => `${c} = ?`).join(', ');
@@ -10312,7 +10291,7 @@ const handleListCustomersByTag: Handler = async (request, env, params) => {
     `SELECT c.id, c.name, c.phone, c.whatsapp
      FROM customer_tags ct
      JOIN customers c ON c.id = ct.customer_id
-     WHERE ct.account_id = ? AND ct.tag = ? AND c.account_id = ?
+     WHERE ct.account_id = ? AND ct.tag = ? AND c.account_id = ? AND c.deleted_at IS NULL AND c.archived_at IS NULL AND c.merged_into_id IS NULL
      ORDER BY c.name ASC`
   ).bind(accountId, tag, accountId).all();
 
@@ -12001,7 +11980,7 @@ const handleRSVP: Handler = async (request, env, params) => {
   if (customer) {
     customerId = customer.id as string;
     try {
-      const tags = typeof customer.tags === 'string' ? JSON.parse(customer.tags) : customer.tags;
+      const tags = customerTagList(customer.tags);
       if (Array.isArray(tags) && tags.some((t: string) => t.toLowerCase() === 'golden')) {
         accessTier = 'golden';
       }
@@ -15537,7 +15516,7 @@ const handleListCurateJourneys: Handler = async (request, env) => {
 };
 
 const handleCreateCurateJourney: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireSourcing(request, env);
   if ('error' in ctx) return ctx.error;
   const body = await request.json() as Record<string, unknown>;
   if (typeof body.name !== 'string' || !body.name.trim()) return json({ error: 'name required' }, 400);
@@ -15552,7 +15531,7 @@ const handleCreateCurateJourney: Handler = async (request, env) => {
 };
 
 const handleUpdateCurateJourney: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireSourcing(request, env);
   if ('error' in ctx) return ctx.error;
   const owned = await env.DB.prepare('SELECT id FROM curate_journeys WHERE id = ? AND account_id = ?')
     .bind(params.id, ctx.accountId).first();
@@ -15566,7 +15545,7 @@ const handleUpdateCurateJourney: Handler = async (request, env, params) => {
 };
 
 const handleDeleteCurateJourney: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireSourcing(request, env);
   if ('error' in ctx) return ctx.error;
   const owned = await env.DB.prepare('SELECT id FROM curate_journeys WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first();
   if (!owned) return json({ error: 'Journey not found' }, 404);
@@ -15593,15 +15572,14 @@ async function curateJourneyOwned(env: Env, accountId: string, journeyId: unknow
 }
 
 const handleCreateCurateVisit: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireSourcing(request, env);
   if ('error' in ctx) return ctx.error;
   const body = await request.json() as Record<string, unknown>;
   if (!await curateJourneyOwned(env, ctx.accountId, body.journey_id)) return json({ error: 'Journey not found' }, 404);
   if (body.vendor_id != null) {
     const vendor = await env.DB.prepare('SELECT id, name, tags FROM customers WHERE id = ? AND account_id = ?').bind(body.vendor_id, ctx.accountId).first() as { name?: string; tags?: string } | null;
     if (!vendor) return json({ error: 'Vendor not found' }, 404);
-    let tags: unknown[] = [];
-    try { tags = JSON.parse(vendor.tags || '[]'); } catch { tags = []; }
+    const tags = customerTagList(vendor.tags).map((t) => t.toLowerCase());
     if (!tags.includes('vendor')) return json({ error: 'Selected customer is not tagged as a vendor' }, 400);
     body.vendor_name = vendor.name ?? null;
   }
@@ -15614,7 +15592,7 @@ const handleCreateCurateVisit: Handler = async (request, env) => {
 };
 
 const handleUpdateCurateVisit: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireSourcing(request, env);
   if ('error' in ctx) return ctx.error;
   const owned = await env.DB.prepare('SELECT id FROM curate_visits WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first();
   if (!owned) return json({ error: 'Visit not found' }, 404);
@@ -15623,8 +15601,7 @@ const handleUpdateCurateVisit: Handler = async (request, env, params) => {
   if (body.vendor_id !== undefined && body.vendor_id != null) {
     const vendor = await env.DB.prepare('SELECT id, name, tags FROM customers WHERE id = ? AND account_id = ?').bind(body.vendor_id, ctx.accountId).first() as { name?: string; tags?: string } | null;
     if (!vendor) return json({ error: 'Vendor not found' }, 404);
-    let tags: unknown[] = [];
-    try { tags = JSON.parse(vendor.tags || '[]'); } catch { tags = []; }
+    const tags = customerTagList(vendor.tags).map((t) => t.toLowerCase());
     if (!tags.includes('vendor')) return json({ error: 'Selected customer is not tagged as a vendor' }, 400);
     body.vendor_name = vendor.name ?? null;
   }
@@ -15637,7 +15614,7 @@ const handleUpdateCurateVisit: Handler = async (request, env, params) => {
 };
 
 const handleDeleteCurateVisit: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireSourcing(request, env);
   if ('error' in ctx) return ctx.error;
   const owned = await env.DB.prepare('SELECT id FROM curate_visits WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first();
   if (!owned) return json({ error: 'Visit not found' }, 404);
@@ -15648,19 +15625,28 @@ const handleDeleteCurateVisit: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
-// ── Tea Compass (personal field notes, scoped per account + user) ──
+// Curate is the shop intake workspace. Other personal records stay user-owned.
+async function canManageCurate(env: Env, accountId: string, userId: string) {
+  try { await requireCurateManager(env.DB, { accountId, userId }); return true; }
+  catch { return false; }
+}
+
 
 function decodeCompassWrite(body: Record<string, unknown>, rejectUnknown: boolean):
   | { values: Partial<Record<CompassColumn, unknown>> }
   | { error: Response } {
+  try {
   const decoded = decodeCompassWriteCodec(body, rejectUnknown);
   if ('unknownField' in decoded) return { error: json({ error: `Unknown Compass field: ${decoded.unknownField}` }, 400) };
   if ('invalidDecision' in decoded) return { error: json({ error: 'decision must be considering, selected, passed_on, or null' }, 400) };
   if ('invalidSampleState' in decoded) return { error: json({ error: 'sample_state must be requested, received, tasted, or null' }, 400) };
   return decoded;
+  } catch (error) { return { error: json({ error: (error as Error).message }, 400) }; }
 }
 
 async function validateCompassContext(env: Env, accountId: string, values: Partial<Record<CompassColumn, unknown>>, existing?: Record<string, unknown> | null): Promise<Response | null> {
+  try { await validateCompassQuoteLink(env.DB, accountId, { ...existing, ...values }); }
+  catch (error) { return json({ error: (error as Error).message }, 400); }
   const error = await validateCurateContextPair(env, accountId, values, existing);
   if (error) return json({ error }, 400);
   if (values.sample_set_id === undefined || values.sample_set_id === null) return null;
@@ -15668,6 +15654,13 @@ async function validateCompassContext(env: Env, accountId: string, values: Parti
   const sampleSet = await env.DB.prepare('SELECT id FROM tea_sample_sets WHERE id = ? AND account_id = ?')
     .bind(values.sample_set_id, accountId).first();
   return sampleSet ? null : json({ error: 'Sample set not found' }, 404);
+}
+
+async function compassSampleStatements(env: Env, accountId: string, userId: string, entry: Record<string, any>, tastingChanged = false) {
+  if (!entry.sample_state) return [];
+  return (await prepareCompassSampleWrite(env.DB, { accountId, userId }, entry, {
+    entryId: entry.id, state: tastingChanged && tastingHasTerms(tastingForShop(entry.tasting)) ? 'tasted' : entry.sample_state,
+  })).statements;
 }
 
 const handleGetCompassEntries: Handler = async (request, env) => {
@@ -15679,8 +15672,9 @@ const handleGetCompassEntries: Handler = async (request, env) => {
   const status = url.searchParams.get('status');
   const vendorId = url.searchParams.get('vendor_id');
 
-  let query = 'SELECT * FROM tea_compass_entries WHERE user_id = ? AND account_id = ?';
-  const binds: any[] = [userId, accountId];
+  const manager = await canManageCurate(env, accountId, userId);
+  let query = 'SELECT * FROM tea_compass_entries WHERE account_id = ? AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL' + (manager ? '' : ' AND user_id = ?');
+  const binds: any[] = [accountId, ...(manager ? [] : [userId])];
 
   if (status) {
     query += ' AND status = ?';
@@ -15696,72 +15690,109 @@ const handleGetCompassEntries: Handler = async (request, env) => {
   return json({ entries: result.results });
 };
 
+async function prepareAuditedCompassWrite(env: Env, scope: { accountId: string; userId: string }, before: Record<string, any> | null, entry: Record<string, any>, commandType: string, tastingChanged = false, preferredSetId?: string) {
+  let changes: Parameters<typeof prepareCurateRecordedWrite>[2]['changes'] = [];
+  let guards: NonNullable<Parameters<typeof prepareCurateRecordedWrite>[2]['guards']> = [];
+  if (entry.sample_state) {
+    const bridge = await prepareCompassSampleWrite(env.DB, { accountId: scope.accountId, userId: entry.user_id }, entry, {
+      entryId: entry.id, state: tastingChanged && tastingHasTerms(tastingForShop(entry.tasting)) ? 'tasted' : entry.sample_state, preferredSetId,
+    });
+    changes = bridge.changes; guards = bridge.guards;
+  } else changes.push({ entityType: 'tea', entityId: entry.id, before, after: entry });
+  return prepareCurateRecordedWrite(env.DB, scope, { commandType, agent: 'Shop app', changes, guards });
+}
+
 const handleCreateCompassEntry: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
-
+  const manager = await canManageCurate(env, accountId, userId);
   const body = await request.json() as Record<string, unknown>;
-  const decoded = decodeCompassWrite(body, false);
+  const decoded = decodeCompassWrite(body, manager);
   if ('error' in decoded) return decoded.error;
   const contextError = await validateCompassContext(env, accountId, decoded.values);
   if (contextError) return contextError;
-
   const id = typeof body.id === 'string' && body.id ? body.id : crypto.randomUUID();
-  const present = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
-  const placeholders = ['id', 'user_id', 'account_id', ...present].map(() => '?').join(', ');
-  const colNames = ['id', 'user_id', 'account_id', ...present].join(', ');
-
-  await env.DB.prepare(
-    `INSERT INTO tea_compass_entries (${colNames}) VALUES (${placeholders})`
-  ).bind(id, userId, accountId, ...present.map(column => decoded.values[column])).run();
-
-  const created = await env.DB.prepare(
-    'SELECT * FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?'
-  ).bind(id, userId, accountId).first();
-  return json(created, 201);
+  if (await env.DB.prepare('SELECT id FROM tea_compass_entries WHERE id = ?').bind(id).first()) return json({ error: 'Compass entry id already exists; use update or sync' }, 409);
+  const entry = { ...(manager ? { price_amount: null, price_currency: null, price_per_unit_grams: null } : {}), ...decoded.values, id, user_id: userId, account_id: accountId };
+  try {
+    if (manager) {
+      const now = new Date().toISOString();
+      const write = await prepareAuditedCompassWrite(env, ctx, null, { created_at: now, updated_at: now, ...entry }, 'tea:app_create', decoded.values.tasting !== undefined, typeof decoded.values.sample_set_id === 'string' ? decoded.values.sample_set_id : undefined);
+      await env.DB.batch([...write.statements, write.assertion]);
+    } else {
+      const present = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
+      const columns = ['id','user_id','account_id',...present];
+      const sample = await compassSampleStatements(env, accountId, userId, entry, decoded.values.tasting !== undefined);
+      await env.DB.batch([env.DB.prepare(`INSERT INTO tea_compass_entries (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`)
+        .bind(id, userId, accountId, ...present.map(column => decoded.values[column])), ...sample]);
+    }
+  } catch (error) { return json({ error: (error as Error).message }, 400); }
+  return json(await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ?').bind(id, accountId).first(), 201);
 };
 
-const handleUpdateCompassEntry: Handler = async (request, env, params) => {
+const handleUpdateCompassEntry: Handler = async (request, env, params, execCtx) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
 
+  const manager = await canManageCurate(env, accountId, userId);
   const body = await request.json() as Record<string, unknown>;
   const decoded = decodeCompassWrite(body, true);
   if ('error' in decoded) return decoded.error;
-  const existingContext = await env.DB.prepare('SELECT journey_id, visit_id FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?').bind(params.id, userId, accountId).first() as Record<string, unknown> | null;
+  const existingContext = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ? AND (user_id = ? OR ? = 1) AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL').bind(params.id, accountId, userId, manager ? 1 : 0).first() as Record<string, unknown> | null;
   if (!existingContext) return json({ error: 'Compass entry not found' }, 404);
   const contextError = await validateCompassContext(env, accountId, decoded.values, existingContext);
   if (contextError) return contextError;
   const cols = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
-  const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(
-    `UPDATE tea_compass_entries SET ${sets}, updated_at = datetime('now')
-     WHERE id = ? AND user_id = ? AND account_id = ?`
-  ).bind(...cols.map(column => decoded.values[column]), params.id, userId, accountId).run();
+  try {
+    const after = { ...existingContext, ...decoded.values, id: params.id, account_id: accountId, user_id: existingContext.user_id, updated_at: new Date().toISOString() };
+    if (manager) {
+      const write = await prepareAuditedCompassWrite(env, ctx, existingContext, after, 'tea:app_edit', decoded.values.tasting !== undefined, typeof decoded.values.sample_set_id === 'string' && !(decoded.values.vendor_id !== undefined && decoded.values.vendor_id !== existingContext.vendor_id && decoded.values.sample_set_id === existingContext.sample_set_id) ? decoded.values.sample_set_id : undefined);
+      await env.DB.batch([...write.statements, write.assertion]);
+    } else {
+      const sample = await compassSampleStatements(env, accountId, String(existingContext.user_id), after, decoded.values.tasting !== undefined);
+      await env.DB.batch([env.DB.prepare(`UPDATE tea_compass_entries SET ${cols.map(column => `${column} = ?`).join(', ')}, updated_at = datetime('now') WHERE id = ? AND user_id = ? AND account_id = ?`)
+        .bind(...cols.map(column => decoded.values[column]), params.id, userId, accountId), ...sample]);
+    }
+  } catch (error) { return json({ error: (error as Error).message }, 400); }
 
   const updated = await env.DB.prepare(
-    'SELECT * FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?'
-  ).bind(params.id, userId, accountId).first() as Record<string, any> | null;
+    'SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ? AND (user_id = ? OR ? = 1)'
+  ).bind(params.id, accountId, userId, manager ? 1 : 0).first() as Record<string, any> | null;
 
   // Feature 2: Propagate tasting data to the linked draft product when tasting is updated.
   // If this compass entry has a promoted product (draft_product_id) and the update includes
   // tasting data, keep the product's tasting field in sync so compass notes are never lost.
-  if (updated && updated.draft_product_id && decoded.values.tasting !== undefined) {
+  // It MERGES: the product's tasting also holds the starred notes, the teaser
+  // and the brewing the admin wrote, and a re-taste in Curate used to replace
+  // the whole column and delete them. Only the term categories this tasting
+  // carries words in are replaced, and only with words the shop can print.
+  if (!manager && updated && updated.draft_product_id && decoded.values.tasting !== undefined) {
     try {
-      const tastingJson = decoded.values.tasting;
-      await env.DB.prepare(
-        `UPDATE products SET tasting = ?, updated_at = datetime('now')
-         WHERE id = ? AND account_id = ?`
-      ).bind(tastingJson, updated.draft_product_id, accountId).run();
+      const product = await env.DB.prepare('SELECT tasting FROM products WHERE id = ? AND account_id = ?')
+        .bind(updated.draft_product_id, accountId).first() as { tasting?: string | null } | null;
+      if (product) {
+        const supplied = tastingTermsSupplied(tastingForShop(decoded.values.tasting));
+        if (Object.keys(supplied).length) {
+          const { next } = mergeProductTasting(product.tasting, supplied);
+          await env.DB.prepare(
+            `UPDATE products SET tasting = ?, updated_at = datetime('now')
+             WHERE id = ? AND account_id = ?`
+          ).bind(JSON.stringify(next), updated.draft_product_id, accountId).run();
+        }
+      }
     } catch {
       // Non-critical — product tasting sync failure must not break the compass update
     }
   }
   // End Feature 2
+
+  if (updated && decoded.values.photos !== undefined && execCtx) {
+    execCtx.waitUntil(savePhotosToDriveQuietly(env, driveSeal(env), accountId, [params.id]));
+  }
 
   return json(updated);
 };
@@ -15769,12 +15800,18 @@ const handleUpdateCompassEntry: Handler = async (request, env, params) => {
 const handleDeleteCompassEntry: Handler = async (request, env, params) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
-  const { accountId, userId } = ctx;
-
-  await env.DB.prepare(
-    'DELETE FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?'
-  ).bind(params.id, userId, accountId).run();
-
+  const manager = await canManageCurate(env, ctx.accountId, ctx.userId);
+  const entry = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ? AND (user_id = ? OR ? = 1)')
+    .bind(params.id, ctx.accountId, ctx.userId, manager ? 1 : 0).first<Record<string, any>>();
+  if (!entry) return json({ error: 'Compass entry not found' }, 404);
+  if (entry.deleted_at) return json({ success: true, alreadyDeleted: true });
+  const now = new Date().toISOString();
+  if (manager) {
+    const write = prepareCurateRecordedWrite(env.DB, ctx, { commandType: 'tea:app_delete', agent: 'Shop app',
+      changes: [{ entityType: 'tea', entityId: params.id, before: entry, after: { ...entry, deleted_at: now, updated_at: now } }] });
+    await env.DB.batch([...write.statements, write.assertion]);
+  } else await env.DB.prepare('UPDATE tea_compass_entries SET deleted_at = ?, updated_at = ? WHERE id = ? AND user_id = ? AND account_id = ?')
+    .bind(now, now, params.id, ctx.userId, ctx.accountId).run();
   return json({ success: true });
 };
 
@@ -15785,160 +15822,25 @@ const handlePromoteCompassEntry: Handler = async (request, env, params) => {
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
 
+  const manager = await canManageCurate(env, accountId, userId);
   const entry = await env.DB.prepare(
-    'SELECT * FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?'
-  ).bind(params.id, userId, accountId).first() as Record<string, any> | null;
+    'SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ? AND (user_id = ? OR ? = 1) AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL'
+  ).bind(params.id, accountId, userId, manager ? 1 : 0).first() as Record<string, any> | null;
 
   if (!entry) return json({ error: 'Compass entry not found' }, 404);
 
-  if (entry.draft_product_id) {
-    const existing = await env.DB.prepare(
-      'SELECT * FROM products WHERE id = ? AND account_id = ?'
-    ).bind(entry.draft_product_id, accountId).first();
-    if (existing) return json({ id: entry.draft_product_id, product: existing, alreadyPromoted: true });
-    // Stale link — fall through and create a new product, then re-link.
+  try {
+    const result = await promoteCompassEntry(env.DB, accountId, entry);
+    if (result.status === 201) await auditPlatformActingWrite(env, ctx, 'product.created', 'product', result.id, {
+      product_name: result.product?.product_name,
+      promoted_from_compass: entry.id,
+    });
+    const { status, ...response } = result;
+    return json(response, status);
+  } catch (error) {
+    if (error instanceof CompassPromotionError) return json({ error: error.message }, error.status);
+    throw error;
   }
-
-  // Compatibility repair and concurrency fast-path: an older/parallel write
-  // may have created the product before the Compass link became visible.
-  const identityProduct = await env.DB.prepare(
-    'SELECT * FROM products WHERE account_id = ? AND source_compass_entry_id = ?'
-  ).bind(accountId, entry.id).first() as Record<string, any> | null;
-  if (identityProduct) {
-    await env.DB.prepare(
-      "UPDATE tea_compass_entries SET draft_product_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?"
-    ).bind(identityProduct.id, entry.id, accountId).run();
-    return json({ id: identityProduct.id, product: identityProduct, alreadyPromoted: true });
-  }
-
-  const isTeaware = entry.category === 'teaware';
-
-  let photos: string[] = [];
-  try { photos = entry.photos ? JSON.parse(entry.photos) : []; } catch { photos = []; }
-
-  // Photo + vendor is a complete capture; the name can come later. Auto-name
-  // from vendor + capture date so the record can enter the library unnamed.
-  let name = (entry.name as string | null)?.trim();
-  if (!name) {
-    const vendor = (entry.vendor_name as string | null)?.trim();
-    if (!vendor && photos.length === 0) {
-      return json({ error: 'Cannot promote: entry needs a name, or a photo + vendor' }, 400);
-    }
-    const captured = new Date((entry.created_at as string) || Date.now());
-    const dateLabel = isNaN(captured.getTime())
-      ? ''
-      : captured.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    name = [vendor, dateLabel].filter(Boolean).join(' · ') || 'Unnamed tea';
-  }
-  const tasting = entry.tasting; // already a JSON string in storage
-
-  const productType = isTeaware ? 'Teaware' : (entry.type || 'Misc');
-  // Captured buying quantity is intent/evidence, not received stock. Only a
-  // reviewed receipt or stock movement may add a positive physical balance.
-  const stockGrams = 0;
-  const quantityUnits = isTeaware ? 0 : null;
-
-  const vendorId = await resolveVendorId(
-    env,
-    entry.vendor_name as string | null | undefined,
-    undefined,
-    accountId,
-  );
-
-  const productId = crypto.randomUUID();
-  const cols: Record<string, any> = {
-    id: productId,
-    account_id: accountId,
-    type: productType,
-    form: entry.form ?? null,
-    given_name: name,
-    chinese_name: entry.chinese_name ?? null,
-    product_name: name,
-    year: entry.year != null ? String(entry.year) : null,
-    origin_region: entry.origin_region ?? null,
-    description: null,
-    image_url: photos[0] ?? null,
-    additional_images: JSON.stringify(photos.slice(1)),
-    // The bag shot from capture keeps its own slot so later product photo
-    // edits never lose it. Replaceable deliberately, never displaced.
-    bag_photo_url: photos[0] ?? null,
-    status: 'Draft',
-    // Inventory creation and storefront publication are independent choices.
-    // Schema defaults predate that boundary, so private must be explicit.
-    is_public: 0,
-    shown_in_shop: 0,
-    vendor: entry.vendor_name ?? null,
-    vendor_id: vendorId,
-    stock_grams: stockGrams,
-    stock_known_at: new Date().toISOString(),
-    /* Carried from the compass entry, or NULL, and never a zero or a dollar
-       this shop invented.
-
-       `Number(entry.price_amount ?? 0) || 0` made an entry Adrian scouted
-       without a price into a tea that cost nothing, and `?? 'USD'` answered a
-       missing unit with a guess. Both halves have to travel together or
-       neither does: an amount with no currency is not a cost, and this entry's
-       own `price_currency` is itself `DEFAULT 'NT'`, so its silence is not
-       evidence of anything.
-
-       No `cost_currency_source` stamp for the same reason. What arrives here
-       is what the compass row happens to hold, which is not the same as Adrian
-       having answered the question. It stays in the backlog that
-       `list_unstated_costs` reports. */
-    ...(entry.price_amount != null && currencyStated(entry.price_currency)
-      ? { cost_amount: Number(entry.price_amount), cost_currency: entry.price_currency }
-      : { cost_amount: null, cost_currency: null }),
-    quantity_purchased: null,
-    quantity_units: quantityUnits,
-    material: entry.material ?? null,
-    capacity_ml: entry.capacity_ml ?? null,
-    teaware_category: entry.teaware_category ?? null,
-    tasting: tasting ?? '{}',
-    tasting_source: tasting && tasting !== '{}' ? 'owner' : null,
-    tea_key: entry.tea_key ?? null,
-    source_compass_entry_id: entry.id,
-  };
-  // The same canonicalisation every other write door runs, so a compass entry
-  // carrying 'cny' or 'hkd' promotes to the shop's own spelling instead of a
-  // currency the exchange table has no row for. No-op when the entry's
-  // currency was never stated, which is what leaves cost_currency NULL above.
-  canonicalizeCostCurrency(cols);
-
-  /* A compass entry records what Adrian saw, not what it cost to bring here. It
-     carries no freight rate and no markup, so both are NULL and the tea follows
-     the shop on each. Omitted they would have been 0 and 2.5. */
-  nameProductColumns(cols);
-  const colNames = Object.keys(cols);
-  const placeholders = colNames.map(() => '?').join(', ');
-  // The unique encounter identity plus one D1 batch makes promotion atomic:
-  // a racing loser inserts nothing and both link to the canonical product.
-  await env.DB.batch([
-    env.DB.prepare(
-      `INSERT OR IGNORE INTO products (${colNames.join(', ')}) VALUES (${placeholders})`
-    ).bind(...colNames.map((c) => cols[c])),
-    env.DB.prepare(
-      `UPDATE tea_compass_entries
-       SET draft_product_id = (SELECT id FROM products WHERE account_id = ? AND source_compass_entry_id = ?),
-           updated_at = datetime('now')
-       WHERE id = ? AND user_id = ? AND account_id = ?`
-    ).bind(accountId, entry.id, entry.id, userId, accountId),
-  ]);
-
-  const canonical = await env.DB.prepare(
-    'SELECT * FROM products WHERE account_id = ? AND source_compass_entry_id = ?'
-  ).bind(accountId, entry.id).first() as Record<string, any> | null;
-  if (!canonical) return json({ error: 'Inventory record could not be created' }, 500);
-
-  const created = await env.DB.prepare(
-    'SELECT * FROM products WHERE id = ? AND account_id = ?'
-  ).bind(canonical.id, accountId).first();
-
-  await auditPlatformActingWrite(env, ctx, 'product.created', 'product', canonical.id, {
-    product_name: name,
-    promoted_from_compass: entry.id,
-  });
-
-  return json({ id: canonical.id, product: created, alreadyPromoted: canonical.id !== productId }, canonical.id === productId ? 201 : 200);
 };
 
 const RECEIPT_MUTABLE_FIELDS = new Set([
@@ -15959,9 +15861,10 @@ function purposeConflict(product: Record<string, any> | null, intendedPurpose: s
 const handleCreateReceiptProposal: Handler = async (request, env, params) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
+  const manager = await canManageCurate(env, ctx.accountId, ctx.userId);
   const entry = await env.DB.prepare(
-    'SELECT id, name, type, category, draft_product_id, import_item_id FROM tea_compass_entries WHERE id = ? AND account_id = ? AND user_id = ?'
-  ).bind(params.id, ctx.accountId, ctx.userId).first() as Record<string, any> | null;
+    'SELECT id, name, type, category, draft_product_id, import_item_id FROM tea_compass_entries WHERE id = ? AND account_id = ? AND (user_id = ? OR ? = 1) AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL'
+  ).bind(params.id, ctx.accountId, ctx.userId, manager ? 1 : 0).first() as Record<string, any> | null;
   if (!entry) return json({ error: 'Compass entry not found' }, 404);
   const body = await request.json() as Record<string, unknown>;
   let decoded;
@@ -16060,10 +15963,8 @@ const handleRejectReceiptProposal: Handler = async (request, env, params) => {
   return json(await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first());
 };
 
-const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
-  const ctx = await requireBundle(request, env, 'stock');
-  if ('error' in ctx) return ctx.error;
-  const proposal = await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first() as Record<string, any> | null;
+async function acceptCurateReceipt(env: Env, ctx: { accountId: string; userId: string; email?: string | null }, proposalId: string): Promise<Response> {
+  const proposal = await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(proposalId, ctx.accountId).first() as Record<string, any> | null;
   if (!proposal) return json({ error: 'Receipt proposal not found' }, 404);
   if (proposal.status === 'accepted') return json({ proposal, product_id: proposal.product_id, ledger_id: proposal.ledger_id, alreadyAccepted: true });
   if (proposal.status !== 'pending') return json({ error: 'Rejected receipt cannot be accepted' }, 409);
@@ -16071,6 +15972,9 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
   try { decoded = decodeReceiptProposal(proposal); }
   catch (error) { return json({ error: (error as Error).message }, 400); }
   const inventory = receiptInventoryValues(decoded);
+  let receiptDetails: Record<string, any>;
+  try { receiptDetails = await receiptProductDetails(env.DB, ctx.accountId, proposal); }
+  catch (error) { return json({ error: (error as Error).message }, 400); }
   const existingProduct = proposal.product_id ? await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(proposal.product_id, ctx.accountId).first() as Record<string, any> | null : null;
   if (proposal.product_id && !existingProduct) return json({ error: 'Linked product not found' }, 404);
   const conflict = purposeConflict(existingProduct, decoded.purpose);
@@ -16080,6 +15984,22 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
   const now = new Date().toISOString();
   const statements: D1PreparedStatement[] = [];
   if (existingProduct) {
+    // Promotion may have created an empty, unpriced draft before the order.
+    // Its first receipt can supply a batch cost; never reprice stocked holdings.
+    if (receiptDetails.cost_amount != null && proposal.compass_entry_id && decoded.unit === 'g') {
+      statements.push(env.DB.prepare(`UPDATE products SET cost_amount = ?, cost_currency = ?, cost_currency_source = ?, quantity_purchased = ?
+        WHERE id = ? AND account_id = ? AND source_compass_entry_id = ?
+          AND cost_amount IS NULL AND quantity_purchased IS NULL AND COALESCE(stock_grams, 0) = 0`)
+        .bind(receiptDetails.cost_amount, receiptDetails.cost_currency, receiptDetails.cost_currency_source ?? null, receiptDetails.quantity_purchased, productId, ctx.accountId, proposal.compass_entry_id));
+      // The listing COPIES the product row's mark rather than re-deriving it.
+      statements.push(env.DB.prepare(`UPDATE product_listings SET
+        cost_amount = (SELECT cost_amount FROM products WHERE id = ? AND account_id = ?),
+        cost_currency = (SELECT cost_currency FROM products WHERE id = ? AND account_id = ?),
+        cost_currency_source = (SELECT cost_currency_source FROM products WHERE id = ? AND account_id = ?),
+        quantity_purchased = (SELECT quantity_purchased FROM products WHERE id = ? AND account_id = ?)
+        WHERE legacy_product_id = ? AND account_id = ?`)
+        .bind(productId, ctx.accountId, productId, ctx.accountId, productId, ctx.accountId, productId, ctx.accountId, productId, ctx.accountId));
+    }
     const amountColumn = decoded.unit === 'g' ? 'stock_grams' : 'quantity_units';
     statements.push(env.DB.prepare(`UPDATE products SET inventory_purpose = ?, is_sample = ?, is_personal = ?, ${amountColumn} = COALESCE(${amountColumn}, 0) + ?, stock_known_at = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
       .bind(inventory.inventory_purpose, inventory.is_sample, inventory.is_personal, decoded.quantity, now, productId, ctx.accountId));
@@ -16091,28 +16011,18 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
     const name = String(proposal.product_name || 'Unnamed item');
     const type = String(proposal.product_type || (decoded.unit === 'unit' ? 'Teaware' : 'Misc'));
     const slug = await mintProductSlug(env, { product_name: name, given_name: name }, productId);
-    /* `cost_amount` is named as NULL rather than left out. Left out, the column
-       default answers 0, and 0 is a free tea: the draft lands priced at zero
-       times three and nobody sees it, because it is created hidden. This door
-       genuinely does not know the cost yet, and NULL is how a row says that.
-       `shipping_rate_per_kg` and `markup_multiplier` are named for the same
-       reason and were the two this comment used to leave out: the live table
-       answers 0 and 2.5 for a column an INSERT does not mention, which is a tea
-       that ships free at a markup the shop stopped using. */
-    statements.push(env.DB.prepare(`INSERT INTO products
-      (id, account_id, type, product_name, given_name, slug, status, stock_grams, quantity_units,
-       inventory_purpose, is_sample, is_personal, stock_known_at, is_public, shown_in_shop, source_compass_entry_id, owner_user_id,
-       cost_amount, shipping_rate_per_kg, markup_multiplier)
-      VALUES (?, ?, ?, ?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, NULL, NULL, NULL)`)
-      .bind(productId, ctx.accountId, type, name, name, slug, inventory.stock_grams ?? 0, inventory.quantity_units,
-        inventory.inventory_purpose, inventory.is_sample, inventory.is_personal, now, proposal.compass_entry_id ?? null, ctx.userId));
-    statements.push(...buildProductMirrorInserts(env, productId, ctx.accountId, {
-      product_name: name, type, status: 'Draft', stock_grams: inventory.stock_grams ?? 0,
-      quantity_units: inventory.quantity_units, inventory_purpose: inventory.inventory_purpose,
-      is_sample: inventory.is_sample, is_personal: inventory.is_personal,
+    const columns: Record<string, any> = nameProductColumns({
+      id: productId, account_id: ctx.accountId, type, product_name: name, given_name: name, slug,
+      status: 'Draft', stock_grams: inventory.stock_grams ?? 0, quantity_units: inventory.quantity_units,
+      inventory_purpose: inventory.inventory_purpose, is_sample: inventory.is_sample, is_personal: inventory.is_personal,
       stock_known_at: now, is_public: 0, shown_in_shop: 0,
       source_compass_entry_id: proposal.compass_entry_id ?? null, owner_user_id: ctx.userId,
-    }));
+      ...receiptDetails,
+    });
+    const columnNames = Object.keys(columns);
+    statements.push(env.DB.prepare(`INSERT INTO products (${columnNames.join(', ')}) VALUES (${columnNames.map(() => '?').join(', ')})`)
+      .bind(...columnNames.map(column => columns[column])));
+    statements.push(...buildProductMirrorInserts(env, productId, ctx.accountId, columns));
   }
   const movementUnit = decoded.unit === 'g' ? 'gram' : 'unit';
   const balanceExpression = existingProduct
@@ -16122,7 +16032,9 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
     (id, product_id, delta, balance_after, movement_unit, reason, user_email, note, batch_id, account_id, receipt_proposal_id)
     VALUES (?, ?, ?, ${balanceExpression}, ?, 'PURCHASE_RECEIPT', ?, ?, ?, ?, ?)`)
     .bind(ledgerId, productId, decoded.quantity, ...(existingProduct ? [productId, ctx.accountId] : [decoded.quantity]), movementUnit, ctx.email ?? null, `Curate ${decoded.acquisition_kind}`, proposal.batch_id ?? null, ctx.accountId, proposal.id));
-  if (proposal.compass_entry_id) statements.push(env.DB.prepare('UPDATE tea_compass_entries SET draft_product_id = ?, updated_at = datetime(\'now\') WHERE id = ? AND account_id = ?').bind(productId, proposal.compass_entry_id, ctx.accountId));
+  if (proposal.compass_entry_id) statements.push(env.DB.prepare("UPDATE tea_compass_entries SET draft_product_id = ?, status = 'in_stock', updated_at = datetime('now') WHERE id = ? AND account_id = ?").bind(productId, proposal.compass_entry_id, ctx.accountId));
+  if (proposal.compass_entry_id) statements.push(env.DB.prepare("UPDATE tea_samples SET product_id = ?, updated_at = datetime('now') WHERE compass_entry_id = ? AND account_id = ?")
+    .bind(productId, proposal.compass_entry_id, ctx.accountId));
   statements.push(env.DB.prepare(`UPDATE curate_receipt_proposals SET status = 'accepted', product_id = ?, ledger_id = ?, reviewed_by_user_id = ?, reviewed_at = ?, updated_at = ? WHERE id = ? AND account_id = ? AND status = 'pending'`)
     .bind(productId, ledgerId, ctx.userId, now, now, proposal.id, ctx.accountId));
   try {
@@ -16133,6 +16045,12 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
     throw error;
   }
   return json({ proposal: await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(proposal.id, ctx.accountId).first(), product_id: productId, ledger_id: ledgerId, alreadyAccepted: false });
+}
+
+const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'stock');
+  if ('error' in ctx) return ctx.error;
+  return acceptCurateReceipt(env, ctx, params.id);
 };
 
 const RECEIPT_STATES = new Set(['planned', 'ordered', 'in_transit', 'partially_received', 'received', 'cancelled']);
@@ -16181,7 +16099,12 @@ async function applyStockMovement(env: Env, ctx: MovementContext, productId: str
           (SELECT COALESCE(${column}, 0) FROM products WHERE id = ? AND account_id = ?) = ? AND
           (SELECT COALESCE(${column}, 0) FROM products WHERE id = ? AND account_id = ?) = ?`)
       .bind(productId, after, destinationAfter, knownAt, movementGuard, ctx.accountId, productId, destination.id, productId, ctx.accountId, current, destination.id, ctx.accountId, destinationBefore)
-    : env.DB.prepare(`UPDATE products SET ${column} = ?, stock_known_at = ?, stock_movement_guard = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND ${column} = ?`).bind(after, knownAt, movementGuard, productId, ctx.accountId, current);
+    // A recount IS a count: it stamps stock_verified_at too, whichever door it
+    // came through, so "never counted" clears the moment someone counts.
+    : env.DB.prepare(`UPDATE products SET ${column} = ?, stock_known_at = ?,${input.movement_type === 'recount' ? ' stock_verified_at = ?,' : ''} stock_movement_guard = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND ${column} = ?`)
+      .bind(...(input.movement_type === 'recount'
+        ? [after, knownAt, knownAt, movementGuard, productId, ctx.accountId, current]
+        : [after, knownAt, movementGuard, productId, ctx.accountId, current]));
   const statements: D1PreparedStatement[] = [stockUpdate];
   if (input.unit === 'g') statements.push(env.DB.prepare(`UPDATE product_listings SET stock_grams = ?, stock_known_at = ?, updated_at = datetime('now') WHERE legacy_product_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = legacy_product_id AND account_id = product_listings.account_id AND stock_movement_guard = ?)`).bind(after, knownAt, productId, ctx.accountId, movementGuard));
   statements.push(buildStockMovementLedgerInsert(env, {
@@ -16296,6 +16219,20 @@ const handleUpdateInventoryReceiptState: Handler = async (request, env, params) 
   if (!(MANUAL_RECEIPT_TRANSITIONS[receipt.state] || []).includes(state)) return json({ error: `Cannot move receipt from ${receipt.state} to ${state}` }, 409);
   await env.DB.prepare("UPDATE inventory_receipts SET state=?, updated_at=datetime('now') WHERE id=? AND account_id=?").bind(state, receipt.id, ctx.accountId).run();
   return json({ ...receipt, state });
+};
+
+// How a delivery travels (migration 0035). Its own update, not part of create,
+// so the create request's idempotency fingerprint stays what it was. null clears it.
+const RECEIPT_TRANSPORT_MODES = new Set(['air', 'sea', 'land', 'courier']);
+const handleUpdateInventoryReceiptTransport: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'stock'); if ('error' in ctx) return ctx.error;
+  if (String(params.id).startsWith('legacy:')) return json({ error: 'An older in-transit entry has no receipt to update' }, 409);
+  const body = await request.json().catch(() => ({})) as any;
+  const mode = body.transport_mode === null ? null : typeof body.transport_mode === 'string' ? body.transport_mode.trim().toLowerCase() : undefined;
+  if (mode === undefined || (mode !== null && !RECEIPT_TRANSPORT_MODES.has(mode))) return json({ error: 'transport_mode must be air, sea, land, courier or null' }, 400);
+  const result = await env.DB.prepare("UPDATE inventory_receipts SET transport_mode=?, updated_at=datetime('now') WHERE id=? AND account_id=?").bind(mode, params.id, ctx.accountId).run();
+  if (!result.meta?.changes) return json({ error: 'Receipt not found' }, 404);
+  return json({ id: params.id, transport_mode: mode });
 };
 
 const loadReceiptLine = async (env: Env, id: string, accountId: string) => env.DB.prepare(`SELECT l.*, r.state receipt_state, r.vendor_name FROM inventory_receipt_lines l JOIN inventory_receipts r ON r.id=l.receipt_id AND r.account_id=l.account_id WHERE l.id=? AND l.account_id=?`).bind(id,accountId).first() as Promise<any>;
@@ -16511,47 +16448,67 @@ const handleSyncNoteSessions: Handler = async (request, env) => {
   return json({ synced: stmts.length });
 };
 
-const handleSyncCompassEntries: Handler = async (request, env) => {
+const handleSyncCompassEntries: Handler = async (request, env, _params, execCtx) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
 
+  const manager = await canManageCurate(env, accountId, userId);
   const body = await request.json() as { entries: Record<string, any>[] };
   if (!Array.isArray(body.entries)) {
     return json({ error: 'entries array required' }, 400);
   }
 
   const stmts: D1PreparedStatement[] = [];
+  const entryStatementIndexes: number[] = [];
+  const seen = new Set<string>();
   for (const entry of body.entries) {
-    const decoded = decodeCompassWrite(entry, false);
+    if (typeof entry.id !== 'string' || !entry.id || seen.has(entry.id)) return json({ error: 'Unique Compass entry ids required' }, 400);
+    seen.add(entry.id);
+    const decoded = decodeCompassWrite(entry, manager);
     if ('error' in decoded) return decoded.error;
-    const existingContext = await env.DB.prepare('SELECT journey_id, visit_id FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?').bind(entry.id, userId, accountId).first() as Record<string, unknown> | null;
-    const contextError = await validateCompassContext(env, accountId, decoded.values, existingContext);
+    const owner = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ?').bind(entry.id).first<Record<string, any>>();
+    entryStatementIndexes.push(stmts.length);
+    if (owner && (owner.account_id !== accountId || (!manager && owner.user_id !== userId) || owner.deleted_at || owner.archived_at || owner.merged_into_id)) {
+      entryStatementIndexes[entryStatementIndexes.length - 1] = -1; continue;
+    }
+    const contextError = await validateCompassContext(env, accountId, decoded.values, owner);
     if (contextError) return contextError;
-    if (typeof entry.id !== 'string' || !entry.id) return json({ error: 'Compass entry id required' }, 400);
-    const present = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
-    const columns = ['id', 'user_id', 'account_id', ...present];
-    const updates = present
-      .filter(column => column !== 'created_at')
-      .map(column => `${column} = excluded.${column}`);
-    // Even an id-only retry performs an ownership-scoped no-value update so
-    // D1 returns meta.changes=1 for an acknowledged row and 0 for a collision.
-    const conflictUpdates = updates.length > 0 ? updates : ['id = excluded.id'];
-    const conflictAction = `DO UPDATE SET ${conflictUpdates.join(', ')} WHERE tea_compass_entries.user_id = excluded.user_id AND tea_compass_entries.account_id = excluded.account_id`;
-    stmts.push(env.DB.prepare(
-      `INSERT INTO tea_compass_entries (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})
-       ON CONFLICT(id) ${conflictAction}`
-    ).bind(entry.id, userId, accountId, ...present.map(column => decoded.values[column])));
+    const entryOwner = owner?.user_id ?? userId;
+    const now = new Date().toISOString();
+    const after = { ...(owner ?? (manager ? { price_amount: null, price_currency: null, price_per_unit_grams: null } : {})),
+      ...decoded.values, id: entry.id, account_id: accountId, user_id: entryOwner, created_at: owner?.created_at ?? decoded.values.created_at ?? now, updated_at: now };
+    try {
+      if (manager) {
+        const write = await prepareAuditedCompassWrite(env, ctx, owner, after, 'tea:app_sync', decoded.values.tasting !== undefined, typeof decoded.values.sample_set_id === 'string' && !(owner && decoded.values.vendor_id !== undefined && decoded.values.vendor_id !== owner.vendor_id && decoded.values.sample_set_id === owner.sample_set_id) ? decoded.values.sample_set_id : undefined);
+        stmts.push(...write.statements, write.assertion);
+      } else {
+        const present = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
+        const columns = ['id','user_id','account_id',...present];
+        const updates = present.filter(column => column !== 'created_at').map(column => `${column} = excluded.${column}`);
+        stmts.push(env.DB.prepare(`INSERT INTO tea_compass_entries (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')}) ON CONFLICT(id) DO UPDATE SET ${(updates.length ? updates : ['id = excluded.id']).join(', ')} WHERE tea_compass_entries.user_id = excluded.user_id AND tea_compass_entries.account_id = excluded.account_id`)
+          .bind(entry.id, entryOwner, accountId, ...present.map(column => decoded.values[column])));
+        stmts.push(...await compassSampleStatements(env, accountId, entryOwner, after, decoded.values.tasting !== undefined));
+      }
+    } catch (error) { return json({ error: (error as Error).message }, 400); }
   }
 
   const results = stmts.length > 0 ? await env.DB.batch(stmts) : [];
   const syncedIds: string[] = [];
   const conflicts: string[] = [];
-  results.forEach((result, index) => {
+  entryStatementIndexes.forEach((statementIndex, index) => {
+    const result = results[statementIndex];
     const id = String(body.entries[index].id);
-    if (Number(result.meta?.changes ?? 0) > 0) syncedIds.push(id);
+    if (Number(result?.meta?.changes ?? 0) > 0) syncedIds.push(id);
     else conflicts.push(id);
   });
+
+  // A tea that arrived with photos gets them copied to the shop's Drive, after
+  // the response: Drive is slow and is never allowed to fail a save.
+  const withPhotos = body.entries
+    .filter((entry) => syncedIds.includes(String(entry.id)) && entry.photos != null && String(typeof entry.photos === 'string' ? entry.photos : JSON.stringify(entry.photos)) !== '[]')
+    .map((entry) => String(entry.id));
+  if (withPhotos.length && execCtx) execCtx.waitUntil(savePhotosToDriveQuietly(env, driveSeal(env), accountId, withPhotos));
 
   return json({ synced: syncedIds.length, syncedIds, conflicts });
 };
@@ -17715,6 +17672,30 @@ const handleGetJourney: Handler = async (request, env, params) => {
 
 // ── Samples ──
 
+/**
+ * Whether this request may see who supplied a sample: the vendor's name, their
+ * WeChat or phone, and the shop's own notes. Only people in the shop that owns
+ * the sample, and the platform owner. Being signed in is not enough: sample
+ * labels are handed out, and any customer with an account who opened one used
+ * to see the supplier's contact.
+ */
+async function canSeeSampleSource(request: Request, env: Env, accountId: unknown): Promise<boolean> {
+  const token = isAuthed(request);
+  if (!token || typeof accountId !== 'string' || !accountId) return false;
+  if (await validateSessionToken(token, env)) return false;
+  const claims = parseToken(token);
+  if (!claims) return false;
+  if (claims.sub === 'env-admin' || claims.platform_role === 'platform_owner' || claims.platform_role === 'platform_admin') return true;
+  try {
+    const member = await env.DB.prepare(
+      "SELECT 1 AS ok FROM account_members WHERE user_id = ? AND account_id = ? AND status = 'active'"
+    ).bind(claims.sub, accountId).first();
+    return !!member;
+  } catch {
+    return false;
+  }
+}
+
 function stripSampleSource(sample: Record<string, any>): Record<string, any> {
   const { source_id, source_name, source_contact, notes, ...rest } = sample;
   return rest;
@@ -17723,6 +17704,8 @@ function stripSampleSource(sample: Record<string, any>): Record<string, any> {
 function parseSampleRow(row: Record<string, any>): Record<string, any> {
   return {
     ...row,
+    grams: row.grams_known === 0 ? null : row.grams,
+    grams_known: row.grams_known !== 0,
     photos: row.photos ? JSON.parse(row.photos) : [],
     source_contact: row.source_contact ? JSON.parse(row.source_contact) : null,
   };
@@ -17746,7 +17729,7 @@ function parseTastingRow(row: Record<string, any>): Record<string, any> {
 
 // Public: GET /api/samples/:id
 const handleGetSample: Handler = async (request, env, params) => {
-  const sample = await env.DB.prepare('SELECT * FROM tea_samples WHERE id = ?').bind(params.id).first();
+  const sample = await env.DB.prepare('SELECT * FROM tea_samples WHERE id = ? AND archived_at IS NULL').bind(params.id).first();
   if (!sample) return json({ error: 'Sample not found' }, 404);
 
   const tastings = await env.DB.prepare(
@@ -17755,10 +17738,8 @@ const handleGetSample: Handler = async (request, env, params) => {
 
   let parsed = parseSampleRow(sample as Record<string, any>);
 
-  // Strip source info for unauthenticated users
-  const token = isAuthed(request);
-  const authed = token ? await verifyToken(token, env.JWT_SECRET) : false;
-  if (!authed) {
+  // Who supplied it is the shop's business only.
+  if (!await canSeeSampleSource(request, env, (sample as Record<string, unknown>).account_id)) {
     parsed = stripSampleSource(parsed);
   }
 
@@ -17774,28 +17755,29 @@ const handleGetSamplesBySet: Handler = async (request, env, params) => {
   if (!set) return json({ error: 'Sample set not found' }, 404);
 
   const samples = await env.DB.prepare(
-    'SELECT * FROM tea_samples WHERE set_id = ? ORDER BY created_at DESC'
+    'SELECT * FROM tea_samples WHERE set_id = ? AND archived_at IS NULL ORDER BY created_at DESC'
   ).bind(params.setId).all();
 
-  const token = isAuthed(request);
-  const authed = token ? await verifyToken(token, env.JWT_SECRET) : false;
+  const insider = await canSeeSampleSource(request, env, (set as Record<string, unknown>).account_id);
 
   const parsedSamples = (samples.results as Record<string, any>[]).map(s => {
     const parsed = parseSampleRow(s);
-    return authed ? parsed : stripSampleSource(parsed);
+    return insider ? parsed : stripSampleSource(parsed);
   });
 
-  return json({
-    set: parseSampleSetRow(set as Record<string, any>),
-    samples: parsedSamples,
-  });
+  let parsedSet = parseSampleSetRow(set as Record<string, any>);
+  if (!insider) {
+    const { source_id, source_name, notes, user_id, shared_with, panel_account_ids, ...publicSet } = parsedSet;
+    parsedSet = { ...publicSet, name: parsedSet.purpose === 'sourcing' || (source_name && String(parsedSet.name).includes(String(source_name))) ? 'Tea samples' : parsedSet.name };
+  }
+  return json({ set: parsedSet, samples: parsedSamples });
 };
 
 // Public/Guest: POST /api/samples/:id/tastings
 // Resolve account from the sample row so tastings carry the same account_id.
 const handleAddSampleTasting: Handler = async (request, env, params) => {
   const sample = await env.DB.prepare(
-    'SELECT id, account_id FROM tea_samples WHERE id = ?'
+    'SELECT id, account_id FROM tea_samples WHERE id = ? AND archived_at IS NULL'
   ).bind(params.id).first();
   if (!sample) return json({ error: 'Sample not found' }, 404);
   const accountId = (sample.account_id as string) || BALI_ACCOUNT_ID;
@@ -17828,7 +17810,8 @@ const handleAddSampleTasting: Handler = async (request, env, params) => {
     }
   }
 
-  await env.DB.prepare(
+  const lifecycle = await prepareSampleLifecycleSync(env.DB, accountId, { sampleId: params.id, status: 'tasted', hasTasting: true });
+  await env.DB.batch([env.DB.prepare(
     `INSERT OR IGNORE INTO tea_sample_tastings (id, account_id, sample_id, taster_id, taster_name, tasting, rating, verdict, would_buy, personal_note)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
@@ -17842,11 +17825,7 @@ const handleAddSampleTasting: Handler = async (request, env, params) => {
     body.verdict || 'neutral',
     body.wouldBuy ? 1 : 0,
     body.personalNote || null,
-  ).run();
-
-  await env.DB.prepare(
-    "UPDATE tea_samples SET updated_at = datetime('now') WHERE id = ?"
-  ).bind(params.id).run();
+  ), ...lifecycle]);
 
   // ── Feature 3: Auto-tag customer from sample verdict ─────────────────────
   const verdict = body.verdict || 'neutral';
@@ -18900,7 +18879,7 @@ const handleRequestSample: Handler = async (request, env) => {
 
 // Admin: GET /api/admin/samples
 const handleListSamples: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireSourcing(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -18908,7 +18887,7 @@ const handleListSamples: Handler = async (request, env) => {
   const setId = url.searchParams.get('setId');
   const status = url.searchParams.get('status');
 
-  let query = 'SELECT * FROM tea_samples WHERE account_id = ?';
+  let query = 'SELECT * FROM tea_samples WHERE account_id = ? AND archived_at IS NULL';
   const binds: any[] = [accountId];
 
   if (setId) {
@@ -18926,7 +18905,7 @@ const handleListSamples: Handler = async (request, env) => {
   const tastings = await env.DB.prepare(
     `SELECT tst.* FROM tea_sample_tastings tst
      JOIN tea_samples s ON s.id = tst.sample_id
-     WHERE s.account_id = ? ORDER BY tst.created_at ASC`
+     WHERE s.account_id = ? AND s.archived_at IS NULL ORDER BY tst.created_at ASC`
   ).bind(accountId).all();
   const tastingsBySample = new Map<string, Record<string, any>[]>();
   for (const tasting of tastings.results as Record<string, any>[]) {
@@ -18936,6 +18915,19 @@ const handleListSamples: Handler = async (request, env) => {
   }
   return json({ samples: rows.map((row) => ({ ...parseSampleRow(row), tastings: tastingsBySample.get(row.id as string) ?? [] })) });
 };
+
+async function validateSampleLinks(env: Env, accountId: string, body: Record<string, any>): Promise<Response | null> {
+  for (const [field, table] of [['source_id', 'customers'], ['product_id', 'products'], ['compass_entry_id', 'tea_compass_entries']] as const) {
+    if (body[field] != null && !await env.DB.prepare(`SELECT id FROM ${table} WHERE id = ? AND account_id = ?`).bind(body[field], accountId).first()) {
+      return json({ error: `${field} is outside the active account` }, 400);
+    }
+  }
+  if (body.status !== undefined) {
+    try { compassStateForSample(body.status); } catch { return json({ error: 'Invalid sample status' }, 400); }
+  }
+  if (body.grams !== undefined && (typeof body.grams !== 'number' || !Number.isFinite(body.grams) || body.grams < 0)) return json({ error: 'grams must be a non-negative finite number' }, 400);
+  return null;
+}
 
 // Admin: POST /api/admin/samples
 const handleCreateSample: Handler = async (request, env) => {
@@ -18951,6 +18943,26 @@ const handleCreateSample: Handler = async (request, env) => {
   if (typeof body.set_id !== 'string' || !body.set_id) {
     return json({ error: 'set_id required' }, 400);
   }
+  const linkError = await validateSampleLinks(env, accountId, body);
+  if (linkError) return linkError;
+  if (body.compass_entry_id) {
+    const manager = await canManageCurate(env, accountId, userId);
+    const entry = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ? AND (user_id = ? OR ? = 1) AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL').bind(body.compass_entry_id, accountId, userId, manager ? 1 : 0).first<Record<string, any>>();
+    if (!entry) return json({ error: 'Curate tea not found for this user and account' }, 404);
+    try {
+      const bridge = await prepareCompassSampleWrite(env.DB, { accountId, userId: entry.user_id }, entry, {
+        entryId: entry.id, state: body.status ? compassStateForSample(body.status) : entry.sample_state ?? 'requested',
+        grams: body.grams, preferredSampleId: id,
+      });
+      if (manager) {
+        const write = prepareCurateRecordedWrite(env.DB, ctx, { commandType: 'sample:app_create', agent: 'Shop app', changes: bridge.changes, guards: bridge.guards });
+        await env.DB.batch([...write.statements, write.assertion]);
+      } else await env.DB.batch(bridge.statements);
+      const row = await env.DB.prepare('SELECT * FROM tea_samples WHERE id = ? AND account_id = ? AND archived_at IS NULL').bind(bridge.sampleId, accountId).first<Record<string, any>>();
+      return json(parseSampleRow(row!), 201);
+    } catch (error) { return json({ error: (error as Error).message }, 400); }
+  }
+
   const ownedSet = await env.DB.prepare(
     'SELECT id FROM tea_sample_sets WHERE id = ? AND account_id = ?'
   ).bind(body.set_id, accountId).first();
@@ -18963,7 +18975,7 @@ const handleCreateSample: Handler = async (request, env) => {
     'created_by', 'user_id',
   ];
   const present = cols.filter(c => body[c] !== undefined);
-  const allCols = ['id', 'account_id', ...present];
+  const allCols = ['id', 'account_id', ...present, 'grams_known'];
   if (!present.includes('user_id')) allCols.push('user_id');
   if (!present.includes('created_by')) allCols.push('created_by');
 
@@ -18978,6 +18990,7 @@ const handleCreateSample: Handler = async (request, env) => {
     }
     values.push(val);
   }
+  values.push(body.grams === undefined ? 0 : 1);
   if (!present.includes('user_id')) values.push(userId);
   if (!present.includes('created_by')) values.push(userEmail || 'admin');
 
@@ -18988,7 +19001,7 @@ const handleCreateSample: Handler = async (request, env) => {
   await buildActivityLog(env, 'sample_created', `Sample ${body.name || id} created`, userEmail, 'sample', id, accountId).run();
 
   const created = await env.DB.prepare(
-    'SELECT * FROM tea_samples WHERE id = ? AND account_id = ?'
+    'SELECT * FROM tea_samples WHERE id = ? AND account_id = ? AND archived_at IS NULL'
   ).bind(id, accountId).first();
   return json(parseSampleRow(created as Record<string, any>), 201);
 };
@@ -19006,10 +19019,18 @@ const handleUpdateSample: Handler = async (request, env, params) => {
   const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+  const linkError = await validateSampleLinks(env, accountId, body);
+  if (linkError) return linkError;
+  const manager = await canManageCurate(env, accountId, ctx.userId);
+  if (body.compass_entry_id && !await env.DB.prepare('SELECT id FROM tea_compass_entries WHERE id = ? AND account_id = ? AND (user_id = ? OR ? = 1) AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL').bind(body.compass_entry_id, accountId, ctx.userId, manager ? 1 : 0).first()) {
+    return json({ error: 'Curate tea not found for this user and account' }, 404);
+  }
   const validated = validatedUpdateFields(body, SAMPLE_UPDATE_FIELDS);
   if ('error' in validated) return validated.error;
   const cols = validated.fields;
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
+  const existingSample = await env.DB.prepare('SELECT * FROM tea_samples WHERE id = ? AND account_id = ? AND archived_at IS NULL').bind(params.id, accountId).first<Record<string, any>>();
+  if (!existingSample) return json({ error: 'Sample not found' }, 404);
 
   if (cols.includes('set_id')) {
     const ownedSet = await env.DB.prepare(
@@ -19024,16 +19045,17 @@ const handleUpdateSample: Handler = async (request, env, params) => {
     }
   }
 
-  const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(
+  const sets = cols.map(c => `${c} = ?`).join(', ') + (cols.includes('grams') ? ', grams_known = 1' : '');
+  const lifecycle = await prepareSampleLifecycleSync(env.DB, accountId, { sampleId: params.id, status: body.status ?? existingSample.status });
+  await env.DB.batch([env.DB.prepare(
     `UPDATE tea_samples SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
-  ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
+  ).bind(...cols.map(c => body[c] ?? null), params.id, accountId), ...lifecycle]);
 
   const userEmail = getUserEmail(request);
   await buildActivityLog(env, 'sample_updated', `Sample ${params.id} updated`, userEmail, 'sample', params.id, accountId).run();
 
   const updated = await env.DB.prepare(
-    'SELECT * FROM tea_samples WHERE id = ? AND account_id = ?'
+    'SELECT * FROM tea_samples WHERE id = ? AND account_id = ? AND archived_at IS NULL'
   ).bind(params.id, accountId).first();
   if (!updated) return json({ error: 'Sample not found' }, 404);
   return json(parseSampleRow(updated as Record<string, any>));
@@ -19063,7 +19085,7 @@ const handleDeleteSample: Handler = async (request, env, params) => {
 
 // Admin: GET /api/admin/sample-sets
 const handleListSampleSets: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireSourcing(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -19160,41 +19182,24 @@ const handleDeleteSampleSet: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
-
-  const owned = await env.DB.prepare(
-    'SELECT id FROM tea_sample_sets WHERE id = ? AND account_id = ?'
-  ).bind(params.id, accountId).first();
-  if (!owned) return json({ error: 'Sample set not found' }, 404);
-
-  const samples = await env.DB.prepare(
-    'SELECT id FROM tea_samples WHERE set_id = ? AND account_id = ?'
-  ).bind(params.id, accountId).all();
-  const sampleIds = (samples.results as Record<string, any>[]).map(s => s.id);
-
-  const deletes: D1PreparedStatement[] = [
-    env.DB.prepare(
-      `UPDATE tea_compass_entries
-       SET sample_set_id = NULL, sample_state = NULL, updated_at = datetime('now')
-       WHERE sample_set_id = ? AND account_id = ?`
-    ).bind(params.id, accountId),
-  ];
-  if (sampleIds.length > 0) {
-    const placeholders = sampleIds.map(() => '?').join(', ');
-    deletes.push(env.DB.prepare(
-      `DELETE FROM tea_sample_tastings WHERE sample_id IN (${placeholders})`
-    ).bind(...sampleIds));
-  }
-  deletes.push(
-    env.DB.prepare('DELETE FROM tea_samples WHERE set_id = ? AND account_id = ?')
-      .bind(params.id, accountId),
-    env.DB.prepare('DELETE FROM tea_sample_sets WHERE id = ? AND account_id = ?')
-      .bind(params.id, accountId),
-  );
-  await env.DB.batch(deletes);
-
-  const userEmail = getUserEmail(request);
-  await buildActivityLog(env, 'sample_set_deleted', `Sample set ${params.id} deleted (${sampleIds.length} samples)`, userEmail, 'sample_set', params.id, accountId).run();
-
+  const set = await env.DB.prepare('SELECT * FROM tea_sample_sets WHERE id = ? AND account_id = ?').bind(params.id, accountId).first<Record<string, any>>();
+  if (!set) return json({ error: 'Sample set not found' }, 404);
+  const now = new Date().toISOString();
+  const samples = await env.DB.prepare('SELECT * FROM tea_samples WHERE set_id = ? AND account_id = ? AND archived_at IS NULL').bind(params.id, accountId).all<Record<string, any>>();
+  const teas = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE sample_set_id = ? AND account_id = ?').bind(params.id, accountId).all<Record<string, any>>();
+  if (await canManageCurate(env, accountId, ctx.userId)) {
+    const changes: Parameters<typeof prepareCurateRecordedWrite>[2]['changes'] = [
+      { entityType: 'sample_set', entityId: set.id, before: set, after: { ...set, archived: 1, updated_at: now } },
+      ...samples.results.map(sample => ({ entityType: 'sample' as const, entityId: sample.id, before: sample, after: { ...sample, archived_at: now, updated_at: now } })),
+      ...teas.results.map(tea => ({ entityType: 'tea' as const, entityId: tea.id, before: tea, after: { ...tea, sample_set_id: null, sample_state: null, updated_at: now } })),
+    ];
+    const write = prepareCurateRecordedWrite(env.DB, ctx, { commandType: 'sample_set:app_archive', agent: 'Shop app', changes });
+    await env.DB.batch([...write.statements, write.assertion]);
+  } else await env.DB.batch([
+    env.DB.prepare('UPDATE tea_sample_sets SET archived = 1, updated_at = ? WHERE id = ? AND account_id = ?').bind(now, params.id, accountId),
+    env.DB.prepare('UPDATE tea_samples SET archived_at = ?, updated_at = ? WHERE set_id = ? AND account_id = ? AND archived_at IS NULL').bind(now, now, params.id, accountId),
+    env.DB.prepare('UPDATE tea_compass_entries SET sample_set_id = NULL, sample_state = NULL, updated_at = ? WHERE sample_set_id = ? AND account_id = ?').bind(now, params.id, accountId),
+  ]);
   return json({ success: true });
 };
 
@@ -21574,7 +21579,7 @@ function projectPublicPerson(row: Record<string, any>) {
     business_name: (row.business_name as string | null) ?? null,
     role: (row.public_role as string | null) ?? (row.role as string | null) ?? null,
     portrait_url: (row.portrait_url as string | null) ?? null,
-    own_line: firstSentenceOf(row.now_text) ?? firstSentenceOf(row.beginnings) ?? firstSentenceOf(row.inspirations),
+    own_line: firstSentenceOf(row.now_text) ?? firstSentenceOf(row.beginnings),
     is_host: row.is_host === 1 || row.is_host === true,
   };
 }
@@ -21732,7 +21737,11 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
     body.vendor_id || null,
     body.vendor_contact || null,
     body.items_json || '[]',
-    body.total_usd || 0,
+    // An absent total means Curate could not convert the order to dollars (a
+    // currency with no rate, a tea with no price yet), so it is stored as
+    // unknown, never as 0: 0 reads as an order that cost nothing. A stated 0
+    // is kept. Migration 0040 lets the column hold NULL.
+    typeof body.total_usd === 'number' && Number.isFinite(body.total_usd) ? body.total_usd : null,
     body.display_currency || 'USD',
     body.status || 'pending',
     body.message_text || null,
@@ -21752,12 +21761,19 @@ const handleUpdatePurchaseOrder: Handler = async (request, env, params) => {
   const body = await request.json() as { status?: string; notes?: string; message_text?: string };
   const allowed = ['status', 'notes', 'message_text'];
   const cols = Object.keys(body).filter(k => allowed.includes(k));
-  if (cols.length === 0) return json({ success: true });
+  if (cols.length === 0) {
+    const exists = await env.DB.prepare('SELECT id FROM purchase_orders WHERE id = ? AND account_id = ?').bind(params.id, accountId).first();
+    return exists ? json({ success: true }) : json({ error: 'Purchase order not found' }, 404);
+  }
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(
+  const result = await env.DB.prepare(
     `UPDATE purchase_orders SET ${sets}, updated_at = ? WHERE id = ? AND account_id = ?`
   ).bind(...cols.map(c => (body as Record<string, any>)[c]), new Date().toISOString(), params.id, accountId).run();
+
+  // An id that is not this account's order changed nothing; saying success would
+  // let a screen report a send that never happened.
+  if (!(Number(result?.meta?.changes) > 0)) return json({ error: 'Purchase order not found' }, 404);
 
   return json({ success: true });
 };
@@ -22040,7 +22056,7 @@ const handleGetMySamples: Handler = async (request, env) => {
                 AND (tst.taster_id = ? OR tst.taster_id = ?)
             ) as last_tasted_at
      FROM tea_samples ts
-     WHERE ts.account_id = ?
+     WHERE ts.account_id = ? AND ts.archived_at IS NULL
        AND (
          ts.user_id = ?
          OR ts.id IN (
@@ -23692,7 +23708,7 @@ const handleListPublicContributors: Handler = async (request, env) => {
     // One line in the person's own words, for the card: the first sentence of
     // what they are doing now, else of where they began. The page never
     // describes them in the third person, so this is theirs, not a summary.
-    own_line: firstSentenceOf(row.now_text) ?? firstSentenceOf(row.beginnings) ?? firstSentenceOf(row.inspirations),
+    own_line: firstSentenceOf(row.now_text) ?? firstSentenceOf(row.beginnings),
     // The directory's two filters. A host runs a room or is about to: a hosted
     // account, or a public lead/co-host role on any event. A writer has at
     // least one published article of their own.
@@ -23802,16 +23818,16 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     quote_anchor: `quote-${slug}`,
   }));
 
-  const subjectMatch = `%"${slug}"%`;
+  const subjectMatch = `%"${slug}"%`; const [nameNeedle, scriptNeedle] = mentionNeedles(row);
   const featuredInRes = await env.DB.prepare(
     `SELECT slug, title, subtitle, author_id, published_at, cover_image_url, reading_time_mins,
             pull_quote, pull_quote_subject
      FROM articles
-     WHERE subject_ids LIKE ?
-       AND status = 'published'
+     WHERE (subject_ids LIKE ? OR (? <> '' AND (instr(title, ?) > 0 OR instr(COALESCE(subtitle, ''), ?) > 0 OR instr(blocks, ?) > 0)) OR (? <> '' AND (instr(title, ?) > 0 OR instr(blocks, ?) > 0)))
+       AND status = 'published' AND COALESCE(author_id, '') <> ?
      ORDER BY published_at DESC
      LIMIT 12`
-  ).bind(subjectMatch).all();
+  ).bind(subjectMatch, nameNeedle, nameNeedle, nameNeedle, nameNeedle, scriptNeedle, scriptNeedle, scriptNeedle, slug).all();
   // "Featured in" rows land on the passage about this person when the article
   // quotes them, and on the top of the piece when it only names them.
   const featuredIn = (featuredInRes.results as Array<Record<string, any>> ?? []).map(article => ({
@@ -28336,10 +28352,12 @@ async function handleCreateIncident(request: Request, env: Env): Promise<Respons
   try {
     const raw = await request.json();
     const incident = normalizeIncidentInput(raw as Record<string, unknown>);
-    const row = await upsertIncident(env.DB, incident, {
+    const { row, change } = await upsertIncident(env.DB, incident, {
       accountId,
       userId: claims.sub,
     });
+    // Never throws and is bounded by a 5s timeout; a failed handoff must not fail the report.
+    await handoffToRepair(env, { row, change });
     return json({ incident: incidentToApi(row || { id: null, signature: incident.signature }) }, 201);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Invalid incident';
@@ -28354,7 +28372,7 @@ function hasIncidentExportCredential(request: Request, env: Env): boolean {
 }
 
 async function handleListIncidents(request: Request, env: Env): Promise<Response> {
-  if (!hasIncidentExportCredential(request, env)) {
+  if (!hasIncidentExportCredential(request, env) && !hasRepairCredential(request, env)) {
     const authErr = await requirePlatformAdmin(request, env);
     if (authErr) return authErr;
   }
@@ -28368,11 +28386,30 @@ async function handleListIncidents(request: Request, env: Env): Promise<Response
   return json({ incidents: results.map(incidentToApi) });
 }
 
+/** Constant-time check of the i64os secret. Used by the incident PATCH and the incident list, and nowhere else. */
+function hasRepairCredential(request: Request, env: Env): boolean {
+  const secret = env.I64OS_REPAIR_SECRET;
+  const given = request.headers.get('x-teajia-repair-secret');
+  if (!secret || !given) return false;
+  const a = new TextEncoder().encode(given);
+  const b = new TextEncoder().encode(secret);
+  let diff = a.length ^ b.length;
+  for (let i = 0; i < b.length; i += 1) diff |= (a[i] ?? 0) ^ b[i];
+  return diff === 0;
+}
+
+/** What i64os may set when it reports back. */
+const REPAIR_REPORTABLE_STATUSES: readonly string[] = ['repairing', 'open', 'resolved'];
+
 async function handleUpdateIncident(request: Request, env: Env, params: Record<string, string>): Promise<Response> {
-  const authErr = await requirePlatformAdmin(request, env);
-  if (authErr) return authErr;
+  const machine = hasRepairCredential(request, env);
+  if (!machine) {
+    const authErr = await requirePlatformAdmin(request, env);
+    if (authErr) return authErr;
+  }
   const body = await request.json().catch(() => null) as { status?: string; resolution_ref?: string } | null;
   if (!body || !INCIDENT_STATUSES.includes(body.status as IncidentStatus)) return json({ error: 'Invalid incident status' }, 400);
+  if (machine && !REPAIR_REPORTABLE_STATUSES.includes(body.status as string)) return json({ error: 'Invalid incident status' }, 400);
   const resolutionRef = typeof body.resolution_ref === 'string' ? body.resolution_ref.slice(0, 240) : null;
   const result = await env.DB.prepare(`UPDATE incident_ledger SET status = ?, resolution_ref = ?,
     resolved_at = CASE WHEN ? = 'resolved' THEN datetime('now') ELSE NULL END WHERE id = ?`)
@@ -28499,8 +28536,226 @@ const handleResolveTeaReferenceIssues: Handler = async (request, env) => {
   }
 };
 
+// ── Read stories: publish and unpublish from the page ────────────────────────
+// Migration 0030. A row in read_publish_state overrides ARTICLE_LIVE (in
+// src/pages/read/articleLive.ts) in both directions; no row, the map decides.
+// The rules are in readPublishDomain.ts; the reads and writes are here.
+
+async function readPublishStates(env: Env) {
+  const { results } = await env.DB.prepare('SELECT path, state FROM read_publish_state').all();
+  return publishStatesFromRows((results ?? []) as { path: unknown; state: unknown }[]);
+}
+
+// GET /api/public/read/publish-state
+// Every visitor's browser and the edge's crawler meta read this. Short-lived
+// cache, so a press reaches a stranger within seconds rather than at the next
+// deploy. A failure answers 503 and the caller falls back to the map.
+const handleGetReadPublishState: Handler = async (_request, env) => {
+  try {
+    const states = await readPublishStates(env);
+    return new Response(JSON.stringify({ states }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=15' },
+    });
+  } catch {
+    return json({ error: 'Read publish state unavailable', code: 'read_publish_unavailable' }, 503);
+  }
+};
+
+// POST /api/read/publish-state  { path, state: 'live' | 'draft' }
+// Only the Teajia magazine's own people may press it: the platform owner or
+// admin, the platform account's owner, or its staff with the publish bundle.
+// A curator who owns their own shop is refused, as the read gate refuses them.
+// Pressing the same button twice changes nothing and logs nothing new.
+const handleSetReadPublishState: Handler = async (request, env) => {
+  const token = isAuthed(request);
+  if (!token) return restError(401, 'Sign in to publish', 'auth_no_token');
+  const sessionError = await validateSessionToken(token, env);
+  if (sessionError) return sessionError;
+  const claims = parseToken(token);
+  if (!claims) return restError(401, 'Unauthorized', 'auth_invalid');
+  const platformRole = await resolveDbPlatformRole(env, claims.sub);
+  if (platformRole === 'db_error') return restError(503, 'Authentication dependency unavailable', 'auth_dependency_unavailable', { dependency: 'users' });
+  const memberships = await loadMemberships(env, claims.sub);
+  if (!mayEditReadMagazine({ platformRole, memberships })) {
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    console.warn(`[auth] read publish denied: sub=${claims.sub} ip=${ip}`);
+    return restError(403, 'Only Teajia\'s own editors may publish a Read story', 'read_editor_required');
+  }
+
+  const parsed = parseReadPublishRequest(await request.json().catch(() => null));
+  if ('error' in parsed) return restError(400, parsed.error, parsed.code);
+
+  const platform = await env.DB.prepare(
+    "SELECT id FROM accounts WHERE is_platform_owner = 1 AND status = 'active' ORDER BY created_at ASC LIMIT 1"
+  ).first<{ id: string }>();
+  if (!platform?.id) return restError(503, 'Teajia\'s own account is unavailable', 'platform_account_unavailable');
+
+  const previous = await env.DB.prepare('SELECT state FROM read_publish_state WHERE path = ?')
+    .bind(parsed.path).first<{ state: string }>();
+  const changed = previous?.state !== parsed.state;
+  if (changed) {
+    await env.DB.prepare(
+      `INSERT INTO read_publish_state (path, account_id, state, changed_by, changed_at)
+       VALUES (?, ?, ?, ?, datetime('now'))
+       ON CONFLICT(path) DO UPDATE SET
+         account_id = excluded.account_id, state = excluded.state,
+         changed_by = excluded.changed_by, changed_at = excluded.changed_at`
+    ).bind(parsed.path, platform.id, parsed.state, claims.sub).run();
+    await logPlatformAction(env, parsed.state === 'live' ? 'read.published' : 'read.unpublished',
+      claims.sub, claims.email, 'read_story', parsed.path,
+      { previous: previous?.state ?? null }, platform.id, null);
+  }
+  const states = await readPublishStates(env);
+  return new Response(JSON.stringify({ path: parsed.path, state: parsed.state, changed, states }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+  });
+};
+
+// ── Curate: what agents left for Adrian ──
+// The same rows the curate_* agent tools write and read, so a pick, a to-do or
+// an arrival can be handled in the app or through an agent, either way.
+
+const curateAppAuth = (ctx: AccountCtx) => ({ accountId: ctx.accountId, userId: ctx.userId, userEmail: ctx.email, tokenId: '', creatorTier: ctx.role });
+
+const handleListCurateSuggestions: Handler = async (request, env) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  return json({ waiting: await waitingSuggestions(env, ctx.accountId, 100) });
+};
+
+const handlePickCurateSuggestions: Handler = async (request, env) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json().catch(() => ({})) as { pick?: unknown; drop?: unknown; as?: unknown };
+  const list = (v: unknown) => (Array.isArray(v) ? v.map(String).slice(0, 100) : []);
+  try {
+    return json(await pickSuggestions(env, curateAppAuth(ctx), { pick: list(body.pick), drop: list(body.drop), as: body.as === 'considering' ? 'considering' : 'sample' }));
+  } catch (error) {
+    return json({ error: (error as Error).message }, 400);
+  }
+};
+
+const handleListCurateTodos: Handler = async (request, env) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  return json({ todos: await openTodos(env, ctx.accountId) });
+};
+
+const handleAddCurateTodo: Handler = async (request, env) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json().catch(() => ({})) as { text?: unknown; tea_id?: unknown; vendor_id?: unknown };
+  try {
+    return json(await addTodo(env, curateAppAuth(ctx), { text: body.text, tea_id: body.tea_id, vendor_id: body.vendor_id }), 201);
+  } catch (error) {
+    return json({ error: (error as Error).message }, 400);
+  }
+};
+
+const handleCurateTodoDone: Handler = async (request, env, params) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  return (await markTodoDone(env, ctx, params.id)) ? json({ done: true }) : json({ error: 'Not found or already done' }, 404);
+};
+
+/** What was said about a tea, split into parts for Adrian to tick. Writes nothing. */
+const handleFileSaid: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${ctx.accountId}:${ctx.userId}:file-said`);
+  if (limited) return limited;
+  const body = await request.json().catch(() => ({})) as { text?: unknown; tea_name?: unknown };
+  const text = typeof body.text === 'string' ? body.text.trim() : '';
+  if (!text) return json({ error: 'Nothing to file' }, 400);
+  try {
+    return json({ parts: await fileSaid(env, text, typeof body.tea_name === 'string' ? body.tea_name : null) });
+  } catch (error) {
+    return json({ error: (error as Error).message }, 502);
+  }
+};
+
+/** Orders on their way: one pending receipt per tea, accepted on arrival. */
+const handleListPendingReceipts: Handler = async (request, env) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  const r = await env.DB.prepare(
+    `SELECT p.id, p.compass_entry_id, p.product_id, p.product_name, p.purpose, p.quantity, p.unit, p.acquisition_kind, p.created_at,
+            e.name AS tea_name, e.vendor_name
+       FROM curate_receipt_proposals p
+       LEFT JOIN tea_compass_entries e ON e.id = p.compass_entry_id
+      WHERE p.account_id = ? AND p.status = 'pending'
+      ORDER BY p.created_at DESC LIMIT 200`
+  ).bind(ctx.accountId).all();
+  return json({ pending: r.results ?? [] });
+};
+
+// ── Curate photos in the shop's Google Drive ──
+
+const driveRedirectUri = (request: Request, env: Env) => `${(env.OAUTH_REDIRECT_ORIGIN || new URL(request.url).origin).replace(/\/$/, '')}/api/auth/google/callback`;
+
+/** The owner connects the shop's Drive: answers with Google's consent page to open. */
+const handleDriveConnect: Handler = async (request, env) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) return json({ error: 'Google is not set up on this server' }, 503);
+  if (!env.KEY_ENCRYPTION_SECRET) return json({ error: 'The server has no key to keep the Drive link safe' }, 503);
+  const body = await request.json().catch(() => ({})) as { return?: string };
+  const back = typeof body.return === 'string' && body.return.startsWith('/') && !body.return.startsWith('//') ? body.return : '/admin/compass/v2';
+  const state = await signOAuthState(env.JWT_SECRET, `/curate-drive|${ctx.accountId}|${ctx.userId}|${back}`);
+  return json({ url: driveConsentUrl(env.GOOGLE_CLIENT_ID, driveRedirectUri(request, env), state, ctx.email) });
+};
+
+async function finishDriveConnect(request: Request, env: Env, code: string, signed: string): Promise<Response> {
+  const appOrigin = (env.APP_URL || 'https://www.teajia.com').replace(/\/$/, '');
+  const [, accountId, userId, ...rest] = signed.split('|');
+  const back = rest.join('|') || '/admin/compass/v2';
+  const sep = back.includes('?') ? '&' : '?';
+  // The signed state names the shop; it must still be the same owner when Google sends them back.
+  const member = await env.DB.prepare(`SELECT role FROM account_members WHERE account_id = ? AND user_id = ? AND status = 'active'`).bind(accountId, userId).first<{ role: string }>();
+  const platform = await env.DB.prepare('SELECT platform_role FROM users WHERE id = ?').bind(userId).first<{ platform_role: string | null }>();
+  if (member?.role !== 'owner' && !platform?.platform_role) return Response.redirect(`${appOrigin}${back}${sep}drive=not_allowed`, 302);
+  const done = await saveDriveConsent(env, driveSeal(env), { accountId, userId, code, redirectUri: driveRedirectUri(request, env) });
+  return Response.redirect(`${appOrigin}${back}${sep}drive=${done.ok ? 'connected' : done.reason}`, 302);
+}
+
+const handleDriveStatus: Handler = async (request, env) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  return json(await driveStatus(env, ctx.accountId));
+};
+
+const handleDriveDisconnect: Handler = async (request, env) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  await forgetDrive(env, ctx.accountId);
+  return json({ connected: false });
+};
+
+/** Copy photos to Drive now: the teas named, or every tea of this shop that has photos (the first time). */
+const handleDriveSaveNow: Handler = async (request, env) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json().catch(() => ({})) as { entry_ids?: unknown };
+  const named = Array.isArray(body.entry_ids) ? body.entry_ids.map(String).slice(0, 50) : null;
+  const ids = named ?? ((await env.DB.prepare(
+    `SELECT e.id FROM tea_compass_entries e WHERE e.account_id = ? AND e.photos IS NOT NULL AND e.photos NOT IN ('', '[]')
+       AND NOT EXISTS (SELECT 1 FROM curate_drive_files f WHERE f.account_id = e.account_id AND f.compass_entry_id = e.id)
+     ORDER BY e.updated_at DESC LIMIT 25`
+  ).bind(ctx.accountId).all<{ id: string }>()).results ?? []).map(r => r.id);
+  let copied = 0;
+  try {
+    for (const id of ids) copied += await savePhotosToDrive(env, driveSeal(env), ctx.accountId, id);
+  } catch (e) {
+    return json({ error: (e as Error).message, copied }, 502);
+  }
+  return json({ copied, teas: ids.length });
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
+  ['GET', '/api/release', async (_request, env) => workerReleaseResponse(env)],
   // Auth
   ['POST', '/api/auth/login', handleLogin],
   ['POST', '/api/auth/signup', handleSignup],
@@ -28985,9 +29240,21 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/curate/receipt-proposals/:id', handleUpdateReceiptProposal],
   ['POST', '/api/curate/receipt-proposals/:id/accept', handleAcceptReceiptProposal],
   ['POST', '/api/curate/receipt-proposals/:id/reject', handleRejectReceiptProposal],
+  ['GET', '/api/curate/receipt-proposals', handleListPendingReceipts],
+  ['POST', '/api/curate/said/file', handleFileSaid],
+  ['GET', '/api/curate/drive', handleDriveStatus],
+  ['POST', '/api/curate/drive/connect', handleDriveConnect],
+  ['DELETE', '/api/curate/drive', handleDriveDisconnect],
+  ['POST', '/api/curate/drive/save', handleDriveSaveNow],
+  ['GET', '/api/curate/suggestions', handleListCurateSuggestions],
+  ['POST', '/api/curate/suggestions/pick', handlePickCurateSuggestions],
+  ['GET', '/api/curate/todos', handleListCurateTodos],
+  ['POST', '/api/curate/todos', handleAddCurateTodo],
+  ['POST', '/api/curate/todos/:id/done', handleCurateTodoDone],
   ['GET', '/api/inventory/receipts', handleListInventoryReceipts],
   ['POST', '/api/inventory/receipts', handleCreateInventoryReceipt],
   ['PUT', '/api/inventory/receipts/:id/state', handleUpdateInventoryReceiptState],
+  ['PUT', '/api/inventory/receipts/:id/transport', handleUpdateInventoryReceiptTransport],
   ['POST', '/api/inventory/receipt-lines/:id/receive', handleReceiveInventoryLine],
   ['POST', '/api/inventory/receipt-lines/:id/cancel-remaining', handleCancelInventoryLine],
   ['POST', '/api/products/:id/movements', handleCreateStockMovement],
@@ -29143,6 +29410,8 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/public/people/:slug/payment-methods', handleGetPublicPaymentMethods],
   ['GET', '/api/public/people/:slug/pay-access', handleGetPayAccess],
   ['POST', '/api/public/people/:slug/pay-access/request', handleRequestPayAccess],
+  ['GET', '/api/public/read/publish-state', handleGetReadPublishState],
+  ['POST', '/api/read/publish-state', handleSetReadPublishState],
   ['GET', '/api/me/pay-access', handleListMyPayAccess],
   ['POST', '/api/me/pay-access/share-link', handleMintMyPayShareLink],
   ['POST', '/api/me/pay-access/:id/approve', handleApprovePayAccess],
@@ -29226,10 +29495,10 @@ function resolveAllowedOrigin(origin: string): string | null {
  * union the app allows, so adding a currency to the shop and forgetting it
  * here fails rather than passes.
  */
-// Refresh live rates from a free no-key feed (open.er-api.com), at most once
-// per 24h (gated on the USD row's last_updated). Stale rows are left untouched
+// Refresh live rates from a free no-key feed (open.er-api.com, with a backup
+// behind it), at most once per 23h (gated on the USD row's last_updated). Stale rows are left untouched
 // on offline ticks so pricing never zeroes. Fails gently.
-async function syncLiveExchangeRates(env: Env): Promise<boolean> {
+async function syncLiveExchangeRates(env: Env): Promise<RateRefreshResult> {
   try {
     /* Once a day, and retried hourly until it lands.
      *
@@ -29255,15 +29524,15 @@ async function syncLiveExchangeRates(env: Env): Promise<boolean> {
       const last = new Date(`${String(usdRow.last_updated).replace(' ', 'T')}Z`).getTime();
       // An unreadable timestamp falls through and refreshes, which is the safe
       // direction: a wasted fetch costs nothing, a wedged gate costs every price.
-      if (Number.isFinite(last) && Date.now() - last < 23 * 3600 * 1000) return false;
+      if (Number.isFinite(last) && Date.now() - last < 23 * 3600 * 1000) return { refreshed: false, skipped: 'fresh' };
     }
 
-    const resp = await fetch('https://open.er-api.com/v6/latest/USD', {
-      headers: { 'User-Agent': 'teajia-worker/1.0' },
-    });
-    if (!resp.ok) return false;
-    const body: any = await resp.json();
-    if (body?.result !== 'success' || !body?.rates) return false;
+    /* The first feed that answers wins, and every feed failing comes back as
+       a reason rather than a bare false: see exchangeRateSources. Nothing has
+       been written at this point, so a failed fetch leaves every stored rate
+       exactly where it was. */
+    const live = await fetchLiveRates();
+    if (!live.ok) return { refreshed: false, reason: live.reason };
 
     /* Every currency the shop actually holds has to be covered, not just the
        ones someone remembered to map. A row in exchange_rates outside the map
@@ -29281,7 +29550,7 @@ async function syncLiveExchangeRates(env: Env): Promise<boolean> {
     }
 
     const stmts: D1PreparedStatement[] = [];
-    for (const [feedCode, rateToUsd] of Object.entries(body.rates as Record<string, number>)) {
+    for (const [feedCode, rateToUsd] of Object.entries(live.rates)) {
       const key = FX_FEED_CURRENCY_MAP[feedCode];
       if (!key || !Number.isFinite(rateToUsd) || rateToUsd <= 0) continue;
       stmts.push(
@@ -29296,14 +29565,17 @@ async function syncLiveExchangeRates(env: Env): Promise<boolean> {
       await env.DB.batch(stmts);
       console.info('Exchange rates refreshed', { count: stmts.length });
     }
-    return true;
-  } catch {
-    return false;
+    return { refreshed: true, source: live.source };
+  } catch (err) {
+    return { refreshed: false, reason: `the refresh threw (${err instanceof Error && err.name ? err.name : 'error'})` };
   }
 }
 
 /** Past this many days without a refresh, the rates are a problem worth naming. */
 const STALE_RATES_AFTER_DAYS = 3;
+
+/** The one ledger row stale rates live in; fixed so an hourly check upserts rather than multiplies. */
+const RATES_STALE_SIGNATURE = 'rates_stale';
 
 /**
  * Say out loud when the rates have stopped being refreshed.
@@ -29317,24 +29589,34 @@ const STALE_RATES_AFTER_DAYS = 3;
  * still has work to do. The admin shows the same condition on screen, which is
  * where it will actually be read.
  */
-async function reportStaleExchangeRates(env: Env): Promise<void> {
+async function reportStaleExchangeRates(env: Env, lastRefresh?: RateRefreshResult): Promise<void> {
   const { results } = await env.DB.prepare(
     'SELECT currency, last_updated FROM exchange_rates'
   ).all();
-  const now = Date.now();
-  const stale: Array<{ currency: string; days: number | null }> = [];
-  for (const row of results as Array<{ currency: string; last_updated: string | null }>) {
-    if (!row.last_updated) { stale.push({ currency: row.currency, days: null }); continue; }
-    const at = new Date(`${String(row.last_updated).replace(' ', 'T')}Z`).getTime();
-    if (!Number.isFinite(at)) { stale.push({ currency: row.currency, days: null }); continue; }
-    const days = (now - at) / 86400000;
-    if (days > STALE_RATES_AFTER_DAYS) stale.push({ currency: row.currency, days: Math.round(days) });
+  const stale = staleRateRows(results as RateRow[], Date.now(), STALE_RATES_AFTER_DAYS);
+  if (stale.length === 0) {
+    // Healthy: close the ledger entry if there is one. Idempotent, so it is
+    // safe on every tick, including the ones where the refresh skipped itself.
+    await clearHealthProblem(env.DB, RATES_STALE_SIGNATURE, 'auto: rates refreshed');
+    return;
   }
-  if (stale.length === 0) return;
   console.error('Exchange rates are stale; every price on the site converts through these', {
     threshold_days: STALE_RATES_AFTER_DAYS,
     currencies: stale,
   });
+  // Only past the threshold does this reach the ledger: one failed hour is not
+  // a problem, a week of them is. The reason the last attempt failed rides on
+  // the message, because the worker keeps no logs to find it in afterwards.
+  const write = await recordHealthProblem(env.DB, {
+    signature: RATES_STALE_SIGNATURE,
+    category: 'server',
+    severity: 'high',
+    route: '/api/rates',
+    method: 'CRON',
+    errorCode: 'rates_stale',
+    message: staleRatesMessage(stale, lastRefresh?.reason),
+  });
+  await handoffToRepair(env, write);
 }
 
 export default {
@@ -29391,7 +29673,10 @@ export default {
     // and uses its own bearer-token auth (mcp_tokens), not the JWT/X-Teajia-Account
     // pair. Handle GET (health) and POST (RPC) here; other methods 405.
     if (url.pathname === '/mcp') {
-      const response = await mcpFetch(request, env);
+      const response = await mcpFetch(request, {
+        ...env,
+        curateReceipts: { accept: (scope, proposalId) => acceptCurateReceipt(env, scope, proposalId) },
+      });
       return cors(response, corsOrigin);
     }
 
@@ -29478,6 +29763,16 @@ export default {
       }
     }
 
+    if (/^\/api\/curate\/(?:vendors\/[^/]+\/profile|quotes(?:\/[^/]+)?|attachments(?:\/[^/]+\/content)?|holdings|history|correct|undo|order)$/.test(url.pathname)) {
+      const ctx = await requireAccount(request, env);
+      if ('error' in ctx) return ctx.error;
+      const response = await handleCurateWorkspace(request, env, {
+        accountId: ctx.accountId, userId: ctx.userId, userEmail: ctx.email,
+        tokenId: `app:${ctx.userId}`, creatorTier: ctx.role,
+      });
+      return cors(response, corsOrigin);
+    }
+
     const match = matchRoute(request.method, url.pathname, routes);
     if (!match) {
       return cors(json({ error: 'Not found' }, 404), corsOrigin);
@@ -29510,8 +29805,9 @@ export default {
      * piece of the tick that must not depend on the rest of it succeeding.
      * It runs on every tick, and writing the same number twice costs nothing.
      */
+    let rateRefresh: RateRefreshResult | undefined;
     try {
-      await syncLiveExchangeRates(env);
+      rateRefresh = await syncLiveExchangeRates(env);
     } catch (err) {
       console.error('Exchange rate refresh failed', err);
     }
@@ -29520,7 +29816,7 @@ export default {
        the age has to be said out loud somewhere. Checked after the attempt, so
        it reports the age that actually stands. */
     try {
-      await reportStaleExchangeRates(env);
+      await reportStaleExchangeRates(env, rateRefresh);
     } catch (err) {
       console.error('Exchange rate staleness check failed', err);
     }

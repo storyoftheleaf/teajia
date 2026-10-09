@@ -107,6 +107,14 @@ const splitStatements = (sql) => {
       }
       continue;
     }
+    // A trigger body holds its own semicolons between BEGIN and END, so inside
+    // a CREATE TRIGGER the statement only ends at the `;` after END. Splitting
+    // at the first one handed wrangler half a trigger ("incomplete input") and
+    // stopped the refresh at 0026.
+    if (c === ';' && /^\s*CREATE\s+(TEMP\s+|TEMPORARY\s+)?TRIGGER\b/i.test(cur) && !/\bEND\s*$/i.test(cur)) {
+      cur += c;
+      continue;
+    }
     if (c === ';') { statements.push(cur); cur = ''; continue; }
     cur += c;
   }

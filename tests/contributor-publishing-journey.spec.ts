@@ -67,39 +67,34 @@ test('synthetic contributor and article publish through the complete workflow', 
   await page.goto('/admin/contributors');
   await page.getByRole('button', { name: 'Create contributor' }).last().click();
   await page.getByLabel('Page address').fill(contributorFixture.id);
-  await page.getByLabel('Display name').fill(contributorFixture.display_name);
-  await page.getByLabel('Name, own script').fill('测试作者');
-  await page.getByLabel('Role').fill(contributorFixture.role);
-  await page.getByLabel('Pronouns').fill('they/them');
-  await page.getByLabel('Location').fill('Synthetic location');
-  await page.getByLabel('Active since').fill('2026');
-  await page.getByLabel('Linked user ID').fill('fixture-user');
-  await page.getByLabel('Beginnings').fill(contributorFixture.beginnings);
-  await page.getByLabel('Current practice', { exact: true }).fill(contributorFixture.now_text);
-  await page.getByLabel('Current stamp').fill('Synthetic season 2026');
-  await page.getByLabel('Current practice updated').fill('2026-07-12T12:00');
-  await page.getByLabel('Inspirations').fill(contributorFixture.inspirations);
-  await page.getByLabel('Closing').fill(contributorFixture.closing);
+  // The card: what the top of the page needs, asked as the person would be asked.
+  await page.getByLabel('Your name').fill(contributorFixture.display_name);
+  await page.getByLabel('Name in Chinese').fill('测试作者');
+  await page.getByLabel('What you do').fill(contributorFixture.role);
+  await page.getByLabel('Where you are').fill('Synthetic location');
   // Photos are uploaded by default; a web address is the fallback behind a toggle.
-  await page.getByTestId('photo-avatar').getByRole('button', { name: 'Use a web address' }).click();
-  await page.getByLabel('Avatar URL').fill('https://example.com/fixture-avatar.jpg');
+  // The small round photo follows the portrait.
   await page.getByTestId('photo-portrait').getByRole('button', { name: 'Use a web address' }).click();
   await page.getByLabel('Portrait URL').fill('https://example.com/fixture-portrait.jpg');
-  await page.getByLabel('Portrait caption').fill('Synthetic portrait caption.');
-  await page.getByLabel('Voice clip URL').fill('https://example.com/fixture-voice.mp3');
-  await page.getByLabel('Voice clip caption').fill('Synthetic voice caption.');
-  await page.getByLabel('Product ID').fill('fixture-product');
-  await page.getByLabel('Pouring note').fill('Synthetic pouring note.');
-  await page.getByRole('button', { name: 'Add link' }).click();
-  await page.getByRole('radiogroup', { name: 'Link 1 platform' }).getByRole('radio', { name: 'Website' }).check();
-  await page.getByLabel('Link 1 value').fill(contributorFixture.links[0].value);
+
+  // Each row opens its part on its own.
+  await page.getByTestId('row-words').click();
+  await page.getByLabel('How did tea begin for you?').fill(contributorFixture.beginnings);
+  await page.getByLabel('What are you working on now?').fill(contributorFixture.now_text);
+  await page.getByLabel('A last line for your page').fill(contributorFixture.closing);
+  await page.keyboard.press('Escape');
+
+  // Instagram, WeChat and a website sit on the card as plain fields.
+  await page.getByLabel('Website', { exact: true }).fill(contributorFixture.links[0].value);
+
   // Host status is not set while creating a contributor any more: it moved to
-  // a flag on a per-account association, and that section only appears once the
-  // contributor exists. Nothing later in this journey depends on the flag, so
-  // the step simply goes.
+  // a flag on a per-account association. Nothing later in this journey
+  // depends on the flag, so the step simply goes.
+  await page.getByTestId('row-behind').click();
+  await page.getByLabel('Their sign-in').fill('fixture-user');
   await page.getByLabel('Private contact').focus();
   await page.getByLabel('Private contact').selectOption('fixture-contact');
-  await page.getByLabel('Where to find').fill('Synthetic account association.');
+  await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Publish contributor' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByText(contributorFixture.display_name)).toBeVisible();
@@ -127,7 +122,9 @@ test('synthetic contributor and article publish through the complete workflow', 
   await page.goto('/people/publishing-fixture');
   // The cover carries the first line of the origin as well, so the passage is on the page twice.
   await expect(page.getByText(contributorFixture.beginnings).first()).toBeVisible();
-  await expect(page.getByText(articleFixture.pull_quote)).toBeVisible();
+  // The pull quote no longer opens a person's page (Adrian, 2026-09-29, #341: one
+  // passage in their own voice). The article that quotes them is still listed under Words.
+  await expect(page.getByText(articleFixture.pull_quote)).toHaveCount(0);
   await expect(page.getByRole('link', { name: /Synthetic Publishing Path/ }).first()).toHaveAttribute('href', '/article/synthetic-publishing-path');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
 

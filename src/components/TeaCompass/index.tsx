@@ -772,9 +772,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 </button>
               );
             })}
-          </div>
-
-          <SampleOrderAction
+            <SampleOrderAction
               open={sampleOrderOpen}
               managing={sampleOrderManaging}
               initialSetId={initialSampleSetId}
@@ -793,6 +791,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 handleSwitchMode('library');
               }}
             />
+          </div>
 
           {mode !== 'sourcing' && (
             <button

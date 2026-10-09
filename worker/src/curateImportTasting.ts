@@ -142,3 +142,39 @@ export function tastingHasTerms(tasting: Record<string, unknown>): boolean {
     return Array.isArray(value) && value.length > 0;
   });
 }
+
+/**
+ * A Curate tasting on its way to the shop: each term category keeps only the
+ * words the full tasting knows, and everything else in it (notes, the score,
+ * hui gan and the rest) passes through untouched.
+ *
+ * Curate tolerates a term typed by hand; the product page can only print
+ * words it has labels for, so an unknown id would show as a raw code. Those
+ * stay on the Curate entry, where they were written, and do not reach the shop.
+ */
+export function tastingForShop(raw: unknown): Record<string, unknown> {
+  let stored: Record<string, unknown>;
+  try { stored = readStoredTasting(raw); } catch { return {}; }
+  const out: Record<string, unknown> = { ...stored };
+  for (const category of TASTING_ARRAY_FIELDS) {
+    const terms = stored[category];
+    if (!Array.isArray(terms)) continue;
+    const allowed = TERM_IDS_BY_CATEGORY.get(category);
+    const kept = [...new Set(terms.filter((t): t is string => typeof t === 'string' && !!allowed?.has(t.trim())).map((t) => t.trim()))];
+    if (kept.length) out[category] = kept; else delete out[category];
+  }
+  return out;
+}
+
+/**
+ * The term categories a Curate tasting carries words in, for merging onto a
+ * product without clearing anything Curate left empty.
+ */
+export function tastingTermsSupplied(tasting: Record<string, unknown>): Record<string, string[]> {
+  const supplied: Record<string, string[]> = {};
+  for (const category of TASTING_ARRAY_FIELDS) {
+    const terms = tasting[category];
+    if (Array.isArray(terms) && terms.length) supplied[category] = terms as string[];
+  }
+  return supplied;
+}

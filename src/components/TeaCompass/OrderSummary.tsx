@@ -6,6 +6,7 @@ import { useLedgerStore } from '../../lib/ledgerStore';
 import type { TeaCompassEntry, TeaForm } from './types';
 import { GRAM_PRESETS, DEFAULT_GRAMS } from './types';
 import type { Currency } from '../../admin/types';
+import { ledgerLinePrice } from './curatePricing';
 
 interface OrderSummaryProps {
   open: boolean;
@@ -336,11 +337,13 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
       updatedEntries.push({ ...entry, ...updates });
     }
 
-    // Also create ledger entries so purchases are tracked in the ledger
-    const vendorName = buyingEntries[0]?.vendorName || 'Unknown Vendor';
-    const vendorId = buyingEntries[0]?.vendorId;
-    const txId = getOrCreatePurchaseTransaction(vendorName, currency, vendorId);
+    // Also create ledger entries so purchases are tracked in the ledger. Each
+    // tea goes on its OWN vendor's draft in its OWN money: this used to put
+    // every tea on the first tea's vendor and label every price with the first
+    // tea's currency, so an NT$1,800 tea joined a yuan order as ¥1,800.
     for (const entry of updatedEntries) {
+      const lineCurrency = (entry.priceCurrency || currency) as Currency;
+      const txId = getOrCreatePurchaseTransaction(entry.vendorName || 'Unknown Vendor', lineCurrency, entry.vendorId);
       const qty = quantities[entry.id] ?? 1;
       const unitBased = entry.category === 'teaware' || isUnitBased(entry.form);
       addLineItem(txId, {
@@ -352,9 +355,9 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
         quantityGrams: unitBased ? undefined : qty,
         quantityUnits: unitBased ? qty : undefined,
         unitWeightGrams: unitBased && entry.form ? getDefaultGrams(entry.form) : undefined,
-        pricePerUnit: entry.priceAmount ?? 0,
-        priceIsPerGram: !unitBased && !!entry.pricePerUnitGrams,
-        currency,
+        ...ledgerLinePrice(entry.priceAmount, entry.pricePerUnitGrams, unitBased),
+        currency: lineCurrency,
+        ...(entry.priceAmount == null ? { unpriced: true as const } : {}),
         compassEntryId: entry.id,
       });
     }

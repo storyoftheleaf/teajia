@@ -5,6 +5,7 @@ import { useLedgerStore } from '../../lib/ledgerStore';
 import type { CompassStatus, TeaCompassEntry, TeaForm } from './types';
 import { DEFAULT_GRAMS } from './types';
 import type { Currency } from '../../admin/types';
+import { ledgerLinePrice } from './curatePricing';
 
 interface StatusActionsProps {
   status: CompassStatus;
@@ -90,9 +91,9 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
       quantityGrams: unitBased ? undefined : quantity,
       quantityUnits: unitBased ? quantity : undefined,
       unitWeightGrams: isUnitBased(entry.form) ? (DEFAULT_GRAMS[entry.form!] ?? 100) : undefined,
-      pricePerUnit: entry.priceAmount ?? 0,
-      priceIsPerGram: !unitBased && !!entry.pricePerUnitGrams,
+      ...ledgerLinePrice(entry.priceAmount, entry.pricePerUnitGrams, unitBased),
       currency,
+      ...(entry.priceAmount == null ? { unpriced: true as const } : {}),
       compassEntryId: entry.id,
     });
 

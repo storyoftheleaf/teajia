@@ -22,7 +22,6 @@ import type { VendorDetails } from '../components/TeaCompass/types';
 import { buildVarietyDataMap, getTeaVarietyNames, getTeaVarietySuggestions } from '../data/teaVarieties';
 import { useCustomers, useProducts } from '../admin/hooks/useAdminData';
 import { api } from '../lib/api';
-import { compassLifecycleForSample } from './sampleLifecycle';
 
 const PURPOSE_OPTIONS: { value: SampleSetPurpose; label: string }[] = [
   { value: 'sourcing', label: 'Sourcing' },
@@ -942,27 +941,10 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
   const handleStatusChange = useCallback((sampleId: string, status: SampleStatus) => {
     updateSampleStatus(sampleId, status);
     const sample = samples.find(candidate => candidate.id === sampleId);
-    if (sample?.compassEntryId) {
-      const sampleState = compassLifecycleForSample({ ...sample, status });
-      if (sampleState) updateCompassEntry(sample.compassEntryId, { isSample: true, sampleState, sampleSetId: sample.setId });
-    }
     if (status === 'ordered') {
       if (sample) setLedgerPromptName(sample.name);
     }
-  }, [updateSampleStatus, samples, updateCompassEntry]);
-
-  // A tasting is stronger evidence than a manually chosen workflow label.
-  // Keep the Library queue in step without deriving sourcing status, decision,
-  // or verdict from favorite/pass labels.
-  useEffect(() => {
-    for (const sample of samples) {
-      if (!sample.compassEntryId || sample.tastings.length === 0) continue;
-      const entry = compassEntries.find(candidate => candidate.id === sample.compassEntryId);
-      if (entry && entry.sampleState !== 'tasted') {
-        updateCompassEntry(entry.id, { isSample: true, sampleState: 'tasted', sampleSetId: sample.setId });
-      }
-    }
-  }, [samples, compassEntries, updateCompassEntry]);
+  }, [updateSampleStatus, samples]);
 
   const handleBatchVendorSelect = useCallback((vendorId: string | undefined, vendorName: string) => {
     if (!activeSetId) return;

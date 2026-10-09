@@ -24,6 +24,8 @@ import type { Currency } from '../../admin/types';
 import { useAppStore } from '../../lib/store';
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
+import { useRates } from '../../admin/hooks/useAdminData';
+import { orderMoney, purchaseOrderTotalUsd } from './curatePricing';
 
 // ─── Currency helpers ────────────────────────────────────────────────────────
 
@@ -317,6 +319,8 @@ const TransactionCard: React.FC<{
 }> = ({ tx, isExpanded, onToggle, onOpenEntry }) => {
   const removeLineItem = useLedgerStore((s) => s.removeLineItem);
   const confirmTransaction = useLedgerStore((s) => s.confirmTransaction);
+  const updateTransaction = useLedgerStore((s) => s.updateTransaction);
+  const { data: rates } = useRates();
   const removeTransaction = useLedgerStore((s) => s.removeTransaction);
   const [justConfirmed, setJustConfirmed] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -350,17 +354,19 @@ const TransactionCard: React.FC<{
     }
   }, [tx]);
 
-  const total = useMemo(
-    () => tx.items.reduce((sum, item) => sum + lineTotal(item), 0),
-    [tx.items]
-  );
+  // The order counted in the money its lines are in: one figure when they
+  // share a money, each on its own when they do not, never one money's number
+  // under another's symbol.
+  const money = useMemo(() => orderMoney(tx), [tx]);
+  const totalText = money.parts.map((part) => fmtPrice(part.amount, part.currency)).join(' + ');
 
   const isPurchase = tx.direction === 'purchase';
   const isDraft = tx.status === 'draft';
   const DirectionIcon = isPurchase ? ArrowDownLeft : ArrowUpRight;
   const directionLabel = isPurchase ? 'Purchasing from' : 'Selling to';
 
-  const [poSaved, setPoSaved] = useState(false);
+  // Only the vendor having been told counts as sent, not the order being recorded.
+  const [markedSent, setMarkedSent] = useState(false);
 
   const handleConfirm = useCallback(async () => {
     confirmTransaction(tx.id);
@@ -371,10 +377,15 @@ const TransactionCard: React.FC<{
     // created or increased later through a reviewed receipt/Inventory action.
     if (tx.direction === 'purchase') {
       try {
-        const totalAmount = tx.items.reduce((sum, item) => sum + lineTotal(item), 0);
-        await api.purchaseOrders.create({
+        // total_usd is dollars. The order's own money is converted at the
+        // shop's rates and left out when it cannot be (a currency with no
+        // rate, a tea with no price yet). This used to send the sum in the
+        // order's own money, so ¥450 was stored as $450.
+        const totalUsd = purchaseOrderTotalUsd(tx, rates);
+        const created = await api.purchaseOrders.create({
           po_number: `PO-${tx.id.slice(0, 8).toUpperCase()}`,
           vendor_name: tx.counterpartyName || 'Unknown',
+          vendor_id: tx.counterpartyId || undefined,
           items_json: JSON.stringify(tx.items.map(item => ({
             name: item.name,
             chineseName: item.chineseName,
@@ -382,14 +393,17 @@ const TransactionCard: React.FC<{
             form: item.form,
             year: item.year,
             quantity: item.priceIsPerGram ? (item.quantityGrams ?? 0) : (item.quantityUnits ?? 1),
-            pricePerUnit: item.pricePerUnit,
+            // No price yet is no price, not a price of nothing.
+            pricePerUnit: item.unpriced ? null : item.pricePerUnit,
             priceIsPerGram: item.priceIsPerGram,
+            currency: item.currency || tx.currency,
           }))),
-          total_usd: totalAmount,
+          total_usd: totalUsd,
           display_currency: tx.currency,
           status: 'confirmed',
         });
-        setPoSaved(true);
+        // Kept so "Mark as Sent" can name the order the shop recorded.
+        if (created?.id) updateTransaction(tx.id, { purchaseOrderId: created.id });
       } catch {
         // Non-critical: PO exists locally in ledger store
       }
@@ -421,12 +435,11 @@ const TransactionCard: React.FC<{
             lineItems
           );
         }
-        setPoSaved(true);
       } catch {
         // Non-critical, sale exists locally in ledger store
       }
     }
-  }, [tx, confirmTransaction]);
+  }, [tx, confirmTransaction, updateTransaction, rates]);
 
   const handleDelete = useCallback(() => {
     if (window.confirm(`Remove this ${isPurchase ? 'purchase' : 'sale'} order?`)) {
@@ -464,7 +477,7 @@ const TransactionCard: React.FC<{
 
         {/* Total */}
         <span className="text-tea-text text-sm font-serif num shrink-0">
-          {fmtPrice(total, tx.currency)}
+          {totalText}
         </span>
 
         <motion.span
@@ -510,7 +523,7 @@ const TransactionCard: React.FC<{
                 <div className="flex items-baseline justify-between pt-3 border-t border-tea-border" aria-label="Grand total">
                   <span className="text-tea-text-sec text-ui-11 uppercase tracking-[0.15em]">Total</span>
                   <span className="text-tea-text text-sm font-serif num">
-                    {fmtPrice(total, tx.currency)}
+                    {totalText}
                   </span>
                 </div>
               )}
@@ -577,20 +590,24 @@ const TransactionCard: React.FC<{
                   Delete
                 </button>
 
-                {isPurchase && !isDraft && (
+                {/* Only an order the shop recorded can be marked: the PUT names it
+                    by the id the shop gave it. (This used to send the first
+                    eight letters of the local id, which names no order, so
+                    "Sent" changed nothing anywhere.) */}
+                {isPurchase && !isDraft && tx.purchaseOrderId && (
                   <button
                     type="button"
                     onClick={async () => {
                       try {
-                        await api.purchaseOrders.updateStatus(tx.id.slice(0, 8).toUpperCase(), 'sent');
-                        setPoSaved(true);
+                        await api.purchaseOrders.updateStatus(tx.purchaseOrderId!, 'sent');
+                        setMarkedSent(true);
                       } catch {
                         // Status update failed silently
                       }
                     }}
                     className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-tea-surface text-tea-text text-ui-11 font-medium uppercase tracking-[0.08em] active:bg-tea-elevated transition-colors"
                   >
-                    <Check size={14} /> {poSaved ? 'Sent' : 'Mark as Sent'}
+                    <Check size={14} /> {markedSent ? 'Sent' : 'Mark as Sent'}
                   </button>
                 )}
               </div>

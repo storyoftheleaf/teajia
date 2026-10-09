@@ -3,7 +3,7 @@
  * Rationale, and the conditions on this exception, in read/immersive.tsx.
  */
 /**
- * The Long Way to the Cup: Essay · First Person, N°10
+ * The Long Way to the Cup: Essay · First Person
  * A personal essay on growing up surrounded by tea without ever tasting it,
  * and the journey, literally to Bali, that finally brought it home.
  * Ported pixel-faithfully from the tea-article-redesign mockup.
@@ -16,9 +16,9 @@ import {
 } from './immersive';
 
 const moreLinks = [
-  { to: '/read/field-notes', kicker: 'Field Notes · N°11', title: 'Two Rooms in Bali', blurb: 'Jackfruit wood, charcoal, and slow bonsai light.' },
-  { to: '/read/tea-house', kicker: 'A Tea House · N°09', title: 'Quiet Hours', blurb: 'The Melbourne room Mei went on to build.' },
-  { to: '/read/atlas', kicker: 'Geography · N°06', title: 'A Map of Mountains', blurb: "Where the teas she's learning come from." },
+  { to: '/read/field-notes', kicker: 'Field Notes', title: 'Two Rooms in Bali', blurb: 'Jackfruit wood, charcoal, and slow bonsai light.' },
+  { to: '/read/tea-house', kicker: 'A Tea House', title: 'Quiet Hours', blurb: 'The Melbourne room Mei went on to build.' },
+  { to: '/read/atlas', kicker: 'Geography', title: 'A Map of Mountains', blurb: "Where the teas she's learning come from." },
 ];
 
 // ─── Shared sub-styles ───────────────────────────────────────────────────────
@@ -77,7 +77,7 @@ const EssayLongWayToCup: React.FC = () => {
   return (
     <ImmersiveRoot rootRef={rootRef}>
       <Helmet><title>The Long Way to the Cup · Teajia</title></Helmet>
-      <ImmersiveNav eyebrow="Essay · N°10" progress={progress} />
+      <ImmersiveNav eyebrow="Essay" progress={progress} />
       <AccentSwatches accent={accent} setAccent={setAccent} />
 
       <article style={{ position: 'relative', zIndex: 1 }}>
@@ -113,7 +113,7 @@ const EssayLongWayToCup: React.FC = () => {
 
           <div style={{ position: 'relative', maxWidth: 760 }}>
             <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.42em', textTransform: 'uppercase', color: C.gold, marginBottom: 30 }}>
-              First Person &nbsp;·&nbsp; N°10
+              First Person
             </div>
             <h1 style={{
               fontFamily: F.display,
@@ -262,7 +262,7 @@ const EssayLongWayToCup: React.FC = () => {
             The sweetness comes back, if you wait for it. It just took mine a very long way around.
           </p>
           <div style={{ marginTop: 42, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
-            By Mei &nbsp;·&nbsp; First Person &nbsp;·&nbsp; N°10
+            By Mei &nbsp;·&nbsp; First Person
           </div>
         </section>
 

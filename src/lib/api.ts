@@ -540,7 +540,8 @@ export interface PurchaseOrder {
   vendor_id?: string | null;
   vendor_contact?: string | null;
   items_json: string; // JSON string of line items
-  total_usd: number;
+  /** Null when the order could not be converted to dollars (no rate, or a tea with no price yet). */
+  total_usd: number | null;
   display_currency: string;
   status: string;
   notes?: string | null;
@@ -1212,7 +1213,11 @@ async function handleResponse(res: Response) {
     }
     throw error;
   }
-  dispatchNetworkRecovered();
+  // The site's own bookkeeping is not evidence the visitor's request came back.
+  // Filing the incident for a failed request succeeds whenever the API is up,
+  // so counting it as recovery cancelled the notice for every slow request
+  // before it could appear (2026-10-07).
+  if (incidentContext.reportIncident) dispatchNetworkRecovered();
   // Adopt any sliding-refresh token the server stapled onto the response
   // (currently /api/auth/me does this). Keeps the client JWT fresh without
   // an extra round-trip.
@@ -1328,6 +1333,16 @@ export function hasSession(): boolean {
 export async function atlasResponse(path: string): Promise<Response> {
   if (!getToken()) return new Response(null, { status: 404 });
   return authenticatedResponse(`${API_URL}/api/atlas/${path}`);
+}
+
+// Publish or unpublish a Read story from the story itself (migration 0030).
+// Teajia's own editors only; the worker refuses everyone else.
+export async function setReadPublishStateRequest(path: string, state: 'live' | 'draft'): Promise<unknown> {
+  return authedFetch(`${API_URL}/api/read/publish-state`, {
+    method: 'POST',
+    body: JSON.stringify({ path, state }),
+    retryTimeouts: false,
+  });
 }
 
 // Adding a source to the Tea Atlas (site owner only; 404 for everyone else).
@@ -1588,7 +1603,10 @@ export const api = {
       method: 'POST', body: JSON.stringify(incident), retryTimeouts: true,
       background: true, reportIncident: false,
     }),
-    list: () => authedFetch(`${API_URL}/api/platform/incidents`),
+    // Reading the ledger must never write to it: a failed read would otherwise
+    // report itself as a new problem, and the panel's background count must not
+    // raise the network notice on a screen visitors also use.
+    list: () => authedFetch(`${API_URL}/api/platform/incidents`, { background: true, reportIncident: false }),
     update: (id: string, patch: { status: string; resolution_ref?: string }) => authedFetch(`${API_URL}/api/platform/incidents/${encodeURIComponent(id)}`, {
       method: 'PATCH', body: JSON.stringify(patch), retryTimeouts: true,
     }),
@@ -1620,6 +1638,7 @@ export const api = {
     list: (includeClosed = false) => authedFetch(`${API_URL}/api/inventory/receipts?include_closed=${includeClosed ? '1' : '0'}`),
     create: (body: Record<string, unknown>, idempotencyKey = crypto.randomUUID()) => authedFetch(`${API_URL}/api/inventory/receipts`, { method: 'POST', body: JSON.stringify({ ...body, idempotency_key: idempotencyKey }), retryTimeouts: true }),
     updateState: (receiptId: string, state: 'ordered' | 'in_transit') => authedFetch(`${API_URL}/api/inventory/receipts/${receiptId}/state`, { method: 'PUT', body: JSON.stringify({ state }), retryTimeouts: true }),
+    updateTransport: (receiptId: string, transportMode: 'air' | 'sea' | 'land' | 'courier' | null) => authedFetch(`${API_URL}/api/inventory/receipts/${receiptId}/transport`, { method: 'PUT', body: JSON.stringify({ transport_mode: transportMode }), retryTimeouts: true }),
     receive: (lineId: string, quantity: number, idempotencyKey: string) => authedFetch(`${API_URL}/api/inventory/receipt-lines/${lineId}/receive`, { method: 'POST', body: JSON.stringify({ quantity, idempotency_key: idempotencyKey }), retryTimeouts: true }),
     cancelRemaining: (lineId: string) => authedFetch(`${API_URL}/api/inventory/receipt-lines/${lineId}/cancel-remaining`, { method: 'POST', retryTimeouts: true }),
   },
@@ -2818,6 +2837,21 @@ export const api = {
     },
   },
 
+  curateWorkspace: {
+    attachmentBlob: (id: string): Promise<Blob> => authedBlobFetch(`${API_URL}/api/curate/attachments/${encodeURIComponent(id)}/content`),
+    vendor: (id: string): Promise<any> => authedFetch(`${API_URL}/api/curate/vendors/${encodeURIComponent(id)}/profile`),
+    saveVendor: (id: string, patch: Record<string, unknown>): Promise<any> => authedFetch(`${API_URL}/api/curate/vendors/${encodeURIComponent(id)}/profile`, { method: 'PUT', body: JSON.stringify(patch) }),
+    quotes: (vendorId?: string): Promise<any[]> => authedFetch(`${API_URL}/api/curate/quotes${vendorId ? `?vendor_id=${encodeURIComponent(vendorId)}` : ''}`),
+    quote: (id: string): Promise<any> => authedFetch(`${API_URL}/api/curate/quotes/${encodeURIComponent(id)}`),
+    saveQuote: (input: Record<string, unknown>, id?: string): Promise<any> => authedFetch(`${API_URL}/api/curate/quotes${id ? `/${encodeURIComponent(id)}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(input) }),
+    attachments: (entityType: string, entityId: string): Promise<any[]> => authedFetch(`${API_URL}/api/curate/attachments?entity_type=${encodeURIComponent(entityType)}&entity_id=${encodeURIComponent(entityId)}`),
+    upload: (input: Record<string, unknown>): Promise<any> => authedFetch(`${API_URL}/api/curate/attachments`, { method: 'POST', body: JSON.stringify(input) }),
+    holdings: (samplesOnly = false, teaId?: string): Promise<any[]> => authedFetch(`${API_URL}/api/curate/holdings?samples_only=${samplesOnly}${teaId ? `&tea_id=${encodeURIComponent(teaId)}` : ''}`),
+    history: (entityType: string, entityId: string): Promise<any> => authedFetch(`${API_URL}/api/curate/history?entity_type=${encodeURIComponent(entityType)}&entity_id=${encodeURIComponent(entityId)}`),
+    correct: (command: Record<string, unknown>, confirm?: string): Promise<any> => authedFetch(`${API_URL}/api/curate/correct`, { method: 'POST', body: JSON.stringify({ command, confirm }) }),
+    undo: (confirm?: string, mutationId?: string): Promise<any> => authedFetch(`${API_URL}/api/curate/undo`, { method: 'POST', body: JSON.stringify({ confirm, mutation_id: mutationId }) }),
+    order: (input: Record<string, unknown>): Promise<any> => authedFetch(`${API_URL}/api/curate/order`, { method: 'POST', body: JSON.stringify(input) }),
+  },
   compass: {
     list: async (params?: { status?: string; vendor_id?: string }, options: ApiBackgroundOptions = {}) => {
       const qp = new URLSearchParams();
@@ -2882,6 +2916,30 @@ export const api = {
       authedFetch(`${API_URL}/api/curate/receipt-proposals/${id}/accept`, { method: 'POST', retryTimeouts: true }),
     rejectReceiptProposal: async (id: string): Promise<CurateReceiptProposal> =>
       authedFetch(`${API_URL}/api/curate/receipt-proposals/${id}/reject`, { method: 'POST', retryTimeouts: true }),
+    /** Orders on their way: one pending receipt per tea, accepted when it arrives. */
+    pendingReceipts: async (): Promise<{ pending: CuratePendingReceipt[] }> =>
+      authedFetch(`${API_URL}/api/curate/receipt-proposals`),
+    /** Teas an agent found, waiting for a pick; grouped by where they were found. */
+    agentSuggestions: async (): Promise<{ waiting: CurateSuggestionGroup[] }> =>
+      authedFetch(`${API_URL}/api/curate/suggestions`),
+    pickAgentSuggestions: async (body: { pick: string[]; drop: string[]; as?: 'sample' | 'considering' }) =>
+      authedFetch(`${API_URL}/api/curate/suggestions/pick`, { method: 'POST', body: JSON.stringify(body) }),
+    todos: async (): Promise<{ todos: CurateTodo[] }> =>
+      authedFetch(`${API_URL}/api/curate/todos`),
+    addTodo: async (body: { text: string; tea_id?: string; vendor_id?: string }) =>
+      authedFetch(`${API_URL}/api/curate/todos`, { method: 'POST', body: JSON.stringify(body) }),
+    /** The shop's Google Drive, where Curate photos are copied. */
+    driveStatus: async (): Promise<{ connected: boolean; email?: string | null; needs_reconnect?: boolean; folder_url?: string | null }> =>
+      authedFetch(`${API_URL}/api/curate/drive`),
+    driveConnect: async (returnPath: string): Promise<{ url: string }> =>
+      authedFetch(`${API_URL}/api/curate/drive/connect`, { method: 'POST', body: JSON.stringify({ return: returnPath }) }),
+    driveSaveNow: async (): Promise<{ copied: number; teas: number }> =>
+      authedFetch(`${API_URL}/api/curate/drive/save`, { method: 'POST', body: JSON.stringify({}) }),
+    /** Split what was said about a tea into parts to tick. Writes nothing. */
+    fileSaid: async (body: { text: string; tea_name?: string }): Promise<{ parts: Array<{ kind: 'tea' | 'price' | 'taste' | 'story' | 'vendor' | 'todo'; text: string; fields: Record<string, any> }> }> =>
+      authedFetch(`${API_URL}/api/curate/said/file`, { method: 'POST', body: JSON.stringify(body) }),
+    todoDone: async (id: string) =>
+      authedFetch(`${API_URL}/api/curate/todos/${id}/done`, { method: 'POST' }),
     /** Share a capture card to known accounts and/or generate an invite link for external tasters */
     share: async (params: {
       entryId: string;
@@ -4573,6 +4631,7 @@ export const api = {
           display_name: String(row.display_name ?? ''),
           business_name: row.business_name ?? null,
           chinese_name: row.chinese_name ?? null,
+          role: row.role ?? null,
           beginnings: row.beginnings ?? null,
           now_text: row.now_text ?? null,
           inspirations: row.inspirations ?? null,
@@ -4581,6 +4640,7 @@ export const api = {
           languages: Array.isArray(row.languages) ? row.languages.filter((item: unknown): item is string => typeof item === 'string') : [],
           avatar_url: row.avatar_url ?? null,
           portrait_url: row.portrait_url ?? null,
+          portrait_focus: row.portrait_focus ?? null,
           links: Array.isArray(row.links) ? row.links : [],
           gallery_images: Array.isArray(row.gallery_images) ? row.gallery_images : [],
           publication_state: row.publication_state ?? (isPublished ? 'published' : 'draft'),
@@ -4890,3 +4950,19 @@ export const api = {
   },
 
 };
+
+export interface CuratePendingReceipt {
+  id: string; compass_entry_id: string | null; product_id: string | null; product_name: string | null;
+  purpose: 'working' | 'sample' | 'personal'; quantity: number; unit: 'g' | 'unit';
+  acquisition_kind: string; created_at: string; tea_name: string | null; vendor_name: string | null;
+}
+export interface CurateSuggestionGroup {
+  batch_id: string; found_by: string | null; url: string | null; vendor: string | null;
+  contact: string | null; note: string | null; found_at: string;
+  teas: Array<{ id: string; name: string; category: 'tea' | 'teaware'; type: string | null; year: number | string | null;
+    price: { amount: number; currency: string; per_grams: number | null } | null; note: string | null }>;
+}
+export interface CurateTodo {
+  id: string; text: string; compass_entry_id: string | null; vendor_id: string | null; from_agent: string | null;
+  created_at: string; tea_name: string | null; vendor_name: string | null;
+}

@@ -39,8 +39,9 @@
  *      read page that needs a hue the system does not have adds it once,
  *      rather than typing a hex into a component.
  *   2. Text pairs are still measured, against this palette's own background,
- *      in BOTH modes now. Dark: `C.dim` (#80735f) on `C.bg` (#14100b) is
- *      4.09:1, under the floor, confined to non-essential marginalia; body
+ *      in BOTH modes now. Dark: `C.dim` (#8c7f6a) on `C.bg` (#14100b) is
+ *      4.83:1, and 4.50:1 on the card ground. It was #80735f at 4.09:1,
+ *      under the floor on every caption and label, until 2026-09-29; body
  *      and navigation take `C.taupe` (10.6:1) or `C.warm`. Light: `--tea-
  *      text-dim` on `--tea-bg` measures 7.4:1, `--tea-text-sec` higher still,
  *      both above the dark-mode floor because parchment has more headroom
@@ -70,8 +71,17 @@
  * ╚══════════════════════════════════════════════════════════════════╝
  */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { isArticleVisible, useIsReadOwner } from './publishGate';
+import { createPortal } from 'react-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { isArticleVisible, useIsReadOwner, useReadPublishState } from './publishGate';
+import type { ReadPublishOverrides } from './articleLive';
+import PublishControl from './PublishControl';
+
+// The share sheet is the magazine's own, loaded only when someone asks for it,
+// so a reader who never shares never downloads it.
+const SharePanel = React.lazy(() =>
+  import('../../components/article/SharePanel').then((m) => ({ default: m.SharePanel })),
+);
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
 // Every field is a CSS custom property reference now, declared in
@@ -167,7 +177,10 @@ export function useReveals(deps: React.DependencyList = []) {
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
-    if (typeof IntersectionObserver === 'undefined') {
+    // A reader who has asked their device for less motion gets every block
+    // at rest from the start, and so does a browser with no observer.
+    const reduced = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced || typeof IntersectionObserver === 'undefined') {
       root.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => {
         el.style.opacity = '1';
         el.style.transform = 'none';
@@ -180,6 +193,7 @@ export function useReveals(deps: React.DependencyList = []) {
           if (e.isIntersecting) {
             (e.target as HTMLElement).style.opacity = '1';
             (e.target as HTMLElement).style.transform = 'none';
+            (e.target as HTMLElement).style.filter = 'none';
             io.unobserve(e.target);
           }
         });
@@ -190,10 +204,26 @@ export function useReveals(deps: React.DependencyList = []) {
       root.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => {
         if (el.dataset.tjRevealed) return;
         el.dataset.tjRevealed = '1';
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(26px)';
-        el.style.transition =
-          'opacity 900ms cubic-bezier(0.22,0.61,0.36,1), transform 900ms cubic-bezier(0.22,0.61,0.36,1)';
+        // Two authored kinds, opted into with a value. A photograph "develops":
+        // it settles from a touch larger and darker, slowly, like a print coming
+        // up in the tray. Words simply appear, without moving. A bare
+        // data-reveal keeps the fade-and-lift every other read page uses.
+        const kind = el.dataset.reveal;
+        const ease = 'cubic-bezier(0.16,1,0.3,1)';
+        if (kind === 'photo') {
+          el.style.opacity = '0.35';
+          el.style.transform = 'scale(1.035)';
+          el.style.filter = 'brightness(0.55)';
+          el.style.transition = `opacity 1600ms ${ease}, transform 1800ms ${ease}, filter 1800ms ${ease}`;
+        } else if (kind === 'text') {
+          el.style.opacity = '0';
+          el.style.transition = `opacity 700ms ${ease}`;
+        } else {
+          el.style.opacity = '0';
+          el.style.transform = 'translateY(26px)';
+          el.style.transition =
+            'opacity 900ms cubic-bezier(0.22,0.61,0.36,1), transform 900ms cubic-bezier(0.22,0.61,0.36,1)';
+        }
         io.observe(el);
       });
     });
@@ -204,6 +234,25 @@ export function useReveals(deps: React.DependencyList = []) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
   return rootRef;
+}
+
+/**
+ * Show at once every fading block from `target` down through the next screen
+ * and a half. A jump from the contents lands on the words, not on blank space
+ * waiting for the fade to catch up.
+ */
+export function revealFrom(target: HTMLElement) {
+  const top = target.getBoundingClientRect().top;
+  const reach = top + window.innerHeight * 1.5;
+  document.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => {
+    const r = el.getBoundingClientRect();
+    if (r.bottom >= top - 40 && r.top <= reach) {
+      el.style.transition = 'none';
+      el.style.opacity = '1';
+      el.style.transform = 'none';
+      el.style.filter = 'none';
+    }
+  });
 }
 
 // ─── Reading progress hook ───────────────────────────────────────────────────
@@ -258,6 +307,8 @@ export function useImmersiveChrome(accent: string) {
       .tj-tabs::-webkit-scrollbar{ display:none; }
       .tj-morecard{ transition:border-color 240ms; }
       .tj-morecard:hover{ border-color:rgb(var(--tj-read-gold-rgb) / 0.4) !important; }
+      .tj-share{ transition:color 200ms; }
+      .tj-share:hover, .tj-share:focus-visible{ color:var(--tj-read-ink) !important; }
       .tj-tab:hover{ color:var(--tj-read-ink) !important; }
       .tj-explore-link{ transition:color 200ms; }
       .tj-explore-link:hover{ color:var(--tj-gold, var(--tj-read-gold-default)) !important; }
@@ -318,13 +369,125 @@ export const ImmersiveRoot: React.FC<{ children: React.ReactNode; rootRef?: Reac
   </div>
 );
 
+// ─── Share ───────────────────────────────────────────────────────────────────
+// One button, two places: the right end of the top bar, and the close of the
+// piece above "More from". Both open the same sheet. The title is read off the
+// page's own <title> at the moment of the press, because every Read piece
+// already sets it and a second copy here would drift from it.
+//
+// A piece that knows more about itself (its object, its person's line) says so
+// through ReadShareContext; one that does not gets a card of its title alone.
+export type ReadShare = {
+  title: string;
+  image?: string;
+  line?: { text: string; who?: string };
+};
+export const ReadShareContext = React.createContext<ReadShare | null>(null);
+
+function readShareArticle(pathname: string, known: ReadShare | null) {
+  const title = known?.title ?? (document.title.replace(/\s*·\s*Teajia\s*$/, '').trim() || 'Teajia');
+  const slug = pathname.replace(/\/+$/, '').split('/').pop() || 'read';
+  // A piece with no line of its own still has the description the edge wrote
+  // into the page, but only trust it when it was written for this address: a
+  // page reached by clicking through keeps the first page's head.
+  const ogUrl = document.querySelector('meta[property="og:url"]')?.getAttribute('content') ?? '';
+  const described = !known?.line && ogUrl.replace(/\/+$/, '').endsWith(pathname.replace(/\/+$/, ''));
+  const subtitle = described ? document.querySelector('meta[property="og:description"]')?.getAttribute('content') ?? undefined : undefined;
+  return { id: slug, slug, title, subtitle, kicker: 'Teajia · Read', image: known?.image, line: known?.line };
+}
+
+// On a phone, Share goes straight to the phone's own share menu, which lists
+// the reader's real apps and people, with the card attached. The card is drawn
+// ahead of the press: a phone only opens its menu while the tap is fresh, and
+// drawing it after the tap can outlast that.
+const isPhone = () =>
+  typeof navigator !== 'undefined' && typeof navigator.share === 'function' &&
+  typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+const cards = new Map<string, Blob | null>();
+const drawing = new Map<string, Promise<void>>();
+
+function prepareCard(key: string, article: ReturnType<typeof readShareArticle>) {
+  if (cards.has(key) || drawing.has(key)) return;
+  drawing.set(key, import('../../components/article/SharePanel')
+    .then((m) => m.renderShareCard(article))
+    .then((blob) => { cards.set(key, blob); })
+    .catch(() => { cards.set(key, null); }));
+}
+
+export const ShareButton: React.FC<{ variant: 'bar' | 'end' }> = ({ variant }) => {
+  const [open, setOpen] = useState(false);
+  const { pathname } = useLocation();
+  const known = React.useContext(ReadShareContext);
+  // Held steady while the sheet is open: the bar re-renders on every scroll
+  // tick, and a fresh object each time restarts the poster before it finishes.
+  const article = React.useMemo(() => (open ? readShareArticle(pathname, known) : null), [open, pathname, known]);
+  const key = `${pathname}|${known?.title ?? ''}|${known?.line?.text ?? ''}`;
+
+  useEffect(() => {
+    if (!isPhone()) return;
+    const t = window.setTimeout(() => prepareCard(key, readShareArticle(pathname, known)), 1200);
+    return () => window.clearTimeout(t);
+  }, [key, pathname, known]);
+
+  const press = async () => {
+    if (isPhone()) {
+      const a = readShareArticle(pathname, known);
+      const data: ShareData = { title: a.title, text: `${a.title} · Teajia`, url: window.location.href };
+      const blob = cards.get(key);
+      if (blob) {
+        const file = new File([blob], `teajia-${a.slug}.png`, { type: 'image/png' });
+        if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) data.files = [file];
+      }
+      try { await navigator.share(data); return; }
+      catch (e) { if ((e as Error).name === 'AbortError') return; }
+      // The menu refused (an old phone, or the tap went stale): fall back to the sheet.
+    }
+    setOpen(true);
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={press}
+        className="tj-share"
+        data-testid={variant === 'bar' ? 'read-share-bar' : 'read-share-end'}
+        style={
+          variant === 'bar'
+            ? { flexShrink: 0, background: 'none', border: 0, cursor: 'pointer', padding: '12px 0 12px 8px', margin: '-12px 0', fontFamily: F.mono, fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.taupe }
+            : { background: 'none', border: 0, cursor: 'pointer', padding: '12px 0', fontFamily: F.display, fontStyle: 'italic', fontSize: 20, color: C.ink }
+        }
+      >
+        {variant === 'bar' ? 'Share' : <>Share this story <span aria-hidden="true" style={{ color: C.gold }}>&rarr;</span></>}
+      </button>
+      {/* Portalled to the body: the reader is its own stacking context, which
+          left the sheet underneath the phone's bottom bar. */}
+      {article && createPortal(
+        <React.Suspense fallback={null}>
+          <SharePanel page={null} article={article} onClose={() => setOpen(false)} />
+        </React.Suspense>,
+        document.body,
+      )}
+    </>
+  );
+};
+
 // ─── Nav bar (single-article variant) ────────────────────────────────────────
 export const ImmersiveNav: React.FC<{
-  eyebrow: string; // e.g. "Conversations · N°02"
+  // The small label at the right of the bar. Optional: the conversation
+  // pieces dropped theirs (2026-09-29), the cover already names the series.
+  eyebrow?: string;
+  /** The part being read, shown quietly at the right. A conversation fills it as the reader moves. */
+  current?: string;
   progress: number;
   backTo?: string;
-}> = ({ eyebrow, progress, backTo = '/read' }) => (
+  /** Words that sit in the bar just before Share, in the same type: the owner's Edit. */
+  actions?: React.ReactNode;
+}> = ({ eyebrow, current, progress, backTo = '/read', actions }) => (
+  // A solid ground in the reader's own tone. It was a frosted-glass blur,
+  // which smeared every photograph passing under it (2026-09-29).
   <nav
+    aria-label="Article"
     style={{
       position: 'sticky',
       top: 0,
@@ -334,13 +497,11 @@ export const ImmersiveNav: React.FC<{
       justifyContent: 'space-between',
       gap: 16,
       padding: '13px clamp(18px,4vw,40px)',
-      background: 'rgb(var(--tj-read-bg-rgb) / 0.72)',
-      backdropFilter: 'blur(14px)',
-      WebkitBackdropFilter: 'blur(14px)',
+      background: C.bg,
       borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.12)',
     }}
   >
-    <Link to={backTo} style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none', color: 'inherit' }}>
+    <Link to={backTo} aria-label="Back to Read" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none', color: 'inherit' }}>
       <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
         <path d="M9.5 3.5L5 7.5l4.5 4" stroke={C.gold} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
@@ -348,9 +509,19 @@ export const ImmersiveNav: React.FC<{
         Teajia
       </span>
     </Link>
-    <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim, whiteSpace: 'nowrap' }}>
-      {eyebrow}
-    </span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(14px,2.4vw,26px)', minWidth: 0 }}>
+      {current ? (
+        <span aria-live="polite" style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 17, color: C.taupe, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, maxWidth: '46vw' }}>
+          {current}
+        </span>
+      ) : eyebrow ? (
+        <span style={{ fontFamily: F.mono, fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim, whiteSpace: 'nowrap' }}>
+          {eyebrow}
+        </span>
+      ) : null}
+      {actions}
+      <ShareButton variant="bar" />
+    </div>
     <ProgressTrack progress={progress} />
   </nav>
 );
@@ -367,6 +538,41 @@ export const ProgressTrack: React.FC<{ progress: number }> = ({ progress }) => (
       }}
     />
   </div>
+);
+
+// ─── Chapter head ────────────────────────────────────────────────────────────
+// The section break every long read uses (chosen 2026-09-29, option A of three
+// on the "Article Section Breaks" canvas). "Part one" in small capitals, the
+// title centred on the reading column, a short bronze rule beneath. The number
+// is spelled out on purpose: a lone roman "I" beside a title reads as the word
+// "I", and a numeral set far from its title reads as a stray letter.
+const PART_WORDS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+export const partWord = (n: number) => PART_WORDS[n - 1] ?? String(n);
+
+export const ChapterHead: React.FC<{ part: number; title: string; id?: string }> = ({ part, title, id }) => (
+  <header
+    id={id}
+    data-reveal
+    style={{
+      // Clears the sticky bar when a reader jumps here from the contents.
+      scrollMarginTop: 72,
+      maxWidth: 640,
+      margin: 'clamp(80px,11vw,150px) auto clamp(40px,5vw,64px)',
+      padding: '0 24px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      textAlign: 'center',
+    }}
+  >
+    <span style={{ fontFamily: F.ui, fontSize: 12, fontWeight: 500, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.gold }}>
+      Part {partWord(part)}
+    </span>
+    <h2 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(36px,4.4vw,60px)', lineHeight: 1.06, color: C.cream, margin: 'clamp(14px,1.6vw,18px) 0 0', textWrap: 'balance' } as React.CSSProperties}>
+      {title}
+    </h2>
+    <span aria-hidden="true" style={{ width: 'clamp(32px,3vw,40px)', height: 1, background: C.gold, marginTop: 'clamp(22px,2.4vw,30px)' }} />
+  </header>
 );
 
 // ─── Accent tweak control (retired) ──────────────────────────────────────────
@@ -396,26 +602,40 @@ export type MoreLink = { to: string; kicker: string; title: string; blurb: strin
  * the component, which is the only version of this fix that survives the next
  * article being added.
  */
-export function visibleMoreLinks(links: MoreLink[], isOwner: boolean): MoreLink[] {
-  return links.filter((l) => isArticleVisible(l.to, isOwner));
+export function visibleMoreLinks(links: MoreLink[], isOwner: boolean, states?: ReadPublishOverrides): MoreLink[] {
+  return links.filter((l) => isArticleVisible(l.to, isOwner, states));
 }
 
-export const MoreFooter: React.FC<{ links: MoreLink[] }> = ({ links }) => {
+/**
+ * The foot of every Read piece. It also carries Publish / Unpublish for
+ * Teajia's editors (PublishControl renders nothing for anyone else), so every
+ * hand-built story has the button at its end by rendering this one component.
+ * The conversation template places its own control earlier, between Adrian's
+ * close and the credits, and turns this one off with `publishControl={false}`.
+ */
+export const MoreFooter: React.FC<{ links: MoreLink[]; publishControl?: boolean }> = ({ links, publishControl = true }) => {
   const isOwner = useIsReadOwner();
-  const visible = visibleMoreLinks(links, isOwner);
+  const { states } = useReadPublishState();
+  const visible = visibleMoreLinks(links, isOwner, states);
   // Nothing survived the filter, so there is no related reading to offer. Show
   // no rail at all rather than a heading over an empty grid, and do not
   // backfill with whatever else happens to be live: this rail is the author's
   // own choice of what to read next, and a substitute nobody chose is not that.
   // ReadIndex's GroupBlock takes the same line with a group whose rows are all
-  // drafts. Today this only bites /read/porcelain-and-tea, whose three
-  // companions are all unpublished; the other three live pieces keep two or
-  // three cards each.
-  if (visible.length === 0) return null;
+  // drafts. A conversation piece names at least one live read in its own list
+  // for exactly this reason, so its ending never goes nowhere.
+  // The share line is not part of that choice, so it stays even when the rail
+  // goes.
   return (
+    <>
+    {publishControl && <PublishControl />}
     <footer style={{ borderTop: '1px solid rgb(var(--tj-read-gold-rgb) / 0.14)', padding: 'clamp(40px,6vw,72px) clamp(20px,5vw,56px) clamp(64px,9vw,110px)' }}>
       <div style={{ maxWidth: 1180, margin: '0 auto' }}>
-        <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 600, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.gold, marginBottom: 26 }}>
+        <div style={{ marginBottom: visible.length ? 'clamp(40px,6vw,64px)' : 0 }}>
+          <ShareButton variant="end" />
+        </div>
+        {visible.length > 0 && (<>
+        <div style={{ fontFamily: F.ui, fontSize: 12, fontWeight: 500, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.gold, marginBottom: 26 }}>
           More from The Art of Tea
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,260px),1fr))', gap: 'clamp(14px,2vw,22px)' }}>
@@ -423,7 +643,7 @@ export const MoreFooter: React.FC<{ links: MoreLink[] }> = ({ links }) => {
             // Dimmed and tagged for the owner, exactly as ReadIndex marks a
             // draft row, so the owner can tell at a glance which of these cards
             // a visitor is not being shown.
-            const draft = !isArticleVisible(l.to, false);
+            const draft = !isArticleVisible(l.to, false, states);
             return (
               <Link
                 key={l.to}
@@ -440,9 +660,9 @@ export const MoreFooter: React.FC<{ links: MoreLink[] }> = ({ links }) => {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <span style={{ fontFamily: F.mono, fontSize: 9.5, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim }}>{l.kicker}</span>
+                  <span style={{ fontFamily: F.mono, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.dim }}>{l.kicker}</span>
                   {draft && (
-                    <span style={{ fontFamily: F.mono, fontSize: 8.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.gold, border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.4)', borderRadius: 2, padding: '1px 5px', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontFamily: F.mono, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.gold, border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.4)', borderRadius: 2, padding: '1px 5px', whiteSpace: 'nowrap' }}>
                       Draft
                     </span>
                   )}
@@ -453,7 +673,9 @@ export const MoreFooter: React.FC<{ links: MoreLink[] }> = ({ links }) => {
             );
           })}
         </div>
+        </>)}
       </div>
     </footer>
+    </>
   );
 };

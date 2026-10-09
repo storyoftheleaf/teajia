@@ -1,10 +1,14 @@
 {
   "version": 1,
   "include": [
+    "/assets/*",
     "/api/*",
+    "/oauth/*",
     "/media/*",
     "/read",
     "/read/*",
+    "/atlas",
+    "/atlas/*",
     "/tea-atlas",
     "/tea-atlas/*",
     "/article/*",

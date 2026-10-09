@@ -1,3 +1,6 @@
+import { CurateRecordTools } from '../curate/CurateRecordTools';
+import { hydrateCompassEntries } from '../../lib/teaCompassSync';
+import { StructuredTeaFields } from './StructuredTeaFields';
 import React, { useCallback, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { useNavigate } from 'react-router-dom';
@@ -170,6 +173,9 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
             </div>
           </div>
         )}
+
+        {entry.category === 'tea' && <StructuredTeaFields entry={entry} onChange={patch => updateEntry(entry.id, patch)} />}
+        <CurateRecordTools entityType="tea" entityId={entry.id} onChanged={() => { const account = useTeaCompassStore.getState().accountScopeId; if (account) void hydrateCompassEntries(account); }} />
 
         {/* Photos */}
         {validPhotos.length > 0 && (

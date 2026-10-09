@@ -26,6 +26,8 @@
 // still fire). Nothing in this file touches D1 in a way that bypasses the
 // admin UI's invariants.
 
+import { customerTagList } from './customerContactHandles';
+import { readVendorDependencies, vendorHasDependencies, deleteUnreferencedVendor } from './vendorDependencies';
 import { combineToolModules, type ToolModule } from './mcpTools/registry';
 import { PENDING_TTL_MS as TICKET_PENDING_TTL_MS } from './mcpTools/tickets';
 import { transferToolModule } from './mcpTools/transfer';
@@ -33,6 +35,17 @@ import { curationTools } from './mcpTools/curation';
 import { eventsToolModule } from './mcpTools/events';
 import { writingToolModule } from './mcpTools/writing';
 import { costCurrencyTools } from './mcpTools/costCurrency';
+import { curateIntakeTools, curateManagerAccess } from './mcpTools/curateIntake';
+import { readCurateHoldings } from './curateHoldings';
+import { curateSupplyTools } from './mcpTools/curateSupply';
+import { curatePhotoTools } from './mcpTools/curatePhotos';
+import { curateArrivalTools } from './mcpTools/curateArrivals';
+import { curateAttachmentTools } from './mcpTools/curateAttachments';
+import { curateManageModule } from './mcpTools/curateManage';
+import { curateQuoteTools } from './mcpTools/curateQuotes';
+import { curatePromotionTools } from './mcpTools/curatePromotion';
+import { curateDrivePhotosModule } from './mcpTools/curateDrivePhotos';
+import type { CurateReceiptService } from './mcpTools/registry';
 import { resolveShopFreightDefault, shippingPerGramUsd } from './shippingRate';
 import { deductStockForPaidInvoice } from './orderLifecycle';
 import { costNeedsCurrency, createMissingCost, currencyStated, costCurrencySourceFor, CURRENCY_SOURCE_STATED, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
@@ -83,6 +96,7 @@ import { mergeProductTasting, readStoredTasting, tastingHasTerms, tastingTermLab
 
 type Env = {
   DB: D1Database;
+  curateReceipts?: CurateReceiptService;
   JWT_SECRET: string;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
   OAUTH_AUTHORIZE_LIMITER?: RateLimiterBinding;
@@ -102,7 +116,8 @@ type Env = {
   CURATE_IMPORT_ANALYSIS_MODEL?: string;
   CURATE_IMPORT_FALLBACK_MODEL?: string;
   CURATE_IMPORT_GROQ_VISION_MODEL?: string;
-  MEDIA_BUCKET?: unknown;
+  MEDIA_BUCKET?: R2Bucket;
+  ATLAS_BUCKET?: R2Bucket;
   AI?: unknown;
   IMAGES?: unknown;
 };
@@ -993,11 +1008,30 @@ async function commitCreateTea(env: Env, m: Extract<PendingMutation, { kind: 'cr
 }
 
 // ── tool: search_tea ──
-async function toolSearchTea(env: Env, accountId: string, args: any) {
+function curateHoldingSummary(holding: Awaited<ReturnType<typeof readCurateHoldings>>[number], score?: number) {
+  return {
+    entity_type: 'curate_tea',
+    curate_tea_id: holding.entry.id,
+    name: holding.entry.name,
+    chinese_name: holding.entry.chinese_name ?? null,
+    vendor_name: holding.entry.vendor_name ?? null,
+    vendor_item_number: holding.entry.vendor_item_number ?? null,
+    sample_grams: holding.sample_grams,
+    stock_grams: holding.stock_grams,
+    sample_portions: holding.samples.map(sample => ({
+      sample_id: sample.id, set_id: sample.set_id, name: sample.name,
+      grams: sample.grams, status: sample.status,
+    })),
+    ...(typeof score === 'number' ? { match_score: Math.round(score * 100) / 100 } : {}),
+  };
+}
+
+async function toolSearchTea(env: Env, auth: McpAuth, args: any) {
+  const { accountId } = auth;
   const query = String(args?.query || '').trim();
   const limit = Math.min(Math.max(Number(args?.limit) || 5, 1), 20);
   if (!query) {
-    return { matches: [], note: 'No query provided.' };
+    return { matches: [], curate_holdings: [], note: 'No query provided.' };
   }
 
   const { results } = await env.DB.prepare(
@@ -1017,16 +1051,34 @@ async function toolSearchTea(env: Env, accountId: string, args: any) {
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 
+  const curateHoldings = await curateManagerAccess(env, auth)
+    ? (await readCurateHoldings(env.DB, accountId)).map(holding => ({
+        holding,
+        score: scoreMatch(query, [holding.entry.name, holding.entry.chinese_name,
+          holding.entry.vendor_name, holding.entry.vendor_item_number, holding.entry.origin_region,
+          String(holding.entry.year ?? '')]),
+      })).filter(item => item.score > 0.3).sort((a, b) => b.score - a.score).slice(0, limit)
+    : [];
+
   return {
     matches: scored.map(s => productSummary(s.product, s.score)),
+    curate_holdings: curateHoldings.map(item => curateHoldingSummary(item.holding, item.score)),
     ambiguous: scored.length >= 2 && scored[0].score - scored[1].score < 0.1,
   };
 }
 
 // ── tool: get_tea ──
-async function toolGetTea(env: Env, accountId: string, args: any) {
+async function toolGetTea(env: Env, auth: McpAuth, args: any) {
+  const { accountId } = auth;
   const id = String(args?.id || '').trim();
   if (!id) throw new Error('id is required');
+  const source = args?.source ?? 'product';
+  if (source !== 'product' && source !== 'curate') throw new Error('source must be product or curate');
+  if (source === 'curate') {
+    if (!await curateManagerAccess(env, auth)) return { error: 'curate_management_required' };
+    const [holding] = await readCurateHoldings(env.DB, accountId, { teaId: id });
+    return holding ? curateHoldingSummary(holding) : { error: 'not_found' };
+  }
 
   const product = await env.DB.prepare(
     `SELECT id, given_name, product_name, chinese_name, type, form, year,
@@ -1036,7 +1088,15 @@ async function toolGetTea(env: Env, accountId: string, args: any) {
        FROM products WHERE id = ? AND account_id = ?`
   ).bind(id, accountId).first() as ProductRow & { description?: string; tasting_notes?: string; cost_amount?: number; cost_currency?: string } | null;
 
-  if (!product) return { error: 'not_found' };
+  if (!product) {
+    // An omitted source may be a Curate ID. Never present it as a product ID,
+    // and never use fallback to reveal private sourcing to an ordinary reader.
+    if (args?.source === undefined && await curateManagerAccess(env, auth)) {
+      const [holding] = await readCurateHoldings(env.DB, accountId, { teaId: id });
+      if (holding) return curateHoldingSummary(holding);
+    }
+    return { error: 'not_found' };
+  }
 
   const ledger = await env.DB.prepare(
     `SELECT delta, balance_after, reason, source_invoice_number, user_email, note, created_at
@@ -1059,7 +1119,13 @@ async function toolGetTea(env: Env, accountId: string, args: any) {
 }
 
 // ── tool: list_low_stock ──
-async function toolListLowStock(env: Env, accountId: string) {
+async function toolListLowStock(env: Env, auth: McpAuth, args: any) {
+  const { accountId } = auth;
+  if (args?.include_samples !== undefined && typeof args.include_samples !== 'boolean') throw new Error('include_samples must be boolean');
+  if (args?.include_samples && (typeof args.sample_threshold_grams !== 'number' || !Number.isFinite(args.sample_threshold_grams) || args.sample_threshold_grams < 0)) {
+    throw new Error('include_samples requires an explicit nonnegative sample_threshold_grams; samples have no automatic reorder threshold');
+  }
+  if (args?.include_samples && !await curateManagerAccess(env, auth)) return { error: 'curate_management_required' };
   const { results } = await env.DB.prepare(
     `SELECT id, given_name, product_name, chinese_name, type, form, year,
             origin_country, origin_region, vendor, stock_grams, quantity_units,
@@ -1073,9 +1139,18 @@ async function toolListLowStock(env: Env, accountId: string) {
       LIMIT 50`
   ).bind(accountId).all();
 
+  const samples = args?.include_samples
+    ? (await readCurateHoldings(env.DB, accountId)).filter(holding => holding.samples.length > 0)
+    : [];
   return {
     items: (results as unknown as ProductRow[]).map(p => productSummary(p)),
     count: results.length,
+    ...(args?.include_samples ? {
+      sample_threshold_grams: args.sample_threshold_grams,
+      samples: samples.filter(holding => holding.sample_grams !== null && holding.sample_grams <= args.sample_threshold_grams).map(holding => curateHoldingSummary(holding)),
+      unmeasured_samples: samples.filter(holding => holding.sample_grams === null).map(holding => curateHoldingSummary(holding)),
+      sample_note: 'Sample balances at or below the requested threshold. Unknown balances are separate; sample grams are never sale stock.',
+    } : {}),
   };
 }
 
@@ -3027,8 +3102,8 @@ async function commitUpsertVendorContact(
 
 // ── tool: remove_vendor_contact (preview / confirm) ──
 // Delete a vendor (customer tagged "vendor") that is no longer referenced.
-// Guarded: refuses if any product still links to it as vendor_id, any invoice
-// still references it, or any curate vendor group resolves to it. Scoped to
+// Guarded against every durable vendor/contact reference, including archived
+// Curate evidence and physical sample holdings. Scoped to
 // stock:write so the operator can clean up duplicate/abandoned vendor rows.
 async function toolRemoveVendorContact(env: Env, auth: McpAuth, args: any) {
   const customerId = String(args?.customer_id || '').trim();
@@ -3041,16 +3116,9 @@ async function toolRemoveVendorContact(env: Env, auth: McpAuth, args: any) {
   if (!customer) return { error: 'not_found' };
 
   let tags: string[] = [];
-  try { tags = Array.isArray(JSON.parse(customer.tags || '[]')) ? JSON.parse(customer.tags || '[]') : []; } catch { tags = []; }
-  const [productLinks, invoiceLinks, groupLinks] = await Promise.all([
-    env.DB.prepare('SELECT COUNT(*) AS n FROM products WHERE vendor_id = ? AND account_id = ?').bind(customerId, auth.accountId).first<{ n: number }>(),
-    env.DB.prepare('SELECT COUNT(*) AS n FROM invoices WHERE customer_id = ? AND account_id = ?').bind(customerId, auth.accountId).first<{ n: number }>(),
-    env.DB.prepare('SELECT COUNT(*) AS n FROM curate_import_vendor_groups WHERE resolved_vendor_customer_id = ? AND account_id = ?').bind(customerId, auth.accountId).first<{ n: number }>(),
-  ]);
-  const productCount = Number(productLinks?.n ?? 0);
-  const invoiceCount = Number(invoiceLinks?.n ?? 0);
-  const groupCount = Number(groupLinks?.n ?? 0);
-  const referenced = productCount > 0 || invoiceCount > 0 || groupCount > 0;
+  tags = customerTagList(customer.tags);
+  const references = await readVendorDependencies(env.DB, auth.accountId, customerId);
+  const referenced = vendorHasDependencies(references);
 
   if (!confirm) {
     const token = await issueConfirmationToken(env, {
@@ -3060,7 +3128,7 @@ async function toolRemoveVendorContact(env: Env, auth: McpAuth, args: any) {
       preview: {
         action: 'remove_vendor_contact',
         vendor: { id: customerId, name: customer.name, is_vendor_tagged: tags.includes('vendor') },
-        references: { products: productCount, invoices: invoiceCount, vendor_groups: groupCount },
+        references,
         will_refuse: referenced,
         note: referenced ? 'This vendor is still referenced and will be refused on confirm.' : 'No references — the customer row will be deleted.',
       },
@@ -3073,10 +3141,15 @@ async function toolRemoveVendorContact(env: Env, auth: McpAuth, args: any) {
   if (!pending || pending.kind !== 'remove_vendor_contact' || pending.customerId !== customerId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
-  if (referenced) return { error: 'vendor_still_referenced', references: { products: productCount, invoices: invoiceCount, vendor_groups: groupCount } };
+  if (referenced) return { error: 'vendor_still_referenced', references };
 
-  await env.DB.prepare('DELETE FROM customers WHERE id = ? AND account_id = ?')
-    .bind(customerId, auth.accountId).run();
+  const deleted = await deleteUnreferencedVendor(env.DB, auth.accountId, customerId);
+  if (!deleted.meta.changes) {
+    const currentReferences = await readVendorDependencies(env.DB, auth.accountId, customerId);
+    return vendorHasDependencies(currentReferences)
+      ? { error: 'vendor_still_referenced', references: currentReferences }
+      : { error: 'not_found' };
+  }
   await env.DB.prepare(
     `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
      VALUES (?, 'VENDOR_CONTACT_REMOVE_MCP', ?, ?, 'customer', ?, ?)`
@@ -5844,7 +5917,7 @@ const TOOL_DEFS = [
   {
     name: 'search_tea',
     scope: 'inventory:read',
-    description: 'Fuzzy-search tea inventory by name, Chinese name, region, or vendor. Returns up to `limit` matches with stock + match score. Use this first whenever the user names a tea ambiguously.',
+    description: 'Fuzzy-search product inventory and, for Curate managers, shop Curate holdings by name, Chinese name, region, vendor, or vendor item number. Product matches keep product ids; separate curate_holdings carry curate_tea_id and sample portions with nullable sample_grams. Sample grams are separate from sale stock. Use get_tea with source curate for a Curate id; never send it to product stock or sale tools.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -5857,18 +5930,18 @@ const TOOL_DEFS = [
   {
     name: 'get_tea',
     scope: 'inventory:read',
-    description: 'Fetch full record for one tea by id, including last 10 stock-ledger entries.',
+    description: 'Fetch a product by id, including last 10 stock-ledger entries. When source is omitted and no product matches, Curate managers get a separately labeled Curate holding. Explicit source product disables fallback; source curate reads a curate_tea_id with sample portions and separate sale stock. Curate IDs are never product stock IDs.',
     inputSchema: {
       type: 'object',
-      properties: { id: { type: 'string' } },
+      properties: { id: { type: 'string' }, source: { type: 'string', enum: ['product', 'curate'] } },
       required: ['id'],
     },
   },
   {
     name: 'list_low_stock',
     scope: 'inventory:read',
-    description: 'List teas whose current stock has fallen below their per-product low-stock threshold.',
-    inputSchema: { type: 'object', properties: {} },
+    description: 'List sale products below their per-product low-stock threshold. Optional include_samples with an explicit sample_threshold_grams adds separate Curate sample balances at or below that threshold, plus unmeasured_samples. Requires Curate management for sample reads; never mixes samples into sale stock.',
+    inputSchema: { type: 'object', properties: { include_samples: { type: 'boolean' }, sample_threshold_grams: { type: 'number', minimum: 0, description: 'Required with include_samples. Explicit remaining-grams threshold, inclusive; zero selects exhausted portions. No automatic sample reorder threshold is assumed.' } }, additionalProperties: false },
   },
   {
     name: 'find_customer',
@@ -6248,7 +6321,7 @@ const TOOL_DEFS = [
   {
     name: 'remove_vendor_contact',
     scope: 'stock:write',
-    description: 'Delete a vendor (customer tagged "vendor") that is no longer referenced. Refuses if any product links to it as vendor, any invoice references it, or any curate import vendor group resolves to it. Two-step preview/confirm. Use to clean up duplicate/abandoned vendor rows created by mistake.',
+    description: 'Delete the entire unreferenced vendor customer record, not one named contact person. Refuses any durable references, including Curate teas, samples, quotes, orders, products and history, even when archived. Two-step preview/confirm. Use curate_save_vendor to edit contact people; use curate_correct archive or merge for vendors with history.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -6733,6 +6806,15 @@ const TOOL_MODULES: ToolModule[] = [
   eventsToolModule,
   writingToolModule,
   costCurrencyTools,
+  curateIntakeTools,
+  curateSupplyTools,
+  curatePhotoTools,
+  curateArrivalTools,
+  curateAttachmentTools,
+  curateManageModule,
+  curateQuoteTools,
+  curatePromotionTools,
+  curateDrivePhotosModule,
 ];
 
 const { defs: MODULE_TOOL_DEFS, handlers: MODULE_TOOL_HANDLERS } = combineToolModules(TOOL_MODULES);
@@ -6834,9 +6916,9 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
 
   let result;
   switch (name) {
-    case 'search_tea': result = mcpContent(await toolSearchTea(env, auth.accountId, args)); break;
-    case 'get_tea': result = mcpContent(await toolGetTea(env, auth.accountId, args)); break;
-    case 'list_low_stock': result = mcpContent(await toolListLowStock(env, auth.accountId)); break;
+    case 'search_tea': result = mcpContent(await toolSearchTea(env, auth, args)); break;
+    case 'get_tea': result = mcpContent(await toolGetTea(env, auth, args)); break;
+    case 'list_low_stock': result = mcpContent(await toolListLowStock(env, auth, args)); break;
     case 'find_customer': result = mcpContent(await toolFindCustomer(env, auth.accountId, args)); break;
     case 'get_customer': result = mcpContent(await toolGetCustomer(env, auth.accountId, args)); break;
     case 'get_account_context': result = mcpContent(await toolGetAccountContext(env, auth.accountId)); break;
@@ -6903,8 +6985,8 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
 
 const SERVER_INFO = {
   name: 'teajia-inventory',
-  version: '0.5.0',
-  description: 'Voice-controlled inventory, invoicing and the order process for Teajia. Ask whats_waiting first: it answers what needs you right now across order requests nobody has answered, orders still unpriced, payments customers have reported, and orders paid but not sent. Read tools also cover tea search, account context, customer dossiers, invoice lookup/listing, order requests, payment reports and sales summaries. Write tools cover turning an order request into a draft order, confirming a reported payment, recording a payment you saw arrive, creating teas, stock adjustments, creating/voiding/fulfilling invoices, marking invoices paid, customer create/update/tag, vendor linking, catalog archive + pricing, and (with owner-tier tokens) account settings and exchange rates.',
+  version: '0.9.0',
+  description: 'Teajia inventory, orders, customers and Curate. Ask whats_waiting for pending orders and payments. Use search_tea for products and separate Curate sample holdings; curate_find and curate_get_tea read sourcing records. Curate tools cover structured intake, vendor quotes, attachments and uploads, samples and arrivals. curate_correct edits, clears, deletes, archives or merges records; curate_history and curate_undo preserve attribution; select mutation_id to undo a chosen safe change. curate_drive_photo previews trash or restore of a synced Drive backup. Curate management requires shop ownership or explicit curate_manage permission. Writes use preview and confirmation; curate_promote_tea creates a private zero-stock inventory Draft from a Curate tea; stock and sale tools take product ids only. Available tools depend on token scopes: fetch tools/list after connecting or reconnecting.',
 };
 
 // Default to the current rev (structured output + tool annotations). We echo
@@ -6950,6 +7032,7 @@ export async function mcpFetch(request: Request, env: Env): Promise<Response> {
           protocolVersion: requested || PROTOCOL_VERSION,
           capabilities: { tools: { listChanged: false } },
           serverInfo: SERVER_INFO,
+          instructions: 'Read the current tools/list after connecting or reconnecting. Use curate_find/curate_get_tea for sourcing records, and search_tea for separate product matches and curate_holdings. Call get_tea with source: curate and a curate_tea_id for sample holdings. Curate ids are never product stock/sale ids. Use curate_promote_tea to preview and confirm a private zero-stock Draft product, then use the returned product id for inventory tools. Use curate_correct to edit, clear, delete, archive or merge; curate_history/curate_undo to inspect or undo, with mutation_id for a selected change. Photo unlinking retains its Drive copy by default; curate_correct remove_photo with trash_drive:true also previews backup cleanup, and curate_drive_photo separately previews trash or restore. Quotes support structured discount conditions including unknown thresholds; curate_save_vendor edits preferred_currency separately from quoted price_currency. list_low_stock include_samples requires an explicit sample_threshold_grams. Curate management requires active shop ownership or explicit curate_manage permission; tool visibility also depends on token scopes. Confirm writes only after the user accepts their exact preview.',
         });
       }
 
@@ -7098,6 +7181,15 @@ const OAUTH_REDIRECT_HOST_ALLOWLIST = [
   'chatgpt.com',
   'chat.openai.com',
   'platform.openai.com',
+  // Grok Bot (xAI with Cursor) registers three callbacks at once and connects
+  // by OAuth only, never a pasted token: cursor://anysphere.cursor-mcp/...,
+  // https://www.cursor.com/agents/mcp/oauth/callback and a localhost loopback.
+  // Registration refuses the whole client if any one is off this list, so
+  // without cursor.com Grok Bot could not connect at all (Cursor forum,
+  // 2026-09). grok.com is the Grok app's own connector callback,
+  // https://grok.com/connectors-oauth-exchange-code/.
+  'cursor.com',
+  'grok.com',
 ];
 const OAUTH_REDIRECT_SCHEME_ALLOWLIST = ['claude:', 'cursor:', 'vscode:'];
 
@@ -7222,7 +7314,15 @@ export async function oauthRegister(request: Request, env: Env): Promise<Respons
   }
   const grantTypes = body.grant_types === undefined ? ['authorization_code'] : body.grant_types;
   const responseTypes = body.response_types === undefined ? ['code'] : body.response_types;
-  if (!Array.isArray(grantTypes) || grantTypes.length !== 1 || grantTypes[0] !== 'authorization_code') {
+  /* A client may say it would also like refresh tokens; most connector
+     clients (Cursor's, ChatGPT's) ask for both. This server issues none, and a
+     token lasts a year, so asking is harmless: it gets an access token and no
+     refresh token, which RFC 6749 allows. Refusing the registration over it
+     would refuse the client entirely. Anything other than those two is still
+     refused. */
+  if (!Array.isArray(grantTypes) || !grantTypes.includes('authorization_code')
+    || grantTypes.some((g: unknown) => g !== 'authorization_code' && g !== 'refresh_token')
+    || new Set(grantTypes).size !== grantTypes.length) {
     return corsJson({ error: 'invalid_client_metadata', error_description: 'Only authorization_code is supported' }, 400);
   }
   if (!Array.isArray(responseTypes) || responseTypes.length !== 1 || responseTypes[0] !== 'code') {

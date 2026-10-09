@@ -48,7 +48,6 @@ import { PlatformAdminView } from './views/PlatformAdminView';
 import { AccessView } from './views/AccessView';
 import { PlatformAccessView } from './views/PlatformAccessView';
 import { CurrencyRatesView } from './views/CurrencyRatesView';
-import { StaleRatesBanner } from './components/StaleRatesBanner';
 import { MCPTokensView } from './views/MCPTokensView';
 import { OAuthConsentView } from './views/OAuthConsentView';
 import { WisdomView } from './views/WisdomView';
@@ -70,8 +69,13 @@ const DraftsView = lazy(() => import('./components/DraftsView').then((m) => ({ d
 import { IntakeWorkspace } from './views/IntakeWorkspace';
 import { CatalogView } from './views/CatalogView';
 import { PurchaseOrdersPage } from './views/PurchaseOrdersPage';
+import PeopleAuditView from './components/PeopleAuditView';
 const TeaCompass = lazy(() => import('../components/TeaCompass'));
 import type { CompassMode } from '../components/TeaCompass';
+// Curate version 2: a copy of TeaCompass being rebuilt to the new design at
+// /admin/compass/v2 (/admin/curate/v2 forwards there), on the same data. The live Curate above is untouched until
+// Adrian switches over; then the route points here and the old folder goes.
+const CurateV2 = lazy(() => import('../components/CurateV2'));
 import { VendorProfileView } from './views/VendorProfileView';
 import { ProductStoryView } from './views/ProductStoryView';
 import { PlatformAuditLogPage } from './views/PlatformAuditLogPage';
@@ -79,7 +83,6 @@ import { MovementStockView } from './views/MovementStockView';
 import { MagazineView } from './views/MagazineView';
 import { ContributorsView } from './views/ContributorsView';
 import { CollectionsView } from './views/CollectionsView';
-import { ContactTagsView } from './views/ContactTagsView';
 import { CollectionEditView } from './views/CollectionEditView';
 import { InboundCollectionView } from './views/InboundCollectionView';
 import { CatalogBrowse } from './views/CatalogBrowse';
@@ -96,6 +99,39 @@ import { AuthModal } from './components/AuthModal';
 import { CsvImportModal } from './components/CsvImportModal';
 import { AddToCartModal } from './components/AddToCartModal';
 import { AddProductModal } from './components/AddProductModal';
+
+/** Curate version 2 at /admin/compass/v2: the same query params as the live
+ *  Curate, kept on its own address. */
+const CurateV2WithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const tab = params.get('tab');
+  const entryId = params.get('entry');
+  const capture = params.get('capture');
+  const sampleOrder = params.get('sampleOrder');
+  const sampleSetId = params.get('set');
+  const initialMode: CompassMode | undefined =
+    tab === 'buying' || tab === 'ledger' || tab === 'orders' ? 'buying' :
+    tab === 'sourcing' || tab === 'capture' || tab === 'samples' || tab === 'table' ? 'sourcing' :
+    tab === 'tasting' || tab === 'browse' || tab === 'library' || tab === 'teas' ? 'library' :
+    undefined;
+  return (
+    <CurateV2
+      onBack={onBack}
+      initialMode={initialMode}
+      initialEntryId={entryId || undefined}
+      initialCaptureOption={capture === 'teaware' ? 'teaware' : capture === 'tea' ? 'tea' : undefined}
+      initialSampleOrder={sampleOrder === 'manage' ? 'manage' : sampleOrder === 'open' ? 'open' : undefined}
+      initialSampleSetId={sampleSetId || undefined}
+      onSampleOrderRouteClose={() => {
+        const next = new URLSearchParams(params);
+        next.delete('sampleOrder');
+        next.delete('set');
+        navigate({ pathname: '/admin/compass/v2', search: next.toString() ? `?${next}` : '' }, { replace: true });
+      }}
+    />
+  );
+};
 
 /** Reads ?tab= and ?entry= query params and passes them to TeaCompass */
 const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
@@ -487,11 +523,6 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
     <div className="flex flex-col flex-1 min-h-0 h-full bg-tea-bg text-tea-text font-sans selection:bg-tea-gold/30">
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
 
-      {/* Sibling of <main>, never a wrapper around it: the InventoryView height
-          chain runs through main's flex-1 and an extra layer would collapse the
-          scroll container. Renders nothing unless the rates have actually
-          stopped. */}
-      <StaleRatesBanner />
 
       {/* Account / location switching lives inside Your Table (AccountPanel),
           not in a sticky admin bar. See AccountSwitcherChip there. The old
@@ -512,6 +543,14 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                   </PageTransition>
                 </ProtectedRoute>
               } />
+              <Route path="compass/v2" element={
+                <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}>
+                  <PageTransition>
+                    <CurateV2WithMode onBack={() => navigate(-1)} />
+                  </PageTransition>
+                </ProtectedRoute>
+              } />
+              <Route path="curate/v2" element={<Navigate to={`/admin/compass/v2${location.search}`} replace />} />
               <Route path="compass-playbook" element={
                 <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}>
                   <PageTransition>
@@ -556,7 +595,8 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="activity-logs" element={<Navigate to="/admin/activity?tab=log" replace />} />
               <Route path="people" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PeopleView userRole={userRole || 'user'} /></PageTransition></ProtectedRoute>} />
               <Route path="people/:customerId" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CustomerProfilePage /></PageTransition></ProtectedRoute>} />
-              <Route path="contact-tags" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ContactTagsView /></PageTransition></ProtectedRoute>} />
+              {/* Tags are one tab of People; the standalone page was a second door to the same screen. */}
+              <Route path="contact-tags" element={<Navigate to="/admin/people?tab=tags" replace />} />
 
               {/* Management: admin, owner. Canonical route is /admin/stock;
                   /admin/inventory redirects to it (query string preserved for ?panel= deep links). */}
@@ -587,7 +627,10 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="dashboard" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
               <Route path="vendors/:vendorId" element={<ProtectedRoute hasAccess={canManageInventory} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><VendorProfileView /></PageTransition></ProtectedRoute>} />
               <Route path="products/:id/story" element={<ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ProductStoryView /></PageTransition></ProtectedRoute>} />
-              <Route path="purchase-orders" element={<Navigate to="/admin/people?tab=purchase-orders" replace />} />
+              {/* Purchases live in Curate (bringing tea in) and the audit in Settings
+                  since 2026-09-29; both were People tabs. Same gates as before. */}
+              <Route path="purchase-orders" element={<ProtectedRoute hasAccess={isOwnerTier || hasStockBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PurchaseOrdersPage /></PageTransition></ProtectedRoute>} />
+              <Route path="audit" element={<ProtectedRoute hasAccess={isOwnerTier || hasMembersBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PeopleAuditView /></PageTransition></ProtectedRoute>} />
               <Route path="team" element={<Navigate to="/admin/access" replace />} />
               {/* The Manage list calls this room Members, so /admin/members is a
                   natural address to type. The page lives at /admin/access. */}

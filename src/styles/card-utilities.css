@@ -206,7 +206,11 @@
   --tj-read-cream: #f3ead9;
   --tj-read-warm: #e3d6bd;
   --tj-read-taupe: #cdc0a8;
-  --tj-read-dim: #80735f;
+  /* Adrian's own voice in a story: his opening, his telling, his questions and his close.
+     Sand, so it reads as his by colour at the same size as theirs; never the bronze,
+     which marks the key words in a large quote (Adrian, 2026-10-01). 11:1 on the ground. */
+  --tj-read-voice: #d8c39b;
+  --tj-read-dim: #8c7f6a; /* 4.83:1 on the ground, 4.50:1 on a card. Was #80735f, 4.09:1, until 2026-09-29. */
   --tj-read-gold-default: #a8874d;
   --tj-read-gold-lt-default: #c6a667;
   --tj-read-gold-rgb: 168 135 77;
@@ -255,6 +259,7 @@
   --tj-read-cream: var(--tea-text);
   --tj-read-warm: var(--tea-text-sec);
   --tj-read-taupe: var(--tea-text-sec);
+  --tj-read-voice: #6b5432; /* about 6:1 on the light ground */
   --tj-read-dim: var(--tea-text-dim);
   --tj-read-gold-default: var(--tea-gold);
   --tj-read-gold-lt-default: var(--tea-gold-lt);
@@ -3714,6 +3719,12 @@ input[type="number"]::-webkit-outer-spin-button {
   box-shadow: none;
   padding: 0;
 }
+/* The navigation it docks onto pulls its insets in to 12px below 375px so the
+   words keep their air on the smallest phones; the dock follows, or the two
+   halves of the assembly stop lining up. */
+@media (max-width: 374px) {
+  .commerce-dock { left: 0.75rem; right: 0.75rem; }
+}
 
 /* The strip itself: 58px, its own darker wash over the assembly's ground. */
 .alcove-dock-strip {
@@ -4792,25 +4803,31 @@ body.cart-panel-open .commerce-dock {
 }
 
 /* Guest checkout: shared controls stay readable in both shop themes. */
+/* Gallery cart (2026-09-29): fields are set into the panel as tone, not
+   drawn with a keyline, the same ground as the pack and delivery tiles. */
 .checkout-input {
   width: 100%;
   min-width: 0;
   min-height: 44px;
-  border: 1px solid var(--tea-border);
+  border: 0;
   background: var(--tea-surface);
   color: var(--tea-text);
-  border-radius: 0.375rem;
-  padding: 0.5rem 0.75rem;
+  border-radius: 0;
+  padding: 0.625rem 0.75rem;
+  font-family: 'Lora', 'Noto Serif SC', Georgia, serif;
+  font-variant-numeric: lining-nums;
   font-size: max(16px, 1em);
 }
 .checkout-currency {
   max-width: 100%;
-  min-height: 44px;
-  border: 1px solid var(--tea-border);
+  min-height: 36px;
+  border: 0;
   background: var(--tea-surface);
-  color: var(--tea-text);
-  border-radius: 0.375rem;
+  color: var(--tea-text-sec);
+  border-radius: 0;
   padding-inline: 0.5rem;
+  font-family: 'Lora', 'Noto Serif SC', Georgia, serif;
+  font-size: 14px;
 }
 .checkout-channel {
   display: inline-flex;
@@ -4823,6 +4840,8 @@ body.cart-panel-open .commerce-dock {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
+  font-family: 'Lora', 'Noto Serif SC', Georgia, serif;
+  font-variant-numeric: lining-nums;
   color: var(--tea-text-sec);
   text-decoration: underline;
   text-decoration-color: var(--tea-border);
@@ -4857,4 +4876,514 @@ body.cart-panel-open .commerce-dock {
 .checkout-whatsapp-action:focus-visible {
   outline: 2px solid var(--tea-gold);
   outline-offset: 2px;
+}
+
+/* ── Interview cover on a phone: the photo sinks into the page ─────────────
+   Chosen 2026-09-29 from five mock-ups ("Dissolve"). On a phone the cover used
+   to stack eight separate pieces above a photo cropped to empty cloth; now the
+   photo comes first, its lower half falls to the page ground, and the title
+   rises over that fall, so photo, title and credits read as one piece. The
+   words sit on the faded half only, never on the sharp part of the picture.
+   Desktop keeps its two columns untouched: every rule is inside the query.
+   The article sets these classes on its <header> and the header's two cells;
+   the !important is there because each cover sizes its cells inline. */
+@media (max-width: 700px) {
+  .tj-cover-dissolve { min-height: 0 !important; }
+  .tj-cover-dissolve .tj-cover-photo {
+    order: 1 !important;
+    height: 72svh !important;
+    min-height: 0 !important;
+  }
+  .tj-cover-dissolve .tj-cover-photo::after {
+    content: '';
+    position: absolute;
+    inset: 45% 0 0 0;
+    pointer-events: none;
+    background: linear-gradient(to bottom,
+      rgb(var(--tj-read-bg-rgb) / 0) 0%,
+      rgb(var(--tj-read-bg-rgb) / 0.78) 45%,
+      var(--tj-read-bg) 82%);
+  }
+  .tj-cover-dissolve .tj-cover-text {
+    order: 2 !important;
+    position: relative;
+    z-index: 1;
+    margin-top: -110px;
+    padding-top: 0 !important;
+  }
+}
+
+/* ── Curate v2 ─────────────────────────────────────────────────────────────
+   The second Curate (src/components/CurateV2, /admin/compass/v2), dressed as
+   the shop and Stock are: names in Cormorant, every figure and every small
+   capital label in Lora (the site's `num` face), rows with room to breathe,
+   and thin frames rather than filled pills or round blobs. Figures are lining
+   and even-width so prices and weights stack in columns. */
+/* Gold that carries a meaning (a word that acts, a chosen frame) is read on the
+   dark surfaces at 4.0:1 in its plain form, so inside Curate the words use the
+   lighter gold on dark and the solid, darker one on parchment. Borders keep
+   the plain gold. */
+.curate-v2 { --curate-gold-text: var(--tea-gold-lt); }
+.light .curate-v2 { --curate-gold-text: var(--tea-gold-solid); }
+.curate-v2 .text-tea-gold { color: var(--curate-gold-text); }
+.curate-v2,
+.curate-v2 .font-display {
+  font-variant-numeric: lining-nums tabular-nums;
+}
+/* Chinese in Curate (a tea's name, a vendor's) reads in a serif, never the sans.
+   Noto Serif SC is loaded for the few hundred glyphs the site already uses, so
+   any other character fell past it to the system's default CJK face, which is a
+   heavy sans on Apple devices. The system's own CJK serifs follow it here. */
+.curate-v2 { --curate-cjk: 'Songti SC', 'STSong', 'Noto Serif CJK SC', 'Source Han Serif SC', 'SimSun'; }
+/* Anything in Curate that does not name its own face reads in Lora, never the sans. */
+.curate-v2 { font-family: 'Lora', 'Noto Serif SC', var(--curate-cjk), Georgia, serif; }
+.curate-v2 .font-mono { font-family: 'Lora', 'Noto Serif SC', var(--curate-cjk), Georgia, serif; }
+.curate-v2 .font-display { font-family: 'Cormorant Garamond', 'Noto Serif SC', var(--curate-cjk), Georgia, serif; }
+.curate-v2 .curate-v2-hanzi { font-family: 'Noto Serif SC', var(--curate-cjk), serif; }
+/* A typed field shows it has focus by its gold underline, not by a ringed box. */
+.curate-v2 input:focus,
+.curate-v2 textarea:focus,
+.curate-v2 select:focus,
+.curate-v2 input:focus-visible,
+.curate-v2 textarea:focus-visible,
+.curate-v2 select:focus-visible { outline: none; box-shadow: none; }
+/* Every figure in Curate reads in Lora, as the shop's prices and Stock's counts do. */
+.curate-v2 .tabular-nums {
+  font-family: 'Lora', 'Noto Serif SC', var(--curate-cjk), Georgia, serif;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  letter-spacing: 0.005em;
+}
+.curate-v2-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tea-text-dim);
+}
+/* One-line row: what it is on the left, figures and one small action right. */
+.curate-v2-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 58px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--tea-border);
+  white-space: nowrap;
+}
+.curate-v2 .curate-v2-name {
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', var(--curate-cjk), Georgia, serif;
+  font-feature-settings: 'lnum' 1;
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 1.15;
+  color: var(--tea-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  /* A tea's name wraps to a second line before it is ever cut: "Mengku Laobanzhang" reads in full. */
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+/* A small framed box, the shop's year and price frame: Taste, a mic, − and +. */
+.curate-v2-frame {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--tea-border);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--tea-text-sec);
+  transition: color 0.15s, border-color 0.15s;
+}
+.curate-v2-frame:hover { color: var(--tea-text); border-color: rgb(var(--tea-gold-rgb) / 0.5); }
+.curate-v2-frame[aria-pressed='true'],
+.curate-v2-frame.is-on { color: var(--curate-gold-text, var(--tea-gold)); border-color: var(--tea-gold); }
+.curate-v2-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.curate-v2-tab {
+  min-height: 46px;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tea-text-dim);
+  box-shadow: inset 0 -1px 0 transparent;
+}
+.curate-v2-tab[aria-selected='true'] {
+  color: var(--curate-gold-text, var(--tea-gold));
+  box-shadow: inset 0 -1px 0 var(--tea-gold);
+}
+
+/* ── Curate v2: the full "Edit all fields" card ────────────────────────────
+   The card is TeaFace with every field editable: a Lora capital label down the
+   left, the value on the right, a divider under each line. Choices are thin
+   frames that turn gold when chosen. No pills, no fills, no sliders. */
+.curate-v2-frame.is-tall { height: 44px; }
+.curate-v2-frame.is-name { font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif; font-size: 17px; letter-spacing: 0; }
+.curate-v2-frame.is-slim { min-width: 0; padding: 0; }
+.curate-v2-frame.is-wide { width: 100%; justify-content: center; }
+.curate-v2-frame:disabled { color: var(--tea-text-sec); cursor: not-allowed; }
+.curate-v2-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+  padding: 4px 16px;
+  border-bottom: 1px solid var(--tea-border);
+  transition: box-shadow 0.15s;
+}
+.curate-v2-line:focus-within { box-shadow: inset 0 -1px 0 var(--tea-gold); }
+.curate-v2-line > .curate-v2-label { flex: none; }
+/* A value typed straight into a line: right-aligned Lora, no box. */
+.curate-v2-field {
+  flex: 1 1 0;
+  width: 100%;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  background: transparent;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  letter-spacing: 0.005em;
+  color: var(--tea-text);
+  -moz-appearance: textfield;
+}
+.curate-v2-field::-webkit-inner-spin-button,
+.curate-v2-field::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.curate-v2-field::placeholder { color: var(--tea-text-dim); }
+/* A name typed into a line reads in Cormorant, as a name does everywhere else. */
+.curate-v2-field.is-name {
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', var(--curate-cjk), Georgia, serif;
+  font-feature-settings: 'lnum' 1;
+  font-size: 19px;
+}
+.curate-v2-field.is-hanzi { font-family: 'Noto Serif SC', serif; font-size: 17px; }
+.curate-v2-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  padding: 0;
+  min-width: 44px;
+  min-height: 44px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  color: var(--tea-text);
+  text-align: right;
+  text-align-last: right;
+}
+.curate-v2-select option { background: var(--tea-surface); color: var(--tea-text); }
+/* The tea's name, set large above its lines, as TeaFace sets it. */
+.curate-v2-namefield {
+  display: block;
+  width: 100%;
+  min-height: 56px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  background: transparent;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
+  font-feature-settings: 'lnum' 1;
+  font-size: 31px;
+  line-height: 1.1;
+  color: var(--tea-text);
+}
+.curate-v2-namefield::placeholder { color: var(--tea-text-dim); }
+/* A section heading inside the card: the word large, a gold hairline under it. */
+.curate-v2-heading {
+  padding: 28px 16px 0;
+}
+.curate-v2-heading h3 {
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
+  font-size: 26px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+  color: var(--tea-text);
+  padding-bottom: 10px;
+}
+.curate-v2-heading::after { content: ''; display: block; height: 1px; background: rgb(var(--tea-gold-rgb) / 0.2); }
+/* A choice in a sheet or a wrapped set: a thin frame, left aligned. */
+.curate-v2-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 14px;
+  border: 1px solid var(--tea-border);
+  border-radius: 3px;
+  text-align: left;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
+  font-size: 19px;
+  color: var(--tea-text-sec);
+  transition: color 0.15s, border-color 0.15s;
+}
+.curate-v2-choice:hover { color: var(--tea-text); }
+.curate-v2-choice[aria-pressed='true'] { color: var(--curate-gold-text, var(--tea-gold)); border-color: var(--tea-gold); }
+/* A choice in a list inside a sheet: a full-width line. */
+.curate-v2-sheetrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 56px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--tea-border);
+  text-align: left;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
+  font-size: 20px;
+  color: var(--tea-text);
+}
+.curate-v2-sheetrow[aria-pressed='true'] { color: var(--curate-gold-text, var(--tea-gold)); }
+.curate-v2-sheetrow .curate-v2-label { color: var(--tea-text-dim); }
+/* A plain gold word that acts: Done, add, suggest. No frame, no fill. */
+.curate-v2-word {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: var(--curate-gold-text, var(--tea-gold));
+}
+.curate-v2-word:disabled { color: var(--tea-text-sec); cursor: not-allowed; }
+/* A fold-away block (details/summary) shows a plus or a minus, never a triangle. */
+.curate-v2 details > summary { list-style: none; justify-content: space-between; }
+.curate-v2 details > summary::-webkit-details-marker { display: none; }
+.curate-v2 details > summary::after { content: '+'; font-family: var(--font-mono); font-size: 16px; color: var(--tea-text-sec); }
+.curate-v2 details[open] > summary::after { content: '\2212'; }
+.curate-v2 input[type='file'] { font-family: var(--font-mono); }
+.curate-v2 input[type='file']::file-selector-button {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: transparent;
+  color: var(--tea-text-sec);
+  border: 1px solid var(--tea-border);
+  border-radius: 3px;
+  padding: 8px 12px;
+  margin-right: 10px;
+}
+/* The note field of the card (NoteThread, shared): one thin frame, serif text. */
+.curate-v2-notes .tasting-voice-field {
+  background: transparent;
+  border-radius: 3px;
+  box-shadow: none;
+}
+.curate-v2-notes .tasting-voice-field:focus-within { border-color: var(--tea-gold); box-shadow: none; }
+.curate-v2-notes textarea { font-size: 17px; }
+.curate-v2-notes .tasting-voice-btn { color: var(--tea-text-sec); border-left: 1px solid var(--tea-border); }
+.curate-v2-notes .tasting-voice-btn:hover { color: var(--curate-gold-text, var(--tea-gold)); }
+
+/* ── Curate v2: the full tasting and the sheets, in the shop's dress ──────
+   The full tasting (src/components/tasting) and the bottom sheet are shared
+   with the live journal and the rest of the site, so they are dressed here and
+   only here: the overlay and the sheet are portalled to the body, so Curate
+   hands each its own `curate-v2` class (TastingSession and BottomSheet take a
+   `className`). Nothing below applies without that class. Choices are thin
+   frames that turn gold when chosen; a section is a large word over a gold
+   hairline; small labels are Lora capitals; no tinted tiles, no pills, no icons.
+   `!important` is on exactly the properties the zones set inline. */
+.curate-v2[data-tasting-session-overlay] > .bg-tea-bg { border-radius: 3px !important; }
+.curate-v2 .tasting-scroll p.italic { font-size: 13px; color: var(--tea-text-sec); }
+.curate-v2 .tasting-scroll .divider-warm { display: none; }
+/* A section: the word large, a gold hairline under it. */
+.curate-v2 .tasting-scroll .uppercase.text-ui-12,
+.curate-v2 .tasting-scroll :not(button *)[style*='font-display'].text-ui-13,
+.curate-v2 .tasting-scroll :not(button *)[style*='font-display'].border-b {
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif !important;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: 0.02em !important;
+  text-transform: none;
+  color: var(--tea-text);
+  padding: 22px 0 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgb(var(--tea-gold-rgb) / 0.2);
+}
+.curate-v2 .tasting-scroll .uppercase.text-ui-12 { padding-top: 14px; margin-bottom: 4px; }
+/* A heading that shares a line with its figure (Quality 8/10, Liquor color): the
+   hairline runs under the whole line, not just under the word. */
+.curate-v2 .tasting-scroll .flex > :not(button *)[style*='font-display'].text-ui-13 { border-bottom: 0; padding: 0; margin: 0; }
+.curate-v2 .tasting-scroll .flex:has(> :not(button *)[style*='font-display'].text-ui-13) {
+  align-items: baseline;
+  padding: 22px 0 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgb(var(--tea-gold-rgb) / 0.2);
+}
+.curate-v2 .tasting-scroll button[aria-label^='Clear'] { min-height: 44px; min-width: 44px; justify-content: center; color: var(--tea-text-sec); }
+/* A small label: Lora capitals. */
+.curate-v2 .tasting-scroll .uppercase.text-ui-10,
+.curate-v2 .tasting-scroll .uppercase.text-ui-11 {
+  font-family: var(--font-mono) !important;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em !important;
+  color: var(--tea-text-sec);
+}
+.curate-v2 .tasting-scroll p.text-tea-text-sec { font-size: 13px; line-height: 1.5; }
+/* The quadrants of Effect: no tile, the heading does the grouping. */
+.curate-v2 .tasting-scroll .bg-tea-surface\/40 { background: transparent; border-radius: 0; padding: 0; }
+/* Every choice: a thin frame, gold when chosen. */
+.curate-v2 .tasting-scroll button[aria-pressed],
+.curate-v2 .tasting-scroll button[role='radio'] {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 1px solid var(--tea-border) !important;
+  border-radius: 3px !important;
+  min-height: 44px;
+  font-family: var(--font-mono) !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.02em;
+  color: var(--tea-text-sec);
+}
+.curate-v2 .tasting-scroll button[aria-pressed]:hover,
+.curate-v2 .tasting-scroll button[role='radio']:hover { color: var(--tea-text); border-color: rgb(var(--tea-gold-rgb) / 0.5) !important; }
+.curate-v2 .tasting-scroll button[aria-pressed='true'],
+.curate-v2 .tasting-scroll button[role='radio'][aria-checked='true'] {
+  color: var(--curate-gold-text, var(--tea-gold)) !important;
+  border-color: var(--tea-gold) !important;
+}
+.curate-v2 .tasting-scroll button[aria-pressed] svg,
+.curate-v2 .tasting-scroll button[role='radio'] svg,
+.curate-v2 .tasting-scroll button[aria-pressed] .shrink-0.rounded-full { display: none; }
+.curate-v2 .tasting-scroll button[aria-pressed] [style*='serif'] { display: none; }
+.curate-v2 .tasting-scroll button[aria-pressed] [style*='font-display'] { font-family: var(--font-mono) !important; }
+.curate-v2 .tasting-scroll button[aria-pressed] .text-tea-text-dim,
+.curate-v2 .tasting-scroll button[role='radio'] .text-tea-text-dim { color: var(--tea-text-sec); }
+.curate-v2 .tasting-scroll button[aria-pressed='true'] [class*='text-tea-gold\/'] { color: var(--curate-gold-text, var(--tea-gold)); }
+/* A run of choices (weight, finish, passage, 1 to 10): separate frames. */
+.curate-v2 .tasting-segment-toggle {
+  gap: 8px;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
+}
+.curate-v2 .tasting-segment-toggle::before { display: none; }
+.curate-v2 .tasting-segment-toggle:has(> :nth-child(10)) { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.curate-v2 .tasting-segment-toggle > button { min-height: 48px; }
+/* Flavour: the family list is plain words, the chosen one gold. */
+.curate-v2 .tasting-scroll button[role='option'] { background: transparent !important; border-radius: 0 !important; min-height: 44px; font-size: 18px !important; }
+.curate-v2 .tasting-scroll button[role='option'] > span.rounded-full {
+  background: transparent !important;
+  color: var(--curate-gold-text, var(--tea-gold)) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 11px;
+  font-weight: 500;
+  width: auto;
+  right: -22px !important;
+}
+.curate-v2 .tasting-scroll button[role='option'] > .absolute.w-\[2px\] { display: none; }
+.curate-v2 .tasting-scroll button[aria-pressed] .ml-auto { display: none; }
+.curate-v2 .tasting-scroll .flex-1.min-w-0.overflow-y-auto > div > button { margin-bottom: 8px; }
+/* Fields in the tasting (vessel, temperature, time, notes). */
+.curate-v2 .tasting-scroll input,
+.curate-v2 .tasting-scroll textarea {
+  min-height: 44px;
+  background: transparent;
+  border-radius: 3px;
+  border-color: var(--tea-border);
+  font-family: var(--font-mono);
+}
+.curate-v2 .tasting-scroll input:focus,
+.curate-v2 .tasting-scroll textarea:focus { border-color: var(--tea-gold); }
+.curate-v2 .tasting-voice-field { background: transparent; border-radius: 3px; box-shadow: none; }
+.curate-v2 .tasting-voice-field:focus-within { border-color: var(--tea-gold); box-shadow: none; }
+.curate-v2 .tasting-voice-btn { color: var(--tea-text-sec); border-left: 1px solid var(--tea-border); }
+.curate-v2 .tasting-voice-btn:hover { color: var(--curate-gold-text, var(--tea-gold)); }
+/* The saved screen and the leave prompt: thin frames, a plain gold action. */
+.curate-v2[data-tasting-session-overlay] .rounded-xl.bg-tea-surface\/50,
+.curate-v2[data-tasting-session-overlay] [role='dialog'] { border-radius: 3px; }
+.curate-v2[data-tasting-session-overlay] .rounded-xl.bg-tea-surface\/50 { background: transparent; border: 1px solid var(--tea-border); }
+.curate-v2[data-tasting-session-overlay] .cta-solid {
+  background: transparent;
+  color: var(--curate-gold-text, var(--tea-gold));
+  border: 1px solid var(--tea-gold);
+  border-radius: 3px;
+  box-shadow: none;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+/* The tab bar under the full tasting: Lora capitals, the unlit words at secondary
+   text (they sat at 3.7:1 as a faint wash), the count as a plain figure. */
+.curate-v2[data-tasting-session-overlay] .border-t.bg-tea-bg button {
+  font-family: var(--font-mono) !important;
+  font-weight: 500 !important;
+  font-size: 11px !important;
+  letter-spacing: 0.16em !important;
+}
+.curate-v2[data-tasting-session-overlay] .border-t.bg-tea-bg button:not(.text-tea-gold) { color: var(--tea-text-sec); }
+.curate-v2[data-tasting-session-overlay] .border-t.bg-tea-bg button span.tabular-nums { color: currentColor !important; font-size: 11px !important; }
+/* A bottom sheet opened from Curate: the name in Cormorant, its line in Lora. */
+.curate-v2-sheet .bottom-sheet-title {
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif !important;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: 0 !important;
+}
+.curate-v2-sheet .bottom-sheet-description {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--tea-text-sec);
+  margin-top: 2px;
+}
+/* A row in a sheet: a divider, the chosen one gold; no tint, no round corners. */
+.curate-v2-sheet .sheet-option {
+  min-height: 56px;
+  border-radius: 0;
+  border-bottom: 1px solid var(--tea-border);
+  background: transparent;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
+}
+.curate-v2-sheet .sheet-option > span > span:first-child { font-size: 20px; font-weight: 500; }
+.curate-v2-sheet .sheet-option:hover,
+.curate-v2-sheet .sheet-option:active,
+.curate-v2-sheet .sheet-option[aria-pressed='true'] { background: transparent; }
+.curate-v2-sheet .sheet-option span.text-ui-11 { font-family: var(--font-mono); color: var(--tea-text-sec); }
+
+/* ── Stock on the phone: quieter layers (2026-10-08) ──────────────────────
+   Why the Stock Room mockup read better than the live screen, kept to colour:
+   the second line under a tea name was nearly as bright as the name, and the
+   gold-tinted hairlines put gold on every divider, so nothing led. Inside this
+   class the second line steps back a little, dividers go neutral, and gold is
+   left for what means something (low, selected, the main action). The ground
+   stays #22201c: it is tuned for reading outdoors (see tailwind.css). Mixed
+   from the theme's own tokens, so light mode follows on its own. */
+.stock-phone-tone {
+  /* Full-strength text, and hairlines you can actually see between teas. */
+  --tea-border: color-mix(in srgb, rgb(var(--tea-text-sec-rgb)) 24%, var(--tea-bg));
+}
+/* A sheet that rises from behind the bottom bar: no top rule, a soft shadow
+   upward, its foot tucked under the floating nav. */
+.sheet-behind-nav {
+  bottom: 0;
+  padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -18px 36px -12px rgb(0 0 0 / 0.5);
+}
+@media (min-width: 1024px) {
+  .sheet-behind-nav { padding-bottom: 12px; }
 }

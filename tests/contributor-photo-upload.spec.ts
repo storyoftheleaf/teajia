@@ -66,8 +66,8 @@ test('a contributor is created with an uploaded portrait, its focal point, and g
   await expect(dialog).toBeVisible();
 
   // The page address follows the name until it is edited by hand.
-  await dialog.getByLabel('Display name').fill('Shangyin Qiwu');
-  await expect(dialog.getByLabel('Page address')).toHaveValue('shangyin-qiwu');
+  await dialog.getByLabel('Your name').fill('Yan Jinwen');
+  await expect(dialog.getByLabel('Page address')).toHaveValue('yan-jinwen');
 
   // The portrait: picked from a file, uploaded, then shown whole with its crops.
   await expect(dialog.getByText('No portrait yet')).toBeVisible();
@@ -87,12 +87,13 @@ test('a contributor is created with an uploaded portrait, its focal point, and g
   await page.keyboard.press('Shift+ArrowLeft');
   await expect(dialog.getByRole('button', { name: /Focal point, 40% across and 30% down/ })).toBeVisible();
 
-  // The cover proof redraws from what is in the editor, at the focal point.
-  const coverImage = page.getByTestId('page-proof').locator('img').first();
+  // The crops redraw from what is in the editor, at the focal point.
+  const coverImage = dialog.getByLabel('How the page crops it').first().locator('img').first();
   await expect(coverImage).toHaveAttribute('src', /\/api\/media\/accounts\/acct-bali\/products\/upload-1\.jpg/);
   await expect(coverImage).toHaveCSS('object-position', '40% 30%');
 
-  // Two gallery photos at once, laid out as the page lays them out.
+  // Two gallery photos at once, in the Hands on sheet, laid out as the page lays them out.
+  await dialog.getByTestId('row-hands').click();
   await dialog.getByTestId('gallery-file').setInputFiles([
     { name: 'hands.png', mimeType: 'image/png', buffer: PHOTO },
     { name: 'cup.png', mimeType: 'image/png', buffer: PHOTO },
@@ -113,8 +114,8 @@ test('a contributor is created with an uploaded portrait, its focal point, and g
   expect(network.uploads()).toBe(3);
   const created = network.writes.find(write => write.method === 'POST')!.body;
   expect(created).toMatchObject({
-    id: 'shangyin-qiwu',
-    display_name: 'Shangyin Qiwu',
+    id: 'yan-jinwen',
+    display_name: 'Yan Jinwen',
     portrait_url: 'https://media.teajia.co/accounts/acct-bali/products/upload-1.jpg?v=1',
     portrait_focus: '40% 30%',
   });
