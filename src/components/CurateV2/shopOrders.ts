@@ -46,6 +46,10 @@ export interface ShopOrder {
   /** The record held lines that could not be read at all. */
   unreadableLines: boolean;
   notes: string | null;
+  /** The route it travels by (0043), or null when nobody chose one. */
+  shipMode: 'air' | 'sea' | null;
+  /** The carrier tracking number, or null when there is none yet. */
+  trackingNumber: string | null;
 }
 
 const text = (v: unknown): string | undefined => (typeof v === 'string' && v.trim() ? v.trim() : undefined);
@@ -113,12 +117,14 @@ export function shopOrderOf(po: PurchaseOrder): ShopOrder {
     items,
     unreadableLines,
     notes: text(po.notes) ?? null,
+    shipMode: po.ship_mode === 'air' || po.ship_mode === 'sea' ? po.ship_mode : null,
+    trackingNumber: text(po.tracking_number) ?? null,
   };
 }
 
 /** The words the shop's status is shown in. */
 export function shopStatusWords(status: string): string {
-  return ({ pending: 'pending', confirmed: 'confirmed', sent: 'sent', ordered: 'ordered', received: 'received', cancelled: 'cancelled' } as Record<string, string>)[status] ?? status;
+  return ({ pending: 'pending', confirmed: 'confirmed', sent: 'sent', shipped: 'shipped', ordered: 'ordered', received: 'received', cancelled: 'cancelled' } as Record<string, string>)[status] ?? status;
 }
 
 /** The order as a ledger purchase, so the same arithmetic reads both. Confirmed: the shop only holds orders that were. */

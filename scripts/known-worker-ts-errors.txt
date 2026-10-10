@@ -38,5 +38,5 @@ worker/src/index.ts:8431:TS7053
 worker/src/index.ts:8431:TS7053
 worker/src/index.ts:8443:TS7053
 worker/src/index.ts:8444:TS7053
-worker/src/mcp.ts:1918:TS2322
-worker/src/mcp.ts:825:TS2322
+worker/src/mcp.ts:1919:TS2322
+worker/src/mcp.ts:826:TS2322

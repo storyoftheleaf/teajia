@@ -2381,7 +2381,10 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
   notes TEXT,
   freight_estimate_json TEXT,
   created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
+  updated_at TEXT NOT NULL,
+  -- 0043: the route it travels by, and the carrier tracking number.
+  ship_mode TEXT CHECK (ship_mode IS NULL OR ship_mode IN ('air', 'sea')),
+  tracking_number TEXT
 );
 
 CREATE TABLE IF NOT EXISTS refresh_tokens (

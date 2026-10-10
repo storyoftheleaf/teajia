@@ -8,7 +8,7 @@ import { ledgerItemAmount } from '../CurateV2/curatePricing';
 import { estimateOrderFreight, type RouteMode } from './routeFreight';
 import { useShippingRoutes } from './useShippingRoutes';
 import { releaseTeaFromOrder } from '../CurateV2/orderBuy';
-import { confirmPurchase, purchaseNeedsVendor, recordPurchase } from '../CurateV2/placeOrder';
+import { confirmPurchase, purchaseNeedsVendor, recordPurchase, splitDraftByRoute } from '../CurateV2/placeOrder';
 import { Button } from './Button';
 import { Icons } from '../Icons';
 
@@ -166,9 +166,11 @@ export const BuyingBasket: React.FC<{ onClose: () => void }> = ({ onClose }) => 
     setPlacing(true);
     setError('');
     const done: { name: string; failed: boolean }[] = [];
-    for (const tx of drafts) {
+    // One order per supplier per route, so each parcel has its own tracking number.
+    const toPlace = drafts.flatMap((tx) => splitDraftByRoute(tx.id));
+    for (const tx of toPlace) {
       confirmPurchase(tx);
-      try { await recordPurchase(tx, rates, queryClient); done.push({ name: tx.counterpartyName, failed: false }); }
+      try { await recordPurchase(tx, rates, queryClient); done.push({ name: `${tx.counterpartyName}${toPlace.length > drafts.length ? (tx.shipMode === 'sea' ? ' · boat' : ' · air') : ''}`, failed: false }); }
       catch { updateTransaction(tx.id, { recordFailed: true }); done.push({ name: tx.counterpartyName, failed: true }); }
     }
     setPlaced(done);
@@ -193,7 +195,7 @@ export const BuyingBasket: React.FC<{ onClose: () => void }> = ({ onClose }) => 
               <span className={`font-body text-ui-13 ${p.failed ? 'text-tea-error' : 'text-tea-text-sec'}`}>{p.failed ? 'not recorded, retry in Curate' : 'placed'}</span>
             </div>
           ))}
-          <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">Nothing has been sent to a supplier. The orders wait in Curate under Orders, where you message each supplier when you are ready.</p>
+          <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">Nothing has been sent to a supplier. They wait under In process at the top of Samples, where you message each supplier, add tracking and receive them.</p>
         </section>
       ) : drafts.length === 0 ? (
         <p className="py-10 font-body text-ui-15 text-tea-text">Nothing to buy yet. Press Want on a sample to add it.</p>
