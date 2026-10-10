@@ -251,10 +251,14 @@ describe('Compass sync acknowledgements', () => {
     useTeaCompassStore.setState({ entries: [entry('accepted'), entry('collision')] });
 
     expect(await syncCompassEntries('acct-a')).toBe(1);
-    expect(useTeaCompassStore.getState().entries.map(({ id, synced }) => ({ id, synced }))).toEqual([
-      { id: 'accepted', synced: true },
-      { id: 'collision', synced: false },
-    ]);
+    // Read by id, not position: sync sorts newest first by createdAt, which
+    // createEmptyEntry stamps with the current time, so two entries made in
+    // different milliseconds swap places. Comparing the list in order failed
+    // whenever they did (main's check, 2026-10-10; every run in isolation).
+    expect(Object.fromEntries(useTeaCompassStore.getState().entries.map(({ id, synced }) => [id, synced]))).toEqual({
+      accepted: true,
+      collision: false,
+    });
     expect(useTeaCompassStore.getState().syncError).toBe(true);
   });
 
