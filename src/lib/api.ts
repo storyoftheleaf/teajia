@@ -1,4 +1,5 @@
 import type { ShippingRoute } from '../components/shared/routeFreight';
+import type { SupplierFreightBill, SupplierRenamePreview } from '../components/shared/supplierSheetTypes';
 import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, AdminContributor, Bundle, ContributorOption, ContributorWrite, CurateReceiptProposal, CustomerOrderDetail, DbArticle, PlatformRole, TastingData } from '../types';
 import type {
   FavoriteWrite,
@@ -2245,6 +2246,18 @@ export const api = {
     save: async (id: string | null, data: Record<string, unknown>): Promise<ShippingRoute> =>
       authedFetch(`${API_URL}/api/shipping-routes${id ? `/${id}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(data) }),
     remove: async (id: string): Promise<{ removed: boolean }> => authedFetch(`${API_URL}/api/shipping-routes/${id}`, { method: 'DELETE' }),
+  },
+
+  /** The Supplier sheet: rename a supplier everywhere (preview, then apply) and read its freight bills. */
+  suppliers: {
+    renamePreview: async (id: string, name: string): Promise<SupplierRenamePreview> =>
+      authedFetch(`${API_URL}/api/suppliers/${encodeURIComponent(id)}/rename-preview?name=${encodeURIComponent(name)}`),
+    rename: async (id: string, name: string, expectedOldName?: string): Promise<SupplierRenamePreview> =>
+      authedFetch(`${API_URL}/api/suppliers/${encodeURIComponent(id)}/rename`, {
+        method: 'POST', body: JSON.stringify({ name, expected_old_name: expectedOldName }),
+      }),
+    freight: async (id: string): Promise<SupplierFreightBill[]> =>
+      authedFetch(`${API_URL}/api/suppliers/${encodeURIComponent(id)}/freight`),
   },
 
   activityLogs: {
