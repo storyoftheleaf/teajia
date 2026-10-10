@@ -575,6 +575,29 @@ test.describe('Curate v2 journeys (phone)', () => {
     expect(popups).toBe(0);
   });
 
+  test('A tea is deleted from its own screen, asking in place: Keep leaves it, Delete removes it at the shop', async ({ page }) => {
+    let popups = 0;
+    page.on('dialog', (d) => { popups += 1; void d.dismiss(); });
+    const deletes: string[] = [];
+    page.on('request', (r) => { if (r.method() === 'DELETE' && /\/api\/compass\/entries\//.test(r.url())) deletes.push(r.url()); });
+    await installCompassHarness(page, TODAY_DATA);
+    await openCurateV2(page, 'teas');
+    await page.getByRole('button', { name: /^Jingmai Maocha/ }).first().click();
+    const row = overlay(page).getByTestId('tea-face-delete');
+    await row.getByRole('button', { name: 'Delete Jingmai Maocha' }).click();
+    await expect(row).toContainText('Delete this tea?');
+    await row.getByRole('button', { name: 'Keep' }).click();
+    await expect(row.getByRole('button', { name: 'Delete Jingmai Maocha' })).toBeVisible();
+    await row.getByRole('button', { name: 'Delete Jingmai Maocha' }).click();
+    await row.getByRole('button', { name: 'Delete', exact: true }).click();
+    await expect(overlay(page)).toHaveCount(0);
+    expect(await selectedTab(page)).toEqual(['Teas']);
+    await expect(page.getByRole('tabpanel').getByRole('button', { name: /^Jingmai Maocha/ })).toHaveCount(0);
+    await expect.poll(() => deletes.length).toBe(1);
+    expect(deletes[0]).toContain('/api/compass/entries/e-cost');
+    expect(popups).toBe(0);
+  });
+
   test('Teas: imports are shop rows; the title wraps whole, Open is the row, Delete is one word', async ({ page }) => {
     const item = (batch: string, n: number, blocking: string[]) => ({
       id: `${batch}-i${n}`, batch_id: batch, source_id: `${batch}-s`, position: n, category: 'tea', name: `Tea ${n}`, raw_text: `Tea ${n}`,

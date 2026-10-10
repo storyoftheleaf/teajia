@@ -130,6 +130,8 @@ type Choice = 'pass' | 'sample' | 'buy';
 export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTaste, onFullTasting, canTalk, onTalk, talking, voiceState, onBuy, onOpenSaid, onDone }) => {
   const entry = useTeaCompassStore((s) => s.pendingEntries.find((e) => e.id === entryId) ?? s.entries.find((e) => e.id === entryId));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
+  const removeEntry = useTeaCompassStore((s) => s.removeEntry);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const allNotes = useNotesStore((s) => s.notes);
   const { data: rates } = useRates();
   const shopFreight = useShopFreightDefault();
@@ -328,6 +330,19 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
           <button type="button" onClick={onDone} className="curate-v2-word tap-target min-h-11 px-1 text-ui-14" data-testid="tea-face-done">Done</button>
         </div>
       )}
+      {/* Delete asks on its own line, never in a browser popup. The shop marks
+          the tea deleted and keeps it in Curate's history, so it can be undone. */}
+      <div className="flex items-center gap-3 px-4 pb-2 pt-3 font-mono text-ui-12" data-testid="tea-face-delete">
+        {confirmingDelete ? (
+          <>
+            <span className="text-tea-text-sec">Delete this tea?</span>
+            <button type="button" onClick={() => { removeEntry(entry.id); onBack?.(); }} className="tap-target min-h-11 text-tea-error">Delete</button>
+            <button type="button" onClick={() => setConfirmingDelete(false)} className="tap-target min-h-11 text-tea-text-sec hover:text-tea-text">Keep</button>
+          </>
+        ) : (
+          <button type="button" onClick={() => setConfirmingDelete(true)} className="tap-target min-h-11 text-tea-text-sec hover:text-tea-text" aria-label={`Delete ${entry.name || 'this tea'}`}>Delete this tea</button>
+        )}
+      </div>
     </article>
   );
 };
