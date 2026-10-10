@@ -6,6 +6,7 @@ import { getThemeTextColor } from '../../../themeUtils';
 import { TASTING_TAXONOMY } from '../../../../data/tastingTaxonomy';
 import { TapField } from './PhoneTeaSheet';
 import { SampleDecideRow } from './SampleDecide';
+import { BuyingEntry } from '../../../../components/shared/BuyingEntry';
 import { useTeaCompassStore } from '../../../../lib/teaCompassStore';
 import { useRates } from '../../../hooks/useAdminData';
 import { rateToUsd } from '../../../../lib/currency';
@@ -105,6 +106,7 @@ export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, gr
           })}
         </div>
       </div>}
+      <BuyingEntry className="px-4 py-2.5" />
       {groups.map(group => {
         const isOpen = expandAll || open.has(group.key);
         const grams = group.rows.reduce((sum, h) => sum + Number(h.sample_grams ?? 0), 0);

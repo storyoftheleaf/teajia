@@ -260,4 +260,41 @@ test.describe('Deciding on a sample, phone', () => {
     await row.getByRole('button', { name: 'Add', exact: true }).click();
     await expect(row.getByRole('button', { name: '2 pc' })).toBeVisible();
   });
+
+  test('the buying basket: Want, then sizes, Air or Boat, and Place order records it once', async ({ page }) => {
+    await setup(page);
+    const created: Array<Record<string, unknown>> = [];
+    const receipts: string[] = [];
+    await page.route('**/api/purchase-orders', async route => {
+      if (route.request().method() !== 'POST') return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+      created.push(route.request().postDataJSON());
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'po-1' }) });
+    });
+    await page.route('**/api/compass/entries/*/receipt-proposals', async route => {
+      receipts.push(route.request().url());
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'r-1' }) });
+    });
+    const row = page.getByTestId('sample-decide-row').filter({ hasText: '1958 Aged Raw' });
+    await row.getByRole('button', { name: 'Want', exact: true }).click();
+    await row.getByRole('textbox', { name: 'How many pieces' }).fill('2');
+    await row.getByRole('button', { name: 'Add', exact: true }).click();
+    await page.getByTestId('buying-entry').click();
+    const line = page.getByTestId('buying-line').filter({ hasText: '1958 Aged Raw' });
+    await expect(line).toBeVisible();
+    await expect(line.getByRole('radio', { name: /2 cakes/ })).toHaveAttribute('aria-checked', 'true');
+    await expect(line).toContainText('¥1,800');
+    await line.getByRole('radio', { name: /7 cakes/ }).click();
+    await expect(line).toContainText('¥6,300');
+    await line.getByRole('radio', { name: 'Boat' }).click();
+    await expect(line.getByRole('radio', { name: 'Boat' })).toHaveAttribute('aria-checked', 'true');
+    await expect(page.getByText(/freight ≈ ¥/)).toBeVisible();
+    await shot(page, 'buying-basket');
+    await page.getByRole('button', { name: 'Place order' }).click();
+    await expect(page.getByRole('status', { name: 'Orders placed' })).toContainText('Boyuan Tea Shop');
+    expect(created).toHaveLength(1);
+    const items = JSON.parse(String(created[0].items_json)) as Array<Record<string, unknown>>;
+    expect(items[0]).toMatchObject({ name: '1958 Aged Raw', quantity: 7, shipBy: 'boat' });
+    expect(receipts).toHaveLength(1);
+    await shot(page, 'buying-placed');
+  });
 });

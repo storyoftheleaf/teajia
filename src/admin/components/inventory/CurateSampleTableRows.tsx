@@ -9,6 +9,7 @@ import { useRates } from '../../hooks/useAdminData';
 import { rateToUsd } from '../../../lib/currency';
 import type { SampleHolding } from './phone/PhoneSamplesList';
 import { SampleDecideBar, QuoteField } from './phone/SampleDecide';
+import { BuyingEntry } from '../../../components/shared/BuyingEntry';
 import { useLiveEntry, setSampleQuote } from './phone/sampleDecisions';
 import { useTeaCompassStore } from '../../../lib/teaCompassStore';
 
@@ -50,6 +51,7 @@ export const CurateSampleTableRows: React.FC<{
   const visible = rows.filter(h => showRejected || decisionOf(h) !== 'passed_on');
   return (
     <>
+      <tr><td colSpan={colKeys.length} className="px-3"><BuyingEntry className="py-2" /></td></tr>
       {visible.map(h => <SampleTableRow key={`curate-${h.entry.id}`} holding={h} colKeys={colKeys} rates={rates} />)}
       {rejectedCount > 0 && (
         <tr className="border-b border-tea-border">
