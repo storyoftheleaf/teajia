@@ -222,3 +222,29 @@ export async function clearHealthProblem(db: D1Database, signature: string, ref:
   `).bind(ref.slice(0, 200), key).run();
   return Number(result.meta?.changes ?? 0) > 0;
 }
+
+/** A problem nobody has seen for this many days has gone away on its own. */
+export const QUIET_DAYS_BEFORE_CLEAR = 7;
+
+/**
+ * Clear every problem that has stopped happening.
+ *
+ * The owner wants Needs fixing to be a list of things to do, not a record of
+ * everything that ever went wrong, and he does not want to press Mark fixed on
+ * a problem that fixed itself. So a row whose last report is older than
+ * `QUIET_DAYS_BEFORE_CLEAR` days is resolved by the cron. Nothing is lost by
+ * this: `upsertIncident` reopens a resolved row the moment the same problem is
+ * reported again, and a reopened serious problem is handed to repair again.
+ *
+ * Health problems are swept too, and that is safe: a standing fault is re-filed
+ * on every hourly tick, which keeps its `last_seen` fresh. Returns how many
+ * rows were cleared.
+ */
+export async function clearQuietIncidents(db: D1Database, days = QUIET_DAYS_BEFORE_CLEAR): Promise<number> {
+  const result = await db.prepare(`
+    UPDATE incident_ledger
+       SET status = 'resolved', resolved_at = datetime('now'), resolution_ref = ?
+     WHERE status != 'resolved' AND last_seen < datetime('now', ?)
+  `).bind(`auto: not seen for ${days} days`, `-${days} days`).run();
+  return Number(result.meta?.changes ?? 0);
+}
