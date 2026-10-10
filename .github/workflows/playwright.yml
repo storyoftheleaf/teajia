@@ -220,10 +220,18 @@ jobs:
     # job), so there is no server shared between shards for a raised
     # worker count to contend over, and this stays out of
     # playwright.config.ts (not this item's file) either way.
+    #
+    # 25 became 35 on 2026-10-10, measured: the suite grew (Curate v2 alone
+    # added about 160 browser tests) and shard 3 was cut off at the 25-minute
+    # cap on every main run that day, the last at test 275 of 286, so main
+    # could not go green at all. A cancelled shard spends its whole 25
+    # minutes and proves nothing, so a cap the suite actually fits in costs
+    # fewer runner minutes than one it overruns. Rebalance or add a shard if
+    # a shard nears 35.
     runs-on: ubuntu-latest
     needs: gate
     if: needs.gate.outputs.run == 'true' && github.event_name != 'schedule' && github.event_name != 'pull_request'
-    timeout-minutes: 25
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
