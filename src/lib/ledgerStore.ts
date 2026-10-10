@@ -27,6 +27,9 @@ export interface LedgerLineItem {
   unpriced?: boolean;
 
   // Link back to source
+  /** How this tea travels: by air, by boat, or part of each. Unset is the shop's usual air freight. */
+  shipBy?: 'air' | 'boat' | 'both';
+
   compassEntryId?: string;   // If added from Tea Compass
   productId?: string;        // If added from inventory (for sales)
 
