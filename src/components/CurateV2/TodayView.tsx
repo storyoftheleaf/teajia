@@ -61,7 +61,7 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const sections = useMemo(() => todaySections(entries), [entries]);
   const byId = useMemo(() => new Map(entries.map((e) => [e.id, e])), [entries]);
-  const { groups, todos, arriving, failed: agentFailed, retry: retryAgent } = useAgentLists();
+  const { groups, todos, arriving, todosLoading, failed: agentFailed, retry: retryAgent } = useAgentLists();
   const hydration = useTeaCompassStore((s) => s.hydrationStatus);
   const accountId = useAppStore((s) => s.activeAccountId);
   const { createInventoryRecord } = useCommitAndPromote();
@@ -179,7 +179,7 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
         </Band>
       )}
 
-      {(openTodos.length > 0 || (signedIn && entries.length > 0)) && (
+      {!todosLoading && (openTodos.length > 0 || (signedIn && entries.length > 0)) && (
         <Band id="todo" title="To do" count={openTodos.length > 0 ? openTodos.length : undefined}>
           {openTodos.map((t) => {
             const subject = t.tea_name || t.vendor_name || '';

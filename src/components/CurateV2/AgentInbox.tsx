@@ -31,6 +31,8 @@ export function useAgentLists() {
     groups: suggestions.data?.waiting ?? [],
     todos: todos.data?.todos ?? [],
     arriving: arriving.data?.pending ?? [],
+    /** The to-dos have not arrived yet: Today waits rather than drawing an empty To do band that fills a moment later. */
+    todosLoading: signedIn && todos.isPending,
     /** A read failed: what is shown may be missing something an agent left. */
     failed: signedIn && (suggestions.isError || todos.isError || arriving.isError),
     retry: () => { for (const q of [suggestions, todos, arriving]) if (q.isError) void q.refetch(); },

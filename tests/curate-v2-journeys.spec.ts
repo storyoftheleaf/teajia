@@ -575,6 +575,18 @@ test.describe('Curate v2 journeys (phone)', () => {
     expect(popups).toBe(0);
   });
 
+  test('Today: To do waits for its to-dos instead of flashing an empty band first', async ({ page }) => {
+    await installCompassHarness(page, { ...TODAY_DATA, delayRequests: [{ match: 'GET /api/curate/todos', ms: 1500 }] });
+    await openCurateV2(page, 'today');
+    // While the to-dos are on their way, there is no To do band at all, empty or otherwise.
+    await expect(page.getByTestId('today-section-decide')).toBeVisible();
+    await expect(page.getByTestId('today-section-todo')).toHaveCount(0);
+    // When they arrive, the band appears whole: its count and its line together.
+    const band = page.getByTestId('today-section-todo');
+    await expect(band).toContainText('01');
+    await expect(band).toContainText('confirm the year');
+  });
+
   test('A tea is deleted from its own screen, asking in place: Keep leaves it, Delete removes it at the shop', async ({ page }) => {
     let popups = 0;
     page.on('dialog', (d) => { popups += 1; void d.dismiss(); });
