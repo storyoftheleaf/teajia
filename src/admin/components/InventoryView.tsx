@@ -2846,6 +2846,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
               {/* Grouped sections */}
               {groupedProducts.map(({ key: groupKey, label: groupLabel, items, totalStock, totalRetail, lifecycle }) => {
+                if (filterType === 'Samples' && items.length === 0) return null;
                 const isCollapsed = collapsedGroups.has(groupKey);
                 return (
                   <div key={groupKey} data-testid={lifecycle ? `inventory-stage-${groupKey}` : undefined}>

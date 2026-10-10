@@ -27,7 +27,7 @@ async function openSamples(page: Page) {
 
 const HOLDINGS = [
   {
-    entry: { id: 'tea-a', name: '1958 Aged Raw', type: 'Sheng Puer', year: 1958, vendor_name: 'Boyuan Tea Shop', vendor_id: 'v1', price_amount: 900, price_currency: 'Yuan' },
+    entry: { id: 'tea-a', name: '1958 Aged Raw', type: 'Sheng Puer', year: 1958, vendor_name: 'Boyuan Tea Shop', vendor_id: 'v1', price_amount: 900, price_currency: 'Yuan', price_per_unit_grams: 357, origin_region: 'Yunnan', form: 'Cake' },
     stock_grams: 0, sample_grams: 25,
     samples: [{ id: 'portion-a', name: '', grams: 25, status: 'received', compass_entry_id: 'tea-a' }],
   },
@@ -150,6 +150,7 @@ test.describe('Samples on the laptop', () => {
   test.beforeEach(async ({ page }) => {
     await injectAuth(page);
     await mockInventoryApi(page);
+    await page.route('**/api/rates', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ currency: 'USD', rate_to_usd: 1, last_updated: new Date().toISOString() }, { currency: 'Yuan', rate_to_usd: 7.2, last_updated: new Date().toISOString() }]) }));
     await page.route('**/api/curate/holdings**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(HOLDINGS) }));
   });
 
@@ -161,6 +162,13 @@ test.describe('Samples on the laptop', () => {
     await expect(rows).toHaveCount(2);
     await expect(rows.filter({ hasText: '1958 Aged Raw' })).toContainText('25');
     await expect(page.getByText('No products match the current filter.')).toHaveCount(0);
+    const aged = rows.filter({ hasText: '1958 Aged Raw' });
+    await expect(aged).toContainText('900');
+    await expect(aged).toContainText('/357g');
+    await expect(aged).toContainText('Yunnan');
+    // 900 Yuan for 357 g at 7.2 Yuan a dollar is $0.35 a gram.
+    await expect(aged).toContainText('0.35');
+    await expect(page.getByText(/0 items/i)).toHaveCount(0);
     await shot(page, 'laptop');
     await page.getByRole('button', { name: 'Open 1958 Aged Raw in Curate' }).click();
     await expect(page).toHaveURL(/\/admin\/compass\?entry=tea-a/);
