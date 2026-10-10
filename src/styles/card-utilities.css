@@ -4248,12 +4248,17 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
   top: 0.25rem;
   left: 0.75rem;
   z-index: 1;
-  color: var(--tea-text-dim);
+  /* The site's shared label (TYPOGRAPHY_CLASSES.label): 11px, normal weight,
+     secondary text colour, 1.2px tracking, so a box's label and a "Tea details
+     & sourcing" label read as one style (Adrian, 2026-10-10). It was 10px
+     bold in the dim colour. Line height stays tight because this label sits
+     inside the box, above what is typed. */
+  color: var(--tea-text-sec);
   font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 500;
   line-height: 1.2;
-  letter-spacing: 0.12em;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
   pointer-events: none;
 }
