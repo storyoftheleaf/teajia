@@ -578,13 +578,25 @@ test.describe('Curate v2 journeys (phone)', () => {
   test('Today: To do waits for its to-dos instead of flashing an empty band first', async ({ page }) => {
     await installCompassHarness(page, { ...TODAY_DATA, delayRequests: [{ match: 'GET /api/curate/todos', ms: 1500 }] });
     await openCurateV2(page, 'today');
-    // While the to-dos are on their way, there is no To do band at all, empty or otherwise.
-    await expect(page.getByTestId('today-section-decide')).toBeVisible();
+    // While the to-dos are on their way, Today holds: no empty To do band, and no
+    // To decide drawn early for To do to land on top of a moment later.
+    await expect(page.getByText('Loading your teas…')).toBeVisible();
     await expect(page.getByTestId('today-section-todo')).toHaveCount(0);
-    // When they arrive, the band appears whole: its count and its line together.
+    await expect(page.getByTestId('today-section-decide')).toHaveCount(0);
+    // Then Today appears once, in its final order: To do whole, above To decide.
     const band = page.getByTestId('today-section-todo');
     await expect(band).toContainText('01');
     await expect(band).toContainText('confirm the year');
+    const todoTop = (await band.boundingBox())!.y;
+    const decideTop = (await page.getByTestId('today-section-decide').boundingBox())!.y;
+    expect(todoTop).toBeLessThan(decideTop);
+  });
+
+  test('Today: a slow to-do read holds Today for at most 3 seconds, then the teas show', async ({ page }) => {
+    await installCompassHarness(page, { ...TODAY_DATA, delayRequests: [{ match: 'GET /api/curate/todos', ms: 8000 }] });
+    await openCurateV2(page, 'today');
+    await expect(page.getByText('Loading your teas…')).toBeVisible();
+    await expect(page.getByTestId('today-section-decide')).toBeVisible({ timeout: 5000 });
   });
 
   test('A tea is deleted from its own screen, asking in place: Keep leaves it, Delete removes it at the shop', async ({ page }) => {
