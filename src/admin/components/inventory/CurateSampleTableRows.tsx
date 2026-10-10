@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../../lib/api';
@@ -8,6 +8,9 @@ import { getThemeTextColor } from '../../themeUtils';
 import { useRates } from '../../hooks/useAdminData';
 import { rateToUsd } from '../../../lib/currency';
 import type { SampleHolding } from './phone/PhoneSamplesList';
+import { SampleDecideBar, QuoteField } from './phone/SampleDecide';
+import { useLiveEntry, setSampleQuote } from './phone/sampleDecisions';
+import { useTeaCompassStore } from '../../../lib/teaCompassStore';
 
 // Curate samples as rows of the laptop Stock table, under the same columns as a
 // tea: the Samples view is one list, not a second screen. A sample is a Curate
@@ -40,76 +43,110 @@ export const CurateSampleTableRows: React.FC<{
   const q = search.toLowerCase();
   const rows = all.filter(h => `${h.entry.name ?? ''} ${h.entry.chinese_name ?? ''} ${h.entry.vendor_name ?? ''}`.toLowerCase().includes(q));
 
+  const liveEntries = useTeaCompassStore(s => s.entries);
+  const [showRejected, setShowRejected] = useState(false);
+  const decisionOf = (h: SampleHolding) => liveEntries.find(e => e.id === h.entry.id)?.decision ?? h.entry.decision;
+  const rejectedCount = rows.filter(h => decisionOf(h) === 'passed_on').length;
+  const visible = rows.filter(h => showRejected || decisionOf(h) !== 'passed_on');
   return (
     <>
-      {rows.map(h => {
-        const e = h.entry;
-        const name = e.name || e.chinese_name || 'Unnamed tea';
-        // The vendor's quote: an amount for a number of grams, in the currency it was quoted in.
-        const amount = e.price_amount == null ? null : Number(e.price_amount);
-        const perGrams = e.price_per_unit_grams == null ? null : Number(e.price_per_unit_grams);
-        const usdRate = e.price_currency ? rateToUsd(rates, String(e.price_currency)) : null;
-        // rateToUsd is units of that money per dollar, so dollars = amount / rate.
-        const costPerGram = amount != null && perGrams && usdRate != null ? amount / usdRate / perGrams : null;
-        const open = () => navigate(`/admin/compass?entry=${encodeURIComponent(String(e.id))}`);
-        return (
-          <tr key={`curate-${e.id}`} data-testid="curate-sample-table-row" onClick={open} className="border-b border-tea-border last:border-b-0 cursor-pointer select-none transition-colors hover:bg-tea-accent-sub" style={rowHeight ? { height: rowHeight } : undefined}>
-            {colKeys.map(key => {
-              switch (key) {
-                case 'productName':
-                  return (
-                    <td key={key} className="px-3 pt-[3px] pb-[5px] align-middle overflow-hidden">
-                      <div className="flex flex-col justify-center">
-                        <button type="button" onClick={ev => { ev.stopPropagation(); open(); }} aria-label={`Open ${name} in Curate`}
-                          className="font-display text-ui-17 leading-tight truncate font-medium text-tea-text self-start w-fit max-w-full text-left hover:text-tea-gold">{name}</button>
-                        <span className="font-sans text-ui-11 text-tea-text-dim leading-none truncate block" style={{ letterSpacing: '0.02em' }}>
-                          {e.year && <span className="num opacity-80 mr-1">{e.year}</span>}
-                          <span style={{ color: getThemeTextColor(String(e.type || '')) }}>{e.type || 'Tea'}</span>
-                          <span> · sample{h.sample_grams == null ? <span className="text-tea-error"> not weighed</span> : ` ${whole(Number(h.sample_grams))} g left`}</span>
-                        </span>
-                      </div>
-                    </td>
-                  );
-                case 'type':
-                  return <td key={key} className="px-3 py-1 text-ui-13 text-tea-text-sec align-middle overflow-hidden">{e.type || ''}</td>;
-                case 'year':
-                  return <td key={key} className="px-3 py-1 text-ui-13 text-right num align-middle overflow-hidden text-tea-text-sec">{e.year || '—'}</td>;
-                case 'stockGrams':
-                  // For a sample the useful figure is the quote, what it costs for how
-                  // many grams, not shelf stock. Its grams left sit under the name.
-                  return (
-                    <td key={key} className="px-3 py-1 text-ui-13 text-right num align-middle overflow-hidden text-tea-text whitespace-nowrap" title="The quoted price, for this many grams">
-                      {amount == null
-                        ? <span className="text-tea-text-dim">—</span>
-                        : <><span className="font-sans text-ui-10 text-tea-text-dim">{moneyMark(e.price_currency)}</span>{whole(amount)}{perGrams ? <span className="font-sans text-ui-10 text-tea-text-dim">/{whole(perGrams)}g</span> : null}</>}
-                    </td>
-                  );
-                case 'originRegion':
-                  return <td key={key} className="px-3 py-1 text-ui-13 text-tea-text-sec align-middle overflow-hidden"><span className="truncate block">{e.origin_region || e.origin_country || ''}</span></td>;
-                case 'form':
-                  return <td key={key} className="px-3 py-1 text-ui-13 text-tea-text-sec align-middle overflow-hidden truncate">{e.form || ''}</td>;
-                case 'costAmount':
-                  return (
-                    <td key={key} className="px-3 py-1 text-ui-13 text-right num align-middle overflow-hidden text-tea-text-sec whitespace-nowrap" title="The quoted price, for this many grams">
-                      {amount == null ? '—' : <>{whole(amount)}<span className="ml-0.5 font-sans text-ui-10 text-tea-text-dim">{e.price_currency || ''}{perGrams ? ` / ${whole(perGrams)} g` : ''}</span></>}
-                    </td>
-                  );
-                case 'pricePerGramUSD':
-                case 'costPerGramUSD':
-                  return (
-                    <td key={key} className="px-3 py-1 text-ui-13 text-right num align-middle overflow-hidden text-tea-text" title="What the sample's quote comes to per gram, in dollars">
-                      {costPerGram == null ? '—' : <>{fmtNum(costPerGram)}<span className="ml-0.5 font-sans text-ui-10 text-tea-text-dim">/g</span></>}
-                    </td>
-                  );
-                case 'vendor':
-                  return <td key={key} className="px-3 py-1 text-ui-13 text-tea-text-sec align-middle overflow-hidden truncate">{e.vendor_name || ''}</td>;
-                default:
-                  return <td key={key} className="px-3 py-1 align-middle" />;
-              }
-            })}
-          </tr>
-        );
+      {visible.map(h => <SampleTableRow key={`curate-${h.entry.id}`} holding={h} colKeys={colKeys} rates={rates} />)}
+      {rejectedCount > 0 && (
+        <tr className="border-b border-tea-border">
+          <td colSpan={colKeys.length} className="px-3 py-2">
+            <button type="button" onClick={() => setShowRejected(v => !v)} aria-pressed={showRejected} className="text-ui-12 text-tea-text-sec hover:text-tea-text">
+              {showRejected ? 'Hide rejected' : `Rejected ${rejectedCount}, show`}
+            </button>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+};
+
+const cellLabel = 'block font-sans text-ui-9 uppercase tracking-[0.1em] text-tea-text-dim leading-none mb-0.5';
+
+/** One sample as a row of the Stock table: the same columns, its own meaning in each,
+ *  labelled where a heading would mislead (Stock shows the quote, Retail the cost). */
+const SampleTableRow: React.FC<{ holding: SampleHolding; colKeys: string[]; rates: Parameters<typeof rateToUsd>[0] }> = ({ holding: h, colKeys, rates }) => {
+  const navigate = useNavigate();
+  const e = h.entry;
+  const live = useLiveEntry(String(e.id));
+  const name = live?.name || e.name || e.chinese_name || 'Unnamed tea';
+  // The vendor's quote: an amount for a number of grams, in the currency it was quoted in.
+  // Unknown stays unknown (null); a typed 0 stays 0.
+  const amount = live ? (live.priceAmount ?? null) : (e.price_amount == null ? null : Number(e.price_amount));
+  const perGrams = live ? (live.pricePerUnitGrams ?? null) : (e.price_per_unit_grams == null ? null : Number(e.price_per_unit_grams));
+  const currency = String(live?.priceCurrency ?? e.price_currency ?? '');
+  const usdRate = currency ? rateToUsd(rates, currency) : null;
+  // rateToUsd is units of that money per dollar, so dollars = amount / rate.
+  const costPerGram = amount != null && perGrams && usdRate != null ? amount / usdRate / perGrams : null;
+  const rejected = (live?.decision ?? e.decision) === 'passed_on';
+  const open = () => navigate(`/admin/compass?entry=${encodeURIComponent(String(e.id))}`);
+  const [error, setError] = useState('');
+  const save = (field: 'amount' | 'grams') => (text: string) => { setError(''); setSampleQuote(String(e.id), field, text).catch(err => setError(err instanceof Error ? err.message : 'Could not save.')); };
+  return (
+    <>
+    <tr data-testid="curate-sample-table-row" className={rejected ? 'opacity-60' : ''}>
+      {colKeys.map(key => {
+        switch (key) {
+          case 'productName':
+            return (
+              <td key={key} className="px-3 pt-1.5 pb-2 align-top overflow-hidden">
+                <button type="button" onClick={open} aria-label={`Open ${name} in Curate`}
+                  className="block font-display text-ui-17 leading-tight truncate font-medium text-tea-text max-w-full text-left hover:text-tea-gold">{name}</button>
+                <span className="font-sans text-ui-11 text-tea-text-dim leading-none truncate block" style={{ letterSpacing: '0.02em' }}>
+                  {e.year && <span className="num opacity-80 mr-1">{e.year}</span>}
+                  <span style={{ color: getThemeTextColor(String(live?.type ?? e.type ?? '')) }}>{live?.type ?? e.type ?? 'Tea'}</span>
+                  <span> · sample{h.sample_grams == null ? <span className="text-tea-error"> not weighed</span> : ` ${whole(Number(h.sample_grams))} g left`}</span>
+                </span>
+
+              </td>
+            );
+          case 'type':
+            return <td key={key} className="px-3 py-1 text-ui-13 text-tea-text-sec align-top pt-2 overflow-hidden">{live?.type ?? e.type ?? ''}</td>;
+          case 'year':
+            return <td key={key} className="px-3 py-1 text-ui-13 text-right num align-top pt-2 overflow-hidden text-tea-text-sec">{live?.year ?? e.year ?? '—'}</td>;
+          case 'stockGrams':
+          case 'costAmount':
+            // For a sample the figure is the supplier's quote, an amount for a number
+            // of grams, never shelf stock. Labelled, because the heading says Stock.
+            return (
+              <td key={key} className="px-3 py-1 text-ui-13 text-right num align-top pt-1.5 overflow-hidden text-tea-text whitespace-nowrap">
+                <span className={cellLabel}>quote{currency ? ` · ${moneyMark(currency)}` : ''}</span>
+                <span className="inline-flex items-baseline gap-0.5 justify-end">
+                  <span className="inline-block"><QuoteField small value={amount} aria={`Cost of ${name}`} display={amount == null ? <span className="text-tea-text-dim">add</span> : whole(amount)} onSave={save('amount')} /></span>
+                  <span className="font-sans text-ui-10 text-tea-text-dim">/</span>
+                  <span className="inline-block"><QuoteField small value={perGrams} aria={`Grams that cost is for, ${name}`} display={perGrams == null ? <span className="text-tea-text-dim">g?</span> : <>{whole(perGrams)}<span className="font-sans text-ui-10 text-tea-text-dim">g</span></>} onSave={save('grams')} /></span>
+                </span>
+              </td>
+            );
+          case 'pricePerGramUSD':
+          case 'costPerGramUSD':
+            // The supplier's cost per gram, never a shop retail price: labelled so.
+            return (
+              <td key={key} className="px-3 py-1 text-ui-13 text-right num align-top pt-1.5 overflow-hidden text-tea-text-sec">
+                <span className={cellLabel}>cost/g</span>
+                {costPerGram == null ? '—' : <>${fmtNum(costPerGram)}</>}
+              </td>
+            );
+          case 'originRegion':
+            return <td key={key} className="px-3 py-1 text-ui-13 text-tea-text-sec align-top pt-2 overflow-hidden"><span className="truncate block">{e.origin_region || e.origin_country || ''}</span></td>;
+          case 'form':
+            return <td key={key} className="px-3 py-1 text-ui-13 text-tea-text-sec align-top pt-2 overflow-hidden truncate">{live?.form ?? e.form ?? ''}</td>;
+          case 'vendor':
+            return <td key={key} className="px-3 py-1 text-ui-13 text-tea-text-sec align-top pt-2 overflow-hidden truncate">{e.vendor_name || ''}</td>;
+          default:
+            return <td key={key} className="px-3 py-1 align-top" />;
+        }
       })}
+    </tr>
+    <tr className="border-b border-tea-border">
+      <td colSpan={colKeys.length} className="px-3 pb-2">
+        <div className="max-w-[460px]"><SampleDecideBar holding={h} onTaste={open} compact /></div>
+        {error && <p role="alert" className="mt-1 text-ui-12 text-tea-error">{error}</p>}
+      </td>
+    </tr>
     </>
   );
 };

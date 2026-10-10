@@ -5,6 +5,10 @@ import { fmtNum } from '../../../../utils/formatNumber';
 import { getThemeTextColor } from '../../../themeUtils';
 import { TASTING_TAXONOMY } from '../../../../data/tastingTaxonomy';
 import { TapField } from './PhoneTeaSheet';
+import { SampleDecideRow } from './SampleDecide';
+import { useTeaCompassStore } from '../../../../lib/teaCompassStore';
+import { useRates } from '../../../hooks/useAdminData';
+import { rateToUsd } from '../../../../lib/currency';
 
 // The same five tasting categories the laptop samples screen offers.
 const TASTE_CATEGORIES = TASTING_TAXONOMY.categories.filter(c => ['body', 'finish', 'feeling', 'flavor', 'liquor-color'].includes(c.id));
@@ -56,9 +60,19 @@ export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, gr
   const onSort = (key: SampleSort) => setSort(prev => ({ key, dir: prev.key === key && prev.dir === 'asc' ? 'desc' : 'asc' }));
   const [open, setOpen] = useState<Set<string>>(() => new Set());
   const [focusedId, setFocusedId] = useState<string | null>(null);
+  const [showRejected, setShowRejected] = useState(false);
+  const liveDecisions = useTeaCompassStore((st) => st.entries);
+  const decisionOf = (h: SampleHolding) => liveDecisions.find((e) => e.id === h.entry.id)?.decision ?? h.entry.decision;
+  const rejectedCount = holdings.filter((h) => decisionOf(h) === 'passed_on').length;
+  const shown = holdings.filter((h) => showRejected || decisionOf(h) !== 'passed_on');
+  const { data: rates = [] } = useRates();
+  const usdPerGram = (amount: number, grams: number, currency: string): number | null => {
+    const r = currency ? rateToUsd(rates, currency) : null;
+    return r == null || !grams ? null : amount / r / grams;
+  };
   const groups = useMemo(() => {
     const byVendor = new Map<string, { label: string; rows: SampleHolding[] }>();
-    for (const h of holdings) {
+    for (const h of shown) {
       const label = groupBy === 'none' ? 'All samples' : groupBy === 'type' ? String(h.entry.type || 'No kind').trim() : String(h.entry.vendor_name || 'No supplier').trim();
       const key = label.toLowerCase();
       if (!byVendor.has(key)) byVendor.set(key, { label, rows: [] });
@@ -72,7 +86,7 @@ export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, gr
         return d * teaName(a).localeCompare(teaName(b));
       }) }))
       .sort((a, b) => b.rows.length - a.rows.length || a.label.localeCompare(b.label));
-  }, [holdings, groupBy, sort]);
+  }, [shown, groupBy, sort]);
   const expandAll = holdings.length <= 25;
   const focused = focusedId ? holdings.find(h => h.entry.id === focusedId) ?? null : null;
 
@@ -112,35 +126,18 @@ export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, gr
                 </span>
               </span>
             </button>
-            {isOpen && group.rows.map(h => {
-              const isFocused = focusedId === h.entry.id;
-              const empty = h.sample_grams == null;
-              return (
-                <div key={h.entry.id} className={`relative flex items-center ${isFocused ? 'bg-tea-surface' : ''} after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-tea-border`}>
-                  <button
-                    type="button"
-                    data-testid="curate-sample-row"
-                    aria-expanded={isFocused}
-                    onClick={() => setFocusedId(isFocused ? null : h.entry.id)}
-                    className={`${cols} flex-1 min-w-0 pl-4 pr-3 text-left min-h-[46px]`}
-                  >
-                    <span className="min-w-0 py-1.5 pr-2">
-                      <span className={`block truncate font-display text-ui-17 font-semibold leading-tight ${isFocused ? 'text-tea-gold' : 'text-tea-text'}`}>{teaName(h)}</span>
-                      <span className="flex items-center gap-1.5 text-ui-11 leading-tight min-w-0">
-                        <span className="truncate" style={{ color: getThemeTextColor(String(h.entry.type || '')) }}>{h.entry.type || 'Tea'}</span>
-                        {empty && <span aria-label="not weighed" className="shrink-0 w-1.5 h-1.5 rounded-full bg-tea-error" />}
-                      </span>
-                    </span>
-                    <span className="flex items-center justify-end font-mono text-ui-13 tracking-tight text-tea-text tabular-nums">{h.entry.year || '—'}</span>
-                    <span className="flex items-center justify-end font-mono text-ui-13 tracking-tight text-tea-text tabular-nums">{empty ? '—' : whole(Number(h.sample_grams))}</span>
-                    {rowsOnly && <span className="flex items-center justify-end font-mono text-ui-13 text-tea-text-dim">—</span>}
-                  </button>
-                </div>
-              );
-            })}
+            {isOpen && group.rows.map(h => (
+              <SampleDecideRow key={h.entry.id} holding={h} usdPerGram={usdPerGram} onOpen={() => setFocusedId(focusedId === h.entry.id ? null : h.entry.id)} />
+            ))}
           </section>
         );
       })}
+      {rejectedCount > 0 && (
+        <button type="button" onClick={() => setShowRejected(v => !v)} aria-pressed={showRejected}
+          className="w-full px-4 py-3 text-left text-ui-12 text-tea-text-sec hover:text-tea-text border-b border-tea-border">
+          {showRejected ? 'Hide rejected' : `Rejected ${rejectedCount}, show`}
+        </button>
+      )}
       {focused && (
         <SampleSheet
           holding={focused}
