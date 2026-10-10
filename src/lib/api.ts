@@ -547,6 +547,10 @@ export interface PurchaseOrder {
   status: string;
   notes?: string | null;
   message_text?: string | null;
+  /** The route it travels by (0043): air, sea, or null when nobody chose one. */
+  ship_mode?: 'air' | 'sea' | null;
+  /** The carrier's tracking number, by hand or by an agent; null is none yet. */
+  tracking_number?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -2215,12 +2219,17 @@ export const api = {
       status?: string;
       notes?: string;
       message_text?: string;
+      ship_mode?: 'air' | 'sea';
     }): Promise<{ id: string }> => {
       return authedFetch(`${API_URL}/api/purchase-orders`, {
         method: 'POST',
         body: JSON.stringify(data),
       });
     },
+
+    /** An emptied number is none: the shop stores NULL, never an empty string. */
+    setTracking: async (id: string, tracking: string): Promise<{ success: boolean }> =>
+      authedFetch(`${API_URL}/api/purchase-orders/${id}`, { method: 'PUT', body: JSON.stringify({ tracking_number: tracking }) }),
 
     updateStatus: async (id: string, status: string): Promise<{ success: boolean }> => {
       return authedFetch(`${API_URL}/api/purchase-orders/${id}`, {

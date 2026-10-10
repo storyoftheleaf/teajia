@@ -304,7 +304,60 @@ test.describe('Deciding on a sample, phone', () => {
     expect(created).toHaveLength(1);
     const items = JSON.parse(String(created[0].items_json)) as Array<Record<string, unknown>>;
     expect(items[0]).toMatchObject({ name: '1958 Aged Raw', quantity: 7, shipBy: 'boat' });
+    // One order per supplier per route: an all-boat basket is one boat order.
+    expect(created[0].ship_mode).toBe('sea');
     expect(receipts).toHaveLength(1);
     await shot(page, 'buying-placed');
+  });
+
+  test('In process: message the supplier, mark it sent, paste tracking, receive into Stock', async ({ page }) => {
+    await setup(page);
+    const line = (n: string) => ({ name: n, quantity: 1, pricePerUnit: 900, priceIsPerGram: false, currency: 'Yuan', form: 'Cake', compass_entry_id: 'tea-a' });
+    const orders: Array<Record<string, unknown>> = [
+      { id: 'po-1', account_id: 'a', vendor_name: 'Boyuan Tea Shop', items_json: JSON.stringify([line('1958 Aged Raw')]), total_usd: 125, display_currency: 'Yuan', status: 'confirmed', ship_mode: 'air', tracking_number: null, created_at: '2026-10-10', updated_at: '2026-10-10' },
+    ];
+    const puts: Array<Record<string, unknown>> = [];
+    const accepted: string[] = [];
+    await page.route('**/api/purchase-orders**', async route => {
+      const req = route.request();
+      if (req.method() === 'PUT') {
+        const id = new URL(req.url()).pathname.split('/').pop();
+        const body = req.postDataJSON() as Record<string, unknown>;
+        puts.push(body);
+        const o = orders.find(x => x.id === id)!;
+        Object.assign(o, body.tracking_number !== undefined ? { tracking_number: String(body.tracking_number).trim() || null } : {}, body.status ? { status: body.status } : {});
+        return route.fulfill({ status: 200, contentType: 'application/json', body: '{"success":true}' });
+      }
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(orders) });
+    });
+    await page.route('**/api/curate/receipt-proposals', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ pending: [{ id: 'rp-1', compass_entry_id: 'tea-a', product_id: null, product_name: '1958 Aged Raw', purpose: 'working', quantity: 357, unit: 'g', acquisition_kind: 'purchase', created_at: '', tea_name: '1958 Aged Raw', vendor_name: 'Boyuan Tea Shop' }] }) }));
+    await page.route('**/api/curate/receipt-proposals/*/accept', async route => { accepted.push(route.request().url()); await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ proposal: { id: 'rp-1' }, product_id: 'p1', ledger_id: 'l1', alreadyAccepted: false }) }); });
+
+    await page.reload();
+    await openSamples(page);
+    await page.getByTestId('in-process-entry').click();
+    const row = page.getByTestId('in-process-order').filter({ hasText: 'Boyuan Tea Shop' });
+    await expect(row).toContainText('air');
+    await expect(row).toContainText('1958 Aged Raw · 1 cake');
+    await expect(row.locator('[aria-current="step"]')).toHaveText('Placed');
+    await shot(page, 'in-process');
+
+    await row.getByRole('button', { name: 'Send message ›' }).click();
+    await expect(page.getByText("I'd like to order", { exact: false })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await row.getByRole('button', { name: 'Mark sent' }).click();
+    await expect(row.locator('[aria-current="step"]')).toHaveText('Sent to supplier');
+
+    await row.getByRole('button', { name: 'Paste a tracking number' }).click();
+    await row.getByRole('textbox', { name: 'Tracking number for Boyuan Tea Shop' }).fill('SF 1234 5678 90');
+    await row.getByRole('textbox', { name: 'Tracking number for Boyuan Tea Shop' }).press('Enter');
+    await expect(row).toContainText('SF 1234 5678 90');
+    await expect(row.locator('[aria-current="step"]')).toHaveText('Shipped');
+    await shot(page, 'in-process-shipped');
+
+    await row.getByRole('button', { name: 'Receive ›' }).click();
+    await expect(page.getByText('Boyuan Tea Shop: one tea is in Stock with what it cost.')).toBeVisible();
+    expect(accepted).toHaveLength(1);
+    expect(puts.map(p => p.status ?? p.tracking_number)).toEqual(['sent', 'SF 1234 5678 90', 'shipped', 'received']);
   });
 });

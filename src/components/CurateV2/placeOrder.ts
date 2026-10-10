@@ -22,6 +22,34 @@ import { arrivalFields, arrivalKey, orderArrivalLines } from './orderArrivals';
 import { AGENT_KEYS } from './AgentInbox';
 import { NO_VENDOR_YET } from './orderBuy';
 
+/**
+ * One order per supplier per route: a parcel and its tracking number belong to
+ * one order. A draft holding air and boat lines becomes two drafts before it is
+ * placed; Both travels with the air order (its line says Both, so the supplier
+ * message can say so). Returns the drafts to place, each with its route.
+ */
+export function splitDraftByRoute(txId: string): LedgerTransaction[] {
+  const ledger = useLedgerStore.getState();
+  const tx = ledger.getTransaction(txId);
+  if (!tx) return [];
+  const byBoat = tx.items.filter((item) => item.shipBy === 'boat');
+  const byAir = tx.items.filter((item) => item.shipBy !== 'boat');
+  if (byBoat.length === 0 || byAir.length === 0) {
+    ledger.updateTransaction(tx.id, { shipMode: byBoat.length ? 'sea' : 'air' });
+    return [useLedgerStore.getState().getTransaction(tx.id)!];
+  }
+  const boatId = ledger.createTransaction('purchase', tx.counterpartyName, tx.currency, tx.counterpartyId);
+  for (const item of byBoat) {
+    const { id: _id, addedAt: _at, ...line } = item;
+    useLedgerStore.getState().addLineItem(boatId, line);
+    useLedgerStore.getState().removeLineItem(tx.id, item.id);
+  }
+  useLedgerStore.getState().updateTransaction(tx.id, { shipMode: 'air' });
+  useLedgerStore.getState().updateTransaction(boatId, { shipMode: 'sea' });
+  const after = useLedgerStore.getState();
+  return [after.getTransaction(tx.id)!, after.getTransaction(boatId)!];
+}
+
 /** An order for "No vendor yet" cannot be placed: someone has to be named first. */
 export function purchaseNeedsVendor(tx: Pick<LedgerTransaction, 'direction' | 'counterpartyId' | 'counterpartyName'>): boolean {
   const name = tx.counterpartyName?.trim() ?? '';
@@ -73,6 +101,7 @@ export async function recordPurchase(tx: LedgerTransaction, rates: readonly Exch
       total_usd: totalAmount === undefined ? undefined : Math.round(totalAmount * 100) / 100,
       display_currency: tx.currency,
       status: 'confirmed',
+      ...(tx.shipMode ? { ship_mode: tx.shipMode } : {}),
     });
     purchaseOrderId = created?.id;
     // Kept so "Mark as sent" can name the order the shop recorded.
