@@ -1,3 +1,4 @@
+import type { ShippingRoute } from '../components/shared/routeFreight';
 import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, AdminContributor, Bundle, ContributorOption, ContributorWrite, CurateReceiptProposal, CustomerOrderDetail, DbArticle, PlatformRole, TastingData } from '../types';
 import type {
   FavoriteWrite,
@@ -2227,6 +2228,14 @@ export const api = {
         body: JSON.stringify({ status }),
       });
     },
+  },
+
+  /** How bought tea travels home (Settings). The buying basket estimates freight from these. */
+  shippingRoutes: {
+    list: async (): Promise<ShippingRoute[]> => authedFetch(`${API_URL}/api/shipping-routes`),
+    save: async (id: string | null, data: Record<string, unknown>): Promise<ShippingRoute> =>
+      authedFetch(`${API_URL}/api/shipping-routes${id ? `/${id}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(data) }),
+    remove: async (id: string): Promise<{ removed: boolean }> => authedFetch(`${API_URL}/api/shipping-routes/${id}`, { method: 'DELETE' }),
   },
 
   activityLogs: {

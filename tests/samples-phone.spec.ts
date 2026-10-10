@@ -274,6 +274,8 @@ test.describe('Deciding on a sample, phone', () => {
       receipts.push(route.request().url());
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'r-1' }) });
     });
+    // The routes from Settings: air billed by the kilo with packing; no boat route yet.
+    await page.route('**/api/shipping-routes', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ id: 'r1', mode: 'air', carrier: 'Bali Air Cargo', destination: 'Teajia Bali', rate_per_kg: 85, rate_currency: 'Yuan', packing_percent: 35, billing_step_kg: 1, minimum_kg: null, learned: null }]) }));
     const row = page.getByTestId('sample-decide-row').filter({ hasText: '1958 Aged Raw' });
     await row.getByRole('button', { name: 'Want', exact: true }).click();
     await row.getByRole('textbox', { name: 'How many pieces' }).fill('2');
@@ -287,8 +289,16 @@ test.describe('Deciding on a sample, phone', () => {
     await expect(line).toContainText('¥6,300');
     await line.getByRole('radio', { name: 'Boat' }).click();
     await expect(line.getByRole('radio', { name: 'Boat' })).toHaveAttribute('aria-checked', 'true');
-    await expect(page.getByText(/freight ≈ ¥/)).toBeVisible();
+    // Boat with no route is not estimated, never guessed.
+    await expect(page.getByText('freight not estimated')).toBeVisible();
+    await expect(page.getByTestId('receiving-tile')).toContainText('add one in Settings');
+    await shot(page, 'buying-basket-boat');
+    await line.getByRole('radio', { name: 'Air' }).click();
+    // 7 cakes, 2.5 kg, plus 35% packing, billed by the kilo: 4 kg at ¥85.
+    await expect(page.getByText('freight ≈ ¥340, packing included')).toBeVisible();
+    await expect(page.getByTestId('receiving-tile')).toContainText('Teajia Bali');
     await shot(page, 'buying-basket');
+    await line.getByRole('radio', { name: 'Boat' }).click();
     await page.getByRole('button', { name: 'Place order' }).click();
     await expect(page.getByRole('status', { name: 'Orders placed' })).toContainText('Boyuan Tea Shop');
     expect(created).toHaveLength(1);

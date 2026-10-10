@@ -12,6 +12,7 @@ import { usePersonReadiness } from '../../components/readiness/usePersonReadines
 import { storeOpeningRefusal, type StoreOpeningRefusal } from '../../components/readiness/storeOpening';
 import type { PersonReadinessInput } from '../../components/readiness/teaMasterReadiness';
 import type { Account, AccountMember, AccountRole } from '../../types';
+import { ShippingRoutesSection } from '../components/settings/ShippingRoutesSection';
 
 function useCurrentRole(): AccountRole | null {
   const { memberships, activeAccountId } = useAppStore();
@@ -437,6 +438,9 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
           </div>
         )}
       </form>
+
+      {/* How bought tea travels home; saved row by row, outside the form above. */}
+      <ShippingRoutesSection canEdit={canEdit} />
 
       {/* Integrations, per-account third-party API keys (BYOK) */}
       {canEdit && (
