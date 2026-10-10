@@ -21729,7 +21729,7 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
   if (!body.vendor_name?.trim()) return json({ error: 'vendor_name is required' }, 400);
 
   const id = crypto.randomUUID();
-  const cols = ['id', 'account_id', 'vendor_name', 'vendor_id', 'vendor_contact', 'items_json', 'total_usd', 'display_currency', 'status', 'message_text', 'notes', 'created_at', 'updated_at'];
+  const cols = ['id', 'account_id', 'vendor_name', 'vendor_id', 'vendor_contact', 'items_json', 'total_usd', 'display_currency', 'status', 'message_text', 'notes', 'ship_mode', 'created_at', 'updated_at'];
   await env.DB.prepare(
     `INSERT INTO purchase_orders (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`
   ).bind(
@@ -21746,7 +21746,7 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
     body.display_currency || 'USD',
     body.status || 'pending',
     body.message_text || null,
-    body.notes || null,
+    body.notes || null, body.ship_mode === 'air' || body.ship_mode === 'sea' ? body.ship_mode : null, // the route (0043); anything else is no route
     new Date().toISOString(),
     new Date().toISOString(),
   ).run();
@@ -21788,8 +21788,8 @@ const handleUpdatePurchaseOrder: Handler = async (request, env, params) => {
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
-  const body = await request.json() as { status?: string; notes?: string; message_text?: string };
-  const allowed = ['status', 'notes', 'message_text'];
+  const body = await request.json() as { status?: string; notes?: string; message_text?: string; tracking_number?: string | null };
+  const allowed = ['status', 'notes', 'message_text', 'tracking_number']; if ('tracking_number' in body) body.tracking_number = String(body.tracking_number ?? '').trim().slice(0, 120) || null; // emptied is none, never ''
   const cols = Object.keys(body).filter(k => allowed.includes(k));
   if (cols.length === 0) {
     const exists = await env.DB.prepare('SELECT id FROM purchase_orders WHERE id = ? AND account_id = ?').bind(params.id, accountId).first();
