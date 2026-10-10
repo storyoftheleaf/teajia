@@ -165,6 +165,13 @@ export interface OrderLanded {
 
 const PIECE_GRAMS: Record<string, number> = { Cake: 357, Brick: 250, Tuo: 100 };
 
+/** The tea weight a line carries home. Teaware is priced with its freight inside, so it weighs nothing here. */
+export function ledgerItemGrams(item: LedgerLineItem): number {
+  if (item.type === 'Teaware') return 0;
+  if (item.priceIsPerGram) return item.quantityGrams ?? 0;
+  return (item.quantityUnits ?? 1) * (item.unitWeightGrams ?? PIECE_GRAMS[String(item.form)] ?? 0);
+}
+
 /**
  * An order as it lands: the teas, the shop's freight on their weight (85
  * yuan a kilo unless the shop says otherwise), and the total in dollars at
@@ -187,9 +194,7 @@ export function orderLanded(
   let grams = 0;
   for (const item of tx.items) {
     if (!item.unpriced) subtotal += ledgerItemAmount(item);
-    if (item.type === 'Teaware') continue;
-    if (item.priceIsPerGram) grams += item.quantityGrams ?? 0;
-    else grams += (item.quantityUnits ?? 1) * (item.unitWeightGrams ?? PIECE_GRAMS[String(item.form)] ?? 0);
+    grams += ledgerItemGrams(item);
   }
   const weightKg = grams / 1000;
   const freight = weightKg * freightPerKg;

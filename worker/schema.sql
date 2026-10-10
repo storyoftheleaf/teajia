@@ -2955,3 +2955,23 @@ CREATE TABLE IF NOT EXISTS curate_drive_photo_operations (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_curate_drive_photo_inflight ON curate_drive_photo_operations(account_id, drive_file_id) WHERE status IN ('pending','unknown');
 CREATE INDEX IF NOT EXISTS idx_curate_drive_photo_history ON curate_drive_photo_operations(account_id, compass_entry_id, created_at DESC);
+
+-- Shipping routes (0042): how bought tea travels home; the buying basket estimates freight from them.
+CREATE TABLE IF NOT EXISTS shipping_routes (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  mode TEXT NOT NULL CHECK (mode IN ('air', 'sea')),
+  carrier TEXT,
+  destination TEXT,
+  rate_per_kg REAL CHECK (rate_per_kg IS NULL OR rate_per_kg >= 0),
+  rate_currency TEXT CHECK ((rate_per_kg IS NULL) = (rate_currency IS NULL)),
+  packing_percent REAL CHECK (packing_percent IS NULL OR packing_percent >= 0),
+  billing_step_kg REAL CHECK (billing_step_kg IS NULL OR billing_step_kg > 0),
+  minimum_kg REAL CHECK (minimum_kg IS NULL OR minimum_kg >= 0),
+  archived_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_shipping_routes_account
+  ON shipping_routes(account_id, archived_at);

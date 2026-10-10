@@ -4,7 +4,9 @@ import type { Currency } from '../../admin/types';
 import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
 import { useLedgerStore, type LedgerLineItem, type LedgerTransaction } from '../../lib/ledgerStore';
 import { canonicalCurrency } from '../../lib/currency';
-import { ledgerItemAmount, orderLanded } from '../CurateV2/curatePricing';
+import { ledgerItemAmount } from '../CurateV2/curatePricing';
+import { estimateOrderFreight, type RouteMode } from './routeFreight';
+import { useShippingRoutes } from './useShippingRoutes';
 import { releaseTeaFromOrder } from '../CurateV2/orderBuy';
 import { confirmPurchase, purchaseNeedsVendor, recordPurchase } from '../CurateV2/placeOrder';
 import { Button } from './Button';
@@ -15,8 +17,9 @@ import { Icons } from '../Icons';
 // Flow 2, plan todo/plans/samples-to-orders.md build 2). It is Curate's draft
 // orders, read and written through the ledger, one group per supplier. Place
 // order runs the same code as Curate's order screen (placeOrder.ts).
-// Freight is estimated silently at the shop's rate; routes, packing and
-// receiving addresses arrive with Settings (build 3).
+// Freight is estimated silently from the shipping routes in Settings (build 3),
+// packing and the carrier's rounding included; with no route, air follows the
+// shop rate. The routes' addresses show as the Receiving tiles.
 
 const SYMBOL: Record<string, string> = { Yuan: '¥', USD: '$', NT: 'NT$', HKD: 'HK$', IDR: 'Rp', JPY: 'JP¥', MYR: 'RM', AUD: 'A$' };
 export function money(amount: number, currency: Currency | string): string {
@@ -123,6 +126,7 @@ export const BuyingBasket: React.FC<{ onClose: () => void }> = ({ onClose }) => 
   const drafts = useMemo(() => transactions.filter((tx) => tx.direction === 'purchase' && tx.status === 'draft' && tx.items.length > 0), [transactions]);
   const { data: rates = [] } = useRates();
   const shopFreight = useShopFreightDefault();
+  const { data: routes = [] } = useShippingRoutes();
   const queryClient = useQueryClient();
   const [placing, setPlacing] = useState(false);
   const busy = useRef(false);
@@ -132,8 +136,12 @@ export const BuyingBasket: React.FC<{ onClose: () => void }> = ({ onClose }) => 
   // One figure per money: yuan and dollars are never added as if they were the same.
   const totals = useMemo(() => {
     const byMoney = new Map<string, { currency: Currency; teas: number; freight: number; freightKnown: boolean }>();
+    let packing = false;
+    const modes = new Set<RouteMode>();
     for (const tx of drafts) {
-      const landed = orderLanded(tx, rates, shopFreight.perKgUsd);
+      const freight = estimateOrderFreight(tx, routes, rates, shopFreight.perKgUsd);
+      if (freight.packing) packing = true;
+      freight.modes.forEach((m) => modes.add(m));
       for (const item of tx.items) {
         if (item.unpriced) continue;
         const c = (item.currency || tx.currency) as Currency;
@@ -144,10 +152,10 @@ export const BuyingBasket: React.FC<{ onClose: () => void }> = ({ onClose }) => 
       }
       const key = canonicalCurrency(tx.currency) ?? tx.currency;
       const row = byMoney.get(key);
-      if (row) { if (landed) row.freight += landed.freight; else row.freightKnown = false; }
+      if (row) { if (freight.amount != null) row.freight += freight.amount; else row.freightKnown = false; }
     }
-    return [...byMoney.values()];
-  }, [drafts, rates, shopFreight.perKgUsd]);
+    return { rows: [...byMoney.values()], packing, modes: [...modes] };
+  }, [drafts, routes, rates, shopFreight.perKgUsd]);
   const unpriced = drafts.reduce((n, tx) => n + tx.items.filter((i) => i.unpriced).length, 0);
   const nameless = drafts.filter(purchaseNeedsVendor);
 
@@ -195,6 +203,22 @@ export const BuyingBasket: React.FC<{ onClose: () => void }> = ({ onClose }) => 
           {tx.items.map((item) => <BuyingLine key={item.id} tx={tx} item={item} />)}
         </section>
       ))}
+      {!placed && drafts.length > 0 && (
+        <section aria-label="Receiving" className="mt-5">
+          <h3 className="font-display text-ui-20 text-tea-text">Receiving</h3>
+          <div className="grid grid-cols-2 gap-1 mt-2">
+            {totals.modes.map((mode) => {
+              const route = routes.find((r) => r.mode === mode);
+              return (
+                <div key={mode} data-testid="receiving-tile" className="min-h-[48px] px-3 py-2 bg-tea-surface shadow-[inset_0_-2px_0_rgb(var(--tea-gold-rgb))] flex flex-col justify-center">
+                  <span className="block font-body text-ui-14 leading-tight text-tea-text truncate">{route?.destination || (mode === 'air' ? 'The shop' : 'No boat route yet')}</span>
+                  <span className="font-body text-ui-11 leading-tight text-tea-text-sec">{route?.destination || mode === 'air' ? (mode === 'air' ? 'air arrives here' : 'boat leaves from here') : 'add one in Settings'}</span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </div>
     {/* The admin keeps its bottom bar while this is open (the shop hides it for
         its own basket), so the footer sits above it. */}
@@ -203,9 +227,9 @@ export const BuyingBasket: React.FC<{ onClose: () => void }> = ({ onClose }) => 
       {placed || drafts.length === 0 ? <Button variant="secondary" fullWidth onClick={onClose}>Close</Button> : (
         <div className="flex items-center gap-4">
           <div className="flex flex-col gap-1 shrink-0">
-            <span className="num text-ui-26 leading-none text-tea-text">{totals.length ? totals.map((t) => money(t.teas, t.currency)).join(' + ') : '—'}</span>
+            <span className="num text-ui-26 leading-none text-tea-text">{totals.rows.length ? totals.rows.map((t) => money(t.teas, t.currency)).join(' + ') : '—'}</span>
             <span className="font-body text-ui-11 leading-none text-tea-text-sec">
-              {totals.length && totals.every((t) => t.freightKnown) ? `freight ≈ ${totals.map((t) => money(Math.round(t.freight), t.currency)).join(' + ')}` : 'freight not estimated'}
+              {totals.rows.length && totals.rows.every((t) => t.freightKnown) ? `freight ≈ ${totals.rows.map((t) => money(Math.round(t.freight), t.currency)).join(' + ')}${totals.packing ? ', packing included' : ''}` : 'freight not estimated'}
               {unpriced ? ` · ${unpriced} without a price` : ''}
             </span>
           </div>

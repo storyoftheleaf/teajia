@@ -142,6 +142,7 @@ import { workerReleaseResponse, type WorkerReleaseEnv } from './workerRelease';
 import { handleCurateWorkspace } from './curateWorkspaceRoutes';
 import { validateCompassQuoteLink } from './curateQuotes';
 import { requireCurateManager, prepareCurateRecordedWrite } from './curateMutations';
+import { RouteRefusal, listRoutes, removeRoute, saveRoute } from './shippingRoutes';
 
 interface Env extends WorkerReleaseEnv {
   DB: D1Database;
@@ -21753,6 +21754,35 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
   return json({ id }, 201);
 };
 
+// ── Shipping routes (Settings; the buying basket estimates freight from them) ──
+// Read by anyone who buys stock; changed only by the owner, like the shop's
+// own freight rate on the same screen.
+
+const handleListShippingRoutes: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'stock');
+  if ('error' in ctx) return ctx.error;
+  return json(await listRoutes(env.DB, ctx.accountId));
+};
+
+const handleSaveShippingRoute: Handler = async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+  if (!body || typeof body !== 'object') return json({ error: 'A route is needed.' }, 400);
+  try {
+    return json(await saveRoute(env.DB, ctx.accountId, params.id ?? null, body), params.id ? 200 : 201);
+  } catch (e) {
+    if (e instanceof RouteRefusal) return json({ error: e.message }, e.message === 'No such route.' ? 404 : 400);
+    throw e;
+  }
+};
+
+const handleRemoveShippingRoute: Handler = async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  return (await removeRoute(env.DB, ctx.accountId, params.id)) ? json({ removed: true }) : json({ error: 'No such route.' }, 404);
+};
+
 const handleUpdatePurchaseOrder: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'stock');
   if ('error' in ctx) return ctx.error;
@@ -29034,6 +29064,12 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/purchase-orders', handleListPurchaseOrders],
   ['POST', '/api/purchase-orders', handleCreatePurchaseOrder],
   ['PUT', '/api/purchase-orders/:id', handleUpdatePurchaseOrder],
+
+  // Shipping routes
+  ['GET', '/api/shipping-routes', handleListShippingRoutes],
+  ['POST', '/api/shipping-routes', handleSaveShippingRoute],
+  ['PUT', '/api/shipping-routes/:id', handleSaveShippingRoute],
+  ['DELETE', '/api/shipping-routes/:id', handleRemoveShippingRoute],
 
   // Activity Logs & Stock Ledger
   ['GET', '/api/activity-logs', handleGetActivityLogs],
