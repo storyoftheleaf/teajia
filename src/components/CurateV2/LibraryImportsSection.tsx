@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, type RefObject } from 'react';
 import type { CurateImportDetail } from '../../lib/api';
-import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { ImportBatchChip } from './ImportBatchChip';
 
 export interface LibraryImportFocusRequest {
@@ -48,9 +47,9 @@ export const LibraryImportsSection: React.FC<LibraryImportsSectionProps> = ({ im
   if (!activeImports.length) return null;
 
   return (
-    <section aria-label="Imports" className="mb-5 space-y-2">
-      <h2 ref={headingRef} tabIndex={-1} className={`${TYPOGRAPHY_CLASSES.label} px-0.5 text-tea-text-sec`}>Imports</h2>
-      <div className="space-y-2">
+    <section aria-label="Imports" className="curate-v2 mb-5">
+      <h2 ref={headingRef} tabIndex={-1} className="curate-v2-label border-b border-tea-border pb-2">Imports</h2>
+      <div>
         {activeImports.map(detail => (
           <div key={detail.batch.id} ref={node => { if (node) rowRefs.current.set(detail.batch.id, node); else rowRefs.current.delete(detail.batch.id); }}>
             <ImportBatchChip

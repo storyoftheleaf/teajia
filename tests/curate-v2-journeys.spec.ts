@@ -575,6 +575,39 @@ test.describe('Curate v2 journeys (phone)', () => {
     expect(popups).toBe(0);
   });
 
+  test('Teas: imports are shop rows; the title wraps whole, Open is the row, Delete is one word', async ({ page }) => {
+    const item = (batch: string, n: number, blocking: string[]) => ({
+      id: `${batch}-i${n}`, batch_id: batch, source_id: `${batch}-s`, position: n, category: 'tea', name: `Tea ${n}`, raw_text: `Tea ${n}`,
+      parsed_data: { disposition: 'received', inventoryPurpose: 'working' }, confidence: 0.9, uncertainty: {}, review_state: 'pending',
+      acquired: true, compass_entry_id: null, reserved_compass_entry_id: null, blocking_fields: blocking,
+    });
+    const batch = (id: string, title: string, items: unknown[]) => ({
+      batch: { id, title, review_state: 'reviewing', journey_id: null, visit_id: null },
+      sources: [{ id: `${id}-s`, batch_id: id, kind: 'paste', pasted_text: title, r2_object_key: null, metadata: {} }], groups: [], items,
+    });
+    await installCompassHarness(page, {
+      ...TODAY_DATA,
+      imports: [
+        batch('imp-1', 'Delivery Note No. 4791536 - D and T Collectors', []),
+        batch('imp-2', 'Imported list', [item('imp-2', 1, ['currency']), item('imp-2', 2, ['currency']), item('imp-2', 3, ['currency'])]),
+      ],
+    });
+    await openCurateV2(page, 'teas');
+    const section = page.getByRole('tabpanel').getByRole('region', { name: 'Imports' });
+    await expect(section).toContainText('Delivery Note No. 4791536 - D and T Collectors');
+    await expect(section).toContainText('3 need attention');
+    // One short word on the right; the title is never printed into a button.
+    const deletes = section.getByRole('button', { name: /^Delete / });
+    await expect(deletes).toHaveCount(2);
+    for (const text of await deletes.allTextContents()) expect(text.trim()).toBe('Delete');
+    // The whole title reads, nothing clipped, nothing sideways.
+    const title = section.getByText('Delivery Note No. 4791536 - D and T Collectors', { exact: true });
+    expect(await title.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 2)).toBe(true);
+    await section.scrollIntoViewIfNeeded();
+    await shot(page, 'imports-rows');
+  });
+
   test('Chinese name is suggested, never typed: cross leaves it empty, tick saves it', async ({ page }) => {
     await installCompassHarness(page, { ...TODAY_DATA, customers: TODAY_DATA.customers });
     await openCurateV2(page, 'today');
