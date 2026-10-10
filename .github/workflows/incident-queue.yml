@@ -69,7 +69,11 @@ jobs:
           git config user.name "teajia-incident-bot"
           git config user.email "teajia-incident-bot@users.noreply.github.com"
           git add ops/incidents
-          git commit -m "chore(ops): sync incident repair queue [skip ci]"
+          # The incident export does not change the site or require repository
+          # CI. GitHub reads `[skip ci]`; Pages reads its own prefix token.
+          # These suppress only this bot commit; Actions path filters below
+          # remain a separate rule for other commits.
+          git commit -m "[CI Skip] chore(ops): sync incident repair queue [skip ci]"
           git pull --rebase origin main
           git push origin HEAD:main
 
