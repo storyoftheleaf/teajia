@@ -47,11 +47,11 @@ test.describe('Samples on the phone', () => {
     await page.route('**/api/curate/holdings**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(HOLDINGS) }));
   });
 
-  test('looks like Stock: grouped by supplier, slim rows, sample grams in a column', async ({ page }) => {
+  test('looks like Stock: grouped by supplier, each sample shows its quote', async ({ page }) => {
     await openSamples(page);
     const list = page.getByTestId('samples-phone');
     await expect(list.getByRole('region', { name: 'Boyuan Tea Shop' })).toContainText('2 samples');
-    await expect(list.getByRole('button', { name: /^1958 Aged Raw/ })).toContainText('25');
+    await expect(list.getByTestId('sample-decide-row').filter({ hasText: '1958 Aged Raw' })).toContainText('900');
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
     expect(overflow).toBe(false);
     await shot(page, 'list');
@@ -172,5 +172,92 @@ test.describe('Samples on the laptop', () => {
     await shot(page, 'laptop');
     await page.getByRole('button', { name: 'Open 1958 Aged Raw in Curate' }).click();
     await expect(page).toHaveURL(/\/admin\/compass\?entry=tea-a/);
+  });
+});
+
+// Build 1 of todo/plans/samples-to-orders.md: rate, reject, cost and want, all
+// written through Curate's own store and synced like any Curate edit.
+test.describe('Deciding on a sample, phone', () => {
+  test.skip(({ isMobile }) => !isMobile, 'phone layout only');
+
+  const COMPASS = [
+    { id: 'tea-a', name: '1958 Aged Raw', type: 'Sheng Puer', form: 'Cake', year: 1958, vendor_name: 'Boyuan Tea Shop', vendor_id: 'v1', price_amount: 900, price_currency: 'Yuan', price_per_unit_grams: 357, decision: null, tasting: null, status: 'considering', category: 'tea', updated_at: '2026-10-01T00:00:00Z', created_at: '2026-10-01T00:00:00Z' },
+    { id: 'tea-b', name: 'Wild Moonlight', type: 'White', form: 'Loose', year: 2019, vendor_name: 'Boyuan Tea Shop', vendor_id: 'v1', price_amount: 320, price_currency: 'Yuan', price_per_unit_grams: 100, decision: null, tasting: null, status: 'considering', category: 'tea', updated_at: '2026-10-01T00:00:00Z', created_at: '2026-10-01T00:00:00Z' },
+  ];
+
+  async function setup(page: Page) {
+    const synced: Array<Record<string, unknown>> = [];
+    await injectAuth(page);
+    await mockInventoryApi(page);
+    await page.route('**/api/curate/holdings**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(HOLDINGS) }));
+    // A stand-in that remembers what was synced, as the real Curate store does.
+    const rows = COMPASS.map(e => ({ ...e })) as Array<Record<string, unknown>>;
+    await page.route('**/api/compass/entries**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ entries: rows }) }));
+    await page.route('**/api/compass/sync', async route => {
+      const body = route.request().postDataJSON() as { entries?: Array<Record<string, unknown>> };
+      synced.push(...(body.entries ?? []));
+      for (const e of body.entries ?? []) { const i = rows.findIndex(r => r.id === e.id); if (i >= 0) rows[i] = { ...rows[i], ...e }; }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ syncedIds: (body.entries ?? []).map(e => e.id) }) });
+    });
+    await page.route('**/api/rates', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ currency: 'USD', rate_to_usd: 1, last_updated: new Date().toISOString() }, { currency: 'Yuan', rate_to_usd: 7.2, last_updated: new Date().toISOString() }]) }));
+    await openSamples(page);
+    return synced;
+  }
+  const lastFor = (synced: Array<Record<string, unknown>>, id: string) => [...synced].reverse().find(e => e.id === id);
+  const parseTasting = (t: unknown) => (typeof t === 'string' ? JSON.parse(t) : t) as { quality?: number } | null;
+
+  test('a row reads name, then cost for grams and $/g, then rating and Taste · Reject · Want', async ({ page }) => {
+    await setup(page);
+    const row = page.getByTestId('sample-decide-row').filter({ hasText: '1958 Aged Raw' });
+    await expect(row).toContainText('900');
+    await expect(row).toContainText('357');
+    await expect(row).toContainText('0.35');
+    for (const name of ['Taste', 'Reject', 'Want']) await expect(row.getByRole('button', { name, exact: true })).toBeVisible();
+    await shot(page, 'decide-row');
+  });
+
+  test('four dots save a tasting score of 8 through Curate', async ({ page }) => {
+    const synced = await setup(page);
+    const row = page.getByTestId('sample-decide-row').filter({ hasText: '1958 Aged Raw' });
+    await row.getByRole('radio', { name: '4 of 5' }).click();
+    await expect(row.getByRole('radio', { name: '4 of 5' })).toHaveAttribute('aria-checked', 'true');
+    await expect.poll(() => parseTasting(lastFor(synced, 'tea-a')?.tasting)?.quality, { timeout: 8000 }).toBe(8);
+  });
+
+  test('Reject hides the sample; the Rejected toggle shows it with Restore, which clears it', async ({ page }) => {
+    const synced = await setup(page);
+    const row = page.getByTestId('sample-decide-row').filter({ hasText: 'Wild Moonlight' });
+    await row.getByRole('button', { name: 'Reject', exact: true }).click();
+    await expect(page.getByTestId('sample-decide-row').filter({ hasText: 'Wild Moonlight' })).toHaveCount(0);
+    await expect.poll(() => lastFor(synced, 'tea-b')?.decision, { timeout: 8000 }).toBe('passed_on');
+    await page.getByRole('button', { name: /Rejected 1, show/ }).click();
+    await page.getByTestId('sample-decide-row').filter({ hasText: 'Wild Moonlight' }).getByRole('button', { name: 'Restore' }).click();
+    await expect.poll(() => lastFor(synced, 'tea-b')?.decision ?? null, { timeout: 8000 }).toBeNull();
+  });
+
+  test('the cost is tapped and typed, and an empty field stays unknown, never zero', async ({ page }) => {
+    const synced = await setup(page);
+    const row = page.getByTestId('sample-decide-row').filter({ hasText: '1958 Aged Raw' });
+    await row.getByRole('button', { name: 'Cost of 1958 Aged Raw' }).click();
+    await row.getByRole('textbox', { name: 'Cost of 1958 Aged Raw' }).fill('950');
+    await row.getByRole('textbox', { name: 'Cost of 1958 Aged Raw' }).press('Enter');
+    await expect.poll(() => lastFor(synced, 'tea-a')?.price_amount, { timeout: 8000 }).toBe(950);
+    await row.getByRole('button', { name: 'Cost of 1958 Aged Raw' }).click();
+    await row.getByRole('textbox', { name: 'Cost of 1958 Aged Raw' }).fill('');
+    await row.getByRole('textbox', { name: 'Cost of 1958 Aged Raw' }).press('Enter');
+    await expect(row.getByRole('button', { name: 'Cost of 1958 Aged Raw' })).toContainText('add');
+    await expect.poll(() => { const e = lastFor(synced, 'tea-a'); return e && 'price_amount' in e ? e.price_amount : 'absent'; }, { timeout: 8000 }).not.toBe(0);
+  });
+
+  test('Want asks how many cakes before anything is added, then shows the amount', async ({ page }) => {
+    await setup(page);
+    const row = page.getByTestId('sample-decide-row').filter({ hasText: '1958 Aged Raw' });
+    await row.getByRole('button', { name: 'Want', exact: true }).click();
+    const box = row.getByRole('textbox', { name: 'How many pieces' });
+    await box.fill('2');
+    await expect(row).toContainText('¥1,800');
+    await shot(page, 'decide-want');
+    await row.getByRole('button', { name: 'Add', exact: true }).click();
+    await expect(row.getByRole('button', { name: '2 pc' })).toBeVisible();
   });
 });
