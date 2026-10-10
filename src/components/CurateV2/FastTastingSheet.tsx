@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { BottomSheet } from './CurateSheet';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
+import { SampleUseLine } from './SampleUseLine';
+import { useSampleUse } from './sampleUse';
 import { FAST_TASTING, applyFast, readFast, type FastQuestion } from './curateV2Model';
 
 interface FastTastingSheetProps {
@@ -22,8 +24,25 @@ export const FastTastingSheet: React.FC<FastTastingSheetProps> = ({ entryId, onO
   // "Saved" is only said while it is true.
   const notSaved = useTeaCompassStore((s) => s.syncError);
 
+  // One opening of this sheet is one tasting. When it closes with an answer given,
+  // the grams it used come off the sample, once. Going on to the full tasting is
+  // the same opening, so that sheet takes over the closing.
+  const openedFor = useRef<string | null>(null);
+  const handedOver = useRef(false);
+  useEffect(() => {
+    const before = openedFor.current;
+    if (before && before !== entryId) {
+      if (handedOver.current) handedOver.current = false;
+      else void useSampleUse.getState().finish(before);
+    }
+    if (entryId && entryId !== before) useSampleUse.getState().begin(entryId);
+    openedFor.current = entryId;
+  }, [entryId]);
+  const goFull = (id: string) => { handedOver.current = true; onFullTasting(id); };
+
   const tap = (q: FastQuestion, id: string) => {
     if (!entryId) return;
+    useSampleUse.getState().markAnswered(entryId);
     const current = useTeaCompassStore.getState().getEntry(entryId);
     updateEntry(entryId, { tasting: applyFast(current?.tasting, q, id) });
   };
@@ -32,6 +51,7 @@ export const FastTastingSheet: React.FC<FastTastingSheetProps> = ({ entryId, onO
     <BottomSheet open={!!entryId} onOpenChange={onOpenChange} title={entry?.name || 'Fast tasting'} description={notSaved ? 'Fast tasting · kept on this phone, not saved to the shop yet' : 'Fast tasting · saved as you tap'} large>
       <div className="curate-v2 pb-nav-gap">
         <div className="border-b border-tea-border" />
+        {entryId && <SampleUseLine entryId={entryId} />}
         {FAST_TASTING.map((question) => {
           const chosen = answers[question.q];
           const cols = question.options.length === 10 ? 'grid-cols-5'
@@ -62,7 +82,7 @@ export const FastTastingSheet: React.FC<FastTastingSheetProps> = ({ entryId, onO
                   );
                 })}
                 {question.q === 'flavour' && entryId && (
-                  <button type="button" onClick={() => onFullTasting(entryId)} className="min-h-11 whitespace-nowrap rounded-[3px] border border-tea-border font-mono text-ui-13 text-tea-gold hover:border-tea-gold">
+                  <button type="button" onClick={() => goFull(entryId)} className="min-h-11 whitespace-nowrap rounded-[3px] border border-tea-border font-mono text-ui-13 text-tea-gold hover:border-tea-gold">
                     More ›
                   </button>
                 )}
@@ -73,7 +93,7 @@ export const FastTastingSheet: React.FC<FastTastingSheetProps> = ({ entryId, onO
         <div className="flex items-baseline justify-between px-4 pt-3 text-ui-13">
           <span className={notSaved ? 'text-tea-error' : 'text-tea-text-sec'}>{notSaved ? 'Not saved to the shop yet. It will try again.' : 'Saved as you tap'}</span>
           {entryId && (
-            <button type="button" onClick={() => onFullTasting(entryId)} className="tap-target font-medium text-tea-gold">
+            <button type="button" onClick={() => goFull(entryId)} className="tap-target font-medium text-tea-gold">
               Full tasting ›
             </button>
           )}

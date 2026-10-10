@@ -44,6 +44,7 @@ const VENDORS = [
   { id: 'vendor-wang', name: 'Wang Laoshi', tags: ['vendor'] },
   { id: 'vendor-chen', name: 'Chen Family', tags: ['vendor'] },
 ];
+const shot = (page: Page, name: string) => page.screenshot({ path: `test-results/curate-v2-journeys/${name}.png` });
 const tab = (page: Page, name: string) => page.getByRole('tab', { name, exact: true });
 const nameLine = (page: Page) => page.getByRole('textbox', { name: 'Name the next tea' });
 const tableRows = (page: Page) => page.getByTestId('table-list').locator('.curate-v2-row').filter({ has: page.getByRole('button', { name: /^Fast tasting for/ }) });
@@ -929,6 +930,158 @@ test.describe('Curate v2 requests (phone)', () => {
     await sheet.getByRole('button', { name: /Full tasting/ }).click();
     await expect(page.getByRole('radio', { name: '8' }).first()).toBeChecked();
     expect(errors).toEqual([]);
+  });
+  // ── A tasting uses up some of the sample ─────────────────────────────────────
+  // The score and the answers reach the tea through the entry sync, so the one
+  // request the sample gets carries the grams and nothing else: sending the words
+  // or the score here too would write the tasting twice.
+  const corrections = (sent: Sent[]) => sent.filter((s) => s.path === '/api/curate/correct');
+  const SAMPLE_TEA = (id: string) => entry({ id, name: 'Sample Cake', form: 'Cake', price_amount: 450, price_currency: 'Yuan', price_per_unit_grams: 357, tasting: JSON.stringify({ quality: 6 }) });
+  async function openFastTasting(page: Page, name: RegExp) {
+    await openCurateV2(page, 'teas');
+    await page.getByRole('button', { name }).first().click();
+    await overlay(page).getByRole('button', { name: 'Taste', exact: true }).click();
+    const sheet = page.getByRole('dialog');
+    await expect(sheet).toBeVisible();
+    return sheet;
+  }
+  const answer = (sheet: ReturnType<Page['getByRole']>) => sheet.getByRole('group', { name: 'How good' }).getByRole('button', { name: '8', exact: true }).click();
+
+  test('a tasting uses 5 g of the sample: one taste_sample for the grams, with no words and no score, and the line says what it will do', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS, rates: RATES,
+      compassEntries: [SAMPLE_TEA('su-1')],
+      sampleHoldings: [{ entryId: 'su-1', portions: [{ id: 'portion-a', grams: 4 }, { id: 'portion-b', grams: 10 }] }],
+    });
+    const sent = record(page);
+    const sheet = await openFastTasting(page, /^Sample Cake/);
+    // The portion with the most left is the one in hand.
+    const line = sheet.getByTestId('sample-use-line');
+    await expect(line).toContainText('Uses');
+    await expect(line).toContainText('g of the 10 g sample');
+    await expect(line.getByRole('textbox')).toHaveValue('5');
+    await line.scrollIntoViewIfNeeded();
+    await shot(page, 'taste-uses-grams');
+    await answer(sheet);
+    await sheet.getByRole('group', { name: 'How clean' }).getByRole('button', { name: 'Clean', exact: true }).click();
+    expect(corrections(sent)).toHaveLength(0);
+    await page.keyboard.press('Escape');
+    await expect(sheet).toHaveCount(0);
+    // Preview, then confirm: one tasting, one correction.
+    await expect.poll(() => corrections(sent).length).toBe(2);
+    const command = { action: 'taste_sample', entity: 'sample', id: 'portion-b', consumed_grams: 5 };
+    expect(corrections(sent)[0].body).toEqual({ command });
+    expect(corrections(sent)[1].body).toEqual({ command, confirm: 'token-portion-b' });
+    for (const c of corrections(sent)) { expect(c.body.command).not.toHaveProperty('tasting'); expect(c.body.command).not.toHaveProperty('score'); }
+    // The answers went through the tea's own sync, once.
+    await expect.poll(() => JSON.parse(synced(sent).get('su-1')?.tasting ?? '{}').quality).toBe(8);
+    await expect(page.getByTestId('sample-use-failure')).toHaveCount(0);
+    // Opening the sheet again is a new tasting: it closes without an answer and sends nothing.
+    await page.waitForTimeout(300);
+    await overlay(page).getByRole('button', { name: 'Taste', exact: true }).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(500);
+    expect(corrections(sent)).toHaveLength(2);
+  });
+
+  test('the grams can be changed, never above what is left: 3 g is sent as 3; typing 99 on a 10 g sample asks for 10', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS, rates: RATES,
+      compassEntries: [SAMPLE_TEA('su-2')],
+      sampleHoldings: [{ entryId: 'su-2', portions: [{ id: 'portion-c', grams: 10 }] }],
+    });
+    const sent = record(page);
+    const sheet = await openFastTasting(page, /^Sample Cake/);
+    const grams = sheet.getByTestId('sample-use-line').getByRole('textbox');
+    await grams.fill('3');
+    await answer(sheet);
+    await page.keyboard.press('Escape');
+    await expect.poll(() => corrections(sent).length).toBe(2);
+    expect(corrections(sent).map((c) => c.body.command.consumed_grams)).toEqual([3, 3]);
+    await page.waitForTimeout(300);
+    await overlay(page).getByRole('button', { name: 'Taste', exact: true }).click();
+    const again = page.getByRole('dialog');
+    await again.getByTestId('sample-use-line').getByRole('textbox').fill('99');
+    await expect(again.getByTestId('sample-use-line').getByRole('textbox')).toHaveValue('10');
+    await answer(again);
+    await page.keyboard.press('Escape');
+    await expect.poll(() => corrections(sent).length).toBe(4);
+    expect(corrections(sent).slice(2).map((c) => c.body.command.consumed_grams)).toEqual([10, 10]);
+  });
+
+  test('a tea whose only sample is still requested, or was never weighed, shows no line and sends nothing', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS, rates: RATES,
+      compassEntries: [SAMPLE_TEA('su-3'), { ...SAMPLE_TEA('su-4'), name: 'Unweighed Cake' }],
+      sampleHoldings: [
+        { entryId: 'su-3', portions: [{ id: 'portion-d', grams: 10, status: 'requested' }] },
+        { entryId: 'su-4', portions: [{ id: 'portion-e', grams: null }] },
+      ],
+    });
+    const sent = record(page);
+    const sheet = await openFastTasting(page, /^Sample Cake/);
+    await answer(sheet);
+    await expect(sheet.getByTestId('sample-use-line')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(sheet).toHaveCount(0);
+    await back(page).click();
+    const other = await (async () => {
+      await page.getByRole('button', { name: /^Unweighed Cake/ }).first().click();
+      await overlay(page).getByRole('button', { name: 'Taste', exact: true }).click();
+      return page.getByRole('dialog');
+    })();
+    await answer(other);
+    await expect(other.getByTestId('sample-use-line')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(600);
+    expect(corrections(sent)).toHaveLength(0);
+  });
+
+  test('a correction the shop did not take is said in plain words on the tea, is not claimed as used, and trying again sends it once', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS, rates: RATES,
+      compassEntries: [SAMPLE_TEA('su-5')],
+      sampleHoldings: [{ entryId: 'su-5', portions: [{ id: 'portion-f', grams: 10 }] }],
+      failRequests: [{ match: 'POST /api/curate/correct', times: 1 }],
+    });
+    const sent = record(page);
+    const sheet = await openFastTasting(page, /^Sample Cake/);
+    await answer(sheet);
+    await page.keyboard.press('Escape');
+    const failed = page.getByTestId('sample-use-failure');
+    await expect(failed).toBeVisible({ timeout: 15_000 });
+    plain(await failed.innerText());
+    await expect(failed).toContainText('Sample Cake');
+    await expect(failed).not.toContainText(/used up|taken off/i);
+    // The preview was refused: nothing confirmed.
+    expect(corrections(sent).filter((c) => c.body.confirm)).toHaveLength(0);
+    await failed.getByRole('button', { name: 'Try again' }).click();
+    await expect(failed).toHaveCount(0);
+    expect(corrections(sent).filter((c) => c.body.confirm)).toHaveLength(1);
+    expect(corrections(sent).filter((c) => c.body.confirm)[0].body.command).toEqual({ action: 'taste_sample', entity: 'sample', id: 'portion-f', consumed_grams: 5 });
+  });
+
+  test('More goes on as the same tasting: the full tasting closing sends the one correction, with the grams typed in the fast sheet', async ({ page }) => {
+    await installCompassHarness(page, {
+      customers: VENDORS, rates: RATES,
+      compassEntries: [SAMPLE_TEA('su-6')],
+      sampleHoldings: [{ entryId: 'su-6', portions: [{ id: 'portion-g', grams: 10 }] }],
+    });
+    const sent = record(page);
+    const sheet = await openFastTasting(page, /^Sample Cake/);
+    await sheet.getByTestId('sample-use-line').getByRole('textbox').fill('2');
+    await answer(sheet);
+    await sheet.getByRole('button', { name: /Full tasting/ }).click();
+    await expect(page.getByRole('radio', { name: '8' }).first()).toBeChecked();
+    // Opening the full tasting from the fast one has not closed the tasting.
+    await page.waitForTimeout(500);
+    expect(corrections(sent)).toHaveLength(0);
+    await page.keyboard.press('Escape');
+    await expect.poll(() => corrections(sent).length, { timeout: 10_000 }).toBeGreaterThanOrEqual(2);
+    await page.waitForTimeout(500);
+    expect(corrections(sent).filter((c) => c.body.confirm)).toHaveLength(1);
+    expect(corrections(sent).map((c) => c.body.command.consumed_grams)).toEqual([2, 2]);
   });
   test('to-dos and the vendor card: a save the shop did not take is said in words, what was typed stays, and trying again sends it once more', async ({ page }) => {
     await installCompassHarness(page, {

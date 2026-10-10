@@ -13,6 +13,7 @@ import { AddToSampleButton } from '../samples/AddToSampleButton';
 import { DecisionControl } from './DecisionControl';
 import { CreateInventoryRecordAction } from './CreateInventoryRecordAction';
 import { useLedgerStore } from '../../lib/ledgerStore';
+import { useSampleUse } from './sampleUse';
 import { TastingSession } from '../tasting/TastingSession';
 import type { TastingData } from '../../types';
 import type { CompassVerdict } from './types';
@@ -276,7 +277,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
           {isBought ? 'In stock' : entry.status === 'depleted' ? 'Reorder' : isIncoming ? 'Incoming' : isInLedger ? 'In ledger' : 'Buy'}
         </button>
 
-        <button type="button" onClick={() => setTastingOpen(true)}
+        <button type="button" onClick={() => { useSampleUse.getState().begin(entry.id); setTastingOpen(true); }}
           className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
           aria-label="Taste">
           <Droplets size={14} className="inline mr-1.5" />Taste
@@ -339,12 +340,12 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         <TastingSession
           className="curate-v2"
           item={{ id: entry.id, name: entry.name, type: entry.type, image: validPhotos[0], sourceType: 'compass', compassEntryId: entry.id }}
-          onClose={() => setTastingOpen(false)}
-          onAfterSave={(data: TastingData, verdict?: CompassVerdict) => updateEntry(entry.id, {
+          onClose={() => { setTastingOpen(false); void useSampleUse.getState().finish(entry.id); }}
+          onAfterSave={(data: TastingData, verdict?: CompassVerdict) => { useSampleUse.getState().markAnswered(entry.id); updateEntry(entry.id, {
             tasting: data,
             tastingHistory: [...(entry.tastingHistory ?? []), { data, date: new Date().toISOString() }],
             ...(verdict ? { verdict } : {}),
-          })}
+          }); }}
         />
       )}
 

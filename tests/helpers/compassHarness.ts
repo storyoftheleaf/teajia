@@ -15,7 +15,7 @@ const purchaseOrdersByPage = new WeakMap<Page, Array<Record<string, any>>>();
 const matches = (match: RequestMatch, key: string) => (typeof match === 'string' ? match === key : match.test(key));
 export const COMPASS_TOKEN = `${enc(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${enc(JSON.stringify({ sub: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', platform_role: 'platform_owner', exp: Math.floor(Date.now() / 1000) + 86400, active_account_id: 'acct-bali', memberships }))}.test`;
 
-export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; preserveSamplesOnNavigation?: boolean; preserveSampleCartOnNavigation?: boolean; compassSyncLoseResponses?: number; contextEmpty?: boolean; contextFailOnce?: boolean; contextJourneyFailOnce?: boolean; contextVisitFailOnce?: boolean; products?: unknown[]; compassEntries?: unknown[]; contextByAccount?: Record<string, { journeys: unknown[]; visits: unknown[] }>; contextAfterInitial?: { journeys: unknown[]; visits: unknown[] }; contextDelayByAccount?: Record<string, number>; customers?: Array<Record<string, any>>; todos?: unknown[]; agentSuggestions?: unknown[]; pendingReceipts?: unknown[]; chineseName?: string | null; chineseNameFails?: boolean; rates?: unknown[]; saidParts?: unknown[]; drive?: Record<string, unknown>; purchaseOrders?: Array<Record<string, any>>; imports?: unknown[]; failRequests?: Array<{ match: RequestMatch; times?: number }>; delayRequests?: Array<{ match: RequestMatch; ms: number }> }) {
+export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; preserveSamplesOnNavigation?: boolean; preserveSampleCartOnNavigation?: boolean; compassSyncLoseResponses?: number; contextEmpty?: boolean; contextFailOnce?: boolean; contextJourneyFailOnce?: boolean; contextVisitFailOnce?: boolean; products?: unknown[]; compassEntries?: unknown[]; contextByAccount?: Record<string, { journeys: unknown[]; visits: unknown[] }>; contextAfterInitial?: { journeys: unknown[]; visits: unknown[] }; contextDelayByAccount?: Record<string, number>; customers?: Array<Record<string, any>>; todos?: unknown[]; agentSuggestions?: unknown[]; pendingReceipts?: unknown[]; chineseName?: string | null; chineseNameFails?: boolean; rates?: unknown[]; saidParts?: unknown[]; drive?: Record<string, unknown>; purchaseOrders?: Array<Record<string, any>>; imports?: unknown[]; failRequests?: Array<{ match: RequestMatch; times?: number }>; delayRequests?: Array<{ match: RequestMatch; ms: number }>; sampleHoldings?: Array<{ entryId: string; portions: Array<{ id: string; grams: number | null; status?: string; name?: string }> }> }) {
   unhandledByPage.set(page, []);
   requestCounts.set(page, new Map());
   createdCustomersByPage.set(page, []);
@@ -356,6 +356,25 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       });
       const staticRows = ((options?.pendingReceipts ?? []) as Array<Record<string, any>>).filter((row) => !acceptedStatic.has(row.id));
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ pending: [...staticRows, ...waiting] }) });
+    }
+    // The physical sample portions Curate holds for a tea, as GET /api/curate/holdings
+    // sends them (worker/src/curateHoldings.ts): the tea's entry plus its portions, and a
+    // portion that was never weighed arrives with grams null.
+    if (requestKey === 'GET /api/curate/holdings') {
+      const teaId = new URL(route.request().url()).searchParams.get('tea_id');
+      const holdings = (options?.sampleHoldings ?? []).filter((h) => !teaId || h.entryId === teaId).map((h) => {
+        const entry = compassEntries.find((candidate) => candidate.id === h.entryId) ?? { id: h.entryId };
+        const samples = h.portions.map((p, i) => ({ id: p.id, name: p.name ?? `Portion ${i + 1}`, grams: p.grams, grams_known: p.grams == null ? 0 : 1, status: p.status ?? 'received', set_id: 'set-1', compass_entry_id: h.entryId }));
+        return { entry, stock_grams: 0, sample_grams: samples.length && samples.every((x) => x.grams !== null) ? samples.reduce((sum, x) => sum + Number(x.grams), 0) : null, samples };
+      });
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(holdings) });
+    }
+    // Curate's correction door: a preview answers with a confirmation token, the confirm with success.
+    // The bodies are recorded by the tests' own request listener; this only answers.
+    if (requestKey === 'POST /api/curate/correct') {
+      const body = route.request().postDataJSON() as { command?: Record<string, any>; confirm?: string };
+      if (!body.confirm) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ confirmation_token: `token-${body.command?.id}`, action: `sample:${body.command?.action}`, changes: [] }) });
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, mutation_id: 'mutation-1' }) });
     }
     const responses: Record<string, unknown> = {
       'GET /api/curate/attachments': [], 'GET /api/curate/history': { history: [] },

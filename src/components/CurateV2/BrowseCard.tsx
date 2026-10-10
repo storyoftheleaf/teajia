@@ -16,6 +16,7 @@ import { getTeaColor } from '../../designTokens';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import { api } from '../../lib/api';
+import { useSampleUse } from './sampleUse';
 import { TastingSession } from '../tasting/TastingSession';
 import type { TastingData } from '../../types';
 import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
@@ -569,7 +570,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
           <button
             type="button"
             data-library-action
-            onClick={() => setTastingOpen(true)}
+            onClick={() => { useSampleUse.getState().begin(entry.id); setTastingOpen(true); }}
             className={`tap-target flex min-h-11 items-center gap-1.5 px-2.5 rounded-md text-ui-12 font-medium transition-colors ${
               hasTasting
                 ? 'text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated'
@@ -690,8 +691,9 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               sourceType: 'compass',
               compassEntryId: entry.id,
             }}
-            onClose={() => setTastingOpen(false)}
+            onClose={() => { setTastingOpen(false); void useSampleUse.getState().finish(entry.id); }}
             onAfterSave={(data: TastingData, sessionVerdict?: CompassVerdict) => {
+              useSampleUse.getState().markAnswered(entry.id);
               const existingHistory = entry.tastingHistory || [];
               const today = new Date().toDateString();
               const lastEntry = existingHistory[existingHistory.length - 1];
