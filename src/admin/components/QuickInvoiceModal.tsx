@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Plus, Trash2, Search, FileDown, Loader2, RotateCcw, Phone, Mail, MessageCircle, AtSign, Send, Lock, Hash, MessagesSquare } from 'lucide-react';
 import Fuse from 'fuse.js';
-import { api, AUTH_TOKEN_CHANGED_EVENT, isTokenScopedToAccount } from '../../lib/api';
+import { api, ApiError, AUTH_TOKEN_CHANGED_EVENT, isTokenScopedToAccount } from '../../lib/api';
 import type { EligibleSalesProduct } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { isTeaType } from '../../wisdom/vocabulary';
@@ -21,7 +21,19 @@ interface QuickLineItem {
 
 interface SavedInvoice {
   invoiceNumber: string;
-  share: () => Promise<void>;
+  share: (() => Promise<void>) | null;
+}
+
+const pendingInvoiceKeyName = (accountId: string) => `teajia:pending-invoice-create:${accountId}`;
+function readPendingInvoiceKey(accountId: string | null): string | null {
+  if (!accountId) return null;
+  try { return localStorage.getItem(pendingInvoiceKeyName(accountId)); } catch { return null; }
+}
+function writePendingInvoiceKey(accountId: string, key: string | null): void {
+  try {
+    if (key) localStorage.setItem(pendingInvoiceKeyName(accountId), key);
+    else localStorage.removeItem(pendingInvoiceKeyName(accountId));
+  } catch { /* The in-memory key still protects retries in this tab. */ }
 }
 
 export type QuickInvoiceEligibilityStatus = 'loading' | 'ready' | 'error';
@@ -137,6 +149,28 @@ const newItem = (): QuickLineItem => ({
   price: 0,
 });
 
+function buildInvoiceCreatePayload(input: {
+  customerQuery: string; customerId: string | undefined; currency: Currency;
+  shipping: number; notes: string; lineItems: QuickLineItem[];
+}) {
+  return {
+    invoice: {
+      customer_name: input.customerQuery.trim() || 'Unknown',
+      customer_id: input.customerId ?? null,
+      display_currency: input.currency,
+      shipping_cost_usd: input.shipping,
+      status: 'Draft',
+      notes: input.notes || null,
+    },
+    lineItems: input.lineItems.map(item => ({
+      product_id: item.productId ?? null,
+      custom_name: item.productId ? null : (item.name.trim() || 'Item'),
+      quantity: item.quantity,
+      price_at_sale: item.price,
+    })),
+  };
+}
+
 const ordinal = (n: number) => String(n).padStart(2, '0');
 
 export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
@@ -162,6 +196,12 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [saving, setSaving] = useState(false);
   const [savedInvoice, setSavedInvoice] = useState<SavedInvoice | null>(null);
+  const [creationUnconfirmed, setCreationUnconfirmed] = useState(false);
+  const [recoveringCreate, setRecoveringCreate] = useState(false);
+  const [recoveryRevision, setRecoveryRevision] = useState(0);
+  const [pendingCreateKey, setPendingCreateKey] = useState<string | null>(null);
+  const pendingPayloadRef = useRef<ReturnType<typeof buildInvoiceCreatePayload> | null>(null);
+  const pendingPdfRef = useRef<{ items: QuickLineItem[]; currency: Currency; shipping: number; notes: string } | null>(null);
   const savedInvoiceRef = useRef<SavedInvoice | null>(null);
   const [shareError, setShareError] = useState<string | null>(null);
   const [loadingRepeat, setLoadingRepeat] = useState(false);
@@ -222,6 +262,9 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
     if (!isOpen) return;
     savedInvoiceRef.current = null;
     setSavedInvoice(null);
+    setCreationUnconfirmed(false);
+    pendingPayloadRef.current = null;
+    pendingPdfRef.current = null;
     setShareError(null);
     // Apply prefill if provided, otherwise reset to defaults
     if (prefill) {
@@ -258,6 +301,30 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
     setSalesValidationError(null);
     api.customers.list('customer').then(setCustomers).catch(() => {});
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!isOpen || !activeAccountId) return;
+    const key = readPendingInvoiceKey(activeAccountId);
+    setPendingCreateKey(key);
+    if (!key) return;
+    let cancelled = false;
+    setRecoveringCreate(true);
+    api.invoices.findCreateRequest(key).then(found => {
+      if (cancelled) return;
+      writePendingInvoiceKey(activeAccountId, null);
+      setPendingCreateKey(null);
+      const saved = { invoiceNumber: found.invoice_number, share: null };
+      savedInvoiceRef.current = saved;
+      setSavedInvoice(saved);
+      onSuccess();
+      showToast(`Invoice ${found.invoice_number} was saved.`, 'success');
+    }).catch(() => {
+      if (!cancelled) setCreationUnconfirmed(true);
+    }).finally(() => {
+      if (!cancelled) setRecoveringCreate(false);
+    });
+    return () => { cancelled = true; };
+  }, [isOpen, activeAccountId, recoveryRevision]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadEligibleProducts = async (accountId: string | null) => {
     const requestId = ++eligibilityRequestRef.current;
@@ -411,51 +478,59 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
     }
   };
 
-  const buildPayload = () => ({
-    invoice: {
-      customer_name: customerQuery.trim() || 'Unknown',
-      customer_id: customerId ?? null,
-      display_currency: currency,
-      shipping_cost_usd: shipping,
-      status: 'Draft',
-      notes: notes || null,
-    },
-    lineItems: lineItems.map(i => ({
-      product_id: i.productId ?? null,
-      custom_name: i.productId ? null : (i.name.trim() || 'Item'),
-      quantity: i.quantity,
-      price_at_sale: i.price,
-    })),
-  });
+  const buildPayload = () => buildInvoiceCreatePayload({ customerQuery, customerId, currency, shipping, notes, lineItems });
 
   const handleSave = async (withPdf = false) => {
-    if (saving || savedInvoiceRef.current) return;
-    if (!customerQuery.trim()) {
+    if (saving || recoveringCreate || savedInvoiceRef.current) return;
+    const retry = creationUnconfirmed && pendingPayloadRef.current && pendingCreateKey;
+    if (creationUnconfirmed && !retry) return;
+    if (!retry && !customerQuery.trim()) {
       showToast('Add a customer name', 'error');
       return;
     }
-    if (lineItems.some(i => !i.name.trim())) {
+    if (!retry && lineItems.some(i => !i.name.trim())) {
       showToast('All items need a name', 'error');
       return;
     }
-    const linkedValidation = validateQuickInvoiceLinkedItems(lineItems, scopedEligibilityStatus, verifiedEligibleProducts);
+    const linkedValidation = retry ? null : validateQuickInvoiceLinkedItems(lineItems, scopedEligibilityStatus, verifiedEligibleProducts);
     if (linkedValidation) {
       setSalesValidationError(linkedValidation);
       showToast(linkedValidation, 'error');
       return;
     }
+    if (!activeAccountId) return;
+    const payload = retry ? pendingPayloadRef.current! : buildPayload();
+    const key = retry ? pendingCreateKey! : crypto.randomUUID();
+    pendingPayloadRef.current = payload;
+    if (!retry) pendingPdfRef.current = { items: lineItems.map(item => ({ ...item })), currency, shipping, notes };
+    setPendingCreateKey(key);
+    writePendingInvoiceKey(activeAccountId, key);
     setSaving(true);
     let created: { invoice_number: string };
     try {
-      const { invoice, lineItems: items } = buildPayload();
-      created = await api.invoices.create(invoice, items);
+      created = await api.invoices.create(payload.invoice, payload.lineItems, key);
     } catch (err: any) {
-      showToast(`Invoice creation failed: ${err.message}`, 'error');
+      const confirmedRefusal = err instanceof ApiError && err.status >= 400 && err.status < 500 && err.status !== 408 && err.status !== 429;
+      if (confirmedRefusal) {
+        writePendingInvoiceKey(activeAccountId, null);
+        setPendingCreateKey(null);
+        pendingPayloadRef.current = null;
+        pendingPdfRef.current = null;
+        setCreationUnconfirmed(false);
+        showToast(`Invoice creation failed: ${err.message}`, 'error');
+      } else {
+        setCreationUnconfirmed(true);
+        showToast('Invoice save could not be confirmed. Retry the same request to recover it.', 'error');
+      }
       setSaving(false);
       return;
     }
+    writePendingInvoiceKey(activeAccountId, null);
+    setPendingCreateKey(null);
+    setCreationUnconfirmed(false);
 
-    const pdfItems: InvoiceDisplayItem[] = lineItems.map(li => ({
+    const pdfSnapshot = pendingPdfRef.current!;
+    const pdfItems: InvoiceDisplayItem[] = pdfSnapshot.items.map(li => ({
       productId: li.productId,
       customName: li.productId ? undefined : (li.name.trim() || 'Item'),
       quantity: li.quantity,
@@ -465,7 +540,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
     }));
     const saved: SavedInvoice = {
       invoiceNumber: created.invoice_number,
-      share: () => generatePdf(created.invoice_number, customerQuery.trim(), pdfItems),
+      share: () => generatePdf(created.invoice_number, payload.invoice.customer_name, pdfItems, pdfSnapshot),
     };
     savedInvoiceRef.current = saved;
     setSavedInvoice(saved);
@@ -477,7 +552,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
       return;
     }
     try {
-      await saved.share();
+      await saved.share?.();
       onClose();
     } catch (err: any) {
       const message = err?.name === 'AbortError'
@@ -492,7 +567,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
 
   const retryShare = async () => {
     const saved = savedInvoiceRef.current;
-    if (!saved || saving) return;
+    if (!saved?.share || saving) return;
     setSaving(true);
     setShareError(null);
     try {
@@ -509,7 +584,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
     }
   };
 
-  const generatePdf = async (invoiceNumber: string, customerName: string, items: InvoiceDisplayItem[]) => {
+  const generatePdf = async (invoiceNumber: string, customerName: string, items: InvoiceDisplayItem[], snapshot: { currency: Currency; shipping: number; notes: string }) => {
     const { pdf } = await import('@react-pdf/renderer');
     const { InvoicePdfDocument } = await import('./InvoicePdf');
     const doc = React.createElement(InvoicePdfDocument, {
@@ -517,9 +592,9 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
       customerName,
       cart: items,
       rates,
-      currency,
-      shipping,
-      notes: notes || undefined,
+      currency: snapshot.currency,
+      shipping: snapshot.shipping,
+      notes: snapshot.notes || undefined,
     });
     const blob = await pdf(doc as any).toBlob();
     const fileName = `teajia-invoice-${invoiceNumber}.pdf`.replace(/\s+/g, '-');
@@ -539,10 +614,10 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
     <div className="fixed inset-0 z-modal flex items-end sm:items-center justify-center bg-tea-bg/80 p-4">
       <div role="dialog" aria-modal="true" aria-label="Invoice saved" className="w-full max-w-md rounded-xl border border-tea-border bg-tea-surface p-6 pb-nav-gap shadow-2xl">
         <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Invoice {savedInvoice.invoiceNumber} was saved</h2>
-        <p role={shareError ? 'alert' : 'status'} className="mt-3 text-ui-14 text-tea-text-sec">{shareError || 'Ready to share.'} Retrying will share this invoice without creating another.</p>
+        <p role={shareError ? 'alert' : 'status'} className="mt-3 text-ui-14 text-tea-text-sec">{shareError || (savedInvoice.share ? 'Ready to share. Retrying will share this invoice without creating another.' : 'Recovered after the page reloaded. You can find it in Orders.')}</p>
         <div className="mt-5 flex flex-wrap justify-end gap-3">
           <button type="button" onClick={onClose} className="min-h-11 px-4 text-ui-14 text-tea-text-sec hover:text-tea-text">Done</button>
-          <button type="button" onClick={() => void retryShare()} disabled={saving} className="min-h-11 rounded-xl px-4 text-ui-14 cta-solid disabled:opacity-50">{saving ? 'Sharing…' : 'Retry sharing'}</button>
+          {savedInvoice.share && <button type="button" onClick={() => void retryShare()} disabled={saving} className="min-h-11 rounded-xl px-4 text-ui-14 cta-solid disabled:opacity-50">{saving ? 'Sharing…' : 'Retry sharing'}</button>}
         </div>
       </div>
     </div>
@@ -948,17 +1023,32 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
           </div>
 
           {/* Actions */}
+          {creationUnconfirmed && (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <p role="alert" className="text-ui-14 text-tea-text-sec">
+                {pendingPayloadRef.current ? 'The invoice may have saved. Retry this request to recover its original number.' : 'Checking the saved request did not confirm an invoice. Check Orders before starting another.'}
+              </p>
+              {!pendingPayloadRef.current && <>
+                <button type="button" className="min-h-11 text-ui-14 text-tea-gold" disabled={recoveringCreate} onClick={() => setRecoveryRevision(revision => revision + 1)}>Check again</button>
+                <button type="button" className="min-h-11 text-ui-14 text-tea-text-sec" disabled={recoveringCreate} onClick={() => {
+                  if (activeAccountId) writePendingInvoiceKey(activeAccountId, null);
+                  setPendingCreateKey(null);
+                  setCreationUnconfirmed(false);
+                }}>Start new invoice</button>
+              </>}
+            </div>
+          )}
           <div className="flex items-center gap-4 mt-3">
             <button
               onClick={() => handleSave(false)}
-              disabled={saving}
+              disabled={saving || recoveringCreate || (creationUnconfirmed && !pendingPayloadRef.current)}
               className="text-xs text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-40 shrink-0"
             >
-              Save draft
+              {creationUnconfirmed ? 'Retry save' : 'Save draft'}
             </button>
             <button
               onClick={() => handleSave(true)}
-              disabled={saving}
+              disabled={saving || recoveringCreate || (creationUnconfirmed && !pendingPayloadRef.current)}
               className="flex-1 px-4 py-2.5 rounded-xl text-sm cta-solid active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {saving ? (
@@ -966,7 +1056,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
               ) : (
                 <>
                   <FileDown size={14} />
-                  Save + Share
+                  {creationUnconfirmed ? 'Retry + Share' : 'Save + Share'}
                 </>
               )}
             </button>

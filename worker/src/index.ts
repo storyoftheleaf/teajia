@@ -5547,16 +5547,34 @@ const handleCreateInvoice: Handler = async (request, env) => {
   const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
-  let body: { invoice?: Record<string, unknown>; lineItems?: unknown };
+  let body: { invoice?: Record<string, unknown>; lineItems?: unknown; idempotency_key?: unknown };
   try {
-    body = await request.json() as { invoice?: Record<string, unknown>; lineItems?: unknown };
+    body = await request.json() as { invoice?: Record<string, unknown>; lineItems?: unknown; idempotency_key?: unknown };
   } catch (error) {
     return invalidInvoiceResponse(error);
+  }
+  const key = body?.idempotency_key;
+  if (key !== undefined && (typeof key !== 'string' || !/^[A-Za-z0-9_-]{16,128}$/.test(key))) {
+    return restError(400, 'Invalid idempotency key', 'invalid_idempotency_key');
   }
   let input: RetailInvoiceInput;
   try {
     const invoice = body?.invoice && typeof body.invoice === 'object' && !Array.isArray(body.invoice) ? body.invoice : {};
     input = validateRetailInvoiceInput({ ...invoice, lineItems: body?.lineItems });
+  } catch (error) {
+    return invalidInvoiceResponse(error);
+  }
+  const fingerprint = key ? await sha256Hex(JSON.stringify(input)) : null;
+  const existingForKey = async () => key ? env.DB.prepare(
+    'SELECT id, invoice_number, create_fingerprint FROM invoices WHERE account_id = ? AND create_idempotency_key = ?'
+  ).bind(accountId, key).first() as Promise<{ id: string; invoice_number: string; create_fingerprint: string } | null> : null;
+  const replay = (existing: { id: string; invoice_number: string; create_fingerprint: string }) =>
+    existing.create_fingerprint === fingerprint
+      ? json({ id: existing.id, invoice_number: existing.invoice_number, idempotent: true }, 200)
+      : restError(409, 'This invoice request key belongs to different details', 'idempotency_key_conflict');
+  const previous = await existingForKey();
+  if (previous) return replay(previous);
+  try {
     await assertInvoiceCustomerBelongsToAccount(env, accountId, input.customer_id);
   } catch (error) {
     return invalidInvoiceResponse(error);
@@ -5597,8 +5615,8 @@ const handleCreateInvoice: Handler = async (request, env) => {
     });
 
     const invoiceStmt = env.DB.prepare(
-      `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, source_event_id, payment_status,sold_by_user_id,payment_recipient_user_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, source_event_id, payment_status,sold_by_user_id,payment_recipient_user_id,create_idempotency_key,create_fingerprint)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       id,
       accountId,
@@ -5615,6 +5633,8 @@ const handleCreateInvoice: Handler = async (request, env) => {
       input.payment_status,
       ctx.userId,
       paymentRecipientUserId,
+      key ?? null,
+      fingerprint,
     );
 
     const logStmt = buildActivityLog(
@@ -5634,7 +5654,11 @@ const handleCreateInvoice: Handler = async (request, env) => {
       lastErr = err;
       const msg = String(err?.message || err);
       if (/insufficient available stock/i.test(msg)) return restError(409, 'Insufficient available stock', 'insufficient_available_stock');
-      if (/UNIQUE|constraint/i.test(msg)) continue; // collision — bump seq and retry
+      if (/UNIQUE|constraint/i.test(msg)) {
+        const raced = await existingForKey();
+        if (raced) return replay(raced);
+        continue; // invoice-number collision — bump seq and retry
+      }
       console.error('handleCreateInvoice batch failed:', err);
       return restError(503, 'Invoice write unavailable', 'invoice_write_unavailable');
     }
@@ -5647,6 +5671,18 @@ const handleCreateInvoice: Handler = async (request, env) => {
   await ensureContactRelationship(env, accountId, input.customer_id, 'buyer', 'workflow', 'invoice', id);
 
   return json({ id, invoice_number: invoiceNumber }, 201);
+};
+
+// Recover a create after a lost response or a page reload. The browser keeps
+// only the random key; customer details remain on the server.
+const handleFindCreatedInvoice: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  if (!/^[A-Za-z0-9_-]{16,128}$/.test(params.key)) return restError(400, 'Invalid idempotency key', 'invalid_idempotency_key');
+  const row = await env.DB.prepare(
+    'SELECT id, invoice_number FROM invoices WHERE account_id = ? AND create_idempotency_key = ?'
+  ).bind(ctx.accountId, params.key).first() as { id: string; invoice_number: string } | null;
+  return row ? json(row) : restError(404, 'Invoice request not found', 'invoice_request_not_found');
 };
 
 const handleGetInvoiceItems: Handler = async (request, env, params) => {
@@ -21707,6 +21743,115 @@ const handleGetPublicAccountEvents: Handler = async (_request, env, params) => {
 
 // ── Purchase Orders ──
 
+type IntakeCommitRow = {
+  id: string;
+  account_id: string;
+  batch_id: string | null;
+  request_fingerprint: string;
+  payload_json: string;
+  status: 'pending' | 'completed';
+};
+
+function intakeCommitResponse(row: IntakeCommitRow): Response {
+  const payload = JSON.parse(row.payload_json) as { products: Record<string, unknown>[]; purchase_records: Record<string, unknown>[] };
+  return json({
+    id: row.id,
+    account_id: row.account_id,
+    batch_id: row.batch_id,
+    status: row.status,
+    products: payload.products,
+    purchase_records: payload.purchase_records,
+  });
+}
+
+const handleGetIntakeCommit: Handler = async (request, env, params) => {
+  const catalog = await requireBundle(request, env, 'catalog');
+  if ('error' in catalog) return catalog.error;
+  const stock = await requireBundle(request, env, 'stock');
+  if ('error' in stock) return stock.error;
+  const row = await env.DB.prepare(
+    'SELECT * FROM intake_commit_operations WHERE account_id = ? AND id = ?'
+  ).bind(catalog.accountId, params.id).first<IntakeCommitRow>();
+  return row ? intakeCommitResponse(row) : restError(404, 'Intake commit not found', 'intake_commit_not_found');
+};
+
+const handleSaveIntakeCommit: Handler = async (request, env, params) => {
+  const catalog = await requireBundle(request, env, 'catalog');
+  if ('error' in catalog) return catalog.error;
+  const stock = await requireBundle(request, env, 'stock');
+  if ('error' in stock) return stock.error;
+  const { accountId } = catalog;
+  if (!params.id || params.id.length > 128) return restError(400, 'Invalid intake import', 'invalid_intake_import');
+  const raw = await request.text();
+  if (raw.length > 1_000_000) return restError(413, 'Intake is too large to save in one operation', 'intake_commit_too_large');
+  let body: Record<string, unknown>;
+  try { body = JSON.parse(raw) as Record<string, unknown>; }
+  catch { return restError(400, 'Invalid intake payload', 'invalid_intake_commit'); }
+  if (!body || typeof body !== 'object' || Array.isArray(body)
+    || (body.batch_id != null && typeof body.batch_id !== 'string')) {
+    return restError(400, 'Invalid intake payload', 'invalid_intake_commit');
+  }
+  const products = body.products;
+  const purchaseRecords = body.purchase_records;
+  const batchId = typeof body.batch_id === 'string' && body.batch_id.trim() ? body.batch_id : null;
+  if (!Array.isArray(products) || products.length === 0 || products.length > 2000
+    || !products.every(row => row && typeof row === 'object' && !Array.isArray(row))
+    || !Array.isArray(purchaseRecords) || purchaseRecords.length > 250
+    || !purchaseRecords.every(row => row && typeof row === 'object' && !Array.isArray(row))) {
+    return restError(400, 'Invalid intake payload', 'invalid_intake_commit');
+  }
+  const draft = await env.DB.prepare(
+    'SELECT id FROM curate_import_batches WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first();
+  if (!draft) return restError(404, 'Intake draft not found', 'intake_draft_not_found');
+  if (batchId) {
+    const batch = await env.DB.prepare('SELECT id FROM batches WHERE id = ? AND account_id = ?')
+      .bind(batchId, accountId).first();
+    if (!batch) return restError(400, 'Intake batch does not belong to this account', 'batch_account_mismatch');
+  }
+  const payloadJson = JSON.stringify({ products, purchase_records: purchaseRecords });
+  const fingerprint = await sha256Hex(JSON.stringify({ batch_id: batchId, payload: payloadJson }));
+  const existing = await env.DB.prepare(
+    'SELECT * FROM intake_commit_operations WHERE account_id = ? AND id = ?'
+  ).bind(accountId, params.id).first<IntakeCommitRow>();
+  if (existing) return existing.request_fingerprint === fingerprint
+    ? intakeCommitResponse(existing)
+    : restError(409, 'This intake already has a different saved commit', 'intake_commit_conflict');
+  try {
+    await env.DB.prepare(
+      `INSERT INTO intake_commit_operations
+        (id, account_id, batch_id, request_fingerprint, payload_json)
+       VALUES (?, ?, ?, ?, ?)`
+    ).bind(params.id, accountId, batchId, fingerprint, payloadJson).run();
+  } catch (error) {
+    const raced = await env.DB.prepare(
+      'SELECT * FROM intake_commit_operations WHERE account_id = ? AND id = ?'
+    ).bind(accountId, params.id).first<IntakeCommitRow>();
+    if (raced) return raced.request_fingerprint === fingerprint
+      ? intakeCommitResponse(raced)
+      : restError(409, 'This intake already has a different saved commit', 'intake_commit_conflict');
+    throw error;
+  }
+  const saved = await env.DB.prepare(
+    'SELECT * FROM intake_commit_operations WHERE account_id = ? AND id = ?'
+  ).bind(accountId, params.id).first<IntakeCommitRow>();
+  return intakeCommitResponse(saved!);
+};
+
+const handleCompleteIntakeCommit: Handler = async (request, env, params) => {
+  const catalog = await requireBundle(request, env, 'catalog');
+  if ('error' in catalog) return catalog.error;
+  const stock = await requireBundle(request, env, 'stock');
+  if ('error' in stock) return stock.error;
+  const result = await env.DB.prepare(
+    `UPDATE intake_commit_operations SET status = 'completed', completed_at = COALESCE(completed_at, datetime('now'))
+      WHERE account_id = ? AND id = ?`
+  ).bind(catalog.accountId, params.id).run();
+  return result.meta.changes
+    ? json({ success: true })
+    : restError(404, 'Intake commit not found', 'intake_commit_not_found');
+};
+
 const handleListPurchaseOrders: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'stock');
   if ('error' in ctx) return ctx.error;
@@ -21727,12 +21872,38 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
   const body = await request.json() as Record<string, any>;
   if (!body.vendor_name?.trim()) return json({ error: 'vendor_name is required' }, 400);
 
+  const requestKey = body.idempotency_key == null ? null : String(body.idempotency_key);
+  if (requestKey === '') return restError(400, 'Invalid purchase request key', 'invalid_idempotency_key');
+  if (requestKey && (requestKey.length > 160 || !/^[A-Za-z0-9:_-]+$/.test(requestKey))) {
+    return restError(400, 'Invalid purchase request key', 'invalid_idempotency_key');
+  }
+  // Match the value written below: an unknown total and a stated zero are
+  // different requests, even when every other purchase-order field matches.
+  const totalUsd = typeof body.total_usd === 'number' && Number.isFinite(body.total_usd)
+    ? body.total_usd : null;
+  const fingerprint = requestKey ? await sha256Hex(JSON.stringify({
+    vendor_name: body.vendor_name.trim(), vendor_id: body.vendor_id || null,
+    vendor_contact: body.vendor_contact || null, items_json: body.items_json || '[]',
+    total_usd: totalUsd, display_currency: body.display_currency || 'USD',
+    status: body.status || 'pending', message_text: body.message_text || null,
+    notes: body.notes || null,
+  })) : null;
+  if (requestKey) {
+    const prior = await env.DB.prepare(
+      'SELECT id, create_request_fingerprint FROM purchase_orders WHERE account_id = ? AND create_request_key = ?'
+    ).bind(accountId, requestKey).first<{ id: string; create_request_fingerprint: string | null }>();
+    if (prior) return prior.create_request_fingerprint === fingerprint
+      ? json({ id: prior.id, idempotent: true })
+      : restError(409, 'Purchase request key was used for different details', 'purchase_request_conflict');
+  }
+
   const id = crypto.randomUUID();
-  const cols = ['id', 'account_id', 'vendor_name', 'vendor_id', 'vendor_contact', 'items_json', 'total_usd', 'display_currency', 'status', 'message_text', 'notes', 'created_at', 'updated_at'];
-  await env.DB.prepare(
+  const cols = ['id', 'account_id', 'create_request_key', 'create_request_fingerprint', 'vendor_name', 'vendor_id', 'vendor_contact', 'items_json', 'total_usd', 'display_currency', 'status', 'message_text', 'notes', 'created_at', 'updated_at'];
+  try { await env.DB.prepare(
     `INSERT INTO purchase_orders (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`
   ).bind(
     id, accountId,
+    requestKey, fingerprint,
     body.vendor_name?.trim() || null,
     body.vendor_id || null,
     body.vendor_contact || null,
@@ -21741,14 +21912,24 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
     // currency with no rate, a tea with no price yet), so it is stored as
     // unknown, never as 0: 0 reads as an order that cost nothing. A stated 0
     // is kept. Migration 0040 lets the column hold NULL.
-    typeof body.total_usd === 'number' && Number.isFinite(body.total_usd) ? body.total_usd : null,
+    totalUsd,
     body.display_currency || 'USD',
     body.status || 'pending',
     body.message_text || null,
     body.notes || null,
     new Date().toISOString(),
     new Date().toISOString(),
-  ).run();
+  ).run(); } catch (error) {
+    if (requestKey) {
+      const raced = await env.DB.prepare(
+        'SELECT id, create_request_fingerprint FROM purchase_orders WHERE account_id = ? AND create_request_key = ?'
+      ).bind(accountId, requestKey).first<{ id: string; create_request_fingerprint: string | null }>();
+      if (raced) return raced.create_request_fingerprint === fingerprint
+        ? json({ id: raced.id, idempotent: true })
+        : restError(409, 'Purchase request key was used for different details', 'purchase_request_conflict');
+    }
+    throw error;
+  }
 
   return json({ id }, 201);
 };
@@ -28906,6 +29087,7 @@ const routes: [string, string, Handler][] = [
   // Invoices
   ['GET', '/api/invoices', handleGetInvoices],
   ['POST', '/api/invoices', handleCreateInvoice],
+  ['GET', '/api/invoices/create-requests/:key', handleFindCreatedInvoice],
   ['GET', '/api/invoices/:id/items', handleGetInvoiceItems],
   ['GET', '/api/invoices/:id/payments', handleGetInvoicePayments],
   ['POST', '/api/invoices/:id/payments', handleRecordInvoicePayment],
@@ -29031,6 +29213,9 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/stock/available', handleGetAvailableStock],
 
   // Purchase Orders
+  ['GET', '/api/intake-commits/:id', handleGetIntakeCommit],
+  ['PUT', '/api/intake-commits/:id', handleSaveIntakeCommit],
+  ['POST', '/api/intake-commits/:id/complete', handleCompleteIntakeCommit],
   ['GET', '/api/purchase-orders', handleListPurchaseOrders],
   ['POST', '/api/purchase-orders', handleCreatePurchaseOrder],
   ['PUT', '/api/purchase-orders/:id', handleUpdatePurchaseOrder],

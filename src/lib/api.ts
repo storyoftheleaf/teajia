@@ -219,6 +219,23 @@ export interface CurateImportFinalizeResult {
 }
 export interface CurateImportDetail { batch: CurateImportBatch; sources: CurateImportSource[]; items: CurateImportItem[]; groups: CurateImportVendorGroup[] }
 
+export interface IntakeCommitPlan {
+  id: string;
+  account_id: string;
+  batch_id: string | null;
+  status: 'pending' | 'completed';
+  products: Record<string, any>[];
+  purchase_records: Array<{
+    vendor_name: string;
+    items_json: string;
+    total_usd?: number;
+    display_currency?: string;
+    status?: string;
+    notes?: string;
+    idempotency_key?: string;
+  }>;
+}
+
 export interface AdminEventPostSession extends Record<string, unknown> {
   id: string | null;
   event_id: string;
@@ -1900,12 +1917,15 @@ export const api = {
       if (includeDeleted) params.set('include_deleted', '1');
       return authedFetch(`${API_URL}/api/invoices?${params}`)
     },
-    create: async (invoice: Record<string, any>, lineItems: Record<string, any>[]) => {
+    create: async (invoice: Record<string, any>, lineItems: Record<string, any>[], idempotencyKey: string = crypto.randomUUID()) => {
       return authedFetch(`${API_URL}/api/invoices`, {
         method: 'POST',
-        body: JSON.stringify({ invoice, lineItems }),
+        body: JSON.stringify({ invoice, lineItems, idempotency_key: idempotencyKey }),
+        retryTimeouts: true,
       });
     },
+    findCreateRequest: async (idempotencyKey: string): Promise<{ id: string; invoice_number: string }> =>
+      authedFetch(`${API_URL}/api/invoices/create-requests/${encodeURIComponent(idempotencyKey)}`),
     // Share pay link, from an invoice. The link already exists once the order
     // has a live pay URL; this hands it back with the customer's number and
     // the balance owed, for the share sheet.
@@ -2198,6 +2218,19 @@ export const api = {
     },
   },
 
+  intakeCommits: {
+    get: (id: string): Promise<IntakeCommitPlan> =>
+      authedFetch(`${API_URL}/api/intake-commits/${encodeURIComponent(id)}`),
+    save: (id: string, payload: Pick<IntakeCommitPlan, 'batch_id' | 'products' | 'purchase_records'>): Promise<IntakeCommitPlan> =>
+      authedFetch(`${API_URL}/api/intake-commits/${encodeURIComponent(id)}`, {
+        method: 'PUT', body: JSON.stringify(payload),
+      }),
+    complete: (id: string): Promise<{ success: boolean }> =>
+      authedFetch(`${API_URL}/api/intake-commits/${encodeURIComponent(id)}/complete`, {
+        method: 'POST', body: '{}',
+      }),
+  },
+
   purchaseOrders: {
     list: async (): Promise<PurchaseOrder[]> => {
       return authedFetch(`${API_URL}/api/purchase-orders`)
@@ -2214,6 +2247,7 @@ export const api = {
       status?: string;
       notes?: string;
       message_text?: string;
+      idempotency_key?: string;
     }): Promise<{ id: string }> => {
       return authedFetch(`${API_URL}/api/purchase-orders`, {
         method: 'POST',

@@ -52,6 +52,12 @@ const stringArray = (value: unknown, at: string, maxItems: number, maxString: nu
   return value as string[];
 };
 
+// A prose block carries `noTerms: true` to keep its tea terms from opening
+// glossary pop-ups (the reader links them automatically otherwise).
+function optionalNoTerms(value: unknown, at: string): void {
+  if (value !== undefined && typeof value !== 'boolean') throw new WordforgeDraftError(`${at}.noTerms must be a boolean`);
+}
+
 function decodeBlock(value: unknown, index: number): ArticleBlock {
   const block = object(value, `article.blocks[${index}]`);
   const at = `article.blocks[${index}]`;
@@ -66,13 +72,18 @@ function decodeBlock(value: unknown, index: number): ArticleBlock {
       if (block.variant !== undefined) enumValue(block.variant, ['main', 'photo_inset', 'minimal', 'masthead'], `${at}.variant`);
       break;
     case 'intro':
+      exact(block, ['type', 'text', 'noTerms'], at);
+      string(block.text, `${at}.text`, 600);
+      optionalNoTerms(block.noTerms, at);
+      break;
     case 'section_heading':
       exact(block, ['type', 'text'], at);
       string(block.text, `${at}.text`, 600);
       break;
     case 'paragraph':
-      exact(block, ['type', 'variant', 'text', 'textEffect'], at);
+      exact(block, ['type', 'variant', 'text', 'textEffect', 'noTerms'], at);
       string(block.text, `${at}.text`, 600);
+      optionalNoTerms(block.noTerms, at);
       if (block.variant !== undefined) enumValue(block.variant, ['single', 'double', 'justified', 'center', 'drop_cap'], `${at}.variant`);
       if (block.textEffect !== undefined) enumValue(block.textEffect, [
         'none', 'scroll-highlight', 'word-rise', 'shimmer', 'blur-focus',
@@ -89,8 +100,9 @@ function decodeBlock(value: unknown, index: number): ArticleBlock {
       break;
     }
     case 'quote':
-      exact(block, ['type', 'variant', 'text', 'attribution'], at);
+      exact(block, ['type', 'variant', 'text', 'attribution', 'noTerms'], at);
       string(block.text, `${at}.text`, 600);
+      optionalNoTerms(block.noTerms, at);
       optionalString(block.attribution, `${at}.attribution`, 200);
       if (block.variant !== undefined) enumValue(block.variant, ['big', 'minimal'], `${at}.variant`);
       break;
@@ -111,8 +123,9 @@ function decodeBlock(value: unknown, index: number): ArticleBlock {
       optionalString(block.image, `${at}.image`, 2048);
       break;
     case 'epilogue':
-      exact(block, ['type', 'text', 'signature'], at);
+      exact(block, ['type', 'text', 'signature', 'noTerms'], at);
       string(block.text, `${at}.text`, 600);
+      optionalNoTerms(block.noTerms, at);
       optionalString(block.signature, `${at}.signature`, 200);
       break;
     case 'back_matter':

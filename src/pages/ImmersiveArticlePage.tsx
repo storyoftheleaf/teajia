@@ -8,6 +8,7 @@ import type { DbArticle } from '../types';
 import { ReadingProgress } from '../components/immersive/ReadingProgress';
 import { renderBlock } from '../components/immersive/sections';
 import { SharePanel } from '../components/article/SharePanel';
+import { GlossaryScope, TermStyle, storyTermLinker } from '../components/reader/GlossaryTerms';
 import '../styles/reader-animations.css';
 
 export default function ImmersiveArticlePage() {
@@ -32,6 +33,10 @@ export default function ImmersiveArticlePage() {
   if (isLoading) return <div className="min-h-[100dvh] bg-tea-bg" data-testid="immersive-loading" />;
   if (isError || !article) return <div className="min-h-[100dvh] bg-tea-bg flex items-center justify-center text-tea-text-dim">Article not found</div>;
 
+  // Fresh per render and walked in block order: a tea term links where it
+  // first appears in the story and nowhere after.
+  const terms = storyTermLinker();
+
   return (
     <div className="bg-tea-bg text-tea-text min-h-[100dvh]" data-testid="immersive-article">
       <Helmet><title>{`${article.title} · Teajia`}</title></Helmet>
@@ -47,12 +52,16 @@ export default function ImmersiveArticlePage() {
         <span aria-hidden="true" className="text-ui-15 leading-none">&#8592;</span>
         <span className="text-ui-12 tracking-wide">Back</span>
       </button>
-      <article className="pb-nav-gap">
-        {article.blocks.map((block, i) => renderBlock(block, i, {
-          onShare: () => setShareOpen(true),
-          quoteAnchor: article.pull_quote && article.pull_quote_subject ? { text: article.pull_quote, id: `quote-${article.pull_quote_subject}` } : null,
-        }))}
-      </article>
+      <GlossaryScope>
+        <TermStyle />
+        <article className="pb-nav-gap">
+          {article.blocks.map((block, i) => renderBlock(block, i, {
+            terms,
+            onShare: () => setShareOpen(true),
+            quoteAnchor: article.pull_quote && article.pull_quote_subject ? { text: article.pull_quote, id: `quote-${article.pull_quote_subject}` } : null,
+          }))}
+        </article>
+      </GlossaryScope>
       {shareOpen && <SharePanel page={null} article={article} onClose={() => setShareOpen(false)} />}
     </div>
   );

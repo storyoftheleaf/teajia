@@ -63,7 +63,9 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
   const [batchId, setBatchId] = useState<string | null>(null);
   const [committing, setCommitting] = useState(false);
   const [savePurchaseRecord, setSavePurchaseRecord] = useState(true);
-  const [pendingPurchaseRecords, setPendingPurchaseRecords] = useState<Array<Parameters<typeof api.purchaseOrders.create>[0]>>([]);
+  const [savedPlan, setSavedPlan] = useState<Awaited<ReturnType<typeof api.intakeCommits.get>> | null>(null);
+  const [planLookup, setPlanLookup] = useState<'loading' | 'ready' | 'error' | 'completed'>('loading');
+  const [lookupAttempt, setLookupAttempt] = useState(0);
   const [shippingTotal, setShippingTotal] = useState<number>(0);
   const [shippingCurrency, setShippingCurrency] = useState<string>('');
   const [isDragging, setIsDragging] = useState(false);
@@ -72,6 +74,37 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const createAttempted = useRef(false);
   const hydratedForImport = useRef<string | null>(null);
+  const finalizedImport = useRef<string | null>(null);
+
+  // A saved commit owns the import from this point on. GET is the only resume
+  // source; supplier and order details never go into browser storage.
+  useEffect(() => {
+    setSavedPlan(null);
+    if (!importId) return;
+    let cancelled = false;
+    setPlanLookup('loading');
+    void api.intakeCommits.get(importId).then((plan) => {
+      if (cancelled) return;
+      if (plan.status === 'pending') {
+        setSavedPlan(plan);
+        setPlanLookup('ready');
+      } else {
+        setPlanLookup('completed');
+        if (finalizedImport.current !== importId) {
+          finalizedImport.current = importId;
+          void api.curateImports.abandon(importId).catch(() => null).finally(() => navigate('/admin/capture'));
+        }
+      }
+    }).catch((error) => {
+      if (cancelled) return;
+      if (error?.status === 404) setPlanLookup('ready');
+      else {
+        setPlanLookup('error');
+        showToast('Could not check this import. Try again.', 'error');
+      }
+    });
+    return () => { cancelled = true; };
+  }, [importId, lookupAttempt]);
 
   // Ensure a server-side curate-import draft exists: create one when the URL
   // has no ?importId=, then reflect it back into the URL so a reload finds it.
@@ -166,7 +199,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
   const resumeImport = useCallback((id: string) => {
     if (id === importId) return;
     hydratedForImport.current = null;
-    setSources([]); setItems([]);
+    setSources([]); setItems([]); setSavedPlan(null);
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       next.set('importId', id);
@@ -355,36 +388,59 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
   // ── Commit ───────────────────────────────────────────────────────────────────
   const finishImport = useCallback(async () => {
     onRefresh?.();
-    if (importId) await api.curateImports.abandon(importId).catch(() => null);
+    if (importId && finalizedImport.current !== importId) {
+      finalizedImport.current = importId;
+      await api.curateImports.abandon(importId).catch(() => null);
+    }
     setSources([]); setItems([]);
     navigate('/admin/capture');
   }, [onRefresh, importId, navigate]);
 
-  const retryPurchaseRecords = useCallback(async () => {
-    if (committing || pendingPurchaseRecords.length === 0) return;
-    setCommitting(true);
+  const runSavedPlan = useCallback(async (plan: Awaited<ReturnType<typeof api.intakeCommits.get>>) => {
+    const chunk = 50;
+    let inserted = 0;
+    let skipped = 0;
+    const skipReasons = new Set<string>();
     try {
-      for (let i = 0; i < pendingPurchaseRecords.length; i++) {
-        try {
-          await api.purchaseOrders.create(pendingPurchaseRecords[i]);
-        } catch (error: any) {
-          setPendingPurchaseRecords(pendingPurchaseRecords.slice(i));
-          showToast(`Purchase record for ${pendingPurchaseRecords[i].vendor_name} was not confirmed: ${error?.message || 'request failed'}. Inventory items are already saved; retry purchase records only.`, 'error');
-          return;
+      for (let i = 0; i < plan.products.length; i += chunk) {
+        const part = plan.products.slice(i, i + chunk);
+        const res: any = await api.products.bulkCreate(part, plan.batch_id ?? undefined, `Intake ${importId} part ${Math.floor(i / chunk) + 1}`);
+        inserted += res?.inserted ?? part.length;
+        skipped += res?.skipped ?? 0;
+        for (const row of res?.results ?? []) {
+          if (row?.status === 'skipped' && row?.reason) skipReasons.add(plainCostWords(String(row.reason)));
         }
       }
-      setPendingPurchaseRecords([]);
-      showToast('Purchase records saved. Inventory items were already added.', 'success');
+      for (let i = 0; i < plan.purchase_records.length; i++) {
+        await api.purchaseOrders.create({
+          ...plan.purchase_records[i], idempotency_key: `intake:${importId}:po:${i}`,
+        });
+      }
+      await api.intakeCommits.complete(importId!);
+      setSavedPlan(null);
+      const skipNote = skipped > 0
+        ? ` · ${skipped} not added.${skipReasons.size > 0 ? ` ${[...skipReasons].join(' ')}` : ''}`
+        : '';
+      showToast(`Added ${inserted} item${inserted !== 1 ? 's' : ''} as drafts${skipNote}`, skipped > 0 ? 'error' : 'success');
       await finishImport();
-    } finally { setCommitting(false); }
-  }, [committing, pendingPurchaseRecords, showToast, finishImport]);
+    } catch (error: any) {
+      // A response may have been lost after a write. Every replay uses the
+      // exact saved payload and stable server keys, including purchase orders.
+      setSavedPlan(plan);
+      showToast(`Import paused: ${error?.message || 'request failed'}. Resume import to finish.`, 'error');
+    }
+  }, [importId, showToast, finishImport]);
+
+  const resumeSavedPlan = useCallback(async () => {
+    if (!importId || committing || !savedPlan) return;
+    setCommitting(true);
+    try { await runSavedPlan(savedPlan); } finally { setCommitting(false); }
+  }, [importId, committing, savedPlan, runSavedPlan]);
 
   const commit = useCallback(async () => {
-    if (included.length === 0 || committing || pendingPurchaseRecords.length > 0) return;
+    if (!importId || planLookup !== 'ready' || included.length === 0 || committing || savedPlan) return;
     setCommitting(true);
     try {
-      const chunk = 50;
-      let inserted = 0;
       let skipped = 0;
       /* Not every skip is a duplicate any more: a line whose sheet named no
          price is refused by name, so the reasons are collected and shown
@@ -410,21 +466,6 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
         // the operator can act on it.
         showToast([...skipReasons].join(' ') || 'Nothing to import.', 'error');
         return;
-      }
-      for (let i = 0; i < products.length; i += chunk) {
-        const res: any = await api.products.bulkCreate(products.slice(i, i + chunk), batchId ?? undefined);
-        inserted += res?.inserted ?? products.slice(i, i + chunk).length;
-        skipped += res?.skipped ?? 0;
-        for (const row of res?.results ?? []) {
-          /* In words, not in column names. The server answers the two doors in
-             its own vocabulary, `cost_amount` and a `(missing: amount)` marker,
-             which is the right contract between two pieces of code and the
-             wrong sentence to put in front of Adrian: it hands him the bug
-             report instead of the thing to do next. `plainCostWords` reads that
-             marker, because which half is missing is a fact only the server
-             has, and says it the way the Add Product form says it. */
-          if (row?.status === 'skipped' && row?.reason) skipReasons.add(plainCostWords(String(row.reason)));
-        }
       }
       const purchaseRecords: Array<Parameters<typeof api.purchaseOrders.create>[0]> = [];
       if (savePurchaseRecord) {
@@ -476,44 +517,34 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
           });
         }
       }
-      for (let i = 0; i < purchaseRecords.length; i++) {
-        try {
-          await api.purchaseOrders.create(purchaseRecords[i]);
-        } catch (error: any) {
-          setPendingPurchaseRecords(purchaseRecords.slice(i));
-          onRefresh?.();
-          showToast(`Added ${inserted} inventory item${inserted !== 1 ? 's' : ''}, but the purchase record for ${purchaseRecords[i].vendor_name} was not confirmed: ${error?.message || 'request failed'}. Retry purchase records without adding the items again.`, 'error');
-          return;
-        }
-      }
-      /* The count, then what to do about it. A toast that only counts skips
-         leaves the operator to guess which lines and why, and "duplicate" was
-         the guess it used to make for every one of them. */
-      const skipNote = skipped > 0
-        ? ` · ${skipped} not added.${skipReasons.size > 0 ? ` ${[...skipReasons].join(' ')}` : ''}`
-        : '';
-      showToast(
-        `Added ${inserted} item${inserted !== 1 ? 's' : ''} as drafts${skipNote}`,
-        skipped > 0 ? 'error' : 'success',
-      );
-      await finishImport();
+      // The complete payload is durable before the first inventory write.
+      // The server refuses a different plan for an already saved import.
+      const plan = await api.intakeCommits.save(importId, {
+        batch_id: batchId, products, purchase_records: purchaseRecords,
+      });
+      setSavedPlan(plan);
+      await runSavedPlan(plan);
     } catch (e: any) {
+      // The save response itself may be lost after the server stored the plan.
+      // Re-read before allowing any edits or another commit attempt.
+      setPlanLookup('error');
       showToast(`Import failed: ${e?.message || 'error'}`, 'error');
     } finally {
       setCommitting(false);
     }
-  }, [included, committing, pendingPurchaseRecords.length, batchId, savePurchaseRecord, rates, sourceName, shareShip, shipCur, showToast, onRefresh, finishImport]);
+  }, [importId, planLookup, included, committing, savedPlan, batchId, savePurchaseRecord, rates, sourceName, shareShip, shipCur, showToast, runSavedPlan]);
 
-  const hasContent = sources.length > 0 || pendingPurchaseRecords.length > 0;
+  const hasContent = sources.length > 0 || !!savedPlan;
 
   return (
     <div
       className="h-full flex flex-col overflow-hidden relative"
-      onPaste={onPaste}
-      onDragEnter={onDragEnter}
+      data-plan-lookup={planLookup}
+      onPaste={savedPlan || planLookup !== 'ready' ? undefined : onPaste}
+      onDragEnter={savedPlan || planLookup !== 'ready' ? undefined : onDragEnter}
       onDragOver={(e) => e.preventDefault()}
       onDragLeave={onDragLeave}
-      onDrop={onDrop}
+      onDrop={savedPlan || planLookup !== 'ready' ? undefined : onDrop}
     >
       {/* Drag overlay */}
       {isDragging && (
@@ -541,7 +572,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
             <span className="text-tea-text">Personal</span> list (your own purchases).
           </p>
         </div>
-        {hasContent && (
+        {hasContent && !savedPlan && planLookup === 'ready' && (
           <div className="flex items-center gap-5 flex-shrink-0 pt-1">
             <div className="hidden sm:flex items-center gap-5">
               <Stat value={counts.forSale} label="Shop" />
@@ -577,7 +608,26 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
             currentImportId={importId}
             onResume={resumeImport}
           />
-          {!hasContent ? (
+          {planLookup === 'loading' ? (
+            <div role="status" className="bg-tea-surface border border-tea-border rounded-md p-4 text-ui-13 text-tea-text-sec">Checking this import…</div>
+          ) : planLookup === 'error' ? (
+            <div role="alert" className="bg-tea-surface border border-tea-border rounded-md p-4 text-tea-text">
+              <p className="text-ui-14 font-semibold">Could not check this import</p>
+              <p className="text-ui-12 text-tea-text-sec mt-1">The saved import may already contain inventory. Check it before continuing.</p>
+              <button type="button" onClick={() => setLookupAttempt(value => value + 1)} className="tap-target text-ui-13 text-tea-gold mt-2">Try again</button>
+            </div>
+          ) : planLookup === 'completed' ? (
+            <div role="status" className="bg-tea-surface border border-tea-border rounded-md p-4 text-ui-13 text-tea-text">Import complete. Opening inventory capture…</div>
+          ) : savedPlan ? (
+            <div role="status" className="bg-tea-surface border border-tea-border rounded-md p-4 text-tea-text">
+              <p className="text-ui-14 font-semibold">Import ready to resume</p>
+              <p className="text-ui-12 text-tea-text-sec mt-1">
+                {savedPlan.products.length} inventory item{savedPlan.products.length !== 1 ? 's' : ''} and{' '}
+                {savedPlan.purchase_records.length} purchase record{savedPlan.purchase_records.length !== 1 ? 's' : ''} are saved in this import.
+                Resume safely after an interrupted request.
+              </p>
+            </div>
+          ) : !hasContent ? (
             <HeroDropzone onBrowse={() => fileInputRef.current?.click()} dragging={isDragging} />
           ) : (
             <div className="space-y-4">
@@ -628,13 +678,14 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
       </div>
 
       {/* Footer action bar */}
-      {hasContent && (
+      {savedPlan ? (
+        <div className="flex-shrink-0 glass-panel border-t border-tea-border px-4 md:px-7 pt-3 pb-nav-gap flex justify-end">
+          <button type="button" onClick={resumeSavedPlan} disabled={committing} className="pill-active text-ui-13 px-5 py-2 inline-flex items-center gap-2 disabled:opacity-50">
+            {committing ? <><Loader2 size={14} className="animate-spin" /> Resuming…</> : <><RotateCw size={14} /> Resume import</>}
+          </button>
+        </div>
+      ) : hasContent && planLookup === 'ready' && (
         <div className="flex-shrink-0 glass-panel border-t border-tea-border px-4 md:px-7 pt-3 pb-nav-gap">
-          {pendingPurchaseRecords.length > 0 && (
-            <p role="alert" className="mb-3 text-ui-12 text-tea-text-sec">
-              Inventory items were added. {pendingPurchaseRecords.length} purchase record{pendingPurchaseRecords.length !== 1 ? 's are' : ' is'} still unconfirmed. Retry saves only those records; staged edits will not change the items already added.
-            </p>
-          )}
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
             <div className="flex items-baseline gap-1.5">
               <span className="text-ui-20 font-display text-tea-text leading-none">{counts.total}</span>
@@ -645,7 +696,6 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
             <button
               type="button"
               onClick={() => setSavePurchaseRecord((v) => !v)}
-              disabled={pendingPurchaseRecords.length > 0}
               className="inline-flex items-center gap-2 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors tap-target"
               aria-pressed={savePurchaseRecord}
             >
@@ -656,15 +706,13 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
             </button>
             <button
               type="button"
-              onClick={pendingPurchaseRecords.length > 0 ? retryPurchaseRecords : commit}
-              disabled={committing || (pendingPurchaseRecords.length === 0 && counts.total === 0)}
+              onClick={commit}
+              disabled={committing || planLookup !== 'ready' || !importId || counts.total === 0}
               className="ml-auto pill-active text-ui-13 px-5 py-2 inline-flex items-center gap-2 disabled:opacity-50"
             >
               {committing
                 ? <><Loader2 size={14} className="animate-spin" /> Adding…</>
-                : pendingPurchaseRecords.length > 0
-                  ? <><Receipt size={14} /> Retry {pendingPurchaseRecords.length} purchase record{pendingPurchaseRecords.length !== 1 ? 's' : ''}</>
-                  : <><Check size={14} /> Add {counts.total} to inventory <ArrowRight size={13} /></>}
+                : <><Check size={14} /> Add {counts.total} to inventory <ArrowRight size={13} /></>}
             </button>
           </div>
         </div>

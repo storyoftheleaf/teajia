@@ -338,3 +338,6 @@ export const EditableText: React.FC<{
     </Tag>
   );
 };
+// Its children are the field's coded default, a plain string it reads as a
+// value, so the tea-term linker (src/lib/glossaryTerms.ts) must leave them be.
+(EditableText as unknown as { noGlossaryTerms: boolean }).noGlossaryTerms = true;
