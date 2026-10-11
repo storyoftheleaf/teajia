@@ -411,7 +411,7 @@ function InventoryRowBase(props: InventoryRowProps) {
             ? <button
                 type="button"
                 onClick={(event) => { event.stopPropagation(); onOpenSource(product); }}
-                aria-label={`Open source ${product.vendor}`}
+                aria-label={`Open supplier ${product.vendor}`}
                 className="inline-block w-fit max-w-full text-left text-tea-text-sec hover:text-tea-gold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded transition-colors truncate"
               >
                 {product.vendor}

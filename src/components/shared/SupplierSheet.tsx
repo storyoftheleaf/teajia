@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { canonicalCurrency } from '../../lib/currency';
@@ -37,6 +38,8 @@ export interface SupplierSheetProps {
   onClose: () => void;
   /** Called after the rename has landed everywhere, so a list can show the new name. */
   onRenamed?: (newName: string) => void;
+  /** Opens this supplier's stock (sums, teas, select all). Shown as a last row when given. */
+  onShowStock?: () => void;
 }
 
 const label = 'font-sans text-ui-10 uppercase tracking-[0.1em] text-tea-text-dim leading-none';
@@ -105,7 +108,7 @@ const FreightBills: React.FC<{ bills: SupplierFreightBill[] }> = ({ bills }) => 
   </ul>
 );
 
-export const SupplierSheet: React.FC<SupplierSheetProps> = ({ vendorId, vendorName, open, onClose, onRenamed }) => {
+export const SupplierSheet: React.FC<SupplierSheetProps> = ({ vendorId, vendorName, open, onClose, onRenamed, onShowStock }) => {
   const queryClient = useQueryClient();
   const [shownName, setShownName] = useState(vendorName);
   useEffect(() => { setShownName(vendorName); }, [vendorName]);
@@ -299,6 +302,14 @@ export const SupplierSheet: React.FC<SupplierSheetProps> = ({ vendorId, vendorNa
               </Link>
             </section>
           </>
+        )}
+
+        {onShowStock && (
+          <button type="button" onClick={onShowStock}
+            className="tap-target mt-1 w-full py-3 flex items-center justify-between gap-3 border-t border-tea-border text-left text-ui-14 text-tea-text hover:text-tea-gold">
+            <span className="truncate">Stock from {currentName}</span>
+            <ChevronRight size={16} className="shrink-0 text-tea-text-sec" aria-hidden="true" />
+          </button>
         )}
       </div>
     </BottomSheet>
