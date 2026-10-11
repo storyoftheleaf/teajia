@@ -8,6 +8,8 @@ import { TYPE_OPTIONS } from './config';
 import type { ColDef } from './types';
 import { stripMatchingYear } from './helpers';
 import { shippingRateUsdFor } from '../../../lib/shippingRate';
+import { isSampleRow, joinItemCode, sampleQuote, splitItemCode } from './sampleRows';
+import { HouseNameField, ItemCode, QuoteField, moneyMark } from './phone/SampleDecide';
 
 export interface InventoryRowProps {
   product: Product;
@@ -95,7 +97,13 @@ function InventoryRowBase(props: InventoryRowProps) {
   // The Year column already shows the vintage, so a trailing year baked into the
   // name ("Aged Liu Bao 1960") is redundant. Strip it for display ONLY when it
   // matches product.year, never touch a trailing number that isn't the vintage.
-  const displayName = stripMatchingYear(product.productName, product.year);
+  const sampling = isSampleRow(product);
+  // The item code ("LKY-PE1") is Adrian's identifier, shown small beside the
+  // name and kept when the name is edited, never as the start of the name.
+  const coded = splitItemCode(product.productName);
+  const displayName = stripMatchingYear(coded.name, product.year);
+  /** A typed number, or null when the field was emptied: never zero for "nobody said". */
+  const typed = (text: string): number | null => (text.trim() === '' ? null : Number(text.trim()));
 
   // On the mobile swipe table numbers left-align (under their header) instead of
   // flush-right. These helpers swap the alignment classes / GhostInput align so
@@ -140,12 +148,17 @@ function InventoryRowBase(props: InventoryRowProps) {
           : '';
         // Subtitle slot is always rendered (with &nbsp; fallback) so every row
         // has the same height regardless of whether a givenName/form is present.
-        const houseName = product.givenName?.trim() || 'Unnamed';
+        // The house name is typed right here; a tea without one says "name this"
+        // in a thin italic, so it is plain where to tap (Adrian, 2026-10-11).
         const subtitle = legacyMobileLayout
           ? product.givenName
             ? <>{product.givenName}{product.form && <span className="ml-1 opacity-70">· {product.form}</span>}</>
-            : product.form || ' '
-          : <>{product.year && <span className="num opacity-80 mr-1">{product.year}</span>}<span>{houseName}</span></>;
+            : product.form || ' '
+          : <span className="flex items-baseline gap-1.5 min-w-0">
+              {product.year && <span className="num opacity-80">{product.year}</span>}
+              <HouseNameField value={product.givenName ?? ''} aria={`House name for ${displayName}`} onSave={(val) => onProductUpdate(product.id, 'givenName', val)} className="text-ui-11" />
+              <ItemCode code={coded.code} />
+            </span>;
         return (
           <td
             key={colKey}
@@ -156,7 +169,7 @@ function InventoryRowBase(props: InventoryRowProps) {
             <div className="flex flex-col justify-center">
               {isEditMode ? (
                 <div className="flex min-w-0 items-center gap-1">
-                  <GhostInput value={displayName} onSave={(val) => onProductUpdate(product.id, 'productName', val)} className={`min-w-0 flex-1 ${nameWeightCls} ${nameTone}`} ariaLabel="Product name" />
+                  <GhostInput value={displayName} onSave={(val) => onProductUpdate(product.id, 'productName', joinItemCode(coded.code, val))} className={`min-w-0 flex-1 ${nameWeightCls} ${nameTone}`} ariaLabel="Product name" />
                   <label className="tap-target inline-flex shrink-0 items-center gap-0.5 text-ui-9 uppercase tracking-[0.06em] text-tea-text-sec hover:text-tea-text" aria-label={`Change type for ${displayName}`}>
                     <Plus size={9} aria-hidden="true" />
                     <select
@@ -187,7 +200,7 @@ function InventoryRowBase(props: InventoryRowProps) {
                   {displayName}
                 </button>
               )}
-              <span className="font-sans text-ui-11 text-tea-text-dim mt-0 leading-none truncate block" style={{ letterSpacing: '0.02em' }}>
+              <span className="font-sans text-ui-11 text-tea-text-dim mt-0 leading-tight truncate block" style={{ letterSpacing: '0.02em' }}>
                 {subtitle}
               </span>
             </div>
@@ -230,6 +243,25 @@ function InventoryRowBase(props: InventoryRowProps) {
         </td>
       );
       case 'stockGrams': {
+        if (sampling) {
+          // A sample's stock does not matter; its quote does: how much, for how
+          // many grams, in the money it was quoted in. Both figures are typed here.
+          const q = sampleQuote(product);
+          return (
+            <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr}`}>
+              <span className="flex flex-col leading-tight">
+                <span className="flex items-baseline gap-0.5 text-tea-text">
+                  <span className="text-tea-text-sec">{moneyMark(q.currency)}</span>
+                  <QuoteField small value={q.amount} aria={`Quote for ${displayName}`} display={q.amount == null ? <span className="text-tea-text-dim">add</span> : q.amount.toLocaleString()} onSave={(t) => onProductUpdate(product.id, 'costAmount', typed(t))} />
+                </span>
+                <span className="flex items-baseline gap-0.5 text-ui-11 text-tea-text-dim">
+                  <span>per</span>
+                  <QuoteField small value={q.grams} aria={`Grams the quote is for, ${displayName}`} display={q.grams == null ? <span>add</span> : <span className="text-ui-11 text-tea-text-sec">{q.grams.toLocaleString()} g</span>} onSave={(t) => onProductUpdate(product.id, 'quantityPurchased', typed(t))} />
+                </span>
+              </span>
+            </td>
+          );
+        }
         return (
           <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${stockTone}`}>
             {/* Stock is the gram quantity, editable inline, type a new value
@@ -298,6 +330,12 @@ function InventoryRowBase(props: InventoryRowProps) {
         );
       }
       case 'pricePerGramUSD': {
+        // A sample has no shelf price yet; what matters is what a gram costs.
+        if (sampling) return (
+          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} text-tea-gold-lt`}>
+            <span>{product.costPerGramUSD > 0 ? fmtNum(product.costPerGramUSD) : '—'}</span>
+          </td>
+        );
         const sellingPrice = product.fixedRetailPriceUSD ?? product.pricePerGramUSD;
         // Price-override marker: a soft bronze, not the brightest tone, the
         // selected row is what should stand out, not a per-row price flag.
@@ -390,7 +428,7 @@ function InventoryRowBase(props: InventoryRowProps) {
   // whole-row opacity fades (they made the table look like a patchwork of browns).
   // Hidden-from-shop state is carried by the EyeOff icon, not by fading the row.
   const trCls = [
-    'border-b border-tea-border last:border-b-0 group cursor-pointer select-none transition-colors',
+    `${sampling ? '' : 'border-b border-tea-border last:border-b-0'} group cursor-pointer select-none transition-colors`,
     isPanelOpen
       ? 'bg-tea-gold/16 outline outline-2 -outline-offset-1 outline-tea-gold/70 shadow-[inset_3px_0_0_0_var(--tea-gold)]'
       : isSelected
@@ -401,6 +439,7 @@ function InventoryRowBase(props: InventoryRowProps) {
   return (
     <tr
       data-product-id={product.id}
+      data-sample={sampling || undefined}
       className={trCls}
       style={{ height: rowHeight }}
       tabIndex={isEditMode ? -1 : 0}

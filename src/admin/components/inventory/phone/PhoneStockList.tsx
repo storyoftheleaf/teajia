@@ -268,7 +268,6 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
                           </>;
                         })()}
                         {comingQty > 0 && <span className="shrink-0 text-tea-gold-lt">· +{fmtNum(comingQty)}</span>}
-                        {!selectMode && isUnchecked(p) && <span aria-label="needs a recount" className="shrink-0 w-1.5 h-1.5 rounded-full bg-tea-error" />}
                       </span>
                     </span>
                     <span className={`${NUM} font-mono text-ui-13 tracking-tight text-tea-text tabular-nums`}>{p.year || '—'}</span>

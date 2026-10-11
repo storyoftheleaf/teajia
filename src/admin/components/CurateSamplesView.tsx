@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Loader2, RefreshCw } from 'lucide-react';
 import { api } from '../../lib/api';
@@ -10,6 +10,9 @@ import { TASTING_TAXONOMY } from '../../data/tastingTaxonomy';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { PhoneSamplesList } from './inventory/phone/PhoneSamplesList';
 import type { PhoneGroupBy } from './inventory/phone/groupStock';
+import type { Product } from '../types';
+import { linkedEntryId, productSampleHolding } from './inventory/sampleRows';
+import { linkProductToCurate } from './inventory/phone/sampleDecisions';
 
 type Portion = { id: string; name: string; grams: number | null; status: string; compass_entry_id: string };
 type Holding = { entry: Record<string, any>; stock_grams: number; sample_grams: number | null; samples: Portion[] };
@@ -19,7 +22,7 @@ const control = 'min-h-11 w-full rounded-md border border-tea-border bg-tea-bg p
 const button = 'tap-target min-h-11 rounded-md px-3 text-ui-13 text-tea-text-sec hover:bg-tea-accent-sub focus-visible:outline focus-visible:outline-tea-gold disabled:opacity-50';
 const categories = TASTING_TAXONOMY.categories.filter(c => ['body','finish','feeling','flavor','liquor-color'].includes(c.id));
 
-export function CurateSamplesView({ search = '', groupBy = 'vendor', embedded = false, rowsOnly = false, sortKey = null, sortDir = 'asc', onCount }: { search?: string; groupBy?: PhoneGroupBy; embedded?: boolean; rowsOnly?: boolean; sortKey?: string | null; sortDir?: 'asc' | 'desc'; onCount?: (n: number) => void }) {
+export function CurateSamplesView({ search = '', groupBy = 'vendor', embedded = false, rowsOnly = false, sortKey = null, sortDir = 'asc', onCount, products = [], onOpenProduct, onProductUpdate }: { search?: string; groupBy?: PhoneGroupBy; embedded?: boolean; rowsOnly?: boolean; sortKey?: string | null; sortDir?: 'asc' | 'desc'; onCount?: (n: number) => void; products?: Product[]; onOpenProduct?: (p: Product) => void; onProductUpdate?: (id: string, field: keyof Product, value: unknown) => void }) {
  const accountId = useAppStore(s => s.activeAccountId);
  const client = useQueryClient();
  const holdings = useQuery<Holding[]>({ queryKey: ['curate-samples-only', accountId], queryFn: () => api.curateWorkspace.holdings(true), enabled: !!accountId });
@@ -77,7 +80,26 @@ export function CurateSamplesView({ search = '', groupBy = 'vendor', embedded = 
   } catch (e) { setReview(null); setError(e instanceof Error ? e.message : 'The change could not be confirmed. Review it again.'); }
   finally { setBusy(false); }
  };
- const allRows = holdings.data ?? [];
+ const compassEntries = useTeaCompassStore(s => s.entries);
+ // Sampling is a state of a tea (Adrian, 2026-10-11): a shelf product bought to
+ // sample is one more sample row here, and one that already has a Curate record
+ // is never shown twice.
+ const productRows = useMemo(() => products.map(p => productSampleHolding(p, linkedEntryId(p, compassEntries))), [products, compassEntries]);
+ const productById = useMemo(() => new Map(products.map(p => [p.id, p])), [products]);
+ const linkedIds = new Set(productRows.map(h => String(h.entry.id)));
+ const allRows = [...productRows, ...(holdings.data ?? []).filter(h => !linkedIds.has(String(h.entry.id)) && !(h.entry.draft_product_id && productById.has(String(h.entry.draft_product_id))))];
+ const productOf = (h: Holding) => (h.entry.__product_id ? productById.get(String(h.entry.__product_id)) : undefined);
+ const writesFor = (h: Holding) => {
+  const p = productOf(h);
+  if (!p || !onProductUpdate) return undefined;
+  const typed = (t: string) => (t.trim() === '' ? null : Number(t.trim()));
+  return {
+   quote: async (field: 'amount' | 'grams', text: string) => onProductUpdate(p.id, field === 'amount' ? 'costAmount' : 'quantityPurchased', typed(text)),
+   houseName: async (text: string) => onProductUpdate(p.id, 'givenName', text),
+   resolveId: () => linkProductToCurate(p),
+  };
+ };
+ const openHolding = (h: Holding) => { const p = productOf(h); if (!p || !onOpenProduct) return false; onOpenProduct(p); return true; };
  useEffect(() => { onCount?.(allRows.length); }, [allRows.length, onCount]);
  const rows = allRows.filter(h => `${h.entry.name ?? ''} ${h.entry.chinese_name ?? ''} ${h.entry.vendor_name ?? ''}`.toLowerCase().includes(search.toLowerCase()));
  if (editing) return <div className="min-w-0 overflow-y-auto pb-nav-gap"><button className={button} onClick={async () => { setEditing(null); await refresh(); }}><ArrowLeft size={16} className="inline mr-2" />Back to samples</button><CaptureCard entryId={editing} onReturnToLibrary={() => { setEditing(null); void refresh(); }} onCommit={() => { void refresh(); }} /></div>;
@@ -89,7 +111,7 @@ export function CurateSamplesView({ search = '', groupBy = 'vendor', embedded = 
   {holdings.isLoading && <p role="status" className="flex items-center gap-2 p-4 text-ui-14 text-tea-text-dim"><Loader2 size={16} className="animate-spin" />Loading samples…</p>}
   {holdings.isError && <div role="alert" className="p-4 text-ui-14 text-tea-text">Samples could not be loaded.<button className={button} onClick={() => { void refresh(); }}>Try again</button></div>}
   {!holdings.isLoading && !holdings.isError && !rows.length && <p className={`${TYPOGRAPHY_CLASSES.bodyLight} p-4 text-tea-text-dim`}>{search ? 'No samples match this search.' : 'No received or tasted samples without full stock yet.'}</p>}
-  {rows.length > 0 && <PhoneSamplesList holdings={rows} groupBy={groupBy} rowsOnly={rowsOnly} sortKey={sortKey} sortDir={sortDir} onEditTea={id => { void edit(id); }} onOrder={holding => start({ kind: 'order', holding })} onChanged={refresh} />}
+  {rows.length > 0 && <PhoneSamplesList holdings={rows} groupBy={groupBy} rowsOnly={rowsOnly} sortKey={sortKey} sortDir={sortDir} writesFor={writesFor} onOpenHolding={openHolding} onEditTea={id => { void edit(id); }} onOrder={holding => start({ kind: 'order', holding })} onChanged={refresh} />}
  </section>;
  const shownRows = isMobile && action?.kind === 'order' ? rows.filter(h => h.entry.id === action.holding.entry.id) : rows;
  return <section aria-label="Samples-only inventory" className="min-w-0 flex-1 overflow-y-auto pb-nav-gap">

@@ -5,7 +5,7 @@ import { fmtNum } from '../../../../utils/formatNumber';
 import { getThemeTextColor } from '../../../themeUtils';
 import { TASTING_TAXONOMY } from '../../../../data/tastingTaxonomy';
 import { TapField } from './PhoneTeaSheet';
-import { SampleDecideRow } from './SampleDecide';
+import { SampleDecideRow, type SampleRowWrites } from './SampleDecide';
 import { BuyingEntry } from '../../../../components/shared/BuyingEntry';
 import { useTeaCompassStore } from '../../../../lib/teaCompassStore';
 import { useRates } from '../../../hooks/useAdminData';
@@ -47,11 +47,15 @@ export interface PhoneSamplesListProps {
   onEditTea: (id: string) => void;
   onOrder: (holding: SampleHolding) => void;
   onChanged: () => void | Promise<void>;
+  /** A shelf product bought to sample writes to the product, not to Curate. */
+  writesFor?: (h: SampleHolding) => SampleRowWrites | undefined;
+  /** Opens a row itself (a shelf product opens its own sheet); false falls back to the sample sheet. */
+  onOpenHolding?: (h: SampleHolding) => boolean;
 }
 
 type SampleSort = 'name' | 'year' | 'grams';
 
-export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, groupBy = 'vendor', rowsOnly = false, sortKey = null, sortDir = 'asc', onEditTea, onOrder, onChanged }) => {
+export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, groupBy = 'vendor', rowsOnly = false, sortKey = null, sortDir = 'asc', onEditTea, onOrder, onChanged, writesFor, onOpenHolding }) => {
   const [ownSort, setSort] = useState<{ key: SampleSort; dir: 'asc' | 'desc' }>({ key: 'name', dir: 'asc' });
   // In the Stock list the column headings above sort these rows too.
   const sort: { key: SampleSort; dir: 'asc' | 'desc' } = rowsOnly
@@ -129,7 +133,7 @@ export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, gr
               </span>
             </button>
             {isOpen && group.rows.map(h => (
-              <SampleDecideRow key={h.entry.id} holding={h} usdPerGram={usdPerGram} onOpen={() => setFocusedId(focusedId === h.entry.id ? null : h.entry.id)} />
+              <SampleDecideRow key={h.entry.id} holding={h} usdPerGram={usdPerGram} writes={writesFor?.(h)} onOpen={() => { if (onOpenHolding?.(h)) return; setFocusedId(focusedId === h.entry.id ? null : h.entry.id); }} />
             ))}
           </section>
         );
