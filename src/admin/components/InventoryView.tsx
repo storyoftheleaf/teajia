@@ -3330,6 +3330,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             onSelectAll={(ids) => setSelectedIds(new Set(ids))}
             onOpenIncoming={openIncoming}
             incomingByProductId={effectiveIncomingByProductId}
+            onEditSupplier={sourcePanelProduct.vendor ? () => { const p = sourcePanelProduct; setSourcePanelProduct(null); setSupplierSheetProduct(p); } : undefined}
           />
         )}
       </AnimatePresence>
