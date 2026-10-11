@@ -15,6 +15,12 @@ describe('structured vendor editor payload', () => {
   it('uses explicit empty arrays and null code to clear fields without inventing replacements', () => {
     expect(vendorFieldsPayload({ vendor_code: '', contact_people: [], addresses: [], contacts: [] })).toEqual({ vendor_code: null, contacts_mode: 'replace', contact_people: [], addresses: [], contacts: [] });
   });
+  it('keeps a person\'s Chinese name and a Chinese address in their own fields, and drops them when blank', () => {
+    const payload = vendorFieldsPayload({ vendor_code: '', contact_people: [{ id: 'xwt-owner', name: ' Liang Hongjie ', chinese_name: ' 梁弘杰 ' }, { id: 'kate', name: 'Kate Ng', chinese_name: '  ' }],
+      addresses: [{ id: 'shop', label: 'Shop', address: '2F, 508 Fangcun Tea Market, Guangzhou', address_chinese: '芳村茶叶城508号二楼' }, { id: 'office', label: 'Office', address: 'Chai Wan', address_chinese: '' }], contacts: [] });
+    expect(payload.contact_people).toEqual([{ id: 'xwt-owner', name: 'Liang Hongjie', chinese_name: '梁弘杰' }, { id: 'kate', name: 'Kate Ng' }]);
+    expect(payload.addresses).toEqual([{ id: 'shop', label: 'Shop', address: '2F, 508 Fangcun Tea Market, Guangzhou', address_chinese: '芳村茶叶城508号二楼' }, { id: 'office', label: 'Office', address: 'Chai Wan' }]);
+  });
   it('refuses incomplete addresses instead of putting factual data in notes', () => {
     expect(() => vendorFieldsPayload({ vendor_code: '', contact_people: [], addresses: [{ id: 'office', label: '', address: 'Queen’s Road' }], contacts: [] })).toThrow();
   });

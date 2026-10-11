@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, type RefObject } from 'react';
 import type { CurateImportDetail } from '../../lib/api';
-import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { ImportBatchChip } from './ImportBatchChip';
 
 export interface LibraryImportFocusRequest {
@@ -48,9 +47,17 @@ export const LibraryImportsSection: React.FC<LibraryImportsSectionProps> = ({ im
   if (!activeImports.length) return null;
 
   return (
-    <section aria-label="Imports" className="mb-5 space-y-2">
-      <h2 ref={headingRef} tabIndex={-1} className={`${TYPOGRAPHY_CLASSES.label} px-0.5 text-tea-text-sec`}>Imports</h2>
-      <div className="space-y-2">
+    <section aria-label="Imports" className="curate-v2 mb-5">
+      {/* A section as the shop draws one, like Today's and the date groups
+          below: the word large, a two-digit count, a gold hairline. */}
+      <div className="pt-3">
+        <div className="flex items-baseline justify-between pb-2.5">
+          <h2 ref={headingRef} tabIndex={-1} className="font-display text-ui-26 font-normal tracking-[0.02em] text-tea-text">Imports</h2>
+          <span className="text-ui-11 text-tea-text-sec tabular-nums">{String(activeImports.length).padStart(2, '0')}</span>
+        </div>
+        <div className="h-px bg-tea-gold/20" aria-hidden="true" />
+      </div>
+      <div>
         {activeImports.map(detail => (
           <div key={detail.batch.id} ref={node => { if (node) rowRefs.current.set(detail.batch.id, node); else rowRefs.current.delete(detail.batch.id); }}>
             <ImportBatchChip

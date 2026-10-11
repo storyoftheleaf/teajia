@@ -243,43 +243,36 @@ export const CurateRecordRow: React.FC<{
   onDelete,
   busy = false,
 }) => (
-  <div className="curate-cluster flex flex-wrap items-center gap-2" aria-busy={busy || undefined}>
-    <div className="min-w-0 flex-1">
-      <div className="curate-primary truncate">{title}</div>
-      <div className="curate-support flex flex-wrap items-center gap-x-2 text-tea-text-dim">
+  // A shop row: the whole row opens the record (its name in Cormorant, what it
+  // holds in Lora beneath), one small word on the right deletes it. The
+  // labels name the record for a screen reader; the eye reads Open and Delete
+  // from the row itself, so the full title is never printed into a button.
+  <div className="flex min-h-[58px] items-center gap-3 border-b border-tea-border py-2" aria-busy={busy || undefined}>
+    <button
+      type="button"
+      onClick={onOpen}
+      disabled={busy}
+      aria-label={openLabel}
+      className="flex min-h-11 min-w-0 flex-1 flex-col items-start text-left disabled:cursor-not-allowed"
+      data-curate-action
+    >
+      <span className="curate-v2-name whitespace-normal text-tea-text">{title}</span>
+      <span className="flex flex-wrap gap-x-2 font-mono text-ui-12 text-tea-text-sec">
         <span>{metadata}</span>
-        {status && <span role="status" className="text-tea-text-sec">{status}</span>}
-      </div>
-    </div>
-    <div className="flex flex-wrap items-center gap-1">
-      {onDelete && (
-        <button
-          type="button"
-          onClick={onDelete}
-          disabled={busy}
-          aria-label={deleteLabel}
-          className="curate-action curate-compact-target disabled:cursor-not-allowed"
-          data-curate-action
-          data-curate-compact-target
-        >
-          <span className="curate-compact-chrome text-tea-text-sec hover:text-tea-text" data-curate-compact-chrome>
-            {deleteLabel}
-          </span>
-        </button>
-      )}
+        {status && <span role="status">{status}</span>}
+      </span>
+    </button>
+    {onDelete && (
       <button
         type="button"
-        onClick={onOpen}
+        onClick={onDelete}
         disabled={busy}
-        aria-label={openLabel}
-        className="curate-action curate-compact-target disabled:cursor-not-allowed"
+        aria-label={deleteLabel}
+        className="tap-target min-h-11 shrink-0 font-mono text-ui-13 text-tea-text-sec hover:text-tea-text disabled:cursor-not-allowed"
         data-curate-action
-        data-curate-compact-target
       >
-        <span className="curate-compact-chrome border border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text" data-curate-compact-chrome>
-          {openLabel}
-        </span>
+        Delete
       </button>
-    </div>
+    )}
   </div>
 );

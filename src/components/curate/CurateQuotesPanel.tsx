@@ -63,7 +63,12 @@ export function CurateQuotesPanel({ vendorId }: { vendorId: string }) {
     setHeaders([]); setTeas([]); setDraft(null); setError(''); setSaving(false); setSaved(false);
     Promise.all([api.curateWorkspace.quotes(vendorId), api.compass.list({ vendor_id: vendorId })]).then(([quotes, data]) => {
       if (revision !== generation.current || useAppStore.getState().activeAccountId !== account) return;
-      setHeaders(quotes); setTeas(data.entries ?? []);
+      // Only a real list is kept. The teas arrive as { entries: [...] }; if a
+      // bare list ever comes back instead, `data.entries` is the array's own
+      // built-in entries() function, and handing that to setState makes React
+      // call it and crash the whole vendor page.
+      setHeaders(Array.isArray(quotes) ? quotes : []);
+      setTeas(Array.isArray(data?.entries) ? data.entries : []);
     }).catch(() => { if (revision === generation.current) setError('Quotes and vendor teas could not be loaded. Retry before editing.'); });
     return () => { ++generation.current; };
   }, [vendorId, account, retry]);

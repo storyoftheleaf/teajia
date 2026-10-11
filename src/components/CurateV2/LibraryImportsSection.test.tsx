@@ -56,7 +56,9 @@ describe('LibraryImportsSection', () => {
     expect(html).toContain('1 needs attention');
     expect(html).toContain('aria-label="Open Summer vendor list"');
     expect(html).toContain('aria-label="Delete Summer vendor list"');
-    expect(html).toContain('curate-cluster');
+    // The eye reads one short word, never the title printed into a button.
+    expect(html).toContain('>Delete</button>');
+    expect(html).not.toMatch(/>(Open|Delete) Summer vendor list</);
   });
 
   it('counts missing effective destination and inventory purpose as needing attention', () => {

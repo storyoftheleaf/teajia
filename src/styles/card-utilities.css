@@ -4248,12 +4248,17 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
   top: 0.25rem;
   left: 0.75rem;
   z-index: 1;
-  color: var(--tea-text-dim);
+  /* The site's shared label (TYPOGRAPHY_CLASSES.label): 11px, normal weight,
+     secondary text colour, 1.2px tracking, so a box's label and a "Tea details
+     & sourcing" label read as one style (Adrian, 2026-10-10). It was 10px
+     bold in the dim colour. Line height stays tight because this label sits
+     inside the box, above what is typed. */
+  color: var(--tea-text-sec);
   font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 500;
   line-height: 1.2;
-  letter-spacing: 0.12em;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
   pointer-events: none;
 }
@@ -4924,7 +4929,9 @@ body.cart-panel-open .commerce-dock {
    lighter gold on dark and the solid, darker one on parchment. Borders keep
    the plain gold. */
 .curate-v2 { --curate-gold-text: var(--tea-gold-lt); }
-.light .curate-v2 { --curate-gold-text: var(--tea-gold-solid); }
+/* On parchment even the solid gold reads 4.2:1 on Today's bands; the hover
+   gold (#6e5323, already in the palette) reads 5.3:1 there and 6.1:1 on the page. */
+[data-theme="light"] .curate-v2, .light-mode .curate-v2, .light .curate-v2 { --curate-gold-text: var(--tea-gold-solid-hover); }
 .curate-v2 .text-tea-gold { color: var(--curate-gold-text); }
 .curate-v2,
 .curate-v2 .font-display {
@@ -5387,3 +5394,41 @@ body.cart-panel-open .commerce-dock {
 @media (min-width: 1024px) {
   .sheet-behind-nav { padding-bottom: 12px; }
 }
+
+/* How much he likes a sample, 1 to 10 (SampleDecide.tsx LikeSlider). A hairline
+   track and a small gold mark, never a big knob; hollow until it has a score,
+   because "not rated" is not a score of one. */
+.sample-like-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+.sample-like-slider::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--tea-border);
+}
+.sample-like-slider::-moz-range-track {
+  height: 2px;
+  background: var(--tea-border);
+}
+.sample-like-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 11px;
+  height: 11px;
+  margin-top: -4.5px;
+  border-radius: 9999px;
+  border: 1.5px solid rgb(var(--tea-gold-rgb));
+  background: rgb(var(--tea-gold-rgb));
+}
+.sample-like-slider::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  border-radius: 9999px;
+  border: 1.5px solid rgb(var(--tea-gold-rgb));
+  background: rgb(var(--tea-gold-rgb));
+}
+.sample-like-slider.is-unrated::-webkit-slider-thumb { background: transparent; }
+.sample-like-slider.is-unrated::-moz-range-thumb { background: transparent; }
+.sample-like-slider:focus-visible { outline: 1px solid rgb(var(--tea-gold-rgb)); outline-offset: 2px; }

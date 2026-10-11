@@ -35,6 +35,7 @@ import { EncounterContext } from './EncounterContext';
 import { DecisionControl } from './DecisionControl';
 import { CaptureContextChips } from './CaptureContextChips';
 import { CaptureActionFooter } from './CaptureActionFooter';
+import { useSampleUse } from './sampleUse';
 import { curateShelfPreview } from './curatePricing';
 import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
 
@@ -698,6 +699,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   // ── Tasting overlay opener, hoisted so actionRef can reference it ──────
   const openTastingOverlay = () => {
     setLocalTasting(entry.tasting || EMPTY_TASTING);
+    // A tasting that began in the fast sheet carries on as the same tasting.
+    useSampleUse.getState().begin(entry.id);
     setTastingOverlayOpen(true);
   };
 
@@ -856,6 +859,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   const closeTastingOverlay = () => {
     setTastingOverlayOpen(false);
+    void useSampleUse.getState().finish(entry.id);
     onTastingClosed?.();
   };
 
@@ -1787,6 +1791,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             initialData={entry.tasting ?? undefined}
             onClose={closeTastingOverlay}
             onAfterSave={(data: TastingData) => {
+              useSampleUse.getState().markAnswered(entry.id);
               setLocalTasting(data);
               const existingHistory = entry.tastingHistory || [];
               const today = new Date().toDateString();

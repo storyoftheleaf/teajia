@@ -1,4 +1,5 @@
 import { promoteCompassEntry, CompassPromotionError } from './curatePromotion';
+import { applySupplierRename, listSupplierFreight, previewSupplierRename, SupplierRenameRefusal } from './supplierRename';
 import {
   mcpFetch, publicMcpFetch, mcpAdminMintToken, mcpAdminListTokens, mcpAdminRevokeToken,
   oauthProtectedResourceMetadata, oauthAuthorizationServerMetadata,
@@ -89,7 +90,8 @@ import {
 import { candidateToApi, impressionToApi, journalRowToNotes, parseCandidateInput } from './tastingNoteCuration';
 import { deliverVerificationCode, deliveryFailureBody } from './verificationDelivery';
 import { handoffToRepair } from './problemAlerts';
-import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, recordHealthProblem, clearHealthProblem, type IncidentStatus } from './incidents';
+import { isRetryableProviderStatus, parseExtractReply } from './extractImageReply';
+import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, recordHealthProblem, clearHealthProblem, clearQuietIncidents, type IncidentStatus } from './incidents';
 import {
   deleteWisdomVerification,
   getWisdomVerification,
@@ -142,6 +144,7 @@ import { workerReleaseResponse, type WorkerReleaseEnv } from './workerRelease';
 import { handleCurateWorkspace } from './curateWorkspaceRoutes';
 import { validateCompassQuoteLink } from './curateQuotes';
 import { requireCurateManager, prepareCurateRecordedWrite } from './curateMutations';
+import { RouteRefusal, listRoutes, removeRoute, saveRoute } from './shippingRoutes';
 
 interface Env extends WorkerReleaseEnv {
   DB: D1Database;
@@ -11628,7 +11631,10 @@ const handleExtractFromImage: Handler = async (request, env) => {
 
   if (useClaude) {
     // Claude Messages API via plain fetch, no SDK (keep the worker bundle lean).
-    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+    // Thinking is off: this model thinks by default, and thinking is paid out
+    // of max_tokens, so a long think could leave no room for the JSON at all.
+    // Reading a label needs no deliberation. One retry covers a busy provider.
+    const callClaude = () => fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'x-api-key': env.ANTHROPIC_API_KEY,
@@ -11637,7 +11643,8 @@ const handleExtractFromImage: Handler = async (request, env) => {
       },
       body: JSON.stringify({
         model: EXTRACT_VISION_MODEL,
-        max_tokens: 1024,
+        max_tokens: 4096,
+        thinking: { type: 'disabled' },
         messages: [{
           role: 'user',
           content: [
@@ -11650,6 +11657,12 @@ const handleExtractFromImage: Handler = async (request, env) => {
         }],
       }),
     });
+    let claudeRes = await callClaude();
+    if (!claudeRes.ok && isRetryableProviderStatus(claudeRes.status)) {
+      console.warn(`extract-from-image Claude answered ${claudeRes.status}; retrying once`);
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      claudeRes = await callClaude();
+    }
 
     if (!claudeRes.ok) {
       const errText = await claudeRes.text();
@@ -11699,13 +11712,12 @@ const handleExtractFromImage: Handler = async (request, env) => {
   }
 
   // Parse the JSON from the model's response (strip markdown fences if present)
-  let extracted: Record<string, any> = {};
-  try {
-    const jsonStr = rawText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-    extracted = JSON.parse(jsonStr);
-  } catch {
+  const parsedReply = parseExtractReply(rawText);
+  if (!parsedReply) {
+    console.error(`extract-from-image reply held no JSON object (${rawText.length} chars)`);
     return json({ error: 'extract_failed' }, 502);
   }
+  const extracted: Record<string, any> = parsedReply;
 
   // Attach the uploaded image URL
   if (imageUrl) {
@@ -21887,6 +21899,7 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
     total_usd: totalUsd, display_currency: body.display_currency || 'USD',
     status: body.status || 'pending', message_text: body.message_text || null,
     notes: body.notes || null,
+    ship_mode: body.ship_mode === 'air' || body.ship_mode === 'sea' ? body.ship_mode : null,
   })) : null;
   if (requestKey) {
     const prior = await env.DB.prepare(
@@ -21898,7 +21911,7 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
   }
 
   const id = crypto.randomUUID();
-  const cols = ['id', 'account_id', 'create_request_key', 'create_request_fingerprint', 'vendor_name', 'vendor_id', 'vendor_contact', 'items_json', 'total_usd', 'display_currency', 'status', 'message_text', 'notes', 'created_at', 'updated_at'];
+  const cols = ['id', 'account_id', 'create_request_key', 'create_request_fingerprint', 'vendor_name', 'vendor_id', 'vendor_contact', 'items_json', 'total_usd', 'display_currency', 'status', 'message_text', 'notes', 'ship_mode', 'created_at', 'updated_at'];
   try { await env.DB.prepare(
     `INSERT INTO purchase_orders (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`
   ).bind(
@@ -21916,7 +21929,7 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
     body.display_currency || 'USD',
     body.status || 'pending',
     body.message_text || null,
-    body.notes || null,
+    body.notes || null, body.ship_mode === 'air' || body.ship_mode === 'sea' ? body.ship_mode : null, // the route (0043); anything else is no route
     new Date().toISOString(),
     new Date().toISOString(),
   ).run(); } catch (error) {
@@ -21934,13 +21947,42 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
   return json({ id }, 201);
 };
 
+// ── Shipping routes (Settings; the buying basket estimates freight from them) ──
+// Read by anyone who buys stock; changed only by the owner, like the shop's
+// own freight rate on the same screen.
+
+const handleListShippingRoutes: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'stock');
+  if ('error' in ctx) return ctx.error;
+  return json(await listRoutes(env.DB, ctx.accountId));
+};
+
+const handleSaveShippingRoute: Handler = async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+  if (!body || typeof body !== 'object') return json({ error: 'A route is needed.' }, 400);
+  try {
+    return json(await saveRoute(env.DB, ctx.accountId, params.id ?? null, body), params.id ? 200 : 201);
+  } catch (e) {
+    if (e instanceof RouteRefusal) return json({ error: e.message }, e.message === 'No such route.' ? 404 : 400);
+    throw e;
+  }
+};
+
+const handleRemoveShippingRoute: Handler = async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  return (await removeRoute(env.DB, ctx.accountId, params.id)) ? json({ removed: true }) : json({ error: 'No such route.' }, 404);
+};
+
 const handleUpdatePurchaseOrder: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'stock');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
-  const body = await request.json() as { status?: string; notes?: string; message_text?: string };
-  const allowed = ['status', 'notes', 'message_text'];
+  const body = await request.json() as { status?: string; notes?: string; message_text?: string; tracking_number?: string | null };
+  const allowed = ['status', 'notes', 'message_text', 'tracking_number']; if ('tracking_number' in body) body.tracking_number = String(body.tracking_number ?? '').trim().slice(0, 120) || null; // emptied is none, never ''
   const cols = Object.keys(body).filter(k => allowed.includes(k));
   if (cols.length === 0) {
     const exists = await env.DB.prepare('SELECT id FROM purchase_orders WHERE id = ? AND account_id = ?').bind(params.id, accountId).first();
@@ -21957,6 +21999,51 @@ const handleUpdatePurchaseOrder: Handler = async (request, env, params) => {
   if (!(Number(result?.meta?.changes) > 0)) return json({ error: 'Purchase order not found' }, 404);
 
   return json({ success: true });
+};
+
+// ── Supplier sheet: rename a supplier everywhere, and read how it ships ──
+// The card's contact fields are edited through PUT /api/customers/:id; the name
+// is NOT, because a name copied into a dozen tables needs its own all-or-nothing
+// route (see supplierRename.ts).
+
+const supplierRefusal = (e: unknown): Response | null =>
+  e instanceof SupplierRenameRefusal ? json({ error: e.message, code: e.code }, e.status) : null;
+
+const handlePreviewSupplierRename: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  try {
+    return json(await previewSupplierRename(env.DB, ctx.accountId, params.id, new URL(request.url).searchParams.get('name')));
+  } catch (e) {
+    const refused = supplierRefusal(e);
+    if (refused) return refused;
+    throw e;
+  }
+};
+
+const handleApplySupplierRename: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json().catch(() => null) as { name?: unknown; expected_old_name?: unknown } | null;
+  try {
+    return json(await applySupplierRename(env.DB, ctx.accountId, params.id, body?.name, body?.expected_old_name));
+  } catch (e) {
+    const refused = supplierRefusal(e);
+    if (refused) return refused;
+    throw e;
+  }
+};
+
+const handleListSupplierFreight: Handler = async (request, env, params) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  try {
+    return json(await listSupplierFreight(env.DB, ctx.accountId, params.id));
+  } catch (e) {
+    const refused = supplierRefusal(e);
+    if (refused) return refused;
+    throw e;
+  }
 };
 
 // ── Me / Profile ──
@@ -29219,6 +29306,15 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/purchase-orders', handleListPurchaseOrders],
   ['POST', '/api/purchase-orders', handleCreatePurchaseOrder],
   ['PUT', '/api/purchase-orders/:id', handleUpdatePurchaseOrder],
+  ['GET', '/api/suppliers/:id/rename-preview', handlePreviewSupplierRename],
+  ['POST', '/api/suppliers/:id/rename', handleApplySupplierRename],
+  ['GET', '/api/suppliers/:id/freight', handleListSupplierFreight],
+
+  // Shipping routes
+  ['GET', '/api/shipping-routes', handleListShippingRoutes],
+  ['POST', '/api/shipping-routes', handleSaveShippingRoute],
+  ['PUT', '/api/shipping-routes/:id', handleSaveShippingRoute],
+  ['DELETE', '/api/shipping-routes/:id', handleRemoveShippingRoute],
 
   // Activity Logs & Stock Ledger
   ['GET', '/api/activity-logs', handleGetActivityLogs],
@@ -30004,6 +30100,14 @@ export default {
       await reportStaleExchangeRates(env, rateRefresh);
     } catch (err) {
       console.error('Exchange rate staleness check failed', err);
+    }
+
+    /* Needs fixing is a to-do list, so a problem that has stopped happening
+       leaves it on its own. It comes back by itself if it happens again. */
+    try {
+      await clearQuietIncidents(env.DB);
+    } catch (err) {
+      console.error('Clearing quiet problems failed', err);
     }
 
     // Retry audio is temporary. Delete the object before its ledger row so a

@@ -837,6 +837,11 @@ const toolUpdateTea: ToolHandler = async (env, auth, args) => {
   if (!current) return { error: 'not_found' };
   const vendor = await planVendor(env, auth, str(args?.vendor_id, 80), str(args?.vendor_name, 200));
   const { write, lines } = readTeaWrite(args, current.name ?? 'this tea', vendor);
+  // readTeaFields leaves the name out of the lines because on an add the read_back
+  // already says it. On an update a rename is a change like any other: without a
+  // line it was refused as nothing to change, and riding with another field it
+  // committed without ever appearing in the preview.
+  if (typeof write.values.name === 'string' && write.values.name !== current.name) lines.unshift(`rename to: ${write.values.name}`);
   if (!lines.length) throw new Error('Nothing to change. Pass at least one field, price, tasting, score, note, said, vendor_note or todo.');
   let transcriptsToClear: Record<string, any>[] | undefined;
   if (write.clear.includes('said')) {
@@ -1462,9 +1467,9 @@ const defs: ToolDefinition[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        name: { type: 'string', description: 'Vendor name. Matches an existing vendor by name, or adds a new one. With vendor_id, renames.' },
+        name: { type: 'string', description: 'Vendor name in English (romanised, e.g. Xi Wu Tang). Matches an existing vendor by name, or adds a new one. With vendor_id, renames. Chinese characters go in chinese_name, never here.' },
         vendor_id: { type: 'string', description: 'The vendor id from curate_find, to change an existing vendor.' },
-        chinese_name: { type: ['string', 'null'] },
+        chinese_name: { type: ['string', 'null'], description: 'Original Chinese vendor name, e.g. 惜物堂. Shown only as a secondary line.' },
         company: { type: ['string', 'null'] }, wechat: { type: ['string', 'null'] }, whatsapp: { type: ['string', 'null'] }, phone: { type: ['string', 'null'] },
         vendor_code: { type: ['string', 'null'] },
         contact_people: CONTACT_PEOPLE_SCHEMA,

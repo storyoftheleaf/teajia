@@ -1,0 +1,144 @@
+/**
+ * Stock opens the supplier sheet from the supplier's name: the Source cell on
+ * the laptop table, the supplier line and the tea card on the phone. A rename
+ * there shows in the list at once, without a reload. Every API call is
+ * answered here; nothing reaches the live shop.
+ *
+ * Adrian, 2026-10-11: "I see someone called Master Bo. If that's not his name,
+ * there needs to be a button that I can click and change the name."
+ */
+
+import { test, expect, type Page } from './fixtures';
+import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+import { injectAuth, mockInventoryApi, MOCK_PRODUCTS } from './helpers/inventoryMocks';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SHOTS_DIR = path.join(__dirname, '../test-results/stock-supplier-sheet');
+
+async function shot(page: Page, name: string) {
+  fs.mkdirSync(SHOTS_DIR, { recursive: true });
+  await page.screenshot({ path: path.join(SHOTS_DIR, `${name}.png`) });
+}
+
+const PREVIEW = {
+  vendor_id: 'bo', old_name: 'Master Bo', total: 6,
+  counts: [
+    { table: 'customers', label: 'the supplier card', by_id: 1, by_name: 0 },
+    { table: 'products', label: 'teas on the shelf', by_id: 3, by_name: 0 },
+    { table: 'purchase_orders', label: 'orders', by_id: 2, by_name: 0 },
+  ],
+};
+
+interface Seen { renames: Array<Record<string, unknown>>; productReads: number }
+
+async function prepare(page: Page): Promise<Seen> {
+  let supplierName = 'Master Bo'; // the "database": a rename changes what the next read says
+  const seen: Seen = { renames: [], productReads: 0 };
+  const products = () => MOCK_PRODUCTS.slice(0, 6).map((p, i) => (
+    i < 3 ? { ...p, vendor: supplierName, vendor_id: 'bo' } : { ...p, vendor: 'Chen Family', vendor_id: 'chen' }
+  ));
+
+  await injectAuth(page);
+  await page.addInitScript(() => {
+    try { localStorage.removeItem('teajia.stockPhone.groupBy'); sessionStorage.clear(); } catch { /* ignore */ }
+  });
+  await mockInventoryApi(page);
+  const json = (body: unknown, status = 200) => ({ status, contentType: 'application/json', body: JSON.stringify(body) });
+  await page.route('**/api/products', route => { seen.productReads += 1; return route.fulfill(json(products())); });
+  await page.route('**/api/customers/bo', route => route.fulfill(json({
+    id: 'bo', name: supplierName, whatsapp: '+86 138 0000 1111', wechat: 'masterbo88', company: 'Bo Tea House',
+    city: 'Menghai', country: 'China', email: null, phone: null, address: null,
+  })));
+  await page.route('**/api/suppliers/bo/rename-preview**', route => {
+    const name = new URL(route.request().url()).searchParams.get('name');
+    return route.fulfill(json({ ...PREVIEW, new_name: name }));
+  });
+  await page.route('**/api/suppliers/bo/rename', route => {
+    const body = route.request().postDataJSON();
+    seen.renames.push(body);
+    supplierName = body.name;
+    return route.fulfill(json({ ...PREVIEW, old_name: 'Master Bo', new_name: supplierName }));
+  });
+  await page.route('**/api/suppliers/bo/freight', route => route.fulfill(json([
+    { id: 'f1', leg: 'Guangzhou to Bali', mode: 'air', total_amount: 850, currency: 'Yuan', weight_kg: 10, per_kg: 85, per_kg_usd: 11.97, transit_days: 6, observed_on: '2026-10-01', current: true },
+  ])));
+  await page.route('**/api/shipping-routes**', route => route.fulfill(json([
+    { id: 'r-air', mode: 'air', carrier: 'DHL', destination: 'Bali', rate_per_kg: 85, rate_currency: 'Yuan', packing_percent: null, billing_step_kg: null, minimum_kg: null },
+  ])));
+  return seen;
+}
+
+async function renameToBoLin(page: Page, seen: Seen, shotName: string) {
+  const sheet = page.getByTestId('supplier-sheet');
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByRole('region', { name: 'Shipping' })).toContainText('Guangzhou to Bali');
+  await sheet.getByRole('button', { name: 'Rename', exact: true }).click();
+  await sheet.getByLabel('New name').fill('Bo Lin');
+  await sheet.getByLabel('New name').press('Enter');
+  await expect(sheet.getByRole('button', { name: 'Rename everywhere' })).toBeVisible();
+  await shot(page, shotName);
+  await sheet.getByRole('button', { name: 'Rename everywhere' }).click();
+  await expect.poll(() => seen.renames.length).toBe(1);
+  expect(seen.renames[0]).toMatchObject({ name: 'Bo Lin' });
+  // The sheet's own title follows the new name once the rename has landed.
+  await expect(sheet.getByRole('button', { name: 'Rename', exact: true })).toBeVisible();
+}
+
+test.describe('Stock opens the supplier sheet from the supplier name', () => {
+  test('laptop: the Source cell opens the sheet, and a rename shows in the table without a reload', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'The laptop table renders at 768px and up');
+    const errors: string[] = [];
+    page.on('pageerror', e => errors.push(e.message));
+    const seen = await prepare(page);
+    await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
+
+    const row = page.locator('tr[data-product-id="test-product-1"]');
+    await row.getByRole('button', { name: 'Open supplier Master Bo' }).click();
+    await shot(page, 'laptop-sheet');
+    const readsBefore = seen.productReads;
+    await renameToBoLin(page, seen, 'laptop-preview');
+    // The sheet is modal, so the table is read once it closes.
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('supplier-sheet')).toHaveCount(0);
+    await expect(row.getByRole('button', { name: 'Open supplier Bo Lin' })).toBeVisible();
+    await expect(page.locator('tr[data-product-id="test-product-4"]')).toContainText('Chen Family');
+    await expect.poll(() => seen.productReads).toBeGreaterThan(readsBefore);
+    await shot(page, 'laptop-renamed');
+
+    // The supplier page (sums, teas, select all) is one step on from the sheet.
+    await row.getByRole('button', { name: 'Open supplier Bo Lin' }).click();
+    await page.getByTestId('supplier-sheet').getByRole('button', { name: 'Stock from Bo Lin' }).click();
+    await expect(page.getByRole('dialog', { name: 'Source: Bo Lin' })).toBeVisible();
+
+    // Edit supplier on that page opens the same card in place, not the People page.
+    await page.getByRole('button', { name: 'Edit supplier' }).click();
+    await expect(page.getByTestId('supplier-sheet')).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Source: Bo Lin' })).toHaveCount(0);
+    await expect(page).toHaveURL(/\/admin\/stock(?:\?|$)/);
+    await page.waitForTimeout(500); // let the panel finish sliding out, for the picture only
+    await shot(page, 'laptop-edit-supplier');
+    expect(errors).toEqual([]);
+  });
+
+  test('phone: the supplier line opens the sheet, and a rename regroups the list', async ({ page, isMobile }) => {
+    test.skip(!isMobile, 'The phone list renders below 768px only');
+    const errors: string[] = [];
+    page.on('pageerror', e => errors.push(e.message));
+    const seen = await prepare(page);
+    await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
+
+    await page.getByRole('button', { name: 'Supplier details for Master Bo' }).click();
+    await shot(page, 'phone-sheet');
+    await renameToBoLin(page, seen, 'phone-preview');
+    await page.keyboard.press('Escape');
+
+    await expect(page.getByRole('button', { name: 'Supplier details for Bo Lin' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Supplier details for Master Bo' })).toHaveCount(0);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
+    expect(overflow).toBe(false);
+    await shot(page, 'phone-renamed');
+    expect(errors).toEqual([]);
+  });
+});

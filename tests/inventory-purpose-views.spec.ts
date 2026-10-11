@@ -212,7 +212,8 @@ test('unlinked development waits for consent then creates exactly one linked dra
 
 test('purpose and sample-size offering persist independently without changing publication gates', async ({ page }) => {
   await selectView(page, 'Samples');
-  await page.locator('tr[data-product-id="sample"]').dispatchEvent('click');
+  // A plain click opens a sample's sampling; Cmd or Ctrl selects it for bulk edits.
+  await page.locator('tr[data-product-id="sample"]').dispatchEvent('click', { metaKey: true });
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit', exact: true }).click();
   await page.getByRole('button', { name: 'Working purpose' }).click();
   await expect.poll(() => updateRequests.find(r => r.url.endsWith('/sample/stock'))?.body).toEqual({ inventory_purpose: 'working' });

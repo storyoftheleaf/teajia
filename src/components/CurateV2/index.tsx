@@ -28,6 +28,7 @@ import { SaidSheet } from './SaidSheet';
 import { VendorsView } from './VendorsView';
 import { CompareView } from './CompareView';
 import { FastTastingSheet } from './FastTastingSheet';
+import { SampleUseNotice } from './SampleUseLine';
 import type { TodayAction } from './curateV2Model';
 import { usePlatformPrivilege } from '../../lib/permissions';
 import { CompassShareModal } from './CompassShareModal';
@@ -1670,6 +1671,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       </AnimatePresence>
 
       <SaidSheet entryId={saidFor} onClose={() => setSaidFor(null)} />
+      <SampleUseNotice />
       <FastTastingSheet
         entryId={fastTastingId}
         onOpenChange={(open) => { if (!open) setFastTastingId(null); }}

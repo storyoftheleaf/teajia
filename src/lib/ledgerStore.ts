@@ -27,6 +27,9 @@ export interface LedgerLineItem {
   unpriced?: boolean;
 
   // Link back to source
+  /** How this tea travels: by air, by boat, or part of each. Unset is the shop's usual air freight. */
+  shipBy?: 'air' | 'boat' | 'both';
+
   compassEntryId?: string;   // If added from Tea Compass
   productId?: string;        // If added from inventory (for sales)
 
@@ -56,6 +59,8 @@ export interface LedgerTransaction {
   recordFailed?: boolean;
   /** The vendor has been messaged: the shop's purchase order is marked sent. */
   purchaseOrderSent?: boolean;
+  /** The route this order travels by, once the buying basket has split it by route. */
+  shipMode?: 'air' | 'sea';
 
   createdAt: string;
   updatedAt: string;
@@ -74,7 +79,7 @@ interface LedgerState {
   addLineItem: (transactionId: string, item: Omit<LedgerLineItem, 'id' | 'addedAt'>) => string;
   updateLineItem: (transactionId: string, itemId: string, updates: Partial<LedgerLineItem>) => void;
   removeLineItem: (transactionId: string, itemId: string) => void;
-  updateTransaction: (transactionId: string, updates: Partial<Pick<LedgerTransaction, 'counterpartyName' | 'counterpartyId' | 'currency' | 'status' | 'purchaseOrderId' | 'recordFailed' | 'purchaseOrderSent'>>) => void;
+  updateTransaction: (transactionId: string, updates: Partial<Pick<LedgerTransaction, 'counterpartyName' | 'counterpartyId' | 'currency' | 'status' | 'purchaseOrderId' | 'recordFailed' | 'purchaseOrderSent' | 'shipMode'>>) => void;
   addPhoto: (transactionId: string, url: string) => void;
   removePhoto: (transactionId: string, index: number) => void;
   removeTransaction: (transactionId: string) => void;

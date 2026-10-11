@@ -184,7 +184,8 @@ export const DEFAULT_TEA_VIEWS: InventoryViewConfig[] = [
     id: 'default-samples',
     name: 'Samples',
     icon: 'FlaskConical',
-    columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount'],
+    // Same columns as All: Samples is a view of the one table, not its own layout.
+    columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount', 'pricePerGramUSD', 'vendor', 'form'],
     sortConfig: [{ key: 'year', direction: 'desc' }],
     filterType: 'Samples',
     groupBy: null,

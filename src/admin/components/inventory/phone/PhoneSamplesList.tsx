@@ -5,6 +5,11 @@ import { fmtNum } from '../../../../utils/formatNumber';
 import { getThemeTextColor } from '../../../themeUtils';
 import { TASTING_TAXONOMY } from '../../../../data/tastingTaxonomy';
 import { TapField } from './PhoneTeaSheet';
+import { SampleDecideRow, type SampleRowWrites } from './SampleDecide';
+import { BuyingEntry } from '../../../../components/shared/BuyingEntry';
+import { useTeaCompassStore } from '../../../../lib/teaCompassStore';
+import { useRates } from '../../../hooks/useAdminData';
+import { rateToUsd } from '../../../../lib/currency';
 
 // The same five tasting categories the laptop samples screen offers.
 const TASTE_CATEGORIES = TASTING_TAXONOMY.categories.filter(c => ['body', 'finish', 'feeling', 'flavor', 'liquor-color'].includes(c.id));
@@ -42,23 +47,41 @@ export interface PhoneSamplesListProps {
   onEditTea: (id: string) => void;
   onOrder: (holding: SampleHolding) => void;
   onChanged: () => void | Promise<void>;
+  /** A shelf product bought to sample writes to the product, not to Curate. */
+  writesFor?: (h: SampleHolding) => SampleRowWrites | undefined;
+  /** Opens a row itself (a shelf product opens its own sheet); false falls back to the sample sheet. */
+  onOpenHolding?: (h: SampleHolding) => boolean;
+  /** Opens the supplier sheet from a supplier's group line. */
+  onOpenSupplier?: (vendorId: string | null, name: string) => void;
 }
 
-type SampleSort = 'name' | 'year' | 'grams';
+type SampleSort = 'name' | 'year' | 'grams' | 'quote' | 'perGram';
 
-export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, groupBy = 'vendor', rowsOnly = false, sortKey = null, sortDir = 'asc', onEditTea, onOrder, onChanged }) => {
+export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, groupBy = 'vendor', rowsOnly = false, sortKey = null, sortDir = 'asc', onEditTea, onOrder, onChanged, writesFor, onOpenHolding, onOpenSupplier }) => {
   const [ownSort, setSort] = useState<{ key: SampleSort; dir: 'asc' | 'desc' }>({ key: 'name', dir: 'asc' });
   // In the Stock list the column headings above sort these rows too.
   const sort: { key: SampleSort; dir: 'asc' | 'desc' } = rowsOnly
-    ? { key: sortKey === 'year' ? 'year' : sortKey === 'stockGrams' ? 'grams' : 'name', dir: sortDir }
+    ? { key: sortKey === 'year' ? 'year' : sortKey === 'stockGrams' ? 'quote' : sortKey === 'costPerGramUSD' ? 'perGram' : 'name', dir: sortDir }
     : ownSort;
   const cols = rowsOnly ? 'grid grid-cols-[minmax(0,1fr)_34px_40px_36px] gap-x-2.5 items-stretch' : COLS;
   const onSort = (key: SampleSort) => setSort(prev => ({ key, dir: prev.key === key && prev.dir === 'asc' ? 'desc' : 'asc' }));
   const [open, setOpen] = useState<Set<string>>(() => new Set());
   const [focusedId, setFocusedId] = useState<string | null>(null);
+  // One sample open at a time, as a Stock tea opens one sheet at a time.
+  const [openRowId, setOpenRowId] = useState<string | null>(null);
+  const [showRejected, setShowRejected] = useState(false);
+  const liveDecisions = useTeaCompassStore((st) => st.entries);
+  const decisionOf = (h: SampleHolding) => liveDecisions.find((e) => e.id === h.entry.id)?.decision ?? h.entry.decision;
+  const rejectedCount = holdings.filter((h) => decisionOf(h) === 'passed_on').length;
+  const shown = holdings.filter((h) => showRejected || decisionOf(h) !== 'passed_on');
+  const { data: rates = [] } = useRates();
+  const usdPerGram = (amount: number, grams: number, currency: string): number | null => {
+    const r = currency ? rateToUsd(rates, currency) : null;
+    return r == null || !grams ? null : amount / r / grams;
+  };
   const groups = useMemo(() => {
     const byVendor = new Map<string, { label: string; rows: SampleHolding[] }>();
-    for (const h of holdings) {
+    for (const h of shown) {
       const label = groupBy === 'none' ? 'All samples' : groupBy === 'type' ? String(h.entry.type || 'No kind').trim() : String(h.entry.vendor_name || 'No supplier').trim();
       const key = label.toLowerCase();
       if (!byVendor.has(key)) byVendor.set(key, { label, rows: [] });
@@ -69,10 +92,15 @@ export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, gr
         const d = sort.dir === 'asc' ? 1 : -1;
         if (sort.key === 'year') return d * (Number(a.entry.year || 0) - Number(b.entry.year || 0)) || teaName(a).localeCompare(teaName(b));
         if (sort.key === 'grams') return d * (Number(a.sample_grams ?? -1) - Number(b.sample_grams ?? -1)) || teaName(a).localeCompare(teaName(b));
+        if (sort.key === 'quote') return d * (Number(a.entry.price_amount ?? -1) - Number(b.entry.price_amount ?? -1)) || teaName(a).localeCompare(teaName(b));
+        if (sort.key === 'perGram') {
+          const pg = (h: SampleHolding) => (h.entry.price_amount != null && h.entry.price_per_unit_grams ? usdPerGram(Number(h.entry.price_amount), Number(h.entry.price_per_unit_grams), String(h.entry.price_currency ?? '')) ?? -1 : -1);
+          return d * (pg(a) - pg(b)) || teaName(a).localeCompare(teaName(b));
+        }
         return d * teaName(a).localeCompare(teaName(b));
       }) }))
       .sort((a, b) => b.rows.length - a.rows.length || a.label.localeCompare(b.label));
-  }, [holdings, groupBy, sort]);
+  }, [shown, groupBy, sort, rates]); // eslint-disable-line react-hooks/exhaustive-deps
   const expandAll = holdings.length <= 25;
   const focused = focusedId ? holdings.find(h => h.entry.id === focusedId) ?? null : null;
 
@@ -91,16 +119,19 @@ export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, gr
           })}
         </div>
       </div>}
+      <BuyingEntry className="px-4 py-2.5" />
       {groups.map(group => {
         const isOpen = expandAll || open.has(group.key);
         const grams = group.rows.reduce((sum, h) => sum + Number(h.sample_grams ?? 0), 0);
+        const supplier = groupBy !== 'type' && groupBy !== 'none' ? group.rows[0]?.entry : null;
         return (
           <section key={group.key} aria-label={group.label}>
+            <div className="flex items-stretch bg-tea-surface border-b border-tea-border">
             <button
               type="button"
               aria-expanded={isOpen}
               onClick={() => setOpen(prev => { const next = new Set(prev); if (next.has(group.key)) next.delete(group.key); else next.add(group.key); return next; })}
-              className="w-full flex items-end justify-between gap-3 bg-tea-surface border-b border-tea-border pl-5 pr-4 pt-3 pb-2 text-left"
+              className="flex-1 min-w-0 flex items-end justify-between gap-3 pl-5 pr-2 pt-3 pb-2 text-left"
             >
               <span className="min-w-0">
                 <span className="flex items-center gap-1.5">
@@ -112,35 +143,29 @@ export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, gr
                 </span>
               </span>
             </button>
-            {isOpen && group.rows.map(h => {
-              const isFocused = focusedId === h.entry.id;
-              const empty = h.sample_grams == null;
-              return (
-                <div key={h.entry.id} className={`relative flex items-center ${isFocused ? 'bg-tea-surface' : ''} after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-tea-border`}>
-                  <button
-                    type="button"
-                    data-testid="curate-sample-row"
-                    aria-expanded={isFocused}
-                    onClick={() => setFocusedId(isFocused ? null : h.entry.id)}
-                    className={`${cols} flex-1 min-w-0 pl-4 pr-3 text-left min-h-[46px]`}
-                  >
-                    <span className="min-w-0 py-1.5 pr-2">
-                      <span className={`block truncate font-display text-ui-17 font-semibold leading-tight ${isFocused ? 'text-tea-gold' : 'text-tea-text'}`}>{teaName(h)}</span>
-                      <span className="flex items-center gap-1.5 text-ui-11 leading-tight min-w-0">
-                        <span className="truncate" style={{ color: getThemeTextColor(String(h.entry.type || '')) }}>{h.entry.type || 'Tea'}</span>
-                        {empty && <span aria-label="not weighed" className="shrink-0 w-1.5 h-1.5 rounded-full bg-tea-error" />}
-                      </span>
-                    </span>
-                    <span className="flex items-center justify-end font-mono text-ui-13 tracking-tight text-tea-text tabular-nums">{h.entry.year || '—'}</span>
-                    <span className="flex items-center justify-end font-mono text-ui-13 tracking-tight text-tea-text tabular-nums">{empty ? '—' : whole(Number(h.sample_grams))}</span>
-                    {rowsOnly && <span className="flex items-center justify-end font-mono text-ui-13 text-tea-text-dim">—</span>}
-                  </button>
-                </div>
-              );
-            })}
+            {onOpenSupplier && supplier?.vendor_name && (
+              <button
+                type="button"
+                onClick={() => onOpenSupplier(supplier.vendor_id ? String(supplier.vendor_id) : null, String(supplier.vendor_name))}
+                aria-label={`Supplier details for ${group.label}`}
+                className="tap-target w-10 flex items-end justify-center pb-3 text-tea-gold"
+              ><ChevronRight size={16} aria-hidden="true" /></button>
+            )}
+            </div>
+            {isOpen && group.rows.map(h => (
+              <SampleDecideRow key={h.entry.id} holding={h} usdPerGram={usdPerGram} writes={writesFor?.(h)}
+                open={openRowId === h.entry.id} onToggle={() => setOpenRowId(openRowId === h.entry.id ? null : h.entry.id)}
+                onOpen={() => { if (onOpenHolding?.(h)) return; setFocusedId(focusedId === h.entry.id ? null : h.entry.id); }} />
+            ))}
           </section>
         );
       })}
+      {rejectedCount > 0 && (
+        <button type="button" onClick={() => setShowRejected(v => !v)} aria-pressed={showRejected}
+          className="w-full px-4 py-3 text-left text-ui-12 text-tea-text-sec hover:text-tea-text border-b border-tea-border">
+          {showRejected ? 'Hide rejected' : `Rejected ${rejectedCount}, show`}
+        </button>
+      )}
       {focused && (
         <SampleSheet
           holding={focused}

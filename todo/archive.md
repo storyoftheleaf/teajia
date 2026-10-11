@@ -92,3 +92,5 @@ Finished work, moved here from TODO.md. Nothing is deleted; lineage is kept.
 - [x] Remove the old home page (2026-09-22: components/HomePage.tsx deleted, 500 lines, nothing imported it; its dead navigate-event listener in App.tsx went with it)
 - [x] Tea Atlas: bring the design-polish and "drop in a PDF" branches in one at a time, each synced with main before it merges _(band: agent-runnable)_ _(effort: moderate)_ → Notes: [2026-09-28 handoff](todo/handoffs/2026-09-28-goodnight.md) — done 2026-09-28: polish #323, drop-in #326 (plus #325, #327, #329)
 - [x] Stop a deploy from caching a missing script as a web page for a year (the shop showed "Loading Teajia…" twice on 2026-10-08: /assets/* is cached immutable, and a script missing mid-deploy gets the home page instead) _(band: agent-runnable)_ _(effort: moderate)_ (2026-10-08: guardBuiltAsset in functions/_middleware.ts)
+
+- [x] Curate Source label sizes: one label style, the site's shared 11px label, for the box labels and the "Tea details & sourcing" labels (Adrian's call, 2026-10-10); the screen is now 11/12/16px

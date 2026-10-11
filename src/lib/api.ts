@@ -1,3 +1,5 @@
+import type { ShippingRoute } from '../components/shared/routeFreight';
+import type { SupplierFreightBill, SupplierRenamePreview } from '../components/shared/supplierSheetTypes';
 import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, AdminContributor, Bundle, ContributorOption, ContributorWrite, CurateReceiptProposal, CustomerOrderDetail, DbArticle, PlatformRole, TastingData } from '../types';
 import type {
   FavoriteWrite,
@@ -563,6 +565,10 @@ export interface PurchaseOrder {
   status: string;
   notes?: string | null;
   message_text?: string | null;
+  /** The route it travels by (0043): air, sea, or null when nobody chose one. */
+  ship_mode?: 'air' | 'sea' | null;
+  /** The carrier's tracking number, by hand or by an agent; null is none yet. */
+  tracking_number?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -2248,6 +2254,7 @@ export const api = {
       notes?: string;
       message_text?: string;
       idempotency_key?: string;
+      ship_mode?: 'air' | 'sea';
     }): Promise<{ id: string }> => {
       return authedFetch(`${API_URL}/api/purchase-orders`, {
         method: 'POST',
@@ -2255,12 +2262,36 @@ export const api = {
       });
     },
 
+    /** An emptied number is none: the shop stores NULL, never an empty string. */
+    setTracking: async (id: string, tracking: string): Promise<{ success: boolean }> =>
+      authedFetch(`${API_URL}/api/purchase-orders/${id}`, { method: 'PUT', body: JSON.stringify({ tracking_number: tracking }) }),
+
     updateStatus: async (id: string, status: string): Promise<{ success: boolean }> => {
       return authedFetch(`${API_URL}/api/purchase-orders/${id}`, {
         method: 'PUT',
         body: JSON.stringify({ status }),
       });
     },
+  },
+
+  /** How bought tea travels home (Settings). The buying basket estimates freight from these. */
+  shippingRoutes: {
+    list: async (): Promise<ShippingRoute[]> => authedFetch(`${API_URL}/api/shipping-routes`),
+    save: async (id: string | null, data: Record<string, unknown>): Promise<ShippingRoute> =>
+      authedFetch(`${API_URL}/api/shipping-routes${id ? `/${id}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(data) }),
+    remove: async (id: string): Promise<{ removed: boolean }> => authedFetch(`${API_URL}/api/shipping-routes/${id}`, { method: 'DELETE' }),
+  },
+
+  /** The Supplier sheet: rename a supplier everywhere (preview, then apply) and read its freight bills. */
+  suppliers: {
+    renamePreview: async (id: string, name: string): Promise<SupplierRenamePreview> =>
+      authedFetch(`${API_URL}/api/suppliers/${encodeURIComponent(id)}/rename-preview?name=${encodeURIComponent(name)}`),
+    rename: async (id: string, name: string, expectedOldName?: string): Promise<SupplierRenamePreview> =>
+      authedFetch(`${API_URL}/api/suppliers/${encodeURIComponent(id)}/rename`, {
+        method: 'POST', body: JSON.stringify({ name, expected_old_name: expectedOldName }),
+      }),
+    freight: async (id: string): Promise<SupplierFreightBill[]> =>
+      authedFetch(`${API_URL}/api/suppliers/${encodeURIComponent(id)}/freight`),
   },
 
   activityLogs: {

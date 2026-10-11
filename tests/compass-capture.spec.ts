@@ -66,18 +66,13 @@ test.describe('Curate field capture preservation', () => {
       }
       return [...styles.values()];
     });
-    // Two sizes became three. The floating-label pattern that arrived with the
-    // compacted sourcing canvas sets its uppercase field labels at 10px, and
-    // every one of them lands in this surface, so the scale here is 10/12/16
-    // now. Recorded rather than widened silently: whether a 10px label belongs
-    // in a surface specified as two sizes is a design call, and it is on the
-    // TODO. The guard stays live at what is actually true meanwhile.
-    // Three became four on 2026-10-08 (95be3608): the "Tea details & sourcing"
-    // section labels its fields with the site's shared label style,
-    // TYPOGRAPHY_CLASSES.label, which is 11px. That is the style the project
-    // asks new labels to use, so 11 joins the scale here; whether Source should
-    // settle on one label size is the same design call as the 10px one.
-    expect([...new Set(visibleTextStyles.map(({ size }) => size))].sort((a, b) => a - b), JSON.stringify(visibleTextStyles.filter(({ size }) => ![10, 11, 12, 16].includes(size)), null, 2)).toEqual([10, 11, 12, 16]);
+    // One label style. The box labels (`curate-floating-label`) were 10px bold
+    // and the "Tea details & sourcing" labels the site's shared 11px label, so
+    // Source carried two label styles and four sizes. Adrian chose the shared
+    // 11px for both on 2026-10-10, so the scale here is 11 (labels), 12
+    // (buttons and choices) and 16 (what is typed). A label at any other size
+    // fails this, which is how a second label style would come back.
+    expect([...new Set(visibleTextStyles.map(({ size }) => size))].sort((a, b) => a - b), JSON.stringify(visibleTextStyles.filter(({ size }) => ![11, 12, 16].includes(size)), null, 2)).toEqual([11, 12, 16]);
 
     for (const control of await page.locator('[data-curate-source] button, [data-curate-source] input:not([type="file"]):not([type="range"]), [data-curate-source] select, [data-curate-source] textarea').filter({ visible: true }).all()) {
       const box = await control.boundingBox();

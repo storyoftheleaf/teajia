@@ -7,6 +7,9 @@ import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { PublicCart } from './PublicCart';
 
 const AdminCart = lazy(() => import('./AdminCart').then(m => ({ default: m.AdminCart })));
+// The owner's buying basket: lazy, so the shop's own bundle never carries it.
+const BuyingBasket = lazy(() => import('./BuyingBasket').then(m => ({ default: m.BuyingBasket })));
+const InProcess = lazy(() => import('./InProcess').then(m => ({ default: m.InProcess })));
 
 type AdminProps = {
   mode: 'admin';
@@ -35,7 +38,10 @@ type PublicProps = {
   onRetryStore?: () => void;
 };
 
-type CartPanelProps = { isOpen: boolean; onClose: () => void } & (AdminProps | PublicProps);
+/** Buying from suppliers: the shop's basket turned around (BuyingBasket.tsx). */
+type BuyingProps = { mode: 'buying' | 'inprocess' };
+
+type CartPanelProps = { isOpen: boolean; onClose: () => void } & (AdminProps | PublicProps | BuyingProps);
 
 export const CartPanel: React.FC<CartPanelProps> = (props) => {
   const { isOpen, onClose } = props;
@@ -188,6 +194,12 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
                 onClose={onClose}
               />
             </div>
+          </div>
+        ) : props.mode === 'buying' || props.mode === 'inprocess' ? (
+          <div className="flex flex-col flex-1 min-h-0">
+            <Suspense fallback={<div className="flex-1" />}>
+              {props.mode === 'inprocess' ? <InProcess onClose={onClose} /> : <BuyingBasket onClose={onClose} />}
+            </Suspense>
           </div>
         ) : null}
       </div>

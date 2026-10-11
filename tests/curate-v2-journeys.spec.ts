@@ -561,14 +561,98 @@ test.describe('Curate v2 journeys (phone)', () => {
     await openCurateV2(page, 'teas');
     const banner = page.getByRole('tabpanel').getByTestId('browse-cleanup');
     await expect(banner).toContainText('3 entries have no name');
+    await banner.scrollIntoViewIfNeeded();
+    await shot(page, 'cleanup-1-offered');
     await banner.getByRole('button', { name: 'Clean up' }).click();
     await expect(banner).toContainText('Delete these 3 empty entries?');
+    await shot(page, 'cleanup-2-asks');
     await banner.getByRole('button', { name: 'Keep' }).click();
     await expect(banner).toContainText('3 entries have no name');
     await banner.getByRole('button', { name: 'Clean up' }).click();
     await banner.getByRole('button', { name: 'Delete' }).click();
     await expect(banner).toHaveCount(0);
+    await shot(page, 'cleanup-3-done');
     expect(popups).toBe(0);
+  });
+
+  test('Today: To do waits for its to-dos instead of flashing an empty band first', async ({ page }) => {
+    await installCompassHarness(page, { ...TODAY_DATA, delayRequests: [{ match: 'GET /api/curate/todos', ms: 1500 }] });
+    await openCurateV2(page, 'today');
+    // While the to-dos are on their way, Today holds: no empty To do band, and no
+    // To decide drawn early for To do to land on top of a moment later.
+    await expect(page.getByText('Loading your teas…')).toBeVisible();
+    await expect(page.getByTestId('today-section-todo')).toHaveCount(0);
+    await expect(page.getByTestId('today-section-decide')).toHaveCount(0);
+    // Then Today appears once, in its final order: To do whole, above To decide.
+    const band = page.getByTestId('today-section-todo');
+    await expect(band).toContainText('01');
+    await expect(band).toContainText('confirm the year');
+    const todoTop = (await band.boundingBox())!.y;
+    const decideTop = (await page.getByTestId('today-section-decide').boundingBox())!.y;
+    expect(todoTop).toBeLessThan(decideTop);
+  });
+
+  test('Today: a slow to-do read holds Today for at most 3 seconds, then the teas show', async ({ page }) => {
+    await installCompassHarness(page, { ...TODAY_DATA, delayRequests: [{ match: 'GET /api/curate/todos', ms: 8000 }] });
+    await openCurateV2(page, 'today');
+    await expect(page.getByText('Loading your teas…')).toBeVisible();
+    await expect(page.getByTestId('today-section-decide')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('A tea is deleted from its own screen, asking in place: Keep leaves it, Delete removes it at the shop', async ({ page }) => {
+    let popups = 0;
+    page.on('dialog', (d) => { popups += 1; void d.dismiss(); });
+    const deletes: string[] = [];
+    page.on('request', (r) => { if (r.method() === 'DELETE' && /\/api\/compass\/entries\//.test(r.url())) deletes.push(r.url()); });
+    await installCompassHarness(page, TODAY_DATA);
+    await openCurateV2(page, 'teas');
+    await page.getByRole('button', { name: /^Jingmai Maocha/ }).first().click();
+    const row = overlay(page).getByTestId('tea-face-delete');
+    await row.getByRole('button', { name: 'Delete Jingmai Maocha' }).click();
+    await expect(row).toContainText('Delete this tea?');
+    await row.getByRole('button', { name: 'Keep' }).click();
+    await expect(row.getByRole('button', { name: 'Delete Jingmai Maocha' })).toBeVisible();
+    await row.getByRole('button', { name: 'Delete Jingmai Maocha' }).click();
+    await row.getByRole('button', { name: 'Delete', exact: true }).click();
+    await expect(overlay(page)).toHaveCount(0);
+    expect(await selectedTab(page)).toEqual(['Teas']);
+    await expect(page.getByRole('tabpanel').getByRole('button', { name: /^Jingmai Maocha/ })).toHaveCount(0);
+    await expect.poll(() => deletes.length).toBe(1);
+    expect(deletes[0]).toContain('/api/compass/entries/e-cost');
+    expect(popups).toBe(0);
+  });
+
+  test('Teas: imports are shop rows; the title wraps whole, Open is the row, Delete is one word', async ({ page }) => {
+    const item = (batch: string, n: number, blocking: string[]) => ({
+      id: `${batch}-i${n}`, batch_id: batch, source_id: `${batch}-s`, position: n, category: 'tea', name: `Tea ${n}`, raw_text: `Tea ${n}`,
+      parsed_data: { disposition: 'received', inventoryPurpose: 'working' }, confidence: 0.9, uncertainty: {}, review_state: 'pending',
+      acquired: true, compass_entry_id: null, reserved_compass_entry_id: null, blocking_fields: blocking,
+    });
+    const batch = (id: string, title: string, items: unknown[]) => ({
+      batch: { id, title, review_state: 'reviewing', journey_id: null, visit_id: null },
+      sources: [{ id: `${id}-s`, batch_id: id, kind: 'paste', pasted_text: title, r2_object_key: null, metadata: {} }], groups: [], items,
+    });
+    await installCompassHarness(page, {
+      ...TODAY_DATA,
+      imports: [
+        batch('imp-1', 'Delivery Note No. 4791536 - D and T Collectors', []),
+        batch('imp-2', 'Imported list', [item('imp-2', 1, ['currency']), item('imp-2', 2, ['currency']), item('imp-2', 3, ['currency'])]),
+      ],
+    });
+    await openCurateV2(page, 'teas');
+    const section = page.getByRole('tabpanel').getByRole('region', { name: 'Imports' });
+    await expect(section).toContainText('Delivery Note No. 4791536 - D and T Collectors');
+    await expect(section).toContainText('3 need attention');
+    // One short word on the right; the title is never printed into a button.
+    const deletes = section.getByRole('button', { name: /^Delete / });
+    await expect(deletes).toHaveCount(2);
+    for (const text of await deletes.allTextContents()) expect(text.trim()).toBe('Delete');
+    // The whole title reads, nothing clipped, nothing sideways.
+    const title = section.getByText('Delivery Note No. 4791536 - D and T Collectors', { exact: true });
+    expect(await title.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 2)).toBe(true);
+    await section.scrollIntoViewIfNeeded();
+    await shot(page, 'imports-rows');
   });
 
   test('Chinese name is suggested, never typed: cross leaves it empty, tick saves it', async ({ page }) => {
@@ -1092,7 +1176,8 @@ test.describe('Curate v2 journeys (phone)', () => {
     await openCurateV2(page, 'today');
     await expect(page.getByTestId('today-section-decide')).toBeVisible();
     await expect(page.locator('html')).toHaveClass(/light/);
-    const ratio = await page.getByTestId('today-section-decide').getByRole('button', { name: /Mengku Laobanzhang/ }).locator('.curate-v2-name').evaluate((el) => {
+    const row = page.getByTestId('today-section-decide').getByRole('button', { name: /Mengku Laobanzhang/ });
+    const contrastOf = (loc: ReturnType<Page['locator']>) => loc.evaluate((el) => {
       const px = (c: string) => (c.match(/[\d.]+/g) ?? []).map(Number);
       const lum = ([r, g, b]: number[]) => { const f = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
       let bg = [255, 255, 255]; let n: Element | null = el;
@@ -1101,7 +1186,9 @@ test.describe('Curate v2 journeys (phone)', () => {
       const [a, b] = [lum(fg), lum(bg)];
       return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
     });
-    expect(ratio).toBeGreaterThanOrEqual(7);
+    expect(await contrastOf(row.locator('.curate-v2-name'))).toBeGreaterThanOrEqual(7);
+    // The gold action word carries meaning, so it must read too: at least 4.5:1 on its band.
+    expect(await contrastOf(row.getByText('Decide', { exact: true }))).toBeGreaterThanOrEqual(4.5);
     await shot(page, 'review3-light-today');
   });
 

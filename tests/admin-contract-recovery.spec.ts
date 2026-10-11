@@ -7,7 +7,8 @@ const token = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({
   memberships: [{ account_id: 'acct-bali', account_name: 'Teajia Bali', role: 'owner', slug: 'teajia-bali' }],
 })}.fake`;
 
-async function prepare(page: Page) {
+/** `bareTeas` answers the vendor's teas with a bare list instead of the server's { entries } shape. */
+async function prepare(page: Page, { bareTeas = false } = {}) {
   await page.addInitScript(value => localStorage.setItem('teajia_token', value), token);
   await page.route('**/api/**', route => {
     const pathname = new URL(route.request().url()).pathname;
@@ -34,6 +35,11 @@ async function prepare(page: Page) {
     if (pathname === '/api/inventory/receipts') body = [
       { id: 'r-1', vendor_name: 'Target Vendor', state: 'ordered', source_kind: 'purchase', lines: [] },
     ];
+    // The real server answers GET /api/compass/entries with { entries: [...] }.
+    // The catch-all's bare [] used to stand in for it, and the vendor page's
+    // quotes panel read `[].entries`, the array's own entries() function, and
+    // crashed the page (failing on main since the panel landed, 2026-10-09).
+    if (pathname === '/api/compass/entries') body = bareTeas ? [] : { entries: [] };
     if (pathname === '/api/invoices') body = [{ id: 'sale-1', customer_name: 'Target Vendor', invoice_number: 'SALE-1' }];
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
   });
@@ -49,6 +55,13 @@ for (const viewport of ['Desktop Chrome', 'Mobile Chrome']) {
       await expect(page.getByText('Story Tea').first()).toBeVisible();
       await expect(page.getByText('0.250', { exact: false })).toBeVisible();
       await expect(page.getByText('Tea not found')).toHaveCount(0);
+    });
+
+    test('vendor profile still renders when the vendor\'s teas come back as a bare list', async ({ page }) => {
+      await prepare(page, { bareTeas: true });
+      await page.goto('/admin/vendors/vendor-1');
+      await expect(page.getByText('Vendor Tea')).toBeVisible();
+      await expect(page.getByText('Something went wrong')).toHaveCount(0);
     });
 
     test('vendor profile shows recorded CNY cost and purchases, not sales invoices', async ({ page }) => {
