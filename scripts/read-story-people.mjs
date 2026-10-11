@@ -28,7 +28,7 @@ export function scanStoryPeople(root = ROOT) {
   const index = fs.readFileSync(path.join(root, 'src/pages/read/ReadIndex.tsx'), 'utf8');
 
   const fileOf = new Map();
-  for (const [, name, file] of app.matchAll(/const (\w+) = lazy\(\(\) => import\('\.\/(pages\/read\/[\w-]+)'\)\)/g)) fileOf.set(name, file);
+  for (const [, name, file] of app.matchAll(/const (\w+) = (?:lazy|lazyWithRetry)\(\(\) => import\('\.\/(pages\/read\/[\w-]+)'\)\)/g)) fileOf.set(name, file);
 
   const listed = new Map();
   for (const [, title, dek, href] of index.matchAll(/title:\s*'([^']*)',\s*dek:\s*'([^']*)',\s*href:\s*'(\/read\/[^']+)'/g)) listed.set(href, { title: title.trim(), dek: dek.trim() });
