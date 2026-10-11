@@ -61,8 +61,19 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const sections = useMemo(() => todaySections(entries), [entries]);
   const byId = useMemo(() => new Map(entries.map((e) => [e.id, e])), [entries]);
-  const { groups, todos, arriving, todosLoading, failed: agentFailed, retry: retryAgent } = useAgentLists();
+  const { groups, todos, arriving, todosLoading, aboveLoading, failed: agentFailed, retry: retryAgent } = useAgentLists();
   const hydration = useTeaCompassStore((s) => s.hydrationStatus);
+  // Today appears once, in its final order. The agent finds and to-dos sit
+  // above To decide; drawing the teas first and then those on top pushed the
+  // list down under the thumb. Hold until they are here, but never for more
+  // than 3 seconds: a slow read must not leave Today blank.
+  const [waitedOut, setWaitedOut] = useState(false);
+  useEffect(() => {
+    if (!aboveLoading) return;
+    const t = window.setTimeout(() => setWaitedOut(true), 3000);
+    return () => window.clearTimeout(t);
+  }, [aboveLoading]);
+  const holding = aboveLoading && !waitedOut;
   const accountId = useAppStore((s) => s.activeAccountId);
   const { createInventoryRecord } = useCommitAndPromote();
   const [findOpen, setFindOpen] = useState<CurateSuggestionGroup | null>(null);
@@ -137,6 +148,14 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
       </button>
     );
   };
+
+  if (holding) {
+    return (
+      <div className="curate-v2 -mx-4">
+        <p role="status" className="px-4 py-6 font-body text-ui-14 text-tea-text-sec">Loading your teas…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="curate-v2 -mx-4">

@@ -90,7 +90,8 @@ import {
 import { candidateToApi, impressionToApi, journalRowToNotes, parseCandidateInput } from './tastingNoteCuration';
 import { deliverVerificationCode, deliveryFailureBody } from './verificationDelivery';
 import { handoffToRepair } from './problemAlerts';
-import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, recordHealthProblem, clearHealthProblem, type IncidentStatus } from './incidents';
+import { isRetryableProviderStatus, parseExtractReply } from './extractImageReply';
+import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, recordHealthProblem, clearHealthProblem, clearQuietIncidents, type IncidentStatus } from './incidents';
 import {
   deleteWisdomVerification,
   getWisdomVerification,
@@ -11594,7 +11595,10 @@ const handleExtractFromImage: Handler = async (request, env) => {
 
   if (useClaude) {
     // Claude Messages API via plain fetch, no SDK (keep the worker bundle lean).
-    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+    // Thinking is off: this model thinks by default, and thinking is paid out
+    // of max_tokens, so a long think could leave no room for the JSON at all.
+    // Reading a label needs no deliberation. One retry covers a busy provider.
+    const callClaude = () => fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'x-api-key': env.ANTHROPIC_API_KEY,
@@ -11603,7 +11607,8 @@ const handleExtractFromImage: Handler = async (request, env) => {
       },
       body: JSON.stringify({
         model: EXTRACT_VISION_MODEL,
-        max_tokens: 1024,
+        max_tokens: 4096,
+        thinking: { type: 'disabled' },
         messages: [{
           role: 'user',
           content: [
@@ -11616,6 +11621,12 @@ const handleExtractFromImage: Handler = async (request, env) => {
         }],
       }),
     });
+    let claudeRes = await callClaude();
+    if (!claudeRes.ok && isRetryableProviderStatus(claudeRes.status)) {
+      console.warn(`extract-from-image Claude answered ${claudeRes.status}; retrying once`);
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      claudeRes = await callClaude();
+    }
 
     if (!claudeRes.ok) {
       const errText = await claudeRes.text();
@@ -11665,13 +11676,12 @@ const handleExtractFromImage: Handler = async (request, env) => {
   }
 
   // Parse the JSON from the model's response (strip markdown fences if present)
-  let extracted: Record<string, any> = {};
-  try {
-    const jsonStr = rawText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-    extracted = JSON.parse(jsonStr);
-  } catch {
+  const parsedReply = parseExtractReply(rawText);
+  if (!parsedReply) {
+    console.error(`extract-from-image reply held no JSON object (${rawText.length} chars)`);
     return json({ error: 'extract_failed' }, 502);
   }
+  const extracted: Record<string, any> = parsedReply;
 
   // Attach the uploaded image URL
   if (imageUrl) {
@@ -29904,6 +29914,14 @@ export default {
       await reportStaleExchangeRates(env, rateRefresh);
     } catch (err) {
       console.error('Exchange rate staleness check failed', err);
+    }
+
+    /* Needs fixing is a to-do list, so a problem that has stopped happening
+       leaves it on its own. It comes back by itself if it happens again. */
+    try {
+      await clearQuietIncidents(env.DB);
+    } catch (err) {
+      console.error('Clearing quiet problems failed', err);
     }
 
     // Retry audio is temporary. Delete the object before its ledger row so a
