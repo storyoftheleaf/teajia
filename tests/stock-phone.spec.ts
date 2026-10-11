@@ -221,9 +221,10 @@ test.describe('Stock on the phone', () => {
     expect(all).toMatchObject({ product_name: 'Spring Dragonwell', fixed_retail_price_usd: 0.9, is_public: !wasOn });
   });
 
-  test('a supplier opens its source panel, from the group line and from a tea', async ({ page }) => {
+  test('a supplier opens its sheet from the group line, and the sheet opens its source panel', async ({ page }) => {
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     await page.getByRole('button', { name: 'Supplier details for Mountain Source' }).click();
+    await page.getByTestId('supplier-sheet').getByRole('button', { name: 'Stock from Mountain Source' }).click();
     await expect(page.getByText('Stock from this source')).toBeVisible();
     await page.getByRole('button', { name: 'Close source panel' }).click();
     await expect(page.getByText('Stock from this source')).toHaveCount(0);
@@ -232,6 +233,7 @@ test.describe('Stock on the phone', () => {
   test('the supplier page sums the supplier, opens its teas, and ticks them all', async ({ page }) => {
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     await page.getByRole('button', { name: 'Supplier details for Mountain Source' }).click();
+    await page.getByTestId('supplier-sheet').getByRole('button', { name: 'Stock from Mountain Source' }).click();
     const glance = page.getByRole('region', { name: 'This supplier at a glance' });
     await expect(glance).toContainText('32');
     await expect(glance).toContainText('To recount');
@@ -241,6 +243,7 @@ test.describe('Stock on the phone', () => {
     await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Clear' }).click();
 
     await page.getByRole('button', { name: 'Supplier details for Mountain Source' }).click();
+    await page.getByTestId('supplier-sheet').getByRole('button', { name: 'Stock from Mountain Source' }).click();
     await page.getByRole('button', { name: /^Open Oolong Test Tea 02/ }).click();
     await expect(page.getByTestId('phone-tea-header')).toBeVisible();
   });

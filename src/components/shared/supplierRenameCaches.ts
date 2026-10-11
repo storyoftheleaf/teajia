@@ -5,7 +5,7 @@ import { useTeaCompassStore } from '../../lib/teaCompassStore';
 /** First element of every React Query key that holds a supplier's name somewhere in its data. */
 const KEYS_WITH_SUPPLIER_NAMES = new Set([
   'customers', 'vendor', 'vendor-products', 'vendor-priced-products', 'supplier-sheet', 'supplier-freight',
-  'purchase-orders', 'purchase_orders', 'compass-entries', 'compass-incoming', 'inventory-receipts-all',
+  'purchase-orders', 'purchase_orders', 'compass-entries', 'compass-incoming', 'curate-samples-only', 'inventory-receipts-all',
   'inventory-source', 'products', 'admin-products',
 ]);
 

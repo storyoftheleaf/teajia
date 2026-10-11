@@ -54,10 +54,13 @@ describe('the local copies follow a supplier rename', () => {
     const client = new QueryClient();
     client.setQueryData(['purchase-orders', 'acct'], [{ vendor_name: 'Master Bo' }]);
     client.setQueryData(['customers', 'acct'], []);
+    client.setQueryData(['curate-samples-only', 'acct'], [{ entry: { vendor_name: 'Master Bo' } }]);
     client.setQueryData(['shop-freight-default'], { rate: 85 });
     applySupplierRenameLocally(client, { vendorId: 'bo', oldName: 'Master Bo', newName: 'Bo Lin' });
     expect(client.getQueryState(['purchase-orders', 'acct'])?.isInvalidated).toBe(true);
     expect(client.getQueryState(['customers', 'acct'])?.isInvalidated).toBe(true);
+    // The samples drawn in Stock carry the supplier's name too.
+    expect(client.getQueryState(['curate-samples-only', 'acct'])?.isInvalidated).toBe(true);
     expect(client.getQueryState(['shop-freight-default'])?.isInvalidated).toBe(false);
   });
 });

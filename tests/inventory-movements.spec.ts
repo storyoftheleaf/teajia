@@ -199,9 +199,9 @@ test('only the rendered stock number opens the compact stock adjustment', async 
   await expect(page.getByRole('dialog', { name: 'Change stock: Cloud Oolong' })).toBeVisible();
 });
 
-test('only the rendered source words open a closeable source panel without leaving Stock', async ({ page }) => {
+test('only the rendered supplier words open the supplier sheet, and its stock link opens a closeable source panel without leaving Stock', async ({ page }) => {
   const row = page.locator('tr[data-product-id="tea-1"]');
-  const sourceLink = row.getByRole('button', { name: 'Open source Cloud Mountain' });
+  const sourceLink = row.getByRole('button', { name: 'Open supplier Cloud Mountain' });
   const sourceCell = sourceLink.locator('xpath=..');
   const [linkBox, cellBox] = await Promise.all([sourceLink.boundingBox(), sourceCell.boundingBox()]);
 
@@ -214,6 +214,8 @@ test('only the rendered source words open a closeable source panel without leavi
   await expect(row).toHaveAttribute('aria-selected', 'true');
 
   await sourceLink.click();
+  await expect(page.getByTestId('supplier-sheet')).toBeVisible();
+  await page.getByTestId('supplier-sheet').getByRole('button', { name: 'Stock from Cloud Mountain' }).click();
   await expect(page).toHaveURL(/\/admin\/stock(?:\?|$)/);
   await expect(page.getByRole('dialog', { name: 'Source: Cloud Mountain' })).toBeVisible();
   await page.getByRole('button', { name: 'Close source panel' }).click();

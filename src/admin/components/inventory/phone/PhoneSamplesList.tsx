@@ -51,11 +51,13 @@ export interface PhoneSamplesListProps {
   writesFor?: (h: SampleHolding) => SampleRowWrites | undefined;
   /** Opens a row itself (a shelf product opens its own sheet); false falls back to the sample sheet. */
   onOpenHolding?: (h: SampleHolding) => boolean;
+  /** Opens the supplier sheet from a supplier's group line. */
+  onOpenSupplier?: (vendorId: string | null, name: string) => void;
 }
 
 type SampleSort = 'name' | 'year' | 'grams';
 
-export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, groupBy = 'vendor', rowsOnly = false, sortKey = null, sortDir = 'asc', onEditTea, onOrder, onChanged, writesFor, onOpenHolding }) => {
+export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, groupBy = 'vendor', rowsOnly = false, sortKey = null, sortDir = 'asc', onEditTea, onOrder, onChanged, writesFor, onOpenHolding, onOpenSupplier }) => {
   const [ownSort, setSort] = useState<{ key: SampleSort; dir: 'asc' | 'desc' }>({ key: 'name', dir: 'asc' });
   // In the Stock list the column headings above sort these rows too.
   const sort: { key: SampleSort; dir: 'asc' | 'desc' } = rowsOnly
@@ -114,13 +116,15 @@ export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, gr
       {groups.map(group => {
         const isOpen = expandAll || open.has(group.key);
         const grams = group.rows.reduce((sum, h) => sum + Number(h.sample_grams ?? 0), 0);
+        const supplier = groupBy !== 'type' && groupBy !== 'none' ? group.rows[0]?.entry : null;
         return (
           <section key={group.key} aria-label={group.label}>
+            <div className="flex items-stretch bg-tea-surface border-b border-tea-border">
             <button
               type="button"
               aria-expanded={isOpen}
               onClick={() => setOpen(prev => { const next = new Set(prev); if (next.has(group.key)) next.delete(group.key); else next.add(group.key); return next; })}
-              className="w-full flex items-end justify-between gap-3 bg-tea-surface border-b border-tea-border pl-5 pr-4 pt-3 pb-2 text-left"
+              className="flex-1 min-w-0 flex items-end justify-between gap-3 pl-5 pr-2 pt-3 pb-2 text-left"
             >
               <span className="min-w-0">
                 <span className="flex items-center gap-1.5">
@@ -132,6 +136,15 @@ export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, gr
                 </span>
               </span>
             </button>
+            {onOpenSupplier && supplier?.vendor_name && (
+              <button
+                type="button"
+                onClick={() => onOpenSupplier(supplier.vendor_id ? String(supplier.vendor_id) : null, String(supplier.vendor_name))}
+                aria-label={`Supplier details for ${group.label}`}
+                className="tap-target w-10 flex items-end justify-center pb-3 text-tea-gold"
+              ><ChevronRight size={16} aria-hidden="true" /></button>
+            )}
+            </div>
             {isOpen && group.rows.map(h => (
               <SampleDecideRow key={h.entry.id} holding={h} usdPerGram={usdPerGram} writes={writesFor?.(h)} onOpen={() => { if (onOpenHolding?.(h)) return; setFocusedId(focusedId === h.entry.id ? null : h.entry.id); }} />
             ))}

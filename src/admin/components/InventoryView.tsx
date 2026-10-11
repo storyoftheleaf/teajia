@@ -79,6 +79,7 @@ import { InventoryBulkToolbar } from './inventory/InventoryBulkToolbar';
 import { IncomingReceiptsPanel } from './inventory/IncomingReceiptsPanel';
 import { StockMovementPanel } from './inventory/StockMovementPanel';
 import { InventorySourcePanel } from './inventory/InventorySourcePanel';
+import { SupplierSheet } from '../../components/shared/SupplierSheet';
 import { TastingSession } from '../../components/tasting/TastingSession';
 import { adaptInventorySummaryRows, buildPersonalJournalHref, getPersonalTastingAction, inventorySummaryStatusMessage, isInventoryPublicationGateChangeAllowed, isInventorySelectionPublishable } from './inventory/domain';
 import type { IncomingInventorySummary, InventorySummaryRow, InventorySummaryStatus, InventoryWritingSummary, PersonalTastingSummary } from './inventory/domain';
@@ -502,6 +503,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // identity and lifecycle.
   const [panelProduct, setPanelProduct] = useState<Product | null>(null);
   const [sourcePanelProduct, setSourcePanelProduct] = useState<Product | null>(null);
+  // The supplier sheet: tapping a supplier's name anywhere in Stock opens it, to
+  // rename him everywhere, edit his contact, and see how he ships. It carries the
+  // product it was opened from so "Stock from …" can open the supplier page.
+  const [supplierSheetProduct, setSupplierSheetProduct] = useState<Product | null>(null);
   // Inline quick-edit, opened by a long-press on a row. Holds the id of the one
   // row that is currently expanded; the panel slides down directly under it.
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
@@ -1082,6 +1087,24 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     setPanelProduct(null);
     setSourcePanelProduct(product);
   }, []);
+
+  const stableOpenSupplier = useCallback((product: Product) => {
+    if (!product.vendor) return;
+    setSupplierSheetProduct(product);
+  }, []);
+
+  // A rename has already landed on every record, and the sheet refetches every
+  // cached read that holds a supplier's name. Rename the rows in place too, so
+  // the list does not show the old name while that refetch is in flight.
+  const handleSupplierRenamed = useCallback((newName: string) => {
+    const opened = supplierSheetProduct;
+    if (!opened?.vendor) return;
+    const oldName = opened.vendor.trim().toLowerCase();
+    const sameSupplier = (p: Product) => (opened.vendorId && p.vendorId === opened.vendorId)
+      || (!p.vendorId && (p.vendor ?? '').trim().toLowerCase() === oldName);
+    setLocalProducts(prev => prev.map(p => (sameSupplier(p) ? { ...p, vendor: newName } : p)));
+    setSupplierSheetProduct({ ...opened, vendor: newName });
+  }, [supplierSheetProduct]);
 
   // Stable dropdown toggle.
   const stableToggleDropdown = useCallback((productId: string | null) => {
@@ -2823,7 +2846,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             onOpenEditor={stableOpenPanel}
             onUpdate={handleProductUpdate}
             onMovementRecorded={handleMovementRecorded}
-            onOpenSource={stableOpenSource}
+            onOpenSource={stableOpenSupplier}
             sortKey={(inventorySortConfig[0]?.key as PhoneSortKey | undefined) ?? null}
             sortDir={inventorySortConfig[0]?.direction ?? 'asc'}
             onSort={(col) => {
@@ -2841,6 +2864,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               products={processedProducts}
               onOpenProduct={stableOpenPanel}
               onProductUpdate={handleProductUpdate}
+              onOpenSupplier={(vendorId, name) => setSupplierSheetProduct({ id: `supplier:${vendorId ?? name}`, vendor: name, vendorId: vendorId ?? undefined } as Product)}
               onCount={setCurateSampleCount}
               sortKey={(inventorySortConfig[0]?.key as string | undefined) ?? null}
               sortDir={inventorySortConfig[0]?.direction ?? 'asc'}
@@ -2986,7 +3010,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   onRestock={handleRestock}
                                   onDeleteRequest={(p) => { setDeleteTarget({ id: p.id, name: p.givenName || p.productName }); setDeleteInput(''); }}
                                   showToast={showInventoryToast}
-                                  onOpenSource={stableOpenSource}
+                                  onOpenSource={stableOpenSupplier}
                                 />
                                 {isSampleRow(product) && !splitView && <SampleFoldRow product={product} colSpan={renderCols.length} />}
                                 {expandedRowId === product.id && (
@@ -3083,7 +3107,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               onRestock={handleRestock}
                               onDeleteRequest={(p) => { setDeleteTarget({ id: p.id, name: p.givenName || p.productName }); setDeleteInput(''); }}
                               showToast={showInventoryToast}
-                              onOpenSource={stableOpenSource}
+                              onOpenSource={stableOpenSupplier}
                             />
                             {isSampleRow(product) && !splitView && <SampleFoldRow product={product} colSpan={renderCols.length} />}
                             {expandedRowId === product.id && (
@@ -3269,6 +3293,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           if (idx > 0) setDetailsProduct(processedProducts[idx - 1]);
         }) : undefined}
       />
+
+      {supplierSheetProduct?.vendor && (
+        <SupplierSheet
+          open
+          vendorId={supplierSheetProduct.vendorId ?? null}
+          vendorName={supplierSheetProduct.vendor}
+          onClose={() => setSupplierSheetProduct(null)}
+          onRenamed={handleSupplierRenamed}
+          onShowStock={() => { const p = supplierSheetProduct; setSupplierSheetProduct(null); stableOpenSource(p); }}
+        />
+      )}
 
       <AnimatePresence>
         {sourcePanelProduct && (
