@@ -134,6 +134,16 @@ describe('filling in later changes only what is given', () => {
     expect(missing.teas.find((t: R) => t.id === id)?.missing ?? []).not.toContain('cost');
   });
 
+  it('a rename on its own is previewed and committed, never refused as nothing to change', async () => {
+    const db = makeDb();
+    await confirm(db, 'curate_add_tea', { name: 'LKY-PE8 Yunnan Pu Erh Tea' });
+    const id = entries(db)[0].id;
+    const p = await call(db, 'curate_update_tea', { tea_id: id, name: 'LKY-PE8 Top Aged Yunnan Pu Erh' });
+    expect(JSON.stringify(p.preview)).toContain('rename to: LKY-PE8 Top Aged Yunnan Pu Erh');
+    await call(db, 'curate_update_tea', { tea_id: id, confirm: p.confirmation_token });
+    expect(entries(db)[0].name).toBe('LKY-PE8 Top Aged Yunnan Pu Erh');
+  });
+
   it('tasting merges by category and keeps the score and the others', async () => {
     const db = makeDb();
     await confirm(db, 'curate_add_tea', { name: 'T', tasting: { flavor: ['honey'] }, score: 7 });
