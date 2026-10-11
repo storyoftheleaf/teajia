@@ -5392,3 +5392,41 @@ body.cart-panel-open .commerce-dock {
 @media (min-width: 1024px) {
   .sheet-behind-nav { padding-bottom: 12px; }
 }
+
+/* How much he likes a sample, 1 to 10 (SampleDecide.tsx LikeSlider). A hairline
+   track and a small gold mark, never a big knob; hollow until it has a score,
+   because "not rated" is not a score of one. */
+.sample-like-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+.sample-like-slider::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--tea-border);
+}
+.sample-like-slider::-moz-range-track {
+  height: 2px;
+  background: var(--tea-border);
+}
+.sample-like-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 11px;
+  height: 11px;
+  margin-top: -4.5px;
+  border-radius: 9999px;
+  border: 1.5px solid rgb(var(--tea-gold-rgb));
+  background: rgb(var(--tea-gold-rgb));
+}
+.sample-like-slider::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  border-radius: 9999px;
+  border: 1.5px solid rgb(var(--tea-gold-rgb));
+  background: rgb(var(--tea-gold-rgb));
+}
+.sample-like-slider.is-unrated::-webkit-slider-thumb { background: transparent; }
+.sample-like-slider.is-unrated::-moz-range-thumb { background: transparent; }
+.sample-like-slider:focus-visible { outline: 1px solid rgb(var(--tea-gold-rgb)); outline-offset: 2px; }

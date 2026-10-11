@@ -1,5 +1,4 @@
 import { CurateSamplesView } from './CurateSamplesView';
-import { CurateSampleTableRows } from './inventory/CurateSampleTableRows';
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
@@ -13,6 +12,11 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import Papa from 'papaparse';
 import { api } from '../../lib/api';
+import { useQuery } from '@tanstack/react-query';
+import { curateHoldingAsProduct, curateIdOfRow, isCurateRow, isSampleRow, linkedEntryId } from './inventory/sampleRows';
+import { SampleFoldRow } from './inventory/SampleFoldRow';
+import { updateCurateTea } from './inventory/phone/sampleDecisions';
+import type { SampleHolding } from './inventory/phone/PhoneSamplesList';
 import { calculatePricing } from '../utils';
 import { enteredNumber } from '../productUpdatePayload';
 import { Product } from '../types';
@@ -692,6 +696,46 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const { data: rates = [] } = useRates();
   const shopFreight = useShopFreightDefault();
 
+  // Sampling is a state of a tea, not a second kind of record (Adrian,
+  // 2026-10-11). On the table, a Curate tea with only a portion in a bag joins
+  // the shelf products bought to sample as one more row of the same list, so
+  // grouping, sorting and search treat them alike; a shelf product already
+  // linked to its Curate record is one row, never two. Rejected samples stay
+  // out unless asked for.
+  const sampleAccountId = useAppStore((st) => st.activeAccountId);
+  const samplesOnTable = filterType === 'Samples' && !(isMobile && !isEditMode && !glossaryMode);
+  const curateSampleHoldings = useQuery<SampleHolding[]>({
+    queryKey: ['curate-samples-only', sampleAccountId],
+    queryFn: () => api.curateWorkspace.holdings(true),
+    enabled: samplesOnTable && !!sampleAccountId,
+  });
+  const [showRejectedSamples, setShowRejectedSamples] = useState(false);
+  const { tableProducts, rejectedSampleCount } = useMemo(() => {
+    if (!samplesOnTable) return { tableProducts: localProducts, rejectedSampleCount: 0 };
+    const holdings = curateSampleHoldings.data ?? [];
+    const serverDecision = new Map(holdings.map((h) => [String(h.entry.id), h.entry.decision as string | null]));
+    const decisionOf = (id: string | null) => (id ? compassEntries.find((e) => e.id === id)?.decision ?? serverDecision.get(id) ?? null : null);
+    const linked = new Set(localProducts.map((p) => linkedEntryId(p, compassEntries)).filter(Boolean) as string[]);
+    const productIds = new Set(localProducts.map((p) => p.id));
+    const curateRows = holdings
+      .filter((h) => !linked.has(String(h.entry.id)) && !(h.entry.draft_product_id && productIds.has(String(h.entry.draft_product_id))))
+      .map((h) => {
+        const p = curateHoldingAsProduct(h, compassEntries.find((e) => e.id === h.entry.id) ?? null);
+        // rateToUsd is units of that money per dollar, so dollars = amount / rate.
+        const perUsd = p.costCurrency ? rateToUsd(rates, String(p.costCurrency)) : null;
+        if (perUsd && p.costAmount != null && p.quantityPurchased) p.costPerGramUSD = p.costAmount / perUsd / p.quantityPurchased;
+        return p;
+      });
+    let rejected = 0;
+    const kept = [...localProducts, ...curateRows].filter((p) => {
+      if (!isSampleRow(p)) return true;
+      if (decisionOf(linkedEntryId(p, compassEntries)) !== 'passed_on') return true;
+      rejected += 1;
+      return showRejectedSamples;
+    });
+    return { tableProducts: kept, rejectedSampleCount: rejected };
+  }, [samplesOnTable, localProducts, curateSampleHoldings.data, compassEntries, rates, showRejectedSamples]);
+
   const {
     activeColumnDefs,
     activeDefaultViews,
@@ -702,7 +746,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     pendingCount,
     verificationStats,
   } = useInventoryProducts({
-    localProducts,
+    localProducts: tableProducts,
     inventoryCategory,
     searchQuery,
     filterType,
@@ -837,6 +881,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         if (byKey.has(col.key)) ordered.push(col);
       }
       return ordered;
+    }
+    // A sample's Stock column holds its quote, and its Retail column what a gram costs.
+    if (filterType === 'Samples') {
+      return visibleCols.map((c) => c.key === 'stockGrams' ? { ...c, label: 'Quote' } : c.key === 'pricePerGramUSD' ? { ...c, label: 'Cost/g' } : c);
     }
     return visibleCols;
   }, [isMobile, splitView, splitViewCols, visibleCols, unifiedLayout, inventoryCategory, filterType]);
@@ -1024,6 +1072,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Stable open-panel, row passes the product object directly.
   // stableRowClick and stableLongPressSelect are declared after toggleSelectId below.
   const stableOpenPanel = useCallback((product: Product) => {
+    // A Curate-only sample has no product panel: it opens where it lives.
+    if (isCurateRow(product.id)) { navigate(`/admin/compass?entry=${encodeURIComponent(curateIdOfRow(product.id))}`); return; }
     setSourcePanelProduct(null);
     setPanelProduct(product);
   }, [setPanelProduct]);
@@ -1089,6 +1139,19 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   }, [startNewCapture, updateCompassEntry, navigate]);
 
   const handleProductUpdate = useCallback(async (id: string, field: keyof Product, value: any, options?: { throwOnError?: boolean }) => {
+    // A Curate-only sample row is edited in Curate, never written as a product.
+    if (isCurateRow(id)) {
+      const patch = field === 'productName' ? { name: String(value ?? '') }
+        : field === 'givenName' ? { shopName: value ? String(value) : null }
+        : field === 'costAmount' ? { priceAmount: value == null ? undefined : Number(value) }
+        : field === 'quantityPurchased' ? { pricePerUnitGrams: value == null ? undefined : Number(value) }
+        : null;
+      if (patch) {
+        try { await updateCurateTea(curateIdOfRow(id), patch); }
+        catch (e) { showInventoryToast(e instanceof Error ? e.message : 'Could not save.', 'error'); if (options?.throwOnError) throw e; }
+      }
+      return;
+    }
     const currentProduct = localProducts.find(product => product.id === id);
     const turnsPublicationGateOn = (field === 'isPublic' || field === 'shownInShop') && value === true;
     if (turnsPublicationGateOn && (
@@ -1724,6 +1787,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // leave them rather than waiting on a save.
   const stableRowClick = useCallback((productId: string, globalIdx: number, e: React.MouseEvent) => {
     if (isEditModeRef.current) return;
+    // A Curate-only sample cannot be selected for bulk product actions.
+    if (isCurateRow(productId)) return;
     if (e.metaKey || e.ctrlKey) {
       toggleSelectId(productId, globalIdx, false);
       return;
@@ -1769,6 +1834,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // again collapses it; only one row is ever expanded at a time. The row's tap
   // still selects.
   const stableLongPressQuickEdit = useCallback((productId: string, _globalIdx: number) => {
+    if (isCurateRow(productId)) return;
     setExpandedRowId(prev => (prev === productId ? null : productId));
   }, []);
 
@@ -2477,7 +2543,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       <div
         ref={scrollContainerRef}
         data-testid="inventory-scroll"
-        className={`flex-1 isolate custom-scrollbar bg-tea-bg pt-0 md:pt-3 pb-nav-gap transition-all duration-300 ${mobileHScroll ? 'overflow-auto overscroll-x-none hide-scrollbar-always' : 'overflow-y-auto overflow-x-hidden'}`}
+        className={`flex-1 isolate custom-scrollbar bg-tea-bg pt-0 pb-nav-gap transition-all duration-300 ${mobileHScroll ? 'overflow-auto overscroll-x-none hide-scrollbar-always' : 'overflow-y-auto overflow-x-hidden'}`}
         style={{ marginRight: contentRightMargin }}
         onScroll={(e) => {
           if (filterType === 'Pending') return;
@@ -2746,7 +2812,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         {phoneList ? (<>
           <PhoneStockList
             emptyText={filterType === 'Samples' ? null : undefined}
-            products={processedProducts}
+            // Samples are drawn below as sample rows, bought ones included.
+            products={filterType === 'Samples' ? [] : processedProducts}
             groupBy={phoneGroupBy}
             priceMode={priceMode}
             searchActive={searchQuery.trim().length > 0}
@@ -2771,6 +2838,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               groupBy={phoneGroupBy}
               embedded
               rowsOnly
+              products={processedProducts}
+              onOpenProduct={stableOpenPanel}
+              onProductUpdate={handleProductUpdate}
               onCount={setCurateSampleCount}
               sortKey={(inventorySortConfig[0]?.key as string | undefined) ?? null}
               sortDir={inventorySortConfig[0]?.direction ?? 'asc'}
@@ -2778,8 +2848,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           )}
         </>
         ) : (
-        <div ref={tableWrapperRef} className="relative w-full max-w-7xl mx-auto px-0 md:px-4 lg:px-6">
-          <div className="bg-tea-surface border-y md:border border-tea-border md:rounded-xl overflow-visible">
+        <div ref={tableWrapperRef} className="relative w-full">
+          {/* Edge to edge: a tool for organising products, not a card on a page
+              (Adrian, 2026-10-11). The header row pins flush to the top. */}
+          <div className="bg-tea-surface border-b border-tea-border overflow-visible">
 
           {/* Horizontal movement belongs to inventory-scroll (see the note on
               it). This wrapper is only the ledger's box. */}
@@ -2916,6 +2988,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   showToast={showInventoryToast}
                                   onOpenSource={stableOpenSource}
                                 />
+                                {isSampleRow(product) && !splitView && <SampleFoldRow product={product} colSpan={renderCols.length} />}
                                 {expandedRowId === product.id && (
                                   <QuickEditInlineRow
                                     product={product}
@@ -2940,19 +3013,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   </div>
                 );
               })}
-              {filterType === 'Samples' && !splitView && (
-                <div hidden={curateSampleCount === 0}>
-                  <div className="flex items-center gap-3 px-5 py-2.5 bg-tea-surface border-b border-tea-border">
-                    <span className="font-display text-ui-15 text-tea-text">Curate samples</span>
-                    <span className="label-caps text-tea-text-dim">{curateSampleCount} items</span>
-                  </div>
-                  <table className="w-full table-fixed border-collapse inv-tight" style={mobileTableStyle}>
-                    <colgroup>{renderCols.map(renderColEl)}</colgroup>
-                    <tbody>
-                      <CurateSampleTableRows colKeys={renderCols.map(col => col.key)} search={searchQuery} rowHeight={effectiveRowHeight} onCount={setCurateSampleCount} />
-                    </tbody>
-                  </table>
-                </div>
+              {filterType === 'Samples' && rejectedSampleCount > 0 && (
+                <button type="button" onClick={() => setShowRejectedSamples((v) => !v)} aria-pressed={showRejectedSamples} className="block w-full px-5 py-2.5 text-left text-ui-12 text-tea-text-sec hover:text-tea-text border-b border-tea-border">
+                  {showRejectedSamples ? 'Hide rejected' : `Rejected ${rejectedSampleCount}, show`}
+                </button>
               )}
             </div>
           ) : (
@@ -3021,6 +3085,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               showToast={showInventoryToast}
                               onOpenSource={stableOpenSource}
                             />
+                            {isSampleRow(product) && !splitView && <SampleFoldRow product={product} colSpan={renderCols.length} />}
                             {expandedRowId === product.id && (
                               <QuickEditInlineRow
                                 product={product}
@@ -3039,9 +3104,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           </React.Fragment>
                         );
                     })}
-                    {filterType === 'Samples' && !splitView && (
-                <CurateSampleTableRows colKeys={renderCols.map(col => col.key)} search={searchQuery} rowHeight={effectiveRowHeight} onCount={setCurateSampleCount} />
-              )}
+                    {filterType === 'Samples' && rejectedSampleCount > 0 && (
+                      <tr><td colSpan={renderCols.length} className="px-3 py-2.5">
+                        <button type="button" onClick={() => setShowRejectedSamples((v) => !v)} aria-pressed={showRejectedSamples} className="text-ui-12 text-tea-text-sec hover:text-tea-text">
+                          {showRejectedSamples ? 'Hide rejected' : `Rejected ${rejectedSampleCount}, show`}
+                        </button>
+                      </td></tr>
+                    )}
                 </tbody>
             </table>
           )}

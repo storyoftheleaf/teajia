@@ -154,23 +154,29 @@ test.describe('Samples on the laptop', () => {
     await page.route('**/api/curate/holdings**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(HOLDINGS) }));
   });
 
-  test('Samples is a view of the one table: Curate samples are rows with their grams, and open in Curate', async ({ page }) => {
+  test('Samples is a view of the one table: every sample is a Stock row with its quote, and the sampling folds out beneath', async ({ page }) => {
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('button', { name: 'Samples only' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Samples', exact: true }).first().click();
-    const rows = page.getByTestId('curate-sample-table-row');
+    // One list: no separate "Curate samples" block, and the columns say what a sample holds.
+    await expect(page.getByText('Curate samples')).toHaveCount(0);
+    await expect(page.getByRole('columnheader', { name: /Quote/ })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: /Cost\/g/ })).toBeVisible();
+    const rows = page.locator('tr[data-sample]');
     await expect(rows).toHaveCount(2);
-    await expect(rows.filter({ hasText: '1958 Aged Raw' })).toContainText('25');
+    await expect(page.getByTestId('sample-fold')).toHaveCount(2);
     await expect(page.getByText('No products match the current filter.')).toHaveCount(0);
     const aged = rows.filter({ hasText: '1958 Aged Raw' });
     await expect(aged).toContainText('900');
-    await expect(aged).toContainText('/357g');
+    await expect(aged).toContainText('357 g');
     await expect(aged).toContainText('Yunnan');
     // 900 Yuan for 357 g at 7.2 Yuan a dollar is $0.35 a gram.
     await expect(aged).toContainText('0.35');
+    // No house name yet: a thin "name this", typed in place.
+    await expect(aged.getByRole('button', { name: 'House name for 1958 Aged Raw' })).toHaveText('name this');
     await expect(page.getByText(/0 items/i)).toHaveCount(0);
     await shot(page, 'laptop');
-    await page.getByRole('button', { name: 'Open 1958 Aged Raw in Curate' }).click();
+    await aged.getByRole('button', { name: 'Open 1958 Aged Raw editor' }).click();
     await expect(page).toHaveURL(/\/admin\/compass\?entry=tea-a/);
   });
 });
@@ -216,12 +222,24 @@ test.describe('Deciding on a sample, phone', () => {
     await shot(page, 'decide-row');
   });
 
-  test('four dots save a tasting score of 8 through Curate', async ({ page }) => {
+  test('the slider saves the tasting score itself, 1 to 10, through Curate', async ({ page }) => {
     const synced = await setup(page);
     const row = page.getByTestId('sample-decide-row').filter({ hasText: '1958 Aged Raw' });
-    await row.getByRole('radio', { name: '4 of 5' }).click();
-    await expect(row.getByRole('radio', { name: '4 of 5' })).toHaveAttribute('aria-checked', 'true');
-    await expect.poll(() => parseTasting(lastFor(synced, 'tea-a')?.tasting)?.quality, { timeout: 8000 }).toBe(8);
+    const slider = row.getByRole('slider', { name: /How much you like it/ });
+    await expect(slider).toHaveAttribute('aria-valuetext', 'not rated');
+    await slider.fill('7');
+    await expect(slider).toHaveAttribute('aria-valuetext', '7 of 10');
+    await expect.poll(() => parseTasting(lastFor(synced, 'tea-a')?.tasting)?.quality, { timeout: 8000 }).toBe(7);
+  });
+
+  test('the house name is typed in place, and an unnamed tea says so', async ({ page }) => {
+    const synced = await setup(page);
+    const row = page.getByTestId('sample-decide-row').filter({ hasText: 'Wild Moonlight' });
+    await row.getByRole('button', { name: 'House name for Wild Moonlight' }).click();
+    await row.getByRole('textbox', { name: 'House name for Wild Moonlight' }).fill('Moon Gate');
+    await row.getByRole('textbox', { name: 'House name for Wild Moonlight' }).press('Enter');
+    await expect(row.getByRole('button', { name: 'House name for Wild Moonlight' })).toHaveText('Moon Gate');
+    await expect.poll(() => lastFor(synced, 'tea-b')?.shop_name, { timeout: 8000 }).toBe('Moon Gate');
   });
 
   test('Reject hides the sample; the Rejected toggle shows it with Restore, which clears it', async ({ page }) => {
