@@ -9,6 +9,8 @@
  */
 import React from 'react';
 import { EditableText, useStoryEdit } from '../storyEdit';
+import { TermLink, glossaryIndex, useGlossaryFieldTermIds } from '../../../components/reader/GlossaryTerms';
+import { linkSelectedTermsInTree } from '../../../lib/glossaryTerms';
 
 const HAN = /([㐀-鿿豈-﫿]+)/;
 
@@ -44,9 +46,16 @@ export const Rich: React.FC<{
   multiline?: boolean;
 }> = ({ field, text, as = 'p', className, style, multiline = true }) => {
   const { isOwner, editing, previewVisitor, text: stored } = useStoryEdit();
+  const termIds = useGlossaryFieldTermIds(field);
   if (isOwner && editing && !previewVisitor) {
     return <EditableText field={field} as={as} className={className} style={style} multiline={multiline}>{text}</EditableText>;
   }
   const Tag = as as React.ElementType;
-  return <Tag className={className} style={style}>{renderMarkup(stored(field, text))}</Tag>;
+  const content = renderMarkup(stored(field, text));
+  const linked = termIds
+    ? linkSelectedTermsInTree(content, glossaryIndex(), termIds, (termId, termText, key) => (
+      <TermLink key={key} termId={termId}>{termText}</TermLink>
+    ))
+    : content;
+  return <Tag className={className} style={style}>{linked}</Tag>;
 };

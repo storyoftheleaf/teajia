@@ -43,7 +43,7 @@ export function curateShelfPreview(input: {
   shopFreightPerKgUsd: number;
 }): CurateShelfPreview | null {
   const { costAmount, grams, currency, rates, shopFreightPerKgUsd } = input;
-  if (!(costAmount >= 0) || !(grams > 0) || !rates) return null;
+  if (typeof costAmount !== 'number' || !(costAmount >= 0) || !(grams > 0) || !rates) return null;
   const rate = isUnrecordedCurrency(currency) ? 1 : rateToUsd(rates, currency);
   const freightPerKgSource = shopRateInCurrency(shopFreightPerKgUsd, rate);
   if (freightPerKgSource === null) return null;

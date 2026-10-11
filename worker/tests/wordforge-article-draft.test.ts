@@ -46,6 +46,19 @@ describe('WordForge draft decoder', () => {
     expect(decodeWordforgeDraft(payload).article.blocks).toEqual(payload.article.blocks);
   });
 
+  it('carries a prose block opting out of tea-term pop-ups, and only as a boolean', () => {
+    const payload = structuredClone(fixture);
+    payload.article.blocks = [
+      fixture.article.blocks[0],
+      { type: 'paragraph', text: 'A gaiwan the writer wants left plain.', noTerms: true },
+      { type: 'quote', text: 'Pour from the gaiwan.', noTerms: false },
+    ];
+    expect(decodeWordforgeDraft(payload).article.blocks).toEqual(payload.article.blocks);
+    const bad = structuredClone(payload);
+    (bad.article.blocks[1] as { noTerms: unknown }).noTerms = 'yes';
+    expect(() => decodeWordforgeDraft(bad)).toThrow(/noTerms must be a boolean/);
+  });
+
   it('rejects unknown blocks, prose over 600 characters, invalid sidebar shapes, and multi-item Q&A blocks', () => {
     for (const block of [
       { type: 'video', url: 'https://example.test' },

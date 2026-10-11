@@ -26,31 +26,32 @@ let abandonCalls = 0;
 api.curateImports.abandon = async () => { abandonCalls++; return {} as any; };
 api.curateImports.uploadEvidence = async () => ({} as any);
 api.batches.list = async () => ({ batches: [] } as any);
-let purchaseFailures = 0;
-const purchaseCalls: unknown[] = [];
-api.purchaseOrders.create = async body => {
-  purchaseCalls.push(body);
-  if (purchaseFailures-- > 0) throw new Error('Purchase record unavailable');
-  return { id: 'purchase-1' };
+const operation = async (kind: string, payload?: unknown) => {
+  const response = await fetch('/__intake-operations', { method: 'POST', body: JSON.stringify({ kind, payload }) });
+  const result = await response.json();
+  if (!response.ok) {
+    const error = new Error(result.error || 'Operation failed') as Error & { status: number };
+    error.status = response.status;
+    throw error;
+  }
+  return result;
 };
-
-let bulkCreateResult: any = { inserted: 0, skipped: 0, results: [] };
-let bulkCalls = 0;
-api.products.bulkCreate = async () => { bulkCalls++; return bulkCreateResult; };
+api.intakeCommits.get = async () => operation('get');
+api.intakeCommits.save = async (_id, payload) => operation('save', payload);
+api.intakeCommits.complete = async () => operation('complete');
+api.purchaseOrders.create = async body => operation('purchase', body);
+api.products.bulkCreate = async (products, batchId, receiptLabel) => operation('bulk', { products, batchId, receiptLabel });
 
 const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
 const root = createRoot(document.getElementById('root')!);
 
 (window as any).intakeWorkspaceTest = {
-  mount() {
+  mount(entry = '/admin/intake') {
     client.clear();
-    bulkCalls = 0;
-    purchaseCalls.length = 0;
-    purchaseFailures = 0;
     abandonCalls = 0;
     root.render(
       <QueryClientProvider client={client}>
-        <MemoryRouter initialEntries={['/admin/intake']}>
+        <MemoryRouter initialEntries={[entry]}>
           <ToastProvider>
             <IntakeWorkspace />
           </ToastProvider>
@@ -58,9 +59,8 @@ const root = createRoot(document.getElementById('root')!);
       </QueryClientProvider>,
     );
   },
-  setBulkCreateResult(result: any) { bulkCreateResult = result; },
-  failPurchase(count = 1) { purchaseFailures = count; },
-  bulkCalls() { return bulkCalls; },
-  purchaseCalls() { return purchaseCalls; },
+  setBulkCreateResult(result: any) { return operation('configure', { bulkResult: result }); },
+  failPurchase(count = 1) { return operation('configure', { purchaseFailures: count }); },
+  failLookup(count = 1) { return operation('configure', { getFailures: count }); },
   abandonCalls() { return abandonCalls; },
 };

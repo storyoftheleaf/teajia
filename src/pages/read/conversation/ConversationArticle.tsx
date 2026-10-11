@@ -26,10 +26,11 @@ import PublishControl from '../PublishControl';
 import { Rich } from './RichText';
 import {
   type Block, type ConversationSpec, type LineSize, type Part, type Shot,
-  photoCount, readingMinutes, shareCardFor, turnStarts,
+  allBlocks, photoCount, readingMinutes, shareCardFor, turnStarts,
 } from './spec';
 import './conversation.css';
 import { ConversationByline } from './Byline';
+import { GlossaryScope, TermStyle, storyTermLinker } from '../../../components/reader/GlossaryTerms';
 
 // ── Photographs ──────────────────────────────────────────────────────────────
 const Photo: React.FC<{ spec: ConversationSpec; shot: Shot; aspect?: string; fill?: boolean }> = ({ spec, shot, aspect = '4/5', fill }) => (
@@ -333,6 +334,29 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
   // What the Share button puts on its card: the piece's own title, the line it
   // names, said by its subject, over the object it names.
   const share = useMemo<ReadShare>(() => shareCardFor(spec), [spec]);
+  const fieldTermIds = useMemo(() => {
+    if (spec.form !== 'story') return undefined;
+    const linkText = storyTermLinker();
+    const byField = new Map<string, ReadonlySet<string>>();
+    const record = (field: string, text: string) => {
+      const ids = new Set(linkText(text).flatMap((part) => (typeof part === 'string' ? [] : [part.termId])));
+      if (ids.size) byField.set(field, ids);
+    };
+
+    if (spec.hook) record('hook', spec.hook);
+    record('intro-2', spec.intro);
+    allBlocks(spec).forEach((block) => {
+      if (block.kind === 'q' || block.kind === 'a' || block.kind === 'n' || block.kind === 'line' || block.kind === 'on-photo') {
+        record(block.id, block.text);
+        if (block.kind === 'line' && block.follow) record(block.follow.id, block.follow.text);
+      } else if (block.kind === 'photos' && block.caption) {
+        record(block.caption.id, block.caption.text);
+      }
+    });
+    record(spec.ending.saying.id, spec.ending.saying.text);
+    if (spec.closing) record('closing', spec.closing);
+    return byField;
+  }, [spec]);
 
   // Arriving on a #part-N link shows that part at once. It waits out the app's
   // own scroll restore, which runs a frame after the route mounts and would
@@ -358,15 +382,15 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
               toolbar below never shows. */}
           <ImmersiveNav progress={progress} current={current ? spec.parts[current - 1].title : undefined} />
 
+          <GlossaryScope fieldTermIds={fieldTermIds}>
+          {spec.form === 'story' && <TermStyle />}
           <article className="tj-conv" data-form={spec.form ?? 'conversation'} style={{ position: 'relative', zIndex: 1 }}>
             <Cover spec={spec} />
             <Byline spec={spec} />
 
             <section data-reveal="text" className="tj-conv-col tj-conv-intro">
               {/* Keyed intro-2: a saved edit under "intro" held a line that was never Adrian's (2026-09-29). */}
-              <EditableText field="intro-2" as="p" multiline className="tj-conv-intro-text">
-                {spec.intro}
-              </EditableText>
+              <Rich field="intro-2" as="p" multiline className="tj-conv-intro-text" text={spec.intro} />
               {/* Adrian's telling that opens the story continues his intro, so it sits
                   with it, before the contents, rather than alone after the list. */}
               {leadingTold.map((b) => <Rich key={b.id} field={b.id} text={b.text} className="tj-conv-told tj-conv-intro-told" />)}
@@ -398,9 +422,7 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
             {/* Adrian's own close, last, after the subject's saying and the photograph. */}
             {spec.closing && (
               <section data-reveal="text" className="tj-conv-col tj-conv-closing">
-                <EditableText field="closing" as="p" multiline className="tj-conv-intro-text">
-                  {spec.closing}
-                </EditableText>
+                <Rich field="closing" as="p" multiline className="tj-conv-intro-text" text={spec.closing} />
                 <span aria-hidden="true" lang="zh-Hans" className="tj-conv-endmark">家</span>
               </section>
             )}
@@ -418,6 +440,7 @@ const ConversationArticle: React.FC<{ spec: ConversationSpec }> = ({ spec }) => 
 
             <MoreFooter links={spec.next} publishControl={false} />
           </article>
+          </GlossaryScope>
         </ImmersiveRoot>
       </SpeakerCtx.Provider>
       </ReadShareContext.Provider>

@@ -19,6 +19,10 @@ export interface GlossaryDeepDive {
 export interface GlossaryTerm {
   id: string;
   term: string;
+  /** Other spellings a story may use; matched like the term itself (src/lib/glossaryTerms.ts). */
+  aliases?: string[];
+  /** false keeps an ordinary English word ("rolling") from linking in stories automatically. */
+  autoLink?: boolean;
   pronunciation?: string; // e.g., "gong-foo"
   chineseCharacters?: string; // e.g., "功夫"
   category: GlossaryCategory;
@@ -47,6 +51,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'gongfu',
     term: 'Gongfu',
+    aliases: ['gong fu', 'gongfu cha'],
     pronunciation: 'gong-foo',
     chineseCharacters: '功夫',
     category: 'ceremony',
@@ -65,6 +70,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'chado',
     term: 'Chadō',
+    aliases: ['chado'],
     pronunciation: 'cha-doh',
     chineseCharacters: '茶道',
     category: 'ceremony',
@@ -82,6 +88,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'grandpa-style',
     term: 'Grandpa Style',
+    aliases: ['grandpa-style brewing'],
     category: 'ceremony',
     definition: 'An informal Chinese brewing method where tea leaves are placed directly in a tall glass and repeatedly topped with hot water throughout the day. Named for its association with elderly Chinese tea drinkers.',
     relatedTerms: ['gongfu'],
@@ -125,6 +132,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'yixing',
     term: 'Yixing',
+    aliases: ['yixing pot', 'yixing teapot'],
     pronunciation: 'ee-shing',
     chineseCharacters: '宜興',
     category: 'equipment',
@@ -142,6 +150,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'zisha',
     term: 'Zisha',
+    aliases: ['purple clay'],
     pronunciation: 'dzuh-sha',
     chineseCharacters: '紫砂',
     category: 'equipment',
@@ -152,6 +161,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'chahai',
     term: 'Chahai',
+    aliases: ['fairness pitcher', 'fair cup', 'gong dao bei'],
     pronunciation: 'cha-high',
     chineseCharacters: '茶海',
     category: 'equipment',
@@ -191,6 +201,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'cha-tuo',
     term: 'Cha Tuo',
+    aliases: ['chatuo'],
     pronunciation: 'cha twoh',
     chineseCharacters: '茶托',
     category: 'equipment',
@@ -200,6 +211,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'cha-pan',
     term: 'Cha Pan',
+    aliases: ['chapan', 'tea tray'],
     pronunciation: 'cha pahn',
     chineseCharacters: '茶盤',
     category: 'equipment',
@@ -257,6 +269,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'puerh',
     term: 'Puerh',
+    aliases: ['pu-erh', 'pu\'er', 'puer', 'pu erh'],
     pronunciation: 'poo-air',
     chineseCharacters: '普洱',
     category: 'tea-type',
@@ -275,6 +288,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'sheng',
     term: 'Sheng Puerh',
+    aliases: ['raw puerh', 'sheng pu-erh', 'sheng pu\'er'],
     pronunciation: 'shung',
     chineseCharacters: '生普',
     category: 'tea-type',
@@ -285,6 +299,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'shou',
     term: 'Shou Puerh',
+    aliases: ['ripe puerh', 'shou pu-erh', 'shou pu\'er'],
     pronunciation: 'show',
     chineseCharacters: '熟普',
     category: 'tea-type',
@@ -321,6 +336,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'heicha',
     term: 'Heicha',
+    aliases: ['hei cha', 'dark tea'],
     pronunciation: 'hay-cha',
     chineseCharacters: '黑茶',
     category: 'tea-type',
@@ -347,6 +363,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'fixation',
     term: 'Fixation',
+    autoLink: false,
     chineseCharacters: '殺青',
     category: 'processing',
     definition: 'The application of heat to stop oxidation enzymes (sha qing, "killing the green"). Can be done through pan-firing, steaming, or baking.',
@@ -364,6 +381,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'rolling',
     term: 'Rolling',
+    autoLink: false,
     category: 'processing',
     definition: 'Shaping tea leaves and breaking cell walls to initiate oxidation and develop flavor. Can be done by hand or machine.',
     relatedTerms: ['oxidation'],
@@ -388,6 +406,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'wo-dui',
     term: 'Wo Dui',
+    aliases: ['wodui'],
     pronunciation: 'woh dway',
     chineseCharacters: '渥堆',
     category: 'processing',
@@ -398,6 +417,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'men-huan',
     term: 'Men Huan',
+    aliases: ['menhuan'],
     pronunciation: 'mun hwahn',
     chineseCharacters: '悶黃',
     category: 'processing',
@@ -408,6 +428,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'aging',
     term: 'Aging',
+    autoLink: false,
     category: 'processing',
     definition: 'The practice of storing tea under controlled conditions to develop complexity over time. Common with puerh, white tea, and some oolongs.',
     relatedTerms: ['puerh', 'white-tea'],
@@ -418,6 +439,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'huigan',
     term: 'Huigan',
+    aliases: ['hui gan'],
     pronunciation: 'hway-gahn',
     chineseCharacters: '回甘',
     category: 'tasting',
@@ -434,6 +456,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'cha-qi',
     term: 'Cha Qi',
+    aliases: ['chaqi'],
     pronunciation: 'cha chee',
     chineseCharacters: '茶氣',
     category: 'tasting',
@@ -497,6 +520,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'gushu',
     term: 'Gushu',
+    aliases: ['gu shu', 'ancient tree tea'],
     pronunciation: 'goo-shoo',
     chineseCharacters: '古樹',
     category: 'origin',
@@ -507,6 +531,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'dancong',
     term: 'Dancong',
+    aliases: ['dan cong'],
     pronunciation: 'dahn-tsong',
     chineseCharacters: '單叢',
     category: 'origin',
@@ -517,6 +542,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'yancha',
     term: 'Yancha',
+    aliases: ['yan cha', 'rock tea', 'rock oolong'],
     pronunciation: 'yahn-cha',
     chineseCharacters: '岩茶',
     category: 'origin',
@@ -527,6 +553,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'high-mountain',
     term: 'High Mountain',
+    autoLink: false,
     chineseCharacters: '高山',
     category: 'origin',
     definition: 'Tea grown at elevations above 1,000 meters. Cooler temperatures, more fog, and slower growth create sweeter, more aromatic teas.',
@@ -542,6 +569,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: 'single-origin',
     term: 'Single Origin',
+    autoLink: false,
     category: 'origin',
     definition: 'Tea sourced from a specific garden, village, or mountain rather than blended from multiple sources. Allows appreciation of terroir.',
     exampleUsage: 'Single origin teas showcase regional character.',
@@ -554,6 +582,55 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     definition: 'Tea from naturally occurring trees growing without cultivation. Distinct from gushu (cultivated ancient trees). Often found in Yunnan forests.',
     relatedTerms: ['gushu'],
     exampleUsage: 'Wild tea often has unusual and complex flavor profiles.',
+  },
+  // From the magazine's glossary queue (2026-09-29): each first appeared in a
+  // story and links there already. The short definition is the pop-up; the
+  // deep dive is left for Adrian to write.
+  {
+    id: 'ash-glaze',
+    term: 'Ash Glaze',
+    aliases: ['wood-ash glaze', 'natural ash glaze'],
+    pronunciation: 'huī yòu',
+    chineseCharacters: '灰釉',
+    category: 'equipment',
+    definition: 'Glaze made when wood ash lands on pots in the kiln and melts into glass.',
+    relatedTerms: ['vitrification'],
+  },
+  {
+    id: 'vitrification',
+    term: 'Vitrification',
+    aliases: ['vitrified'],
+    pronunciation: 'bō huà',
+    chineseCharacters: '玻化',
+    category: 'equipment',
+    definition: 'The glassy, sealed surface clay and glaze form at high heat; water cannot reach the clay beneath.',
+    relatedTerms: ['ash-glaze'],
+  },
+  {
+    id: 'ice-crackle',
+    term: 'Ice Crackle',
+    pronunciation: 'bīng liè wén',
+    chineseCharacters: '冰裂纹',
+    category: 'equipment',
+    definition: 'A crackled glaze pattern that darkens with tea and use.',
+  },
+  {
+    id: 'rootless-water',
+    term: 'Rootless Water',
+    pronunciation: 'wú gēn shuǐ',
+    chineseCharacters: '无根水',
+    category: 'ceremony',
+    definition: 'Rainwater, prized for brewing in classical tea writing.',
+  },
+  {
+    id: 'an-cha',
+    term: 'An Cha',
+    aliases: ['ancha'],
+    pronunciation: 'ān chá',
+    chineseCharacters: '安茶',
+    category: 'tea-type',
+    definition: "A dark tea from Luxi, Qimen County, Anhui, packed in bamboo baskets; historically also called Liu'an tea.",
+    relatedTerms: ['heicha'],
   },
 ];
 

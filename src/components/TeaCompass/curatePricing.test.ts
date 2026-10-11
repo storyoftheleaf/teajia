@@ -15,6 +15,15 @@ const rates: ExchangeRate[] = [
 const shopFreightPerKgUsd = 85 / 7;
 
 describe('curateShelfPreview', () => {
+  it('declines absent costs but keeps an explicitly free tea priceable', () => {
+    const input = { costAmount: 0, grams: 100, currency: 'Yuan', rates, shopFreightPerKgUsd };
+    for (const absent of [null, undefined]) {
+      expect(curateShelfPreview({ ...input, costAmount: absent as unknown as number })).toBeNull();
+    }
+    expect(curateShelfPreview(input)).toMatchObject({ costPerGramSource: 0 });
+    const capture = readFileSync(resolve('src/components/TeaCompass/CaptureCard.tsx'), 'utf8');
+    expect(capture).toContain("entry.category === 'tea' && entry.priceAmount != null && entry.pricePerUnitGrams");
+  });
   it('prices a yuan tea exactly as the admin price preview does, freight and markup included', () => {
     const preview = curateShelfPreview({ costAmount: 380, grams: 100, currency: 'Yuan', rates, shopFreightPerKgUsd });
     const admin = calculatePricing(380, 85, 100, 'Yuan', rates);
