@@ -54,17 +54,18 @@ describe('handoff to i64os', () => {
     expect(alertRows(db)).toEqual([{ kind: 'handoff', ok: 1 }]);
   });
 
-  it('critical goes too; medium, repeats and a missing secret do not', async () => {
+  it('critical and medium go too; low, repeats and a missing secret do not', async () => {
     const db = new SqliteD1();
     const f = fakeFetch();
     expect((await handoffToRepair(env(db), await report(db, 'critical', '/api/a'), f.impl)).sent).toBe(true);
-    expect((await handoffToRepair(env(db), await report(db, 'medium', '/api/x', 0, 'timeout'), f.impl)).sent).toBe(false);
+    expect((await handoffToRepair(env(db), await report(db, 'medium', '/api/m', 0, 'timeout'), f.impl)).sent).toBe(true);
+    expect((await handoffToRepair(env(db), await report(db, 'low', '/api/x', 0, 'timeout'), f.impl)).sent).toBe(false);
     const again = await report(db, 'critical', '/api/a');
     expect(again.change).toBe('repeat');
     expect((await handoffToRepair(env(db), again, f.impl)).sent).toBe(false);
     expect(await handoffToRepair(env(db, { I64OS_REPAIR_SECRET: undefined }), await report(db, 'high', '/api/b'), f.impl))
       .toEqual({ sent: false, reason: 'not configured' });
-    expect(f.calls).toHaveLength(1);
+    expect(f.calls).toHaveLength(2);
   });
 
   it('a problem that comes back is handed over again as reopened', async () => {

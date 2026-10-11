@@ -3,8 +3,10 @@
  *
  * The owner does not want a message per problem and does not want to fix
  * things himself (2026-10-08). So:
- *  - a NEW or REOPENED high|critical problem is handed to i64os, which has
- *    Claude Code fix, test and merge it (handoffToRepair);
+ *  - a NEW or REOPENED medium|high|critical problem is handed to i64os, which
+ *    has Claude Code fix, test and merge it (handoffToRepair). Medium joined
+ *    on 2026-10-11 at the owner's word: he wants the list fixed, not read;
+ *    low stays out;
  *  - the site sends no message to the owner itself: i64os sends the one morning
  *    message and asks for the one tap that merges a fix.
  *
@@ -17,6 +19,9 @@ import type { IncidentWrite } from './incidents';
 
 export const REPAIR_ENDPOINT = 'https://app.i64os.com/api/v1/repairs/incident';
 export const REPAIR_SECRET_HEADER = 'x-i64os-repair-secret';
+
+/** Which problems are worth a repair attempt. Low is a note, not a job. */
+export const REPAIRED_SEVERITIES: ReadonlySet<string> = new Set(['medium', 'high', 'critical']);
 
 type HandoffEnv = { DB: D1Database; I64OS_REPAIR_SECRET?: string };
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
@@ -34,7 +39,7 @@ export async function handoffToRepair(env: HandoffEnv, write: IncidentWrite, fet
   try {
     const { row, change } = write;
     if (!row || change === 'repeat') return { sent: false, reason: 'not new' };
-    if (row.severity !== 'high' && row.severity !== 'critical') return { sent: false, reason: 'severity' };
+    if (!REPAIRED_SEVERITIES.has(String(row.severity))) return { sent: false, reason: 'severity' };
     if (!env.I64OS_REPAIR_SECRET) return { sent: false, reason: 'not configured' };
 
     const r = row as Record<string, unknown>;
