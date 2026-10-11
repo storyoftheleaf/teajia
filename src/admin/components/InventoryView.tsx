@@ -242,7 +242,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     const query = searchQuery.toLowerCase();
     return vendorSuggestions.filter(vendor => vendor.name.toLowerCase().includes(query)).slice(0, 5);
   }, [searchQuery, vendorSuggestions]);
-  const [filterType, setFilterType] = useState<string>('All');
+  // The remembered view decides the filter on arrival. Starting at 'All' while
+  // the menu kept saying "Samples" showed every tea under a Samples heading.
+  const [filterType, setFilterType] = useState<string>(() =>
+    [...savedViews, ...DEFAULT_TEA_VIEWS, ...DEFAULT_TEAWARE_VIEWS].find(view => view.id === activeViewId)?.filterType ?? 'All');
   const [showOptionsInternal, setShowOptionsInternal] = useState(false);
   const showOptions = externalShowOptions ?? showOptionsInternal;
   const setShowOptions = (v: boolean) => { setShowOptionsInternal(v); onOptionsToggle?.(v); };

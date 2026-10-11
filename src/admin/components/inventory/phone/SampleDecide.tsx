@@ -99,7 +99,7 @@ export const LikeSlider: React.FC<{ value: number | null; onChange: (v: number) 
       <input type="range" min={1} max={10} step={1} value={local ?? 1}
         aria-valuetext={local == null ? 'not rated' : `${local} of 10`}
         onChange={(e) => { const v = Number(e.target.value); setLocal(v); onChange(v); }}
-        className={`sample-like-slider flex-1 min-w-0 ${local == null ? 'is-unrated' : ''}`} />
+        className={`sample-like-slider flex-1 min-w-0 w-0 ${local == null ? 'is-unrated' : ''}`} />
       <span className="w-6 shrink-0 text-right font-mono tabular-nums text-ui-13 text-tea-text">{local ?? <span className="text-tea-text-dim">–</span>}</span>
     </label>
   );
