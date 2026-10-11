@@ -17,11 +17,16 @@ export const ROUTE_QUOTE_SCHEMA = {
 export const ROUTE_QUOTES_SCHEMA = { ...list(ROUTE_QUOTE_SCHEMA), description: 'Explicit route price evidence; [] clears. Never applies freight.' };
 export const CONTACT_PEOPLE_SCHEMA = list({
   type: 'object', additionalProperties: false,
-  properties: { id: text(100), name: text(), title: text() }, required: ['id','name'],
+  properties: {
+    id: text(100),
+    name: { ...text(), description: 'English name (romanised, e.g. Liang Hongjie). Never Chinese characters here.' },
+    chinese_name: { ...text(200), description: 'Original Chinese name, e.g. 梁弘杰. Optional; shown only as a secondary line.' },
+    title: text(),
+  }, required: ['id','name'],
 });
 export const ADDRESSES_SCHEMA = list({
   type: 'object', additionalProperties: false,
-  properties: { id: text(100), label: text(), address: text(2000), city: text(), region: text(), postal_code: text(), country: text() },
+  properties: { id: text(100), label: text(), address: { ...text(2000), description: 'Address in English.' }, address_chinese: { ...text(2000), description: 'Original Chinese address, optional. Never mixed into address.' }, city: text(), region: text(), postal_code: text(), country: text() },
   required: ['id','label','address'],
 });
 export const CONTACTS_SCHEMA = { ...list({
