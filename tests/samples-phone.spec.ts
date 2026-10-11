@@ -48,13 +48,28 @@ test.describe('Samples on the phone', () => {
   });
 
   test('looks like Stock: grouped by supplier, each sample shows its quote', async ({ page }) => {
+    // The narrowest phone in use (375 px wide), where Want was cut off live.
+    await page.setViewportSize({ width: 375, height: 812 });
     await openSamples(page);
     const list = page.getByTestId('samples-phone');
     await expect(list.getByRole('region', { name: 'Boyuan Tea Shop' })).toContainText('2 samples');
     await expect(list.getByTestId('sample-decide-row').filter({ hasText: '1958 Aged Raw' })).toContainText('900');
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
     expect(overflow).toBe(false);
+    // Nothing is clipped at the edge either: the page cannot scroll sideways, so a
+    // control wider than the row is simply cut off (Want was, live, 2026-10-11).
+    const clipped = await page.evaluate(() => [...document.querySelectorAll('[data-testid="sample-decide-row"] button')]
+      .filter((b) => b.getBoundingClientRect().right > window.innerWidth + 0.5).map((b) => b.textContent));
+    expect(clipped).toEqual([]);
     await shot(page, 'list');
+  });
+
+  test('a reload keeps the Samples view: the list follows the menu, not just its label', async ({ page }) => {
+    await openSamples(page);
+    await expect(page.getByTestId('sample-decide-row')).toHaveCount(2);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('button', { name: /Choose which teas to show/ })).toContainText('Samples');
+    await expect(page.getByTestId('sample-decide-row')).toHaveCount(2);
   });
 
   test('Samples is a view of the Stock list: no separate bar, same headings, Kind regroups', async ({ page }) => {

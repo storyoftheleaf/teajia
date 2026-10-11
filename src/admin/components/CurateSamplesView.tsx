@@ -100,7 +100,8 @@ export function CurateSamplesView({ search = '', groupBy = 'vendor', embedded = 
   };
  };
  const openHolding = (h: Holding) => { const p = productOf(h); if (!p || !onOpenProduct) return false; onOpenProduct(p); return true; };
- useEffect(() => { onCount?.(allRows.length); }, [allRows.length, onCount]);
+ // Only the Curate-only rows: the bought samples are already counted as Stock products.
+ useEffect(() => { onCount?.(allRows.length - productRows.length); }, [allRows.length, productRows.length, onCount]);
  const rows = allRows.filter(h => `${h.entry.name ?? ''} ${h.entry.chinese_name ?? ''} ${h.entry.vendor_name ?? ''}`.toLowerCase().includes(search.toLowerCase()));
  if (editing) return <div className="min-w-0 overflow-y-auto pb-nav-gap"><button className={button} onClick={async () => { setEditing(null); await refresh(); }}><ArrowLeft size={16} className="inline mr-2" />Back to samples</button><CaptureCard entryId={editing} onReturnToLibrary={() => { setEditing(null); void refresh(); }} onCommit={() => { void refresh(); }} /></div>;
  // On the phone, samples look exactly like Stock: the same list, the same sheet.
