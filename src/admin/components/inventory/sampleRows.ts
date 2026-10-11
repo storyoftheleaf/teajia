@@ -82,6 +82,7 @@ export function curateHoldingAsProduct(h: SampleHolding, live: TeaCompassEntry |
     isSample: true,
     status: 'Draft',
     sourceCompassEntryId: e.id,
+    sampleScore: (() => { try { const t = live?.tasting ?? (typeof e.tasting === 'string' ? JSON.parse(e.tasting || '{}') : e.tasting); return typeof t?.quality === 'number' ? t.quality : null; } catch { return null; } })(),
   } as unknown as Product;
 }
 

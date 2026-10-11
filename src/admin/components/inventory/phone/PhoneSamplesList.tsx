@@ -55,18 +55,20 @@ export interface PhoneSamplesListProps {
   onOpenSupplier?: (vendorId: string | null, name: string) => void;
 }
 
-type SampleSort = 'name' | 'year' | 'grams';
+type SampleSort = 'name' | 'year' | 'grams' | 'quote' | 'perGram';
 
 export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, groupBy = 'vendor', rowsOnly = false, sortKey = null, sortDir = 'asc', onEditTea, onOrder, onChanged, writesFor, onOpenHolding, onOpenSupplier }) => {
   const [ownSort, setSort] = useState<{ key: SampleSort; dir: 'asc' | 'desc' }>({ key: 'name', dir: 'asc' });
   // In the Stock list the column headings above sort these rows too.
   const sort: { key: SampleSort; dir: 'asc' | 'desc' } = rowsOnly
-    ? { key: sortKey === 'year' ? 'year' : sortKey === 'stockGrams' ? 'grams' : 'name', dir: sortDir }
+    ? { key: sortKey === 'year' ? 'year' : sortKey === 'stockGrams' ? 'quote' : sortKey === 'costPerGramUSD' ? 'perGram' : 'name', dir: sortDir }
     : ownSort;
   const cols = rowsOnly ? 'grid grid-cols-[minmax(0,1fr)_34px_40px_36px] gap-x-2.5 items-stretch' : COLS;
   const onSort = (key: SampleSort) => setSort(prev => ({ key, dir: prev.key === key && prev.dir === 'asc' ? 'desc' : 'asc' }));
   const [open, setOpen] = useState<Set<string>>(() => new Set());
   const [focusedId, setFocusedId] = useState<string | null>(null);
+  // One sample open at a time, as a Stock tea opens one sheet at a time.
+  const [openRowId, setOpenRowId] = useState<string | null>(null);
   const [showRejected, setShowRejected] = useState(false);
   const liveDecisions = useTeaCompassStore((st) => st.entries);
   const decisionOf = (h: SampleHolding) => liveDecisions.find((e) => e.id === h.entry.id)?.decision ?? h.entry.decision;
@@ -90,10 +92,15 @@ export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, gr
         const d = sort.dir === 'asc' ? 1 : -1;
         if (sort.key === 'year') return d * (Number(a.entry.year || 0) - Number(b.entry.year || 0)) || teaName(a).localeCompare(teaName(b));
         if (sort.key === 'grams') return d * (Number(a.sample_grams ?? -1) - Number(b.sample_grams ?? -1)) || teaName(a).localeCompare(teaName(b));
+        if (sort.key === 'quote') return d * (Number(a.entry.price_amount ?? -1) - Number(b.entry.price_amount ?? -1)) || teaName(a).localeCompare(teaName(b));
+        if (sort.key === 'perGram') {
+          const pg = (h: SampleHolding) => (h.entry.price_amount != null && h.entry.price_per_unit_grams ? usdPerGram(Number(h.entry.price_amount), Number(h.entry.price_per_unit_grams), String(h.entry.price_currency ?? '')) ?? -1 : -1);
+          return d * (pg(a) - pg(b)) || teaName(a).localeCompare(teaName(b));
+        }
         return d * teaName(a).localeCompare(teaName(b));
       }) }))
       .sort((a, b) => b.rows.length - a.rows.length || a.label.localeCompare(b.label));
-  }, [shown, groupBy, sort]);
+  }, [shown, groupBy, sort, rates]); // eslint-disable-line react-hooks/exhaustive-deps
   const expandAll = holdings.length <= 25;
   const focused = focusedId ? holdings.find(h => h.entry.id === focusedId) ?? null : null;
 
@@ -146,7 +153,9 @@ export const PhoneSamplesList: React.FC<PhoneSamplesListProps> = ({ holdings, gr
             )}
             </div>
             {isOpen && group.rows.map(h => (
-              <SampleDecideRow key={h.entry.id} holding={h} usdPerGram={usdPerGram} writes={writesFor?.(h)} onOpen={() => { if (onOpenHolding?.(h)) return; setFocusedId(focusedId === h.entry.id ? null : h.entry.id); }} />
+              <SampleDecideRow key={h.entry.id} holding={h} usdPerGram={usdPerGram} writes={writesFor?.(h)}
+                open={openRowId === h.entry.id} onToggle={() => setOpenRowId(openRowId === h.entry.id ? null : h.entry.id)}
+                onOpen={() => { if (onOpenHolding?.(h)) return; setFocusedId(focusedId === h.entry.id ? null : h.entry.id); }} />
             ))}
           </section>
         );

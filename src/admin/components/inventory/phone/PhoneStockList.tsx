@@ -77,6 +77,8 @@ export interface PhoneStockListProps {
   sortKey?: PhoneSortKey | null;
   sortDir?: 'asc' | 'desc';
   onSort?: (key: PhoneSortKey) => void;
+  /** The Samples view: headings read Tea, Quote, $/g, and there is no Select. */
+  samples?: boolean;
 }
 
 export type PhoneSortKey = 'productName' | 'year' | 'stockGrams' | 'pricePerGramUSD' | 'costPerGramUSD';
@@ -88,7 +90,7 @@ function money(n: number): string {
 export const PhoneStockList: React.FC<PhoneStockListProps> = ({
   products, emptyText = 'Nothing matches this view.', groupBy, priceMode, searchActive, selectedIds, incomingByProductId,
   onToggleSelect, onOpenEditor, onUpdate, onMovementRecorded, onOpenSource,
-  sortKey, sortDir = 'asc', onSort,
+  sortKey, sortDir = 'asc', onSort, samples = false,
 }) => {
   const [open, setOpen] = useState<Set<string>>(readOpen);
   const [focusedId, setFocusedId] = useState<string | null>(null);
@@ -133,9 +135,14 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
   // heading to sort by it, tap again to reverse (todo/plans/stock-phone-by-supplier.md).
   // The three number columns are fenced by hairlines: a grid you can read down,
   // drawn in the quiet border tone so it separates without adding noise.
-  const COLS = 'grid grid-cols-[minmax(0,1fr)_34px_40px_36px] gap-x-2.5 items-stretch';
+  // In Samples the columns are the sample row's (SampleDecide.tsx SAMPLE_COLS): the quote replaces year and stock.
+  const COLS = samples ? 'grid grid-cols-[minmax(0,1fr)_64px_44px] gap-x-2.5 items-stretch' : 'grid grid-cols-[minmax(0,1fr)_34px_40px_36px] gap-x-2.5 items-stretch';
   const NUM = 'flex items-center justify-end';
-  const heads: Array<[PhoneSortKey, string, string]> = [
+  const heads: Array<[PhoneSortKey, string, string]> = samples ? [
+    ['productName', 'Tea', 'text-left'],
+    ['stockGrams', 'Quote', 'text-right'],
+    ['costPerGramUSD', '$/g', 'text-right'],
+  ] : [
     ['productName', ware ? 'Piece' : 'Tea', 'text-left'],
     ['year', 'Year', 'text-right'],
     ['stockGrams', ware ? 'Pc' : 'Stock', 'text-right'],
@@ -161,12 +168,12 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
               </button>
             );
           })}
-          <button
+          {!samples && <button
             type="button"
             onClick={() => { if (selectMode) { setEditMode(false); selectedIds.forEach(id => onToggleSelect(id)); } else { setEditMode(true); setFocusedId(null); } }}
             className="absolute left-[4.5rem] top-0 h-8 flex items-center text-ui-11 text-tea-gold before:absolute before:-inset-x-2 before:inset-y-0"
             style={{ position: 'absolute' }}
-          >{selectMode ? 'Done' : 'Select'}</button>
+          >{selectMode ? 'Done' : 'Select'}</button>}
         </div>
       </div>
 

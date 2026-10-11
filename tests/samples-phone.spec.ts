@@ -75,7 +75,7 @@ test.describe('Samples on the phone', () => {
   test('Samples is a view of the Stock list: no separate bar, same headings, Kind regroups', async ({ page }) => {
     await openSamples(page);
     await expect(page.getByRole('button', { name: 'Samples only' })).toHaveCount(0);
-    await expect(page.getByRole('columnheader', { name: /Stock/ })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: /Quote/ })).toBeVisible();
     await expect(page.getByRole('button', { name: /Showing Samples/ })).toContainText('2');
     await expect(page.getByRole('button', { name: 'Kind', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Supplier', exact: true })).toBeVisible();
@@ -96,7 +96,9 @@ test.describe('Samples on the phone', () => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body.confirm ? { ok: true } : { confirmation_token: 'tok-1', preview: {} }) });
     });
     await openSamples(page);
-    await page.getByTestId('samples-phone').getByRole('button', { name: /^1958 Aged Raw/ }).click();
+    // Open the row, then Taste opens the tasting sheet.
+    await page.getByTestId('samples-phone').getByRole('button', { name: 'Open 1958 Aged Raw' }).click();
+    await page.getByTestId('sample-decide-row').filter({ hasText: '1958 Aged Raw' }).getByRole('button', { name: 'Taste', exact: true }).click();
     const sheet = page.getByRole('region', { name: /1958 Aged Raw, at a glance/ });
     await sheet.getByRole('button', { name: /Log a tasting/ }).click();
     const box = sheet.getByRole('textbox', { name: 'Grams tasted' });
@@ -117,7 +119,9 @@ test.describe('Samples on the phone', () => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body.confirm ? { ok: true } : { confirmation_token: 'tok', preview: {} }) });
     });
     await openSamples(page);
-    await page.getByTestId('samples-phone').getByRole('button', { name: /^1958 Aged Raw/ }).click();
+    // Open the row, then Taste opens the tasting sheet.
+    await page.getByTestId('samples-phone').getByRole('button', { name: 'Open 1958 Aged Raw' }).click();
+    await page.getByTestId('sample-decide-row').filter({ hasText: '1958 Aged Raw' }).getByRole('button', { name: 'Taste', exact: true }).click();
     const sheet = page.getByRole('region', { name: /1958 Aged Raw, at a glance/ });
     await sheet.getByRole('button', { name: /Log a tasting/ }).click();
     const picker = sheet.getByRole('combobox', { name: 'Add a tasting note' });
@@ -147,7 +151,9 @@ test.describe('Samples on the phone', () => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body.confirm ? { ok: true } : { confirmation_token: 'tok-2', preview: {} }) });
     });
     await openSamples(page);
-    await page.getByTestId('samples-phone').getByRole('button', { name: /^Wild Moonlight/ }).click();
+    // Open the row, then Taste opens the tasting sheet.
+    await page.getByTestId('samples-phone').getByRole('button', { name: 'Open Wild Moonlight' }).click();
+    await page.getByTestId('sample-decide-row').filter({ hasText: 'Wild Moonlight' }).getByRole('button', { name: 'Taste', exact: true }).click();
     const sheet = page.getByRole('region', { name: /Wild Moonlight, at a glance/ });
     await expect(sheet).toContainText('weigh it');
     await expect(sheet.getByRole('button', { name: /Log a tasting/ })).toBeDisabled();
@@ -179,7 +185,13 @@ test.describe('Samples on the laptop', () => {
     await expect(page.getByRole('columnheader', { name: /Cost\/g/ })).toBeVisible();
     const rows = page.locator('tr[data-sample]');
     await expect(rows).toHaveCount(2);
-    await expect(page.getByTestId('sample-fold')).toHaveCount(2);
+    // Closed, a sample is an ordinary row; a click opens its sampling, one at a time.
+    await expect(page.getByTestId('sample-fold')).toHaveCount(0);
+    await rows.filter({ hasText: '1958 Aged Raw' }).locator('td').nth(1).click();
+    await expect(page.getByTestId('sample-fold')).toHaveCount(1);
+    await expect(page.getByTestId('sample-fold').getByRole('button', { name: 'Want', exact: true })).toBeVisible();
+    await rows.filter({ hasText: 'Wild Moonlight' }).locator('td').nth(1).click();
+    await expect(page.getByTestId('sample-fold')).toHaveCount(1);
     await expect(page.getByText('No products match the current filter.')).toHaveCount(0);
     const aged = rows.filter({ hasText: '1958 Aged Raw' });
     await expect(aged).toContainText('900');
@@ -227,19 +239,28 @@ test.describe('Deciding on a sample, phone', () => {
   const lastFor = (synced: Array<Record<string, unknown>>, id: string) => [...synced].reverse().find(e => e.id === id);
   const parseTasting = (t: unknown) => (typeof t === 'string' ? JSON.parse(t) : t) as { quality?: number } | null;
 
-  test('a row reads name, then cost for grams and $/g, then rating and Taste · Reject · Want', async ({ page }) => {
+  test('closed, a sample is a Stock-height row with its quote; one tap opens the rating and Taste · Reject · Want', async ({ page }) => {
     await setup(page);
     const row = page.getByTestId('sample-decide-row').filter({ hasText: '1958 Aged Raw' });
     await expect(row).toContainText('900');
     await expect(row).toContainText('357');
     await expect(row).toContainText('0.35');
+    // As tall as a Stock row, not three lines (canvas option A, 2026-10-11).
+    expect((await row.boundingBox())!.height).toBeLessThanOrEqual(60);
+    await expect(row.getByRole('button', { name: 'Want', exact: true })).toHaveCount(0);
+    await shot(page, 'decide-closed');
+    await row.getByRole('button', { name: 'Open 1958 Aged Raw' }).click();
     for (const name of ['Taste', 'Reject', 'Want']) await expect(row.getByRole('button', { name, exact: true })).toBeVisible();
     await shot(page, 'decide-row');
+    // Opening another closes this one.
+    await page.getByTestId('sample-decide-row').filter({ hasText: 'Wild Moonlight' }).getByRole('button', { name: 'Open Wild Moonlight' }).click();
+    await expect(row.getByRole('button', { name: 'Want', exact: true })).toHaveCount(0);
   });
 
   test('the slider saves the tasting score itself, 1 to 10, through Curate', async ({ page }) => {
     const synced = await setup(page);
     const row = page.getByTestId('sample-decide-row').filter({ hasText: '1958 Aged Raw' });
+    await row.getByRole('button', { name: 'Open 1958 Aged Raw' }).click();
     const slider = row.getByRole('slider', { name: /How much you like it/ });
     await expect(slider).toHaveAttribute('aria-valuetext', 'not rated');
     await slider.fill('7');
@@ -250,6 +271,7 @@ test.describe('Deciding on a sample, phone', () => {
   test('the house name is typed in place, and an unnamed tea says so', async ({ page }) => {
     const synced = await setup(page);
     const row = page.getByTestId('sample-decide-row').filter({ hasText: 'Wild Moonlight' });
+    await row.getByRole('button', { name: 'Open Wild Moonlight' }).click();
     await row.getByRole('button', { name: 'House name for Wild Moonlight' }).click();
     await row.getByRole('textbox', { name: 'House name for Wild Moonlight' }).fill('Moon Gate');
     await row.getByRole('textbox', { name: 'House name for Wild Moonlight' }).press('Enter');
@@ -260,6 +282,7 @@ test.describe('Deciding on a sample, phone', () => {
   test('Reject hides the sample; the Rejected toggle shows it with Restore, which clears it', async ({ page }) => {
     const synced = await setup(page);
     const row = page.getByTestId('sample-decide-row').filter({ hasText: 'Wild Moonlight' });
+    await row.getByRole('button', { name: 'Open Wild Moonlight' }).click();
     await row.getByRole('button', { name: 'Reject', exact: true }).click();
     await expect(page.getByTestId('sample-decide-row').filter({ hasText: 'Wild Moonlight' })).toHaveCount(0);
     await expect.poll(() => lastFor(synced, 'tea-b')?.decision, { timeout: 8000 }).toBe('passed_on');
@@ -271,6 +294,7 @@ test.describe('Deciding on a sample, phone', () => {
   test('the cost is tapped and typed, and an empty field stays unknown, never zero', async ({ page }) => {
     const synced = await setup(page);
     const row = page.getByTestId('sample-decide-row').filter({ hasText: '1958 Aged Raw' });
+    await row.getByRole('button', { name: 'Open 1958 Aged Raw' }).click();
     await row.getByRole('button', { name: 'Cost of 1958 Aged Raw' }).click();
     await row.getByRole('textbox', { name: 'Cost of 1958 Aged Raw' }).fill('950');
     await row.getByRole('textbox', { name: 'Cost of 1958 Aged Raw' }).press('Enter');
@@ -285,6 +309,7 @@ test.describe('Deciding on a sample, phone', () => {
   test('Want asks how many cakes before anything is added, then shows the amount', async ({ page }) => {
     await setup(page);
     const row = page.getByTestId('sample-decide-row').filter({ hasText: '1958 Aged Raw' });
+    await row.getByRole('button', { name: 'Open 1958 Aged Raw' }).click();
     await row.getByRole('button', { name: 'Want', exact: true }).click();
     const box = row.getByRole('textbox', { name: 'How many pieces' });
     await box.fill('2');
@@ -310,6 +335,7 @@ test.describe('Deciding on a sample, phone', () => {
     // The routes from Settings: air billed by the kilo with packing; no boat route yet.
     await page.route('**/api/shipping-routes', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ id: 'r1', mode: 'air', carrier: 'Bali Air Cargo', destination: 'Teajia Bali', rate_per_kg: 85, rate_currency: 'Yuan', packing_percent: 35, billing_step_kg: 1, minimum_kg: null, learned: null }]) }));
     const row = page.getByTestId('sample-decide-row').filter({ hasText: '1958 Aged Raw' });
+    await row.getByRole('button', { name: 'Open 1958 Aged Raw' }).click();
     await row.getByRole('button', { name: 'Want', exact: true }).click();
     await row.getByRole('textbox', { name: 'How many pieces' }).fill('2');
     await row.getByRole('button', { name: 'Add', exact: true }).click();

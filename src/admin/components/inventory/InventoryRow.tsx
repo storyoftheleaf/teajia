@@ -8,7 +8,8 @@ import { TYPE_OPTIONS } from './config';
 import type { ColDef } from './types';
 import { stripMatchingYear } from './helpers';
 import { shippingRateUsdFor } from '../../../lib/shippingRate';
-import { isSampleRow, joinItemCode, sampleQuote, splitItemCode } from './sampleRows';
+import { isSampleRow, joinItemCode, linkedEntryId, sampleQuote, splitItemCode } from './sampleRows';
+import { useTeaCompassStore } from '../../../lib/teaCompassStore';
 import { HouseNameField, ItemCode, QuoteField, moneyMark } from './phone/SampleDecide';
 
 export interface InventoryRowProps {
@@ -53,6 +54,8 @@ export interface InventoryRowProps {
   onDeleteRequest: (product: Product) => void;
   showToast: (msg: string, type: string, opts?: any) => void;
   onOpenSource: (product: Product) => void;
+  /** A sample row whose sampling is folded out beneath it. */
+  sampleOpen?: boolean;
 }
 
 // Canonical inventory row, see DesignSystemShowcase § Inventory list (INV_ROWS).
@@ -64,7 +67,7 @@ function InventoryRowBase(props: InventoryRowProps) {
     product, globalIdx, isSelected, focusedCol, isEditMode, visibleCols, splitViewCols,
     splitView, stickyFirstCol, alignLeft, legacyMobileLayout, costRateToUsd, shopFreightPerKgUsd, rowHeight, isPanelOpen, isDropdownOpen,
     onRowClick, onLongPressSelect, onLongPressQuickEdit, onProductUpdate, onSelectionAwareUpdate,
-    onOpenPanel, onToggleDropdown, onStockHistory, onStockMovement, onRestock, onDeleteRequest, showToast, onOpenSource,
+    onOpenPanel, onToggleDropdown, onStockHistory, onStockMovement, onRestock, onDeleteRequest, showToast, onOpenSource, sampleOpen,
   } = props;
   void onLongPressSelect; // retained in the prop type; long-press now routes to quick-edit
 
@@ -98,6 +101,13 @@ function InventoryRowBase(props: InventoryRowProps) {
   // name ("Aged Liu Bao 1960") is redundant. Strip it for display ONLY when it
   // matches product.year, never touch a trailing number that isn't the vintage.
   const sampling = isSampleRow(product);
+  // His score for a sample, shown small in gold beside the name once he has given one.
+  const likedScore = useTeaCompassStore((st) => {
+    if (!sampling) return null;
+    const id = linkedEntryId(product, st.entries);
+    const q = id ? st.entries.find((e) => e.id === id)?.tasting?.quality : undefined;
+    return typeof q === 'number' ? q : ((product as Product & { sampleScore?: number | null }).sampleScore ?? null);
+  });
   // The item code ("LKY-PE1") is Adrian's identifier, shown small beside the
   // name and kept when the name is edited, never as the start of the name.
   const coded = splitItemCode(product.productName);
@@ -158,6 +168,7 @@ function InventoryRowBase(props: InventoryRowProps) {
               {product.year && <span className="num opacity-80">{product.year}</span>}
               <HouseNameField value={product.givenName ?? ''} aria={`House name for ${displayName}`} onSave={(val) => onProductUpdate(product.id, 'givenName', val)} className="text-ui-11" />
               <ItemCode code={coded.code} />
+              {likedScore != null && <span aria-label={`Liked ${likedScore} of 10`} className="shrink-0 num text-tea-gold-lt">{likedScore}/10</span>}
             </span>;
         return (
           <td
@@ -428,7 +439,8 @@ function InventoryRowBase(props: InventoryRowProps) {
   // whole-row opacity fades (they made the table look like a patchwork of browns).
   // Hidden-from-shop state is carried by the EyeOff icon, not by fading the row.
   const trCls = [
-    `${sampling ? '' : 'border-b border-tea-border last:border-b-0'} group cursor-pointer select-none transition-colors`,
+    // An open sample and its fold-out read as one: no line between them, one shade.
+    `${sampleOpen ? 'bg-tea-surface' : 'border-b border-tea-border last:border-b-0'} group cursor-pointer select-none transition-colors`,
     isPanelOpen
       ? 'bg-tea-gold/16 outline outline-2 -outline-offset-1 outline-tea-gold/70 shadow-[inset_3px_0_0_0_var(--tea-gold)]'
       : isSelected

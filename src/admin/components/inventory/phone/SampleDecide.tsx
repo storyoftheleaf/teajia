@@ -106,7 +106,7 @@ export const LikeSlider: React.FC<{ value: number | null; onChange: (v: number) 
 };
 
 /** The slider and Taste | Reject | Want, plus the "how much" step. Shared by the phone row and the Stock table. */
-export const SampleDecideBar: React.FC<{ holding: SampleHolding; onTaste: () => void; compact?: boolean; resolveId?: () => Promise<string> }> = ({ holding, onTaste, compact, resolveId }) => {
+export const SampleDecideBar: React.FC<{ holding: SampleHolding; onTaste: () => void; compact?: boolean; stacked?: boolean; resolveId?: () => Promise<string> }> = ({ holding, onTaste, compact, stacked, resolveId }) => {
   const id = String(holding.entry.id);
   const live = useLiveEntry(id);
   const v = view(holding, live);
@@ -132,9 +132,9 @@ export const SampleDecideBar: React.FC<{ holding: SampleHolding; onTaste: () => 
   }
   return (
     <div className="grid gap-2" onClick={(e) => e.stopPropagation()}>
-      <div className="flex items-center gap-3">
+      <div className={stacked ? 'grid gap-2' : 'flex items-center gap-3'}>
         <LikeSlider value={v.quality} compact={compact} onChange={(q) => run(async () => rateSample(await ensure(), q))} />
-        <div className={`ml-auto shrink-0 grid grid-cols-3 ${compact ? 'w-[180px]' : 'w-[200px]'} border border-tea-border rounded-md overflow-hidden text-ui-12`}>
+        <div className={`${stacked ? 'w-full' : `ml-auto shrink-0 ${compact ? 'w-[180px]' : 'w-[200px]'}`} grid grid-cols-3 border border-tea-border rounded-md overflow-hidden text-ui-12`}>
           <button type="button" onClick={onTaste} className="h-8 text-tea-text-sec hover:text-tea-text">Taste</button>
           <button type="button" onClick={() => run(async () => setSampleRejected(await ensure(), true))} className="h-8 text-tea-error border-l border-tea-border">Reject</button>
           <button type="button" onClick={() => (wanted ? undefined : ask())} aria-pressed={!!wanted}
@@ -172,8 +172,16 @@ export const curateWrites = (id: string): SampleRowWrites => ({
   houseName: async (text) => { useTeaCompassStore.getState().updateEntry(id, { shopName: text || null }); },
 });
 
-/** The phone's sample row: three lines, as locked. */
-export const SampleDecideRow: React.FC<{ holding: SampleHolding; onOpen: () => void; usdPerGram: (amount: number, grams: number, currency: string) => number | null; writes?: SampleRowWrites }> = ({ holding, onOpen, usdPerGram, writes }) => {
+/** The sample row's columns on the phone, shared with the Samples heading (PhoneStockList). */
+export const SAMPLE_COLS = 'grid grid-cols-[minmax(0,1fr)_64px_44px] gap-x-2.5';
+
+/**
+ * The phone's sample row (canvas "Sample Row Closed and Open", option A, chosen
+ * 2026-10-11). Closed it is a Stock row: name, year and house name, then the
+ * quote and what a gram costs, with his score in gold once he has given one.
+ * One tap opens it in place: the quote to type, the slider, Taste, Reject, Want.
+ */
+export const SampleDecideRow: React.FC<{ holding: SampleHolding; open: boolean; onToggle: () => void; onOpen: () => void; usdPerGram: (amount: number, grams: number, currency: string) => number | null; writes?: SampleRowWrites }> = ({ holding, open, onToggle, onOpen, usdPerGram, writes }) => {
   const id = String(holding.entry.id);
   const live = useLiveEntry(id);
   const v = view(holding, live);
@@ -183,34 +191,41 @@ export const SampleDecideRow: React.FC<{ holding: SampleHolding; onOpen: () => v
   const pg = v.amount != null && v.grams ? usdPerGram(v.amount, v.grams, String(v.currency)) : null;
   const save = (p: Promise<void>) => { setError(''); p.catch(e => setError(e instanceof Error ? e.message : 'Could not save.')); };
   return (
-    <div data-testid="sample-decide-row" className={`px-4 py-2.5 border-b border-tea-border ${v.rejected ? 'opacity-60' : ''}`}>
-      <div className="pb-1.5 border-b border-tea-border">
-        <div className="flex items-baseline gap-2 min-w-0">
-          <button type="button" onClick={onOpen} className="min-w-0 truncate text-left font-display text-[19px] font-semibold leading-tight text-tea-text">{name || 'Unnamed tea'}</button>
-          <ItemCode code={code} />
-          <span className="ml-auto shrink-0 text-ui-11 text-tea-text-sec">
-            {v.year ? <span className="font-mono tabular-nums">{v.year}</span> : null}{v.year ? ' · ' : ''}
-            <span style={{ color: getThemeTextColor(String(v.kind)) }}>{v.kind}</span>{v.form ? ` · ${v.form}` : ''}
+    <div data-testid="sample-decide-row" data-open={open || undefined} className={`border-b border-tea-border ${open ? 'bg-tea-surface' : ''} ${v.rejected ? 'opacity-60' : ''}`}>
+      <div role="button" tabIndex={0} aria-expanded={open} aria-label={`${open ? 'Close' : 'Open'} ${name || 'this tea'}`}
+        onClick={onToggle} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
+        className={`${SAMPLE_COLS} items-center w-full min-h-[48px] px-4 py-2 text-left cursor-pointer`}>
+        <span className="min-w-0">
+          <span className="flex items-baseline gap-1.5 min-w-0">
+            <span className="truncate font-display text-ui-17 font-semibold leading-tight text-tea-text">{name || 'Unnamed tea'}</span>
+            {v.quality != null && <span aria-label={`Liked ${v.quality} of 10`} className="shrink-0 font-mono text-ui-11 tabular-nums text-tea-gold-lt">{v.quality}</span>}
+            <ItemCode code={code} />
           </span>
-        </div>
-        <HouseNameField value={v.houseName} aria={`House name for ${name || 'this tea'}`} onSave={(t) => save(w.houseName(t))} className="block text-ui-12 text-tea-text-sec" />
+          <span className="flex items-baseline gap-1.5 min-w-0 text-ui-11 text-tea-text-dim">
+            {v.year ? <span className="font-mono tabular-nums">{v.year}</span> : null}
+            <HouseNameField value={v.houseName} aria={`House name for ${name || 'this tea'}`} onSave={(t) => save(w.houseName(t))} className="text-ui-12 text-tea-text-sec" />
+          </span>
+        </span>
+        <span className="text-right leading-tight">
+          <span className="block font-mono text-ui-13 tabular-nums text-tea-text">{v.amount == null ? <span className="text-tea-text-dim">add</span> : <>{moneyMark(v.currency)}{whole(v.amount)}</>}</span>
+          <span className="text-ui-10 text-tea-text-dim">{v.grams == null ? '' : `${whole(v.grams)} g`}</span>
+        </span>
+        <span className="text-right font-mono text-ui-13 tabular-nums text-tea-gold-lt">{pg == null ? '—' : fmtNum(pg)}</span>
       </div>
-      <div className="grid grid-cols-3 gap-2 mt-2">
-        <div className="h-11 px-2.5 border border-tea-border rounded-md flex flex-col justify-center">
-          <span className={label}>Cost{v.currency ? ` · ${v.currency}` : ''}</span>
-          <QuoteField value={v.amount} aria={`Cost of ${name}`} display={v.amount == null ? <span className="text-tea-text-dim">add</span> : whole(v.amount)} onSave={(t) => save(w.quote('amount', t))} />
+      {open && (
+        <div className="px-4 pb-3 grid gap-2">
+          <div className="flex items-baseline gap-2 text-ui-12 text-tea-text-sec">
+            <span>Cost</span>
+            <span className="min-w-[2.5rem] border-b border-tea-border"><QuoteField small value={v.amount} aria={`Cost of ${name}`} display={v.amount == null ? <span className="text-tea-text-dim">add</span> : whole(v.amount)} onSave={(t) => save(w.quote('amount', t))} /></span>
+            <span>for</span>
+            <span className="min-w-[2rem] border-b border-tea-border"><QuoteField small value={v.grams} aria={`Grams that cost is for, ${name}`} display={v.grams == null ? <span className="text-tea-text-dim">add</span> : whole(v.grams)} onSave={(t) => save(w.quote('grams', t))} /></span>
+            <span>g</span>
+            {v.currency && <span className="ml-auto">{String(v.currency)}</span>}
+          </div>
+          {error && <p role="alert" className="text-ui-12 text-tea-error">{error}</p>}
+          <SampleDecideBar holding={holding} onTaste={onOpen} resolveId={w.resolveId} stacked />
         </div>
-        <div className="h-11 px-2.5 border border-tea-border rounded-md flex flex-col justify-center">
-          <span className={label}>For</span>
-          <QuoteField value={v.grams} aria={`Grams that cost is for, ${name}`} display={v.grams == null ? <span className="text-tea-text-dim">add</span> : <>{whole(v.grams)}<span className="font-sans text-ui-10 text-tea-text-dim"> g</span></>} onSave={(t) => save(w.quote('grams', t))} />
-        </div>
-        <div className="h-11 px-1 flex flex-col justify-center text-right">
-          <span className={label}>$/g</span>
-          <span className="font-mono text-ui-16 tabular-nums text-tea-gold-lt">{pg == null ? '—' : fmtNum(pg)}</span>
-        </div>
-      </div>
-      {error && <p role="alert" className="mt-1 text-ui-12 text-tea-error">{error}</p>}
-      <div className="mt-2"><SampleDecideBar holding={holding} onTaste={onOpen} resolveId={w.resolveId} /></div>
+      )}
     </div>
   );
 };
