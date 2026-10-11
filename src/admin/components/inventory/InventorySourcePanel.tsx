@@ -20,9 +20,11 @@ interface InventorySourcePanelProps {
   /** Open Incoming, where deliveries from this supplier are booked in. */
   onOpenIncoming?: () => void;
   incomingByProductId?: Readonly<Record<string, IncomingInventorySummary>>;
+  /** Open the supplier sheet (rename, contact, shipping) in place. Without it, Edit supplier goes to People. */
+  onEditSupplier?: () => void;
 }
 
-export function InventorySourcePanel({ product, products, onClose, onOpenTea, onSelectAll, onOpenIncoming, incomingByProductId }: InventorySourcePanelProps) {
+export function InventorySourcePanel({ product, products, onClose, onOpenTea, onSelectAll, onOpenIncoming, incomingByProductId, onEditSupplier }: InventorySourcePanelProps) {
   const navigate = useNavigate();
   const sourceName = product.vendor || 'Source';
   const { data: source, isLoading: sourceLoading } = useQuery<Customer | undefined>({
@@ -140,7 +142,7 @@ export function InventorySourcePanel({ product, products, onClose, onOpenTea, on
           <div className="grid grid-cols-2 gap-2 mt-3">
             {onSelectAll && <button type="button" onClick={() => { onSelectAll(suppliedProducts.map(p => p.id)); onClose(); }} disabled={suppliedProducts.length === 0} className="min-h-11 rounded-md border border-tea-border text-ui-13 text-tea-text disabled:opacity-40">Select all {suppliedProducts.length}</button>}
             {onOpenIncoming && <button type="button" onClick={() => { onOpenIncoming(); onClose(); }} className="min-h-11 rounded-md border border-tea-border text-ui-13 text-tea-text">Deliveries coming</button>}
-            <button type="button" onClick={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(sourceName)}`)} className="min-h-11 rounded-md border border-tea-border text-ui-13 text-tea-text">Edit supplier</button>
+            <button type="button" onClick={() => { if (onEditSupplier) { onEditSupplier(); return; } navigate(`/admin/people?tab=sources&search=${encodeURIComponent(sourceName)}`); }} className="min-h-11 rounded-md border border-tea-border text-ui-13 text-tea-text">Edit supplier</button>
           </div>
         </section>
 

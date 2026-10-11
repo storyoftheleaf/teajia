@@ -111,6 +111,14 @@ test.describe('Stock opens the supplier sheet from the supplier name', () => {
     await row.getByRole('button', { name: 'Open supplier Bo Lin' }).click();
     await page.getByTestId('supplier-sheet').getByRole('button', { name: 'Stock from Bo Lin' }).click();
     await expect(page.getByRole('dialog', { name: 'Source: Bo Lin' })).toBeVisible();
+
+    // Edit supplier on that page opens the same card in place, not the People page.
+    await page.getByRole('button', { name: 'Edit supplier' }).click();
+    await expect(page.getByTestId('supplier-sheet')).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Source: Bo Lin' })).toHaveCount(0);
+    await expect(page).toHaveURL(/\/admin\/stock(?:\?|$)/);
+    await page.waitForTimeout(500); // let the panel finish sliding out, for the picture only
+    await shot(page, 'laptop-edit-supplier');
     expect(errors).toEqual([]);
   });
 
