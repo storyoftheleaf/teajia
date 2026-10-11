@@ -60,7 +60,9 @@ async function openSheet(page: Page) {
   await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: /Choose which teas to show/ }).click();
   await page.getByRole('menuitem', { name: 'Samples', exact: true }).click();
-  await page.getByTestId('samples-phone').getByRole('button', { name: /^Mountain Oolong/ }).click();
+  // The row opens on a tap; Taste opens the tasting sheet.
+  await page.getByTestId('samples-phone').getByRole('button', { name: 'Open Mountain Oolong' }).click();
+  await page.getByTestId('sample-decide-row').filter({ hasText: 'Mountain Oolong' }).getByRole('button', { name: 'Taste', exact: true }).click();
   return page.getByRole('region', { name: /Mountain Oolong, at a glance/ });
 }
 
@@ -116,6 +118,6 @@ test.describe('Curate samples in Stock (phone)', () => {
     await expect(page.getByRole('button', { name: 'Back to samples' })).toBeVisible();
     await expect(page.locator('input[value="Mountain Oolong"]')).toBeVisible();
     await page.getByRole('button', { name: 'Back to samples' }).click();
-    await expect(page.getByTestId('samples-phone').getByRole('button', { name: /^Mountain Oolong/ })).toBeVisible();
+    await expect(page.getByTestId('samples-phone').getByRole('button', { name: 'Open Mountain Oolong' })).toBeVisible();
   });
 });

@@ -23,7 +23,7 @@ export const SampleFoldRow: React.FC<{ product: Product; colSpan: number }> = ({
   const resolveId = async () => entryId ?? linkProductToCurate(product);
   const openCurate = async () => navigate(`/admin/compass?entry=${encodeURIComponent(await resolveId())}`);
   return (
-    <tr data-testid="sample-fold" className="border-b border-tea-border">
+    <tr data-testid="sample-fold" className="border-b border-tea-border bg-tea-surface">
       <td colSpan={colSpan} className="px-3 pb-2 pt-0">
         <div className="max-w-[520px]"><SampleDecideBar holding={holding} onTaste={() => void openCurate()} compact resolveId={resolveId} /></div>
       </td>

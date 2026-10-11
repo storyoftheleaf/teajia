@@ -718,6 +718,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     enabled: samplesOnTable && !!sampleAccountId,
   });
   const [showRejectedSamples, setShowRejectedSamples] = useState(false);
+  // The one sample row open on the table; closed rows read like any Stock row.
+  const [openSampleId, setOpenSampleId] = useState<string | null>(null);
   const { tableProducts, rejectedSampleCount } = useMemo(() => {
     if (!samplesOnTable) return { tableProducts: localProducts, rejectedSampleCount: 0 };
     const holdings = curateSampleHoldings.data ?? [];
@@ -1813,6 +1815,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // leave them rather than waiting on a save.
   const stableRowClick = useCallback((productId: string, globalIdx: number, e: React.MouseEvent) => {
     if (isEditModeRef.current) return;
+    // A sample row opens its sampling beneath it, one at a time (canvas option A,
+    // 2026-10-11). Cmd or Ctrl still selects a bought sample for bulk actions.
+    const clicked = processedProductsRef.current.find(product => product.id === productId);
+    if (clicked && isSampleRow(clicked) && !(e.metaKey || e.ctrlKey || e.shiftKey)) {
+      setOpenSampleId(prev => (prev === productId ? null : productId));
+      return;
+    }
     // A Curate-only sample cannot be selected for bulk product actions.
     if (isCurateRow(productId)) return;
     if (e.metaKey || e.ctrlKey) {
@@ -2840,6 +2849,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             emptyText={filterType === 'Samples' ? null : undefined}
             // Samples are drawn below as sample rows, bought ones included.
             products={filterType === 'Samples' ? [] : processedProducts}
+            samples={filterType === 'Samples'}
             groupBy={phoneGroupBy}
             priceMode={priceMode}
             searchActive={searchQuery.trim().length > 0}
@@ -3014,8 +3024,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   onDeleteRequest={(p) => { setDeleteTarget({ id: p.id, name: p.givenName || p.productName }); setDeleteInput(''); }}
                                   showToast={showInventoryToast}
                                   onOpenSource={stableOpenSupplier}
+                                  sampleOpen={openSampleId === product.id}
                                 />
-                                {isSampleRow(product) && !splitView && <SampleFoldRow product={product} colSpan={renderCols.length} />}
+                                {isSampleRow(product) && !splitView && openSampleId === product.id && <SampleFoldRow product={product} colSpan={renderCols.length} />}
                                 {expandedRowId === product.id && (
                                   <QuickEditInlineRow
                                     product={product}
@@ -3111,8 +3122,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               onDeleteRequest={(p) => { setDeleteTarget({ id: p.id, name: p.givenName || p.productName }); setDeleteInput(''); }}
                               showToast={showInventoryToast}
                               onOpenSource={stableOpenSupplier}
+                              sampleOpen={openSampleId === product.id}
                             />
-                            {isSampleRow(product) && !splitView && <SampleFoldRow product={product} colSpan={renderCols.length} />}
+                            {isSampleRow(product) && !splitView && openSampleId === product.id && <SampleFoldRow product={product} colSpan={renderCols.length} />}
                             {expandedRowId === product.id && (
                               <QuickEditInlineRow
                                 product={product}
