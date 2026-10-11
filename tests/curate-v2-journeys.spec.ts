@@ -1176,7 +1176,8 @@ test.describe('Curate v2 journeys (phone)', () => {
     await openCurateV2(page, 'today');
     await expect(page.getByTestId('today-section-decide')).toBeVisible();
     await expect(page.locator('html')).toHaveClass(/light/);
-    const ratio = await page.getByTestId('today-section-decide').getByRole('button', { name: /Mengku Laobanzhang/ }).locator('.curate-v2-name').evaluate((el) => {
+    const row = page.getByTestId('today-section-decide').getByRole('button', { name: /Mengku Laobanzhang/ });
+    const contrastOf = (loc: ReturnType<Page['locator']>) => loc.evaluate((el) => {
       const px = (c: string) => (c.match(/[\d.]+/g) ?? []).map(Number);
       const lum = ([r, g, b]: number[]) => { const f = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
       let bg = [255, 255, 255]; let n: Element | null = el;
@@ -1185,7 +1186,9 @@ test.describe('Curate v2 journeys (phone)', () => {
       const [a, b] = [lum(fg), lum(bg)];
       return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
     });
-    expect(ratio).toBeGreaterThanOrEqual(7);
+    expect(await contrastOf(row.locator('.curate-v2-name'))).toBeGreaterThanOrEqual(7);
+    // The gold action word carries meaning, so it must read too: at least 4.5:1 on its band.
+    expect(await contrastOf(row.getByText('Decide', { exact: true }))).toBeGreaterThanOrEqual(4.5);
     await shot(page, 'review3-light-today');
   });
 

@@ -4929,7 +4929,9 @@ body.cart-panel-open .commerce-dock {
    lighter gold on dark and the solid, darker one on parchment. Borders keep
    the plain gold. */
 .curate-v2 { --curate-gold-text: var(--tea-gold-lt); }
-.light .curate-v2 { --curate-gold-text: var(--tea-gold-solid); }
+/* On parchment even the solid gold reads 4.2:1 on Today's bands; the hover
+   gold (#6e5323, already in the palette) reads 5.3:1 there and 6.1:1 on the page. */
+[data-theme="light"] .curate-v2, .light-mode .curate-v2, .light .curate-v2 { --curate-gold-text: var(--tea-gold-solid-hover); }
 .curate-v2 .text-tea-gold { color: var(--curate-gold-text); }
 .curate-v2,
 .curate-v2 .font-display {
