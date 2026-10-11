@@ -1,4 +1,5 @@
 import { promoteCompassEntry, CompassPromotionError } from './curatePromotion';
+import { applySupplierRename, listSupplierFreight, previewSupplierRename, SupplierRenameRefusal } from './supplierRename';
 import {
   mcpFetch, publicMcpFetch, mcpAdminMintToken, mcpAdminListTokens, mcpAdminRevokeToken,
   oauthProtectedResourceMetadata, oauthAuthorizationServerMetadata,
@@ -21818,6 +21819,51 @@ const handleUpdatePurchaseOrder: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
+// ── Supplier sheet: rename a supplier everywhere, and read how it ships ──
+// The card's contact fields are edited through PUT /api/customers/:id; the name
+// is NOT, because a name copied into a dozen tables needs its own all-or-nothing
+// route (see supplierRename.ts).
+
+const supplierRefusal = (e: unknown): Response | null =>
+  e instanceof SupplierRenameRefusal ? json({ error: e.message, code: e.code }, e.status) : null;
+
+const handlePreviewSupplierRename: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  try {
+    return json(await previewSupplierRename(env.DB, ctx.accountId, params.id, new URL(request.url).searchParams.get('name')));
+  } catch (e) {
+    const refused = supplierRefusal(e);
+    if (refused) return refused;
+    throw e;
+  }
+};
+
+const handleApplySupplierRename: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json().catch(() => null) as { name?: unknown; expected_old_name?: unknown } | null;
+  try {
+    return json(await applySupplierRename(env.DB, ctx.accountId, params.id, body?.name, body?.expected_old_name));
+  } catch (e) {
+    const refused = supplierRefusal(e);
+    if (refused) return refused;
+    throw e;
+  }
+};
+
+const handleListSupplierFreight: Handler = async (request, env, params) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  try {
+    return json(await listSupplierFreight(env.DB, ctx.accountId, params.id));
+  } catch (e) {
+    const refused = supplierRefusal(e);
+    if (refused) return refused;
+    throw e;
+  }
+};
+
 // ── Me / Profile ──
 
 const handleGetMyProfile: Handler = async (request, env) => {
@@ -29074,6 +29120,9 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/purchase-orders', handleListPurchaseOrders],
   ['POST', '/api/purchase-orders', handleCreatePurchaseOrder],
   ['PUT', '/api/purchase-orders/:id', handleUpdatePurchaseOrder],
+  ['GET', '/api/suppliers/:id/rename-preview', handlePreviewSupplierRename],
+  ['POST', '/api/suppliers/:id/rename', handleApplySupplierRename],
+  ['GET', '/api/suppliers/:id/freight', handleListSupplierFreight],
 
   // Shipping routes
   ['GET', '/api/shipping-routes', handleListShippingRoutes],
