@@ -837,6 +837,11 @@ const toolUpdateTea: ToolHandler = async (env, auth, args) => {
   if (!current) return { error: 'not_found' };
   const vendor = await planVendor(env, auth, str(args?.vendor_id, 80), str(args?.vendor_name, 200));
   const { write, lines } = readTeaWrite(args, current.name ?? 'this tea', vendor);
+  // readTeaFields leaves the name out of the lines because on an add the read_back
+  // already says it. On an update a rename is a change like any other: without a
+  // line it was refused as nothing to change, and riding with another field it
+  // committed without ever appearing in the preview.
+  if (typeof write.values.name === 'string' && write.values.name !== current.name) lines.unshift(`rename to: ${write.values.name}`);
   if (!lines.length) throw new Error('Nothing to change. Pass at least one field, price, tasting, score, note, said, vendor_note or todo.');
   let transcriptsToClear: Record<string, any>[] | undefined;
   if (write.clear.includes('said')) {
