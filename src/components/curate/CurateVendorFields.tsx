@@ -12,12 +12,12 @@ const field = (label: string, value: string, set: (value: string) => void) => <l
   <input className={inputClass} value={value} onChange={event => set(event.target.value)} />
 </label>;
 const trimOptional = <T extends Record<string, unknown>>(row: T): T => Object.fromEntries(Object.entries(row)
-  .filter(([key, value]) => !['title', 'city', 'region', 'postal_code', 'country', 'label', 'person_id'].includes(key) || value !== '')
+  .filter(([key, value]) => !['title', 'address_chinese', 'city', 'region', 'postal_code', 'country', 'label', 'person_id'].includes(key) || value !== '')
   .map(([key, value]) => [key, typeof value === 'string' ? value.trim() : value])) as T;
 
 export function vendorFieldsPayload(draft: Draft): VendorStructuredFields {
   return readVendorStructuredPatch({ contacts_mode: 'replace', vendor_code: draft.vendor_code.trim() || null,
-    contact_people: draft.contact_people.map(person => { const { title, ...required } = person; return { ...required, ...(title?.trim() ? { title: title.trim() } : {}) }; }),
+    contact_people: draft.contact_people.map(person => { const { title, chinese_name, ...required } = person; return { ...required, ...(chinese_name?.trim() ? { chinese_name: chinese_name.trim() } : {}), ...(title?.trim() ? { title: title.trim() } : {}) }; }),
     addresses: draft.addresses.map(address => trimOptional(address as unknown as Record<string, unknown>)),
     contacts: draft.contacts.map(contact => trimOptional(contact as unknown as Record<string, unknown>)),
   });
@@ -71,6 +71,7 @@ export function CurateVendorFields({ vendorId }: { vendorId: string }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {field(`Person ${index + 1} name`, person.name, name => change({ contact_people: draft.contact_people.map(row => row.id === person.id ? { ...row, name } : row) }))}
             {field(`Person ${index + 1} title`, person.title ?? '', title => change({ contact_people: draft.contact_people.map(row => row.id === person.id ? { ...row, title } : row) }))}
+            {field(`Person ${index + 1} Chinese name`, person.chinese_name ?? '', chinese_name => change({ contact_people: draft.contact_people.map(row => row.id === person.id ? { ...row, chinese_name } : row) }))}
           </div>
           <button type="button" className={buttonClass} onClick={() => change({ contact_people: draft.contact_people.filter(row => row.id !== person.id), contacts: draft.contacts.map(contact => contact.person_id === person.id ? { ...contact, person_id: undefined } : contact) })}>Remove person {index + 1}</button>
         </div>)}
@@ -112,6 +113,7 @@ export function CurateVendorFields({ vendorId }: { vendorId: string }) {
               {field(`Address ${index + 1} region`, address.region ?? '', region => update({ region }))}
               {field(`Address ${index + 1} postal code`, address.postal_code ?? '', postal_code => update({ postal_code }))}
               {field(`Address ${index + 1} country`, address.country ?? '', country => update({ country }))}
+              {field(`Address ${index + 1} Chinese address`, address.address_chinese ?? '', address_chinese => update({ address_chinese }))}
             </div>
             <button type="button" className={buttonClass} onClick={() => change({ addresses: draft.addresses.filter(row => row.id !== address.id) })}>Remove address {index + 1}</button>
           </div>;

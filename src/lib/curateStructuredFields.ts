@@ -12,8 +12,10 @@ export interface RouteQuote {
   price_kind: 'tea_only' | 'landed';
   destination?: string;
 }
-export interface VendorContactPerson { id: string; name: string; title?: string }
-export interface VendorAddress { id: string; label: string; address: string; city?: string; region?: string; postal_code?: string; country?: string }
+/** `name` is English (the app is English first); the original Chinese lives only in `chinese_name`. */
+export interface VendorContactPerson { id: string; name: string; chinese_name?: string; title?: string }
+/** `address` is English; the original Chinese address, when kept, lives only in `address_chinese`. */
+export interface VendorAddress { id: string; label: string; address: string; address_chinese?: string; city?: string; region?: string; postal_code?: string; country?: string }
 export interface VendorContactEndpoint { id?: string; channel: string; handle: string; label?: string; person_id?: string }
 export interface CompassStructuredFields {
   age_quoted?: string | null;
@@ -104,12 +106,13 @@ export function readVendorStructuredPatch(raw: Record<string, unknown>): VendorS
   }
   if (raw.vendor_code !== undefined) patch.vendor_code = raw.vendor_code === null ? null : text(raw.vendor_code, 'vendor_code', 40);
   if (raw.contact_people !== undefined) patch.contact_people = list(raw.contact_people, 'contact_people', item => {
-    known(item, ['id','name','title'], 'contact_people');
-    return { id: text(item.id, 'contact_people.id', 100), name: text(item.name, 'contact_people.name'), ...(item.title === undefined ? {} : { title: text(item.title, 'contact_people.title') }) };
+    known(item, ['id','name','chinese_name','title'], 'contact_people');
+    return { id: text(item.id, 'contact_people.id', 100), name: text(item.name, 'contact_people.name'), ...(item.chinese_name === undefined ? {} : { chinese_name: text(item.chinese_name, 'contact_people.chinese_name', 200) }), ...(item.title === undefined ? {} : { title: text(item.title, 'contact_people.title') }) };
   });
   if (raw.addresses !== undefined) patch.addresses = list(raw.addresses, 'addresses', item => {
-    known(item, ['id','label','address','city','region','postal_code','country'], 'addresses');
+    known(item, ['id','label','address','address_chinese','city','region','postal_code','country'], 'addresses');
     const address: VendorAddress = { id: text(item.id, 'addresses.id', 100), label: text(item.label, 'addresses.label'), address: text(item.address, 'addresses.address', 2000) };
+    if (item.address_chinese !== undefined) address.address_chinese = text(item.address_chinese, 'addresses.address_chinese', 2000);
     for (const key of ['city','region','postal_code','country'] as const) if (item[key] !== undefined) address[key] = text(item[key], `addresses.${key}`);
     return address;
   });

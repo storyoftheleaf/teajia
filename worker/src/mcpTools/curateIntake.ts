@@ -1462,9 +1462,9 @@ const defs: ToolDefinition[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        name: { type: 'string', description: 'Vendor name. Matches an existing vendor by name, or adds a new one. With vendor_id, renames.' },
+        name: { type: 'string', description: 'Vendor name in English (romanised, e.g. Xi Wu Tang). Matches an existing vendor by name, or adds a new one. With vendor_id, renames. Chinese characters go in chinese_name, never here.' },
         vendor_id: { type: 'string', description: 'The vendor id from curate_find, to change an existing vendor.' },
-        chinese_name: { type: ['string', 'null'] },
+        chinese_name: { type: ['string', 'null'], description: 'Original Chinese vendor name, e.g. 惜物堂. Shown only as a secondary line.' },
         company: { type: ['string', 'null'] }, wechat: { type: ['string', 'null'] }, whatsapp: { type: ['string', 'null'] }, phone: { type: ['string', 'null'] },
         vendor_code: { type: ['string', 'null'] },
         contact_people: CONTACT_PEOPLE_SCHEMA,
