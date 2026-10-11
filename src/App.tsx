@@ -1,47 +1,21 @@
 
-import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback, Suspense } from 'react';
+import { lazyWithRetry } from './lib/lazyWithRetry';
 import { Routes, Route, Navigate, useLocation, useNavigate, useParams, type Location } from 'react-router-dom';
 import { FollowRenamedPerson } from './pages/renamedPeople';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { TEA_REFERENCE_ROUTE_PATHS } from './wisdom/reference/previewMode';
 import { useArticleAccess } from './pages/read/publishGate';
 
-// Retry a failed chunk load in place. A transient fetch failure is common on a
-// jumpy/firewalled connection, especially for the large admin bundle.
-//
-// Never reload automatically from this path. Automatic reload was the mechanism
-// behind the rapid flashing incident: an old shell could fail its AdminApp
-// preload, reload, and immediately repeat. After bounded retries, throw to the
-// root ErrorBoundary; its button is the only explicit recovery navigation.
-function lazyWithRetry<T extends { default: React.ComponentType<unknown> }>(
-  factory: () => Promise<T>
-): React.LazyExoticComponent<T['default']> {
-  return lazy(async () => {
-    const delays = [400, 1200, 2500]; // ms of backoff between fetch retries
-    for (let attempt = 0; ; attempt++) {
-      try {
-        return await factory();
-      } catch (err) {
-        if (attempt < delays.length) {
-          await new Promise((r) => setTimeout(r, delays[attempt]));
-          continue; // transient blip, retry the same import
-        }
-        // Bounded attempts exhausted: surface the stable recovery screen.
-        throw err;
-      }
-    }
-  });
-}
-
 const AdminApp = lazyWithRetry(() => import('./admin/AdminApp'));
-const MediaViewer = lazy(() => import('./components/MediaViewer').then(m => ({ default: m.MediaViewer })));
-const Reader = lazy(() => import('./components/Reader').then(m => ({ default: m.Reader })));
+const MediaViewer = lazyWithRetry(() => import('./components/MediaViewer').then(m => ({ default: m.MediaViewer })));
+const Reader = lazyWithRetry(() => import('./components/Reader').then(m => ({ default: m.Reader })));
 // Legacy MagazinePageReader removed; articles render through the unified
 // 4:5 reader at /article/:slug. See docs/ARCHITECTURE.md.
 const Shop = lazyWithRetry(() => import('./components/Shop').then(m => ({ default: m.Shop })));
 // The real product page for cold loads of /shop/product/:id. Grid taps open
 // the same URL as a modal over the shop instead (background-location routing).
-const ProductPage = lazy(() => import('./pages/ProductPage'));
+const ProductPage = lazyWithRetry(() => import('./pages/ProductPage'));
 
 // Branches /article/:slug by render mode. Both readers fetch by slug with the
 // SAME query key ['article', slug], so the chosen reader reuses the cached
@@ -91,102 +65,102 @@ const ArticleGate: React.FC<{ href: string; children: React.ReactNode }> = ({ hr
   return <>{children}</>;
 };
 
-const SharedCollection = lazy(() => import('./components/SharedCollection').then(m => ({ default: m.SharedCollection })));
-const EventLanding = lazy(() => import('./components/events/EventLanding'));
-const EventRecapPage = lazy(() => import('./pages/EventRecapPage'));
-const GuestManagement = lazy(() => import('./components/events/GuestManagement'));
-const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
-const OrderStatusPage = lazy(() => import('./pages/OrderStatusPage'));
-const JourneyPage = lazy(() => import('./pages/JourneyPage'));
-const AccountJourneyPage = lazy(() => import('./pages/AccountJourneyPage'));
-const PassportPage = lazy(() => import('./pages/PassportPage'));
-const GuestInviteClaimPage = lazy(() => import('./pages/GuestInviteClaimPage'));
-const SamplePage = lazy(() => import('./pages/SamplePage'));
-const ShareCardPage = lazy(() => import('./pages/ShareCardPage'));
-const Storefront = lazy(() => import('./components/storefront/Storefront').then(m => ({ default: m.Storefront })));
-const FindATable = lazy(() => import('./components/storefront/FindATable').then(m => ({ default: m.FindATable })));
-const TabStyleDemo = lazy(() => import('./pages/TabStyleDemo'));
-const PalettePreviewPage = lazy(() => import('./pages/PalettePreviewPage'));
-const ArticleEditorHarness = lazy(() => import('./pages/ArticleEditorHarness'));
-const DesignSystemShowcase = lazy(() => import('./pages/DesignSystemShowcase'));
-const JournalPage = lazy(() => import('./pages/JournalPage'));
-const CollectionPage = lazy(() => import('./pages/CollectionPage'));
-const CellarPage = lazy(() => import('./pages/CellarPage'));
-const SharedCollectionsPage = lazy(() => import('./pages/SharedCollectionsPage'));
-const SignInPage = lazy(() => import('./pages/SignInPage'));
-const SignUpPage = lazy(() => import('./pages/SignUpPage'));
-const AccountSettingsPage = lazy(() => import('./pages/AccountSettingsPage'));
-const OrderHistoryPage = lazy(() => import('./pages/OrderHistoryPage'));
-const OrderDetailPage = lazy(() => import('./pages/OrderDetailPage'));
-const SampleHistoryPage = lazy(() => import('./pages/SampleHistoryPage'));
+const SharedCollection = lazyWithRetry(() => import('./components/SharedCollection').then(m => ({ default: m.SharedCollection })));
+const EventLanding = lazyWithRetry(() => import('./components/events/EventLanding'));
+const EventRecapPage = lazyWithRetry(() => import('./pages/EventRecapPage'));
+const GuestManagement = lazyWithRetry(() => import('./components/events/GuestManagement'));
+const ResetPasswordPage = lazyWithRetry(() => import('./pages/ResetPasswordPage'));
+const OrderStatusPage = lazyWithRetry(() => import('./pages/OrderStatusPage'));
+const JourneyPage = lazyWithRetry(() => import('./pages/JourneyPage'));
+const AccountJourneyPage = lazyWithRetry(() => import('./pages/AccountJourneyPage'));
+const PassportPage = lazyWithRetry(() => import('./pages/PassportPage'));
+const GuestInviteClaimPage = lazyWithRetry(() => import('./pages/GuestInviteClaimPage'));
+const SamplePage = lazyWithRetry(() => import('./pages/SamplePage'));
+const ShareCardPage = lazyWithRetry(() => import('./pages/ShareCardPage'));
+const Storefront = lazyWithRetry(() => import('./components/storefront/Storefront').then(m => ({ default: m.Storefront })));
+const FindATable = lazyWithRetry(() => import('./components/storefront/FindATable').then(m => ({ default: m.FindATable })));
+const TabStyleDemo = lazyWithRetry(() => import('./pages/TabStyleDemo'));
+const PalettePreviewPage = lazyWithRetry(() => import('./pages/PalettePreviewPage'));
+const ArticleEditorHarness = lazyWithRetry(() => import('./pages/ArticleEditorHarness'));
+const DesignSystemShowcase = lazyWithRetry(() => import('./pages/DesignSystemShowcase'));
+const JournalPage = lazyWithRetry(() => import('./pages/JournalPage'));
+const CollectionPage = lazyWithRetry(() => import('./pages/CollectionPage'));
+const CellarPage = lazyWithRetry(() => import('./pages/CellarPage'));
+const SharedCollectionsPage = lazyWithRetry(() => import('./pages/SharedCollectionsPage'));
+const SignInPage = lazyWithRetry(() => import('./pages/SignInPage'));
+const SignUpPage = lazyWithRetry(() => import('./pages/SignUpPage'));
+const AccountSettingsPage = lazyWithRetry(() => import('./pages/AccountSettingsPage'));
+const OrderHistoryPage = lazyWithRetry(() => import('./pages/OrderHistoryPage'));
+const OrderDetailPage = lazyWithRetry(() => import('./pages/OrderDetailPage'));
+const SampleHistoryPage = lazyWithRetry(() => import('./pages/SampleHistoryPage'));
 // Repository docs can contain historical external URLs and are a development
 // tool, so do not ship their raw contents in the public production bundle.
 const DeveloperDocsPage = import.meta.env.DEV
-  ? lazy(() => import('./pages/DeveloperDocsPage'))
+  ? lazyWithRetry(() => import('./pages/DeveloperDocsPage'))
   : () => (
       <div className="min-h-dvh flex items-center justify-center px-6 pb-nav text-center">
         <p className="font-serif text-ui-15 text-tea-text-sec">The development library is available in local development only.</p>
       </div>
     );
-const BriefingPage = lazy(() => import('./pages/BriefingPage'));
-const SiteFixesPage = lazy(() => import('./pages/SiteFixesPage'));
-const SessionPage = lazy(() => import('./pages/SessionPage'));
-const JoinPage = lazy(() => import('./pages/JoinPage'));
-const TableCardPage = lazy(() => import('./pages/TableCardPage'));
-const ShelfPage = lazy(() => import('./pages/ShelfPage'));
-const EventsPage = lazy(() => import('./pages/EventsPage'));
-const ForYourSpacePage = lazy(() => import('./pages/ForYourSpacePage'));
-const SpacesPage = lazy(() => import('./pages/SpacesPage'));
-const StartHerePage = lazy(() => import('./pages/StartHerePage'));
-const DiscoverPage = lazy(() => import('./pages/DiscoverPage'));
-const ArticlePage = lazy(() => import('./pages/ArticlePage'));
-const ImmersiveArticlePage = lazy(() => import('./pages/ImmersiveArticlePage'));
+const BriefingPage = lazyWithRetry(() => import('./pages/BriefingPage'));
+const SiteFixesPage = lazyWithRetry(() => import('./pages/SiteFixesPage'));
+const SessionPage = lazyWithRetry(() => import('./pages/SessionPage'));
+const JoinPage = lazyWithRetry(() => import('./pages/JoinPage'));
+const TableCardPage = lazyWithRetry(() => import('./pages/TableCardPage'));
+const ShelfPage = lazyWithRetry(() => import('./pages/ShelfPage'));
+const EventsPage = lazyWithRetry(() => import('./pages/EventsPage'));
+const ForYourSpacePage = lazyWithRetry(() => import('./pages/ForYourSpacePage'));
+const SpacesPage = lazyWithRetry(() => import('./pages/SpacesPage'));
+const StartHerePage = lazyWithRetry(() => import('./pages/StartHerePage'));
+const DiscoverPage = lazyWithRetry(() => import('./pages/DiscoverPage'));
+const ArticlePage = lazyWithRetry(() => import('./pages/ArticlePage'));
+const ImmersiveArticlePage = lazyWithRetry(() => import('./pages/ImmersiveArticlePage'));
 // Immersive long-reads (espresso + gold scrolling articles) for the Read section.
-const ReadIndex = lazy(() => import('./pages/read/ReadIndex'));
-const LeafToLiquor = lazy(() => import('./pages/read/LeafToLiquor'));
-const RockRemembers = lazy(() => import('./pages/read/RockRemembers'));
-const EarthWaterFire = lazy(() => import('./pages/read/EarthWaterFire'));
-const BeforeTheMist = lazy(() => import('./pages/read/BeforeTheMist'));
+const ReadIndex = lazyWithRetry(() => import('./pages/read/ReadIndex'));
+const LeafToLiquor = lazyWithRetry(() => import('./pages/read/LeafToLiquor'));
+const RockRemembers = lazyWithRetry(() => import('./pages/read/RockRemembers'));
+const EarthWaterFire = lazyWithRetry(() => import('./pages/read/EarthWaterFire'));
+const BeforeTheMist = lazyWithRetry(() => import('./pages/read/BeforeTheMist'));
 // The 10 new Read templates ported from the Tea Article Redesign design project.
-const AtlasMapOfMountains = lazy(() => import('./pages/read/AtlasMapOfMountains'));
-const CraftPotThatRemembers = lazy(() => import('./pages/read/CraftPotThatRemembers'));
-const EssayLongWayToCup = lazy(() => import('./pages/read/EssayLongWayToCup'));
-const FieldNotesTwoRoomsBali = lazy(() => import('./pages/read/FieldNotesTwoRoomsBali'));
-const FieldStudyWaterBeforeLeaf = lazy(() => import('./pages/read/FieldStudyWaterBeforeLeaf'));
-const HistoryTenThousandMornings = lazy(() => import('./pages/read/HistoryTenThousandMornings'));
-const LegendImmortalsCliff = lazy(() => import('./pages/read/LegendImmortalsCliff'));
-const RitualSevenSteeps = lazy(() => import('./pages/read/RitualSevenSteeps'));
-const TastingVocabularyOfTaste = lazy(() => import('./pages/read/TastingVocabularyOfTaste'));
-const TeaHouseQuietHours = lazy(() => import('./pages/read/TeaHouseQuietHours'));
-const CraftRenewalPorcelain = lazy(() => import('./pages/read/CraftRenewalPorcelain'));
-const ReadNotFound = lazy(() => import('./pages/read/ReadNotFound'));
-const PublicCollectionPage = lazy(() => import('./pages/PublicCollectionPage'));
-const ContributorProfilePage = lazy(() => import('./pages/ContributorProfilePage'));
-const AccountProfilePage = lazy(() => import('./pages/AccountProfilePage'));
-const ProfileFavoritesPage = lazy(() => import('./pages/ProfileFavoritesPage'));
-const ProfilePaymentPage = lazy(() => import('./pages/ProfilePaymentPage'));
-const ContributorsIndexPage = lazy(() => import('./pages/ContributorsIndexPage'));
-const StoreLaunchPlaybookPage = lazy(() => import('./pages/StoreLaunchPlaybookPage'));
-const McpPage = lazy(() => import('./pages/McpPage'));
+const AtlasMapOfMountains = lazyWithRetry(() => import('./pages/read/AtlasMapOfMountains'));
+const CraftPotThatRemembers = lazyWithRetry(() => import('./pages/read/CraftPotThatRemembers'));
+const EssayLongWayToCup = lazyWithRetry(() => import('./pages/read/EssayLongWayToCup'));
+const FieldNotesTwoRoomsBali = lazyWithRetry(() => import('./pages/read/FieldNotesTwoRoomsBali'));
+const FieldStudyWaterBeforeLeaf = lazyWithRetry(() => import('./pages/read/FieldStudyWaterBeforeLeaf'));
+const HistoryTenThousandMornings = lazyWithRetry(() => import('./pages/read/HistoryTenThousandMornings'));
+const LegendImmortalsCliff = lazyWithRetry(() => import('./pages/read/LegendImmortalsCliff'));
+const RitualSevenSteeps = lazyWithRetry(() => import('./pages/read/RitualSevenSteeps'));
+const TastingVocabularyOfTaste = lazyWithRetry(() => import('./pages/read/TastingVocabularyOfTaste'));
+const TeaHouseQuietHours = lazyWithRetry(() => import('./pages/read/TeaHouseQuietHours'));
+const CraftRenewalPorcelain = lazyWithRetry(() => import('./pages/read/CraftRenewalPorcelain'));
+const ReadNotFound = lazyWithRetry(() => import('./pages/read/ReadNotFound'));
+const PublicCollectionPage = lazyWithRetry(() => import('./pages/PublicCollectionPage'));
+const ContributorProfilePage = lazyWithRetry(() => import('./pages/ContributorProfilePage'));
+const AccountProfilePage = lazyWithRetry(() => import('./pages/AccountProfilePage'));
+const ProfileFavoritesPage = lazyWithRetry(() => import('./pages/ProfileFavoritesPage'));
+const ProfilePaymentPage = lazyWithRetry(() => import('./pages/ProfilePaymentPage'));
+const ContributorsIndexPage = lazyWithRetry(() => import('./pages/ContributorsIndexPage'));
+const StoreLaunchPlaybookPage = lazyWithRetry(() => import('./pages/StoreLaunchPlaybookPage'));
+const McpPage = lazyWithRetry(() => import('./pages/McpPage'));
 // The public tea reference: a page per holding, read out of src/wisdom.
 const WisdomHomePage = import.meta.env.MODE === 'tea-reference-preview'
-  ? lazy(() => import('./pages/wisdom/PreviewWisdomHomePage'))
-  : lazy(() => import('./pages/wisdom/WisdomHomePage'));
-const CultivarIndexPage = lazy(() => import('./pages/wisdom/CultivarIndexPage'));
-const CultivarPage = lazy(() => import('./pages/wisdom/CultivarPage'));
-const ProducerIndexPage = lazy(() => import('./pages/wisdom/ProducerIndexPage'));
-const ProducerPage = lazy(() => import('./pages/wisdom/ProducerPage'));
-const MarkIndexPage = lazy(() => import('./pages/wisdom/MarkIndexPage'));
-const MarkPage = lazy(() => import('./pages/wisdom/MarkPage'));
-const StyleIndexPage = lazy(() => import('./pages/wisdom/StyleIndexPage'));
-const StylePage = lazy(() => import('./pages/wisdom/StylePage'));
-const RegionIndexPage = lazy(() => import('./pages/wisdom/RegionIndexPage'));
-const RegionPage = lazy(() => import('./pages/wisdom/RegionPage'));
-const NamedTeaIndexPage = lazy(() => import('./pages/wisdom/NamedTeaIndexPage'));
-const NamedTeaPage = lazy(() => import('./pages/wisdom/NamedTeaPage'));
-const TeaTypeIndexPage = lazy(() => import('./pages/wisdom/TeaTypeIndexPage'));
-const TeaFamilyPage = lazy(() => import('./pages/wisdom/TeaFamilyPage'));
-const TeaTypePage = lazy(() => import('./pages/wisdom/TeaTypePage'));
+  ? lazyWithRetry(() => import('./pages/wisdom/PreviewWisdomHomePage'))
+  : lazyWithRetry(() => import('./pages/wisdom/WisdomHomePage'));
+const CultivarIndexPage = lazyWithRetry(() => import('./pages/wisdom/CultivarIndexPage'));
+const CultivarPage = lazyWithRetry(() => import('./pages/wisdom/CultivarPage'));
+const ProducerIndexPage = lazyWithRetry(() => import('./pages/wisdom/ProducerIndexPage'));
+const ProducerPage = lazyWithRetry(() => import('./pages/wisdom/ProducerPage'));
+const MarkIndexPage = lazyWithRetry(() => import('./pages/wisdom/MarkIndexPage'));
+const MarkPage = lazyWithRetry(() => import('./pages/wisdom/MarkPage'));
+const StyleIndexPage = lazyWithRetry(() => import('./pages/wisdom/StyleIndexPage'));
+const StylePage = lazyWithRetry(() => import('./pages/wisdom/StylePage'));
+const RegionIndexPage = lazyWithRetry(() => import('./pages/wisdom/RegionIndexPage'));
+const RegionPage = lazyWithRetry(() => import('./pages/wisdom/RegionPage'));
+const NamedTeaIndexPage = lazyWithRetry(() => import('./pages/wisdom/NamedTeaIndexPage'));
+const NamedTeaPage = lazyWithRetry(() => import('./pages/wisdom/NamedTeaPage'));
+const TeaTypeIndexPage = lazyWithRetry(() => import('./pages/wisdom/TeaTypeIndexPage'));
+const TeaFamilyPage = lazyWithRetry(() => import('./pages/wisdom/TeaFamilyPage'));
+const TeaTypePage = lazyWithRetry(() => import('./pages/wisdom/TeaTypePage'));
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchStore } from './lib/storefrontApi';
