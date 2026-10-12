@@ -243,15 +243,19 @@ export const CurateRecordRow: React.FC<{
   onDelete,
   busy = false,
 }) => (
-  <div className="curate-cluster flex flex-wrap items-center gap-2" aria-busy={busy || undefined}>
+  // The labels name the record for a screen reader; the eye reads a short Open
+  // and Delete beside it. Printing the full label in each button ("Open Delivery
+  // Note No. 4791536 - D and T Collectors") swelled the buttons and cut the
+  // title itself to "Imp…".
+  <div className="curate-cluster flex items-center gap-2" aria-busy={busy || undefined}>
     <div className="min-w-0 flex-1">
-      <div className="curate-primary truncate">{title}</div>
+      <div className="curate-primary break-words">{title}</div>
       <div className="curate-support flex flex-wrap items-center gap-x-2 text-tea-text-dim">
         <span>{metadata}</span>
         {status && <span role="status" className="text-tea-text-sec">{status}</span>}
       </div>
     </div>
-    <div className="flex flex-wrap items-center gap-1">
+    <div className="flex shrink-0 items-center gap-1">
       {onDelete && (
         <button
           type="button"
@@ -263,7 +267,7 @@ export const CurateRecordRow: React.FC<{
           data-curate-compact-target
         >
           <span className="curate-compact-chrome text-tea-text-sec hover:text-tea-text" data-curate-compact-chrome>
-            {deleteLabel}
+            Delete
           </span>
         </button>
       )}
@@ -277,7 +281,7 @@ export const CurateRecordRow: React.FC<{
         data-curate-compact-target
       >
         <span className="curate-compact-chrome border border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text" data-curate-compact-chrome>
-          {openLabel}
+          Open
         </span>
       </button>
     </div>
