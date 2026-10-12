@@ -4,6 +4,7 @@
 
 ## Soon
 
+- [ ] Curate: send a label photo or the vendor’s message for the five teas still without a proper name or Chinese name: Fulugong (Lidia), Pu-erh (no vendor), Liu (Yingge Puer), and the two unnamed teas from Yee On Tea and Yingge Puer _(band: you-required)_ _(effort: quick)_
 - [ ] Stock on the phone, grouped by who you bought from, with every current function kept (five stages, one pull request each) _(band: agent-runnable)_ _(effort: deep)_ → Plan: [stock-phone-by-supplier.md](todo/plans/stock-phone-by-supplier.md)
 - [ ] Curate: work through the fix-now picks from the review; Curate v2 is live at /admin/compass/v2 beside the current one until Adrian switches _(band: agent-runnable)_ _(effort: deep)_ → Plan: [curate-fix-now.md](todo/plans/curate-fix-now.md) · Design: [curate-next.md](todo/plans/curate-next.md)
 - [ ] Magazine: settle how the An Cha couple want their names printed (she is the main voice, her name not on file; he is Dai Haizhong), after asking them _(band: you-required)_ _(effort: quick)_
