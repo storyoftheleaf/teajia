@@ -314,7 +314,9 @@ test.describe('Curate v2 journeys (phone)', () => {
     await expect(agent).toContainText('Mengku Tea House · 4 teas');
     await expect(agent).toContainText('Pick');
     // To do: the subject first, the task after.
-    await expect(page.getByTestId('today-todo')).toContainText('XWT-LB1 有机六堡茶1');
+    // The to-do leads with the tea's name; its stock code stays inside the tea.
+    await expect(page.getByTestId('today-todo')).toContainText('有机六堡茶1');
+    await expect(page.getByTestId('today-todo')).not.toContainText('XWT-LB1');
     await expect(page.getByTestId('today-todo')).toContainText('confirm the year');
     await expect(page.getByTestId('today-section-decide')).toContainText('Taste');
     await expect(page.getByTestId('today-section-vendors')).toContainText('Wang Laoshi');
@@ -573,6 +575,33 @@ test.describe('Curate v2 journeys (phone)', () => {
     await expect(banner).toHaveCount(0);
     await shot(page, 'cleanup-3-done');
     expect(popups).toBe(0);
+  });
+
+  test('Lists show a tea by its name, not its stock code; the code is inside; a long name never cuts "sample"', async ({ page }) => {
+    await installCompassHarness(page, { ...TODAY_DATA, compassEntries: [
+      entry({ id: 'e-pe8', name: 'LKY-PE8 Top Aged Yunnan Pu Erh', type: 'Pu-erh', price_amount: 250, sample_state: 'received', vendor_name: 'Lam Kie Yuen', vendor_id: null }),
+    ] });
+    await openCurateV2(page, 'today');
+    const row = page.getByTestId('today-section-decide').getByRole('button', { name: /Top Aged Yunnan Pu Erh/ });
+    await expect(row.locator('.curate-v2-name')).toHaveText('Top Aged Yunnan Pu Erh');
+    await expect(row).not.toContainText('LKY-PE8');
+    // The detail sits under the name, whole: no "sam…".
+    const detail = row.getByText('sample', { exact: true });
+    await expect(detail).toBeVisible();
+    expect(await detail.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+    await shot(page, 'stock-code-today');
+    // A sample's Taste opens the tasting sheet, titled by the name alone.
+    await row.click();
+    await expect(page.getByRole('dialog', { name: 'Top Aged Yunnan Pu Erh' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    // Teas lists it by name too; inside, the code sits quietly ahead of the kind.
+    await openCurateV2(page, 'teas');
+    const teaRow = page.getByRole('tabpanel').getByRole('button', { name: /^Top Aged Yunnan Pu Erh/ }).first();
+    await expect(teaRow).not.toContainText('LKY-PE8');
+    await teaRow.click();
+    await expect(overlay(page).getByRole('heading', { name: 'Top Aged Yunnan Pu Erh' })).toBeVisible();
+    await expect(overlay(page)).toContainText('LKY-PE8 · Pu-erh');
+    await shot(page, 'stock-code-inside');
   });
 
   test('Today: To do waits for its to-dos instead of flashing an empty band first', async ({ page }) => {
@@ -1254,7 +1283,7 @@ test.describe('Curate v2 journeys (phone)', () => {
     const stack = async (sel: string) => page.locator(sel).first().evaluate((el) => getComputedStyle(el).fontFamily);
     const cjkSerif = /Songti SC|Noto Serif CJK SC|Source Han Serif SC|SimSun/;
     expect(await stack('[data-testid="today-todo"] .curate-v2-name')).toMatch(cjkSerif);
-    await page.getByTestId('today-todo').getByRole('button', { name: /XWT-LB1/ }).click();
+    await page.getByTestId('today-todo').getByRole('button', { name: /有机六堡茶1/ }).click();
     await expect(page.getByTestId('tea-face-chinese')).toContainText('勐库古树茶');
     expect(await stack('[data-testid="tea-face-chinese"] .curate-v2-hanzi')).toMatch(cjkSerif);
   });

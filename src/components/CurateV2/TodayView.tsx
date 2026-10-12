@@ -4,7 +4,7 @@ import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { useAppStore } from '../../lib/store';
 import { api, hasToken, type CurateSuggestionGroup } from '../../lib/api';
-import { TODAY_ACTION_LABEL, daysSince, todaySections, type TodayAction, type TodayItem } from './curateV2Model';
+import { TODAY_ACTION_LABEL, daysSince, todaySections, type TodayAction, type TodayItem, listName } from './curateV2Model';
 import { getTeaColor } from '../../designTokens';
 import { AGENT_KEYS, AgentFindsSheet, errorText, useAgentLists } from './AgentInbox';
 import { DriveLine } from './DriveLine';
@@ -141,9 +141,12 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
     const e = byId.get(item.entryId);
     return (
       <button key={item.entryId} type="button" onClick={() => onAct(item.entryId, item.action)} className="curate-v2-row w-full text-left" style={wash(e?.type)}>
-        <span className="curate-v2-name">{item.name}</span>
-        {item.who && <Detail>{item.who}</Detail>}
-        <span className="flex-1" />
+        {/* The subject on its own line, the detail beneath it: a name that runs
+            to two lines never squeezes the detail down to "sam…". */}
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="curate-v2-name">{listName(item.name)}</span>
+          {item.who && <Detail>{item.who}</Detail>}
+        </span>
         <Action>{TODAY_ACTION_LABEL[item.action]}</Action>
       </button>
     );
@@ -201,7 +204,7 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
       {!todosLoading && (openTodos.length > 0 || (signedIn && entries.length > 0)) && (
         <Band id="todo" title="To do" count={openTodos.length > 0 ? openTodos.length : undefined}>
           {openTodos.map((t) => {
-            const subject = t.tea_name || t.vendor_name || '';
+            const subject = listName(t.tea_name) || t.vendor_name || '';
             return (
               <div key={t.id} className="curate-v2-row !whitespace-normal" data-testid="today-todo">
                 <button
@@ -281,8 +284,8 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
             const days = daysSince(r.created_at);
             return (
               <div key={r.id}><div className="curate-v2-row">
-                <button type="button" onClick={() => r.compass_entry_id && onOpenTea(r.compass_entry_id)} className="flex min-w-0 flex-1 items-baseline gap-2 text-left">
-                  <span className="curate-v2-name">{r.tea_name || r.product_name || 'A tea'}</span>
+                <button type="button" onClick={() => r.compass_entry_id && onOpenTea(r.compass_entry_id)} className="flex min-w-0 flex-1 flex-col items-start text-left">
+                  <span className="curate-v2-name">{listName(r.tea_name || r.product_name) || 'A tea'}</span>
                   <Detail>
                     {[r.vendor_name, `${r.quantity}${r.unit === 'g' ? ' g' : r.quantity === 1 ? ' piece' : ' pieces'}`, days != null ? dayWord(days) : null].filter(Boolean).join(' · ')}
                   </Detail>
@@ -301,8 +304,8 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
             const e = byId.get(item.entryId);
             return (
               <div key={item.entryId} className="curate-v2-row" style={wash(e?.type)} data-testid="today-to-shelve">
-                <button type="button" onClick={() => onOpenTea(item.entryId)} className="flex min-w-0 flex-1 items-baseline gap-2 text-left">
-                  <span className="curate-v2-name">{item.name}</span>
+                <button type="button" onClick={() => onOpenTea(item.entryId)} className="flex min-w-0 flex-1 flex-col items-start text-left">
+                  <span className="curate-v2-name">{listName(item.name)}</span>
                   <Detail>{[e?.vendorName?.trim(), 'arrived'].filter(Boolean).join(' · ')}</Detail>
                 </button>
                 <button type="button" onClick={() => void shelve(item.entryId)} disabled={shelving === item.entryId} className="tap-target shrink-0 justify-end font-mono text-ui-13 text-tea-gold disabled:opacity-60" aria-label={`Shelf: ${item.name}`}>

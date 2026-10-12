@@ -198,3 +198,19 @@ describe('what a piece weighs, and what a gram cost', () => {
     expect(costPerGramUsd(entry({ category: 'teaware', priceAmount: 40, priceCurrency: 'USD', pricePerUnitGrams: 1 }), rates)).toBe(Infinity);
   });
 });
+
+describe('stock codes stay out of lists', () => {
+  it('takes a leading vendor stock code off the name a list shows', async () => {
+    const { splitStockCode, listName } = await import('./curateV2Model');
+    expect(splitStockCode('LKY-PE8 Top Aged Yunnan Pu Erh')).toEqual({ code: 'LKY-PE8', name: 'Top Aged Yunnan Pu Erh' });
+    expect(listName('XWT-LB1 Organic Liu Bao, Grade 1')).toBe('Organic Liu Bao, Grade 1');
+    expect(listName('XWT-LB1 有机六堡茶1')).toBe('有机六堡茶1');
+  });
+  it('leaves a name with no code whole, including hyphenated words', async () => {
+    const { splitStockCode, listName } = await import('./curateV2Model');
+    expect(splitStockCode('Yiwu Gushu 2019')).toEqual({ code: null, name: 'Yiwu Gushu 2019' });
+    expect(listName('Bai-Hao Silver Needle')).toBe('Bai-Hao Silver Needle');
+    expect(listName('LKY-PE8')).toBe('LKY-PE8');
+    expect(listName(null)).toBe('');
+  });
+});

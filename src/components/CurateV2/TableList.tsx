@@ -4,7 +4,7 @@ import { selectTableEntries, useTeaCompassStore } from '../../lib/teaCompassStor
 import { parseTeaInput } from './InputParser';
 import { REGION_NAMES } from '../../wisdom';
 import type { TeaCompassEntry } from './types';
-import { linePriceFields, quotedUnit, readLinePrice, tastingLine } from './curateV2Model';
+import { linePriceFields, quotedUnit, readLinePrice, tastingLine, listName } from './curateV2Model';
 import { VendorPicker } from './VendorPicker';
 import { CURRENCY_LABELS } from './PricingRow';
 import type { Currency } from '../../admin/types';
@@ -184,7 +184,7 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
               {e.photos?.[0] && <span className="h-9 w-9 shrink-0 rounded-md bg-cover bg-center" style={{ backgroundImage: `url(${e.photos[0]})` }} aria-hidden="true" />}
               <span className="grid min-w-0 flex-1 gap-0.5">
                 {/* The name wraps to two lines rather than being cut: "Mengku Laobanzhang" must read in full. */}
-                <span className="curate-v2-name !whitespace-normal line-clamp-2">{e.name?.trim() || (e.category === 'teaware' ? 'Untitled teaware' : 'Untitled tea')}</span>
+                <span className="curate-v2-name !whitespace-normal line-clamp-2">{listName(e.name) || (e.category === 'teaware' ? 'Untitled teaware' : 'Untitled tea')}</span>
                 <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-ui-12 tabular-nums">
                   {tastingLine(e.tasting)
                     ? <span className="text-tea-gold">{tastingLine(e.tasting).split(' · ').slice(0, 2).join(' · ')}</span>

@@ -3,7 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { api, hasToken } from '../../lib/api';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useLedgerStore } from '../../lib/ledgerStore';
-import { quotedUnit, tastingLine } from './curateV2Model';
+import { quotedUnit, tastingLine, listName } from './curateV2Model';
 import { CURRENCY_LABELS } from './PricingRow';
 import { Section } from './TodayView';
 import { VendorInfoPanel } from './VendorInfoPanel';
@@ -211,7 +211,7 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
         const taste = tastingLine(t.tasting).split(' · ').slice(0, 2).join(' · ');
         return (
           <button key={t.id} type="button" onClick={() => onOpenTea(t.id)} className="curate-v2-row w-full text-left">
-            <span className="curate-v2-name">{t.name || 'Untitled tea'}</span>
+            <span className="curate-v2-name">{listName(t.name) || 'Untitled tea'}</span>
             {taste ? <span className="min-w-0 truncate text-ui-12 text-tea-gold tabular-nums">{taste}</span>
               : t.year != null && <span className="text-ui-12 text-tea-text-sec tabular-nums">{t.year}</span>}
             <span className="flex-1" />
@@ -224,7 +224,7 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
       {ware.length > 0 && <Section title="Teaware" count={ware.length} />}
       {ware.map((t) => (
         <button key={t.id} type="button" onClick={() => onOpenTea(t.id)} className="curate-v2-row w-full text-left">
-          <span className="curate-v2-name">{t.name || 'Untitled piece'}</span>
+          <span className="curate-v2-name">{listName(t.name) || 'Untitled piece'}</span>
           <span className="flex-1" />
           {t.priceAmount != null && <span className="text-ui-13 text-tea-text-sec tabular-nums">{CURRENCY_LABELS[t.priceCurrency] ?? ''}{t.priceAmount.toLocaleString()}</span>}
         </button>

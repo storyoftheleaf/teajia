@@ -1,4 +1,4 @@
-import { costPerGramUsd, quotedUnit } from './curateV2Model';
+import { costPerGramUsd, quotedUnit, listName } from './curateV2Model';
 import { useRates } from '../../admin/hooks/useAdminData';
 import { CURRENCY_LABELS } from './PricingRow';
 import React, { useMemo, useState } from 'react';
@@ -330,7 +330,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
               {expandedRowId === entry.id ? (
                 <div className="curate-v2">
                   <button type="button" onClick={() => setExpandedRowId(null)} className="curate-v2-row w-full text-left" aria-expanded="true">
-                    <span className="curate-v2-name">{entry.name || 'Untitled tea'}</span>
+                    <span className="curate-v2-name">{listName(entry.name) || 'Untitled tea'}</span>
                     <span className="flex-1" />
                     <span className="font-mono text-ui-13 text-tea-gold">Close</span>
                   </button>
@@ -953,7 +953,7 @@ const V2TeaRow: React.FC<{ entry: TeaCompassEntry; onOpen: () => void }> = ({ en
   return (
     <button type="button" onClick={onOpen} className="curate-v2 curate-v2-row w-full text-left" aria-expanded="false">
       <span className="grid min-w-0 flex-1 gap-0.5">
-        <span className="curate-v2-name">{entry.name || 'Untitled tea'}</span>
+        <span className="curate-v2-name">{listName(entry.name) || 'Untitled tea'}</span>
         {sub && <span className="truncate font-mono text-ui-12 text-tea-text-sec tabular-nums">{sub}</span>}
       </span>
       <span className="grid shrink-0 justify-items-end gap-0.5">

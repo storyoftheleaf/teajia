@@ -1,4 +1,4 @@
-import { orderLinePrice } from './curateV2Model';
+import { orderLinePrice, listName } from './curateV2Model';
 import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Minus, Plus } from 'lucide-react';
@@ -86,7 +86,7 @@ const TeaLineItem: React.FC<LineItemProps> = ({ entry, quantity, onQuantityChang
             {entry.chineseName}
           </p>
           <p className="text-sm text-tea-text-sec">
-            {entry.name || 'Unnamed tea'}
+            {listName(entry.name) || 'Unnamed tea'}
           </p>
         </>
       ) : (

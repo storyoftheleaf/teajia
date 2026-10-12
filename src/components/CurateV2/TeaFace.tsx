@@ -5,7 +5,7 @@ import { useNotesStore } from '../../lib/notesStore';
 import { api } from '../../lib/api';
 import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
 import { curateShelfPreview } from './curatePricing';
-import { quotedUnit, tastingLine } from './curateV2Model';
+import { quotedUnit, tastingLine, listName, splitStockCode } from './curateV2Model';
 import { CURRENCY_LABELS } from './PricingRow';
 import { removeTeaFromDraftOrders } from './orderBuy';
 import { DEFAULT_GRAMS } from './types';
@@ -159,7 +159,10 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
     ? curateShelfPreview({ costAmount: entry.priceAmount, grams: weight.grams, currency: entry.priceCurrency, rates, shopFreightPerKgUsd: shopFreight.perKgUsd })
     : null;
   const tasting = tastingLine(entry.tasting);
-  const kind = kindLine(entry);
+  // The stock code lives here, inside the tea, quietly ahead of its kind:
+  // "LKY-PE8 · Pu-erh". Lists show the name alone.
+  const code = splitStockCode(entry.name).code;
+  const kind = [code, kindLine(entry)].filter(Boolean).join(' · ');
   const place = placeLine(entry);
   const photo = entry.photos?.find((p) => /^https?:\/\//.test(p));
 
@@ -199,7 +202,7 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
           <div className="absolute inset-0 bg-gradient-to-t from-tea-surface via-tea-surface/10 to-transparent" aria-hidden />
           <div className="absolute left-2 top-2">{back}</div>
           <div className="absolute inset-x-4 bottom-2 min-w-0">
-            <h2 className="break-words font-display text-[31px] leading-[1.08] text-tea-text line-clamp-3">{entry.name?.trim() || 'Untitled tea'}</h2>
+            <h2 className="break-words font-display text-[31px] leading-[1.08] text-tea-text line-clamp-3">{listName(entry.name) || 'Untitled tea'}</h2>
             {kind && <p className="mt-1 font-mono text-ui-12 text-tea-text-sec tabular-nums">{kind}</p>}
           </div>
         </div>
@@ -207,7 +210,7 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
         <div className="flex items-center gap-1 border-b border-tea-border px-2 pb-2.5 pt-2 lg:px-4">
           {back}
           <div className="min-w-0 flex-1 pr-2">
-            <h2 className="break-words font-display text-[31px] leading-[1.08] text-tea-text line-clamp-3">{entry.name?.trim() || 'Untitled tea'}</h2>
+            <h2 className="break-words font-display text-[31px] leading-[1.08] text-tea-text line-clamp-3">{listName(entry.name) || 'Untitled tea'}</h2>
             {kind && <p className="mt-1 font-mono text-ui-12 text-tea-text-sec tabular-nums">{kind}</p>}
           </div>
         </div>

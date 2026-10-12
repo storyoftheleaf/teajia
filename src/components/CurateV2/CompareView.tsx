@@ -3,7 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
 import { curateShelfPreview } from './curatePricing';
-import { FAST_TASTING, pieceWeightGrams, quotedUnit, readFast, type FastQuestion } from './curateV2Model';
+import { FAST_TASTING, pieceWeightGrams, quotedUnit, readFast, type FastQuestion, listName } from './curateV2Model';
 import { CURRENCY_LABELS } from './PricingRow';
 import type { TeaCompassEntry } from './types';
 import { isUnrecordedCurrency, rateToUsd } from '../../lib/currency';
@@ -141,7 +141,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ chosen, onChosenChange
             <article key={entry.id} className="overflow-hidden rounded-md border border-tea-border bg-tea-surface/40">
               <div className="flex items-center gap-2 border-b border-tea-border pl-3 pr-1">
                 <button type="button" onClick={() => onOpenTea(entry.id)} className="grid min-h-11 min-w-0 flex-1 py-1.5 text-left">
-                  <span className="curate-v2-name">{entry.name}</span>
+                  <span className="curate-v2-name">{listName(entry.name)}</span>
                   <span className="text-ui-12 text-tea-text-sec tabular-nums">{[entry.vendorName, entry.year, unit && `per ${unit}`].filter(Boolean).join(' · ')}</span>
                 </button>
                 <button type="button" onClick={() => updateEntry(entry.id, entry.sampleState ? { sampleState: null } : { sampleState: 'requested', isSample: true, decision: 'considering' })} aria-pressed={!!entry.sampleState} className={`tap-target px-2 font-mono text-ui-13 ${entry.sampleState ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>Sample</button>

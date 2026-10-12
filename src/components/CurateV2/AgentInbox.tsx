@@ -7,6 +7,7 @@ import { useAppStore } from '../../lib/store';
 import { BottomSheet } from './CurateSheet';
 import { plainFailure } from './plainFailure';
 import { CURRENCY_LABELS } from './PricingRow';
+import { listName } from './curateV2Model';
 
 export const AGENT_KEYS = {
   suggestions: ['curate', 'agent-suggestions'] as const,
@@ -105,7 +106,7 @@ export const AgentFindsSheet: React.FC<{ group: CurateSuggestionGroup | null; on
             <div key={t.id} className="curate-v2-row">
               <Tick on={kept.has(t.id)} label={`Keep ${t.name}`} onClick={() => toggle(t.id)} />
               <button type="button" onClick={() => toggle(t.id)} className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left">
-                <span className="curate-v2-name">{t.year != null && !t.name.includes(String(t.year)) ? `${t.year} ${t.name}` : t.name}</span>
+                <span className="curate-v2-name">{t.year != null && !t.name.includes(String(t.year)) ? `${t.year} ${listName(t.name)}` : listName(t.name)}</span>
                 <span className="flex-1" />
                 {t.price && (
                   <span className="font-mono text-ui-13 text-tea-text-sec tabular-nums">

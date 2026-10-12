@@ -3,7 +3,7 @@ import { BottomSheet } from './CurateSheet';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { SampleUseLine } from './SampleUseLine';
 import { useSampleUse } from './sampleUse';
-import { FAST_TASTING, applyFast, readFast, type FastQuestion } from './curateV2Model';
+import { FAST_TASTING, applyFast, readFast, type FastQuestion, listName } from './curateV2Model';
 
 interface FastTastingSheetProps {
   entryId: string | null;
@@ -48,7 +48,7 @@ export const FastTastingSheet: React.FC<FastTastingSheetProps> = ({ entryId, onO
   };
 
   return (
-    <BottomSheet open={!!entryId} onOpenChange={onOpenChange} title={entry?.name || 'Fast tasting'} description={notSaved ? 'Fast tasting · kept on this phone, not saved to the shop yet' : 'Fast tasting · saved as you tap'} large>
+    <BottomSheet open={!!entryId} onOpenChange={onOpenChange} title={listName(entry?.name) || 'Fast tasting'} description={notSaved ? 'Fast tasting · kept on this phone, not saved to the shop yet' : 'Fast tasting · saved as you tap'} large>
       <div className="curate-v2 pb-nav-gap">
         <div className="border-b border-tea-border" />
         {entryId && <SampleUseLine entryId={entryId} />}

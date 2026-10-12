@@ -3,6 +3,7 @@ import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompas
 import type { CompassCategory } from './types';
 import { BottomSheet } from './CurateSheet';
 import { SyncIndicator } from './SyncIndicator';
+import { listName } from './curateV2Model';
 
 /** Context chips row at the top of the capture card: Run + Vendor.
  *
@@ -152,7 +153,7 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
                   aria-pressed={isActive}
                   className="curate-v2-sheetrow min-w-0 flex-1 border-b-0"
                 >
-                  <span className="min-w-0 flex-1 truncate">{entry.name || 'Untitled'}</span>
+                  <span className="min-w-0 flex-1 truncate">{listName(entry.name) || 'Untitled'}</span>
                   {isActive && <span className="font-mono text-ui-11 uppercase tracking-[0.16em] text-tea-gold">open</span>}
                 </button>
                 {confirmingDiscardId === entry.id ? (

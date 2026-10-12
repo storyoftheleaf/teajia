@@ -70,6 +70,25 @@ export interface TodaySections {
 }
 
 /** Whole days since an ISO time, or null when it is missing or in the future. */
+/**
+ * A vendor's stock code at the front of a tea's name ("LKY-PE8 Top Aged
+ * Yunnan Pu Erh", "XWT-LB1 Organic Liu Bao") is bookkeeping, not the tea's
+ * name. Lists show the name alone; the code lives inside, on the tea's own
+ * screen. The stored name is never changed, so search still finds "PE8".
+ * A code is letters, a hyphen, then letters and at least one digit, so a
+ * name that merely starts with a hyphenated word is left whole.
+ */
+const STOCK_CODE = /^([A-Z]{2,6}-[A-Z]*\d[A-Z0-9]*)\s+(\S.*)$/;
+export function splitStockCode(name: string | null | undefined): { code: string | null; name: string } {
+  const raw = (name ?? '').trim();
+  const m = raw.match(STOCK_CODE);
+  return m ? { code: m[1], name: m[2] } : { code: null, name: raw };
+}
+/** The name as a list shows it: without a leading stock code. */
+export function listName(name: string | null | undefined): string {
+  return splitStockCode(name).name;
+}
+
 export function daysSince(iso: string | undefined | null, now: number = Date.now()): number | null {
   if (!iso) return null;
   const d = Math.floor((now - new Date(iso).getTime()) / 86_400_000);

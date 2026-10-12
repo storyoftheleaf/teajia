@@ -23,6 +23,7 @@ import { orderLanded, orderMoney } from './curatePricing';
 import { SHOP_ORDERS_KEY, mergeOrders, shopOrderTotals, shopStatusWords, useShopOrders, type ShopOrder } from './shopOrders';
 import { confirmPurchase, purchaseNeedsVendor, recordPurchase } from './placeOrder';
 import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
+import { listName } from './curateV2Model';
 
 // ─── Currency helpers ────────────────────────────────────────────────────────
 
@@ -89,11 +90,11 @@ const LineItemRow: React.FC<{
         </span>
         <div className="min-w-0 flex-1">
           {item.compassEntryId && onOpenEntry ? (
-            <button onClick={() => onOpenEntry(item.compassEntryId!)} className={nameClass}>{item.name || 'Unnamed'}</button>
+            <button onClick={() => onOpenEntry(item.compassEntryId!)} className={nameClass}>{listName(item.name) || 'Unnamed'}</button>
           ) : item.productId ? (
-            <button onClick={() => navigate(`/admin/stock?panel=${encodeURIComponent(item.productId!)}`)} className={nameClass}>{item.name || 'Unnamed'}</button>
+            <button onClick={() => navigate(`/admin/stock?panel=${encodeURIComponent(item.productId!)}`)} className={nameClass}>{listName(item.name) || 'Unnamed'}</button>
           ) : (
-            <p className="curate-v2-name truncate">{item.name || 'Unnamed'}</p>
+            <p className="curate-v2-name truncate">{listName(item.name) || 'Unnamed'}</p>
           )}
           {(item.type || item.form || item.chineseName) && (
             <p className="mt-1 truncate font-mono text-ui-12 tracking-[0.02em] text-tea-text-sec">
@@ -714,8 +715,8 @@ const ShopLine: React.FC<{ item: LedgerLineItem; onOpenEntry?: (entryId: string)
     <div className="border-b border-tea-border px-4 py-3">
       <div className="flex items-baseline justify-between gap-3">
         {item.compassEntryId && onOpenEntry
-          ? <button type="button" onClick={() => onOpenEntry(item.compassEntryId!)} className={`${nameClass} transition-colors hover:text-tea-gold`}>{item.name || 'Unnamed'}</button>
-          : <span className={nameClass}>{item.name || 'Unnamed'}</span>}
+          ? <button type="button" onClick={() => onOpenEntry(item.compassEntryId!)} className={`${nameClass} transition-colors hover:text-tea-gold`}>{listName(item.name) || 'Unnamed'}</button>
+          : <span className={nameClass}>{listName(item.name) || 'Unnamed'}</span>}
         {item.unpriced
           ? <span className="shrink-0 text-ui-13 text-tea-text-sec">no price yet</span>
           : <span className="shrink-0 text-ui-14 font-medium text-tea-text tabular-nums">{fmtPrice(lineTotal(item), item.currency)}</span>}
