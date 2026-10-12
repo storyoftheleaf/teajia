@@ -67,6 +67,20 @@ describe('Compass sync acknowledgements', () => {
     expect(useTeaCompassStore.getState().entries[0]?.name).toBe('');
   });
 
+  it('drops a synced tea the server no longer lists (deleted elsewhere) and keeps one with unsent changes', async () => {
+    useTeaCompassStore.setState({ entries: [
+      { ...entry('deleted-elsewhere'), synced: true, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+      { ...entry('still-here'), synced: true },
+      { ...entry('saved-just-now'), synced: true },
+      { ...entry('unsent-here'), synced: false },
+    ] });
+    listMock.mockResolvedValue({ entries: [{ ...entry('still-here'), photos: '[]', audio_clips: '[]' }] });
+    await hydrateCompassEntries('acct-a');
+    const ids = useTeaCompassStore.getState().entries.map((e) => e.id).sort();
+    // Saved a moment ago and not yet in the list it raced: kept, not blinked out.
+    expect(ids).toEqual(['saved-just-now', 'still-here', 'unsent-here']);
+  });
+
   it('roundtrips private shop and transport fields through the server codec', async () => {
     listMock.mockResolvedValue({ entries: [{ ...entry('sourcing'), shop_name: '惜物堂', transport_mode: 'air', photos: '[]', audio_clips: '[]' }] });
     await hydrateCompassEntries('acct-a');

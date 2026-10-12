@@ -299,6 +299,7 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
   useTeaCompassStore.getState().setHydrationStatus('loading');
 
   try {
+    const listRequestedAt = Date.now();
     const data = await api.compass.list(undefined, BACKGROUND_REQUEST);
     const current = useTeaCompassStore.getState();
     if (current.accountScopeId !== requestedAccountId || current.accountScopeRevision !== requestedRevision) return;
@@ -351,7 +352,19 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
         // Synced locally, prefer server version if it exists (may have newer
         // data), but preserve this device's client-only fields.
         const server = serverEntries.find(s => s.id === local.id);
-        merged.push(server ? withClientFields(server, local) : local);
+        // A synced tea the server no longer lists was deleted, archived or
+        // merged elsewhere (another device, another Curate, an agent): the
+        // list is the account's whole set, unpaged and unfiltered. Keeping the
+        // local copy showed a deleted tea on every device that had seen it.
+        // The server already refuses writes to such a row, so dropping it here
+        // loses nothing; an entry with unsent local changes is kept above.
+        // Only a tea untouched here for a minute before this read began is
+        // dropped: a tea saved moments ago can be missing from a list that was
+        // read just before its save landed, and must not blink out.
+        const touchedAt = new Date(local.updatedAt || local.createdAt).getTime();
+        const recentlyTouched = !Number.isFinite(touchedAt) || touchedAt > listRequestedAt - 60_000;
+        if (server) merged.push(withClientFields(server, local));
+        else if (recentlyTouched) merged.push(local);
       }
     }
 
