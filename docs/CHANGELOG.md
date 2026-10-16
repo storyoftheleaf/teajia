@@ -2,6 +2,10 @@
 
 > Shipped work, newest first. For what's next see `CONSOLIDATED_DIRECTION.md`; active checklists live in `tracks/`.
 
+## Order management update prepared 2026-10-16
+
+- 2026-10-16: **Shipping and payment in one order detail, implemented locally.** Reused the existing cart persistence, invoice number in WhatsApp, customer status link and payment ledger. Sales order details now save shipping charge, destination and tracking inline beside payments, refreshing the balance without closing the order. Blank and negative quotes are refused, explicit zero is preserved, failed saves retain edits, and shipped orders allow tracking corrections without changing the shipping balance. Secondary order metadata is collapsed to keep the mobile screen compact. No payment provider, carrier integration or production deployment was added.
+
 ## 2026-10
 
 - 2026-10-09 — **Curate conditional discounts and contact currency.** Quote headers and the shared quote editor record known or unknown discount thresholds without applying them to stock pricing (migration 0041). Agents can explicitly correct a vendor contact's preferred currency independently of its quoting currency. Tea reads include recent history; ordinary lookup falls back to authorized Curate IDs, and low-stock reads can include separate samples at an explicit gram threshold. Optional photo unlink plus Drive Trash uses one preview with separate recorded outcomes. Current schemas advertise every option in MCP 0.9.0. The designated LKY test backup was independently confirmed in Google Trash through the existing live tool.

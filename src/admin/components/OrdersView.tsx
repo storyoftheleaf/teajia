@@ -18,6 +18,8 @@ import { OrderPayLink, OrderPayRecipientLine, OrderPayCopyButton } from './Order
 import { OrderClaimsFlag, OrderPaymentsPanel } from './OrderPayments';
 import { useAppStore } from '../../lib/store';
 import { SettlementLedger } from './SettlementLedger';
+import { OrderShipping } from './OrderShipping';
+import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 
 const ROW_HEIGHT = 36;
 
@@ -276,8 +278,9 @@ export const OrdersView = () => {
   // three numbers live on the invoice rather than on the payments list. Pull the
   // list again and fold the fresh row into the open modal, keeping the line
   // items already loaded into it.
-  const refreshViewedInvoice = async () => {
+  const refreshViewedInvoice = async (requireFresh = false) => {
     const result = await refetch();
+    if (result.isError && requireFresh) throw new Error('Could not refresh order balance');
     setViewingInvoice((prev) => {
       if (!prev) return prev;
       const fresh = (result.data || []).find((order) => order.id === prev.id);
@@ -840,56 +843,31 @@ export const OrdersView = () => {
       {/* INVOICE DETAILS MODAL */}
       {viewingInvoice && (
         <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-            <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-lg p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
-                <button onClick={() => { setViewingInvoice(null); setInvoiceTimeline([]); }} className="absolute top-6 right-6 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close">
+            <div role="dialog" aria-modal="true" aria-label="Order details" className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-3xl p-4 md:p-6 pb-nav-gap shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+                <button onClick={() => { setViewingInvoice(null); setInvoiceTimeline([]); }} className="absolute top-4 right-4 tap-target text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close">
                     <X size={24} />
                 </button>
 
-                <div className="mb-8">
-                    <h3 className="text-2xl font-serif text-tea-text mb-1">Invoice Details</h3>
+                <div className="mb-4 pr-8">
+                    <h3 className={`${T.h3} text-tea-text mb-1`}>Invoice Details</h3>
                     <p className="text-tea-text-sec text-sm num">{viewingInvoice.invoice_number}</p>
                 </div>
 
-                <div className="space-y-4 mb-8">
-                    <div className="flex justify-between border-b border-tea-border pb-3">
-                        <span className="text-tea-text-sec">Customer</span>
-                        <button
-                          onClick={() => { setViewingInvoice(null); navigate(`/admin/people?search=${encodeURIComponent(viewingInvoice.customer_name || '')}`); }}
-                          className="text-tea-text font-medium hover:text-tea-gold transition-colors"
-                        >
-                          {viewingInvoice.customer_name}
-                        </button>
-                    </div>
-                    <div className="flex justify-between border-b border-tea-border pb-3">
-                        <span className="text-tea-text-sec">Date</span>
-                        <span className="text-tea-text font-medium">{new Date(viewingInvoice.created_at).toLocaleString()}</span>
-                    </div>
-	                    <div className="flex justify-between border-b border-tea-border pb-3">
-	                        <span className="text-tea-text-sec">Status</span>
-	                        <span className={`font-medium ${viewingInvoice.status === 'Void' ? 'text-tea-text-sec' : viewingInvoice.status === 'Pending' ? 'text-tea-gold' : 'text-tea-text'}`}>{viewingInvoice.refund_required ? 'Cancelled, refund needed' : orderStatusLabel(viewingInvoice)}</span>
-	                    </div>
-	                    <div className="flex justify-between border-b border-tea-border pb-3">
-	                        <span className="text-tea-text-sec">Payment</span>
-	                        <span className={`font-medium ${viewingInvoice.payment_status === 'paid' ? 'text-tea-text' : 'text-tea-gold'}`}>
-	                          {paymentLabel(viewingInvoice)}
-	                        </span>
-	                    </div>
-	                    {viewingInvoice.payment_date && (
-	                      <div className="flex justify-between border-b border-tea-border pb-3">
-	                          <span className="text-tea-text-sec">Paid At</span>
-	                          <span className="text-tea-text font-medium">{new Date(viewingInvoice.payment_date).toLocaleString()}</span>
-	                      </div>
-	                    )}
-	                    {viewingInvoice.shipping_destination && <div className="flex justify-between gap-4 border-b border-tea-border pb-3"><span className="text-tea-text-sec">Delivery</span><span className="text-tea-text text-right">{viewingInvoice.shipping_destination}</span></div>}
-	                    {viewingInvoice.tracking_number && <div className="flex justify-between gap-4 border-b border-tea-border pb-3"><span className="text-tea-text-sec">Tracking</span><span className="text-tea-text text-right break-all">{viewingInvoice.tracking_number}</span></div>}
-	                    <div className="flex justify-between border-b border-tea-border pb-3">
-	                        <span className="text-tea-text-sec">Stock State</span>
-	                        <span className={`font-medium ${viewingInvoice.inventory_deducted ? 'text-tea-text' : 'text-tea-gold'}`}>{stockLabel(viewingInvoice)}</span>
-	                    </div>
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mb-4 text-ui-13">
+                  <button
+                    type="button"
+                    onClick={() => { setViewingInvoice(null); navigate(`/admin/people?search=${encodeURIComponent(viewingInvoice.customer_name || '')}`); }}
+                    className="tap-target min-w-0 break-words text-tea-text font-medium hover:text-tea-gold transition-colors"
+                  >{viewingInvoice.customer_name}</button>
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-tea-text-sec">
+                    <span>{orderStatusLabel(viewingInvoice)}</span>
+                    <span>{paymentLabel(viewingInvoice)}</span>
+                  </div>
                 </div>
 
-                {activeAccountId && <OrderAttribution invoiceId={viewingInvoice.id} accountId={activeAccountId} />}
-
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-y border-tea-border py-4 mb-5">
+                  <OrderShipping key={viewingInvoice.id} order={viewingInvoice} onChanged={() => refreshViewedInvoice(true)} />
+                  <div className="min-w-0">
                 <OrderPayLink
                   payment={viewingInvoice.payment}
                   invoiceNumber={viewingInvoice.invoice_number}
@@ -911,8 +889,20 @@ export const OrdersView = () => {
                   invoiceNumber={viewingInvoice.invoice_number}
                   payment={viewingInvoice.payment}
                   onChanged={() => { void refreshViewedInvoice(); }}
-                  className="mb-6"
+                  className="mb-0"
                 />
+                  </div>
+                </div>
+
+                <details className="mb-4">
+                  <summary className="tap-target cursor-pointer text-ui-13 text-tea-text-sec">Order history and attribution</summary>
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 my-3 text-ui-13 text-tea-text-sec">
+                    <div><dt>Created</dt><dd>{new Date(viewingInvoice.created_at).toLocaleString()}</dd></div>
+                    {viewingInvoice.payment_date && <div><dt>Paid at</dt><dd>{new Date(viewingInvoice.payment_date).toLocaleString()}</dd></div>}
+                    <div><dt>Stock</dt><dd>{stockLabel(viewingInvoice)}</dd></div>
+                  </dl>
+                  {activeAccountId && <OrderAttribution invoiceId={viewingInvoice.id} accountId={activeAccountId} />}
+                </details>
 
                 {viewingInvoice.stock_exception && viewingInvoice.payment_status === 'paid' && <div role="alert" className="mb-6 rounded-md border border-tea-border bg-tea-surface p-4 space-y-2">
                   <p className="text-ui-14 text-tea-text">Payment is recorded, but stock deduction needs attention. Do not ship yet.</p>
