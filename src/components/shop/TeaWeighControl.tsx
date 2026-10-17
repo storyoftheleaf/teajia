@@ -75,7 +75,9 @@ export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart
   const stepClass = 'relative inline-flex h-6 w-6 before:absolute before:-inset-2.5 before:content-[\'\'] items-center justify-center rounded border border-tea-border text-ui-14 leading-none transition-colors disabled:cursor-default disabled:opacity-40 focus-visible:outline focus-visible:outline-tea-gold';
 
   return (
-    <div className="flex w-[116px] flex-col items-stretch gap-1.5">
+    // 100px on a phone, just over what its widest line (the steps either side of
+    // Weigh) needs, so the name beside it gets the rest of the row.
+    <div className="flex w-[100px] flex-col items-stretch gap-1.5 sm:w-[116px]">
       <button
         type="button"
         disabled={!onAddToCart}
