@@ -11,7 +11,8 @@ import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useAuth } from '../../hooks/useAuth';
 import { selectHasBundle, useAppStore } from '../../lib/store';
 
-import { api, setToken, hydrateAccountStateFromToken, isTokenScopedToAccount, API_URL, clearPendingSignup, restorePendingSignup, type PendingSignup } from '../../lib/api';
+import { api, hydrateAccountStateFromToken, isTokenScopedToAccount } from '../../lib/api';
+import { authPagePath, authReturnTo } from '../../lib/authNavigation';
 import { fetchStoreEvents } from '../../lib/storefrontApi';
 import { hydrateTastingJournal } from '../../lib/tastingJournalSync';
 import type { Currency } from '../../admin/types';
@@ -67,37 +68,6 @@ function getRoleBadgeLabel(role: string | undefined, platformRole: string | null
 
 const AVATAR_KEY = 'teajia_avatar_data_url';
 
-// Continue-with-Google. Links straight to the worker's OAuth start endpoint
-// with ?return so the callback lands the customer back on the homepage (the
-// public app picks up #oauth_token on load and reopens this panel). The button
-// only renders when OAuth is configured server-side; if it isn't, the worker
-// would 503, so we hide it unless an API base URL is present.
-const GoogleAuthButton: React.FC = () => {
-  if (!API_URL) return null;
-  const returnTo = encodeURIComponent('/?account=1');
-  return (
-    <div className="mt-1">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex-1 h-px bg-tea-border" />
-        <span className="text-ui-11 uppercase tracking-[0.22em] text-tea-text-dim">Or</span>
-        <div className="flex-1 h-px bg-tea-border" />
-      </div>
-      <a
-        href={`${API_URL}/api/auth/google?return=${returnTo}`}
-        className="w-full flex items-center justify-center gap-3 py-3 bg-tea-surface rounded-md border border-tea-border text-tea-text-sec text-ui-14 hover:text-tea-text hover:bg-tea-elevated transition-colors"
-      >
-        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-          <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4" />
-          <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853" />
-          <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05" />
-          <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335" />
-        </svg>
-        Continue with Google
-      </a>
-    </div>
-  );
-};
-
 const Separator: React.FC = () => (
   <div className="h-px bg-tea-border" />
 );
@@ -144,7 +114,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
 
   const VALID_VIEWS: PanelView[] = ['main', 'location-switcher', 'events', 'signin', 'signup', 'journal', 'cellar'];
   const [panelView, setPanelViewRaw] = useState<PanelView>(() => {
-    if (initialView && VALID_VIEWS.includes(initialView)) return initialView;
+    if (initialView && initialView !== 'signin' && initialView !== 'signup' && VALID_VIEWS.includes(initialView)) return initialView;
     try {
       const saved = localStorage.getItem(STORAGE_KEY) as PanelView | null;
       if (saved && PERSISTABLE_VIEWS.includes(saved)) return saved;
@@ -153,6 +123,15 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
   });
 
   const setPanelView = (view: PanelView) => {
+    if (view === 'signin' || view === 'signup') {
+      const params = new URLSearchParams(location.search);
+      if (location.pathname !== '/account') params.set('account', '1');
+      const search = params.toString();
+      const returnTo = authReturnTo(`${location.pathname}${search ? `?${search}` : ''}${location.hash}`);
+      onClose();
+      navigate(authPagePath(view, returnTo));
+      return;
+    }
     const safeView = VALID_VIEWS.includes(view) ? view : 'main';
     setPanelViewRaw(safeView);
     try {
@@ -162,52 +141,12 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
     } catch {}
   };
 
-  // Auth form state
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [username, setUsername] = useState('');
-  const [signinIdentifier, setSigninIdentifier] = useState('');
-  const [formError, setFormError] = useState('');
-  const [formLoading, setFormLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [pendingSignup, setPendingSignup] = useState<PendingSignup | null>(() => restorePendingSignup());
-  const [verificationCode, setVerificationCode] = useState('');
-  const [isEditingSignup, setIsEditingSignup] = useState(false);
-  const [verificationExpired, setVerificationExpired] = useState(() => Boolean(pendingSignup && pendingSignup.expiresAt <= Date.now()));
-  const [verificationFailures, setVerificationFailures] = useState(0);
-
+  // Compatibility for old commands that opened an auth view in the panel.
   useEffect(() => {
-    if (!pendingSignup) return;
-    const remaining = pendingSignup.expiresAt - Date.now();
-    if (remaining <= 0) {
-      setVerificationExpired(true);
-    } else {
-      setVerificationExpired(false);
-    }
-    const expiryTimer = remaining > 0 ? window.setTimeout(() => {
-      setVerificationExpired(true);
-    }, remaining) : undefined;
-    const recoveryTimer = window.setTimeout(() => {
-      clearPendingSignup();
-      setPendingSignup(null);
-      setVerificationCode('');
-    }, Math.max(0, pendingSignup.recoverableUntil - Date.now()));
-    return () => {
-      if (expiryTimer) window.clearTimeout(expiryTimer);
-      window.clearTimeout(recoveryTimer);
-    };
-  }, [pendingSignup]);
-
-  // Change password state
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
-
-  // Edit profile state
-  const [editName, setEditName] = useState('');
-  const [editEmail, setEditEmail] = useState('');
-  const [editUsername, setEditUsername] = useState('');
+    if (initialView === 'signin' || initialView === 'signup') setPanelView(initialView);
+    // The entry location is captured before navigation closes this panel.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialView]);
 
   // Location switch state
   const [switchingTo, setSwitchingTo] = useState<string | null>(null);
@@ -287,7 +226,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
       if (e.key === 'Escape') {
         if (panelView !== 'main') {
           setPanelView('main');
-          resetForm();
           setLocationSearch('');
         } else {
           onClose();
@@ -297,14 +235,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose, panelView]);
-
-  const resetForm = () => {
-    setEmail(''); setPassword(''); setName(''); setUsername('');
-    setSigninIdentifier(''); setFormError(''); setFormLoading(false);
-    setShowPassword(false); setCurrentPassword(''); setNewPassword('');
-    setConfirmNewPassword(''); setEditName(''); setEditEmail(''); setEditUsername('');
-    setPendingSignup(restorePendingSignup()); setVerificationCode(''); setIsEditingSignup(false);
-  };
 
   // ── Location switch ──────────────────────────────────────────────────────────
   const handleSwitchLocation = async (membership: AccountMembership) => {
@@ -342,118 +272,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
     }
   };
 
-  // ── Auth handlers ──────────────────────────────────────────────────────────
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError('');
-    setFormLoading(true);
-    try {
-      await auth.login(signinIdentifier.trim(), password);
-      resetForm();
-      setPanelView('main');
-    } catch (err: any) {
-      setFormError(err.message || 'Sign in failed. Please check your credentials.');
-    } finally {
-      setFormLoading(false);
-    }
-  };
-
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError('');
-    if (password.length < 6) { setFormError('Password must be at least 6 characters.'); return; }
-    setFormLoading(true);
-    try {
-      const pending = await auth.signup(email, password, name, username.trim() || null);
-      setPendingSignup(pending);
-      setVerificationCode('');
-      setIsEditingSignup(false);
-      setVerificationFailures(0);
-    } catch (err: any) {
-      setFormError(err.message || 'Account creation failed. Please try again.');
-    } finally {
-      setFormLoading(false);
-    }
-  };
-
-  const handleVerifySignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!pendingSignup || verificationCode.length !== 6 || verificationExpired || verificationFailures >= 3) return;
-    setFormError('');
-    setFormLoading(true);
-    try {
-      await auth.verifySignup(pendingSignup, verificationCode);
-      resetForm();
-      setPanelView('main');
-    } catch (err: any) {
-      setVerificationFailures(count => count + 1);
-      setFormError(err.message || 'Verification failed. Check the code and try again.');
-    } finally {
-      setFormLoading(false);
-    }
-  };
-
-  const handleResendSignup = async () => {
-    if (!pendingSignup) return;
-    setFormError('');
-    setFormLoading(true);
-    try {
-      const rotated = await auth.resendSignup(pendingSignup);
-      setPendingSignup(rotated);
-      setVerificationCode('');
-      setVerificationFailures(0);
-      setVerificationExpired(false);
-    } catch (err: any) {
-      setFormError(err.message || 'A new code could not be sent. Please try again.');
-    } finally {
-      setFormLoading(false);
-    }
-  };
-
   const handleSignOut = () => { auth.logout(); };
-
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError('');
-    if (newPassword.length < 6) { setFormError('New password must be at least 6 characters.'); return; }
-    if (newPassword !== confirmNewPassword) { setFormError('New passwords do not match.'); return; }
-    setFormLoading(true);
-    try {
-      await api.auth.changePassword(currentPassword, newPassword);
-      resetForm();
-      setPanelView('main');
-    } catch (err: any) {
-      setFormError(err.message || 'Failed to change password.');
-    } finally {
-      setFormLoading(false);
-    }
-  };
-
-  const handleEditProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError('');
-    setFormLoading(true);
-    try {
-      const updates: { name?: string; email?: string; username?: string | null } = {};
-      if (editName && editName !== auth.user?.name) updates.name = editName;
-      if (editEmail && editEmail !== auth.user?.email) updates.email = editEmail;
-      const trimmedUsername = editUsername.trim();
-      const currentUsername = auth.user?.username ?? '';
-      if (trimmedUsername !== currentUsername) {
-        updates.username = trimmedUsername === '' ? null : trimmedUsername;
-      }
-      if (Object.keys(updates).length === 0) { setFormError('No changes to save.'); setFormLoading(false); return; }
-      const result = await api.auth.updateProfile(updates);
-      if (result.token) setToken(result.token);
-      await auth.checkSession();
-      resetForm();
-      setPanelView('main');
-    } catch (err: any) {
-      setFormError(err.message || 'Failed to update profile.');
-    } finally {
-      setFormLoading(false);
-    }
-  };
 
   const getInitials = (nameStr: string) =>
     nameStr.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -778,31 +597,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
     );
   };
 
-  const FormError: React.FC = () =>
-    formError ? (
-      <div role="alert" className="flex items-start gap-2 p-3 bg-tea-error/10 ring-1 ring-inset ring-tea-error/40 rounded-md text-tea-error text-ui-13">
-        <Icons.AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-        <span>{formError}</span>
-      </div>
-    ) : null;
-
-  const SubmitButton: React.FC<{ label: string; disabled?: boolean }> = ({ label, disabled }) => (
-    <button
-      type="submit"
-      disabled={formLoading || disabled}
-      className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-    >
-      {formLoading
-        ? <Loader2 size={13} className="animate-spin" />
-        : null}
-      {label}
-    </button>
-  );
-
-  const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors";
-  const inputStyle: React.CSSProperties = {};
-  const labelClass = "block text-ui-11 uppercase tracking-[1.2px] text-tea-text-sec mb-1.5";
-
   return (
     <>
       {/* Backdrop */}
@@ -848,7 +642,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
             </button>
             {isSubView && (
               <button
-                onClick={() => { setPanelView('main'); resetForm(); setLocationSearch(''); }}
+                onClick={() => { setPanelView('main'); setLocationSearch(''); }}
                 className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5 text-tea-text-sec hover:text-tea-text active:scale-95 transition-[color,transform] duration-150"
                 aria-label="Back"
               >
@@ -903,187 +697,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
             transition={{ duration: 0.12, ease: 'easeOut' }}
             className={`relative z-10 w-full mx-auto ${panelColumn}`}
           >
-
-            {/* ══════════════════════════════════════════════════════════════
-                SIGN IN VIEW (inline, no navigation away)
-            ══════════════════════════════════════════════════════════════ */}
-            {panelView === 'signin' && (
-              <div className="px-6 pt-10 pb-6 space-y-5">
-                <div>
-                  <h2 className="h2">Welcome back.</h2>
-                  <p className="text-ui-13 text-tea-text-sec mt-1.5">Sign in to your Teajia account.</p>
-                </div>
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <FormError />
-                  <div>
-                    <label className={labelClass}>Email or username</label>
-                    <input
-                      type="text"
-                      value={signinIdentifier}
-                      onChange={e => setSigninIdentifier(e.target.value)}
-                      autoFocus
-                      required
-                      placeholder="email or username"
-                      className={inputClass}
-                      style={inputStyle}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Password</label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        required
-                        placeholder="••••••••"
-                        className={inputClass + ' pr-11'}
-                        style={inputStyle}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(v => !v)}
-                        className="tap-target absolute right-3 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text-sec transition-colors"
-                        tabIndex={-1}
-                      >
-                        {showPassword ? <Icons.EyeSlash className="w-4 h-4" /> : <Icons.Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                  <SubmitButton label="Sign In" />
-                </form>
-                <GoogleAuthButton />
-                <div className="text-center">
-                  <button
-                    onClick={() => { resetForm(); setPanelView('signup'); }}
-                    className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors py-2 -my-2"
-                  >
-                    No account? <span className="underline underline-offset-2">Create one</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* ══════════════════════════════════════════════════════════════
-                SIGN UP VIEW (inline)
-            ══════════════════════════════════════════════════════════════ */}
-            {panelView === 'signup' && (
-              <div className="px-6 pt-10 pb-6 space-y-5">
-                {pendingSignup && !isEditingSignup ? (
-                  <>
-                    <div>
-                      <h2 className="h2">Check your email.</h2>
-                      <p id="panel-signup-code-help" className="text-ui-13 text-tea-text-sec mt-1.5">
-                        Enter the six-digit code sent to <span className="text-tea-text">{pendingSignup.email}</span>.
-                      </p>
-                    </div>
-                    <form onSubmit={handleVerifySignup} className="space-y-4">
-                      <FormError />
-                      {(verificationExpired || verificationFailures >= 3) && (
-                        <p aria-live="polite" className="text-ui-12 text-tea-text-sec">
-                          {verificationExpired ? 'This code expired.' : 'That code can no longer be tried.'} Request a new code to continue.
-                        </p>
-                      )}
-                      <div>
-                        <label htmlFor="panel-signup-verification-code" className={labelClass}>Verification code</label>
-                        <input
-                          id="panel-signup-verification-code"
-                          type="text"
-                          value={verificationCode}
-                          onChange={e => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                          inputMode="numeric"
-                          autoComplete="one-time-code"
-                          pattern="[0-9]{6}"
-                          maxLength={6}
-                          aria-describedby="panel-signup-code-help"
-                          autoFocus
-                          required
-                          className={`${inputClass} text-center tracking-[0.35em]`}
-                          style={inputStyle}
-                        />
-                      </div>
-                      <SubmitButton
-                        label={formLoading ? 'Verifying…' : 'Verify Email'}
-                        disabled={verificationCode.length !== 6 || verificationExpired || verificationFailures >= 3}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => void handleResendSignup()}
-                        disabled={formLoading}
-                        className="w-full py-2 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
-                      >
-                        Resend code
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setEmail(pendingSignup.email); setIsEditingSignup(true); setFormError(''); }}
-                        className="w-full py-2 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
-                      >
-                        Edit email
-                      </button>
-                    </form>
-                  </>
-                ) : (
-                  <>
-                    <div>
-                      <h2 className="h2">Join Teajia.</h2>
-                      <p className="text-ui-13 text-tea-text-sec mt-1.5">Create your account to track teas, journal sessions, and more.</p>
-                    </div>
-                    <form onSubmit={handleSignUp} className="space-y-4">
-                      <FormError />
-                  <div>
-                    <label className={labelClass}>Name</label>
-                    <input type="text" value={name} onChange={e => setName(e.target.value)} required autoFocus placeholder="your name" className={inputClass} style={inputStyle} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Email</label>
-                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="your email" className={inputClass} style={inputStyle} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Username <span className="text-tea-text-dim normal-case tracking-normal">(optional)</span></label>
-                    <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="teaenthusiast" className={inputClass} style={inputStyle} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Password</label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        required
-                        placeholder="Min. 6 characters"
-                        className={inputClass + ' pr-11'}
-                        style={inputStyle}
-                      />
-                      <button type="button" onClick={() => setShowPassword(v => !v)} className="tap-target absolute right-3 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text-sec transition-colors" tabIndex={-1}>
-                        {showPassword ? <Icons.EyeSlash className="w-4 h-4" /> : <Icons.Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                      <SubmitButton label="Create Account" />
-                    </form>
-                    <GoogleAuthButton />
-                    <div className="text-center">
-                      {pendingSignup && isEditingSignup && (
-                        <button
-                          type="button"
-                          onClick={() => { setIsEditingSignup(false); setFormError(''); }}
-                          className="block w-full mb-4 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
-                        >
-                          Back to verification
-                        </button>
-                      )}
-                      <button
-                        onClick={() => { resetForm(); setPanelView('signin'); }}
-                        className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors py-2 -my-2"
-                      >
-                        Already have an account? <span className="underline underline-offset-2">Sign in</span>
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
 
             {/* ══════════════════════════════════════════════════════════════
                 EVENTS VIEW, inline sessions listing

@@ -61,6 +61,8 @@ A visitor on `/store/teajia-bali` will never see Australia stock. There is **no 
 
 #### Auth Flow
 
+All entries use `/signin` for Google, password and email code. `src/lib/authNavigation.ts` validates a local `returnTo` and defaults to `/account`; signup preserves the same destination. `useAuth` establishes every new session through one boundary. Google carries the final destination inside the shared sign-in URL, with its token only in the fragment, so page anchors are preserved. The account panel, events and admin delegate to that page instead of maintaining forms. Event reservations keep a tab-local draft during the round trip; admin retains full routes and pending consent requests.
+
 1. `POST /api/auth/login` returns JWT with claims: `{ sub, email, name, memberships: [{account_id, role, slug, name}], active_account_id, iat, exp }`
 2. Client persists token, reads `memberships` + `active_account_id` via `hydrateAccountStateFromToken()` into Zustand
 3. Every authenticated request sends header **`X-Teajia-Account: <account_id>`**

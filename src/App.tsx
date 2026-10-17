@@ -168,7 +168,8 @@ import { LEARN_STORIES } from './constants';
 import { Story, ContentType, ViewState, Person, InventoryItem, Section } from './types';
 import type { Account, DbArticle } from './types';
 import { useAppStore } from './lib/store';
-import { api, setToken, hydrateAccountStateFromToken } from './lib/api';
+import { api } from './lib/api';
+import { authPagePath } from './lib/authNavigation';
 import { classifyIncident } from './lib/incidents';
 import { currentHostStoreSlug } from './lib/storeHost';
 import {
@@ -274,7 +275,7 @@ const AppContent = () => {
     setIsPublicCartOpen: setIsCartOpen,
     shopStoreSlug,
   } = useAppStore();
-  const { isAdmin, isAuthenticated, isSessionReady, checkSession } = useAuth();
+  const { isAdmin, isAuthenticated, isSessionReady, completeSignIn } = useAuth();
   const syncEnabled = isAuthenticated && isSessionReady;
   useFavoritesSync(syncEnabled);
   useOfflineSync(syncEnabled);
@@ -821,10 +822,9 @@ const AppContent = () => {
     return () => window.removeEventListener('open-account-panel', handler);
   }, []);
 
-  // Google OAuth return, the worker redirects customers back here to
-  // /?account=1 with the JWT in the URL hash (#oauth_token=...) on success, or
-  // ?oauth_error=... on failure. Pick it up on load, hydrate the session, and
-  // reopen the account panel so they see they're signed in.
+  // Google returns to /signin with the final destination in returnTo and
+  // its token in the fragment. The canonical page completes navigation after
+  // this shared session boundary; legacy ?account=1 links still reopen the panel.
   useEffect(() => {
     const hash = window.location.hash;
     const params = new URLSearchParams(window.location.search);
@@ -832,10 +832,8 @@ const AppContent = () => {
     if (hash.includes('oauth_token=')) {
       const oauthToken = new URLSearchParams(hash.slice(1)).get('oauth_token');
       if (oauthToken) {
-        setToken(oauthToken);
-        hydrateAccountStateFromToken();
-        void checkSession();
-        setShowAccountModal(true);
+        completeSignIn(oauthToken);
+        if (params.get('account') === '1') setShowAccountModal(true);
         // Strip the token from the URL so it isn't left in history/shareable.
         params.delete('account');
         const search = params.toString();
@@ -854,24 +852,29 @@ const AppContent = () => {
         account_error: 'Could not create or link your account.',
       };
       showToast(messages[oauthError] || 'Google sign-in failed. Please try again.', 5000);
-      setShowAccountModal(true);
-      setAccountInitialView('signin');
+      setShowAccountModal(false);
       params.delete('oauth_error');
       params.delete('account');
       const search = params.toString();
-      window.history.replaceState(null, '', window.location.pathname + (search ? `?${search}` : ''));
+      const cleanedPath = window.location.pathname + (search ? `?${search}` : '');
+      navigate(window.location.pathname === '/signin' ? cleanedPath : authPagePath('signin', cleanedPath), { replace: true });
       return;
     }
 
-    // Plain ?account=1 (no OAuth payload), also a request to open the panel.
-    if (params.get('account') === '1') {
-      setShowAccountModal(true);
-      params.delete('account');
-      const search = params.toString();
-      window.history.replaceState(null, '', window.location.pathname + (search ? `?${search}` : ''));
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Returning from the shared form is client-side navigation too. Consume
+  // the panel request on route changes, retaining the page's own anchor.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('account') !== '1') return;
+    setAccountInitialView(undefined);
+    setShowAccountModal(true);
+    params.delete('account');
+    const search = params.toString();
+    navigate(window.location.pathname + (search ? `?${search}` : '') + window.location.hash, { replace: true });
+  }, [location.pathname, location.search, navigate]);
 
   const handleCloseCart = () => {
     setIsCartOpen(false);

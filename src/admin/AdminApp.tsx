@@ -10,10 +10,10 @@ import {
   isConfigured,
   hasToken,
   clearToken,
-  setToken,
   getTokenClaims,
   isTokenExpired,
   SESSION_EXPIRED_EVENT,
+  AUTH_TOKEN_CHANGED_EVENT,
   ACCOUNT_MISMATCH_EVENT,
   hydrateAccountStateFromToken,
   ensureTokenRefreshed,
@@ -21,6 +21,8 @@ import {
   api,
 } from '../lib/api';
 import { Product } from './types';
+import { authPagePath } from '../lib/authNavigation';
+import { adminAuthReturnTo } from './authNavigation';
 
 import { useProducts, useRates } from './hooks/useAdminData';
 import { eventsListQueryOptions } from './hooks/useEventData';
@@ -95,7 +97,6 @@ import { WholesaleOrderTimeline } from './views/WholesaleOrderTimeline';
 import { AdoptionQueue } from './views/AdoptionQueue';
 
 // Import Modals
-import { AuthModal } from './components/AuthModal';
 import { CsvImportModal } from './components/CsvImportModal';
 import { AddToCartModal } from './components/AddToCartModal';
 import { AddProductModal } from './components/AddProductModal';
@@ -230,18 +231,16 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
     memberships, activeAccountId, clearAccountState, platformRole,
   } = useAppStore();
 
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    // Grab token from Google OAuth redirect (#oauth_token=...) before first render
-    const hash = window.location.hash;
-    if (hash.includes('oauth_token=')) {
-      const oauthToken = new URLSearchParams(hash.slice(1)).get('oauth_token');
-      if (oauthToken) {
-        setToken(oauthToken);
-        window.history.replaceState(null, '', window.location.pathname + window.location.search);
-      }
-    }
-    return hasToken();
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState(hasToken);
+
+  // The app shell completes OAuth; stay in sync when it installs the token
+  // after this admin component's first render, and when a session is cleared.
+  useEffect(() => {
+    const syncAuthentication = () => setIsAuthenticated(hasToken());
+    window.addEventListener(AUTH_TOKEN_CHANGED_EVENT, syncAuthentication);
+    syncAuthentication();
+    return () => window.removeEventListener(AUTH_TOKEN_CHANGED_EVENT, syncAuthentication);
+  }, []);
   // currencyOpen state removed, currency selector moved to InventoryView options menu
 
   const claims = getTokenClaims();
@@ -277,7 +276,6 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
     const handleSessionExpired = () => {
       clearAccountState();
       setIsAuthenticated(false);
-      setIsLoginOpen(true);
     };
     const handleAccountMismatch = () => {
       // Re-hydrate from JWT; if membership really is gone, user lands on the gate.
@@ -290,27 +288,6 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
       window.removeEventListener(ACCOUNT_MISMATCH_EVENT, handleAccountMismatch);
     };
   }, [clearAccountState]);
-
-  // Handle Google OAuth error redirects (?oauth_error=...)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const oauthError = params.get('oauth_error');
-    if (oauthError) {
-      const messages: Record<string, string> = {
-        access_denied: 'Google sign-in was cancelled.',
-        invalid_state: 'Sign-in session expired. Please try again.',
-        token_exchange_failed: 'Could not complete Google sign-in. Please try again.',
-        userinfo_failed: 'Could not retrieve your Google profile.',
-        account_error: 'Could not create or link your account.',
-      };
-      showToast(messages[oauthError] || 'Google sign-in failed. Please try again.', 'error');
-      setIsLoginOpen(true);
-      params.delete('oauth_error');
-      const newSearch = params.toString();
-      window.history.replaceState(null, '', window.location.pathname + (newSearch ? `?${newSearch}` : ''));
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Hydrate account state from JWT on mount (and whenever auth changes)
   useEffect(() => {
@@ -337,7 +314,6 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
           clearAccountState();
           if (!cancelled) {
             setIsAuthenticated(false);
-            setIsLoginOpen(true);
           }
         } else if (!cancelled) {
           hydrateAccountStateFromToken();
@@ -363,7 +339,6 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   }, []);
 
   // Modals
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -404,21 +379,20 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   const loading = productsLoading;
   const activeMembership = memberships.find((m) => m.account_id === activeAccountId);
 
-  // Redirect when entering admin at root, or prompt login if not authenticated.
-  // A short delay lets Zustand persist middleware finish rehydrating isDevAdmin
-  // from localStorage before we evaluate isLoggedIn, preventing a false-negative
-  // that would skip the login modal on fresh visits.
+  // Every admin entry and expired session uses the same sign-in page. Keep
+  // filters, anchors, and pending consent requests attached to the return trip.
   useEffect(() => {
     const timer = setTimeout(() => {
       if (isLocalTeaReferenceReview) return;
-      if (isLoggedIn && location.pathname === '/admin') {
-        navigate('/admin/compass');
+      if (isLoggedIn && (location.pathname === '/admin' || location.pathname === '/admin/')) {
+        const returnTo = adminAuthReturnTo(location);
+        navigate(returnTo === location.pathname + location.search + location.hash ? '/admin/compass' : returnTo, { replace: true });
       } else if (!isLoggedIn && location.pathname.startsWith('/admin')) {
-        navigate('/signin', { state: { from: location.pathname } });
+        navigate(authPagePath('signin', adminAuthReturnTo(location)), { replace: true });
       }
     }, 0);
     return () => clearTimeout(timer);
-  }, [isLocalTeaReferenceReview, isLoggedIn, navigate, location.pathname]);
+  }, [isLocalTeaReferenceReview, isLoggedIn, navigate, location.pathname, location.search, location.hash]);
 
   // Close registry drawer when navigating to a different route
   useEffect(() => {
@@ -532,19 +506,19 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
 
         <div className={`flex-1 relative min-h-0 ${isOnInventory || isOnCapture || isOnIntake ? 'overflow-hidden' : 'overflow-y-auto pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0'}`}>
           <Routes>
-              <Route path="/" element={<Navigate to="compass" replace />} />
+              <Route path="/" element={null} />
               <Route path="home" element={<Navigate to="../compass" replace />} />
 
               {/* Member tools, all authenticated members */}
               <Route path="compass" element={
-                <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}>
+                <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={!isLoggedIn}>
                   <PageTransition>
                     <CompassWithMode onBack={() => navigate(-1)} />
                   </PageTransition>
                 </ProtectedRoute>
               } />
               <Route path="compass/v2" element={
-                <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}>
+                <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={!isLoggedIn}>
                   <PageTransition>
                     <CurateV2WithMode onBack={() => navigate(-1)} />
                   </PageTransition>
@@ -552,21 +526,21 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               } />
               <Route path="curate/v2" element={<Navigate to={`/admin/compass/v2${location.search}`} replace />} />
               <Route path="compass-playbook" element={
-                <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}>
+                <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={!isLoggedIn}>
                   <PageTransition>
                     <CompassWithMode onBack={() => navigate(-1)} />
                   </PageTransition>
                 </ProtectedRoute>
               } />
               <Route path="compass-current" element={
-                <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}>
+                <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={!isLoggedIn}>
                   <PageTransition>
                     <CompassWithMode onBack={() => navigate(-1)} />
                   </PageTransition>
                 </ProtectedRoute>
               } />
               <Route path="capture" element={
-                <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}>
+                <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={!isLoggedIn}>
                   <PageTransition>
                     <DraftsView
                       products={products}
@@ -581,27 +555,27 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               } />
 
               {/* Member tools, events + samples open to all members */}
-              <Route path="events" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventsManager /></PageTransition></ProtectedRoute>} />
-              <Route path="events/:id" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventDetail /></PageTransition></ProtectedRoute>} />
-              <Route path="tasting-events" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TastingEventsList /></PageTransition></ProtectedRoute>} />
-              <Route path="tasting-events/new" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TastingEventForm /></PageTransition></ProtectedRoute>} />
-              <Route path="tasting-events/:sessionId" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TastingControlRoom /></PageTransition></ProtectedRoute>} />
-              <Route path="tasting-events/:sessionId/live" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TastingControlRoom /></PageTransition></ProtectedRoute>} />
-              <Route path="venues" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><VenueManager /></PageTransition></ProtectedRoute>} />
+              <Route path="events" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={!isLoggedIn}><PageTransition><EventsManager /></PageTransition></ProtectedRoute>} />
+              <Route path="events/:id" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={!isLoggedIn}><PageTransition><EventDetail /></PageTransition></ProtectedRoute>} />
+              <Route path="tasting-events" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={!isLoggedIn}><PageTransition><TastingEventsList /></PageTransition></ProtectedRoute>} />
+              <Route path="tasting-events/new" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={!isLoggedIn}><PageTransition><TastingEventForm /></PageTransition></ProtectedRoute>} />
+              <Route path="tasting-events/:sessionId" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={!isLoggedIn}><PageTransition><TastingControlRoom /></PageTransition></ProtectedRoute>} />
+              <Route path="tasting-events/:sessionId/live" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={!isLoggedIn}><PageTransition><TastingControlRoom /></PageTransition></ProtectedRoute>} />
+              <Route path="venues" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={!isLoggedIn}><PageTransition><VenueManager /></PageTransition></ProtectedRoute>} />
               <Route path="samples" element={<Navigate to={`/admin/compass?sampleOrder=manage${location.search ? `&${location.search.slice(1)}` : ''}`} replace />} />
 
               {/* Operations: staff, admin, owner */}
-              <Route path="activity" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ActivityView products={products} /></PageTransition></ProtectedRoute>} />
+              <Route path="activity" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={!isLoggedIn}><PageTransition><ActivityView products={products} /></PageTransition></ProtectedRoute>} />
               <Route path="activity-logs" element={<Navigate to="/admin/activity?tab=log" replace />} />
-              <Route path="people" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PeopleView userRole={userRole || 'user'} /></PageTransition></ProtectedRoute>} />
-              <Route path="people/:customerId" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CustomerProfilePage /></PageTransition></ProtectedRoute>} />
+              <Route path="people" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={!isLoggedIn}><PageTransition><PeopleView userRole={userRole || 'user'} /></PageTransition></ProtectedRoute>} />
+              <Route path="people/:customerId" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={!isLoggedIn}><PageTransition><CustomerProfilePage /></PageTransition></ProtectedRoute>} />
               {/* Tags are one tab of People; the standalone page was a second door to the same screen. */}
               <Route path="contact-tags" element={<Navigate to="/admin/people?tab=tags" replace />} />
 
               {/* Management: admin, owner. Canonical route is /admin/stock;
                   /admin/inventory redirects to it (query string preserved for ?panel= deep links). */}
               <Route path="stock" element={
-                <ProtectedRoute hasAccess={canManageInventory} isLoggingIn={isLoginOpen || !isLoggedIn}>
+                <ProtectedRoute hasAccess={canManageInventory} isLoggingIn={!isLoggedIn}>
                   <PageTransition>
                     <InventoryView
                       products={products}
@@ -623,14 +597,14 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                 </ProtectedRoute>
               } />
               <Route path="inventory" element={<Navigate to={`/admin/stock${location.search}`} replace />} />
-              <Route path="intake" element={<ProtectedRoute hasAccess={canManageInventory} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><IntakeWorkspace onRefresh={refetchProducts} rates={rates} /></PageTransition></ProtectedRoute>} />
-              <Route path="dashboard" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
-              <Route path="vendors/:vendorId" element={<ProtectedRoute hasAccess={canManageInventory} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><VendorProfileView /></PageTransition></ProtectedRoute>} />
-              <Route path="products/:id/story" element={<ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ProductStoryView /></PageTransition></ProtectedRoute>} />
+              <Route path="intake" element={<ProtectedRoute hasAccess={canManageInventory} isLoggingIn={!isLoggedIn}><PageTransition><IntakeWorkspace onRefresh={refetchProducts} rates={rates} /></PageTransition></ProtectedRoute>} />
+              <Route path="dashboard" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={!isLoggedIn}><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
+              <Route path="vendors/:vendorId" element={<ProtectedRoute hasAccess={canManageInventory} isLoggingIn={!isLoggedIn}><PageTransition><VendorProfileView /></PageTransition></ProtectedRoute>} />
+              <Route path="products/:id/story" element={<ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={!isLoggedIn}><PageTransition><ProductStoryView /></PageTransition></ProtectedRoute>} />
               {/* Purchases live in Curate (bringing tea in) and the audit in Settings
                   since 2026-09-29; both were People tabs. Same gates as before. */}
-              <Route path="purchase-orders" element={<ProtectedRoute hasAccess={isOwnerTier || hasStockBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PurchaseOrdersPage /></PageTransition></ProtectedRoute>} />
-              <Route path="audit" element={<ProtectedRoute hasAccess={isOwnerTier || hasMembersBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PeopleAuditView /></PageTransition></ProtectedRoute>} />
+              <Route path="purchase-orders" element={<ProtectedRoute hasAccess={isOwnerTier || hasStockBundle} isLoggingIn={!isLoggedIn}><PageTransition><PurchaseOrdersPage /></PageTransition></ProtectedRoute>} />
+              <Route path="audit" element={<ProtectedRoute hasAccess={isOwnerTier || hasMembersBundle} isLoggingIn={!isLoggedIn}><PageTransition><PeopleAuditView /></PageTransition></ProtectedRoute>} />
               <Route path="team" element={<Navigate to="/admin/access" replace />} />
               {/* The Manage list calls this room Members, so /admin/members is a
                   natural address to type. The page lives at /admin/access. */}
@@ -641,41 +615,41 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                   page it shared a component with is untouched. Anyone holding the old
                   link lands on the checklist that reads live data instead. */}
               <Route path="launch-playbook" element={<Navigate to="/admin/account-settings" replace />} />
-              <Route path="access" element={<ProtectedRoute hasAccess={hasMembersBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccessView /></PageTransition></ProtectedRoute>} />
-              <Route path="access/platform" element={<ProtectedRoute hasAccess={!!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAccessView /></PageTransition></ProtectedRoute>} />
-              <Route path="currency" element={<ProtectedRoute hasAccess={!!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CurrencyRatesView /></PageTransition></ProtectedRoute>} />
-              <Route path="mcp-tokens" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><MCPTokensView /></PageTransition></ProtectedRoute>} />
-              <Route path="oauth-consent" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><OAuthConsentView /></PageTransition></ProtectedRoute>} />
-              <Route path="oauth-consent/:requestId" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><OAuthConsentView /></PageTransition></ProtectedRoute>} />
-              <Route path="tasting-notes" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CustomerNotesView /></PageTransition></ProtectedRoute>} />
-              <Route path="wisdom" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WisdomView /></PageTransition></ProtectedRoute>} />
+              <Route path="access" element={<ProtectedRoute hasAccess={hasMembersBundle} isLoggingIn={!isLoggedIn}><PageTransition><AccessView /></PageTransition></ProtectedRoute>} />
+              <Route path="access/platform" element={<ProtectedRoute hasAccess={!!platformRole} isLoggingIn={!isLoggedIn}><PageTransition><PlatformAccessView /></PageTransition></ProtectedRoute>} />
+              <Route path="currency" element={<ProtectedRoute hasAccess={!!platformRole} isLoggingIn={!isLoggedIn}><PageTransition><CurrencyRatesView /></PageTransition></ProtectedRoute>} />
+              <Route path="mcp-tokens" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={!isLoggedIn}><PageTransition><MCPTokensView /></PageTransition></ProtectedRoute>} />
+              <Route path="oauth-consent" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={!isLoggedIn}><PageTransition><OAuthConsentView /></PageTransition></ProtectedRoute>} />
+              <Route path="oauth-consent/:requestId" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={!isLoggedIn}><PageTransition><OAuthConsentView /></PageTransition></ProtectedRoute>} />
+              <Route path="tasting-notes" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={!isLoggedIn}><PageTransition><CustomerNotesView /></PageTransition></ProtectedRoute>} />
+              <Route path="wisdom" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={!isLoggedIn}><PageTransition><WisdomView /></PageTransition></ProtectedRoute>} />
               {/* Network hub, single page with tabbed surfaces */}
-              <Route path="network" element={<ProtectedRoute hasAccess={canUseNetwork} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><NetworkLanding /></PageTransition></ProtectedRoute>} />
+              <Route path="network" element={<ProtectedRoute hasAccess={canUseNetwork} isLoggingIn={!isLoggedIn}><PageTransition><NetworkLanding /></PageTransition></ProtectedRoute>} />
               {/* Legacy destination routes redirect into the hub with their tab */}
               <Route path="network/catalog" element={<Navigate to="/admin/network?tab=catalog" replace />} />
               <Route path="network/suggestions" element={<Navigate to="/admin/network?tab=suggestions" replace />} />
               <Route path="network/wholesale" element={<Navigate to="/admin/network?tab=wholesale" replace />} />
               <Route path="network/adoptions" element={<Navigate to="/admin/network?tab=adoptions" replace />} />
               {/* Deep sub-pages keep their own URLs */}
-              <Route path="network/listings/:listingId" element={<ProtectedRoute hasAccess={canUseNetwork} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PartnerListingEdit /></PageTransition></ProtectedRoute>} />
-              <Route path="network/wholesale/new" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WholesaleOrderDraft /></PageTransition></ProtectedRoute>} />
-              <Route path="network/wholesale/:orderId" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WholesaleOrderDraft /></PageTransition></ProtectedRoute>} />
-              <Route path="network/wholesale/:orderId/timeline" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WholesaleOrderTimeline /></PageTransition></ProtectedRoute>} />
-              <Route path="account-settings" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccountSettingsView /></PageTransition></ProtectedRoute>} />
-              <Route path="platform" element={<ProtectedRoute hasAccess={!!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAdminView /></PageTransition></ProtectedRoute>} />
-              <Route path="platform/audit-log" element={<ProtectedRoute hasAccess={!!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAuditLogPage /></PageTransition></ProtectedRoute>} />
-              <Route path="platform/all-stock" element={<ProtectedRoute hasAccess={!!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><MovementStockView /></PageTransition></ProtectedRoute>} />
-              <Route path="magazine" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><MagazineView /></PageTransition></ProtectedRoute>} />
-              <Route path="contributors" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ContributorsView /></PageTransition></ProtectedRoute>} />
-              <Route path="collections" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CollectionsView /></PageTransition></ProtectedRoute>} />
-              <Route path="collections/inbound/:pubId" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><InboundCollectionView /></PageTransition></ProtectedRoute>} />
-              <Route path="collections/:id" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CollectionEditView /></PageTransition></ProtectedRoute>} />
+              <Route path="network/listings/:listingId" element={<ProtectedRoute hasAccess={canUseNetwork} isLoggingIn={!isLoggedIn}><PageTransition><PartnerListingEdit /></PageTransition></ProtectedRoute>} />
+              <Route path="network/wholesale/new" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={!isLoggedIn}><PageTransition><WholesaleOrderDraft /></PageTransition></ProtectedRoute>} />
+              <Route path="network/wholesale/:orderId" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={!isLoggedIn}><PageTransition><WholesaleOrderDraft /></PageTransition></ProtectedRoute>} />
+              <Route path="network/wholesale/:orderId/timeline" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={!isLoggedIn}><PageTransition><WholesaleOrderTimeline /></PageTransition></ProtectedRoute>} />
+              <Route path="account-settings" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={!isLoggedIn}><PageTransition><AccountSettingsView /></PageTransition></ProtectedRoute>} />
+              <Route path="platform" element={<ProtectedRoute hasAccess={!!platformRole} isLoggingIn={!isLoggedIn}><PageTransition><PlatformAdminView /></PageTransition></ProtectedRoute>} />
+              <Route path="platform/audit-log" element={<ProtectedRoute hasAccess={!!platformRole} isLoggingIn={!isLoggedIn}><PageTransition><PlatformAuditLogPage /></PageTransition></ProtectedRoute>} />
+              <Route path="platform/all-stock" element={<ProtectedRoute hasAccess={!!platformRole} isLoggingIn={!isLoggedIn}><PageTransition><MovementStockView /></PageTransition></ProtectedRoute>} />
+              <Route path="magazine" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={!isLoggedIn}><PageTransition><MagazineView /></PageTransition></ProtectedRoute>} />
+              <Route path="contributors" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={!isLoggedIn}><PageTransition><ContributorsView /></PageTransition></ProtectedRoute>} />
+              <Route path="collections" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={!isLoggedIn}><PageTransition><CollectionsView /></PageTransition></ProtectedRoute>} />
+              <Route path="collections/inbound/:pubId" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={!isLoggedIn}><PageTransition><InboundCollectionView /></PageTransition></ProtectedRoute>} />
+              <Route path="collections/:id" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={!isLoggedIn}><PageTransition><CollectionEditView /></PageTransition></ProtectedRoute>} />
 
               {/* Legacy routes, redirect to new unified views */}
               <Route path="catalog" element={
                 activeMembership?.is_platform_account
                   ? <Navigate to="/admin/stock" replace />
-                  : <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CatalogView /></PageTransition></ProtectedRoute>
+                  : <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={!isLoggedIn}><PageTransition><CatalogView /></PageTransition></ProtectedRoute>
               } />
               <Route path="teaware" element={<Navigate to="/admin/stock" replace />} />
               <Route path="personal" element={<Navigate to="/admin/stock" replace />} />
@@ -720,7 +694,6 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
           rates={rates}
         />
 
-        <AuthModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onAuthSuccess={() => { hydrateAccountStateFromToken(); setIsAuthenticated(true); refetchProducts(); refetchRates(); }} />
         <CsvImportModal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} onComplete={refetchProducts} />
 
         <AddProductModal

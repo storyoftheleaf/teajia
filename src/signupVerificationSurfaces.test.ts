@@ -6,8 +6,6 @@ const source = (path: string) => readFileSync(new URL(path, import.meta.url), 'u
 describe('signup verification surfaces', () => {
   it.each([
     ['./pages/SignUpPage.tsx', 'standalone signup page'],
-    ['./components/AccountPanel/index.tsx', 'account panel'],
-    ['./admin/components/AuthModal.tsx', 'admin auth modal'],
   ])('%s renders an accessible six-digit verification step with a safe edit action', (path) => {
     const text = source(path);
     expect(text).toContain('pendingSignup');
@@ -19,11 +17,6 @@ describe('signup verification surfaces', () => {
     expect(text).toContain('Resend code');
     expect(text).toContain('restorePendingSignup');
     expect(text).toMatch(/role="alert"|aria-live="polite"/);
-  });
-
-  it('resets the admin modal to sign-in after successful authentication', () => {
-    const text = source('./admin/components/AuthModal.tsx');
-    expect(text).toMatch(/setMode\('login'\);\s*resetForm\(\);\s*onAuthSuccess/);
   });
 
   it('clears persisted signup authority only after verification succeeds', () => {

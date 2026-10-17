@@ -1,3 +1,4 @@
+import { authPagePath } from '../lib/authNavigation';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -305,7 +306,7 @@ const TableCardPage: React.FC = () => {
               </Link>
             ) : (
               <Link
-                to="/signin"
+                to={authPagePath('signin', window.location.pathname + window.location.search + window.location.hash)}
                 className="block text-xs uppercase tracking-[0.2em] text-tea-text-dim hover:text-tea-gold transition-colors"
               >
                 Add to your compass

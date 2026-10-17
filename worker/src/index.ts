@@ -1,5 +1,6 @@
 import { promoteCompassEntry, CompassPromotionError } from './curatePromotion';
 import { applySupplierRename, listSupplierFreight, previewSupplierRename, SupplierRenameRefusal } from './supplierRename';
+import { authPagePath } from '../../src/lib/authNavigation';
 import {
   mcpFetch, publicMcpFetch, mcpAdminMintToken, mcpAdminListTokens, mcpAdminRevokeToken,
   oauthProtectedResourceMetadata, oauthAuthorizationServerMetadata,
@@ -464,9 +465,9 @@ async function maybeIssueRefreshedToken(
 
 // ── Google OAuth state helpers ──
 // State = hex_timestamp.hex_returnpath.hmac_sig — verifiable without
-// server-side storage. The return path lets a customer who started the flow
-// from the public account panel land back there instead of /admin. The path is
-// inside the signed payload so it can't be tampered with on the round-trip.
+// server-side storage. The shared sign-in page carries the final destination
+// inside its query. Signing the whole path protects that destination on the
+// round-trip without putting an original page fragment beside the OAuth token.
 function toHex(s: string): string {
   return Array.from(new TextEncoder().encode(s)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
@@ -476,7 +477,7 @@ function fromHex(hex: string): string {
   return new TextDecoder().decode(bytes);
 }
 
-async function signOAuthState(secret: string, returnPath = '/admin'): Promise<string> {
+async function signOAuthState(secret: string, returnPath = '/signin'): Promise<string> {
   const ts = Date.now().toString(16);
   const ret = toHex(returnPath);
   const payload = `${ts}.${ret}`;
@@ -506,12 +507,12 @@ async function verifyOAuthState(state: string, secret: string): Promise<string |
   const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
   const expectedSig = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
   if (expectedSig !== givenSig) return null;
-  // Only allow same-origin relative paths; reject anything that could be an
-  // open redirect (must start with a single '/').
+  // Normalize older signed direct-return paths through shared sign-in too;
+  // its destination validator permits only same-origin relative paths.
   let path: string;
   try { path = fromHex(ret); } catch { return null; }
-  if (!path.startsWith('/') || path.startsWith('//')) return '/admin';
-  return path;
+  if (path.startsWith('/curate-drive|')) return path;
+  return googleSignInPath(path);
 }
 
 // ── Multi-account helpers ──
@@ -2051,14 +2052,16 @@ const handleGetMe: Handler = async (request, env) => {
 
   // Try to fetch fresh user data from DB
   try {
-    const user = await env.DB.prepare('SELECT id, email, username, name, role, phone, admin_request_status, created_at, can_create_collections, password_hash FROM users WHERE id = ?').bind(claims.sub).first();
+    const user = await env.DB.prepare('SELECT id, email, username, name, role, phone, admin_request_status, created_at, can_create_collections, password_hash, google_id, email_verified_at FROM users WHERE id = ?').bind(claims.sub).first();
     if (user) {
       // Never expose the hash itself — only whether one exists, so the
       // settings UI can offer "Set password" to Google-linked accounts.
-      const { password_hash, ...safe } = user as Record<string, unknown>;
+      const { password_hash, google_id, email_verified_at, ...safe } = user as Record<string, unknown>;
       return json({
         ...safe,
-        has_password: typeof password_hash === 'string' && (password_hash as string).length > 0,
+        has_password: typeof password_hash === 'string' && password_hash.length > 0,
+        google_connected: typeof google_id === 'string' && google_id.length > 0,
+        email_verified: typeof email_verified_at === 'string' && email_verified_at.length > 0,
         ...(refreshedToken ? { refreshed_token: refreshedToken } : {}),
       });
     }
@@ -2513,14 +2516,25 @@ const handleResetPassword: Handler = async (request, env) => {
 };
 
 // ── Google OAuth ──
+// Both current sign-in entries and older direct-return links finish through
+// the same page. The final page (including any fragment) stays query-encoded.
+function googleSignInPath(returnPath: unknown): string {
+  if (typeof returnPath === 'string' && returnPath.startsWith('/') && !/[\\\u0000-\u0020\u007f]/.test(returnPath)) {
+    try {
+      const url = new URL(returnPath, 'https://teajia.com');
+      if (url.origin === 'https://teajia.com' && url.pathname === '/signin') {
+        return authPagePath('signin', url.searchParams.get('returnTo'));
+      }
+    } catch { /* The shared destination validator handles invalid paths. */ }
+  }
+  return authPagePath('signin', returnPath);
+}
+
 const handleGoogleAuth: Handler = async (request, env) => {
   if (!env.GOOGLE_CLIENT_ID) return json({ error: 'Google OAuth not configured' }, 503);
   const url = new URL(request.url);
   const origin = url.origin;
-  // Where to land after sign-in. Defaults to /admin (staff login). The public
-  // account panel passes ?return=/ so customers come back to the site.
-  const rawReturn = url.searchParams.get('return') || '/admin';
-  const returnPath = rawReturn.startsWith('/') && !rawReturn.startsWith('//') ? rawReturn : '/admin';
+  const returnPath = googleSignInPath(url.searchParams.get('return'));
   // Pin the redirect_uri to the Google-registered host. Using the raw inbound
   // `origin` makes requests routed through another host send an unregistered
   // redirect_uri, which Google rejects with `redirect_uri_mismatch`.
@@ -2550,17 +2564,25 @@ const handleGoogleCallback: Handler = async (request, env) => {
   const state = url.searchParams.get('state');
   const errorParam = url.searchParams.get('error');
 
-  if (errorParam) return Response.redirect(`${appOrigin}/admin?oauth_error=${encodeURIComponent(errorParam)}`, 302);
-  if (!code || !state) return Response.redirect(`${appOrigin}/admin?oauth_error=missing_params`, 302);
-  // verifyOAuthState returns the signed return path (or null when invalid).
-  // From here on, errors and success land the user back where they started.
+  const errorRedirect = (path: string, error: string) => {
+    const destination = new URL(path, appOrigin);
+    destination.searchParams.set('oauth_error', error);
+    return Response.redirect(destination.toString(), 302);
+  };
+  if (!state) return errorRedirect('/signin', 'missing_params');
+  // Cancellation is a callback too: only a verified state may carry a return.
   const returnPath = await verifyOAuthState(state, env.JWT_SECRET);
-  if (!returnPath) return Response.redirect(`${appOrigin}/admin?oauth_error=invalid_state`, 302);
-  // Connecting the shop's Google Drive comes back through this same registered
-  // callback; its signed state says whose shop and where to land.
-  if (returnPath.startsWith('/curate-drive|')) return finishDriveConnect(request, env, code, returnPath);
-  const sep = returnPath.includes('?') ? '&' : '?';
-  const errRedirect = (e: string) => Response.redirect(`${appOrigin}${returnPath}${sep}oauth_error=${e}`, 302);
+  if (!returnPath) return errorRedirect('/signin', 'invalid_state');
+  // The shop's Drive connection shares Google's registered callback, but
+  // its signed marker represents consent for a shop, not a person signing in.
+  if (returnPath.startsWith('/curate-drive|')) {
+    if (errorParam) return errorRedirect('/admin', errorParam);
+    if (!code) return errorRedirect('/admin', 'missing_params');
+    return finishDriveConnect(request, env, code, returnPath);
+  }
+  const errRedirect = (error: string) => errorRedirect(returnPath, error);
+  if (errorParam) return errRedirect(errorParam);
+  if (!code) return errRedirect('missing_params');
 
   // Must be byte-for-byte identical to the redirect_uri sent in handleGoogleAuth
   // (Google rejects the token exchange otherwise), so resolve it the same way.
@@ -2625,7 +2647,9 @@ const handleGoogleCallback: Handler = async (request, env) => {
     session_version: Number(user.session_version || 0),
   });
 
-  return Response.redirect(`${appOrigin}${returnPath}#oauth_token=${token}`, 302);
+  const destination = new URL(returnPath, appOrigin);
+  destination.hash = new URLSearchParams({ oauth_token: token }).toString();
+  return Response.redirect(destination.toString(), 302);
 };
 
 const handleGetProducts: Handler = async (request, env) => {

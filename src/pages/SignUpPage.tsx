@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { authPagePath, authReturnTo } from '../lib/authNavigation';
 import { Icons } from '../components/Icons';
 import { API_URL, clearPendingSignup, restorePendingSignup, type PendingSignup } from '../lib/api';
 
@@ -13,10 +14,7 @@ export default function SignUpPage() {
   const navigate = useNavigate();
   const auth = useAuth();
   const [searchParams] = useSearchParams();
-  const returnTo = searchParams.get('returnTo');
-  const safeReturnTo = returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')
-    ? returnTo
-    : undefined;
+  const destination = authReturnTo(searchParams.get('returnTo'));
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -84,7 +82,7 @@ export default function SignUpPage() {
         localStorage.setItem('teajia_contact_platform', contactPlatform);
         if (contactPhone.trim()) localStorage.setItem('teajia_contact_phone', contactPhone.trim());
       }
-      navigate(safeReturnTo ?? -1 as any);
+      navigate(destination, { replace: true });
     } catch (err: unknown) {
       setVerificationFailures(count => count + 1);
       setError((err as Error)?.message || 'Verification failed. Check the code and try again.');
@@ -197,7 +195,7 @@ export default function SignUpPage() {
       {API_URL && (
         <div className="mb-6">
           <a
-            href={`${API_URL}/api/auth/google?return=${encodeURIComponent(safeReturnTo ?? '/?account=1')}`}
+            href={`${API_URL}/api/auth/google?return=${encodeURIComponent(authPagePath('signin', destination))}`}
             className="w-full flex items-center justify-center gap-3 py-3 bg-tea-surface rounded-md border border-tea-border text-tea-text text-ui-14 hover:bg-tea-elevated transition-colors"
           >
             <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
@@ -365,7 +363,7 @@ export default function SignUpPage() {
           </button>
         )}
         <button
-          onClick={() => navigate(safeReturnTo ? `/signin?returnTo=${encodeURIComponent(safeReturnTo)}` : '/signin')}
+          onClick={() => navigate(authPagePath('signin', destination))}
           className="link-text hover:opacity-80 transition-opacity"
         >
           Already have an account? Sign in

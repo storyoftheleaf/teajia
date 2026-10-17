@@ -230,11 +230,9 @@ test.describe('Account Panel — mobile audit', () => {
     // Guest — no injected token
     await goto(page, '/');
     await openPanel(page);
-    // Scope to inside the panel to avoid matching bottom-nav Account button
-    const panel = page.locator('.fixed.top-0.right-0').first();
-    const btn = panel.locator('button', { hasText: /^Sign In$/ }).first();
-    if (await btn.count() > 0) await btn.click();
-    await page.waitForTimeout(400);
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await expect(page).toHaveURL(/\/signin\?returnTo=/);
+    await expect(page.getByLabel('Email or Username')).toBeVisible();
     await shot(page, '06-signin-form');
     const ov = await overflow(page);
     expect(ov.has, `Sign-in form overflow +${ov.extra}px`).toBe(false);
@@ -243,10 +241,9 @@ test.describe('Account Panel — mobile audit', () => {
   test('Create Account form: renders on mobile (guest)', async ({ page }) => {
     await goto(page, '/');
     await openPanel(page);
-    const panel = page.locator('.fixed.top-0.right-0').first();
-    const btn = panel.locator('button', { hasText: /^Create Account$/ }).first();
-    if (await btn.count() > 0) await btn.click();
-    await page.waitForTimeout(400);
+    await page.getByRole('button', { name: 'Create an account', exact: true }).click();
+    await expect(page).toHaveURL(/\/signup\?returnTo=/);
+    await expect(page.getByRole('heading', { name: 'Join Teajia', exact: true })).toBeVisible();
     await shot(page, '07-create-account-form');
     const ov = await overflow(page);
     expect(ov.has, `Create account form overflow +${ov.extra}px`).toBe(false);

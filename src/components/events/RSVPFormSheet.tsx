@@ -1,7 +1,9 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { X, Plus, Trash2, LogIn } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, API_URL } from '../../lib/api';
+import { api } from '../../lib/api';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { authPagePath } from '../../lib/authNavigation';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useAuth } from '../../hooks/useAuth';
@@ -15,7 +17,25 @@ interface RSVPFormSheetProps {
 }
 
 const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLocationCountry, requiresApproval = true }) => {
-  const { user, isAuthenticated, login } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const draftKey = `teajia_rsvp_draft_${slug}`;
+  const [draft] = useState<{
+    formData: RSVPFormData; countryCode: string; localPhone: string;
+  } | null>(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(draftKey) ?? 'null');
+      return saved && typeof saved.formData?.fullName === 'string' &&
+        ['whatsapp', 'email'].includes(saved.formData.contactMethod) &&
+        typeof saved.countryCode === 'string' && typeof saved.localPhone === 'string'
+        ? saved : null;
+    } catch { return null; }
+  });
+  // This draft only bridges the trip through sign-in in the current tab.
+  useEffect(() => {
+    try { sessionStorage.removeItem(draftKey); } catch { /* private mode */ }
+  }, [draftKey]);
   const queryClient = useQueryClient();
   useScrollLock(true);
 
@@ -30,10 +50,10 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
   const savedPhone = parseSavedPhone(user?.phone);
   const defaultContact = (user?.phone) ? 'whatsapp' : user ? 'email' : 'whatsapp';
 
-  const [countryCode, setCountryCode] = useState(savedPhone.dialCode);
-  const [localPhone, setLocalPhone] = useState(savedPhone.local);
+  const [countryCode, setCountryCode] = useState(draft?.countryCode || savedPhone.dialCode);
+  const [localPhone, setLocalPhone] = useState(draft?.localPhone || savedPhone.local);
 
-  const [formData, setFormData] = useState<RSVPFormData>(() => ({
+  const [formData, setFormData] = useState<RSVPFormData>(() => draft?.formData ?? ({
     fullName: user?.name ?? '',
     phoneNumber: '',
     email: user?.email ?? '',
@@ -49,10 +69,13 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
         ...prev,
         fullName: prev.fullName || user.name,
         email: prev.email || user.email,
-        contactMethod: prev.contactMethod === 'whatsapp' && !prev.phoneNumber ? 'email' : prev.contactMethod,
+        contactMethod: prev.contactMethod === 'whatsapp' && !prev.phoneNumber && !user.phone ? 'email' : prev.contactMethod,
       }));
+      const phone = parseSavedPhone(user.phone);
+      setCountryCode(prev => prev || phone.dialCode);
+      setLocalPhone(prev => prev || phone.local);
     }
-  }, [user?.email]);
+  }, [user?.email, user?.phone]);
 
   // Sync combined phone number whenever parts change
   useEffect(() => {
@@ -77,13 +100,6 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
     sheetRef.current = node;
     (focusTrapRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
   }, [focusTrapRef]);
-
-  // Inline sign-in state
-  const [showLoginForm, setShowLoginForm] = useState(false);
-  const [loginIdentifier, setLoginIdentifier] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
-  const [loginPending, setLoginPending] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -174,18 +190,13 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
     updateField('guests', guests);
   };
 
-  const handleInlineLogin = async (e: { preventDefault: () => void }) => {
-    e.preventDefault();
-    setLoginError('');
-    setLoginPending(true);
+  const handleSignIn = () => {
     try {
-      await login(loginIdentifier, loginPassword);
-      setShowLoginForm(false);
-    } catch {
-      setLoginError('Incorrect email or password.');
-    } finally {
-      setLoginPending(false);
-    }
+      sessionStorage.setItem(draftKey, JSON.stringify({ formData, countryCode, localPhone }));
+    } catch { /* Sign-in remains available when storage is unavailable. */ }
+    const params = new URLSearchParams(location.search);
+    params.set('rsvp', '1');
+    navigate(authPagePath('signin', `${location.pathname}?${params}${location.hash}`));
   };
 
   const contactValue =
@@ -295,81 +306,10 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                     Signed in as <span className="text-tea-text">{user.name}</span>
                   </p>
                 </div>
-              ) : showLoginForm ? (
-                <div className="border border-tea-border rounded-md p-4 space-y-3 animate-[fadeIn_0.2s_ease-out]">
-                  <p className="label-caps">Sign in to your account</p>
-                  <input
-                    type="text"
-                    value={loginIdentifier}
-                    onChange={(e) => setLoginIdentifier(e.target.value)}
-                    placeholder="Email or username"
-                    autoComplete="username"
-                    className={inputClass}
-                  />
-                  <input
-                    type="password"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        // Prevent the outer RSVP form from submitting; run the
-                        // inline login instead.
-                        e.preventDefault();
-                        if (loginIdentifier && loginPassword && !loginPending) {
-                          handleInlineLogin(e);
-                        }
-                      }
-                    }}
-                    placeholder="Password"
-                    autoComplete="current-password"
-                    className={inputClass}
-                  />
-                  {loginError && (
-                    <p className="text-ui-12 text-tea-error">{loginError}</p>
-                  )}
-                  <div className="flex items-center justify-between gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setShowLoginForm(false)}
-                      className="px-3 py-2 text-xs font-semibold text-tea-text-sec hover:text-tea-text transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleInlineLogin}
-                      disabled={loginPending || !loginIdentifier || !loginPassword}
-                      className="inline-flex items-center justify-center px-4 py-2 rounded-md cta-solid text-xs font-semibold disabled:opacity-50 transition-colors"
-                    >
-                      {loginPending ? 'Signing in…' : 'Sign in'}
-                    </button>
-                  </div>
-                  {API_URL && (
-                    <div className="pt-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="flex-1 h-px bg-tea-border" />
-                        <span className="text-ui-11 uppercase tracking-[0.22em] text-tea-text-dim">Or</span>
-                        <div className="flex-1 h-px bg-tea-border" />
-                      </div>
-                      <a
-                        href={`${API_URL}/api/auth/google?return=${encodeURIComponent(window.location.pathname + window.location.search)}`}
-                        className="w-full flex items-center justify-center gap-3 py-2.5 bg-tea-surface rounded-md border border-tea-border text-tea-text-sec text-ui-14 hover:text-tea-text hover:bg-tea-elevated transition-colors"
-                      >
-                        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-                          <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4" />
-                          <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853" />
-                          <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05" />
-                          <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335" />
-                        </svg>
-                        Continue with Google
-                      </a>
-                    </div>
-                  )}
-                </div>
               ) : (
                 <button
                   type="button"
-                  onClick={() => setShowLoginForm(true)}
+                  onClick={handleSignIn}
                   className="inline-flex items-center gap-2 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
                 >
                   <LogIn className="w-3.5 h-3.5" />

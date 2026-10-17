@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { authPagePath } from '../lib/authNavigation';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
@@ -6,27 +7,28 @@ import { api, setToken } from '../lib/api';
 import { ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
 import { Icons } from '../components/Icons';
 import { useTheme } from '../context/ThemeContext';
+import { TYPOGRAPHY_CLASSES } from '../designTokens';
 
-const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors";
+const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 min-h-11 py-2 text-ui-16 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors";
 const labelClass = "block label-caps text-tea-text-sec mb-1.5";
 const helperClass = "text-ui-12 text-tea-text-dim mt-1";
 
 function FormError({ error }: { error: string }) {
   if (!error) return null;
   return (
-    <div className="flex items-start gap-2 p-3 bg-tea-error/10 ring-1 ring-inset ring-tea-error/40 rounded-md text-tea-error text-ui-13">
+    <div role="alert" className="flex items-start gap-2 p-3 bg-tea-error/10 ring-1 ring-inset ring-tea-error/40 rounded-md text-tea-error text-ui-13">
       <AlertCircle size={16} className="mt-0.5 shrink-0" />
       <span>{error}</span>
     </div>
   );
 }
 
-function PrimarySubmit({ label, loading }: { label: string; loading: boolean }) {
+function PrimarySubmit({ label, loading, disabled = false }: { label: string; loading: boolean; disabled?: boolean }) {
   return (
     <button
       type="submit"
-      disabled={loading}
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      disabled={loading || disabled}
+      className="tap-target inline-flex min-h-11 items-center gap-1.5 px-4 py-2 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
     >
       {loading ? <Loader2 size={13} className="animate-spin" /> : null}
       {label}
@@ -57,15 +59,31 @@ export default function AccountSettingsPage() {
   const [passwordError, setPasswordError] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordSaved, setPasswordSaved] = useState(false);
-  // Google-linked accounts have no password yet, the form becomes "Set
-  // password" (no current-password field). Default true so an existing
-  // password is never changeable without the current one while /me loads.
-  const [hasPassword, setHasPassword] = useState(true);
+  const securityQuery = useQuery({
+    queryKey: ['account', 'sign-in-methods', auth.user?.email],
+    queryFn: api.auth.me,
+    enabled: auth.isAuthenticated,
+    retry: false,
+  });
+  const [passwordWasSet, setPasswordWasSet] = useState(false);
+  const hasPassword = passwordWasSet ? true : typeof securityQuery.data?.has_password === 'boolean' ? securityQuery.data.has_password : null;
+  const unknownStatus = securityQuery.isPending ? 'Checking…' : 'Status unavailable';
+  const googleConnected = typeof securityQuery.data?.google_connected === 'boolean' ? securityQuery.data.google_connected : null;
+  const emailVerified = typeof securityQuery.data?.email_verified === 'boolean' ? securityQuery.data.email_verified : null;
+  const touchedFields = useRef(new Set<string>());
+  const [profileBaseline, setProfileBaseline] = useState({
+    name: auth.user?.name || '', email: auth.user?.email || '', username: auth.user?.username || '', phone: auth.user?.phone || '',
+  });
   useEffect(() => {
-    api.auth.me()
-      .then((me: any) => { if (typeof me?.has_password === 'boolean') setHasPassword(me.has_password); })
-      .catch(() => { /* keep the safe default */ });
-  }, []);
+    const next = { name: auth.user?.name || '', email: auth.user?.email || '', username: auth.user?.username || '', phone: auth.user?.phone || '' };
+    if (!touchedFields.current.has('name')) setEditName(next.name);
+    if (!touchedFields.current.has('email')) setEditEmail(next.email);
+    if (!touchedFields.current.has('username')) setEditUsername(next.username);
+    if (!touchedFields.current.has('phone')) setEditPhone(next.phone);
+    setProfileBaseline(next);
+  }, [auth.user?.name, auth.user?.email, auth.user?.username, auth.user?.phone]);
+  const edited = (field: string) => { touchedFields.current.add(field); setProfileSaved(false); };
+  const profileChanged = editName !== profileBaseline.name || editEmail !== profileBaseline.email || editUsername.trim() !== profileBaseline.username || editPhone.trim() !== profileBaseline.phone;
 
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deletePassword, setDeletePassword] = useState('');
@@ -79,25 +97,25 @@ export default function AccountSettingsPage() {
     setProfileLoading(true);
     try {
       const updates: { name?: string; email?: string; username?: string | null; phone?: string } = {};
-      if (editName && editName !== auth.user?.name) updates.name = editName;
-      if (editEmail && editEmail !== auth.user?.email) updates.email = editEmail;
+      if (editName && editName !== profileBaseline.name) updates.name = editName;
+      if (editEmail && editEmail !== profileBaseline.email) updates.email = editEmail;
       const trimmedUsername = editUsername.trim();
-      const currentUsername = auth.user?.username ?? '';
+      const currentUsername = profileBaseline.username;
       if (trimmedUsername !== currentUsername) {
         updates.username = trimmedUsername === '' ? null : trimmedUsername;
       }
       const trimmedPhone = editPhone.trim();
-      if (trimmedPhone !== (auth.user?.phone ?? '')) updates.phone = trimmedPhone;
+      if (trimmedPhone !== profileBaseline.phone) updates.phone = trimmedPhone;
       if (Object.keys(updates).length === 0) {
-        setProfileError('No changes to save.');
-        setProfileLoading(false);
         return;
       }
       const result = await api.auth.updateProfile(updates);
       if (result.token) setToken(result.token);
+      setProfileBaseline({ name: editName, email: editEmail, username: trimmedUsername, phone: trimmedPhone });
+      touchedFields.current.clear();
       await auth.checkSession();
       setProfileSaved(true);
-      setTimeout(() => setProfileSaved(false), 3000);
+
     } catch (err: unknown) {
       setProfileError((err as Error)?.message || 'Failed to update profile.');
     } finally {
@@ -135,7 +153,7 @@ export default function AccountSettingsPage() {
       setNewPassword('');
       setConfirmNewPassword('');
       setPasswordSaved(true);
-      setHasPassword(true);
+      setPasswordWasSet(true);
       setTimeout(() => setPasswordSaved(false), 3000);
     } catch (err: unknown) {
       setPasswordError((err as Error)?.message || 'Failed to change password.');
@@ -150,8 +168,8 @@ export default function AccountSettingsPage() {
         <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
           <p className="text-ui-13 text-tea-text-sec mb-4">You need to be signed in to access account settings.</p>
           <button
-            onClick={() => navigate('/signin')}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+            onClick={() => navigate(authPagePath('signin', '/account/settings'))}
+            className="tap-target inline-flex min-h-11 items-center gap-1.5 px-4 py-2 rounded-md cta-solid text-xs font-semibold transition-colors"
           >
             Sign in
           </button>
@@ -160,285 +178,97 @@ export default function AccountSettingsPage() {
     );
   }
 
-  const initials = (auth.user?.name || auth.user?.email || '?').slice(0, 2).toUpperCase();
-
   return (
-    <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3 pb-nav-gap space-y-8">
-      {/* Back */}
-      <button
-        onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
-        aria-label="Back"
-      >
-        <ArrowLeft size={14} />
-        <span className="text-ui-12">Back</span>
+    <div className="max-w-5xl mx-auto px-4 md:px-6 pt-4 pb-nav-gap">
+      <button onClick={() => navigate(-1)} className="tap-target inline-flex min-h-11 items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Back">
+        <ArrowLeft size={14} /> Back
       </button>
-
-      {/* Header */}
-      <div>
-        {/* "Profile" since 2026-09-29: the Your Table tile has one name, and
-            "settings" is only ever the shop's, in Manage. */}
-        <h1 className="h2">Profile</h1>
-        <p className="label-caps text-tea-text-dim mt-1">Name · Sign-in · Appearance</p>
-        {hasPublicIdentity && (
-          <a href="/account/profile" className="tap-target mt-3 inline-flex text-ui-13 text-tea-gold transition-colors hover:text-tea-gold-lt">Public profile and payment</a>
-        )}
-      </div>
-
-      {/* Identity card */}
-      <div className="bg-tea-surface border border-tea-border rounded-xl p-5 flex items-start gap-4">
-        <div className="w-12 h-12 rounded-full bg-tea-elevated text-tea-text-sec font-display text-ui-15 flex items-center justify-center flex-shrink-0">
-          {initials}
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="h3">{auth.user?.name || 'Member'}</h3>
-          <p className="text-ui-13 text-tea-text-sec mt-0.5 truncate">{auth.user?.email}</p>
-          {auth.user?.username ? (
-            <p className="text-ui-12 text-tea-text-dim mt-0.5">@{auth.user.username}</p>
-          ) : null}
-        </div>
-      </div>
-
-      {/* Edit Profile */}
-      <section className="space-y-4">
+      <header className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
         <div>
-          <h2 className="h3">Edit profile</h2>
-          <p className="text-ui-12 text-tea-text-dim mt-1">Update your name, username, or email.</p>
+          <h1 className={TYPOGRAPHY_CLASSES.h2}>Account settings</h1>
+          <p className="mt-1 text-ui-13 text-tea-text-dim">Your details, sign-in methods and preferences.</p>
         </div>
-        <form onSubmit={handleEditProfile} className="space-y-3">
-          <div>
-            <label className={labelClass}>Name</label>
-            <input
-              type="text"
-              value={editName}
-              onChange={e => setEditName(e.target.value)}
-              className={inputClass}
-              placeholder={auth.user?.name || 'your name'}
-            />
-          </div>
-          <div>
-            <label className={labelClass}>
-              Username <span className="normal-case tracking-normal font-normal text-tea-text-dim">(optional)</span>
-            </label>
-            <input
-              type="text"
-              value={editUsername}
-              onChange={e => setEditUsername(e.target.value)}
-              autoComplete="username"
-              pattern="[a-zA-Z0-9_.\-]{3,32}"
-              className={inputClass}
-              placeholder={auth.user?.username || 'Pick a username'}
-            />
-            <p className={helperClass}>Leave blank to remove. Sign in with email or username.</p>
-          </div>
-          <div>
-            <label className={labelClass}>Email</label>
-            <input
-              type="email"
-              value={editEmail}
-              onChange={e => setEditEmail(e.target.value)}
-              className={inputClass}
-              placeholder={auth.user?.email || 'your email'}
-            />
-          </div>
-          <div>
-            <label className={labelClass}>
-              WhatsApp / Phone <span className="normal-case tracking-normal font-normal text-tea-text-dim">(optional)</span>
-            </label>
-            <input
-              type="tel"
-              value={editPhone}
-              onChange={e => setEditPhone(e.target.value)}
-              className={inputClass}
-              placeholder="+886 912 345 678"
-              autoComplete="tel"
-            />
-            <p className={helperClass}>Include country code. Used to pre-fill RSVP forms.</p>
-          </div>
-          <FormError error={profileError} />
-          {profileSaved && <p className="text-ui-13 text-tea-green">Profile updated.</p>}
-          <div className="flex justify-between pt-2">
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="px-2 py-1 text-tea-text-sec hover:text-tea-text transition-colors text-ui-13"
-            >
-              Cancel
-            </button>
-            <PrimarySubmit label="Save changes" loading={profileLoading} />
-          </div>
-        </form>
-      </section>
+        {hasPublicIdentity && <a href="/account/profile" className="tap-target inline-flex min-h-11 items-center text-ui-13 text-tea-gold hover:text-tea-gold-lt">Public profile and payment ↗</a>}
+      </header>
 
-      <hr className="border-tea-border" />
-
-      {/* Appearance */}
-      <section>
-        <div className="flex flex-col items-center pb-8">
-          <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
-            {theme === 'dark' ? (
-              <Icons.Moon className="w-7 h-7 text-tea-gold" />
-            ) : (
-              <Icons.Sun className="w-7 h-7 text-tea-gold" />
-            )}
-          </div>
-          <h2 className="font-display text-3xl text-tea-text">Appearance</h2>
-          <p className="font-body italic text-sm text-tea-text-dim mt-1">Choose how Teajia looks on this device</p>
-        </div>
-        <div>
-          <label className={labelClass}>Theme</label>
-          <div
-            role="radiogroup"
-            aria-label="Theme"
-            className="grid grid-cols-2 gap-2 p-1 bg-tea-surface border border-tea-border rounded"
-          >
-            <button
-              type="button"
-              role="radio"
-              aria-checked={theme === 'light'}
-              onClick={(e) => { if (theme !== 'light') toggleTheme(e); }}
-              className={`tap-target flex items-center justify-center gap-2 py-2.5 rounded text-sm font-sans transition-colors duration-150 ${
-                theme === 'light'
-                  ? 'cta-solid'
-                  : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/5'
-              }`}
-            >
-              <Icons.Sun className="w-4 h-4" />
-              Light
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={theme === 'dark'}
-              onClick={(e) => { if (theme !== 'dark') toggleTheme(e); }}
-              className={`tap-target flex items-center justify-center gap-2 py-2.5 rounded text-sm font-sans transition-colors duration-150 ${
-                theme === 'dark'
-                  ? 'cta-solid'
-                  : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/5'
-              }`}
-            >
-              <Icons.Moon className="w-4 h-4" />
-              Dark
-            </button>
-          </div>
-          <p className="text-ui-11 text-tea-text-dim mt-1.5">Your choice is remembered on this device.</p>
-        </div>
-      </section>
-
-      <div className="border-t border-tea-border" />
-
-      {/* Change / Set Password */}
-      <section className="space-y-4">
-        <div>
-          <h2 className="h3">{hasPassword ? 'Change password' : 'Set a password'}</h2>
-          <p className="text-ui-12 text-tea-text-dim mt-1">
-            {hasPassword
-              ? 'Update your account password.'
-              : 'Your account signs in with Google. Set a password to also sign in with email, useful where Google is unreachable.'}
-          </p>
-        </div>
-        <form onSubmit={handleChangePassword} className="space-y-3">
-          {hasPassword && (
-            <div>
-              <label className={labelClass}>Current password</label>
-              <input
-                type="password"
-                value={currentPassword}
-                onChange={e => setCurrentPassword(e.target.value)}
-                className={inputClass}
-                required
-              />
+      <div className="grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+        <section aria-labelledby="profile-heading" className="min-w-0 border border-tea-border rounded-md bg-tea-surface p-4 md:p-5">
+          <h2 id="profile-heading" className={TYPOGRAPHY_CLASSES.h3}>Profile</h2>
+          <form onSubmit={handleEditProfile} className="mt-4 space-y-3">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-1 xl:grid-cols-2">
+              <div>
+                <label htmlFor="profile-name" className={labelClass}>Name</label>
+                <input id="profile-name" disabled={profileLoading} type="text" autoComplete="name" value={editName} onChange={e => { edited('name'); setEditName(e.target.value); }} className={inputClass} required />
+              </div>
+              <div>
+                <label htmlFor="profile-username" className={labelClass}>Username <span className="normal-case tracking-normal">(optional)</span></label>
+                <input id="profile-username" disabled={profileLoading} type="text" autoComplete="username" pattern="[a-zA-Z0-9_.\-]{3,32}" value={editUsername} onChange={e => { edited('username'); setEditUsername(e.target.value); }} className={inputClass} aria-describedby="username-help" />
+              </div>
             </div>
-          )}
-          <div>
-            <label className={labelClass}>New password</label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={e => setNewPassword(e.target.value)}
-              className={inputClass}
-              placeholder="Min 6 characters"
-              required
-            />
-          </div>
-          <div>
-            <label className={labelClass}>Confirm new password</label>
-            <input
-              type="password"
-              value={confirmNewPassword}
-              onChange={e => setConfirmNewPassword(e.target.value)}
-              className={inputClass}
-              required
-            />
-          </div>
-          <FormError error={passwordError} />
-          {passwordSaved && <p className="text-ui-13 text-tea-green">{hasPassword ? 'Password updated.' : 'Password set, you can now sign in with email + password.'}</p>}
-          <div className="flex justify-between pt-2">
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="px-2 py-1 text-tea-text-sec hover:text-tea-text transition-colors text-ui-13"
-            >
-              Cancel
-            </button>
-            <PrimarySubmit label={hasPassword ? 'Update password' : 'Set password'} loading={passwordLoading} />
-          </div>
-        </form>
-      </section>
+            <p id="username-help" className={helperClass}>Sign in with email or username.</p>
+            <div>
+              <label htmlFor="profile-email" className={labelClass}>Email</label>
+              <input id="profile-email" disabled={profileLoading} type="email" autoComplete="email" value={editEmail} onChange={e => { edited('email'); setEditEmail(e.target.value); }} className={inputClass} required />
+            </div>
+            <div>
+              <label htmlFor="profile-phone" className={labelClass}>WhatsApp / Phone <span className="normal-case tracking-normal">(optional)</span></label>
+              <input id="profile-phone" disabled={profileLoading} type="tel" autoComplete="tel" placeholder="+886 912 345 678" value={editPhone} onChange={e => { edited('phone'); setEditPhone(e.target.value); }} className={inputClass} aria-describedby="phone-help" />
+              <p id="phone-help" className={helperClass}>Include your country code for reservations.</p>
+            </div>
+            <FormError error={profileError} />
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+              <p role="status" className="text-ui-12 text-tea-text-sec">{profileLoading ? 'Saving…' : profileSaved ? 'Changes saved.' : profileChanged ? 'Unsaved changes' : ''}</p>
+              <PrimarySubmit label="Save changes" loading={profileLoading} disabled={!profileChanged} />
+            </div>
+          </form>
+        </section>
 
-      <hr className="border-tea-border" />
+        <div className="min-w-0 space-y-5">
+          <section aria-labelledby="security-heading" className="min-w-0 border border-tea-border rounded-md bg-tea-surface p-4 md:p-5">
+            <h2 id="security-heading" className={TYPOGRAPHY_CLASSES.h3}>Sign-in &amp; security</h2>
+            <dl className="mt-3 divide-y divide-tea-border text-ui-13">
+              <div className="flex flex-wrap items-center justify-between gap-2 py-2.5"><dt className="text-tea-text-sec">Email</dt><dd className="text-tea-text">{emailVerified === null ? unknownStatus : emailVerified ? 'Verified' : 'Not verified'}</dd></div>
+              <div className="flex flex-wrap items-center justify-between gap-2 py-2.5"><dt className="text-tea-text-sec">Google</dt><dd className="text-tea-text">{googleConnected === null ? unknownStatus : googleConnected ? 'Connected' : 'Not connected'}</dd></div>
+              <div className="flex flex-wrap items-center justify-between gap-2 py-2.5"><dt className="text-tea-text-sec">Password</dt><dd className="text-tea-text">{hasPassword === null ? unknownStatus : hasPassword ? 'Set' : 'Not set'}</dd></div>
+            </dl>
+            {securityQuery.isPending && <p role="status" className="mt-2 text-ui-12 text-tea-text-dim">Checking sign-in methods…</p>}
+            {securityQuery.isError && <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-ui-12 text-tea-text-sec"><span>Could not check sign-in methods.</span><button type="button" className="tap-target min-h-11 text-tea-gold" onClick={() => void securityQuery.refetch()}>Try again</button></div>}
+            <details className="mt-2 border-t border-tea-border">
+              <summary className="min-h-11 cursor-pointer py-3 text-ui-13 text-tea-text hover:text-tea-gold focus-visible:outline-tea-gold">{hasPassword === false ? 'Set a password' : 'Change password'}</summary>
+              <form onSubmit={handleChangePassword} className="space-y-3 pb-1">
+                <p className="text-ui-12 text-tea-text-dim">{hasPassword === false ? 'Add a password to sign in with your email as well.' : 'Use at least 6 characters for your new password.'}</p>
+                {hasPassword !== false && <div><label htmlFor="current-password" className={labelClass}>Current password</label><input id="current-password" type="password" autoComplete="current-password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className={inputClass} required /></div>}
+                <div><label htmlFor="new-password" className={labelClass}>New password</label><input id="new-password" type="password" autoComplete="new-password" minLength={6} value={newPassword} onChange={e => setNewPassword(e.target.value)} className={inputClass} required /></div>
+                <div><label htmlFor="confirm-password" className={labelClass}>Confirm new password</label><input id="confirm-password" type="password" autoComplete="new-password" value={confirmNewPassword} onChange={e => setConfirmNewPassword(e.target.value)} className={inputClass} required /></div>
+                <FormError error={passwordError} />
+                <div className="flex flex-wrap items-center justify-between gap-2"><p role="status" className="text-ui-12 text-tea-text-sec">{passwordSaved ? 'Password saved.' : hasPassword === null ? 'Check your sign-in methods before continuing.' : ''}</p><PrimarySubmit label={hasPassword === false ? 'Set password' : 'Update password'} loading={passwordLoading} disabled={hasPassword === null} /></div>
+              </form>
+            </details>
+          </section>
 
-      {/* Danger Zone */}
-      <section className="space-y-4">
-        <div>
-          <h2 className="h3 text-tea-error">Delete account</h2>
-          <p className="text-ui-12 text-tea-text-dim mt-1">This action is permanent and cannot be undone.</p>
+          <section aria-labelledby="appearance-heading" className="border border-tea-border rounded-md bg-tea-surface p-4 md:p-5">
+            <h2 id="appearance-heading" className={TYPOGRAPHY_CLASSES.h3}>Appearance</h2>
+            <div role="radiogroup" aria-label="Theme" className="mt-3 grid grid-cols-2 gap-2 rounded-md border border-tea-border p-1">
+              {(['light', 'dark'] as const).map(option => <button key={option} type="button" role="radio" aria-checked={theme === option} onClick={e => { if (theme !== option) toggleTheme(e); }} className={`min-h-11 flex items-center justify-center gap-2 rounded text-ui-13 transition-colors ${theme === option ? 'cta-solid' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub'}`}>
+                {option === 'light' ? <Icons.Sun className="h-4 w-4" /> : <Icons.Moon className="h-4 w-4" />}{option === 'light' ? 'Light' : 'Dark'}
+              </button>)}
+            </div>
+            <p className="mt-2 text-ui-12 text-tea-text-dim">Remembered on this device.</p>
+          </section>
         </div>
-        <form onSubmit={handleDeleteAccount} className="space-y-3">
-          <div className="p-4 bg-tea-error/10 ring-1 ring-inset ring-tea-error/40 rounded-md text-ui-13 text-tea-text-sec">
-            Deleting your account will permanently remove your profile, order history, and tasting journal. This cannot be reversed.
-          </div>
-          <div>
-            <label className={labelClass}>Type DELETE to confirm</label>
-            <input
-              type="text"
-              value={deleteConfirmText}
-              onChange={e => setDeleteConfirmText(e.target.value)}
-              className={inputClass}
-              placeholder="DELETE"
-              autoComplete="off"
-            />
-          </div>
-          <div>
-            <label className={labelClass}>Your password</label>
-            <input
-              type="password"
-              value={deletePassword}
-              onChange={e => setDeletePassword(e.target.value)}
-              className={inputClass}
-              required
-            />
-          </div>
+      </div>
+
+      <details className="mt-5 border-t border-tea-border">
+        <summary className="min-h-11 cursor-pointer py-3 text-ui-13 text-tea-text-dim hover:text-tea-text focus-visible:outline-tea-gold">Delete account</summary>
+        <form onSubmit={handleDeleteAccount} className="max-w-md space-y-3 pb-4">
+          <p className="text-ui-13 text-tea-text-sec">Permanently remove your profile, order history and tasting journal. This cannot be undone.</p>
+          {hasPassword === false && <p className="text-ui-12 text-tea-text-sec">A password is required to delete your account. Set one in Sign-in &amp; security first.</p>}
+          <div><label htmlFor="delete-confirm" className={labelClass}>Type DELETE to confirm</label><input id="delete-confirm" type="text" value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)} className={inputClass} autoComplete="off" /></div>
+          <div><label htmlFor="delete-password" className={labelClass}>Your password</label><input id="delete-password" type="password" autoComplete="current-password" value={deletePassword} onChange={e => setDeletePassword(e.target.value)} className={inputClass} required /></div>
           <FormError error={deleteError} />
-          <div className="flex justify-between pt-2">
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="px-2 py-1 text-tea-text-sec hover:text-tea-text transition-colors text-ui-13"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={deleteLoading || deleteConfirmText !== 'DELETE'}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-error text-tea-bg text-xs font-semibold hover:bg-tea-error/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {deleteLoading ? <Loader2 size={13} className="animate-spin" /> : null}
-              Permanently delete account
-            </button>
-          </div>
+          <button type="submit" disabled={deleteLoading || deleteConfirmText !== 'DELETE' || hasPassword !== true} className="min-h-11 inline-flex items-center gap-2 rounded-md border border-tea-border px-4 py-2 text-ui-13 text-tea-text hover:bg-tea-accent-sub disabled:opacity-40 disabled:cursor-not-allowed">{deleteLoading && <Loader2 size={14} className="animate-spin" />}Permanently delete account</button>
         </form>
-      </section>
+      </details>
     </div>
   );
 }

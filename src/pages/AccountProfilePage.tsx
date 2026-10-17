@@ -1,3 +1,4 @@
+import { authPagePath } from '../lib/authNavigation';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, CheckCircle, Circle } from '@phosphor-icons/react';
@@ -35,7 +36,7 @@ export default function AccountProfilePage() {
     return (
       <main className="mx-auto w-full max-w-4xl px-4 py-12 pb-nav-gap md:px-6">
         <p className={`${TYPOGRAPHY_CLASSES.subtitle} text-tea-text-sec`}>Sign in to prepare your Tea Master profile.</p>
-        <button type="button" onClick={() => navigate('/signin')} className="cta-solid tap-target mt-5 rounded-md px-5 py-2.5 text-ui-13">Sign in</button>
+        <button type="button" onClick={() => navigate(authPagePath('signin', '/account/profile'))} className="cta-solid tap-target mt-5 rounded-md px-5 py-2.5 text-ui-13">Sign in</button>
       </main>
     );
   }

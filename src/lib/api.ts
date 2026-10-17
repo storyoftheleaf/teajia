@@ -2857,18 +2857,6 @@ export const api = {
         body: JSON.stringify({ contact, code, purpose }),
       });
       const data = await handleResponse(res);
-      if (purpose === 'signin' && typeof data?.token === 'string') {
-        setToken(data.token);
-        const claims = hydrateAccountStateFromToken();
-        if (claims) {
-          useAppStore.getState().setAuthUser({
-            email: claims.email,
-            username: claims.username ?? null,
-            name: claims.name,
-            role: claims.role,
-          });
-        }
-      }
       return data;
     },
   },
