@@ -793,7 +793,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             />
           </div>
 
-          {mode !== 'sourcing' && (
+          {mode === 'buying' && (
             <button
               type="button"
               onClick={() => handleNewCapture()}
@@ -806,7 +806,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
         </div>
 
-        {mode !== 'sourcing' && (
+        {mode === 'buying' && (
           <div className="flex min-h-11 items-center justify-end border-b border-tea-border px-2 sm:hidden">
             <button
               type="button"
@@ -905,8 +905,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
           {/* Search bar, hidden on sourcing (chips strip takes that role) */}
           {mode !== 'sourcing' && (
-            <div className="shrink-0 px-4 pt-2.5 pb-1">
-              <div className="relative">
+            <div className="shrink-0 flex flex-wrap items-center gap-2 px-4 pt-2.5 pb-1">
+              <div className="relative min-w-[120px] flex-1">
                 <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
                 <input
                   ref={mobileSearchInputRef}
@@ -918,7 +918,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       ? 'Search Library'
                       : 'Search transactions…'
                   }
-                  className="w-full min-h-11 bg-tea-surface border border-tea-border text-tea-text text-ui-16 rounded-md pl-9 pr-10 py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors"
+                  className={`w-full min-h-11 bg-tea-surface border border-tea-border text-tea-text text-ui-16 rounded-md pl-9 ${tabSearchQuery ? 'pr-10' : 'pr-3'} py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors`}
                 />
                 {tabSearchQuery && (
                   <button
@@ -931,6 +931,28 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   </button>
                 )}
               </div>
+              {mode === 'library' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleNewCapture()}
+                    className="flex min-h-11 shrink-0 items-center gap-1 rounded-md border border-tea-border bg-tea-surface px-2 text-ui-12 text-tea-text hover:bg-tea-elevated"
+                  >
+                    <Plus size={12} />
+                    New entry
+                  </button>
+
+                  <LibraryImportsSection
+                    imports={importAccountId === activeAccountId ? importDetails : []}
+                    busyImportId={busyLibraryImportId}
+                    errorByImportId={libraryImportErrors}
+                    focusRequest={libraryDeleteFocusRequest}
+                    fallbackFocusRef={mobileSearchInputRef}
+                    onOpen={openSavedImport}
+                    onDelete={deleteSavedImport}
+                  />
+                </>
+              )}
             </div>
           )}
 
@@ -1176,16 +1198,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       })}
                     </div>
                   )}
-
-                  <LibraryImportsSection
-                    imports={importAccountId === activeAccountId ? importDetails : []}
-                    busyImportId={busyLibraryImportId}
-                    errorByImportId={libraryImportErrors}
-                    focusRequest={libraryDeleteFocusRequest}
-                    fallbackFocusRef={mobileSearchInputRef}
-                    onOpen={openSavedImport}
-                    onDelete={deleteSavedImport}
-                  />
                   <BrowseView
                     onEditEntry={handleEditEntry}
                     onNewCapture={handleNewCapture}
@@ -1262,8 +1274,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           >
 
             {/* Search bar (desktop) */}
-            <div className="shrink-0 px-4 pt-2.5 pb-1">
-              <div className="relative">
+            <div className="shrink-0 flex flex-wrap items-center gap-2 px-4 pt-2.5 pb-1">
+              <div className="relative min-w-[120px] flex-1">
                 <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
                 <input
                   ref={desktopSearchInputRef}
@@ -1275,7 +1287,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     : mode === 'library' ? 'Search Library'
                     : 'Search transactions…'
                   }
-                  className="w-full min-h-11 bg-tea-surface border border-tea-border text-tea-text text-ui-16 rounded-md pl-9 pr-10 py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors"
+                  className={`w-full min-h-11 bg-tea-surface border border-tea-border text-tea-text text-ui-16 rounded-md pl-9 ${tabSearchQuery ? 'pr-10' : 'pr-3'} py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors`}
                 />
                 {tabSearchQuery && (
                   <button
@@ -1288,6 +1300,28 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   </button>
                 )}
               </div>
+              {mode === 'library' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleNewCapture()}
+                    className="flex min-h-11 shrink-0 items-center gap-1 rounded-md border border-tea-border bg-tea-surface px-2 text-ui-12 text-tea-text hover:bg-tea-elevated"
+                  >
+                    <Plus size={12} />
+                    New entry
+                  </button>
+
+                  <LibraryImportsSection
+                    imports={importAccountId === activeAccountId ? importDetails : []}
+                    busyImportId={busyLibraryImportId}
+                    errorByImportId={libraryImportErrors}
+                    focusRequest={libraryDeleteFocusRequest}
+                    fallbackFocusRef={desktopSearchInputRef}
+                    onOpen={openSavedImport}
+                    onDelete={deleteSavedImport}
+                  />
+                </>
+              )}
             </div>
 
             {/* Scrollable left content */}
@@ -1534,16 +1568,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         })}
                       </div>
                     )}
-
-                    <LibraryImportsSection
-                      imports={importAccountId === activeAccountId ? importDetails : []}
-                      busyImportId={busyLibraryImportId}
-                      errorByImportId={libraryImportErrors}
-                      focusRequest={libraryDeleteFocusRequest}
-                      fallbackFocusRef={desktopSearchInputRef}
-                      onOpen={openSavedImport}
-                      onDelete={deleteSavedImport}
-                    />
                     <BrowseView
                       onEditEntry={handleEditEntry}
                       onNewCapture={handleNewCapture}

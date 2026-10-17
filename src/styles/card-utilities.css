@@ -5440,3 +5440,8 @@ body.cart-panel-open .commerce-dock {
 .sample-like-slider.is-unrated::-webkit-slider-thumb { background: transparent; }
 .sample-like-slider.is-unrated::-moz-range-thumb { background: transparent; }
 .sample-like-slider:focus-visible { outline: 1px solid rgb(var(--tea-gold-rgb)); outline-offset: 2px; }
+
+/* Imports float over the library without moving its records. */
+.curate-library-imports::backdrop {
+  background: transparent;
+}

@@ -190,6 +190,7 @@ async function installAnalyzedImportApi(page: Page) {
 async function openAnalyzedImportFromLibrary(page: Page) {
   await openCompass(page);
   await page.getByRole('tab', { name: 'Library', exact: true }).click();
+  await page.getByRole('button', { name: /^Imports \(/ }).filter({ visible: true }).click();
   const imports = page.getByRole('region', { name: 'Imports' }).filter({ visible: true });
   await imports.getByRole('button', { name: 'Open Two vendor Chinese tea list' }).click();
   await expect(page.getByRole('dialog', { name: 'Import into Curate' })).toBeVisible();
@@ -471,6 +472,7 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByRole('button', { name: 'Receive 3 items' })).toBeEnabled();
     await page.getByRole('button', { name: 'Review later' }).click();
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
+    await page.getByRole('button', { name: /^Imports \(/ }).filter({ visible: true }).click();
     const imports = page.getByRole('region', { name: 'Imports' }).filter({ visible: true });
     await expect(imports.getByRole('button', { name: 'Open Imported list' })).toBeVisible();
     await imports.getByRole('button', { name: 'Open Imported list' }).click();
@@ -540,6 +542,7 @@ test.describe('Curate Import panel', () => {
     await page.route('**/api/curate/imports?state=incomplete', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ imports: switched ? [] : [detail('batch-a', 'First list'), detail('batch-b', 'Second list')] }) }));
     await openCompass(page);
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
+    await page.getByRole('button', { name: /^Imports \(/ }).filter({ visible: true }).click();
     const imports = page.getByRole('region', { name: 'Imports' }).filter({ visible: true });
     await expect(imports.getByRole('button', { name: /^Open / })).toHaveCount(2);
     await imports.getByRole('button', { name: 'Open First list' }).click();
@@ -586,6 +589,7 @@ test.describe('Curate Import panel', () => {
     await expect(sourceImport).toBeFocused();
 
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
+    await page.getByRole('button', { name: /^Imports \(/ }).filter({ visible: true }).click();
     const imports = page.getByRole('region', { name: 'Imports' }).filter({ visible: true });
     await expect(imports).toBeVisible();
     const openSavedImport = imports.getByRole('button', { name: 'Open Imported list' });
@@ -598,7 +602,8 @@ test.describe('Curate Import panel', () => {
     await savedRow.getByLabel('English name').fill('Reviewed Library tea');
     await savedRow.getByRole('button', { name: 'Save tea' }).click();
     await page.getByRole('button', { name: 'Close Import' }).click();
-    await expect(openSavedImport).toBeFocused();
+    await expect(page.getByRole('button', { name: /^Imports \(/ }).filter({ visible: true })).toBeFocused();
+    await page.getByRole('button', { name: /^Imports \(/ }).filter({ visible: true }).click();
     await expect(imports.getByText('1/1 reviewed', { exact: true })).toBeVisible();
   });
 
@@ -631,6 +636,7 @@ test.describe('Curate Import panel', () => {
 
     await openCompass(page);
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
+    await page.getByRole('button', { name: /^Imports \(/ }).filter({ visible: true }).click();
     const imports = page.getByRole('region', { name: 'Imports' }).filter({ visible: true });
     await imports.getByRole('button', { name: 'Delete Delete retry list' }).click();
     const confirmation = imports.getByRole('group', { name: 'Delete Delete retry list confirmation' });
@@ -875,6 +881,7 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('button', { name: 'Review later' }).click();
     await page.reload();
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
+    await page.getByRole('button', { name: /^Imports \(/ }).filter({ visible: true }).click();
     const imports = page.getByRole('region', { name: 'Imports' }).filter({ visible: true });
     await expect(imports.getByRole('button', { name: 'Open invoice.pdf' })).toBeVisible();
     await imports.getByRole('button', { name: 'Open invoice.pdf' }).click();
@@ -899,6 +906,7 @@ test.describe('Curate Import panel', () => {
     await actionRow.getByRole('button', { name: 'Review later' }).click();
     await expect(dialog).toHaveCount(0);
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
+    await page.getByRole('button', { name: /^Imports \(/ }).filter({ visible: true }).click();
     const recoveryEntry = page.getByRole('region', { name: 'Imports' }).filter({ visible: true }).getByRole('button', { name: 'Open evidence.pdf' });
     await expect(recoveryEntry).toBeVisible();
     await recoveryEntry.click();
@@ -923,8 +931,18 @@ test.describe('Curate Import panel', () => {
     await page.route('**/api/curate/imports?state=incomplete', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ imports }) }));
     await openCompass(page);
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
+    await page.getByRole('button', { name: /^Imports \(/ }).filter({ visible: true }).click();
     const visibleImports = page.getByRole('region', { name: 'Imports' }).filter({ visible: true });
     await expect(visibleImports.getByRole('button', { name: /^Open Batch / })).toHaveCount(25);
+    const search = page.getByPlaceholder('Search Library').filter({ visible: true });
+    const newEntry = page.getByRole('button', { name: 'New entry', exact: true }).filter({ visible: true });
+    const before = await search.boundingBox();
+    expect(Math.abs(before!.y - (await newEntry.boundingBox())!.y)).toBeLessThanOrEqual(1);
+    await page.screenshot({ path: `/tmp/curate-library-${test.info().project.name}-imports.png` });
+    await page.keyboard.press('Escape');
+    await expect(visibleImports).toBeHidden();
+    expect(await search.boundingBox()).toEqual(before);
+    await page.screenshot({ path: `/tmp/curate-library-${test.info().project.name}.png` });
     await expect(page.getByPlaceholder('Search Library').filter({ visible: true })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Library', exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
