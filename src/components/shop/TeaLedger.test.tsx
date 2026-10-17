@@ -2,7 +2,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import type { InventoryItem } from '../../types';
-import { TeaLedger } from './TeaLedger';
+import { TeaLedger, TeaLedgerRow } from './TeaLedger';
 import { TeaWeighControl, startingIndex, weighOptions } from './TeaWeighControl';
 
 vi.mock('../../context/ThemeContext', () => ({
@@ -101,7 +101,8 @@ describe('catalogue quantity chooser', () => {
   it('hands the weigh control the amount chooser and the direct add', () => {
     const p = { ...props(), onAddToCart: vi.fn() };
     const nodes = elements(TeaLedger(p));
-    const control = nodes.find(node => node.type === TeaWeighControl)!;
+    const sharedRow = nodes.find(node => node.type === TeaLedgerRow)!;
+    const control = sharedRow.props.trailing;
     expect(control.props.item).toBe(chooserItem);
     expect(control.props.preferredGrams).toBe(50);
     expect(control.props.onChooseAmount).toBe(p.onChooseAmount);
@@ -120,8 +121,8 @@ describe('catalogue quantity chooser', () => {
   });
   it('does not let child keyboard events open the row', () => {
     const p = props();
-    const nodes = elements(TeaLedger(p));
-    const row = nodes.find(node => node.props['aria-label'] === 'View Red tea')!;
+    const sharedRow = elements(TeaLedger(p)).find(node => node.type === TeaLedgerRow)!;
+    const row = elements(TeaLedgerRow(sharedRow.props as any)).find(node => node.props['aria-label'] === 'View Red tea')!;
     const target = {};
     row.props.onKeyDown({ key: 'Enter', target, currentTarget: {}, preventDefault: vi.fn() });
     expect(p.onOpenProduct).not.toHaveBeenCalled();

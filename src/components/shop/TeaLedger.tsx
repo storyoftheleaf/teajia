@@ -1,4 +1,4 @@
-import { Fragment, type MouseEvent } from 'react';
+import { Fragment, type MouseEvent, type ReactNode } from 'react';
 import { Leaf } from 'lucide-react';
 import { TeaSaveTile } from './TeaSaveTile';
 import { getTeaLedgerTones } from '../../designTokens';
@@ -55,7 +55,7 @@ export function splitOrigin(origin: string): { near: string; mid: string } {
  * place, and place is what this row is already saying. Processing is the
  * fallback, then whatever personal note exists.
  */
-function curatorLine(item: InventoryItem): string {
+function curatorLine(item: TeaLedgerIdentity): string {
   const source = [item.terroir, item.processingNotes, item.description]
     .map(v => (v || '').trim())
     .find(Boolean);
@@ -94,13 +94,9 @@ export function TeaLedger({
   onChooseAmount,
   onAddToCart,
 }: TeaLedgerProps) {
-  const { theme } = useTheme();
-
   return (
     <div className="flex flex-col animate-[fadeIn_0.5s_ease-out]">
       {groups.map(group => {
-        const tones = getTeaLedgerTones(group.type, theme);
-
         return (
           <Fragment key={group.type}>
             {activeType === 'All' && specialFilter === 'None' && (
@@ -129,121 +125,147 @@ export function TeaLedger({
               const purchase = teaPurchaseQuote(item, priceWeight);
               const stockG = item.stock_g ?? 0;
               const showType = activeType !== 'All' || specialFilter !== 'None';
-              const rowTones = showType ? getTeaLedgerTones(item.type, theme) : tones;
               const soldOut = item.category === 'tea' && stockG <= 0;
 
-              const origin = splitOrigin(item.origin || '');
-              const lead = curatorLine(item);
               const tastingCount = tastingCounts.get(item.id) || 0;
 
               return (
-                <div
+                <TeaLedgerRow
                   key={item.id}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`View ${item.name}`}
-                  style={{
-                    backgroundImage: `linear-gradient(to right, ${rowTones.wash}, transparent 38%)`,
-                  }}
-                  className="-mx-4 px-4 border-b border-tea-border transition-colors cursor-pointer hover:bg-tea-text/5 focus:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/30"
-                  onClick={() => onOpenProduct(item)}
-                  /* The ground and the rule reach back across the shop's
-                     gutter, so the row is a field the content sits inside
-                     rather than a band that begins where the block begins.
-                     Same on both sides, so nothing lands on a rule's end. */
-                  onKeyDown={event => {
-                    if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
-                      event.preventDefault();
-                      onOpenProduct(item);
-                    }
-                  }}
-                >
-                  <div className="flex items-center gap-2 py-3 sm:gap-2.5">
-                    <TeaSaveTile
-                      year={item.year}
-                      name={item.name}
-                      saved={isFavorite}
-                      background={rowTones.markBg}
-                      savedColor={rowTones.savedBg}
-                      onToggle={event => onToggleFavorite(item.id, event)}
-                    />
-
-                    <div className="tea-ledger-identity min-w-0 flex-1 lg:flex-none lg:w-[240px] xl:w-[300px]">
-                      <div className="flex min-w-0 items-start gap-2">
-                        <h3 className="min-w-0 truncate sm:overflow-visible sm:whitespace-normal sm:break-words font-display text-[18px] font-medium leading-tight text-tea-text lg:text-ui-20">
-                          {item.name}
-                        </h3>
-                        {tastingCount > 0 && (
-                          <span
-                            className="inline-flex shrink-0 items-center gap-0.5 text-tea-green"
-                            title={`Tasted ${tastingCount} time${tastingCount > 1 ? 's' : ''}`}
-                          >
-                            <Leaf className="w-2.5 h-2.5" />
-                            {tastingCount > 1 && (
-                              <span className="text-ui-9 font-medium leading-none">{tastingCount}</span>
-                            )}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex min-w-0 items-center font-sans text-ui-12 tracking-[0.02em] text-tea-text-sec">
-                        <span className="min-w-0 truncate">
-                        {showType && (
-                          <>
-                            <span className="uppercase">{item.type}</span>
-                            <span className="px-1.5 text-tea-text-dim">&middot;</span>
-                          </>
-                        )}
-                        {origin.near}
-                        {origin.mid && (
-                          <>
-                            <span className="px-1.5 text-tea-text-dim">&middot;</span>
-                            {origin.mid}
-                          </>
-                        )}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Not every tea carries a description, and without one
-                        this column does not render at all, which left the
-                        price sitting against the name in the middle of the
-                        row. The price rail pushes itself right instead of
-                        relying on this column to hold the space.
-
-                        The width the shop reclaimed goes to the curator's line
-                        rather than to blank space. Desktop only: on a phone
-                        the row stays focused on the title and origin. */}
-                    {lead && (
-                      <p className="hidden min-w-0 flex-1 pr-4 font-body text-ui-13 italic leading-relaxed text-tea-text-sec lg:line-clamp-2">
-                        {lead}
-                      </p>
-                    )}
-
-                    <div className="ml-auto flex shrink-0 items-center">
-                      {/* Price on top adds that amount to the cart; minus and
-                          plus step the weight and the price follows; Weigh
-                          itself opens every amount, custom sizes included. */}
-                      {purchase ? (
-                        <TeaWeighControl
-                          item={item}
-                          preferredGrams={priceWeight}
-                          formatPrice={formatPrice}
-                          onAddToCart={onAddToCart}
-                          onChooseAmount={onChooseAmount}
-                        />
-                      ) : (
-                        <span className="text-ui-11 uppercase tracking-[0.1em] text-tea-text-dim">
-                          {soldOut ? 'Sold out' : 'Unavailable'}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                  item={item}
+                  showType={showType}
+                  saved={isFavorite}
+                  onToggleSave={event => onToggleFavorite(item.id, event)}
+                  onOpen={() => onOpenProduct(item)}
+                  tastingCount={tastingCount}
+                  trailing={purchase ? (
+                    <TeaWeighControl item={item} preferredGrams={priceWeight} formatPrice={formatPrice}
+                      onAddToCart={onAddToCart} onChooseAmount={onChooseAmount} />
+                  ) : (
+                    <span className="text-ui-11 uppercase tracking-[0.1em] text-tea-text-dim">
+                      {soldOut ? 'Sold out' : 'Unavailable'}
+                    </span>
+                  )}
+                />
               );
             })}
           </Fragment>
         );
       })}
+    </div>
+  );
+}
+
+export type TeaLedgerIdentity = Pick<InventoryItem, 'name' | 'year' | 'type' | 'origin' | 'description' | 'terroir' | 'processingNotes'>;
+
+interface TeaLedgerRowProps {
+  item: TeaLedgerIdentity;
+  showType: boolean;
+  saved: boolean;
+  onToggleSave: (event: MouseEvent<HTMLButtonElement>) => void;
+  onOpen: () => void;
+  tastingCount?: number;
+  trailing?: ReactNode;
+  selected?: boolean;
+  expanded?: boolean;
+  openLabel?: string;
+}
+
+/** The shop's tea row, shared verbatim with Library; actions belong to the caller. */
+export function TeaLedgerRow({ item, showType, saved, onToggleSave, onOpen, tastingCount = 0, trailing, selected, expanded, openLabel }: TeaLedgerRowProps) {
+  const { theme } = useTheme();
+  const rowTones = getTeaLedgerTones(item.type, theme);
+  const origin = splitOrigin(item.origin || '');
+  const lead = curatorLine(item);
+  return (
+    <div
+      data-tea-ledger-row
+      role="button"
+      tabIndex={0}
+      aria-label={openLabel ?? `View ${item.name}`}
+      aria-expanded={expanded}
+      aria-current={selected ? true : undefined}
+      style={{
+        backgroundImage: `linear-gradient(to right, ${rowTones.wash}, transparent 38%)`,
+      }}
+      className={`tea-ledger-row -mx-4 px-4 border-b border-tea-border transition-colors cursor-pointer hover:bg-tea-text/5 focus:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/30${selected ? ' bg-tea-accent-sub' : ''}`}
+      onClick={onOpen}
+      /* The ground and the rule reach back across the shop's
+         gutter, so the row is a field the content sits inside
+         rather than a band that begins where the block begins.
+         Same on both sides, so nothing lands on a rule's end. */
+      onKeyDown={event => {
+        if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          onOpen();
+        }
+      }}
+    >
+      <div className="flex items-center gap-2 py-3 sm:gap-2.5">
+        <TeaSaveTile
+          year={item.year}
+          name={item.name}
+          saved={saved}
+          background={rowTones.markBg}
+          savedColor={rowTones.savedBg}
+          onToggle={onToggleSave}
+        />
+
+        <div className="tea-ledger-identity min-w-0 flex-1">
+          <div className="flex min-w-0 items-start gap-2">
+            <h3 className="min-w-0 truncate sm:overflow-visible sm:whitespace-normal sm:break-words font-display text-[18px] font-medium leading-tight text-tea-text lg:text-ui-20">
+              {item.name}
+            </h3>
+            {tastingCount > 0 && (
+              <span
+                className="inline-flex shrink-0 items-center gap-0.5 text-tea-green"
+                title={`Tasted ${tastingCount} time${tastingCount > 1 ? 's' : ''}`}
+              >
+                <Leaf className="w-2.5 h-2.5" />
+                {tastingCount > 1 && (
+                  <span className="text-ui-9 font-medium leading-none">{tastingCount}</span>
+                )}
+              </span>
+            )}
+          </div>
+          <div className="flex min-w-0 items-center font-sans text-ui-12 tracking-[0.02em] text-tea-text-sec">
+            <span className="min-w-0 truncate">
+            {showType && (
+              <>
+                <span className="uppercase">{item.type}</span>
+                <span className="px-1.5 text-tea-text-dim">&middot;</span>
+              </>
+            )}
+            {origin.near}
+            {origin.mid && (
+              <>
+                <span className="px-1.5 text-tea-text-dim">&middot;</span>
+                {origin.mid}
+              </>
+            )}
+            </span>
+          </div>
+        </div>
+
+        {/* Not every tea carries a description, and without one
+            this column does not render at all, which left the
+            price sitting against the name in the middle of the
+            row. The price rail pushes itself right instead of
+            relying on this column to hold the space.
+
+            The width the shop reclaimed goes to the curator's line
+            rather than to blank space. Desktop only: on a phone
+            the row stays focused on the title and origin. */}
+        {lead && (
+          <p className="tea-ledger-description min-w-0 flex-1 pr-4 font-body text-ui-13 italic leading-relaxed text-tea-text-sec">
+            {lead}
+          </p>
+        )}
+
+        <div className="ml-auto flex shrink-0 items-center">
+          {trailing}
+        </div>
+      </div>
     </div>
   );
 }

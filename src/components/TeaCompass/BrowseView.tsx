@@ -304,7 +304,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
   }) => (
     <div
       className={
-        'space-y-1.5'
+        'space-y-0'
       }
     >
       <AnimatePresence initial={false}>

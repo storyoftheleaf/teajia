@@ -4,8 +4,8 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
-  Pencil, Trash2, Store, Check, Loader2, Camera,
-  Mic, BookmarkPlus, BookmarkCheck, ChevronDown, ChevronUp,
+  Pencil, Trash2, Check, Loader2, Camera,
+  Mic, BookmarkPlus, BookmarkCheck,
   ShoppingBag, Droplets, AlertTriangle, Star, ChevronLeft, ChevronRight, X, RefreshCw,
   Heart, ThumbsUp, Minus, ThumbsDown,
 } from 'lucide-react';
@@ -21,6 +21,7 @@ import type { TastingData } from '../../types';
 import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
 import { compressImage } from '../../lib/imageCompressor';
 import type { TeaCompassEntry } from './types';
+import { TeaLedgerRow } from '../shop/TeaLedger';
 import { LIQUOR_COLORS } from '../../data/tastingTaxonomy';
 import { DecisionControl } from './DecisionControl';
 import { CreateInventoryRecordAction } from './CreateInventoryRecordAction';
@@ -73,7 +74,7 @@ function formatPrice(amount: number, currency: string): string {
 function formatPricePerGram(entry: TeaCompassEntry): string | null {
   if (entry.category === 'teaware') return null;
   const perGram = entry.pricePerUnitGrams;
-  if (!perGram || !entry.priceAmount) return null;
+  if (!perGram || entry.priceAmount == null) return null;
   const symbol = CURRENCY_SYMBOLS[entry.priceCurrency] || '';
   const val = entry.priceAmount / perGram;
   if (['IDR', 'JPY', 'NT'].includes(entry.priceCurrency)) return `${symbol}${Math.round(val)}/g`;
@@ -115,12 +116,8 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
   const lightboxDialogRef = useRef<HTMLDivElement>(null);
   const lightboxReturnFocusRef = useRef<HTMLElement | null>(null);
   const prefersReducedMotion = useReducedMotion();
-  // When the thumbnail URL fails to load (dead R2 link, expired blob), fall
-  // back to the type swatch instead of the browser's broken-image glyph.
-  const [thumbFailed, setThumbFailed] = useState(false);
 
   const validPhotos = (entry.photos || []).filter(Boolean);
-  const showThumb = validPhotos.length > 0 && !thumbFailed;
   const openLightbox = useCallback((index: number) => {
     lightboxReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setLightboxIndex(index);
@@ -202,12 +199,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
     } finally { setPhotoUploading(false); }
   }, [entry.id, entry.photos, updateEntry]);
 
-  const hasName = entry.name.trim().length > 0;
   const typeColor = entry.type ? getTeaColor(entry.type) : null;
-  const currentYear = new Date().getFullYear();
-  const ageYears = entry.year && entry.category !== 'teaware' && currentYear > entry.year
-    ? currentYear - entry.year
-    : null;
   // Include 'buying'/'bought' for backwards compatibility with persisted data
   const isBought = entry.status === 'in_stock' || entry.status === 'buying';
   const isWishlisted = entry.status === 'want';
@@ -229,154 +221,36 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
   const flavorTags = (entry.tasting?.flavor || []).slice(0, 2);
   const summaryTags = [...bodyTag, ...flavorTags].slice(0, 3);
 
-  // Liquor color swatch for collapsed header
-  const liquorColorKey = entry.tasting?.['liquor-color']?.[0];
-  const liquorColorHex = liquorColorKey ? LIQUOR_COLORS[liquorColorKey] : null;
-
   return (
     <>
       <article
         data-testid={`library-entry-${entry.id}`}
-        className={`relative overflow-hidden rounded-md border border-tea-border bg-tea-surface${isSelected ? ' ring-1 ring-tea-gold/40 bg-tea-accent-sub' : ''}`}
+        className="relative min-w-0"
       >
-        <div className="flex gap-3 px-3 py-3">
-            {/* Photo or type swatch. On a dead/expired photo URL we drop to
-                the swatch via onError rather than rendering a broken glyph. */}
-            {showThumb ? (
-              onSelect ? (
-                <div className="relative mt-0.5 shrink-0" aria-hidden="true">
-                  <img src={mediaUrl(validPhotos[0])} alt="" onError={() => setThumbFailed(true)} className="h-14 w-14 rounded-md object-cover" />
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); openLightbox(0); }}
-                  className="tap-target relative shrink-0 mt-0.5 group"
-                  aria-label="View photos"
-                >
-                <img
-                  src={mediaUrl(validPhotos[0])}
-                  alt=""
-                  onError={() => setThumbFailed(true)}
-                  className="w-14 h-14 rounded-md object-cover"
-                />
-                {validPhotos.length > 1 && (
-                  <span className="absolute bottom-0.5 right-0.5 text-ui-12 font-semibold text-tea-text bg-tea-bg/70 rounded px-0.5 leading-tight">
-                    +{validPhotos.length - 1}
-                  </span>
-                )}
-                </button>
-              )
-            ) : (
-              <div
-                className={`shrink-0 mt-0.5 w-14 h-14 rounded-md flex items-center justify-center text-ui-12 font-semibold tracking-[0.1em] uppercase${typeColor ? '' : ' bg-tea-elevated'}`}
-                style={
-                  typeColor
-                    ? { background: `${typeColor}18`, color: typeColor }
-                    : undefined
-                }
-                aria-hidden="true"
-              >
-                <span className={typeColor ? '' : 'text-tea-text-dim'}>
-                  {(entry.type || entry.category || 'TEA').slice(0, 3)}
-                </span>
-              </div>
-            )}
-
-          <button
-            type="button"
-            onClick={() => onSelect ? onSelect(entry.id) : setExpanded((value) => !value)}
-            className="flex min-w-0 flex-1 items-start gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
-            aria-expanded={onSelect ? undefined : expanded}
-            aria-label={`${onSelect ? 'Open' : expanded ? 'Collapse' : 'Expand'} ${entryDisplayTitle(entry)} details`}
-          >
-            <div className="min-w-0 flex-1 space-y-0.5">
-              {/* Name · Region · liquor color dot */}
-              <div className="flex items-baseline gap-2 min-w-0">
-                <span className={`min-w-0 truncate text-ui-16 font-serif ${hasName ? 'text-tea-text' : 'text-tea-text-sec'}`}>
-                  {entryDisplayTitle(entry)}
-                </span>
-                {entry.originRegion && (
-                  <span className="text-ui-12 text-tea-text-sec truncate shrink-0">· {entry.originRegion}</span>
-                )}
-                {liquorColorHex && (
-                  <span
-                    className="shrink-0 rounded-full self-center"
-                    style={{ width: 8, height: 8, backgroundColor: liquorColorHex, display: 'inline-block' }}
-                    aria-label={`Liquor color: ${liquorColorKey}`}
-                  />
-                )}
-              </div>
-
-              {/* Chinese name */}
-              {entry.chineseName && (
-                <p className="text-ui-12 text-tea-text-sec font-chinese leading-tight truncate">{entry.chineseName}</p>
-              )}
-
-              {/* Vendor, provenance group, right after Chinese name */}
-              {entry.vendorName && (
-                <div className="flex items-center gap-1 text-ui-12 text-tea-text-dim">
-                  <Store size={11} className="shrink-0" />
-                  <span className="truncate" title={entry.vendorName}>{entry.vendorName}</span>
-                </div>
-              )}
-
-              {/* Type · Year · Age · Price/gram */}
-              <p className="text-ui-12 text-tea-text-dim tabular-nums">
-                {[
-                  getTypeLabel(entry),
-                  entry.year && String(entry.year),
-                  ageYears != null && ageYears > 0 ? `${ageYears}y` : null,
-                  pricePerGram,
-                ].filter(Boolean).join(' · ')}
-              </p>
-
-              {/* Rating + status badge */}
-              {(entry.sampleState || rating != null || verdict || isBought || isWishlisted || isIncoming || isPassed) && (
-                <div className="flex items-center gap-2">
-                  {entry.sampleState && (
-                    <span className="text-ui-12 text-tea-gold font-medium">
-                      {entry.sampleState.charAt(0).toUpperCase() + entry.sampleState.slice(1)}
-                    </span>
-                  )}
-                  {rating != null && (
-                    <span className="text-ui-12 font-semibold tabular-nums" style={typeColor ? { color: typeColor } : undefined}>
-                      {rating}/10
-                    </span>
-                  )}
-                  {verdict === 'love' && <Heart size={12} className="text-tea-error" fill="currentColor" />}
-                  {verdict === 'like' && <ThumbsUp size={12} className="text-tea-gold" />}
-                  {isBought && (
-                    <span className="text-ui-12 text-tea-gold/70 font-medium">In Stock</span>
-                  )}
-                  {isPassed && (
-                    <span className="text-ui-12 text-tea-text-dim font-medium">Passed</span>
-                  )}
-                  {isWishlisted && !isBought && (
-                    <span className="text-ui-12 text-tea-text-dim font-medium">Wishlist</span>
-                  )}
-                  {isIncoming && (
-                    <span className="text-ui-12 text-tea-accent-sub font-medium">Incoming</span>
-                  )}
-                </div>
-              )}
-
-              {/* Summary tags (body + flavor), only when collapsed */}
-              {!expanded && summaryTags.length > 0 && (
-                <div className="flex gap-1 flex-wrap">
-                  {summaryTags.map((tag) => (
-                    <span key={tag} className="tag text-ui-12">{tag}</span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Right: expand chevron */}
-            <span className="shrink-0 flex items-start pt-1 text-tea-text-dim" aria-hidden="true">
-              {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        <TeaLedgerRow
+          item={{
+            name: entryDisplayTitle(entry),
+            year: entry.year == null ? '' : String(entry.year),
+            type: getTypeLabel(entry),
+            origin: [entry.originRegion, entry.originCountry].filter(Boolean).join(', '),
+            description: entry.notes,
+          }}
+          showType
+          saved={isWishlisted}
+          onToggleSave={() => updateEntry(entry.id, { status: isWishlisted ? 'noted' : 'want' })}
+          onOpen={() => onSelect ? onSelect(entry.id) : setExpanded(value => !value)}
+          openLabel={`${onSelect ? 'Open' : expanded ? 'Collapse' : 'Expand'} ${entryDisplayTitle(entry)} details`}
+          expanded={onSelect ? undefined : expanded}
+          selected={isSelected}
+          tastingCount={entry.tastingHistory?.length || (hasTasting ? 1 : 0)}
+          trailing={entry.priceAmount != null ? (
+            <span className="flex flex-col items-end text-ui-12 text-tea-text-sec tabular-nums">
+              <span className="text-ui-10 text-tea-text-dim">Cost</span>
+              <span>{formatPrice(entry.priceAmount, entry.priceCurrency)}</span>
+              {pricePerGram && <span className="text-ui-10 text-tea-text-dim">{pricePerGram}</span>}
             </span>
-          </button>
-        </div>
+          ) : undefined}
+        />
 
         {/* ── Expanded detail ── */}
         <AnimatePresence initial={false}>
@@ -525,13 +399,32 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
 
         {/* ── Action bar, always visible. Wraps on narrow columns so the
             Sample action is never clipped by the card edge. ── */}
-        {!onSelect && <div className="flex flex-wrap items-center gap-x-1 border-t border-tea-border px-2 py-1">
+        <div data-testid={`library-entry-actions-${entry.id}`} className="library-entry-actions">
+          <div className="library-entry-context text-ui-12">
+            {entry.chineseName && <span className="font-chinese">{entry.chineseName}</span>}
+            {entry.vendorName && <span>{entry.vendorName}</span>}
+            {entry.sampleState && <span>Sample {entry.sampleState}</span>}
+            {isIncoming && <span>Incoming</span>}
+            {isPassed && <span>Passed</span>}
+            {entry.status === 'depleted' && <span>Depleted</span>}
+            {verdict && <span>{verdict === 'love' ? 'Loved' : verdict === 'like' ? 'Liked' : verdict === 'neutral' ? 'Meh' : 'Pass'}</span>}
+            {entry.tasting?.['liquor-color']?.[0] && LIQUOR_COLORS[entry.tasting['liquor-color'][0]] && (
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: LIQUOR_COLORS[entry.tasting['liquor-color'][0]] }} /> {/* color-data: recorded liquor colour */}
+                {entry.tasting['liquor-color'][0]}
+              </span>
+            )}
+            {summaryTags.length > 0 && <span>{summaryTags.join(' · ')}</span>}
+            {validPhotos.length > 0 && <button type="button" onClick={() => openLightbox(0)} aria-label="View photos" className="tap-target min-h-11 text-tea-text-sec hover:text-tea-text">{validPhotos.length} photo{validPhotos.length === 1 ? '' : 's'}</button>}
+            <button type="button" onClick={() => setExpanded(value => !value)} aria-expanded={expanded} aria-label={`${expanded ? 'Hide' : 'Show'} details for ${entryDisplayTitle(entry)}`} className="tap-target min-h-11 text-tea-text-sec hover:text-tea-text">{expanded ? 'Less' : 'Details'}</button>
+          </div>
+          <div className="flex min-w-0 flex-wrap items-center gap-x-1">
           {/* Wishlist toggle */}
           <button
             type="button"
             data-library-action
             onClick={() => updateEntry(entry.id, { status: isWishlisted ? 'noted' : 'want' })}
-            className={`tap-target flex min-h-11 items-center gap-1.5 px-2.5 rounded-md text-ui-12 font-medium transition-colors ${
+            className={`tap-target flex min-h-11 items-center gap-1.5 px-1 rounded-md text-ui-12 font-medium transition-colors ${
               isWishlisted
                 ? 'bg-tea-gold/10 text-tea-gold'
                 : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
@@ -547,7 +440,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             data-library-action
             onClick={() => { if (isBought) handleUnbuy(); else if (!acquisitionPending) onAcquire?.(entry.id); }}
             disabled={acquisitionPending || (!isBought && !onAcquire)}
-            className={`tap-target flex min-h-11 items-center gap-1.5 px-2.5 rounded-md text-ui-12 font-medium transition-colors ${
+            className={`tap-target flex min-h-11 items-center gap-1.5 px-1 rounded-md text-ui-12 font-medium transition-colors ${
               isBought
                 ? 'bg-tea-gold/10 text-tea-gold'
                 : acquisitionPending
@@ -567,7 +460,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             type="button"
             data-library-action
             onClick={() => setTastingOpen(true)}
-            className={`tap-target flex min-h-11 items-center gap-1.5 px-2.5 rounded-md text-ui-12 font-medium transition-colors ${
+            className={`tap-target flex min-h-11 items-center gap-1.5 px-1 rounded-md text-ui-12 font-medium transition-colors ${
               hasTasting
                 ? 'text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated'
                 : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
@@ -589,7 +482,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               data-library-action
               onClick={() => onAcquire?.(entry.id)}
               disabled={!onAcquire}
-              className="tap-target flex min-h-11 items-center gap-1.5 px-2.5 rounded-md text-ui-12 font-medium text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated transition-colors"
+              className="tap-target flex min-h-11 items-center gap-1.5 px-1 rounded-md text-ui-12 font-medium text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated transition-colors"
               title="Add to ledger to reorder"
             >
               <RefreshCw size={12} />
@@ -605,7 +498,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               onClick={() => updateEntry(entry.id, {
                 tasteOrder: entry.tasteOrder ? undefined : Date.now(),
               })}
-              className={`tap-target flex min-h-11 items-center gap-1 px-2.5 rounded-md text-ui-12 font-medium transition-colors ${
+              className={`tap-target flex min-h-11 items-center gap-1 px-1 rounded-md text-ui-12 font-medium transition-colors ${
                 entry.tasteOrder
                   ? 'bg-tea-gold/10 text-tea-gold'
                   : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
@@ -629,7 +522,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                 compassEntryId: entry.id,
               }}
               size={12}
-              className="tap-target min-h-11 px-2.5 text-ui-12"
+              className="tap-target min-h-11 px-1 text-ui-12"
             />
           )}
 
@@ -671,7 +564,8 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               <Trash2 size={12} />
             </button>
           )}
-        </div>}
+        </div>
+        </div>
       </article>
 
       {/* ── Tasting session ── */}

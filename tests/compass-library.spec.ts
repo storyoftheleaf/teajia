@@ -32,7 +32,7 @@ test.describe('Curate context retrieval', () => {
     });
 
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
-    await page.getByRole('button', { name: /Committed context tea/ }).click();
+    await page.getByRole('button', { name: /^(Open|Expand) Committed context tea details$/ }).click();
     await page.getByRole('button', { name: 'Edit entry' }).filter({ visible: true }).first().click();
     await page.getByRole('button', { name: /Edit context: Taiwan, Spring 2026 · Chen Family/ }).click();
     await page.getByRole('button', { name: 'Clear context' }).click();
@@ -227,7 +227,7 @@ test.describe('Curate Library decisions and retrieval', () => {
       promotions += 1;
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 'inventory-river', alreadyPromoted: false }) });
     });
-    await page.getByRole('button', { name: /River Stone/ }).click();
+    await page.getByRole('button', { name: /^(Open|Expand) River Stone details$/ }).click();
     const createAction = page.getByRole('button', { name: 'Create Inventory record' });
     // The control is a .pill now rather than a .tap-target. Both carry the
     // 44px floor, so assert the floor itself: which class delivers it is an
@@ -253,7 +253,7 @@ test.describe('Curate Library decisions and retrieval', () => {
       if (fail) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Offline' }) });
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'inventory-river', alreadyPromoted: true }) });
     });
-    await page.getByRole('button', { name: /River Stone/ }).click();
+    await page.getByRole('button', { name: /^(Open|Expand) River Stone details$/ }).click();
     await page.getByRole('button', { name: 'Create Inventory record' }).click();
     await expect(page.getByText('Queued until the connection returns', { exact: true })).toBeVisible();
     expect(await page.evaluate(async () => {
@@ -280,7 +280,7 @@ test.describe('Curate Library decisions and retrieval', () => {
     await page.route('**/api/compass/entries/selected/promote', route =>
       route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'Compass entry not found' }) }),
     );
-    await page.getByRole('button', { name: /River Stone/ }).click();
+    await page.getByRole('button', { name: /^(Open|Expand) River Stone details$/ }).click();
     await page.getByRole('button', { name: 'Create Inventory record' }).click();
     await expect(page.getByText('Could not create Inventory record: Compass entry not found', { exact: true })).toBeVisible();
     expect(await page.evaluate(async () => {
@@ -296,7 +296,7 @@ test.describe('Curate Library decisions and retrieval', () => {
       const [product] = await response.json();
       return { is_public: product.is_public, shown_in_shop: product.shown_in_shop };
     });
-    await page.getByRole('button', { name: /Cloud Peak/ }).click();
+    await page.getByRole('button', { name: /^(Open|Expand) Cloud Peak details$/ }).click();
     await page.getByRole('radio', { name: 'Considering' }).click();
     expect(await page.evaluate(async () => {
       // @ts-expect-error Vite source import.
@@ -376,7 +376,7 @@ test.describe('Curate Library decisions and retrieval', () => {
     for (const [label, expectedFirst] of cases) {
       await page.getByTestId('library-controls').filter({ visible: true }).getByTitle('Sort').click();
       await page.getByRole('button', { name: label, exact: true }).filter({ visible: true }).last().click();
-      const titles = page.locator('span.min-w-0.truncate.text-ui-16.font-serif').filter({ visible: true });
+      const titles = page.locator('[data-tea-ledger-row] h3').filter({ visible: true });
       await expect(titles.first()).toHaveText(expectedFirst);
     }
     const controls = page.getByTestId('library-controls').filter({ visible: true });
@@ -399,7 +399,7 @@ test.describe('Curate Library decisions and retrieval', () => {
   test('keeps dimensional filters, sorting, and List/Photos as separate controls', async ({ page }) => {
     await page.getByRole('button', { name: 'Filters' }).click();
     for (const label of ['Decision', 'Verdict', 'Possession', 'Journey', 'Vendor', 'Place', 'Date', 'Category', 'Type', 'Origin', 'Year', 'Price', 'Sample state', 'Photos', 'Missing information']) {
-      await expect(page.getByLabel(label)).toBeVisible();
+      await expect(page.getByLabel(label, { exact: true })).toBeVisible();
     }
     await page.getByLabel('Decision').selectOption('passed_on');
     await page.getByRole('button', { name: 'Apply filters' }).click();
@@ -548,7 +548,7 @@ test.describe('Curate Library decisions and retrieval', () => {
       await expect(page.getByRole('heading', { name: group, exact: true })).toBeVisible();
     }
     for (const label of ['Journey', 'Vendor', 'Place', 'Date', 'Category', 'Type', 'Origin', 'Year', 'Price', 'Decision', 'Verdict', 'Possession', 'Sample state', 'Photos', 'Missing information']) {
-      await expect(page.getByLabel(label)).toBeVisible();
+      await expect(page.getByLabel(label, { exact: true })).toBeVisible();
     }
   });
 
@@ -565,7 +565,7 @@ test.describe('Curate Library decisions and retrieval', () => {
   test('desktop detail keeps Share and the complete action set reachable', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name.includes('Mobile'), 'Desktop split-pane contract');
     const selectedRail = page.getByTestId('library-entry-selected').filter({ visible: true });
-    await expect(selectedRail.locator('[data-library-action]')).toHaveCount(0);
+    await expect(selectedRail.getByRole('button', { name: 'Want', exact: true })).toBeVisible();
     await selectedRail.getByRole('button', { name: /Open River Stone details/ }).click();
     const detail = page.getByTestId('library-entry-detail');
     for (const name of ['Edit entry', 'Want', 'Buy', 'Taste', 'Queue', 'Share', 'Delete entry']) await expect(detail.getByRole('button', { name, exact: true })).toBeVisible();
