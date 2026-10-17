@@ -40,6 +40,7 @@ import { prepareCompassSampleWrite } from '../curateSampleBridge';
  *     here names the column, NULL when no price was given, and the unit is
  *     never left for the table to guess.
  */
+import { acquisitionProposalColumns, acquisitionStateSaid, ACQUISITION_STATES, ACQUISITION_UNITS, isAcquisitionState, readAcquiredQuantity, waitsAsArrival, type AcquiredQuantity, type AcquisitionState } from '../curateAcquisition';
 import { refreshedCurrencyName, REFRESHED_CURRENCIES } from '../exchangeRateFeed';
 import { mergeProductTasting, readStoredTasting, tastingTermLabel, TASTING_TERM_CATEGORIES } from '../curateImportTasting';
 import type { ToolAuth, ToolDefinition, ToolEnv, ToolHandler, ToolModule } from './registry';
@@ -496,6 +497,10 @@ type TeaWrite = {
   sampleGrams?: number;
   photos?: string[];
   photosMode?: 'append' | 'replace';
+  /* What Adrian bought and where it is. Stock, never the sample shelf: a
+     sample's grams are unknown until somebody weighs them, which is what
+     sample_state and sample_grams are for. */
+  bought?: { quantity: AcquiredQuantity; state: AcquisitionState; purpose: 'working' | 'personal'; key: string };
   agent: string;
 };
 
@@ -516,9 +521,44 @@ const CLEARABLE = new Set(['chinese_name', 'type', 'form', 'season', 'storage', 
   'cultivar', 'description', 'year', 'era', 'price', 'vendor', 'teaware_category', 'material', 'capacity_ml',
   'shop_name', 'transport_mode', 'note', 'notes', 'said', ...COMPASS_STRUCTURED_COLUMNS]);
 
-function readTeaWrite(args: any, label: string, vendor: VendorPlan | null): { write: TeaWrite; lines: string[] } {
+/**
+ * What was bought, and where it is.
+ *
+ * A quantity with nowhere to be is not a purchase, and a state with no
+ * quantity is not stock, so both are required together. Ordered and on-the-way
+ * wait as an arrival for `curate_approve_arrival`; received goes into stock
+ * through the same service the app's arrivals screen calls. Sample grams are
+ * deliberately not reachable from here: a received sample's weight is unknown
+ * until it is measured, and this door would have to invent one.
+ */
+function readBought(args: any, context: { category: 'tea' | 'teaware'; packSizeGrams: number | null }): { bought: TeaWrite['bought']; line: string | null } {
+  if (args?.bought == null) return { bought: undefined, line: null };
+  const raw = args.bought;
+  if (typeof raw !== 'object' || Array.isArray(raw)) throw new Error('bought must be an object: {quantity: {amount, unit}, state}');
+  const unknown = Object.keys(raw).find(key => !['quantity', 'state', 'purpose'].includes(key));
+  if (unknown) throw new Error(`bought.${unknown} is not a field. Use quantity, state and purpose.`);
+  const state = str(raw.state, 20);
+  if (!isAcquisitionState(state)) throw new Error(`bought.state must be one of ${ACQUISITION_STATES.join(', ')}`);
+  const purpose = str(raw.purpose, 20) ?? 'working';
+  if (purpose === 'sample') {
+    throw new Error('A sample is not bought stock: use sample_state, and sample_grams only once it has been weighed. Its weight stays unknown until then.');
+  }
+  if (purpose !== 'working' && purpose !== 'personal') throw new Error('bought.purpose must be working or personal');
+  const quantity = readAcquiredQuantity(raw.quantity, context);
+  return {
+    bought: { quantity, state, purpose, key: crypto.randomUUID() },
+    line: `Bought · ${quantity.said} · ${acquisitionStateSaid(state)}${purpose === 'personal' ? ' · his own' : ''}`,
+  };
+}
+
+function readTeaWrite(args: any, label: string, vendor: VendorPlan | null, current?: Record<string, any> | null): { write: TeaWrite; lines: string[] } {
   if (str(args?.vendor_note, 4000)) throw new Error('Agent vendor notes are disabled: use a structured vendor field');
   const fields = readTeaFields(args, label);
+  /* A cake is a weight only if somebody said what one weighs, and the answer
+     may already be on the tea rather than in this call. */
+  const category = fields.values.category === 'teaware' || (fields.values.category == null && current?.category === 'teaware') ? 'teaware' : 'tea';
+  const packSize = fields.values.pack_size_grams ?? current?.pack_size_grams ?? null;
+  const purchase = readBought(args, { category, packSizeGrams: packSize == null ? null : Number(packSize) });
   const tasting = readTasting(args);
   if (args?.clear !== undefined && !Array.isArray(args.clear)) throw new Error('clear must be a field list');
   const clear = Array.isArray(args?.clear) ? args.clear.map((c: unknown) => String(c)) : [];
@@ -552,12 +592,14 @@ function readTeaWrite(args: any, label: string, vendor: VendorPlan | null): { wr
     sampleGrams: args?.sample_grams,
     photos,
     photosMode: args?.photos_mode ?? 'append',
+    bought: purchase.bought,
     agent: agentName(args),
   };
   const lines: string[] = [];
   for (const l of fields.lines) lines.push(`Tea · ${l}`);
   for (const l of tasting.lines) lines.push(`Tasting · ${l}`);
   if (vendor) lines.push(`Vendor · ${vendor.name}${vendor.isNew ? ' (new vendor, name only)' : ''}`);
+  if (purchase.line) lines.push(purchase.line);
   if (write.note) lines.push(`Story note · ${write.note.slice(0, 160)}${write.note.length > 160 ? '…' : ''}`);
   if (write.said) lines.push(`What Adrian said, kept whole · ${write.said.length} characters`);
   if (write.vendorNote) lines.push(`On the vendor's card · ${write.vendorNote}`);
@@ -634,13 +676,59 @@ async function commitTeaWrite(env: ToolEnv, auth: ToolAuth, entryId: string, w: 
     } });
   }
   const recorded = prepareCurateRecordedWrite(env.DB, auth, { commandType: isNew ? 'tea:create' : 'tea:update', agent: w.agent, changes, guards });
+  /* The arrival rides in the SAME batch as the tea, gated on the mutation row
+     the way every other side write here is, so a tea and the stock it arrived
+     with land together or not at all. */
+  const arrival = w.bought ? acquisitionProposalColumns({
+    id: crypto.randomUUID(), accountId: auth.accountId, userId: auth.userId,
+    compassEntryId: entryId, productId: after.draft_product_id ?? null,
+    name: typeof after.name === 'string' ? after.name : null,
+    type: after.category === 'teaware' ? 'Teaware' : typeof after.type === 'string' ? after.type : null,
+    purpose: w.bought.purpose, quantity: w.bought.quantity, state: w.bought.state,
+    idempotencyKey: `curate:bought:${entryId}:${w.bought.key}`,
+  }) : null;
+  const sideWrites: D1PreparedStatement[] = [];
+  if (arrival) {
+    const columns = Object.keys(arrival) as Array<keyof typeof arrival>;
+    sideWrites.push(env.DB.prepare(
+      `INSERT INTO curate_receipt_proposals (${columns.join(', ')}) SELECT ${columns.map(() => '?').join(', ')}
+         WHERE EXISTS(SELECT 1 FROM curate_mutations WHERE id = ? AND account_id = ?)`
+    ).bind(...columns.map(column => arrival[column]), recorded.mutationId, auth.accountId));
+  }
   if (w.clearSaid) {
-    const results = await env.DB.batch(recorded.statements);
+    const results = await env.DB.batch([...recorded.statements, ...sideWrites]);
     if (!results[0]?.meta?.changes) return { error: 'stale_preview', message: 'The tea or its transcripts changed. Preview the clear again.' };
-  } else await env.DB.batch([...recorded.statements, recorded.assertion]);
+  } else await env.DB.batch([...recorded.statements, ...sideWrites, recorded.assertion]);
+  /* Ordered and on the way wait on the arrivals list for curate_approve_arrival.
+     Already here goes into stock now, through the one service the app's own
+     arrivals screen calls, so a direct entry and an approval leave the same
+     receipt, ledger row and product behind. */
+  let stock: Record<string, unknown> | null = null;
+  if (arrival && !waitsAsArrival(arrival.acquisition_state)) {
+    if (!env.curateReceipts) throw new Error('Arrival acceptance service is unavailable');
+    const accepted = await env.curateReceipts.accept({ accountId: auth.accountId, userId: auth.userId, email: auth.userEmail }, arrival.id);
+    const result = await accepted.json() as Record<string, unknown>;
+    stock = accepted.ok
+      ? { received: true, product_id: result.product_id ?? null, ledger_id: result.ledger_id ?? null }
+      : { received: false, arrival_id: arrival.id, error: result.error ?? 'arrival_acceptance_failed', note: 'The tea is saved and the arrival is waiting. Approve it with curate_approve_arrival.' };
+  }
   const row = await entryById(env, auth, entryId);
-  return { committed: true, mutation_id: recorded.mutationId, tea: row ? teaSummary(row) : { id: entryId } };
+  return {
+    committed: true, mutation_id: recorded.mutationId, tea: row ? teaSummary(row) : { id: entryId },
+    ...(arrival ? {
+      bought: {
+        arrival_id: arrival.id, quantity: arrival.quantity, unit: arrival.unit,
+        state: arrival.acquisition_state, purpose: arrival.purpose,
+        waiting_to_be_approved: waitsAsArrival(arrival.acquisition_state),
+        where: waitsAsArrival(arrival.acquisition_state)
+          ? 'Arrivals, waiting for curate_approve_arrival when it lands.'
+          : 'In stock, through the same service the arrivals screen uses.',
+        ...(stock ?? {}),
+      },
+    } : {}),
+  };
 }
+
 
 // ── Tool: curate_find ─────────────────────────────────────────────────────────
 
@@ -836,7 +924,7 @@ const toolUpdateTea: ToolHandler = async (env, auth, args) => {
   const current = await entryById(env, auth, id);
   if (!current) return { error: 'not_found' };
   const vendor = await planVendor(env, auth, str(args?.vendor_id, 80), str(args?.vendor_name, 200));
-  const { write, lines } = readTeaWrite(args, current.name ?? 'this tea', vendor);
+  const { write, lines } = readTeaWrite(args, current.name ?? 'this tea', vendor, current);
   // readTeaFields leaves the name out of the lines because on an add the read_back
   // already says it. On an update a rename is a change like any other: without a
   // line it was refused as nothing to change, and riding with another field it
@@ -1390,6 +1478,26 @@ const FILING_PROPS = {
   sample_grams: { type: 'number', minimum: 0, description: 'Explicit sample grams, zero included. Omitted keeps existing measured grams; a new request has unknown weight (null) until measured.' },
   photos: { type: 'array', items: { type: 'string' }, description: 'Hosted HTTPS photo URLs.' },
   photos_mode: { type: 'string', enum: ['append', 'replace'], description: 'append (default) keeps existing photos; replace replaces the list, including clearing with [].' },
+  bought: {
+    type: 'object',
+    description: 'What Adrian actually bought of this tea, and where it is. Ordered or on the way waits on the arrivals list until curate_approve_arrival puts it in stock; already received goes into stock now. This is shop stock, not the sample shelf: a sample uses sample_state, and sample_grams only once it has been weighed.',
+    properties: {
+      quantity: {
+        type: 'object',
+        description: 'The total bought, e.g. {amount: 2, unit: "kg"} or {amount: 4, unit: "cake"}.',
+        properties: {
+          amount: { type: 'number', description: 'How many of the unit.' },
+          unit: { type: 'string', enum: [...ACQUISITION_UNITS], description: 'g, kg and jin are weights; piece, can and cake are counts, and a tea counted that way also needs pack_size_grams.' },
+        },
+        required: ['amount', 'unit'],
+        additionalProperties: false,
+      },
+      state: { type: 'string', enum: [...ACQUISITION_STATES], description: 'ordered (paid, not shipped), in_transit (on the way), received (here now).' },
+      purpose: { type: 'string', enum: ['working', 'personal'], description: 'working (default) is shop stock; personal is his own. A sample is not bought stock.' },
+    },
+    required: ['quantity', 'state'],
+    additionalProperties: false,
+  },
   vendor_id: { type: 'string', description: 'The vendor id from curate_find.' },
   vendor_name: { type: 'string', description: 'The vendor by name. Matches an existing vendor, or adds a new one with just this name.' },
   agent: AGENT_PROP,
@@ -1434,7 +1542,7 @@ const defs: ToolDefinition[] = [
   {
     name: 'curate_add_tea',
     scope: 'stock:write',
-    description: 'Use this when Adrian tells you about a tea he wants in Curate (at a vendor\'s table, a WeChat offer, a friend\'s tea). A name is enough; everything else can come later. Two steps: the first call returns a read-back and a confirmation_token, the second call with confirm commits. Do NOT use for teas you found yourself on a website; those go to curate_suggest_teas.',
+    description: 'Use this when Adrian tells you about a tea he wants in Curate (at a vendor\'s table, a WeChat offer, a friend\'s tea). A name is enough; everything else can come later. When he says how much he bought, pass bought with the quantity and whether it is ordered, on the way, or already here: ordered and on the way wait on the arrivals list for curate_approve_arrival, received goes into stock. Two steps: the first call returns a read-back and a confirmation_token, the second call with confirm commits. Do NOT use for teas you found yourself on a website; those go to curate_suggest_teas.',
     inputSchema: {
       type: 'object',
       properties: { name: { type: 'string', description: 'The tea\'s name as Adrian says it, e.g. "2019 Yiwu Gushu".' }, ...TEA_FIELD_PROPS, ...FILING_PROPS },
@@ -1446,7 +1554,7 @@ const defs: ToolDefinition[] = [
     name: 'curate_update_tea',
     scope: 'stock:write',
     annotations: { destructiveHint: true },
-    description: 'Correct structured tea facts, quoted price, tasting terms, score, an exact transcript or a to-do. Only supplied fields change. Use clear to deliberately empty a field; clear note/notes empties only the legacy notes column; clear said removes only active exact voice transcripts, with their IDs and text in the preview. Manual notes are kept. Agent note/vendor_note writing is disabled. Every mutation is previewed and confirmed.',
+    description: 'Correct structured tea facts, quoted price, tasting terms, score, an exact transcript or a to-do, and record a purchase with bought (quantity plus ordered / in_transit / received). Only supplied fields change. Use clear to deliberately empty a field; clear note/notes empties only the legacy notes column; clear said removes only active exact voice transcripts, with their IDs and text in the preview. Manual notes are kept. Agent note/vendor_note writing is disabled. Every mutation is previewed and confirmed.',
     inputSchema: {
       type: 'object',
       properties: {

@@ -143,7 +143,7 @@ and so on. The Hermes skill for this is in the i64os repo at
 | `curate_get_tea` | Everything about one tea: fields, price, tasting, every note and transcript, to-dos, its vendor | read |
 | `curate_whats_missing` | The list of gaps, cost first, each with a question ready to ask | read |
 | `curate_list_suggestions` | Teas waiting for Adrian's yes or no, grouped by who found them | read |
-| `curate_add_tea` | A tea Adrian tells you about. Name is enough | preview, confirm |
+| `curate_add_tea` | A tea Adrian tells you about. Name is enough; `bought` records a quantity and whether it is ordered, on the way or here | preview, confirm |
 | `curate_update_tea` | Fill or file anything on a tea: fields, price, tasting, score, structured facts, the transcript, a to-do | preview, confirm |
 | `curate_save_vendor` | Add a vendor (name is enough) or add to its card. Only what you pass changes | preview, confirm |
 | `curate_pick_suggestions` | Adrian's picks become Curate teas (samples to request by default); the rest are dropped | preview, confirm |
@@ -152,6 +152,7 @@ and so on. The Hermes skill for this is in the i64os repo at
 | `curate_get_vendor` | A vendor's card, what the shop knows about how they work, shipping cost per leg, their teas, orders and to-dos | read |
 | `curate_record_freight` | A shipping cost Adrian reports, per vendor and leg (or shared) | preview, confirm |
 | `curate_order` | An order to a vendor: the message to copy, the landed cost, an arrival to approve | preview, confirm |
+| `intake_add_items` | Build an import draft by hand when analysis could not read it: teas plus the vendor group they belong to | preview, confirm |
 
 Always pass `agent` with your name ("GrokBot", "Hermes", "ChatGPT", "Claude"). It
 is shown beside what you wrote.
@@ -215,6 +216,56 @@ the order is refused for review. Freight still follows the shop setting.
 
 For backfill and cleanup, generate the account-scoped report described in
 [Curate inventory review](../CURATE_INVENTORY_REVIEW.md). It makes no writes.
+
+## How much he bought, and where it is
+
+When Adrian says a quantity ("two kilos", "four cakes", "a jin of the Liubao"),
+pass `bought` on `curate_add_tea` or `curate_update_tea` rather than losing it:
+
+```json
+{"tool": "curate_add_tea", "args": {
+  "name": "Yiwu Gushu", "vendor_name": "Huang Wei", "type": "Sheng",
+  "bought": {"quantity": {"amount": 2, "unit": "kg"}, "state": "in_transit"},
+  "agent": "GrokBot"
+}}
+```
+
+`unit` is `g`, `kg`, `jin`, `piece`, `can` or `cake`. The first three are
+weights; the last three are counts, and a TEA counted in pieces also needs
+`pack_size_grams`, because a cake is not a number of grams until somebody says
+what one weighs. It will refuse rather than assume.
+
+`state` is `ordered` (paid, not shipped), `in_transit` (on the way) or
+`received` (here now). Ordered and on the way wait on the arrivals list for
+`curate_approve_arrival`, which moves exactly those grams into stock when it
+lands. Received goes into stock on confirmation, through the same service the
+approval calls. The read-back says which, with the quantity in grams; confirm
+only after Adrian agrees to it.
+
+`bought` is shop stock, never the sample shelf. `purpose` takes `working`
+(default) or `personal`; a sample uses `sample_state`, and `sample_grams` only
+once it has actually been weighed.
+
+## When an import cannot be read
+
+`intake_analyze` can fail: the provider refuses, the photo is unreadable, the
+handwriting wins. A draft in that state has no items and no vendor groups, so
+there is nothing to edit and nothing to assign a vendor to. It is not a dead
+end: build it by hand with `intake_add_items`, which adds the teas AND creates
+the vendor group they belong to, in one preview and one confirm for the whole
+list.
+
+Each line takes `name` (English; Chinese goes in `chinese_name`), `quantity`
+(the same `{amount, unit}` as `bought`), `disposition` (`ordered`,
+`in_transit`, `received` or `library_only`), `price` (`{amount, currency,
+basis}`) and the usual tea fields. Say the currency: Adrian buys in Chinese
+yuan, so write `CNY` rather than leaving it out, because a cost without its
+currency is not a cost and the line will be refused. Pass `vendor_name` or
+`vendor_customer_id` so the group can be resolved, then `intake_set_group_vendor`
+if the vendor was new, then `intake_finalize` as usual.
+
+The draft's `analysis_error` says why the provider refused, in its own words.
+Read it before retrying: a refusal about the request will refuse again.
 
 ## When Adrian sends a photo
 

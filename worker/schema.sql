@@ -944,6 +944,9 @@ CREATE TABLE IF NOT EXISTS curate_receipt_proposals (
     quantity REAL NOT NULL CHECK (quantity > 0),
     unit TEXT NOT NULL CHECK (unit IN ('g', 'unit')),
     acquisition_kind TEXT NOT NULL CHECK (acquisition_kind IN ('purchase', 'free_sample', 'gift', 'transfer', 'other')),
+    -- Ordered, on the way, or already here (migration 0044). NULL means nobody
+    -- said; the order rows written before the column existed are honestly NULL.
+    acquisition_state TEXT CHECK (acquisition_state IS NULL OR acquisition_state IN ('ordered', 'in_transit', 'received')),
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected')),
     idempotency_key TEXT NOT NULL,
     ledger_id TEXT REFERENCES stock_ledger(id) ON DELETE SET NULL,

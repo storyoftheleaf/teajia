@@ -9,7 +9,7 @@ import {
 import { mergeProductTasting, tastingForShop, tastingHasTerms, tastingTermsSupplied } from './curateImportTasting';
 import { customerTagList, customerTagsForStore, foldHandlesIntoContacts, HANDLE_CHANNELS, withContactHandles } from './customerContactHandles';
 import {
-  abandonCurateImport, acceptCurateImportItem, addCurateImportItem, addCurateImportSource, analyzeCurateImport, createCurateImport, getCurateImport,
+  abandonCurateImport, acceptCurateImportItem, addCurateImportItem, addCurateImportManualItems, addCurateImportSource, analyzeCurateImport, createCurateImport, getCurateImport,
   createVendorForCurateImportGroup, finalizeCurateImportRequest, getCurateImportEvidence, listIncompleteCurateImports, mergeCurateImportItem,
   setCurateImportJourney, updateCurateImportGroup, updateCurateImportItem, uploadCurateImportEvidence, curateImportChat,
   type CurateImportContext,
@@ -29528,6 +29528,10 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/curate/imports/:id/groups/:groupId/vendor', withCurateImportAccount(createVendorForCurateImportGroup, true)],
   ['PUT', '/api/curate/imports/:id/journey', withCurateImportAccount(setCurateImportJourney, true)],
   ['POST', '/api/curate/imports/:id/items', withCurateImportAccount(addCurateImportItem, true)],
+  /* Several hand-built items, their vendor group created with them, in one
+     write. The only door that can give a draft a vendor group without
+     analysis, which is what a failed draft needs to reach finalize. */
+  ['POST', '/api/curate/imports/:id/manual-items', withCurateImportAccount(addCurateImportManualItems, true)],
   ['POST', '/api/curate/imports/:id/evidence', withCurateImportAccount(uploadCurateImportEvidence, true)],
   ['GET', '/api/curate/imports/:id/sources/:sourceId/content', withCurateImportAccount(getCurateImportEvidence)],
   ['POST', '/api/curate/imports/:id/sources', withCurateImportAccount(addCurateImportSource, true)],

@@ -17,7 +17,7 @@ type ArrivalTicket = {
 const FIELDS = [
   'id', 'compass_entry_id', 'product_id', 'batch_id', 'import_id', 'import_item_id',
   'product_name', 'product_type', 'purpose', 'quantity', 'unit', 'acquisition_kind',
-  'idempotency_key', 'status',
+  'acquisition_state', 'idempotency_key', 'status',
 ];
 
 async function load(env: ToolEnv, auth: ToolAuth, id: string) {
@@ -41,6 +41,10 @@ function reading(row: Row, details: Row) {
     quantity: row.quantity,
     unit: row.unit,
     acquisition_kind: row.acquisition_kind,
+    /* Ordered, on the way, or already here (migration 0044). NULL on the order
+       rows written before the column existed, so it reads as not said rather
+       than as a state nobody chose. */
+    acquisition_state: row.acquisition_state ?? null,
     cost: details.cost_amount == null ? null : {
       amount: details.cost_amount,
       currency: details.cost_currency,
@@ -111,7 +115,7 @@ export const curateArrivalTools: ToolModule = {
   defs: [
     {
       name: 'curate_list_arrivals', scope: 'inventory:read',
-      description: 'Read pending Curate arrivals to review: tea, quantity, purpose and paid batch cost when linked to an exact supplier order. Never changes stock.',
+      description: 'Read pending Curate arrivals to review: tea, quantity, purpose, whether it is ordered or on the way, and the paid batch cost when linked to an exact supplier order. Never changes stock.',
       inputSchema: {
         type: 'object', properties: { limit: { type: 'number' }, agent: { type: 'string' } },
         additionalProperties: false,

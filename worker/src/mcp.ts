@@ -81,9 +81,11 @@ import type {
 } from './invoiceDomain';
 import {
   createCurateImport,
+  addCurateImportManualItems,
   addCurateImportSource,
   analyzeCurateImport,
   getCurateImport,
+  previewManualImportItems,
   updateCurateImportItem,
   updateCurateImportGroup,
   curateImportChat,
@@ -544,6 +546,7 @@ type PendingMutation =
   | { kind: 'confirm_payment'; accountId: string; userEmail: string; actorUserId: string; paymentId: string; invoiceId: string; invoiceNumber: string | null; customerName: string | null; amountUsd: number }
   | { kind: 'record_payment'; accountId: string; userEmail: string; actorUserId: string; invoiceId: string; invoiceNumber: string | null; customerName: string | null; amountUsd: number; method: string | null; reference: string | null; note: string | null }
   // ── Intake (Curate-import) ──
+  | { kind: 'intake_add_items'; accountId: string; userEmail: string; userId: string; importId: string; body: Record<string, unknown> }
   | { kind: 'intake_finalize'; accountId: string; userEmail: string; userId: string; importId: string; idempotencyKey: string };
 
 /* Defined in mcpTools/tickets.ts so the built-in tools and the module tools
@@ -5821,6 +5824,74 @@ async function toolIntakeAnswer(env: Env, auth: McpAuth, args: any) {
   return data;
 }
 
+/**
+ * Build a failed draft's items by hand.
+ *
+ * Two steps like every other write: the first call reads the lines back, the
+ * second with confirm commits them. One ticket covers the whole list, because
+ * rebuilding a fifty-line invoice one preview at a time is a hundred calls and
+ * nobody would do it.
+ */
+async function toolIntakeAddItems(env: Env, auth: McpAuth, args: any) {
+  const importId = String(args?.import_id ?? '').trim();
+  if (!importId) return { error: 'import_id is required' };
+  const confirm = args?.confirm ? String(args.confirm) : null;
+  const items = Array.isArray(args?.items) ? args.items : null;
+  const body: Record<string, unknown> = { items: items ?? [] };
+  if (args?.vendor_customer_id != null) body.vendor_customer_id = String(args.vendor_customer_id);
+  if (args?.vendor_name != null) body.vendor_name = String(args.vendor_name);
+  if (args?.group_id != null) body.group_id = String(args.group_id);
+  const ctx: CurateImportContext = { accountId: auth.accountId, userId: auth.userId };
+
+  if (!confirm) {
+    if (!items?.length) return { error: 'items is required: at least one tea to add' };
+    const draftRequest = new Request(`http://localhost/api/curate/imports/${importId}`, { method: 'GET' });
+    const draftResponse = await getCurateImport(draftRequest, env as any, ctx, { id: importId });
+    const draft = await draftResponse.json() as any;
+    if (!draftResponse.ok) return { error: draft.error ?? 'import_not_found', details: draft };
+    /* Read back what will be filed, in words, with the quantity converted so
+       Adrian hears the grams rather than only the unit he said. A line whose
+       quantity or price cannot be read refuses here, before the ticket. */
+    let readBack: string[];
+    try { readBack = previewManualImportItems(items); }
+    catch (error) { return { error: (error as Error).message }; }
+    const token = await issueConfirmationToken(env, {
+      kind: 'intake_add_items',
+      accountId: auth.accountId, userEmail: auth.userEmail, userId: auth.userId,
+      importId, body,
+    }, auth.tokenId);
+    return {
+      preview: {
+        action: 'intake_add_items',
+        import_id: importId,
+        title: draft.batch?.title ?? null,
+        analysis_state: draft.batch?.analysis_state ?? null,
+        items_already_on_the_draft: Array.isArray(draft.items) ? draft.items.length : 0,
+        will_add: readBack,
+        vendor: args?.vendor_name ?? args?.vendor_customer_id ?? null,
+        note: 'Adds these to the draft and puts them in one vendor group. Nothing reaches the shelf until intake_finalize.',
+      },
+      confirmation_token: token,
+      expires_in_seconds: PENDING_TTL_MS / 1000,
+    };
+  }
+
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
+  if (!pending || pending.kind !== 'intake_add_items' || pending.importId !== importId || pending.accountId !== auth.accountId) {
+    return { error: 'invalid_or_expired_confirmation_token' };
+  }
+  const request = new Request(`http://localhost/api/curate/imports/${importId}/manual-items`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pending.body),
+  });
+  const res = await addCurateImportManualItems(request, env as any, { accountId: pending.accountId, userId: pending.userId }, { id: importId });
+  const data = await res.json() as any;
+  if (!res.ok) return { error: data.error ?? 'add_items_failed', code: data.code, details: data };
+  return {
+    committed: true, action: 'intake_add_items', import_id: importId,
+    added: data.added, groups: data.groups, item_count: Array.isArray(data.items) ? data.items.length : null,
+  };
+}
+
 async function toolIntakeFinalize(env: Env, auth: McpAuth, args: any) {
   const importId = String(args?.import_id ?? '').trim();
   if (!importId) return { error: 'import_id is required' };
@@ -6567,6 +6638,69 @@ const TOOL_DEFS = [
     },
   },
   {
+    name: 'intake_add_items',
+    scope: 'stock:write',
+    description: 'Build a Curate import draft by hand when analysis could not read the record (analysis_state failed, no items, no vendor groups). Adds one or more teas AND creates the vendor group they belong to, which is what intake_set_group_vendor assigns a vendor to and what intake_finalize turns into a receipt. Two steps: the first call reads every line back with its quantity converted to grams and returns a confirmation_token, the second call with confirm commits them all. Names are English; Chinese goes in chinese_name. Say the currency: Adrian buys in Chinese yuan (CNY) unless he says otherwise, so write CNY rather than leaving it out. An import records ordered and in transit the same way, as stock bought but not yet here.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        import_id: { type: 'string', description: 'Import batch ID from intake_start.' },
+        vendor_customer_id: { type: 'string', description: 'Customer id of the vendor, if the vendor already exists (from find_customer or curate_find). Resolves the group in the same call.' },
+        vendor_name: { type: 'string', description: 'The vendor by name, when there is no customer id yet. Names the group so intake_set_group_vendor can resolve it later.' },
+        group_id: { type: 'string', description: 'Add to an existing vendor group instead of creating one.' },
+        items: {
+          type: 'array',
+          description: 'The teas to add, up to 100.',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'The tea in English, e.g. "Aged Liubao". Chinese characters are refused here.' },
+              chinese_name: { type: 'string', description: 'The original Chinese name, e.g. 陈年六堡茶.' },
+              category: { type: 'string', enum: ['tea', 'teaware'], description: 'tea (default) or teaware.' },
+              quantity: {
+                type: 'object',
+                description: 'How much was bought in total.',
+                properties: {
+                  amount: { type: 'number', description: 'How many of the unit, e.g. 2.' },
+                  unit: { type: 'string', enum: ['g', 'kg', 'jin', 'piece', 'can', 'cake'], description: 'g, kg and jin are weights; piece, can and cake are counts and need pack_size_grams for tea.' },
+                },
+                required: ['amount', 'unit'],
+                additionalProperties: false,
+              },
+              pack_size_grams: { type: 'number', description: 'What one piece, can or cake weighs. Required for a tea counted in pieces: a cake is not a number of grams until somebody says so.' },
+              disposition: { type: 'string', enum: ['ordered', 'in_transit', 'received', 'library_only'], description: 'received = already here; ordered / in_transit = bought, not here yet; library_only = recorded, no stock.' },
+              purpose: { type: 'string', enum: ['working', 'sample', 'personal'], description: 'working (default) is shop stock; sample is the sample shelf; personal is Adrian\'s own.' },
+              price: {
+                type: 'object',
+                description: 'What it cost, as the vendor wrote it.',
+                properties: {
+                  amount: { type: ['number', 'string'], description: 'The figure, e.g. 380.' },
+                  currency: { type: 'string', description: 'The currency it was quoted in, e.g. CNY. Never left out: a cost without its currency is not a cost.' },
+                  basis: { type: 'string', enum: ['per_pack', 'line_total'], description: 'Whether the amount is for one pack or for the whole line. Required when more than one pack.' },
+                },
+                required: ['amount', 'currency'],
+                additionalProperties: false,
+              },
+              type: { type: 'string', description: 'Sheng, Shou, Oolong, White...' },
+              form: { type: 'string', description: 'Cake, Brick, Loose Leaf...' },
+              year: { type: 'number', description: 'A four-digit year.' },
+              origin_country: { type: 'string' },
+              origin_region: { type: 'string' },
+              classification: { type: 'string' },
+              cultivar: { type: 'string' },
+              producer: { type: 'string' },
+              description: { type: 'string', description: 'The public description. Never the vendor, the price or the route.' },
+            },
+            required: ['name'],
+            additionalProperties: false,
+          },
+        },
+        confirm: { type: 'string', description: 'The confirmation_token from the preview. Send it only after Adrian said yes to the read-back.' },
+      },
+      required: ['import_id'],
+    },
+  },
+  {
     name: 'intake_ask',
     scope: 'stock:write',
     description: 'Post a clarifying question (ask) on a Curate import draft or specific item. NOTE: the chat endpoint (THEN-T1) has not shipped yet — this tool currently returns not_implemented.',
@@ -6962,6 +7096,7 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
     case 'intake_get_draft': result = mcpContent(await toolIntakeGetDraft(env, auth, args)); break;
     case 'intake_update_item': result = mcpContent(await toolIntakeUpdateItem(env, auth, args)); break;
     case 'intake_set_group_vendor': result = mcpContent(await toolIntakeSetGroupVendor(env, auth, args)); break;
+    case 'intake_add_items': result = mcpContent(await toolIntakeAddItems(env, auth, args)); break;
     case 'intake_ask': result = mcpContent(await toolIntakeAsk(env, auth, args)); break;
     case 'intake_answer': result = mcpContent(await toolIntakeAnswer(env, auth, args)); break;
     case 'intake_finalize': result = mcpContent(await toolIntakeFinalize(env, auth, args)); break;

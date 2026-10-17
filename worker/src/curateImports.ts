@@ -1,4 +1,5 @@
 import { compassValuesFromImport } from './compassCodec';
+import { analysisProviderFailure, AnalysisProviderError, buildAnalysisProviderBody, CURATE_IMPORT_ANALYSIS_DEFAULT_MODEL, sanitizedProviderDetail } from './curateAnalysisProvider';
 import { FALLBACK_SHIPPING_RATE_PER_KG } from './shippingRate';
 import { validateCurateContextPair } from './curateContextValidation';
 import { applyImportRecordHints, buildImportAnalysisPrompt, buildImportRecordFallbackProposal, buildImportRecordHints, decodeImportAnalysisProposal, IMPORT_ANALYSIS_OUTPUT_SCHEMA, inferSilentFills, normalizeImportProposal, renormalizeImportItemData, type ImportAnalysisProposal, type ImportMatchCandidates } from './curateImportAnalysis';
@@ -9,6 +10,7 @@ import {
 } from './curateImportEvidence';
 import { CurateImportFinalizeError, finalizeCurateImport, holdingMatchesFinalizeItem, type CurateFinalizeData, type FinalizeReceiptLine } from './curateImportFinalize';
 import { decodeInventoryReceipt, effectiveInventoryPurpose, inventoryPurposeConflict } from './inventoryDomain';
+import { acquisitionStateSaid, ACQUISITION_STATES, isAcquisitionPurpose, isAcquisitionState, readAcquiredQuantity } from './curateAcquisition';
 import { nameProductColumns } from './productDefaults';
 
 export interface CurateImportContext {
@@ -535,6 +537,10 @@ type AnalysisAttemptAnnotation = {
   model?: string;
   modality?: 'text' | 'multimodal' | 'vision' | 'deterministic';
   failureClass?: string;
+  /* Why the provider refused, in its own words, sanitised. Kept BESIDE the
+     class rather than folded into it: the class is what the attempt log and
+     the browser match on, the detail is what a person reads. */
+  providerDetail?: string;
 };
 
 function attemptedConverter(source: AnalysisEvidenceSource): string {
@@ -759,7 +765,7 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
     const retryById = new Map(retrySources.results.map(source => [String(source.id), source]));
     if (requestedSourceIds.some(id => retryById.get(id)?.analysis_status !== 'failed')) return response({ error: 'Only failed records can be retried', code: 'analysis_source_not_failed' }, 409);
   }
-  const model = env.CURATE_IMPORT_ANALYSIS_MODEL || 'claude-sonnet-4-6';
+  const model = env.CURATE_IMPORT_ANALYSIS_MODEL || CURATE_IMPORT_ANALYSIS_DEFAULT_MODEL;
   const attemptToken = crypto.randomUUID();
   const started = await env.DB.prepare("UPDATE curate_import_batches SET analysis_state = 'analyzing', analysis_error = NULL, analysis_attempt_token = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL")
     .bind(attemptToken, params.id, ctx.accountId).run();
@@ -815,6 +821,7 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
     let validatedAnnotations: Array<Record<string, unknown>> | null = null;
     let analysisModel = model;
     let providerFailure = 'analysis_provider_unavailable';
+    let providerFailureMessage = providerFailure;
     const validateCandidate = (candidate: ImportAnalysisProposal) => {
       const annotations = dedupeAnalysisRecords([
         ...recordHints.annotations.map(annotation => ({ ...annotation })),
@@ -831,18 +838,17 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
     if (env.ANTHROPIC_API_KEY) try {
       const ai = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({
-          model,
-          max_tokens: 8192,
-          temperature: 0,
-          output_config: { format: { type: 'json_schema', schema: IMPORT_ANALYSIS_OUTPUT_SCHEMA } },
-          messages: [{ role: 'user', content: [...media, { type: 'text', text: boundedPrompt }] }],
-        }),
+        /* The body's shape depends on the model, and that dependency has one
+           home: see worker/src/curateAnalysisProvider.ts for what sending a
+           parameter the model refuses cost this shop. */
+        body: JSON.stringify(buildAnalysisProviderBody({
+          model, maxTokens: 8192, prompt: boundedPrompt, media, schema: IMPORT_ANALYSIS_OUTPUT_SCHEMA,
+        })),
       });
       if (!ai.ok) {
         const providerError = await ai.text();
         console.error(`Curate import analysis upstream error: ${ai.status}: ${providerError.slice(0, 1000)}`);
-        throw new Error(`analysis_provider_${ai.status}`);
+        throw new AnalysisProviderError(`analysis_provider_${ai.status}`, sanitizedProviderDetail(providerError));
       }
       const candidate = decodeImportAnalysisProposal(JSON.parse(anthopicText(await ai.json())));
       const validated = validateCandidate(candidate);
@@ -851,9 +857,11 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
       validatedAnnotations = validated.annotations;
       analysisAttempts.push({ stage: 'provider', provider: 'anthropic', model, modality: media.length ? 'multimodal' : 'text', outcome: 'succeeded', sourceIds: analyzedSourceIds });
     } catch (error) {
-      providerFailure = error instanceof Error ? error.message : providerFailure;
-      analysisAttempts.push({ stage: 'provider', provider: 'anthropic', model, modality: media.length ? 'multimodal' : 'text', outcome: 'failed', failureClass: providerFailure, sourceIds: analyzedSourceIds });
-      console.error(`Curate import primary analysis failed: ${providerFailure.slice(0, 500)}`);
+      const failure = analysisProviderFailure(error);
+      providerFailure = failure.code;
+      providerFailureMessage = failure.message;
+      analysisAttempts.push({ stage: 'provider', provider: 'anthropic', model, modality: media.length ? 'multimodal' : 'text', outcome: 'failed', failureClass: failure.code, ...(failure.detail ? { providerDetail: failure.detail } : {}), sourceIds: analyzedSourceIds });
+      console.error(`Curate import primary analysis failed: ${failure.message.slice(0, 500)}`);
     }
     if (!decoded && env.GROQ_API_KEY) {
       const fallbackPrompt = recordHints.complete
@@ -901,9 +909,11 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
           analysisModel = fallbackModel;
           analysisAttempts.push({ stage: 'provider', provider: 'groq', model: fallbackModel, modality, outcome: 'succeeded', sourceIds: analyzedSourceIds });
         } catch (error) {
-          providerFailure = error instanceof Error ? error.message : providerFailure;
-          analysisAttempts.push({ stage: 'provider', provider: 'groq', model: fallbackModel, modality, outcome: 'failed', failureClass: providerFailure, sourceIds: analyzedSourceIds });
-          console.error(`Curate import fallback analysis failed: ${providerFailure.slice(0, 500)}`);
+          const failure = analysisProviderFailure(error);
+          providerFailure = failure.code;
+          providerFailureMessage = failure.message;
+          analysisAttempts.push({ stage: 'provider', provider: 'groq', model: fallbackModel, modality, outcome: 'failed', failureClass: failure.code, ...(failure.detail ? { providerDetail: failure.detail } : {}), sourceIds: analyzedSourceIds });
+          console.error(`Curate import fallback analysis failed: ${failure.message.slice(0, 500)}`);
         }
       }
     }
@@ -920,7 +930,10 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
         complete: true,
         items: provenItems,
       };
-      if (!provenHints.items.length) throw new Error(providerFailure);
+      /* The message carries the sanitised provider detail so the draft's
+         analysis_error says WHY, not merely that something upstream said no.
+         It still begins with the code, which is what the browser matches. */
+      if (!provenHints.items.length) throw new Error(providerFailureMessage);
       const candidate = buildImportRecordFallbackProposal(provenHints);
       const validated = validateCandidate(candidate);
       decoded = candidate;
@@ -1601,6 +1614,226 @@ export async function addCurateImportItem(request: Request, env: ImportEnv, ctx:
   }
   await refreshImportBatchState(env, params.id, ctx.accountId);
   return response(itemRow((await scopedItem(env, params.id, id, ctx.accountId))!), 201);
+}
+
+/* A hand-built item's own group, when no vendor was named yet. One key, so a
+   second call adds to the same group instead of starting another. */
+const MANUAL_GROUP_KEY = 'manual';
+const HAN_SCRIPT = /\p{Script=Han}/u;
+
+interface ManualImportItem {
+  category: 'tea' | 'teaware';
+  name: string;
+  said: string;
+  manualFields: string[];
+  parsed: Record<string, unknown>;
+}
+
+/**
+ * One hand-entered line, read into the same parsed shape analysis produces.
+ *
+ * Refuses rather than fills in: no unit nobody named, no currency nobody said
+ * (a cost without its currency is not a cost - the agent is told Adrian's
+ * prices are yuan unless he says otherwise, so the answer is typed where he
+ * can hear it read back, never defaulted here where nobody can), and no price
+ * basis invented for a multi-pack line where per-pack and line-total differ.
+ */
+function readManualImportItem(raw: unknown, itemId: string, index: number): ManualImportItem {
+  const row = object(raw);
+  if (!row) throw new Error(`items[${index}] must be an object`);
+  const allowed = new Set(['name', 'chinese_name', 'category', 'quantity', 'pack_size_grams', 'disposition',
+    'purpose', 'price', 'type', 'form', 'year', 'origin_country', 'origin_region', 'classification', 'cultivar', 'producer', 'description']);
+  const unknownField = Object.keys(row).find(key => !allowed.has(key));
+  if (unknownField) throw new Error(`items[${index}].${unknownField} has no field here; every fact needs a named field, never a note`);
+  const category = row.category == null ? 'tea' : String(row.category);
+  if (category !== 'tea' && category !== 'teaware') throw new Error(`items[${index}].category must be tea or teaware`);
+  const name = text(row.name, 300, true)!.trim();
+  if (HAN_SCRIPT.test(name)) throw new Error(`items[${index}].name is read by people in English; put the Chinese name in chinese_name`);
+  const chineseName = row.chinese_name == null ? null : text(row.chinese_name, 300);
+  const disposition = row.disposition == null ? null : String(row.disposition);
+  if (disposition != null && !isAcquisitionState(disposition) && disposition !== 'library_only') {
+    throw new Error(`items[${index}].disposition must be ${ACQUISITION_STATES.join(', ')} or library_only`);
+  }
+  const purpose = row.purpose == null ? 'working' : String(row.purpose);
+  if (!isAcquisitionPurpose(purpose)) throw new Error(`items[${index}].purpose must be working, sample or personal`);
+  const packSizeGrams = row.pack_size_grams == null ? null : Number(row.pack_size_grams);
+  if (packSizeGrams != null && (!Number.isFinite(packSizeGrams) || packSizeGrams <= 0)) throw new Error(`items[${index}].pack_size_grams must be a positive number of grams`);
+  const quantity = row.quantity == null ? null : readAcquiredQuantity(row.quantity, { category, packSizeGrams });
+
+  let priceAmount: string | null = null;
+  let currency: string | null = null;
+  let priceBasis: 'per_pack' | 'line_total' | 'unknown' = 'unknown';
+  if (row.price != null) {
+    const price = object(row.price);
+    if (!price) throw new Error(`items[${index}].price must be an object: {amount, currency, basis}`);
+    const unknownPriceField = Object.keys(price).find(key => !['amount', 'currency', 'basis'].includes(key));
+    if (unknownPriceField) throw new Error(`items[${index}].price.${unknownPriceField} is not a price field`);
+    const amount = typeof price.amount === 'number' ? String(price.amount) : String(price.amount ?? '').replace(/[,\s]/g, '');
+    if (!/^\d+(?:\.\d+)?$/.test(amount)) throw new Error(`items[${index}].price.amount must be a number of 0 or more`);
+    priceAmount = amount;
+    currency = text(price.currency, 20);
+    if (!currency) throw new Error(`items[${index}].price has no currency. A cost without its currency is not a cost: say which currency it was quoted in (yuan at a mainland table is usual, but say it).`);
+    const basis = price.basis == null ? null : String(price.basis);
+    if (basis != null && basis !== 'per_pack' && basis !== 'line_total') throw new Error(`items[${index}].price.basis must be per_pack or line_total`);
+    if (basis == null && (quantity?.packCount ?? 1) > 1) {
+      throw new Error(`items[${index}].price.basis must say whether ${amount} is for one pack or for the whole line`);
+    }
+    priceBasis = basis ?? 'line_total';
+  }
+
+  const parsed: Record<string, unknown> = {
+    sourceItemId: `manual:${itemId}`,
+    category,
+    originalName: null,
+    englishName: name,
+    chineseName,
+    packWeight: quantity?.packWeight ?? null,
+    weightUnit: quantity?.weightUnit ?? null,
+    packCount: quantity?.packCount ?? null,
+    priceAmount,
+    currency,
+    priceBasis,
+    evidenceRefs: [],
+    /* Both are required by the item decoder, and both are honestly empty: a
+       person typed this, so there is no model confidence to report and nothing
+       the model was unsure about. */
+    confidence: {},
+    uncertainty: {},
+    acquired: disposition === 'received',
+    duplicateResolution: 'new',
+    inventoryPurpose: purpose,
+    disposition,
+    type: row.type == null ? null : text(row.type, 200),
+    form: row.form == null ? null : text(row.form, 200),
+    year: row.year == null ? null : Number(row.year),
+    originCountry: row.origin_country == null ? null : text(row.origin_country, 200),
+    originRegion: row.origin_region == null ? null : text(row.origin_region, 500),
+    classification: row.classification == null ? null : text(row.classification, 500),
+    cultivar: row.cultivar == null ? null : text(row.cultivar, 200),
+    producer: row.producer == null ? null : text(row.producer, 200),
+    description: row.description == null ? null : text(row.description, 5000),
+  };
+  const said = [
+    name,
+    quantity ? quantity.said : 'quantity not said',
+    disposition ? (isAcquisitionState(disposition) ? acquisitionStateSaid(disposition) : 'library only, no stock') : 'where it is not said',
+    priceAmount ? `${priceAmount} ${currency}${priceBasis === 'per_pack' ? ' per pack' : ' for the line'}` : 'price not said',
+    `for ${purpose}`,
+  ].join(' - ');
+  /* Everything here was typed by a person, so every field it carries is a
+     manual correction: analysis must not overwrite it on a later retry. */
+  const manualFields = ['name', ...Object.keys(parsed).filter(key => parsed[key] != null).map(key => `parsed_data.${key}`)];
+  return { category, name, said, manualFields, parsed };
+}
+
+/**
+ * The same reading the write uses, for a read-back before anything is stored.
+ * One function, so a preview cannot describe a line differently from the way
+ * it is about to be filed.
+ */
+export function previewManualImportItems(items: unknown): string[] {
+  if (!Array.isArray(items) || !items.length || items.length > 100) throw new Error('items must be a list of 1 to 100 teas');
+  return items.map((raw, index) => readManualImportItem(raw, `preview-${index}`, index).said);
+}
+
+/**
+ * A failed draft is not a dead end.
+ *
+ * When analysis cannot read a record - the provider refuses, the photo is
+ * unreadable, the handwriting wins - the draft used to end there: no items, no
+ * vendor groups, so nothing to edit, nothing to assign a vendor to, and a
+ * finalize preview of zero items. The pasted text was saved and useless.
+ *
+ * This door builds the same items by hand, in one write, with the same
+ * canonical reading the analysis path uses (`canonicalStoredItem`), so a
+ * hand-built item finalizes through exactly the code a read one does. It also
+ * creates the vendor group, which only analysis could do before: a group is
+ * what `intake_set_group_vendor` assigns a vendor to and what finalize turns
+ * into a receipt, and a draft with no groups can never carry stock.
+ *
+ * It does not care whether analysis failed. A manual item on a draft that
+ * analysed fine is an item somebody added, which is allowed for the same
+ * reason editing one is.
+ */
+export async function addCurateImportManualItems(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
+  const batch = await scopedBatch(env, params.id, ctx.accountId);
+  if (!batch) return response({ error: 'Import not found' }, 404);
+  if (batchIsTerminal(batch)) return terminalResponse();
+  let body: Record<string, unknown>;
+  try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
+  const allowed = new Set(['items', 'vendor_customer_id', 'vendor_name', 'group_id']);
+  const unknownField = Object.keys(body).find(key => !allowed.has(key));
+  if (unknownField) return response({ error: `Unknown field: ${unknownField}`, code: 'unknown_field' }, 400);
+  if (!Array.isArray(body.items) || !body.items.length || body.items.length > 100) {
+    return response({ error: 'items must be a list of 1 to 100 teas', code: 'invalid_items' }, 400);
+  }
+
+  let vendorId: string | null = null;
+  let vendorName: string | null = null;
+  if (body.vendor_customer_id != null) {
+    if (typeof body.vendor_customer_id !== 'string') return response({ error: 'Invalid vendor' }, 400);
+    const vendor = await env.DB.prepare('SELECT id, name, tags FROM customers WHERE id = ? AND account_id = ?').bind(body.vendor_customer_id, ctx.accountId).first<Record<string, unknown>>();
+    const tags = parseJson(vendor?.tags, []);
+    if (!vendor || !Array.isArray(tags) || !tags.includes('vendor')) return response({ error: 'Selected customer is not tagged as a vendor' }, 400);
+    vendorId = String(vendor.id);
+    vendorName = String(vendor.name);
+  }
+  if (body.vendor_name != null) {
+    try { vendorName = text(body.vendor_name, 240) ?? vendorName; } catch { return response({ error: 'Invalid vendor_name' }, 400); }
+  }
+
+  const existingGroups = await env.DB.prepare('SELECT * FROM curate_import_vendor_groups WHERE batch_id = ? AND account_id = ? ORDER BY position').bind(params.id, ctx.accountId).all<Record<string, unknown>>();
+  let group = typeof body.group_id === 'string'
+    ? existingGroups.results.find(row => String(row.id) === body.group_id)
+    : existingGroups.results.find(row => (vendorId && row.resolved_vendor_customer_id === vendorId)
+      || (!vendorId && vendorName && normalizedName(String(row.proposed_vendor_name ?? '')) === normalizedName(vendorName))
+      || (!vendorId && !vendorName && String(row.group_key) === MANUAL_GROUP_KEY));
+  if (typeof body.group_id === 'string' && !group) return response({ error: 'Vendor group not found' }, 404);
+
+  const statements: D1PreparedStatement[] = [];
+  const guard = "EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)";
+  let groupId: string;
+  if (group) {
+    groupId = String(group.id);
+    if (vendorId && group.resolved_vendor_customer_id !== vendorId) {
+      statements.push(env.DB.prepare(`UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, vendor_confidence = 1, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND ${guard}`)
+        .bind(vendorId, groupId, ctx.accountId, params.id, ctx.accountId));
+    }
+  } else {
+    groupId = crypto.randomUUID();
+    statements.push(env.DB.prepare(
+      `INSERT INTO curate_import_vendor_groups (id, batch_id, account_id, position, group_key, proposed_vendor_name, resolved_vendor_customer_id, vendor_confidence, uncertainty_json)
+       SELECT ?, ?, ?, ?, ?, ?, ?, ?, '{}' WHERE ${guard}`
+    ).bind(groupId, params.id, ctx.accountId, existingGroups.results.length, vendorName ? `manual:${normalizedName(vendorName)}` : MANUAL_GROUP_KEY,
+      vendorName, vendorId, vendorId ? 1 : null, params.id, ctx.accountId));
+  }
+
+  const existingItems = await env.DB.prepare('SELECT id FROM curate_import_items WHERE batch_id = ? AND account_id = ?').bind(params.id, ctx.accountId).all<Record<string, unknown>>();
+  if (existingItems.results.length + body.items.length > 100) {
+    return response({ error: 'An import can contain at most 100 items.', code: 'import_item_limit' }, 409);
+  }
+  let position = existingItems.results.length;
+  const added: Array<{ id: string; name: string; said: string }> = [];
+  for (const [index, raw] of (body.items as unknown[]).entries()) {
+    const itemId = crypto.randomUUID();
+    let manual: ManualImportItem;
+    try { manual = readManualImportItem(raw, itemId, index); }
+    catch (error) { return response({ error: (error as Error).message, code: 'invalid_item', row: index + 1 }, 400); }
+    const stored = canonicalStoredItem(manual.parsed, { vendorId, vendorName });
+    statements.push(env.DB.prepare(
+      `INSERT INTO curate_import_items (id, batch_id, source_id, account_id, created_by_user_id, position, category, name, raw_text, parsed_data_json, confidence, uncertainty_json, review_state, compass_entry_id, reserved_compass_entry_id, vendor_group_id, manually_corrected_fields_json)
+       SELECT ?, ?, NULL, ?, ?, ?, ?, ?, NULL, ?, NULL, '{}', 'reviewing', NULL, ?, ?, ? WHERE ${guard}`
+    ).bind(itemId, params.id, ctx.accountId, ctx.userId, position++, manual.category, manual.name, JSON.stringify(stored),
+      crypto.randomUUID(), groupId, JSON.stringify(manual.manualFields), params.id, ctx.accountId));
+    added.push({ id: itemId, name: manual.name, said: manual.said });
+  }
+
+  const results = await env.DB.batch(statements);
+  if (results.some(result => !(result.meta.changes ?? 0))) return terminalResponse();
+  /* An item exists, so the draft is under review whatever analysis did. That
+     is also what unblocks finalize, which refuses any other review state. */
+  await refreshImportBatchState(env, params.id, ctx.accountId);
+  return response({ ...(await fullBatch(env, params.id, ctx.accountId)), added }, 201);
 }
 
 export async function abandonCurateImport(_request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {

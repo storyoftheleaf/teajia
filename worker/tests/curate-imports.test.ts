@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index';
 import { holdingMatchesImportIdentity } from '../src/curateImports';
+import { CURATE_IMPORT_ANALYSIS_DEFAULT_MODEL } from '../src/curateAnalysisProvider';
 import { validateImportForFinalization } from '../src/curateImportFinalize';
 import { buildImportCorrectionParsedData } from '../../src/components/TeaCompass/import/importReviewDomain';
 
@@ -1033,7 +1034,7 @@ describe('Curate import provenance API', () => {
     const body = await analyzed.json() as any;
 
     expect(analyzed.status).toBe(200);
-    expect(body.batch).toMatchObject({ analysis_state: 'complete', analysis_model: 'claude-sonnet-4-6' });
+    expect(body.batch).toMatchObject({ analysis_state: 'complete', analysis_model: CURATE_IMPORT_ANALYSIS_DEFAULT_MODEL });
     expect(body.groups).toHaveLength(1);
     expect(body.groups[0]).toMatchObject({ proposed_vendor_name: 'Huang Wei' });
     expect(body.items.map((entry: any) => ({
@@ -1164,8 +1165,12 @@ describe('Curate import provenance API', () => {
     expect(body.groups[0]).toMatchObject({ resolved_vendor_customer_id: 'vendor-a', vendor_confidence: 1 });
     expect(body.groups[1]).toMatchObject({ resolved_vendor_customer_id: null, vendor_confidence: 0.72 });
     const aiRequest = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
-    expect(aiRequest.model).toBe('claude-sonnet-4-6');
+    expect(aiRequest.model).toBe(CURATE_IMPORT_ANALYSIS_DEFAULT_MODEL);
     expect(aiRequest.output_config).toMatchObject({ format: { type: 'json_schema', schema: expect.any(Object) } });
+    /* The shop's model takes a schema and REFUSES temperature. Both halves of
+       that are the bug this file carried for four months: see
+       worker/tests/curate-analysis-request-shape.test.ts. */
+    expect(aiRequest).not.toHaveProperty('temperature');
     const prompt = aiRequest.messages[0].content.at(-1).text;
     expect(prompt).toContain('vendor-a');
     expect(prompt).not.toContain('vendor-b');
