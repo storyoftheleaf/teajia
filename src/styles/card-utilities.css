@@ -4770,6 +4770,14 @@ body.cart-panel-open .commerce-dock {
 .tea-save-tile-year-long {
   font-size: 14px;
 }
+/* On a phone the year steps down inside the same tile, so "1990s" has air
+   around it and the tile keeps its size beside the name. */
+@media (max-width: 639px) {
+  .tea-save-tile-year,
+  .tea-save-tile-year-long {
+    font-size: 13px;
+  }
+}
 .tea-save-tile[aria-pressed="true"] .tea-save-tile-action::before {
   display: none;
 }

@@ -33,13 +33,17 @@ interface TeaLedgerProps {
  * steps back. Split only: never guess which part is the country, because the
  * catalogue is not consistent enough for that to be safe.
  */
-function splitOrigin(origin: string): { near: string; mid: string; far: string } {
-  const parts = origin.split(',').map(p => p.trim()).filter(Boolean);
-  return {
-    near: parts[0] ?? '',
-    mid: parts[1] ?? '',
-    far: parts.slice(2).join(', '),
-  };
+/**
+ * The row gives origin one line. China goes, because nearly every tea on the
+ * shelf is Chinese and saying so on each row costs the width the place needs;
+ * any other country stays. A longer chain keeps its first and last parts, the
+ * spot and its province, and the tea's own page carries the full origin.
+ */
+export function splitOrigin(origin: string): { near: string; mid: string } {
+  let parts = origin.split(',').map(p => p.trim()).filter(Boolean);
+  if (parts.length > 1) parts = parts.filter(p => p.toLowerCase() !== 'china');
+  if (parts.length > 2) parts = [parts[0], parts[parts.length - 1]];
+  return { near: parts[0] ?? '', mid: parts[1] ?? '' };
 }
 
 /**
@@ -154,7 +158,7 @@ export function TeaLedger({
                     }
                   }}
                 >
-                  <div className="flex items-center gap-2.5 py-3">
+                  <div className="flex items-center gap-2 py-3 sm:gap-2.5">
                     <TeaSaveTile
                       year={item.year}
                       name={item.name}
@@ -166,7 +170,7 @@ export function TeaLedger({
 
                     <div className="tea-ledger-identity min-w-0 flex-1 lg:flex-none lg:w-[240px] xl:w-[300px]">
                       <div className="flex min-w-0 items-start gap-2">
-                        <h3 className="min-w-0 break-words whitespace-normal font-display text-[18px] font-medium leading-tight text-tea-text lg:text-ui-20">
+                        <h3 className="min-w-0 truncate sm:overflow-visible sm:whitespace-normal sm:break-words font-display text-[18px] font-medium leading-tight text-tea-text lg:text-ui-20">
                           {item.name}
                         </h3>
                         {tastingCount > 0 && (
@@ -181,8 +185,8 @@ export function TeaLedger({
                           </span>
                         )}
                       </div>
-                      <div className="flex min-w-0 flex-wrap items-center gap-y-1 font-sans text-ui-12 tracking-[0.02em] text-tea-text-sec">
-                        <span className="min-w-0 break-words">
+                      <div className="flex min-w-0 items-center font-sans text-ui-12 tracking-[0.02em] text-tea-text-sec">
+                        <span className="min-w-0 truncate">
                         {showType && (
                           <>
                             <span className="uppercase">{item.type}</span>
@@ -194,12 +198,6 @@ export function TeaLedger({
                           <>
                             <span className="px-1.5 text-tea-text-dim">&middot;</span>
                             {origin.mid}
-                          </>
-                        )}
-                        {origin.far && (
-                          <>
-                            <span className="px-1.5 text-tea-text-dim">&middot;</span>
-                            <span className="text-tea-text-dim">{origin.far}</span>
                           </>
                         )}
                         </span>

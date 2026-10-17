@@ -75,9 +75,10 @@ export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart
   const stepClass = 'relative inline-flex h-6 w-6 before:absolute before:-inset-2.5 before:content-[\'\'] items-center justify-center rounded border border-tea-border text-ui-14 leading-none transition-colors disabled:cursor-default disabled:opacity-40 focus-visible:outline focus-visible:outline-tea-gold';
 
   return (
-    // 100px on a phone, just over what its widest line (the steps either side of
-    // Weigh) needs, so the name beside it gets the rest of the row.
-    <div className="flex w-[100px] flex-col items-stretch gap-1.5 sm:w-[116px]">
+    // 92px on a phone, what its widest line (the steps either side of Weigh)
+    // needs, so the name beside it gets the rest of the row. The two lines sit
+    // close so the price and the steps that change it read as one control.
+    <div className="flex w-[92px] flex-col items-stretch gap-0.5 sm:w-[116px] sm:gap-1.5">
       <button
         type="button"
         disabled={!onAddToCart}
@@ -125,7 +126,7 @@ export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart
               onChooseAmount?.(item);
             }}
             onKeyDown={stopKeys}
-            className="group rounded px-1.5 py-1 focus-visible:outline focus-visible:outline-tea-gold"
+            className="group rounded px-1 py-1 sm:px-1.5 focus-visible:outline focus-visible:outline-tea-gold"
           >
             <span className="text-ui-9 uppercase tracking-[0.12em] text-tea-text-dim transition-colors group-enabled:group-hover:text-tea-gold-lt">Weigh</span>
           </button>
