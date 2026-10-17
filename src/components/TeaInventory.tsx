@@ -514,7 +514,9 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       )}
 
       {/* --- Inline Filter Bar + Content (full width) --- */}
-      <div className="max-w-full mx-auto pt-4 px-3 md:px-4">
+      {/* No gutter of its own on a phone: the page already gives 16px, and a
+          second 12px inside it left the tea names 28px from each edge. */}
+      <div className="max-w-full mx-auto pt-4 md:px-4">
 
          <TeaShopViewTabs active={teaView} onChange={handleTeaViewChange} />
          <TeaShopViewRegion active={teaView} count={filteredInventory.length} showPast={showPast}>
@@ -537,7 +539,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
              header to sit under. */}
          <div
            data-testid="shop-toolbar"
-           className="sticky z-dropdown -mx-7 px-4 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border md:-mx-10 md:px-6 lg:-mx-4 lg:px-4"
+           className="sticky z-dropdown -mx-4 px-4 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border md:-mx-10 md:px-6 lg:-mx-4 lg:px-4"
            style={{ top: 'calc(var(--page-header-h, 0px) + env(safe-area-inset-top, 0px))' }}
          >
            {/*
