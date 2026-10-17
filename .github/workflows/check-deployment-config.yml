@@ -3,24 +3,12 @@ name: Check deployment config
 # This is early repository feedback, not the gate for Cloudflare Git deploys.
 # The authoritative gate runs inside `npm run build` on Cloudflare Pages, where
 # WORKER_ORIGIN is the same environment binding received by Pages Functions.
+#
+# The same validation runs in playwright.yml's `checks` job on pull requests
+# and main pushes. Keep this workflow manual-only for targeted diagnosis so a
+# matching change does not start a duplicate Actions workflow. The run-count
+# observer measures workflow runs, not provider billing.
 on:
-  pull_request:
-    paths:
-      - 'functions/**'
-      - 'scripts/check-required-deployment-config.mjs'
-      - 'scripts/check-required-deployment-config.test.mjs'
-      - 'package.json'
-      - '.github/workflows/check-deployment-config.yml'
-      - '.github/workflows/deploy-frontend.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'functions/**'
-      - 'scripts/check-required-deployment-config.mjs'
-      - 'scripts/check-required-deployment-config.test.mjs'
-      - 'package.json'
-      - '.github/workflows/check-deployment-config.yml'
-      - '.github/workflows/deploy-frontend.yml'
   workflow_dispatch:
 
 permissions:

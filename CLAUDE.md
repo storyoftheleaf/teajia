@@ -316,6 +316,25 @@ without touching the sign-in form: [worker/sandbox/README.md](worker/sandbox/REA
 **Do not hand admin verification back to Adrian.** The sandbox exists so the
 agent can click the thing it just changed.
 
+## Metered services
+
+GitHub Actions run count, billed Actions minutes, and Cloudflare Pages builds are separate measures. `scripts/ci-run-budget.mjs` reads only the current month's GitHub Actions workflow-run count. A repository variable named `CI_RUN_COUNT_BUDGET` can enable a run-count alert; without it, the job reports the observed count and projection only. This lightweight check runs after pushes to `main` and is advisory. It does not report actual provider spend. If the Actions API count is unavailable, the job shows a warning and leaves the level unknown.
+
+The repository does not read Cloudflare Pages' current build-watch settings, build counts, or billed usage. Pages has separate [build-watch](https://developers.cloudflare.com/pages/configuration/build-watch-paths/) and [branch controls](https://developers.cloudflare.com/pages/configuration/branch-build-controls/) in its project settings. Do not infer Pages build counts or cost from Actions runs. Review the `teajiafinal` project and provider usage data when making a Pages build decision.
+
+- **Finish a change before pushing it to `main`.** Intermediate pushes can start separate workflows or Pages previews according to their triggers and project settings. No push pattern guarantees zero provider usage; check each provider's usage source when cost matters.
+- **Actions path filters affect Actions only.** `playwright.yml` ignores `*.md`, `docs/**`, `todo/**`, `ops/**` and `.claude/**` on its push and pull-request triggers. These filters do not configure Cloudflare Pages. The incident bot's commit starts with `[CI Skip]` for Pages and includes `[skip ci]` for GitHub Actions because its export does not require either build. Pages documents its skip tokens [here](https://developers.cloudflare.com/pages/configuration/git-integration/github-integration/).
+- **Workflow events remain separate.** Deployment-config validation lives in `playwright.yml`'s `checks` job for pull requests and main pushes. Its standalone workflow is manual-only. `deploy-worker.yml` can also run for worker changes, and Pages may build or preview according to its project settings.
+- **A schedule runs at most twice a day, and the nightly lanes are where advisory work belongs.** `known-failing` and `recovery` are on the 02:30 cron and nowhere else; the incident queue syncs at 02:17. Anything that wants to run more often than that needs a reason written here first.
+- **The run-volume observer is not spend accounting.** With `CI_RUN_COUNT_BUDGET` configured, it warns at four fifths of that explicit run-count threshold or when a week of observed volume projects past it. Warnings stay advisory and do not fail the workflow. Provider usage must be read from the provider's own dashboard.
+- Enforced by [scripts/ci-run-budget.test.mjs](scripts/ci-run-budget.test.mjs) (`npm run test:platform-hardening`), which pins the arithmetic AND scans the wiring: a `paths-ignore` list losing an entry on one of the two triggers, the budget job losing its call or its `actions: read`, the deployment-config workflow watching `main` again, or the incident bot dropping a skip token all fail it. Comments are stripped before the scans.
+
+### Tests never touch a metered service
+
+**The suite answers every media request itself.** `tests/fixtures.ts` is the suite's `test`, and specs import `test` and `expect` from there, never from `@playwright/test` directly — that is what makes the rule impossible to forget. Every `/api/media/` request is fulfilled in-process with a 1×1 transparent PNG (so `<img>` still fires `load`), and every video with an empty body. A fresh browser context has no cache, so without it each of ~48 specs pulls the whole shelf's artwork from the origin on every run: in September 2026 the sister suites on mandalacodes and Adrian-Website delivered 70 GB in one day that way and the shared account ran out of free credits.
+
+Nothing in the suite asserts on the pixels of the artwork, so the stub costs no coverage. A new spec that reaches a metered host — R2 media, the live API, a currency feed — is a bug in the spec, not a gap in the fixture: mock it at the fixture, where every spec inherits it.
+
 ## Testing
 ```bash
 npm run test:mobile  # Playwright mobile audit — 26 tests at 390×844 (Mobile Chrome)
