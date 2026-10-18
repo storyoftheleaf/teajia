@@ -11,7 +11,7 @@ import { validateCompassQuoteLink } from './curateQuotes';
 import { issueTicket, consumeTicket, previewEnvelope, INVALID_TICKET } from './mcpTools/tickets';
 
 export type CurateEntity = 'tea' | 'vendor' | 'note' | 'todo' | 'sample' | 'transcript' | 'attachment';
-export type CurateRecordedEntity = CurateEntity | 'vendor_profile' | 'quote' | 'quote_line' | 'attachment' | 'asset' | 'sample_set';
+export type CurateRecordedEntity = CurateEntity | 'vendor_profile' | 'quote' | 'quote_line' | 'attachment' | 'asset' | 'sample_set' | 'arrival';
 export type CurateCommand =
  | { action: 'edit'; entity: CurateEntity; id: string; fields: Record<string, unknown> }
  | { action: 'archive' | 'delete'; entity: 'tea' | 'vendor' | 'note' | 'todo' | 'transcript' | 'attachment'; id: string }
@@ -30,7 +30,11 @@ export interface CurateMutationTicket {
  promotionProductToRemove?: Row;
  previewDetails?: Record<string,unknown>;
 }
-const TABLES: Record<CurateRecordedEntity, string> = { tea: 'tea_compass_entries', vendor: 'customers', note: 'notes', transcript: 'notes', todo: 'curate_todos', vendor_profile:'curate_vendor_profiles',quote:'curate_quotes',quote_line:'curate_quote_lines',attachment:'curate_attachments',asset:'curate_media_assets',sample:'tea_samples',sample_set:'tea_sample_sets' };
+/** `arrival` is a `curate_receipt_proposals` row: the incoming shelf, not stock.
+ * It is recorded so rejecting one is attributable and `curate_undo` can put it
+ * back on the list. Only the proposal row is ever written here; an accepted
+ * arrival has a ledger entry behind it and is refused upstream. */
+const TABLES: Record<CurateRecordedEntity, string> = { tea: 'tea_compass_entries', vendor: 'customers', note: 'notes', transcript: 'notes', todo: 'curate_todos', vendor_profile:'curate_vendor_profiles',quote:'curate_quotes',quote_line:'curate_quote_lines',attachment:'curate_attachments',asset:'curate_media_assets',sample:'tea_samples',sample_set:'tea_sample_sets',arrival:'curate_receipt_proposals' };
 const keyColumn=(entity:CurateRecordedEntity)=>entity==='vendor_profile'?'vendor_id':'id';
 const FIELDS: Record<CurateEntity, string[]> = {
  tea: ['name','chinese_name','type','form','year','season','storage','origin_country','origin_region','classification','cultivar','description','notes','shop_name','transport_mode','price_amount','price_currency','price_per_unit_grams',...COMPASS_STRUCTURED_COLUMNS],

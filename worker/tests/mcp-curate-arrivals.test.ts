@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SqliteD1, seedIdentity } from './helpers/sqliteD1';
 import { curateArrivalTools } from '../src/mcpTools/curateArrivals';
+import { curateManageModule } from '../src/mcpTools/curateManage';
 import { curatePhotoTools } from '../src/mcpTools/curatePhotos';
 import worker from '../src/index';
 import { sha256Hex } from '../src/inquiryDomain';
@@ -103,6 +104,118 @@ describe('Curate arrivals read and confirmed stock service', () => {
     expect(db.sqlite.prepare("SELECT photos FROM tea_samples WHERE compass_entry_id='tea'").get()).toMatchObject({ photos: '[]' });
   });
 });
+describe('Rejecting an arrival that is only pending', () => {
+  const manage = (env: any, name: string, args: any, who = auth) => curateManageModule.handlers[name](env, who, args) as Promise<any>;
+
+  it('previews without writing, then takes the arrival off the list and leaves the row as evidence', async () => {
+    const { env, db, accept } = setup();
+    const preview = await invoke(env, 'curate_reject_arrival', { arrival_id: 'arrival', agent: 'Builder' });
+    expect(preview.preview).toMatchObject({ action: 'curate_reject_arrival', stock_unchanged: true, record_retained: true });
+    expect(preview.preview.arrival).toMatchObject({ arrival_id: 'arrival', quantity: 100 });
+    expect(db.sqlite.prepare("SELECT status FROM curate_receipt_proposals WHERE id='arrival'").get()).toMatchObject({ status: 'pending' });
+    expect((await invoke(env, 'curate_list_arrivals', {})).count).toBe(1);
+
+    const result = await invoke(env, 'curate_reject_arrival', { arrival_id: 'arrival', confirm: preview.confirmation_token });
+    expect(result).toMatchObject({ committed: true, arrival_id: 'arrival', status: 'rejected', stock_unchanged: true });
+    expect((await invoke(env, 'curate_list_arrivals', {})).count).toBe(0);
+    const row = db.sqlite.prepare("SELECT status,reviewed_by_user_id,reviewed_at FROM curate_receipt_proposals WHERE id='arrival'").get() as any;
+    expect(row).toMatchObject({ status: 'rejected', reviewed_by_user_id: 'owner' });
+    expect(row.reviewed_at).toBeTruthy();
+    // Nothing physical: no stock service call, no ledger, no product.
+    expect(accept).not.toHaveBeenCalled();
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM stock_ledger').get()).toMatchObject({ n: 0 });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM products').get()).toMatchObject({ n: 0 });
+  });
+
+  it('records who removed it, and curate_undo puts it back on the list', async () => {
+    const { env, db } = setup();
+    const preview = await invoke(env, 'curate_reject_arrival', { arrival_id: 'arrival', agent: 'Builder' });
+    const done = await invoke(env, 'curate_reject_arrival', { arrival_id: 'arrival', confirm: preview.confirmation_token });
+
+    const history = await manage(env, 'curate_history', { entity_type: 'arrival', entity_id: 'arrival' });
+    expect(history.history[0]).toMatchObject({ id: done.mutation_id, command_type: 'arrival:reject', agent_name: 'Builder', actor_user_id: 'owner' });
+    expect(JSON.parse(history.history[0].records[0].before_json)).toMatchObject({ status: 'pending' });
+    expect(JSON.parse(history.history[0].records[0].after_json)).toMatchObject({ status: 'rejected' });
+
+    const undo = await manage(env, 'curate_undo', { mutation_id: done.mutation_id, agent: 'Builder' });
+    expect(undo.confirmation_token).toBeTruthy();
+    expect(db.sqlite.prepare("SELECT status FROM curate_receipt_proposals WHERE id='arrival'").get()).toMatchObject({ status: 'rejected' });
+    const restored = await manage(env, 'curate_undo', { confirmation_token: undo.confirmation_token });
+    expect(restored).toMatchObject({ confirmed: true, undo_of: done.mutation_id });
+    expect(db.sqlite.prepare("SELECT status,reviewed_at FROM curate_receipt_proposals WHERE id='arrival'").get()).toMatchObject({ status: 'pending', reviewed_at: null });
+    expect((await invoke(env, 'curate_list_arrivals', {})).count).toBe(1);
+  });
+
+  it('refuses an arrival already approved into stock, and the stock stays', async () => {
+    const { env, db } = setup();
+    const approval = await invoke(env, 'curate_approve_arrival', { arrival_id: 'arrival' });
+    expect((await invoke(env, 'curate_approve_arrival', { arrival_id: 'arrival', confirm: approval.confirmation_token })).committed).toBe(true);
+    const result = await invoke(env, 'curate_reject_arrival', { arrival_id: 'arrival' });
+    expect(result).toMatchObject({ error: 'arrival_is_not_pending', status: 'accepted' });
+    expect(result.confirmation_token).toBeUndefined();
+    expect(db.sqlite.prepare("SELECT status FROM curate_receipt_proposals WHERE id='arrival'").get()).toMatchObject({ status: 'accepted' });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM curate_mutations').get()).toMatchObject({ n: 0 });
+  });
+
+  it('refuses a second rejection, an unknown id and an arrival in another shop', async () => {
+    const { env, db } = setup();
+    const preview = await invoke(env, 'curate_reject_arrival', { arrival_id: 'arrival' });
+    await invoke(env, 'curate_reject_arrival', { arrival_id: 'arrival', confirm: preview.confirmation_token });
+    expect(await invoke(env, 'curate_reject_arrival', { arrival_id: 'arrival' })).toMatchObject({ error: 'arrival_is_not_pending', status: 'rejected' });
+    expect(await invoke(env, 'curate_reject_arrival', { arrival_id: 'nothing' })).toEqual({ error: 'not_found' });
+    expect(await invoke(env, 'curate_reject_arrival', { arrival_id: 'foreign' })).toEqual({ error: 'not_found' });
+    await expect(invoke(env, 'curate_reject_arrival', {})).rejects.toThrow('arrival_id is required');
+    expect(db.sqlite.prepare("SELECT status FROM curate_receipt_proposals WHERE id='foreign'").get()).toMatchObject({ status: 'pending' });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM curate_mutations').get()).toMatchObject({ n: 1 });
+  });
+
+  it('refuses a proposal edited since the preview, and spends the token once', async () => {
+    const { env, db } = setup();
+    const preview = await invoke(env, 'curate_reject_arrival', { arrival_id: 'arrival' });
+    db.sqlite.prepare("UPDATE curate_receipt_proposals SET quantity=50 WHERE id='arrival'").run();
+    expect(await invoke(env, 'curate_reject_arrival', { arrival_id: 'arrival', confirm: preview.confirmation_token }))
+      .toMatchObject({ error: 'arrival_changed_since_preview' });
+    expect(db.sqlite.prepare("SELECT status FROM curate_receipt_proposals WHERE id='arrival'").get()).toMatchObject({ status: 'pending' });
+    const again = await invoke(env, 'curate_reject_arrival', { arrival_id: 'arrival' });
+    expect((await invoke(env, 'curate_reject_arrival', { arrival_id: 'arrival', confirm: again.confirmation_token })).committed).toBe(true);
+    expect(await invoke(env, 'curate_reject_arrival', { arrival_id: 'arrival', confirm: again.confirmation_token }))
+      .toMatchObject({ error: 'arrival_is_not_pending' });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM curate_mutations').get()).toMatchObject({ n: 1 });
+  });
+
+  it('binds the confirmation to the account, user and token that previewed it', async () => {
+    const { env, db } = setup();
+    for (const override of [{ accountId: 'b', userId: 'other' }, { tokenId: 'different' }, { userId: 'sibling' }]) {
+      const preview = await invoke(env, 'curate_reject_arrival', { arrival_id: 'arrival' });
+      // A caller who is not a member of this shop is refused by the management
+      // gate before the ticket is read, so take either refusal as the answer.
+      const outcome = await invoke(env, 'curate_reject_arrival', { arrival_id: 'arrival', confirm: preview.confirmation_token }, { ...auth, ...override })
+        .catch((error: Error) => ({ error: error.message }));
+      expect(outcome.error).toBeTruthy();
+    }
+    expect(db.sqlite.prepare("SELECT status FROM curate_receipt_proposals WHERE id='arrival'").get()).toMatchObject({ status: 'pending' });
+  });
+
+  it('refuses a staff member without the curate_manage capability', async () => {
+    const { env, db } = setup();
+    seedIdentity(db, { accountId: 'a', userId: 'helper', role: 'staff' });
+    const staff = { ...auth, userId: 'helper', userEmail: 'helper@test.dev' };
+    await expect(invoke(env, 'curate_reject_arrival', { arrival_id: 'arrival' }, staff)).rejects.toThrow(/curate_manage/);
+    expect(db.sqlite.prepare("SELECT status FROM curate_receipt_proposals WHERE id='arrival'").get()).toMatchObject({ status: 'pending' });
+  });
+
+  it('removes an arrival whose linked order cannot be read, which is why it exists', async () => {
+    const { env, db } = setup();
+    db.sqlite.prepare("UPDATE curate_receipt_proposals SET idempotency_key='order:missing:tea' WHERE id='arrival'").run();
+    const listed = await invoke(env, 'curate_list_arrivals', {});
+    expect(listed.arrivals[0].needs_review).toBeTruthy();
+    const preview = await invoke(env, 'curate_reject_arrival', { arrival_id: 'arrival' });
+    expect(preview.preview.arrival.needs_review).toBeTruthy();
+    expect((await invoke(env, 'curate_reject_arrival', { arrival_id: 'arrival', confirm: preview.confirmation_token })).committed).toBe(true);
+    expect((await invoke(env, 'curate_list_arrivals', {})).count).toBe(0);
+  });
+});
+
 describe('arrival tools through the authenticated HTTP MCP route', () => {
   it('accepts through the injected real service and creates one private stock holding', async () => {
     const { db } = setup();
@@ -143,5 +256,22 @@ describe('arrival tools through the authenticated HTTP MCP route', () => {
       .toMatchObject({ stock_grams: 100, is_public: 0, shown_in_shop: 0, cost_amount: null });
     expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM stock_ledger WHERE account_id=?').get('a')).toMatchObject({ n: 1 });
     expect(db.sqlite.prepare("SELECT status FROM tea_compass_entries WHERE id='tea'").get()).toMatchObject({ status: 'in_stock' });
+
+    // Once the grams are on the shelf the arrival cannot be rejected, and the
+    // shelf is what proves it: the refusal leaves the ledger row and the stock.
+    expect(await rpc('curate_reject_arrival', { arrival_id: 'arrival' })).toMatchObject({ error: 'arrival_is_not_pending', status: 'accepted' });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM stock_ledger WHERE account_id=?').get('a')).toMatchObject({ n: 1 });
+    expect(db.sqlite.prepare('SELECT stock_grams FROM products WHERE id=?').get(accepted.product_id)).toMatchObject({ stock_grams: 100 });
+
+    // A second, pending arrival rejects over the same route and adds no stock.
+    db.sqlite.prepare("INSERT INTO curate_receipt_proposals(id,account_id,product_name,product_type,purpose,quantity,unit,acquisition_kind,idempotency_key,proposed_by_user_id) VALUES ('duplicate','a','Tea','Oolong','working',100,'g','purchase','duplicate','owner')").run();
+    expect((await rpc('curate_list_arrivals', {})).count).toBe(1);
+    const rejection = await rpc('curate_reject_arrival', { arrival_id: 'duplicate', agent: 'Builder' });
+    expect(rejection.confirmation_token).toBeTruthy();
+    const rejected = await rpc('curate_reject_arrival', { arrival_id: 'duplicate', confirm: rejection.confirmation_token });
+    expect(rejected, JSON.stringify(rejected)).toMatchObject({ committed: true, status: 'rejected' });
+    expect((await rpc('curate_list_arrivals', {})).count).toBe(0);
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM stock_ledger WHERE account_id=?').get('a')).toMatchObject({ n: 1 });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM products WHERE account_id=?').get('a')).toMatchObject({ n: 1 });
   });
 });

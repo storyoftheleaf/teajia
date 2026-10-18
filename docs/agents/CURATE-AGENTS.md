@@ -153,6 +153,7 @@ and so on. The Hermes skill for this is in the i64os repo at
 | `curate_record_freight` | A shipping cost Adrian reports, per vendor and leg (or shared) | preview, confirm |
 | `curate_order` | An order to a vendor: the message to copy, the landed cost, an arrival to approve | preview, confirm |
 | `intake_add_items` | Build an import draft by hand when analysis could not read it: teas plus the vendor group they belong to | preview, confirm |
+| `curate_reject_arrival` | A pending arrival that should not be there: a duplicate, or an order that is not coming. Never touches stock | preview, confirm |
 
 Always pass `agent` with your name ("GrokBot", "Hermes", "ChatGPT", "Claude"). It
 is shown beside what you wrote.
@@ -213,6 +214,17 @@ as the app, adds stock once, keeps new products private, and marks Curate in
 stock. An exact supplier order line supplies the batch cost and bought grams;
 a per-kilo quote alone does not. A partial arrival whose quantity differs from
 the order is refused for review. Freight still follows the shop setting.
+
+`curate_reject_arrival` takes an arrival off that list when it should not be
+there: a duplicate left by a correction, or an order that is not coming. Same
+two steps, same `agent`. It adds and removes NO stock. The proposal is marked
+rejected and kept, so `curate_history` (`entity_type: "arrival"`) shows who
+removed it and `curate_undo` puts it back on the list. Only a pending arrival
+can be rejected: one already approved into stock is refused by name, because
+its grams are on the shelf and a ledger row points at it — remove that stock
+with `remove_stock` instead. An arrival whose linked order or tea can no longer
+be read is still rejectable, since that is the row most likely to need it.
+Requires shop ownership, or staff with the explicit `curate_manage` capability.
 
 For backfill and cleanup, generate the account-scoped report described in
 [Curate inventory review](../CURATE_INVENTORY_REVIEW.md). It makes no writes.

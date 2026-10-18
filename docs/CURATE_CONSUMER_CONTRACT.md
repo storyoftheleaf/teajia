@@ -25,7 +25,7 @@ Agents use MCP `/mcp` and the current `tools/list`. Browser consumers use authen
 | Read remaining samples and stock | `curate_stock`; `search_tea` returns `curate_holdings`; `get_tea` accepts `source: "curate"` | `GET /api/curate/holdings` |
 | Create/reuse product identity | `curate_promote_tea` | `POST /api/compass/entries/:id/promote` |
 | Order from the source tea | `curate_order` | `POST /api/curate/order` |
-| Review arrivals | `curate_list_arrivals`, `curate_approve_arrival` | `/api/curate/receipt-proposals`; creation at `/api/compass/entries/:id/receipt-proposals`, edit and accept/reject by proposal ID |
+| Review arrivals | `curate_list_arrivals`, `curate_approve_arrival`, `curate_reject_arrival` (pending only; marks rejected, never touches stock) | `/api/curate/receipt-proposals`; creation at `/api/compass/entries/:id/receipt-proposals`, edit and accept/reject by proposal ID |
 | Correct, archive, merge or consume samples | `curate_correct` | `POST /api/curate/correct` |
 | Read history and reverse a selected change | `curate_history`, `curate_undo` with optional `mutation_id` | `GET /api/curate/history`, `POST /api/curate/undo` |
 | Attach/read private evidence | `curate_upload_attachment`, `curate_list_attachments` | `/api/curate/attachments`; authenticated `/api/curate/attachments/:id/content` |
