@@ -11,6 +11,7 @@ import { ShopGridLayout } from './shared/ShopGridLayout';
 import { TeaItem } from './TeaInventory';
 import { TeaPlaceholder } from './shop/TeaPlaceholder';
 import { splitOrigin, TeaLedgerRow } from './shop/TeaLedger';
+import { TeawareCartControl } from './shop/TeawareCartControl';
 import { useShopPrice } from './shop/shopPrice';
 import { useProductModalRoute } from '../hooks/useProductModalRoute';
 import { useAppStore } from '../lib/store';
@@ -319,7 +320,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
 
                     // The tea shelf's own row, so a piece reads exactly like a
                     // tea: the Save tile where the heart was, the material
-                    // leading the second line, the price on the right.
+                    // leading the second line, the buy control on the right.
                     return (
                       <TeaLedgerRow
                         key={item.id}
@@ -350,10 +351,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                                 <Icons.Edit className="w-3.5 h-3.5" />
                               </button>
                             )}
-                            <span className="flex items-baseline gap-1.5 whitespace-nowrap">
-                              <span className="num text-ui-14 font-medium tabular-nums text-tea-text">{shopPrice.total(unitPrice)}</span>
-                              <span className="text-ui-12 text-tea-text-dim">each</span>
-                            </span>
+                            <TeawareCartControl item={item} formatPrice={shopPrice.total} onAddToCart={onAddToCart} />
                           </div>
                         }
                       />
