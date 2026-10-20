@@ -89,7 +89,7 @@ const VESSELS = {
   },
 } satisfies Record<string, Shape>;
 
-type Vessel = keyof typeof VESSELS;
+export type Vessel = keyof typeof VESSELS;
 
 /** Which drawing a piece wears, read from its category and its name. */
 export function teawareVesselFor(item: Pick<InventoryItem, 'name' | 'subcategory'>): Vessel | null {

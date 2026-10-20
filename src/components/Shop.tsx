@@ -5,7 +5,7 @@ import { resolveTermLabel } from '../data/tastingTaxonomy';
 import { PRODUCT_PATH_RE } from '../hooks/useProductModalRoute';
 import { useQuery } from '@tanstack/react-query';
 
-import { Check, Loader2, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown } from 'lucide-react';
 import { InventoryItem, Account } from '../types';
 import { CollectionTab } from './shop/CollectionTab';
 import { CurrencySelect } from './shop/CurrencySelect';
@@ -15,13 +15,10 @@ import { PageHeader } from './shared/PageHeader';
 import { PageHeaderTabs } from './shared/PageHeaderTabs';
 import { Icons } from './Icons';
 import { STARTER_TEA_SETS, STARTER_TEAWARE_SETS } from '../constants';
-import { CardImage } from './shared/CardImage';
 import { AnchoredMenu } from './shared/AnchoredMenu';
-import { SectionDivider } from './shared/SectionDivider';
 import { SectionSkeleton } from './shared/SectionSkeleton';
-import { LogoEmblem } from './Logos/LogoEmblem';
-import { getSetCoverVariant } from './shop/setCover';
 import { resolvePublicSetItems } from './shop/setContents';
+import { SetLedger } from './shop/SetLedger';
 import { useShopPrice } from './shop/shopPrice';
 import { quoteForDisplay } from '../lib/teaPricing';
 import { useAdminOverlay } from '../hooks/useAdminOverlay';
@@ -40,37 +37,6 @@ const AddProductModal = lazy(() => import('../admin/components/AddProductModal')
 const ProductEditPanel = lazy(() => import('../admin/components/ProductEditPanel').then(m => ({ default: m.ProductEditPanel })));
 
 type ShopTab = 'collection' | 'tea' | 'teaware' | 'sets';
-
-const SetCover: React.FC<{ set: StarterSet }> = ({ set }) => {
-  const category = set.items.some(item => item.type === 'tea') ? 'Tea collection' : 'Teaware collection';
-  const variant = getSetCoverVariant(set.id, category);
-  const emblemClasses = {
-    orbit: 'relative self-center opacity-55',
-    column: 'absolute right-6 top-16 opacity-50',
-    horizon: 'absolute bottom-6 right-6 opacity-45',
-    seal: 'absolute -right-7 top-1/2 -translate-y-1/2 opacity-[0.16]',
-  }[variant];
-  return (
-    <div
-      className="relative flex h-full min-h-48 w-full flex-col justify-between overflow-hidden bg-tea-elevated p-5 md:min-h-64 md:p-6"
-      role="img"
-      aria-label={`${set.name}, ${category}`}
-      data-cover-variant={variant}
-    >
-      <div className="absolute inset-0 opacity-[0.035] grain-texture pointer-events-none" aria-hidden="true" />
-      {variant === 'orbit' && <span className="absolute left-1/2 top-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full border border-tea-border" aria-hidden="true" />}
-      {variant === 'column' && <span className="absolute bottom-5 right-20 top-16 w-px bg-tea-border" aria-hidden="true" />}
-      {variant === 'horizon' && <span className="absolute inset-x-5 top-1/2 border-t border-tea-border" aria-hidden="true" />}
-      {variant === 'seal' && <span className="absolute bottom-5 left-5 top-16 w-px bg-tea-gold opacity-30" aria-hidden="true" />}
-      <div className="relative flex items-center justify-between border-b border-tea-border pb-3">
-        <span className="label-caps text-tea-text-sec">{category}</span>
-        <span className="font-mono text-ui-9 text-tea-text-dim">{String(set.items.length).padStart(2, '0')} pieces</span>
-      </div>
-      <LogoEmblem size={variant === 'seal' ? 144 : 64} color="var(--tea-gold)" className={emblemClasses} ariaLabel="Teajia emblem" />
-      <p className="relative max-w-52 font-display text-ui-26 leading-tight text-tea-text">{set.name}</p>
-    </div>
-  );
-};
 
 interface ShopProps {
   teaInventory: InventoryItem[];
@@ -248,6 +214,8 @@ export const Shop: React.FC<ShopProps> = ({
    * which reads as a bug about the tea rather than a gap in the sweep.
    */
   const shopPrice = useShopPrice();
+  const { favoriteTeas, toggleFavoriteTea } = useAppStore();
+  const savedSetIds = useMemo(() => new Set(favoriteTeas), [favoriteTeas]);
 
   // Admin overlay state
   const { isAdmin, productMap, refetchProducts } = useAdminOverlay();
@@ -336,113 +304,10 @@ export const Shop: React.FC<ShopProps> = ({
     return Math.round(total);
   };
 
-  const renderSetCard = (set: StarterSet) => {
-    const resolvedItems = resolvePublicSetItems(set, allInventory);
-    const retailTotal = calcRetailTotal(set);
-    const setPrice = parseInt(set.price.replace('$', ''), 10);
-    const showComparison = retailTotal > 0 && retailTotal > setPrice;
-
-    return (
-      <article
-        key={set.id}
-        className="group bg-tea-surface rounded-xl overflow-hidden border border-tea-border transition-colors duration-200 hover:bg-tea-elevated"
-      >
-        <div className="flex flex-col md:flex-row">
-          {/* Image side */}
-          <div className="relative md:w-[40%] lg:w-[35%] flex-shrink-0">
-            {set.image ? (
-              <CardImage src={set.image} alt={set.name} aspect="video" className="md:!aspect-auto md:h-full" />
-            ) : (
-              <SetCover set={set} />
-            )}
-          </div>
-
-          {/* Content side */}
-          <div className="flex-1 p-4 md:p-6 lg:p-8 flex flex-col">
-            {/* Tags */}
-            {set.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-3">
-                {set.tags.map(tag => (
-                  <span key={tag} className="inline-flex px-2 py-0.5 rounded-full text-ui-9 uppercase tracking-caps bg-tea-elevated text-tea-text-sec">{tag}</span>
-                ))}
-              </div>
-            )}
-
-            {/* Title */}
-            <h3 className="font-display text-ui-20 text-tea-text leading-tight mb-1 group-hover:text-tea-gold transition-colors duration-150">
-              {set.name}
-            </h3>
-
-            {/* Ideal for */}
-            {set.idealFor && (
-              <p className="font-body text-ui-12 text-tea-text-sec italic mb-3">
-                {set.idealFor}
-              </p>
-            )}
-
-            {/* Full description */}
-            <p className="body-light mb-4">
-              {set.description}
-            </p>
-
-            {/* What's inside */}
-            <div className="mb-4">
-              <p className="label-caps text-tea-text-dim mb-2">
-                What's inside
-              </p>
-              <div className="divide-y divide-tea-border">
-                {resolvedItems.map((item, index) => (
-                  <div
-                    key={`${item.type}-${index}`}
-                    className="flex items-center gap-2 py-1.5 text-ui-13 text-tea-text leading-snug"
-                  >
-                    {/* dot */}
-                    <span className="w-1 h-1 rounded-full bg-tea-gold flex-shrink-0" />
-                    <span className="flex-1">{item.name}{item.type === 'tea' ? ` · ${item.quantity}${item.unit}` : ''}</span>
-                    <span className="text-ui-9 uppercase tracking-caps text-tea-text-dim flex-shrink-0 ml-auto">
-                      {item.type === 'tea' ? 'Tea' : 'Teaware'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Price + Add button */}
-            <div className="mt-auto flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-              <div>
-                <div className="flex items-baseline gap-2">
-                  {showComparison && (
-                    <span className="font-mono tabular-nums text-ui-13 text-tea-text-dim line-through">
-                      ${retailTotal}
-                    </span>
-                  )}
-                  <span className="font-mono tabular-nums text-ui-17 text-tea-text font-semibold">
-                    {set.price}
-                  </span>
-                </div>
-                {set.discount && (
-                  <p className="font-body italic text-ui-11 text-tea-text-sec mt-0.5">
-                    {set.discount}
-                  </p>
-                )}
-              </div>
-              <button
-                onClick={(e) => { e.stopPropagation(); handleAddStarterSet(set); }}
-                disabled={isAddingToCart[set.id]}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
-              >
-                {isAddingToCart[set.id] && <Loader2 size={13} className="animate-spin" />}
-                <span>{isAddingToCart[set.id] ? 'Adding...' : 'Add Set to Cart'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </article>
-    );
-  };
-
+  // The sets sit on the tea shelf's row like the other two tabs. The page
+  // already gives 16px on a phone, so the wrapper adds a gutter only from md.
   const renderSets = () => (
-    <div className="max-w-full mx-auto pt-4 px-3 md:px-4 animate-[fadeIn_0.5s_ease-out]">
+    <div className="max-w-full mx-auto pt-4 md:px-4 animate-[fadeIn_0.5s_ease-out]">
       {STARTER_TEA_SETS.length === 0 && STARTER_TEAWARE_SETS.length === 0 ? (
         <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
           <Icons.Box className="w-7 h-7 text-tea-text-dim" strokeWidth={1.25} />
@@ -452,17 +317,18 @@ export const Shop: React.FC<ShopProps> = ({
           </p>
         </div>
       ) : (
-        <>
-          <SectionDivider label="Tea Sets" subtitle="Curated tea collections with essential brewing vessels." />
-          <div className="space-y-4 md:space-y-5 stagger-grid">
-            {STARTER_TEA_SETS.map(set => renderSetCard(set))}
-          </div>
-
-          <SectionDivider label="Teaware Sets" subtitle="Complete teaware collections for any brewing style." />
-          <div className="space-y-4 md:space-y-5 stagger-grid">
-            {STARTER_TEAWARE_SETS.map(set => renderSetCard(set))}
-          </div>
-        </>
+        <SetLedger
+          groups={[
+            { label: 'Tea Sets', sets: STARTER_TEA_SETS },
+            { label: 'Teaware Sets', sets: STARTER_TEAWARE_SETS },
+          ]}
+          resolveItems={set => resolvePublicSetItems(set, allInventory)}
+          retailTotal={calcRetailTotal}
+          formatPrice={shopPrice.total}
+          savedIds={savedSetIds}
+          onToggleSave={toggleFavoriteTea}
+          onAddSet={handleAddStarterSet}
+        />
       )}
     </div>
   );
