@@ -10,6 +10,7 @@ import { PageHeaderActions } from './shared/PageHeaderActions';
 import { ShopGridLayout } from './shared/ShopGridLayout';
 import { TeaItem } from './TeaInventory';
 import { TeaPlaceholder } from './shop/TeaPlaceholder';
+import { splitOrigin } from './shop/TeaLedger';
 import { useShopPrice } from './shop/shopPrice';
 import { useProductModalRoute } from '../hooks/useProductModalRoute';
 import { useAppStore } from '../lib/store';
@@ -62,10 +63,12 @@ function teawareMeta(item: InventoryItem): string | null {
 }
 
 /** Origin is stored as the literal "Unknown" for teaware with no recorded source. */
+/** Same reading as a tea row: China dropped, a long chain cut to its ends. */
 function teawareOrigin(item: InventoryItem): string | null {
   const origin = (item.origin || '').trim();
   if (!origin || origin.toLowerCase() === 'unknown') return null;
-  return origin;
+  const { near, mid } = splitOrigin(origin);
+  return [near, mid].filter(Boolean).join(', ') || null;
 }
 
 export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, externalInventory = [], hideHeader = false, isAdmin = false, adminProductMap, onAdminEdit, modalLocation }) => {
@@ -143,7 +146,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
         />
       ) : (
         /* Compact toolbar when embedded as a tab (hideHeader) */
-        <div className="flex items-center justify-between py-2 px-3 md:px-4">
+        <div className="flex items-center justify-between py-2 md:px-4">
           <PageHeaderActions
             viewMode={viewMode}
             onViewModeChange={setViewMode}
@@ -155,7 +158,9 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
       )}
 
       {/* --- Inline Filter Chips + Content --- */}
-      <div className="max-w-full mx-auto pt-4 px-3 md:px-4">
+      {/* No gutter of its own on a phone, the same as the tea shelf: the page
+          already gives 16px, and a second 12px left the names 28px from the edge. */}
+      <div className="max-w-full mx-auto pt-4 md:px-4">
 
         {/* Category filter chips, matching tea's type chips */}
         <div className="mb-4 space-y-3">
@@ -219,7 +224,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                 {groupedItems.map((group) => (
                   <div key={group.id}>
                     {/* Category label, matching tea's style */}
-                    <div className="pt-8 pb-2 first:pt-4 pl-2 border-b border-tea-border">
+                    <div className="-mx-4 px-4 md:mx-0 md:px-0 md:pl-2 pt-8 pb-2 first:pt-4 border-b border-tea-border">
                       <span className="font-sans text-ui-10 uppercase tracking-[2px] text-tea-text-sec">{group.label}</span>
                     </div>
                     <ShopGridLayout>
@@ -299,7 +304,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
 
                   {/* Category label, same style as tea type headers */}
                   {activeCategory === 'All' && (
-                    <div className="pt-8 pb-2 first:pt-4 pl-2 border-b border-tea-border">
+                    <div className="-mx-4 px-4 md:mx-0 md:px-0 md:pl-2 pt-8 pb-2 first:pt-4 border-b border-tea-border">
                       <span className="font-sans text-ui-10 uppercase tracking-[2px] text-tea-text-sec">{group.label}</span>
                     </div>
                   )}
@@ -311,10 +316,10 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                     return (
                       <div
                         key={item.id}
-                        className="border-b border-tea-border hover:bg-tea-accent-sub/50 transition-colors cursor-pointer"
+                        className="-mx-4 px-4 md:mx-0 md:px-0 border-b border-tea-border hover:bg-tea-accent-sub/50 transition-colors cursor-pointer"
                         onClick={() => openProduct(item)}
                       >
-                        <div className="flex items-center py-3 lg:py-4 px-2 gap-3">
+                        <div className="flex items-center py-3 lg:py-4 md:px-2 gap-2.5 md:gap-3">
                           {/* Thumbnail */}
                           <div className="w-12 h-12 rounded-md overflow-hidden shrink-0 bg-tea-elevated">
                             {item.image ? (
@@ -347,7 +352,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                           </div>
 
                           {/* Right: heart + admin controls + price + chevron */}
-                          <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
                             {/* Favorite toggle */}
                             <button
                               onClick={(e) => { e.stopPropagation(); toggleFavoriteTea(item.id); }}
@@ -381,7 +386,9 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                               <span className="num text-sm text-tea-gold">{shopPrice.total(unitPrice)}</span>
                               <span className="text-tea-text-sec text-ui-10 ml-1">each</span>
                             </div>
-                            <Icons.Next className="w-4 h-4 text-tea-text-sec shrink-0" />
+                            {/* The whole row opens the piece, so on a phone the arrow only
+                                costs the name its width; tea rows carry none either. */}
+                            <Icons.Next className="hidden sm:block w-4 h-4 text-tea-text-sec shrink-0" />
                           </div>
                         </div>
                       </div>
