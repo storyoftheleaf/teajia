@@ -8,7 +8,10 @@ import type { InventoryItem } from '../../types';
    pearl knob, straight spout and ring handle of the classic Yixing pot, used
    for every teapot), and a drum-bodied water kettle under a hinged arched
    handle. The gaiwan, cup, bowl and pitcher follow the same traditional
-   profiles: flared lips on ring feet, the gaiwan on a flat saucer. */
+   profiles: flared lips on ring feet, the gaiwan on a flat saucer. The rest of the table is drawn the same way:
+   a tea boat with a cup on it for trays, a high-shouldered jar for caddies,
+   the tea-tool set standing in its holder for tools, and a seated toad for
+   tea pets and ornaments. */
 
 type Shape = {
   fill: readonly string[];
@@ -60,6 +63,30 @@ const VESSELS = {
     stroke: [],
     cut: [['M14.2 19.1 H33.8', 0.5], ['M16.8 25 Q17.4 22.4 19.4 21', 0.6]],
   },
+  tray: {
+    fill: ['M7 26 H41 V28 H7 Z', 'M8 28 H40 L37.6 34 H10.4 Z', 'M11 34 H15 V36 H11 Z', 'M33 34 H37 V36 H33 Z', 'M20.6 20.6 H27.4 C27.2 23.8 25.8 25.4 24 25.4 C22.2 25.4 20.8 23.8 20.6 20.6 Z', 'M22.6 25.2 H25.4 V26.1 H22.6 Z'],
+    circle: [],
+    stroke: [],
+    cut: [['M8 28 H40', 0.5], ['M9.6 30.6 H38.4', 0.45], ['M21 21.5 H27', 0.4]],
+  },
+  jar: {
+    fill: ['M18.6 22.8 C14.4 23.4 12.6 25.6 12.6 28.4 C12.6 32 15.6 35.4 18.6 36.4 H29.4 C32.4 35.4 35.4 32 35.4 28.4 C35.4 25.6 33.6 23.4 29.4 22.8 Z', 'M18.4 20.6 H29.6 V22.8 H18.4 Z', 'M17.6 20.8 C18 17.8 20.6 16.4 24 16.4 C27.4 16.4 30 17.8 30.4 20.8 Z', 'M19.4 36.2 H28.6 V37.4 H19.4 Z'],
+    circle: [[24, 15.2, 1.3]],
+    stroke: [],
+    cut: [['M17.2 20.8 H30.8', 0.5], ['M18 22.7 H30', 0.45], ['M19 36.3 H29', 0.45], ['M15 29.6 Q15.6 26.6 18.2 25.2', 0.6]],
+  },
+  tools: {
+    fill: ['M17.2 22.4 H30.8 V35.8 C30.8 36.7 30.2 37.2 29.4 37.2 H18.6 C17.8 37.2 17.2 36.7 17.2 35.8 Z', 'M16.4 21 H31.6 V22.6 H16.4 Z', 'M21 9.6 C22.6 9.6 23.4 10.8 23 12.6 L22.6 14 H21.6 L21 12.4 C20.6 10.8 20.2 9.6 21 9.6 Z'],
+    circle: [],
+    stroke: [['M19.4 21 L17.4 11.4', 1.1], ['M22.1 21 L22 13.6', 1.1], ['M25 21 L25.8 10.6', 1.1], ['M28.2 21 L30.8 12.2', 1.1], ['M26.6 21 L28 13.4', 0.9]],
+    cut: [['M17.2 26.6 H30.8', 0.45], ['M17.2 32.6 H30.8', 0.45], ['M16.4 22.6 H31.6', 0.45]],
+  },
+  pet: {
+    fill: ['M10 36.6 C10 30 14.4 24 21 22.6 C24 21.4 27 21.6 29 22.8 C30.8 21 33.4 20.8 35 22.4 C37 24.4 37.4 27.6 36 30 C37.6 31.4 38.4 33.6 38 36.6 Z'],
+    circle: [[31.6, 22.4, 1.9]],
+    stroke: [],
+    cut: [['M31.5 22.3 h0.2', 1.1], ['M32.6 27.2 Q35.2 27.8 36.6 26.4', 0.5], ['M16.2 36.4 C16.2 32 18.8 29.8 22.4 30.2 C24.8 30.6 25.8 33 25.6 36.4', 0.5], ['M15.4 29 Q17 25.4 21 24.2', 0.6]],
+  },
 } satisfies Record<string, Shape>;
 
 type Vessel = keyof typeof VESSELS;
@@ -70,7 +97,12 @@ export function teawareVesselFor(item: Pick<InventoryItem, 'name' | 'subcategory
   if (/gaiwan/.test(words)) return 'gaiwan';
   if (/yixing|zisha|shi ?piao/.test(words)) return 'yixing';
   if (/kettle|tetsubin|overhead|ti ?liang/.test(words)) return 'kettle';
-  if (/pitcher|fairness|cha ?hai|gong ?dao/.test(words)) return 'pitcher';
+  // Before cup: the curation screen files a pitcher as "Fair Cup".
+  if (/pitcher|fair|cha ?hai|gong ?dao/.test(words)) return 'pitcher';
+  if (/\btea ?pets?\b|\bpet\b|toad|figurine|ornament|decorative/.test(words)) return 'pet';
+  if (/caddy|canister|\bjars?\b|storage/.test(words)) return 'jar';
+  if (/tray|boat|\bmats?\b|tea table|chapan|cha ?chuan/.test(words)) return 'tray';
+  if (/tong|scoop|needle|\bpick|strainer|filter|lid rest|\btools?\b|accessor/.test(words)) return 'tools';
   if (/bowl|chawan/.test(words)) return 'bowl';
   if (/cup/.test(words)) return 'cup';
   if (/pot/.test(words)) return 'teapot';
