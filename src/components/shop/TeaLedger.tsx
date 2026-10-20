@@ -169,14 +169,17 @@ interface TeaLedgerRowProps {
   selected?: boolean;
   expanded?: boolean;
   openLabel?: string;
+  /** Leads the second line in place of the type, for a row that is not a tea (teaware's material). */
+  label?: string | null;
 }
 
 /** The shop's tea row, shared verbatim with Library; actions belong to the caller. */
-export function TeaLedgerRow({ item, showType, saved, onToggleSave, onOpen, tastingCount = 0, trailing, selected, expanded, openLabel }: TeaLedgerRowProps) {
+export function TeaLedgerRow({ item, showType, saved, onToggleSave, onOpen, tastingCount = 0, trailing, selected, expanded, openLabel, label }: TeaLedgerRowProps) {
   const { theme } = useTheme();
   const rowTones = getTeaLedgerTones(item.type, theme);
   const origin = splitOrigin(item.origin || '');
   const lead = curatorLine(item);
+  const leading = label ?? (showType ? item.type : null);
   return (
     <div
       data-tea-ledger-row
@@ -230,10 +233,10 @@ export function TeaLedgerRow({ item, showType, saved, onToggleSave, onOpen, tast
           </div>
           <div className="flex min-w-0 items-center font-sans text-ui-12 tracking-[0.02em] text-tea-text-sec">
             <span className="min-w-0 truncate">
-            {showType && (
+            {leading && (
               <>
-                <span className="uppercase">{item.type}</span>
-                <span className="px-1.5 text-tea-text-dim">&middot;</span>
+                <span className="uppercase">{leading}</span>
+                {origin.near && <span className="px-1.5 text-tea-text-dim">&middot;</span>}
               </>
             )}
             {origin.near}

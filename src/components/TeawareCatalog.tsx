@@ -10,7 +10,7 @@ import { PageHeaderActions } from './shared/PageHeaderActions';
 import { ShopGridLayout } from './shared/ShopGridLayout';
 import { TeaItem } from './TeaInventory';
 import { TeaPlaceholder } from './shop/TeaPlaceholder';
-import { splitOrigin } from './shop/TeaLedger';
+import { splitOrigin, TeaLedgerRow } from './shop/TeaLedger';
 import { useShopPrice } from './shop/shopPrice';
 import { useProductModalRoute } from '../hooks/useProductModalRoute';
 import { useAppStore } from '../lib/store';
@@ -304,64 +304,33 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
 
                   {/* Category label, same style as tea type headers */}
                   {activeCategory === 'All' && (
-                    <div className="-mx-4 px-4 md:mx-0 md:px-0 md:pl-2 pt-8 pb-2 first:pt-4 border-b border-tea-border">
-                      <span className="font-sans text-ui-10 uppercase tracking-[2px] text-tea-text-sec">{group.label}</span>
-                    </div>
+                    <>
+                      <div className="flex items-baseline justify-between gap-4 pt-9 first:pt-2 pb-2.5">
+                        <h2 className="font-display text-ui-26 font-normal tracking-[0.02em] text-tea-text first-letter:uppercase">{group.label}</h2>
+                        <span className="num text-ui-11 text-tea-text-dim tabular-nums">{String(group.items.length).padStart(2, '0')}</span>
+                      </div>
+                      <div className="-mx-4 px-4 h-px bg-tea-gold/20" aria-hidden="true" />
+                    </>
                   )}
 
                   {group.items.map((item) => {
                     const isFavorite = userFavorites.has(item.id);
                     const unitPrice = parseFloat(item.price_50g ?? '0');
 
+                    // The tea shelf's own row, so a piece reads exactly like a
+                    // tea: the Save tile where the heart was, the material
+                    // leading the second line, the price on the right.
                     return (
-                      <div
+                      <TeaLedgerRow
                         key={item.id}
-                        className="-mx-4 px-4 md:mx-0 md:px-0 border-b border-tea-border hover:bg-tea-accent-sub/50 transition-colors cursor-pointer"
-                        onClick={() => openProduct(item)}
-                      >
-                        <div className="flex items-center py-3 lg:py-4 md:px-2 gap-2.5 md:gap-3">
-                          {/* Thumbnail */}
-                          <div className="w-12 h-12 rounded-md overflow-hidden shrink-0 bg-tea-elevated">
-                            {item.image ? (
-                              <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
-                            ) : (
-                              <TeaPlaceholder type={item.type} style={{ width: '100%', height: '100%' }} />
-                            )}
-                          </div>
-
-                          {/* Name + metadata */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-serif text-lg leading-none text-tea-text truncate">
-                                {item.name}
-                              </h3>
-                            </div>
-                            <div className="text-ui-13 mt-1 truncate flex items-center gap-2">
-                              {teawareMeta(item) && (
-                                <span className="text-ui-10 uppercase tracking-wider text-tea-text-sec">{teawareMeta(item)}</span>
-                              )}
-                              {teawareOrigin(item) && (
-                                <><span className="text-tea-text-dim">·</span>
-                                <span className="font-body italic text-ui-11 text-tea-text-sec">{teawareOrigin(item)}</span></>
-                              )}
-                              {item.year && (
-                                <><span className="text-tea-text-dim">·</span>
-                                <span className="num text-ui-11 text-tea-text-dim">{item.year}</span></>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Right: heart + admin controls + price + chevron */}
-                          <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
-                            {/* Favorite toggle */}
-                            <button
-                              onClick={(e) => { e.stopPropagation(); toggleFavoriteTea(item.id); }}
-                              className={`-my-1 p-1.5 transition-colors ${isFavorite ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}
-                              title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-                            >
-                              <Icons.Heart filled={isFavorite} className="w-4 h-4" />
-                            </button>
-                            {/* Admin: stock indicator */}
+                        item={item}
+                        showType={false}
+                        label={teawareMeta(item)}
+                        saved={isFavorite}
+                        onToggleSave={() => toggleFavoriteTea(item.id)}
+                        onOpen={() => openProduct(item)}
+                        trailing={
+                          <div className="flex items-center gap-2">
                             {isAdmin && adminProductMap?.has(item.id) && (() => {
                               const ap = adminProductMap.get(item.id)!;
                               const stockColor = ap.stockGrams < 2 ? 'bg-tea-error' : ap.stockGrams < 5 ? 'bg-tea-gold' : 'bg-tea-leaf';
@@ -372,26 +341,22 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                                 </span>
                               );
                             })()}
-                            {/* Admin: edit button */}
                             {isAdmin && onAdminEdit && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); onAdminEdit(item.id); }}
-                                className="p-1 text-tea-text-sec hover:text-tea-gold transition-colors"
+                                className="tap-target p-1 text-tea-text-sec hover:text-tea-gold transition-colors"
                                 title="Edit product"
                               >
                                 <Icons.Edit className="w-3.5 h-3.5" />
                               </button>
                             )}
-                            <div className="text-right">
-                              <span className="num text-sm text-tea-gold">{shopPrice.total(unitPrice)}</span>
-                              <span className="text-tea-text-sec text-ui-10 ml-1">each</span>
-                            </div>
-                            {/* The whole row opens the piece, so on a phone the arrow only
-                                costs the name its width; tea rows carry none either. */}
-                            <Icons.Next className="hidden sm:block w-4 h-4 text-tea-text-sec shrink-0" />
+                            <span className="flex items-baseline gap-1.5 whitespace-nowrap">
+                              <span className="num text-ui-14 font-medium tabular-nums text-tea-text">{shopPrice.total(unitPrice)}</span>
+                              <span className="text-ui-12 text-tea-text-dim">each</span>
+                            </span>
                           </div>
-                        </div>
-                      </div>
+                        }
+                      />
                     );
                   })}
                 </React.Fragment>
