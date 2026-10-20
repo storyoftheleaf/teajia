@@ -12,6 +12,7 @@ import { TeaItem } from './TeaInventory';
 import { TeaPlaceholder } from './shop/TeaPlaceholder';
 import { splitOrigin, TeaLedgerRow } from './shop/TeaLedger';
 import { TeawareCartControl } from './shop/TeawareCartControl';
+import { TeawareGlyph, teawareGlyphFor } from './shop/TeawareGlyph';
 import { useShopPrice } from './shop/shopPrice';
 import { useProductModalRoute } from '../hooks/useProductModalRoute';
 import { useAppStore } from '../lib/store';
@@ -327,6 +328,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                         item={item}
                         showType={false}
                         label={teawareMeta(item)}
+                        mark={!item.year && teawareGlyphFor(item) ? <TeawareGlyph item={item} className="-my-2 h-11 w-11 text-tea-text-sec" /> : undefined}
                         saved={isFavorite}
                         onToggleSave={() => toggleFavoriteTea(item.id)}
                         onOpen={() => openProduct(item)}

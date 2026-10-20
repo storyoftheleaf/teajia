@@ -171,10 +171,12 @@ interface TeaLedgerRowProps {
   openLabel?: string;
   /** Leads the second line in place of the type, for a row that is not a tea (teaware's material). */
   label?: string | null;
+  /** Drawn in the Save tile when the row has no year to show. */
+  mark?: ReactNode;
 }
 
 /** The shop's tea row, shared verbatim with Library; actions belong to the caller. */
-export function TeaLedgerRow({ item, showType, saved, onToggleSave, onOpen, tastingCount = 0, trailing, selected, expanded, openLabel, label }: TeaLedgerRowProps) {
+export function TeaLedgerRow({ item, showType, saved, onToggleSave, onOpen, tastingCount = 0, trailing, selected, expanded, openLabel, label, mark }: TeaLedgerRowProps) {
   const { theme } = useTheme();
   const rowTones = getTeaLedgerTones(item.type, theme);
   const origin = splitOrigin(item.origin || '');
@@ -212,6 +214,7 @@ export function TeaLedgerRow({ item, showType, saved, onToggleSave, onOpen, tast
           background={rowTones.markBg}
           savedColor={rowTones.savedBg}
           onToggle={onToggleSave}
+          mark={mark}
         />
 
         <div className="tea-ledger-identity min-w-0 flex-1">
