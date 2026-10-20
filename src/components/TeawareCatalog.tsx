@@ -328,7 +328,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                         item={item}
                         showType={false}
                         label={teawareMeta(item)}
-                        mark={!item.year && vessel ? <TeawareGlyph vessel={vessel} className="-my-2 h-11 w-11 text-tea-text-sec" /> : undefined}
+                        mark={!item.year && vessel ? <TeawareGlyph vessel={vessel} className="h-[26px] w-[31px] text-tea-text-sec" /> : undefined}
                         saved={isFavorite}
                         onToggleSave={() => toggleFavoriteTea(item.id)}
                         onOpen={() => openProduct(item)}
