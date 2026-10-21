@@ -23,6 +23,10 @@ import { CollectionPill } from './collections/CollectionPill';
 import { AutocompleteInput } from '../../components/TeaCompass/AutocompleteInput';
 import { buildVarietyDataMap, getTeaVarietySuggestions } from '../../data/teaVarieties';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
+import { sharedTeaRecordId, sharedTeaRecordHref } from '../../lib/sharedTeaRecord';
+import { hydrateCompassEntries } from '../../lib/teaCompassSync';
+import { useLedgerStore } from '../../lib/ledgerStore';
+import { addTeaToDraftOrder } from '../../components/CurateV2/orderBuy';
 import { buildProductUpdatePayload } from '../productUpdatePayload';
 import { shopRateInCurrency, shippingRateUsdFor } from '../../lib/shippingRate';
 import { isoCurrencyCode, rateToUsd } from '../../lib/currency';
@@ -976,6 +980,8 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   const activeUserId = useAppStore((state) => state.activeUserId);
   const activeAccountId = useAppStore((state) => state.activeAccountId);
   const compassEntries = useTeaCompassStore((s) => s.entries);
+  const compassAccountId = useTeaCompassStore(s => s.accountScopeId);
+  const sharedRecordId = product ? sharedTeaRecordId(product, compassAccountId === activeAccountId ? compassEntries : []) : undefined;
   const readiness = product ? getTeaReadiness(product) : null;
   const publication = product ? getEffectivePublication(product) : null;
   const readinessLabels: Record<string, string> = {
@@ -986,6 +992,27 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
     if (index === all.length - 1) return `${text}${all.length > 2 ? ',' : ''} and ${item}`;
     return `${text}, ${item}`;
   }, '') || '';
+
+  const [openingOrder, setOpeningOrder] = useState(false);
+  const openReorder = async () => {
+    if (!sharedRecordId || !product || !activeAccountId || openingOrder) return;
+    const accountId = activeAccountId;
+    const productId = product.id;
+    const recordId = sharedRecordId;
+    setOpeningOrder(true);
+    try {
+      const compass = useTeaCompassStore.getState();
+      compass.switchAccount(accountId);
+      if (!useTeaCompassStore.getState().getEntry(recordId)) await hydrateCompassEntries(accountId);
+      if (useAppStore.getState().activeAccountId !== accountId || useTeaCompassStore.getState().accountScopeId !== accountId) return;
+      if (!useTeaCompassStore.getState().getEntry(recordId)) throw new Error('The tea record could not load. Try again.');
+      useLedgerStore.getState().switchAccount(accountId);
+      const orderId = addTeaToDraftOrder(recordId, productId);
+      if (!orderId) throw new Error('The tea could not be added to a draft. Try again.');
+      navigate('/admin/compass?tab=ledger');
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Could not open a reorder.', 'error'); }
+    finally { setOpeningOrder(false); }
+  };
 
   // Local state for modals mounted inside the panel
   const [tastingEditorProduct, setTastingEditorProduct] = useState<Product | null>(null);
@@ -1346,7 +1373,17 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   Publication: {publication.state === 'published' ? 'Published' : `Hidden, ${publication.operatorGate ? 'listing on' : 'listing off'}; ${publication.locationGate ? 'location shown' : 'location held'}`}
                 </div>
               )}
-              {readiness?.state === 'not_ready' && (
+              {sharedRecordId && <button type="button" data-testid="inventory-open-tea-record" data-compass-entry-id={sharedRecordId}
+                onClick={() => navigate(sharedTeaRecordHref(sharedRecordId))}
+                className="min-h-11 inline-flex items-center gap-2 text-ui-12 text-admin-text-sec hover:text-admin-text">
+                <BookOpen size={14} />Open tea record
+              </button>}
+              {sharedRecordId && <button type="button" data-testid="inventory-reorder-ledger" disabled={openingOrder}
+                onClick={() => void openReorder()}
+                className="min-h-11 inline-flex items-center gap-2 text-ui-12 text-admin-text-sec hover:text-admin-text disabled:opacity-50">
+                <Receipt size={14} />{openingOrder ? 'Opening draft…' : 'Reorder in Ledger'}
+              </button>}
+              {readiness?.state === 'not_ready' && !sharedRecordId && (
                 <button
                   data-compass-entry-id={product.sourceCompassEntryId || undefined}
                   onClick={() => navigate(product.sourceCompassEntryId

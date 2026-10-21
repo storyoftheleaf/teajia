@@ -1,6 +1,7 @@
 import { CurateRecordTools } from '../curate/CurateRecordTools';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { StructuredTeaFields } from './StructuredTeaFields';
+import { useQueryClient } from '@tanstack/react-query';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Droplets, Loader2, Minus, Plus, Sparkles } from 'lucide-react';
@@ -953,11 +954,13 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       // No price yet is no price: the 0 above is a placeholder, not a figure.
       ...(entry.priceAmount == null ? { unpriced: true as const } : {}),
       compassEntryId: entry.id,
+      productId: entry.draftProductId,
     });
     setReceiptBusy(true);
     setReceiptError('');
     try {
-      const proposal = await api.compass.proposeReceipt(entry.id, {
+      // A purchase draft has no arrival yet. Confirmation creates its one receipt.
+      const proposal = receiptAcquisition === 'purchase' ? null : await api.compass.proposeReceipt(entry.id, {
         purpose: receiptPurpose,
         quantity: buyingQty,
         unit: unitBased ? 'unit' : 'g',
@@ -976,6 +979,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     setJustAddedToLedger(true);
   };
 
+  const purchaseQueryClient = useQueryClient();
   const reviewReceipt = async (action: 'accept' | 'reject') => {
     if (!receiptProposal) return;
     setReceiptBusy(true);
@@ -983,6 +987,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     try {
       if (action === 'accept') await api.compass.acceptReceiptProposal(receiptProposal.id);
       else await api.compass.rejectReceiptProposal(receiptProposal.id);
+      void purchaseQueryClient.invalidateQueries({ queryKey: ['library-purchase-history'] });
+      void purchaseQueryClient.invalidateQueries({ queryKey: ['library-purchase-receipts'] });
       setReceiptProposal(null);
       setJustAddedToLedger(false);
       onSwitchToLedger?.();

@@ -38,6 +38,13 @@ describe('agent Curate promotion shares the app inventory boundary',()=>{
     expect(await call(db,{confirm:retry.confirmation_token})).toMatchObject({id:result.id,alreadyPromoted:true});
     expect(db.sqlite.prepare('SELECT count(*) n FROM products').get()).toMatchObject({n:1});
   });
+  it('carries only the deliberate description into the private Inventory draft, retaining source evidence', async () => {
+    const db = setup();
+    db.sqlite.prepare("UPDATE tea_compass_entries SET description=?,notes=? WHERE id='tea'").run('A deliberate store description.', 'Raw source transcript stays on the tea.');
+    const result = await promoteCompassEntry(db as any, 'a', one(db, 'tea_compass_entries'));
+    expect(one(db, 'products')).toMatchObject({ id: result.id, description: 'A deliberate store description.', is_public: 0, shown_in_shop: 0, stock_grams: 0 });
+    expect(one(db, 'tea_compass_entries').notes).toBe('Raw source transcript stays on the tea.');
+  });
   it.each(['tea','vendor','product'])('refuses stale %s previews without creating or relinking',async(which)=>{
     const db=setup();const p=await call(db,{tea_id:'tea'});
     if(which==='tea') db.sqlite.exec("UPDATE tea_compass_entries SET name='New name'");

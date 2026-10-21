@@ -1,6 +1,10 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { confirmPurchase, recordPurchase } from '../CurateV2/placeOrder';
+import { useLibraryPurchases } from '../../lib/libraryPurchaseState';
+import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowDownLeft,
@@ -25,7 +29,7 @@ import { useAppStore } from '../../lib/store';
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { useRates } from '../../admin/hooks/useAdminData';
-import { orderMoney, purchaseOrderTotalUsd } from './curatePricing';
+import { orderMoney } from './curatePricing';
 
 // ─── Currency helpers ────────────────────────────────────────────────────────
 
@@ -53,31 +57,67 @@ const LineItemRow: React.FC<{
   txId: string;
   onRemove: () => void;
   onOpenEntry?: (entryId: string) => void;
-}> = ({ item, txId, onRemove, onOpenEntry }) => {
+  readOnly?: boolean;
+}> = ({ item, txId, onRemove, onOpenEntry, readOnly }) => {
   const navigate = useNavigate();
   const updateLineItem = useLedgerStore((s) => s.updateLineItem);
   const total = lineTotal(item);
+  const purchases = useLibraryPurchases();
+  const facts = purchases.stateFor({ entryId: item.compassEntryId, productId: item.productId });
+  const queryClient = useQueryClient();
+  const [receiving, setReceiving] = useState(false);
+  const [receiveError, setReceiveError] = useState('');
+  const receivingRef = useRef(false);
+  const tx = useLedgerStore(s => s.transactions.find(transaction => transaction.id === txId));
+  const pendingReceipt = readOnly ? purchases.receiptProposals.find(receipt => receipt.status === 'pending'
+    && receipt.compass_entry_id === item.compassEntryId
+    && (receipt.idempotency_key === `order:${tx?.purchaseOrderId}:${item.compassEntryId}`
+      || receipt.idempotency_key === `ledger:${txId}:${item.compassEntryId}`)) : undefined;
+  const receive = async () => {
+    if (!pendingReceipt || receivingRef.current) return;
+    receivingRef.current = true;
+    setReceiving(true);
+    setReceiveError('');
+    const accountId = useAppStore.getState().activeAccountId;
+    try {
+      const result = await api.compass.acceptReceiptProposal(pendingReceipt.id);
+      if (accountId !== useAppStore.getState().activeAccountId) return;
+      if (item.compassEntryId) useTeaCompassStore.getState().updateEntry(item.compassEntryId, { status: 'in_stock', draftProductId: result.product_id });
+      useLedgerStore.getState().updateLineItem(txId, item.id, { productId: result.product_id });
+      void queryClient.invalidateQueries({ queryKey: ['library-purchase-history'] });
+      void queryClient.invalidateQueries({ queryKey: ['library-purchase-receipts'] });
+      void queryClient.invalidateQueries({ queryKey: ['products'] });
+    } catch (error) {
+      if (accountId === useAppStore.getState().activeAccountId) setReceiveError(error instanceof Error ? error.message : 'Could not record this arrival.');
+    } finally {
+      receivingRef.current = false;
+      setReceiving(false);
+    }
+  };
+  const receiptText = facts.quantities.flatMap(q => q.received === null ? [] : [
+    `${q.received.toLocaleString()}${q.unit === 'g' ? 'g' : ' pcs'} received${q.due === null ? '' : ` · ${q.due.toLocaleString()}${q.unit === 'g' ? 'g' : ' pcs'} due`}`,
+  ]).join(' · ');
   const isUnitBased = !item.priceIsPerGram;
 
   const handleQtyChange = useCallback(
     (newQty: number) => {
-      if (newQty < 1) return;
+      if (readOnly || newQty < 1) return;
       if (isUnitBased) {
         updateLineItem(txId, item.id, { quantityUnits: newQty });
       } else {
         updateLineItem(txId, item.id, { quantityGrams: newQty });
       }
     },
-    [txId, item.id, isUnitBased, updateLineItem]
+    [txId, item.id, isUnitBased, updateLineItem, readOnly]
   );
 
   const currentQty = isUnitBased ? (item.quantityUnits ?? 1) : (item.quantityGrams ?? 100);
 
   return (
     <div className="py-2.5 border-b border-tea-border last:border-b-0">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {/* Name + meta */}
-        <div className="flex-1 min-w-0">
+        <div className="w-full min-w-0 sm:w-auto sm:flex-1">
           {item.compassEntryId && onOpenEntry ? (
             <button
               onClick={() => onOpenEntry(item.compassEntryId!)}
@@ -97,6 +137,9 @@ const LineItemRow: React.FC<{
               {item.name || 'Unnamed'}
             </p>
           )}
+          {readOnly && receiptText && <p className="mt-1 text-ui-11 text-tea-text-sec">{receiptText}</p>}
+          {pendingReceipt && <button type="button" disabled={receiving} onClick={() => void receive()} className="mt-1 min-h-11 text-left text-ui-12 text-tea-gold disabled:opacity-50">{receiving ? 'Recording arrival…' : `Receive ${pendingReceipt.quantity.toLocaleString()}${pendingReceipt.unit === 'g' ? 'g' : ' pieces'}`}</button>}
+          {receiveError && <p role="alert" className="mt-1 text-ui-12 text-tea-text-sec">{receiveError}</p>}
           {(item.type || item.form || item.year) && (
             <p className="text-tea-text-dim text-ui-10 num mt-0.5">
               {[item.type, item.form, item.year].filter(Boolean).join(' · ')}
@@ -108,14 +151,17 @@ const LineItemRow: React.FC<{
         <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
+            disabled={readOnly}
+            hidden={readOnly}
             onClick={() => handleQtyChange(currentQty - (isUnitBased ? 1 : 25))}
-            className="w-7 h-7 rounded-full bg-tea-surface flex items-center justify-center text-tea-text-sec active:bg-tea-elevated transition-colors"
+            className={readOnly ? 'hidden' : 'tap-target w-7 h-7 rounded-full bg-tea-surface flex items-center justify-center text-tea-text-sec active:bg-tea-elevated transition-colors'}
           >
             <Minus size={11} />
           </button>
           <div className="flex items-baseline gap-0.5">
             <input
               type="number"
+              readOnly={readOnly}
               value={currentQty}
               onChange={(e) => handleQtyChange(Math.max(1, parseInt(e.target.value) || 1))}
               onWheel={(e) => (e.target as HTMLElement).blur()}
@@ -125,23 +171,25 @@ const LineItemRow: React.FC<{
           </div>
           <button
             type="button"
+            disabled={readOnly}
+            hidden={readOnly}
             onClick={() => handleQtyChange(currentQty + (isUnitBased ? 1 : 25))}
-            className="w-7 h-7 rounded-full bg-tea-surface flex items-center justify-center text-tea-text-sec active:bg-tea-elevated transition-colors"
+            className={readOnly ? 'hidden' : 'tap-target w-7 h-7 rounded-full bg-tea-surface flex items-center justify-center text-tea-text-sec active:bg-tea-elevated transition-colors'}
           >
             <Plus size={11} />
           </button>
         </div>
 
         {/* Price + remove */}
-        <div className="shrink-0 text-right">
+        <div className="ml-auto shrink-0 text-right">
           <p className="text-tea-text text-ui-13 font-serif num">{fmtPrice(total, item.currency)}</p>
-          <button
+          {!readOnly && <button
             type="button"
             onClick={onRemove}
-            className="text-tea-text-dim hover:text-tea-text-sec text-ui-10 uppercase tracking-wide transition-colors mt-0.5"
+            className="tap-target text-tea-text-dim hover:text-tea-text-sec text-ui-10 uppercase tracking-wide transition-colors mt-0.5"
           >
             remove
-          </button>
+          </button>}
         </div>
       </div>
     </div>
@@ -368,7 +416,13 @@ const TransactionCard: React.FC<{
   // Only the vendor having been told counts as sent, not the order being recorded.
   const [markedSent, setMarkedSent] = useState(false);
 
+  const queryClient = useQueryClient();
+  const recording = useRef(false);
+  const [recordBusy, setRecordBusy] = useState(false);
   const handleConfirm = useCallback(async () => {
+    if (recording.current) return;
+    recording.current = true;
+    setRecordBusy(true);
     confirmTransaction(tx.id);
     setJustConfirmed(true);
     setTimeout(() => setJustConfirmed(false), 1500);
@@ -377,35 +431,11 @@ const TransactionCard: React.FC<{
     // created or increased later through a reviewed receipt/Inventory action.
     if (tx.direction === 'purchase') {
       try {
-        // total_usd is dollars. The order's own money is converted at the
-        // shop's rates and left out when it cannot be (a currency with no
-        // rate, a tea with no price yet). This used to send the sum in the
-        // order's own money, so ¥450 was stored as $450.
-        const totalUsd = purchaseOrderTotalUsd(tx, rates);
-        const created = await api.purchaseOrders.create({
-          po_number: `PO-${tx.id.slice(0, 8).toUpperCase()}`,
-          vendor_name: tx.counterpartyName || 'Unknown',
-          vendor_id: tx.counterpartyId || undefined,
-          items_json: JSON.stringify(tx.items.map(item => ({
-            name: item.name,
-            chineseName: item.chineseName,
-            type: item.type,
-            form: item.form,
-            year: item.year,
-            quantity: item.priceIsPerGram ? (item.quantityGrams ?? 0) : (item.quantityUnits ?? 1),
-            // No price yet is no price, not a price of nothing.
-            pricePerUnit: item.unpriced ? null : item.pricePerUnit,
-            priceIsPerGram: item.priceIsPerGram,
-            currency: item.currency || tx.currency,
-          }))),
-          total_usd: totalUsd,
-          display_currency: tx.currency,
-          status: 'confirmed',
-        });
-        // Kept so "Mark as Sent" can name the order the shop recorded.
-        if (created?.id) updateTransaction(tx.id, { purchaseOrderId: created.id });
+        confirmPurchase(tx);
+        await recordPurchase(tx, rates, queryClient);
+        void queryClient.invalidateQueries({ queryKey: ['library-purchase-history'] });
       } catch {
-        // Non-critical: PO exists locally in ledger store
+        updateTransaction(tx.id, { recordFailed: true });
       }
     }
 
@@ -439,7 +469,9 @@ const TransactionCard: React.FC<{
         // Non-critical, sale exists locally in ledger store
       }
     }
-  }, [tx, confirmTransaction, updateTransaction, rates]);
+    recording.current = false;
+    setRecordBusy(false);
+  }, [tx, confirmTransaction, updateTransaction, rates, queryClient]);
 
   const handleDelete = useCallback(() => {
     if (window.confirm(`Remove this ${isPurchase ? 'purchase' : 'sale'} order?`)) {
@@ -509,6 +541,7 @@ const TransactionCard: React.FC<{
                     key={item.id}
                     item={item}
                     txId={tx.id}
+                    readOnly={!isDraft}
                     onRemove={() => removeLineItem(tx.id, item.id)}
                     onOpenEntry={onOpenEntry}
                   />
@@ -547,6 +580,7 @@ const TransactionCard: React.FC<{
                         key="confirm-btn"
                         type="button"
                         onClick={handleConfirm}
+                        disabled={recordBusy}
                         whileTap={{ scale: 0.98 }}
                         className="py-1.5 px-3 rounded-md cta-solid font-semibold text-xs uppercase tracking-[0.08em] transition-all"
                       >
@@ -556,6 +590,7 @@ const TransactionCard: React.FC<{
                   </AnimatePresence>
                 )}
 
+                {isPurchase && tx.recordFailed && <button type="button" disabled={recordBusy} onClick={handleConfirm} className="min-h-11 px-3 text-ui-12 text-tea-gold">{recordBusy ? 'Recording…' : 'Retry recording purchase'}</button>}
                 {/* Print Tags, for purchase transactions with compass-linked items */}
                 {isPurchase && tx.items.some((i) => i.compassEntryId) && (
                   <button

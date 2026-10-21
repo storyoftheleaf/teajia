@@ -15,7 +15,7 @@ const purchaseOrdersByPage = new WeakMap<Page, Array<Record<string, any>>>();
 const matches = (match: RequestMatch, key: string) => (typeof match === 'string' ? match === key : match.test(key));
 export const COMPASS_TOKEN = `${enc(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${enc(JSON.stringify({ sub: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', platform_role: 'platform_owner', exp: Math.floor(Date.now() / 1000) + 86400, active_account_id: 'acct-bali', memberships }))}.test`;
 
-export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; preserveSamplesOnNavigation?: boolean; preserveSampleCartOnNavigation?: boolean; compassSyncLoseResponses?: number; contextEmpty?: boolean; contextFailOnce?: boolean; contextJourneyFailOnce?: boolean; contextVisitFailOnce?: boolean; products?: unknown[]; compassEntries?: unknown[]; contextByAccount?: Record<string, { journeys: unknown[]; visits: unknown[] }>; contextAfterInitial?: { journeys: unknown[]; visits: unknown[] }; contextDelayByAccount?: Record<string, number>; customers?: Array<Record<string, any>>; todos?: unknown[]; agentSuggestions?: unknown[]; pendingReceipts?: unknown[]; chineseName?: string | null; chineseNameFails?: boolean; rates?: unknown[]; saidParts?: unknown[]; drive?: Record<string, unknown>; purchaseOrders?: Array<Record<string, any>>; imports?: unknown[]; failRequests?: Array<{ match: RequestMatch; times?: number }>; delayRequests?: Array<{ match: RequestMatch; ms: number }>; sampleHoldings?: Array<{ entryId: string; portions: Array<{ id: string; grams: number | null; status?: string; name?: string }> }> }) {
+export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; preserveSamplesOnNavigation?: boolean; preserveSampleCartOnNavigation?: boolean; compassSyncLoseResponses?: number; contextEmpty?: boolean; contextFailOnce?: boolean; contextJourneyFailOnce?: boolean; contextVisitFailOnce?: boolean; products?: unknown[]; compassEntries?: unknown[]; contextByAccount?: Record<string, { journeys: unknown[]; visits: unknown[] }>; contextAfterInitial?: { journeys: unknown[]; visits: unknown[] }; contextDelayByAccount?: Record<string, number>; customers?: Array<Record<string, any>>; todos?: unknown[]; agentSuggestions?: unknown[]; pendingReceipts?: unknown[]; inventoryReceipts?: Array<Record<string, any>>; chineseName?: string | null; chineseNameFails?: boolean; rates?: unknown[]; saidParts?: unknown[]; drive?: Record<string, unknown>; purchaseOrders?: Array<Record<string, any>>; imports?: unknown[]; failRequests?: Array<{ match: RequestMatch; times?: number }>; delayRequests?: Array<{ match: RequestMatch; ms: number }>; sampleHoldings?: Array<{ entryId: string; portions: Array<{ id: string; grams: number | null; status?: string; name?: string }> }> }) {
   unhandledByPage.set(page, []);
   requestCounts.set(page, new Map());
   createdCustomersByPage.set(page, []);
@@ -350,11 +350,12 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     }
     // Receipts waiting for their tea: each one carries the tea's name and vendor, joined from the entry.
     if (requestKey === 'GET /api/curate/receipt-proposals') {
-      const waiting = receiptProposals.filter((row) => row.status === 'pending').map((row) => {
+      const includeClosed = new URL(route.request().url()).searchParams.get('include_closed') === '1';
+      const waiting = receiptProposals.filter((row) => includeClosed || row.status === 'pending').map((row) => {
         const entry = compassEntries.find((candidate) => candidate.id === row.compass_entry_id);
-        return { id: row.id, compass_entry_id: row.compass_entry_id, product_id: row.product_id, product_name: row.product_name, purpose: row.purpose, quantity: row.quantity, unit: row.unit, acquisition_kind: row.acquisition_kind, created_at: row.created_at, tea_name: entry?.name ?? row.product_name, vendor_name: entry?.vendor_name ?? null };
+        return { id: row.id, compass_entry_id: row.compass_entry_id, product_id: row.product_id, product_name: row.product_name, purpose: row.purpose, quantity: row.quantity, unit: row.unit, acquisition_kind: row.acquisition_kind, created_at: row.created_at, status: row.status, idempotency_key: row.idempotency_key, ledger_id: row.ledger_id, tea_name: entry?.name ?? row.product_name, vendor_name: entry?.vendor_name ?? null };
       });
-      const staticRows = ((options?.pendingReceipts ?? []) as Array<Record<string, any>>).filter((row) => !acceptedStatic.has(row.id));
+      const staticRows = ((options?.pendingReceipts ?? []) as Array<Record<string, any>>).map(row => ({ ...row, status: acceptedStatic.has(row.id) ? 'accepted' : row.status ?? 'pending' })).filter(row => includeClosed || row.status === 'pending');
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ pending: [...staticRows, ...waiting] }) });
     }
     // The physical sample portions Curate holds for a tea, as GET /api/curate/holdings
@@ -376,6 +377,12 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       if (!body.confirm) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ confirmation_token: `token-${body.command?.id}`, action: `sample:${body.command?.action}`, changes: [] }) });
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, mutation_id: 'mutation-1' }) });
     }
+    if (/^\/api\/products\/[^/]+\/events$/.test(path) && route.request().method() === 'GET') return route.fulfill({ json: { events: [] } });
+    if (requestKey === 'GET /api/inventory/receipts') {
+      const includeClosed = new URL(route.request().url()).searchParams.get('include_closed') === '1';
+      const receipts = options?.inventoryReceipts ?? [];
+      return route.fulfill({ json: includeClosed ? receipts : receipts.filter(receipt => !['received', 'cancelled'].includes(receipt.state)) });
+    }
     const responses: Record<string, unknown> = {
       'GET /api/curate/attachments': [], 'GET /api/curate/history': { history: [] },
       'GET /api/auth/me': { id: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', memberships, active_account_id: 'acct-bali' },
@@ -385,6 +392,9 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       'GET /api/accounts/acct-empty': { id: 'acct-empty', name: 'Empty Test Account', slug: 'empty-test', default_currency: 'USD' },
       'GET /api/products': options?.products ?? [], 'GET /api/rates': options?.rates ?? [{ currency: 'USD', rate_to_usd: 1, last_updated: new Date().toISOString() }],
       'GET /api/batches': [],
+      'GET /api/collections': { collections: [] }, 'GET /api/sales/grants': [],
+      'GET /api/accounts/acct-bali/access': { members: [], invitations: [] },
+      'GET /api/inventory/summaries': { summaries: [] },
       // A photo read for a label: nothing on it to fill in.
       'POST /api/extract-from-image': {},
       // Confirming an order records the purchase order.

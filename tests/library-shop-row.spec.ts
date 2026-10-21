@@ -16,115 +16,110 @@ async function openLibrary(page: Page) {
     ? route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) })
     : route.fallback());
   await openCompass(page);
+  await expect.poll(() => page.evaluate(async () => {
+    // @ts-expect-error Vite source module.
+    const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+    return useTeaCompassStore.getState().hydrationStatus;
+  })).toBe('ready');
   await page.getByRole('tab', { name: 'Library', exact: true }).click();
   await expect(page.getByTestId(`library-entry-${entryId}`).filter({ visible: true })).toBeVisible();
 }
 
-async function storedStatus(page: Page) {
-  return page.evaluate(async id => {
-    // @ts-expect-error Vite exposes source modules to browser tests.
-    const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
-    return useTeaCompassStore.getState().entries.find((entry: any) => entry.id === id)?.status;
-  }, entryId);
-}
-
-test.describe('Library uses the shop row with working library actions', () => {
+test.describe('Library compact row and shared tea record', () => {
   test.beforeEach(async ({ page }) => openLibrary(page));
   test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));
 
-  test('shows the shared row and visible actions without horizontal overflow', async ({ page }, testInfo) => {
+  test('shows quote, Taste and More without Save or horizontal overflow', async ({ page }) => {
     const entry = page.getByTestId(`library-entry-${entryId}`).filter({ visible: true });
-    await expect(entry.locator('[data-tea-ledger-row]')).toBeVisible();
     await expect(entry).toContainText('Cloud Peak');
-    const actions = entry.getByTestId(`library-entry-actions-${entryId}`);
-    for (const name of ['Want', 'Buy', 'Taste', 'Edit entry', 'Delete entry']) {
-      await expect(actions.getByRole('button', { name, exact: true })).toBeVisible();
+    await expect(entry).toContainText('$2.00/g');
+    for (const name of ['Order: Cloud Peak', 'Taste Cloud Peak', 'More about Cloud Peak']) {
+      await expect(entry.getByRole('button', { name, exact: true })).toBeVisible();
     }
-    await expect(actions.getByRole('button', { name: 'Add to Sample list', exact: true })).toBeVisible();
+    await expect(entry.getByRole('button', { name: /^(Save|Unsave|Want|Edit entry|Delete entry)/ })).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    await page.evaluate(() => Promise.all(document.getAnimations().map(animation => animation.finished.catch(() => {}))));
-    await page.screenshot({ animations: 'disabled', scale: 'css', path: `/private/tmp/library-shop-${testInfo.project.name.includes('Mobile') ? 'mobile' : 'desktop'}.png`, fullPage: true });
     const box = await entry.boundingBox();
-    expect(box).not.toBeNull();
     expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
   });
 
-  test('toggles Want and Sample list from the attached row', async ({ page }) => {
-    const actions = page.getByTestId(`library-entry-actions-${entryId}`).filter({ visible: true });
-    await actions.getByRole('button', { name: 'Want', exact: true }).click();
-    await expect(actions.getByRole('button', { name: 'Wanted', exact: true })).toBeVisible();
-    await expect.poll(() => storedStatus(page)).toBe('want');
-    await actions.getByRole('button', { name: 'Wanted', exact: true }).click();
-    await expect.poll(() => storedStatus(page)).toBe('noted');
-    await actions.getByRole('button', { name: 'Add to Sample list', exact: true }).click();
-    await expect(actions.getByRole('button', { name: 'Remove from Sample list', exact: true })).toBeVisible();
+  test('More directly opens the editable record and saves description separately from notes', async ({ page }) => {
+    await page.getByRole('button', { name: 'More about Cloud Peak' }).click();
+    const record = page.getByTestId('library-entry-detail').filter({ visible: true });
+    await expect(record.getByLabel('Tea name', { exact: true })).toHaveValue('Cloud Peak');
+    await expect(record.getByRole('textbox', { name: 'Notes', exact: true })).toHaveValue('smoky apricot');
+    await record.getByRole('textbox', { name: 'Description', exact: true }).fill('A clear working description');
+    await record.getByRole('textbox', { name: 'Notes', exact: true }).click();
+    await expect.poll(() => page.evaluate(async id => {
+      // @ts-expect-error Vite source module.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const entry = useTeaCompassStore.getState().getEntry(id);
+      return { description: entry.description, notes: entry.notes };
+    }, entryId)).toEqual({ description: 'A clear working description', notes: 'smoky apricot' });
+    const saved = await page.evaluate(async id => {
+      // @ts-expect-error Vite source module.
+      const { syncCompassEntries } = await import('/src/lib/teaCompassSync.ts');
+      await syncCompassEntries();
+      const { entries } = await (await fetch('/api/compass/entries')).json();
+      const entry = entries.find((row: any) => row.id === id);
+      return { description: entry.description, notes: entry.notes };
+    }, entryId);
+    expect(saved).toEqual({ description: 'A clear working description', notes: 'smoky apricot' });
+    await expect(record.getByRole('tab')).toHaveCount(0);
+  });
+
+  test('keeps Sample list action in the shared record', async ({ page }) => {
+    await page.getByRole('button', { name: 'More about Cloud Peak' }).click();
+    const record = page.getByTestId('library-entry-detail').filter({ visible: true });
+    await record.getByRole('button', { name: 'Add to Sample list', exact: true }).click();
+    await expect(record.getByRole('button', { name: 'In Sample list', exact: true })).toBeVisible();
     expect(await page.evaluate(async id => {
       // @ts-expect-error Vite source module.
       const { useSampleCartStore } = await import('/src/samples/sampleCartStore.ts');
       return useSampleCartStore.getState().items.some((item: any) => item.compassEntryId === id);
     }, entryId)).toBe(true);
-    await actions.getByRole('button', { name: 'Remove from Sample list', exact: true }).click();
-    await expect(actions.getByRole('button', { name: 'Add to Sample list', exact: true })).toBeVisible();
+    await record.getByRole('button', { name: 'In Sample list', exact: true }).click();
+    await expect(record.getByRole('button', { name: 'Add to Sample list', exact: true })).toBeVisible();
   });
 
-  test('opens Taste and can return to edit the same entry', async ({ page }) => {
-    const actions = page.getByTestId(`library-entry-actions-${entryId}`).filter({ visible: true });
-    await actions.getByRole('button', { name: 'Taste', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Close', exact: true }).filter({ visible: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Close', exact: true }).filter({ visible: true }).click();
-    await actions.getByRole('button', { name: 'Edit entry', exact: true }).click();
-    await expect(page.getByRole('tab', { name: 'Source', exact: true })).toHaveAttribute('aria-selected', 'true');
-    await expect(page.getByPlaceholder('Tea name').filter({ visible: true })).toHaveValue('Cloud Peak');
+  test('opens the existing Taste flow and returns to the same record', async ({ page }) => {
+    await page.getByRole('button', { name: 'Taste Cloud Peak' }).click();
+    const close = page.getByRole('button', { name: 'Close', exact: true }).filter({ visible: true });
+    await expect(close).toBeVisible();
+    await close.click();
+    await page.getByRole('button', { name: 'More about Cloud Peak' }).click();
+    await expect(page.getByTestId('library-entry-detail').filter({ visible: true }).getByLabel('Tea name', { exact: true })).toHaveValue('Cloud Peak');
   });
 
-  test('keeps Save independent of details and handles long names and zero or missing cost', async ({ page }) => {
+  test('handles long names, recorded zero and missing quotes without overflow', async ({ page }) => {
     const entry = page.getByTestId(`library-entry-${entryId}`).filter({ visible: true });
-    await entry.getByRole('button', { name: 'Save Cloud Peak', exact: true }).focus();
-    await page.keyboard.press('Enter');
-    await expect(entry.getByRole('button', { name: 'Unsave Cloud Peak', exact: true })).toHaveAttribute('aria-pressed', 'true');
-    await expect(entry.getByRole('button', { name: 'Show details for Cloud Peak', exact: true })).toHaveAttribute('aria-expanded', 'false');
-    await expect.poll(() => storedStatus(page)).toBe('want');
     await page.evaluate(async id => {
       // @ts-expect-error Vite source module.
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
-      useTeaCompassStore.setState((state: any) => ({ entries: state.entries.map((item: any) => item.id === id ? {
-        ...item, name: 'A long tea name from a mountain garden that must remain readable in the Library',
-        originRegion: 'Wuyi Mountains, Fujian, China', priceAmount: 0,
-      } : item) }));
+      useTeaCompassStore.getState().updateEntry(id, { name: 'A long tea name from a mountain garden that remains readable', priceAmount: 0 });
     }, entryId);
-    await expect(entry).toContainText('$0.00');
     await expect(entry).toContainText('$0.00/g');
-    expect(await entry.locator('[data-tea-ledger-row]').evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+    expect(await entry.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
     await page.evaluate(async id => {
       // @ts-expect-error Vite source module.
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
-      useTeaCompassStore.setState((state: any) => ({ entries: state.entries.map((item: any) => item.id === id ? { ...item, priceAmount: undefined } : item) }));
+      useTeaCompassStore.getState().updateEntry(id, { priceAmount: undefined });
     }, entryId);
-    await expect(entry.getByText('Cost', { exact: true })).toHaveCount(0);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await expect(entry).toContainText('Price not recorded');
   });
 
-  test('requires confirmation before deleting the entry', async ({ page }) => {
+  test('requires confirmation before deleting from the record', async ({ page }) => {
     const entry = page.getByTestId(`library-entry-${entryId}`).filter({ visible: true });
-    const actions = entry.getByTestId(`library-entry-actions-${entryId}`);
-    await actions.getByRole('button', { name: 'Delete entry', exact: true }).click();
-    await expect(entry).toBeVisible();
-    await actions.getByRole('button', { name: 'Delete?', exact: true }).click();
+    await entry.getByRole('button', { name: 'More about Cloud Peak' }).click();
+    const record = page.getByTestId('library-entry-detail').filter({ visible: true });
+    await record.getByRole('button', { name: 'Delete entry', exact: true }).click();
+    await expect(record).toBeVisible();
+    await record.getByRole('button', { name: 'Confirm delete entry', exact: true }).click();
     await expect(entry).toHaveCount(0);
   });
 
-  test('keeps mobile expansion and desktop detail selection', async ({ page }, testInfo) => {
-    const entry = page.getByTestId(`library-entry-${entryId}`).filter({ visible: true });
-    if (testInfo.project.name.includes('Mobile')) {
-      await entry.getByRole('button', { name: 'Expand Cloud Peak details', exact: true }).click();
-      await expect(entry.getByRole('button', { name: 'Collapse Cloud Peak details', exact: true })).toHaveAttribute('aria-expanded', 'true');
-      await expect(entry.getByRole('button', { name: 'View photo 1', exact: true })).toBeVisible();
-      await entry.getByRole('button', { name: 'Collapse Cloud Peak details', exact: true }).click();
-      await expect(entry.getByRole('button', { name: 'Expand Cloud Peak details', exact: true })).toHaveAttribute('aria-expanded', 'false');
-    } else {
-      await entry.getByRole('button', { name: 'Open Cloud Peak details', exact: true }).click();
-      await expect(page.getByTestId('library-entry-detail')).toContainText('Cloud Peak');
-    }
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  test('Add contains imports and has no secondary row action menu', async ({ page }) => {
+    await page.getByRole('button', { name: 'Add to Library', exact: true }).filter({ visible: true }).click();
+    await expect(page.getByRole('button', { name: /Import files/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /New tea Capture/ })).toBeVisible();
   });
 });

@@ -39,6 +39,19 @@ describe('Buy puts a tea on its vendor\'s draft order', () => {
     expect(after.status).toBe('buying');
   });
 
+  it('reorders the same stocked identity and preserves its product link without changing stock status', () => {
+    const a = put({ id: 'stocked', vendorName: 'Wang', status: 'in_stock', draftProductId: 'product-a' });
+    const first = addTeaToDraftOrder(a);
+    const draft = useLedgerStore.getState().getTransaction(first!)!;
+    expect(draft.items[0].productId).toBe('product-a');
+    expect(useTeaCompassStore.getState().getEntry(a)?.status).toBe('in_stock');
+    expect(addTeaToDraftOrder(a, 'product-a')).toBe(first);
+    expect(useLedgerStore.getState().getTransaction(first!)!.items).toHaveLength(1);
+    const old = put({ id: 'old', vendorName: 'Wang', status: 'in_stock' });
+    addTeaToDraftOrder(old, 'legacy-product');
+    expect(useLedgerStore.getState().transactions.flatMap(tx => tx.items).find(line => line.compassEntryId === old)?.productId).toBe('legacy-product');
+  });
+
   it('a tea already on a draft is not added twice', () => {
     const a = put({ id: 'a', vendorName: 'Wang' });
     const tx = addTeaToDraftOrder(a);

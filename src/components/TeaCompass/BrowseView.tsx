@@ -8,6 +8,10 @@ import Fuse from 'fuse.js';
 import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useSampleStore } from '../../samples/sampleStore';
 import { BrowseCard } from './BrowseCard';
+import { useRates } from '../../admin/hooks/useAdminData';
+import { SHOP_CURRENCY_KEYS, rateToUsd } from '../../lib/currency';
+import { useLibraryPurchases } from '../../lib/libraryPurchaseState';
+import { LIBRARY_PRICE_KEY, readLibraryPricePreference, libraryEntryTransferred, type LibraryPricePreference, type LibraryPriceBasis } from './libraryPriceDisplay';
 import { CompassIcon } from './CompassIcon';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
 import { isUntriaged, entryDisplayTitle, entryIsSample, entryHasBeenTasted, entryNeedsTasting } from './types';
@@ -31,9 +35,10 @@ function scoreOf(e: TeaCompassEntry): number {
   return e.tasting?.quality ?? e.tasting?.rating ?? -1;
 }
 
-function pricePerGram(e: TeaCompassEntry): number {
-  if (e.category === 'teaware' || !e.priceAmount || !e.pricePerUnitGrams) return Number.POSITIVE_INFINITY;
-  return e.priceAmount / e.pricePerUnitGrams;
+function pricePerGram(e: TeaCompassEntry, rates: readonly { currency: string; rateToUSD: number }[]): number {
+  if (e.category === 'teaware' || e.priceAmount == null || !e.pricePerUnitGrams) return Number.POSITIVE_INFINITY;
+  const rate = e.priceCurrency === 'USD' ? 1 : rateToUsd(rates, e.priceCurrency);
+  return rate == null ? Number.POSITIVE_INFINITY : e.priceAmount / e.pricePerUnitGrams / rate;
 }
 
 interface BrowseViewProps {
@@ -46,6 +51,7 @@ interface BrowseViewProps {
   /** Desktop: which entry is currently shown in the right detail panel */
   selectedEntryId?: string | null;
   onAcquireEntry?: (id: string) => void;
+  onOpenDetail?: (id: string) => void;
   /**
    * Desktop: when true, cards lay out as a responsive multi-column grid that
    * fills the full width instead of a single stacked column. Used in Library
@@ -139,8 +145,17 @@ const PhotoTile: React.FC<{
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture, externalSearchQuery, onSelectEntry, selectedEntryId, gridMode, onAcquireEntry }) => {
+export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture, externalSearchQuery, onSelectEntry, selectedEntryId, gridMode, onAcquireEntry, onOpenDetail }) => {
   const navigate = useNavigate();
+  const { data: rates = [] } = useRates();
+  const purchases = useLibraryPurchases();
+  const [pricePreference, setPricePreference] = useState(readLibraryPricePreference);
+  const [priceSettingsOpen, setPriceSettingsOpen] = useState(false);
+  const [showTransferred, setShowTransferred] = useState(false);
+  const changePricePreference = (next: LibraryPricePreference) => {
+    setPricePreference(next);
+    try { localStorage.setItem(LIBRARY_PRICE_KEY, JSON.stringify(next)); } catch { /* Settings remain usable without browser storage. */ }
+  };
   const prefersReducedMotion = useReducedMotion();
   const { entries, browseFilter, setBrowseFilter, browseSort, setBrowseSort, browseLayout, setBrowseLayout, libraryFilters, setLibraryFilters, removeEntry, updateEntry, hydrationStatus } = useTeaCompassStore();
   const [cleanupDismissed, setCleanupDismissed] = useState(false);
@@ -199,6 +214,8 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     [entries, inventoryProducts],
   );
 
+  const visibleScopeEntries = useMemo(() => entries.filter(entry => libraryEntryTransferred(entry, entryPossession) === showTransferred), [entries, entryPossession, showTransferred]);
+
   const journeyMap = useMemo(() => new Map(journeys.map((journey) => [journey.id, journey])), [journeys]);
   const visitMap = useMemo(() => new Map(visits.map((visit) => [visit.id, visit])), [visits]);
   const contextText = React.useCallback((entry: TeaCompassEntry) => {
@@ -216,13 +233,13 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
       case 'score':
         return arr.sort((a, b) => scoreOf(b) - scoreOf(a) || byDateDesc(a, b));
       case 'price':
-        return arr.sort((a, b) => pricePerGram(a) - pricePerGram(b) || byDateDesc(a, b));
+        return arr.sort((a, b) => pricePerGram(a, rates) - pricePerGram(b, rates) || byDateDesc(a, b));
       case 'name':
         return arr.sort((a, b) => (a.name || '￿').localeCompare(b.name || '￿'));
       default:
         return arr.sort(byDateDesc);
     }
-  }, [browseSort]);
+  }, [browseSort, rates]);
 
   const sampleSetMap = useMemo(
     () => new Map(sampleSets.map((s) => [s.id, s])),
@@ -265,17 +282,17 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   // ─── Counts (for filter pills) ────────────────────────────────────────────
 
   const counts = useMemo(() => {
-    const toTasteCount = entries.filter(entryNeedsTasting).length;
+    const toTasteCount = visibleScopeEntries.filter(entryNeedsTasting).length;
 
     return {
-      all:   entries.length,
+      all:   visibleScopeEntries.length,
       to_taste: toTasteCount,
-      selected: entries.filter((e) => e.decision === 'selected').length,
+      selected: visibleScopeEntries.filter((e) => e.decision === 'selected').length,
     };
-  }, [entries]);
+  }, [visibleScopeEntries]);
 
   // Tasted teas still waiting for a verdict, the batch-review working set.
-  const untriaged = useMemo(() => entries.filter(isUntriaged), [entries]);
+  const untriaged = useMemo(() => visibleScopeEntries.filter(isUntriaged), [visibleScopeEntries]);
 
   // Entries with no deliberate field fragment, safe to bulk-delete.
   const emptyEntries = useMemo(() =>
@@ -324,6 +341,11 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                 onEdit={onEditEntry}
                 tasteQueueActive={opts?.tasteQueueActive}
                 onSelect={onSelectEntry}
+                onOpenDetail={onOpenDetail}
+                pricePreference={pricePreference}
+                rates={rates}
+                purchaseStatusUnknown={purchases.isError ? 'Purchase status unavailable' : purchases.isLoading ? 'Checking orders…' : undefined}
+                purchaseState={purchases.stateFor({ entryId: entry.id, productId: entry.draftProductId, chosen: entry.decision === 'selected' })}
                 isSelected={selectedEntryId === entry.id}
                 onAcquire={onAcquireEntry}
               />
@@ -337,6 +359,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
   // ─── "All" view: date-grouped ─────────────────────────────────────────────
 
   const renderAll = (result: TeaCompassEntry[]) => {
+    if (result.length === 0) return <p className="py-8 text-center text-ui-12 text-tea-text-sec">{showTransferred ? 'No transferred records match this view.' : 'No active encounters match this view.'}</p>;
     // Date grouping only makes sense for the recency sort. Any other sort
     // (score / price / name) collapses to a single ranked list so the order
     // the user asked for is actually visible.
@@ -552,7 +575,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           <PhotoTile
             key={entry.id}
             entry={entry}
-            onOpen={(id) => (onSelectEntry ?? onEditEntry)(id)}
+            onOpen={(id) => (onOpenDetail ?? onSelectEntry ?? onEditEntry)(id)}
             isSelected={selectedEntryId === entry.id}
           />
         ))}
@@ -576,7 +599,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
   // ─── Apply search + filter ────────────────────────────────────────────────
 
   const baseEntries = useMemo(() => {
-    let result = entries;
+    let result = entries.filter(entry => libraryEntryTransferred(entry, entryPossession) === showTransferred);
     if (searchResults !== null) result = result.filter((e) => searchResults.has(e.id));
     const f = libraryFilters;
     result = result.filter((e) => {
@@ -620,7 +643,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
       return true;
     });
     return result;
-  }, [entries, searchResults, libraryFilters, entryPossession, possessionLoading, possessionError]);
+  }, [entries, searchResults, libraryFilters, entryPossession, possessionLoading, possessionError, showTransferred]);
 
   const filteredForView = useMemo(() => {
     switch (browseFilter) {
@@ -768,6 +791,31 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           <span>{browseLayout === 'photos' ? 'List' : 'Photos'}</span>
         </button>
       </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2 text-ui-12 text-tea-text-sec">
+        <button type="button" className="tap-target min-h-11 hover:text-tea-text" aria-pressed={showTransferred} onClick={() => setShowTransferred(value => !value)}>
+          {showTransferred ? 'Back to active Library' : `Transferred · ${entries.filter(entry => libraryEntryTransferred(entry, entryPossession)).length}`}
+        </button>
+        <button type="button" className="tap-target min-h-11 hover:text-tea-text" onClick={() => setPriceSettingsOpen(true)} aria-label="Price display settings">
+          {pricePreference.currency === 'source' ? 'Source' : pricePreference.currency} / {pricePreference.basis === 'gram' ? 'g' : pricePreference.basis === '100g' ? '100g' : 'quote'}
+        </button>
+      </div>
+      {showTransferred && <p className="text-ui-12 text-tea-text-sec">Transferred to Inventory. Open a record to revisit its sourcing and tastings.</p>}
+      <BottomSheet open={priceSettingsOpen} onOpenChange={setPriceSettingsOpen} title="Price display" description="Source quotes stay unchanged in each record.">
+        <div className="grid grid-cols-2 gap-3 px-1 pb-4">
+          <label className="flex min-w-0 flex-col gap-2 text-ui-12 text-tea-text-sec">Currency
+            <select aria-label="Price display currency" value={pricePreference.currency} onChange={event => changePricePreference({ ...pricePreference, currency: event.target.value })} className="min-h-11 min-w-0 rounded-md border border-tea-border bg-tea-surface px-2 text-ui-16 text-tea-text">
+              <option value="source">Source quote</option>
+              {SHOP_CURRENCY_KEYS.filter(currency => currency !== 'UNK').map(currency => <option key={currency} value={currency}>{currency}{currency !== 'USD' && rateToUsd(rates, currency) == null ? ' (rate unavailable)' : ''}</option>)}
+            </select>
+          </label>
+          <label className="flex min-w-0 flex-col gap-2 text-ui-12 text-tea-text-sec">Quantity basis
+            <select aria-label="Price quantity basis" value={pricePreference.basis} onChange={event => changePricePreference({ ...pricePreference, basis: event.target.value as LibraryPriceBasis })} className="min-h-11 min-w-0 rounded-md border border-tea-border bg-tea-surface px-2 text-ui-16 text-tea-text">
+              <option value="gram">Per gram</option><option value="100g">Per 100g</option><option value="quote">Quoted quantity</option>
+            </select>
+          </label>
+        </div>
+      </BottomSheet>
 
       <ActiveFilterSummary
         filters={libraryFilters}

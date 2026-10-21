@@ -26,9 +26,9 @@ describe('what a confirmed order tells the shop about each tea', () => {
   });
 
   it('the purchase order line names the tea; it gains grams and a total only when the shop can use them', () => {
-    expect(arrivalFields(line({}))).toEqual({ compass_entry_id: 'e1', quantity_grams: 357, line_total: 450 });
+    expect(arrivalFields(line({}))).toEqual({ compass_entry_id: 'e1', unitWeightGrams: 357, quantity_grams: 357, line_total: 450 });
     expect(arrivalFields(line({ unitWeightGrams: undefined }))).toEqual({ compass_entry_id: 'e1' });
-    expect(arrivalFields(line({ compassEntryId: undefined }))).toEqual({});
+    expect(arrivalFields(line({ compassEntryId: undefined }))).toEqual({ unitWeightGrams: 357 });
     expect(lineGrams(line({ quantityUnits: 0 }))).toBeNull();
   });
 

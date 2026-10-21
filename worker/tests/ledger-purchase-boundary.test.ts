@@ -5,7 +5,11 @@ describe('purchase-order confirmation boundary', () => {
   it('records acquisition without creating inventory or declaring stock received', () => {
     const source = readFileSync(new URL('../../src/components/TeaCompass/LedgerView.tsx', import.meta.url), 'utf8');
     const confirmation = source.slice(source.indexOf('const handleConfirm'), source.indexOf('// Persist sale as invoice'));
-    expect(confirmation).toContain('api.purchaseOrders.create');
+    expect(confirmation).toContain('recordPurchase(tx, rates, queryClient)');
+    const recorder = readFileSync(new URL('../../src/components/CurateV2/placeOrder.ts', import.meta.url), 'utf8');
+    expect(recorder).toContain('api.purchaseOrders.create');
+    expect(recorder).not.toContain('api.products.create');
+    expect(recorder).not.toContain('acceptReceiptProposal');
     expect(confirmation).not.toContain('api.products.create');
     expect(confirmation).not.toContain("status: 'in_stock'");
   });

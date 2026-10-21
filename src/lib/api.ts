@@ -2969,6 +2969,9 @@ export const api = {
       authedFetch(`${API_URL}/api/curate/receipt-proposals/${id}/accept`, { method: 'POST', retryTimeouts: true }),
     rejectReceiptProposal: async (id: string): Promise<CurateReceiptProposal> =>
       authedFetch(`${API_URL}/api/curate/receipt-proposals/${id}/reject`, { method: 'POST', retryTimeouts: true }),
+    /** Purchase receipt history, including accepted quantities. Kept separate from pending-only Today data. */
+    receiptHistory: async (): Promise<{ pending: CuratePurchaseReceipt[] }> =>
+      authedFetch(`${API_URL}/api/curate/receipt-proposals?include_closed=1`),
     /** Orders on their way: one pending receipt per tea, accepted when it arrives. */
     pendingReceipts: async (): Promise<{ pending: CuratePendingReceipt[] }> =>
       authedFetch(`${API_URL}/api/curate/receipt-proposals`),
@@ -5004,6 +5007,11 @@ export const api = {
 
 };
 
+export interface CuratePurchaseReceipt extends CuratePendingReceipt {
+  status: 'pending' | 'accepted' | 'rejected';
+  idempotency_key: string;
+  ledger_id: string | null;
+}
 export interface CuratePendingReceipt {
   id: string; compass_entry_id: string | null; product_id: string | null; product_name: string | null;
   purpose: 'working' | 'sample' | 'personal'; quantity: number; unit: 'g' | 'unit';

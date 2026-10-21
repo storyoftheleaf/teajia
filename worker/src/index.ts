@@ -28972,13 +28972,14 @@ const handleFileSaid: Handler = async (request, env) => {
 const handleListPendingReceipts: Handler = async (request, env) => {
   const ctx = await requireSourcing(request, env);
   if ('error' in ctx) return ctx.error;
+  const includeClosed = new URL(request.url).searchParams.get('include_closed') === '1';
   const r = await env.DB.prepare(
     `SELECT p.id, p.compass_entry_id, p.product_id, p.product_name, p.purpose, p.quantity, p.unit, p.acquisition_kind, p.created_at,
-            e.name AS tea_name, e.vendor_name
+            p.status, p.idempotency_key, p.ledger_id, e.name AS tea_name, e.vendor_name
        FROM curate_receipt_proposals p
-       LEFT JOIN tea_compass_entries e ON e.id = p.compass_entry_id
-      WHERE p.account_id = ? AND p.status = 'pending'
-      ORDER BY p.created_at DESC LIMIT 200`
+       LEFT JOIN tea_compass_entries e ON e.id = p.compass_entry_id AND e.account_id = p.account_id
+      WHERE p.account_id = ? ${includeClosed ? '' : "AND p.status = 'pending'"}
+      ORDER BY p.created_at DESC${includeClosed ? '' : ' LIMIT 200'}`
   ).bind(ctx.accountId).all();
   return json({ pending: r.results ?? [] });
 };

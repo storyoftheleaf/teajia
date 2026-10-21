@@ -16,6 +16,7 @@ export const nextLibraryImportFocusId = (imports: CurateImportDetail[], deletedI
 };
 
 interface LibraryImportsSectionProps {
+  embedded?: boolean;
   imports: CurateImportDetail[];
   busyImportId: string | null;
   errorByImportId: Record<string, string>;
@@ -25,7 +26,7 @@ interface LibraryImportsSectionProps {
   onDelete: (detail: CurateImportDetail) => Promise<void>;
 }
 
-export const LibraryImportsSection: React.FC<LibraryImportsSectionProps> = ({ imports, busyImportId, errorByImportId, focusRequest, fallbackFocusRef, onOpen, onDelete }) => {
+export const LibraryImportsSection: React.FC<LibraryImportsSectionProps> = ({ embedded = false, imports, busyImportId, errorByImportId, focusRequest, fallbackFocusRef, onOpen, onDelete }) => {
   const activeImports = imports.filter(detail => detail.batch.review_state !== 'completed' && detail.batch.review_state !== 'abandoned');
   const panelId = useId();
   const [open, setOpen] = useState(false);
@@ -50,6 +51,15 @@ export const LibraryImportsSection: React.FC<LibraryImportsSectionProps> = ({ im
   }, [activeImports.length, fallbackFocusRef, focusRequest]);
 
   if (!activeImports.length) return null;
+
+  if (embedded) return <section aria-label="Unfinished imports" className="space-y-2 border-t border-tea-border pt-3">
+    <h2 ref={headingRef} tabIndex={-1} className={TYPOGRAPHY_CLASSES.label}>Unfinished imports</h2>
+    {activeImports.map(detail => <div key={detail.batch.id} ref={node => { if (node) rowRefs.current.set(detail.batch.id, node); else rowRefs.current.delete(detail.batch.id); }}>
+      <ImportBatchChip detail={detail} busy={busyImportId === detail.batch.id} error={errorByImportId[detail.batch.id]}
+        onOpen={() => { const trigger = document.activeElement; if (trigger instanceof HTMLButtonElement) onOpen(detail, trigger); }}
+        onDelete={() => onDelete(detail)} />
+    </div>)}
+  </section>;
 
   return (
     <div className="shrink-0">

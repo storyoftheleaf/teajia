@@ -70,6 +70,10 @@ export interface LedgerTransaction {
 
 interface LedgerState {
   transactions: LedgerTransaction[];
+  accountScopeId: string | null;
+  transactionsByAccount: Record<string, LedgerTransaction[]>;
+  activeByAccount: Record<string, string | null>;
+  switchAccount: (accountId: string | null) => void;
 
   // Active transaction being built
   activeTransactionId: string | null;
@@ -105,7 +109,25 @@ const createdLedgerStore = create<LedgerState>()(
   persist(
     (set, get) => ({
       transactions: [],
+      accountScopeId: null,
+      transactionsByAccount: {},
+      activeByAccount: {},
       activeTransactionId: null,
+      switchAccount: (accountId) => set((state) => {
+        if (state.accountScopeId === accountId) return state;
+        const transactionsByAccount = { ...state.transactionsByAccount };
+        const activeByAccount = { ...state.activeByAccount };
+        // Unscoped legacy baskets have no trustworthy owner. Keep them in the
+        // saved store, but never assign them to the next account that signs in.
+        const previous = state.accountScopeId ?? '__unscoped__';
+        transactionsByAccount[previous] = state.transactions;
+        activeByAccount[previous] = state.activeTransactionId;
+        return {
+          accountScopeId: accountId, transactionsByAccount, activeByAccount,
+          transactions: accountId ? transactionsByAccount[accountId] ?? [] : [],
+          activeTransactionId: accountId ? activeByAccount[accountId] ?? null : null,
+        };
+      }),
 
       createTransaction: (direction, counterpartyName, currency, counterpartyId) => {
         const id = crypto.randomUUID();
@@ -131,7 +153,8 @@ const createdLedgerStore = create<LedgerState>()(
 
       addLineItem: (transactionId, itemData) => {
         const existing = get().transactions.find((tx) => tx.id === transactionId)?.items.find(
-          (item) => itemData.compassEntryId && item.compassEntryId === itemData.compassEntryId,
+          (item) => (!!itemData.compassEntryId && item.compassEntryId === itemData.compassEntryId)
+            || (!!itemData.productId && item.productId === itemData.productId),
         );
         if (existing) {
           get().updateLineItem(transactionId, existing.id, itemData);
@@ -303,6 +326,9 @@ const createdLedgerStore = create<LedgerState>()(
       name: 'teajia-ledger',
       partialize: (state) => ({
         transactions: state.transactions,
+        accountScopeId: state.accountScopeId,
+        transactionsByAccount: state.transactionsByAccount,
+        activeByAccount: state.activeByAccount,
         activeTransactionId: state.activeTransactionId,
       }),
     }

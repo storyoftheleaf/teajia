@@ -81,3 +81,30 @@ describe('A vendor\'s draft is found by vendor AND money', () => {
     expect(useLedgerStore.getState().getOrCreatePurchaseTransaction('Wang Laoshi', 'Yuan', 'vendor-other')).not.toBe(wang);
   });
 });
+
+describe('purchase baskets belong to the active account', () => {
+  beforeEach(() => useLedgerStore.setState({ transactions: [], activeTransactionId: null, accountScopeId: null, transactionsByAccount: {}, activeByAccount: {} }));
+  it('restores each account basket and never assigns an unscoped legacy basket', () => {
+    const ledger = useLedgerStore.getState();
+    const legacy = ledger.createTransaction('purchase', 'Legacy', 'USD');
+    ledger.switchAccount('first');
+    expect(useLedgerStore.getState().transactions).toEqual([]);
+    const first = useLedgerStore.getState().createTransaction('purchase', 'First', 'USD');
+    ledger.switchAccount('second');
+    expect(useLedgerStore.getState().transactions).toEqual([]);
+    ledger.switchAccount('first');
+    expect(useLedgerStore.getState().transactions.map(tx => tx.id)).toEqual([first]);
+    expect(useLedgerStore.getState().transactionsByAccount.__unscoped__[0].id).toBe(legacy);
+    ledger.switchAccount(null);
+    expect(useLedgerStore.getState().transactions).toEqual([]);
+  });
+  it('product-linked reorder retries update one draft line', () => {
+    const ledger = useLedgerStore.getState();
+    const id = ledger.createTransaction('purchase', 'Vendor', 'Yuan');
+    const line = { name: 'Tea', productId: 'existing-product', quantityGrams: 100, pricePerUnit: 0, priceIsPerGram: true, currency: 'Yuan' as const };
+    const lineId = ledger.addLineItem(id, line);
+    expect(ledger.addLineItem(id, { ...line, quantityGrams: 200 })).toBe(lineId);
+    expect(useLedgerStore.getState().getTransaction(id)?.items).toHaveLength(1);
+    expect(useLedgerStore.getState().getTransaction(id)?.items[0].quantityGrams).toBe(200);
+  });
+});

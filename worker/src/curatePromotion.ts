@@ -93,7 +93,7 @@ export async function promoteCompassEntry(db:D1Database, accountId:string, entry
     product_name: name,
     year: entry.year != null ? String(entry.year) : null,
     origin_region: entry.origin_region ?? null,
-    description: null,
+    description: typeof entry.description === 'string' && entry.description.trim() ? entry.description.trim() : null,
     image_url: photos[0] ?? null,
     additional_images: JSON.stringify(photos.slice(1)),
     // The bag shot from capture keeps its own slot so later product photo

@@ -100,6 +100,25 @@ describe("the app's agent lists", () => {
     expect(other.pending).toEqual([]);
   });
 
+  it('includes accepted receipt history only on request and scopes it to the shop', async () => {
+    const db = seeded();
+    db.sqlite.exec(`
+      INSERT INTO curate_receipt_proposals
+        (id, account_id, product_name, purpose, quantity, unit, acquisition_kind, idempotency_key, proposed_by_user_id, status)
+      VALUES ('accepted-here', 'acc-shop', 'Tea', 'working', 125, 'g', 'purchase', 'order:po:tea', 'adrian', 'accepted'),
+             ('pending-here', 'acc-shop', 'Tea', 'working', 50, 'g', 'purchase', 'order:po:tea:2', 'adrian', 'pending'),
+             ('accepted-there', 'acc-other', 'Other tea', 'working', 999, 'g', 'purchase', 'other-key', 'stranger', 'accepted');
+    `);
+    const pending = await (await call(db, '/api/curate/receipt-proposals', OWNER)).json() as any;
+    expect(pending.pending.map((row: any) => row.id)).toEqual(['pending-here']);
+    const history = await (await call(db, '/api/curate/receipt-proposals?include_closed=1', OWNER)).json() as any;
+    expect(history.pending.map((row: any) => row.id).sort()).toEqual(['accepted-here', 'pending-here']);
+    expect(history.pending.find((row: any) => row.id === 'accepted-here')).toMatchObject({ quantity: 125, status: 'accepted', idempotency_key: 'order:po:tea' });
+    expect((await call(db, '/api/curate/receipt-proposals?include_closed=1', VIEWER)).status).toBe(403);
+    const other = await (await call(db, '/api/curate/receipt-proposals?include_closed=1', OTHER)).json() as any;
+    expect(other.pending.map((row: any) => row.id)).toEqual(['accepted-there']);
+  });
+
   it('turns away someone in the shop who cannot source', async () => {
     const db = seeded();
     for (const path of ['/api/curate/suggestions', '/api/curate/todos', '/api/curate/receipt-proposals']) {

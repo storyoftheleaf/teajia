@@ -150,6 +150,8 @@ export interface TeaCompassEntry {
   linkedCustomerId?: string;
 
   // Content
+  /** Working store description. Separate from original sourcing evidence. */
+  description?: string | null;
   notes: string;
   tasting?: TastingData;
   photos: string[];

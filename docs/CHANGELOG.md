@@ -2,6 +2,10 @@
 
 > Shipped work, newest first. For what's next see `CONSOLIDATED_DIRECTION.md`; active checklists live in `tracks/`.
 
+## Library handoff update prepared 2026-10-21
+
+- **One tea record from Source through Inventory.** Library has compact type-coloured tea rows, a remembered comparison currency/weight, and one editable page for identity, supplier quote, source notes, photos, voice, tastings and working description. Add contains imports. Explicit private-draft transfer moves the tea into Transferred, while Inventory reopens the same record and starts Ledger reorder drafts. Purchase facts use account-scoped orders and durable receipts; confirmation preserves tea/product links and does not add stock. No schema changes. Publication proof belongs to the recorded release artifacts.
+
 ## Order management update prepared 2026-10-16
 
 - 2026-10-16: **Shipping and payment in one order detail, implemented locally.** Reused the existing cart persistence, invoice number in WhatsApp, customer status link and payment ledger. Sales order details now save shipping charge, destination and tracking inline beside payments, refreshing the balance without closing the order. Blank and negative quotes are refused, explicit zero is preserved, failed saves retain edits, and shipped orders allow tracking corrections without changing the shipping balance. Secondary order metadata is collapsed to keep the mobile screen compact. No payment provider, carrier integration or production deployment was added.

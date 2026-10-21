@@ -8,6 +8,8 @@ import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompas
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { syncNotes } from '../../lib/notesSync';
 import { useNotesStore } from '../../lib/notesStore';
+import { useLedgerStore } from '../../lib/ledgerStore';
+import { BottomSheet, SheetOption } from '../shared/BottomSheet';
 import { useAppStore } from '../../lib/store';
 import { useSampleStore } from '../../samples/sampleStore';
 import type { SampleTasting } from '../../samples/types';
@@ -116,12 +118,14 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // Mode: sourcing (editing an entry), library (browse past captures), or buying (ledger).
   // Tasting (the Tasting Journal) is its own surface at /account/journal, not a Compass mode.
   const [mode, setMode] = useState<CompassMode>(initialMode || 'sourcing');
+  const [libraryAddOpen, setLibraryAddOpen] = useState(false);
   const [developmentStarted, setDevelopmentStarted] = useState(false);
 
   // Account changes always swap the isolated draft bucket. Only Source owns
   // capture-shell creation; opening Library or Ledger must remain read-only.
   useEffect(() => {
     switchDraftAccount(activeAccountId);
+    useLedgerStore.getState().switchAccount(activeAccountId);
     if (mode === 'sourcing' && activeAccountId && !initialDevelopmentProduct && !useTeaCompassStore.getState().activeEntryId) {
       startNewCapture('tea');
     }
@@ -317,15 +321,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const [justCommitted, setJustCommitted] = useState<{ name: string; draftProductId?: string } | null>(null);
   const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Open specific entry if initialEntryId is provided
-  useEffect(() => {
-    if (initialEntryId && initialEntryExists && getEntry(initialEntryId)) {
-      setActiveEntry(initialEntryId);
-      setMode('sourcing');
-      setCaptureOption('tea');
-    }
-  }, [initialEntryId, initialEntryExists, getEntry, setActiveEntry]);
-
   useEffect(() => { setDevelopmentStarted(false); }, [initialDevelopmentProduct?.id]);
 
   const startInventoryDevelopment = useCallback(() => {
@@ -346,13 +341,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     setCaptureOption(category);
     setDevelopmentStarted(true);
   }, [initialDevelopmentProduct, setActiveEntry, startNewCapture, updateEntry]);
-
-  // When activeEntryId changes externally, switch to sourcing mode
-  useEffect(() => {
-    if (activeEntryId && mode !== 'sourcing') {
-      setMode('sourcing');
-    }
-  }, [activeEntryId]);
 
   const sessionEntries = getSessionEntries();
   // Subscribe to the active entry itself, not only its id. Desktop action-bar
@@ -667,6 +655,20 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // Desktop tasting: which entry is shown in the right detail panel
   const [tastingSelectedEntryId, setTastingSelectedEntryId] = useState<string | null>(null);
   const [pendingLibraryAcquisitionId, setPendingLibraryAcquisitionId] = useState<string | null>(null);
+  const initialRecordRequest = useRef('');
+  useEffect(() => {
+    if (!initialEntryId || !initialEntryExists || !getEntry(initialEntryId)) return;
+    const request = `${activeAccountId}:${initialMode}:${initialEntryId}`;
+    if (initialRecordRequest.current === request) return;
+    initialRecordRequest.current = request;
+    if (initialMode === 'library') setMode('library');
+    else { setActiveEntry(initialEntryId); setMode('sourcing'); setCaptureOption('tea'); }
+  }, [activeAccountId, getEntry, initialEntryExists, initialEntryId, initialMode, setActiveEntry]);
+  // Mode changes clear the old selection first; apply route selection afterwards.
+  useEffect(() => {
+    if (mode === 'library' && initialMode === 'library' && initialEntryId && initialEntryExists) setTastingSelectedEntryId(initialEntryId);
+  }, [initialEntryExists, initialEntryId, initialMode, mode]);
+
 
   const openLibraryAcquisition = useCallback((id: string) => {
     setActiveEntry(id);
@@ -683,7 +685,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // Reset search + tasting selection when switching tabs
   useEffect(() => {
     setTabSearchQuery('');
-    setTastingSelectedEntryId(null);
+    setTastingSelectedEntryId(mode === 'library' && initialMode === 'library' && initialEntryId && initialEntryExists ? initialEntryId : null);
   }, [mode]);
 
   const handleCaptureOption = useCallback((opt: 'tea' | 'teaware') => {
@@ -935,22 +937,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 <>
                   <button
                     type="button"
-                    onClick={() => handleNewCapture()}
+                    onClick={() => setLibraryAddOpen(true)}
+                    aria-label="Add to Library"
                     className="flex min-h-11 shrink-0 items-center gap-1 rounded-md border border-tea-border bg-tea-surface px-2 text-ui-12 text-tea-text hover:bg-tea-elevated"
                   >
                     <Plus size={12} />
-                    New entry
+                    Add
                   </button>
-
-                  <LibraryImportsSection
-                    imports={importAccountId === activeAccountId ? importDetails : []}
-                    busyImportId={busyLibraryImportId}
-                    errorByImportId={libraryImportErrors}
-                    focusRequest={libraryDeleteFocusRequest}
-                    fallbackFocusRef={mobileSearchInputRef}
-                    onOpen={openSavedImport}
-                    onDelete={deleteSavedImport}
-                  />
                 </>
               )}
             </div>
@@ -1203,6 +1196,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     onNewCapture={handleNewCapture}
                     externalSearchQuery={tabSearchQuery}
                     onAcquireEntry={openLibraryAcquisition}
+                    onOpenDetail={setTastingSelectedEntryId}
                   />
                 </motion.div>
               ) : (
@@ -1304,22 +1298,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 <>
                   <button
                     type="button"
-                    onClick={() => handleNewCapture()}
+                    onClick={() => setLibraryAddOpen(true)}
+                    aria-label="Add to Library"
                     className="flex min-h-11 shrink-0 items-center gap-1 rounded-md border border-tea-border bg-tea-surface px-2 text-ui-12 text-tea-text hover:bg-tea-elevated"
                   >
                     <Plus size={12} />
-                    New entry
+                    Add
                   </button>
-
-                  <LibraryImportsSection
-                    imports={importAccountId === activeAccountId ? importDetails : []}
-                    busyImportId={busyLibraryImportId}
-                    errorByImportId={libraryImportErrors}
-                    focusRequest={libraryDeleteFocusRequest}
-                    fallbackFocusRef={desktopSearchInputRef}
-                    onOpen={openSavedImport}
-                    onDelete={deleteSavedImport}
-                  />
                 </>
               )}
             </div>
@@ -1576,6 +1561,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       selectedEntryId={tastingSelectedEntryId}
                       gridMode={libraryGrid}
                       onAcquireEntry={openLibraryAcquisition}
+                      onOpenDetail={setTastingSelectedEntryId}
                     />
                   </motion.div>
                 )}
@@ -1707,6 +1693,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         onClose={() => setTastingSelectedEntryId(null)}
                         onShare={hasToken() ? (id) => { setActiveEntry(id); setShareModalOpen(true); } : undefined}
                         onAcquire={openLibraryAcquisition}
+                        onOpenInventory={(productId) => navigate(`/admin/inventory?panel=${encodeURIComponent(productId)}`)}
                       />
                     ) : (
                       <CompassRightEmptyState mode="library" onNewCapture={() => handleNewCapture()} />
@@ -1768,6 +1755,20 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
       </div>
       {/* END BODY */}
+
+      {mode === 'library' && tastingSelectedEntryId && <section className="fixed inset-0 z-modal flex flex-col bg-tea-bg lg:hidden" aria-label="Tea record">
+        <CompassEntryDetailPanel entryId={tastingSelectedEntryId} onClose={() => setTastingSelectedEntryId(null)} onAcquire={openLibraryAcquisition}
+          onOpenInventory={(productId) => navigate(`/admin/inventory?panel=${encodeURIComponent(productId)}`)}
+          onShare={hasToken() ? (id) => { setActiveEntry(id); setShareModalOpen(true); } : undefined} />
+      </section>}
+      <BottomSheet open={libraryAddOpen} onOpenChange={setLibraryAddOpen} title="Add to Library" description="Capture something new or continue an import" large>
+        <SheetOption label="New tea" hint="Capture notes, photos and a supplier quote in Source" onSelect={() => { setLibraryAddOpen(false); handleNewCapture(); }} />
+        <SheetOption label="New teaware" hint="Capture a piece and its provenance" onSelect={() => { setLibraryAddOpen(false); handleNewCapture('teaware'); }} />
+        <SheetOption label="Import files" hint="A list, source documents or photos" onSelect={() => { setLibraryAddOpen(false); beginNewImport(); }} />
+        <LibraryImportsSection embedded imports={importAccountId === activeAccountId ? importDetails : []} busyImportId={busyLibraryImportId}
+          errorByImportId={libraryImportErrors} focusRequest={libraryDeleteFocusRequest} fallbackFocusRef={mobileSearchInputRef}
+          onOpen={(detail, trigger) => { setLibraryAddOpen(false); openSavedImport(detail, trigger); }} onDelete={deleteSavedImport} />
+      </BottomSheet>
 
       {/* Share modal, global, unchanged */}
       <AnimatePresence>

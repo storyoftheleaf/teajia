@@ -45,7 +45,7 @@ export function orderLineMoney(entry: Parameters<typeof orderLinePrice>[0], orde
   return { ...orderLinePrice(entry), currency: orderCurrency, ...(priced ? {} : { unpriced: true as const }) };
 }
 
-export function addTeaToDraftOrder(entryId: string): string | null {
+export function addTeaToDraftOrder(entryId: string, productId?: string): string | null {
   const compass = useTeaCompassStore.getState();
   const entry = compass.getEntry(entryId);
   if (!entry) return null;
@@ -60,6 +60,9 @@ export function addTeaToDraftOrder(entryId: string): string | null {
   let holding = ledger.transactions.find((tx) =>
     tx.status === 'draft' && tx.direction === 'purchase' && tx.items.some((item) => item.compassEntryId === entryId));
   const heldLine = holding?.items.find((item) => item.compassEntryId === entryId);
+  if (holding && heldLine && (productId || entry.draftProductId)) {
+    ledger.updateLineItem(holding.id, heldLine.id, { productId: productId || entry.draftProductId });
+  }
   if (holding && heldLine?.unpriced && priced) {
     if (sameMoney(holding.currency, ownMoney)) {
       ledger.updateLineItem(holding.id, heldLine.id, { ...orderLinePrice(entry), currency: holding.currency, unpriced: undefined });
@@ -88,6 +91,7 @@ export function addTeaToDraftOrder(entryId: string): string | null {
       unitWeightGrams: piece && entry.form && entry.category !== 'teaware' ? (pieceWeightGrams(entry) ?? DEFAULT_GRAMS[entry.form as TeaForm]) : undefined,
       ...orderLineMoney(entry, orderCurrency),
       compassEntryId: entry.id,
+      productId: productId || entry.draftProductId,
     });
   }
   useLedgerStore.getState().setActiveTransaction(txId);

@@ -58,10 +58,12 @@ export function orderArrivalLines(tx: Pick<LedgerTransaction, 'items'>): Arrival
 }
 
 /** The purchase order's line for a tea: what the shop reads back when the tea arrives. */
-export function arrivalFields(item: LedgerLineItem): { compass_entry_id?: string; quantity_grams?: number; line_total?: number } {
+export function arrivalFields(item: LedgerLineItem): { compass_entry_id?: string; quantity_grams?: number; line_total?: number; product_id?: string; unitWeightGrams?: number } {
   const line = item.compassEntryId ? orderArrivalLines({ items: [item] })[0] : undefined;
   return {
     ...(item.compassEntryId ? { compass_entry_id: item.compassEntryId } : {}),
+    ...(item.productId ? { product_id: item.productId } : {}),
+    ...(item.unitWeightGrams != null ? { unitWeightGrams: item.unitWeightGrams } : {}),
     ...(line ? { quantity_grams: line.grams, line_total: line.total } : {}),
   };
 }

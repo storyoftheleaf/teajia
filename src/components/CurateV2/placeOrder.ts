@@ -18,9 +18,10 @@ import { useLedgerStore, type LedgerTransaction } from '../../lib/ledgerStore';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { purchaseSpendInUsd } from './curatePricing';
 import { SHOP_ORDERS_KEY } from './shopOrders';
-import { arrivalFields, arrivalKey, orderArrivalLines } from './orderArrivals';
+import { arrivalFields, arrivalKey, lineGrams, orderArrivalLines } from './orderArrivals';
 import { AGENT_KEYS } from './AgentInbox';
 import { NO_VENDOR_YET } from './orderBuy';
+import { useAppStore } from '../../lib/store';
 
 /**
  * One order per supplier per route: a parcel and its tracking number belong to
@@ -69,6 +70,10 @@ export function confirmPurchase(tx: LedgerTransaction): void {
 /** Throws when the shop could not record it; the caller marks the order and offers it again. */
 export async function recordPurchase(tx: LedgerTransaction, rates: readonly ExchangeRate[] | undefined, queryClient: QueryClient): Promise<void> {
   const ledger = useLedgerStore.getState();
+  const accountId = useAppStore.getState().activeAccountId;
+  const assertScope = () => {
+    if (useAppStore.getState().activeAccountId !== accountId) throw new Error('The active store changed. Open the order in its store to continue.');
+  };
   // total_usd is dollars: the order's own money is converted at the shop's
   // rates, and left out when a currency has no rate (never read at 1, which
   // would store ¥2,400 as $2,400). A total is only written when every line has
@@ -80,6 +85,7 @@ export async function recordPurchase(tx: LedgerTransaction, rates: readonly Exch
   if (!purchaseOrderId) {
     const created = await api.purchaseOrders.create({
       po_number: `PO-${tx.id.slice(0, 8).toUpperCase()}`,
+      idempotency_key: `ledger:${tx.id}`,
       vendor_name: tx.counterpartyName || 'Unknown',
       vendor_id: tx.counterpartyId || undefined,
       items_json: JSON.stringify(tx.items.map(item => ({
@@ -103,6 +109,7 @@ export async function recordPurchase(tx: LedgerTransaction, rates: readonly Exch
       status: 'confirmed',
       ...(tx.shipMode ? { ship_mode: tx.shipMode } : {}),
     });
+    assertScope();
     purchaseOrderId = created?.id;
     // Kept so "Mark as sent" can name the order the shop recorded.
     if (purchaseOrderId) ledger.updateTransaction(tx.id, { purchaseOrderId });
@@ -115,6 +122,7 @@ export async function recordPurchase(tx: LedgerTransaction, rates: readonly Exch
   if (purchaseOrderId) {
     try {
       for (const line of orderArrivalLines(tx)) {
+        assertScope();
         await api.compass.proposeReceipt(line.entryId, {
           purpose: 'working',
           quantity: line.grams,
@@ -125,6 +133,21 @@ export async function recordPurchase(tx: LedgerTransaction, rates: readonly Exch
           ...(line.type ? { product_type: line.type } : {}),
         });
       }
+      // The established proposal contract also accepts teaware and unpriced
+      // arrivals without inventing a batch cost. They cannot use order: keys,
+      // whose worker contract requires a priced gram line.
+      const costedEntries = new Set(orderArrivalLines(tx).map(line => line.entryId));
+      for (const item of tx.items) {
+        if (!item.compassEntryId || costedEntries.has(item.compassEntryId)) continue;
+        const quantity = item.type === 'Teaware' ? item.quantityUnits : lineGrams(item);
+        if (quantity == null || !Number.isFinite(quantity) || quantity <= 0) continue;
+        assertScope();
+        await api.compass.proposeReceipt(item.compassEntryId, {
+          purpose: 'working', quantity, unit: item.type === 'Teaware' ? 'unit' : 'g',
+          acquisition_kind: 'purchase', idempotency_key: `ledger:${tx.id}:${item.compassEntryId}`,
+          product_name: item.name || 'Unnamed', product_type: item.type,
+        });
+      }
     } finally {
       // Today's list of receipts was read before these existed. Left as it was,
       // "Arrived" on a tea just ordered would not find its receipt and would
@@ -132,5 +155,6 @@ export async function recordPurchase(tx: LedgerTransaction, rates: readonly Exch
       void queryClient.invalidateQueries({ queryKey: AGENT_KEYS.arriving });
     }
   }
+  assertScope();
   ledger.updateTransaction(tx.id, { recordFailed: false });
 }

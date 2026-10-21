@@ -155,6 +155,11 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   const lightboxOpen = lightboxIndex !== null;
   useEffect(() => {
     if (!lightboxOpen) return;
+    const root = document.getElementById('root');
+    const wasInert = root?.inert ?? false;
+    const previousOverflow = document.body.style.overflow;
+    if (root) root.inert = true;
+    document.body.style.overflow = 'hidden';
     window.requestAnimationFrame(() => lightboxCloseRef.current?.focus());
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -178,7 +183,11 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
       }
     };
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      if (root) root.inert = wasInert;
+      document.body.style.overflow = previousOverflow;
+    };
   }, [closeLightbox, lightboxOpen]);
 
   const runExtract = useCallback(

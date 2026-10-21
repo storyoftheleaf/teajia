@@ -76,6 +76,7 @@ function lineOf(raw: unknown, index: number, orderCurrency: Currency, at: string
     year: num(r.year),
     quantityGrams: perGram ? quantity : legacyGrams,
     quantityUnits: perGram ? undefined : quantity,
+    unitWeightGrams: num(r.unitWeightGrams),
     pricePerUnit: price ?? 0,
     priceIsPerGram: perGram,
     currency,
