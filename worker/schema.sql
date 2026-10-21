@@ -3050,6 +3050,7 @@ CREATE TABLE IF NOT EXISTS curate_ar_links (
   excerpt TEXT NOT NULL,
   excerpt_start INTEGER NOT NULL,
   excerpt_end INTEGER NOT NULL,
+  transcript_mode TEXT NOT NULL DEFAULT 'excerpt' CHECK (transcript_mode IN ('excerpt','full')),
   request_id TEXT NOT NULL,
   linked_by_user_id TEXT NOT NULL,
   linked_at INTEGER NOT NULL,

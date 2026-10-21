@@ -3,7 +3,9 @@
 export interface ArBridgeScope { accountId: string; userId: string }
 export interface ArSourceSummary { id: string; title: string; hash?: string; snippet?: string }
 export interface ArSource { id: string; title: string; hash: string; text: string }
-export interface TeaArLink { id: string; entryId: string; sourceId: string; title: string; hash: string; text: string; start: number; end: number; linkedAt: string }
+export type ArTranscriptMode = 'excerpt' | 'full';
+export interface TeaArExcerptProof { requestId: string; sourceId: string; title: string; hash: string; text: string; start: number; end: number; mode: ArTranscriptMode }
+export interface TeaArLink { mode: ArTranscriptMode; id: string; entryId: string; sourceId: string; title: string; hash: string; text: string; start: number; end: number; linkedAt: string }
 type Row = Record<string, any>;
 const PAIR_MS = 10 * 60 * 1000;
 const JOB_MS = 60 * 60 * 1000;
@@ -68,7 +70,7 @@ async function requireEntry(db: D1Database, accountId: string, entryId: unknown)
   const entry = await db.prepare('SELECT id FROM tea_compass_entries WHERE id=? AND account_id=?').bind(entryId, accountId).first();
   if (!entry) fail(404, 'ar_entry_not_found', 'The tea record was not found in this shop.');
 }
-const linkOf = (row: Row): TeaArLink => ({ id: row.id, entryId: row.entry_id, sourceId: row.source_id, title: row.source_title, hash: row.source_hash, text: row.excerpt, start: row.excerpt_start, end: row.excerpt_end, linkedAt: iso(row.linked_at)! });
+const linkOf = (row: Row): TeaArLink => ({ mode: row.transcript_mode === 'full' ? 'full' : 'excerpt', id: row.id, entryId: row.entry_id, sourceId: row.source_id, title: row.source_title, hash: row.source_hash, text: row.excerpt, start: row.excerpt_start, end: row.excerpt_end, linkedAt: iso(row.linked_at)! });
 /** Shared with description drafting: only this shop's reviewed links for this
  * tea are returned, never arbitrary browser-supplied source identities. */
 export async function listTeaArLinks(db: D1Database, accountId: string, entryId: string): Promise<TeaArLink[]> {
@@ -79,17 +81,21 @@ export async function listTeaArLinks(db: D1Database, accountId: string, entryId:
 
 /** Resolve an exact, current read result without linking or changing any record.
  * Used by both durable linking and unsaved description review. */
-export async function readTeaArExcerpt(db: D1Database, scope: ArBridgeScope, input: unknown, now = Date.now()): Promise<{ requestId: string; sourceId: string; title: string; hash: string; text: string; start: number; end: number }> {
+export async function readTeaArExcerpt(db: D1Database, scope: ArBridgeScope, input: unknown, now = Date.now()): Promise<TeaArExcerptProof> {
   scoped(scope);
   if (!input || typeof input !== 'object' || Array.isArray(input)) fail(400, 'ar_invalid_excerpt', 'Choose an exact source excerpt of at most 12,000 characters.');
   const body = input as Row;
-  if (!opaqueId(body.requestId) || !opaqueId(body.sourceId) || !sourceTitle(body.title) || !sourceHash(body.hash) || typeof body.text !== 'string' || !body.text.trim() || body.text.length > 12000 || !Number.isSafeInteger(body.start) || !Number.isSafeInteger(body.end) || body.start < 0 || body.end <= body.start) fail(400, 'ar_invalid_excerpt', 'Choose an exact source excerpt of at most 12,000 characters.');
+  const mode: ArTranscriptMode = body.mode === 'full' ? 'full' : 'excerpt';
+  if (body.mode != null && body.mode !== 'full' && body.mode !== 'excerpt') fail(400, 'ar_invalid_excerpt', 'Choose a transcript or exact source excerpt.');
+  const limit = mode === 'full' ? 200000 : 12000;
+  if (!opaqueId(body.requestId) || !opaqueId(body.sourceId) || !sourceTitle(body.title) || !sourceHash(body.hash) || typeof body.text !== 'string' || !body.text.trim() || body.text.length > limit || !Number.isSafeInteger(body.start) || !Number.isSafeInteger(body.end) || body.start < 0 || body.end <= body.start) fail(400, 'ar_invalid_excerpt', mode === 'full' ? 'Choose the complete transcript of at most 200,000 characters.' : 'Choose an exact source excerpt of at most 12,000 characters.');
   const job = await db.prepare(`SELECT result_json FROM curate_ar_jobs WHERE id=? AND account_id=? AND created_by_user_id=? AND kind='read' AND status='completed' AND expires_at>?`).bind(body.requestId, scope.accountId, scope.userId, now).first<Row>();
   if (!job) fail(404, 'ar_read_not_found', 'Read this source again before reviewing an excerpt.');
   let source: ArSource;
   try { source = (JSON.parse(job.result_json) as { source: ArSource }).source; } catch { fail(409, 'ar_read_changed', 'Read this source again before reviewing an excerpt.'); }
   if (!source || typeof source.text !== 'string' || source.id !== body.sourceId || source.title !== body.title || source.hash !== body.hash || body.end > source.text.length || source.text.slice(body.start, body.end) !== body.text) fail(400, 'ar_excerpt_mismatch', 'The excerpt must match the source that was read. Select it again.');
-  return { requestId: body.requestId, sourceId: source.id, title: source.title, hash: source.hash, text: body.text, start: body.start, end: body.end };
+  if (mode === 'full' && (body.start !== 0 || body.end !== source.text.length || body.text !== source.text)) fail(400, 'ar_full_transcript_mismatch', 'A full transcript reference must include the complete source, without trimming. Read it again.');
+  return { requestId: body.requestId, sourceId: source.id, title: source.title, hash: source.hash, text: body.text, start: body.start, end: body.end, mode };
 }
 
 function cleanResult(kind: string, input: unknown): { sources: ArSourceSummary[] } | { source: ArSource } {
@@ -242,20 +248,20 @@ export async function handleArBridge(request: Request, env: { DB: D1Database }, 
     if (action === 'links' && request.method === 'POST') {
       const body = await bodyOf(request);
       await requireEntry(db, scope.accountId, body.entryId);
-      await readTeaArExcerpt(db, scope, body, now);
+      const proof = await readTeaArExcerpt(db, scope, body, now);
       const existing = await db.prepare('SELECT * FROM curate_ar_links WHERE account_id=? AND entry_id=? AND source_id=?').bind(scope.accountId, body.entryId, body.sourceId).first<Row>();
       if (existing) {
-        if (existing.source_hash === body.hash && existing.excerpt === body.text && existing.excerpt_start === body.start && existing.excerpt_end === body.end) return json({ link: linkOf(existing) });
+        if (existing.source_hash === body.hash && existing.excerpt === body.text && existing.excerpt_start === body.start && existing.excerpt_end === body.end && (existing.transcript_mode ?? 'excerpt') === proof.mode) return json({ link: linkOf(existing) });
         if (body.update !== true || body.expectedHash !== existing.source_hash) fail(409, 'ar_link_changed', 'This source is already linked. Review its existing excerpt before replacing it.');
-        const updated = await db.prepare(`UPDATE curate_ar_links SET source_title=?,source_hash=?,excerpt=?,excerpt_start=?,excerpt_end=?,request_id=?,linked_by_user_id=?,linked_at=? WHERE id=? AND account_id=? AND source_hash=? AND excerpt=? AND excerpt_start=? AND excerpt_end=?`).bind(body.title, body.hash, body.text, body.start, body.end, body.requestId, scope.userId, now, existing.id, scope.accountId, existing.source_hash, existing.excerpt, existing.excerpt_start, existing.excerpt_end).run();
+        const updated = await db.prepare(`UPDATE curate_ar_links SET source_title=?,source_hash=?,excerpt=?,excerpt_start=?,excerpt_end=?,request_id=?,linked_by_user_id=?,linked_at=?,transcript_mode=? WHERE id=? AND account_id=? AND source_hash=? AND excerpt=? AND excerpt_start=? AND excerpt_end=? AND transcript_mode=?`).bind(body.title, body.hash, body.text, body.start, body.end, body.requestId, scope.userId, now, proof.mode, existing.id, scope.accountId, existing.source_hash, existing.excerpt, existing.excerpt_start, existing.excerpt_end, existing.transcript_mode ?? 'excerpt').run();
         if (!updated.meta.changes) fail(409, 'ar_link_changed', 'This source reference changed. Review it again before replacing it.');
         const linked = await db.prepare('SELECT * FROM curate_ar_links WHERE id=? AND account_id=?').bind(existing.id, scope.accountId).first<Row>();
         return json({ link: linkOf(linked!) });
       }
       const linkId = crypto.randomUUID();
-      await db.prepare(`INSERT INTO curate_ar_links(id,account_id,entry_id,source_id,source_title,source_hash,excerpt,excerpt_start,excerpt_end,request_id,linked_by_user_id,linked_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(account_id,entry_id,source_id) DO NOTHING`).bind(linkId, scope.accountId, body.entryId, body.sourceId, body.title, body.hash, body.text, body.start, body.end, body.requestId, scope.userId, now).run();
+      await db.prepare(`INSERT INTO curate_ar_links(id,account_id,entry_id,source_id,source_title,source_hash,excerpt,excerpt_start,excerpt_end,request_id,linked_by_user_id,linked_at,transcript_mode) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(account_id,entry_id,source_id) DO NOTHING`).bind(linkId, scope.accountId, body.entryId, body.sourceId, body.title, body.hash, body.text, body.start, body.end, body.requestId, scope.userId, now, proof.mode).run();
       const linked = await db.prepare('SELECT * FROM curate_ar_links WHERE account_id=? AND entry_id=? AND source_id=?').bind(scope.accountId, body.entryId, body.sourceId).first<Row>();
-      if (!linked || linked.source_hash !== body.hash || linked.excerpt !== body.text || linked.excerpt_start !== body.start || linked.excerpt_end !== body.end) fail(409, 'ar_link_changed', 'This source was linked elsewhere while you reviewed it. Review the saved reference.');
+      if (!linked || linked.source_hash !== body.hash || linked.excerpt !== body.text || linked.excerpt_start !== body.start || linked.excerpt_end !== body.end || (linked.transcript_mode ?? 'excerpt') !== proof.mode) fail(409, 'ar_link_changed', 'This source was linked elsewhere while you reviewed it. Review the saved reference.');
       return json({ link: linkOf(linked) }, 201);
     }
     return json({ error: 'Archive route not found.', code: 'ar_route_not_found' }, 404);

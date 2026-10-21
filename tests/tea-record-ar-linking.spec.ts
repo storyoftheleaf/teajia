@@ -84,6 +84,7 @@ async function linkTalk(page: Page, update = false) {
   if (!update) await page.screenshot({ path: `/private/tmp/tea-record-ar-search-${viewport}.png`, fullPage: false, animations: 'disabled' });
   await result.click();
   await expect(page.getByRole('region', { name: 'Review linked passage', exact: true })).toBeVisible();
+  await page.getByRole('checkbox', { name: /^Use the full transcript/ }).uncheck();
   await page.getByRole('textbox', { name: 'Passage to link', exact: true }).fill(excerpt);
   const linkAction = assistant(page).getByRole('button', { name: 'Review this passage', exact: true });
   await linkAction.scrollIntoViewIfNeeded();
@@ -138,6 +139,7 @@ for (const viewport of ['phone', 'desktop'] as const) {
     await assistant(page).getByRole('checkbox', { name: 'Tea notes', exact: true }).uncheck();
     const selected = assistant(page).getByRole('checkbox', { name: `AR Create · ${title}`, exact: true });
     await expect(selected).toBeChecked();
+    await assistant(page).getByText('Fill missing record details from notes or a passage', { exact: true }).click();
     await assistant(page).getByRole('button', { name: 'Find tea details', exact: true }).click();
     await expect.poll(() => state.extractionBodies.length).toBe(1);
     expect(state.extractionBodies[0].text).toContain(excerpt);

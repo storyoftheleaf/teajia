@@ -226,3 +226,80 @@ describe('unsaved AR passage description previews', () => {
     expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM curate_ar_links WHERE source_id=?').get(source.sourceId)).toEqual({ n: 0 });
   });
 });
+
+
+describe('full transcript working-material handoff', () => {
+  it('accepts separate exact quote fragments from the same read with distinct canonical citation identities', async () => {
+    seedStagedRead();
+    const first = { ...stagedSource(), fragment: true };
+    const lastText = 'After';
+    const lastStart = ('Before ' + arExcerpt + ' After').indexOf(lastText);
+    const last = { ...first, text: lastText, start: lastStart, end: lastStart + lastText.length };
+    const firstId = `staged-ar:${first.requestId}:${first.sourceId}:${first.start}:${first.end}`;
+    const lastId = `staged-ar:${last.requestId}:${last.sourceId}:${last.start}:${last.end}`;
+    const fetchMock = provider(firstId, first.text);
+    const before = changes();
+    const result = await descriptionForTeaRecord(env(), { accountId: account, userId: user }, { ...input([]), stagedArSources: [first, last] });
+    expect(result.citations).toEqual([{ sourceId: firstId, quote: first.text }]);
+    expect(readProviderSources(fetchMock).filter(item => item.id.startsWith('staged-ar:'))).toEqual([
+      { id: firstId, title: 'AR Create · Original preview title', text: first.text },
+      { id: lastId, title: 'AR Create · Original preview title', text: lastText },
+    ]);
+    expect(changes()).toBe(before);
+  });
+  it('refuses long complete transcripts as direct description input rather than silently truncating them', async () => {
+    const original = 'All original transcript details. '.repeat(500);
+    const source = { ...stagedSource(), mode: 'full', text: original, start: 0, end: original.length };
+    db.sqlite.prepare(`INSERT INTO curate_ar_jobs (id,account_id,created_by_user_id,kind,source_id,status,created_at,expires_at,result_json) VALUES (?,?,?,?,?,?,?,?,?)`).run(source.requestId, account, user, 'read', source.sourceId, 'completed', Date.now(), Date.now() + 60_000, JSON.stringify({ source: { id: source.sourceId, title: source.title, hash: source.hash, text: original } }));
+    const fetchMock = provider(); const before = changes();
+    await expect(descriptionForTeaRecord(env(), { accountId: account, userId: user }, { ...input([]), stagedArSources: [source] })).rejects.toMatchObject({ status: 422, code: 'description_full_transcript_requires_review' });
+    expect(fetchMock).not.toHaveBeenCalled(); expect(changes()).toBe(before);
+  });
+  it('rejects malformed fragment selectors without requesting the provider', async () => {
+    seedStagedRead(); const fetchMock = provider();
+    await expect(descriptionForTeaRecord(env(), { accountId: account, userId: user }, { ...input([]), stagedArSources: [{ ...stagedSource(), fragment: 'forged-id' }] })).rejects.toMatchObject({ status: 400, code: 'description_invalid_source' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('unsaved working material for public descriptions', () => {
+  const draft = { id: 'draft-note:voice-one', title: 'New voice memo', text: 'Acquired as more than thirty years old.' };
+  it('accepts draft notes and attributed research, preserves exact citations and performs no writes or research fetches', async () => {
+    const fetchMock = provider(draft.id, draft.text);
+    const before = changes();
+    const result = await descriptionForTeaRecord(env(), { accountId: account }, { ...input([]), draftSources: [draft, { id: 'research:shuixian', title: 'Shuixian context', text: 'Research supplied for review.', url: 'https://example.org/tea' }] });
+    expect(result.citations).toEqual([{ sourceId: draft.id, quote: draft.text }]);
+    expect(readProviderSources(fetchMock)).toContainEqual({ ...draft, title: 'User-supplied working material · New voice memo' });
+    expect(readProviderSources(fetchMock).find(source => source.id === 'research:shuixian')?.title).toContain('User-supplied');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(changes()).toBe(before);
+  });
+  it('still requires the tea to belong to this account before calling AI', async () => {
+    const fetchMock = provider(draft.id, draft.text);
+    const before = changes();
+    await expect(descriptionForTeaRecord(env(), { accountId: account }, { ...input([]), entryId: 'tea-foreign', draftSources: [draft] })).rejects.toMatchObject({ status: 404, code: 'description_tea_not_found' });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(changes()).toBe(before);
+  });
+  it.each([
+    'not-an-array', [null], [{ ...draft, id: 'tea-record' }], [{ ...draft, id: 'ar:link-here' }],
+    [{ ...draft, id: 'research:' }], [{ ...draft, id: `draft-note:${'a'.repeat(256)}` }],
+    [{ ...draft, title: '' }], [{ ...draft, title: 'x'.repeat(257) }],
+    [{ ...draft, text: ' ' }], [{ ...draft, text: 'x'.repeat(12001) }],
+    [{ ...draft, url: 'http://example.org' }], [{ ...draft, url: 'https://user:secret@example.org' }],
+    [{ ...draft, url: 'not-a-url' }], [{ ...draft, url: 123 }], [{ ...draft, url: `https://example.org/${'a'.repeat(2048)}` }],
+  ])('rejects malformed or unbounded draft material %#', async draftSources => {
+    const fetchMock = provider();
+    const before = changes();
+    await expect(descriptionForTeaRecord(env(), { accountId: account }, { ...input([]), draftSources })).rejects.toMatchObject({ status: 400, code: 'description_invalid_source' });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(changes()).toBe(before);
+  });
+  it('rejects duplicate identities, combined source count and combined character budgets before AI', async () => {
+    const fetchMock = provider();
+    await expect(descriptionForTeaRecord(env(), { accountId: account }, { ...input([]), draftSources: [draft, draft] })).rejects.toMatchObject({ code: 'description_duplicate_source' });
+    await expect(descriptionForTeaRecord(env(), { accountId: account }, { ...input(), draftSources: Array.from({ length: 12 }, (_, i) => ({ ...draft, id: `draft-note:${i}` })) })).rejects.toMatchObject({ code: 'description_invalid_input' });
+    await expect(descriptionForTeaRecord(env(), { accountId: account }, { ...input(), draftSources: [{ ...draft, text: 'x'.repeat(11999) }] })).rejects.toMatchObject({ code: 'description_character_limit' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});

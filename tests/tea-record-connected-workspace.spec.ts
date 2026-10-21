@@ -90,6 +90,7 @@ async function stagePassage(page: Page) {
   await search.fill('spring harvest');
   await workspace.getByRole('button', { name: 'Search', exact: true }).click();
   await workspace.getByRole('button', { name: new RegExp('^Cloud Peak — spring harvest conversation') }).click();
+  await workspace.getByRole('checkbox', { name: /^Use the full transcript/ }).uncheck();
   await workspace.getByRole('textbox', { name: 'Passage to link', exact: true }).fill(excerpt);
   await workspace.getByRole('button', { name: 'Review this passage', exact: true }).click();
   await expect(workspace.getByRole('checkbox', { name: /^Keep this passage/ })).toBeVisible();
@@ -107,6 +108,7 @@ for (const viewport of ['phone', 'desktop'] as const) {
     expect(state.teaWrites).toHaveLength(initialWrites);
     expect((await current(page)).entry).toMatchObject({ id: entryId, description: originalDescription });
 
+    await workspace.getByText('Fill missing record details from notes or a passage', { exact: true }).click();
     await workspace.getByRole('button', { name: 'Find tea details', exact: true }).click();
     await expect(workspace.getByRole('checkbox', { name: 'Year: 2019', exact: true })).toBeVisible();
     await workspace.getByRole('checkbox', { name: 'Year: 2019', exact: true }).check();
@@ -152,6 +154,7 @@ test('discarding a complete review keeps the tea and all talk links unchanged', 
   const workspace = await openWorkspace(page);
   const initialWrites = state.teaWrites.length;
   await stagePassage(page);
+  await workspace.getByText('Fill missing record details from notes or a passage', { exact: true }).click();
   await workspace.getByRole('button', { name: 'Find tea details', exact: true }).click();
   await workspace.getByRole('checkbox', { name: 'Year: 2019', exact: true }).check();
   await workspace.getByRole('button', { name: 'Draft description from selected material', exact: true }).click();

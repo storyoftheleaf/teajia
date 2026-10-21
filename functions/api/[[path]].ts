@@ -43,7 +43,7 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
   const incoming = new URL(request.url);
   const target = new URL(incoming.pathname + incoming.search, workerOrigin);
   const method = request.method.toUpperCase();
-  const timeoutMs = method === 'POST' && /^\/api\/curate\/imports\/[^/]+\/analyze$/.test(incoming.pathname)
+  const timeoutMs = method === 'POST' && (/^\/api\/curate\/imports\/[^/]+\/analyze$/.test(incoming.pathname) || incoming.pathname === '/api/curate/working-material')
     ? IMPORT_ANALYSIS_TIMEOUT_MS
     : method === 'GET' || method === 'HEAD'
       ? READ_UPSTREAM_TIMEOUT_MS

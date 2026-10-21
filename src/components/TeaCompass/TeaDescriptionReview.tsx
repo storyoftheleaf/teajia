@@ -9,7 +9,7 @@ import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 import type { TeaCompassEntry } from './types';
 import type { StagedArPassage } from './ArTeaSources';
 
-export interface TeaDescriptionSource { id: string; title: string; text: string }
+export interface TeaDescriptionSource { id: string; title: string; text: string; url?: string }
 export interface TeaDescriptionProposal {
   description: string;
   citations: Array<{ sourceId: string; quote: string }>;
@@ -81,7 +81,7 @@ function DescriptionReview({ entry, sources, stagedArSources, onSelection }: Des
       if (!live.current || !sameScope(scope, scopeFor(currentProps.current.entryId))) return;
       if (currentProps.current.signature !== signature) { setError('The selected source material changed. Draft from the current selection again.'); return; }
       if (!useTeaCompassStore.getState().getEntry(entry.id)?.synced) { setError('This tea record has not finished saving. Check the connection and try drafting again.'); return; }
-      const proposal: TeaDescriptionProposal = await api.compass.proposeDescription({ entryId: entry.id, sources: selected.filter(source => !source.id.startsWith('staged-ar:')), stagedArSources });
+      const proposal: TeaDescriptionProposal = await api.compass.proposeDescription({ entryId: entry.id, sources: selected.filter(source => !/^(staged-ar:|draft-note:|research:)/.test(source.id)), draftSources: selected.filter(source => /^(draft-note:|research:)/.test(source.id)), stagedArSources });
       if (!live.current || !sameScope(scope, scopeFor(currentProps.current.entryId))) return;
       const candidate: Review = { proposal, scope, signature, sourceTitles: Object.fromEntries(selected.map(source => [source.id, source.title])) };
       const conflict = conflictFor(candidate);
@@ -129,7 +129,7 @@ function DescriptionReview({ entry, sources, stagedArSources, onSelection }: Des
     {review && <div className="space-y-3 rounded-md border border-tea-border bg-tea-surface p-3">
       <p className="text-ui-12 text-tea-text-sec">A proposed description from your material. Review the wording and sources before saving.</p>
       <details><summary className={`${T.label} min-h-11 cursor-pointer`}>Current description</summary><p className="whitespace-pre-wrap break-words text-ui-13 text-tea-text-sec">{review.proposal.baseDescription || 'No description recorded.'}</p></details>
-      <label className="block text-ui-12 text-tea-text-sec">Proposed description<textarea aria-label="Proposed description" value={draft} disabled={busy} onChange={event => setDraft(event.target.value)} rows={5} className="input-field mt-1 w-full min-w-0 resize-y px-3 py-2 text-ui-16" /></label>
+      <label className="block text-ui-12 text-tea-text-sec">Public description draft<textarea aria-label="Proposed description" value={draft} disabled={busy} onChange={event => setDraft(event.target.value)} rows={12} className="input-field mt-1 w-full min-w-0 resize-y px-3 py-2 text-ui-16" /></label>
       <details><summary className={`${T.label} min-h-11 cursor-pointer`}>Sources used ({review.proposal.citations.length})</summary>
         <div className="space-y-3">{review.proposal.citations.map((citation, index) => <blockquote key={`${citation.sourceId}:${index}`} className="border-l border-tea-border pl-3">
           <p className="text-ui-11 text-tea-text-dim">{citation.sourceId === 'tea-record' ? 'Existing tea record' : review.sourceTitles[citation.sourceId] || citation.sourceId}</p>

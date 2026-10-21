@@ -1,3 +1,5 @@
+import { hasTeaVoiceProvider, transcribeTeaVoice, TeaVoiceTranscriptionError } from './curateVoiceTranscription';
+import { workingMaterialForTeaRecord, WorkingMaterialError } from './curateWorkingMaterial';
 import { handleArBridge, expireArBridgeRequests } from './curateArBridge';
 import { descriptionForTeaRecord } from './curateTeaDescriptionRequest';
 import { TeaDescriptionError } from './curateTeaDescription';
@@ -10856,7 +10858,7 @@ const handleTranscribe: Handler = async (request, env) => {
   const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${ctx.accountId}:${ctx.userId}:transcribe`);
   if (limited) return limited;
 
-  if (!env.GROQ_API_KEY) {
+  if (!hasTeaVoiceProvider(env)) {
     return restError(503, 'Transcription provider unavailable', 'provider_unavailable');
   }
 
@@ -10905,27 +10907,11 @@ const handleTranscribe: Handler = async (request, env) => {
 };
 
 async function transcribePrivateRecording(env: Env, file: File): Promise<{ text: string } | { error: string; code: string; status: number }> {
-  const groqForm = new FormData();
-  groqForm.append('file', file, file.name || 'recording.webm');
-  groqForm.append('model', 'whisper-large-v3-turbo');
-
-  const groqRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${env.GROQ_API_KEY}`,
-    },
-    body: groqForm,
-  });
-
-  if (!groqRes.ok) {
-    // Provider bodies can contain request internals. Record only the status
-    // needed for operational diagnosis.
-    console.error(`Transcription upstream error: ${groqRes.status}`);
+  try { return { text: await transcribeTeaVoice(env, await file.arrayBuffer(), file.type, file.name) }; }
+  catch (error) {
+    if (error instanceof TeaVoiceTranscriptionError) return { error: error.message, code: error.code, status: error.status };
     return { error: 'Transcription failed', code: 'provider_error', status: 502 };
   }
-
-  const result = await groqRes.json() as { text: string };
-  return { text: result.text };
 }
 
 const handleRetryTranscription: Handler = async (request, env, params) => {
@@ -10933,7 +10919,7 @@ const handleRetryTranscription: Handler = async (request, env, params) => {
   if ('error' in ctx) return ctx.error;
   const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${ctx.accountId}:${ctx.userId}:transcribe-retry`);
   if (limited) return limited;
-  if (!env.GROQ_API_KEY) return restError(503, 'Transcription provider unavailable', 'provider_unavailable');
+  if (!hasTeaVoiceProvider(env)) return restError(503, 'Transcription provider unavailable', 'provider_unavailable');
   const row = await env.DB.prepare(
     'SELECT id, object_key, mime_type FROM private_recordings WHERE id = ? AND account_id = ? AND user_id = ?'
   ).bind(params.id, ctx.accountId, ctx.userId).first();
@@ -28991,6 +28977,29 @@ const handleDescriptionProposal: Handler = async (request, env) => {
     return json({ error: 'Description drafting could not complete. Try again.' }, 502);
   }
 };
+const handleWorkingMaterial: Handler = async (request, env) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${ctx.accountId}:${ctx.userId}:tea-working-material`);
+  if (limited) return limited;
+  try {
+    const reader = request.body?.getReader();
+    const chunks: Uint8Array[] = []; let bytes = 0;
+    if (reader) for (;;) {
+      const part = await reader.read(); if (part.done) break;
+      bytes += part.value.byteLength;
+      if (bytes > 900_000) { await reader.cancel(); return json({ error: 'These complete transcripts are too large to review together.' }, 413); }
+      chunks.push(part.value);
+    }
+    const body = new Uint8Array(bytes); let offset = 0;
+    for (const chunk of chunks) { body.set(chunk, offset); offset += chunk.byteLength; }
+    return json(await workingMaterialForTeaRecord(env, ctx, JSON.parse(new TextDecoder().decode(body))));
+  } catch (error) {
+    if (error instanceof WorkingMaterialError) return json({ error: error.message, code: error.code }, error.status);
+    if (error instanceof SyntaxError) return json({ error: 'Choose valid source material.' }, 400);
+    return json({ error: 'The full transcript review could not complete. Nothing was saved. Try again.' }, 502);
+  }
+};
 function arBridgeRoute(action: string, publicRoute = false): Handler {
   return async (request, env, params) => {
     if (publicRoute) {
@@ -29592,6 +29601,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/curate/receipt-proposals', handleListPendingReceipts],
   ['POST', '/api/curate/said/file', handleFileSaid],
   ['POST', '/api/curate/description-proposal', handleDescriptionProposal],
+  ['POST', '/api/curate/working-material', handleWorkingMaterial],
   ['POST', '/api/curate/ar-create/pair/start', arBridgeRoute('pair/start', true)],
   ['GET', '/api/curate/ar-create/pair/:id', arBridgeRoute('pair/status', true)],
   ['POST', '/api/curate/ar-create/pair/claim', arBridgeRoute('pair/claim')],

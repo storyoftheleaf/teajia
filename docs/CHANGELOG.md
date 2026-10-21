@@ -2,6 +2,10 @@
 
 > Shipped work, newest first. For what's next see `CONSOLIDATED_DIRECTION.md`; active checklists live in `tracks/`.
 
+## Complete working material and public tea description 2026-10-21
+
+- Build this tea separates complete source material and attributed notes from the customer-facing description. Full AR Create transcripts are reviewed in overlapping parts, with exact quotations, tea-match uncertainty and visible coverage. Live checks refresh changed originals while open; rewritten public copy remains a reviewed draft. Manual research and new voice transcripts can feed that draft without first saving anything. Accepted notes use the existing private note thread on the same tea. Installed Workers AI also supports existing transcription/retry when no Groq key is configured. Migration0046 adds full/excerpt reference mode; existing links remain excerpts. Desktop columns scroll independently; phone content keeps compact fixed controls and navigation clearance.
+
 ## AR Create tea connection prepared 2026-10-21
 
 - **Link talks and review descriptions in the same tea record.** A paired outbound connector reads AR Create's library through its existing local API. Phone search accepts a title or phrase, then links an exact reviewed excerpt with its original source ID, hash and offsets. Only the pairing person can search the private library; accepted links follow the tea's existing store access. Selected passages join existing notes and voice in fact review and editable, cited description proposals, with explicit use and guarded undo. No original talk, second tea or manuscript is created. Schema-only migration 0045 adds bounded pairing, temporary jobs and durable references. Live activation requires the owner to approve the store connection once.

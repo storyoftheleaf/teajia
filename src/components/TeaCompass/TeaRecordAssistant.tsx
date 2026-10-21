@@ -9,6 +9,10 @@ import { plainFailure } from '../CurateV2/plainFailure';
 import { SAID_LABEL } from '../CurateV2/saidFiling';
 import { ArTalkLinks, useArTeaSources, type StagedArPassage } from './ArTeaSources';
 import { TeaDescriptionReview, teaDescriptionSourceSignature, type DescriptionSelection } from './TeaDescriptionReview';
+import { DraftVoiceMaterial } from './DraftVoiceMaterial';
+import { WorkingMaterialReview, type WorkingMaterialResult } from './WorkingMaterialReview';
+import { useLiveTeaTranscripts } from './useLiveTeaTranscripts';
+import { syncNotes } from '../../lib/notesSync';
 import { Modal } from '../shared/Modal';
 import { syncCompassEntries } from '../../lib/teaCompassSync';
 import { useQueryClient } from '@tanstack/react-query';
@@ -57,6 +61,17 @@ function AssistantReview({ entry, onClose, onCommitChange }: { entry: TeaCompass
   const [keepPassages, setKeepPassages] = useState<Record<string, boolean>>({});
   const [description, setDescription] = useState<DescriptionSelection | null>(null);
   const [saving, setSaving] = useState(false);
+  const [voiceBusy, setVoiceBusy] = useState(false);
+  const [draftNotes, setDraftNotes] = useState('');
+  const [research, setResearch] = useState('');
+  const [keepNotes, setKeepNotes] = useState(false);
+  const [working, setWorking] = useState<WorkingMaterialResult | undefined>();
+  const [workingKey, setWorkingKey] = useState('');
+  const [workingBusy, setWorkingBusy] = useState(false);
+  const [workingError, setWorkingError] = useState('');
+  const [workingSelected, setWorkingSelected] = useState<string[]>([]);
+  const savedNote = useRef<string | null>(null);
+
   const notes = useNotesStore(state => state.notes);
   const arSources = useArTeaSources(entry.id);
   const accountId = useAppStore(state => state.activeAccountId);
@@ -71,16 +86,48 @@ function AssistantReview({ entry, onClose, onCommitChange }: { entry: TeaCompass
   const mounted = useRef(true);
   const pending = useRef(false);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  useEffect(() => { onCommitChange(saving || voiceBusy); return () => onCommitChange(false); }, [saving, voiceBusy, onCommitChange]);
   const scoped = !!accountId && !!userId && accountId === scopeAccount;
   const evidence = useMemo(() => {
     if (!scoped) return [];
-    const saved = collectTeaRecordEvidence(entry, notes, accountId ?? '', arSources.links.filter(link => !removals.includes(link.id) && !staged.some(item => item.sourceId === link.sourceId)));
-    return [...saved, ...staged.map(item => ({ id: `staged-ar:${item.requestId}:${item.sourceId}`, text: item.text, sources: [{ id: `staged-ar:${item.requestId}:${item.sourceId}`, label: `AR Create · ${item.title} · unsaved` }] }))];
+    const saved = collectTeaRecordEvidence(entry, notes, accountId ?? '', arSources.links.filter(link => link.mode !== 'full' && !removals.includes(link.id) && !staged.some(item => item.sourceId === link.sourceId)));
+    return [...saved, ...staged.filter(item => item.mode !== 'full').map(item => ({ id: `staged-ar:${item.requestId}:${item.sourceId}`, text: item.text, sources: [{ id: `staged-ar:${item.requestId}:${item.sourceId}`, label: `AR Create · ${item.title} · unsaved` }] }))];
   }, [entry, notes, accountId, scoped, arSources.links, staged, removals]);
   const selectedEvidence = useMemo(() => evidence.filter(item => chosenSources[item.id] !== false).map(item => ({ ...item, text: excerpts[item.id] ?? item.text })).filter(item => item.text.trim()), [evidence, chosenSources, excerpts]);
   const material = useMemo(() => teaRecordExtractionText(selectedEvidence, Infinity), [selectedEvidence]);
   const oversized = material.text.length > 4000;
   const alreadyReviewed = review?.request.text === material.text;
+
+  const fullSources = staged.filter(item => item.mode === 'full' && keepPassages[item.sourceId] !== false);
+  const fullKey = JSON.stringify(fullSources.map(item => [item.sourceId, item.hash, item.text]));
+  const fullKeyRef = useRef(fullKey); fullKeyRef.current = fullKey;
+  const workingStale = !!working && workingKey !== fullKey;
+  const stage = (passage: StagedArPassage) => {
+    const existing = arSources.links.find(link => link.sourceId === passage.sourceId);
+    if (existing) setRemovals(previous => previous.filter(id => id !== existing.id));
+    setStaged(previous => [...previous.filter(item => item.sourceId !== passage.sourceId), passage]);
+    setKeepPassages(previous => ({ ...previous, [passage.sourceId]: previous[passage.sourceId] ?? true }));
+    setError('');
+  };
+  const liveSources = useLiveTeaTranscripts(arSources.links.filter(link => !removals.includes(link.id)), staged, stage, !saving);
+  const analyzePending = useRef(false);
+  const analyze = async () => {
+    if (analyzePending.current || !scoped || !fullSources.length) return;
+    const scope = currentScope(entry.id); const key = fullKey;
+    analyzePending.current = true; setWorkingBusy(true); setWorkingError('');
+    try {
+      const result = await api.compass.workingMaterial({ entryId: entry.id, sources: fullSources });
+      if (!mounted.current || !teaRecordScopeMatches(scope, currentScope(entry.id)) || fullKeyRef.current !== key) return;
+      setWorking(result); setWorkingKey(key); setWorkingSelected([]);
+    } catch (failure) {
+      if (mounted.current && teaRecordScopeMatches(scope, currentScope(entry.id))) setWorkingError(plainFailure(failure, 'Reviewing the full transcript'));
+    } finally { analyzePending.current = false; if (mounted.current) setWorkingBusy(false); }
+  };
+  // After the first review, edits to an original refresh derived material only.
+  // Public writing remains a separate draft requiring review and acceptance.
+  useEffect(() => {
+    if (working && workingStale && !workingBusy && !workingError) void analyze();
+  }, [fullKey, workingStale, workingBusy, workingError]);
 
   const find = async () => {
     if (pending.current || !scoped || !material.text || alreadyReviewed || oversized) return;
@@ -108,16 +155,31 @@ function AssistantReview({ entry, onClose, onCommitChange }: { entry: TeaCompass
     return [...previous.filter(id => !conflicts.has(id)), fact.id];
   });
 
-  const descriptionSources = selectedEvidence.map(item => ({ id: item.id, title: item.sources.map(source => source.label).join('; '), text: item.text }));
-  const stagedForProposal = staged.filter(item => selectedEvidence.some(source => source.id === `staged-ar:${item.requestId}:${item.sourceId}`)).map(item => {
+  const excerptDescriptionSources = selectedEvidence.map(item => ({ id: item.id, title: item.sources.map(source => source.label).join('; '), text: item.text }));
+  const excerptProposals = staged.filter(item => item.mode !== 'full').filter(item => selectedEvidence.some(source => source.id === `staged-ar:${item.requestId}:${item.sourceId}`)).map(item => {
     const text = selectedEvidence.find(source => source.id === `staged-ar:${item.requestId}:${item.sourceId}`)!.text;
     const offset = item.text.indexOf(text);
     return { ...item, text, start: offset < 0 ? -1 : item.start + offset, end: offset < 0 ? -1 : item.start + offset + text.length };
   });
+  const fragments = !workingStale ? (working?.notes ?? []).filter(note => workingSelected.includes(note.id)).flatMap(note => {
+    const source = fullSources.find(item => item.sourceId === note.sourceId);
+    if (!source || source.text.slice(note.start, note.end) !== note.quote) return [];
+    return [{ ...source, text: note.quote, start: note.start, end: note.end, mode: 'excerpt' as const, fragment: true }];
+  }) : [];
+  const fragmentSources = fragments.map(item => ({ id: `staged-ar:${item.requestId}:${item.sourceId}:${item.start}:${item.end}`, title: item.title, text: item.text }));
+  const draftSources = [
+    ...(draftNotes.trim() ? [{ id: 'draft-note:working', title: 'Your notes and voice memos', text: draftNotes.trim() }] : []),
+    ...(research.trim() ? [{ id: 'research:working', title: 'Research and references supplied for review', text: research.trim() }] : []),
+  ];
+  const descriptionSources = [...excerptDescriptionSources, ...fragmentSources, ...draftSources];
+  const stagedForProposal = [...excerptProposals, ...fragments];
+  const workingNoteText = [draftNotes.trim(), research.trim() && `Research and references:\n${research.trim()}`,
+    ...(!workingStale ? (working?.notes ?? []).filter(note => workingSelected.includes(note.id)).map(note => `${note.text}\nSource: ${note.title} [${note.start}:${note.end}]\n“${note.quote}”`) : []),
+  ].filter(Boolean).join('\n\n');
   const kept = staged.filter(item => keepPassages[item.sourceId] !== false);
-  const selectedCount = removals.length + kept.length + selected.length + (description ? 1 : 0);
+  const selectedCount = removals.length + kept.length + selected.length + (description ? 1 : 0) + (keepNotes && workingNoteText ? 1 : 0);
   const save = async () => {
-    if (saving || !selectedCount || !scoped) return;
+    if (saving || voiceBusy || workingBusy || !selectedCount || !scoped) return;
     const scope = currentScope(entry.id);
     const store = useTeaCompassStore.getState();
     const latest = store.getEntry(entry.id);
@@ -145,9 +207,17 @@ function AssistantReview({ entry, onClose, onCommitChange }: { entry: TeaCompass
       const patch = review ? applyReviewedTeaFacts(current, review.facts, selected) : {};
       if (description) Object.assign(patch, { description: description.text });
       if (Object.keys(patch).length) { store.updateEntry(entry.id, patch); await syncCompassEntries(scope.accountId!); }
+      if (!mounted.current || !teaRecordScopeMatches(scope, currentScope(entry.id))) return;
+      if (keepNotes && workingNoteText) {
+        const noteStore = useNotesStore.getState();
+        if (savedNote.current) noteStore.updateNote(savedNote.current, workingNoteText);
+        else savedNote.current = noteStore.addNote({ accountId: scope.accountId!, compassEntryId: entry.id, teaKey: current.teaKey ?? undefined, text: workingNoteText, sourceType: 'manual', authorId: scope.userId!, authorName: 'You', visibility: 'private' }).id;
+        await syncNotes();
+      }
       await queryClient.invalidateQueries({ queryKey: ['tea-ar-sources'] });
       if (!mounted.current || !teaRecordScopeMatches(scope, currentScope(entry.id))) return;
       if (Object.keys(patch).length && !store.getEntry(entry.id)?.synced) throw new Error('Accepted details are saved on this device and will sync when the connection returns.');
+      if (keepNotes && savedNote.current && !useNotesStore.getState().notes.find(note => note.id === savedNote.current)?.synced) throw new Error('Working notes are saved on this device and will sync when the connection returns.');
       onClose();
     } catch (failure) {
       if (mounted.current && teaRecordScopeMatches(scope, currentScope(entry.id))) setError(`${linked ? `${linked} passage${linked > 1 ? 's' : ''} linked. ` : ''}${plainFailure(failure, 'Saving accepted changes')}`);
@@ -155,26 +225,34 @@ function AssistantReview({ entry, onClose, onCommitChange }: { entry: TeaCompass
   };
 
   return <section className="flex h-full min-h-0 flex-col bg-tea-bg" aria-label="Tea record assistant" data-testid="tea-record-assistant">
-    <header className="flex shrink-0 items-center justify-between gap-3 border-b border-tea-border px-4 py-2 md:px-6">
+    <header className="flex shrink-0 items-center justify-between gap-3 border-b border-tea-border px-4 py-1 md:px-6">
       <div className="min-w-0"><h2 className={T.h3}>Build this tea</h2><p className="truncate text-ui-12 text-tea-text-sec">{entry.name || entry.chineseName || 'Tea record'}</p></div>
-      <button type="button" onClick={onClose} disabled={saving} className="tap-target min-h-11 px-2 text-ui-12 text-tea-text-sec">Discard changes</button>
+      <button type="button" onClick={onClose} disabled={saving || voiceBusy} className="tap-target min-h-11 px-2 text-ui-12 text-tea-text-sec">Discard changes</button>
     </header>
-    <div inert={saving || undefined} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6">
-      <div className="mx-auto grid w-full max-w-6xl min-w-0 gap-6 lg:grid-cols-2 lg:gap-8">
-        <section className="min-w-0 space-y-3" aria-label="Review passage">
-          <h3 className={T.h3}>Source passage</h3>
-          <p className="text-ui-12 text-tea-text-sec">Choose only the passage about this tea. Everything stays in review until you save.</p>
-          <ArTalkLinks entryId={entry.id} entryName={entry.name || entry.chineseName} links={arSources.links.filter(link => !removals.includes(link.id))} onRemove={id => setRemovals(previous => [...new Set([...previous, id])])} onStage={passage => {
-            const existing = arSources.links.find(link => link.sourceId === passage.sourceId);
-            if (existing) setRemovals(previous => previous.filter(id => id !== existing.id));
-            setStaged(previous => [...previous.filter(item => item.sourceId !== passage.sourceId), passage]);
-            setKeepPassages(previous => ({ ...previous, [passage.sourceId]: true })); setError('');
-          }} />
+    <div inert={saving || undefined} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6 lg:overflow-hidden">
+      <div className="mx-auto grid w-full max-w-6xl min-w-0 gap-6 lg:h-full lg:grid-cols-2 lg:gap-8">
+        <section className="min-w-0 space-y-4 lg:overflow-y-auto lg:pr-2" aria-label="Working material">
+          <div><h3 className={T.h3}>Working material</h3><p className="mt-1 text-ui-12 text-tea-text-sec">Your complete sources, private notes and research. This is the material you write from.</p></div>
+          <ArTalkLinks entryId={entry.id} entryName={entry.name || entry.chineseName} links={arSources.links.filter(link => !removals.includes(link.id))} onRemove={id => {
+            const sourceId = arSources.links.find(link => link.id === id)?.sourceId;
+            setRemovals(previous => [...new Set([...previous, id])]);
+            if (sourceId) { setStaged(previous => previous.filter(item => item.sourceId !== sourceId)); setKeepPassages(previous => ({ ...previous, [sourceId]: false })); }
+          }} onStage={stage} />
+          {fullSources.length > 0 && <div className="space-y-2 rounded-md border border-tea-border bg-tea-surface p-3">
+            {fullSources.map(source => <details key={source.sourceId}><summary className="min-h-11 cursor-pointer break-words text-ui-13 text-tea-text">{source.title} · full transcript</summary><p className="text-ui-11 text-tea-text-dim">{source.text.length.toLocaleString()} characters · original remains in AR Create</p><textarea aria-label="Live full transcript" readOnly rows={7} value={source.text} className="input-field mt-2 w-full min-w-0 px-3 py-2 text-ui-16" /></details>)}
+            <p role="status" className="text-ui-11 text-tea-text-sec">{liveSources.checking ? 'Checking the original…' : liveSources.message || 'Full transcript ready for review.'}</p>
+            <button type="button" disabled={liveSources.checking} onClick={liveSources.refresh} className="tap-target min-h-11 text-ui-12 text-tea-text-sec">Refresh originals</button>
+          </div>}
+          <WorkingMaterialReview result={working} busy={workingBusy} stale={workingStale} selected={workingSelected} onToggle={id => setWorkingSelected(previous => previous.includes(id) ? previous.filter(value => value !== id) : [...previous, id])} onAnalyze={() => void analyze()} canAnalyze={scoped && fullSources.length > 0} error={workingError} />
+          <DraftVoiceMaterial entryId={entry.id} onBusyChange={setVoiceBusy} onTranscript={text => { setDraftNotes(previous => [previous, text].filter(Boolean).join('\n\n')); setKeepNotes(false); }} />
+          <label className="block text-ui-12 text-tea-text-sec">Your notes and voice transcripts<textarea aria-label="Working notes" value={draftNotes} onChange={event => setDraftNotes(event.target.value)} rows={4} maxLength={12000} className="input-field mt-1 w-full min-w-0 resize-y px-3 py-2 text-ui-16" placeholder="Add what you know about this tea. Voice memos appear here for correction." /></label>
+          <details><summary className="min-h-11 cursor-pointer text-ui-12 text-tea-text-sec">Research and references</summary><label className="block text-ui-12 text-tea-text-sec">Confirmed background and source links<textarea aria-label="Research working material" value={research} onChange={event => setResearch(event.target.value)} rows={6} maxLength={12000} className="input-field mt-1 w-full min-w-0 resize-y px-3 py-2 text-ui-16" placeholder="Keep general regional history separate from facts about this particular lot. Include your references." /></label></details>
+          {(draftNotes || research || workingSelected.length > 0) && <label className="flex min-h-11 items-center gap-3 text-ui-12 text-tea-text"><input type="checkbox" checked={keepNotes} disabled={workingStale || workingBusy} onChange={event => setKeepNotes(event.target.checked)} className="h-5 w-5 accent-tea-gold" />Keep these working notes in this tea record</label>}
           {removals.map(id => <div key={id} className="flex flex-wrap items-center justify-between gap-2 text-ui-12 text-tea-text-sec"><span>Link marked for removal · {arSources.links.find(link => link.id === id)?.title}</span><button type="button" className="tap-target min-h-11 px-2" onClick={() => setRemovals(previous => previous.filter(value => value !== id))}>Keep link</button></div>)}
           {arSources.isError && <p className="text-ui-12 text-tea-text-sec">Linked talks could not refresh. Try again shortly.</p>}
           {!scoped && <p className="text-ui-12 text-tea-text-dim">Open this record in your signed-in shop to review its material.</p>}
-          {!evidence.length && <p className="text-ui-12 text-tea-text-dim">No notes or transcripts yet. Choose a talk or add source material to this tea.</p>}
-          {staged.map(passage => <label key={passage.sourceId} className="flex min-h-11 items-center gap-3 text-ui-12 text-tea-text"><input type="checkbox" checked={keepPassages[passage.sourceId] !== false} onChange={event => setKeepPassages(previous => ({ ...previous, [passage.sourceId]: event.target.checked }))} className="h-5 w-5 shrink-0 accent-tea-gold" /><span>Keep this passage<span className="block text-ui-11 text-tea-text-dim">{passage.title} · not saved</span></span></label>)}
+          {!evidence.length && !fullSources.length && !draftNotes && <p className="text-ui-12 text-tea-text-dim">No notes or transcripts yet. Choose a talk or add source material to this tea.</p>}
+          {staged.map(passage => <label key={passage.sourceId} className="flex min-h-11 items-center gap-3 text-ui-12 text-tea-text"><input type="checkbox" checked={keepPassages[passage.sourceId] !== false} onChange={event => setKeepPassages(previous => ({ ...previous, [passage.sourceId]: event.target.checked }))} className="h-5 w-5 shrink-0 accent-tea-gold" /><span>{passage.mode === 'full' ? 'Keep this full transcript linked' : 'Keep this passage'}<span className="block text-ui-11 text-tea-text-dim">{passage.title} · not saved</span></span></label>)}
     {evidence.length > 0 && <details className="min-w-0" open>
       <summary className={`${T.label} min-h-11 cursor-pointer text-tea-text-sec`}>Material to review · {selectedEvidence.length} {selectedEvidence.length === 1 ? 'source' : 'sources'}</summary>
       <p className="mb-2 text-ui-11 text-tea-text-dim">Choose sources or shorten their excerpts. Up to 4,000 characters and 12 extracted parts per review.</p>
@@ -191,7 +269,9 @@ function AssistantReview({ entry, onClose, onCommitChange }: { entry: TeaCompass
       <p role="status" className="mt-2 text-ui-11 text-tea-text-dim">{material.text.length.toLocaleString()} / 4,000 characters{oversized ? '. Choose fewer sources or shorten an excerpt before finding details.' : ''}</p>
     </details>}
         </section>
-        <section className="min-w-0 space-y-5" aria-label="Review AI results">
+        <section className="min-w-0 space-y-5 lg:overflow-y-auto lg:pr-2" aria-label="Public description">
+          <div className="space-y-3"><h3 className={T.h3}>Public description</h3><p className="text-ui-12 text-tea-text-sec">Write for the shop from the material you have reviewed. Supplier claims stay attributed; uncertain details and unrecorded tasting notes stay out.</p><TeaDescriptionReview entry={entry} sources={descriptionSources} stagedArSources={stagedForProposal} onSelection={setDescription} /></div>
+          <details className="border-t border-tea-border pt-3"><summary className="min-h-11 cursor-pointer text-ui-12 text-tea-text-sec">Fill missing record details from notes or a passage</summary>
           <div className="space-y-2 border-b border-tea-border pb-3"><h3 className={T.h3}>Suggested details</h3><p className="text-ui-12 text-tea-text-sec">Choose the details to add. Existing answers are kept.</p>
             <button type="button" onClick={() => void find()} disabled={busy || saving || !scoped || !material.text || alreadyReviewed || oversized} className="tap-target inline-flex min-h-11 items-center gap-2 rounded-md border border-tea-border px-3 text-ui-12 text-tea-text disabled:opacity-50">
               {busy ? <Loader2 size={14} /> : <Sparkles size={14} />}{busy ? 'Finding details…' : alreadyReviewed ? 'Material reviewed' : 'Find tea details'}
@@ -218,16 +298,14 @@ function AssistantReview({ entry, onClose, onCommitChange }: { entry: TeaCompass
       })}
 
     </div>}
-          <div className="space-y-3 border-t border-tea-border pt-4"><h3 className={T.h3}>Working description</h3><details><summary className="min-h-11 cursor-pointer text-ui-12 text-tea-text-sec">Existing description</summary><p className="whitespace-pre-wrap break-words text-ui-13 text-tea-text-sec">{entry.description || 'No description recorded.'}</p></details>
-            <TeaDescriptionReview entry={entry} sources={descriptionSources} stagedArSources={stagedForProposal} onSelection={setDescription} />
-          </div>
+          </details>
         </section>
       </div>
     </div>
     <footer className="shrink-0 border-t border-tea-border bg-tea-bg px-4 pt-2 pb-nav-gap md:px-6">
       {error && <p role="alert" className="mb-2 text-ui-12 text-tea-text-sec">{error}</p>}
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2"><p role="status" className="text-ui-11 text-tea-text-sec">{selectedCount ? `${selectedCount} accepted · same tea record` : 'Nothing saved. Select what to keep.'}</p>
-        <button type="button" disabled={saving || busy || !selectedCount} onClick={() => void save()} className="cta-solid min-h-11 rounded-md px-4 text-ui-13 disabled:opacity-50">{saving ? 'Saving…' : 'Save accepted changes'}</button>
+        <button type="button" disabled={saving || busy || workingBusy || voiceBusy || !selectedCount} onClick={() => void save()} className="cta-solid min-h-11 rounded-md px-4 text-ui-13 disabled:opacity-50">{saving ? 'Saving…' : 'Save accepted changes'}</button>
       </div>
     </footer>
   </section>;

@@ -24,7 +24,7 @@ async function listen(server: Server): Promise<string> {
 
 it('pairs the shipped connector over HTTP, searches and reads the real Worker queue, and links an exact source without any AR write', async () => {
   const connectorModule = await import('../../scripts/ar-create-teajia-connector.mjs');
-  const db = new SqliteD1('migrations', '0045');
+  const db = new SqliteD1('migrations', '0046');
   cleanup.push(() => db.close());
   seedIdentity(db, { userId: 'ar-owner', accountId: 'ar-shop', role: 'owner', bundles: ['gather', 'catalog'] });
   seedIdentity(db, { userId: 'ar-other-owner', accountId: 'ar-other-shop', role: 'owner', bundles: ['gather', 'catalog'] });

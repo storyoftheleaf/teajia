@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SqliteD1 } from './helpers/sqliteD1';
-import { handleArBridge } from '../src/curateArBridge';
+import { handleArBridge, readTeaArExcerpt } from '../src/curateArBridge';
 
 let db: SqliteD1;
 const scope = { accountId: 'account-a', userId: 'user-a' };
@@ -32,6 +32,7 @@ beforeEach(() => {
   db = new SqliteD1(false);
   db.sqlite.exec('CREATE TABLE tea_compass_entries (id TEXT PRIMARY KEY, account_id TEXT NOT NULL)');
   db.sqlite.exec(readFileSync(new URL('../migrations/0045_curate_ar_bridge.sql', import.meta.url), 'utf8'));
+  db.sqlite.exec(readFileSync(new URL('../migrations/0046_curate_ar_full_transcripts.sql', import.meta.url), 'utf8'));
   db.sqlite.prepare('INSERT INTO tea_compass_entries (id,account_id) VALUES (?,?)').run('tea-a', scope.accountId);
   db.sqlite.prepare('INSERT INTO tea_compass_entries (id,account_id) VALUES (?,?)').run('tea-b', other.accountId);
 });
@@ -201,4 +202,61 @@ it('never sends the old person\'s pending or claimed requests into a replacement
   const own = await (await call('requests', { scope: replacementPerson, body: { kind: 'search', query: 'New own question' } })).json() as any;
   const poll = await (await call('connector/poll', { token: replacement.token, method: 'POST' })).json() as any;
   expect(poll.jobs).toEqual([{ id: own.id, kind: 'search', query: 'New own question' }]);
+});
+
+
+describe('full transcript references', () => {
+  it('previews the entire scoped read without writing anything and keeps legacy excerpt bounds', async () => {
+    const connector = await pair();
+    const requested = await job(connector.token);
+    const full = { ...source, text: 'Complete source material. '.repeat(900) };
+    await call('connector/result', { token: connector.token, body: { id: requested.id, result: { source: full } } });
+    const input = { requestId: requested.id, sourceId: full.id, title: full.title, hash: full.hash, text: full.text, start: 0, end: full.text.length, mode: 'full' };
+    const changes = (db.sqlite.prepare('SELECT total_changes() AS n').get() as any).n;
+    expect(await readTeaArExcerpt(db as unknown as D1Database, scope, input)).toEqual(input);
+    expect((db.sqlite.prepare('SELECT total_changes() AS n').get() as any).n).toBe(changes);
+    await expect(readTeaArExcerpt(db as unknown as D1Database, scope, { ...input, mode: 'excerpt' })).rejects.toMatchObject({ status: 400, code: 'ar_invalid_excerpt' });
+    await expect(readTeaArExcerpt(db as unknown as D1Database, other, input)).rejects.toMatchObject({ status: 404, code: 'ar_read_not_found' });
+    await expect(readTeaArExcerpt(db as unknown as D1Database, { ...scope, userId: 'another-person' }, input)).rejects.toMatchObject({ status: 404, code: 'ar_read_not_found' });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM curate_ar_links').get()).toEqual({ n: 0 });
+  });
+  it('rejects a trimmed passage advertised as a complete transcript and unknown modes', async () => {
+    const connector = await pair();
+    const requested = await job(connector.token);
+    await call('connector/result', { token: connector.token, body: { id: requested.id, result } });
+    const input = { requestId: requested.id, sourceId: source.id, title: source.title, hash: source.hash, text: source.text.slice(0, 11), start: 0, end: 11, mode: 'full' };
+    await expect(readTeaArExcerpt(db as unknown as D1Database, scope, input)).rejects.toMatchObject({ status: 400, code: 'ar_full_transcript_mismatch' });
+    await expect(readTeaArExcerpt(db as unknown as D1Database, scope, { ...input, mode: 'unknown' })).rejects.toMatchObject({ status: 400, code: 'ar_invalid_excerpt' });
+  });
+  it('retains full-reference mode on explicit save and refreshes the same link only with its expected hash', async () => {
+    const connector = await pair();
+    const requested = await job(connector.token);
+    const full = { ...source, text: 'A complete original transcript. '.repeat(600) };
+    await call('connector/result', { token: connector.token, body: { id: requested.id, result: { source: full } } });
+    const input = { requestId: requested.id, entryId: 'tea-a', sourceId: full.id, title: full.title, hash: full.hash, text: full.text, start: 0, end: full.text.length, mode: 'full' };
+    const saved = await call('links', { scope, body: input });
+    expect(saved.status).toBe(201);
+    const first = (await saved.json() as any).link;
+    expect(first).toMatchObject({ mode: 'full', text: full.text });
+    expect(await (await call('links', { scope, query: '?entryId=tea-a' })).json()).toMatchObject({ links: [{ id: first.id, mode: 'full', text: full.text }] });
+    const refreshed = await job(connector.token);
+    const changed = { ...full, hash: 'sha256:changed-original', text: full.text + 'A correction at the end.' };
+    await call('connector/result', { token: connector.token, body: { id: refreshed.id, result: { source: changed } } });
+    const replacement = { ...input, requestId: refreshed.id, hash: changed.hash, text: changed.text, end: changed.text.length };
+    expect((await call('links', { scope, body: replacement })).status).toBe(409);
+    const updated = await call('links', { scope, body: { ...replacement, update: true, expectedHash: full.hash } });
+    expect(updated.status).toBe(200);
+    expect((await updated.json() as any).link).toMatchObject({ id: first.id, mode: 'full', text: changed.text });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM curate_ar_links WHERE entry_id=?').get('tea-a')).toEqual({ n: 1 });
+  });
+  it('requires explicit review when changing the scope of an unchanged source link', async () => {
+    const connector = await pair();
+    const requested = await job(connector.token);
+    await call('connector/result', { token: connector.token, body: { id: requested.id, result } });
+    const input = { requestId: requested.id, entryId: 'tea-a', sourceId: source.id, title: source.title, hash: source.hash, text: source.text, start: 0, end: source.text.length };
+    const first = (await (await call('links', { scope, body: input })).json() as any).link;
+    expect(first.mode).toBe('excerpt');
+    expect((await call('links', { scope, body: { ...input, mode: 'full' } })).status).toBe(409);
+    expect(await (await call('links', { scope, body: { ...input, mode: 'full', update: true, expectedHash: source.hash } })).json()).toMatchObject({ link: { id: first.id, mode: 'full' } });
+  });
 });
