@@ -4,6 +4,8 @@ import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 import { useAppStore } from '../../lib/store';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useVoiceRecorder } from './useVoiceRecorder';
+import { useNotesStore } from '../../lib/notesStore';
+import { syncNotes } from '../../lib/notesSync';
 import { mediaUrl } from '../../lib/mediaUrl';
 import type { TeaCompassEntry } from './types';
 import { TEA_TYPES, TEA_FORMS } from '../../wisdom';
@@ -45,36 +47,42 @@ function NumberField({ label, value, onCommit }: { label: string; value?: number
   </label>;
 }
 
-function RecordVoice({ entryId }: { entryId: string }) {
+export function RecordVoice({ entryId, compact = false }: { entryId: string; compact?: boolean }) {
   const userId = useAppStore(s => s.activeUserId) ?? 'guest';
   const accountId = useAppStore(s => s.activeAccountId) ?? 'guest';
-  const context = `curate:${accountId}:${userId}:${entryId}`;
+  const context = `curate:${userId}:${accountId}:${entryId}`;
   const voice = useVoiceRecorder((text, capturedContext) => {
     if (capturedContext !== context || useAppStore.getState().activeAccountId !== accountId || (useAppStore.getState().activeUserId ?? 'guest') !== userId) return false;
     const store = useTeaCompassStore.getState();
     const entry = store.getEntry(entryId);
     if (!entry || store.accountScopeId !== accountId) return false;
-    store.updateEntry(entryId, { notes: [entry.notes.trim(), text.trim()].filter(Boolean).join('\n\n') });
+    const notes = useNotesStore.getState();
+    if (!notes.notes.some(note => !note.deleted && note.accountId === accountId && (note.compassEntryId === entryId || (!!entry.teaKey && note.teaKey === entry.teaKey)) && note.sourceType === 'voice' && note.text === text.trim())) {
+      notes.addNote({ accountId, compassEntryId: entryId, teaKey: entry.teaKey, text: text.trim(), sourceType: 'voice', authorId: userId, authorName: 'You', visibility: 'private' });
+      void syncNotes().catch(() => {});
+    }
     return true;
   }, context, userId);
-  return <div className="space-y-2">
+  return <div className={compact ? 'contents' : 'space-y-2'}>
     <div className="flex flex-wrap items-center gap-3">
       <button type="button" className="tap-target min-h-11 inline-flex items-center gap-2 text-ui-12 text-tea-text-sec"
-        disabled={voice.state === 'transcribing' || voice.state === 'error'} onClick={voice.handlePress}>
-        <Mic size={14} />{voice.state === 'recording' ? 'Stop recording' : voice.state === 'transcribing' ? 'Transcribing…' : 'Record a note'}
+        aria-label="Record a note" aria-pressed={voice.state === 'recording'} disabled={voice.state === 'transcribing' || voice.state === 'error'} onClick={voice.handlePress}>
+        <Mic size={14} />{voice.state === 'recording' ? 'Stop recording' : voice.state === 'transcribing' ? 'Transcribing…' : compact ? 'Record' : 'Record a note'}
       </button>
       {voice.state === 'error' && !voice.pendingRecording && <button type="button" className="tap-target min-h-11 text-ui-12 text-tea-gold" onClick={() => void voice.discardPending()}>Try recording again</button>}
       {voice.pendingRecording && <button type="button" className="tap-target min-h-11 text-ui-12 text-tea-gold" disabled={voice.state === 'transcribing'} onClick={() => void voice.retryPending()}>Retry transcript</button>}
       {voice.pendingRecording && <button type="button" className="tap-target min-h-11 text-ui-12 text-tea-text-sec" disabled={voice.state === 'transcribing'} onClick={() => void voice.discardPending()}>Discard recording</button>}
     </div>
     {voice.errorMessage && <p role="alert" className="text-ui-12 text-tea-text-sec">{voice.errorMessage}</p>}
-    <p className="text-ui-11 text-tea-text-dim">Voice transcripts are added to your notes.</p>
+    {!compact && <p className="text-ui-11 text-tea-text-dim">Recordings join the same source material used in Source and Library.</p>}
   </div>;
 }
 
-export function TeaRecordFields({ entry, onChange }: { entry: TeaCompassEntry; onChange: (patch: Partial<TeaCompassEntry>) => void }) {
+type RecordFieldSection = 'all' | 'identity' | 'description' | 'notes' | 'quote' | 'provenance';
+export function TeaRecordFields({ entry, onChange, section = 'all' }: { entry: TeaCompassEntry; onChange: (patch: Partial<TeaCompassEntry>) => void; section?: RecordFieldSection }) {
+  const show = (value: RecordFieldSection) => section === 'all' || section === value;
   return <section aria-label="Edit tea record" className="space-y-4 min-w-0">
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    {show('identity') && <><div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <TextField label="Tea name" value={entry.name} onCommit={name => onChange({ name })} />
       <TextField label="Chinese name" value={entry.chineseName} onCommit={chineseName => onChange({ chineseName })} />
       <TextField label="Source" value={entry.vendorName} onCommit={vendorName => onChange({ vendorName, vendorId: undefined, linkedCustomerId: undefined, vendorDetails: undefined })} />
@@ -91,9 +99,10 @@ export function TeaRecordFields({ entry, onChange }: { entry: TeaCompassEntry; o
           <option value="">Not recorded</option>{TEA_FORMS.map(form => <option key={form} value={form}>{form}</option>)}
         </select></label>}
     </div>
-    <TextField label="Description" value={entry.description ?? ''} multiline onCommit={description => onChange({ description })} />
-    <TextField label="Notes" value={entry.notes} multiline onCommit={notes => onChange({ notes })} />
-    <details className="border-t border-tea-border pt-3">
+    </>}
+    {show('description') && <TextField label="Description" value={entry.description ?? ''} multiline onCommit={description => onChange({ description })} />}
+    {show('notes') && <TextField label="Notes" value={entry.notes} multiline onCommit={notes => onChange({ notes })} />}
+    {show('quote') && <details className="border-t border-tea-border pt-3">
       <summary className={`${T.label} cursor-pointer min-h-11`}>Quoted price</summary>
       <div className="grid grid-cols-2 gap-3 pb-3">
         <NumberField label="Quoted amount" value={entry.priceAmount} onCommit={priceAmount => onChange({ priceAmount })} />
@@ -102,9 +111,9 @@ export function TeaRecordFields({ entry, onChange }: { entry: TeaCompassEntry; o
         </select></label>
         {entry.category === 'tea' && <NumberField label="Price basis (g)" value={entry.pricePerUnitGrams} onCommit={pricePerUnitGrams => onChange({ pricePerUnitGrams })} />}
       </div>
-    </details>
-    <RecordVoice key={entry.id} entryId={entry.id} />
-    {entry.audioClips.length > 0 && <details className="border-t border-tea-border pt-3">
+    </details>}
+    {section === 'all' && <RecordVoice key={entry.id} entryId={entry.id} />}
+    {show('provenance') && entry.audioClips.length > 0 && <details className="border-t border-tea-border pt-3">
       <summary className={`${T.label} min-h-11 cursor-pointer`}>Voice recordings ({entry.audioClips.length})</summary>
       <div className="space-y-3">{entry.audioClips.map((clip, index) => <div key={`${clip.timestamp}:${index}`} className="space-y-2 min-w-0">
         <p className="text-ui-11 text-tea-text-dim">{new Date(clip.timestamp).toLocaleString()}</p>
@@ -112,7 +121,7 @@ export function TeaRecordFields({ entry, onChange }: { entry: TeaCompassEntry; o
         {clip.transcript && <p className="text-ui-12 text-tea-text-sec whitespace-pre-wrap">{clip.transcript}</p>}
       </div>)}</div>
     </details>}
-    {(entry.vendorDetails || entry.sourceEntryId || entry.linkedCustomerId) && <details className="border-t border-tea-border pt-3">
+    {show('provenance') && (entry.vendorDetails || entry.sourceEntryId || entry.linkedCustomerId) && <details className="border-t border-tea-border pt-3">
       <summary className={`${T.label} min-h-11 cursor-pointer`}>Source attribution</summary>
       {entry.vendorName && <p className="text-ui-12 text-tea-text-sec">{entry.vendorName}</p>}
       {entry.vendorDetails && <dl className="text-ui-12 text-tea-text-sec space-y-1">{Object.entries(entry.vendorDetails).filter(([, value]) => value != null && value !== '').map(([key, value]) => <div key={key} className="break-words"><dt className="inline text-tea-text-dim">{key}: </dt><dd className="inline">{String(value)}</dd></div>)}</dl>}

@@ -25,6 +25,11 @@ async function openLibrary(page: Page) {
   await expect(page.getByTestId(`library-entry-${entryId}`).filter({ visible: true })).toBeVisible();
 }
 
+async function openRecordSection(page: Page, name: string) {
+  const section = page.getByTestId('library-entry-detail').filter({ visible: true }).locator(`details[data-record-section="${name}"]`);
+  if (!(await section.evaluate(element => (element as HTMLDetailsElement).open))) await section.locator(':scope > summary').click();
+}
+
 test.describe('Library compact row and shared tea record', () => {
   test.beforeEach(async ({ page }) => openLibrary(page));
   test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));
@@ -45,8 +50,11 @@ test.describe('Library compact row and shared tea record', () => {
   test('More directly opens the editable record and saves description separately from notes', async ({ page }) => {
     await page.getByRole('button', { name: 'More about Cloud Peak' }).click();
     const record = page.getByTestId('library-entry-detail').filter({ visible: true });
+    await openRecordSection(page, 'About this tea');
     await expect(record.getByLabel('Tea name', { exact: true })).toHaveValue('Cloud Peak');
+    await openRecordSection(page, 'Source material');
     await expect(record.getByRole('textbox', { name: 'Notes', exact: true })).toHaveValue('smoky apricot');
+    await openRecordSection(page, 'Story & description');
     await record.getByRole('textbox', { name: 'Description', exact: true }).fill('A clear working description');
     await record.getByRole('textbox', { name: 'Notes', exact: true }).click();
     await expect.poll(() => page.evaluate(async id => {
@@ -70,6 +78,7 @@ test.describe('Library compact row and shared tea record', () => {
   test('keeps Sample list action in the shared record', async ({ page }) => {
     await page.getByRole('button', { name: 'More about Cloud Peak' }).click();
     const record = page.getByTestId('library-entry-detail').filter({ visible: true });
+    await openRecordSection(page, 'Files & history');
     await record.getByRole('button', { name: 'Add to Sample list', exact: true }).click();
     await expect(record.getByRole('button', { name: 'In Sample list', exact: true })).toBeVisible();
     expect(await page.evaluate(async id => {
@@ -87,6 +96,7 @@ test.describe('Library compact row and shared tea record', () => {
     await expect(close).toBeVisible();
     await close.click();
     await page.getByRole('button', { name: 'More about Cloud Peak' }).click();
+    await openRecordSection(page, 'About this tea');
     await expect(page.getByTestId('library-entry-detail').filter({ visible: true }).getByLabel('Tea name', { exact: true })).toHaveValue('Cloud Peak');
   });
 
@@ -111,6 +121,7 @@ test.describe('Library compact row and shared tea record', () => {
     const entry = page.getByTestId(`library-entry-${entryId}`).filter({ visible: true });
     await entry.getByRole('button', { name: 'More about Cloud Peak' }).click();
     const record = page.getByTestId('library-entry-detail').filter({ visible: true });
+    await openRecordSection(page, 'Files & history');
     await record.getByRole('button', { name: 'Delete entry', exact: true }).click();
     await expect(record).toBeVisible();
     await record.getByRole('button', { name: 'Confirm delete entry', exact: true }).click();

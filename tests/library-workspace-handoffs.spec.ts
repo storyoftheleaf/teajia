@@ -15,6 +15,12 @@ const visible = (page: Page, testId: string) => page.getByTestId(testId).filter(
 const row = (page: Page) => visible(page, `library-entry-${entryId}`);
 const record = (page: Page) => visible(page, 'library-entry-detail');
 
+async function openRecordSection(page: Page, name: string) {
+  const section = record(page).locator(`details[data-record-section="${name}"]`);
+  if (!(await section.evaluate(element => (element as HTMLDetailsElement).open))) await section.locator(':scope > summary').click();
+  return section;
+}
+
 async function noOverflow(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
 }
@@ -55,10 +61,22 @@ test.describe('Library workspace handoffs', () => {
     }
     await row(page).getByRole('button', { name: 'More about Cloud Peak' }).click();
     await expect(record(page)).toBeVisible();
-    await expect(record(page).getByRole('region', { name: 'Edit tea record' })).toBeVisible();
+    const header = record(page).getByTestId('tea-record-header');
+    const headerBox = await header.boundingBox();
+    expect(headerBox!.height).toBeLessThanOrEqual(80);
+    await expect(record(page).getByRole('textbox', { name: 'Add a note', exact: true })).toBeVisible();
+    await expect(record(page).getByRole('textbox', { name: 'Notes', exact: true })).toBeHidden();
+    await expect(record(page).getByTestId('tea-record-scroll').getByRole('button', { name: 'Taste', exact: true })).toBeVisible();
+    await expect(record(page).getByTestId('tea-record-scroll').getByRole('region', { name: 'Inventory handoff' })).toHaveCount(1);
     await page.screenshot({ path: `/private/tmp/library-workspace-${info.project.name.includes('Mobile') ? 'phone393' : 'desktop'}-record-top.png`, fullPage: false, animations: 'disabled' });
+    await record(page).getByRole('textbox', { name: 'Add a note', exact: true }).fill('The farmer picked this before the spring rain.');
+    await record(page).getByRole('button', { name: 'Add note', exact: true }).click();
+    await expect(record(page).getByText('Note added to this tea.', { exact: true })).toBeVisible();
+    await openRecordSection(page, 'Source material');
+    await expect(record(page).getByRole('textbox', { name: 'Note from You', exact: true })).toHaveValue('The farmer picked this before the spring rain.');
     await expect(record(page).getByRole('textbox', { name: 'Notes', exact: true })).toHaveValue(sourceEntry.notes);
     await expect(record(page).getByRole('region', { name: 'Tea photos' }).getByAltText('Photo 1')).toBeVisible();
+    await openRecordSection(page, 'Story & description');
     await record(page).getByRole('textbox', { name: 'Description', exact: true }).fill('Edited description with a clear origin and harvest.');
     await record(page).getByRole('textbox', { name: 'Description', exact: true }).press('Tab');
     await expect.poll(async () => (await sourceState(page))?.description).toBe('Edited description with a clear origin and harvest.');
@@ -69,9 +87,11 @@ test.describe('Library workspace handoffs', () => {
     await expect.poll(async () => (await sourceState(page))?.notes).toBe('Updated field notes, independent of the public description.');
     expect((await sourceState(page))?.description).toBe('Edited description with a clear origin and harvest.');
     await noOverflow(page);
-    await record(page).locator('.overflow-y-auto').evaluate(element => { element.scrollTop = element.scrollHeight; });
+    await record(page).getByTestId('tea-record-scroll').evaluate(element => { element.scrollTop = element.scrollHeight; });
     await record(page).getByRole('button', { name: 'Create Inventory record', exact: true }).scrollIntoViewIfNeeded();
     await page.screenshot({ path: `/private/tmp/library-workspace-${info.project.name.includes('Mobile') ? 'phone393' : 'desktop'}-record-footer.png`, fullPage: false, animations: 'disabled' });
+    expect((await header.boundingBox())!.y).toBeCloseTo(headerBox!.y, 0);
+    await expect(record(page).getByRole('textbox', { name: 'Add a note', exact: true })).not.toBeInViewport();
     if (info.project.name.includes('Mobile')) {
       const footerAction = await record(page).getByRole('button', { name: 'Create Inventory record', exact: true }).boundingBox();
       const bottomNav = await page.getByRole('navigation', { name: 'Main navigation', exact: true }).boundingBox();
@@ -112,6 +132,7 @@ test.describe('Library workspace handoffs', () => {
     await page.getByRole('button', { name: 'Transferred · 1', exact: true }).filter({ visible: true }).click();
     await expect(row(page)).toBeVisible();
     await row(page).getByRole('button', { name: 'More about Cloud Peak' }).click();
+    await openRecordSection(page, 'Source material');
     await expect(record(page).getByRole('textbox', { name: 'Notes', exact: true })).toHaveValue(sourceEntry.notes);
     await expect(record(page).getByRole('button', { name: /View in Inventory/ })).toBeVisible();
     await expect(record(page).getByRole('region', { name: 'Tea photos' }).getByAltText('Photo 1')).toBeVisible();
@@ -136,7 +157,9 @@ test('Inventory opens the same source record through the Library route', async (
   await sourceAction.click();
   await expect(page).toHaveURL(new RegExp(`tab=library&entry=${entryId}`));
   await expect(record(page)).toBeVisible();
+  await openRecordSection(page, 'Source material');
   await expect(record(page).getByRole('textbox', { name: 'Notes', exact: true })).toHaveValue(sourceEntry.notes);
+  await openRecordSection(page, 'Story & description');
   await expect(record(page).getByRole('textbox', { name: 'Description', exact: true })).toHaveValue(sourceEntry.description);
   await noOverflow(page);
   await expectNoUnhandledCompassApi(page);

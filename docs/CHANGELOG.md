@@ -2,6 +2,10 @@
 
 > Shipped work, newest first. For what's next see `CONSOLIDATED_DIRECTION.md`; active checklists live in `tracks/`.
 
+## Tea record simplification prepared 2026-10-21
+
+- **A compact record built around source material.** A small header replaces the tall fixed regions; all record actions scroll with content. Quick notes and voice share the existing linked note owner. Identity, description, source material, purchasing and history expand on the same page. Taste remains an action rather than embedded results. The AI filing endpoint reviews selected notes and transcript excerpts, proposes missing facts and quotes, and applies only explicitly checked details after rechecking current answers. Original sources and descriptions are preserved. AR Create retrieval and source-grounded description generation remain unconnected; this change adds neither an external content transfer nor a fabricated connector.
+
 ## Library handoff update prepared 2026-10-21
 
 - **One tea record from Source through Inventory.** Library has compact type-coloured tea rows, a remembered comparison currency/weight, and one editable page for identity, supplier quote, source notes, photos, voice, tastings and working description. Add contains imports. Explicit private-draft transfer moves the tea into Transferred, while Inventory reopens the same record and starts Ledger reorder drafts. Purchase facts use account-scoped orders and durable receipts; confirmation preserves tea/product links and does not add stock. No schema changes. Publication proof belongs to the recorded release artifacts.

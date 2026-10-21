@@ -1,5 +1,10 @@
-import { test, expect } from './fixtures';
+import { test, expect, type Page } from './fixtures';
 import { compassRequestCount, expectNoUnhandledCompassApi, installCompassHarness, openCompass } from './helpers/compassHarness';
+
+async function openRecordSection(page: Page, name: string) {
+  const section = page.getByTestId('library-entry-detail').filter({ visible: true }).locator(`details[data-record-section="${name}"]`);
+  if (!(await section.evaluate(element => (element as HTMLDetailsElement).open))) await section.locator(':scope > summary').click();
+}
 
 test.describe('Curate context retrieval', () => {
   test.beforeEach(async ({ page }) => installCompassHarness(page));
@@ -298,6 +303,7 @@ test.describe('Curate Library decisions and retrieval', () => {
       return { is_public: product.is_public, shown_in_shop: product.shown_in_shop };
     });
     await page.getByRole('button', { name: /^(Open|Expand) Cloud Peak details$/ }).click();
+    await openRecordSection(page, 'Purchasing');
     await page.getByRole('radio', { name: 'Considering' }).click();
     expect(await page.evaluate(async () => {
       // @ts-expect-error Vite source import.
@@ -554,6 +560,8 @@ test.describe('Curate Library decisions and retrieval', () => {
     await expect(selectedRail.getByRole('button', { name: 'More about River Stone', exact: true })).toBeVisible();
     await selectedRail.getByRole('button', { name: /Open River Stone details/ }).click();
     const detail = page.getByTestId('library-entry-detail');
+    await openRecordSection(page, 'Purchasing');
+    await openRecordSection(page, 'Files & history');
     for (const name of ['Order', 'Taste', 'Queue', 'Share', 'Delete entry']) await expect(detail.getByRole('button', { name, exact: true })).toBeVisible();
     await expect(detail.getByRole('button', { name: /Add to Sample list/i })).toBeVisible();
     await detail.getByRole('button', { name: 'Share', exact: true }).click();
@@ -568,6 +576,7 @@ test.describe('Curate Library decisions and retrieval', () => {
       useTeaCompassStore.setState((state: any) => ({ entries: state.entries.map((entry: any) => entry.id === 'selected' ? { ...entry, photos: ['data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg"/%3E', 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2 2"/%3E'] } : entry) }));
     });
     await page.getByTestId('library-entry-selected').filter({ visible: true }).getByRole('button', { name: 'More about River Stone' }).click();
+    await openRecordSection(page, 'Source material');
     const trigger = page.getByTestId('library-entry-detail').filter({ visible: true }).getByRole('button', { name: 'Photo actions', exact: true }).first();
     await trigger.click();
     await page.getByRole('button', { name: 'View full size', exact: true }).click();
