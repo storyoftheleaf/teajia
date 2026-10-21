@@ -1,3 +1,6 @@
+import { handleArBridge, expireArBridgeRequests } from './curateArBridge';
+import { descriptionForTeaRecord } from './curateTeaDescriptionRequest';
+import { TeaDescriptionError } from './curateTeaDescription';
 import { promoteCompassEntry, CompassPromotionError } from './curatePromotion';
 import { applySupplierRename, listSupplierFreight, previewSupplierRename, SupplierRenameRefusal } from './supplierRename';
 import { authPagePath } from '../../src/lib/authNavigation';
@@ -28968,6 +28971,42 @@ const handleFileSaid: Handler = async (request, env) => {
   }
 };
 
+const handleDescriptionProposal: Handler = async (request, env) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${ctx.accountId}:${ctx.userId}:tea-description`);
+  if (limited) return limited;
+  const length = Number(request.headers.get('Content-Length'));
+  if (length > 100_000) return json({ error: 'Choose shorter source excerpts.' }, 413);
+  try {
+    const reader = request.body?.getReader();
+    const chunks: Uint8Array[] = []; let bytes = 0;
+    if (reader) for (;;) { const part = await reader.read(); if (part.done) break; bytes += part.value.byteLength; if (bytes > 100_000) { await reader.cancel(); return json({ error: 'Choose shorter source excerpts.' }, 413); } chunks.push(part.value); }
+    const bodyBytes = new Uint8Array(bytes); let offset = 0; for (const chunk of chunks) { bodyBytes.set(chunk, offset); offset += chunk.byteLength; }
+    return json(await descriptionForTeaRecord(env, ctx, JSON.parse(new TextDecoder().decode(bodyBytes))));
+  }
+  catch (error) {
+    if (error instanceof SyntaxError) return json({ error: 'Choose valid tea source material.' }, 400);
+    if (error instanceof TeaDescriptionError) return json({ error: error.message, code: error.code }, error.status);
+    return json({ error: 'Description drafting could not complete. Try again.' }, 502);
+  }
+};
+function arBridgeRoute(action: string, publicRoute = false): Handler {
+  return async (request, env, params) => {
+    if (publicRoute) {
+      const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+      const registration = action === 'pair/start';
+      const limited = await enforceDurableLimit(registration ? env.OAUTH_REGISTER_LIMITER : env.OAUTH_AUTHORIZE_LIMITER, registration ? 'OAUTH_REGISTER_LIMITER' : 'OAUTH_AUTHORIZE_LIMITER', `ar-pair:${action}:${ip}`);
+      if (limited) return limited;
+      return handleArBridge(request, env, undefined, action, params.id);
+    }
+    if (action.startsWith('connector/')) return handleArBridge(request, env, undefined, action, params.id);
+    const ctx = action === 'pair/claim' || action === 'disconnect' ? await requireOwnerTier(request, env) : await requireSourcing(request, env);
+    if ('error' in ctx) return ctx.error;
+    return handleArBridge(request, env, ctx, action, params.id);
+  };
+}
+
 /** Orders on their way: one pending receipt per tea, accepted on arrival. */
 const handleListPendingReceipts: Handler = async (request, env) => {
   const ctx = await requireSourcing(request, env);
@@ -29552,6 +29591,19 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/curate/receipt-proposals/:id/reject', handleRejectReceiptProposal],
   ['GET', '/api/curate/receipt-proposals', handleListPendingReceipts],
   ['POST', '/api/curate/said/file', handleFileSaid],
+  ['POST', '/api/curate/description-proposal', handleDescriptionProposal],
+  ['POST', '/api/curate/ar-create/pair/start', arBridgeRoute('pair/start', true)],
+  ['GET', '/api/curate/ar-create/pair/:id', arBridgeRoute('pair/status', true)],
+  ['POST', '/api/curate/ar-create/pair/claim', arBridgeRoute('pair/claim')],
+  ['GET', '/api/curate/ar-create/status', arBridgeRoute('status')],
+  ['DELETE', '/api/curate/ar-create/status', arBridgeRoute('disconnect')],
+  ['POST', '/api/curate/ar-create/requests', arBridgeRoute('requests')],
+  ['GET', '/api/curate/ar-create/requests/:id', arBridgeRoute('requests')],
+  ['POST', '/api/curate/ar-create/connector/poll', arBridgeRoute('connector/poll')],
+  ['POST', '/api/curate/ar-create/connector/result', arBridgeRoute('connector/result')],
+  ['GET', '/api/curate/ar-create/links', arBridgeRoute('links')],
+  ['POST', '/api/curate/ar-create/links', arBridgeRoute('links')],
+  ['DELETE', '/api/curate/ar-create/links/:id', arBridgeRoute('links')],
   ['GET', '/api/curate/drive', handleDriveStatus],
   ['POST', '/api/curate/drive/connect', handleDriveConnect],
   ['DELETE', '/api/curate/drive', handleDriveDisconnect],
@@ -30100,6 +30152,7 @@ export default {
   },
 
   async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
+    try { await expireArBridgeRequests(env.DB); } catch { console.error('Archive request cleanup failed'); }
     try {
       await processPendingCustomerOrderNotifications(env.DB, env, { limit: 10 });
     } catch (error) {

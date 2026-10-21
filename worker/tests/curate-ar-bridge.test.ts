@@ -1,0 +1,204 @@
+import { readFileSync } from 'node:fs';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { SqliteD1 } from './helpers/sqliteD1';
+import { handleArBridge } from '../src/curateArBridge';
+
+let db: SqliteD1;
+const scope = { accountId: 'account-a', userId: 'user-a' };
+const other = { accountId: 'account-b', userId: 'user-b' };
+const call = (action: string, options: { method?: string; body?: unknown; scope?: typeof scope; id?: string; secret?: string; token?: string; query?: string } = {}) => handleArBridge(new Request(`https://teajia.test/api/curate/ar-create/${action}${options.query ?? ''}`, { method: options.method ?? (options.body ? 'POST' : 'GET'), headers: { ...(options.token || options.secret ? { Authorization: `Bearer ${options.token ?? options.secret}` } : {}), ...(options.body ? { 'Content-Type': 'application/json' } : {}) }, ...(options.body ? { body: JSON.stringify(options.body) } : {}) }), { DB: db as unknown as D1Database }, options.scope, action, options.id);
+async function pair(account = scope) {
+  const response = await call('pair/start', { method: 'POST' });
+  expect(response.status).toBe(201);
+  const start = await response.json() as any;
+  expect((await call('pair/claim', { scope: account, body: { code: start.code } })).status).toBe(200);
+  const exchanged = await call('pair/status', { id: start.deviceId, secret: start.deviceSecret });
+  const paired = await exchanged.json() as any;
+  expect(paired.status).toBe('paired');
+  return { ...start, token: paired.token };
+}
+async function job(token: string, kind: 'search' | 'read' = 'read', account = scope) {
+  const response = await call('requests', { scope: account, body: kind === 'read' ? { kind, sourceId: 'source-1' } : { kind, query: 'Yiwu' } });
+  const requested = await response.json() as any;
+  const poll = await call('connector/poll', { token, method: 'POST' });
+  const { jobs } = await poll.json() as any;
+  expect(jobs[0].id).toBe(requested.id);
+  return requested;
+}
+const source = { id: 'source-1', title: 'Yiwu field notes', hash: 'sha256:source-hash', text: 'First line.\nA spring harvest from Yiwu.\nLast line.' };
+const result = { source };
+
+beforeEach(() => {
+  db = new SqliteD1(false);
+  db.sqlite.exec('CREATE TABLE tea_compass_entries (id TEXT PRIMARY KEY, account_id TEXT NOT NULL)');
+  db.sqlite.exec(readFileSync(new URL('../migrations/0045_curate_ar_bridge.sql', import.meta.url), 'utf8'));
+  db.sqlite.prepare('INSERT INTO tea_compass_entries (id,account_id) VALUES (?,?)').run('tea-a', scope.accountId);
+  db.sqlite.prepare('INSERT INTO tea_compass_entries (id,account_id) VALUES (?,?)').run('tea-b', other.accountId);
+});
+afterEach(() => db.close());
+
+describe('local AR connector pairing', () => {
+  it('keeps secrets hashed, requires the secret for exchange, and retries the same paired token safely', async () => {
+    const paired = await pair();
+    const row = db.sqlite.prepare('SELECT * FROM curate_ar_devices WHERE id=?').get(paired.deviceId) as any;
+    expect(JSON.stringify(row)).not.toContain(paired.deviceSecret);
+    expect(JSON.stringify(row)).not.toContain(paired.token);
+    expect((await call('pair/status', { id: paired.deviceId, secret: 'wrong-secret' })).status).toBe(401);
+    expect((await call('pair/status', { id: paired.deviceId, query: '?secret=' + encodeURIComponent(paired.deviceSecret) })).status).toBe(401);
+    expect(await (await call('pair/status', { id: paired.deviceId, secret: paired.deviceSecret })).json()).toMatchObject({ status: 'paired', token: paired.token });
+    expect((await call('pair/claim', { scope: other, body: { code: paired.code } })).status).toBe(409);
+    expect((await call('status')).status).toBe(401);
+  });
+  it('expires unclaimed pair codes and refuses a late token exchange', async () => {
+    const start = await (await call('pair/start', { method: 'POST' })).json() as any;
+    db.sqlite.prepare('UPDATE curate_ar_devices SET pair_expires_at=? WHERE id=?').run(Date.now() - 1, start.deviceId);
+    expect((await call('pair/claim', { scope, body: { code: start.code } })).status).toBe(410);
+    expect((await call('pair/status', { id: start.deviceId, secret: start.deviceSecret })).status).toBe(410);
+  });
+  it('replaces the one account connector, revokes its token and permits disconnect without touching another shop', async () => {
+    const first = await pair();
+    const foreign = await pair(other);
+    const second = await pair();
+    expect((await call('connector/poll', { token: first.token, method: 'POST' })).status).toBe(401);
+    expect((await call('connector/poll', { token: second.token, method: 'POST' })).status).toBe(200);
+    expect((await call('disconnect', { scope, method: 'DELETE' })).status).toBe(200);
+    expect((await call('connector/poll', { token: second.token, method: 'POST' })).status).toBe(401);
+    expect((await call('connector/poll', { token: foreign.token, method: 'POST' })).status).toBe(200);
+  });
+});
+
+describe('account-scoped durable AR jobs', () => {
+  it('scopes requests, claims and results, and replays identical results idempotently', async () => {
+    const connector = await pair();
+    const foreign = await pair(other);
+    const requested = await job(connector.token);
+    expect((await call('requests', { scope: other, id: requested.id })).status).toBe(404);
+    expect((await call('connector/result', { token: foreign.token, body: { id: requested.id, result } })).status).toBe(404);
+    const replay = await (await call('connector/poll', { token: connector.token, method: 'POST' })).json() as any;
+    expect(replay.jobs[0].id).toBe(requested.id);
+    expect((await call('connector/result', { token: connector.token, body: { id: requested.id, result } })).status).toBe(200);
+    expect((await call('connector/result', { token: connector.token, body: { id: requested.id, result } })).status).toBe(200);
+    expect((await call('connector/result', { token: connector.token, body: { id: requested.id, result: { source: { ...source, text: 'different' } } } })).status).toBe(409);
+    expect(await (await call('requests', { scope, id: requested.id })).json()).toMatchObject({ status: 'complete', result });
+  });
+  it('rejects jobs without a connected device, rejects unsupported sources, and erases expired temporary originals', async () => {
+    expect((await call('requests', { scope, body: { kind: 'read', sourceId: 'source-1' } })).status).toBe(409);
+    const connector = await pair();
+    expect((await call('requests', { scope, body: { kind: 'read', sourceId: '../../private' } })).status).toBe(400);
+    const requested = await job(connector.token);
+    await call('connector/result', { token: connector.token, body: { id: requested.id, result } });
+    db.sqlite.prepare('UPDATE curate_ar_jobs SET expires_at=? WHERE id=?').run(Date.now() - 1, requested.id);
+    expect(await (await call('requests', { scope, id: requested.id })).json()).toMatchObject({ status: 'expired' });
+    expect((db.sqlite.prepare('SELECT result_json FROM curate_ar_jobs WHERE id=?').get(requested.id) as any).result_json).toBeNull();
+  });
+  it('bounds results, strips paths and refuses unclaimed jobs', async () => {
+    const connector = await pair();
+    const pending = await (await call('requests', { scope, body: { kind: 'read', sourceId: 'source-1' } })).json() as any;
+    expect((await call('connector/result', { token: connector.token, body: { id: pending.id, result } })).status).toBe(409);
+    await call('connector/poll', { token: connector.token, method: 'POST' });
+    expect((await call('connector/result', { token: connector.token, body: { id: pending.id, result: { source: { ...source, text: 'x'.repeat(200001) } } } })).status).toBe(400);
+    await call('connector/result', { token: connector.token, body: { id: pending.id, error: 'Failed /Users/private/document.md' } });
+    const failed = await (await call('requests', { scope, id: pending.id })).json() as any;
+    expect(failed.status).toBe('error');
+    expect(failed.error).not.toContain('/Users');
+    const search = await job(connector.token, 'search');
+    expect((await call('connector/result', { token: connector.token, body: { id: search.id, result: { sources: Array.from({ length: 31 }, (_, i) => ({ id: `source-${i}`, title: 'Tea' })) } } })).status).toBe(400);
+    await call('connector/result', { token: connector.token, body: { id: search.id, result: { sources: [{ id: 'source-1', title: 'Tea', path: '/Users/private.md', snippet: 'Tea notes' }] } } });
+    expect(JSON.stringify(await (await call('requests', { scope, id: search.id })).json())).not.toContain('/Users');
+  });
+});
+
+describe('reviewed AR references', () => {
+  it('links only an exact excerpt from a completed scoped read, deduplicates and protects changes by expected hash', async () => {
+    const connector = await pair();
+    const requested = await job(connector.token);
+    await call('connector/result', { token: connector.token, body: { id: requested.id, result } });
+    const start = source.text.indexOf('A spring');
+    const text = 'A spring harvest from Yiwu.';
+    const body = { requestId: requested.id, entryId: 'tea-a', sourceId: source.id, title: source.title, hash: source.hash, text, start, end: start + text.length };
+    expect((await call('links', { scope: other, body })).status).toBe(404);
+    expect((await call('links', { scope, body: { ...body, entryId: 'tea-b' } })).status).toBe(404);
+    expect((await call('links', { scope, body: { ...body, text: 'Invented source quote' } })).status).toBe(400);
+    const linked = await (await call('links', { scope, body })).json() as any;
+    expect(linked.link).toMatchObject({ entryId: 'tea-a', sourceId: source.id, hash: source.hash, text });
+    expect(await (await call('links', { scope, body })).json()).toMatchObject({ link: { id: linked.link.id } });
+    expect((await call('links', { scope, body: { ...body, start: 0, end: 11, text: 'First line.' } })).status).toBe(409);
+    expect((await call('links', { scope, body: { ...body, start: 0, end: 11, text: 'First line.', update: true, expectedHash: source.hash } })).status).toBe(200);
+    expect((await call('links', { scope: other, id: linked.link.id, method: 'DELETE' })).status).toBe(404);
+    expect((await call('links', { scope, id: linked.link.id, method: 'DELETE' })).status).toBe(200);
+    expect(await (await call('links', { scope, query: '?entryId=tea-a' })).json()).toEqual({ links: [] });
+    expect((db.sqlite.prepare('SELECT result_json FROM curate_ar_jobs WHERE id=?').get(requested.id) as any).result_json).not.toBeNull();
+  });
+});
+
+it('reports connection freshness and reassigns an interrupted claimed job to a newly paired connector', async () => {
+  const first = await pair();
+  expect(await (await call('status', { scope })).json()).toMatchObject({ paired: true, connected: false, lastSeen: null });
+  const requested = await job(first.token);
+  expect(await (await call('status', { scope })).json()).toMatchObject({ paired: true, connected: true });
+  const replacement = await pair();
+  const resumed = await (await call('connector/poll', { token: replacement.token, method: 'POST' })).json() as any;
+  expect(resumed.jobs[0].id).toBe(requested.id);
+  expect((await call('connector/result', { token: first.token, body: { id: requested.id, result } })).status).toBe(401);
+  expect((await call('connector/result', { token: replacement.token, body: { id: requested.id, result } })).status).toBe(200);
+  db.sqlite.prepare('UPDATE curate_ar_devices SET last_seen_at=? WHERE id=?').run(Date.now() - 121000, replacement.deviceId);
+  expect(await (await call('status', { scope })).json()).toMatchObject({ paired: true, connected: false });
+});
+
+it('never turns a secret, shop JWT or unpaired device into connector authority', async () => {
+  const start = await (await call('pair/start', { method: 'POST' })).json() as any;
+  expect((await call('connector/poll', { token: start.deviceSecret, method: 'POST' })).status).toBe(401);
+  expect((await call('connector/poll', { token: 'header.payload.signature', method: 'POST' })).status).toBe(401);
+  expect(await (await call('pair/status', { id: start.deviceId, secret: start.deviceSecret })).json()).toMatchObject({ status: 'pending' });
+  expect((await call('pair/claim', { body: { code: start.code } })).status).toBe(401);
+});
+
+it('rejects an expired read snapshot as link authority even when the original tea still exists', async () => {
+  const connector = await pair();
+  const requested = await job(connector.token);
+  await call('connector/result', { token: connector.token, body: { id: requested.id, result } });
+  db.sqlite.prepare('UPDATE curate_ar_jobs SET expires_at=? WHERE id=?').run(Date.now() - 1, requested.id);
+  const response = await call('links', { scope, body: { requestId: requested.id, entryId: 'tea-a', sourceId: source.id, title: source.title, hash: source.hash, text: source.text, start: 0, end: source.text.length } });
+  expect(response.status).toBe(404);
+  expect((db.sqlite.prepare('SELECT result_json FROM curate_ar_jobs WHERE id=?').get(requested.id) as any).result_json).toBeNull();
+});
+
+it('rejects malformed authenticated JSON and oversized bodies without reflecting private input', async () => {
+  const connector = await pair();
+  const malformed = await handleArBridge(new Request('https://teajia.test/api/curate/ar-create/connector/result', { method: 'POST', headers: { Authorization: `Bearer ${connector.token}`, 'Content-Type': 'application/json' }, body: '{private invalid input' }), { DB: db as unknown as D1Database }, undefined, 'connector/result');
+  expect(malformed.status).toBe(400);
+  expect(await malformed.json()).toMatchObject({ code: 'ar_invalid_json' });
+  const oversized = await handleArBridge(new Request('https://teajia.test/api/curate/ar-create/connector/result', { method: 'POST', headers: { Authorization: `Bearer ${connector.token}`, 'Content-Length': '900001' }, body: '{}' }), { DB: db as unknown as D1Database }, undefined, 'connector/result');
+  expect(oversized.status).toBe(413);
+});
+
+it('keeps a personal archive private from a different collaborator in the same account', async () => {
+  const collaborator = { accountId: scope.accountId, userId: 'same-shop-collaborator' };
+  const connector = await pair();
+  const own = await job(connector.token);
+  expect((await call('requests', { scope: collaborator, body: { kind: 'search', query: 'Private journal' } })).status).toBe(403);
+  expect((await call('requests', { scope: collaborator, id: own.id })).status).toBe(404);
+  expect(await (await call('status', { scope: collaborator })).json()).toMatchObject({ paired: true, canSearch: false });
+  expect(await (await call('status', { scope })).json()).toMatchObject({ canSearch: true });
+  await call('connector/result', { token: connector.token, body: { id: own.id, result } });
+  const body = { requestId: own.id, entryId: 'tea-a', sourceId: source.id, title: source.title, hash: source.hash, text: source.text, start: 0, end: source.text.length };
+  expect((await call('links', { scope: collaborator, body })).status).toBe(404);
+  const linked = await (await call('links', { scope, body })).json() as any;
+  expect(await (await call('links', { scope: collaborator, query: '?entryId=tea-a' })).json()).toMatchObject({ links: [{ id: linked.link.id, text: source.text }] });
+});
+
+it('never sends the old person\'s pending or claimed requests into a replacement person\'s archive', async () => {
+  const replacementPerson = { accountId: scope.accountId, userId: 'another-owner' };
+  const old = await pair();
+  const claimed = await job(old.token);
+  const pending = await (await call('requests', { scope, body: { kind: 'search', query: 'Old private question' } })).json() as any;
+  const replacement = await pair(replacementPerson);
+  expect(await (await call('connector/poll', { token: replacement.token, method: 'POST' })).json()).toEqual({ jobs: [] });
+  for (const id of [claimed.id, pending.id]) {
+    expect(await (await call('requests', { scope, id })).json()).toMatchObject({ status: 'error' });
+    expect((await call('requests', { scope: replacementPerson, id })).status).toBe(404);
+  }
+  const own = await (await call('requests', { scope: replacementPerson, body: { kind: 'search', query: 'New own question' } })).json() as any;
+  const poll = await (await call('connector/poll', { token: replacement.token, method: 'POST' })).json() as any;
+  expect(poll.jobs).toEqual([{ id: own.id, kind: 'search', query: 'New own question' }]);
+});

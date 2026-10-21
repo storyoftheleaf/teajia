@@ -21,7 +21,7 @@ export const teaRecordScopeMatches = (a: TeaRecordAssistantScope, b: TeaRecordAs
   a.accountId === b.accountId && a.userId === b.userId && a.revision === b.revision && a.entryId === b.entryId;
 
 /** Identical text is sent once; each place it came from remains attributed. */
-export function collectTeaRecordEvidence(entry: TeaCompassEntry, notes: readonly Note[], accountId: string): TeaRecordEvidence[] {
+export function collectTeaRecordEvidence(entry: TeaCompassEntry, notes: readonly Note[], accountId: string, linkedSources: readonly { id: string; title: string; text: string }[] = []): TeaRecordEvidence[] {
   const records = new Map<string, TeaRecordEvidence>();
   const add = (text: string | undefined, source: TeaRecordEvidence['sources'][number]) => {
     const clean = text?.trim();
@@ -39,6 +39,7 @@ export function collectTeaRecordEvidence(entry: TeaCompassEntry, notes: readonly
     if (note.deleted || note.accountId !== accountId || !linked) continue;
     add(note.text, { id: `note:${note.id}`, label: `${note.sourceType === 'voice' ? 'Voice note' : note.sourceType === 'vendor' ? 'Vendor note' : note.sourceType === 'tasting' ? 'Tasting note' : 'Written note'}${note.authorName ? ` · ${note.authorName}` : ''}`, at: note.createdAt });
   }
+  for (const link of linkedSources) add(link.text, { id: `ar:${link.id}`, label: `AR Create · ${link.title}` });
   return [...records.values()];
 }
 

@@ -89,6 +89,8 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     const requestKey = `${route.request().method()} ${path}`;
     const counts = requestCounts.get(page)!;
     counts.set(requestKey, (counts.get(requestKey) ?? 0) + 1);
+    if (requestKey === 'GET /api/curate/ar-create/status') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ connected: false }) });
+    if (requestKey === 'GET /api/curate/ar-create/links') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ links: [] }) });
     if (options?.contextFailOnce && requestKey === 'POST /api/curate/journeys' && counts.get(requestKey) === 1) {
       return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Temporary failure' }) });
     }

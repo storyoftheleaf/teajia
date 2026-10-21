@@ -2,6 +2,10 @@
 
 > Shipped work, newest first. For what's next see `CONSOLIDATED_DIRECTION.md`; active checklists live in `tracks/`.
 
+## AR Create tea connection prepared 2026-10-21
+
+- **Link talks and review descriptions in the same tea record.** A paired outbound connector reads AR Create's library through its existing local API. Phone search accepts a title or phrase, then links an exact reviewed excerpt with its original source ID, hash and offsets. Only the pairing person can search the private library; accepted links follow the tea's existing store access. Selected passages join existing notes and voice in fact review and editable, cited description proposals, with explicit use and guarded undo. No original talk, second tea or manuscript is created. Schema-only migration 0045 adds bounded pairing, temporary jobs and durable references. Live activation requires the owner to approve the store connection once.
+
 ## Tea record simplification prepared 2026-10-21
 
 - **A compact record built around source material.** A small header replaces the tall fixed regions; all record actions scroll with content. Quick notes and voice share the existing linked note owner. Identity, description, source material, purchasing and history expand on the same page. Taste remains an action rather than embedded results. The AI filing endpoint reviews selected notes and transcript excerpts, proposes missing facts and quotes, and applies only explicitly checked details after rechecking current answers. Original sources and descriptions are preserved. AR Create retrieval and source-grounded description generation remain unconnected; this change adds neither an external content transfer nor a fabricated connector.

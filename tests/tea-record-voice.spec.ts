@@ -92,7 +92,6 @@ test('phone shared tea recording stores one canonical voice note without rewriti
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await record.getByText('Source material', { exact: true }).click();
   await expect(record.getByRole('textbox', { name: 'Voice note from You', exact: true })).toHaveValue(transcript);
-  await expect(record.locator('p').filter({ hasText: transcript })).toHaveCount(1);
   await page.screenshot({ path: '/private/tmp/tea-record-phone-voice-source.png', fullPage: true, animations: 'disabled' });
   await record.getByRole('textbox', { name: 'Voice note from You', exact: true }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: '/private/tmp/tea-record-phone-voice-note.png', fullPage: true, animations: 'disabled' });

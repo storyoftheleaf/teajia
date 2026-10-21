@@ -7,6 +7,8 @@ import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useNotesStore } from '../../lib/notesStore';
 import { plainFailure } from '../CurateV2/plainFailure';
 import { SAID_LABEL } from '../CurateV2/saidFiling';
+import { ArTalkLinks, useArTeaSources } from './ArTeaSources';
+import { TeaDescriptionReview } from './TeaDescriptionReview';
 import type { TeaCompassEntry } from './types';
 import {
   applyReviewedTeaFacts, collectTeaRecordEvidence, loadTeaRecordReview, teaRecordExtractionText, teaRecordScopeMatches,
@@ -36,6 +38,7 @@ export function TeaRecordAssistant({ entry }: { entry: TeaCompassEntry }) {
 
 function AssistantReview({ entry }: { entry: TeaCompassEntry }) {
   const notes = useNotesStore(state => state.notes);
+  const arSources = useArTeaSources(entry.id);
   const accountId = useAppStore(state => state.activeAccountId);
   const userId = useAppStore(state => state.activeUserId);
   const scopeAccount = useTeaCompassStore(state => state.accountScopeId);
@@ -50,7 +53,7 @@ function AssistantReview({ entry }: { entry: TeaCompassEntry }) {
   const pending = useRef(false);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const scoped = !!accountId && !!userId && accountId === scopeAccount;
-  const evidence = useMemo(() => scoped ? collectTeaRecordEvidence(entry, notes, accountId ?? '') : [], [entry, notes, accountId, scoped]);
+  const evidence = useMemo(() => scoped ? collectTeaRecordEvidence(entry, notes, accountId ?? '', arSources.links) : [], [entry, notes, accountId, scoped, arSources.links]);
   const selectedEvidence = useMemo(() => evidence.filter(item => chosenSources[item.id] !== false).map(item => ({ ...item, text: excerpts[item.id] ?? item.text })).filter(item => item.text.trim()), [evidence, chosenSources, excerpts]);
   const material = useMemo(() => teaRecordExtractionText(selectedEvidence, Infinity), [selectedEvidence]);
   const oversized = material.text.length > 4000;
@@ -106,6 +109,8 @@ function AssistantReview({ entry }: { entry: TeaCompassEntry }) {
       </button>
     </div>
     <p className="text-ui-12 text-tea-text-sec">Review suggested details before adding them. Sources stay intact.</p>
+    <ArTalkLinks entryId={entry.id} entryName={entry.chineseName || entry.name} links={arSources.links} />
+    {arSources.isError && <p className="text-ui-12 text-tea-text-sec">Linked talks could not refresh. Try again shortly.</p>}
     {!scoped && <p className="text-ui-12 text-tea-text-dim">Open this record in your signed-in shop to review its material.</p>}
     {!evidence.length && <p className="text-ui-12 text-tea-text-dim">No notes or transcripts yet. Add source material to this tea first.</p>}
     {evidence.length > 0 && <details className="min-w-0">
@@ -147,6 +152,7 @@ function AssistantReview({ entry }: { entry: TeaCompassEntry }) {
         <p className="text-ui-11 text-tea-text-dim">Select the details to add. Existing answers are kept.</p>
       </div>}
     </div>}
+    <TeaDescriptionReview entry={entry} sources={selectedEvidence.map(item => ({ id: item.id, title: item.sources.map(source => source.label).join('; '), text: item.text }))} />
     {message && <p role="status" className="text-ui-12 text-tea-text-sec">{message}</p>}
     {review && displayedEvidence.length > 0 && <details className="min-w-0" open={!!review}>
       <summary className={`${T.label} min-h-11 cursor-pointer text-tea-text-sec`}>Original material ({displayedEvidence.length})</summary>

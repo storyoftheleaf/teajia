@@ -2994,6 +2994,8 @@ export const api = {
     /** Split what was said about a tea into parts to tick. Writes nothing. */
     fileSaid: async (body: { text: string; tea_name?: string }): Promise<{ parts: Array<{ kind: 'tea' | 'price' | 'taste' | 'story' | 'vendor' | 'todo'; text: string; fields: Record<string, any> }> }> =>
       authedFetch(`${API_URL}/api/curate/said/file`, { method: 'POST', body: JSON.stringify(body) }),
+    proposeDescription: async (body: { entryId: string; sources: Array<{ id: string; title: string; text: string }> }): Promise<{ description: string; citations: Array<{ sourceId: string; quote: string }>; paragraphs?: Array<{ text: string; citations: Array<{ sourceId: string; quote: string }> }>; baseDescription: string | null }> =>
+      authedFetch(`${API_URL}/api/curate/description-proposal`, { method: 'POST', body: JSON.stringify(body) }),
     todoDone: async (id: string) =>
       authedFetch(`${API_URL}/api/curate/todos/${id}/done`, { method: 'POST' }),
     /** Share a capture card to known accounts and/or generate an invite link for external tasters */
@@ -5027,3 +5029,18 @@ export interface CurateTodo {
   id: string; text: string; compass_entry_id: string | null; vendor_id: string | null; from_agent: string | null;
   created_at: string; tea_name: string | null; vendor_name: string | null;
 }
+
+export interface ArTeaSourceLink { id: string; entryId: string; sourceId: string; title: string; hash: string; text: string; start: number; end: number; linkedAt?: string }
+export interface ArLibrarySource { id: string; title: string; hash?: string; snippet?: string }
+export interface ArReadSource { id: string; title: string; hash: string; text: string }
+export interface ArBridgeJob { id: string; status: 'pending' | 'running' | 'complete' | 'error' | 'expired'; result?: { sources?: ArLibrarySource[]; source?: ArReadSource }; error?: string; expiresAt?: string }
+export const arCreateApi = {
+  status: (): Promise<{ connected: boolean; paired?: boolean; canSearch?: boolean; lastSeen?: string }> => authedFetch(`${API_URL}/api/curate/ar-create/status`),
+  claim: (code: string): Promise<{ paired: boolean }> => authedFetch(`${API_URL}/api/curate/ar-create/pair/claim`, { method: 'POST', body: JSON.stringify({ code }) }),
+  disconnect: () => authedFetch(`${API_URL}/api/curate/ar-create/status`, { method: 'DELETE' }),
+  request: (input: { kind: 'search' | 'read'; query?: string; sourceId?: string }): Promise<ArBridgeJob> => authedFetch(`${API_URL}/api/curate/ar-create/requests`, { method: 'POST', body: JSON.stringify(input) }),
+  job: (id: string): Promise<ArBridgeJob> => authedFetch(`${API_URL}/api/curate/ar-create/requests/${encodeURIComponent(id)}`),
+  links: (entryId: string): Promise<{ links: ArTeaSourceLink[] }> => authedFetch(`${API_URL}/api/curate/ar-create/links?entryId=${encodeURIComponent(entryId)}`),
+  link: (input: { entryId: string; requestId: string; sourceId: string; title: string; hash: string; text: string; start: number; end: number; expectedHash?: string; update?: boolean }): Promise<{ link: ArTeaSourceLink }> => authedFetch(`${API_URL}/api/curate/ar-create/links`, { method: 'POST', body: JSON.stringify(input) }),
+  remove: (id: string) => authedFetch(`${API_URL}/api/curate/ar-create/links/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+};
