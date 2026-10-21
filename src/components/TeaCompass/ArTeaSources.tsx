@@ -68,12 +68,14 @@ export function ArCreatePairing() {
     </div>
   </BottomSheet>;
 }
-export function ArTalkLinks({ entryId, entryName, links }: { entryId: string; entryName?: string; links: ArTeaSourceLink[] }) {
+export interface StagedArPassage { requestId: string; sourceId: string; title: string; hash: string; text: string; start: number; end: number }
+type TalkProps = { entryId: string; entryName?: string; links: ArTeaSourceLink[]; onStage?: (passage: StagedArPassage) => void; onRemove?: (id: string) => void };
+export function ArTalkLinks({ entryId, entryName, links, onStage, onRemove }: TalkProps) {
   const accountId = useAppStore(s => s.activeAccountId);
   const userId = useAppStore(s => s.activeUserId);
-  return <ArTalkLinksInner key={`${accountId}:${userId}:${entryId}`} entryId={entryId} entryName={entryName} links={links} />;
+  return <ArTalkLinksInner key={`${accountId}:${userId}:${entryId}`} entryId={entryId} entryName={entryName} links={links} onStage={onStage} onRemove={onRemove} />;
 }
-function ArTalkLinksInner({ entryId, entryName, links }: { entryId: string; entryName?: string; links: ArTeaSourceLink[] }) {
+function ArTalkLinksInner({ entryId, entryName, links, onStage, onRemove }: TalkProps) {
   const connection = useConnection();
   const accountId = useAppStore(s => s.activeAccountId);
   const userId = useAppStore(s => s.activeUserId);
@@ -108,21 +110,7 @@ function ArTalkLinksInner({ entryId, entryName, links }: { entryId: string; entr
     setPreferred(start); setExcerpt(item.text.slice(start, start + 3000)); setSource(item); setRequestId(job.id); setOpen(true);
   });
   const close = () => { controller.current?.abort(); setBusy(false); setOpen(false); };
-  return <div className="min-w-0 space-y-2" aria-label="AR Create talks">
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <button type="button" className={action} onClick={() => { setOpen(true); setError(''); }}>Link a talk from AR Create</button>
-      {links.length > 0 && <span className="text-ui-11 text-tea-text-dim">{links.length} linked</span>}
-    </div>
-    {links.map(link => <details key={link.id} className="min-w-0 border-b border-tea-border pb-2">
-      <summary className="min-h-11 cursor-pointer text-ui-12 text-tea-text-sec">{link.title}</summary>
-      <p className="whitespace-pre-wrap break-words text-ui-12 text-tea-text-sec">{link.text}</p>
-      <p className="mt-2 text-ui-11 text-tea-text-dim">Linked passage from AR Create. Original retained.</p>
-      <div className="flex flex-wrap gap-2"><button type="button" disabled={busy} className={action} onClick={() => void read(link.sourceId)}>Check original</button><button type="button" className={action} disabled={busy} onClick={() => void perform(async () => { await arCreateApi.remove(link.id); if (current()) await queryClient.invalidateQueries({ queryKey: LINK_KEY }); })}>Unlink</button></div>
-    </details>)}
-    {!open && error && <p role="alert" className="text-ui-12 text-tea-text-sec">{error}</p>}
-    {message && <p role="status" className="text-ui-12 text-tea-text-sec">{message}</p>}
-    <BottomSheet open={open} onOpenChange={value => { if (!value) close(); }} title="Link a talk" large>
-      <div className="min-w-0 space-y-4 px-4 pb-4">
+  const picker = <div className="min-w-0 space-y-4">
         {(!connection.data?.connected || connection.data?.canSearch === false) ? <div className="space-y-2"><p className="text-ui-14 text-tea-text">{connection.data?.canSearch === false ? 'This private library is connected by another person.' : connection.data?.paired ? 'Open AR Create on its connected computer.' : 'Connect AR Create once from its computer.'}</p><p className="text-ui-12 text-tea-text-sec">{connection.data?.canSearch === false ? 'The person who connected it can search and link talks. Reviewed passages remain available in this tea.' : connection.data?.paired ? 'The original talks stay there. Check the connection again when the computer is available.' : 'Open the connection link provided by the connector, choose your store, then return here. Your library can then be searched from this phone.'}</p><button type="button" className={action} onClick={() => void connection.refetch()}>Check connection</button></div> : <>
           <form className="flex gap-2" onSubmit={event => { event.preventDefault(); setSource(null); void perform(async signal => { const job = await awaitArJob({ kind: 'search', query: query.trim() }, signal); if (current() && !signal.aborted) { setResults(job.result?.sources ?? []); setSearched(true); } }); }}>
             <input className="input-field min-w-0 flex-1 px-3 py-2 text-ui-16" aria-label="Find a talk" maxLength={300} placeholder="Title, tea name or a phrase" value={query} onChange={event => setQuery(event.target.value)} />
@@ -134,22 +122,40 @@ function ArTalkLinksInner({ entryId, entryName, links }: { entryId: string; entr
           {source && <section aria-label="Review linked passage" className="space-y-3">
             <h3 className={T.h3}>{source.title}</h3>
             <p className="text-ui-12 text-tea-text-sec">Keep a continuous passage from the talk. You can trim this excerpt before linking.</p>
+            <details><summary className="tap-target min-h-11 cursor-pointer text-ui-12 text-tea-text-sec">Show full talk</summary><textarea aria-label="Full talk" readOnly rows={6} value={source.text} className="input-field w-full min-w-0 px-3 py-2 text-ui-16" /></details>
             <textarea aria-label="Passage to link" className="input-field w-full min-w-0 px-3 py-2 text-ui-16" rows={7} value={excerpt} onChange={event => setExcerpt(event.target.value)} />
             <p className="text-ui-11 text-tea-text-dim">{excerpt.length.toLocaleString()} / 12,000 characters</p>
             {!excerptLocation(source.text, excerpt, preferred) && <p className="text-ui-12 text-tea-text-sec">{excerpt.length > 12000 ? 'Choose a shorter passage.' : 'Keep the words exactly as they appear in the source. Trim from the beginning or end.'}</p>}
             {links.some(link => link.sourceId === source.id && link.hash !== source.hash) && <p role="status" className="text-ui-12 text-tea-text-sec">The original has changed. Review this version before updating the linked passage.</p>}
             <button type="button" className="cta-solid min-h-11 rounded-md px-4 text-ui-12" disabled={busy || !excerptLocation(source.text, excerpt, preferred)} onClick={() => void perform(async () => {
               const range = excerptLocation(source.text, excerpt, preferred); if (!range) throw new Error('Keep an exact continuous passage from this source.');
+              if (onStage) {
+                onStage({ requestId, sourceId: source.id, title: source.title, hash: source.hash, text: excerpt, ...range });
+                setOpen(false); setMessage('Passage ready for review. Nothing saved.'); return;
+              }
               await syncCompassEntries(accountId ?? undefined);
               if (!current()) return;
               const existing = links.find(link => link.sourceId === source.id);
               await arCreateApi.link({ entryId, requestId, sourceId: source.id, title: source.title, hash: source.hash, text: excerpt, ...range, ...(existing ? { expectedHash: existing.hash, update: true } : {}) });
               if (current()) { await queryClient.invalidateQueries({ queryKey: LINK_KEY }); setOpen(false); setMessage('Talk linked to this tea. Ready to review with AI.'); }
-            })}>{links.some(link => link.sourceId === source.id) ? 'Update linked passage' : 'Link this talk'}</button>
+            })}>{onStage ? 'Review this passage' : links.some(link => link.sourceId === source.id) ? 'Update linked passage' : 'Link this talk'}</button>
           </section>}
         </>}
         {error && <p role="alert" className="text-ui-12 text-tea-text-sec">{error}</p>}
-      </div>
-    </BottomSheet>
+      </div>;
+  return <div className="min-w-0 space-y-2" aria-label="AR Create talks">
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <button type="button" className={action} onClick={() => { setOpen(true); setError(''); }}>Link a talk from AR Create</button>
+      {links.length > 0 && <span className="text-ui-11 text-tea-text-dim">{links.length} linked</span>}
+    </div>
+    {links.map(link => <details key={link.id} className="min-w-0 border-b border-tea-border pb-2">
+      <summary className="min-h-11 cursor-pointer text-ui-12 text-tea-text-sec">{link.title}</summary>
+      <p className="whitespace-pre-wrap break-words text-ui-12 text-tea-text-sec">{link.text}</p>
+      <p className="mt-2 text-ui-11 text-tea-text-dim">Linked passage from AR Create. Original retained.</p>
+      <div className="flex flex-wrap gap-2"><button type="button" disabled={busy} className={action} onClick={() => void read(link.sourceId)}>Check original</button>{onStage && onRemove && <button type="button" className={action} disabled={busy} onClick={() => onRemove(link.id)}>Unlink</button>}{!onStage && <button type="button" className={action} disabled={busy} onClick={() => void perform(async () => { await arCreateApi.remove(link.id); if (current()) await queryClient.invalidateQueries({ queryKey: LINK_KEY }); })}>Unlink</button>}</div>
+    </details>)}
+    {!open && error && <p role="alert" className="text-ui-12 text-tea-text-sec">{error}</p>}
+    {message && <p role="status" className="text-ui-12 text-tea-text-sec">{message}</p>}
+    {onStage ? open && <div className="border-t border-tea-border pt-3">{picker}<button type="button" className={action} onClick={close}>Close search</button></div> : <BottomSheet open={open} onOpenChange={value => { if (!value) close(); }} title="Link a talk" large><div className="px-4 pb-4">{picker}</div></BottomSheet>}
   </div>;
 }

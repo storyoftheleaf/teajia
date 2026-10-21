@@ -24,7 +24,8 @@ async function openRecord(page: Page) {
   await page.getByRole('tab', { name: 'Library', exact: true }).click();
   await page.getByTestId(`library-entry-${entryId}`).filter({ visible: true }).getByRole('button', { name: `More about ${source.name}`, exact: true }).click();
   await expect(page.getByTestId('library-entry-detail').filter({ visible: true })).toBeVisible();
-  return page.getByTestId('tea-description-review').filter({ visible: true });
+  await page.getByTestId('library-entry-detail').filter({ visible: true }).getByRole('button', { name: 'Build this tea', exact: true }).click();
+  return page.getByRole('dialog', { name: 'Build this tea', exact: true }).getByTestId('tea-description-review');
 }
 const proposal = (body: any) => ({ description: generated, baseDescription: source.description, citations: [{ sourceId: body.sources[0].id, quote: body.sources[0].text }] });
 
@@ -47,11 +48,11 @@ test('phone description proposal stays editable and saves only after explicit ac
   await expect(review.locator('blockquote')).toContainText(source.notes);
   await text.fill('Reviewed spring tea with a mineral finish.');
   await page.screenshot({ path: '/private/tmp/tea-record-description-phone-proposal.png', fullPage: true, animations: 'disabled' });
-  await review.getByRole('button', { name: 'Use this description', exact: true }).click();
+  await review.getByRole('checkbox', { name: 'Save this description', exact: true }).check();
+  expect((await current(page))?.description).toBe(source.description);
+  await page.getByRole('dialog', { name: 'Build this tea', exact: true }).getByRole('button', { name: 'Save accepted changes', exact: true }).click();
   await expect.poll(async () => (await current(page))?.description).toBe('Reviewed spring tea with a mineral finish.');
   expect(await current(page)).toMatchObject({ id: entryId, notes: source.notes, year: source.year, type: source.type, priceAmount: source.price_amount });
-  await review.getByRole('button', { name: 'Undo description change', exact: true }).click();
-  await expect.poll(async () => (await current(page))?.description).toBe(source.description);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await expectNoUnhandledCompassApi(page);
 });
@@ -71,7 +72,7 @@ test('phone description generation keeps a human edit made while the proposal is
   complete!();
   await expect(review.getByRole('alert')).toContainText('description changed');
   expect((await current(page))?.description).toBe('Human correction while AI was drafting.');
-  await expect(review.getByRole('button', { name: 'Use this description', exact: true })).toHaveCount(0);
+  await expect(review.getByRole('checkbox', { name: 'Save this description', exact: true })).toHaveCount(0);
   await expectNoUnhandledCompassApi(page);
 });
 
@@ -85,7 +86,7 @@ test('phone review refuses an approved excerpt that changes before use', async (
   if (!await excerpt.isVisible()) await material.locator('summary').filter({ hasText: 'Material to review' }).click();
   await excerpt.fill('I noticed a clean mineral finish.');
   await expect(review.getByRole('alert')).toContainText('source material changed');
-  await expect(review.getByRole('button', { name: 'Use this description', exact: true })).toBeDisabled();
+  await expect(review.getByRole('checkbox', { name: 'Save this description', exact: true })).toBeDisabled();
   expect((await current(page))?.description).toBe(source.description);
   expect((await current(page))?.notes).toBe(source.notes);
   await expectNoUnhandledCompassApi(page);

@@ -2994,7 +2994,7 @@ export const api = {
     /** Split what was said about a tea into parts to tick. Writes nothing. */
     fileSaid: async (body: { text: string; tea_name?: string }): Promise<{ parts: Array<{ kind: 'tea' | 'price' | 'taste' | 'story' | 'vendor' | 'todo'; text: string; fields: Record<string, any> }> }> =>
       authedFetch(`${API_URL}/api/curate/said/file`, { method: 'POST', body: JSON.stringify(body) }),
-    proposeDescription: async (body: { entryId: string; sources: Array<{ id: string; title: string; text: string }> }): Promise<{ description: string; citations: Array<{ sourceId: string; quote: string }>; paragraphs?: Array<{ text: string; citations: Array<{ sourceId: string; quote: string }> }>; baseDescription: string | null }> =>
+    proposeDescription: async (body: { entryId: string; stagedArSources?: Array<{ requestId: string; sourceId: string; title: string; hash: string; text: string; start: number; end: number }>; sources: Array<{ id: string; title: string; text: string }> }): Promise<{ description: string; citations: Array<{ sourceId: string; quote: string }>; paragraphs?: Array<{ text: string; citations: Array<{ sourceId: string; quote: string }> }>; baseDescription: string | null }> =>
       authedFetch(`${API_URL}/api/curate/description-proposal`, { method: 'POST', body: JSON.stringify(body) }),
     todoDone: async (id: string) =>
       authedFetch(`${API_URL}/api/curate/todos/${id}/done`, { method: 'POST' }),

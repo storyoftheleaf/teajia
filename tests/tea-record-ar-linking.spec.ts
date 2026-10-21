@@ -12,7 +12,8 @@ const originalNotes = 'Adrian noted a bright apricot aroma in the cup.';
 const originalDescription = 'A spring tea from Yunnan.';
 const entry = { id: entryId, name: 'Cloud Peak', category: 'tea', type: 'Sheng', form: 'Loose', year: 2024, status: 'noted', notes: originalNotes, description: originalDescription, draft_product_id: productId, photos: '[]', audio_clips: '[]', price_amount: 70, price_currency: 'Yuan', price_per_unit_grams: 100, created_at: '2026-10-01T00:00:00Z', updated_at: '2026-10-01T00:00:00Z' };
 const record = (page: Page) => page.getByTestId('library-entry-detail').filter({ visible: true });
-const assistant = (page: Page) => record(page).getByTestId('tea-record-assistant');
+const assistant = (page: Page) => page.getByRole('dialog', { name: 'Build this tea', exact: true }).getByTestId('tea-record-assistant');
+async function openBuild(page: Page) { await record(page).getByRole('button', { name: 'Build this tea', exact: true }).click(); }
 type Link = { id: string; entryId: string; sourceId: string; title: string; hash: string; text: string; start: number; end: number };
 
 async function install(page: Page) {
@@ -69,13 +70,14 @@ async function install(page: Page) {
 async function open(page: Page) {
   await page.goto(`/admin/compass?tab=library&entry=${entryId}`, { waitUntil: 'domcontentloaded' });
   await expect(record(page)).toBeVisible();
+  await openBuild(page);
   await expect(assistant(page).getByRole('button', { name: 'Link a talk from AR Create', exact: true })).toBeVisible();
 }
 async function linkTalk(page: Page, update = false) {
   await assistant(page).getByRole('button', { name: 'Link a talk from AR Create', exact: true }).click();
   const input = page.getByRole('textbox', { name: 'Find a talk', exact: true });
   await input.fill('spring leaves');
-  await page.getByRole('button', { name: 'Search', exact: true }).filter({ visible: true }).click();
+  await assistant(page).getByRole('button', { name: 'Search', exact: true }).click();
   const result = page.getByRole('button', { name: new RegExp('^Cloud Peak: a conversation with the farmer') });
   await expect(result).toBeVisible();
   const viewport = page.viewportSize()!.width < 900 ? 'phone' : 'desktop';
@@ -83,7 +85,7 @@ async function linkTalk(page: Page, update = false) {
   await result.click();
   await expect(page.getByRole('region', { name: 'Review linked passage', exact: true })).toBeVisible();
   await page.getByRole('textbox', { name: 'Passage to link', exact: true }).fill(excerpt);
-  const linkAction = page.getByRole('button', { name: update ? 'Update linked passage' : 'Link this talk', exact: true });
+  const linkAction = assistant(page).getByRole('button', { name: 'Review this passage', exact: true });
   await linkAction.scrollIntoViewIfNeeded();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   if (!update) await page.screenshot({ path: `/private/tmp/tea-record-ar-passage-${viewport}.png`, fullPage: false, animations: 'disabled' });
@@ -93,7 +95,10 @@ async function linkTalk(page: Page, update = false) {
     expect(buttonBox!.y + buttonBox!.height).toBeLessThanOrEqual(nav!.y + 1);
   }
   await linkAction.click();
-  await expect(assistant(page).getByText('Talk linked to this tea. Ready to review with AI.', { exact: true })).toBeVisible();
+  await expect(assistant(page).getByText('Passage ready for review. Nothing saved.', { exact: true })).toBeVisible();
+  await assistant(page).getByRole('button', { name: 'Save accepted changes', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Build this tea', exact: true })).not.toBeVisible();
+  await openBuild(page);
 }
 async function counts(page: Page) {
   const entries = await page.evaluate(async () => {
@@ -123,13 +128,13 @@ for (const viewport of ['phone', 'desktop'] as const) {
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(record(page)).toBeVisible();
+    await openBuild(page);
     await expect(assistant(page).locator('summary').filter({ hasText: title })).toHaveCount(1);
     await linkTalk(page, true);
     expect(state.links).toHaveLength(1);
     expect(state.linkBodies[1].expectedHash).toBe(hash);
     expect(state.links[0].id).toBe('canonical-cloud-talk-link');
 
-    await assistant(page).locator('summary').filter({ hasText: 'Material to review' }).click();
     await assistant(page).getByRole('checkbox', { name: 'Tea notes', exact: true }).uncheck();
     const selected = assistant(page).getByRole('checkbox', { name: `AR Create · ${title}`, exact: true });
     await expect(selected).toBeChecked();
@@ -140,7 +145,7 @@ for (const viewport of ['phone', 'desktop'] as const) {
     expect(state.extractionBodies[0].text).not.toContain(originalNotes);
     await assistant(page).getByRole('button', { name: 'Draft description from selected material', exact: true }).click();
     await expect.poll(() => state.descriptionBodies.length).toBe(1);
-    expect(state.descriptionBodies[0]).toEqual({ entryId, sources: [{ id: 'ar:canonical-cloud-talk-link', title: `AR Create · ${title}`, text: excerpt }] });
+    expect(state.descriptionBodies[0]).toMatchObject({ entryId, sources: [{ id: 'ar:canonical-cloud-talk-link', title: `AR Create · ${title}`, text: excerpt }] });
     await expect(assistant(page).getByRole('textbox', { name: 'Proposed description', exact: true })).toBeVisible();
     expect((await counts(page)).entries[0].description).toBe(originalDescription);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
@@ -149,18 +154,32 @@ for (const viewport of ['phone', 'desktop'] as const) {
   });
 }
 
-test('unlink removes only the passage reference and keeps the tea, product and original source', async ({ page }) => {
+test('unlink is staged and undoable until acceptance, then removes only the passage reference', async ({ page }) => {
   await page.setViewportSize({ width: 393, height: 851 });
   const state = await install(page);
   await open(page); await linkTalk(page);
   await assistant(page).locator('summary').filter({ hasText: title }).click();
   await assistant(page).getByRole('button', { name: 'Unlink', exact: true }).click();
-  await expect.poll(() => state.links.length).toBe(0);
+  await expect(assistant(page).getByText(/^Link marked for removal/)).toBeVisible();
+  expect(state.deletions).toEqual([]);
+  expect(state.links).toHaveLength(1);
+  await assistant(page).getByRole('button', { name: 'Keep link', exact: true }).click();
+  await expect(assistant(page).getByText(/^Link marked for removal/)).toHaveCount(0);
+  expect(state.deletions).toEqual([]);
+  const savedLink = assistant(page).locator('details').filter({ has: page.locator('summary').filter({ hasText: title }) });
+  if (!await savedLink.getByRole('button', { name: 'Unlink', exact: true }).isVisible()) await savedLink.locator(':scope > summary').click();
+  await assistant(page).getByRole('button', { name: 'Unlink', exact: true }).click();
+  expect(state.deletions).toEqual([]);
+  await assistant(page).getByRole('button', { name: 'Save accepted changes', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Build this tea', exact: true })).not.toBeVisible();
+  expect(state.links).toHaveLength(0);
   expect(state.deletions).toEqual(['canonical-cloud-talk-link']);
   const current = await counts(page);
   expect(current.entries).toHaveLength(1); expect(current.products).toHaveLength(1);
   expect(current.entries[0]).toMatchObject({ id: entryId, notes: originalNotes, description: originalDescription });
   expect(compassCreatedProducts(page)).toHaveLength(0);
+  await openBuild(page);
+  await expect(assistant(page).locator('summary').filter({ hasText: title })).toHaveCount(0);
   await linkTalk(page);
   expect(state.links[0]).toMatchObject({ sourceId, hash, text: excerpt });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);

@@ -164,3 +164,65 @@ describe('public worker routes keep description and source access authenticated'
     expect(db.sqlite.prepare('SELECT excerpt FROM curate_ar_links WHERE id=?').get('link-here')).toMatchObject({ excerpt: arExcerpt });
   });
 });
+
+const stagedSource = () => ({ requestId: 'read-preview', sourceId: 'preview-source', title: 'Original preview title', hash: 'sha256:preview', text: arExcerpt, start: 7, end: 7 + arExcerpt.length });
+function seedStagedRead(patch: { accountId?: string; userId?: string; expiresAt?: number; status?: string; kind?: string } = {}) {
+  const source = stagedSource();
+  db.sqlite.prepare(`INSERT INTO curate_ar_jobs (id,account_id,created_by_user_id,kind,source_id,status,created_at,expires_at,result_json) VALUES (?,?,?,?,?,?,?,?,?)`).run(source.requestId, patch.accountId ?? account, patch.userId ?? user, patch.kind ?? 'read', source.sourceId, patch.status ?? 'completed', Date.now(), patch.expiresAt ?? Date.now() + 60_000, JSON.stringify({ source: { id: source.sourceId, title: source.title, hash: source.hash, text: 'Before ' + source.text + ' After' } }));
+}
+describe('unsaved AR passage description previews', () => {
+  it('uses verified pending excerpts without creating links or changing the tea', async () => {
+    seedStagedRead();
+    const source = stagedSource();
+    const id = `staged-ar:${source.requestId}:${source.sourceId}`;
+    const fetchMock = provider(id, source.text);
+    const before = changes();
+    const result = await descriptionForTeaRecord(env(), { accountId: account, userId: user }, { ...input([]), stagedArSources: [source] });
+    expect(result.citations).toEqual([{ sourceId: id, quote: source.text }]);
+    expect(result.baseDescription).toBe(base);
+    expect(readProviderSources(fetchMock).find(item => item.id === id)).toEqual({ id, title: 'AR Create · Original preview title', text: source.text });
+    expect(changes()).toBe(before);
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM curate_ar_links WHERE source_id=?').get(source.sourceId)).toEqual({ n: 0 });
+  });
+  it.each([
+    { accountId: 'other-shop' }, { userId: 'another-person' }, { expiresAt: Date.now() - 1000 }, { status: 'claimed' }, { kind: 'search' },
+  ])('refuses inaccessible, expired or unfinished read proof %j', async patch => {
+    seedStagedRead(patch);
+    const fetchMock = provider();
+    const before = changes();
+    await expect(descriptionForTeaRecord(env(), { accountId: account, userId: user }, { ...input([]), stagedArSources: [stagedSource()] })).rejects.toMatchObject({ status: 404, code: 'ar_read_not_found' });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(changes()).toBe(before);
+  });
+  it.each([
+    { hash: 'sha256:forged' }, { title: 'Forged title' }, { sourceId: 'different-source' }, { text: 'Invented claims from another tea.' }, { start: 0 }, { end: 999 },
+  ])('refuses client changes to the original proof %j', async patch => {
+    seedStagedRead();
+    const fetchMock = provider();
+    const before = changes();
+    await expect(descriptionForTeaRecord(env(), { accountId: account, userId: user }, { ...input([]), stagedArSources: [{ ...stagedSource(), ...patch }] })).rejects.toMatchObject({ status: 400, code: 'ar_excerpt_mismatch' });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(changes()).toBe(before);
+  });
+  it('requires a user identity and bounds the combined selection', async () => {
+    seedStagedRead();
+    const fetchMock = provider();
+    await expect(descriptionForTeaRecord(env(), { accountId: account }, { ...input([]), stagedArSources: [stagedSource()] })).rejects.toMatchObject({ status: 401 });
+    await expect(descriptionForTeaRecord(env(), { accountId: account, userId: user }, { ...input(), stagedArSources: Array(12).fill(stagedSource()) })).rejects.toMatchObject({ status: 400 });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it('passes the authenticated user through the actual route without saving the link', async () => {
+    seedStagedRead();
+    const source = stagedSource();
+    provider(`staged-ar:${source.requestId}:${source.sourceId}`, source.text);
+    const token = await signedToken(secret, { sub: user, active_account_id: account, platform_role: null });
+    const before = changes();
+    const response = await route('/api/curate/description-proposal', 'POST', token, { ...input([]), stagedArSources: [source] });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ baseDescription: base });
+    // Authentication may update audit state, so pin the canonical tea and link directly.
+    expect(changes()).toBeGreaterThanOrEqual(before);
+    expect(db.sqlite.prepare('SELECT description FROM tea_compass_entries WHERE id=?').get('tea-here')).toEqual({ description: base });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM curate_ar_links WHERE source_id=?').get(source.sourceId)).toEqual({ n: 0 });
+  });
+});

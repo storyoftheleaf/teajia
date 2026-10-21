@@ -17,27 +17,33 @@ test.describe('Shared record source assistant', () => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
     await page.getByRole('button', { name: 'More about Assistant tea', exact: true }).click();
-    const assistant = page.getByTestId('tea-record-assistant').filter({ visible: true });
-    await expect(assistant.locator('details').first()).not.toHaveAttribute('open');
+    await page.getByTestId('library-entry-detail').filter({ visible: true }).getByRole('button', { name: 'Build this tea', exact: true }).click();
+    const assistant = page.getByRole('dialog', { name: 'Build this tea', exact: true }).getByTestId('tea-record-assistant');
+    await expect(assistant.locator('details').first()).toHaveAttribute('open');
     await expect(assistant.getByText(/Material to review · 1 source$/)).toBeVisible();
     await expect(assistant.getByText(/^Original material/)).toHaveCount(0);
     await expect(assistant.getByRole('button', { name: 'Apply reviewed details' })).toHaveCount(0);
     await assistant.getByRole('button', { name: 'Find tea details', exact: true }).dblclick();
     await expect(assistant.getByText('Vendor says excellent', { exact: true })).toBeVisible();
-    await expect(assistant.getByText(/^Original material/)).toBeVisible();
+    await expect(assistant.getByRole('textbox', { name: 'Excerpt to review', exact: true })).toBeVisible();
     await expect(assistant.getByText('Trees are old, according to the vendor', { exact: true })).toBeVisible();
-    const apply = assistant.getByRole('button', { name: 'Apply reviewed details', exact: true });
+    const apply = assistant.getByRole('button', { name: 'Save accepted changes', exact: true });
     await expect(apply).toBeDisabled();
     expect(compassRequestCount(page, 'POST /api/curate/said/file')).toBe(1);
     await assistant.getByRole('checkbox', { name: 'Year: 2019', exact: true }).check();
     await assistant.getByRole('checkbox', { name: 'Origin: Yiwu', exact: true }).check();
-    const record = page.getByTestId('library-entry-detail').filter({ visible: true });
-    const about = record.locator('details[data-record-section="About this tea"]');
-    await about.locator(':scope > summary').click();
-    await about.getByRole('spinbutton', { name: 'Year', exact: true }).fill('2024');
-    await about.getByRole('textbox', { name: 'Origin', exact: true }).click();
+    await page.evaluate(async id => {
+      // @ts-expect-error Vite source import in browser test.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      useTeaCompassStore.getState().updateEntry(id, { year: 2024 });
+    }, teaId);
+    await expect.poll(async () => page.evaluate(async id => {
+      // @ts-expect-error Vite source import in browser test.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      return useTeaCompassStore.getState().getEntry(id)?.synced;
+    }, teaId)).toBe(true);
     await apply.click();
-    await expect(assistant.getByRole('status').filter({ hasText: 'Reviewed details added' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Build this tea', exact: true })).not.toBeVisible();
     const saved = await page.evaluate(async id => {
       // @ts-expect-error Vite source import in browser test.
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
@@ -52,9 +58,9 @@ test.describe('Shared record source assistant', () => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
     await page.getByRole('button', { name: 'More about Assistant tea', exact: true }).click();
-    const assistant = page.getByTestId('tea-record-assistant').filter({ visible: true });
+    await page.getByTestId('library-entry-detail').filter({ visible: true }).getByRole('button', { name: 'Build this tea', exact: true }).click();
+    const assistant = page.getByRole('dialog', { name: 'Build this tea', exact: true }).getByTestId('tea-record-assistant');
     await expect(assistant.getByRole('button', { name: 'Find tea details', exact: true })).toBeDisabled();
-    await assistant.locator('details').first().locator(':scope > summary').click();
     await assistant.getByRole('textbox', { name: 'Excerpt to review', exact: true }).fill('Original source details.');
     await assistant.getByRole('button', { name: 'Find tea details', exact: true }).click();
     await expect(assistant.getByText('No details could be extracted from this material.', { exact: true })).toBeVisible();

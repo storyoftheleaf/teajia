@@ -7,6 +7,7 @@ import { syncCompassEntries } from '../../lib/teaCompassSync';
 import { syncNotes } from '../../lib/notesSync';
 import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 import type { TeaCompassEntry } from './types';
+import type { StagedArPassage } from './ArTeaSources';
 
 export interface TeaDescriptionSource { id: string; title: string; text: string }
 export interface TeaDescriptionProposal {
@@ -37,14 +38,17 @@ function scopeFor(entryId: string): TeaDescriptionScope {
 interface Review { proposal: TeaDescriptionProposal; scope: TeaDescriptionScope; signature: string; sourceTitles: Record<string, string> }
 interface Accepted { scope: TeaDescriptionScope; previous: string | null; applied: string }
 
-export function TeaDescriptionReview({ entry, sources }: { entry: TeaCompassEntry; sources: TeaDescriptionSource[] }) {
+export interface DescriptionSelection { text: string; baseDescription: string | null; signature: string }
+type DescriptionProps = { entry: TeaCompassEntry; sources: TeaDescriptionSource[]; stagedArSources?: StagedArPassage[]; onSelection?: (selection: DescriptionSelection | null) => void };
+export function TeaDescriptionReview({ entry, sources, stagedArSources, onSelection }: DescriptionProps) {
   const accountId = useAppStore(state => state.activeAccountId);
   const userId = useAppStore(state => state.activeUserId);
   const revision = useTeaCompassStore(state => state.accountScopeRevision);
-  return <DescriptionReview key={`${accountId}:${userId}:${revision}:${entry.id}`} entry={entry} sources={sources} />;
+  return <DescriptionReview key={`${accountId}:${userId}:${revision}:${entry.id}`} entry={entry} sources={sources} stagedArSources={stagedArSources} onSelection={onSelection} />;
 }
-function DescriptionReview({ entry, sources }: { entry: TeaCompassEntry; sources: TeaDescriptionSource[] }) {
+function DescriptionReview({ entry, sources, stagedArSources, onSelection }: DescriptionProps) {
   const [review, setReview] = useState<Review | null>(null);
+  const [keep, setKeep] = useState(false);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -72,19 +76,19 @@ function DescriptionReview({ entry, sources }: { entry: TeaCompassEntry; sources
     const initialDescription = descriptionText(before?.description);
     try {
       if (!before) throw new Error('This tea record is no longer available.');
-      await syncCompassEntries(scope.accountId!);
-      await syncNotes();
+      // Preview must never flush local edits or source links to the server.
+      if (!onSelection) { await syncCompassEntries(scope.accountId!); await syncNotes(); }
       if (!live.current || !sameScope(scope, scopeFor(currentProps.current.entryId))) return;
       if (currentProps.current.signature !== signature) { setError('The selected source material changed. Draft from the current selection again.'); return; }
       if (!useTeaCompassStore.getState().getEntry(entry.id)?.synced) { setError('This tea record has not finished saving. Check the connection and try drafting again.'); return; }
-      const proposal: TeaDescriptionProposal = await api.compass.proposeDescription({ entryId: entry.id, sources: selected });
+      const proposal: TeaDescriptionProposal = await api.compass.proposeDescription({ entryId: entry.id, sources: selected.filter(source => !source.id.startsWith('staged-ar:')), stagedArSources });
       if (!live.current || !sameScope(scope, scopeFor(currentProps.current.entryId))) return;
       const candidate: Review = { proposal, scope, signature, sourceTitles: Object.fromEntries(selected.map(source => [source.id, source.title])) };
       const conflict = conflictFor(candidate);
       if (conflict) { setError(conflict); return; }
       if (initialDescription !== descriptionText(proposal.baseDescription)) { setError('The saved description changed during drafting. Review the current description and draft again.'); return; }
       if (typeof proposal.description !== 'string' || !proposal.description.trim() || !Array.isArray(proposal.citations) || !proposal.citations.length) { setError('The draft did not include a supported description and sources. Try again.'); return; }
-      setReview(candidate); setDraft(proposal.description); setAccepted(null);
+      setReview(candidate); setDraft(proposal.description); setAccepted(null); setKeep(false);
     } catch (failure) {
       if (live.current && sameScope(scope, scopeFor(currentProps.current.entryId))) setError(failure instanceof Error ? failure.message : 'Could not draft this description. Try again.');
     } finally { pending.current = false; if (live.current) setBusy(false); }
@@ -112,6 +116,9 @@ function DescriptionReview({ entry, sources }: { entry: TeaCompassEntry; sources
     void syncCompassEntries(accepted.scope.accountId!).catch(() => {});
   };
   const visibleConflict = review ? conflictFor(review) : null;
+  useEffect(() => {
+    onSelection?.(review && keep && !visibleConflict && draft.trim() ? { text: draft.trim(), baseDescription: review.proposal.baseDescription, signature: review.signature } : null);
+  }, [draft, keep, review, visibleConflict, onSelection]);
   return <section aria-label="Draft tea description" className="min-w-0 space-y-3" data-testid="tea-description-review">
     <button type="button" onClick={() => void generate()} disabled={busy || !ready || !sources.length || oversized}
       className="tap-target min-h-11 inline-flex items-center gap-2 rounded-md border border-tea-border px-3 text-left text-ui-12 text-tea-text disabled:opacity-50">
@@ -129,7 +136,7 @@ function DescriptionReview({ entry, sources }: { entry: TeaCompassEntry; sources
           <p className="whitespace-pre-wrap break-words text-ui-13 text-tea-text-sec">{citation.quote}</p>
         </blockquote>)}</div>
       </details>
-      <div className="flex flex-wrap items-center gap-3"><button type="button" disabled={!draft.trim() || !!visibleConflict || busy} onClick={apply} className="cta-solid min-h-11 rounded-md px-4 text-ui-12 disabled:opacity-50">Use this description</button><button type="button" disabled={busy} onClick={() => { setReview(null); setError(''); }} className="tap-target min-h-11 px-2 text-ui-12 text-tea-text-sec">Discard draft</button></div>
+      <div className="flex flex-wrap items-center gap-3">{onSelection ? <label className="flex min-h-11 items-center gap-3 text-ui-13 text-tea-text"><input type="checkbox" checked={keep} disabled={!!visibleConflict || busy} onChange={event => setKeep(event.target.checked)} className="h-5 w-5 accent-tea-gold" />Save this description</label> : <button type="button" disabled={!draft.trim() || !!visibleConflict || busy} onClick={apply} className="cta-solid min-h-11 rounded-md px-4 text-ui-12 disabled:opacity-50">Use this description</button>}<button type="button" disabled={busy} onClick={() => { setReview(null); setError(''); }} className="tap-target min-h-11 px-2 text-ui-12 text-tea-text-sec">Discard draft</button></div>
     </div>}
     {(error || visibleConflict) && <p role="alert" className="text-ui-12 text-tea-text-sec">{error || visibleConflict}</p>}
     {message && <p role="status" className="text-ui-12 text-tea-text-sec">{message}</p>}

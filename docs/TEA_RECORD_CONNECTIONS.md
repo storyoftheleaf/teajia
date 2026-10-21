@@ -9,3 +9,6 @@ The embedded AI review reuses `/api/curate/said/file`. A person selects material
 ## AR Create and description review
 
 The [AR Create tea connection](AR_CREATE_TEA_CONNECTION.md) now implements outbound pairing, private library title/phrase search, exact reviewed source references and source-grounded description proposals. AR Create retains its originals. The same tea record accepts selected facts and approved wording; it does not create a second tea dossier or manuscript. Runtime activation and the one-time owner pairing are separate from implementation and synthetic verification.
+
+
+The tea record’s **Build this tea** workspace keeps AR Create passage selection, AI detail review and the editable description together. It uses side-by-side source and result regions on wide screens and the same reading order on phones. Search, exact excerpt selection, extraction and description proposals do not save tea fields or AR links. A staged passage is checked against the current user’s completed AR read job before description generation. **Save accepted changes** retains only the selected passages, missing details and chosen description in the existing tea record; **Discard changes** leaves them untouched. Existing written answers are preserved. A new description must still match its source selection and original description before it can be accepted.

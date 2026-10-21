@@ -10,7 +10,7 @@ const JOB_MS = 60 * 60 * 1000;
 const LEASE_MS = 2 * 60 * 1000;
 const MAX_BODY_BYTES = 900_000;
 const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-class BridgeError extends Error {
+export class BridgeError extends Error {
   constructor(public status: number, public code: string, message: string) { super(message); }
 }
 function fail(status: number, code: string, message: string): never { throw new BridgeError(status, code, message); }
@@ -75,6 +75,21 @@ export async function listTeaArLinks(db: D1Database, accountId: string, entryId:
   await requireEntry(db, accountId, entryId);
   const rows = await db.prepare('SELECT * FROM curate_ar_links WHERE account_id=? AND entry_id=? ORDER BY linked_at,id').bind(accountId, entryId).all<Row>();
   return rows.results.map(linkOf);
+}
+
+/** Resolve an exact, current read result without linking or changing any record.
+ * Used by both durable linking and unsaved description review. */
+export async function readTeaArExcerpt(db: D1Database, scope: ArBridgeScope, input: unknown, now = Date.now()): Promise<{ requestId: string; sourceId: string; title: string; hash: string; text: string; start: number; end: number }> {
+  scoped(scope);
+  if (!input || typeof input !== 'object' || Array.isArray(input)) fail(400, 'ar_invalid_excerpt', 'Choose an exact source excerpt of at most 12,000 characters.');
+  const body = input as Row;
+  if (!opaqueId(body.requestId) || !opaqueId(body.sourceId) || !sourceTitle(body.title) || !sourceHash(body.hash) || typeof body.text !== 'string' || !body.text.trim() || body.text.length > 12000 || !Number.isSafeInteger(body.start) || !Number.isSafeInteger(body.end) || body.start < 0 || body.end <= body.start) fail(400, 'ar_invalid_excerpt', 'Choose an exact source excerpt of at most 12,000 characters.');
+  const job = await db.prepare(`SELECT result_json FROM curate_ar_jobs WHERE id=? AND account_id=? AND created_by_user_id=? AND kind='read' AND status='completed' AND expires_at>?`).bind(body.requestId, scope.accountId, scope.userId, now).first<Row>();
+  if (!job) fail(404, 'ar_read_not_found', 'Read this source again before reviewing an excerpt.');
+  let source: ArSource;
+  try { source = (JSON.parse(job.result_json) as { source: ArSource }).source; } catch { fail(409, 'ar_read_changed', 'Read this source again before reviewing an excerpt.'); }
+  if (!source || typeof source.text !== 'string' || source.id !== body.sourceId || source.title !== body.title || source.hash !== body.hash || body.end > source.text.length || source.text.slice(body.start, body.end) !== body.text) fail(400, 'ar_excerpt_mismatch', 'The excerpt must match the source that was read. Select it again.');
+  return { requestId: body.requestId, sourceId: source.id, title: source.title, hash: source.hash, text: body.text, start: body.start, end: body.end };
 }
 
 function cleanResult(kind: string, input: unknown): { sources: ArSourceSummary[] } | { source: ArSource } {
@@ -227,11 +242,7 @@ export async function handleArBridge(request: Request, env: { DB: D1Database }, 
     if (action === 'links' && request.method === 'POST') {
       const body = await bodyOf(request);
       await requireEntry(db, scope.accountId, body.entryId);
-      if (!opaqueId(body.requestId) || !opaqueId(body.sourceId) || !sourceTitle(body.title) || !sourceHash(body.hash) || typeof body.text !== 'string' || !body.text.trim() || body.text.length > 12000 || !Number.isSafeInteger(body.start) || !Number.isSafeInteger(body.end) || body.start < 0 || body.end <= body.start) fail(400, 'ar_invalid_excerpt', 'Choose an exact source excerpt of at most 12,000 characters.');
-      const job = await db.prepare(`SELECT result_json FROM curate_ar_jobs WHERE id=? AND account_id=? AND created_by_user_id=? AND kind='read' AND status='completed' AND expires_at>?`).bind(body.requestId, scope.accountId, scope.userId, now).first<Row>();
-      if (!job) fail(404, 'ar_read_not_found', 'Read this source again before linking an excerpt.');
-      const source = (JSON.parse(job.result_json) as { source: ArSource }).source;
-      if (source.id !== body.sourceId || source.title !== body.title || source.hash !== body.hash || body.end > source.text.length || source.text.slice(body.start, body.end) !== body.text) fail(400, 'ar_excerpt_mismatch', 'The excerpt must match the source that was read. Select it again.');
+      await readTeaArExcerpt(db, scope, body, now);
       const existing = await db.prepare('SELECT * FROM curate_ar_links WHERE account_id=? AND entry_id=? AND source_id=?').bind(scope.accountId, body.entryId, body.sourceId).first<Row>();
       if (existing) {
         if (existing.source_hash === body.hash && existing.excerpt === body.text && existing.excerpt_start === body.start && existing.excerpt_end === body.end) return json({ link: linkOf(existing) });

@@ -72,3 +72,6 @@ No streaks, gamification, engagement notifications, algorithmic recommendations,
 ## Where the detail lives
 
 `docs/INDEX.md` routes everything. `docs/VISION.md` is the philosophy and the five layers (tools, sourcing, education, scaffolding, community). `docs/STATE_OF_THE_SITE.md` is the verified snapshot. `docs/SITE_MAP.md` lists routes by tier but its home page line is stale (it describes the April build). `CLAUDE.md` carries the styling rules and the money rules in full.
+
+
+The tea record’s **Build this tea** workspace keeps AR Create passage selection, AI detail review and the editable description together. It uses side-by-side source and result regions on wide screens and the same reading order on phones. Search, exact excerpt selection, extraction and description proposals do not save tea fields or AR links. A staged passage is checked against the current user’s completed AR read job before description generation. **Save accepted changes** retains only the selected passages, missing details and chosen description in the existing tea record; **Discard changes** leaves them untouched. Existing written answers are preserved. A new description must still match its source selection and original description before it can be accepted.

@@ -50,3 +50,6 @@ tea, inventory, source or price rows. The new API routes use store permissions,
 owner-only pairing/disconnect, dedicated connector credentials, bounded bodies,
 per-IP pairing limits and the existing provider limit for generation. No live AI
 provider or private talk is used by the synthetic test suite.
+
+
+The tea record’s **Build this tea** workspace keeps AR Create passage selection, AI detail review and the editable description together. It uses side-by-side source and result regions on wide screens and the same reading order on phones. Search, exact excerpt selection, extraction and description proposals do not save tea fields or AR links. A staged passage is checked against the current user’s completed AR read job before description generation. **Save accepted changes** retains only the selected passages, missing details and chosen description in the existing tea record; **Discard changes** leaves them untouched. Existing written answers are preserved. A new description must still match its source selection and original description before it can be accepted.

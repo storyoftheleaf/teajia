@@ -1,4 +1,4 @@
-import { listTeaArLinks } from './curateArBridge';
+import { BridgeError, listTeaArLinks, readTeaArExcerpt } from './curateArBridge';
 import { proposeTeaDescription, TeaDescriptionError, type TeaDescriptionEnvironment, type TeaDescriptionSource } from './curateTeaDescription';
 
 function jsonArray(value: unknown): any[] {
@@ -8,10 +8,13 @@ function jsonArray(value: unknown): any[] {
 }
 /** Browsers choose excerpts, never the canonical tea facts or another shop's
  * sources. An excerpt must still occur verbatim in the scoped saved material. */
-export async function descriptionForTeaRecord(env: TeaDescriptionEnvironment & { DB: D1Database }, scope: { accountId: string }, body: unknown) {
+export async function descriptionForTeaRecord(env: TeaDescriptionEnvironment & { DB: D1Database }, scope: { accountId: string; userId?: string }, body: unknown) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) throw new TeaDescriptionError('Choose a tea and its source material.', 'description_invalid_input', 400);
   const input = body as Record<string, unknown>;
   if (typeof input.entryId !== 'string' || input.entryId.length > 160 || !Array.isArray(input.sources) || input.sources.length > 12) throw new TeaDescriptionError('Choose a saved tea and up to 12 sources.', 'description_invalid_input', 400);
+  if (input.stagedArSources != null && !Array.isArray(input.stagedArSources)) throw new TeaDescriptionError('Choose valid AR Create excerpts.', 'description_invalid_source', 400);
+  const staged = (input.stagedArSources ?? []) as unknown[];
+  if (input.sources.length + staged.length > 12) throw new TeaDescriptionError('Choose up to 12 source excerpts.', 'description_invalid_input', 400);
   const entry = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id=? AND account_id=?').bind(input.entryId, scope.accountId).first<Record<string, any>>();
   if (!entry) throw new TeaDescriptionError('The tea record was not found in this store.', 'description_tea_not_found', 404);
   const available = new Map<string, TeaDescriptionSource>();
@@ -31,6 +34,18 @@ export async function descriptionForTeaRecord(env: TeaDescriptionEnvironment & {
     if (seen.has(original.id)) throw new TeaDescriptionError('Select each source once.', 'description_duplicate_source', 400);
     seen.add(original.id);
     selected.push({ ...original, text: candidate.text });
+  }
+  for (const candidate of staged) {
+    try {
+      const excerpt = await readTeaArExcerpt(env.DB, { accountId: scope.accountId, userId: scope.userId ?? '' }, candidate);
+      const id = `staged-ar:${excerpt.requestId}:${excerpt.sourceId}`;
+      if (seen.has(id)) throw new TeaDescriptionError('Select each source once.', 'description_duplicate_source', 400);
+      seen.add(id);
+      selected.push({ id, title: `AR Create · ${excerpt.title}`.slice(0, 256), text: excerpt.text });
+    } catch (error) {
+      if (error instanceof BridgeError) throw new TeaDescriptionError(error.message, error.code, error.status);
+      throw error;
+    }
   }
   const facts = { ...entry };
   if (typeof facts.tasting === 'string') { try { facts.tasting = JSON.parse(facts.tasting); } catch { delete facts.tasting; } }

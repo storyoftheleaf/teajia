@@ -17,9 +17,9 @@ describe('tea record assistant', () => {
     useAppStore.setState({ activeAccountId: 'account-1', activeUserId: 'user-1' });
     useTeaCompassStore.setState({ accountScopeId: 'account-1', accountScopeRevision: 1, entries: [entry] });
     const html = renderToStaticMarkup(<QueryClientProvider client={new QueryClient()}><MemoryRouter><TeaRecordAssistant entry={entry} /></MemoryRouter></QueryClientProvider>);
-    expect(html).toContain('Find tea details');
-    expect(html).toContain('No notes or transcripts yet');
-    expect(html).toContain('disabled');
+    expect(html).toContain('Build this tea');
+    expect(html).toContain('Bring your sources, reviewed details and description together');
+    expect(html).not.toContain('Proposed description');
     expect(html).not.toContain('Apply reviewed details');
     expect(html).not.toContain('Original material');
     expect(useTeaCompassStore.getState().getEntry(entry.id)?.year).toBeUndefined();

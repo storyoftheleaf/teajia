@@ -136,3 +136,8 @@ Pre-audit history not fully reconstructed. Refer to git history for work before 
 ---
 
 **Maintenance:** Append new entries at the top of the relevant month. Check completed work off in its track and record the shipped outcome here.
+
+
+### Connected tea review workspace
+
+Build this tea now brings source passage review, AI details and an editable description into one responsive workspace. AR passages can be used for previews before linking. One explicit Save accepted changes action retains the selected source links and accepted fields in the same tea; discarding performs no tea or link writes. Preview verifies AR read ownership and exact excerpt provenance.
