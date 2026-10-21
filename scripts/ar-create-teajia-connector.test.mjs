@@ -218,3 +218,7 @@ test('pair status HTTP 429 backs off and recovers in the original approval windo
   assert.equal(starts, 1); assert.equal(polls, 3); assert.deepEqual(sleeps, [3000, 3000]);
   assert.deepEqual(printed, ['https://teajia.com/admin/compass?tab=library&arPair=PAIR-RATE', 'PAIR-RATE']);
 });
+
+ test('bridge uses the canonical production host without credential redirects', () => {
+  assert.equal(TEAJIA_ORIGIN, 'https://www.teajia.com');
+});

@@ -9,7 +9,8 @@ import { pathToFileURL } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 
 export const AR_CREATE_ORIGIN = 'http://127.0.0.1:8841';
-export const TEAJIA_ORIGIN = 'https://teajia.com';
+// Use the canonical host directly: API requests must never follow redirects with credentials.
+export const TEAJIA_ORIGIN = 'https://www.teajia.com';
 export const BRIDGE_PATH = '/api/curate/ar-create';
 export const CREDENTIAL_PATH = join(homedir(), '.codex', 'connections', 'teajia-ar-create.json');
 export const LIMITS = Object.freeze({ candidates: 30, reads: 10, results: 30, snippet: 1000, text: 200_000, query: 300, responseBytes: 16 * 1024 * 1024, requestMs: 15_000, pairMs: 10 * 60_000 });
