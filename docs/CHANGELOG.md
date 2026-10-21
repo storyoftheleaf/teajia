@@ -141,3 +141,8 @@ Pre-audit history not fully reconstructed. Refer to git history for work before 
 ### Connected tea review workspace
 
 Build this tea now brings source passage review, AI details and an editable description into one responsive workspace. AR passages can be used for previews before linking. One explicit Save accepted changes action retains the selected source links and accepted fields in the same tea; discarding performs no tea or link writes. Preview verifies AR read ownership and exact excerpt provenance.
+
+
+### Installed AI connection for tea previews
+
+Fixed live tea review routes refusing to run when the Groq key is missing even though Workers AI is already installed. Both detail extraction and description drafting can use that binding, retaining the existing source checks, field validation, exact citations and explicit-save behavior.

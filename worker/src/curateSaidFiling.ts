@@ -1,3 +1,4 @@
+import { installedTeaJson, type InstalledTeaAiEnvironment } from './curateInstalledAi';
 /**
  * "What you said", filed: one recording about a tea, split into the parts it
  * holds (the tea, its price, how it tasted, its story, the vendor, a to-do),
@@ -100,7 +101,10 @@ export function saidPrompt(transcript: string, teaName: string | null): string {
 }
 
 /** Ask Groq to file one note. Throws with a plain reason on any failure. */
-export async function fileSaid(env: { GROQ_API_KEY?: string; CURATE_IMPORT_FALLBACK_MODEL?: string }, transcript: string, teaName: string | null): Promise<SaidPart[]> {
+export async function fileSaid(env: InstalledTeaAiEnvironment & { GROQ_API_KEY?: string; CURATE_IMPORT_FALLBACK_MODEL?: string }, transcript: string, teaName: string | null): Promise<SaidPart[]> {
+  if (!env.GROQ_API_KEY?.trim() && typeof env.AI?.run === 'function') {
+    return validateSaidParts(await installedTeaJson(env, [{ role: 'user', content: saidPrompt(transcript, teaName) }], 1024));
+  }
   if (!env.GROQ_API_KEY) throw new Error('Filing is not set up on this server');
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',

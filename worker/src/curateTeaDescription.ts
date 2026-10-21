@@ -1,3 +1,4 @@
+import { installedTeaJson, type InstalledTeaAiEnvironment } from './curateInstalledAi';
 /** Description generation proposes words only. Source records and the tea's
  * existing description remain owned by their existing writers. Exact citation
  * checks establish traceability, not semantic proof of every generated claim. */
@@ -11,7 +12,7 @@ export interface TeaDescriptionDraft {
   citations: TeaDescriptionCitation[];
   paragraphs: TeaDescriptionParagraph[];
 }
-export interface TeaDescriptionEnvironment { GROQ_API_KEY?: string; CURATE_IMPORT_FALLBACK_MODEL?: string }
+export interface TeaDescriptionEnvironment extends InstalledTeaAiEnvironment { GROQ_API_KEY?: string; CURATE_IMPORT_FALLBACK_MODEL?: string }
 export class TeaDescriptionError extends Error {
   constructor(message: string, readonly code: string, readonly status: number) { super(message); this.name = 'TeaDescriptionError'; }
 }
@@ -99,6 +100,14 @@ const descriptionInstructions = [
 
 export async function proposeTeaDescription(env: TeaDescriptionEnvironment, input: TeaDescriptionInput): Promise<TeaDescriptionDraft> {
   const prepared = prepareTeaDescriptionInput(input);
+  if (!env.GROQ_API_KEY?.trim() && typeof env.AI?.run === 'function') {
+    try {
+      return validateTeaDescriptionDraft(await installedTeaJson(env, [{ role: 'system', content: descriptionInstructions }, { role: 'user', content: JSON.stringify({ sources: prepared.sources }) }], 1800), prepared);
+    } catch (error) {
+      if (error instanceof TeaDescriptionError) throw error;
+      throw new TeaDescriptionError('The installed AI could not draft this description. Try again.', 'description_provider_failed', 502);
+    }
+  }
   if (!env.GROQ_API_KEY?.trim()) throw new TeaDescriptionError('Description drafting is not configured on this server.', 'description_provider_unavailable', 503);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 25000);

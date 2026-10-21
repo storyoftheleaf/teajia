@@ -12,3 +12,6 @@ The [AR Create tea connection](AR_CREATE_TEA_CONNECTION.md) now implements outbo
 
 
 The tea record’s **Build this tea** workspace keeps AR Create passage selection, AI detail review and the editable description together. It uses side-by-side source and result regions on wide screens and the same reading order on phones. Search, exact excerpt selection, extraction and description proposals do not save tea fields or AR links. A staged passage is checked against the current user’s completed AR read job before description generation. **Save accepted changes** retains only the selected passages, missing details and chosen description in the existing tea record; **Discard changes** leaves them untouched. Existing written answers are preserved. A new description must still match its source selection and original description before it can be accepted.
+
+
+Tea detail extraction and description proposals use the existing Workers AI binding when no usable Groq key is configured. The installed model is shared by both preview routes; its output still passes the same field and exact-citation validators. No extra API key is required for that path, and previewing does not save a tea or passage link.
