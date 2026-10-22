@@ -79,6 +79,16 @@ export async function listTeaArLinks(db: D1Database, accountId: string, entryId:
   return rows.results.map(linkOf);
 }
 
+/** Reverse lookup for transcript-first handoff. It shares the same scoped
+ * reference table; no second tea/source collection is created. */
+export async function listArSourceTeas(db: D1Database, accountId: string, sourceId: string) {
+  if (!opaqueId(sourceId)) fail(400, 'ar_invalid_source', 'Choose a source from AR Create.');
+  const rows = await db.prepare(`SELECT l.id,l.entry_id,l.source_id,l.source_title,l.source_hash,l.excerpt_start,l.excerpt_end,l.linked_at,l.transcript_mode,e.name AS entry_name,e.chinese_name AS entry_chinese_name
+    FROM curate_ar_links l JOIN tea_compass_entries e ON e.id=l.entry_id AND e.account_id=l.account_id
+    WHERE l.account_id=? AND l.source_id=? ORDER BY l.linked_at,l.id`).bind(accountId, sourceId).all<Row>();
+  return rows.results.map(row => { const { text: _text, ...reference } = linkOf(row); return { ...reference, entryName: row.entry_name ?? '', entryChineseName: row.entry_chinese_name ?? '' }; });
+}
+
 /** Resolve an exact, current read result without linking or changing any record.
  * Used by both durable linking and unsaved description review. */
 export async function readTeaArExcerpt(db: D1Database, scope: ArBridgeScope, input: unknown, now = Date.now()): Promise<TeaArExcerptProof> {
@@ -237,8 +247,10 @@ export async function handleArBridge(request: Request, env: { DB: D1Database }, 
       return json({ id: job.id, status, expiresAt: iso(job.expires_at), ...(job.result_json ? { result: JSON.parse(job.result_json) } : {}), ...(job.error ? { error: job.error } : {}), ...(status === 'expired' ? { error: 'This archive request expired. Create a new request.' } : {}) });
     }
     if (action === 'links' && request.method === 'GET') {
-      const entryId = new URL(request.url).searchParams.get('entryId') ?? '';
-      return json({ links: await listTeaArLinks(db, scope.accountId, entryId) });
+      const query = new URL(request.url).searchParams;
+      const entryId = query.get('entryId'); const sourceId = query.get('sourceId');
+      if (query.has('entryId') === query.has('sourceId') || query.getAll('entryId').length > 1 || query.getAll('sourceId').length > 1) fail(400, 'ar_invalid_lookup', 'Choose either one tea record or one transcript.');
+      return json({ links: sourceId ? await listArSourceTeas(db, scope.accountId, sourceId) : await listTeaArLinks(db, scope.accountId, entryId!) });
     }
     if (action === 'links' && request.method === 'DELETE' && id) {
       const removed = await db.prepare('DELETE FROM curate_ar_links WHERE id=? AND account_id=?').bind(id, scope.accountId).run();

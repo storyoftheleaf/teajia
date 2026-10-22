@@ -53,3 +53,7 @@ provider or private talk is used by the synthetic test suite.
 
 
 The tea record’s **Build this tea** workspace keeps AR Create passage selection, AI detail review and the editable description together. It uses side-by-side source and result regions on wide screens and the same reading order on phones. Search, exact excerpt selection, extraction and description proposals do not save tea fields or AR links. A staged passage is checked against the current user’s completed AR read job before description generation. **Save accepted changes** retains only the selected passages, missing details and chosen description in the existing tea record; **Discard changes** leaves them untouched. Existing written answers are preserved. A new description must still match its source selection and original description before it can be accepted.
+
+## Start while reading in AR Create
+
+The signed-in receiver accepts `?tab=library&arSource=SOURCE_ID`, reviews the full original and links selected existing teas only after confirmation. It displays current links and can explicitly refresh them using the existing expected-hash guard. No connector token or shop JWT is passed through the URL. The original and public description stay intact. The exact cross-project contract is [AR_CREATE_TEA_LINK_CONTRACT.md](AR_CREATE_TEA_LINK_CONTRACT.md).

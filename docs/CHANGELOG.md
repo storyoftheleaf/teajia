@@ -2,6 +2,10 @@
 
 > Shipped work, newest first. For what's next see `CONSOLIDATED_DIRECTION.md`; active checklists live in `tracks/`.
 
+## Transcript-first tea linking receiver 2026-10-22
+
+- AR Create can open a signed-in Teajia receiver using only its opaque source ID. The receiver obtains a full verified read, shows current source-to-tea links and confirms several existing tea records without creating duplicates or touching public descriptions. Reverse lookup uses the existing account-scoped reference table; no migration or broader connector credential is needed. AR Create owns the transcript-reader action and installed app activation under the shared link contract.
+
 ## Complete working material and public tea description 2026-10-21
 
 - Build this tea separates complete source material and attributed notes from the customer-facing description. Full AR Create transcripts are reviewed in overlapping parts, with exact quotations, tea-match uncertainty and visible coverage. Live checks refresh changed originals while open; rewritten public copy remains a reviewed draft. Manual research and new voice transcripts can feed that draft without first saving anything. Accepted notes use the existing private note thread on the same tea. Installed Workers AI also supports existing transcription/retry when no Groq key is configured. Migration0046 adds full/excerpt reference mode; existing links remain excerpts. Desktop columns scroll independently; phone content keeps compact fixed controls and navigation clearance.

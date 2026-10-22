@@ -5035,7 +5035,7 @@ export interface CurateTodo {
 export interface ArTranscriptProof { requestId: string; sourceId: string; title: string; hash: string; text: string; start: number; end: number; mode?: 'full' | 'excerpt'; fragment?: boolean }
 export interface TeaWorkingMaterialNote { id: string; kind: 'identity' | 'origin' | 'history' | 'brewing' | 'tasting' | 'purchase' | 'supplier_claim' | 'uncertain'; text: string; quote: string; requestId: string; sourceId: string; title: string; start: number; end: number; attribution: 'you' | 'supplier' | 'unclear'; relevance: 'this_tea' | 'background' | 'uncertain' }
 export interface TeaWorkingMaterialResult { notes: TeaWorkingMaterialNote[]; coverage: { sources: number; characters: number; chunks: number; completedChunks: number }; sourceSignature: string }
-export interface ArTeaSourceLink { mode?: 'full' | 'excerpt'; id: string; entryId: string; sourceId: string; title: string; hash: string; text: string; start: number; end: number; linkedAt?: string }
+export interface ArTeaSourceLink { entryName?: string; entryChineseName?: string; mode?: 'full' | 'excerpt'; id: string; entryId: string; sourceId: string; title: string; hash: string; text: string; start: number; end: number; linkedAt?: string }
 export interface ArLibrarySource { id: string; title: string; hash?: string; snippet?: string }
 export interface ArReadSource { id: string; title: string; hash: string; text: string }
 export interface ArBridgeJob { id: string; status: 'pending' | 'running' | 'complete' | 'error' | 'expired'; result?: { sources?: ArLibrarySource[]; source?: ArReadSource }; error?: string; expiresAt?: string }
@@ -5046,6 +5046,7 @@ export const arCreateApi = {
   request: (input: { kind: 'search' | 'read'; query?: string; sourceId?: string }): Promise<ArBridgeJob> => authedFetch(`${API_URL}/api/curate/ar-create/requests`, { method: 'POST', body: JSON.stringify(input) }),
   job: (id: string): Promise<ArBridgeJob> => authedFetch(`${API_URL}/api/curate/ar-create/requests/${encodeURIComponent(id)}`),
   links: (entryId: string): Promise<{ links: ArTeaSourceLink[] }> => authedFetch(`${API_URL}/api/curate/ar-create/links?entryId=${encodeURIComponent(entryId)}`),
+  sourceLinks: (sourceId: string): Promise<{ links: Array<Omit<ArTeaSourceLink, 'text'>> }> => authedFetch(`${API_URL}/api/curate/ar-create/links?sourceId=${encodeURIComponent(sourceId)}`),
   link: (input: ArTranscriptProof & { entryId: string; expectedHash?: string; update?: boolean }): Promise<{ link: ArTeaSourceLink }> => authedFetch(`${API_URL}/api/curate/ar-create/links`, { method: 'POST', body: JSON.stringify(input) }),
   remove: (id: string) => authedFetch(`${API_URL}/api/curate/ar-create/links/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 };

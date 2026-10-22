@@ -1,3 +1,4 @@
+import { ArTranscriptHandoff } from './ArTranscriptHandoff';
 import { ArCreatePairing } from './ArTeaSources';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
@@ -1757,6 +1758,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       </div>
       {/* END BODY */}
       <ArCreatePairing />
+      <ArTranscriptHandoff />
 
       {mode === 'library' && tastingSelectedEntryId && <section className="fixed inset-0 z-modal flex flex-col bg-tea-bg lg:hidden" aria-label="Tea record">
         <CompassEntryDetailPanel entryId={tastingSelectedEntryId} onClose={() => setTastingSelectedEntryId(null)} onAcquire={openLibraryAcquisition}
