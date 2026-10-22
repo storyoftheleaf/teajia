@@ -1,0 +1,72 @@
+:root{color-scheme:dark;--taste-serif:'Lora',Georgia,serif;--taste-ui:'Plus Jakarta Sans',system-ui,sans-serif}html{background:#191713}body{margin:0;padding:20px 12px 40px;background:#191713}button{cursor:pointer}button:disabled{cursor:default}button,input,textarea,select{-webkit-tap-highlight-color:transparent}*{scrollbar-color:#665b4c #22201c}#tea-journey{max-width:560px;border-radius:14px;overflow:visible;--tea-choice:#42372d;--tea-choice-text:#f2e8db;--tea-sec:#c5b8a5}#tea-journey header{position:sticky;top:0;z-index:30;background:var(--tea-bg);border-radius:14px 14px 0 0;min-height:76px;border-bottom:1px solid var(--tea-border)}#tea-journey .tea-heading{min-width:0}#tea-journey .tea-heading h2{overflow-wrap:anywhere}#tea-journey #tea-context{display:block;font-size:11px}#tea-journey #save{background:var(--tea-choice);color:var(--tea-choice-text);border:1px solid #8c7965;min-width:62px;flex:none}#tea-journey footer{padding:10px 16px 14px}#tea-journey #save-status{font-size:11px;color:var(--tea-sec);margin:0}#tea-journey .workspace-nav{gap:22px}#tea-journey .workspace-nav button{font-size:12px;min-height:44px}#tea-journey .overall h4{font:400 25px/1.25 var(--tea-display)}#tea-journey .overall-grid button{min-height:94px}#tea-journey .overall-grid button[aria-pressed=true] span{color:#e0d4c4}#tea-journey .assess button{font-size:12px}#tea-journey .assess-next{padding:14px 16px 5px;display:flex;align-items:center;gap:14px}#tea-journey .assess-next p{margin:0;flex:1}#tea-journey .section-dock{position:sticky;top:76px;z-index:20;background:#2d2a25;border:1px solid var(--tea-border)}#tea-journey .section-dock button{font-size:12px;min-height:44px}#tea-journey .section-dock button[aria-selected=true]{background:var(--tea-choice);color:var(--tea-choice-text);box-shadow:inset 0 0 0 1px #8c7965}#tea-journey .chapter-lead{align-items:center;margin-bottom:6px}#tea-journey .chapter-lead h3{margin:0;font-size:26px}#tea-journey .assessment-link{font-size:11px;max-width:48%;text-align:right}#tea-journey .section-description{font-size:12px;line-height:1.55}#tea-journey .filter-copy{margin:12px 0 3px}#tea-journey .filter-copy p{margin:0;flex:1;min-width:140px}#tea-journey .filter-copy button{font-size:11px}#tea-journey .option-group{margin-top:16px}#tea-journey .option-group h4{margin-bottom:5px}#tea-journey .group-help{margin-bottom:8px;line-height:1.5}#tea-journey .observation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;align-items:start}#tea-journey .observation-unit{height:72px;min-height:72px;display:grid;grid-template-rows:44px 26px;position:relative;min-width:0;border:1px solid var(--tea-border)}#tea-journey .wide-term{grid-column:1/-1}#tea-journey .observation-unit .observation-toggle{width:100%;height:44px;min-height:44px;border:0;background:transparent;color:inherit;box-shadow:none;font-size:12px;line-height:1.3;padding:5px 6px;display:flex;align-items:center;justify-content:center}#tea-journey .observation-toggle[aria-pressed=true]{background:transparent;box-shadow:none;color:inherit}#tea-journey .intensity-slot{height:26px;min-width:0;display:flex;justify-content:center}#tea-journey .intensity-edit{font-size:11px;line-height:20px;min-height:24px;height:24px;padding:0 10px;background:transparent;color:inherit;border:0;text-decoration:underline;text-underline-offset:3px}#tea-journey .editing-intensity{z-index:15;border-radius:9px 9px 0 0;border-color:#a5927b}#tea-journey .intensity-popover{position:absolute;top:100%;left:-1px;width:calc(100% + 2px);padding:5px;background:var(--tea-choice);border:1px solid #a5927b;border-top:0;border-radius:0 0 9px 9px;box-shadow:0 8px 14px #0005;z-index:15}#tea-journey .intensity-popover p{font-size:11px;line-height:1.4;margin:3px 3px 7px;color:#e7dac8}#tea-journey .intensity-popover button{display:block;width:100%;min-height:40px;background:transparent;color:var(--tea-choice-text);padding:6px 2px;font-size:12px}#tea-journey .intensity-popover button[aria-pressed=true]{background:#eee4d5;color:#30291f;box-shadow:none}#tea-journey .intensity-popover .remove-observation{font-size:11px;border-top:1px solid #796a57;margin-top:4px}#tea-journey .meanings{margin:8px 0 0;line-height:1.5;font-size:11px;color:var(--tea-sec)}#tea-journey .meanings>div{margin-bottom:8px}#tea-journey .meanings dt{font-weight:500;color:var(--tea-text)}#tea-journey .meanings dd{margin:0}#tea-journey .strip{display:flex;gap:5px;flex-wrap:wrap}#tea-journey .strip button{flex:1 1 auto;font-size:11px;padding:7px 9px}#tea-journey .metric{margin-top:16px}#tea-journey .metric>p{font-size:12px;margin-bottom:7px}#tea-journey .custom-form{margin-top:20px}#tea-journey .custom-form>div{display:flex;gap:6px;margin-top:5px}#tea-journey .custom-form input{min-width:0;flex:1;width:auto}#tea-journey input,#tea-journey textarea{background:#27241f;border:1px solid var(--tea-border);padding:10px 12px;border-radius:6px;width:100%;font-size:14px}#tea-journey input::placeholder,#tea-journey textarea::placeholder{color:#b6aa98;opacity:1}#tea-journey textarea{min-height:120px;resize:vertical}#tea-journey #private-note{min-height:260px;font:15px/1.7 var(--tea-body)}#tea-journey .tea-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}#tea-journey .tea-fields label{display:flex;flex-direction:column;gap:5px;font-size:12px}#tea-journey .tea-fields label:has(textarea){grid-column:1/-1}#tea-journey .brewing-title{margin-top:24px}#tea-journey .flavor-categories{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin:12px 0 4px}#tea-journey .flavor-categories button{font-size:10px;padding:6px 2px;min-height:44px;background:transparent;border-bottom:1px solid var(--tea-border);border-radius:0;box-shadow:none}#tea-journey .flavor-categories button[aria-pressed=true]{background:transparent;color:var(--tea-text);border-bottom:2px solid #bca68c}#tea-journey .wheel-tools{margin:5px 0 0}#tea-journey .browser-mode button{min-height:38px;font-size:11px}#tea-journey .words{display:flex;flex-wrap:wrap;gap:6px}#tea-journey .words button{font-size:12px;background:transparent;border:1px solid var(--tea-border);min-height:44px}#tea-journey .words button[aria-pressed=true]{background:var(--tea-choice);color:var(--tea-choice-text);border-color:#95826c}#tea-journey .style-suggestions{margin-top:12px;border-top:1px solid var(--tea-border);padding-top:14px}#tea-journey .style-suggestions h4{font-size:12px;margin-bottom:5px}#tea-journey .style-suggestions button{font-size:11px;min-height:38px;padding:6px 10px}#tea-journey #flavor-record{margin-top:20px;border-top:1px solid var(--tea-border);padding-top:14px}#tea-journey #flavor-record h4{margin:0 0 8px}#tea-journey .recorded small{display:block;font-size:10px;color:var(--tea-sec);line-height:1.5}#tea-journey .flavor-editor{border-top:1px solid var(--tea-border);padding-top:16px;margin-top:20px}#tea-journey .flavor-editor textarea{min-height:80px;margin-top:5px}#tea-journey .retained-summary{margin-top:14px}#tea-journey button:focus-visible{outline:2px solid #d3bea3;outline-offset:3px}#tea-journey .voice-note{font-size:12px}#tea-journey .tea-wheel button{box-shadow:none}#tea-journey .tea-wheel .radial-hit{border:0;border-radius:0;padding:0;background:transparent;min-height:0;color:inherit;transition:none}#tea-journey .tea-wheel .radial-hit[aria-pressed=true]{box-shadow:none;background:transparent;border:0}#tea-journey .tea-wheel .radial-center{min-height:0;padding:4px;color:#f0e5d2}#tea-journey .tea-wheel .radial-center:disabled{opacity:1}#tea-journey .tea-wheel .radial-hit:hover{background:transparent}#tea-journey .tea-wheel .radial-action button{font-size:12px}#tea-journey .tea-wheel .radial-action-copy{color:var(--tea-sec)}
+@media(max-width:599px){body{padding:0;background:#22201c}#tea-journey{border:0;border-radius:0;min-height:100dvh}#tea-journey header{border-radius:0}#tea-journey .overall-grid button{min-height:96px}}@media(max-width:350px){#tea-journey .tea-fields{grid-template-columns:1fr}#tea-journey .overall-grid button{padding:10px 9px;font-size:14px}#tea-journey .overall-grid span{font-size:10px}#tea-journey .section-dock button{flex-direction:row}#tea-journey header{padding:10px 12px}#tea-journey .chapter{padding:14px}#tea-journey .flavor-categories button{font-size:9px}#tea-journey .observation-toggle{font-size:11px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+/* Preserve the wheel's circular navigation boundary inside the shared shell. */
+#tea-journey .tea-wheel .radial-center{border-radius:50%;width:28%;height:28%;clip-path:circle(50%)}
+#tea-journey .primary{background:var(--tea-choice);color:var(--tea-choice-text);border:1px solid #95816a}
+#tea-journey select{max-width:100%;min-width:0;width:100%;min-height:44px;padding:8px;border-radius:6px;background:#27241f;border:1px solid var(--tea-border);color:var(--tea-text);font-size:12px}#tea-journey .reference-label{display:block;margin:16px 0 6px}#tea-journey .reference-example{margin-top:12px}#tea-journey .reference-example a{color:#dfc9ac;text-underline-offset:3px}#tea-journey .reference-example p{margin-top:7px}
+
+/* Compact refinement: fixed geometry, measured label rows, established espresso selection. */
+#tea-journey .workspace-nav{gap:0;display:flex;justify-content:space-between;padding-inline:16px}
+#tea-journey .workspace-nav button{padding-inline:7px}
+#tea-journey .overall-grid button{min-height:72px;padding:10px 12px}
+#tea-journey .overall-grid span{font-size:10px;line-height:1.4}
+#tea-journey .quick{padding-top:10px;padding-bottom:10px}
+#tea-journey .overall h4{font-size:23px}
+#tea-journey .observation-grid{grid-template-columns:repeat(12,minmax(0,1fr))}
+#tea-journey .observation-unit{height:58px;min-height:58px;grid-template-rows:34px 22px}
+#tea-journey .observation-unit .observation-toggle{height:34px;min-height:34px;padding:3px 6px}
+#tea-journey .intensity-slot{height:22px}
+#tea-journey .intensity-edit{height:22px;min-height:22px;line-height:20px;font-size:10px}
+
+#tea-journey .observation-unit:has(.intensity-edit) .observation-toggle{height:34px}
+#tea-journey .option-group{margin-top:12px}
+#tea-journey .group-help{margin-bottom:6px}
+#tea-journey .field-help{display:block;font-size:11px;color:var(--tea-sec);line-height:1.5;margin-top:4px}
+#tea-journey .intensity-popover .precision-link{font-size:10px;min-height:36px}
+#tea-journey .intensity-popover button[aria-pressed=true]{background:#594a3b;color:#f2e8db;outline:1px solid #a5927b}
+
+#tea-journey .observation-unit .observation-toggle,#tea-journey .observation-unit .observation-toggle[aria-pressed=true]{font-weight:400;letter-spacing:normal;transform:none;transition:none}
+#tea-journey .observation-unit{transition:none;transform:none}
+#tea-journey .observation-grid>.observation-unit{width:100%;max-width:none;justify-self:stretch;box-sizing:border-box;margin:0}
+#tea-journey .observation-grid>.observation-unit{grid-template-columns:minmax(0,1fr);justify-content:stretch;padding:0}
+
+/* Phone density: remove compounded margins, retain every word and target size. */
+#tea-journey header{min-height:64px;padding:8px 14px}
+#tea-journey .section-dock{top:64px;margin-top:8px}
+#tea-journey .chapter{padding:12px 16px}
+#tea-journey .chapter-lead{margin:0 0 4px}
+#tea-journey .chapter-lead h3{font-size:24px}
+#tea-journey .section-description{margin:4px 0 6px;line-height:1.45}
+#tea-journey .filter-copy{margin:2px 0 4px}
+#tea-journey .option-group,#tea-journey .option-group+.option-group{margin-top:10px}
+#tea-journey .option-group h4{display:inline;margin:0 6px 0 0;line-height:1.5}
+#tea-journey .option-group>.group-help{display:inline;margin:0;line-height:1.5}
+#tea-journey .option-group>.observation-grid,#tea-journey .option-group>.words{margin-top:5px}
+#tea-journey .metric{margin-top:10px}
+#tea-journey .metric>p{margin:0 0 4px}
+#tea-journey .timing-details{margin-top:10px;padding-top:10px}
+#tea-journey .timing-fields{gap:8px;padding-top:0}
+#tea-journey .timing-fields .metric{margin:0}
+#tea-journey .custom-form{margin-top:12px}
+#tea-journey .retained-summary:empty{display:none}
+#tea-journey .block{padding:12px 16px}
+#tea-journey .chapter .block{padding:0;margin-top:10px}
+#tea-journey .flavor-categories{margin:8px 0 2px}
+#tea-journey .wheel-tools{margin:0}
+#tea-journey .style-suggestions{margin-top:8px;padding-top:8px}
+#tea-journey .reference-label{margin:10px 0 4px}
+#tea-journey #flavor-record{margin-top:10px;padding-top:8px}
+#tea-journey .flavor-editor{margin-top:10px;padding-top:8px}
+#tea-journey .overall{padding:14px 16px 8px}
+#tea-journey .overall h4{margin-bottom:10px}
+#tea-journey .quick{padding:7px 16px}
+#tea-journey .assessment-hint{padding-bottom:3px}
+#tea-journey .assess-next{padding-top:10px}
+#tea-journey footer{padding:8px 16px 10px}
+
+#tea-journey .sense-switch{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
+#tea-journey .sense-switch button{min-height:44px}
+#tea-journey .copy-row{display:flex;flex-wrap:wrap;align-items:center;gap:0 8px;margin:0 0 6px}
+#tea-journey .copy-row button{font-size:11px;min-height:44px;padding:5px 0;text-decoration:underline;text-underline-offset:3px}
+#tea-journey .copy-row .small{font-size:11px}
+#tea-journey .section-dock button{line-height:1.25;white-space:normal}

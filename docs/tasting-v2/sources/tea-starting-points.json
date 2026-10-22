@@ -1,0 +1,104 @@
+{
+  "meaning": "Editorial starting words, never preselected or restrictive. Sourced from the current Taste.md section 9.",
+  "styles": {
+    "Pan-fired green": [
+      "Chestnut",
+      "Toasted rice",
+      "Green bean",
+      "Fresh grass",
+      "Floral"
+    ],
+    "Steamed green": [
+      "Seaweed",
+      "Leafy greens",
+      "Fresh grass",
+      "Umami",
+      "Sweet"
+    ],
+    "Yellow": [
+      "Chestnut",
+      "Hay",
+      "Honey",
+      "Sweet",
+      "Floral"
+    ],
+    "Young white": [
+      "Floral",
+      "Hay",
+      "Honey",
+      "Pear",
+      "Sweet"
+    ],
+    "Mature white": [
+      "Date",
+      "Dried apricot",
+      "Honey",
+      "Dried herbs",
+      "Dry wood"
+    ],
+    "Light oolong": [
+      "Orchid",
+      "Jasmine",
+      "Cream",
+      "Peach",
+      "Pear"
+    ],
+    "Roasted oolong / Wuyi": [
+      "Roasted",
+      "Charcoal",
+      "Walnut",
+      "Cocoa",
+      "Cinnamon",
+      "Wet stone"
+    ],
+    "Dancong": [
+      "Orchid",
+      "Osmanthus",
+      "Honey",
+      "Peach",
+      "Citrus peel"
+    ],
+    "More oxidized / bug-bitten oolong": [
+      "Honey",
+      "Fresh fruit",
+      "Raisin",
+      "Peach",
+      "Floral"
+    ],
+    "Red / black": [
+      "Malt",
+      "Honey",
+      "Cocoa",
+      "Dried fruit",
+      "Brown sugar"
+    ],
+    "Young sheng": [
+      "Floral",
+      "Fresh grass",
+      "Apricot",
+      "Honey",
+      "Bitter"
+    ],
+    "Mature sheng": [
+      "Dry wood",
+      "Camphor",
+      "Incense",
+      "Dried fruit",
+      "Earthy"
+    ],
+    "Shou": [
+      "Earthy",
+      "Mushroom",
+      "Dry wood",
+      "Date",
+      "Cocoa"
+    ],
+    "Other dark tea": [
+      "Earthy",
+      "Mushroom",
+      "Dry wood",
+      "Leather",
+      "Dried herbs"
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "snapshot_date": "2026-10-22",
+  "files": [
+    {
+      "source": "/Users/adrianrasmussen/.codex/visualizations/2026/10/21/01a15ea9-82a0-7531-aa19-428c55510418/Taste.md",
+      "snapshot": "/Users/adrianrasmussen/.codex/visualizations/2026/10/21/01a15e1e-b940-7c80-84bf-62aad86f2c8c/tasting-reference/sources/Taste.md",
+      "sha256": "b8cd011ca748244e313074b3efa78cc49df1a61b22fa59207ca74c117167d033"
+    },
+    {
+      "source": "/Users/adrianrasmussen/Documents/Codex/2026-10-21/taste-flavor-wheel/outputs/vocabulary.json",
+      "snapshot": "/Users/adrianrasmussen/.codex/visualizations/2026/10/21/01a15e1e-b940-7c80-84bf-62aad86f2c8c/tasting-reference/sources/vocabulary.json",
+      "sha256": "1bd4916bad7053018fa5daad50ac87bbf43e562bc46d4b898fb5d413849dc70b"
+    },
+    {
+      "source": "/Users/adrianrasmussen/Documents/Codex/2026-10-21/taste-flavor-wheel/outputs/tea-starting-points.json",
+      "snapshot": "/Users/adrianrasmussen/.codex/visualizations/2026/10/21/01a15e1e-b940-7c80-84bf-62aad86f2c8c/tasting-reference/sources/tea-starting-points.json",
+      "sha256": "edc476c6c18bfca8d41fe7b87a2ccbec9f01b3da5b5ca56ff7073becd373ff4c"
+    },
+    {
+      "source": "/Users/adrianrasmussen/Documents/Codex/2026-10-21/taste-flavor-wheel/outputs/reference-profiles.json",
+      "snapshot": "/Users/adrianrasmussen/.codex/visualizations/2026/10/21/01a15e1e-b940-7c80-84bf-62aad86f2c8c/tasting-reference/sources/reference-profiles.json",
+      "sha256": "6dc2f2d6f35ad068d1e8fdb7af33fdb28fc7f29e1ed75d47a730d65b8488048c"
+    },
+    {
+      "source": "/Users/adrianrasmussen/Documents/Codex/2026-10-21/taste-flavor-wheel/outputs/interaction-brief.md",
+      "snapshot": "/Users/adrianrasmussen/.codex/visualizations/2026/10/21/01a15e1e-b940-7c80-84bf-62aad86f2c8c/tasting-reference/sources/interaction-brief.md",
+      "sha256": "0103fd11c1dd2fc164f32f124cdb2c495d7b19135ddd33257c343249fc036fae"
+    },
+    {
+      "source": "/Users/adrianrasmussen/Documents/Codex/2026-10-21/taste-flavor-wheel/outputs/design-findings.md",
+      "snapshot": "/Users/adrianrasmussen/.codex/visualizations/2026/10/21/01a15e1e-b940-7c80-84bf-62aad86f2c8c/tasting-reference/sources/design-findings.md",
+      "sha256": "ee6b127de8ed016881ba15755bfeae85b8d48366332c6d1c4c88c4a473cc9115"
+    }
+  ]
+}

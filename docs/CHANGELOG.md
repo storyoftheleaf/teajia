@@ -1,3 +1,7 @@
+# 2026-10-22 — Tasting v2 preview
+
+Added `/tasting-v2/` as a separate browser-local tasting preview, preserving its vocabulary and sources. Existing account tasting and navigation are unchanged.
+
 # Teajia Changelog
 
 > Shipped work, newest first. For what's next see `CONSOLIDATED_DIRECTION.md`; active checklists live in `tracks/`.

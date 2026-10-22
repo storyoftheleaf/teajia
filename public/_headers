@@ -35,3 +35,7 @@
 
 /api/verify/confirm
   Cache-Control: no-store
+
+/tasting-v2/*
+  Cache-Control: no-cache
+  X-Robots-Tag: noindex, nofollow
