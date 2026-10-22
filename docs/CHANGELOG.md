@@ -1,3 +1,7 @@
+# 2026-10-22 — Tasting v3 preview
+
+Added `/tasting-v3/` with the dusk-gradient flavor wheel, fluid ring motion, distinct brown selections, and compact layout. Category centers show All categories and an inline return arrow. Aroma and Flavor records remain separate; drafts save in this browser and can inherit a V2 draft. V2 remains available.
+
 # 2026-10-22 — Tasting v2 preview
 
 Added `/tasting-v2/` as a separate browser-local tasting preview, preserving its vocabulary and sources. Existing account tasting and navigation are unchanged.

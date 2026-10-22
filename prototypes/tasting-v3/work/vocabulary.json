@@ -1,0 +1,442 @@
+{
+  "feel": [
+    {
+      "group": "Body",
+      "terms": [
+        {
+          "name": "Light",
+          "description": "Little weight in the liquid; Light is not automatically watery",
+          "valence": "neutral"
+        },
+        {
+          "name": "Medium",
+          "description": "Intermediate weight in the liquid",
+          "valence": "neutral"
+        },
+        {
+          "name": "Full",
+          "description": "Substantial weight in the liquid",
+          "valence": "neutral"
+        }
+      ]
+    },
+    {
+      "group": "Texture",
+      "terms": [
+        {
+          "name": "Smooth",
+          "description": "Little friction or roughness",
+          "valence": "positive"
+        },
+        {
+          "name": "Rough",
+          "description": "Noticeable friction or unevenness",
+          "valence": "negative"
+        },
+        {
+          "name": "Oily",
+          "description": "Slick, lubricating sensation; does not claim actual oil",
+          "valence": "neutral"
+        }
+      ]
+    },
+    {
+      "group": "Coating",
+      "terms": [
+        {
+          "name": "Not noticed",
+          "description": "No layer-like sensation noticed remaining after swallowing",
+          "valence": "neutral"
+        },
+        {
+          "name": "Noticeable",
+          "description": "A layer-like sensation remains after swallowing",
+          "valence": "neutral"
+        }
+      ]
+    },
+    {
+      "group": "Drying",
+      "terms": [
+        {
+          "name": "Not noticed",
+          "description": "No increase in mouth or throat dryness noticed",
+          "valence": "neutral"
+        },
+        {
+          "name": "Slight",
+          "description": "Mouth or throat feels slightly drier",
+          "valence": "neutral"
+        },
+        {
+          "name": "Moderate",
+          "description": "Mouth or throat feels moderately drier",
+          "valence": "neutral"
+        },
+        {
+          "name": "Strong",
+          "description": "Mouth or throat feels strongly drier",
+          "valence": "neutral"
+        }
+      ]
+    },
+    {
+      "group": "Salivation · Sheng jin",
+      "terms": [
+        {
+          "name": "Not noticed",
+          "description": "No detected increase in mouth-watering",
+          "valence": "neutral"
+        },
+        {
+          "name": "Gentle",
+          "description": "Some increase in mouth-watering",
+          "valence": "neutral"
+        },
+        {
+          "name": "Abundant",
+          "description": "Much more mouth-watering",
+          "valence": "neutral"
+        }
+      ]
+    },
+    {
+      "group": "Throat comfort",
+      "terms": [
+        {
+          "name": "Comfortable",
+          "description": "Swallowing and the throat feel comfortable",
+          "valence": "positive"
+        },
+        {
+          "name": "Irritated",
+          "description": "Uncomfortable irritation during or after swallowing",
+          "valence": "negative"
+        },
+        {
+          "name": "Tight",
+          "description": "A constricted or tightening throat sensation",
+          "valence": "negative"
+        }
+      ]
+    },
+    {
+      "group": "Local sensations",
+      "terms": [
+        {
+          "name": "Cooling",
+          "description": "Coolness in mouth/throat",
+          "valence": "neutral"
+        },
+        {
+          "name": "Warming",
+          "description": "Warmth in mouth/throat",
+          "valence": "neutral"
+        },
+        {
+          "name": "Tingling",
+          "description": "Tingles in mouth/throat",
+          "valence": "neutral"
+        },
+        {
+          "name": "Numbing",
+          "description": "Reduced sensation in mouth/throat",
+          "valence": "neutral"
+        }
+      ]
+    }
+  ],
+  "energy": [
+    {
+      "group": "Mental clarity",
+      "terms": [
+        {
+          "name": "Clear-headed",
+          "description": "Thinking feels less muddled",
+          "valence": "positive"
+        },
+        {
+          "name": "Foggy",
+          "description": "Thinking feels muddled or less clear",
+          "valence": "negative"
+        }
+      ]
+    },
+    {
+      "group": "Attention",
+      "terms": [
+        {
+          "name": "Focused",
+          "description": "Easier to stay with one thing",
+          "valence": "positive"
+        },
+        {
+          "name": "Distracted",
+          "description": "Attention keeps wandering",
+          "valence": "negative"
+        }
+      ]
+    },
+    {
+      "group": "Mood",
+      "terms": [
+        {
+          "name": "Calm",
+          "description": "Feeling settled or at ease",
+          "valence": "neutral"
+        },
+        {
+          "name": "Uplifted",
+          "description": "Mood feels lighter or brighter",
+          "valence": "positive"
+        },
+        {
+          "name": "Restless",
+          "description": "Difficulty settling",
+          "valence": "negative"
+        }
+      ]
+    },
+    {
+      "group": "Activation",
+      "terms": [
+        {
+          "name": "Energized",
+          "description": "More activated or ready to act",
+          "valence": "neutral"
+        },
+        {
+          "name": "Drowsy",
+          "description": "Sleepy or less alert; may be welcome",
+          "valence": "neutral"
+        }
+      ]
+    },
+    {
+      "group": "Physical sensations",
+      "terms": [
+        {
+          "name": "Warmth",
+          "description": "Whole-body warmth, distinct from mouth/throat sensations",
+          "valence": "neutral"
+        },
+        {
+          "name": "Coolness",
+          "description": "Whole-body coolness, distinct from mouth/throat sensations",
+          "valence": "neutral"
+        },
+        {
+          "name": "Tingling",
+          "description": "Whole-body tingling, distinct from mouth/throat sensations",
+          "valence": "neutral"
+        },
+        {
+          "name": "Jittery",
+          "description": "Shaky or uncomfortably overstimulated",
+          "valence": "negative"
+        },
+        {
+          "name": "Stomach discomfort",
+          "description": "Uncomfortable stomach sensation",
+          "valence": "negative"
+        }
+      ]
+    },
+    {
+      "group": "Explicit absence",
+      "terms": [
+        {
+          "name": "No clear change",
+          "description": "No change noticed during the period described; not an intensity of zero",
+          "valence": "neutral"
+        }
+      ]
+    }
+  ],
+  "storage": [
+    {
+      "group": "Recognizable character",
+      "terms": [
+        {
+          "name": "Dry wood",
+          "description": "Dry woody aroma/flavor association",
+          "valence": "neutral"
+        },
+        {
+          "name": "Camphor",
+          "description": "Sharp aromatic wood-like association",
+          "valence": "neutral"
+        },
+        {
+          "name": "Incense",
+          "description": "Incense-like aroma",
+          "valence": "neutral"
+        },
+        {
+          "name": "Leather",
+          "description": "Leather-like association",
+          "valence": "neutral"
+        },
+        {
+          "name": "Earthy",
+          "description": "Broad earth-like association",
+          "valence": "neutral"
+        },
+        {
+          "name": "Mushroom",
+          "description": "Mushroom-like association",
+          "valence": "neutral"
+        },
+        {
+          "name": "Smoke",
+          "description": "Fire-smoke association",
+          "valence": "neutral"
+        }
+      ]
+    },
+    {
+      "group": "Other aromas",
+      "terms": [
+        {
+          "name": "Musty",
+          "description": "Closed, stale, damp-room/fabric association; not a mold diagnosis",
+          "valence": "neutral"
+        },
+        {
+          "name": "Paper/cardboard-like",
+          "description": "Paper, old books or cardboard; dry/damp nuance may be personal wording",
+          "valence": "neutral"
+        },
+        {
+          "name": "Ferment-like aroma",
+          "description": "Fermented-material association; does not establish its cause",
+          "valence": "neutral"
+        },
+        {
+          "name": "Fishy",
+          "description": "Fish-like aroma association",
+          "valence": "negative"
+        },
+        {
+          "name": "Perfume-like",
+          "description": "Perfume association, distinct from simply floral",
+          "valence": "negative"
+        },
+        {
+          "name": "Plastic-like",
+          "description": "Plastic association; does not prove packaging caused it",
+          "valence": "negative"
+        }
+      ]
+    },
+    {
+      "group": "Unidentified",
+      "terms": [
+        {
+          "name": "Other unfamiliar odor",
+          "description": "An odor the person cannot name; do not automatically add beside a named odor",
+          "valence": "neutral"
+        }
+      ]
+    },
+    {
+      "group": "Explicit absence",
+      "terms": [
+        {
+          "name": "No distinct storage character",
+          "description": "None detected; not certification of cleanliness",
+          "valence": "neutral"
+        }
+      ]
+    },
+    {
+      "group": "Effect on other character",
+      "terms": [
+        {
+          "name": "Leaves it clear",
+          "description": "Other tea character remains discernible",
+          "valence": "positive"
+        },
+        {
+          "name": "Partly masks it",
+          "description": "Some other character is obscured",
+          "valence": "negative"
+        },
+        {
+          "name": "Mostly masks it",
+          "description": "Much of the other character is obscured",
+          "valence": "negative"
+        }
+      ]
+    }
+  ],
+  "flavorDefinitions": {
+    "Floral": "Resembling fresh or dried flowers.",
+    "Fresh fruit": "Resembling fresh fruit or its peel.",
+    "Dried fruit": "Resembling fruit after drying or concentrating.",
+    "Sweet & creamy aromas": "Honey-like, sugar-like, or creamy aromas, whether or not the sip tastes sweet.",
+    "Nuts & grain": "Resembling nuts, cereals, or bread.",
+    "Roast & cocoa": "Roasted, smoky, or cocoa-like character.",
+    "Vegetal": "Resembling green plants, vegetables, or dried grasses.",
+    "Herbs & spice": "Resembling culinary herbs or spices.",
+    "Wood & resin": "Resembling wood, resin, or incense.",
+    "Earth & fungi": "Earthy, mushroom-like, or leathery associations; Earthy is the broad observation.",
+    "Earthy": "A broad earthy association; the broad observation for Earth & fungi.",
+    "Stone & metal": "Stone-like or metallic sensory comparisons; Mineral-like is the broad observation.",
+    "Mineral-like": "Stone/metal sensory comparison; no claim about mineral content or origin.",
+    "Roasted": "Browned or toasted-food association.",
+    "Charcoal": "Dry charcoal association.",
+    "Smoke": "Fire-smoke association.",
+    "Burnt": "Scorched-food association; typically a drawback, but remains available in the descriptive wheel.",
+    "Chalk": "Chalk-like flavor; physical powderiness or grittiness belongs in Feel.",
+    "Osmanthus": "Fragrant flower often compared with apricot.",
+    "Dried longan": "Dried fruit with a sweet, dark-fruit association.",
+    "Camphor": "Sharp, aromatic wood-like association; not a claim camphor is present.",
+    "Dry wood": "Resembles dry wood.",
+    "Incense": "Resembles incense.",
+    "Leather": "Resembles leather.",
+    "Mushroom": "Resembles mushrooms.",
+    "Sweet": "Sugar-like taste in the sip.",
+    "Bitter": "Bitter taste, whether welcome or unwelcome.",
+    "Sour / tart": "Acidic or tangy taste.",
+    "Umami": "A savory, broth-like taste.",
+    "Salty": "Salt-like taste.",
+    "Distinct": "Individual impressions recognizable.",
+    "Hard to distinguish": "Impressions difficult to separate.",
+    "Several layers": "Several distinguishable impressions; neither inherently better.",
+    "One main character": "One dominant impression; neither inherently better.",
+    "Work together": "Flavors fit harmoniously.",
+    "Clash": "Elements conflict.",
+    "Returning sweetness · Hui gan": "Sweetness appears or becomes clearer after swallowing, sometimes as bitterness fades.",
+    "Aftertaste": "A taste or aromatic impression that remains after swallowing."
+  },
+  "semantics": {
+    "valence": "Visibility mapping only: positive = S, negative = W, neutral = S+W. Both shows the deduplicated union; Undecided shows all; Ordinary skips guided exploration. Never infer the person’s appraisal from a term.",
+    "energyAspects": [
+      "Mental clarity",
+      "Attention",
+      "Mood",
+      "Activation",
+      "Physical sensations"
+    ],
+    "energyAbsence": "Explicit absence is a separate answer, not a sixth experiential aspect. Unrecorded energy remains unknown.",
+    "storageFlavorCrossReferences": [
+      "Dry wood",
+      "Camphor",
+      "Incense",
+      "Leather",
+      "Earthy",
+      "Mushroom",
+      "Smoke"
+    ],
+    "storageCrossReferenceRule": "Shared terms use the same underlying flavor observation with an explicit storage association. Do not duplicate the note or infer storage from a flavor selection.",
+    "storageLimits": "Sensory storage associations do not establish age, location, humidity, contamination, or safety.",
+    "oilyCoatingDistinction": "Oily is slickness while drinking; Coating is a layer sensation remaining after swallowing. Neither implies the other. Smooth and Oily can coexist.",
+    "selection": "Body, coating, drying and salivation each take one answer for the moment described. Textures and local sensations can coexist. Throat descriptions may coexist across places or moments. Storage allows multiple aromas and one optional masking answer. Selecting a term supplies no default intensity, timing, or appraisal.",
+    "absence": "Not noticed explicitly records non-detection for the period described; untouched records no answer.",
+    "assessment": "Both permits Strength and Weakness together. Unmarked defaults to Undecided for navigation without manufacturing a recorded assessment. Changing assessment changes suggestions and never deletes observations or details.",
+    "intensity": "Feel, Energy and Storage use Slight / Moderate / Strong. Avoid a second intensity question for Drying. Flavor-note intensity remains Subtle / Moderate / Pronounced.",
+    "energyDevelopment": "Optional whole-energy details: onset While drinking / After drinking; progression Stayed steady / Built gradually / Came in waves; duration Brief / Sustained / Long-lasting; ongoing Still feeling it is separate. One answer per question; all optional.",
+    "storageAcrossInfusions": "Clears / Softens / Persists / Becomes more apparent were rejected as controls and must not be reintroduced."
+  }
+}

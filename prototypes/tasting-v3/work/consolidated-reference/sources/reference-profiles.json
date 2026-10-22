@@ -1,0 +1,113 @@
+{
+  "demo_teas": [
+    {
+      "id": "unknown",
+      "name": "Unspecified tea",
+      "style": "Unknown style"
+    },
+    {
+      "id": "paochong",
+      "name": "Wenshan Paochong",
+      "style": "Light oolong",
+      "expert": [
+        "Floral",
+        "Sweet"
+      ]
+    },
+    {
+      "id": "beauty",
+      "name": "Oriental Beauty",
+      "style": "More oxidized / bug-bitten oolong",
+      "expert": [
+        "Honey",
+        "Fresh fruit"
+      ]
+    },
+    {
+      "id": "dongding",
+      "name": "Roasted Dongding",
+      "style": "Roasted oolong / Wuyi",
+      "expert": [
+        "Roasted",
+        "Nuts & grain",
+        "Sweet"
+      ],
+      "classification": "Roasted ball-style oolong"
+    },
+    {
+      "id": "light",
+      "name": "Light oolong",
+      "style": "Light oolong"
+    },
+    {
+      "id": "wuyi",
+      "name": "Wuyi rock oolong",
+      "style": "Roasted oolong / Wuyi"
+    },
+    {
+      "id": "dancong",
+      "name": "Dancong",
+      "style": "Dancong"
+    },
+    {
+      "id": "green",
+      "name": "Pan-fired green tea",
+      "style": "Pan-fired green"
+    },
+    {
+      "id": "steamed",
+      "name": "Steamed green tea",
+      "style": "Steamed green"
+    },
+    {
+      "id": "yellow",
+      "name": "Yellow tea",
+      "style": "Yellow"
+    },
+    {
+      "id": "white",
+      "name": "Young white tea",
+      "style": "Young white"
+    },
+    {
+      "id": "agedwhite",
+      "name": "Mature white tea",
+      "style": "Mature white"
+    },
+    {
+      "id": "black",
+      "name": "Red / black tea",
+      "style": "Red / black"
+    },
+    {
+      "id": "sheng",
+      "name": "Young sheng",
+      "style": "Young sheng"
+    },
+    {
+      "id": "agedsheng",
+      "name": "Mature sheng",
+      "style": "Mature sheng"
+    },
+    {
+      "id": "shou",
+      "name": "Shou puer",
+      "style": "Shou"
+    },
+    {
+      "id": "dark",
+      "name": "Other dark tea",
+      "style": "Other dark tea"
+    },
+    {
+      "id": "oolong",
+      "name": "Oolong \u00b7 unspecified",
+      "style": "Oolong \u00b7 unspecified"
+    }
+  ],
+  "expert_source": {
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8070119/",
+    "scope": "Taiwan specialty teas only; Appendix A and section 3.3; UI words are adapted to Taste vocabulary."
+  },
+  "other_profiles": "Editorial suggestions from Taste.md; not labeled expert profiles."
+}

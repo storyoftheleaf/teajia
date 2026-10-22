@@ -39,3 +39,7 @@
 /tasting-v2/*
   Cache-Control: no-cache
   X-Robots-Tag: noindex, nofollow
+
+/tasting-v3/*
+  Cache-Control: no-cache
+  X-Robots-Tag: noindex, nofollow

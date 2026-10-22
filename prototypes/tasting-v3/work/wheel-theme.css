@@ -1,0 +1,31 @@
+
+:root{--paper:#191918;--ink:#ded8ce;--muted:#aaa397;--line:#434039;--gold:#a99f8f;--recess:#1c1b19;--active:#292825;--wheel-separator:#aa9e8c50}
+body{background:#121211;color:#ded8ce}.app,header{background:#191918}h1,h2,h3,.center-heading{color:#ded8ce!important}.style,.tea-classification{color:#aaa397}.primary{background:#a99f8f;border-color:#a99f8f;color:#24221e}.primary:hover{filter:brightness(1.08)}.search,textarea{background:#121211;border-color:#434039;color:#ded8ce}.search::placeholder{color:#aaa397}
+#radial .radial-center,#radial .radial-center.has-selection{background:radial-gradient(circle at 40% 25%,#292825,#1c1b19 82%)}#radial .radial-center:not(:disabled):hover{background:radial-gradient(circle at 40% 25%,#292825,#1c1b19 82%)}#radial .radial-hit span{color:#ded8ce}#radial .radial-hit .family-icon{color:#aaa397}#radial .radial-hit.active-family .family-icon,#radial .radial-hit.family-has-notes .family-icon,#radial .radial-center .center-back{color:#ded8ce}#radial .radial-svg .segment-seam{stroke:#aa9e8c50}#radial .radial-stage:before{background:#191918;box-shadow:0 5px 12px #0003}#radial .radial-center{box-shadow:0 3px 7px #0006,0 6px 14px #0003}
+#sections button[aria-selected=true],.categories button[aria-pressed=true]{background:#1c1b19;color:#ded8ce;box-shadow:inset 0 -2px #a99f8f}.categories button,nav button{color:#aaa397}.family-tip,.screen-tools>button,.display-settings>summary,.wheel-details>summary,.radial-action-copy,.record .empty{color:#aaa397}.settings-panel,dialog{background:#191918;border-color:#434039}.settings-panel label,.settings-panel .type-picker{color:#ded8ce}.recorded button,.location-quick button,.personal-words button{color:#ded8ce;border-color:#434039}#radial .record,.wheel-details,.categories{border-color:#434039}.reference-disclosure,.style-guide-heading,.personal-words .small{color:#aaa397}button:focus-visible,summary:focus-visible{outline-color:#a99f8f}
+#radial .radial-center .center-back{opacity:.65;transition:opacity .22s ease-out}#radial .radial-center:hover .center-back,#radial .radial-center:focus-visible .center-back{opacity:1}
+#radial .radial-svg path.hovered:not(.focused){stroke:none;filter:brightness(1.09)}#radial .radial-svg path:not(.selection-arc):not(.current-family-overlay):not(.segment-seam){transition:filter .22s ease-out}
+#radial .radial-svg path.selection-inset{fill:none;stroke-width:.9;stroke-linejoin:round;pointer-events:none;transition:opacity .3s ease-out;filter:none}
+@media(prefers-reduced-motion:reduce){#radial .radial-center .center-back,#radial .radial-svg path{transition:none}}
+#radial .radial-svg path.selection-arc.raised-selection,#radial .radial-svg path.current-family-overlay{stroke:#79756c55;stroke-width:.5;stroke-linejoin:round;filter:url(#raisedEdge)}
+#radial .radial-svg #selected-joins{stroke:#494238;stroke-width:1.35;fill:none}
+#radial .slice-viewport{position:absolute;inset:0;pointer-events:none}
+#radial .slice-content{position:absolute;inset:0;pointer-events:none;transform-origin:50% 50%;will-change:transform}
+#radial .radial-svg path.selection-arc.instant-selection{transition:opacity 0s,transform .4s cubic-bezier(.22,.61,.36,1)}
+#radial .radial-svg path.current-family-overlay{filter:url(#familySideRelief);stroke:none}
+#radial .radial-svg #family-surfaces .raised-selection{filter:url(#familySideRelief);stroke:none}
+#radial .radial-center:hover:not(:focus-visible){outline:none;border:0}
+@media(prefers-reduced-motion:reduce){#radial .radial-svg path.selection-arc.instant-selection{transition:none}}
+#radial .radial-svg path:not(.segment-seam):not(#selected-joins){stroke:none!important}
+#radial .radial-hit:focus-visible .slice-content{text-decoration:underline;text-underline-offset:4px}
+#radial .radial-center{z-index:4}
+#radial .radial-center[data-level="family"]{padding:8px 6px;gap:3px}
+#radial .radial-center[data-level="family"] .center-heading{font-size:19px;line-height:1.08}
+#radial .center-return{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:8px;font:11px/1.2 system-ui,sans-serif;color:#aaa397;white-space:nowrap}
+#radial .radial-center .center-back{margin:0;min-height:18px}
+#radial .radial-center .center-back svg{width:15px;height:15px}
+#radial.compact-wheel .radial-center[data-level="family"]{padding:6px 4px;gap:2px}
+#radial.compact-wheel .radial-center[data-level="family"] .center-heading{font-size:16px;line-height:1.05}
+#radial.compact-wheel .center-return{font-size:10px;margin-top:6px;gap:3px}
+#radial.compact-wheel .center-back svg{width:13px;height:13px}
+html.motion-demo body,html.motion-demo .app{background:transparent}html.color-study #save{display:none}
