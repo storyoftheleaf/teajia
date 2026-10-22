@@ -13,3 +13,13 @@
   1 occurrence · first 2026-10-21T03:50:51Z · last 2026-10-21T03:50:51Z
   Normalized error: `http_504`
   Evidence: [acc-teajia-bali-server-get-api-curate-holdings-504-http-504-1bd8f93d.json](evidence/acc-teajia-bali-server-get-api-curate-holdings-504-http-504-1bd8f93d.json)
+
+- [ ] `acc_teajia_bali:server_post_api_curate_description_proposal_503_http_503` — **high**
+  1 occurrence · first 2026-10-21T15:18:02Z · last 2026-10-21T15:18:02Z
+  Normalized error: `http_503`
+  Evidence: [acc-teajia-bali-server-post-api-curate-description-proposal-503-http-503-48893563.json](evidence/acc-teajia-bali-server-post-api-curate-description-proposal-503-http-503-48893563.json)
+
+- [ ] `acc_teajia_bali:server_post_api_curate_said_file_502_http_502` — **high**
+  1 occurrence · first 2026-10-21T15:17:47Z · last 2026-10-21T15:17:47Z
+  Normalized error: `http_502`
+  Evidence: [acc-teajia-bali-server-post-api-curate-said-file-502-http-502-86a22434.json](evidence/acc-teajia-bali-server-post-api-curate-said-file-502-http-502-86a22434.json)
