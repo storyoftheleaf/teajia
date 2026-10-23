@@ -6,6 +6,8 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import { HelmetProvider } from 'react-helmet-async';
 import App from './App';
+import { ThemeProvider } from './context/ThemeContext';
+const LibraryPreviewPage = import.meta.env.DEV ? React.lazy(() => import('./pages/LibraryPreviewPage')) : null;
 import { AUTH_TOKEN_CHANGED_EVENT } from './lib/api';
 import { shouldPersistQueryKey } from './lib/queryPersistence';
 import './styles/tailwind.css';
@@ -62,7 +64,9 @@ root.render(
         }}
       >
         <BrowserRouter>
-          <App />
+          {LibraryPreviewPage && window.location.pathname === '/dev/library-preview'
+            ? <ThemeProvider><React.Suspense fallback={<p>Loading Library preview…</p>}><LibraryPreviewPage /></React.Suspense></ThemeProvider>
+            : <App />}
         </BrowserRouter>
       </PersistQueryClientProvider>
     </HelmetProvider>

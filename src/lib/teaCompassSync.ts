@@ -80,7 +80,7 @@ function toSnakeCase(entry: TeaCompassEntry): Record<string, any> {
   return result;
 }
 
-function toCamelCase(row: Record<string, any>): TeaCompassEntry {
+export function toCamelCase(row: Record<string, any>): TeaCompassEntry {
   const result: Record<string, any> = {};
   for (const [key, value] of Object.entries(row)) {
     // Skip DB-only fields

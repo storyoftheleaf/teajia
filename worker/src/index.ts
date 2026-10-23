@@ -151,7 +151,7 @@ import { handleCurateWorkspace } from './curateWorkspaceRoutes';
 import { validateCompassQuoteLink } from './curateQuotes';
 import { requireCurateManager, prepareCurateRecordedWrite } from './curateMutations';
 import { RouteRefusal, listRoutes, removeRoute, saveRoute } from './shippingRoutes';
-
+import { handleLibraryPreview, LIBRARY_PREVIEW_ORIGIN } from './libraryPreview';
 interface Env extends WorkerReleaseEnv {
   DB: D1Database;
   WHATSAPP_ORDER_ACCOUNT_ID?: string;
@@ -29995,7 +29995,22 @@ export default {
   async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin') || '';
-    const corsOrigin = resolveAllowedOrigin(origin);
+    // Localhost CORS is granted only to this narrowly scoped API, never the normal app API.
+    const corsOrigin = url.pathname.startsWith('/api/dev/library-preview/') && origin === LIBRARY_PREVIEW_ORIGIN
+      ? origin : resolveAllowedOrigin(origin);
+    if (request.method === 'POST' && ['/api/dev/library-preview/grants', '/api/dev/library-preview/redeem'].includes(url.pathname)) {
+      const limited = await enforceDurableLimit(env.LOGIN_LIMITER, 'LOGIN_LIMITER', `library-preview:${request.headers.get('CF-Connecting-IP') || 'unknown'}`);
+      if (limited) return cors(limited, corsOrigin);
+    }
+    const previewResponse = await handleLibraryPreview(request, { DB: env.DB, owner: async (ownerRequest) => {
+      const account = await getActiveAccount(ownerRequest, env);
+      if ('error' in account) return account.error;
+      const claims = parseToken(isAuthed(ownerRequest)!);
+      const user = await env.DB.prepare('SELECT platform_role, session_version FROM users WHERE id = ?').bind(account.userId).first<any>();
+      if (!user || (account.isPlatform ? user.platform_role !== 'platform_owner' : account.role !== 'owner')) return json({ error: 'Owner access required' }, 403);
+      return { userId: account.userId, accountId: account.accountId, sessionVersion: Number(claims?.session_version || 0) };
+    }});
+    if (previewResponse && request.method !== 'OPTIONS') return cors(previewResponse, corsOrigin);
 
     // CORS preflight — cache for 24h to eliminate redundant OPTIONS round-trips
     if (request.method === 'OPTIONS') {

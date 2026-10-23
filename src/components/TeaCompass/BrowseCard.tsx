@@ -14,6 +14,8 @@ import { purchaseStateLabel, type LibraryPurchaseState } from '../../lib/library
 
 export interface BrowseCardProps {
   entry: TeaCompassEntry;
+  readOnly?: boolean;
+  tastingRecorded?: boolean;
   onEdit: (id: string) => void;
   tasteQueueActive?: boolean;
   onSelect?: (id: string) => void;
@@ -49,7 +51,7 @@ export function getDateGroup(dateStr: string): string {
   return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, onSelect, onOpenDetail, isSelected, onAcquire, pricePreference = DEFAULT_LIBRARY_PRICE, rates, purchaseState, purchaseStatusUnknown }) => {
+export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, readOnly = false, tastingRecorded, onEdit, onSelect, onOpenDetail, isSelected, onAcquire, pricePreference = DEFAULT_LIBRARY_PRICE, rates, purchaseState, purchaseStatusUnknown }) => {
   const { theme } = useTheme();
   const updateEntry = useTeaCompassStore((state) => state.updateEntry);
   const [tastingOpen, setTastingOpen] = useState(false);
@@ -58,7 +60,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, onSelect,
   const title = entryDisplayTitle(entry);
   const openDetail = () => (onOpenDetail || onSelect || onEdit)(entry.id);
   const price = libraryQuotePrice(entry, pricePreference, rates);
-  const tasted = entryHasBeenTasted(entry);
+  const tasted = tastingRecorded ?? entryHasBeenTasted(entry);
   const preparation = entry.sampleState === 'requested' ? 'Sample requested'
     : entry.sampleState === 'received' ? 'Sample ready'
     : tasted ? 'Tasted' : entry.isSample ? 'Sample' : entry.status === 'in_stock' ? 'In stock' : entry.status === 'incoming' ? 'Incoming' : entry.status === 'depleted' ? 'Depleted' : null;
@@ -81,7 +83,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, onSelect,
             className="tap-target min-h-11 min-w-0 flex-1 truncate text-left text-ui-12 text-tea-text-sec hover:text-tea-text disabled:cursor-default" title={purchaseLabel} aria-label={`${purchaseLabel}: ${title}`}>
             {purchaseLabel}
           </button>
-          {entry.category !== 'teaware' && <button type="button" onClick={() => setTastingOpen(true)} className="tap-target inline-flex min-h-11 items-center gap-1.5 text-ui-12 text-tea-text hover:text-tea-gold" aria-label={`Taste ${title}`}>
+          {entry.category !== 'teaware' && <button type="button" onClick={() => readOnly ? openDetail() : setTastingOpen(true)} className="tap-target inline-flex min-h-11 items-center gap-1.5 text-ui-12 text-tea-text hover:text-tea-gold" aria-label={`Taste ${title}`}>
             <Droplets size={14} style={{ color: 'var(--library-accent)' }} /> Taste{tastingCount > 0 ? ` · ${tastingCount}` : ''}
           </button>}
           <button type="button" onClick={openDetail} className="tap-target inline-flex min-h-11 items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text" aria-label={`More about ${title}`}><MoreHorizontal size={14} /> More</button>
@@ -89,7 +91,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, onSelect,
       </article>
       {/* ── Tasting session ── */}
       <AnimatePresence>
-        {tastingOpen && (
+        {tastingOpen && !readOnly && (
           <TastingSession
             item={{
               id: entry.id,

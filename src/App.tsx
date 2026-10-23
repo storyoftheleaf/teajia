@@ -7,6 +7,7 @@ import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { TEA_REFERENCE_ROUTE_PATHS } from './wisdom/reference/previewMode';
 import { useArticleAccess } from './pages/read/publishGate';
 
+const LibraryPreviewAuthorize = lazyWithRetry(() => import('./pages/LibraryPreviewAuthorize'));
 const AdminApp = lazyWithRetry(() => import('./admin/AdminApp'));
 const MediaViewer = lazyWithRetry(() => import('./components/MediaViewer').then(m => ({ default: m.MediaViewer })));
 const Reader = lazyWithRetry(() => import('./components/Reader').then(m => ({ default: m.Reader })));
@@ -1249,6 +1250,7 @@ const AppContent = () => {
                 <Route path="/account/cellar" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CellarPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/collections" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SharedCollectionsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/journey" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><AccountJourneyPage /></Suspense></ErrorBoundary>} />
+                <Route path="/dev/library-preview/authorize" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><LibraryPreviewAuthorize /></Suspense></ErrorBoundary>} />
                 <Route path="/signin" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SignInPage /></Suspense></ErrorBoundary>} />
                 <Route path="/signup" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SignUpPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/settings" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><AccountSettingsPage /></Suspense></ErrorBoundary>} />

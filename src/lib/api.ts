@@ -1578,6 +1578,11 @@ export interface SampleTastingApiRow {
 }
 
 export const api = {
+  libraryPreview: {
+    createGrant: (input: { origin: string; challenge: string }): Promise<{ code: string; expiresAt: number; grantId: string }> => authedFetch(`${API_URL}/api/dev/library-preview/grants`, { method: 'POST', body: JSON.stringify(input) }),
+    listGrants: (): Promise<{ grants: Array<{ id: string; created_at: number; expires_at: number; consumed_at: number | null; origin: string }> }> => authedFetch(`${API_URL}/api/dev/library-preview/grants`),
+    revokeGrant: (id: string): Promise<{ revoked: boolean }> => authedFetch(`${API_URL}/api/dev/library-preview/grants/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  },
   mcpTokens: {
     list: (): Promise<Array<{ id: string; user_email: string; label: string; token_prefix: string; scopes: string[] | string | null; created_at: string; last_used_at: string | null; revoked_at: string | null }>> =>
       authedFetch(`${API_URL}/api/admin/mcp-tokens`),

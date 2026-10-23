@@ -81,3 +81,7 @@ AR Create's Transcript Library can initiate linking through the signed-in Teajia
 ## Tasting v2 preview
 
 `/tasting-v2/` is the separate tasting-v2 preview, with independent Aroma and Flavor wheels, Body & texture, Energy and Storage. Records stay in the current browser; the account tasting journal remains the existing flow. [Content, source provenance and build instructions](tasting-v2/INDEX.md).
+
+## Development-only Library review
+
+The Library-only preview handoff is documented in [LIBRARY_PREVIEW.md](LIBRARY_PREVIEW.md). It gives the approved localhost preview an expiring, revocable read-only snapshot capability, never an admin login. Publishing the handoff is separate from publishing a Library design.
