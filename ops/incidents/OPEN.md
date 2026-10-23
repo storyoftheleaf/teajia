@@ -23,3 +23,8 @@
   1 occurrence · first 2026-10-21T15:17:47Z · last 2026-10-21T15:17:47Z
   Normalized error: `http_502`
   Evidence: [acc-teajia-bali-server-post-api-curate-said-file-502-http-502-86a22434.json](evidence/acc-teajia-bali-server-post-api-curate-said-file-502-http-502-86a22434.json)
+
+- [ ] `acc_teajia_bali:network_get_api_compass_incoming_none_transport_failure` — **medium**
+  1 occurrence · first 2026-10-22T13:08:43Z · last 2026-10-22T13:08:43Z
+  Normalized error: `transport_failure`
+  Evidence: [acc-teajia-bali-network-get-api-compass-incoming-none-transport-failure-1f082489.json](evidence/acc-teajia-bali-network-get-api-compass-incoming-none-transport-failure-1f082489.json)
