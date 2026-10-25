@@ -12,14 +12,14 @@ beforeEach(() => { mocks.editor = undefined; mocks.invalidate.mockClear(); });
 describe('encounter given name', () => {
   it('offers naming before any inventory product exists', async () => {
     const save = vi.fn().mockResolvedValue(undefined);
-    expect(renderToStaticMarkup(<LibraryGivenName entry={{}} onSave={save} />)).toContain('Give this tea a name');
+    expect(renderToStaticMarkup(<LibraryGivenName entry={{}} onSave={save} />)).toContain('Name of the tea');
     await mocks.editor!.onSave('Amber Sky');
     expect(save).toHaveBeenCalledWith('Amber Sky');
   });
   it('replaces legacy repeated titles with an edit action without changing the stored value', () => {
     const save = vi.fn();
     const markup = renderToStaticMarkup(<LibraryGivenName entry={{ name: 'Source tea', givenName: ' Source tea ' }} onSave={save} />);
-    expect(markup).toContain('Rename this tea');
+    expect(markup).toContain('Name of the tea');
     expect(mocks.editor!.value).toBe(' Source tea ');
     expect(save).not.toHaveBeenCalled();
   });

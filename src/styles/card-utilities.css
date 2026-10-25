@@ -5501,15 +5501,15 @@ body.cart-panel-open .commerce-dock {
 .library-tools { display: flex; align-items: center; gap: 12px; }
 .library-tools > button { border: 0; padding: 0; background: transparent; border-radius: 0; }
 .library-supplier-groups { display: grid; gap: 24px; }
-.library-supplier-group { min-width: 0; padding: 5px; border: 1px solid var(--tea-border); border-radius: 11px; background: linear-gradient(120deg,color-mix(in srgb,var(--tea-elevated) 58%,var(--tea-bg)),color-mix(in srgb,var(--tea-surface) 42%,var(--tea-bg))); }
-.library-supplier-group[data-tone='1'] { background: linear-gradient(120deg,color-mix(in srgb,var(--tea-gold) 12%,var(--tea-bg)),color-mix(in srgb,var(--tea-surface) 24%,var(--tea-bg))); }
+.library-supplier-group { min-width: 0; padding: 5px; border: 1px solid var(--tea-border); border-radius: 11px; background: linear-gradient(120deg,var(--tea-elevated),var(--tea-surface)); }
+.library-supplier-group[data-tone='1'] { background: linear-gradient(120deg,var(--tea-surface),color-mix(in srgb,var(--tea-elevated) 65%,var(--tea-bg))); }
 .library-supplier-header { display: flex; align-items: center; gap: 8px; padding: 0 6px 4px; }
 .library-supplier-heading { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; min-height: 44px; text-align: left; color: var(--tea-text); }
 .library-supplier-name { flex: 1; min-width: 0; overflow-wrap: anywhere; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 20px; line-height: 1.15; }
 .library-supplier-count { flex-shrink: 0; color: var(--tea-text-dim); font-size: 11px; font-variant-numeric: tabular-nums; }
 .library-supplier-heading > svg { flex-shrink: 0; color: var(--tea-text-dim); }
 .library-supplier-content { min-width: 0; }
-.library-tea-card { min-width: 0; overflow: hidden; padding: 0 10px; border: 1px solid var(--tea-border); border-radius: 8px; background: linear-gradient(110deg,var(--tea-surface),var(--tea-bg)); box-shadow: inset 0 1px color-mix(in srgb,var(--tea-text) 7%,transparent); }
+.library-tea-card { min-width: 0; overflow: hidden; padding: 0 10px; border: 1px solid var(--tea-border); border-radius: 8px; background: var(--tea-bg); box-shadow: 0 2px 0 var(--tea-border), inset 0 0 0 1px var(--tea-border); }
 .library-tea-card-selected { outline: 1px solid var(--tea-gold); }
 .library-tea-identity { display: block; text-align: left; }
 .library-card-title-row { display: flex; align-items: center; gap: 8px; }
@@ -5525,7 +5525,7 @@ body.cart-panel-open .commerce-dock {
 .library-inline-value input { width: 100%; min-width: 0; min-height: 44px; padding: 2px 4px; border: 1px solid var(--tea-border); border-radius: 4px; color: var(--tea-text); background: var(--tea-bg); font-size: 16px; }
 .library-inline-value input:focus { outline: 1px solid var(--tea-gold); }
 .library-inline-hint { display: block; font-weight: 400; }
-.library-ribbon-prices { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); margin-inline: -10px; border-block: 1px solid var(--tea-border); background: linear-gradient(100deg,var(--tea-elevated),var(--tea-accent-sub)); }
+.library-ribbon-prices { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); margin-inline: -10px; border-block: 1px solid var(--tea-border); background: linear-gradient(100deg,var(--tea-elevated),color-mix(in srgb,var(--tea-elevated) 80%,var(--tea-surface))); }
 .library-ribbon-metric { position: relative; display: flex; flex-direction: column; justify-content: center; min-width: 0; min-height: 50px; padding: 2px 10px; text-align: left; }
 .library-ribbon-metric + .library-ribbon-metric { border-left: 1px solid var(--tea-border); }
 .library-ribbon-metric > span:first-child { position: absolute; top: 4px; left: 10px; pointer-events: none; }
@@ -5534,12 +5534,12 @@ body.cart-panel-open .commerce-dock {
 .library-ribbon-metric > strong { padding-top: 16px; }
 .library-ribbon-metric strong { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .library-ribbon-metric .library-inline-value:has(input) { padding-top: 14px; }
-.library-order-ribbon { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); width: calc(100% + 20px); margin-inline: -10px; text-align: left; background: var(--tea-accent-sub); }
+.library-order-ribbon { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); width: calc(100% + 20px); margin-inline: -10px; text-align: left; background: var(--tea-bg); box-shadow: inset 0 -1px var(--tea-border); }
 .library-order-ribbon > span { min-width: 0; min-height: 44px; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 4px 10px; }
 .library-order-ribbon > span + span { border-left: 1px solid var(--tea-border); }
-.library-order-ribbon > span:last-child { background: linear-gradient(110deg,transparent,var(--tea-elevated)); }
+.library-order-ribbon > span:last-child { background: var(--tea-accent-sub); }
 .library-order-ribbon strong { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.library-tea-actions { display: flex; align-items: center; gap: 8px; min-height: 48px; }
+.library-tea-actions { display: flex; align-items: center; gap: 8px; min-height: 48px; margin-inline: -10px; padding-inline: 10px; background: var(--tea-surface); }
 .library-ribbon-sample { flex: 1; min-width: 0; justify-content: flex-start; text-align: left; }
 .library-tea-reject { padding-inline: 6px; color: var(--tea-text-dim); }
 .library-tea-primary { position: relative; min-height: 36px; min-width: 72px; justify-content: center; gap: 6px; padding-inline: 12px; border: 1px solid var(--tea-border); border-radius: 5px; background: linear-gradient(120deg,var(--tea-elevated),var(--tea-surface)); color: var(--tea-text); font-weight: 600; }
@@ -5552,3 +5552,82 @@ body.cart-panel-open .commerce-dock {
   .library-segments > button { padding-inline: 7px; }
   .library-tools { width: 100%; justify-content: space-between; padding-inline: 7px; }
 }
+
+/* Tea details keep secondary tools within a compact, readable record. */
+.tea-record-panel { width: 100%; max-width: 48rem; margin-inline: auto; }
+.tea-record-decision { padding-block: .5rem .25rem; }
+.tea-record-taste { background: linear-gradient(135deg, var(--tea-elevated), var(--tea-surface)); border: 1px solid var(--tea-border); color: var(--tea-text); margin-left: auto; }
+.tea-record-taste:hover, .tea-record-taste:focus-visible { border-color: var(--tea-gold); }
+
+.tea-record-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid var(--tea-border); }
+.tea-record-tabs [role="tab"] { color: var(--tea-text-sec); border-bottom: 2px solid transparent; }
+.tea-record-tabs [aria-selected="true"] { color: var(--tea-text); border-bottom-color: var(--tea-gold); background: var(--tea-accent-sub); }
+
+/* Library label: full-width name, editable year below, equal pricing fields. */
+.library-card-title-row { display: block; }
+.library-card-name > button { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 44px; }
+.library-card-subrow > .library-card-year { flex: 0 0 68px; }
+.library-detail-link { flex: 0 0 44px; font-size: 11px; min-height: 44px; text-align: center; }
+.library-ribbon-prices { background: linear-gradient(110deg,color-mix(in srgb,var(--tea-surface) 58%,var(--tea-bg)),color-mix(in srgb,var(--tea-surface) 35%,var(--tea-bg))); }
+.library-ribbon-metric { min-height: 66px; padding: 4px 10px; gap: 0; justify-content: flex-start; }
+.library-ribbon-metric > span:first-child { position: static; font-size: 12px; min-height: 16px; line-height: 16px; }
+.library-ribbon-metric > strong { padding: 0; min-height: 44px; display: flex; align-items: center; font-size: 16px; }
+.library-ribbon-metric .library-inline-value > button { align-items: center; padding: 0; }
+.library-ribbon-metric .library-inline-value:has(input) { padding-top: 0; }
+.library-tea-actions { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 0; min-height: 54px; padding: 5px 0; background: transparent; }
+.library-tea-actions > :is(button,span) { margin-inline: 3px; min-height: 44px; justify-content: center; text-align: center; padding-inline: 2px; white-space: nowrap; }
+.library-tea-primary { min-width: 0; background: linear-gradient(120deg,var(--tea-surface),color-mix(in srgb,var(--tea-elevated) 45%,var(--tea-bg))); }
+.library-order-metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); border: 1px solid var(--tea-border); border-radius: 6px; background: var(--tea-surface); }
+.library-order-metrics > div { display: flex; flex-direction: column; gap: 4px; padding: 10px; }
+.library-order-metrics > div + div { border-left: 1px solid var(--tea-border); }
+
+.library-ribbon-metric .library-unset { font-size: 13px; font-weight: 400; }
+
+/* Tea-derived field shading stays inside the label, using the shared tea palette. */
+.library-tea-card .library-ribbon-prices { background: transparent; }
+.library-tea-card .library-ribbon-metric {
+  min-height: 60px;
+  padding: 2px 10px;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--library-tea-tint, var(--tea-surface)) 65%, var(--tea-bg)), color-mix(in srgb, var(--library-tea-tint, var(--tea-surface)) 30%, var(--tea-bg)));
+}
+.library-tea-card .library-ribbon-metric > span:first-child { font-size: 11px; line-height: 14px; min-height: 14px; }
+.library-tea-card .library-ribbon-metric > strong,
+.library-tea-card .library-ribbon-metric .library-inline-value { font-size: 15px; font-weight: 600; }
+.library-tea-card .library-ribbon-metric .library-unset { font-size: 13px; font-weight: 400; }
+.library-tea-actions .library-detail-link { font-size: 12px; }
+
+/* Whole-card tea tint, with compact identity and a pressed choice button. */
+.library-tea-card {
+  background: linear-gradient(125deg, color-mix(in srgb, var(--library-tea-tint, var(--tea-surface)) 75%, var(--tea-bg)), color-mix(in srgb, var(--library-tea-tint, var(--tea-surface)) 40%, var(--tea-bg)));
+}
+.library-tea-card .library-card-name > button { overflow: hidden; display: block; padding-top: 12px; padding-bottom: 2px; }
+.library-tea-card .library-given-name > button,
+.library-tea-card .library-card-year > button { display: flex; align-items: flex-start; padding-top: 2px; }
+.library-choose { border: 1px solid var(--tea-border); border-radius: 5px; background: var(--tea-accent-sub); }
+.library-choose[aria-pressed='true'] { background: var(--tea-gold); color: var(--tea-bg); font-weight: 600; }
+.library-choose:hover { border-color: var(--tea-gold); }
+
+/* Distinct tinted bands: quiet identity, brighter pricing, grounded actions. */
+.library-tea-card { background: color-mix(in srgb, var(--library-tea-tint, var(--tea-surface)) 42%, var(--tea-bg)); }
+.library-tea-card .library-ribbon-metric {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--library-tea-tint, var(--tea-surface)) 82%, var(--tea-surface)), color-mix(in srgb, var(--library-tea-tint, var(--tea-surface)) 65%, var(--tea-bg)));
+}
+.library-tea-card .library-tea-actions { background: color-mix(in srgb, var(--library-tea-tint, var(--tea-surface)) 22%, var(--tea-bg)); }
+.library-tea-card .library-card-subrow { height: 32px; align-items: flex-start; }
+.library-tea-card .library-given-name > button,
+.library-tea-card .library-card-year > button { min-height: 32px; height: 32px; position: relative; padding-top: 0; }
+.library-tea-card .library-given-name > button::after,
+.library-tea-card .library-card-year > button::after { content: ''; position: absolute; inset: -6px 0; }
+.library-tea-card .library-card-subrow:has(input) { height: auto; min-height: 44px; }
+
+/* Selected Library finish: fine outlines over restrained tea-type shading. */
+.library-tea-card { background: color-mix(in srgb, var(--library-tea-tint, var(--tea-surface)) 24%, var(--tea-bg)); }
+.library-tea-card .library-ribbon-metric { background: color-mix(in srgb, var(--library-tea-tint, var(--tea-surface)) 55%, var(--tea-bg)); }
+.library-tea-card .library-tea-actions > button {
+  border: 1px solid var(--tea-border);
+  border-radius: 5px;
+  background: transparent;
+}
+.library-tea-card .library-tea-actions .library-tea-primary { box-shadow: inset 0 -2px var(--library-accent); }
+.library-tea-card .library-tea-actions .library-choose[aria-pressed='true'] { background: var(--tea-gold); color: var(--tea-bg); border-color: var(--tea-gold); }
+.library-tea-card .library-tea-actions > button:hover { border-color: var(--tea-gold); }

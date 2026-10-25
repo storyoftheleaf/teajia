@@ -26,7 +26,7 @@ export function LibraryInlineValue({ value, display, label, onSave, readOnly, nu
       <input aria-label={label} aria-invalid={status === 'error'} value={draft} autoFocus inputMode={numeric ? 'decimal' : 'text'} disabled={status === 'saving'}
         onFocus={event => event.currentTarget.select()} onChange={event => { setDraft(event.target.value); setError(''); }} onBlur={() => void commit()}
         onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); void commit(); } if (event.key === 'Escape') { event.preventDefault(); cancelled.current = true; setEditing(false); setStatus('idle'); } }} />
-    </> : readOnly ? <span>{display}</span> : <button type="button" className="tap-target" aria-label={label} onClick={() => { setDraft(value); cancelled.current = false; setEditing(true); }}>{display}</button>}
+    </> : readOnly ? <span>{display}</span> : <button type="button" className="tap-target" title={display} aria-label={label} onClick={() => { setDraft(value); cancelled.current = false; setEditing(true); }}>{display}</button>}
     {status === 'saving' && <span role="status" className="library-inline-hint text-ui-10 text-tea-text-dim">Saving…</span>}
     {status === 'saved' && <span role="status" className="library-inline-hint text-ui-10 text-tea-text-dim">Saved</span>}
     {status === 'error' && <span role="alert" className="text-ui-11 text-tea-text-sec">{error} <button type="button" className="tap-target" onClick={() => void commit()}>Retry</button></span>}

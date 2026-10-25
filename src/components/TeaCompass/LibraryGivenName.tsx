@@ -13,7 +13,7 @@ export function LibraryGivenName({ entry, onSave, readOnly = false }: {
   if (readOnly && !entry.givenName) return null;
   return <LibraryInlineValue
     value={entry.givenName ?? ''}
-    display={!readOnly && entry.givenName?.trim() && entry.givenName.trim() === entry.name?.trim() ? 'Rename this tea' : entry.givenName || 'Give this tea a name'}
+    display={!readOnly && entry.givenName?.trim() && entry.givenName.trim() === entry.name?.trim() ? 'Name of the tea' : entry.givenName || 'Name of the tea'}
     label="Given name"
     className="library-given-name text-ui-12 text-tea-text-sec"
     readOnly={readOnly}

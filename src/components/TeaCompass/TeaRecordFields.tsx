@@ -78,18 +78,20 @@ export function RecordVoice({ entryId, compact = false }: { entryId: string; com
   </div>;
 }
 
-type RecordFieldSection = 'all' | 'identity' | 'description' | 'notes' | 'quote' | 'provenance';
-export function TeaRecordFields({ entry, onChange, section = 'all' }: { entry: TeaCompassEntry; onChange: (patch: Partial<TeaCompassEntry>) => void; section?: RecordFieldSection }) {
+type RecordFieldSection = 'all' | 'identity' | 'description' | 'notes' | 'quote' | 'provenance' | 'attributes';
+export function TeaRecordFields({ entry, onChange, section = 'all', flat = false }: { entry: TeaCompassEntry; onChange: (patch: Partial<TeaCompassEntry>) => void; section?: RecordFieldSection; flat?: boolean }) {
+  const Group = flat ? 'section' : 'details';
+  const Heading = flat ? 'h3' : 'summary';
   const show = (value: RecordFieldSection) => section === 'all' || section === value;
   return <section aria-label="Edit tea record" className="space-y-4 min-w-0">
-    {show('identity') && <><div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <TextField label="Tea name" value={entry.name} onCommit={name => onChange({ name })} />
+    {(show('identity') || section === 'attributes') && <><div className={section === 'attributes' ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-1 sm:grid-cols-2 gap-3'}>
+      {section !== 'attributes' && <TextField label="Tea name" value={entry.name} onCommit={name => onChange({ name })} />}
       <TextField label="Chinese name" value={entry.chineseName} onCommit={chineseName => onChange({ chineseName })} />
-      <TextField label="Source" value={entry.vendorName} onCommit={vendorName => onChange({ vendorName, vendorId: undefined, linkedCustomerId: undefined, vendorDetails: undefined })} />
+      {section !== 'attributes' && <TextField label="Source" value={entry.vendorName} onCommit={vendorName => onChange({ vendorName, vendorId: undefined, linkedCustomerId: undefined, vendorDetails: undefined })} />}
       <TextField label="Origin" value={entry.originRegion} onCommit={originRegion => onChange({ originRegion })} />
     </div>
     <div className="grid grid-cols-2 gap-3">
-      <NumberField label="Year" value={entry.year} onCommit={year => onChange({ year })} />
+      {section !== 'attributes' && <NumberField label="Year" value={entry.year} onCommit={year => onChange({ year })} />}
       {entry.category === 'tea' && <label className="block min-w-0 space-y-1"><span className={`${T.label} text-tea-text-sec`}>Tea type</span>
         <select className={inputClass} value={entry.type ?? ''} onChange={event => onChange({ type: event.target.value as TeaCompassEntry['type'] || undefined })}>
           <option value="">Not recorded</option>{TEA_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
@@ -102,8 +104,8 @@ export function TeaRecordFields({ entry, onChange, section = 'all' }: { entry: T
     </>}
     {show('description') && <TextField label="Description" value={entry.description ?? ''} multiline onCommit={description => onChange({ description })} />}
     {show('notes') && <TextField label="Notes" value={entry.notes} multiline onCommit={notes => onChange({ notes })} />}
-    {show('quote') && <details className="border-t border-tea-border pt-3">
-      <summary className={`${T.label} cursor-pointer min-h-11`}>Quoted price</summary>
+    {show('quote') && <Group className="border-t border-tea-border pt-3">
+      <Heading className={`${T.label} ${flat ? 'mb-2' : 'cursor-pointer min-h-11'}`}>Quoted price</Heading>
       <div className="grid grid-cols-2 gap-3 pb-3">
         <NumberField label="Quoted amount" value={entry.priceAmount} onCommit={priceAmount => onChange({ priceAmount })} />
         <label className="block min-w-0 space-y-1"><span className={`${T.label} text-tea-text-sec`}>Currency</span><select className={inputClass} value={entry.priceCurrency} onChange={event => onChange({ priceCurrency: event.target.value as Currency })}>
@@ -111,21 +113,21 @@ export function TeaRecordFields({ entry, onChange, section = 'all' }: { entry: T
         </select></label>
         {entry.category === 'tea' && <NumberField label="Price basis (g)" value={entry.pricePerUnitGrams} onCommit={pricePerUnitGrams => onChange({ pricePerUnitGrams })} />}
       </div>
-    </details>}
+    </Group>}
     {section === 'all' && <RecordVoice key={entry.id} entryId={entry.id} />}
-    {show('provenance') && entry.audioClips.length > 0 && <details className="border-t border-tea-border pt-3">
-      <summary className={`${T.label} min-h-11 cursor-pointer`}>Voice recordings ({entry.audioClips.length})</summary>
+    {show('provenance') && entry.audioClips.length > 0 && <Group className="border-t border-tea-border pt-3">
+      <Heading className={`${T.label} ${flat ? 'mb-2' : 'min-h-11 cursor-pointer'}`}>Voice recordings ({entry.audioClips.length})</Heading>
       <div className="space-y-3">{entry.audioClips.map((clip, index) => <div key={`${clip.timestamp}:${index}`} className="space-y-2 min-w-0">
         <p className="text-ui-11 text-tea-text-dim">{new Date(clip.timestamp).toLocaleString()}</p>
         <audio controls preload="none" src={mediaUrl(clip.url)} className="w-full max-w-full" aria-label={`Voice recording ${index + 1}`} />
         {clip.transcript && <p className="text-ui-12 text-tea-text-sec whitespace-pre-wrap">{clip.transcript}</p>}
       </div>)}</div>
-    </details>}
-    {show('provenance') && (entry.vendorDetails || entry.sourceEntryId || entry.linkedCustomerId) && <details className="border-t border-tea-border pt-3">
-      <summary className={`${T.label} min-h-11 cursor-pointer`}>Source attribution</summary>
+    </Group>}
+    {show('provenance') && (entry.vendorDetails || entry.sourceEntryId || entry.linkedCustomerId) && <Group className="border-t border-tea-border pt-3">
+      <Heading className={`${T.label} ${flat ? 'mb-2' : 'min-h-11 cursor-pointer'}`}>Source attribution</Heading>
       {entry.vendorName && <p className="text-ui-12 text-tea-text-sec">{entry.vendorName}</p>}
       {entry.vendorDetails && <dl className="text-ui-12 text-tea-text-sec space-y-1">{Object.entries(entry.vendorDetails).filter(([, value]) => value != null && value !== '').map(([key, value]) => <div key={key} className="break-words"><dt className="inline text-tea-text-dim">{key}: </dt><dd className="inline">{String(value)}</dd></div>)}</dl>}
       {entry.sourceEntryId && <p className="text-ui-12 text-tea-text-dim break-all">Shared from record {entry.sourceEntryId}</p>}
-    </details>}
+    </Group>}
   </section>;
 }

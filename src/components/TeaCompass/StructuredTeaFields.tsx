@@ -40,7 +40,9 @@ const newRoute = (): RouteDraft => ({ id: crypto.randomUUID(), mode: '', label: 
 
 /** Shared by both Curate editors and private detail panels. Quotes record
  * evidence only; nothing here changes retail pricing, freight or inventory. */
-export function StructuredTeaFields({ entry, onChange, routeOnly = false }: { entry: StructuredTeaEntry; onChange: (patch: Partial<StructuredTeaEntry>) => void; routeOnly?: boolean }) {
+export function StructuredTeaFields({ entry, onChange, routeOnly = false, flat = false }: { entry: StructuredTeaEntry; onChange: (patch: Partial<StructuredTeaEntry>) => void; routeOnly?: boolean; flat?: boolean }) {
+  const Group = flat ? 'section' : 'details';
+  const Heading = flat ? 'h3' : 'summary';
   const [draft, setDraft] = useState<RouteDraft | null>(null);
   const [error, setError] = useState('');
   useEffect(() => { setDraft(null); setError(''); }, [entry.id]);
@@ -79,8 +81,8 @@ export function StructuredTeaFields({ entry, onChange, routeOnly = false }: { en
       <option value="">Choose</option>{options.map(([value, text]) => <option key={value} value={value}>{text}</option>)}
     </select>
   </label>;
-  return <details className="border-t border-tea-border pt-3" data-testid="structured-tea-fields">
-    <summary className={`${TYPOGRAPHY_CLASSES.label} cursor-pointer min-h-11 text-tea-text-sec`}>{routeOnly ? 'Route price quotes' : 'Tea details & sourcing'}</summary>
+  return <Group className="border-t border-tea-border pt-3" data-testid="structured-tea-fields">
+    <Heading className={`${TYPOGRAPHY_CLASSES.label} ${flat ? 'mb-2' : 'cursor-pointer min-h-11'} text-tea-text-sec`}>{routeOnly ? 'Route price quotes' : 'Tea details & sourcing'}</Heading>
     <div className="space-y-4 pb-3">
       {!routeOnly && <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Quoted age" value={entry.ageQuoted} onCommit={value => onChange({ ageQuoted: value as string | null })} />
@@ -126,5 +128,5 @@ export function StructuredTeaFields({ entry, onChange, routeOnly = false }: { en
         </div>}
       </div>
     </div>
-  </details>;
+  </Group>;
 }

@@ -28,18 +28,18 @@ describe('Library phone row', () => {
   });
   it('shows arrival and sample status independently without preview decoration or prose', () => {
     const markup = render({ entry: { ...entry, status: 'incoming', vendorName: 'Chosen', notes: 'Internal notes', description: 'Long story', photos: ['https://example.com/bag.jpg'] } });
-    expect(markup).toContain('Incoming');
+    expect(markup).not.toContain('Incoming');
     expect(markup).toContain('Sample ready');
     expect(markup).toContain('Chosen');
     expect(markup).not.toContain('Internal notes');
     expect(markup).not.toContain('Long story');
     expect(markup).not.toContain('<img');
   });
-  it('retains Taste for a tea already tasted and uses durable order quantities', () => {
+  it('retains Taste and chosen state without showing order quantities', () => {
     const markup = render({ entry: { ...entry, tastingHistory: [{ data: { rating: 9 }, date: '2026-10-20' }], tasting: { rating: 9 } }, purchaseState: { status: 'ordered', quantities: [{ unit: 'g', draft: 0, ordered: 500, received: null, due: null }] } });
     expect(markup).toContain('Taste');
-    expect(markup).toContain('500g');
-    expect(markup).toContain('Unknown');
+    expect(markup).not.toContain('library-order-ribbon');
+    expect(markup).toContain('Chosen');
     expect(markup).not.toContain('Taste again');
     expect(markup).not.toContain('500g due');
     expect(markup).toContain('9/10');
@@ -47,31 +47,46 @@ describe('Library phone row', () => {
   it('keeps quote, quoted grams and converted unit price visible together', () => {
     const markup = render();
     expect(markup).toContain('>10.00<');
-    expect(markup).toContain('100g');
+    expect(markup).toContain('>100<');
     expect(markup).toContain('>0.1<');
   });
-  it('uses received and due from receipts, including zero and cancelled quantities', () => {
+  it('keeps receipt quantities out of the Library label', () => {
     const markup = render({ purchaseState: { status: 'partially_received', quantities: [{ unit: 'g', draft: 0, ordered: 500, received: 200, due: 250 }] } });
-    for (const value of ['500g', '200g', '250g']) expect(markup).toContain(value);
+    for (const value of ['500g', '200g', '250g']) expect(markup).not.toContain(value);
     expect(markup).not.toContain('300g');
     const unavailable = render({ purchaseStatusUnknown: 'Purchase status unavailable', purchaseState: { status: 'received', quantities: [{ unit: 'g', ordered: 500, received: 500, due: 0 }] } });
     expect(unavailable).not.toContain('500g');
-    expect(unavailable).toContain('Unknown');
+    expect(unavailable).toContain('Purchase status unavailable');
   });
   it('does not label a whole quote as a price per gram when weight is absent', () => {
     const markup = render({ entry: { ...entry, pricePerUnitGrams: null } });
-    expect(markup).toContain('Set grams');
+    expect(markup).toContain('Add weight');
+    expect(markup).toContain('>0.0<');
+    expect(markup).toContain('Per gram unknown');
     expect(markup).toContain('>10.00<');
     expect(markup).not.toContain('>0.1<');
   });
   it('offers a positive choice and makes it selected for ordered tea', () => {
     expect(render()).toContain('aria-pressed="false"');
+    expect(render()).not.toContain('data-chosen-marker');
+    const selected = render({ entry: { ...entry, decision: 'selected' } });
+    expect(selected).toContain('aria-pressed="true"');
+    expect(selected).not.toContain('data-chosen-marker');
+    expect(selected).toContain('library-choose');
+    expect(selected).toContain('Chosen');
     const chosen = render({ entry: { ...entry, status: 'incoming' } });
     expect(chosen).toContain('aria-pressed="true"');
+    expect(chosen).not.toContain('data-chosen-marker');
     expect(chosen).toContain('Already ordered. Open order details');
     const rejected = render({ entry: { ...entry, decision: 'passed_on' } });
     expect(rejected).toContain('>Restore<');
     expect(rejected).not.toContain('aria-pressed');
+  });
+  it('puts an editable missing year below the full-width title', () => {
+    const markup = render({ entry: { ...entry, year: undefined, ageQuoted: null } });
+    expect(markup).toContain('Add year');
+    expect(markup).toContain('Edit year for Silver Needle');
+    expect(markup.indexOf('library-card-subrow')).toBeLessThan(markup.indexOf('library-card-year'));
   });
   it('hides mutations in the read-only preview', () => {
     const markup = render({ readOnly: true });

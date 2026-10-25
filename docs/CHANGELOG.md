@@ -1,3 +1,7 @@
+## Compact Library with Fine outline finish 2026-10-25
+
+- Supplier groups contain compact tea-tinted cards with full-width titles, inline names and years, three equal pricing fields, and aligned Choose, Reject, Taste and Details buttons. Choose visibly changes to Chosen; unknown per-gram prices display 0.0 without changing stored costs. Order quantities and delivery controls live in the tea record’s Orders tab. Tea, Notes, Orders and Files replace the record’s accordions while keeping existing edits, tasting and history connected.
+
 # 2026-10-22 — Tasting v3 preview
 
 Added `/tasting-v3/` with the dusk-gradient flavor wheel, fluid ring motion, distinct brown selections, and compact layout. Category centers show All categories and an inline return arrow. Aroma and Flavor records remain separate; drafts save in this browser and can inherit a V2 draft. V2 remains available.

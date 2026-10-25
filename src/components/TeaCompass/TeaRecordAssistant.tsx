@@ -36,16 +36,16 @@ function currentScope(entryId: string): TeaRecordAssistantScope {
 
 /** A review of existing evidence, embedded in the record. Extraction is read
  * only; applying selected missing facts uses the record's existing sync path. */
-export function TeaRecordAssistant({ entry }: { entry: TeaCompassEntry }) {
+export function TeaRecordAssistant({ entry, compact = false }: { entry: TeaCompassEntry; compact?: boolean }) {
   const accountId = useAppStore(state => state.activeAccountId);
   const userId = useAppStore(state => state.activeUserId);
   const revision = useTeaCompassStore(state => state.accountScopeRevision);
   const [open, setOpen] = useState(false);
   const [committing, setCommitting] = useState(false);
   useEffect(() => setOpen(false), [accountId, userId, revision, entry.id]);
-  return <section className="border-t border-tea-border py-4">
-    <div className="flex flex-wrap items-center justify-between gap-2"><h3 className={T.h3}>Build this tea</h3><button type="button" className="tap-target min-h-11 rounded-md border border-tea-border px-3 text-ui-13 text-tea-text" onClick={() => setOpen(true)}>Build this tea</button></div>
-    <p className="mt-1 text-ui-12 text-tea-text-sec">Bring your sources, reviewed details and description together.</p>
+  return <section className={`border-t border-tea-border ${compact ? 'py-1' : 'py-4'}`}>
+    <div className="flex flex-wrap items-center justify-between gap-2">{!compact && <h3 className={T.h3}>Build this tea</h3>}<button type="button" className="tap-target min-h-11 rounded-md border border-tea-border px-3 text-ui-13 text-tea-text" onClick={() => setOpen(true)}>Build this tea</button></div>
+    {!compact && <p className="mt-1 text-ui-12 text-tea-text-sec">Bring your sources, reviewed details and description together.</p>}
     <Modal isOpen={open} onClose={() => { if (!committing) setOpen(false); }} ariaLabel="Build this tea" variant="panel" hideClose>
       {open && <AssistantReview key={`${accountId}:${userId}:${revision}:${entry.id}`} entry={entry} onClose={() => setOpen(false)} onCommitChange={setCommitting} />}
     </Modal>

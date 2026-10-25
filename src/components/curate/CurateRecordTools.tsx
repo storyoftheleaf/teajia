@@ -4,7 +4,7 @@ import { useAppStore } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 
 type Entity = 'tea' | 'vendor' | 'arrival' | 'quote';
-type Props = { entityType: Entity; entityId: string; onChanged?: () => void };
+type Props = { entityType: Entity; entityId: string; onChanged?: () => void; flat?: boolean };
 type Change = { entity_type?: string; entity_id?: string; entity?: string; id?: string; before: Record<string, unknown> | null; after: Record<string, unknown> | null };
 const roles = { leaf: 'Leaf', liquor: 'Liquor', wrapper: 'Wrapper', label: 'Label', pricelist: 'Price list', businesscard: 'Business card', source_document: 'Source document' };
 const hidden = new Set(['account_id','user_id','created_by_user_id','created_at','updated_at','object_key','sha256']);
@@ -36,7 +36,9 @@ export function CurateRecordTools(props: Props) {
   const accountId = useAppStore(state => state.activeAccountId);
   return <RecordToolsInner key={`${accountId}:${props.entityType}:${props.entityId}`} {...props} />;
 }
-function RecordToolsInner({ entityType, entityId, onChanged }: Props) {
+function RecordToolsInner({ entityType, entityId, onChanged, flat = false }: Props) {
+  const Group = flat ? 'section' : 'details';
+  const Heading = flat ? 'h3' : 'summary';
   const [attachments, setAttachments] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [error, setError] = useState('');
@@ -101,11 +103,11 @@ function RecordToolsInner({ entityType, entityId, onChanged }: Props) {
       <div className="flex flex-wrap gap-3"><button type="button" className="min-h-11 px-4" disabled={busy} onClick={()=>setPending(null)}>Cancel</button><button type="button" className="cta-solid min-h-11 px-4 rounded-md" disabled={busy} onClick={()=>void confirm()}>Confirm change</button></div>
     </div>}
     {error && <p role="alert" className={`${T.body} text-tea-text`}>{error}</p>}
-    <details className="border-t border-tea-border pt-3">
-      <summary className={`${T.label} cursor-pointer min-h-11`}>Change history ({history.length})</summary>
+    <Group className="border-t border-tea-border pt-3">
+      <Heading className={`${T.label} ${flat ? 'mb-2' : 'cursor-pointer min-h-11'}`}>Change history ({history.length})</Heading>
       <p className="text-ui-12 text-tea-text-dim mb-3">Choose a recorded change to review its undo. Later edits to the affected records are protected.</p>
       <button type="button" className="min-h-11 px-3 border border-tea-border rounded-md mb-4" disabled={busy||!!pending} onClick={()=>void previewUndo()}>Preview undo of last shop change</button>
       <div className="space-y-4">{history.map(h=><article key={h.id} className="space-y-2"><div className="flex flex-wrap items-center justify-between gap-2"><p className={T.label}>{h.agent_name||h.actor_user_id} · {new Date(h.confirmed_at).toLocaleString()}</p>{h.undone_by ? <span className={T.label}>Undone</span> : !h.undo_of && !String(h.command_type).endsWith(':with_side_effects') && <button type="button" className="tap-target text-ui-12" disabled={busy||!!pending} onClick={()=>void previewUndo(h.id)}>Preview undo</button>}</div><CurateChangePreview changes={(h.records||[]).map((r:any)=>({entity_type:r.entity_type,entity_id:r.entity_id,before:JSON.parse(r.before_json),after:JSON.parse(r.after_json)}))} /></article>)}</div>
-    </details>
+    </Group>
   </section>;
 }

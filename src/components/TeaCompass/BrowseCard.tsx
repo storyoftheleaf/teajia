@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
+import { LoaderCircle } from 'lucide-react';
 import { useToast } from '../../admin/components/Toast';
 import { useTheme } from '../../context/ThemeContext';
 import { getTeaLedgerTones, TYPOGRAPHY_CLASSES } from '../../designTokens';
@@ -15,7 +16,7 @@ import type { CompassVerdict, TeaCompassEntry } from './types';
 import { entryHasBeenTasted } from './types';
 import { DEFAULT_LIBRARY_PRICE, type LibraryPricePreference } from './libraryPriceDisplay';
 import type { RateRow } from '../../lib/currency';
-import { purchaseStateLabel, type LibraryPurchaseState } from '../../lib/libraryPurchaseState';
+import { type LibraryPurchaseState } from '../../lib/libraryPurchaseState';
 
 export interface BrowseCardProps {
   entry: TeaCompassEntry;
@@ -112,63 +113,53 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, readOnly = false,
       showToast(text, 'error', allowUndo ? { duration: 12000, action: { label: 'Undo', onClick: () => void undo() } } : { duration: 12000 });
     } finally { setActionBusy(false); }
   };
-  const orderQuantities = purchaseState?.quantities ?? [];
-  const quantityText = (key: 'ordered' | 'received' | 'due') => {
-    if (purchaseStatusUnknown || !purchaseState) return 'Unknown';
-    if (!orderQuantities.length) return purchaseState.status === 'none' || purchaseState.status === 'chosen' ? (key === 'ordered' ? 'None' : '—') : 'Unknown';
-    return orderQuantities.map(q => q[key] === null ? 'Unknown' : `${q[key]!.toLocaleString()}${q.unit === 'g' ? 'g' : ' pcs'}`).join(' + ');
-  };
-  const openOrder = () => acquired || !onAcquire ? openDetail() : onAcquire(entry.id);
+  const openOrder = () => openDetail();
   const tasted = tastingRecorded ?? entryHasBeenTasted(entry);
   const sampleStatus = entry.sampleState === 'requested' ? 'Sample requested'
     : entry.sampleState === 'received' ? 'Sample ready' : entry.isSample ? 'Sample' : null;
   const description = [entry.originRegion || entry.originCountry, entry.type || (entry.category === 'teaware' ? 'Teaware' : null)].filter(Boolean).join(' · ');
-  const purchaseLabel = purchaseStatusUnknown || (purchaseState ? purchaseStateLabel(purchaseState) || 'Order' : 'Order');
 
   return (
     <>
       <article data-testid={`library-entry-${entry.id}`} className={`library-tea-card ${isSelected ? 'library-tea-card-selected' : ''}`}
-        style={{ '--library-accent': tones.markFg } as React.CSSProperties}>
+        style={{ '--library-accent': tones.markFg, '--library-tea-tint': tones.markBg } as React.CSSProperties}>
         <div className="library-tea-identity">
           <div className="library-card-title-row">
             <LibraryInlineValue className={`${TYPOGRAPHY_CLASSES.h3} library-card-name text-tea-text`} value={identity.name} display={title} label={`Edit tea name: ${title}`} readOnly={readOnly} onSave={saveField('name')} />
-            <LibraryInlineValue className="library-card-year text-ui-13 text-tea-text-sec" value={identity.year} display={identity.year || 'Year'} label={`Edit year for ${title}`} readOnly={readOnly} onSave={saveField('year')} />
           </div>
           <div className="library-card-subrow">
             <LibraryGivenName entry={entry} readOnly={readOnly} onSave={value => savePatch({ givenName: value.trim() || null })} />
-            <button type="button" className="tap-target library-origin text-ui-11 text-tea-text-dim" onClick={openDetail} aria-label={`Open ${title} details`}>{description || 'Details'} ↗</button>
+            {rating != null && Number.isFinite(rating) && <span className="text-ui-11 text-tea-text-dim whitespace-nowrap" aria-label={`Rating ${rating} out of 10`}>{rating}/10</span>}
+            <LibraryInlineValue className="library-card-year text-ui-13 text-tea-text-sec" value={identity.year} display={identity.year || 'Add year'} label={`Edit year for ${title}`} readOnly={readOnly} onSave={saveField('year')} />
           </div>
         </div>
         <div className="library-ribbon-prices" aria-label={`Prices in ${amounts.currency}`}>
           <div className="library-ribbon-metric" title={`Calculated in ${amounts.currency}`}>
-            <span className="text-ui-10 text-tea-text-dim">{entry.category === 'teaware' ? 'Price / piece' : 'Price / g'}</span>
-            <strong className="text-ui-16 text-tea-text">{amounts.perGram}</strong>
+            <span className="text-ui-10 text-tea-text-dim">{entry.category === 'teaware' ? 'Price / piece' : 'Per gram'}</span>
+            <strong className="text-ui-16 text-tea-text" aria-label={entry.category === 'tea' && !knownWeight ? 'Per gram unknown, add weight' : undefined}>{entry.category === 'tea' && !knownWeight ? '0.0' : amounts.perGram}</strong>
           </div>
           <div className="library-ribbon-metric">
             <span className="text-ui-10 text-tea-text-dim">Quote{pricePreference.currency === 'source' ? ` · ${amounts.currency}` : ''}</span>
             <LibraryInlineValue className="text-ui-16 font-semibold text-tea-text" value={entry.priceAmount == null ? '' : String(entry.priceAmount)} display={amounts.quote} label={`Edit quote in ${amounts.sourceCurrency} for ${title}`} hint={`Original ${amounts.sourceCurrency}`} numeric readOnly={readOnly} onSave={saveField('priceAmount')} />
           </div>
           <div className="library-ribbon-metric">
-            <span className="text-ui-10 text-tea-text-dim">{entry.category === 'teaware' ? 'Quoted quantity' : 'Quoted grams'}</span>
-            {entry.category === 'teaware' ? <strong className="text-ui-16 text-tea-text">1 piece</strong> : <LibraryInlineValue className="text-ui-16 font-semibold text-tea-text" value={entry.pricePerUnitGrams == null ? '' : String(entry.pricePerUnitGrams)} display={knownWeight ? `${entry.pricePerUnitGrams!.toLocaleString()}g` : 'Set grams'} label={`Edit quoted grams for ${title}`} numeric readOnly={readOnly} onSave={saveField('pricePerUnitGrams')} />}
+            <span className="text-ui-10 text-tea-text-dim">{entry.category === 'teaware' ? 'Quoted quantity' : 'Weight (g)'}</span>
+            {entry.category === 'teaware' ? <strong className="text-ui-16 text-tea-text">1 piece</strong> : <LibraryInlineValue className={`text-ui-16 font-semibold text-tea-text ${!knownWeight ? 'library-unset' : ''}`} value={entry.pricePerUnitGrams == null ? '' : String(entry.pricePerUnitGrams)} display={knownWeight ? entry.pricePerUnitGrams!.toLocaleString() : 'Add weight'} label={`Edit quoted grams for ${title}`} numeric readOnly={readOnly} onSave={saveField('pricePerUnitGrams')} />}
           </div>
         </div>
-        <button type="button" className="library-order-ribbon" onClick={openOrder} aria-label={`Order and receipts for ${title}`} title={purchaseStatusUnknown || purchaseLabel}>
-          {([['ordered', 'Ordered'], ['received', 'Received'], ['due', 'Incoming']] as const).map(([key, label]) => <span key={key}>
-            <span className="text-ui-10 text-tea-text-dim">{label}</span><strong className="text-ui-13 text-tea-text">{quantityText(key)}</strong>
-          </span>)}
-        </button>
         {purchaseStatusUnknown && <p role="status" className="text-ui-11 text-tea-text-dim py-1">{purchaseStatusUnknown}</p>}
         <div className="library-tea-actions">
           {readOnly || rejected ? <span className="library-ribbon-sample text-ui-11 text-tea-text-sec" title={sampleStatus || undefined}>
-            {rejected ? 'Rejected' : chosen ? 'Chosen' : sampleStatus || 'Considering'}{rating != null && Number.isFinite(rating) ? ` · ${rating}/10` : ''}
-          </span> : <button type="button" className="tap-target library-ribbon-sample text-ui-11 text-tea-text-sec" disabled={actionBusy} aria-pressed={chosen}
+            {rejected ? 'Rejected' : chosen ? 'Chosen' : sampleStatus || 'Considering'}
+          </span> : <button type="button" className={`tap-target library-choose library-ribbon-sample inline-flex items-center gap-1.5 text-ui-12 transition-colors ${chosen ? 'text-tea-text font-semibold' : 'text-tea-text-sec'}`} disabled={actionBusy} aria-pressed={chosen} aria-busy={actionBusy}
             title={[sampleStatus, acquired ? 'Already ordered. Open order details to change acquisition.' : chosen ? 'Remove from chosen' : 'Choose this tea'].filter(Boolean).join(' · ')}
             onClick={() => acquired ? openOrder() : void runAction({ decision: chosen ? 'considering' : 'selected' }, chosen ? 'Removed from chosen' : 'Chosen')}>
-            {chosen ? 'Chosen' : 'Choose'}{rating != null && Number.isFinite(rating) ? ` · ${rating}/10` : ''}
+            {actionBusy && <LoaderCircle size={14} className="shrink-0 animate-spin text-tea-gold" aria-hidden="true" />}
+            {actionBusy ? 'Saving…' : chosen ? 'Chosen' : 'Choose'}
           </button>}
           {!readOnly && <button type="button" disabled={actionBusy} className="tap-target library-tea-reject text-ui-12 text-tea-text-sec" onClick={() => rejected ? void runAction({ decision: 'considering', ...(entry.status === 'pass' ? { status: 'noted' as const } : {}) }, 'Restored') : setRejectOpen(true)}>{rejected ? 'Restore' : 'Reject'}</button>}
           {entry.category !== 'teaware' && <button type="button" onClick={() => readOnly ? openDetail() : setTastingOpen(true)} className={`tap-target library-tea-primary text-ui-12 ${tasted ? 'is-tasted' : ''}`} aria-label={`Taste ${title}`} title={readOnly ? 'View tasting status (read-only)' : tasted ? 'Edit tasting' : 'Begin tasting'}>Taste</button>}
+            <button type="button" className="tap-target library-detail-link text-ui-13 text-tea-text-dim" onClick={openDetail} aria-label={`Open ${title} details and Orders`} title={description || 'Details & Orders'}>Details</button>
         </div>
         {actionError && <p role="alert" className="text-ui-11 text-tea-text-sec">{actionError}</p>}
       </article>
