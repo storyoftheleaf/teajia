@@ -1,3 +1,4 @@
+import { createServiceAvailabilityGuard, shouldReportServiceIncident } from './serviceAvailability';
 import type { ShippingRoute } from '../components/shared/routeFreight';
 import type { SupplierFreightBill, SupplierRenamePreview } from '../components/shared/supplierSheetTypes';
 import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, AdminContributor, Bundle, ContributorOption, ContributorWrite, CurateReceiptProposal, CustomerOrderDetail, DbArticle, PlatformRole, TastingData } from '../types';
@@ -1029,6 +1030,8 @@ function routeFromUrl(url: string): string {
   }
 }
 
+const serviceAvailability = createServiceAvailabilityGuard();
+
 export async function fetchWithTimeout(url: string, options: ApiRequestInit = {}): Promise<Response> {
   const {
     background = false,
@@ -1038,6 +1041,11 @@ export async function fetchWithTimeout(url: string, options: ApiRequestInit = {}
     ...requestInit
   } = options;
   const method = (requestInit.method || 'GET').toUpperCase();
+  const blocked = serviceAvailability.blockedResponse(url);
+  if (blocked) {
+    responseIncidentContext.set(blocked, { route: routeFromUrl(url), method, reportIncident: false });
+    return blocked;
+  }
   const retryTimeouts = retryTimeoutOption ?? (method === 'GET' || method === 'HEAD');
   // When timeouts are retryable, fail each attempt fast and try a fresh
   // connection; a blackholed socket never recovers by waiting longer.
@@ -1049,6 +1057,7 @@ export async function fetchWithTimeout(url: string, options: ApiRequestInit = {}
     const timeoutId = setTimeout(() => controller.abort(), attemptTimeoutMs);
     try {
       const response = await fetch(url, { ...requestInit, signal: controller.signal });
+      await serviceAvailability.observeResponse(url, response);
       responseIncidentContext.set(response, {
         route: routeFromUrl(url),
         method,
@@ -1151,6 +1160,7 @@ async function probeSiteReachability(): Promise<boolean> {
 }
 
 function reportClientIncident(error: unknown, context: { route: string; method: string }): void {
+  if (!shouldReportServiceIncident(error)) return;
   const incident = classifyIncident(error, context);
   const now = Date.now();
   const lastReportedAt = _incidentReportedAt.get(incident.signature) ?? 0;

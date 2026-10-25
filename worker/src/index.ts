@@ -1,3 +1,4 @@
+import { guardDatabase, databaseUnavailableResponse } from './databaseGuard';
 import { hasTeaVoiceProvider, transcribeTeaVoice, TeaVoiceTranscriptionError } from './curateVoiceTranscription';
 import { workingMaterialForTeaRecord, WorkingMaterialError } from './curateWorkingMaterial';
 import { handleArBridge, expireArBridgeRequests } from './curateArBridge';
@@ -236,7 +237,6 @@ interface Env extends WorkerReleaseEnv {
   WORDFORGE_INTEGRATION_TOKEN?: string;
   WORDFORGE_ACCOUNT_ID?: string;
 }
-
 interface RateLimiterBinding {
   limit: (opts: { key: string }) => Promise<{ success: boolean }>;
 }
@@ -1574,7 +1574,7 @@ function cors(response: Response, origin: string | null): Response {
 }
 
 // Simple path router
-function matchRoute(method: string, path: string, routes: [string, string, Handler][]): { handler: Handler; params: Record<string, string> } | null {
+function matchRoute(method: string, path: string, routes: [string, string, Handler][]): { handler: Handler; params: Record<string, string>; pattern: string } | null {
   for (const [routeMethod, pattern, handler] of routes) {
     if (routeMethod !== method) continue;
     const patternParts = pattern.split('/');
@@ -1590,7 +1590,7 @@ function matchRoute(method: string, path: string, routes: [string, string, Handl
         break;
       }
     }
-    if (match) return { handler, params };
+    if (match) return { handler, params, pattern };
   }
   return null;
 }
@@ -29991,7 +29991,7 @@ async function reportStaleExchangeRates(env: Env, lastRefresh?: RateRefreshResul
   await handoffToRepair(env, write);
 }
 
-export default {
+const workerHandlers = {
   async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin') || '';
@@ -30289,5 +30289,39 @@ export default {
       }
     }
 
+  },
+};
+
+export default {
+  async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
+    // Preflight and object delivery remain independent of the database.
+    const path = new URL(request.url).pathname;
+    if (!env.DB || request.method === 'OPTIONS' || path === '/api/release' || path.startsWith('/api/media/')) {
+      return workerHandlers.fetch(request, env, ctx);
+    }
+    const guard = guardDatabase(env.DB);
+    const unavailable = () => cors(databaseUnavailableResponse(), resolveAllowedOrigin(request.headers.get('Origin') || ''));
+    if (guard.blocked()) return unavailable();
+    try {
+      const response = await workerHandlers.fetch(request, { ...env, DB: guard.database }, ctx);
+      // Older handlers catch DB errors themselves; never let that disguise a
+      // quota outage as invalid credentials or empty data. Preserve a confirmed
+      // successful write if only a subsequent best-effort query failed.
+      return guard.quotaHit() && (response.status >= 400 || request.method === 'GET' || request.method === 'HEAD') ? unavailable() : response;
+    } catch (error) {
+      if (guard.quotaHit()) return unavailable();
+      throw error;
+    } finally {
+      const metrics = guard.metrics();
+      if (metrics.rowsRead >= 10_000) {
+        // No SQL, bindings, query strings or user identifiers in diagnostics.
+        console.warn('D1 expensive request', { route: matchRoute(request.method, path, routes)?.pattern ?? 'non-rest', method: request.method, ...metrics });
+      }
+    }
+  },
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    const guard = guardDatabase(env.DB);
+    if (guard.blocked()) { console.error('D1 quota cooldown: scheduled work deferred'); return; }
+    await workerHandlers.scheduled(event, { ...env, DB: guard.database }, ctx);
   },
 };
