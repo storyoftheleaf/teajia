@@ -44,6 +44,10 @@ export interface TastingData {
   // Section 4: Flavor (families + specific terms)
   flavor?: string[];            // family-level or specific sub-terms
 
+  // Storage impressions are separate from appearance and legacy cleanliness.
+  storageCharacter?: number;   // 0..4: Parched, Dry, Sweet spot, Wet, Near mouldy
+  storageNotes?: string[];     // unwanted storage impressions
+
   // Section 5: Appearance (color + clarity)
   'liquor-color'?: string[];    // color swatch
 

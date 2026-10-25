@@ -170,3 +170,7 @@ Build this tea now brings source passage review, AI details and an editable desc
 ### Installed AI connection for tea previews
 
 Fixed live tea review routes refusing to run when the Groq key is missing even though Workers AI is already installed. Both detail extraction and description drafting can use that binding, retaining the existing source checks, field validation, exact citations and explicit-save behavior.
+
+## 2026-10-25: Mobile tasting capsule
+
+The mobile tasting navigation now uses the site capsule with a larger central emblem and folding exit. Texture, Effect, Taste and Storage stay directly accessible; notes move to the mobile header. Storage adds character and unwanted notes above an Appearance group. Existing journal persistence and unsaved-change protection remain in place. Corrected three stale line references in the existing Worker diagnostic baseline without adding allowed errors.

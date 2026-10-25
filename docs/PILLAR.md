@@ -88,3 +88,5 @@ AR Create's Transcript Library can initiate linking through the signed-in Teajia
 ## Development-only Library review
 
 The Library-only preview handoff is documented in [LIBRARY_PREVIEW.md](LIBRARY_PREVIEW.md). It gives the approved localhost preview an expiring, revocable read-only snapshot capability, never an admin login. Publishing the handoff is separate from publishing a Library design.
+
+The account tasting flow on phones uses a floating site-style capsule: Texture, Effect, Taste and Storage, with a central emblem to leave through the existing save/discard protection. Storage records dry-to-wet character and unwanted notes; Appearance keeps liquor colour and clarity together beneath it. Notes remain accessible in the header. These additions use the existing tasting JSON, without a database migration.

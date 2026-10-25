@@ -5665,3 +5665,42 @@ body.cart-panel-open .commerce-dock {
 .library-tea-card .library-ribbon-metric .library-inline-value > button::after { content: ''; position: absolute; inset: -5px 0; }
 .library-tea-card .library-ribbon-metric input { text-align: center; }
 .library-tea-card .library-ribbon-metric .library-unset { font-size: 13px; font-weight: 400; }
+
+/* Tasting keeps the site's floating capsule proportions and an overlapping seal. */
+.tasting-capsule { position:absolute;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom, 0px));height:52px;display:flex;align-items:center;isolation:isolate;z-index:2;padding:0 4px; }
+.tasting-capsule::before { content:'';position:absolute;inset:0;z-index:-1;border-radius:9999px;border:1px solid var(--tea-keyline);background:rgb(var(--tea-bg-rgb) / .92);backdrop-filter:blur(20px) saturate(180%);clip-path:inset(0 0 round 26px);animation:tasting-capsule-open .6s cubic-bezier(.65,0,.2,1) both;transition:clip-path .5s cubic-bezier(.65,0,.2,1) .08s; }
+.tasting-capsule-wing { flex:1;min-width:0;display:grid;grid-template-columns:repeat(2,minmax(44px,1fr));animation:tasting-capsule-words .6s both;transition:opacity .16s,transform .48s cubic-bezier(.65,0,.2,1); }
+.tasting-capsule-choice { height:48px;min-width:44px;white-space:nowrap;font-family:var(--font-display);font-size:clamp(13px,3.8vw,15px);font-weight:400;text-transform:lowercase;color:var(--tea-text-sec);background:transparent; }
+.tasting-capsule-choice[aria-pressed=true] { color:var(--tea-gold); }
+.tasting-capsule-seal { flex:0 0 56px;width:56px;height:56px;display:grid;place-items:center;border-radius:50%;border:1px solid var(--tea-keyline);background:var(--tea-bg);color:var(--tea-text-sec); }
+.tasting-capsule-seal svg { display:block;width:42px;height:42px;shape-rendering:geometricPrecision; }
+.tasting-capsule-seal svg path { stroke:var(--tea-text);stroke-width:11;stroke-linejoin:round; }
+.tasting-capsule button:focus-visible { outline:2px solid var(--tea-gold);outline-offset:2px; }
+.tasting-capsule.is-closing::before { animation:none;clip-path:inset(0 calc(50% - 26px) round 26px); }
+.tasting-capsule.is-closing .tasting-capsule-wing { animation:none;opacity:0;pointer-events:none; }
+.tasting-capsule.is-closing .tasting-capsule-wing:first-child { transform:translateX(18px); }
+.tasting-capsule.is-closing .tasting-capsule-wing:last-child { transform:translateX(-18px); }
+.tasting-mobile-note>button { min-width:44px;min-height:44px;padding:0 6px!important;letter-spacing:0!important;color:var(--tea-text-sec)!important; }
+@media(min-width:375px){.tasting-capsule{left:16px;right:16px;}}
+@media(max-width:1023px){.tasting-mobile-content .tasting-scroll>div{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px));}.tasting-mobile-content:has(textarea){padding-bottom:80px;}}
+@keyframes tasting-capsule-open { from{clip-path:inset(0 calc(50% - 26px) round 26px)}to{clip-path:inset(0 0 round 26px)} }
+@keyframes tasting-capsule-words { 0%,45%{opacity:0}100%{opacity:1} }
+@media(prefers-reduced-motion:reduce){.tasting-capsule::before,.tasting-capsule-wing{animation:none!important;transition:none!important;}}
+/* Storage character: a sculpted rail with a native accessible range. */
+.tasting-storage-rail { position: relative; display: flex; align-items: center; height: 54px; padding: 0 12px; border: 1px solid var(--tea-border); border-radius: 28px; background: linear-gradient(100deg, var(--tea-surface), var(--tea-elevated), var(--tea-surface)); }
+.tasting-storage-rail input { position: relative; z-index: 1; width: 100%; height: 48px; margin: 0; appearance: none; background: transparent; cursor: ew-resize; }
+.tasting-storage-rail input:focus-visible { outline: 2px solid var(--tea-gold); outline-offset: 3px; border-radius: 24px; }
+.tasting-storage-rail input::-webkit-slider-runnable-track { height: 2px; background: transparent; }
+.tasting-storage-rail input::-webkit-slider-thumb { appearance: none; box-sizing: border-box; width: 34px; height: 34px; margin-top: -16px; border: 6px solid var(--tea-elevated); border-radius: 50%; background: var(--tea-text-sec); box-shadow: 0 3px 7px var(--tea-bg); }
+.tasting-storage-rail input::-moz-range-track { height: 2px; background: transparent; }
+.tasting-storage-rail input::-moz-range-thumb { box-sizing: border-box; width: 34px; height: 34px; border: 6px solid var(--tea-elevated); border-radius: 50%; background: var(--tea-text-sec); box-shadow: 0 3px 7px var(--tea-bg); }
+.tasting-storage-rail[data-selected="false"] input::-webkit-slider-thumb { background: var(--tea-surface); border-color: var(--tea-text-dim); }
+.tasting-storage-rail[data-selected="false"] input::-moz-range-thumb { background: var(--tea-surface); border-color: var(--tea-text-dim); }
+.tasting-storage-ticks { position: absolute; inset: 0 29px; display: flex; align-items: center; justify-content: space-between; pointer-events: none; }
+.tasting-storage-ticks::before { content: ''; position: absolute; left: 0; right: 0; height: 2px; background: var(--tea-border); }
+.tasting-storage-ticks i { height: 10px; width: 2px; background: var(--tea-text-dim); opacity: .5; }
+.tasting-storage-ticks i:nth-child(3) { height: 17px; }
+@media(min-width:1024px){.tasting-capsule{display:none;}}
+
+.bottom-nav-bar.tasting-site-reopen{animation:tasting-capsule-open .6s cubic-bezier(.65,0,.2,1) both!important;}
+@media(prefers-reduced-motion:reduce){.bottom-nav-bar.tasting-site-reopen{animation:none!important;}}

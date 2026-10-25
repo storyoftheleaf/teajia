@@ -10,6 +10,8 @@ import { BodyZone } from './BodyZone';
 import { ThroatZone } from './ThroatZone';
 import { StateZone } from './StateZone';
 import { FlavorSplit } from './FlavorSplit';
+import { StorageZone } from './StorageZone';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { AppearanceZone } from './AppearanceZone';
 
 /* ─── Section definition (exported so TastingSession can render the tab bar) ─── */
@@ -24,10 +26,10 @@ export interface SectionDef {
 }
 
 export const ALL_SECTIONS: SectionDef[] = [
-  { id: 'body',       label: 'Body',   subtitle: 'How does it feel in your mouth?',    icon: Circle },
+  { id: 'body',       label: 'Texture',   subtitle: 'How does it feel in your mouth?',    icon: Circle },
   { id: 'state',      label: 'Effect', subtitle: 'What did the tea do to you?',        icon: Moon },
-  { id: 'flavor',     label: 'Flavor', subtitle: 'What do you taste?',                 icon: Leaf },
-  { id: 'appearance', label: 'Look',   subtitle: 'What does the liquor look like?',    icon: Palette },
+  { id: 'flavor',     label: 'Taste', subtitle: 'What do you taste?',                 icon: Leaf },
+  { id: 'appearance', label: 'Storage',   subtitle: 'Storage character and appearance',    icon: Palette },
 ];
 
 /* ─── Transition variants ─── */
@@ -122,7 +124,9 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
     flavor: value.flavor?.length ?? 0,
     appearance:
       (value['liquor-color']?.length ?? 0) +
-      (value.clarity ? 1 : 0),
+      (value.clarity ? 1 : 0) +
+      (value.storageCharacter != null ? 1 : 0) +
+      (value.storageNotes?.length ?? 0),
   }), [
     value.body,
     value.finish,
@@ -134,6 +138,8 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
     value.flavor,
     value['liquor-color'],
     value.clarity,
+    value.storageCharacter,
+    value.storageNotes,
   ]);
 
   const getSectionCount = useCallback(
@@ -214,7 +220,11 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
         );
       }
       case 'appearance':
-        return <AppearanceZone flow={flow} value={value} onChange={onChange} />;
+        return <><StorageZone value={value} onChange={onChange} />
+          <section aria-labelledby="tasting-appearance-heading" className="mt-5 border-t border-tea-border pt-4">
+            <h2 id="tasting-appearance-heading" className={`${TYPOGRAPHY_CLASSES.h3} mb-3`}>Appearance</h2>
+            <AppearanceZone flow={flow} value={value} onChange={onChange} />
+          </section></>;
       default:
         return null;
     }
