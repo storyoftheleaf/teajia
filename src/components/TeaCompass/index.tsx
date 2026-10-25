@@ -21,6 +21,8 @@ import { entryIsSample } from './types';
 import { CompassIcon } from './CompassIcon';
 import { SessionStack } from './SessionStack';
 import { CaptureCard, type CaptureCardActions } from './CaptureCard';
+import { LibraryCurrencyPicker } from './LibraryCurrencyPicker';
+import { readLibraryPricePreference } from './libraryPriceDisplay';
 import { BrowseView } from './BrowseView';
 import { LedgerView } from './LedgerView';
 import { useVoiceRecorder } from './useVoiceRecorder';
@@ -85,6 +87,7 @@ const CompassRightEmptyState: React.FC<{
 // ─── Main Tea Compass ────────────────────────────────────────────────────
 
 export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, initialEntryId, initialDevelopmentProduct, initialCaptureOption, initialSampleOrder, initialSampleSetId, onSampleOrderRouteClose }) => {
+  const [libraryDisplayPreference, setLibraryDisplayPreference] = useState(readLibraryPricePreference);
   const activeEntryId = useTeaCompassStore((s) => s.activeEntryId);
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
@@ -941,11 +944,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     type="button"
                     onClick={() => setLibraryAddOpen(true)}
                     aria-label="Add to Library"
-                    className="flex min-h-11 shrink-0 items-center gap-1 rounded-md border border-tea-border bg-tea-surface px-2 text-ui-12 text-tea-text hover:bg-tea-elevated"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-tea-border bg-tea-surface text-tea-text hover:bg-tea-elevated"
                   >
-                    <Plus size={12} />
-                    Add
+                    <Plus size={18} />
                   </button>
+                  <LibraryCurrencyPicker preference={libraryDisplayPreference} onChange={setLibraryDisplayPreference} />
                 </>
               )}
             </div>
@@ -1194,6 +1197,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     </div>
                   )}
                   <BrowseView
+                    displayPreference={libraryDisplayPreference}
                     onEditEntry={handleEditEntry}
                     onNewCapture={handleNewCapture}
                     externalSearchQuery={tabSearchQuery}
@@ -1302,11 +1306,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     type="button"
                     onClick={() => setLibraryAddOpen(true)}
                     aria-label="Add to Library"
-                    className="flex min-h-11 shrink-0 items-center gap-1 rounded-md border border-tea-border bg-tea-surface px-2 text-ui-12 text-tea-text hover:bg-tea-elevated"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-tea-border bg-tea-surface text-tea-text hover:bg-tea-elevated"
                   >
-                    <Plus size={12} />
-                    Add
+                    <Plus size={18} />
                   </button>
+                  <LibraryCurrencyPicker preference={libraryDisplayPreference} onChange={setLibraryDisplayPreference} />
                 </>
               )}
             </div>
@@ -1556,6 +1560,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       </div>
                     )}
                     <BrowseView
+                    displayPreference={libraryDisplayPreference}
                       onEditEntry={handleEditEntry}
                       onNewCapture={handleNewCapture}
                       externalSearchQuery={tabSearchQuery}

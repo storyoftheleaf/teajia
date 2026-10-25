@@ -5,13 +5,14 @@ import { SessionReview } from './SessionReview';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import Fuse from 'fuse.js';
 import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompassStore';
+import { LibraryCurrencyPicker } from './LibraryCurrencyPicker';
 import { BrowseCard } from './BrowseCard';
 import { LibrarySupplierActions } from './LibrarySupplierActions';
 import { librarySupplierGroups, libraryEntryChosen, libraryEntryRejected } from './librarySupplierGroups';
 import { useRates, useCustomers } from '../../admin/hooks/useAdminData';
-import { SHOP_CURRENCY_KEYS, rateToUsd } from '../../lib/currency';
+import { rateToUsd } from '../../lib/currency';
 import { useLibraryPurchases } from '../../lib/libraryPurchaseState';
-import { LIBRARY_PRICE_KEY, readLibraryPricePreference, libraryEntryTransferred, type LibraryPricePreference } from './libraryPriceDisplay';
+import { readLibraryPricePreference, libraryEntryTransferred, type LibraryPricePreference } from './libraryPriceDisplay';
 import { CompassIcon } from './CompassIcon';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
 import { isUntriaged, entryDisplayTitle, entryIsSample, entryHasBeenTasted, entryNeedsTasting } from './types';
@@ -46,6 +47,7 @@ interface BrowseViewProps {
   onNewCapture: () => void;
   /** External search query, when provided, overrides and hides the internal search input */
   externalSearchQuery?: string;
+  displayPreference?: LibraryPricePreference;
   /** Desktop: fires when a card is tapped, shows detail panel in right column */
   onSelectEntry?: (id: string) => void;
   /** Desktop: which entry is currently shown in the right detail panel */
@@ -119,19 +121,15 @@ const PhotoTile: React.FC<{
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture, externalSearchQuery, onSelectEntry, selectedEntryId, gridMode, onAcquireEntry, onOpenDetail }) => {
+export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture, externalSearchQuery, onSelectEntry, selectedEntryId, gridMode, onAcquireEntry, onOpenDetail, displayPreference }) => {
   const { data: rates = [] } = useRates();
   const purchases = useLibraryPurchases();
   const { data: suppliers = [] } = useCustomers();
   const [showRejected, setShowRejected] = useState(false);
   const [collapsedSuppliers, setCollapsedSuppliers] = useState<Set<string>>(() => new Set());
-  const [pricePreference, setPricePreference] = useState(readLibraryPricePreference);
-  const [priceSettingsOpen, setPriceSettingsOpen] = useState(false);
+  const [localPreference, setLocalPreference] = useState(readLibraryPricePreference);
+  const pricePreference = displayPreference ?? localPreference;
   const [showTransferred, setShowTransferred] = useState(false);
-  const changePricePreference = (next: LibraryPricePreference) => {
-    setPricePreference(next);
-    try { localStorage.setItem(LIBRARY_PRICE_KEY, JSON.stringify(next)); } catch { /* Settings remain usable without browser storage. */ }
-  };
   const prefersReducedMotion = useReducedMotion();
   const { entries, browseFilter, setBrowseFilter, browseSort, setBrowseSort, browseLayout, setBrowseLayout, libraryFilters, setLibraryFilters, removeEntry, hydrationStatus } = useTeaCompassStore();
   const [cleanupDismissed, setCleanupDismissed] = useState(false);
@@ -585,24 +583,12 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           <span>{SORT_LABELS[browseSort]}</span>
         </button>
         {untriaged.length >= 2 && <button type="button" className="tap-target text-ui-12 text-tea-text-sec" onClick={() => setReviewOpen(true)} aria-label={`Review ${untriaged.length} tasted teas`}>Review {untriaged.length}</button>}
-        <button type="button" className="tap-target text-ui-12 text-tea-text-sec" onClick={() => setPriceSettingsOpen(true)} aria-label="Price display settings">
-          {pricePreference.currency === 'source' ? 'Source' : pricePreference.currency} / g
-        </button>
+        {!displayPreference && <LibraryCurrencyPicker preference={pricePreference} onChange={setLocalPreference} />}
         </div>
       </div>
       {showRejected && <p className="text-ui-12 text-tea-text-sec">Rejected teas stay here with their notes. Search to find one, then restore it.</p>}
       {showTransferred && <p className="text-ui-12 text-tea-text-sec">Transferred to Inventory. Open a record to revisit its sourcing and tastings.</p>}
-      <BottomSheet open={priceSettingsOpen} onOpenChange={setPriceSettingsOpen} title="Price display" description="Source quotes stay unchanged in each record.">
-        <div className="grid gap-3 px-1 pb-4">
-          <label className="flex min-w-0 flex-col gap-2 text-ui-12 text-tea-text-sec">Currency
-            <select aria-label="Price display currency" value={pricePreference.currency} onChange={event => changePricePreference({ ...pricePreference, currency: event.target.value })} className="min-h-11 min-w-0 rounded-md border border-tea-border bg-tea-surface px-2 text-ui-16 text-tea-text">
-              <option value="source">Source quote</option>
-              {SHOP_CURRENCY_KEYS.filter(currency => currency !== 'UNK').map(currency => <option key={currency} value={currency}>{currency}{currency !== 'USD' && rateToUsd(rates, currency) == null ? ' (rate unavailable)' : ''}</option>)}
-            </select>
-          </label>
 
-        </div>
-      </BottomSheet>
 
       <ActiveFilterSummary
         filters={libraryFilters}

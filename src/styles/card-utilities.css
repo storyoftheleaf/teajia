@@ -5660,3 +5660,9 @@ body.cart-panel-open .commerce-dock {
 .library-tea-card .library-ribbon-metric .library-inline-value > button::after { content: ''; position: absolute; inset: -5px 0; }
 .library-tea-card .library-ribbon-metric input { text-align: center; }
 .library-tea-card .library-ribbon-metric .library-unset { font-size: 13px; font-weight: 400; }
+
+.library-weight-options { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 4px; }
+.library-weight-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.library-weight-options button, .library-weight-presets button { min-height: 44px; padding: 0 8px; border: 1px solid var(--tea-border); border-radius: 5px; font-size: 13px; color: var(--tea-text-sec); background: var(--tea-surface); }
+.library-weight-options button[aria-pressed='true'], .library-weight-presets button[aria-pressed='true'] { border-color: var(--tea-gold); background: var(--tea-accent-sub); color: var(--tea-text); }
+.library-weight-options button:focus-visible, .library-weight-presets button:focus-visible { outline: 2px solid var(--tea-gold); }
