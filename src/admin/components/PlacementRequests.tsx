@@ -86,7 +86,7 @@ export const PlacementRequests: React.FC<{ accountId: string }> = ({ accountId }
                   type="button"
                   onClick={() => approveMut.mutate(r.id)}
                   disabled={busy}
-                  className="inline-flex items-center gap-1.5 cta-solid rounded-md px-3 py-1.5 text-ui-13 font-medium disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 min-h-10 cta-solid rounded-md px-3 py-1.5 text-ui-13 font-medium disabled:opacity-50"
                 >
                   {busy ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Approve
                 </button>

@@ -99,7 +99,7 @@ export const MagazineView: React.FC = () => {
         <button
           onClick={() => refetch()}
           disabled={isRefetching}
-          className="p-1.5 rounded-md text-tea-text-dim hover:text-tea-text-sec transition-colors disabled:opacity-50"
+          className="tap-target p-1.5 rounded-md text-tea-text-dim hover:text-tea-text-sec transition-colors disabled:opacity-50"
           title="Refresh"
         >
           <RefreshCw size={14} className={isRefetching ? 'animate-spin' : ''} />
@@ -109,7 +109,7 @@ export const MagazineView: React.FC = () => {
 
         <button
           onClick={handleNewArticle}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors shrink-0"
+          className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors shrink-0"
         >
           <Plus size={13} />
           New Article
@@ -122,7 +122,7 @@ export const MagazineView: React.FC = () => {
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`py-2.5 text-ui-12 uppercase tracking-[0.15em] border-b transition-colors whitespace-nowrap ${
+            className={`min-w-[44px] py-2.5 text-ui-12 uppercase tracking-[0.15em] border-b transition-colors whitespace-nowrap ${
               tab === t.id
                 ? 'text-tea-text border-tea-gold'
                 : 'text-tea-text-sec hover:text-tea-text border-transparent'
@@ -159,7 +159,7 @@ export const MagazineView: React.FC = () => {
             {tab === 'all' && (
               <button
                 onClick={handleNewArticle}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-medium transition-colors"
+                className="flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-medium transition-colors"
               >
                 <Plus size={13} />
                 New Article

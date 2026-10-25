@@ -988,8 +988,13 @@ input[type="number"]::-webkit-outer-spin-button {
    was inflated to a 44px square it did not need to be. The width floor belongs
    with the height floor, so it is here now and the call sites carry neither.
 
-   `:where()` for the alignment so any caller's own `justify-*` still wins. */
-.pill {
+   `:where()` for the alignment so any caller's own `justify-*` still wins.
+
+   `.pill-active` is listed here too because forty call sites write
+   `active ? 'pill-active' : 'pill'`, swapping the class rather than adding to
+   it, so the chip you had just picked lost its padding and its floor and shrank
+   to 24px under your thumb. It declares only colour below, which still wins. */
+.pill, .pill-active {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1007,7 +1012,7 @@ input[type="number"]::-webkit-outer-spin-button {
   color: var(--tea-text-dim);
 }
 
-:where(.pill, .pill-quiet, .pill-dense) {
+:where(.pill, .pill-active, .pill-quiet, .pill-dense) {
   justify-content: center;
 }
 

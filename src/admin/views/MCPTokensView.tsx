@@ -146,7 +146,7 @@ export const MCPTokensView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowMint(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+                className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
               >
                 <Plus size={13} />
                 <span>Mint a new token</span>
@@ -441,7 +441,7 @@ const MintForm: React.FC<MintFormProps> = ({ onCancel, onMinted }) => {
         <button
           type="submit"
           disabled={busy || !label.trim()}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {busy && <Loader2 size={13} className="animate-spin" />}
           <span>{busy ? 'Minting…' : 'Mint token'}</span>

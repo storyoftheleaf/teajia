@@ -551,7 +551,7 @@ export const CollectionEditView: React.FC = () => {
               </div>
               <button
                 onClick={() => setAddOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+                className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
               >
                 <Plus size={13} /> Add products
               </button>
@@ -563,7 +563,7 @@ export const CollectionEditView: React.FC = () => {
                   <p className="text-ui-12 text-tea-text-dim">Add some to make this collection shareable.</p>
                   <button
                     onClick={() => setAddOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+                    className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
                   >
                     <Plus size={13} /> Add products
                   </button>
@@ -1038,7 +1038,7 @@ const AddProductsSheet: React.FC<{
           <button
             onClick={submit}
             disabled={selected.size === 0 || submitting}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
+            className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
           >
             {submitting ? <><Loader2 size={13} className="animate-spin" /> Adding…</> : <>Add {selected.size || ''}</>}
           </button>
@@ -1332,7 +1332,7 @@ const AddPublicationSheet: React.FC<{
           <button
             onClick={submit}
             disabled={!canSubmit || submitting || disabled}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
+            className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
           >
             {submitting
               ? <><Loader2 size={13} className="animate-spin" /> Sending…</>

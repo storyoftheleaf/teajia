@@ -413,7 +413,7 @@ const PendingRow: React.FC<{ application: AccountApplication; onChange: () => Pr
             type="button"
             onClick={() => { setMode('approve'); setError(null); }}
             disabled={busy !== null}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40"
           >
             Approve
           </button>
@@ -462,7 +462,7 @@ const PendingRow: React.FC<{ application: AccountApplication; onChange: () => Pr
               type="button"
               onClick={handleApprove}
               disabled={busy !== null}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40"
             >
               {busy === 'approve' ? 'Approving…' : 'Confirm Approval'}
             </button>
@@ -560,7 +560,7 @@ const PlatformRegister: React.FC<{ onChange: () => Promise<void> | void }> = ({ 
           <button
             type="button"
             onClick={() => { setInviting(true); setResult(null); }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+            className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
           >
             Invite Tea Master
           </button>
@@ -609,7 +609,7 @@ const PlatformRegister: React.FC<{ onChange: () => Promise<void> | void }> = ({ 
                 type="button"
                 onClick={handleInvite}
                 disabled={!email.includes('@') || busy}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {busy ? 'Sending…' : 'Send Invite'}
               </button>

@@ -198,7 +198,7 @@ const PrimaryButton: React.FC<{ children: React.ReactNode; loading?: boolean; di
   <button
     onClick={onClick}
     disabled={disabled}
-    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
+    className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
   >
     {loading ? <Loader2 size={13} className="animate-spin" /> : (IconCmp ? <IconCmp size={13} /> : null)}
     <span>{children}</span>

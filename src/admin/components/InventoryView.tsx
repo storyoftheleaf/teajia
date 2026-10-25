@@ -2749,7 +2749,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       <button
                         onClick={() => handleApproveOne(product)}
                         disabled={isApproving}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-xl cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         {isApproving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
                         Approve

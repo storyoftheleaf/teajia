@@ -13,7 +13,7 @@ export const SiteNotFound: React.FC<{ onReturnHome?: () => void }> = ({ onReturn
       <h1 className="text-6xl font-serif text-tea-gold mb-4">404</h1>
       <p className="text-xl font-serif text-tea-text mb-2">Page not found</p>
       <p className="text-sm text-tea-text-sec mb-8 max-w-md">The page you're looking for doesn't exist or may have been moved.</p>
-      <button onClick={() => (onReturnHome ? onReturnHome() : navigate('/'))} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors">Return Home</button>
+      <button onClick={() => (onReturnHome ? onReturnHome() : navigate('/'))} className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors">Return Home</button>
     </div>
   );
 };

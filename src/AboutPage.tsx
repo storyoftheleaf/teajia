@@ -176,7 +176,7 @@ export default function AboutPage() {
         </p>
         <Link
           to="/shop"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
+          className="inline-flex min-h-10 items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
         >
           Browse Our Teas
           <Icons.ChevronRight className="w-3.5 h-3.5" />
@@ -192,7 +192,7 @@ export default function AboutPage() {
           href="https://adrianrasmussen.com"
           target="_blank"
           rel="noopener noreferrer"
-          className="link-text inline-flex items-center gap-2 hover:text-tea-gold-lt transition-colors"
+          className="link-text inline-flex items-center gap-2 py-2.5 -my-2.5 hover:text-tea-gold-lt transition-colors"
         >
           Explore the studio
           <Icons.ExternalLink className="w-3.5 h-3.5" />
@@ -206,7 +206,7 @@ export default function AboutPage() {
         </p>
         <Link
           to="/mcp"
-          className="link-text inline-flex items-center gap-2 hover:text-tea-gold-lt transition-colors"
+          className="link-text inline-flex items-center gap-2 py-2.5 -my-2.5 hover:text-tea-gold-lt transition-colors"
         >
           Connect an assistant
         </Link>

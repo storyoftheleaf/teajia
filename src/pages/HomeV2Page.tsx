@@ -192,7 +192,7 @@ const HomeV2Page: React.FC = () => {
               <Link
                 key={item.to}
                 to={item.to}
-                className={`group inline-flex items-baseline gap-1 whitespace-nowrap rounded-md py-0 ${BODY} tracking-[0.015em] text-tea-text-sec transition-colors duration-300 hover:text-tea-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg`}
+                className={`group inline-flex items-baseline gap-1 whitespace-nowrap rounded-md py-1.5 ${BODY} tracking-[0.015em] text-tea-text-sec transition-colors duration-300 hover:text-tea-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg`}
               >
                 <span className="font-medium text-tea-gold">{item.accent}</span>
                 <span className="underline decoration-tea-gold/0 underline-offset-[4px] transition-all duration-300 group-hover:decoration-tea-gold/30">{item.rest}</span>
@@ -202,7 +202,7 @@ const HomeV2Page: React.FC = () => {
           {/* The opener's way in: the Start Here page, six paths into the
               practice. Discover your tea lives in Craft now, not here. */}
           <p className={`${BODY} italic mt-5 text-tea-text-sec`}>
-            <Link to="/start" className="hover:text-tea-gold transition-colors duration-300">New here? Start here</Link>
+            <Link to="/start" className="inline-block py-2.5 -my-2.5 hover:text-tea-gold transition-colors duration-300">New here? Start here</Link>
           </p>
         </div>
         <div className={`relative lg:col-start-3 min-h-[320px] sm:min-h-[60vh] lg:min-h-0 overflow-hidden bg-tea-surface ${PHOTO}`}>
@@ -280,9 +280,9 @@ const HomeV2Page: React.FC = () => {
               <EmailField />
             </div>
             <p className={`${META} mt-6 text-tea-text-sec`}>
-              <Link to="/signup" className="text-tea-text-sec hover:text-tea-text transition-colors duration-300">Create an account</Link>
+              <Link to="/signup" className="inline-block py-3 -my-3 text-tea-text-sec hover:text-tea-text transition-colors duration-300">Create an account</Link>
               {' · '}
-              <Link to="/signin" className="text-tea-text-sec hover:text-tea-text transition-colors duration-300">Sign in</Link>
+              <Link to="/signin" className="inline-block py-3 -my-3 text-tea-text-sec hover:text-tea-text transition-colors duration-300">Sign in</Link>
             </p>
           </div>
           {/* The footer is hidden on this page, so the way out is the panel's last line. */}

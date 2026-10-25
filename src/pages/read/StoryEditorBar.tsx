@@ -146,29 +146,38 @@ const StoryEditorBar: React.FC<StoryEditorBarProps> = ({ corner = false, inBar =
   if (!editing && inBar) return null;
   if (!editing) {
     return (
-      <div style={corner ? { ...barWrap(false), top: 'calc(env(safe-area-inset-top, 0px) + 4px)', right: 4 } : barWrap(false)}>
+      // The chip stays as small as it looks; the button around it is a transparent
+      // margin, so a thumb that lands near it still counts. The corner wrapper sits
+      // back by that margin, so the chip itself does not move. Only 6px in the
+      // corner: it floats over every page, and more would cover the controls
+      // under it (Your Table's light/dark switch is right there).
+      <div style={corner ? { ...barWrap(false), top: 'calc(env(safe-area-inset-top, 0px) - 2px)', right: -2 } : barWrap(false)}>
         <button
           type="button"
           onClick={() => setEditing(true)}
-          style={{
-            fontFamily: 'var(--font-sans)',
-            fontSize: corner ? 8 : 10,
-            letterSpacing: '0.14em',
-            textTransform: 'uppercase',
-            padding: corner ? '2px 5px' : '7px 12px',
-            borderRadius: 3,
-            border: corner ? '1px solid transparent' : '1px solid rgb(var(--tj-read-gold-rgb) / 0.25)',
-            background: 'rgb(var(--tj-read-bg-rgb) / 0.55)',
-            color: 'rgb(var(--tj-read-taupe-rgb) / 0.75)',
-            cursor: 'pointer',
-            backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
-          }}
-          onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--tj-read-cream)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgb(var(--tj-read-gold-rgb) / 0.6)'; }}
-          onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.color = 'rgb(var(--tj-read-taupe-rgb) / 0.75)'; (e.currentTarget as HTMLElement).style.borderColor = corner ? 'transparent' : 'rgb(var(--tj-read-gold-rgb) / 0.25)'; }}
+          style={{ padding: 6, margin: corner ? 0 : -6, background: 'none', border: 0, cursor: 'pointer' }}
+          onMouseOver={(e) => { const chip = e.currentTarget.firstElementChild as HTMLElement; chip.style.color = 'var(--tj-read-cream)'; chip.style.borderColor = 'rgb(var(--tj-read-gold-rgb) / 0.6)'; }}
+          onMouseOut={(e) => { const chip = e.currentTarget.firstElementChild as HTMLElement; chip.style.color = 'rgb(var(--tj-read-taupe-rgb) / 0.75)'; chip.style.borderColor = corner ? 'transparent' : 'rgb(var(--tj-read-gold-rgb) / 0.25)'; }}
           title="Owner editing"
         >
-          edit
+          <span
+            style={{
+              display: 'block',
+              fontFamily: 'var(--font-sans)',
+              fontSize: corner ? 8 : 10,
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              padding: corner ? '2px 5px' : '7px 12px',
+              borderRadius: 3,
+              border: corner ? '1px solid transparent' : '1px solid rgb(var(--tj-read-gold-rgb) / 0.25)',
+              background: 'rgb(var(--tj-read-bg-rgb) / 0.55)',
+              color: 'rgb(var(--tj-read-taupe-rgb) / 0.75)',
+              backdropFilter: 'blur(6px)',
+              WebkitBackdropFilter: 'blur(6px)',
+            }}
+          >
+            edit
+          </span>
         </button>
       </div>
     );

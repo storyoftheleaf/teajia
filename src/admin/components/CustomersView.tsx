@@ -1955,7 +1955,7 @@ export const CustomersView = () => {
             </button>
             <button
               onClick={() => { setEditingCustomer(null); setIsModalOpen(true); }}
-              className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+              className="hidden md:inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
             >
               <Plus size={13} />
               <span>New</span>

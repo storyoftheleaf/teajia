@@ -163,7 +163,7 @@ const SpaceForm: React.FC<SpaceFormProps> = ({ venueId, space, onSaved, onCancel
         <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-tea-text-sec hover:text-tea-text transition-colors">
           Cancel
         </button>
-        <button type="button" onClick={handleSave} disabled={saving || uploading} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+        <button type="button" onClick={handleSave} disabled={saving || uploading} className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
           {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           {space ? 'Update' : 'Add Space'}
         </button>
@@ -391,7 +391,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
                   <button type="button" onClick={() => setEditing(false)} className="px-3 py-1.5 text-sm text-tea-text-sec hover:text-tea-text transition-colors">
                     Cancel
                   </button>
-                  <button type="button" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                  <button type="button" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                     {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
                     Save
                   </button>
@@ -603,7 +603,7 @@ const NewVenueForm: React.FC<NewVenueFormProps> = ({ onSaved, onCancel }) => {
         <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-tea-text-sec hover:text-tea-text transition-colors">
           Cancel
         </button>
-        <button type="button" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+        <button type="button" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
           {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           Create Venue
         </button>

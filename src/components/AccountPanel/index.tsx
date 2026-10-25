@@ -635,7 +635,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
           <div className="flex items-center gap-1 shrink-0 relative z-10">
             <button
               onClick={onClose}
-              className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5 text-tea-text-sec hover:text-tea-text active:scale-95 transition-[color,transform] duration-150"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center p-1.5 text-tea-text-sec hover:text-tea-text active:scale-95 transition-[color,transform] duration-150"
               aria-label="Close"
             >
               <Icons.Close className="w-5 h-5" />
@@ -643,7 +643,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
             {isSubView && (
               <button
                 onClick={() => { setPanelView('main'); setLocationSearch(''); }}
-                className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5 text-tea-text-sec hover:text-tea-text active:scale-95 transition-[color,transform] duration-150"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center p-1.5 text-tea-text-sec hover:text-tea-text active:scale-95 transition-[color,transform] duration-150"
                 aria-label="Back"
               >
                 <Icons.ChevronLeft className="w-5 h-5" />
@@ -664,7 +664,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
           {/* Right, theme toggle, demoted */}
           <button
             onClick={(e) => toggleTheme(e)}
-            className="ml-auto min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5 text-tea-text-dim hover:text-tea-text-sec active:scale-95 transition-[color,transform] duration-150 shrink-0 relative z-10"
+            className="ml-auto min-w-[44px] min-h-[44px] flex items-center justify-center p-1.5 text-tea-text-dim hover:text-tea-text-sec active:scale-95 transition-[color,transform] duration-150 shrink-0 relative z-10"
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >

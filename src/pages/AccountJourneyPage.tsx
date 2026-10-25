@@ -362,7 +362,7 @@ const SampleRequestPrompt: React.FC<{ waNumber: string }> = ({ waNumber }) => {
       {waNumber ? (
         <button
           onClick={handleSend}
-          className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+          className="mt-3 inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
         >
           <Send size={13} />
           {sent ? 'Sent via WhatsApp' : 'Request via WhatsApp'}
@@ -420,7 +420,7 @@ const AccountJourneyPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-tea-bg">
         <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3 pb-nav-gap">
-          <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors mb-6" aria-label="Back">
+          <button onClick={() => navigate(-1)} className="inline-flex min-h-[44px] items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors mb-6" aria-label="Back">
             <ArrowLeft size={14} />
             <span className="text-ui-13">Back</span>
           </button>
@@ -450,7 +450,7 @@ const AccountJourneyPage: React.FC = () => {
 
           {!hasSomething && (
             <div className="mt-10 flex gap-3">
-              <button onClick={() => navigate('/events')} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors">
+              <button onClick={() => navigate('/events')} className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors">
                 <Leaf size={13} />
                 Browse sessions
               </button>
@@ -480,7 +480,7 @@ const AccountJourneyPage: React.FC = () => {
         <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3 pb-nav-gap">
 
           {/* Back */}
-          <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors mb-6" aria-label="Back">
+          <button onClick={() => navigate(-1)} className="inline-flex min-h-[44px] items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors mb-6" aria-label="Back">
             <ArrowLeft size={14} />
             <span className="text-ui-13">Back</span>
           </button>

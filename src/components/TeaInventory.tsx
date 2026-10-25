@@ -623,7 +623,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
              </div>
 
              <div className="flex w-full min-w-0 items-center gap-4 pb-0.5 sm:w-auto sm:flex-1 sm:justify-end sm:pb-0">
-               <label className="flex min-w-0 flex-1 items-center gap-2 rounded-md bg-tea-surface px-3 py-1.5 sm:max-w-[250px]">
+               <label className="flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-md bg-tea-surface px-3 py-1.5 sm:max-w-[250px]">
                  <Icons.Search className="w-3.5 h-3.5 shrink-0 text-tea-text-dim" aria-hidden="true" />
                  <input
                    type="search"
@@ -644,7 +644,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                        key={g}
                        type="button"
                        onClick={() => setShopPriceWeight(g)}
-                       className={`px-2 py-0.5 text-ui-10 uppercase tracking-wider transition-colors num ${
+                       className={`min-h-9 px-2.5 py-0.5 text-ui-10 uppercase tracking-wider transition-colors num ${
                          shopPriceWeight === g
                            ? 'bg-tea-gold/10 text-tea-gold'
                            : 'text-tea-text-sec hover:text-tea-text'

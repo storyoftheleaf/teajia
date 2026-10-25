@@ -106,7 +106,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
         </p>
         <Link
           to="/find-a-table"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+          className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
         >
           Browse the network
         </Link>
