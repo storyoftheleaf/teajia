@@ -222,7 +222,7 @@ export const ContactTagsView: React.FC<ContactTagsViewProps> = ({ embedded = fal
                         type="button"
                         onClick={() => saveEdit(t.tag)}
                         disabled={busy || !draft.trim() || draft.trim() === t.tag}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         {targetExists ? 'Merge' : 'Save'}
                       </button>

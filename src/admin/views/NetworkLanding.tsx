@@ -84,7 +84,7 @@ export const NetworkLanding: React.FC = () => {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`font-display text-ui-16 tracking-[0.02em] transition-colors ${
+                className={`py-2.5 -my-2.5 font-display text-ui-16 tracking-[0.02em] transition-colors ${
                   isActive
                     ? 'text-tea-gold'
                     : 'text-tea-text-sec hover:text-tea-text'

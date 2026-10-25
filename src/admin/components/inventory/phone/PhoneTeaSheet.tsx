@@ -175,12 +175,12 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
     >
       <div aria-hidden="true" className="mx-auto mb-1.5 h-[3px] w-8 rounded-full bg-tea-elevated" />
       <div className="flex items-center gap-2">
-        <button type="button" onClick={onClose} aria-label="Close" className="-ml-2 -my-2 flex h-11 w-8 shrink-0 items-center justify-center text-tea-text-sec hover:text-tea-text"><XIcon size={16} aria-hidden="true" /></button>
+        <button type="button" onClick={onClose} aria-label="Close" className="-ml-3 -my-2 flex h-11 w-10 shrink-0 items-center justify-center text-tea-text-sec hover:text-tea-text"><XIcon size={16} aria-hidden="true" /></button>
         <div className="min-w-0 flex-1">
           <TapField
             value={product.productName || ''}
             label={`Rename ${product.productName}`}
-            className="block w-full truncate font-display text-[23px] font-semibold leading-tight text-tea-text"
+            className="block w-full truncate py-1 font-display text-[23px] font-semibold leading-tight text-tea-text"
             inputClassName="font-display text-[23px] font-semibold leading-tight"
             onSave={v => onUpdate(product.id, 'productName', v)}
           />
@@ -195,11 +195,11 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
           label={`Your name for ${product.productName}`}
           allowEmpty
           display={ownGiven || <span className="text-tea-text-dim">add your name</span>}
-          className="truncate py-2 -my-1.5"
+          className="truncate py-1.5 -my-1"
           inputClassName="text-ui-13 w-32"
           onSave={v => onUpdate(product.id, 'givenName', v)}
         />
-        {product.vendor ? <><span aria-hidden="true">·</span><button type="button" onClick={() => onOpenSource(product)} className="truncate py-2 -my-1.5 text-tea-text-sec underline decoration-tea-border underline-offset-2">{product.vendor}</button></> : null}
+        {product.vendor ? <><span aria-hidden="true">·</span><button type="button" onClick={() => onOpenSource(product)} className="truncate py-1.5 -my-1 text-tea-text-sec underline decoration-tea-border underline-offset-2">{product.vendor}</button></> : null}
       </div>
 
       {/* One ruled band that reads like the list: a small label over each value.
@@ -214,18 +214,18 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
           </div>
           <div className="flex items-center gap-1 mt-0.5 -ml-2">
             <button type="button" onClick={() => openWay('out')} aria-label={`Take some ${product.productName} out`}
-              className={`relative flex h-8 w-8 shrink-0 items-center justify-center text-ui-20 leading-none before:absolute before:-inset-y-1.5 ${way === 'out' ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>−</button>
+              className={`relative flex h-8 w-8 shrink-0 items-center justify-center text-ui-20 leading-none before:absolute before:inset-x-0 before:-inset-y-1.5 ${way === 'out' ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>−</button>
             <button
               type="button"
               onClick={() => openWay('count')}
               aria-label={`Type a new count for ${product.productName}`}
-              className={`${editBtn} ${numVal} ${isLow(product) ? 'text-tea-error' : ''}`}
+              className={`${editBtn} min-w-[2.5rem] text-center ${numVal} ${isLow(product) ? 'text-tea-error' : ''}`}
             >
               {ware && product.quantityUnits == null ? '—' : whole(current)}
               <span className="ml-0.5 font-sans text-ui-10 text-tea-text-dim">{unitWord}</span>
             </button>
             <button type="button" onClick={() => openWay('in')} aria-label={`Add some ${product.productName}`}
-              className={`relative flex h-8 w-8 shrink-0 items-center justify-center text-ui-20 leading-none before:absolute before:-inset-y-1.5 ${way === 'in' ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>+</button>
+              className={`relative flex h-8 w-8 shrink-0 items-center justify-center text-ui-20 leading-none before:absolute before:inset-x-0 before:-inset-y-1.5 ${way === 'in' ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>+</button>
           </div>
         </div>
         <div className="min-w-0 text-right">
@@ -237,7 +237,7 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
               numeric
               allowEmpty
               display={product.year || '—'}
-              className={`${editBtn} ${numVal}`}
+              className={`${editBtn} min-w-[2.5rem] text-right ${numVal}`}
               inputClassName={`${numVal} w-14 text-right`}
               onSave={v => onUpdate(product.id, 'year', v)}
             />
@@ -252,7 +252,7 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
               numeric
               allowEmpty
               display={shopPrice == null ? '—' : fmtNum(shopPrice)}
-              className={`${editBtn} ${numVal}`}
+              className={`${editBtn} min-w-[2.5rem] text-right ${numVal}`}
               inputClassName={`${numVal} w-14 text-right`}
               onSave={v => onUpdate(product.id, 'fixedRetailPriceUSD', v)}
             />

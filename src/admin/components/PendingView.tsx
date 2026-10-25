@@ -66,7 +66,7 @@ export const PendingView: React.FC = () => {
           </div>
           <button
             onClick={() => navigate('/admin/activity?tab=orders')}
-            className="flex items-center gap-1 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors"
+            className="flex items-center gap-1 py-3 -my-3 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors"
           >
             View all <ArrowRight size={12} />
           </button>

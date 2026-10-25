@@ -248,7 +248,7 @@ const EventsPage: React.FC = () => {
             session. It had no door; this is it. */}
         <p className="mt-10 text-center text-ui-13 text-tea-text-sec">
           At a session?{' '}
-          <Link to="/join" className="text-tea-gold hover:text-tea-gold-lt transition-colors">
+          <Link to="/join" className="inline-block py-3 -my-3 text-tea-gold hover:text-tea-gold-lt transition-colors">
             Enter its code
           </Link>
         </p>

@@ -72,7 +72,7 @@ function DescriptorPills({ entry, max = 6 }: { entry: CustomerTasting; max?: num
 const BackButton: React.FC<{ onClick: () => void; label?: string }> = ({ onClick, label = 'Back' }) => (
   <button
     onClick={onClick}
-    className="inline-flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors mb-5"
+    className="inline-flex min-h-[44px] items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors mb-5"
     aria-label="Back"
   >
     <Icons.Back className="w-4 h-4" />

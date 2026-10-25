@@ -114,7 +114,7 @@ export const CollectionsView: React.FC = () => {
             {mode === 'mine' && (
               <button
                 onClick={() => setCreating(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+                className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
               >
                 <Plus size={13} /> New Collection
               </button>
@@ -280,7 +280,7 @@ export const CollectionsView: React.FC = () => {
                 {tab === 'all' && (
                   <button
                     onClick={() => setCreating(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+                    className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
                   >
                     <Plus size={13} /> New Collection
                   </button>
@@ -364,7 +364,7 @@ export const CollectionsView: React.FC = () => {
                 type="button"
                 onClick={handleCreateDraft}
                 disabled={!newTitle.trim() || creatingSubmitting}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40"
+                className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40"
               >
                 {creatingSubmitting ? <Loader2 size={12} className="animate-spin" /> : null}
                 Create draft

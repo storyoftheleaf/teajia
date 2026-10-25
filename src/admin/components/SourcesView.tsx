@@ -1102,7 +1102,7 @@ export const SourcesView = () => {
 
               <button
                 onClick={() => { setEditingSource(null); setIsModalOpen(true); }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+                className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
               >
                 <Plus size={13} />
                 <span>New</span>
@@ -2292,7 +2292,7 @@ export const SourcesView = () => {
               </button>
               <button
                 onClick={() => { setEditingSource(panelSource); setIsModalOpen(true); }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+                className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
               >
                 <Edit3 size={13} /> <span>Full Edit</span>
               </button>

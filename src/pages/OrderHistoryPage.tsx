@@ -44,7 +44,7 @@ export default function OrderHistoryPage() {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-8 pb-nav-gap-lg animate-[fadeIn_0.5s_ease-out]">
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-8"
+        className="flex min-h-[44px] items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
       >
         <Icons.Back className="w-4 h-4" />
         <span className="text-ui-12 uppercase tracking-[0.15em]">Back</span>

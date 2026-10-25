@@ -344,7 +344,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                 type="button"
                 onClick={() => setDetailsOpen(prev => !prev)}
                 aria-expanded={detailsOpen}
-                className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors"
+                className="flex min-h-[44px] items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors"
               >
                 <ChevronDown
                   size={14}
