@@ -281,7 +281,7 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
 
       {way && (
         <form onSubmit={e => { e.preventDefault(); void saveStock(); }} className="border-b border-tea-border">
-          <div className="flex items-center h-14 gap-2 text-ui-14 text-tea-text-sec">
+          <div className="flex items-center h-14 gap-1.5 text-ui-14 text-tea-text-sec">
             <span className="shrink-0">{way === 'count' ? 'On the shelf' : way === 'in' ? 'Added' : 'Took out'}</span>
             <input
               ref={amountRef}
@@ -290,14 +290,14 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
               value={amount}
               onChange={e => setAmount(e.target.value)}
               onKeyDown={e => { if (e.key === 'Escape') { setWay(null); setError(''); } }}
-              className="h-10 w-24 rounded-md bg-tea-bg border border-tea-border focus:border-tea-gold outline-none px-2 text-right font-mono text-ui-17 tabular-nums text-tea-text"
+              className="h-10 w-[4.5rem] rounded-md bg-tea-bg border border-tea-border focus:border-tea-gold outline-none px-2 text-right font-mono text-ui-17 tabular-nums text-tea-text"
             />
             <span className="shrink-0">{unitWord}</span>
-            <span className={`min-w-0 truncate text-ui-11 ${tooMuch ? 'text-tea-error' : 'text-tea-text-dim'}`}>
+            <span className={`min-w-0 truncate text-ui-12 ${tooMuch ? 'text-tea-error' : 'text-tea-text-dim'}`}>
               {tooMuch ? `only ${whole(current)} there` : next != null && way !== 'count' ? `leaves ${whole(next)}` : ''}
             </span>
-            <button type="button" onClick={() => { setWay(null); setError(''); }} className="tap-target ml-auto shrink-0 px-2 text-ui-14 text-tea-text-sec hover:text-tea-text">Cancel</button>
-            <button type="submit" disabled={!valid || tooMuch || saving} className="tap-target -mr-2 shrink-0 px-2 text-ui-14 text-tea-gold disabled:text-tea-text-dim">{saving ? 'Saving' : 'Save'}</button>
+            <button type="button" onClick={() => { setWay(null); setError(''); }} className="tap-target ml-auto shrink-0 px-1 text-ui-14 text-tea-text-sec hover:text-tea-text">Cancel</button>
+            <button type="submit" disabled={!valid || tooMuch || saving} className="tap-target -mr-2 shrink-0 px-1 text-ui-14 text-tea-gold disabled:text-tea-text-dim">{saving ? 'Saving' : 'Save'}</button>
           </div>
           {way === 'out' && (
             <div role="radiogroup" aria-label="Why it went out" className="flex items-center gap-2 pb-1 -mt-1 text-ui-14">
