@@ -78,7 +78,7 @@ export const TapField: React.FC<{
           if (e.key === 'Enter') e.currentTarget.blur();
           if (e.key === 'Escape') { cancelled.current = true; e.currentTarget.blur(); }
         }}
-        className={`min-w-0 w-full bg-transparent border-0 border-b border-tea-border focus:border-tea-gold outline-none p-0 text-tea-text ${inputClassName}`}
+        className={`min-w-0 w-full bg-transparent border-0 border-b border-tea-border focus:border-tea-gold outline-none py-1 px-0 text-tea-text ${inputClassName}`}
       />
     );
   }
@@ -164,8 +164,8 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
   const shopOn = Boolean(product.isPublic);
 
   const term = 'text-ui-10 uppercase tracking-[0.1em] text-tea-text-dim whitespace-nowrap';
-  const numVal = 'font-mono text-ui-15 tabular-nums text-tea-text';
-  const editBtn = 'relative border-b border-dashed border-tea-border before:absolute before:-inset-y-2 before:-inset-x-1';
+  const numVal = 'font-mono text-ui-17 tabular-nums text-tea-text';
+  const editBtn = 'relative inline-block py-1 border-b border-dashed border-tea-border before:absolute before:-inset-y-3 before:-inset-x-1.5';
 
   return (
     <section
@@ -185,9 +185,9 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
             onSave={v => onUpdate(product.id, 'productName', v)}
           />
         </div>
-        <button type="button" onClick={() => onOpenEditor(product)} className="shrink-0 text-ui-12 text-tea-gold">Full page ›</button>
+        <button type="button" onClick={() => onOpenEditor(product)} className="tap-target -mr-2 -my-2 shrink-0 px-2 text-ui-13 text-tea-gold">Full page ›</button>
       </div>
-      <div className="ml-6 flex items-center gap-1.5 text-ui-12 text-tea-text-sec min-w-0">
+      <div className="ml-6 flex items-center gap-1.5 text-ui-13 text-tea-text-sec min-w-0">
         <span className="shrink-0" style={ware ? undefined : { color: getThemeTextColor(product.type) }}>{product.type}</span>{/* color-data: the tea kind's own colour */}
         <span aria-hidden="true">·</span>
         <TapField
@@ -195,16 +195,16 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
           label={`Your name for ${product.productName}`}
           allowEmpty
           display={ownGiven || <span className="text-tea-text-dim">add your name</span>}
-          className="truncate"
-          inputClassName="text-ui-12 w-28"
+          className="truncate py-2 -my-1.5"
+          inputClassName="text-ui-13 w-32"
           onSave={v => onUpdate(product.id, 'givenName', v)}
         />
-        {product.vendor ? <><span aria-hidden="true">·</span><button type="button" onClick={() => onOpenSource(product)} className="truncate text-tea-text-sec underline decoration-tea-border underline-offset-2">{product.vendor}</button></> : null}
+        {product.vendor ? <><span aria-hidden="true">·</span><button type="button" onClick={() => onOpenSource(product)} className="truncate py-2 -my-1.5 text-tea-text-sec underline decoration-tea-border underline-offset-2">{product.vendor}</button></> : null}
       </div>
 
       {/* One ruled band that reads like the list: a small label over each value.
           Whether it needs a recount rides in the Shelf label, not a line of its own. */}
-      <div className="mt-2 grid grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-x-3 border-y border-tea-border py-1.5">
+      <div className="mt-2 grid grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-x-3 border-y border-tea-border py-2.5">
         <div className="min-w-0">
           <div className={term}>
             Shelf{' '}
@@ -212,9 +212,9 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
               · {counted ?? (isUnchecked(product) ? 'recount' : '—')}
             </span>
           </div>
-          <div className="flex items-baseline gap-2.5 mt-0.5">
+          <div className="flex items-center gap-1 mt-0.5 -ml-2">
             <button type="button" onClick={() => openWay('out')} aria-label={`Take some ${product.productName} out`}
-              className={`relative text-ui-16 leading-none before:absolute before:-inset-3 ${way === 'out' ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>−</button>
+              className={`relative flex h-8 w-8 shrink-0 items-center justify-center text-ui-20 leading-none before:absolute before:-inset-y-1.5 ${way === 'out' ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>−</button>
             <button
               type="button"
               onClick={() => openWay('count')}
@@ -225,7 +225,7 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
               <span className="ml-0.5 font-sans text-ui-10 text-tea-text-dim">{unitWord}</span>
             </button>
             <button type="button" onClick={() => openWay('in')} aria-label={`Add some ${product.productName}`}
-              className={`relative text-ui-16 leading-none before:absolute before:-inset-3 ${way === 'in' ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>+</button>
+              className={`relative flex h-8 w-8 shrink-0 items-center justify-center text-ui-20 leading-none before:absolute before:-inset-y-1.5 ${way === 'in' ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>+</button>
           </div>
         </div>
         <div className="min-w-0 text-right">
@@ -238,7 +238,7 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
               allowEmpty
               display={product.year || '—'}
               className={`${editBtn} ${numVal}`}
-              inputClassName={`${numVal} w-12 text-right`}
+              inputClassName={`${numVal} w-14 text-right`}
               onSave={v => onUpdate(product.id, 'year', v)}
             />
           </div>
@@ -253,7 +253,7 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
               allowEmpty
               display={shopPrice == null ? '—' : fmtNum(shopPrice)}
               className={`${editBtn} ${numVal}`}
-              inputClassName={`${numVal} w-12 text-right`}
+              inputClassName={`${numVal} w-14 text-right`}
               onSave={v => onUpdate(product.id, 'fixedRetailPriceUSD', v)}
             />
           </div>
@@ -262,7 +262,7 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
             itself is edited on the full page, where amount, currency and weight sit together. */}
         <div className="min-w-0 text-right">
           <div className={term}>{ware ? 'Cost ea' : 'Cost'}</div>
-          <div className={`mt-0.5 inline-block border-b border-transparent ${numVal} text-tea-text-sec`}>{costPerUnit == null ? '—' : fmtNum(costPerUnit)}</div>
+          <div className={`mt-0.5 inline-block py-1 border-b border-transparent ${numVal} text-tea-text-sec`}>{costPerUnit == null ? '—' : fmtNum(costPerUnit)}</div>
         </div>
         <div className="text-right">
           <div className={term}>Shop</div>
@@ -272,7 +272,7 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
             aria-checked={shopOn}
             aria-label={`Show ${product.productName} in the shop`}
             onClick={() => onUpdate(product.id, 'isPublic', !shopOn)}
-            className={`relative mt-1.5 inline-flex h-4 w-7 items-center rounded-full transition-colors before:absolute before:-inset-3 ${shopOn ? 'bg-tea-gold' : 'bg-tea-elevated'}`}
+            className={`relative mt-2.5 inline-flex h-4 w-7 items-center rounded-full transition-colors before:absolute before:-inset-3 ${shopOn ? 'bg-tea-gold' : 'bg-tea-elevated'}`}
           >
             <span aria-hidden="true" className={`h-3 w-3 rounded-full bg-tea-text transition-transform ${shopOn ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
           </button>
@@ -281,7 +281,7 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
 
       {way && (
         <form onSubmit={e => { e.preventDefault(); void saveStock(); }} className="border-b border-tea-border">
-          <div className="flex items-center h-10 gap-2 text-ui-13 text-tea-text-sec">
+          <div className="flex items-center h-14 gap-2 text-ui-14 text-tea-text-sec">
             <span className="shrink-0">{way === 'count' ? 'On the shelf' : way === 'in' ? 'Added' : 'Took out'}</span>
             <input
               ref={amountRef}
@@ -290,20 +290,20 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
               value={amount}
               onChange={e => setAmount(e.target.value)}
               onKeyDown={e => { if (e.key === 'Escape') { setWay(null); setError(''); } }}
-              className="w-14 bg-transparent border-0 border-b border-tea-border focus:border-tea-gold outline-none p-0 text-right font-mono text-ui-15 tabular-nums text-tea-text"
+              className="h-10 w-24 rounded-md bg-tea-bg border border-tea-border focus:border-tea-gold outline-none px-2 text-right font-mono text-ui-17 tabular-nums text-tea-text"
             />
             <span className="shrink-0">{unitWord}</span>
             <span className={`min-w-0 truncate text-ui-11 ${tooMuch ? 'text-tea-error' : 'text-tea-text-dim'}`}>
               {tooMuch ? `only ${whole(current)} there` : next != null && way !== 'count' ? `leaves ${whole(next)}` : ''}
             </span>
-            <button type="button" onClick={() => { setWay(null); setError(''); }} className="ml-auto shrink-0 text-ui-13 text-tea-text-sec hover:text-tea-text">Cancel</button>
-            <button type="submit" disabled={!valid || tooMuch || saving} className="shrink-0 text-ui-13 text-tea-gold disabled:text-tea-text-dim">{saving ? 'Saving' : 'Save'}</button>
+            <button type="button" onClick={() => { setWay(null); setError(''); }} className="tap-target ml-auto shrink-0 px-2 text-ui-14 text-tea-text-sec hover:text-tea-text">Cancel</button>
+            <button type="submit" disabled={!valid || tooMuch || saving} className="tap-target -mr-2 shrink-0 px-2 text-ui-14 text-tea-gold disabled:text-tea-text-dim">{saving ? 'Saving' : 'Save'}</button>
           </div>
           {way === 'out' && (
-            <div role="radiogroup" aria-label="Why it went out" className="flex items-center gap-4 pb-2 -mt-1 text-ui-12">
+            <div role="radiogroup" aria-label="Why it went out" className="flex items-center gap-2 pb-1 -mt-1 text-ui-14">
               {OUT_WHY.map(([r, word]) => (
                 <button key={r} type="button" role="radio" aria-checked={why === r} onClick={() => setWhy(r)}
-                  className={why === r ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}>{word}</button>
+                  className={`tap-target px-2 first:-ml-2 ${why === r ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>{word}</button>
               ))}
             </div>
           )}
