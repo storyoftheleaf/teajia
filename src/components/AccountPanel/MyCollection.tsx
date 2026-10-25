@@ -64,7 +64,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
   const BackButton = (
     <button
       onClick={onBack}
-      className="inline-flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
+      className="inline-flex min-h-[44px] items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
       aria-label="Back"
     >
       <Icons.Back className="w-4 h-4" />

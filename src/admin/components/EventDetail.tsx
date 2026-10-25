@@ -257,7 +257,7 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
                   type="button"
                   onClick={() => handlePromote(confirmNote, selectedVisibility)}
                   disabled={!!promoting}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {promoting ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
                   Publish
@@ -1069,7 +1069,7 @@ export const EventDetail: React.FC = () => {
                 type="button"
                 onClick={handleSaveVenue}
                 disabled={savingVenue}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {savingVenue ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
                 Save Venue
@@ -1142,7 +1142,7 @@ export const EventDetail: React.FC = () => {
                     }
                   }}
                   disabled={closingRsvp}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {closingRsvp ? <Loader2 size={13} className="animate-spin" /> : <Lock size={13} />}
                   Confirm

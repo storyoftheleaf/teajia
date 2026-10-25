@@ -799,7 +799,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
           onClick={() => { void save(); }}
           aria-label="Save"
           disabled={saveState === 'saving' || publishing || !title.trim()}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-medium transition-colors disabled:opacity-40 shrink-0"
+          className="flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-medium transition-colors disabled:opacity-40 shrink-0"
         >
           {saveState === 'saving' ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
           <span className="hidden sm:inline">Save</span>

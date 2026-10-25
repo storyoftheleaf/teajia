@@ -309,7 +309,7 @@ const JourneyEditorial: React.FC<{ onVerify: () => void }> = ({ onVerify }) => (
       </p>
       <button
         onClick={onVerify}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
+        className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
       >
         View your journey
       </button>

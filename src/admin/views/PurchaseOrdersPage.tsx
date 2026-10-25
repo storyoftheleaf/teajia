@@ -358,7 +358,7 @@ export const PurchaseOrdersPage: React.FC = () => {
         <h1 className="h2 flex-1">Purchases</h1>
         <button
           onClick={() => setIsNewFormOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+          className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
         >
           <Plus size={13} />
           New PO
@@ -375,7 +375,7 @@ export const PurchaseOrdersPage: React.FC = () => {
           <div className="flex flex-col items-center justify-center h-40 text-tea-text-sec">
             <ShoppingBag size={28} className="mb-3 opacity-30" />
             <p className="text-sm font-serif italic">No purchase orders yet.</p>
-            <button onClick={() => setIsNewFormOpen(true)} className="mt-3 text-xs text-tea-gold hover:underline">
+            <button onClick={() => setIsNewFormOpen(true)} className="mt-1 py-2.5 text-xs text-tea-gold hover:underline">
               Create your first PO
             </button>
           </div>

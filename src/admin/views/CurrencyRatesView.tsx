@@ -85,7 +85,7 @@ export const CurrencyRatesView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setAdding(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+                className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
               >
                 Add Currency
               </button>
@@ -168,7 +168,7 @@ const RateRowView: React.FC<RateRowViewProps> = ({ row, onChange }) => {
             value={draft}
             onChange={e => setDraft(e.target.value)}
             disabled={isUSD || busy !== null}
-            className="bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-15 py-1 w-28 transition-colors disabled:text-tea-text-sec"
+            className="bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-15 py-2.5 w-28 transition-colors disabled:text-tea-text-sec"
             aria-label={`${row.currency} rate`}
           />
         </label>
@@ -183,7 +183,7 @@ const RateRowView: React.FC<RateRowViewProps> = ({ row, onChange }) => {
               type="button"
               onClick={handleSave}
               disabled={busy !== null}
-              className="text-tea-gold hover:text-tea-gold-lt transition-colors disabled:text-tea-text-sec"
+              className="py-3 -my-3 text-tea-gold hover:text-tea-gold-lt transition-colors disabled:text-tea-text-sec"
             >
               {busy === 'save' ? 'Saving' : 'Save'}
             </button>
@@ -193,7 +193,7 @@ const RateRowView: React.FC<RateRowViewProps> = ({ row, onChange }) => {
               type="button"
               onClick={() => { setConfirmingDelete(true); setError(null); }}
               disabled={inUse || busy !== null}
-              className="text-tea-text-sec hover:text-tea-text transition-colors disabled:text-tea-text-sec disabled:opacity-50 disabled:cursor-not-allowed"
+              className="py-3 -my-3 text-tea-text-sec hover:text-tea-text transition-colors disabled:text-tea-text-sec disabled:opacity-50 disabled:cursor-not-allowed"
               title={inUse ? 'In use; cannot delete' : 'Delete this currency'}
             >
               Delete
@@ -218,7 +218,7 @@ const RateRowView: React.FC<RateRowViewProps> = ({ row, onChange }) => {
               type="button"
               onClick={() => setConfirmingDelete(false)}
               disabled={busy !== null}
-              className="text-tea-text-sec hover:text-tea-text transition-colors"
+              className="py-3 -my-3 text-tea-text-sec hover:text-tea-text transition-colors"
             >
               Cancel
             </button>
@@ -226,7 +226,7 @@ const RateRowView: React.FC<RateRowViewProps> = ({ row, onChange }) => {
               type="button"
               onClick={handleDelete}
               disabled={busy !== null}
-              className="text-tea-error hover:text-tea-error/80 transition-colors"
+              className="py-3 -my-3 text-tea-error hover:text-tea-error/80 transition-colors"
             >
               {busy === 'delete' ? 'Deleting' : 'Confirm delete'}
             </button>
@@ -318,7 +318,7 @@ const AddRateForm: React.FC<AddRateFormProps> = ({ onCancel, onSaved }) => {
           type="button"
           onClick={handleSubmit}
           disabled={!canSubmit || busy}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {busy ? 'Adding' : 'Add Currency'}
         </button>

@@ -119,7 +119,7 @@ export function BatchPicker({
               type="button"
               disabled={!newLabel.trim() || createMutation.isPending}
               onClick={() => createMutation.mutate()}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-ui-13 font-semibold disabled:opacity-50 transition-opacity"
+              className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-ui-13 font-semibold disabled:opacity-50 transition-opacity"
             >
               <Check size={13} /> Create
             </button>

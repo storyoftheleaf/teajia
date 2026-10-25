@@ -57,7 +57,7 @@ export function PeopleNav({ eyebrow, progress, backTo, chevron = true, eyebrowTo
       className="relative flex h-12 items-center justify-between gap-4 border-b border-tea-border px-5"
       style={WASH}
     >
-      <Link to={backTo} className="flex items-center gap-2 text-tea-text" aria-label={chevron ? 'Back to all people' : 'Teajia'}>
+      <Link to={backTo} className="flex h-full min-w-[44px] items-center gap-2 text-tea-text" aria-label={chevron ? 'Back to all people' : 'Teajia'}>
         {chevron && (
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
             <path d="M9.5 3.5L5 7.5l4.5 4" stroke="var(--tea-gold)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />

@@ -70,9 +70,10 @@ export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart
   const stopKeys = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter' || event.key === ' ') event.stopPropagation();
   };
-  // The box is drawn at 24px; the before: layer widens the hit area to 44px
-  // without growing the box, which tap-target would do.
-  const stepClass = 'relative inline-flex h-6 w-6 before:absolute before:-inset-2.5 before:content-[\'\'] items-center justify-center rounded border border-tea-border text-ui-14 leading-none transition-colors disabled:cursor-default disabled:opacity-40 focus-visible:outline focus-visible:outline-tea-gold';
+  // The box is drawn at 24px; the before: layer grows the hit area to 44px tall
+  // without growing the box, which tap-target would do. Only 6px sideways, so a
+  // step never takes a tap meant for Weigh between them.
+  const stepClass = 'relative inline-flex h-6 w-6 before:absolute before:-inset-y-2.5 before:-inset-x-1.5 before:content-[\'\'] items-center justify-center rounded border border-tea-border text-ui-14 leading-none transition-colors disabled:cursor-default disabled:opacity-40 focus-visible:outline focus-visible:outline-tea-gold';
 
   return (
     // 92px on a phone, what its widest line (the steps either side of Weigh)
@@ -93,7 +94,7 @@ export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart
           addedTimer.current = setTimeout(() => setAdded(false), 1500);
         }}
         onKeyDown={stopKeys}
-        className="flex h-8 items-baseline justify-center gap-2 whitespace-nowrap rounded-md border border-tea-border px-1 pt-[8px] transition-colors enabled:hover:border-tea-gold enabled:hover:bg-tea-accent-sub focus-visible:outline focus-visible:outline-tea-gold"
+        className="flex h-9 items-baseline justify-center gap-2 whitespace-nowrap rounded-md border border-tea-border px-1 pt-[10px] transition-colors enabled:hover:border-tea-gold enabled:hover:bg-tea-accent-sub focus-visible:outline focus-visible:outline-tea-gold"
       >
         {added ? (
           <span className="text-ui-12 text-tea-gold-lt" aria-live="polite">Added</span>
@@ -126,7 +127,7 @@ export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart
               onChooseAmount?.(item);
             }}
             onKeyDown={stopKeys}
-            className="group rounded px-1 py-1 sm:px-1.5 focus-visible:outline focus-visible:outline-tea-gold"
+            className="group rounded px-1.5 py-2 -my-1 focus-visible:outline focus-visible:outline-tea-gold"
           >
             <span className="text-ui-9 uppercase tracking-[0.12em] text-tea-text-dim transition-colors group-enabled:group-hover:text-tea-gold-lt">Weigh</span>
           </button>

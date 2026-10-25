@@ -135,10 +135,10 @@ export const SampleDecideBar: React.FC<{ holding: SampleHolding; onTaste: () => 
       <div className={stacked ? 'grid gap-2' : 'flex items-center gap-3'}>
         <LikeSlider value={v.quality} compact={compact} onChange={(q) => run(async () => rateSample(await ensure(), q))} />
         <div className={`${stacked ? 'w-full' : `ml-auto shrink-0 ${compact ? 'w-[180px]' : 'w-[200px]'}`} grid grid-cols-3 border border-tea-border rounded-md overflow-hidden text-ui-12`}>
-          <button type="button" onClick={onTaste} className="h-8 text-tea-text-sec hover:text-tea-text">Taste</button>
-          <button type="button" onClick={() => run(async () => setSampleRejected(await ensure(), true))} className="h-8 text-tea-error border-l border-tea-border">Reject</button>
+          <button type="button" onClick={onTaste} className="h-10 text-tea-text-sec hover:text-tea-text">Taste</button>
+          <button type="button" onClick={() => run(async () => setSampleRejected(await ensure(), true))} className="h-10 text-tea-error border-l border-tea-border">Reject</button>
           <button type="button" onClick={() => (wanted ? undefined : ask())} aria-pressed={!!wanted}
-            className={`h-8 border-l border-tea-border ${wanted ? 'cta-solid' : 'text-tea-gold-lt'}`}>
+            className={`h-10 border-l border-tea-border ${wanted ? 'cta-solid' : 'text-tea-gold-lt'}`}>
             {wanted ? `${whole(wanted.amount)} ${wanted.unit}` : 'Want'}
           </button>
         </div>

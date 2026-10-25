@@ -152,7 +152,7 @@ const OwnerPrivateNote: React.FC<{
         <button
           onClick={save}
           disabled={!dirty || saving}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           Save
@@ -503,7 +503,7 @@ export const CustomerProfilePage: React.FC = () => {
             <div className="flex flex-wrap gap-2 mt-5 pt-5 border-t border-tea-border">
               <button
                 onClick={() => setShowRecommend(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+                className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
               >
                 <Leaf size={13} />
                 <span>Recommend Teas</span>

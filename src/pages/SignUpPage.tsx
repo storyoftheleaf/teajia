@@ -179,7 +179,7 @@ export default function SignUpPage() {
         <button
           type="button"
           onClick={() => setWhatOpen(v => !v)}
-          className="mt-3 inline-flex items-center gap-1 text-ui-11 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+          className="mt-1 inline-flex min-h-[40px] items-center gap-1 text-ui-11 text-tea-text-dim hover:text-tea-text-sec transition-colors"
         >
           <Icons.Info className="w-3.5 h-3.5" />
           What is Teajia?
@@ -296,7 +296,7 @@ export default function SignUpPage() {
                   setContactPlatform(prev => prev === platform ? null : platform);
                   setContactPhone('');
                 }}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-ui-12 font-medium border transition-colors ${
+                className={`inline-flex min-h-10 items-center gap-1.5 px-3 py-1.5 rounded-md text-ui-12 font-medium border transition-colors ${
                   contactPlatform === platform
                     ? 'border-tea-gold bg-tea-gold/10 text-tea-text'
                     : 'border-tea-border bg-tea-surface text-tea-text-sec hover:text-tea-text'
@@ -364,7 +364,7 @@ export default function SignUpPage() {
         )}
         <button
           onClick={() => navigate(authPagePath('signin', destination))}
-          className="link-text hover:opacity-80 transition-opacity"
+          className="link-text py-3 -my-3 hover:opacity-80 transition-opacity"
         >
           Already have an account? Sign in
         </button>

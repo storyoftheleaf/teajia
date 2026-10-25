@@ -162,7 +162,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
                 role="columnheader"
                 aria-sort={on ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
                 onClick={() => onSort?.(key)}
-                className={`h-8 whitespace-nowrap ${align === 'text-right' ? `${NUM} ` : 'text-left '}text-ui-10 uppercase tracking-[0.06em] ${on ? 'text-tea-gold' : 'text-tea-text-dim'}`}
+                className={`h-10 whitespace-nowrap ${align === 'text-right' ? `${NUM} ` : 'text-left '}text-ui-10 uppercase tracking-[0.06em] ${on ? 'text-tea-gold' : 'text-tea-text-dim'}`}
               >
                 {label}{on ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
               </button>
@@ -171,7 +171,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
           {!samples && <button
             type="button"
             onClick={() => { if (selectMode) { setEditMode(false); selectedIds.forEach(id => onToggleSelect(id)); } else { setEditMode(true); setFocusedId(null); } }}
-            className="absolute left-[4.5rem] top-0 h-8 flex items-center text-ui-11 text-tea-gold before:absolute before:-inset-x-2 before:inset-y-0"
+            className="absolute left-[4.5rem] top-0 h-10 flex items-center text-ui-12 text-tea-gold before:absolute before:-inset-x-3 before:inset-y-0"
             style={{ position: 'absolute' }}
           >{selectMode ? 'Done' : 'Select'}</button>}
         </div>

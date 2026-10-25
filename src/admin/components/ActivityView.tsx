@@ -322,7 +322,7 @@ function InquiriesView({ accountId, accountReady }: { accountId: string | null; 
               <button
                 key={s}
                 onClick={() => setFilter(s)}
-                className={`py-2 text-ui-12 uppercase tracking-caps font-sans whitespace-nowrap transition-colors border-b ${
+                className={`min-w-[44px] py-2.5 text-ui-12 uppercase tracking-caps font-sans whitespace-nowrap transition-colors border-b ${
                   isActive
                     ? 'text-tea-text border-tea-gold'
                     : 'text-tea-text-sec hover:text-tea-text border-transparent'

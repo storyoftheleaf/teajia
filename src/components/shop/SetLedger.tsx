@@ -135,7 +135,7 @@ function SetCartControl({ name, price, retail, formatPrice, onAdd }: SetCartCont
           timer.current = setTimeout(() => setAdded(false), 1500);
         }}
         onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') event.stopPropagation(); }}
-        className="flex h-8 items-baseline justify-center gap-2 whitespace-nowrap rounded-md border border-tea-border px-1 pt-[8px] transition-colors hover:border-tea-gold hover:bg-tea-accent-sub focus-visible:outline focus-visible:outline-tea-gold"
+        className="flex h-9 items-baseline justify-center gap-2 whitespace-nowrap rounded-md border border-tea-border px-1 pt-[10px] transition-colors hover:border-tea-gold hover:bg-tea-accent-sub focus-visible:outline focus-visible:outline-tea-gold"
       >
         {added ? (
           <span className="text-ui-12 text-tea-gold-lt" aria-live="polite">Added</span>
