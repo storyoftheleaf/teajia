@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import type { TastingData, CustomerTasting } from '../../types';
+import { TastingNavigation } from './TastingNavigation';
 import { TastingFlow, ALL_SECTIONS, type SectionId } from './TastingFlow';
 import { useAppStore } from '../../lib/store';
 import { syncTastingJournal } from '../../lib/tastingJournalSync';
@@ -517,6 +518,102 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     updateNoteFields({ wouldBuy: next });
   }, [wouldBuy, updateNoteFields, onSave, adminMode, tastingData, verdict]);
 
+  const noteControl = (
+                  <button
+                    type="button"
+                    aria-pressed={showNote}
+                    aria-label="Notes: tap to open, hold to record"
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      // If already recording (e.g. from a previous hold that
+                      // left the finger up), any tap stops it.
+                      if (silentVoice.state === 'recording') {
+                        silentVoice.stop();
+                        noteTabHandledInDownRef.current = true;
+                        return;
+                      }
+                      noteTabHandledInDownRef.current = false;
+                      noteTabPressStartRef.current = Date.now();
+                      noteTabRecordingStartedRef.current = false;
+                      noteTabHoldTimerRef.current = setTimeout(() => {
+                        noteTabRecordingStartedRef.current = true;
+                        silentVoice.start();
+                      }, HOLD_THRESHOLD_MS);
+                    }}
+                    onPointerUp={() => {
+                      if (noteTabHandledInDownRef.current) {
+                        noteTabHandledInDownRef.current = false;
+                        return;
+                      }
+                      if (noteTabHoldTimerRef.current) {
+                        clearTimeout(noteTabHoldTimerRef.current);
+                        noteTabHoldTimerRef.current = null;
+                      }
+                      if (noteTabRecordingStartedRef.current) {
+                        // Release-to-stop: the natural hold gesture's end.
+                        silentVoice.stop();
+                      } else {
+                        setShowNote(v => !v);
+                      }
+                      noteTabPressStartRef.current = null;
+                      noteTabRecordingStartedRef.current = false;
+                    }}
+                    onPointerCancel={() => {
+                      if (noteTabHoldTimerRef.current) {
+                        clearTimeout(noteTabHoldTimerRef.current);
+                        noteTabHoldTimerRef.current = null;
+                      }
+                      if (noteTabRecordingStartedRef.current) silentVoice.stop();
+                      noteTabPressStartRef.current = null;
+                      noteTabRecordingStartedRef.current = false;
+                      noteTabHandledInDownRef.current = false;
+                    }}
+                    onPointerLeave={() => {
+                      if (noteTabHoldTimerRef.current) {
+                        clearTimeout(noteTabHoldTimerRef.current);
+                        noteTabHoldTimerRef.current = null;
+                      }
+                      // Keep recording if finger/cursor leaves, since the user may still be holding.
+                    }}
+                    className={`relative flex-1 flex items-center justify-center py-3.5 transition-colors duration-200 select-none touch-none ${
+                      silentVoice.state === 'recording'
+                        ? 'text-tea-gold'
+                        : showNote
+                          ? 'text-tea-gold'
+                          : (tastingData.notes?.length ?? 0) > 0
+                            ? 'text-tea-gold/60'
+                            : 'text-tea-text/45 hover:text-tea-text/75'
+                    }`}
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      fontSize: '12px',
+                      fontWeight: showNote || silentVoice.state === 'recording' ? 800 : 300,
+                      letterSpacing: '0.18em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    {/* Active/recording = bronze + bold word, no underline.
+                        same bronze-word language as the sense tabs. */}
+                    <span className="relative z-[1] inline-flex items-center gap-1.5">
+                      {silentVoice.state === 'transcribing' ? (
+                        <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                          <Loader2 size={12} />
+                        </motion.span>
+                      ) : (
+                        <Mic size={12} />
+                      )}
+                      <span className="inline-flex items-baseline gap-1">
+                        {silentVoice.state === 'recording' ? 'Rec' : 'Note'}
+                        {(tastingData.notes?.length ?? 0) > 0 && !showNote && silentVoice.state !== 'recording' && (
+                          <span className="tabular-nums" style={{ fontSize: '9px', letterSpacing: 0, color: 'rgb(var(--tea-gold-rgb) / 0.5)', transform: 'translateY(-2px)' }}>
+                            {tastingData.notes!.length}
+                          </span>
+                        )}
+                      </span>
+                    </span>
+                  </button>
+  );
+
   return createPortal(
     <div data-tasting-session-overlay className={`fixed inset-0 z-takeover lg:bg-black/75 lg:backdrop-blur-sm lg:flex lg:items-center lg:justify-center${className ? ` ${className}` : ''}`}>
     <motion.div
@@ -563,6 +660,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
             {phase === 'details' ? 'Tasting' : 'Edit'}
           </button>
         )}
+
+        {phase === 'tasting' && <div className="tasting-mobile-note lg:hidden">{noteControl}</div>}
 
         {phase === 'tasting' && (
           <button
@@ -814,7 +913,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 card in a list it read as a smudge of shading under the card rather
                 than as a hint that the list continues. The hairline already says
                 where the content stops. */}
-            <div className="flex-1 min-h-0 overflow-hidden relative">
+            <div className="flex-1 min-h-0 overflow-hidden relative tasting-mobile-content">
               {showNote ? (
                 <NotesPanel
                   notes={normalizeNotes(tastingData)}
@@ -834,13 +933,16 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               )}
             </div>
 
+            <TastingNavigation activeSection={showNote ? null : activeSectionId}
+              onSelect={id => { setActiveSectionId(id); setShowNote(false); }} onClose={handleCloseRequest} />
+
             {/* Bottom bar: a flat word taskbar. One crisp hairline separates it
                 from the content above; no upward shadow haze (that read as smudged
                 shading). Active state is a bronze word + a sliding underline rule,
                 not a filled box, so it speaks the same language as the global nav
                 capsule beneath it without touching that bar. */}
             <div
-              className="shrink-0 border-t border-tea-border bg-tea-bg"
+              className="hidden lg:block shrink-0 border-t border-tea-border bg-tea-bg"
               style={{
                 paddingBottom: 'env(safe-area-inset-bottom, 0px)',
               }}
@@ -897,99 +999,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                   {/* Note, the capture cell. Word + inline mic, matching the sense
                       tabs' weight. Tap to open panel; press-and-hold to silently
                       capture voice. */}
-                  <button
-                    type="button"
-                    aria-pressed={showNote}
-                    aria-label="Notes: tap to open, hold to record"
-                    onPointerDown={(e) => {
-                      e.preventDefault();
-                      // If already recording (e.g. from a previous hold that
-                      // left the finger up), any tap stops it.
-                      if (silentVoice.state === 'recording') {
-                        silentVoice.stop();
-                        noteTabHandledInDownRef.current = true;
-                        return;
-                      }
-                      noteTabHandledInDownRef.current = false;
-                      noteTabPressStartRef.current = Date.now();
-                      noteTabRecordingStartedRef.current = false;
-                      noteTabHoldTimerRef.current = setTimeout(() => {
-                        noteTabRecordingStartedRef.current = true;
-                        silentVoice.start();
-                      }, HOLD_THRESHOLD_MS);
-                    }}
-                    onPointerUp={() => {
-                      if (noteTabHandledInDownRef.current) {
-                        noteTabHandledInDownRef.current = false;
-                        return;
-                      }
-                      if (noteTabHoldTimerRef.current) {
-                        clearTimeout(noteTabHoldTimerRef.current);
-                        noteTabHoldTimerRef.current = null;
-                      }
-                      if (noteTabRecordingStartedRef.current) {
-                        // Release-to-stop: the natural hold gesture's end.
-                        silentVoice.stop();
-                      } else {
-                        setShowNote(v => !v);
-                      }
-                      noteTabPressStartRef.current = null;
-                      noteTabRecordingStartedRef.current = false;
-                    }}
-                    onPointerCancel={() => {
-                      if (noteTabHoldTimerRef.current) {
-                        clearTimeout(noteTabHoldTimerRef.current);
-                        noteTabHoldTimerRef.current = null;
-                      }
-                      if (noteTabRecordingStartedRef.current) silentVoice.stop();
-                      noteTabPressStartRef.current = null;
-                      noteTabRecordingStartedRef.current = false;
-                      noteTabHandledInDownRef.current = false;
-                    }}
-                    onPointerLeave={() => {
-                      if (noteTabHoldTimerRef.current) {
-                        clearTimeout(noteTabHoldTimerRef.current);
-                        noteTabHoldTimerRef.current = null;
-                      }
-                      // Keep recording if finger/cursor leaves, since the user may still be holding.
-                    }}
-                    className={`relative flex-1 flex items-center justify-center py-3.5 transition-colors duration-200 select-none touch-none ${
-                      silentVoice.state === 'recording'
-                        ? 'text-tea-gold'
-                        : showNote
-                          ? 'text-tea-gold'
-                          : (tastingData.notes?.length ?? 0) > 0
-                            ? 'text-tea-gold/60'
-                            : 'text-tea-text/45 hover:text-tea-text/75'
-                    }`}
-                    style={{
-                      fontFamily: 'var(--font-display)',
-                      fontSize: '12px',
-                      fontWeight: showNote || silentVoice.state === 'recording' ? 800 : 300,
-                      letterSpacing: '0.18em',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    {/* Active/recording = bronze + bold word, no underline.
-                        same bronze-word language as the sense tabs. */}
-                    <span className="relative z-[1] inline-flex items-center gap-1.5">
-                      {silentVoice.state === 'transcribing' ? (
-                        <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-                          <Loader2 size={12} />
-                        </motion.span>
-                      ) : (
-                        <Mic size={12} />
-                      )}
-                      <span className="inline-flex items-baseline gap-1">
-                        {silentVoice.state === 'recording' ? 'Rec' : 'Note'}
-                        {(tastingData.notes?.length ?? 0) > 0 && !showNote && silentVoice.state !== 'recording' && (
-                          <span className="tabular-nums" style={{ fontSize: '9px', letterSpacing: 0, color: 'rgb(var(--tea-gold-rgb) / 0.5)', transform: 'translateY(-2px)' }}>
-                            {tastingData.notes!.length}
-                          </span>
-                        )}
-                      </span>
-                    </span>
-                  </button>
+                  {noteControl}
                 </div>
               </LayoutGroup>
 
