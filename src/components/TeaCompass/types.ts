@@ -99,6 +99,10 @@ export interface TeaCompassEntry {
 
   // Identity
   name: string;
+  /** Chosen name, available before inventory; separate from the supplier's source name. */
+  givenName?: string | null;
+  /** Client-only acknowledged value: unrelated edits must not overwrite a newer shared name. */
+  syncedGivenName?: string | null;
   chineseName?: string;
   type?: TeaType;
   form?: TeaForm;
@@ -386,7 +390,7 @@ export function compassEntryToProductDraft(entry: TeaCompassEntry): Record<strin
   return {
     type: entry.category === 'teaware' ? 'Teaware' : (entry.type || 'Misc'),
     form: entry.form || null,
-    given_name: entry.name || '',
+    given_name: entry.givenName ?? entry.name ?? '',
     chinese_name: entry.chineseName || '',
     product_name: entry.name || '',
     year: entry.year || null,
@@ -488,7 +492,8 @@ export function isUntriaged(entry: Pick<TeaCompassEntry, 'verdict' | 'sampleVerd
 /** Display title for an entry anywhere a name is expected. Nameless entries
  *  (photo + vendor captures) read as "Vendor · Jun 12" instead of a blank or
  *  generic "Untitled", matching the auto-name they get when promoted. */
-export function entryDisplayTitle(entry: Pick<TeaCompassEntry, 'name' | 'vendorName' | 'createdAt'>): string {
+export function entryDisplayTitle(entry: Pick<TeaCompassEntry, 'name' | 'givenName' | 'vendorName' | 'createdAt'>): string {
+  if (entry.givenName?.trim()) return entry.givenName;
   if ((entry.name || '').trim()) return entry.name;
   const date = new Date(entry.createdAt);
   const dateLabel = isNaN(date.getTime())

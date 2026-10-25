@@ -172,5 +172,5 @@ export function useLibraryPurchases() {
     scope.ready ? receipts.data ?? [] : [],
     scope.ready ? proposals.data ?? [] : [],
   ), [scope.ready, scope.key[0], ledgerAccount, transactions, shop.orders, receipts.data, proposals.data]);
-  return { stateFor, receiptProposals: scope.ready ? proposals.data ?? [] : [], isLoading: scope.ready && (receipts.isLoading || proposals.isLoading || shop.loading), isError: receipts.isError || proposals.isError || shop.failed };
+  return { stateFor, receipts: scope.ready ? receipts.data ?? [] : [], receiptProposals: scope.ready ? proposals.data ?? [] : [], isLoading: scope.ready && (receipts.isLoading || proposals.isLoading || shop.loading), isError: receipts.isError || proposals.isError || shop.failed };
 }

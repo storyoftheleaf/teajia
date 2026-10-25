@@ -37,7 +37,7 @@ export interface CurateMutationTicket {
 const TABLES: Record<CurateRecordedEntity, string> = { tea: 'tea_compass_entries', vendor: 'customers', note: 'notes', transcript: 'notes', todo: 'curate_todos', vendor_profile:'curate_vendor_profiles',quote:'curate_quotes',quote_line:'curate_quote_lines',attachment:'curate_attachments',asset:'curate_media_assets',sample:'tea_samples',sample_set:'tea_sample_sets',arrival:'curate_receipt_proposals' };
 const keyColumn=(entity:CurateRecordedEntity)=>entity==='vendor_profile'?'vendor_id':'id';
 const FIELDS: Record<CurateEntity, string[]> = {
- tea: ['name','chinese_name','type','form','year','season','storage','origin_country','origin_region','classification','cultivar','description','notes','shop_name','transport_mode','price_amount','price_currency','price_per_unit_grams',...COMPASS_STRUCTURED_COLUMNS],
+ tea: ['name','given_name','chinese_name','type','form','year','season','storage','origin_country','origin_region','classification','cultivar','description','notes','shop_name','transport_mode','price_amount','price_currency','price_per_unit_grams',...COMPASS_STRUCTURED_COLUMNS],
  vendor: ['name','chinese_name','company','email','phone','whatsapp','address','city','country','notes','preferred_currency'],
  note: ['text'],transcript:['text'],attachment:[],todo: ['text'], sample: ['grams'],
 };

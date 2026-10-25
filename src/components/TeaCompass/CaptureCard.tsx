@@ -784,18 +784,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               compassEntryId: entry.id,
               teaKey: entry.teaKey,
             }}
-            initialData={entry.tasting ?? undefined}
+            initialData={entry.tasting ?? entry.tastingHistory?.at(-1)?.data}
             onClose={() => setTastingOverlayOpen(false)}
             onAfterSave={(data: TastingData) => {
               setLocalTasting(data);
-              const existingHistory = entry.tastingHistory || [];
-              const today = new Date().toDateString();
-              const lastEntry = existingHistory[existingHistory.length - 1];
-              const lastWasToday = lastEntry && new Date(lastEntry.date).toDateString() === today;
-              const history = lastWasToday
-                ? [...existingHistory.slice(0, -1), { data, date: new Date().toISOString() }]
-                : [...existingHistory, { data, date: new Date().toISOString() }];
-              updateEntry(entryId, { tasting: data, tastingHistory: history });
+              updateEntry(entryId, { tasting: data });
             }}
           />
         )}
@@ -2157,18 +2150,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               compassEntryId: entry.id,
               teaKey: entry.teaKey,
             }}
-            initialData={entry.tasting ?? undefined}
+            initialData={entry.tasting ?? entry.tastingHistory?.at(-1)?.data}
             onClose={closeTastingOverlay}
             onAfterSave={(data: TastingData) => {
               setLocalTasting(data);
-              const existingHistory = entry.tastingHistory || [];
-              const today = new Date().toDateString();
-              const lastEntry = existingHistory[existingHistory.length - 1];
-              const lastWasToday = lastEntry && new Date(lastEntry.date).toDateString() === today;
-              const history = lastWasToday
-                ? [...existingHistory.slice(0, -1), { data, date: new Date().toISOString() }]
-                : [...existingHistory, { data, date: new Date().toISOString() }];
-              update({ tasting: data, tastingHistory: history });
+              update({ tasting: data });
             }}
           />
         )}

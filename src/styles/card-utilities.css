@@ -5487,3 +5487,68 @@ body.cart-panel-open .commerce-dock {
   color: var(--tea-text-dim);
   overflow-wrap: anywhere;
 }
+
+/* Compact Library: the approved order ribbon, with real editable records. */
+.library-workspace { max-width: 1200px; margin-inline: auto; }
+.library-card-layout { container: library-cards / inline-size; }
+.library-card-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-items: start; }
+.library-card-grid > * { min-width: 0; }
+@container library-cards (min-width: 44rem) { .library-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.library-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 12px; }
+.library-segments { display: flex; align-items: center; gap: 2px; }
+.library-segments > button { border: 0; padding: 0 10px; border-radius: 5px; gap: 5px; background: transparent; }
+.library-segments > button.bg-tea-accent-sub { background: var(--tea-accent-sub); box-shadow: inset 0 -1px var(--tea-gold); }
+.library-tools { display: flex; align-items: center; gap: 12px; }
+.library-tools > button { border: 0; padding: 0; background: transparent; border-radius: 0; }
+.library-supplier-groups { display: grid; gap: 24px; }
+.library-supplier-group { min-width: 0; padding: 5px; border: 1px solid var(--tea-border); border-radius: 11px; background: linear-gradient(120deg,color-mix(in srgb,var(--tea-elevated) 58%,var(--tea-bg)),color-mix(in srgb,var(--tea-surface) 42%,var(--tea-bg))); }
+.library-supplier-group[data-tone='1'] { background: linear-gradient(120deg,color-mix(in srgb,var(--tea-gold) 12%,var(--tea-bg)),color-mix(in srgb,var(--tea-surface) 24%,var(--tea-bg))); }
+.library-supplier-header { display: flex; align-items: center; gap: 8px; padding: 0 6px 4px; }
+.library-supplier-heading { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; min-height: 44px; text-align: left; color: var(--tea-text); }
+.library-supplier-name { flex: 1; min-width: 0; overflow-wrap: anywhere; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 20px; line-height: 1.15; }
+.library-supplier-count { flex-shrink: 0; color: var(--tea-text-dim); font-size: 11px; font-variant-numeric: tabular-nums; }
+.library-supplier-heading > svg { flex-shrink: 0; color: var(--tea-text-dim); }
+.library-supplier-content { min-width: 0; }
+.library-tea-card { min-width: 0; overflow: hidden; padding: 0 10px; border: 1px solid var(--tea-border); border-radius: 8px; background: linear-gradient(110deg,var(--tea-surface),var(--tea-bg)); box-shadow: inset 0 1px color-mix(in srgb,var(--tea-text) 7%,transparent); }
+.library-tea-card-selected { outline: 1px solid var(--tea-gold); }
+.library-tea-identity { display: block; text-align: left; }
+.library-card-title-row { display: flex; align-items: center; gap: 8px; }
+.library-card-name { flex: 1; min-width: 0; }
+.library-card-year { flex: 0 0 52px; text-align: right; font-variant-numeric: tabular-nums; }
+.library-card-subrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.library-card-subrow > .library-inline-value { flex: 1; min-width: 0; }
+.library-origin { max-width: 48%; text-align: right; justify-content: flex-end; line-height: 1.2; }
+.library-inline-value { position: relative; display: block; min-width: 0; }
+.library-inline-value > button { width: 100%; justify-content: flex-start; text-align: left; padding: 0; font: inherit; color: inherit; overflow-wrap: anywhere; }
+.library-inline-value > button:hover { color: var(--tea-gold-lt); }
+.library-card-year > button { justify-content: flex-end; text-align: right; }
+.library-inline-value input { width: 100%; min-width: 0; min-height: 44px; padding: 2px 4px; border: 1px solid var(--tea-border); border-radius: 4px; color: var(--tea-text); background: var(--tea-bg); font-size: 16px; }
+.library-inline-value input:focus { outline: 1px solid var(--tea-gold); }
+.library-inline-hint { display: block; font-weight: 400; }
+.library-ribbon-prices { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); margin-inline: -10px; border-block: 1px solid var(--tea-border); background: linear-gradient(100deg,var(--tea-elevated),var(--tea-accent-sub)); }
+.library-ribbon-metric { position: relative; display: flex; flex-direction: column; justify-content: center; min-width: 0; min-height: 50px; padding: 2px 10px; text-align: left; }
+.library-ribbon-metric + .library-ribbon-metric { border-left: 1px solid var(--tea-border); }
+.library-ribbon-metric > span:first-child { position: absolute; top: 4px; left: 10px; pointer-events: none; }
+.library-ribbon-metric > .library-inline-value { width: 100%; }
+.library-ribbon-metric .library-inline-value > button { align-items: flex-end; padding-bottom: 1px; font-variant-numeric: tabular-nums; }
+.library-ribbon-metric > strong { padding-top: 16px; }
+.library-ribbon-metric strong { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.library-ribbon-metric .library-inline-value:has(input) { padding-top: 14px; }
+.library-order-ribbon { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); width: calc(100% + 20px); margin-inline: -10px; text-align: left; background: var(--tea-accent-sub); }
+.library-order-ribbon > span { min-width: 0; min-height: 44px; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 4px 10px; }
+.library-order-ribbon > span + span { border-left: 1px solid var(--tea-border); }
+.library-order-ribbon > span:last-child { background: linear-gradient(110deg,transparent,var(--tea-elevated)); }
+.library-order-ribbon strong { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.library-tea-actions { display: flex; align-items: center; gap: 8px; min-height: 48px; }
+.library-ribbon-sample { flex: 1; min-width: 0; justify-content: flex-start; text-align: left; }
+.library-tea-reject { padding-inline: 6px; color: var(--tea-text-dim); }
+.library-tea-primary { position: relative; min-height: 36px; min-width: 72px; justify-content: center; gap: 6px; padding-inline: 12px; border: 1px solid var(--tea-border); border-radius: 5px; background: linear-gradient(120deg,var(--tea-elevated),var(--tea-surface)); color: var(--tea-text); font-weight: 600; }
+.library-tea-primary::after { content: ''; position: absolute; inset: -4px 0; }
+.library-tea-primary.is-tasted { background: linear-gradient(120deg,var(--tea-surface),var(--tea-elevated)); }
+.library-tea-primary:hover { border-color: var(--tea-gold); }
+.library-tea-card :is(button,input):focus-visible { outline: 1px solid var(--tea-gold); outline-offset: -1px; }
+@media (max-width: 639px) {
+  .library-segments { width: 100%; justify-content: space-between; }
+  .library-segments > button { padding-inline: 7px; }
+  .library-tools { width: 100%; justify-content: space-between; padding-inline: 7px; }
+}

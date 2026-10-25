@@ -18,6 +18,7 @@ import { DecisionControl } from './DecisionControl';
 import { CreateInventoryRecordAction } from './CreateInventoryRecordAction';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import { useLibraryPurchases, purchaseStateLabel } from '../../lib/libraryPurchaseState';
+import { LibraryReceiptActions } from './LibraryReceiptActions';
 import { TastingSession } from '../tasting/TastingSession';
 import type { TastingData } from '../../types';
 import type { CompassVerdict } from './types';
@@ -31,8 +32,8 @@ interface CompassEntryDetailPanelProps {
   onAcquire?: (id: string) => void;
 }
 const actionClass = 'tap-target min-h-11 px-2 text-ui-12 text-tea-text-sec hover:text-tea-text';
-function RecordGroup({ title, summary, children }: { title: string; summary?: string; children: React.ReactNode }) {
-  return <details className="border-t border-tea-border" data-record-section={title}>
+function RecordGroup({ title, summary, children, initiallyOpen }: { title: string; summary?: string; children: React.ReactNode; initiallyOpen?: boolean }) {
+  return <details open={initiallyOpen} className="border-t border-tea-border" data-record-section={title}>
     <summary className="cursor-pointer py-3 min-h-11">
       <span className="text-ui-14 font-medium text-tea-text">{title}</span>
       {summary && <span className="block mt-1 pl-4 text-ui-12 text-tea-text-sec line-clamp-2">{summary}</span>}
@@ -88,7 +89,6 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   };
   const openMaterial = () => { setMaterialOpen(true); requestAnimationFrame(() => materialRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })); };
   const identity = [entry.year, entry.type, entry.originRegion || entry.originCountry, entry.vendorName].filter(Boolean).join(' · ');
-  const tastingCount = entry.tastingHistory?.length || (entry.tasting && Object.values(entry.tasting).some(value => Array.isArray(value) ? value.length > 0 : value != null) ? 1 : 0);
   return <div className="flex h-full min-w-0 flex-col" data-testid="library-entry-detail">
     <header className="shrink-0 flex min-h-14 items-center gap-2 border-b border-tea-border px-3 py-1" data-testid="tea-record-header">
       <button type="button" onClick={onClose} aria-label="Close detail panel" className="tap-target min-h-11 min-w-11 flex items-center justify-center text-tea-text-sec"><X size={18} /></button>
@@ -105,7 +105,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
           {newNote.trim() && <button type="button" onClick={addNote} className={actionClass}>Add note</button>}
           <RecordVoice key={entry.id} entryId={entry.id} compact />
           <button type="button" onClick={openMaterial} className={actionClass}>Photo / scan</button>
-          <button type="button" onClick={() => setTastingOpen(true)} className={`${actionClass} inline-flex items-center gap-1.5`} aria-label="Taste"><Droplets size={14} />Taste{tastingCount ? ` · ${tastingCount}` : ''}</button>
+          <button type="button" onClick={() => setTastingOpen(true)} className={`${actionClass} inline-flex items-center gap-1.5`} aria-label="Taste"><Droplets size={14} />Taste</button>
         </div>
         {noteMessage && <p role="status" className="text-ui-12 text-tea-text-sec">{noteMessage}</p>}
       </section>
@@ -136,11 +136,12 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
           <TeaRecordFields key={`${entry.id}:provenance`} entry={entry} section="provenance" onChange={patch => updateEntry(entry.id, patch)} />
         </div>
       </details>
-      <RecordGroup title="Purchasing" summary={purchaseLabel || 'Choose this tea, then manage quantities through Ledger.'}>
+      <RecordGroup title="Purchasing" initiallyOpen={!!purchase.receiptId} summary={purchaseLabel || 'Choose this tea, then manage quantities through Ledger.'}>
         <DecisionControl value={entry.decision} onChange={decision => updateEntry(entry.id, { decision })} />
         <section aria-label="Purchase facts" className="space-y-2 text-ui-12 text-tea-text-sec">
           {purchases.isError && <p>Purchase history could not refresh. Try again shortly.</p>}
           {purchase.quantities.map(q => <p key={q.unit}>{q.ordered > 0 ? `${q.ordered} ${q.unit} ordered` : ''}{q.received !== null ? ` · ${q.received} ${q.unit} received` : ''}{q.due !== null ? ` · ${q.due} ${q.unit} due` : ''}</p>)}
+          <LibraryReceiptActions key={`${entry.id}:${accountScopeRevision}`} productId={entry.draftProductId} receipts={purchases.receipts ?? []} />
           <button type="button" onClick={() => purchase.draftTransactionId ? openLedger() : onAcquire?.(entry.id)} disabled={!purchase.draftTransactionId && !onAcquire} className={actionClass}>{purchase.draftTransactionId ? 'Edit draft in Ledger' : purchase.quantities.some(q => q.ordered > 0) ? 'Reorder' : 'Order'}</button>
           {transactions.some(tx => tx.items.some(item => item.compassEntryId === entry.id)) && <button type="button" onClick={openLedger} className={actionClass}>Open in Ledger</button>}
         </section>
@@ -210,6 +211,6 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         <CreateInventoryRecordAction entryId={entry.id} compact productId={entry.draftProductId} onOpenInventory={onOpenInventory ?? (productId => navigate(`/admin/stock?panel=${encodeURIComponent(productId)}`))} />
       </section>
     </div>
-    {tastingOpen && <TastingSession item={{ id: entry.id, name: entry.name, type: entry.type, image: validPhotos[0], sourceType: 'compass', compassEntryId: entry.id }} onClose={() => setTastingOpen(false)} onAfterSave={(data: TastingData, verdict?: CompassVerdict) => updateEntry(entry.id, { tasting: data, tastingHistory: [...(useTeaCompassStore.getState().getEntry(entry.id)?.tastingHistory ?? []), { data, date: new Date().toISOString() }], ...(verdict ? { verdict } : {}) })} />}
+    {tastingOpen && <TastingSession initialData={entry.tasting ?? entry.tastingHistory?.at(-1)?.data} item={{ id: entry.id, name: entry.name, type: entry.type, image: validPhotos[0], sourceType: 'compass', compassEntryId: entry.id }} onClose={() => setTastingOpen(false)} onAfterSave={(data: TastingData, verdict?: CompassVerdict) => updateEntry(entry.id, { tasting: data, ...(verdict ? { verdict } : {}) })} />}
   </div>;
 };

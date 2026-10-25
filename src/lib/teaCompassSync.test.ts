@@ -158,12 +158,24 @@ describe('Compass sync acknowledgements', () => {
       unexpected_future_metadata: 'read only', import_item_id: 'import' });
     listMock.mockResolvedValue({ entries: [record] });
     await hydrateCompassEntries('acct-a');
-    useTeaCompassStore.getState().updateEntry('all-columns', { name: 'Edited all columns' });
+    useTeaCompassStore.getState().updateEntry('all-columns', { name: 'Edited all columns', givenName: 'Chosen title' });
     syncMock.mockResolvedValue({ syncedIds: ['all-columns'] });
     await syncCompassEntries('acct-a');
     const payload = syncMock.mock.calls[0][0][0];
     expect(Object.keys(payload).sort()).toEqual(['id', ...COMPASS_COLUMNS].sort());
     expect(decodeCompassWrite(payload, true)).toHaveProperty('values');
+  });
+
+  it('does not resend an unchanged name with unrelated edits, preserving newer inventory renames', async () => {
+    listMock.mockResolvedValue({ entries: [{ id: 'named', name: 'Source', given_name: 'Old name', photos: '[]', audio_clips: '[]' }] });
+    await hydrateCompassEntries('acct-a');
+    useTeaCompassStore.getState().updateEntry('named', { notes: 'New note' });
+    syncMock.mockResolvedValue({ syncedIds: ['named'] });
+    await syncCompassEntries('acct-a');
+    expect(syncMock.mock.calls[0][0][0]).not.toHaveProperty('given_name');
+    useTeaCompassStore.getState().updateEntry('named', { givenName: 'Chosen new name' });
+    await syncCompassEntries('acct-a');
+    expect(syncMock.mock.calls[1][0][0]).toHaveProperty('given_name', 'Chosen new name');
   });
 
   it('hydrates route quotes already decoded as arrays without discarding evidence', async () => {

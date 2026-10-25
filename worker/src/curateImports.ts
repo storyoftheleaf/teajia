@@ -1293,7 +1293,7 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
           if (conflict) throw new CurateImportFinalizeError('validation_failed', 'Selected holding has a different inventory purpose', [{ field: 'purpose', itemId: item.id, message: `Holding is ${conflict}` }]);
           return { id: item.productId, disposition: 'reused' };
         }
-        const entry = await env.DB.prepare('SELECT draft_product_id, type, chinese_name, origin_region, year FROM tea_compass_entries WHERE id = ? AND account_id = ? AND user_id = ?').bind(compassEntryId, ctx.accountId, ctx.userId).first<Record<string, unknown>>();
+        const entry = await env.DB.prepare('SELECT draft_product_id, given_name, type, chinese_name, origin_region, year FROM tea_compass_entries WHERE id = ? AND account_id = ? AND user_id = ?').bind(compassEntryId, ctx.accountId, ctx.userId).first<Record<string, unknown>>();
         if (typeof entry?.draft_product_id === 'string') {
           const owned = await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(entry.draft_product_id, ctx.accountId).first<Record<string, unknown>>();
           if (owned && holdingMatchesImportIdentity(owned, item, compassEntryId, ctx.accountId)) return { id: entry.draft_product_id, disposition: identityDisposition === 'created' ? 'created' : 'reused' };
@@ -1314,7 +1314,7 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
           ...canonicalProduct,
           type: canonicalProduct.type ?? (item.category === 'teaware' ? 'Teaware' : entry?.type ?? 'Misc'),
           product_name: canonicalProduct.product_name ?? canonical.englishName ?? item.name,
-          given_name: canonicalProduct.given_name ?? canonical.englishName ?? item.name,
+          given_name: entry?.given_name ?? canonicalProduct.given_name ?? canonical.englishName ?? item.name,
           status: 'Draft',
           stock_grams: item.unit === 'g' ? 0 : null,
           quantity_units: item.unit === 'unit' ? 0 : null,

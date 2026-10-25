@@ -63,6 +63,8 @@ const VERDICT_OPTIONS: {
 const VESSEL_OPTIONS = ['Gaiwan', 'Yixing', 'Glass', 'Teapot', 'Other'] as const;
 
 interface TastingSessionProps {
+  /** Isolated design preview: save through onAfterSave only; no journal or API writes. */
+  previewOnly?: boolean;
   item: TastingItem;
   onClose: () => void;
   /**
@@ -167,7 +169,7 @@ function tastingFingerprint(value: unknown): string {
 
 export const TastingSession: React.FC<TastingSessionProps> = ({
   item, onClose, onSave, onAfterSave, adminMode = false, initialData, showVerdict = false, onOrderTea, onCreatePO, onWriteDescription, writeDraftReview = false,
-  detailsPanel, startOnDetails = false, startOnNotes = false, className,
+  detailsPanel, startOnDetails = false, startOnNotes = false, className, previewOnly = false,
 }) => {
   const { addTasting, updateTasting, upsertTastingByProductId, activeAccountId, activeAccount, tastingJournal } = useAppStore();
   const { addNote } = useNotesStore();
@@ -180,7 +182,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   // new tasting (different vessel, aged tea, etc.) that nests under the
   // same entry as a new TastingRecord.
   const existingEntry = React.useMemo(() => {
-    if (adminMode || !item.id || initialData || item.freshReason) return null;
+    if (previewOnly || adminMode || !item.id || initialData || (item.sourceType !== 'compass' && item.freshReason)) return null;
     return tastingJournal.find(e => e.productId === item.id && !e.archived) ?? null;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- only on mount
 
@@ -234,8 +236,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   // reason and the next save appends a TastingRecord rather than editing the
   // note in place. The reason is required (~10+ chars) so this stays the
   // friction path, not the default.
-  const [freshReason, setFreshReason] = useState<string>(item.freshReason ?? '');
-  const [freshPromptOpen, setFreshPromptOpen] = useState<boolean>(!!item.freshReason);
+  const [freshReason, setFreshReason] = useState<string>(item.sourceType === 'compass' ? '' : item.freshReason ?? '');
+  const [freshPromptOpen, setFreshPromptOpen] = useState<boolean>(item.sourceType !== 'compass' && !!item.freshReason);
   const isFreshTasting = !!freshReason.trim();
 
   const [activeSectionId, setActiveSectionId] = useState<SectionId>('body');
@@ -299,7 +301,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   // Draft-aware onChange: writes live state to tea_reviews when adminMode (or writeDraftReview) + teaKey
   const handleTastingChange = useCallback((data: TastingData) => {
     setTastingData(data);
-    if ((!adminMode && !writeDraftReview) || !item.teaKey) return;
+    if (previewOnly || (!adminMode && !writeDraftReview) || !item.teaKey) return;
 
     if (!draftReviewIdRef.current && !isCreatingDraftRef.current) {
       isCreatingDraftRef.current = true;
@@ -327,7 +329,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
         }
       }, 2000);
     }
-  }, [adminMode, writeDraftReview, item.teaKey, item.sourceSampleId]);
+  }, [previewOnly, adminMode, writeDraftReview, item.teaKey, item.sourceSampleId]);
 
   const hasArrayNotes = Object.values(tastingData).some(arr => Array.isArray(arr) && arr.length > 0);
   const hasCaptureData =
@@ -378,6 +380,11 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
   const handleSave = useCallback(async (): Promise<boolean> => {
     if (!canSave) return false;
+    if (previewOnly) {
+      onAfterSave?.(tastingData, verdict ?? undefined, wouldBuy || undefined);
+      onClose();
+      return true;
+    }
     setSaveState('saving');
 
     try {
@@ -467,7 +474,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     }
     // Customer: stays open until user taps Done
     return true;
-  }, [item, tastingData, verdict, wouldBuy, addTasting, onSave, onAfterSave, adminMode, activeAccountId, activeAccount, canSave, onClose, onCreatePO, onWriteDescription, phase]);
+  }, [previewOnly, item, tastingData, verdict, wouldBuy, addTasting, onSave, onAfterSave, adminMode, activeAccountId, activeAccount, canSave, onClose, onCreatePO, onWriteDescription, phase]);
 
   // The prompt's Save is a way OUT, so a successful write closes rather than
   // landing on the confirmation screen the person was already trying to leave.
@@ -615,7 +622,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
             {/* Continuing banner. The default re-tasting flow edits the
                 existing note in place. The "Start a new tasting" affordance
                 opens an inline reason prompt for the friction path. */}
-            {isContinuing && !isFreshTasting && (
+            {isContinuing && !isFreshTasting && item.sourceType !== 'compass' && (
               <div className="px-4 py-2 bg-tea-surface/60 border-b border-tea-border shrink-0">
                 {!freshPromptOpen ? (
                   <div className="flex items-center justify-between gap-3">

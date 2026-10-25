@@ -318,6 +318,13 @@ function resolvedVendor(record: CanonicalImportRecord): { id: string | null; nam
 
 export function canonicalImportToCompassValues(record: CanonicalImportRecord): Partial<Record<CompassColumn, unknown>> {
   const vendor = resolvedVendor(record);
+  // This column is the weight the quoted amount buys, not the computed money/g.
+  // Keep per-pack quotes separate from whole-line totals when several packs were bought.
+  const quoteGrams = record.category !== 'tea' ? null
+    : record.priceBasis === 'line_total' ? record.totalQuantityGrams
+    : record.priceBasis === 'per_pack' && (record.weightUnit === 'g' || record.weightUnit === 'kg')
+      ? exactProduct(record.packWeight, 1, record.weightUnit === 'kg' ? 1000n : 1n)
+      : null;
   return present({
     name: record.englishName,
     chinese_name: record.chineseName ?? record.originalName,
@@ -336,7 +343,7 @@ export function canonicalImportToCompassValues(record: CanonicalImportRecord): P
     vendor_name: vendor.name,
     price_amount: record.priceAmountExact,
     price_currency: record.currency,
-    price_per_unit_grams: record.unitCostExact,
+    price_per_unit_grams: quoteGrams != null && quoteGrams > 0 ? quoteGrams : null,
     buy_quantity_grams: record.totalQuantityGrams,
     buy_quantity_units: record.totalUnits,
     buy_total: record.lineCostExact,

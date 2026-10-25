@@ -9,6 +9,7 @@ const BACKGROUND_REQUEST = { background: true } as const;
 
 const CAMEL_TO_SNAKE: Record<string, string> = {
   ...Object.fromEntries(Object.entries(COMPASS_STRUCTURED_CAMEL).map(([snake, camel]) => [camel, snake])),
+  givenName: 'given_name',
   chineseName: 'chinese_name',
   originRegion: 'origin_region',
   originCountry: 'origin_country',
@@ -47,7 +48,7 @@ const SNAKE_TO_CAMEL: Record<string, string> = Object.fromEntries(
 // The strict worker codec remains the authority; the sync test pins this list to it.
 const COMPASS_SYNC_COLUMNS = new Set<string>([
   'id', ...COMPASS_STRUCTURED_COLUMNS,
-  'name', 'chinese_name', 'type', 'form', 'year', 'season', 'storage',
+  'name', 'given_name', 'chinese_name', 'type', 'form', 'year', 'season', 'storage',
   'origin_country', 'origin_region', 'classification', 'cultivar', 'producer', 'description',
   'tea_key', 'price_amount', 'price_currency', 'price_per_unit_grams',
   'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
@@ -60,6 +61,7 @@ const COMPASS_SYNC_COLUMNS = new Set<string>([
 function toSnakeCase(entry: TeaCompassEntry): Record<string, any> {
   const result: Record<string, any> = {};
   for (const [key, value] of Object.entries(entry)) {
+    if (key === 'givenName' && Object.prototype.hasOwnProperty.call(entry, 'syncedGivenName') && (value ?? null) === entry.syncedGivenName) continue;
     const snakeKey = CAMEL_TO_SNAKE[key] || key;
     if (!COMPASS_SYNC_COLUMNS.has(snakeKey)) continue;
 
@@ -101,6 +103,7 @@ export function toCamelCase(row: Record<string, any>): TeaCompassEntry {
   }
   // Ensure required defaults
   result.synced = true;
+  result.syncedGivenName = result.givenName ?? null;
   result.priceCurrency = result.priceCurrency || 'NT';
   result.quantity = result.quantity ?? 1;
   result.notes = result.notes || '';
@@ -252,7 +255,7 @@ async function syncCompassEntriesOnce(accountId?: string): Promise<number> {
     // state. A protected id collision remains unsynced and retries visibly.
     useTeaCompassStore.setState((state) => ({
       entries: state.accountScopeId === requestedAccountId
-        ? state.entries.map(e => acknowledgedIds.has(e.id) && e.updatedAt === sentVersion.get(e.id) ? { ...e, synced: true } : e)
+        ? state.entries.map(e => acknowledgedIds.has(e.id) && e.updatedAt === sentVersion.get(e.id) ? { ...e, synced: true, syncedGivenName: e.givenName ?? null } : e)
         : state.entries,
       syncError: state.accountScopeId === requestedAccountId ? hasUnacknowledged : state.syncError,
     }));

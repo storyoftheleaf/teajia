@@ -1,17 +1,17 @@
 import React, { useMemo, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
-import { useNavigate } from 'react-router-dom';
-import { Search, X, Trash2, Heart, ThumbsUp, Minus, ThumbsDown, ListChecks, ChevronRight } from 'lucide-react';
+import { Search, X, Trash2, ListChecks, ChevronRight } from 'lucide-react';
 import { SessionReview } from './SessionReview';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import Fuse from 'fuse.js';
 import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompassStore';
-import { useSampleStore } from '../../samples/sampleStore';
 import { BrowseCard } from './BrowseCard';
-import { useRates } from '../../admin/hooks/useAdminData';
+import { LibrarySupplierActions } from './LibrarySupplierActions';
+import { librarySupplierGroups, libraryEntryChosen, libraryEntryRejected } from './librarySupplierGroups';
+import { useRates, useCustomers } from '../../admin/hooks/useAdminData';
 import { SHOP_CURRENCY_KEYS, rateToUsd } from '../../lib/currency';
 import { useLibraryPurchases } from '../../lib/libraryPurchaseState';
-import { LIBRARY_PRICE_KEY, readLibraryPricePreference, libraryEntryTransferred, type LibraryPricePreference, type LibraryPriceBasis } from './libraryPriceDisplay';
+import { LIBRARY_PRICE_KEY, readLibraryPricePreference, libraryEntryTransferred, type LibraryPricePreference } from './libraryPriceDisplay';
 import { CompassIcon } from './CompassIcon';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
 import { isUntriaged, entryDisplayTitle, entryIsSample, entryHasBeenTasted, entryNeedsTasting } from './types';
@@ -60,32 +60,6 @@ interface BrowseViewProps {
    */
   gridMode?: boolean;
 }
-
-function getDateGroup(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const entryDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const diffDays = (today.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24);
-  if (diffDays < 1) return 'Today';
-  if (diffDays < 2) return 'Yesterday';
-  if (diffDays < 7) return date.toLocaleDateString('en-US', { weekday: 'long' });
-  return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-}
-
-// ─── Section header ──────────────────────────────────────────────────────────
-
-const SectionHeader: React.FC<{ label: React.ReactNode; count: number; right?: React.ReactNode }> = ({ label, count, right }) => (
-  <div className="flex items-center justify-between mb-2.5">
-    <span className="text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec font-medium font-serif">
-      {label}
-    </span>
-    <span className="flex items-center gap-2">
-      {right}
-      <span className="text-ui-12 text-tea-text-dim num">{count}</span>
-    </span>
-  </div>
-);
 
 // ─── Photo tile, the bag-shot view of an entry ──────────────────────────────
 // Image-led card for the Photos layout: capture photo (the bag), title or
@@ -146,9 +120,11 @@ const PhotoTile: React.FC<{
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture, externalSearchQuery, onSelectEntry, selectedEntryId, gridMode, onAcquireEntry, onOpenDetail }) => {
-  const navigate = useNavigate();
   const { data: rates = [] } = useRates();
   const purchases = useLibraryPurchases();
+  const { data: suppliers = [] } = useCustomers();
+  const [showRejected, setShowRejected] = useState(false);
+  const [collapsedSuppliers, setCollapsedSuppliers] = useState<Set<string>>(() => new Set());
   const [pricePreference, setPricePreference] = useState(readLibraryPricePreference);
   const [priceSettingsOpen, setPriceSettingsOpen] = useState(false);
   const [showTransferred, setShowTransferred] = useState(false);
@@ -157,7 +133,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     try { localStorage.setItem(LIBRARY_PRICE_KEY, JSON.stringify(next)); } catch { /* Settings remain usable without browser storage. */ }
   };
   const prefersReducedMotion = useReducedMotion();
-  const { entries, browseFilter, setBrowseFilter, browseSort, setBrowseSort, browseLayout, setBrowseLayout, libraryFilters, setLibraryFilters, removeEntry, updateEntry, hydrationStatus } = useTeaCompassStore();
+  const { entries, browseFilter, setBrowseFilter, browseSort, setBrowseSort, browseLayout, setBrowseLayout, libraryFilters, setLibraryFilters, removeEntry, hydrationStatus } = useTeaCompassStore();
   const [cleanupDismissed, setCleanupDismissed] = useState(false);
   const [sortSheetOpen, setSortSheetOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -173,7 +149,6 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   const contextRequestRef = React.useRef(0);
   const contextAccountRef = React.useRef<string | null>(null);
   const activeAccountId = useAppStore((state) => state.activeAccountId);
-  const sampleSets = useSampleStore((s) => s.sampleSets);
 
   React.useEffect(() => {
     const request = ++contextRequestRef.current;
@@ -214,7 +189,17 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     [entries, inventoryProducts],
   );
 
-  const visibleScopeEntries = useMemo(() => entries.filter(entry => libraryEntryTransferred(entry, entryPossession) === showTransferred), [entries, entryPossession, showTransferred]);
+  const resolvedEntries = useMemo(() => {
+    const names = new Map(suppliers.map(supplier => [supplier.id, supplier.name]));
+    return entries.map(entry => {
+      const name = names.get(entry.linkedCustomerId || entry.vendorId || '');
+      return name ? { ...entry, vendorName: name } : entry;
+    });
+  }, [entries, suppliers]);
+  const scopedEntries = useMemo(() => resolvedEntries.filter(entry => !showTransferred || libraryEntryTransferred(entry, entryPossession)), [resolvedEntries, entryPossession, showTransferred]);
+  const visibleScopeEntries = useMemo(() => scopedEntries.filter(entry => !libraryEntryRejected(entry)), [scopedEntries]);
+  const rejectedEntries = useMemo(() => scopedEntries.filter(libraryEntryRejected), [scopedEntries]);
+  const isChosen = React.useCallback((entry: TeaCompassEntry) => libraryEntryChosen(entry, purchases.stateFor({ entryId: entry.id, productId: entry.draftProductId, chosen: entry.decision === 'selected' }).status), [purchases]);
 
   const journeyMap = useMemo(() => new Map(journeys.map((journey) => [journey.id, journey])), [journeys]);
   const visitMap = useMemo(() => new Map(visits.map((visit) => [visit.id, visit])), [visits]);
@@ -224,7 +209,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     return [journey?.name, journey?.season, journey?.year, visit?.place, visit?.vendor_name, visit?.notes].filter(Boolean).join(' ');
   }, [journeyMap, visitMap]);
 
-  // Reusable sort applied to flat lists (and to "All" when not sorting by date).
+  // Reusable sort applied within each supplier section.
   const sortEntries = React.useCallback((list: TeaCompassEntry[]): TeaCompassEntry[] => {
     const arr = [...list];
     const byDateDesc = (a: TeaCompassEntry, b: TeaCompassEntry) =>
@@ -235,16 +220,11 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
       case 'price':
         return arr.sort((a, b) => pricePerGram(a, rates) - pricePerGram(b, rates) || byDateDesc(a, b));
       case 'name':
-        return arr.sort((a, b) => (a.name || '￿').localeCompare(b.name || '￿'));
+        return arr.sort((a, b) => (a.givenName || a.name || '￿').localeCompare(b.givenName || b.name || '￿'));
       default:
         return arr.sort(byDateDesc);
     }
   }, [browseSort, rates]);
-
-  const sampleSetMap = useMemo(
-    () => new Map(sampleSets.map((s) => [s.id, s])),
-    [sampleSets]
-  );
 
   // Guard malformed values that predate the versioned persisted migration.
   React.useEffect(() => {
@@ -256,9 +236,10 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   // When an external query is provided (from the tab-level search bar), use it; otherwise use internal
   const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : internalSearchQuery;
 
-  const fuseInstance = useMemo(() => new Fuse(entries, {
+  const fuseInstance = useMemo(() => new Fuse(resolvedEntries, {
     keys: [
       { name: 'name', weight: 2 },
+      { name: 'givenName', weight: 2 },
       { name: 'chineseName', weight: 1.5 },
       { name: 'vendorName', weight: 1 },
       { name: 'journeyId', weight: 1 },
@@ -269,7 +250,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     ],
     threshold: 0.35,
     includeScore: true,
-  }), [entries]);
+  }), [resolvedEntries]);
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return null;
@@ -287,9 +268,9 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     return {
       all:   visibleScopeEntries.length,
       to_taste: toTasteCount,
-      selected: visibleScopeEntries.filter((e) => e.decision === 'selected').length,
+      selected: visibleScopeEntries.filter(isChosen).length,
     };
-  }, [visibleScopeEntries]);
+  }, [visibleScopeEntries, isChosen]);
 
   // Tasted teas still waiting for a verdict, the batch-review working set.
   const untriaged = useMemo(() => visibleScopeEntries.filter(isUntriaged), [visibleScopeEntries]);
@@ -309,7 +290,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   const filterOptions: { value: BrowseFilter; label: string; count: number }[] = [
     { value: 'all',   label: 'All',   count: counts.all },
     { value: 'to_taste', label: 'To taste', count: counts.to_taste },
-    { value: 'selected', label: 'Selected', count: counts.selected },
+    { value: 'selected', label: 'Chosen', count: counts.selected },
   ];
 
   // ─── Render helpers ───────────────────────────────────────────────────────
@@ -319,11 +300,8 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
     dimTasted?: boolean;
     tasteQueueActive?: boolean;
   }) => (
-    <div
-      className={
-        'space-y-0'
-      }
-    >
+    <div className="library-card-layout">
+      <div className="library-card-grid">
       <AnimatePresence initial={false}>
         {list.map((entry) => {
           const dim = (opts?.dimPassed && entry.status === 'pass') ||
@@ -353,208 +331,45 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           );
         })}
       </AnimatePresence>
+      </div>
     </div>
   );
 
-  // ─── "All" view: date-grouped ─────────────────────────────────────────────
-
-  const renderAll = (result: TeaCompassEntry[]) => {
-    if (result.length === 0) return <p className="py-8 text-center text-ui-12 text-tea-text-sec">{showTransferred ? 'No transferred records match this view.' : 'No active encounters match this view.'}</p>;
-    // Date grouping only makes sense for the recency sort. Any other sort
-    // (score / price / name) collapses to a single ranked list so the order
-    // the user asked for is actually visible.
-    if (browseSort !== 'recent') {
-      return renderEntries(sortEntries(result), { dimPassed: true });
-    }
-    const grouped = new Map<string, TeaCompassEntry[]>();
-    const sorted = [...result].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-    for (const entry of sorted) {
-      const key = getDateGroup(entry.createdAt);
-      if (!grouped.has(key)) grouped.set(key, []);
-      grouped.get(key)!.push(entry);
-    }
-    return (
-      <div className="space-y-5">
-        {Array.from(grouped.entries()).map(([date, group]) => (
-          <div key={date}>
-            <SectionHeader label={date} count={group.length} />
-            {renderEntries(group, { dimPassed: true })}
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  // ─── "Mine" view: status-grouped (Incoming → In Stock → Depleted) ─────────
-
-  const renderMine = (result: TeaCompassEntry[]) => {
-    const incoming = result.filter((e) => e.status === 'incoming');
-    const inStock  = result.filter((e) => e.status === 'in_stock');
-    const depleted = result.filter((e) => e.status === 'depleted');
-
+  // Supplier sections stay stable as the selected sort changes inside each group.
+  const renderSuppliers = (result: TeaCompassEntry[]) => {
     if (result.length === 0) {
-      return (
-        <div className="py-10 text-center space-y-1">
-          <p className="text-ui-16 text-tea-text font-serif">Nothing in stock yet</p>
-          <p className="text-ui-12 text-tea-text-dim">Buy a tea from Capture to add it here.</p>
-        </div>
-      );
+      const message = showRejected ? 'No rejected teas match this view.' : browseFilter === 'selected' ? 'Nothing chosen yet.'
+        : browseFilter === 'to_taste' ? 'No teas waiting to be tasted.'
+        : showTransferred ? 'No transferred records match this view.' : 'No active encounters match this view.';
+      return <p className="py-8 text-center text-ui-12 text-tea-text-sec">{message}</p>;
     }
-
+    const groups = librarySupplierGroups(sortEntries(result));
     return (
-      <div className="space-y-5">
-        {incoming.length > 0 && (
-          <div>
-            <SectionHeader label="Incoming" count={incoming.length} />
-            {renderEntries(incoming)}
-          </div>
-        )}
-        {inStock.length > 0 && (
-          <div>
-            <SectionHeader label="In Stock" count={inStock.length} />
-            {renderEntries(inStock)}
-          </div>
-        )}
-        {depleted.length > 0 && (
-          <div>
-            <SectionHeader label="Depleted" count={depleted.length} />
-            {renderEntries(depleted, { dimPassed: false })}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // ─── "Queue" view: sample sets + untasted owned ───────────────────────────
-
-  const renderQueue = (result: TeaCompassEntry[]) => {
-    const sampleEntries = result.filter(entryIsSample);
-    const tasteEntries  = result.filter((e) => !entryIsSample(e));
-
-    // Group samples by set
-    const bySet = new Map<string, TeaCompassEntry[]>();
-    for (const e of sampleEntries) {
-      const key = e.sampleSetId || '_unsorted';
-      if (!bySet.has(key)) bySet.set(key, []);
-      bySet.get(key)!.push(e);
-    }
-
-    // Sort untasted: queued first, then oldest
-    const sortedTaste = [...tasteEntries].sort((a, b) => {
-      if (a.tasteOrder && b.tasteOrder) return b.tasteOrder - a.tasteOrder;
-      if (a.tasteOrder) return -1;
-      if (b.tasteOrder) return 1;
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-    });
-
-    if (result.length === 0) {
-      return (
-        <div className="py-10 text-center space-y-1">
-          <p className="text-ui-16 text-tea-text font-serif">All caught up</p>
-          <p className="text-ui-12 text-tea-text-dim">Every tea in your collection has tasting notes.</p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-5">
-        {/* Sample sets */}
-        {Array.from(bySet.entries()).map(([setId, setEntries]) => {
-          const set = sampleSetMap.get(setId);
-          const tastedCount = setEntries.filter(entryHasBeenTasted).length;
-          const allTasted = tastedCount === setEntries.length;
-
-          // Decision summary counts, use sampleVerdict if set, else quality fallback
-          const verdictCounts = allTasted ? setEntries.reduce((acc, e) => {
-            const v = e.sampleVerdict ?? (
-              e.tasting?.quality != null
-                ? e.tasting.quality >= 8 ? 'love' : e.tasting.quality >= 6 ? 'like' : e.tasting.quality >= 4 ? 'neutral' : 'pass'
-                : null
-            );
-            if (v) acc[v] = (acc[v] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>) : null;
-
-          const loveList = allTasted ? setEntries.filter((e) => {
-            const v = e.sampleVerdict ?? (e.tasting?.quality != null ? (e.tasting.quality >= 8 ? 'love' : e.tasting.quality >= 6 ? 'like' : 'pass') : null);
-            return v === 'love' || v === 'like';
-          }) : [];
-
+      <div className="library-supplier-groups">
+        {groups.map((group, index) => {
+          const collapsed = !searchQuery.trim() && collapsedSuppliers.has(group.key);
+          const contentId = `supplier-${encodeURIComponent(group.key || 'unknown')}`;
           return (
-            <div key={setId}>
-              <SectionHeader
-                label={
-                  set ? (
-                    <button
-                      onClick={() => navigate(`/admin/compass?sampleOrder=manage&set=${encodeURIComponent(set.id)}`)}
-                      className="tap-target min-h-11 hover:text-tea-gold transition-colors"
-                      title="Open batch in Samples"
-                    >
-                      {set.name || 'Untitled Batch'}
-                    </button>
-                  ) : (setId === '_unsorted' ? 'Samples' : 'Sample Set')
-                }
-                count={setEntries.length}
-                right={
-                  <span className={`text-ui-12 num font-medium ${allTasted ? 'text-tea-gold/70' : 'text-tea-text-dim'}`}>
-                    {tastedCount}/{setEntries.length} tasted
-                  </span>
-                }
-              />
-              {renderEntries(setEntries, { dimTasted: true })}
-
-              {/* Decision summary, shown when all samples tasted */}
-              {allTasted && verdictCounts && (
-                <div className="mt-2 rounded-xl bg-tea-surface/60 border border-tea-border px-3 py-2.5 space-y-2">
-                  <div className="flex items-center gap-3">
-                    <span className="text-ui-12 text-tea-text-dim font-serif">Set verdict</span>
-                    <div className="flex items-center gap-2.5">
-                      {verdictCounts['love'] && (
-                        <span className="flex items-center gap-1 text-ui-12 text-tea-text-sec">
-                          <Heart size={10} className="text-tea-error/70" fill="currentColor" /> {verdictCounts['love']}
-                        </span>
-                      )}
-                      {verdictCounts['like'] && (
-                        <span className="flex items-center gap-1 text-ui-12 text-tea-text-sec">
-                          <ThumbsUp size={10} className="text-tea-gold/60" /> {verdictCounts['like']}
-                        </span>
-                      )}
-                      {verdictCounts['neutral'] && (
-                        <span className="flex items-center gap-1 text-ui-12 text-tea-text-dim">
-                          <Minus size={10} /> {verdictCounts['neutral']}
-                        </span>
-                      )}
-                      {verdictCounts['pass'] && (
-                        <span className="flex items-center gap-1 text-ui-12 text-tea-text-dim">
-                          <ThumbsDown size={10} /> {verdictCounts['pass']}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {loveList.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => loveList.forEach((e) => updateEntry(e.id, { status: 'want' }))}
-                      className="tap-target min-h-11 w-full rounded-md bg-tea-gold/10 text-tea-gold text-ui-12 font-medium hover:bg-tea-gold/15 transition-colors"
-                    >
-                      Order {loveList.length} tea{loveList.length !== 1 ? 's' : ''}? → Mark as Want
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
+            <section key={group.key} aria-label={group.label} className="library-supplier-group" data-tone={index % 2}>
+              <div className="library-supplier-header">
+              <button type="button" className="library-supplier-heading" aria-expanded={!collapsed} aria-controls={contentId}
+                onClick={() => setCollapsedSuppliers(current => {
+                  const next = new Set(current);
+                  if (next.has(group.key)) next.delete(group.key); else next.add(group.key);
+                  return next;
+                })}>
+                <span className="library-supplier-name">{group.label}</span>
+                <span className="library-supplier-count">{group.entries.length} {group.entries.length === 1 ? 'tea' : 'teas'}</span>
+                <ChevronRight size={16} className={collapsed ? '' : 'rotate-90'} aria-hidden />
+              </button>
+              {group.key && <LibrarySupplierActions supplierId={group.entries[0].linkedCustomerId || group.entries[0].vendorId} supplierName={group.label} />}
+              </div>
+              <div id={contentId} className="library-supplier-content" hidden={collapsed}>
+                {renderEntries(group.entries, { tasteQueueActive: !showRejected && browseFilter === 'to_taste' })}
+              </div>
+            </section>
           );
         })}
-
-        {/* Untasted in-stock / incoming */}
-        {sortedTaste.length > 0 && (
-          <div>
-            <SectionHeader label="To Taste" count={sortedTaste.length} />
-            {renderEntries(sortedTaste, { tasteQueueActive: true })}
-          </div>
-        )}
       </div>
     );
   };
@@ -583,27 +398,14 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
     );
   };
 
-  // ─── Flat views (Want, Pass) ──────────────────────────────────────────────
-
-  const renderFlat = (result: TeaCompassEntry[], emptyMessage: string) => {
-    if (result.length === 0) {
-      return (
-        <div className="py-10 text-center">
-          <p className="text-ui-16 text-tea-text-dim font-serif">{emptyMessage}</p>
-        </div>
-      );
-    }
-    return renderEntries(sortEntries(result));
-  };
-
   // ─── Apply search + filter ────────────────────────────────────────────────
 
   const baseEntries = useMemo(() => {
-    let result = entries.filter(entry => libraryEntryTransferred(entry, entryPossession) === showTransferred);
+    let result = showRejected ? rejectedEntries : visibleScopeEntries;
     if (searchResults !== null) result = result.filter((e) => searchResults.has(e.id));
     const f = libraryFilters;
     result = result.filter((e) => {
-      if (f.decision && (f.decision === 'none' ? e.decision != null : e.decision !== f.decision)) return false;
+      if (!showRejected && f.decision && (f.decision === 'none' ? e.decision != null : e.decision !== f.decision)) return false;
       if (f.verdict && (e.verdict ?? e.sampleVerdict) !== f.verdict) return false;
       if (f.possession) {
         if (possessionLoading || possessionError) return false;
@@ -643,18 +445,19 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
       return true;
     });
     return result;
-  }, [entries, searchResults, libraryFilters, entryPossession, possessionLoading, possessionError, showTransferred]);
+  }, [visibleScopeEntries, rejectedEntries, showRejected, searchResults, libraryFilters, entryPossession, possessionLoading, possessionError]);
 
   const filteredForView = useMemo(() => {
+    if (showRejected) return baseEntries;
     switch (browseFilter) {
       case 'to_taste':
         return baseEntries.filter(entryNeedsTasting);
       case 'selected':
-        return baseEntries.filter((e) => e.decision === 'selected');
+        return baseEntries.filter(isChosen);
       default:
         return baseEntries;
     }
-  }, [baseEntries, browseFilter]);
+  }, [baseEntries, browseFilter, showRejected, isChosen]);
 
   // ─── Empty state ──────────────────────────────────────────────────────────
 
@@ -699,7 +502,8 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-3 animate-[fadeIn_0.3s_ease-out]">
+    <div className="library-workspace space-y-2 animate-[fadeIn_0.3s_ease-out]">
+      {import.meta.env.DEV && import.meta.env.VITE_LIBRARY_LOCAL_PREVIEW === '1' && <p role="status" className="text-ui-12 text-tea-gold">Local test copy · Changes stay here</p>}
       {/* Search, hidden when parent provides externalSearchQuery */}
       {externalSearchQuery === undefined && (
         <div className="relative">
@@ -730,15 +534,16 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             2. view controls (how to view it: sort + photo grid)
           "New" was removed here, it duplicated the header "+ NEW" and the
           empty-pane "+ New Entry". Text-only labels per the chrome rule. */}
-      <div data-testid="library-controls" className="flex flex-wrap items-center gap-2">
+      <div data-testid="library-controls" className="library-controls">
+        <div className="library-segments">
         {/* Group 1: status filters */}
         {filterOptions.map((opt) => (
           <button
             key={opt.value}
             type="button"
-            onClick={() => setBrowseFilter(opt.value)}
+            onClick={() => { setShowRejected(false); setBrowseFilter(opt.value); }}
             className={`tap-target inline-flex min-h-11 items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
-              browseFilter === opt.value
+              !showRejected && browseFilter === opt.value
                 ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
                 : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
             }`}
@@ -748,9 +553,13 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           </button>
         ))}
 
-        {/* Hairline divider between "what to show" and "how to view it" */}
-        <div className="self-center h-5 w-px bg-tea-border mx-1" aria-hidden />
+        <button type="button" onClick={() => setShowRejected(!showRejected)} aria-pressed={showRejected}
+          className={`tap-target inline-flex min-h-11 items-center gap-2 rounded-md border px-3 py-2 text-ui-12 ${showRejected ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-tea-border bg-tea-bg text-tea-text-sec'}`}>
+          <span>Rejected</span><span className="tabular-nums">{rejectedEntries.length}</span>
+        </button>
 
+        </div>
+        <div className="library-tools">
         <button
           type="button"
           onClick={() => setFilterSheetOpen(true)}
@@ -771,49 +580,27 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
               ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
               : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
           }`}
-          title="Sort"
+          title="Sort within each supplier"
         >
           <span>{SORT_LABELS[browseSort]}</span>
         </button>
-        {/* Photos layout toggle, swap the list for a grid of bag shots.
-            A view control, so it lives with Sort, not in the filter row. */}
-        <button
-          type="button"
-          onClick={() => setBrowseLayout(browseLayout === 'photos' ? 'list' : 'photos')}
-          className={`tap-target inline-flex min-h-11 items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
-            browseLayout === 'photos'
-              ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
-              : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
-          }`}
-          title={browseLayout === 'photos' ? 'Back to list' : 'Photo grid'}
-          aria-pressed={browseLayout === 'photos'}
-        >
-          <span>{browseLayout === 'photos' ? 'List' : 'Photos'}</span>
+        {untriaged.length >= 2 && <button type="button" className="tap-target text-ui-12 text-tea-text-sec" onClick={() => setReviewOpen(true)} aria-label={`Review ${untriaged.length} tasted teas`}>Review {untriaged.length}</button>}
+        <button type="button" className="tap-target text-ui-12 text-tea-text-sec" onClick={() => setPriceSettingsOpen(true)} aria-label="Price display settings">
+          {pricePreference.currency === 'source' ? 'Source' : pricePreference.currency} / g
         </button>
+        </div>
       </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-2 text-ui-12 text-tea-text-sec">
-        <button type="button" className="tap-target min-h-11 hover:text-tea-text" aria-pressed={showTransferred} onClick={() => setShowTransferred(value => !value)}>
-          {showTransferred ? 'Back to active Library' : `Transferred · ${entries.filter(entry => libraryEntryTransferred(entry, entryPossession)).length}`}
-        </button>
-        <button type="button" className="tap-target min-h-11 hover:text-tea-text" onClick={() => setPriceSettingsOpen(true)} aria-label="Price display settings">
-          {pricePreference.currency === 'source' ? 'Source' : pricePreference.currency} / {pricePreference.basis === 'gram' ? 'g' : pricePreference.basis === '100g' ? '100g' : 'quote'}
-        </button>
-      </div>
+      {showRejected && <p className="text-ui-12 text-tea-text-sec">Rejected teas stay here with their notes. Search to find one, then restore it.</p>}
       {showTransferred && <p className="text-ui-12 text-tea-text-sec">Transferred to Inventory. Open a record to revisit its sourcing and tastings.</p>}
       <BottomSheet open={priceSettingsOpen} onOpenChange={setPriceSettingsOpen} title="Price display" description="Source quotes stay unchanged in each record.">
-        <div className="grid grid-cols-2 gap-3 px-1 pb-4">
+        <div className="grid gap-3 px-1 pb-4">
           <label className="flex min-w-0 flex-col gap-2 text-ui-12 text-tea-text-sec">Currency
             <select aria-label="Price display currency" value={pricePreference.currency} onChange={event => changePricePreference({ ...pricePreference, currency: event.target.value })} className="min-h-11 min-w-0 rounded-md border border-tea-border bg-tea-surface px-2 text-ui-16 text-tea-text">
               <option value="source">Source quote</option>
               {SHOP_CURRENCY_KEYS.filter(currency => currency !== 'UNK').map(currency => <option key={currency} value={currency}>{currency}{currency !== 'USD' && rateToUsd(rates, currency) == null ? ' (rate unavailable)' : ''}</option>)}
             </select>
           </label>
-          <label className="flex min-w-0 flex-col gap-2 text-ui-12 text-tea-text-sec">Quantity basis
-            <select aria-label="Price quantity basis" value={pricePreference.basis} onChange={event => changePricePreference({ ...pricePreference, basis: event.target.value as LibraryPriceBasis })} className="min-h-11 min-w-0 rounded-md border border-tea-border bg-tea-surface px-2 text-ui-16 text-tea-text">
-              <option value="gram">Per gram</option><option value="100g">Per 100g</option><option value="quote">Quoted quantity</option>
-            </select>
-          </label>
+
         </div>
       </BottomSheet>
 
@@ -890,34 +677,6 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         )}
       </AnimatePresence>
 
-      {/* Triage prompt, surfaces when tasted teas are waiting for a verdict.
-          Opens the batch-review screen so a sitting of tastings can be sorted
-          down to keepers in one pass. */}
-      <AnimatePresence>
-        {!searchQuery && untriaged.length >= 2 && (
-          <motion.button
-            type="button"
-            onClick={() => setReviewOpen(true)}
-            initial={prefersReducedMotion ? false : { opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
-            className="tap-target block min-h-11 w-full overflow-hidden text-left"
-          >
-            <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-tea-gold/8 border border-tea-gold/20">
-              <ListChecks size={15} className="text-tea-gold shrink-0" />
-              <span className="flex-1 min-w-0 text-ui-12 text-tea-text">
-                <span className="font-semibold">{untriaged.length} tasted teas</span> waiting to be sorted
-              </span>
-              <span className="flex items-center gap-0.5 text-ui-12 text-tea-gold font-medium shrink-0">
-                Review
-                <ChevronRight size={13} />
-              </span>
-            </div>
-          </motion.button>
-        )}
-      </AnimatePresence>
-
       {/* Search empty state */}
       {searchQuery && filteredForView.length === 0 && (
         <div className="py-10 text-center">
@@ -928,11 +687,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
       {/* View */}
       {!searchQuery || filteredForView.length > 0 ? (
         browseLayout === 'photos' ? renderPhotos(filteredForView) : (
-          <>
-            {browseFilter === 'all'   && renderAll(filteredForView)}
-            {browseFilter === 'to_taste' && renderQueue(filteredForView)}
-            {browseFilter === 'selected' && renderFlat(filteredForView, 'Nothing selected yet.')}
-          </>
+          renderSuppliers(filteredForView)
         )
       ) : null}
 
@@ -940,9 +695,13 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
       <BottomSheet
         open={sortSheetOpen}
         onOpenChange={setSortSheetOpen}
-        title="Sort by"
+        title="View & sort"
         description="Order the library"
       >
+        <div className="flex flex-wrap gap-3 px-1">
+          <button type="button" className="tap-target text-ui-12 text-tea-text-sec" aria-pressed={showTransferred} onClick={() => { setShowTransferred(value => !value); setSortSheetOpen(false); }}>{showTransferred ? 'Back to all Library' : `Transferred · ${entries.filter(entry => libraryEntryTransferred(entry, entryPossession)).length}`}</button>
+          <button type="button" className="tap-target text-ui-12 text-tea-text-sec" aria-pressed={browseLayout === 'photos'} onClick={() => { setBrowseLayout(browseLayout === 'photos' ? 'list' : 'photos'); setSortSheetOpen(false); }}>{browseLayout === 'photos' ? 'List' : 'Photos'}</button>
+        </div>
         <div className="flex flex-col gap-0.5 px-1">
           {(Object.keys(SORT_LABELS) as BrowseSort[]).map((value) => (
             <SheetOption

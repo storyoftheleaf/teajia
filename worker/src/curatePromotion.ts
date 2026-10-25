@@ -26,7 +26,7 @@ export function promotionCapture(entry:Row):{name:string;photos:string[]} {
 
   // Photo + vendor is a complete capture; the name can come later. Auto-name
   // from vendor + capture date so the record can enter the library unnamed.
-  let name = (entry.name as string | null)?.trim();
+  let name = (entry.name as string | null)?.trim() || (entry.given_name as string | null)?.trim();
   if (!name) {
     const vendor = (entry.vendor_name as string | null)?.trim();
     if (!vendor && photos.length === 0) {
@@ -88,7 +88,7 @@ export async function promoteCompassEntry(db:D1Database, accountId:string, entry
     account_id: accountId,
     type: productType,
     form: entry.form ?? null,
-    given_name: name,
+    given_name: entry.given_name ?? name,
     chinese_name: entry.chinese_name ?? null,
     product_name: name,
     year: entry.year != null ? String(entry.year) : null,
@@ -141,7 +141,7 @@ export async function promoteCompassEntry(db:D1Database, accountId:string, entry
     const selected = linked ?? identityProduct;
     const id = selected?.id ?? productId;
     const write=prepareCurateRecordedWrite(db, approval.auth, {commandType:'tea:promote',agent:approval.agent,idempotencyKey:approval.key,guards:approval.guards.map(guard=>({...guard,confirmationOnly:true})),
-      changes:[{entityType:'tea',entityId:entry.id,before:entry,after:{...entry,draft_product_id:id,updated_at:new Date().toISOString()}}]});
+      changes:[{entityType:'tea',entityId:entry.id,before:entry,after:{...entry,given_name:entry.given_name ?? selected?.given_name ?? cols.given_name,draft_product_id:id,updated_at:new Date().toISOString()}}]});
     const insert = selected ? [] : [db.prepare(`INSERT OR IGNORE INTO products (${colNames.join(', ')}) SELECT ${placeholders} WHERE EXISTS(SELECT 1 FROM curate_mutations WHERE id = ? AND account_id = ?)`)
       .bind(...colNames.map(c=>cols[c]),write.mutationId,accountId)];
     const productColumns=(await db.prepare('PRAGMA table_info(products)').all<{name:string}>()).results.map(column=>column.name);

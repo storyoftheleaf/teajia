@@ -113,10 +113,43 @@ describe('canonical Curate import record', () => {
       vendor_name: 'Huang Wei',
       price_amount: '380',
       price_currency: 'CNY',
-      price_per_unit_grams: '0.76',
+      price_per_unit_grams: 500,
       buy_quantity_grams: 500,
       buy_total: '380',
     });
+  });
+
+  it('keeps a per-pack quote weight separate from the total purchased weight', () => {
+    const values = canonicalImportToCompassValues({ ...reviewedRecord(),
+      priceAmountExact: '400', packCount: 2, totalQuantityGrams: 1000,
+      lineCostExact: '800', unitCostExact: '0.8',
+    });
+    expect(values).toMatchObject({ price_amount: '400', price_currency: 'CNY',
+      price_per_unit_grams: 500, buy_quantity_grams: 1000, buy_total: '800' });
+    expect(Number(values.price_amount) / Number(values.price_per_unit_grams)).toBe(0.8);
+  });
+
+  it('uses the entire weight when the quoted amount covers the whole line', () => {
+    const values = canonicalImportToCompassValues({ ...reviewedRecord(),
+      priceBasis: 'line_total', priceAmountExact: '800', packCount: 2,
+      totalQuantityGrams: 1000, lineCostExact: '800', unitCostExact: '0.8',
+    });
+    expect(values).toMatchObject({ price_amount: '800', price_per_unit_grams: 1000 });
+    expect(Number(values.price_amount) / Number(values.price_per_unit_grams)).toBe(0.8);
+  });
+
+  it('converts an explicitly quoted kilogram pack to grams', () => {
+    expect(canonicalImportToCompassValues({ ...reviewedRecord(), packWeight: 0.5, weightUnit: 'kg' }))
+      .toMatchObject({ price_amount: '380', price_per_unit_grams: 500 });
+  });
+
+  it('never substitutes money per gram for an unknown or inapplicable quote weight', () => {
+    for (const record of [
+      { ...reviewedRecord(), priceBasis: 'unknown' as const },
+      { ...reviewedRecord(), packWeight: null },
+      { ...reviewedRecord(), weightUnit: null },
+      { ...reviewedRecord(), category: 'teaware' as const, weightUnit: 'count' as const },
+    ]) expect(canonicalImportToCompassValues(record)).not.toHaveProperty('price_per_unit_grams');
   });
 
   it('maps every same-purpose identity and intent field to Inventory columns', () => {
@@ -229,6 +262,7 @@ describe('canonical Curate import record', () => {
       origin_country: 'Taiwan',
       priceAmountExact: '12.50',
       price_amount: 99,
+      priceBasis: 'line_total',
       unitCostExact: '0.125',
       price_per_unit_grams: 88,
       totalQuantityGrams: 100,
@@ -243,7 +277,7 @@ describe('canonical Curate import record', () => {
       chinese_name: '正名',
       origin_country: 'China',
       price_amount: '12.5',
-      price_per_unit_grams: '0.125',
+      price_per_unit_grams: 100,
       buy_quantity_grams: 100,
       buy_total: '12.5',
       vendor_id: 'canonical-vendor',
