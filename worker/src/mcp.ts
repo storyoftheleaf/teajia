@@ -1032,6 +1032,44 @@ function curateHoldingSummary(holding: Awaited<ReturnType<typeof readCurateHoldi
   };
 }
 
+/**
+ * The teas a search will PRINT, and only those, before their holdings are read.
+ *
+ * `search_tea` is the busiest door onto `readCurateHoldings`, and it used to
+ * read every holding in the shop and then throw away all but the few it scored
+ * above the threshold. The scoring only looks at columns on the compass entry
+ * itself, so the entries are scored from a plain read first and the holdings
+ * reading is asked for the surviving ids. The order is unchanged: the entries
+ * arrive in the same vendor, name, id order the holdings reading returns, and
+ * sorting by score is stable, so ties still break the same way.
+ */
+async function searchCurateHoldings(env: Env, accountId: string, query: string, limit: number) {
+  const { results } = await env.DB.prepare(
+    `SELECT id, name, chinese_name, vendor_name, vendor_item_number, origin_region, year
+       FROM tea_compass_entries
+      WHERE account_id = ? AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL
+      ORDER BY vendor_name, name, id`
+  ).bind(accountId).all<Record<string, any>>();
+
+  const scored = results
+    .map(entry => ({
+      id: String(entry.id),
+      score: scoreMatch(query, [entry.name, entry.chinese_name, entry.vendor_name,
+        entry.vendor_item_number, entry.origin_region, String(entry.year ?? '')]),
+    }))
+    .filter(item => item.score > 0.3)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+  if (!scored.length) return [];
+
+  const byId = new Map((await readCurateHoldings(env.DB, accountId, { teaIds: scored.map(item => item.id) }))
+    .map(holding => [String(holding.entry.id), holding] as const));
+  return scored.flatMap(item => {
+    const holding = byId.get(item.id);
+    return holding ? [{ holding, score: item.score }] : [];
+  });
+}
+
 async function toolSearchTea(env: Env, auth: McpAuth, args: any) {
   const { accountId } = auth;
   const query = String(args?.query || '').trim();
@@ -1058,12 +1096,7 @@ async function toolSearchTea(env: Env, auth: McpAuth, args: any) {
     .slice(0, limit);
 
   const curateHoldings = await curateManagerAccess(env, auth)
-    ? (await readCurateHoldings(env.DB, accountId)).map(holding => ({
-        holding,
-        score: scoreMatch(query, [holding.entry.name, holding.entry.chinese_name,
-          holding.entry.vendor_name, holding.entry.vendor_item_number, holding.entry.origin_region,
-          String(holding.entry.year ?? '')]),
-      })).filter(item => item.score > 0.3).sort((a, b) => b.score - a.score).slice(0, limit)
+    ? await searchCurateHoldings(env, accountId, query, limit)
     : [];
 
   return {
