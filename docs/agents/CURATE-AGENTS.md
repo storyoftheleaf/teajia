@@ -154,6 +154,8 @@ and so on. The Hermes skill for this is in the i64os repo at
 | `curate_order` | An order to a vendor: the message to copy, the landed cost, an arrival to approve | preview, confirm |
 | `intake_add_items` | Build an import draft by hand when analysis could not read it: teas plus the vendor group they belong to | preview, confirm |
 | `curate_reject_arrival` | A pending arrival that should not be there: a duplicate, or an order that is not coming. Never touches stock | preview, confirm |
+| `curate_set_product_vendor` | The supplier line shown on shelf products (up to 50 at once), from a vendor card's English name or text you give. Chinese is refused | preview, confirm |
+| `curate_update_sample_set` | A sample set's own name and the `source_name` shown on it. Never moves the vendor it is filed under | preview, confirm |
 
 Always pass `agent` with your name ("GrokBot", "Hermes", "ChatGPT", "Claude"). It
 is shown beside what you wrote.
