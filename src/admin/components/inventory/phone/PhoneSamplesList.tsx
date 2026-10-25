@@ -10,6 +10,7 @@ import { BuyingEntry } from '../../../../components/shared/BuyingEntry';
 import { useTeaCompassStore } from '../../../../lib/teaCompassStore';
 import { useRates } from '../../../hooks/useAdminData';
 import { rateToUsd } from '../../../../lib/currency';
+import { useSheetAboveKeyboard } from '../../../../lib/useKeyboardInset';
 
 // The same five tasting categories the laptop samples screen offers.
 const TASTE_CATEGORIES = TASTING_TAXONOMY.categories.filter(c => ['body', 'finish', 'feeling', 'flavor', 'liquor-color'].includes(c.id));
@@ -309,6 +310,7 @@ const SampleSheet: React.FC<{
   onChanged: () => void | Promise<void>;
 }> = ({ holding, onClose, onEditTea, onOrder, onChanged }) => {
   const e = holding.entry;
+  const aboveKeyboard = useSheetAboveKeyboard();
   const canOrder = !!e.vendor_id && e.price_amount != null && !!e.price_currency;
   const portions = holding.samples.length ? holding.samples : [];
   const [renameError, setRenameError] = useState('');
@@ -326,7 +328,7 @@ const SampleSheet: React.FC<{
     }
   };
   return (
-    <section aria-label={`${teaName(holding)}, at a glance`} className="sheet-behind-nav fixed left-0 right-0 z-drawer rounded-t-xl bg-tea-surface px-4 pt-1.5">
+    <section aria-label={`${teaName(holding)}, at a glance`} className="sheet-behind-nav fixed left-0 right-0 z-drawer rounded-t-xl bg-tea-surface px-4 pt-1.5" style={aboveKeyboard}>
       <div aria-hidden="true" className="mx-auto mb-1.5 h-[3px] w-8 rounded-full bg-tea-elevated" />
       <div className="flex items-center gap-2">
         <button type="button" onClick={onClose} aria-label="Close" className="-ml-2 -my-2 flex h-11 w-8 shrink-0 items-center justify-center text-tea-text-sec hover:text-tea-text"><XIcon size={16} aria-hidden="true" /></button>
