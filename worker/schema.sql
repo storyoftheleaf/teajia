@@ -2954,9 +2954,12 @@ ALTER TABLE customers ADD COLUMN archived_at TEXT;
 ALTER TABLE customers ADD COLUMN deleted_at TEXT;
 ALTER TABLE customers ADD COLUMN merged_into_id TEXT;
 ALTER TABLE curate_todos ADD COLUMN deleted_at TEXT;
--- The merge-family walk in worker/src/curateHoldings.ts, which every search pays
--- for. See 0050_compass_merge_family_index.sql.
-CREATE INDEX IF NOT EXISTS idx_compass_account_merged_into ON tea_compass_entries(account_id, merged_into_id);
+-- The merge-family walk and the shelf page in worker/src/curateHoldings.ts, which
+-- every search pays for. `merged_into_id` leads deliberately; the shelf order is
+-- indexed as the expressions the query sorts by. See
+-- 0050_compass_merge_family_index.sql for the measured reason.
+CREATE INDEX IF NOT EXISTS idx_compass_merged_into ON tea_compass_entries(merged_into_id, account_id);
+CREATE INDEX IF NOT EXISTS idx_compass_account_shelf_order ON tea_compass_entries(account_id, COALESCE(vendor_name,''), COALESCE(name,''), id);
 CREATE TABLE curate_mutations (
  id TEXT PRIMARY KEY, account_id TEXT NOT NULL, command_type TEXT NOT NULL,
  actor_user_id TEXT NOT NULL, actor_token_id TEXT, agent_name TEXT,

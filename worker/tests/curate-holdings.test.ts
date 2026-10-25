@@ -1,4 +1,6 @@
 import {describe,it,expect} from 'vitest';
+import {readFileSync} from 'node:fs';
+import {join} from 'node:path';
 import {SqliteD1} from './helpers/sqliteD1';
 import {readCurateHoldings} from '../src/curateHoldings';
 function setup() {
@@ -81,6 +83,21 @@ describe('one samples-only holdings reading for browser and agents',()=>{
   expect((await readCurateHoldings(db as any,'a',{teaIds:['bulk0','bulk1','received']})).map(h=>h.entry.id).sort()).toEqual(['bulk0','bulk1','received']);
   expect(statements).toBe(2);
   expect(await readCurateHoldings(db as any,'a',{teaIds:[]})).toEqual([]);
+ });
+ it('keeps the recursive step driven by the merge queue, which one character decides',()=>{
+  // A SCAN, not coverage, and labelled as one: the difference this makes is
+  // invisible without a real D1 reporting rows_read, so no behavioural test
+  // here can go red for it. It is guarded anyway because `+e.account_id` reads
+  // exactly like a typo and is the whole fix. Unpinned, SQLite makes
+  // tea_compass_entries the outer loop and re-reads every row in the account
+  // per step: 142,009 rows for a page of 201 teas on a 300-tea shelf against
+  // Miniflare's D1, against 4,755 pinned. Measured in
+  // todo/plans/curate-holdings-d1-reads-measurement.md; re-measure with
+  // worker/scripts/measure-holdings-rows.mjs before changing this line.
+  const source=readFileSync(join(process.cwd(),'worker/src/curateHoldings.ts'),'utf8');
+  expect(source).toContain('FROM family f JOIN tea_compass_entries e ON e.merged_into_id=f.id');
+  expect(source).toContain('WHERE +e.account_id=?');
+  expect(source).not.toContain('FROM tea_compass_entries e JOIN family f');
  });
  it('reads positive stock in the merge family once and never calls samples full stock',async()=>{
   const db=setup();db.exec(`INSERT INTO tea_compass_entries VALUES('duplicate','a','Duplicate','Vendor','received','duplicate-product','2026-01-01',NULL,'received');

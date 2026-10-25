@@ -34,6 +34,18 @@
  *   skips NULLs and returns NULL for no rows; the old `COALESCE(...,0)` sat
  *   outside the scalar subquery, so the `LEFT JOIN` plus `COALESCE` here lands
  *   on the same answer whether the family has no products or no grams.
+ * - **The `+` on `+e.account_id` in the recursive step is the whole fix, and
+ *   it looks like a typo.** A unary plus tells SQLite not to use an index for
+ *   that term. Without it the planner sees `account_id` as an indexable
+ *   prefix, makes `tea_compass_entries` the OUTER loop of the recursive step
+ *   and scans the queue inside it, so every step re-reads every row in the
+ *   account: 142,009 rows read for a page of 201 teas on a 300-tea shelf,
+ *   measured. With it the only indexable term left is the join key, the queue
+ *   drives, and each step is a `merged_into_id` lookup: 5,525 rows for the
+ *   same page, 26 times less. This is also why migration `0050` indexes
+ *   `(merged_into_id, account_id)` and not the other way round — the leading
+ *   column has to be the one being looked up. The numbers and the query plans
+ *   are in `todo/plans/curate-holdings-d1-reads-measurement.md`.
  * - **The page's sort keys are `COALESCE`d and the order is unchanged.** The
  *   keyset compares `(vendor_name, name, id)` as a row value, and a NULL in a
  *   row-value comparison answers NULL rather than true or false, which would
@@ -165,8 +177,8 @@ export async function readCurateHoldingsPage(
      LIMIT ?
   ), family(root,id,depth) AS (
     SELECT id,id,0 FROM roots
-    UNION ALL SELECT f.root,e.id,f.depth+1 FROM tea_compass_entries e JOIN family f ON e.merged_into_id=f.id
-      WHERE e.account_id=? AND f.depth<20
+    UNION ALL SELECT f.root,e.id,f.depth+1 FROM family f JOIN tea_compass_entries e ON e.merged_into_id=f.id
+      WHERE +e.account_id=? AND f.depth<20
   )`;
   const rootBinds: unknown[] = [
     accountId,
