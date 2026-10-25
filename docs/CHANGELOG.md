@@ -1,3 +1,7 @@
+## Library inset ribbon refinement 2026-10-25
+
+- Stronger supplier-container contrast separates the nested tea cards. The three pricing fields sit inside a slimmer bordered ribbon with centered labels and semibold values; missing weight uses the shorter Add action. Existing inline editing and stored prices are unchanged.
+
 ## Compact Library with Fine outline finish 2026-10-25
 
 - Supplier groups contain compact tea-tinted cards with full-width titles, inline names and years, three equal pricing fields, and aligned Choose, Reject, Taste and Details buttons. Choose visibly changes to Chosen; unknown per-gram prices display 0.0 without changing stored costs. Order quantities and delivery controls live in the tea record’s Orders tab. Tea, Notes, Orders and Files replace the record’s accordions while keeping existing edits, tasting and history connected.

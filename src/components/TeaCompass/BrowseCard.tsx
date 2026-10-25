@@ -144,7 +144,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, readOnly = false,
           </div>
           <div className="library-ribbon-metric">
             <span className="text-ui-10 text-tea-text-dim">{entry.category === 'teaware' ? 'Quoted quantity' : 'Weight (g)'}</span>
-            {entry.category === 'teaware' ? <strong className="text-ui-16 text-tea-text">1 piece</strong> : <LibraryInlineValue className={`text-ui-16 font-semibold text-tea-text ${!knownWeight ? 'library-unset' : ''}`} value={entry.pricePerUnitGrams == null ? '' : String(entry.pricePerUnitGrams)} display={knownWeight ? entry.pricePerUnitGrams!.toLocaleString() : 'Add weight'} label={`Edit quoted grams for ${title}`} numeric readOnly={readOnly} onSave={saveField('pricePerUnitGrams')} />}
+            {entry.category === 'teaware' ? <strong className="text-ui-16 text-tea-text">1 piece</strong> : <LibraryInlineValue className={`text-ui-16 font-semibold text-tea-text ${!knownWeight ? 'library-unset' : ''}`} value={entry.pricePerUnitGrams == null ? '' : String(entry.pricePerUnitGrams)} display={knownWeight ? entry.pricePerUnitGrams!.toLocaleString() : 'Add'} label={`Edit quoted grams for ${title}`} numeric readOnly={readOnly} onSave={saveField('pricePerUnitGrams')} />}
           </div>
         </div>
         {purchaseStatusUnknown && <p role="status" className="text-ui-11 text-tea-text-dim py-1">{purchaseStatusUnknown}</p>}

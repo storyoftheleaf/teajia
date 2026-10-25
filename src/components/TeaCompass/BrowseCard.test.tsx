@@ -60,7 +60,7 @@ describe('Library phone row', () => {
   });
   it('does not label a whole quote as a price per gram when weight is absent', () => {
     const markup = render({ entry: { ...entry, pricePerUnitGrams: null } });
-    expect(markup).toContain('Add weight');
+    expect(markup).toContain('>Add<');
     expect(markup).toContain('>0.0<');
     expect(markup).toContain('Per gram unknown');
     expect(markup).toContain('>10.00<');
