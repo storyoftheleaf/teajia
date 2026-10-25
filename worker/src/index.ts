@@ -152,6 +152,7 @@ import { validateCompassQuoteLink } from './curateQuotes';
 import { requireCurateManager, prepareCurateRecordedWrite } from './curateMutations';
 import { RouteRefusal, listRoutes, removeRoute, saveRoute } from './shippingRoutes';
 import { handleLibraryPreview, LIBRARY_PREVIEW_ORIGIN } from './libraryPreview';
+import { withD1ReadBudget, resolveD1Budget, isD1ReadBudgetExceeded, d1BudgetUsage } from './d1Budget';
 interface Env extends WorkerReleaseEnv {
   DB: D1Database;
   WHATSAPP_ORDER_ACCOUNT_ID?: string;
@@ -29991,7 +29992,13 @@ async function reportStaleExchangeRates(env: Env, lastRefresh?: RateRefreshResul
   await handoffToRepair(env, write);
 }
 
-export default {
+/**
+ * Every route, unchanged. The exported handler below is the only thing that
+ * wraps it, and it exists so that the per-request D1 budget is applied at the
+ * ONE place the database enters a request rather than at each of the hundreds
+ * of places a route reaches for it.
+ */
+const requestHandler = {
   async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin') || '';
@@ -30290,4 +30297,44 @@ export default {
     }
 
   },
+};
+
+/**
+ * The handler the Workers runtime sees: the routes above, under a budget.
+ *
+ * The budgeted database is built once, here, and the request is given an env
+ * carrying it, so a route cannot opt out by accident — there is no unwrapped
+ * `env.DB` downstream to reach for. The MCP handler asks for a budget too and
+ * gets this same one back, because `withD1ReadBudget` is idempotent; the point
+ * is one ledger per request however the request arrived.
+ *
+ * A request that spends its budget is REFUSED, in words, with the figures. It
+ * is the one error here that is safe to describe: no SQL, no stack, nothing a
+ * caller did not already know, and a caller who is told `rows_read` can
+ * actually narrow the question. 503 with `Retry-After` rather than 500,
+ * because the request is not wrong, it is too large for one go.
+ */
+export default {
+  async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
+    const budgeted: Env = { ...env, DB: withD1ReadBudget(env.DB, resolveD1Budget(env as unknown as Record<string, unknown>)) };
+    try {
+      return await requestHandler.fetch(request, budgeted, ctx);
+    } catch (err) {
+      if (!isD1ReadBudgetExceeded(err)) throw err;
+      const usage = d1BudgetUsage(budgeted.DB);
+      console.error('D1 read budget exceeded:', request.method, new URL(request.url).pathname, usage);
+      const refusal = json({
+        error: 'database_read_budget_exceeded',
+        message: 'This request asked the database for more than any one request may read. Ask for a page, a single tea, or a shorter range, and try again.',
+        rows_read: usage?.rowsRead ?? null,
+        statements: usage?.statements ?? null,
+        rows_budget: usage?.caps.rows ?? null,
+        statement_budget: usage?.caps.statements ?? null,
+      }, 503);
+      refusal.headers.set('Retry-After', '1');
+      return cors(refusal, resolveAllowedOrigin(request.headers.get('Origin') || ''));
+    }
+  },
+
+  scheduled: requestHandler.scheduled,
 };
