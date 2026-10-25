@@ -4,6 +4,7 @@ import { ApiError, api } from '../../../../lib/api';
 import type { Product } from '../../../types';
 import { fmtNum } from '../../../../utils/formatNumber';
 import { getThemeTextColor } from '../../../themeUtils';
+import { useSheetAboveKeyboard } from '../../../../lib/useKeyboardInset';
 import { DEFAULT_TASTE_GRAMS, isLow, isTeaware, isUnchecked, onHand, sellingPricePerGram } from './groupStock';
 
 
@@ -102,6 +103,7 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
   const [error, setError] = useState('');
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
   const amountRef = useRef<HTMLInputElement>(null);
+  const aboveKeyboard = useSheetAboveKeyboard();
 
   // A different tea in the same sheet starts clean.
   useEffect(() => { setWay(null); setAmount(''); setError(''); }, [product.id]);
@@ -169,6 +171,7 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
     <section
       aria-label={`${product.productName}, at a glance`}
       className="sheet-behind-nav fixed left-0 right-0 z-drawer rounded-t-xl bg-tea-surface px-4 pt-1.5"
+      style={aboveKeyboard}
     >
       <div aria-hidden="true" className="mx-auto mb-1.5 h-[3px] w-8 rounded-full bg-tea-elevated" />
       <div className="flex items-center gap-2">
