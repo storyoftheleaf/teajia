@@ -8,12 +8,13 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   const product = {
     id: 'tea-reference', product_name: 'Cloud Oolong', given_name: '', type: 'Oolong', form: 'Loose Leaf',
     origin_country: 'Taiwan', origin_region: 'Alishan', year: 2004, stock_grams: 100,
-    low_stock_threshold: 20, cost_amount: 20, cost_currency: 'USD', quantity_purchased: 100,
+    low_stock_threshold: 200, cost_amount: 20, cost_currency: 'USD', quantity_purchased: 100,
     retail_price_per_gram_usd: .4, cost_per_gram_usd: .1, shipping_rate_per_kg: null,
     description: 'Floral tea', tasting_notes: [], image_url: '', additional_images: '[]', status: 'Active',
     is_public: 0, shown_in_shop: 0, can_reorder: 0, inventory_purpose: 'working', vendor: 'Cloud Mountain',
   };
   let failName = true;
+  let failPricing = true;
   const writes: Record<string, unknown>[] = [];
   const uploads: string[] = [];
   await page.addInitScript(jwt => {
@@ -37,10 +38,11 @@ test('Stock reference cards resize and persist naming and photos, and continue a
     if (path === '/api/auth/me') return route.fulfill({ json: { id: 'admin', email: 'operator@test', role: 'owner' } });
     if (path === '/api/auth/refresh') return route.fulfill({ json: { token } });
     if (path === '/api/products') return route.fulfill({ json: [product] });
-    if (path === '/api/products/tea-reference/catalog' && request.method() === 'PUT') {
+    if (['/api/products/tea-reference/catalog', '/api/products/tea-reference/commercial'].includes(path) && request.method() === 'PUT') {
       const body = request.postDataJSON();
       writes.push(body);
       if ('given_name' in body && failName) { failName = false; return route.fulfill({ status: 500, json: { error: 'Name could not be saved' } }); }
+      if ('quantity_purchased' in body && failPricing) { failPricing = false; return route.fulfill({ status: 500, json: { error: 'Pricing could not be saved' } }); }
       Object.assign(product, body);
       return route.fulfill({ json: { success: true } });
     }
@@ -66,6 +68,37 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await expect(row.locator('.stock-record')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
   await page.screenshot({ path: test.info().outputPath('stock-phone.png') });
+
+  const form = row.getByRole('button', { name: 'Edit form and pricing for Cloud Oolong', exact: true });
+  await expect(form).toHaveText('Loose leaf');
+  await expect(row.getByText('Low stock', { exact: true })).toHaveCount(0);
+  await expect(row.locator('select')).toHaveCount(0);
+  await form.click();
+  const formSheet = page.getByRole('dialog', { name: 'Form & pricing', exact: true });
+  await formSheet.getByRole('button', { name: 'Cake', exact: true }).click();
+  await formSheet.getByLabel('One piece / pack weighs · g', { exact: true }).fill('357');
+  await formSheet.getByLabel('Purchase cost · USD', { exact: true }).fill('5');
+  await formSheet.getByLabel('Grams this cost bought', { exact: true }).fill('50');
+  await expect(formSheet.getByText('On hand: 100 g.', { exact: true })).toBeVisible();
+  await expect(formSheet.locator('dl')).toContainText('$0.34');
+  await expect(formSheet.locator('dl')).toContainText('$120.11');
+  await expect(formSheet.locator('dl')).toContainText('$62.05');
+  await page.screenshot({ path: test.info().outputPath('stock-form-pricing.png') });
+  await formSheet.getByRole('button', { name: 'Save form & pricing', exact: true }).click();
+  await expect(formSheet.getByRole('alert')).toContainText('Pricing could not be saved');
+  await expect(formSheet.getByLabel('Grams this cost bought', { exact: true })).toHaveValue('50');
+  await formSheet.getByRole('button', { name: 'Save form & pricing', exact: true }).click();
+  await expect(formSheet).toHaveCount(0);
+  await expect(form).toHaveText('Cake · 357 g');
+  expect(writes).toContainEqual({ form: 'Cake', piece_weight_g: 357 });
+  expect(writes).toContainEqual({ cost_amount: 5, quantity_purchased: 50 });
+  expect(writes.some(write => 'stock_grams' in write || 'quantity_units' in write)).toBe(false);
+  await page.reload();
+  await expect(form).toHaveText('Cake · 357 g');
+  await form.click();
+  await expect(formSheet.getByLabel('Grams this cost bought', { exact: true })).toHaveValue('50');
+  await expect(formSheet.getByText('On hand: 100 g.', { exact: true })).toBeVisible();
+  await formSheet.getByRole('button', { name: 'Close', exact: true }).click();
 
   await row.getByRole('button', { name: 'Edit given name for Cloud Oolong', exact: true }).click();
   const nameDialog = page.getByRole('dialog', { name: 'Given name', exact: true });

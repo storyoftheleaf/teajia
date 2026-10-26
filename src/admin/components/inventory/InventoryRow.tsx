@@ -1,3 +1,4 @@
+import type { FormPricingChanges } from './stock/FormPricingSheet';
 import { StockMobileRecord, useStockPhone } from './stock/StockMobileRecord';
 import React, { useLayoutEffect, useRef } from 'react';
 import { Check, Plus } from 'lucide-react';
@@ -14,6 +15,7 @@ import { useTeaCompassStore } from '../../../lib/teaCompassStore';
 import { HouseNameField, ItemCode, QuoteField, moneyMark } from './phone/SampleDecide';
 
 export interface InventoryRowProps {
+  onSavePricing: (id: string, changes: FormPricingChanges) => Promise<void>;
   onSaveField?: (id: string, field: keyof Product, value: unknown) => Promise<void>;
   onQuickTaste?: () => void;
   onQuickJournal?: () => void;
@@ -489,6 +491,7 @@ function InventoryRowBase(props: InventoryRowProps) {
       {stockPhone ? <td className="stock-mobile-cell" colSpan={(splitView ? splitViewCols : visibleCols).length}>
         <StockMobileRecord product={product} name={displayName} index={globalIdx} editing={isEditMode}
           onEdit={() => onOpenPanel(product)}
+          onSavePricing={changes => props.onSavePricing(product.id, changes)}
           onSaveChange={async (field, value) => { await (props.onSaveField ? props.onSaveField(product.id, field, value) : onProductUpdate(product.id, field, value)); }}
           onTaste={() => props.onQuickTaste?.()} onJournal={() => props.onQuickJournal?.()}
           onHistory={() => onStockHistory(product.id, product.productName)}

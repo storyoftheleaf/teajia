@@ -5862,7 +5862,8 @@ body.cart-panel-open .commerce-dock {
 .stock-view .stock-title{padding-right:39px}
 .stock-view .stock-subtitle{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px}
 .stock-view .stock-given-name{grid-column:1;grid-row:1;min-width:0;justify-self:start;overflow-wrap:anywhere}
-.stock-view .stock-confidence{grid-column:2;grid-row:1}
+.stock-view .stock-form-edit{grid-column:2;grid-row:1;min-width:0;max-width:130px;text-align:right;justify-self:end;color:var(--tea-text-sec)}
+.stock-form-sheet .admin-input{font-size:16px}
 .stock-view .stock-subtitle>[data-field=type]{grid-column:3;grid-row:1;justify-self:end;text-align:right}
 .stock-view .stock-workbar{grid-template-columns:88px minmax(0,1fr);gap:8px;margin:0 8px 6px}
 .stock-view .stock-figures{grid-column:2;grid-row:1}

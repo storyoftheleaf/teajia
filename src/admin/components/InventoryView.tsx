@@ -1,3 +1,5 @@
+import { formPricingPreview } from './inventory/stock/formPricingModel';
+import type { FormPricingChanges } from './inventory/stock/FormPricingSheet';
 import { CurateSamplesView } from './CurateSamplesView';
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
@@ -1172,6 +1174,27 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     setRowDropdownId(null);
     navigate(`/admin/compass?tab=sourcing`);
   }, [startNewCapture, updateCompassEntry, navigate]);
+
+  // Piece/pack size and the purchase-cost basis are saved without stock writes.
+  const handleFormPricingUpdate = async (id: string, changes: FormPricingChanges) => {
+    const payload = Object.assign({}, ...Object.entries(changes).map(([field, value]) => buildProductUpdatePayload(field as keyof Product, value)));
+    setSavingCount(count => count + 1);
+    try {
+      await api.products.updateByDomain(id, payload);
+      setLocalProducts(previous => previous.map(product => {
+        if (product.id !== id) return product;
+        const { pieceWeightG, ...otherChanges } = changes;
+        const updated = { ...product, ...otherChanges, ...('pieceWeightG' in changes ? { pieceWeightG: pieceWeightG ?? undefined } : {}) };
+        const pricing = formPricingPreview(updated, ratesRef.current, shopFreightRef.current);
+        return pricing.calculatedPerGram === null ? updated : { ...updated, pricePerGramUSD: pricing.calculatedPerGram };
+      }));
+      setLastSavedAt(Date.now());
+      refreshChangedProducts([id]);
+    } catch (error) {
+      refreshChangedProducts([id]);
+      throw error;
+    } finally { setSavingCount(count => Math.max(0, count - 1)); }
+  };
 
   const handleProductUpdate = useCallback(async (id: string, field: keyof Product, value: any, options?: { throwOnError?: boolean }) => {
     // A Curate-only sample row is edited in Curate, never written as a product.
@@ -2989,7 +3012,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             const globalIdx = productIndexMap.get(product.id) ?? 0;
                             return (
                               <React.Fragment key={product.id}>
-                                <InventoryRow onQuickTaste={() => setPersonalTastingProduct(product)} onQuickJournal={() => navigate(`/account/journal?tea=${encodeURIComponent(product.id)}`)}
+                                <InventoryRow onSavePricing={handleFormPricingUpdate} onQuickTaste={() => setPersonalTastingProduct(product)} onQuickJournal={() => navigate(`/account/journal?tea=${encodeURIComponent(product.id)}`)}
                                   product={product}
                                   globalIdx={globalIdx}
                                   isSelected={selectedIds.has(product.id)}
@@ -3088,7 +3111,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         const globalIdx = idx;
                         return (
                           <React.Fragment key={product.id}>
-                            <InventoryRow onQuickTaste={() => setPersonalTastingProduct(product)} onQuickJournal={() => navigate(`/account/journal?tea=${encodeURIComponent(product.id)}`)}
+                            <InventoryRow onSavePricing={handleFormPricingUpdate} onQuickTaste={() => setPersonalTastingProduct(product)} onQuickJournal={() => navigate(`/account/journal?tea=${encodeURIComponent(product.id)}`)}
                               product={product}
                               globalIdx={globalIdx}
                               isSelected={selectedIds.has(product.id)}
