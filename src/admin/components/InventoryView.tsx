@@ -714,7 +714,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const samplesOnTable = filterType === 'Samples' && !(isMobile && !isEditMode && !glossaryMode);
   const curateSampleHoldings = useQuery<SampleHolding[]>({
     queryKey: ['curate-samples-only', sampleAccountId],
-    queryFn: () => api.curateWorkspace.holdings(true),
+    queryFn: () => api.curateWorkspace.allHoldings(true),
     enabled: samplesOnTable && !!sampleAccountId,
   });
   const [showRejectedSamples, setShowRejectedSamples] = useState(false);

@@ -1,6 +1,11 @@
 name: D1 account budget
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/check-d1-budget*'
+      - '.github/workflows/d1-budget.yml'
   workflow_dispatch:
   schedule:
     - cron: '23 * * * *'

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { SqliteD1 } from './helpers/sqliteD1';
 import { readCurateHoldings } from '../src/curateHoldings';
 
@@ -10,15 +11,16 @@ CREATE TABLE tea_sample_sets(id TEXT PRIMARY KEY,account_id TEXT,archived INTEGE
 CREATE TABLE tea_samples(id TEXT PRIMARY KEY,account_id TEXT,compass_entry_id TEXT,set_id TEXT,name TEXT,grams REAL,grams_known INTEGER,status TEXT,created_at TEXT,archived_at TEXT);
 CREATE INDEX entry_account ON tea_compass_entries(account_id);
 CREATE INDEX product_account ON products(account_id);
-CREATE INDEX sample_account ON tea_samples(account_id);
+CREATE INDEX sample_set ON tea_samples(set_id);
+CREATE INDEX product_source ON products(source_compass_entry_id);
 INSERT INTO tea_sample_sets VALUES('set','a',0),('other-set','b',0),('archived-set','a',1);
-`;
+` + readFileSync('worker/migrations/0050_compass_merge_family_index.sql', 'utf8');
 function entry(id: string, parent: string | null = null, draft: string | null = null, account = 'a') {
   return `INSERT INTO tea_compass_entries VALUES('${id}','${account}','${id}','Vendor','received',${draft ? `'${draft}'` : 'NULL'},NULL,NULL,${parent ? `'${parent}'` : 'NULL'});`;
 }
 
 describe('holdings database reads stay bounded as the collection grows', () => {
-  it('keeps exactly three reads and linear SQLite execution work at realistic inventory sizes', async () => {
+  it('keeps exactly two reads and linear SQLite execution work at realistic inventory sizes', async () => {
     const measures: number[] = [];
     for (const scale of [1, 4]) {
       let fixture = schema;
@@ -41,7 +43,7 @@ describe('holdings database reads stay bounded as the collection grows', () => {
         const holdings = await readCurateHoldings(measuredDb as any, 'a');
         expect(holdings).toHaveLength(50 * scale);
         expect(holdings.reduce((sum, holding) => sum + holding.stock_grams, 0)).toBe(3400 * scale);
-        expect(queries).toHaveLength(3);
+        expect(queries).toHaveLength(2);
         // Count real SQLite VM instructions, not elapsed time or returned rows.
         // A correlated scan can return few rows while exhausting D1's allowance.
         const operations = Number(execFileSync('python3', ['-c', `

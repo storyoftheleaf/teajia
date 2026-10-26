@@ -4,7 +4,8 @@
 application database. It totals **all databases in the Cloudflare account** for
 the current UTC day. This matters because the free allowance is shared.
 
-The hourly `D1 account budget` workflow runs on GitHub, independently of the API
+The hourly `D1 account budget` workflow also runs when its files land on main.
+It runs on GitHub, independently of the API
 and D1. It writes JSON plus a readable job summary and uploads both on success
 or failure. It performs no writes to Cloudflare, sends no external messages,
 and does not upgrade a plan or change a spending limit.

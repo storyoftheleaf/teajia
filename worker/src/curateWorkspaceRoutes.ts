@@ -3,9 +3,10 @@ import { requireCurateManager, confirmCurateMutation, previewCurateUndo, readCur
 import { readVendorStructuredProfile, prepareVendorStructuredProfileWrite } from './curateVendorProfile';
 import { getCurateQuote, listCurateQuotes, prepareCurateQuoteWrite } from './curateQuotes';
 import { listCurateAttachments, readCurateAttachment, uploadCurateAttachment, type AttachmentTarget } from './curateAttachments';
-import { readCurateHoldings } from './curateHoldings';
+import { readCurateHoldings, readCurateHoldingsPage, MAX_CURATE_HOLDINGS_PAGE } from './curateHoldings';
 import { curateManageModule } from './mcpTools/curateManage';
 import { curateSupplyTools } from './mcpTools/curateSupply';
+import { isD1ReadBudgetExceeded } from './d1Budget';
 
 async function boundedJson(request:Request) {
   const reader=request.body?.getReader(); if(!reader) return {};
@@ -58,7 +59,25 @@ export async function handleCurateWorkspace(request:Request,env:ToolEnv,auth:Too
       if(method==='POST')return Response.json(await uploadCurateAttachment(env,auth,await boundedJson(request)));
       return Response.json(await listCurateAttachments(env.DB,auth,url.searchParams.get('entity_type') as AttachmentTarget,url.searchParams.get('entity_id')||''));
     }
-    if(path==='/api/curate/holdings')return Response.json(await readCurateHoldings(env.DB,auth.accountId,{teaId:url.searchParams.get('tea_id')||undefined,samplesOnly:url.searchParams.get('samples_only')==='true'}));
+    if(path==='/api/curate/holdings'){
+      // Two shapes from one read, and the division is deliberate.
+      //
+      // `?paged=1` answers the envelope — holdings, has_more, next_cursor —
+      // and is what every new caller uses. A bare call still answers the bare
+      // ARRAY, because the Pages frontend and this worker deploy separately
+      // and a browser holding yesterday's bundle calls this route expecting an
+      // array; handing it an object would blank the Samples screen for as long
+      // as that bundle lives in a cache. Either way it is ONE page, capped at
+      // `MAX_CURATE_HOLDINGS_PAGE`, so the unbounded read is gone from both.
+      const options={
+        teaId:url.searchParams.get('tea_id')||undefined,
+        samplesOnly:url.searchParams.get('samples_only')==='true',
+        limit:url.searchParams.get('limit')?Number(url.searchParams.get('limit')):undefined,
+        cursor:url.searchParams.get('cursor'),
+      };
+      if(url.searchParams.get('paged')==='1')return Response.json(await readCurateHoldingsPage(env.DB,auth.accountId,{...options,limit:options.limit??MAX_CURATE_HOLDINGS_PAGE}));
+      return Response.json(await readCurateHoldings(env.DB,auth.accountId,options));
+    }
     if(path==='/api/curate/history')return Response.json(await readCurateHistory(env,auth,{entity_type:url.searchParams.get('entity_type')||undefined,entity_id:url.searchParams.get('entity_id')||undefined}));
     if(path==='/api/curate/correct'){
       const body=await boundedJson(request);
@@ -70,5 +89,11 @@ export async function handleCurateWorkspace(request:Request,env:ToolEnv,auth:Too
     }
     if(path==='/api/curate/order')return Response.json(await curateSupplyTools.handlers.curate_order(env,auth,{...await boundedJson(request),agent:auth.userEmail || 'Shop app'}));
     return Response.json({error:'Not found'},{status:404});
-  }catch(error){const message=(error as Error).message;return Response.json({error:message},{status:/permission|member|manage|owner|denied|authoriz/i.test(message)?403:400});}
+  }catch(error){
+    // A spent read budget is the request boundary's answer to give, not this
+    // one's: reported here it would come back as a 400 saying the caller's
+    // payload was wrong, which is the opposite of true.
+    if(isD1ReadBudgetExceeded(error))throw error;
+    const message=(error as Error).message;return Response.json({error:message},{status:/permission|member|manage|owner|denied|authoriz/i.test(message)?403:400});
+  }
 }

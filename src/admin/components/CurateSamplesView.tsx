@@ -25,7 +25,7 @@ const categories = TASTING_TAXONOMY.categories.filter(c => ['body','finish','fee
 export function CurateSamplesView({ search = '', groupBy = 'vendor', embedded = false, rowsOnly = false, sortKey = null, sortDir = 'asc', onCount, products = [], onOpenProduct, onProductUpdate, onOpenSupplier }: { search?: string; groupBy?: PhoneGroupBy; embedded?: boolean; rowsOnly?: boolean; sortKey?: string | null; sortDir?: 'asc' | 'desc'; onCount?: (n: number) => void; products?: Product[]; onOpenProduct?: (p: Product) => void; onProductUpdate?: (id: string, field: keyof Product, value: unknown) => void; onOpenSupplier?: (vendorId: string | null, name: string) => void }) {
  const accountId = useAppStore(s => s.activeAccountId);
  const client = useQueryClient();
- const holdings = useQuery<Holding[]>({ queryKey: ['curate-samples-only', accountId], queryFn: () => api.curateWorkspace.holdings(true), enabled: !!accountId });
+ const holdings = useQuery<Holding[]>({ queryKey: ['curate-samples-only', accountId], queryFn: () => api.curateWorkspace.allHoldings(true), enabled: !!accountId });
  const [editing, setEditing] = useState<string | null>(null);
  const [action, setAction] = useState<Action | null>(null);
  const [amount, setAmount] = useState('');

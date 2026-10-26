@@ -54,3 +54,12 @@ describe('service availability', () => {
     expect(guard.blockedResponse('/api/products')).toBeNull();
   });
 });
+
+
+it('does not retry an oversized request or pause unrelated requests', async () => {
+  const error = { status: 503, data: { error: 'database_read_budget_exceeded' } };
+  expect(shouldRetryQuery(0, error)).toBe(false);
+  const guard = createServiceAvailabilityGuard();
+  await guard.observeResponse('https://api.teajia.com/api/products', new Response(JSON.stringify(error.data), {status: 503}));
+  expect(guard.blockedResponse('https://api.teajia.com/api/rates')).toBeNull();
+});

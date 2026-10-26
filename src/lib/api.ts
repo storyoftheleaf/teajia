@@ -2915,6 +2915,34 @@ export const api = {
     attachments: (entityType: string, entityId: string): Promise<any[]> => authedFetch(`${API_URL}/api/curate/attachments?entity_type=${encodeURIComponent(entityType)}&entity_id=${encodeURIComponent(entityId)}`),
     upload: (input: Record<string, unknown>): Promise<any> => authedFetch(`${API_URL}/api/curate/attachments`, { method: 'POST', body: JSON.stringify(input) }),
     holdings: (samplesOnly = false, teaId?: string): Promise<any[]> => authedFetch(`${API_URL}/api/curate/holdings?samples_only=${samplesOnly}${teaId ? `&tea_id=${encodeURIComponent(teaId)}` : ''}`),
+    /**
+     * Every holding, read one bounded page at a time.
+     *
+     * The server answers at most 200 canonical teas per call now, because the
+     * unbounded version of this read exhausted D1's daily row allowance and
+     * took the whole API down. A screen that lists the shelf therefore pages,
+     * and `samples_only` makes that mandatory rather than merely tidy: the
+     * filter is applied to the page, so a page of 200 teas can return two
+     * samples, or none, with more still to come. Stopping on an empty page
+     * would hide the rest of the samples; the loop follows `has_more`.
+     *
+     * `pageCap` is the stop of last resort, not a page size: a shelf larger
+     * than 10,000 teas should be served by a real query, not by this loop.
+     */
+    allHoldings: async (samplesOnly = false, pageCap = 50): Promise<any[]> => {
+      const all: any[] = [];
+      let cursor: string | null = null;
+      for (let page = 0; page < pageCap; page++) {
+        const query = new URLSearchParams({ samples_only: String(samplesOnly), paged: '1' });
+        if (cursor) query.set('cursor', cursor);
+        const result: { holdings?: any[]; has_more?: boolean; next_cursor?: string | null } =
+          await authedFetch(`${API_URL}/api/curate/holdings?${query.toString()}`);
+        all.push(...(result?.holdings ?? []));
+        if (!result?.has_more || !result?.next_cursor) return all;
+        cursor = result.next_cursor;
+      }
+      return all;
+    },
     history: (entityType: string, entityId: string): Promise<any> => authedFetch(`${API_URL}/api/curate/history?entity_type=${encodeURIComponent(entityType)}&entity_id=${encodeURIComponent(entityId)}`),
     correct: (command: Record<string, unknown>, confirm?: string): Promise<any> => authedFetch(`${API_URL}/api/curate/correct`, { method: 'POST', body: JSON.stringify({ command, confirm }) }),
     undo: (confirm?: string, mutationId?: string): Promise<any> => authedFetch(`${API_URL}/api/curate/undo`, { method: 'POST', body: JSON.stringify({ confirm, mutation_id: mutationId }) }),

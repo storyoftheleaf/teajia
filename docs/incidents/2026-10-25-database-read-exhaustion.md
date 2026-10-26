@@ -1,6 +1,6 @@
 # Database read exhaustion — 2026-10-25
 
-Status: repair verified locally; production publication and monitor activation pending.
+Status: integrated release candidate prepared on October 26; publication and CI monitor verification pending. The live database is readable again and revision `14f4dda9a` already carries the newer holdings optimization and per-request read budgets.
 
 ## What failed
 
@@ -22,17 +22,18 @@ traffic volume alone was not the diagnosis.
 
 ## Repair and regression protection
 
-- Holdings reads each account's entries, stock, and sample portions once, then
-  associates merge families in memory. Three SQL calls replace one correlated
-  stock query plus one sample query per tea. Tenancy, merge depth, source/draft
-  deduplication, sample status, unknown weights and ordering are preserved.
-- A real SQLite execution-budget test uses 50 teas/340 products and a four-times
-  larger fixture. It checks query count, absolute VM work and linear growth.
-  On the smaller fixture the old implementation used 51 queries and 1,004,232
-  VM instructions; the replacement used 3 and 7,317 (~99.3% less work).
-  VM instructions are a local performance measurement, not billed D1 row reads.
+- The initial repair used three account-wide reads. Before publication, main
+  gained a stronger paginated implementation with indexed merge traversal, two
+  queries per page and per-request row/statement budgets. This release preserves
+  that newer implementation and its UI cursor support, rather than replacing it.
+- Integration tests exposed a missing bind for the second product-link arm.
+  The release supplies the missing account ID, preserving stock linked only via
+  a draft product, and tests both source/draft deduplication and tenancy.
+- The SQLite execution-budget regression now tests the paginated implementation
+  with migration 0050's index. Query count and execution growth are checked with
+  realistic data sizes. These local VM measurements are not billed D1 row reads.
 - The database boundary detects explicit quota errors even when old route handlers
-  catch them, returns a structured 503 with a clear capacity message, and pauses
+  catch them, returns a structured 503 with a plain temporary-unavailability message, and pauses
   further D1 calls on that isolate for 60 seconds. Preflight, media and the release
   endpoint remain independent. A successful mutation is not turned into a failure
   because a later best-effort query failed. No authorization bypass is introduced.
@@ -56,7 +57,7 @@ traffic volume alone was not the diagnosis.
 - Activate the workflow on the default branch, run it with CI's credentials, and
   confirm the failed-run notification reaches the owner. Local OAuth verification
   does not establish that CI's token has Account Analytics Read permission.
-- After quota recovery, verify authenticated Stock and Samples, record D1 query
+- After publication, verify authenticated Stock and Samples, record D1 query
   insights for the new query shape, and confirm the old expensive query disappears.
 - The consumed allowance cannot be undone by a code release. It resets at midnight
   UTC (05:45 Nepal time), or the owner can explicitly approve a paid-plan change.

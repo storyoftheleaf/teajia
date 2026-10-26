@@ -16,7 +16,7 @@ export function isDatabaseQuotaError(error: unknown): boolean {
 
 export function databaseUnavailableResponse(): Response {
   return Response.json({
-    error: 'The database has reached its usage limit. This is a service capacity issue, not a sign-in problem. Please try again later.',
+    error: 'This service is temporarily unavailable. Please try again shortly.',
     code: 'database_quota_exceeded',
   }, { status: 503, headers: { 'Retry-After': '60', 'Cache-Control': 'no-store' } });
 }
