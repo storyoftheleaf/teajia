@@ -5758,8 +5758,12 @@ body.cart-panel-open .commerce-dock {
 .tasting-heading-tools button { display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; }
 .tasting-heading-tools button:disabled { opacity:.45; }
 
-/* Rating is a row of numerals, with invisible touch space rather than tiles. */
-.tasting-impression-numbers button,
-.tasting-impression-numbers button[aria-pressed="true"] { border:0; background:transparent; box-shadow:none; border-radius:0; }
-.tasting-impression-numbers button { color:var(--tea-text-dim); }
-.tasting-impression-numbers button[aria-pressed="true"] { color:var(--tea-text); font-weight:600; }
+
+/* Compact rating tiles share one row, with quiet edges and generous height. */
+.tasting-impression-numbers { gap:3px; }
+.tasting-impression-numbers button { border:1px solid var(--tea-border); background:var(--tea-surface); box-shadow:none; border-radius:7px; color:var(--tea-text-sec); }
+.tasting-impression-numbers button[aria-pressed="true"] { background:var(--tea-elevated); color:var(--tea-text); font-weight:600; }
+.tasting-notes-save-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:8px; }
+.tasting-notes-save-row > span { color:var(--tea-text-dim); }
+.tasting-impression .tasting-notes-save { flex-shrink:0; min-height:44px; padding:0 14px; border:1px solid var(--tea-border); border-radius:8px; background:var(--tea-surface); color:var(--tea-text); font-family:var(--font-body); font-size:13px; }
+.tasting-notes-save:disabled { opacity:.45; cursor:default; }

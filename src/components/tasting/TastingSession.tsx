@@ -757,7 +757,10 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                     wouldBuy={wouldBuy} onWouldBuy={next => { setWouldBuy(next); handleTastingChange({...tastingData,wantToPurchase:next}); }}
                     inCollection={tastingData.inCollection ?? favoriteTeas.includes(item.id)}
                     onCollection={() => handleTastingChange({...tastingData,inCollection:!(tastingData.inCollection ?? favoriteTeas.includes(item.id))})}
-                    selections={tastingRecap(tastingData)} onResume={resumeSelection}/>
+                    selections={tastingRecap(tastingData)} onResume={resumeSelection}
+                    onSaveNotes={() => { void handleSave(); }} canSaveNotes={canSave && silentVoice.state === 'idle'}
+                    savingNotes={saveState === 'saving'} notesSaveError={saveState === 'error'}
+                    notesSaveHint={verdictRequired && verdict === null ? 'Choose an impression above to save.' : undefined}/>
                 </div>
               ) : (
                 <TastingFlow

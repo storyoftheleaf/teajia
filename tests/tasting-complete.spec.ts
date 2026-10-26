@@ -96,3 +96,29 @@ test('clearing the sole saved impression can be saved and stays cleared on reope
   await expect(impression).not.toContainText('Love');
   await expectNoUnhandledCompassApi(page);
 });
+
+test('Save notes persists typed text and rating from the notes area', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await installCompassHarness(page);
+  await openCompass(page);
+  await page.getByPlaceholder('Tea name').filter({ visible: true }).fill('Notes save');
+  await page.getByRole('button', { name: /tasting profile/i }).click();
+  await page.getByLabel('Your notes', { exact: true }).fill('A long, gentle finish.');
+  const choices = page.getByRole('group', {name:'Your rating',exact:true});
+  const boxes = await choices.getByRole('button').evaluateAll(nodes => nodes.map(node => {
+    const box = node.getBoundingClientRect();
+    return {top:box.top, bottom:box.bottom};
+  }));
+  expect(new Set(boxes.map(box => box.top)).size).toBe(1);
+  await page.getByRole('button', {name:'Rate 7 out of 10',exact:true}).click();
+  const save = page.getByRole('button', {name:'Save notes',exact:true});
+  await expect(save).toBeEnabled();
+  await save.click();
+  await expect.poll(() => page.evaluate(async () => {
+    // @ts-expect-error Vite exposes source modules to this local browser fixture.
+    const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+    const state = useTeaCompassStore.getState();
+    return state.getEntry(state.activeEntryId)?.tasting;
+  })).toMatchObject({quality:7,notes:[{id:'personal-impression-draft',text:'A long, gentle finish.'}]});
+  await expectNoUnhandledCompassApi(page);
+});

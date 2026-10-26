@@ -186,3 +186,7 @@ Integrated the approved taste/aroma wheel, opening impression, rating, notes and
 ### Tasting visual refinement
 
 Kept rating choices as plain numerals, capped Taste/Aroma caption size as the wheel grows, removed the contrasting spacer ring, and extended the current category surface to meet Home and the surrounding band. Verified phone and desktop proportions and mobile save/reopen behavior.
+
+### Compact rating buttons and note saving
+
+Restored subtle single-row rating tiles and added Save notes directly below the editor, wired to the existing tasting persistence with saving/error feedback. Wheel and bottom navigation unchanged. Verified at 320px with typed-note persistence.
