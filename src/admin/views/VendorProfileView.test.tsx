@@ -11,11 +11,8 @@ vi.mock('@tanstack/react-query', () => ({
       : queryKey[0] === 'vendor-products' ? [{
           id: 'tea-1', product_name: 'Worker tea', given_name: 'Yunnan tea', chinese_name: null,
           type: 'Puer', image_url: null, origin_country: 'China', origin_region: 'Yunnan',
-          stock_grams: 500, status: 'Active', cost_amount: 88, cost_currency: 'CNY',
-        }]
-      : queryKey[0] === 'vendor-priced-products' ? [{
-          id: 'tea-1', type: 'Puer', cost_amount: 88, cost_currency: 'CNY', cost_currency_source: 'stated',
-          quantity_purchased: 100, quantity_units: null, cost_per_gram_usd: 0.13, stock_grams: 500,
+          stock_grams: 500, status: 'Active', cost_amount: 88, cost_currency: 'CNY', cost_currency_source: 'stated',
+          quantity_purchased: 100, quantity_units: null, cost_per_gram_usd: 0.13,
         }]
       : queryKey[0] === 'purchase-orders' ? [
           { id: 'po-1', vendor_id: 'vendor-1', vendor_name: 'Target Vendor', total_usd: 0, status: 'pending', created_at: '2026-09-01' },

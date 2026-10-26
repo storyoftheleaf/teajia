@@ -5,7 +5,7 @@ import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/shared/PullToRefreshIndicator';
 import { EmblemLoader } from '../components/shared/EmblemLoader';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   isConfigured,
   hasToken,
@@ -18,7 +18,6 @@ import {
   hydrateAccountStateFromToken,
   ensureTokenRefreshed,
   shouldProactivelyRefreshToken,
-  api,
 } from '../lib/api';
 import { Product } from './types';
 import { authPagePath } from '../lib/authNavigation';
@@ -371,16 +370,6 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
     });
   }, [refreshProducts, showToast]);
   const { data: rates = [], refetch: refetchRates } = useRates();
-
-  // Incoming compass shares, poll every 60s for badge count
-  const { data: incomingSharesData } = useQuery({
-    queryKey: ['compass-incoming'],
-    queryFn: () => api.compass.getIncoming(),
-    enabled: isLoggedIn && hasToken(),
-    refetchInterval: 60_000,
-    select: (data: { shares?: Array<{ id: string }> }) => (data?.shares || []) as Array<{ id: string }>,
-  });
-  const incomingShareCount = incomingSharesData?.length ?? 0;
 
   // Pull-to-refresh (mobile)
   const { pullDistance, isRefreshing, progress } = usePullToRefresh(async () => {

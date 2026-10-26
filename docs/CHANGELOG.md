@@ -1,5 +1,9 @@
 ## Tasting navigation material 2026-10-26
 
+## 2026-10-26 — smaller secondary admin reads
+
+Product stories read only their own product. Vendor profiles receive shared pricing with their vendor products and avoid a second whole-inventory read. Removed the unused incoming-share poll from the admin shell; Compass retains its own live refresh and sharing actions. Scoped story caches preserve mutation invalidation and account isolation. Controlled measurements and verification: [secondary admin reads](incidents/2026-10-26-secondary-read-reduction.md).
+
 - Tasting uses the site bottom bar’s paper texture, shadow, colors, and active-label treatment while retaining its centered emblem, tasting labels, and folding transition.
 
 ## Wheel inset separator 2026-10-26
