@@ -16,7 +16,8 @@ export function isServiceCapacityError(error: unknown): boolean {
 export function shouldRetryQuery(failureCount: number, error: unknown): boolean {
   if (failureCount >= 1 || isServiceCapacityError(error)) return false;
   // A request that exceeds its own budget must be narrowed, not replayed.
-  if (record(record(error)?.data)?.error === 'database_read_budget_exceeded') return false;
+  const data = record(record(error)?.data);
+  if (data?.retryable === false || data?.error === 'database_read_budget_exceeded') return false;
   const status = record(error)?.status;
   if (typeof status === 'number') return status === 408 || status >= 500;
   // Transport already exhausts network/timeout retries before rejecting.

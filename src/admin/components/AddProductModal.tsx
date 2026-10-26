@@ -7,7 +7,7 @@ import type { TastingData } from '../../types';
 import { calculatePricing } from '../utils';
 import { shippingRateUsdFor } from '../../lib/shippingRate';
 import { canonicalCurrency, rateToUsd } from '../../lib/currency';
-import { useShopFreightDefault } from '../hooks/useAdminData';
+import { useProducts, useShopFreightDefault } from '../hooks/useAdminData';
 import { TeaIllustration } from './TeaIllustration';
 import { TastingSession } from '../../components/tasting/TastingSession';
 import { resolveTermLabel, resolveTermIcon, flattenTastingNotes } from '../../data/tastingTaxonomy';
@@ -24,7 +24,7 @@ import { enteredNumber } from '../productUpdatePayload';
 interface AddProductModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (productId?: string) => void;
   initialData?: Product | null; 
   rates?: ExchangeRate[]; 
 }
@@ -280,7 +280,8 @@ const ExpanderSection: React.FC<{
 
 export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onSuccess, initialData, rates = [] }) => {
   const { showToast } = useToast();
-  const { data: customers = [] } = useCustomers();
+  const { data: customers = [] } = useCustomers({ enabled: isOpen });
+  const { ensureProducts } = useProducts({ enabled: isOpen && !initialData });
   const focusTrapRef = useFocusTrap<HTMLDivElement>(isOpen);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -559,26 +560,26 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
     try {
         // Search existing products for wisdom data (using the API)
-        const products = await api.products.list();
+        const products = await ensureProducts();
         const match = products
-            .filter((p: any) => p.product_name?.toLowerCase() === formData.productName.toLowerCase() && p.lore)
-            .sort((a: any, b: any) => (b.is_custom_wisdom ? 1 : 0) - (a.is_custom_wisdom ? 1 : 0))[0];
+            .filter((p: any) => p.productName?.toLowerCase() === formData.productName.toLowerCase() && p.lore)
+            .sort((a: any, b: any) => (b.isCustomWisdom ? 1 : 0) - (a.isCustomWisdom ? 1 : 0))[0];
 
         if (match) {
             autoFillSnapshotRef.current = formData;
-            const tastingNotes = Array.isArray(match.tasting_notes) ? match.tasting_notes : [];
+            const tastingNotes = Array.isArray(match.tastingNotes) ? match.tastingNotes : [];
             setFormData(prev => ({
                 ...prev,
                 lore: match.lore || prev.lore,
                 tastingNotes: tastingNotes.length ? tastingNotes.join(', ') : prev.tastingNotes,
-                isCustomWisdom: !!match.is_custom_wisdom,
-                showWisdom: !!match.show_wisdom,
-                processingNotes: match.processing_notes || prev.processingNotes,
+                isCustomWisdom: !!match.isCustomWisdom,
+                showWisdom: !!match.showWisdom,
+                processingNotes: match.processingNotes || prev.processingNotes,
                 terroir: match.terroir || prev.terroir,
                 mood: match.mood || prev.mood,
                 experience: match.experience || prev.experience,
             }));
-            setAutoFillSource(match.product_name || formData.productName);
+            setAutoFillSource(match.productName || formData.productName);
         }
     } catch (err) {
         console.error("Memory bank check failed:", err);
@@ -759,7 +760,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         }
 
         setDraftProduct(null);
-        onSuccess();
+        onSuccess(productId);
         onClose();
     } catch (error: any) {
         console.error("Save Error:", error);

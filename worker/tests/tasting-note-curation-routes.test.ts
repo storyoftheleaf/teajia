@@ -77,15 +77,16 @@ class Statement {
   }
   async all() {
     const sql = normalized(this.raw);
-    if (sql.includes('from tasting_note_candidates')) {
+    if (sql.includes('from tasting_note_candidates') && sql.includes('order by')) {
       const [account, status] = this.values;
       return { results: this.db.candidates.filter(c => c.account_id === account && c.status === status) };
     }
-    if (sql.includes('from product_impressions')) {
+    if (sql.includes('from product_impressions') && !sql.includes('where candidate_id')) {
       const [product] = this.values;
       return { results: this.db.impressions.filter(i => i.product_id === product && i.product_public) };
     }
-    return { results: [] };
+    const row = await this.first();
+    return { results: row == null ? [] : [row] };
   }
   async run() {
     const sql = normalized(this.raw);

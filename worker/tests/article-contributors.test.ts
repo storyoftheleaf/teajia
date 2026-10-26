@@ -56,9 +56,14 @@ class Db {
   }
   async all(sqlText: string, values: any[]) {
     const sql = this.n(sqlText);
+    if (sql.includes("where a.slug = ?")) {
+      const row = await this.first(sqlText, values);
+      return { results: row == null ? [] : [row] };
+    }
     if (sql.includes('from contributors') && sql.includes('id in')) return { results: values.map(id => this.contributors.get(id)).filter(Boolean) };
     if (sql.includes('from articles a') && sql.includes("a.status = 'published'")) return { results: [] };
-    return { results: [] };
+    const row = await this.first(sqlText, values);
+    return { results: row == null ? [] : [row] };
   }
   async run(sqlText: string, values: any[]) {
     const sql = this.n(sqlText);

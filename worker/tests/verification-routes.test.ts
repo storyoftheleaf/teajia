@@ -24,8 +24,9 @@ class VerificationDb {
         if (normalized.includes('from account_members')) return { results: [{ account_id: 'account-1', role: 'staff', permissions: '{"bundles":["catalog"]}', slug: 'store', name: 'Store', kind: 'location', is_platform_owner: 0 }] };
         if (normalized.includes('select ea.id as attendee_id')) return { results: normalized.includes('ea.account_id = ?') && values.includes('account-platform') ? [{ attendee_id: 'attendee-1', event_id: 'event-1', title: 'Tea', event_date: '2026-08-01', flyer_image_url: null }] : [{ attendee_id: 'attendee-1', event_id: 'event-1', title: 'Tea' }, { attendee_id: 'attendee-b', event_id: 'event-b', title: 'Other tenant' }] };
         if (normalized.includes('from event_tasting_notes')) return { results: [] };
-        if (normalized.includes('from event_attendees')) return { results: [{ magic_token: 'magic', status: 'confirmed', event_id: 'event-1', event_title: 'Tea', event_date: '2026-08-01' }] };
-        return { results: [] };
+        if (normalized.includes('from event_attendees') && !normalized.includes('magic_token = ?')) return { results: [{ magic_token: 'magic', status: 'confirmed', event_id: 'event-1', event_title: 'Tea', event_date: '2026-08-01' }] };
+        const row = await statement.first();
+        return { results: row == null ? [] : [row] };
       },
       run: async () => {
         if (normalized.startsWith('insert into verification_challenges')) {

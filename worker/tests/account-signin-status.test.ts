@@ -15,7 +15,7 @@ describe('account sign-in status is explicit and private', () => {
     [{ password_hash: 'password-private', google_id: null, email_verified_at: null }, { has_password: true, google_connected: false, email_verified: false }],
   ])('returns safe status flags without provider or password secrets', async (fields, expected) => {
     const user = { id: 'reader', email: 'reader@example.com', role: 'user', session_version: 0, ...fields };
-    const env = { JWT_SECRET: 'test-secret', DB: { prepare: () => ({ bind() { return this; }, first: async () => user }) } } as any;
+    const env = { JWT_SECRET: 'test-secret', DB: { prepare: () => ({ bind() { return this; }, first: async () => user, all: async () => ({ results: [user] }) }) } } as any;
     const response = await worker.fetch(new Request('https://api.test/api/auth/me', { headers: { Authorization: `Bearer ${await sessionToken()}` } }), env);
     expect(response.status).toBe(200);
     const body = await response.json();

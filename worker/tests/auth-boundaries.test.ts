@@ -131,6 +131,9 @@ class FakeStatement {
 
   async all() {
     const sql = normalizeSql(this.sql);
+    // This fixture has no enumerated memberships; auth lookup rows below
+    // describe only the explicitly selected account, not the list endpoint.
+    if (sql.startsWith('select am.account_id, am.role')) return { results: [] };
     if (sql.includes('from contact_relationships') && sql.includes('customer_id')) {
       return { results: this.options.customerRelationshipKinds.map(kind => ({ customer_id: 'cus_test', kind })) };
     }
@@ -156,7 +159,8 @@ class FakeStatement {
     if (sql.includes('from articles')) {
       return { results: [] };
     }
-    return { results: [] };
+    const row = await this.first();
+    return { results: row == null ? [] : [row] };
   }
 
   async run() {

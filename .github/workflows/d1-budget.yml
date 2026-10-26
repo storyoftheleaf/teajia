@@ -16,13 +16,16 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
-  group: d1-budget-${{ github.event_name }}
+  # Every production trigger shares one lock: restore/read/send/save is serial.
+  group: d1-budget-${{ github.event_name == 'pull_request' && github.ref || 'production' }}
   cancel-in-progress: false
 
 jobs:
   check:
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
@@ -31,10 +34,30 @@ jobs:
         with:
           node-version: '22'
       - name: Test budget monitor
-        run: node --test scripts/check-d1-budget.test.mjs
+        run: node --test scripts/check-d1-budget*.test.mjs
+      - name: Restore last durable repair state
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p outputs/d1-repair-state
+          # Filter by a unique artifact name; inspect all pages rather than
+          # assuming the first run succeeded. Failed budget jobs save state too.
+          artifact_id="$(gh api --paginate --slurp "repos/$GH_REPO/actions/artifacts?name=d1-budget-repair-state-v1&per_page=100" | jq -r '[.[].artifacts[] | select(.expired == false and .workflow_run.head_branch == "main")] | max_by(.created_at) | .id // empty')"
+          if [ -n "$artifact_id" ]; then
+            gh api "repos/$GH_REPO/actions/artifacts/$artifact_id/zip" > "$RUNNER_TEMP/d1-state.zip"
+            unzip -p "$RUNNER_TEMP/d1-state.zip" state.json > outputs/d1-repair-state/state.json
+            node --input-type=module -e "import { readRepairState } from './scripts/check-d1-budget-repair.mjs'; await readRepairState('outputs/d1-repair-state/state.json');"
+          else
+            echo "No retained repair state; starting locally fresh. Receiver signature safety gates still apply."
+          fi
       # No secrets exposed to pull-request code. Analytics is independent of
       # D1 reads, so it can report even after the application quota is exhausted.
-      - name: Read account usage
+      - name: Read account usage and hand actionable changes to repair
+        id: usage
         if: github.event_name != 'pull_request'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -43,7 +66,18 @@ jobs:
           D1_DAILY_WRITE_BUDGET: ${{ vars.D1_DAILY_WRITE_BUDGET || '100000' }}
           D1_WARNING_FRACTION: '0.7'
           D1_CRITICAL_FRACTION: '0.9'
+          I64OS_REPAIR_SECRET: ${{ secrets.I64OS_REPAIR_SECRET }}
+          I64OS_REPAIR_READY: ${{ vars.I64OS_REPAIR_READY || 'false' }}
+          D1_REPAIR_STATE_FILE: outputs/d1-repair-state/state.json
         run: node scripts/check-d1-budget.mjs
+      - name: Persist repair state after accepted or failed delivery
+        if: always() && github.event_name != 'pull_request' && steps.usage.outcome != 'skipped' && hashFiles('outputs/d1-repair-state/state.json') != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: d1-budget-repair-state-v1
+          path: outputs/d1-repair-state/state.json
+          if-no-files-found: error
+          retention-days: 90
       - name: Preserve usage even when the threshold or metrics check fails
         if: always() && github.event_name != 'pull_request'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

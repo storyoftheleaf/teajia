@@ -57,6 +57,10 @@ class VerificationStatement {
     }
     return null;
   }
+  async all() {
+    const row = await this.first();
+    return { results: row == null ? [] : [row] };
+  }
   async run() {
     const sql = normalized(this.raw);
     if (sql.startsWith('insert into wisdom_entry_verifications')) {

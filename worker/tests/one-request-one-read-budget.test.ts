@@ -44,16 +44,16 @@ afterEach(() => { while (open.length) open.pop()!.close(); });
  * real figures are measured against the local D1 runtime instead, in
  * `worker/scripts/measure-holdings-rows.mjs`.
  */
-function metered(db: SqliteD1, rowsPerStatement: number) {
-  const wrap = (statement: any): any => ({
-    bind: (...values: unknown[]) => wrap(statement.bind(...values)),
+function metered(db: SqliteD1, rowsPerStatement: number, cheapIdentityReads = false) {
+  const wrap = (statement: any, readCost: number): any => ({
+    bind: (...values: unknown[]) => wrap(statement.bind(...values), readCost),
     first: () => Promise.resolve(statement.first()),
-    all: () => Promise.resolve({ ...statement.all(), meta: { rows_read: rowsPerStatement, rows_written: 0 } }),
-    run: () => Promise.resolve({ ...statement.run(), meta: { ...statement.run().meta, rows_read: rowsPerStatement } }),
+    all: () => Promise.resolve({ ...statement.all(), meta: { rows_read: readCost, rows_written: 0 } }),
+    run: () => { const result = statement.run(); return Promise.resolve({ ...result, meta: { ...result.meta, rows_read: readCost } }); },
     raw: statement,
   });
   return {
-    prepare: (sql: string) => wrap(db.prepare(sql)),
+    prepare: (sql: string) => wrap(db.prepare(sql), cheapIdentityReads && /\b(?:FROM|UPDATE)\s+(?:users|accounts|account_members|mcp_tokens)\b/i.test(sql) ? Math.min(1, rowsPerStatement) : rowsPerStatement),
     batch: (statements: any[]) => Promise.resolve(
       db.batch(statements.map(statement => statement.raw)).map(result => ({ ...result, meta: { ...result.meta, rows_read: rowsPerStatement } })),
     ),
@@ -218,7 +218,7 @@ describe('the request boundary refuses cleanly', () => {
     const token = await signedToken(JWT, { sub: 'owner', email: 'owner@test.dev', active_account_id: 'acc-shop', platform_role: null });
     return worker.fetch(new Request('https://worker.test/api/curate/holdings?samples_only=false', {
       headers: { Authorization: `Bearer ${token}`, 'X-Teajia-Account': 'acc-shop' },
-    }), { DB: metered(db, rowsPerStatement), JWT_SECRET: JWT, ...env } as any);
+    }), { DB: metered(db, rowsPerStatement, true), JWT_SECRET: JWT, ...env } as any);
   }
 
   function shop() {
@@ -242,9 +242,10 @@ describe('the request boundary refuses cleanly', () => {
     // which one query cost more than a request may spend.
     const response = await holdingsRequest(shop(), 60_000);
     expect(response.status).toBe(503);
-    expect(response.headers.get('Retry-After')).toBe('1');
+    expect(response.headers.get('Retry-After')).toBeNull();
     const body = await response.json() as any;
     expect(body.error).toBe('database_read_budget_exceeded');
+    expect(body.retryable).toBe(false);
     expect(body.message).toMatch(/more than any one request may read/i);
     expect(body.rows_read).toBeGreaterThan(body.rows_budget - 1);
     // Nothing SQL, stack or secret shaped rides out on it.
@@ -323,6 +324,7 @@ describe('the MCP door says which half is broken', () => {
     const db = new SqliteD1();
     open.push(db);
     seedIdentity(db, { userId: 'owner', accountId: 'acc-shop', role: 'owner' });
+    db.sqlite.prepare("INSERT INTO tea_compass_entries(id,user_id,account_id,name) VALUES ('matched-tea','owner','acc-shop','tea')").run();
     const bearer = 'mcp-budget-bearer';
     const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(bearer))))
       .map(b => b.toString(16).padStart(2, '0')).join('');
@@ -330,14 +332,15 @@ describe('the MCP door says which half is broken', () => {
       VALUES ('budget-token','acc-shop','owner','owner@test.dev','test',?,'fake','["inventory:read"]','account_owner',?)`)
       .run(hash, Math.floor(Date.now() / 1000) + 3600);
 
-    // The auth reads are all `first()`, which carries no meta and so spends no
-    // rows; the tool's own scans are what run the budget down. Two of them at
+    // Authentication point lookups cost one synthetic row each; the tool's
+    // own scans are what run the budget down. Two of them at
     // 1,200 rows apiece is over 2,000, so the refusal lands inside the tool
-    // call and comes back as an RPC error rather than as a dead request.
-    const { status, body } = await mcpWith(metered(db, 1_200), bearer, call, { D1_ROWS_READ_BUDGET: '2000' });
+    // call; a matching tea then needs a further holdings read, which must
+    // be refused before execution rather than ignoring the exhausted budget.
+    const { status, body } = await mcpWith(metered(db, 1_200, true), bearer, call, { D1_ROWS_READ_BUDGET: '2000' });
     expect(status).toBe(200);
-    expect(body.error).toMatchObject({ code: -32003, data: { reason: 'budget' } });
-    expect(body.error.message).toMatch(/read budget exceeded for this request/i);
+    expect(body.error).toMatchObject({ code: -32005, data: { reason: 'reconciliation_required', retryable: false, writes_committed: true } });
+    expect(body.error.message).toMatch(/Earlier database changes may have completed/i);
   });
 
   it('classifies each failure once, in one place', () => {

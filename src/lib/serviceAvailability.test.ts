@@ -63,3 +63,8 @@ it('does not retry an oversized request or pause unrelated requests', async () =
   await guard.observeResponse('https://api.teajia.com/api/products', new Response(JSON.stringify(error.data), {status: 503}));
   expect(guard.blockedResponse('https://api.teajia.com/api/rates')).toBeNull();
 });
+
+it('honors an explicit nonretryable refusal regardless of HTTP server status', () => {
+  expect(shouldRetryQuery(0, { status: 503, data: { retryable: false } })).toBe(false);
+  expect(shouldRetryQuery(0, { status: 409, data: { retryable: false, writes_committed: true } })).toBe(false);
+});

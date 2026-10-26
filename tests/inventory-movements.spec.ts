@@ -2,7 +2,7 @@ import { expect, test, type Page } from './fixtures';
 
 function token() {
   const enc = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
-  return `${enc({ alg: 'HS256', typ: 'JWT' })}.${enc({ sub: 'admin', email: 'operator@test', role: 'owner', exp: Math.floor(Date.now() / 1000) + 86400, active_account_id: 'acct', memberships: [{ account_id: 'acct', role: 'owner' }] })}.sig`;
+  return `${enc({ alg: 'HS256', typ: 'JWT' })}.${enc({ sub: 'admin', email: 'operator@test', role: 'owner', exp: Math.floor(Date.now() / 1000) + 86400 * 30, active_account_id: 'acct', memberships: [{ account_id: 'acct', role: 'owner' }] })}.sig`;
 }
 
 const product = {
@@ -19,6 +19,8 @@ const destinationProduct = { ...product, id: 'tea-2', given_name: 'Reserve', pro
 const unrelatedProduct = { ...product, id: 'tea-3', given_name: 'Other lot', product_name: 'Other lot', source_compass_entry_id: 'compass-other', stock_grams: 8 };
 const teawareProduct = { ...product, id: 'ware-1', type: 'Teaware', given_name: 'Field Gaiwan', product_name: 'Field Gaiwan', stock_grams: 0, quantity_units: 3, teaware_category: 'pot', material: 'Porcelain' };
 
+let fullListReads = 0;
+const detailReads: string[] = [];
 let balance = 100;
 let failNext = false;
 let teawareBalance = 3;
@@ -31,6 +33,8 @@ const invoiceBodies: any[] = [];
 async function install(page: Page) {
   const jwt = token();
   balance = 100;
+  fullListReads = 0;
+  detailReads.length = 0;
   movements.length = 0;
   movementBodies.length = 0;
   absoluteStockWrites.length = 0;
@@ -46,7 +50,16 @@ async function install(page: Page) {
   }, jwt);
   await page.route('**/api/auth/me', r => r.fulfill({ json: { id: 'admin', email: 'operator@test', role: 'owner' } }));
   await page.route('**/api/auth/refresh', r => r.fulfill({ json: { token: jwt } }));
-  await page.route('**/api/products', r => r.fulfill({ json: [{ ...product, stock_grams: balance }, { ...destinationProduct, stock_grams: destinationBalance }, unrelatedProduct, { ...teawareProduct, quantity_units: teawareBalance }] }));
+  const products = () => [{ ...product, stock_grams: balance }, { ...destinationProduct, stock_grams: destinationBalance }, unrelatedProduct, { ...teawareProduct, quantity_units: teawareBalance }];
+  await page.route('**/api/products', r => { fullListReads++; return r.fulfill({ json: products() }); });
+  await page.route('**/api/products/*', r => {
+    if (r.request().method() !== 'GET') return r.fallback();
+    const id = decodeURIComponent(new URL(r.request().url()).pathname.split('/').at(-1)!);
+    if (id === 'public') return r.fallback();
+    detailReads.push(id);
+    const row = products().find(product => product.id === id);
+    return r.fulfill({ status: row ? 200 : 404, json: row ?? { error: 'Product not found' } });
+  });
   await page.route('**/api/products/*/events', r => r.fulfill({ json: [] }));
   await page.route('**/api/products/tea-1/movements', async r => {
     const body = r.request().postDataJSON();
@@ -366,6 +379,8 @@ test('transfer selects a related holding, sends its identity, and refreshes both
   await expect(page.getByText('95g → 72g')).toBeVisible();
   await page.getByRole('button', { name: 'Record movement' }).click();
   await expect(page.getByText('Cloud · 72g')).toBeVisible();
+  await expect.poll(() => detailReads).toEqual(['tea-1', 'tea-2', 'tea-1']);
+  expect(fullListReads).toBe(1);
 });
 
 test('teaware movements use units, update quantityUnits, and render a unit-aware ledger', async ({ page }) => {
@@ -384,6 +399,8 @@ test('teaware movements use units, update quantityUnits, and render a unit-aware
   await page.getByRole('button', { name: 'Record movement' }).click();
   expect(movementBodies.at(-1)).toMatchObject({ movement_type: 'recount', unit: 'unit', expected_balance: 5, balance: 4 });
   await expect(page.getByText('Field Gaiwan · 4 units')).toBeVisible();
+  await expect.poll(() => detailReads).toEqual(['ware-1', 'ware-1']);
+  expect(fullListReads).toBe(1);
 });
 
 test('quick edit opens Recount and full product edit opens movements without absolute stock writes', async ({ page }) => {

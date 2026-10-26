@@ -1206,7 +1206,10 @@ export class EmailDeliveryUnavailableError extends Error {
 
 /** Retry only failures that may succeed without changing the request. */
 export function isTransientApiError(error: unknown): boolean {
-  if (error instanceof ApiError) return error.status === 408 || error.status === 429 || error.status >= 500;
+  if (error instanceof ApiError) {
+    if (error.data?.retryable === false || error.data?.code === 'database_read_budget_exceeded') return false;
+    return error.status === 408 || error.status === 429 || error.status >= 500;
+  }
   if (!(error instanceof Error)) return false;
   return /timed out|couldn.t reach the server|network|offline|failed to fetch/i.test(error.message);
 }
@@ -1855,6 +1858,7 @@ export const api = {
   },
 
   products: {
+    get: async (id: string) => authedFetch(`${API_URL}/api/products/${encodeURIComponent(id)}`),
     list: async () => {
       return authedFetch(`${API_URL}/api/products`)
     },

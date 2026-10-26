@@ -283,7 +283,8 @@ class FakeStatement {
         }),
       };
     }
-    return { results: [] };
+    const row = await this.first();
+    return { results: row == null ? [] : [row] };
   }
 
   async run() {
