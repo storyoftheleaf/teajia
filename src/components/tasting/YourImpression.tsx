@@ -39,9 +39,14 @@ export interface YourImpressionProps {
   onCollection: () => void;
   selections: Array<{ id: string; label: string; words: Array<{ id: string; label: string }> }>;
   onResume: (section: string, word?: string) => void;
+  onSaveNotes?: () => void;
+  canSaveNotes?: boolean;
+  savingNotes?: boolean;
+  notesSaveError?: boolean;
+  notesSaveHint?: string;
 }
 
-export function YourImpression({ value, onChange, verdict, onVerdict, wouldBuy, onWouldBuy, inCollection, onCollection, selections, onResume }: YourImpressionProps) {
+export function YourImpression({ value, onChange, verdict, onVerdict, wouldBuy, onWouldBuy, inCollection, onCollection, selections, onResume, onSaveNotes, canSaveNotes = false, savingNotes = false, notesSaveError = false, notesSaveHint }: YourImpressionProps) {
   const notesId = useId();
   const rating = value.quality;
   const historical = (value.notes ?? []).filter(note => typeof note === 'string' || note.id !== IMPRESSION_NOTE_ID);
@@ -64,6 +69,10 @@ export function YourImpression({ value, onChange, verdict, onVerdict, wouldBuy, 
     <div className="tasting-impression-notes">
       <label htmlFor={notesId} className={TYPOGRAPHY_CLASSES.label}>Your notes</label>
       <textarea id={notesId} className={TYPOGRAPHY_CLASSES.bodyLight} rows={4} value={impressionNoteText(value)} onChange={event => onChange(updateImpressionNote(value, event.target.value))} placeholder="Anything you’d like to add…" />
+      {onSaveNotes && <div className="tasting-notes-save-row">
+        <span className={TYPOGRAPHY_CLASSES.accountMeta} role={notesSaveError ? 'alert' : undefined}>{notesSaveError ? 'Could not save. Please try again.' : notesSaveHint}</span>
+        <button type="button" className="tap-target tasting-notes-save" onClick={onSaveNotes} disabled={!canSaveNotes || savingNotes}>{savingNotes ? 'Saving…' : notesSaveError ? 'Retry save notes' : 'Save notes'}</button>
+      </div>}
     </div>
     {historical.length > 0 && <details className="tasting-impression-history"><summary className={TYPOGRAPHY_CLASSES.link}>Earlier notes · {historical.length}</summary><div>{historical.map((note, index) => <p className={TYPOGRAPHY_CLASSES.bodyLight} key={typeof note === 'string' ? `legacy-${index}` : note.id}>{typeof note === 'string' ? note : note.text}</p>)}</div></details>}
     {groups.length > 0 && <section className="tasting-impression-recap" aria-label="Your tasting selections">
