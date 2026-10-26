@@ -17,7 +17,8 @@ import { useNotesStore } from '../../lib/notesStore';
 import { syncNotes } from '../../lib/notesSync';
 import { api, hasToken } from '../../lib/api';
 import { resolveTermLabel, resolveTermIcon } from '../../data/tastingTaxonomy';
-import { NotesPanel } from './NotesPanel';
+import { YourImpression, appendImpressionTranscript } from './YourImpression';
+import { tastingRecap } from './tastingRecap';
 import { normalizeNotes, notesAsStrings } from '../../lib/noteEntries';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useVoiceCapture } from '../../hooks/useVoiceCapture';
@@ -58,7 +59,7 @@ const VERDICT_OPTIONS: {
   { id: 'love',    label: 'Love it',  icon: Heart },
   { id: 'like',    label: 'Like it',  icon: ThumbsUp },
   { id: 'neutral', label: 'Neutral',  icon: Minus },
-  { id: 'pass',    label: 'Pass',     icon: ThumbsDown },
+  { id: 'pass',    label: 'Dislike',     icon: ThumbsDown },
 ];
 
 const VESSEL_OPTIONS = ['Gaiwan', 'Yixing', 'Glass', 'Teapot', 'Other'] as const;
@@ -172,7 +173,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   item, onClose, onSave, onAfterSave, adminMode = false, initialData, showVerdict = false, onOrderTea, onCreatePO, onWriteDescription, writeDraftReview = false,
   detailsPanel, startOnDetails = false, startOnNotes = false, className, previewOnly = false,
 }) => {
-  const { addTasting, updateTasting, upsertTastingByProductId, activeAccountId, activeAccount, tastingJournal } = useAppStore();
+  const { addTasting, updateTasting, upsertTastingByProductId, activeAccountId, activeAccount, tastingJournal, favoriteTeas, toggleFavoriteTea } = useAppStore();
   const { addNote } = useNotesStore();
   const isGuest = !hasToken();
 
@@ -229,8 +230,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   const savedStateRef = useRef(saveState);
   useEffect(() => { savedStateRef.current = saveState; }, [saveState]);
 
-  const [verdict, setVerdict] = useState<Verdict | null>(null);
-  const [wouldBuy, setWouldBuy] = useState(false);
+  const [verdict, setVerdict] = useState<Verdict | null>(openedWith.impression ?? existingEntry?.note.verdict ?? null);
+  const [wouldBuy, setWouldBuy] = useState(openedWith.wantToPurchase ?? existingEntry?.note.wouldBuy ?? false);
 
   // Fresh-tasting flow: when a user explicitly starts a new tasting on a tea
   // they've already noted (different vessel, aged tea, etc.), they enter a
@@ -242,36 +243,25 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   const isFreshTasting = !!freshReason.trim();
 
   const [activeSectionId, setActiveSectionId] = useState<SectionId>('body');
-  const [showNote, setShowNote] = useState(startOnNotes);
+  const [showNote, setShowNote] = useState(true);
   const [descriptionDraft, setDescriptionDraft] = useState('');
   const [savingDescription, setSavingDescription] = useState(false);
   const [sectionCounts, setSectionCounts] = useState<Record<SectionId, number>>({
     body: 0, state: 0, flavor: 0, appearance: 0,
   });
 
-  // NOTE tab press-and-hold: hold (>=150ms) starts silent capture; release or
-  // a subsequent tap stops it. Short press (<150ms) toggles the panel.
-  const noteTabHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const noteTabPressStartRef = useRef<number | null>(null);
-  const noteTabRecordingStartedRef = useRef(false);
-  const noteTabHandledInDownRef = useRef(false);
-  const HOLD_THRESHOLD_MS = 150;
-
-  const pushSilentNote = useCallback((text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    const entry = {
-      id: typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `note-${Date.now()}`,
-      text: trimmed,
-      capturedAt: new Date().toISOString(),
-    };
-    setTastingData(prev => ({
-      ...prev,
-      notes: [...normalizeNotes(prev), entry],
-    }));
-  }, []);
-
-  const silentVoice = useVoiceCapture({ onTranscribed: pushSilentNote });
+  const [reveal, setReveal] = useState<{word: string; sense?: 'taste' | 'aroma'; stamp: number}>();
+  const latestData = useRef(tastingData);
+  latestData.current = tastingData;
+  const changeRef = useRef<(data: TastingData) => void>(() => {});
+  const [voiceError, setVoiceError] = useState('');
+  const silentVoice = useVoiceCapture({
+    onTranscribed: text => {
+      changeRef.current(appendImpressionTranscript(latestData.current, text));
+      setShowNote(true);
+    },
+    onError: setVoiceError,
+  });
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
   useEffect(() => () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); }, []);
@@ -280,7 +270,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   const dismissHandlerRef = useRef<() => void>(null!);
   dismissHandlerRef.current = () => {
     if (phase === 'saved') { onClose(); return; }
-    if (hasNotes && saveState === 'idle') { onAfterSave?.(tastingData); }
+    if (hasNotes && saveState === 'idle') { onAfterSave?.(tastingData, verdict ?? undefined, wouldBuy); }
     onClose();
   };
   useEffect(() => {
@@ -332,8 +322,13 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     }
   }, [previewOnly, adminMode, writeDraftReview, item.teaKey, item.sourceSampleId]);
 
+  changeRef.current = handleTastingChange;
+
   const hasArrayNotes = Object.values(tastingData).some(arr => Array.isArray(arr) && arr.length > 0);
   const hasCaptureData =
+    Object.values(tastingData.sensoryCustom ?? {}).some(words => words.length > 0) ||
+    tastingData.storageCharacter != null ||
+    tastingData.impression != null || tastingData.wantToPurchase != null || tastingData.inCollection != null ||
     tastingData.quality != null ||
     tastingData.cleanliness != null ||
     tastingData.clarity != null ||
@@ -353,7 +348,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
   // In sourcing mode (showVerdict + !adminMode), verdict is required before saving
   const verdictRequired = showVerdict && !adminMode;
-  const canSave = hasNotes && (saveState === 'idle' || saveState === 'error') && (!verdictRequired || verdict !== null);
+  const changedExisting = baselineRef.current !== tastingFingerprint({}) && tastingFingerprint(tastingData) !== baselineRef.current;
+  const canSave = (hasNotes || changedExisting) && (saveState === 'idle' || saveState === 'error') && (!verdictRequired || verdict !== null);
 
   // Dirty means "different from how it opened", which is the only question the
   // close button needs answered.
@@ -382,7 +378,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   const handleSave = useCallback(async (): Promise<boolean> => {
     if (!canSave) return false;
     if (previewOnly) {
-      onAfterSave?.(tastingData, verdict ?? undefined, wouldBuy || undefined);
+      onAfterSave?.(tastingData, verdict ?? undefined, wouldBuy);
       onClose();
       return true;
     }
@@ -405,7 +401,10 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
       // own platform: tasting a tea should appear in the journal regardless of
       // whether the tasting also updated the product profile.
       if (adminMode && onSave) {
-        await onSave(tastingData);
+        await onSave(tastingData, verdict ?? undefined, wouldBuy);
+      }
+      if (tastingData.inCollection != null && favoriteTeas.includes(item.id) !== tastingData.inCollection) {
+        toggleFavoriteTea(item.id);
       }
 
       {
@@ -427,7 +426,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
           personalNote: tastingData.notes?.map(n => typeof n === 'string' ? n : n.text).join('\n') || tastingData.voiceNote?.trim() || undefined,
           rating: tastingData.quality ?? tastingData.rating,
           verdict: verdict ?? undefined,
-          wouldBuy: wouldBuy || undefined,
+          wouldBuy: wouldBuy,
         };
         const entryId = upsertTastingByProductId(
           item.id,
@@ -453,7 +452,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
         }
         // Domain side effect (e.g. update compass store entry, sample store)
         // Pass verdict + wouldBuy so sourcing callers (SamplePage) can persist them
-        onAfterSave?.(tastingData, verdict ?? undefined, wouldBuy || undefined);
+        onAfterSave?.(tastingData, verdict ?? undefined, wouldBuy);
         // Fire-and-forget sync to server
         syncTastingJournal().catch(() => {});
       }
@@ -494,125 +493,44 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
       note: {
         ...current.note,
         ...updates,
+        tasting: {
+          ...current.note.tasting,
+          ...('verdict' in updates ? { impression: updates.verdict } : {}),
+          ...('wouldBuy' in updates ? { wantToPurchase: updates.wouldBuy } : {}),
+        },
         updatedAt: new Date().toISOString(),
       },
     });
   }, [savedEntryId, updateTasting]);
 
   const handleVerdictSelect = useCallback((v: Verdict) => {
+    const nextData = { ...tastingData, impression: v };
+    setTastingData(nextData);
     setVerdict(v);
     if (adminMode && onSave) {
-      onSave(tastingData, v, wouldBuy);
-    } else {
-      updateNoteFields({ verdict: v, wouldBuy });
+      onSave(nextData, v, wouldBuy);
     }
+    updateNoteFields({ verdict: v, wouldBuy });
   }, [updateNoteFields, wouldBuy, onSave, adminMode, tastingData]);
 
   const handleWouldBuyToggle = useCallback(() => {
     const next = !wouldBuy;
+    const nextData = { ...tastingData, wantToPurchase: next };
+    setTastingData(nextData);
     setWouldBuy(next);
     if (adminMode && onSave) {
-      onSave(tastingData, verdict ?? undefined, next);
-      return;
+      onSave(nextData, verdict ?? undefined, next);
     }
     updateNoteFields({ wouldBuy: next });
   }, [wouldBuy, updateNoteFields, onSave, adminMode, tastingData, verdict]);
 
-  const noteControl = (
-                  <button
-                    type="button"
-                    aria-pressed={showNote}
-                    aria-label="Notes: tap to open, hold to record"
-                    onPointerDown={(e) => {
-                      e.preventDefault();
-                      // If already recording (e.g. from a previous hold that
-                      // left the finger up), any tap stops it.
-                      if (silentVoice.state === 'recording') {
-                        silentVoice.stop();
-                        noteTabHandledInDownRef.current = true;
-                        return;
-                      }
-                      noteTabHandledInDownRef.current = false;
-                      noteTabPressStartRef.current = Date.now();
-                      noteTabRecordingStartedRef.current = false;
-                      noteTabHoldTimerRef.current = setTimeout(() => {
-                        noteTabRecordingStartedRef.current = true;
-                        silentVoice.start();
-                      }, HOLD_THRESHOLD_MS);
-                    }}
-                    onPointerUp={() => {
-                      if (noteTabHandledInDownRef.current) {
-                        noteTabHandledInDownRef.current = false;
-                        return;
-                      }
-                      if (noteTabHoldTimerRef.current) {
-                        clearTimeout(noteTabHoldTimerRef.current);
-                        noteTabHoldTimerRef.current = null;
-                      }
-                      if (noteTabRecordingStartedRef.current) {
-                        // Release-to-stop: the natural hold gesture's end.
-                        silentVoice.stop();
-                      } else {
-                        setShowNote(v => !v);
-                      }
-                      noteTabPressStartRef.current = null;
-                      noteTabRecordingStartedRef.current = false;
-                    }}
-                    onPointerCancel={() => {
-                      if (noteTabHoldTimerRef.current) {
-                        clearTimeout(noteTabHoldTimerRef.current);
-                        noteTabHoldTimerRef.current = null;
-                      }
-                      if (noteTabRecordingStartedRef.current) silentVoice.stop();
-                      noteTabPressStartRef.current = null;
-                      noteTabRecordingStartedRef.current = false;
-                      noteTabHandledInDownRef.current = false;
-                    }}
-                    onPointerLeave={() => {
-                      if (noteTabHoldTimerRef.current) {
-                        clearTimeout(noteTabHoldTimerRef.current);
-                        noteTabHoldTimerRef.current = null;
-                      }
-                      // Keep recording if finger/cursor leaves, since the user may still be holding.
-                    }}
-                    className={`relative flex-1 flex items-center justify-center py-3.5 transition-colors duration-200 select-none touch-none ${
-                      silentVoice.state === 'recording'
-                        ? 'text-tea-gold'
-                        : showNote
-                          ? 'text-tea-gold'
-                          : (tastingData.notes?.length ?? 0) > 0
-                            ? 'text-tea-gold/60'
-                            : 'text-tea-text/45 hover:text-tea-text/75'
-                    }`}
-                    style={{
-                      fontFamily: 'var(--font-display)',
-                      fontSize: '12px',
-                      fontWeight: showNote || silentVoice.state === 'recording' ? 800 : 300,
-                      letterSpacing: '0.18em',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    {/* Active/recording = bronze + bold word, no underline.
-                        same bronze-word language as the sense tabs. */}
-                    <span className="relative z-[1] inline-flex items-center gap-1.5">
-                      {silentVoice.state === 'transcribing' ? (
-                        <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-                          <Loader2 size={12} />
-                        </motion.span>
-                      ) : (
-                        <Mic size={12} />
-                      )}
-                      <span className="inline-flex items-baseline gap-1">
-                        {silentVoice.state === 'recording' ? 'Rec' : 'Note'}
-                        {(tastingData.notes?.length ?? 0) > 0 && !showNote && silentVoice.state !== 'recording' && (
-                          <span className="tabular-nums" style={{ fontSize: '9px', letterSpacing: 0, color: 'rgb(var(--tea-gold-rgb) / 0.5)', transform: 'translateY(-2px)' }}>
-                            {tastingData.notes!.length}
-                          </span>
-                        )}
-                      </span>
-                    </span>
-                  </button>
-  );
+  const noteControl = <button type="button" className="tap-target px-3 text-ui-12 text-tea-text" onClick={() => setShowNote(true)}>Your impression</button>;
+  const resumeSelection = (section: string, word?: string) => {
+    const target: SectionId = section === 'aroma' ? 'flavor' : section === 'storage' ? 'appearance' : section as SectionId;
+    setActiveSectionId(target);
+    setReveal(word ? { word, sense: section === 'aroma' ? 'aroma' : 'taste', stamp: Date.now() } : undefined);
+    setShowNote(false);
+  };
 
   return createPortal(
     <div data-tasting-session-overlay className={`fixed inset-0 z-takeover lg:bg-black/75 lg:backdrop-blur-sm lg:flex lg:items-center lg:justify-center${className ? ` ${className}` : ''}`}>
@@ -627,75 +545,26 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
         paddingRight: 'env(safe-area-inset-right, 0px)',
       }}
     >
-      {/* Header */}
-      <div
-        className="flex min-h-12 shrink-0 items-center gap-2 border-b border-tea-border py-1 pl-4 pr-2"
-        style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 12px))' }}
-      >
-        <div className="flex min-w-0 flex-1 items-center gap-2.5">
-          {item.image && (
-            <img src={item.image} alt="" className="w-7 h-7 rounded object-cover shrink-0 opacity-80" loading="lazy" />
-          )}
-          <div className="min-w-0">
-            <div
-              className="text-sm font-medium text-tea-text truncate"
-              style={{ fontFamily: 'var(--font-display)' }}
-            >
-              {item.name}
-            </div>
-            {item.type && (
-              <div className="text-ui-10 text-tea-text-dim tracking-wide">{item.type}</div>
-            )}
-          </div>
-        </div>
-
-        {/* Across to the tea's own details, and back. Only ever rendered for an
-            admin, because only an admin is given a details form to cross to. */}
-        {detailsPanel && (
-          <button
-            type="button"
-            onClick={() => setPhase(phase === 'details' ? 'tasting' : 'details')}
-            className="tap-target min-h-11 shrink-0 px-2 text-ui-12 font-medium text-tea-text-sec transition-colors hover:text-tea-text"
-          >
-            {phase === 'details' ? 'Tasting' : 'Edit'}
-          </button>
-        )}
-
-        {phase === 'tasting' && <div className="tasting-mobile-note lg:hidden">{noteControl}</div>}
-
-        {phase === 'tasting' && (
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!canSave}
-            aria-label={saveState === 'error' ? 'Retry save' : 'Save'}
-            className="tap-target min-h-11 shrink-0 px-2 text-ui-12 font-medium text-tea-gold transition-colors hover:text-tea-gold-lt disabled:text-tea-text-sec disabled:cursor-not-allowed"
-          >
-            {saveState === 'saving' ? 'Saving…' : saveState === 'error' ? 'Retry' : 'Save'}
-          </button>
-        )}
-
-        {/* The details form writes each field as you leave it, so Done is a
-            way out rather than a second commit that could disagree with it. */}
-        {phase === 'details' && (
-          <button
-            type="button"
-            onClick={onClose}
-            className="tap-target min-h-11 shrink-0 px-2 text-ui-12 font-medium text-tea-gold transition-colors hover:text-tea-gold-lt"
-          >
-            Done
-          </button>
-        )}
-
-        <button
-          type="button"
-          onClick={handleCloseRequest}
-          className="tap-target flex min-h-11 min-w-11 shrink-0 items-center justify-center text-tea-text-sec transition-colors hover:text-tea-text"
-          aria-label="Close"
-        >
-          <X size={18} strokeWidth={1.75} aria-hidden />
+      <div className="tasting-session-header">
+        <button type="button" className="tasting-heading-trigger" aria-label="Open your impression" onClick={() => { setPhase('tasting'); setShowNote(true); }}>
+          <span className="tasting-heading-name">{item.name}</span>
+          <span className="tasting-heading-summary">{[
+            tastingData.quality != null ? `${tastingData.quality} / 10` : '',
+            verdict ? ({love:'Love',like:'Like',neutral:'Neutral',pass:'Dislike'}[verdict]) : '',
+            wouldBuy ? 'Want to purchase' : '',
+          ].filter(Boolean).join(' · ') || 'Click to judge this tea'} <span aria-hidden="true">›</span></span>
         </button>
+        {adminMode && <button type="button" className="tasting-heading-mic tap-target" disabled={silentVoice.state === 'transcribing'} aria-label={silentVoice.state === 'recording' ? 'Stop recording' : 'Record into your notes'} aria-pressed={silentVoice.state === 'recording'} onClick={() => { setVoiceError(''); if(silentVoice.state === 'recording') silentVoice.stop(); else void silentVoice.start(); }}>
+          {silentVoice.state === 'transcribing' ? <Loader2 size={18} className="animate-spin"/> : <Mic size={18}/>}
+        </button>}
+        <div className="tasting-heading-tools">
+          {detailsPanel && <button type="button" className="tap-target" onClick={() => setPhase(phase === 'details' ? 'tasting' : 'details')}>{phase === 'details' ? 'Tasting' : 'Tea details'}</button>}
+          {phase === 'tasting' && <button type="button" className="tap-target" onClick={handleSave} disabled={!canSave} aria-label={saveState === 'error' ? 'Retry save' : 'Save'}>{saveState === 'saving' ? 'Saving…' : saveState === 'error' ? 'Retry save' : 'Save'}</button>}
+          <button type="button" className="tap-target" onClick={handleCloseRequest} aria-label="Close"><X size={16}/></button>
+        </div>
       </div>
+      {voiceError && <p role="alert" className="px-4 text-ui-12 text-tea-text-sec">{voiceError}</p>}
+      {silentVoice.state !== 'idle' && <p role="status" className="px-4 text-ui-12 text-tea-text-sec">{silentVoice.state === 'recording' ? 'Recording into your notes…' : 'Transcribing into your notes…'}</p>}
 
       {/* Details sits OUTSIDE the transition group below. Adding a third branch
           inside a mode="wait" group left the incoming tasting view stuck at
@@ -788,7 +657,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
             )}
 
             {/* Brewing context strip: admin mode only */}
-            {adminMode && (
+            {adminMode && showNote && (
               <div className="shrink-0 border-b border-tea-border">
                 <button
                   type="button"
@@ -874,39 +743,6 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               </div>
             )}
 
-            {/* Sourcing verdict: shown before save when showVerdict + customer mode */}
-            {showVerdict && !adminMode && (
-              <div className="shrink-0 px-4 py-2.5 border-b border-tea-border bg-tea-surface/40">
-                <div
-                  className="text-ui-10 uppercase tracking-[0.16em] text-tea-text-dim mb-2"
-                  style={{ fontFamily: 'var(--font-display)' }}
-                >
-                  Sourcing verdict {!verdict && <span className="text-tea-gold/70 normal-case tracking-normal">(select before saving)</span>}
-                </div>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {VERDICT_OPTIONS.map(({ id, label, icon: Icon }) => {
-                    const isActive = verdict === id;
-                    return (
-                      <motion.button
-                        key={id}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => setVerdict(isActive ? null : id)}
-                        aria-pressed={isActive}
-                        className={`flex flex-col items-center gap-1 py-2 rounded-xl border transition-all duration-150 ${
-                          isActive
-                            ? 'text-tea-gold border-tea-gold/40 bg-tea-gold/8'
-                            : 'border-tea-border text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface'
-                        }`}
-                      >
-                        <Icon size={15} />
-                        <span className="text-ui-10" style={{ fontFamily: 'var(--font-display)' }}>{label}</span>
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
             {/* Structured sections, or the Notes workspace when the NOTE tab is active */}
             {/* No fade at the foot of the scroller. A 24px transparent-to-ground
                 gradient sat directly above the taskbar's hairline, and on the last
@@ -915,10 +751,14 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 where the content stops. */}
             <div className="flex-1 min-h-0 overflow-hidden relative tasting-mobile-content">
               {showNote ? (
-                <NotesPanel
-                  notes={normalizeNotes(tastingData)}
-                  onChange={(next) => setTastingData(prev => ({ ...prev, notes: next.length ? next : undefined }))}
-                />
+                <div className="h-full overflow-y-auto tasting-scroll pt-3">
+                  <YourImpression value={tastingData} onChange={handleTastingChange}
+                    verdict={verdict} onVerdict={next => { setVerdict(next); handleTastingChange({...tastingData, impression:next ?? undefined}); }}
+                    wouldBuy={wouldBuy} onWouldBuy={next => { setWouldBuy(next); handleTastingChange({...tastingData,wantToPurchase:next}); }}
+                    inCollection={tastingData.inCollection ?? favoriteTeas.includes(item.id)}
+                    onCollection={() => handleTastingChange({...tastingData,inCollection:!(tastingData.inCollection ?? favoriteTeas.includes(item.id))})}
+                    selections={tastingRecap(tastingData)} onResume={resumeSelection}/>
+                </div>
               ) : (
                 <TastingFlow
                   mode={adminMode ? 'admin' : 'customer'}
@@ -929,6 +769,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                   onCountsChange={setSectionCounts}
                   simplified={false}
                   teaType={item.type}
+                  reveal={reveal}
                 />
               )}
             </div>

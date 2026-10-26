@@ -1682,12 +1682,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
         <CardHeading title="Taste" testId="curate-cluster-tasting" />
         <section data-zone="taste">
-          {!hasTasting && (
             <button type="button" onClick={openTastingOverlay} className="curate-v2-line w-full text-left" data-curate-action>
               <span className="curate-v2-label">Profile</span>
-              <span className="flex-1 text-right font-mono text-ui-13 text-tea-gold">Add tasting profile</span>
+              <span className="flex-1 text-right font-mono text-ui-13 text-tea-gold">{hasTasting ? 'Edit tasting profile' : 'Add tasting profile'}</span>
             </button>
-          )}
           {hasTasting && entry.tasting && (
             <>
               <div className="curate-v2-line flex-wrap gap-y-2 py-3">

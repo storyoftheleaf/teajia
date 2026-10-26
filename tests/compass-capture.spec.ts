@@ -510,7 +510,8 @@ test.describe('Curate field capture preservation', () => {
     // Device-scale rounding can report a CSS 44px target as 43.999999px.
     expect((await close.boundingBox())!.height).toBeGreaterThanOrEqual(43.9);
 
-    await page.getByRole('radiogroup', { name: 'Body weight' }).getByRole('radio', { name: 'Medium' }).click();
+    await page.getByRole('button', { name: 'Texture', exact: true }).filter({ visible: true }).click();
+    await page.getByRole('button', { name: 'Silky', exact: true }).click();
     await expect(save).toBeVisible();
     const saveBox = await save.boundingBox();
     expect(saveBox).not.toBeNull();
@@ -535,7 +536,7 @@ test.describe('Curate field capture preservation', () => {
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
       const state = useTeaCompassStore.getState();
       return state.getEntry(state.activeEntryId!)?.tasting?.body ?? [];
-    })).toContain('medium');
+    })).toContain('silky');
   });
 
   test('authenticated capture keeps Share reachable outside the action footer', async ({ page }) => {

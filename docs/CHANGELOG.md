@@ -174,3 +174,7 @@ Fixed live tea review routes refusing to run when the Groq key is missing even t
 ## 2026-10-25: Mobile tasting capsule
 
 The mobile tasting navigation now uses the site capsule with a larger central emblem and folding exit. Texture, Effect, Taste and Storage stay directly accessible; notes move to the mobile header. Storage adds character and unwanted notes above an Appearance group. Existing journal persistence and unsaved-change protection remain in place. Corrected three stale line references in the existing Worker diagnostic baseline without adding allowed errors.
+
+## 2026-10-26 — Complete connected tasting
+
+Integrated the approved taste/aroma wheel, opening impression, rating, notes and compact vocabulary into the real tasting session. Independent senses persist in the tasting record, admin transcription appends to the editable note, and recap links reopen the relevant choices. Preserved the animated capsule and Storage/Appearance controls.

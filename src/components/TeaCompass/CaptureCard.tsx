@@ -1862,16 +1862,14 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       {/* ─── Profile zone: quality bar + brewing + tag cloud ─── */}
       <section className="curate-cluster curate-zone-taste space-y-1.5" data-testid="curate-cluster-tasting" data-zone="taste">
           <QuietEyebrow label="Taste" />
-          {!hasTasting && (
             <button
               type="button"
               onClick={openTastingOverlay}
               className="curate-profile-entry curate-compact-target w-full justify-center border-b border-tea-border text-center text-tea-text transition-colors hover:text-tea-gold"
               data-curate-action
             >
-              <span className="curate-support">Add tasting profile</span>
+              <span className="curate-support">{hasTasting ? 'Edit tasting profile' : 'Add tasting profile'}</span>
             </button>
-          )}
           {hasTasting && entry.tasting && (
             <>
           {/* Quality 1–10, same segment toggle as TastingSession */}
