@@ -1,3 +1,7 @@
+## Wheel label hierarchy 2026-10-26
+
+- Category and flavor names grow with wheels wider than the phone baseline. Taste and Aroma retain their small 11-pixel screen-size cap, preserving their secondary role as the wheel expands. Verified at phone and larger viewport sizes.
+
 ## Database guardrail and inventory efficiency follow-up prepared 2026-10-26
 
 - Meter singleton/session reads, preserve committed saves, and stop automatic replay after partial completion. Unrelated admin pages stop loading inventory; targeted edits reconcile affected rows while imports and manual refresh retain full reload. Independent usage monitoring now has durable, deduplicated i64os repair handoff with explicit delivery failures. Publication and operational proof are recorded in the release artifacts and database incident report.

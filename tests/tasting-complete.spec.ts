@@ -142,3 +142,26 @@ test('throat feel, weight and persistence replace their previous choice', async 
     await expect(group.getByRole('button',{name:second,exact:true})).toHaveAttribute('aria-pressed','true');
   }
 });
+
+test('wheel names grow with the wheel while sense captions remain small', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installCompassHarness(page);
+  await openCompass(page);
+  await page.getByRole('button', { name: /tasting profile/i }).click();
+  await page.getByRole('navigation', { name: 'Tasting sections' }).getByRole('button', { name: 'Taste', exact: true }).click();
+  await page.getByRole('button', { name: 'Explore Floral', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  const label = page.locator('.split-note-label span[data-layout="arc"]').first();
+  const sense = page.locator('.sense-caption').first();
+  const screenFont = async () => sense.evaluate(el => parseFloat(getComputedStyle(el).fontSize) * (el as SVGGraphicsElement).getScreenCTM()!.a);
+  await expect(label).toBeVisible();
+  const small = Number(await label.getAttribute('data-font-size'));
+  expect(await screenFont()).toBeLessThanOrEqual(11.1);
+  await page.setViewportSize({ width: 820, height: 1000 });
+  await expect.poll(async () => Number(await label.getAttribute('data-font-size'))).toBeGreaterThan(small);
+  expect(await screenFont()).toBeLessThanOrEqual(11.1);
+  await page.screenshot({ path: '/tmp/tasting-wheel-scaling-large.png' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(async () => Number(await label.getAttribute('data-font-size'))).toBeCloseTo(small, 1);
+  await page.screenshot({ path: '/tmp/tasting-wheel-scaling-phone.png' });
+});
