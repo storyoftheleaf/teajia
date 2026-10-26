@@ -190,3 +190,11 @@ Kept rating choices as plain numerals, capped Taste/Aroma caption size as the wh
 ### Compact rating buttons and note saving
 
 Restored subtle single-row rating tiles and added Save notes directly below the editor, wired to the existing tasting persistence with saving/error feedback. Wheel and bottom navigation unchanged. Verified at 320px with typed-note persistence.
+
+### Restore approved impression controls
+
+Restored the prototype’s connected 1–10 bar with separators and rounded impression, purchase and collection buttons. Kept Save notes, the wheel and bottom navigation unchanged.
+
+### Single-choice sensory groups
+
+Throat feel now replaces its previous choice, matching Weight and Persistence. All three use connected segmented controls. Restored lighter vocabulary typography and softly grouped Effect cards; other sensory words remain multi-select.

@@ -3,6 +3,7 @@
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync, renameSync, unlinkSync, openSync, closeSync } from 'node:fs';
 import { dirname, join, isAbsolute, basename } from 'node:path';
+import { claimProductionLease, releaseProductionLease } from './check-production-release-lease.mjs';
 import { pathToFileURL } from 'node:url';
 const SHA = /^[a-f0-9]{40}$/;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -55,6 +56,7 @@ export function validateConfig(config) {
   if (!SHA.test(config.candidate) || !SHA.test(config.expectedMain)) throw new Error('Full candidate and expected-main SHAs required');
   if (config.repo !== 'storyoftheleaf/teajia' || !/^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(config.tag) || config.tag.includes('..')) throw new Error('Invalid repository/tag');
   if (!Number.isSafeInteger(config.runId) || config.runId < 1 || config.runAttempt !== 1) throw new Error('Exact run ID and attempt 1 required');
+  if (config.publicationLeasePath !== undefined && !isAbsolute(config.publicationLeasePath)) throw new Error('Publication lease path must be absolute');
   for (const field of ['gitDir', 'gh', 'git']) if (!isAbsolute(config[field] ?? '')) throw new Error(`${field} must be absolute`);
 }
 export function validateRun(config, run) {
@@ -123,7 +125,12 @@ export async function observe(configPath, dependencies = {}) {
     writeFileSync(zip, command(config.gh, ['api', `repos/${config.repo}/actions/artifacts/${item.id}/zip`], null), { mode: 0o600 });
     return JSON.parse(command('/usr/bin/unzip', ['-p', zip, name === 'worker-release-proof' ? 'worker-release-proof.json' : 'release-state.json']));
   };
+  let leaseClaimed = false;
   try {
+    if (config.publicationLeasePath) {
+      await claimProductionLease(config.publicationLeasePath, { candidate: config.candidate, runUrl: state.runUrl, resumePath: configPath }, now());
+      leaseClaimed = true;
+    }
     persist('started');
     const deadline = now() + 40 * 60 * 1000;
     let published = false;
@@ -157,7 +164,10 @@ export async function observe(configPath, dependencies = {}) {
     }
     throw new Error('Observation timed out; resume the same candidate/run without redeploying');
   } catch (error) { persist('failed', { error: error.message }); throw error; }
-  finally { try { unlinkSync(lock); } catch { /* already removed */ } }
+  finally {
+    if (leaseClaimed) await releaseProductionLease(config.publicationLeasePath, config.candidate, state.runUrl);
+    try { unlinkSync(lock); } catch { /* already removed */ }
+  }
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const index = process.argv.indexOf('--config');

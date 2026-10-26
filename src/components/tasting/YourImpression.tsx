@@ -63,7 +63,7 @@ export function YourImpression({ value, onChange, verdict, onVerdict, wouldBuy, 
     <section className="tasting-impression-rating" aria-label="Rating">
       <div className="tasting-impression-heading"><h3 className={TYPOGRAPHY_CLASSES.label}>Your rating</h3><span className="font-mono text-ui-12">{rating ? `${rating} / 10` : '– / 10'}</span></div>
       <div className="tasting-impression-numbers" role="group" aria-label="Your rating">
-        {Array.from({ length: 10 }, (_, i) => i + 1).map(n => <button type="button" key={n} className="tap-target font-mono text-ui-14" aria-label={`Rate ${n} out of 10`} aria-pressed={rating === n} onClick={() => onChange({ ...value, quality: rating === n ? undefined : n })}>{n}</button>)}
+        {Array.from({ length: 10 }, (_, i) => i + 1).map(n => <button type="button" key={n} className="tap-target font-sans text-ui-12" aria-label={`Rate ${n} out of 10`} aria-pressed={rating === n} onClick={() => onChange({ ...value, quality: rating === n ? undefined : n })}>{n}</button>)}
       </div>
     </section>
     <div className="tasting-impression-notes">

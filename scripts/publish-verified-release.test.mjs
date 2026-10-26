@@ -62,7 +62,7 @@ function fixture(t, options = {}) {
   const git = (...args) => {
     gitReads.push(args);
     if (args[0] === 'ls-remote') return `${main}\trefs/heads/main`;
-    if (args[0] === 'merge-base') return '';
+    if (args[0] === 'merge-base') { if (options.nonAncestor) throw new Error('Expected main is not an ancestor'); return ''; }
     if (args[0] === 'push') { mutations.push(args); main = candidate; return ''; }
     throw new Error(`unexpected git ${args}`);
   };
@@ -129,10 +129,42 @@ test('resumes observation without publishing main again', async t => {
   await run(f.env, false, f.dependencies);
   assert.equal(f.mutations.length, 0); assert.equal(f.state().state, 'live');
 });
-test('preflight verifies Pages permissions without publishing', async t => {
+test('preflight verifies Pages permissions and exact main ancestry without publishing', async t => {
   const f = fixture(t);
   await run(f.env, 'preflight', f.dependencies);
   assert.equal(f.mutations.length, 0); assert.equal(f.state().state, 'preflight_passed');
+  assert.deepEqual(f.gitReads, [
+    ['ls-remote', 'origin', 'refs/heads/main'],
+    ['merge-base', '--is-ancestor', f.env.EXPECTED_MAIN_SHA, f.env.CANDIDATE_SHA],
+  ]);
+  assert.equal(f.workerReads(), 0);
+});
+test('preflight refuses stale or missing remote main before Worker publication', async t => {
+  for (const main of ['c'.repeat(40), ' ']) {
+    const f = fixture(t, { main });
+    await assert.rejects(run(f.env, 'preflight', f.dependencies), /Main changed/);
+    assert.equal(f.state().state, 'failed');
+    assert.equal(f.gitReads.length, 1);
+    assert.equal(f.workerReads(), 0);
+    assert.equal(f.mutations.length, 0);
+  }
+});
+test('preflight rejects nonancestor candidates including an already-published resume', async t => {
+  for (const main of ['b'.repeat(40), 'a'.repeat(40)]) {
+    const f = fixture(t, { main, nonAncestor: true });
+    await assert.rejects(run(f.env, 'preflight', f.dependencies), /not an ancestor/);
+    assert.equal(f.state().state, 'failed');
+    assert.equal(f.workerReads(), 0);
+    assert.equal(f.mutations.length, 0);
+  }
+});
+test('preflight accepts a resume with remote main already at the descendant candidate', async t => {
+  const f = fixture(t, { main: 'a'.repeat(40) });
+  await run(f.env, 'preflight', f.dependencies);
+  assert.equal(f.state().state, 'preflight_passed');
+  assert.equal(f.gitReads[1][0], 'merge-base');
+  assert.equal(f.workerReads(), 0);
+  assert.equal(f.mutations.length, 0);
 });
 test('retries a transient immutable asset 404 and still proves every asset hash', async t => {
   const f = fixture(t, { main: 'a'.repeat(40), assetInitiallyMissing: true });

@@ -14,6 +14,7 @@ describe('Connected Texture and Effect', () => {
   });
 
   it('preserves historical IDs and unrelated answers while changing exclusive groups', () => {
+    expect(SENSATION_GROUPS.body.filter(group => group.single).map(group => group.id)).toEqual(['throat', 'weight', 'duration']);
     const old = { body: ['light', 'silky', 'legacy'], finish: ['lingering', 'finish-bitter'], feeling: ['calming'] };
     const medium = toggleSensation(old, 'body', 'weight', 'medium');
     expect(medium.body).toEqual(['silky', 'legacy', 'medium']);
@@ -23,11 +24,12 @@ describe('Connected Texture and Effect', () => {
     expect(selectedSensations(old, 'state').map(term => term.label)).toEqual(['Calm']);
   });
 
-  it('allows coexisting throat feelings and migrates legacy cleanliness only on edit', () => {
+  it('replaces throat feel and migrates legacy cleanliness only on edit', () => {
     const old = { cleanliness: 'clean', storageCharacter: 0, finish: ['finish-bitter'] };
     expect(selectedSensations(old, 'body').map(term => term.label)).toContain('Comfortable');
     const next = toggleSensation(old, 'body', 'throat', 'throat-slight-edge');
-    expect(next.finish).toEqual(['finish-bitter', 'throat-comfortable', 'throat-slight-edge']);
+    expect(next.finish).toEqual(['finish-bitter', 'throat-slight-edge']);
+    expect(toggleSensation(next, 'body', 'throat', 'throat-irritated').finish).toEqual(['finish-bitter', 'throat-irritated']);
     expect(next.cleanliness).toBeUndefined();
     expect(next.storageCharacter).toBe(0);
     expect(toggleSensation(old, 'body', 'throat', 'throat-comfortable').finish).toEqual(['finish-bitter']);

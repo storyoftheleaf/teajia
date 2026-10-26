@@ -12,7 +12,7 @@ export const SENSATION_GROUPS: Record<SensationSection, SensationGroup[]> = {
       "id": "throat",
       "label": "Throat feel",
       "hint": "How swallowing feels.",
-      "single": false,
+      "single": true,
       "terms": [
         {
           "id": "throat-comfortable",

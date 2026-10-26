@@ -42,7 +42,7 @@ export function ConnectedSensations({ value, onChange, section, reveal }: Connec
   };
 
   return (
-    <div ref={host} className="connected-sensations" aria-label={section === 'body' ? 'Texture' : 'Effect'}>
+    <div ref={host} className={`connected-sensations connected-sensations-${section}`} aria-label={section === 'body' ? 'Texture' : 'Effect'}>
       <h2 className={`${TYPOGRAPHY_CLASSES.h2} mb-4 text-tea-text`}>{section === 'body' ? 'How does it feel?' : 'How do you feel?'}</h2>
       {groups.map(group => (
         <section key={group.id} data-sensation-group={group.id} className="connected-sensation-family" aria-labelledby={`${prefix}-${group.id}`}>
@@ -52,7 +52,7 @@ export function ConnectedSensations({ value, onChange, section, reveal }: Connec
           </div>
           <div className={`connected-sensation-choices ${group.terms.length === 3 ? 'connected-sensation-three' : ''} ${group.single ? 'connected-sensation-single' : ''}`} role="group" aria-label={group.label}>
             {group.terms.map(term => (
-              <button key={`${term.id}-${highlight === term.id || highlight === term.label ? reveal?.stamp : ''}`} type="button" data-sensation-word={term.id} aria-pressed={sensationIsSelected(data, term)} className={`${TYPOGRAPHY_CLASSES.link} connected-sensation-choice ${highlight === term.id || highlight === term.label ? 'connected-sensation-return' : ''}`} onClick={() => { setHighlight(null); onChange(toggleSensation(data, section, group.id, term.id)); }}>{term.label}</button>
+              <button key={`${term.id}-${highlight === term.id || highlight === term.label ? reveal?.stamp : ''}`} type="button" data-sensation-word={term.id} aria-pressed={sensationIsSelected(data, term)} className={`${group.single ? TYPOGRAPHY_CLASSES.link : TYPOGRAPHY_CLASSES.bodyLight} connected-sensation-choice ${highlight === term.id || highlight === term.label ? 'connected-sensation-return' : ''}`} onClick={() => { setHighlight(null); onChange(toggleSensation(data, section, group.id, term.id)); }}>{term.label}</button>
             ))}
           </div>
           <div id={`${prefix}-${group.id}-guide`} hidden={guide !== group.id} className="pt-3">

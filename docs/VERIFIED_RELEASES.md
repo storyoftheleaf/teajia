@@ -50,3 +50,21 @@ This resumes read-only proof and does not deploy or push.
 Empty `publish_main_expected` retains the ordinary Worker-only workflow. Direct
 pushes to main retain the existing Git-integrated Pages behavior, so use the
 coordinated release for changes whose frontend requires a newer API.
+
+## Local publication lease
+
+The shared local Git pre-push hook now reads
+`~/.codex/releases/teajia/production-lease.json` using a stable copy of
+`scripts/check-production-release-lease.mjs`. While the lease is active, only its
+exact candidate may be pushed to Teajia main. Editing and branch pushes continue.
+This prevents other local publishing sessions from moving main between the
+Worker proof and frontend publication, which caused three October 26 releases
+to stop after deploying the Worker.
+
+New observer configs set an absolute `publicationLeasePath`. The observer claims
+or resumes its own bounded lease, then removes only its own lease on success or
+failure. A crash cannot block pushes indefinitely: leases expire within 45 minutes.
+Malformed state refuses main pushes with the state/resumption path so it can be
+inspected rather than silently bypassed. The local hook is coordination, not a
+server-side lock: other clones or `--no-verify` can bypass it, so the remote main,
+immutable tag and exact live-byte checks remain mandatory.
