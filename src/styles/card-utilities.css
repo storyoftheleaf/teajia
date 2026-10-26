@@ -5708,13 +5708,13 @@ body.cart-panel-open .commerce-dock {
 /* Your impression: one compact editor with a readable, linked tasting recap. */
 .tasting-impression { min-width: 0; padding: 0 16px 24px; color: var(--tea-text); }
 .tasting-impression button { color: inherit; }
-.tasting-impression-verdicts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
-.tasting-impression-verdicts button { min-height: 44px; border: 1px solid var(--tea-border); border-radius: 4px; font-family: var(--font-body); }
-.tasting-impression button[aria-pressed="true"] { color: var(--tea-gold); background: var(--tea-accent-sub); }
+.tasting-impression-verdicts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.tasting-impression-verdicts button { min-width:0; min-height:54px; border:1px solid var(--tea-border); border-radius:12px; font:16px var(--font-display); background:var(--tea-surface); }
+.tasting-impression button[aria-pressed="true"] { color:var(--tea-text); background:var(--tea-elevated); }
 .tasting-impression button:focus-visible, .tasting-impression textarea:focus-visible { outline: 2px solid var(--tea-gold); outline-offset: 2px; }
-.tasting-impression-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0 14px; }
-.tasting-impression-actions button { min-height: 44px; font-size: 12px; line-height: 1.35; text-align: left; }
-.tasting-impression-actions button:last-child { text-align: right; }
+.tasting-impression-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; margin:10px 0 14px; }
+.tasting-impression-actions button { min-width:0; min-height:52px; padding:8px 7px; font:15px/1.15 var(--font-display); border:1px solid var(--tea-border); border-radius:11px; background:var(--tea-surface); text-align:center; }
+
 .tasting-impression-rating { border-top: 1px solid var(--tea-border); padding: 16px 0 22px; }
 .tasting-impression-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--tea-text-dim); }
 .tasting-impression-heading h3 { margin: 0; }
@@ -5759,9 +5759,10 @@ body.cart-panel-open .commerce-dock {
 .tasting-heading-tools button:disabled { opacity:.45; }
 
 
-/* Compact rating tiles share one row, with quiet edges and generous height. */
-.tasting-impression-numbers { gap:3px; }
-.tasting-impression-numbers button { border:1px solid var(--tea-border); background:var(--tea-surface); box-shadow:none; border-radius:7px; color:var(--tea-text-sec); }
+/* Approved connected rating bar: a single surface with quiet dividers. */
+.tasting-impression-numbers { gap:0; border:1px solid var(--tea-border); border-radius:8px; overflow:hidden; background:var(--tea-surface); }
+.tasting-impression-numbers button { border:0; border-right:1px solid var(--tea-border); background:transparent; box-shadow:none; border-radius:0; color:var(--tea-text-sec); }
+.tasting-impression-numbers button:last-child { border-right:0; }
 .tasting-impression-numbers button[aria-pressed="true"] { background:var(--tea-elevated); color:var(--tea-text); font-weight:600; }
 .tasting-notes-save-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:8px; }
 .tasting-notes-save-row > span { color:var(--tea-text-dim); }
