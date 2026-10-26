@@ -100,11 +100,16 @@ export async function run(env = process.env, initialize = false, dependencies = 
     return { buildId: version.buildId, hashes };
   };
   try {
-    // Verify credentials and Git ancestry before the only frontend publication.
+    // Preflight checks credentials and ancestry before the workflow deploys the Worker.
     const project = await cf('');
     if (project.production_branch !== 'main') throw new Error('teajiafinal production branch is not main');
     if (!project.domains?.includes('teajia.com')) throw new Error('teajiafinal does not own teajia.com');
     if (initialize === 'preflight') {
+      const main = git('ls-remote', 'origin', 'refs/heads/main').split(/\s/)[0];
+      if (main !== expected && main !== candidate) throw new Error('Main changed; integrate it into a new candidate before publishing');
+      // Check even when main already equals candidate: a resumed release must
+      // still preserve its recorded expected-main ancestry.
+      git('merge-base', '--is-ancestor', expected, candidate);
       persist('preflight_passed');
       return state;
     }

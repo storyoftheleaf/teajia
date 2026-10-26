@@ -25,9 +25,11 @@ export function guardDatabase<T extends object>(db: T, now = Date.now) {
   let quotaHit = false;
   let rowsRead = 0;
   let queries = 0;
+  let writesCommitted = false;
   const blocked = () => (cooldowns.get(db) ?? 0) > now();
   const record = (result: any) => {
     for (const entry of Array.isArray(result) ? result : [result]) {
+      if (entry?.meta?.changed_db === true || Number(entry?.meta?.rows_written) > 0 || Number(entry?.meta?.changes) > 0) writesCommitted = true;
       if (typeof entry?.meta?.rows_read === 'number') rowsRead += entry.meta.rows_read;
     }
   };
@@ -59,15 +61,17 @@ export function guardDatabase<T extends object>(db: T, now = Date.now) {
     originals.set(wrapped, value);
     return wrapped;
   };
-  const database = new Proxy(db, {
+  const wrapDatabase = (source: any): any => new Proxy(source, {
     get(target, key) {
       const member = Reflect.get(target, key, target);
       if (typeof member !== 'function') return member;
+      if (key === 'withSession') return (...args: unknown[]) => wrapDatabase(member.apply(target, args));
       if (key === 'prepare') return (...args: unknown[]) => statement(member.apply(target, args));
       if (key === 'batch') return (items: object[]) => run(() => member.call(target, items.map(item => originals.get(item) ?? item)));
       if (key === 'exec') return (...args: unknown[]) => run(() => member.apply(target, args));
       return member.bind(target);
     },
   });
-  return { database, blocked, quotaHit: () => quotaHit, metrics: () => ({ rowsRead, queries }) };
+  const database = wrapDatabase(db) as T;
+  return { database, blocked, writesCommitted: () => writesCommitted, quotaHit: () => quotaHit, metrics: () => ({ rowsRead, queries }) };
 }

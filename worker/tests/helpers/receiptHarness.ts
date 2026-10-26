@@ -46,6 +46,10 @@ class ReceiptStatement {
   }
   async all() {
     const sql = norm(this.sql);
+    if (sql.includes('idempotency_key = ?')) {
+      const row = await this.first();
+      return { results: row == null ? [] : [row] };
+    }
     if (sql.includes('select id, product_name, given_name, chinese_name, type from products where account_id = ?')) {
       return { results: [...this.db.products.values()].filter(row => row.account_id === this.values[0]) };
     }
@@ -55,7 +59,8 @@ class ReceiptStatement {
     }
     if (sql.includes('from inventory_receipt_lines l join products p')) return { results: [...this.db.receiptLines.values()].filter(row => row.receipt_id === this.values[0] && row.account_id === this.values[1]).map(row => { const product = this.db.products.get(String(row.product_id)); return { ...row, product_name: product?.given_name ?? product?.product_name ?? 'Unnamed item', current_on_hand: row.unit === 'g' ? Number(product?.stock_grams ?? 0) : Number(product?.quantity_units ?? 0) }; }) };
     if (sql.includes('from products where account_id=? and in_transit=1')) return { results: [...this.db.products.values()].filter(row => row.account_id === this.values[0] && row.in_transit === 1 && Number(row.in_transit_grams) > 0).map(row => ({ id: row.id, product_name: row.given_name ?? row.product_name ?? 'Unnamed item', expected_quantity: row.in_transit_grams, current_on_hand: Number(row.stock_grams ?? 0), eta: row.in_transit_eta, intended_purpose: row.inventory_purpose })) };
-    return { results: [] };
+    const row = await this.first();
+    return { results: row == null ? [] : [row] };
   }
   async run() {
     const sql = norm(this.sql);

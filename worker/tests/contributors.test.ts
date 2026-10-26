@@ -91,7 +91,8 @@ class FakeDb {
     if (sql.includes('from contributors co') && sql.includes('where co.account_id = ?')) {
       return { results: [...this.contributors.values()].filter(row => row.account_id === values[0]).map(structuredClone) };
     }
-    return { results: [] };
+    const row = await this.first(sqlText, values);
+    return { results: row == null ? [] : [row] };
   }
   async run(sqlText: string, values: any[]) {
     const sql = this.normalized(sqlText);

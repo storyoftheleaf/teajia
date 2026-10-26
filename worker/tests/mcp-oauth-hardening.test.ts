@@ -38,6 +38,7 @@ class OAuthDb {
         if (normalized.includes('from oauth_authorize_requests')) return this.requests.find(r => r.client_id === values[0] && r.redirect_uri === values[1] && r.code_challenge === values[3]) || null;
         return null;
       },
+      all: async () => { const row = await statement.first(); return { results: row == null ? [] : [row] }; },
       run: async () => {
         if (normalized.startsWith('insert into oauth_clients')) {
           this.inserts++;
@@ -72,14 +73,14 @@ describe('MCP OAuth write boundaries', () => {
 
     const staleDb = {
       writes: 0,
-      prepare: () => ({ bind() { return this; }, first: async () => ({ id: 'user-1', email: 'owner@test.dev', platform_role: 'platform_owner', session_version: 1 }), run: async () => { staleDb.writes++; } }),
+      prepare: () => ({ bind() { return this; }, async all() { const row = await this.first(); return { results: row == null ? [] : [row] }; }, first: async () => ({ id: 'user-1', email: 'owner@test.dev', platform_role: 'platform_owner', session_version: 1 }), run: async () => { staleDb.writes++; } }),
     };
     const stale = await decision(staleDb);
     expect(stale.status).toBe(401);
     expect(await stale.json()).toMatchObject({ error: 'unauthenticated' });
     expect(staleDb.writes).toBe(0);
 
-    const unavailable = await decision({ prepare: () => ({ bind() { return this; }, first: async () => { throw new Error('D1 unavailable'); } }) });
+    const unavailable = await decision({ prepare: () => ({ bind() { return this; }, async all() { const row = await this.first(); return { results: row == null ? [] : [row] }; }, first: async () => { throw new Error('D1 unavailable'); } }) });
     expect(unavailable.status).toBe(503);
     expect(await unavailable.json()).toMatchObject({ error: 'temporarily_unavailable' });
   });

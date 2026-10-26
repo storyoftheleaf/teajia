@@ -58,7 +58,7 @@ class MovementStatement {
     if (sql.includes('from invoices where id = ? and account_id = ?')) return this.values[0] === 'inv' && this.values[1] === 'account-a' ? { id: 'inv' } : null;
     return null;
   }
-  async all() { return { results: [] }; }
+  async all() { const row = await this.first(); return { results: row == null ? [] : [row] }; }
   async run() {
     const sql = normalize(this.sql);
     if (sql.startsWith('update products set')) {

@@ -84,11 +84,12 @@ class IssueDb {
           const [accountId, ...ids] = values;
           return { results: this.rows.filter(row => row.account_id === accountId && row.status === 'open' && ids.includes(row.id)).map(row => ({ id: row.id })) };
         }
-        if (normalized.includes('from tea_reference_issues')) {
+        if (normalized.includes('from tea_reference_issues') && !normalized.includes('normalized_note = ?')) {
           const [accountId] = values;
           return { results: this.rows.filter(row => row.account_id === accountId && row.status === 'open').map(row => ({ ...row })) };
         }
-        return { results: [] };
+        const row = await statement.first();
+        return { results: row == null ? [] : [row] };
       },
       run: async () => {
         if (normalized.startsWith('insert into tea_reference_issues')) {

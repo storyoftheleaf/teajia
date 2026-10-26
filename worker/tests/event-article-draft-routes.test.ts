@@ -45,6 +45,7 @@ class Statement {
     }
     return null;
   }
+  async all() { const row = await this.first(); return { results: row == null ? [] : [row] }; }
   async run() {
     const sql = compact(this.raw);
     this.db.writes.push({ sql, values: this.values });

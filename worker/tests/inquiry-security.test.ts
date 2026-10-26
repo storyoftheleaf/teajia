@@ -66,7 +66,8 @@ class InquiryDb {
               .map((id) => ({ id })),
           };
         }
-        return { results: [] };
+        const row = await statement.first();
+        return { results: row == null ? [] : [row] };
       },
       run: async () => {
         if (!normalized.startsWith('insert into inquiries')) {

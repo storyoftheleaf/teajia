@@ -37,7 +37,8 @@ import { writingToolModule } from './mcpTools/writing';
 import { costCurrencyTools } from './mcpTools/costCurrency';
 import { curateIntakeTools, curateManagerAccess } from './mcpTools/curateIntake';
 import { readCurateHoldings, MAX_CURATE_HOLDINGS_PAGE } from './curateHoldings';
-import { withD1ReadBudget, resolveD1Budget, isD1ReadBudgetExceeded, classifyD1Failure } from './d1Budget';
+import { withD1ReadBudget, resolveD1Budget, settleD1Budget, classifyD1Failure } from './d1Budget';
+import { budgetRefusal } from './d1BudgetResponse';
 import { curateSupplyTools } from './mcpTools/curateSupply';
 import { curatePhotoTools } from './mcpTools/curatePhotos';
 import { curateArrivalTools } from './mcpTools/curateArrivals';
@@ -7234,7 +7235,7 @@ const SERVER_INFO = {
 // older clients negotiate down cleanly instead of being forced to our default.
 const PROTOCOL_VERSION = '2025-06-18';
 
-export async function mcpFetch(request: Request, env: Env): Promise<Response> {
+async function mcpFetchInner(request: Request, env: Env): Promise<Response> {
   // The request entry point in index.ts already budgeted this database, and
   // `withD1ReadBudget` hands the same one back rather than opening a second
   // ledger. Asking here too is what covers the tests that reach this handler
@@ -7303,9 +7304,9 @@ export async function mcpFetch(request: Request, env: Env): Promise<Response> {
     // the request is answerable, it was simply too large for one go, and the
     // caller's next move is to ask for a page rather than to retry the same
     // thing. Its own code so a client can tell the two apart.
-    if (isD1ReadBudgetExceeded(err)) {
-      return rpcError(id, -32003, 'Database read budget exceeded for this request', { reason: 'budget' });
-    }
+    await settleD1Budget(env.DB);
+    const refusal = budgetRefusal(env.DB, err);
+    if (refusal) return rpcError(id, refusal.rpcCode, refusal.body.message, refusal.body);
     const failure = classifyD1Failure(err);
     if (failure === 'quota') return rpcError(id, -32004, 'Database unavailable: daily read quota exceeded', { reason: 'quota' });
     if (failure === 'database') return rpcError(id, -32004, 'Database unavailable', { reason: 'database' });
@@ -8345,7 +8346,7 @@ function publicToolDefs() {
   }));
 }
 
-export async function publicMcpFetch(request: Request, env: Env): Promise<Response> {
+async function publicMcpFetchInner(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   const account = await resolvePublicAccount(env, url.searchParams.get('account'));
 
@@ -8410,12 +8411,32 @@ export async function publicMcpFetch(request: Request, env: Env): Promise<Respon
     // the request is answerable, it was simply too large for one go, and the
     // caller's next move is to ask for a page rather than to retry the same
     // thing. Its own code so a client can tell the two apart.
-    if (isD1ReadBudgetExceeded(err)) {
-      return rpcError(id, -32003, 'Database read budget exceeded for this request', { reason: 'budget' });
-    }
+    await settleD1Budget(env.DB);
+    const refusal = budgetRefusal(env.DB, err);
+    if (refusal) return rpcError(id, refusal.rpcCode, refusal.body.message, refusal.body);
     const failure = classifyD1Failure(err);
     if (failure === 'quota') return rpcError(id, -32004, 'Database unavailable: daily read quota exceeded', { reason: 'quota' });
     if (failure === 'database') return rpcError(id, -32004, 'Database unavailable', { reason: 'database' });
     return rpcError(id, -32603, err?.message || 'Internal error');
   }
 }
+
+/** Preserve JSON-RPC semantics even when legacy auth/tool handlers catch errors. */
+async function budgetedMcp(request: Request, env: Env, handler: typeof mcpFetchInner): Promise<Response> {
+  env = { ...env, DB: withD1ReadBudget(env.DB, resolveD1Budget(env as unknown as Record<string, unknown>)) };
+  const copy = request.clone();
+  let response: Response | undefined;
+  let caught: unknown;
+  try { response = await handler(request, env); } catch (error) { caught = error; }
+  await settleD1Budget(env.DB);
+  const refusal = budgetRefusal(env.DB, caught);
+  if (refusal) {
+    let id: string | number | null = null;
+    try { const value = (await copy.json() as { id?: unknown }).id; if (typeof value === 'string' || typeof value === 'number') id = value; } catch { /* malformed/GET */ }
+    return rpcError(id, refusal.rpcCode, refusal.body.message, refusal.body);
+  }
+  if (caught) throw caught;
+  return response!;
+}
+export const mcpFetch = (request: Request, env: Env) => budgetedMcp(request, env, mcpFetchInner);
+export const publicMcpFetch = (request: Request, env: Env) => budgetedMcp(request, env, publicMcpFetchInner);

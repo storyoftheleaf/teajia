@@ -6,7 +6,8 @@ Status: the autonomous hardening queue shipped on `codex/platform-hardening`. On
 
 ## Active queue
 
-- [ ] **Publish and activate the database reliability repair.** The holdings scan fix, execution-budget test, quota containment and independent usage monitor are implemented and locally verified. Complete the production and notification checks in the [October 25 incident record](../incidents/2026-10-25-database-read-exhaustion.md); do not mark monitoring active from a local test alone.
+- [x] **Publish the initial database reliability repair.** Release run 308 proved revision `feb6ccab` live (build `mvom89fo`); the independent CI usage monitor ran successfully with production credentials. See the [October 25 incident record](../incidents/2026-10-25-database-read-exhaustion.md).
+- [ ] **Verify the October 26 guardrail/efficiency follow-up live and automatic repair operational.** Singleton/session metering, committed-write protection, targeted inventory refresh and durable repair handoff are prepared and tested. Require the follow-up release artifacts and receiver/executor readiness evidence; webhook acceptance alone does not establish repair completion.
 
 - [ ] **Apply the approved Sources/Personal navigation cleanup.** Proposed exact change: make `/admin/sources` open `PeopleView` on its real Sources tab with the existing capability access, and remove the redundant `/admin/personal` navigation child because it has no distinct supported route. Do not change either route/navigation item until Adrian explicitly approves.
 

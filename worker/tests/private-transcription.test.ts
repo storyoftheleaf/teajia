@@ -53,7 +53,8 @@ class Db {
         if (normalized.includes('from private_recordings') && normalized.includes('expires_at <=')) {
           return { results: this.recording ? [{ id: this.recording.id, object_key: this.recording.object_key }] : [] };
         }
-        return { results: [] };
+        const row = await statement.first();
+        return { results: row == null ? [] : [row] };
       },
     };
     return statement;

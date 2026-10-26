@@ -57,6 +57,7 @@ class EventContractDb {
         if (normalized.includes("status = 'waitlist'")) return null;
         return null;
       },
+      all: async () => { const row = await statement.first(); return { success: true, results: row ? [row] : [] }; },
       run: async () => {
         if (!normalized.startsWith('update event_attendees set')) return { success: true };
 
@@ -515,8 +516,8 @@ describe('Events Release 1 persisted route contracts', () => {
               statement.bind(...values);
               return wrapped;
             },
-            first<T>() {
-              const result = statement.first<T>();
+            all<T>() {
+              const result = statement.all<T>();
               db.sqlite.prepare(`UPDATE events SET status = 'closed', lifecycle_status = 'cancelled' WHERE id = ?`)
                 .run('event-a');
               injectedRace = true;

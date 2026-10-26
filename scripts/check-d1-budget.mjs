@@ -1,6 +1,7 @@
 import { mkdir, writeFile, appendFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { handoffBudgetRepair, stageBudgetRepair } from './check-d1-budget-repair.mjs';
 
 // Account-wide: every database shares the free daily allowance. Omitting
 // databaseId and dimensions asks Cloudflare to aggregate the complete account.
@@ -84,6 +85,7 @@ export function summary(report) {
       `Rows written: ${report.rowsWritten.toLocaleString('en-US')} / ${report.budgets.writes.toLocaleString('en-US')} (${(report.writeFraction * 100).toFixed(1)}%)`,
       `Queries: ${report.readQueries.toLocaleString('en-US')} read, ${report.writeQueries.toLocaleString('en-US')} write`);
   }
+  if (report.repair) lines.push('', `Repair handoff: ${report.repair.status}${report.repair.reason ? ` (${report.repair.reason})` : ''}`, report.repair.incidentId ? `External incident: ${report.repair.incidentId}` : '', 'Accepted means the receiver acknowledged the incident; repair completion and publication are separate.');
   lines.push('', 'Account-wide Cloudflare analytics; no application database query was issued.',
     'Analytics may lag. A successful check is not a guarantee of remaining capacity.',
     'Warning/critical: inspect D1 Metrics and query Insights, contain the source of excess usage, and review the plan before changing budgets.',
@@ -93,6 +95,24 @@ export function summary(report) {
 
 export async function main(env = process.env) {
   const report = await checkBudget({ env });
+  if (env.D1_REPAIR_STATE_FILE) {
+    try {
+      const repairOptions = {
+        stateFile: resolve(env.D1_REPAIR_STATE_FILE), accountId: env.CLOUDFLARE_ACCOUNT_ID,
+        secret: env.I64OS_REPAIR_SECRET,
+        runUrl: env.GITHUB_REPOSITORY === 'storyoftheleaf/teajia' && /^\d+$/.test(env.GITHUB_RUN_ID || '')
+          ? `https://github.com/storyoftheleaf/teajia/actions/runs/${env.GITHUB_RUN_ID}` : null,
+      };
+      if (env.I64OS_REPAIR_READY !== 'true') {
+        await stageBudgetRepair(report, repairOptions);
+        report.repair = { status: 'failed', reason: 'Repair executor is not verified ready; restore network sign-in and service SSH credential before enabling I64OS_REPAIR_READY' };
+      } else {
+        report.repair = await handoffBudgetRepair(report, repairOptions);
+      }
+    } catch {
+      report.repair = { status: 'failed', reason: 'Repair state could not be safely read or persisted; inspect state artifact' };
+    }
+  }
   const outputDir = resolve(env.D1_BUDGET_OUTPUT_DIR || 'outputs/d1-budget');
   await mkdir(outputDir, { recursive: true });
   const readable = summary(report);
@@ -103,7 +123,7 @@ export async function main(env = process.env) {
     await appendFile(env.GITHUB_STEP_SUMMARY, readable);
   }
   console.log(readable);
-  return { ok: 0, warning: 1, critical: 2, unknown: 3 }[report.status];
+  return report.repair?.status === 'failed' ? 4 : { ok: 0, warning: 1, critical: 2, unknown: 3 }[report.status];
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

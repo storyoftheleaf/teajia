@@ -54,3 +54,19 @@ describe('database quota containment', () => {
     expect(preflight.status).toBe(204);
   });
 });
+
+it('shares quota cooldown and query accounting across sessions', async () => {
+  const all = vi.fn().mockResolvedValueOnce({ results: [], meta: { rows_read: 7 } }).mockRejectedValueOnce(quota());
+  const session = { prepare: () => ({ all }), getBookmark: () => 'bookmark' };
+  const db = { ...session, withSession: () => session };
+  const guard = guardDatabase(db);
+  const child = guard.database.withSession();
+  expect(child.getBookmark()).toBe('bookmark');
+  await child.prepare().all();
+  await expect(child.prepare().all()).rejects.toThrow('daily row');
+  expect(guard.quotaHit()).toBe(true);
+  expect(guardDatabase(db).blocked()).toBe(true);
+  await expect(guard.database.prepare().all()).rejects.toThrow('daily row');
+  expect(all).toHaveBeenCalledTimes(2);
+  expect(guard.metrics()).toEqual({ rowsRead: 7, queries: 2 });
+});

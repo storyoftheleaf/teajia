@@ -92,6 +92,8 @@ interface InventoryViewProps {
   onImportClick: () => void;
   onAddClick: () => void;
   onRefresh: () => void;
+  onProductsChanged?: (ids: readonly string[]) => void;
+  onProductDeleted?: (id: string) => void;
   /** Category controlled from parent top bar */
   externalCategory?: 'tea' | 'teaware';
   /** Search query controlled from parent top bar */
@@ -143,7 +145,7 @@ const SavedPill: React.FC<{ isVisible: boolean }> = ({ isVisible }) => {
 };
 
 export const InventoryView: React.FC<InventoryViewProps> = ({
-  products, isLoading, isError, error, onImportClick, onAddClick, onRefresh,
+  products, isLoading, isError, error, onImportClick, onAddClick, onRefresh, onProductsChanged, onProductDeleted,
   externalCategory = 'tea', externalSearchQuery = '',
   externalShowOptions, onOptionsToggle, onSearchQueryChange, onCategoryChange,
   activeAccountName = '',
@@ -289,6 +291,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [showOptions]);
+
+  const refreshChangedProducts = useCallback((ids: readonly string[]) => {
+    if (onProductsChanged) onProductsChanged(ids);
+    else onRefresh();
+  }, [onProductsChanged, onRefresh]);
 
   // EDIT MODE STATE
   const [isEditMode, setIsEditMode] = useState(false);
@@ -1140,8 +1147,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     }));
     setPanelProduct(prev => prev?.id === productId ? { ...prev, ...updatedStock, stockKnownAt: new Date().toISOString() } : prev);
     setStockMovement(prev => prev?.product.id === productId ? { ...prev, product: { ...prev.product, ...updatedStock, stockKnownAt: new Date().toISOString() } } : prev);
-    onRefresh();
-  }, [onRefresh, setLocalProducts]);
+    refreshChangedProducts(destination ? [productId, destination.id] : [productId]);
+  }, [refreshChangedProducts, setLocalProducts]);
 
   // GENERIC UPDATE HANDLER (Optimistic + DB)
   // Restock: create a pre-filled Tea Compass entry from a product and navigate
@@ -1240,10 +1247,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       try {
         await api.products.setFeatured(id, Boolean(value));
         setLastSavedAt(Date.now());
-        onRefresh();
+        refreshChangedProducts([id]);
       } catch (err: any) {
         showToast(`Update failed: ${err.message}`, 'error');
-        onRefresh();
+        refreshChangedProducts([id]);
         if (options?.throwOnError) throw err;
       } finally {
         setSavingCount(c => Math.max(0, c - 1));
@@ -1261,7 +1268,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         setLastSavedAt(Date.now());
       } catch (err: any) {
         showToast(`Update failed: ${err.message}`, 'error');
-        onRefresh();
+        refreshChangedProducts([id]);
         if (options?.throwOnError) throw err;
       } finally {
         setSavingCount(c => Math.max(0, c - 1));
@@ -1299,15 +1306,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       timeoutRefsMap.current.set(cellId, timeout);
     } catch (err: any) {
       showToast(`Update failed: ${err.message}`, 'error');
-      onRefresh();
+      refreshChangedProducts([id]);
       if (options?.throwOnError) throw err;
     } finally {
       setSavingCount(c => Math.max(0, c - 1));
     }
-  }, [effectiveIncomingByProductId, effectiveInventorySummaryStatus, localProducts, setLocalProducts, setPanelDirty, showToast, onRefresh]);
+  }, [effectiveIncomingByProductId, effectiveInventorySummaryStatus, localProducts, setLocalProducts, setPanelDirty, showToast, refreshChangedProducts]);
 
   // Permanent delete, only reachable through the typed-"delete" confirmation.
-  // Optimistically drops the row, then refetches to reconcile with the server.
+  // A confirmed delete removes the same row from the shared query cache.
   const handleConfirmDelete = useCallback(async () => {
     if (!deleteTarget) return;
     const { id, name } = deleteTarget;
@@ -1318,13 +1325,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       showToast(`${name} deleted`, 'success');
       setDeleteTarget(null);
       setDeleteInput('');
-      onRefresh();
+      if (onProductDeleted) onProductDeleted(id);
+      else onRefresh();
     } catch (err: any) {
       showToast(`Delete failed: ${err.message}`, 'error');
     } finally {
       setIsDeleting(false);
     }
-  }, [deleteTarget, setLocalProducts, showToast, onRefresh]);
+  }, [deleteTarget, setLocalProducts, showToast, onProductDeleted, onRefresh]);
 
   /*
    * The export is the only way to see the whole shelf at once, so it carries

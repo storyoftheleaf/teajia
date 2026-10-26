@@ -1,3 +1,7 @@
+## Database guardrail and inventory efficiency follow-up prepared 2026-10-26
+
+- Meter singleton/session reads, preserve committed saves, and stop automatic replay after partial completion. Unrelated admin pages stop loading inventory; targeted edits reconcile affected rows while imports and manual refresh retain full reload. Independent usage monitoring now has durable, deduplicated i64os repair handoff with explicit delivery failures. Publication and operational proof are recorded in the release artifacts and database incident report.
+
 ## Library inset ribbon refinement 2026-10-25
 
 - Stronger supplier-container contrast separates the nested tea cards. The three pricing fields sit inside a slimmer bordered ribbon with centered labels and semibold values; missing weight uses the shorter Add action. Existing inline editing and stored prices are unchanged.

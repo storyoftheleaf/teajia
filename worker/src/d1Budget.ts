@@ -29,12 +29,17 @@
  * exist alongside it: the caps bound one query, the budget bounds one request,
  * and neither does the other's job.
  *
- * **`first()` carries no meta, so only its statement is counted.** D1's
- * `.first()` returns the row and nothing else; the row count is available on
- * `.all()`, `.run()` and `batch()`. Rewriting `first()` to go through `all()`
- * would buy the number at the price of fetching every row of a query written
- * to want one, so it is counted as a statement and documented here instead.
- * Every unbounded read in this codebase is an `.all()`.
+ * `first()` uses the same native query as `all()` and then projects its first
+ * row; keeping that projection here makes its real row cost visible too.
+ * `raw()` and `exec()` expose no metadata and have no application callsites.
+ * Under an active budget they are refused before execution, rather than
+ * silently escaping the budget or changing raw column/duplicate semantics.
+ *
+ * A successful write is never turned into an error by post-execution billing.
+ * Its result is returned; if a later operation exceeds the remaining allowance,
+ * the refusal records that earlier writes committed. Callers must expose that
+ * as partial completion without automatic retry, not pretend nothing happened.
+
  */
 
 /** Rows read one request may bill to D1 before it is refused. */
@@ -47,10 +52,18 @@ export const DEFAULT_D1_ROWS_READ_BUDGET = 50_000;
 export const DEFAULT_D1_STATEMENT_BUDGET = 2_000;
 
 export type D1BudgetCaps = { rows: number; statements: number };
-export type D1BudgetUsage = { rowsRead: number; statements: number; caps: D1BudgetCaps };
+export type D1BudgetUsage = {
+  rowsRead: number;
+  statements: number;
+  caps: D1BudgetCaps;
+  writesCommitted: boolean;
+  budgetExceeded: boolean;
+};
 
 const LEDGER = Symbol.for('teajia.d1.budget.ledger');
 const INNER_STATEMENT = Symbol.for('teajia.d1.budget.inner');
+const failures = new WeakMap<object, D1ReadBudgetExceededError | D1UnmeteredOperationError>();
+const pending = new WeakMap<object, Set<Promise<unknown>>>();
 
 /**
  * Thrown by the wrapper, caught at the request boundary. `name` is checked as
@@ -62,7 +75,8 @@ export class D1ReadBudgetExceededError extends Error {
   readonly kind: 'rows' | 'statements';
   readonly used: number;
   readonly budget: number;
-  constructor(kind: 'rows' | 'statements', used: number, budget: number) {
+  writesCommitted: boolean;
+  constructor(kind: 'rows' | 'statements', used: number, budget: number, writesCommitted = false) {
     super(kind === 'rows'
       ? `Database read budget exceeded for this request: ${used} rows read, budget ${budget}`
       : `Database read budget exceeded for this request: ${used} statements, budget ${budget}`);
@@ -70,6 +84,7 @@ export class D1ReadBudgetExceededError extends Error {
     this.kind = kind;
     this.used = used;
     this.budget = budget;
+    this.writesCommitted = writesCommitted;
   }
 }
 
@@ -105,90 +120,158 @@ export function d1BudgetUsage(db: unknown): D1BudgetUsage | null {
   return ledger ? { ...ledger, caps: { ...ledger.caps } } : null;
 }
 
-function chargeStatements(ledger: D1BudgetUsage, count: number) {
-  ledger.statements += count;
-  if (ledger.statements > ledger.caps.statements) {
-    throw new D1ReadBudgetExceededError('statements', ledger.statements, ledger.caps.statements);
+/** These unused convenience methods discard D1's billing metadata. */
+export class D1UnmeteredOperationError extends Error {
+  readonly retryable = false;
+  constructor(readonly operation: 'raw' | 'exec', public writesCommitted = false) {
+    super(`Database ${operation} is unavailable with an active read budget; use metadata-bearing prepared statements or batch instead.`);
+    this.name = 'D1UnmeteredOperationError';
   }
 }
 
-function chargeRows(ledger: D1BudgetUsage, meta: unknown) {
-  const read = Number((meta as { rows_read?: unknown } | null | undefined)?.rows_read);
-  if (Number.isFinite(read) && read > 0) ledger.rowsRead += read;
+export function isD1UnmeteredOperationError(error: unknown): error is D1UnmeteredOperationError {
+  return error instanceof D1UnmeteredOperationError
+    || (!!error && typeof error === 'object' && (error as { name?: unknown }).name === 'D1UnmeteredOperationError');
+}
+
+/** Actual refusal, including one swallowed by an older route's catch block. */
+export function d1BudgetFailure(db: unknown): D1ReadBudgetExceededError | D1UnmeteredOperationError | null {
+  const ledger = (db as Record<symbol, D1BudgetUsage> | null | undefined)?.[LEDGER];
+  const failure = ledger ? failures.get(ledger) ?? null : null;
+  if (failure && ledger?.writesCommitted) failure.writesCommitted = true;
+  return failure;
+}
+
+/** Let already-started operations settle before deciding whether retry is safe. */
+export async function settleD1Budget(db: unknown): Promise<void> {
+  const ledger = (db as Record<symbol, D1BudgetUsage> | null | undefined)?.[LEDGER];
+  if (!ledger) return;
+  const active = pending.get(ledger);
+  while (active?.size) await Promise.allSettled([...active]);
+  d1BudgetFailure(db);
+}
+
+async function tracked<T>(ledger: D1BudgetUsage, action: () => Promise<T>, results: (value: T) => any[]): Promise<T> {
+  const active = pending.get(ledger) ?? new Set<Promise<unknown>>();
+  pending.set(ledger, active);
+  const operation = (async () => {
+    const value = await action();
+    recordResults(ledger, results(value));
+    return value;
+  })();
+  active.add(operation);
+  try { return await operation; } finally { active.delete(operation); }
+}
+
+function refuseUnmetered(ledger: D1BudgetUsage, operation: 'raw' | 'exec'): never {
+  const error = new D1UnmeteredOperationError(operation, ledger.writesCommitted);
+  failures.set(ledger, error);
+  throw error;
+}
+
+function refuse(ledger: D1BudgetUsage, kind: 'rows' | 'statements', used: number, budget: number): never {
+  ledger.budgetExceeded = true;
+  const error = new D1ReadBudgetExceededError(kind, used, budget, ledger.writesCommitted);
+  failures.set(ledger, error);
+  throw error;
+}
+
+function reserveStatements(ledger: D1BudgetUsage, count: number) {
+  const previous = failures.get(ledger);
+  if (previous) {
+    if (ledger.writesCommitted) previous.writesCommitted = true;
+    throw previous;
+  }
+  // Check before sending anything, including after an earlier write exceeded
+  // the observed row allowance. An exhausted ledger cannot run one more scan.
+  if (ledger.rowsRead > ledger.caps.rows) refuse(ledger, 'rows', ledger.rowsRead, ledger.caps.rows);
+  const next = ledger.statements + count;
+  if (next > ledger.caps.statements) refuse(ledger, 'statements', next, ledger.caps.statements);
+  ledger.statements = next;
+}
+
+function recordResults(ledger: D1BudgetUsage, results: any[]) {
+  // Record the entire batch before deciding: a SELECT may precede a committed
+  // INSERT, and throwing on that SELECT's meta would misreport the whole batch.
+  for (const result of results) {
+    const meta = result?.meta;
+    const read = Number(meta?.rows_read);
+    if (Number.isFinite(read) && read > 0) ledger.rowsRead += read;
+    if (meta?.changed_db === true || Number(meta?.rows_written) > 0 || Number(meta?.changes) > 0) {
+      ledger.writesCommitted = true;
+      const priorFailure = failures.get(ledger);
+      if (priorFailure) priorFailure.writesCommitted = true;
+    }
+  }
   if (ledger.rowsRead > ledger.caps.rows) {
-    throw new D1ReadBudgetExceededError('rows', ledger.rowsRead, ledger.caps.rows);
+    ledger.budgetExceeded = true;
+    // Do not turn a committed mutation (or its completed follow-up read) into
+    // a retryable failure. A subsequent operation is stopped before it runs.
+    if (!ledger.writesCommitted) refuse(ledger, 'rows', ledger.rowsRead, ledger.caps.rows);
   }
 }
 
 function wrapStatement(statement: any, ledger: D1BudgetUsage): any {
+  const execute = async (method: 'all' | 'run', args: unknown[]): Promise<any> => {
+    reserveStatements(ledger, 1);
+    return tracked(ledger, () => statement[method](...args), result => [result]);
+  };
   return {
     [INNER_STATEMENT]: statement,
     bind: (...values: unknown[]) => wrapStatement(statement.bind(...values), ledger),
-    first: async (...args: unknown[]) => {
-      chargeStatements(ledger, 1);
-      return statement.first(...args);
+    first: async (column?: string) => {
+      // Native workerd first() performs the same query as all(), then applies
+      // this projection; it does not implicitly add LIMIT 1. Preserve null,
+      // named-column, missing-column and duplicate-column object semantics.
+      const result = await execute('all', []);
+      const row = result.results?.[0];
+      if (!row) return null;
+      if (column === undefined) return row;
+      if (row[column] === undefined) {
+        throw new Error(`D1_COLUMN_NOTFOUND: Column not found (${column})`, { cause: new Error('Column not found') });
+      }
+      return row[column];
     },
-    all: async (...args: unknown[]) => {
-      chargeStatements(ledger, 1);
-      const result = await statement.all(...args);
-      chargeRows(ledger, result?.meta);
-      return result;
-    },
-    run: async (...args: unknown[]) => {
-      chargeStatements(ledger, 1);
-      const result = await statement.run(...args);
-      chargeRows(ledger, result?.meta);
-      return result;
-    },
-    raw: async (...args: unknown[]) => {
-      chargeStatements(ledger, 1);
-      return statement.raw(...args);
-    },
+    all: (...args: unknown[]) => execute('all', args),
+    run: (...args: unknown[]) => execute('run', args),
+    raw: async () => refuseUnmetered(ledger, 'raw'),
   };
 }
 
 const unwrap = (statement: any) => statement?.[INNER_STATEMENT] ?? statement;
 
-/**
- * The same database, counting. Idempotent: handed a database already under a
- * budget it returns it unchanged, so the request entry point and the MCP
- * handler can each ask for one without the request paying twice.
- *
- * `caps` of null means no budget, and the database is returned untouched.
- */
-export function withD1ReadBudget<T>(db: T, caps: D1BudgetCaps | null): T {
-  if (!db || !caps) return db;
-  if (d1BudgetUsage(db)) return db;
+function wrapDatabase<T>(db: T, ledger: D1BudgetUsage): T {
   const inner = db as any;
-  const ledger: D1BudgetUsage = { rowsRead: 0, statements: 0, caps: { ...caps } };
   const wrapped: any = Object.create(inner);
   wrapped[LEDGER] = ledger;
   wrapped.prepare = (sql: string) => wrapStatement(inner.prepare(sql), ledger);
   wrapped.batch = async (statements: any[]) => {
     const list = Array.isArray(statements) ? statements : [];
-    chargeStatements(ledger, list.length);
-    const results = await inner.batch(list.map(unwrap));
-    for (const result of Array.isArray(results) ? results : []) chargeRows(ledger, result?.meta);
-    return results;
+    reserveStatements(ledger, list.length);
+    return tracked(ledger, () => inner.batch(list.map(unwrap)), results => Array.isArray(results) ? results : []);
   };
   if (typeof inner.exec === 'function') {
-    wrapped.exec = async (sql: string) => {
-      chargeStatements(ledger, 1);
-      const result = await inner.exec(sql);
-      chargeStatements(ledger, Math.max(1, Number(result?.count) || 1) - 1);
-      return result;
-    };
+    wrapped.exec = async () => refuseUnmetered(ledger, 'exec');
   }
   if (typeof inner.withSession === 'function') {
-    wrapped.withSession = (...args: unknown[]) => withD1ReadBudget(inner.withSession(...args), caps);
+    // Sessions change routing/bookmarks, not the request's allowance.
+    wrapped.withSession = (...args: unknown[]) => wrapDatabase(inner.withSession(...args), ledger);
   }
-  for (const key of ['dump', 'close', 'sqlite']) {
+  for (const key of ['dump', 'close', 'sqlite', 'getBookmark']) {
     if (key in inner) {
       const value = inner[key];
       wrapped[key] = typeof value === 'function' ? value.bind(inner) : value;
     }
   }
   return wrapped as T;
+}
+
+/** One request ledger, shared by nested wrappers and every database session. */
+export function withD1ReadBudget<T>(db: T, caps: D1BudgetCaps | null): T {
+  if (!db || !caps || d1BudgetUsage(db)) return db;
+  return wrapDatabase(db, {
+    rowsRead: 0, statements: 0, caps: { ...caps }, writesCommitted: false, budgetExceeded: false,
+  });
 }
 
 /**

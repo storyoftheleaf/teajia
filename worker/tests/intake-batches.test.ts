@@ -79,7 +79,7 @@ class FakeStatement {
     return null;
   }
 
-  async all() { return { results: [] }; }
+  async all() { const row = await this.first(); return { results: row == null ? [] : [row] }; }
 
   async run() { return runStatement(this.state, this); }
 }

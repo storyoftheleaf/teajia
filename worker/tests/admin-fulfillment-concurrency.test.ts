@@ -35,7 +35,11 @@ class FulfillmentDb {
         if (normalized.includes('from products where id = ?')) return { id: 'product-a', stock_grams: this.stock, low_stock_threshold: 0, product_name: 'Tea', status: 'Active', source_compass_entry_id: null };
         return null;
       },
-      all: async () => normalized.includes('from invoice_line_items') ? { results: [{ id: 'line-a', account_id: 'acct-a', invoice_id: 'invoice-a', product_id: 'product-a', quantity: 40, price_at_sale: 1 }] } : { results: [] },
+      all: async () => {
+        if (normalized.includes('from invoice_line_items')) return { results: [{ id: 'line-a', account_id: 'acct-a', invoice_id: 'invoice-a', product_id: 'product-a', quantity: 40, price_at_sale: 1 }] };
+        const row = await statement.first();
+        return { results: row == null ? [] : [row] };
+      },
       run: async () => {
         if (normalized.includes('fulfillment_claim_token = ?') && !normalized.startsWith('update invoices set fulfillment_claim_token = ?') && this.invoice.fulfillment_claim_token !== values.at(-1)) return { success: true, meta: { changes: 0 }, results: [] };
         if (normalized.startsWith('update products set stock_grams = case')) {

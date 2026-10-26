@@ -153,7 +153,8 @@ import { validateCompassQuoteLink } from './curateQuotes';
 import { requireCurateManager, prepareCurateRecordedWrite } from './curateMutations';
 import { RouteRefusal, listRoutes, removeRoute, saveRoute } from './shippingRoutes';
 import { handleLibraryPreview, LIBRARY_PREVIEW_ORIGIN } from './libraryPreview';
-import { withD1ReadBudget, resolveD1Budget, isD1ReadBudgetExceeded, d1BudgetUsage } from './d1Budget';
+import { withD1ReadBudget, resolveD1Budget, settleD1Budget } from './d1Budget';
+import { budgetRefusal } from './d1BudgetResponse';
 interface Env extends WorkerReleaseEnv {
   DB: D1Database;
   WHATSAPP_ORDER_ACCOUNT_ID?: string;
@@ -2658,7 +2659,7 @@ const handleGoogleCallback: Handler = async (request, env) => {
   return Response.redirect(destination.toString(), 302);
 };
 
-const handleGetProducts: Handler = async (request, env) => {
+const handleGetProducts: Handler = async (request, env, params) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
@@ -2677,8 +2678,8 @@ const handleGetProducts: Handler = async (request, env) => {
           AND cp.target_type = 'shop'
           AND cp.unpublished_at IS NULL) AS is_featured_derived
       FROM products p
-      WHERE p.account_id = ?
-      ORDER BY p.created_at DESC`).bind(accountId),
+      WHERE p.account_id = ?${params?.id ? ' AND p.id = ?' : ''}
+      ORDER BY p.created_at DESC`).bind(accountId, ...(params?.id ? [params.id] : [])),
   ]);
   const rates = new Map<string, number>();
   for (const r of ratesResult.results as any[]) {
@@ -2704,7 +2705,7 @@ const handleGetProducts: Handler = async (request, env) => {
     }
     return addPricingFields(p, rates, shopDefaultPerKgUsd);
   });
-  return json(products);
+  return params?.id ? (products[0] ? json(products[0]) : restError(404, 'Product not found', 'product_not_found')) : json(products);
 };
 
 // Public-safe fields whitelist
@@ -29220,6 +29221,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/products/public/:id/selected-by', handleGetProductSelectedBy],
   ['GET', '/sitemap-products.xml', handleProductSitemap],
   ['GET', '/api/products', handleGetProducts],
+  ['GET', '/api/products/:id', handleGetProducts],
   ['GET', '/api/inventory/summaries', handleGetInventorySummaries],
   ['POST', '/api/products', handleCreateProduct],
   ['POST', '/api/products/bulk', handleBulkCreateProducts],
@@ -30311,29 +30313,30 @@ const requestHandler = {
  * A request that spends its budget is REFUSED, in words, with the figures. It
  * is the one error here that is safe to describe: no SQL, no stack, nothing a
  * caller did not already know, and a caller who is told `rows_read` can
- * actually narrow the question. 503 with `Retry-After` rather than 500,
- * because the request is not wrong, it is too large for one go.
+ * actually narrow the question. The response explicitly forbids automatic replay; if earlier changes
+ * committed it instead requires reconciliation with the stored result.
  */
 const budgetedHandler = {
   async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const budgeted: Env = { ...env, DB: withD1ReadBudget(env.DB, resolveD1Budget(env as unknown as Record<string, unknown>)) };
-    try {
-      return await requestHandler.fetch(request, budgeted, ctx);
-    } catch (err) {
-      if (!isD1ReadBudgetExceeded(err)) throw err;
-      const usage = d1BudgetUsage(budgeted.DB);
-      console.error('D1 read budget exceeded:', request.method, new URL(request.url).pathname, usage);
-      const refusal = json({
-        error: 'database_read_budget_exceeded',
-        message: 'This request asked the database for more than any one request may read. Ask for a page, a single tea, or a shorter range, and try again.',
-        rows_read: usage?.rowsRead ?? null,
-        statements: usage?.statements ?? null,
-        rows_budget: usage?.caps.rows ?? null,
-        statement_budget: usage?.caps.statements ?? null,
-      }, 503);
-      refusal.headers.set('Retry-After', '1');
-      return cors(refusal, resolveAllowedOrigin(request.headers.get('Origin') || ''));
+    let response: Response | undefined;
+    let caught: unknown;
+    try { response = await requestHandler.fetch(request, budgeted, ctx); }
+    catch (error) { caught = error; }
+    await settleD1Budget(budgeted.DB);
+    const refusal = budgetRefusal(budgeted.DB, caught);
+    if (refusal) {
+      // MCP has its own JSON-RPC boundary, including swallowed auth failures.
+      const path = new URL(request.url).pathname;
+      if (response && (path === '/mcp' || path === '/mcp/public')) return response;
+      // Best-effort work after a confirmed successful mutation must not turn
+      // its committed result into an invitation to submit it again.
+      if (response?.ok && refusal.body.writes_committed && !['GET', 'HEAD'].includes(request.method)) return response;
+      console.error('D1 request refused', request.method, path, refusal.body.error);
+      return cors(json(refusal.body, refusal.status), resolveAllowedOrigin(request.headers.get('Origin') || ''));
     }
+    if (caught) throw caught;
+    return response!;
   },
 
   scheduled: requestHandler.scheduled,
@@ -30354,6 +30357,19 @@ export default {
       // Older handlers catch DB errors themselves; never let that disguise a
       // quota outage as invalid credentials or empty data. Preserve a confirmed
       // successful write if only a subsequent best-effort query failed.
+      if (guard.quotaHit() && guard.writesCommitted()) {
+        const body = {
+          error: 'Earlier database changes may have completed. Refresh and check the result before making further changes.',
+          code: 'database_write_reconciliation_required', retryable: false, writes_committed: true,
+        };
+        if (path === '/mcp' || path === '/mcp/public') {
+          const rpc = await response.clone().json() as any;
+          if (rpc.error || rpc.result?.isError) return cors(json({ jsonrpc: '2.0', id: rpc.id ?? null,
+            error: { code: -32005, message: body.error, data: body } }), resolveAllowedOrigin(request.headers.get('Origin') || ''));
+        } else if (!response.ok || ['GET', 'HEAD'].includes(request.method)) {
+          return cors(json(body, 409), resolveAllowedOrigin(request.headers.get('Origin') || ''));
+        }
+      }
       return guard.quotaHit() && (response.status >= 400 || request.method === 'GET' || request.method === 'HEAD') ? unavailable() : response;
     } catch (error) {
       if (guard.quotaHit()) return unavailable();
