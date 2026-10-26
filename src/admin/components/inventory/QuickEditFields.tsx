@@ -1,3 +1,4 @@
+import { enteredYear } from '../../enteredYear';
 import React, { useEffect, useState } from 'react';
 import { Check, X } from 'lucide-react';
 import type { Product, ExchangeRate } from '../../types';
@@ -34,13 +35,15 @@ export interface QuickEditFieldsProps {
 // matching table header. No label needed, the column header above IS the label.
 // Saves on blur only when the value changed, mirroring GhostInput.
 const CellInput = ({
-  value, onSave, ariaLabel, prefix, suffix,
+  value, onSave, ariaLabel, prefix, suffix, type = 'number', validate,
 }: {
   value: string | number;
   onSave: (val: string) => void;
   ariaLabel: string;
   prefix?: string;
   suffix?: string;
+  type?: 'text' | 'number';
+  validate?: (value: string) => unknown;
 }) => {
   const [local, setLocal] = useState<string>(value === '' || value == null ? '' : String(value));
   useEffect(() => { setLocal(value === '' || value == null ? '' : String(value)); }, [value]);
@@ -49,12 +52,12 @@ const CellInput = ({
     <span className="flex items-center gap-0.5 rounded-md bg-tea-bg border border-tea-border px-2 py-1 focus-within:border-tea-gold transition-colors">
       {prefix && <span className="text-ui-12 text-tea-text-dim shrink-0 num">{prefix}</span>}
       <input
-        type="number"
-        inputMode="decimal"
+        type={type}
+        inputMode={type === 'number' ? 'decimal' : 'text'}
         aria-label={ariaLabel}
         value={local}
-        onChange={(e) => setLocal(e.target.value)}
-        onBlur={commit}
+        onChange={(e) => { e.currentTarget.setCustomValidity(''); setLocal(e.target.value); }}
+        onBlur={(event) => { try { validate?.(local); commit(); } catch (error) { event.currentTarget.setCustomValidity(error instanceof Error ? error.message : 'Enter a valid value.'); event.currentTarget.reportValidity(); } }}
         onKeyDown={(e) => { if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur(); }}
         autoComplete="off"
         spellCheck={false}
@@ -102,6 +105,8 @@ export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
         return (
           <CellInput
             ariaLabel="Year"
+            type="text"
+            validate={enteredYear}
             value={product.year ?? ''}
             onSave={(val) => onUpdate(product.id, 'year', val)}
           />

@@ -1,0 +1,106 @@
+import { expect, test } from './fixtures';
+
+const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
+const token = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({ sub: 'admin', email: 'operator@test', role: 'owner', active_account_id: 'acct', memberships: [{ account_id: 'acct', role: 'owner' }], exp: Math.floor(Date.now() / 1000) + 86400 })}.sig`;
+
+test('Stock reference cards resize and persist naming and photos, and continue an existing tasting', async ({ page }) => {
+  test.setTimeout(60_000);
+  const product = {
+    id: 'tea-reference', product_name: 'Cloud Oolong', given_name: '', type: 'Oolong', form: 'Loose Leaf',
+    origin_country: 'Taiwan', origin_region: 'Alishan', year: 2004, stock_grams: 100,
+    low_stock_threshold: 20, cost_amount: 20, cost_currency: 'USD', quantity_purchased: 100,
+    retail_price_per_gram_usd: .4, cost_per_gram_usd: .1, shipping_rate_per_kg: null,
+    description: 'Floral tea', tasting_notes: [], image_url: '', additional_images: '[]', status: 'Active',
+    is_public: 0, shown_in_shop: 0, can_reorder: 0, inventory_purpose: 'working', vendor: 'Cloud Mountain',
+  };
+  let failName = true;
+  const writes: Record<string, unknown>[] = [];
+  const uploads: string[] = [];
+  await page.addInitScript(jwt => {
+    for (const key of ['stock-preview-auth', 'stock-preview-columns-v1', 'stock-preview-source-group-v3']) sessionStorage.setItem(key, '1');
+    localStorage.setItem('teajia_token', jwt);
+    if (!sessionStorage.getItem('stock-reference-seeded')) {
+      localStorage.setItem('teajia-storage', JSON.stringify({ version: 2, state: {
+        activeAccountId: 'acct', activeUserId: 'admin', memberships: [{ account_id: 'acct', account_name: 'Test shop', role: 'owner' }],
+        inventoryColumns: ['productName', 'type', 'year', 'stockGrams', 'pricePerGramUSD'], inventoryGroupBy: 'vendor',
+        tastingJournal: [{ id: 'journal-reference', accountId: 'acct', productId: 'tea-reference', productName: 'Cloud Oolong', productType: 'Oolong', createdAt: '2026-10-20T00:00:00.000Z', synced: true,
+          note: { tasting: { notes: [{ id: 'note-reference', text: 'Orchid and warm stone', createdAt: '2026-10-20T00:00:00.000Z' }] }, updatedAt: '2026-10-20T00:00:00.000Z' },
+          tastings: [{ id: 'tasting-reference', createdAt: '2026-10-20T00:00:00.000Z', tasting: {} }],
+        }],
+      } }));
+      sessionStorage.setItem('stock-reference-seeded', '1');
+    }
+  }, token);
+  await page.route('**/api/**', async route => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path === '/api/auth/me') return route.fulfill({ json: { id: 'admin', email: 'operator@test', role: 'owner' } });
+    if (path === '/api/auth/refresh') return route.fulfill({ json: { token } });
+    if (path === '/api/products') return route.fulfill({ json: [product] });
+    if (path === '/api/products/tea-reference/catalog' && request.method() === 'PUT') {
+      const body = request.postDataJSON();
+      writes.push(body);
+      if ('given_name' in body && failName) { failName = false; return route.fulfill({ status: 500, json: { error: 'Name could not be saved' } }); }
+      Object.assign(product, body);
+      return route.fulfill({ json: { success: true } });
+    }
+    if (path === '/api/upload-image') {
+      uploads.push(request.postDataBuffer()?.toString() || '');
+      return route.fulfill({ json: { url: 'https://media.teajia.com/stock-reference.jpg' } });
+    }
+    if (path === '/api/accounts/acct') return route.fulfill({ json: { id: 'acct', name: 'Test shop', default_shipping_rate_per_kg: 85, default_shipping_rate_currency: 'Yuan' } });
+    if (path === '/api/rates') return route.fulfill({ json: [{ currency: 'USD', rate_to_usd: 1 }, { currency: 'Yuan', rate_to_usd: 7 }] });
+    if (path === '/api/compass/entries') return route.fulfill({ json: { entries: [] } });
+    if (path === '/api/user/favorites') return route.fulfill({ json: { favorites: [] } });
+    return route.fulfill({ json: [] });
+  });
+
+  await page.setViewportSize({ width: 767, height: 900 });
+  await page.goto('/admin/stock');
+  const row = page.locator('tr[data-product-id="tea-reference"]');
+  await expect(row.locator('.stock-record')).toBeVisible({ timeout: 15_000 });
+  await page.setViewportSize({ width: 768, height: 900 });
+  await expect(row.locator('.stock-record')).toHaveCount(0);
+  await expect(page.getByTestId('inventory-column-row')).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(row.locator('.stock-record')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  await page.screenshot({ path: test.info().outputPath('stock-phone.png') });
+
+  await row.getByRole('button', { name: 'Edit given name for Cloud Oolong', exact: true }).click();
+  const nameDialog = page.getByRole('dialog', { name: 'Given name', exact: true });
+  const input = nameDialog.getByRole('textbox', { name: 'Given name', exact: true });
+  await expect(input).toHaveValue('');
+  await input.pressSequentially('Moon over Alishan');
+  await expect(input).toHaveValue('Moon over Alishan');
+  await nameDialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(nameDialog.getByRole('alert')).toContainText('Name could not be saved');
+  await expect(input).toHaveValue('Moon over Alishan');
+  await nameDialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(nameDialog).toHaveCount(0);
+  await expect(row.locator('.stock-given-name')).toHaveText('Moon over Alishan');
+  await page.reload();
+  await expect(row.locator('.stock-given-name')).toHaveText('Moon over Alishan');
+  expect(writes.filter(write => write.given_name === 'Moon over Alishan')).toHaveLength(2);
+
+  await row.locator('.stock-camera-action').click();
+  const photos = page.getByRole('dialog', { name: 'Photos', exact: true });
+  await expect(photos.getByLabel('Take product photo')).toHaveAttribute('capture', 'environment');
+  await expect(photos.getByLabel('Choose product photo')).not.toHaveAttribute('capture');
+  const picker = page.waitForEvent('filechooser');
+  await photos.getByRole('button', { name: 'Photo library', exact: true }).click();
+  await (await picker).setFiles({ name: 'tea.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64') });
+  await expect(photos).toHaveCount(0);
+  expect(uploads).toHaveLength(1);
+  expect(writes.at(-1)).toEqual({ image_url: 'https://media.teajia.com/stock-reference.jpg' });
+  await page.reload();
+  await row.locator('.stock-camera-action').click();
+  await expect(photos.getByRole('img', { name: 'Main photo', exact: true })).toBeVisible();
+  await photos.getByRole('button', { name: 'Close', exact: true }).click();
+
+  await row.getByRole('button', { name: 'Edit tasting for Cloud Oolong', exact: true }).click();
+  await expect(page.getByText('Adding to your note for this tea.', { exact: true })).toBeVisible();
+  await page.getByText(/^Earlier notes/).click();
+  await expect(page.getByText('Orchid and warm stone', { exact: true })).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath('stock-existing-tasting.png') });
+});

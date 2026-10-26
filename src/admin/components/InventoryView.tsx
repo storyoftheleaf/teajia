@@ -818,10 +818,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const BUFFER_ROWS = 5;
   const splitView = !!panelProduct;
   const effectiveRowHeight = ROW_HEIGHT;
-  const mobileHScroll = isMobile && !splitView;
+  const mobileHScroll = false;
   // The phone's stock list (todo/plans/stock-phone-by-supplier.md). Edit mode,
   // the glossary cards and the Pending AI feed keep their own layouts.
-  const phoneList = isMobile && !isEditMode && !glossaryMode && filterType !== 'Pending';
+  const phoneList = isMobile && !isEditMode && !glossaryMode && filterType === 'Samples';
   const [phoneGroupBy, setPhoneGroupByState] = useState<PhoneGroupBy>(readPhoneGroupBy);
   // Curate samples shown in the Samples view, so its count includes them.
   const [curateSampleCount, setCurateSampleCount] = useState(0);
@@ -2451,7 +2451,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   return (
     <div
-      className={`h-full flex flex-col overflow-hidden bg-tea-bg ${phoneList ? 'stock-phone-tone' : ''}`}
+      className={`stock-view h-full flex flex-col overflow-hidden bg-tea-bg ${phoneList ? 'stock-phone-tone' : ''}`}
     >
       {/* Inventory options menu shared by the unified header at every width. */}
       <div>
@@ -2966,28 +2966,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 if (filterType === 'Samples' && items.length === 0) return null;
                 const isCollapsed = collapsedGroups.has(groupKey);
                 return (
-                  <div key={groupKey} data-testid={lifecycle ? `inventory-stage-${groupKey}` : undefined}>
+                  <div key={groupKey} data-stock-group={groupLabel} data-testid={lifecycle ? `inventory-stage-${groupKey}` : undefined}>
                     <button
                       onClick={() => toggleCollapsedGroup(groupKey)}
                       aria-expanded={!isCollapsed}
                       style={mobileHScroll ? { minWidth: mobileTableMinWidth } : undefined}
-                      className="block w-full bg-tea-bg/60 border-b border-tea-border hover:bg-tea-accent-sub transition-colors text-left"
+                      className="stock-group-toggle block w-full bg-tea-bg/60 border-b border-tea-border hover:bg-tea-accent-sub transition-colors text-left"
                     >
-                      {/* The bar runs the ledger's full width; this inner band
-                          is one ledger-width wide and pinned to the left, so
-                          the stage name and its totals hold their places while
-                          the columns swipe underneath. */}
-                      <span
-                        className={`flex items-center gap-3 px-5 py-2.5 ${mobileHScroll && hScrollClientWidth ? 'sticky left-0' : ''}`}
-                        style={mobileHScroll && hScrollClientWidth ? { width: hScrollClientWidth } : undefined}
-                      >
-                        {isCollapsed ? <ChevronRight size={14} className="shrink-0 text-tea-text-sec" /> : <ChevronDown size={14} className="shrink-0 text-tea-text-sec" />}
-                        <span className="font-display text-ui-15 text-tea-text">{groupLabel}</span>
-                        <span className="label-caps text-tea-text-dim">{items.length} items</span>
-                        <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums ml-auto">{totalStock}{inventoryCategory === 'teaware' ? ' units' : 'g'}</span>
-                        <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums">${fmtNum(totalRetail)}</span>
-                      </span>
-                    </button>
+                      {/* Tea groups retain a clear boundary in cards and tables. */}
+                      <span className="stock-group-head"><span className="stock-group-name"><span>{groupLabel}</span>{isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}</span><span className="stock-group-summary"><span>{items.length} {inventoryCategory === 'teaware' ? 'items' : 'teas'}</span><span>{totalStock}{inventoryCategory === 'teaware' ? ' units' : 'g'}</span><span>${fmtNum(totalRetail)}</span></span></span></button>
                     {!isCollapsed && (
                       <table className="w-full table-fixed border-collapse inv-tight" style={mobileTableStyle}>
                         <colgroup>
@@ -3002,7 +2989,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             const globalIdx = productIndexMap.get(product.id) ?? 0;
                             return (
                               <React.Fragment key={product.id}>
-                                <InventoryRow
+                                <InventoryRow onQuickTaste={() => setPersonalTastingProduct(product)} onQuickJournal={() => navigate(`/account/journal?tea=${encodeURIComponent(product.id)}`)}
                                   product={product}
                                   globalIdx={globalIdx}
                                   isSelected={selectedIds.has(product.id)}
@@ -3023,6 +3010,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   onLongPressSelect={stableLongPressSelect}
                                   onLongPressQuickEdit={stableLongPressQuickEdit}
                                   onProductUpdate={handleProductUpdate}
+                                  onSaveField={(id, field, value) => handleProductUpdate(id, field, value, { throwOnError: true })}
                                   onSelectionAwareUpdate={handleSelectionAwareUpdate}
                                   onOpenPanel={stableOpenPanel}
                                   onToggleDropdown={stableToggleDropdown}
@@ -3100,7 +3088,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         const globalIdx = idx;
                         return (
                           <React.Fragment key={product.id}>
-                            <InventoryRow
+                            <InventoryRow onQuickTaste={() => setPersonalTastingProduct(product)} onQuickJournal={() => navigate(`/account/journal?tea=${encodeURIComponent(product.id)}`)}
                               product={product}
                               globalIdx={globalIdx}
                               isSelected={selectedIds.has(product.id)}
@@ -3121,6 +3109,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               onLongPressSelect={stableLongPressSelect}
                               onLongPressQuickEdit={stableLongPressQuickEdit}
                               onProductUpdate={handleProductUpdate}
+                                  onSaveField={(id, field, value) => handleProductUpdate(id, field, value, { throwOnError: true })}
                               onSelectionAwareUpdate={handleSelectionAwareUpdate}
                               onOpenPanel={stableOpenPanel}
                               onToggleDropdown={stableToggleDropdown}
