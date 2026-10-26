@@ -18,7 +18,7 @@ import { usePrivateQueryScope } from '../hooks/usePrivateQueryScope';
 import { useRates } from '../hooks/useAdminData';
 import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
 import type { Customer, InventoryReceipt } from '../types';
-import { recordedCost, vendorEconomics, vendorPurchaseOrders, vendorReceipts, type PricedProductRow, type VendorProductRow } from './vendorProfileData';
+import { recordedCost, vendorEconomics, vendorPurchaseOrders, vendorReceipts, type PricedVendorProductRow } from './vendorProfileData';
 
 // ────────────────────────────────────────────────────────
 // Types
@@ -79,19 +79,12 @@ export const VendorProfileView: React.FC = () => {
   });
 
   // ── Products linked to this vendor ───────────────────
-  const { data: productsData, isLoading: productsLoading } = useQuery<VendorProductRow[]>({
+  const { data: productsData, isLoading: productsLoading } = useQuery<PricedVendorProductRow[]>({
     queryKey: ['vendor-products', vendorId, ...scope.key],
     queryFn: () => api.customers.getSuppliedProducts(vendorId!),
     enabled: !!vendorId && scope.ready,
     staleTime: 60_000,
   });
-  const { data: pricedProductsData, isLoading: pricedProductsLoading } = useQuery<PricedProductRow[]>({
-    queryKey: ['vendor-priced-products', ...scope.key],
-    queryFn: () => api.products.list(),
-    enabled: !!vendorId && scope.ready,
-    staleTime: 60_000,
-  });
-
   const { data: ordersData, isLoading: ordersLoading, isError: ordersError } = useQuery<PurchaseOrder[]>({
     queryKey: ['purchase-orders', ...scope.key],
     enabled: scope.ready,
@@ -110,7 +103,7 @@ export const VendorProfileView: React.FC = () => {
   const receipts = vendor ? vendorReceipts(receiptsData ?? [], vendor.name) : [];
   const historyLoading = ordersLoading || receiptsLoading;
   const historyError = ordersError || receiptsError;
-  const economics = vendorEconomics(products, pricedProductsData, rates);
+  const economics = vendorEconomics(products, scope.ready ? productsData : undefined, rates);
   const money = (value: number | null, decimals = 0) => value == null
     ? '—'
     : `$${fmt(value, decimals)}`;
@@ -213,9 +206,9 @@ export const VendorProfileView: React.FC = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
               { value: String(products.filter(p => p.status !== 'Archived').length), label: 'Products' },
-              { value: pricedProductsLoading ? '…' : money(economics.totalCostUsd), label: 'Total cost' },
-              { value: pricedProductsLoading ? '…' : money(economics.avgCostPerGramUsd, 3), label: 'Avg cost/g' },
-              { value: pricedProductsLoading ? '…' : money(economics.stockValueUsd), label: 'Stock value' },
+              { value: productsLoading ? '…' : money(economics.totalCostUsd), label: 'Total cost' },
+              { value: productsLoading ? '…' : money(economics.avgCostPerGramUsd, 3), label: 'Avg cost/g' },
+              { value: productsLoading ? '…' : money(economics.stockValueUsd), label: 'Stock value' },
             ].map(({ value, label }) => (
               <div key={label} className="bg-tea-bg border border-tea-border rounded-xl p-4">
                 <div className="font-mono text-ui-28 text-tea-text tabular-nums leading-none">
