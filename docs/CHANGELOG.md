@@ -178,3 +178,7 @@ The mobile tasting navigation now uses the site capsule with a larger central em
 ## 2026-10-26 — Complete connected tasting
 
 Integrated the approved taste/aroma wheel, opening impression, rating, notes and compact vocabulary into the real tasting session. Independent senses persist in the tasting record, admin transcription appends to the editable note, and recap links reopen the relevant choices. Preserved the animated capsule and Storage/Appearance controls.
+
+### Tasting visual refinement
+
+Kept rating choices as plain numerals, capped Taste/Aroma caption size as the wheel grows, removed the contrasting spacer ring, and extended the current category surface to meet Home and the surrounding band. Verified phone and desktop proportions and mobile save/reopen behavior.

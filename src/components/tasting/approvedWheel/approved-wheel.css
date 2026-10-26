@@ -278,7 +278,7 @@
 .approved-taste-wheel .category-observations .study-observations>div:last-child{text-align:left;padding-right:0}
 .approved-taste-wheel .category-observations .study-observations>div>span{font-size:13px;line-height:1.5}
 .approved-taste-wheel .category-observations .study-observations p{margin-top:5px}
-.approved-taste-wheel.study-phone .approved-wheel-journey .split-senses #radial .sense-caption{font-size:11px!important}
+.approved-taste-wheel.study-phone .approved-wheel-journey .split-senses #radial .sense-caption{font-size:var(--sense-caption-size,11px)!important}
 
 .approved-taste-wheel .selected-words{display:flex;flex-wrap:wrap;align-items:center;gap:0 6px;margin-top:0;color:var(--text);font-size:12px;line-height:1.65}.approved-taste-wheel .selected-words.taste{justify-content:flex-end}.approved-taste-wheel .selected-words.aroma{justify-content:flex-start}.approved-taste-wheel .selected-words button{font:inherit;color:inherit;min-height:44px;max-width:100%;padding:5px 0;background:transparent;border:0;cursor:pointer;transition:color .15s ease}.approved-taste-wheel .selected-words button:hover{color:var(--dim)}.approved-taste-wheel .selected-words button:focus-visible{outline:1px solid var(--dim);outline-offset:3px;border-radius:3px}.approved-taste-wheel .word-separator{color:var(--dim)}.approved-taste-wheel .home-emblem{display:block;width:61%;height:61%;object-fit:contain;pointer-events:none}
 
@@ -313,7 +313,7 @@
 .approved-taste-wheel.study-phone .approved-wheel-journey .split-senses[data-sense-study="5"] #radial .split-note-surface .sense-caption.sense-picked{font-weight:600!important;text-decoration:none}
 .approved-taste-wheel .approved-wheel-journey .sense-inset-edge{pointer-events:none;transition:opacity .18s ease}
 @media(prefers-reduced-motion:reduce){.approved-taste-wheel .approved-wheel-journey .sense-inset-edge{transition:none}}
-.approved-taste-wheel.study-phone .approved-wheel-journey .split-senses[data-sense-study="5"] #radial .split-note-surface .sense-caption{font-family:ApprovedWheelSans,'ApprovedWheelSans',sans-serif!important;font-size:11px!important;font-style:normal!important;font-weight:500;letter-spacing:.35px!important}
+.approved-taste-wheel.study-phone .approved-wheel-journey .split-senses[data-sense-study="5"] #radial .split-note-surface .sense-caption{font-family:ApprovedWheelSans,'ApprovedWheelSans',sans-serif!important;font-size:var(--sense-caption-size,11px)!important;font-style:normal!important;font-weight:500;letter-spacing:.35px!important}
 .approved-taste-wheel.study-phone .approved-wheel-journey .split-senses[data-sense-study="5"] #radial .split-note-surface .sense-caption.sense-picked{font-weight:600!important}
 .approved-taste-wheel.study-phone .approved-wheel-journey .split-senses[data-sense-study="5"] #radial .split-note-surface .sense-caption{fill:var(--sense-label-tint,var(--dim))!important;fill-opacity:.84;letter-spacing:.15px!important}
 .approved-taste-wheel.study-phone .approved-wheel-journey .split-senses[data-sense-study="5"] #radial .split-note-surface .sense-caption.sense-picked{fill:var(--sense-label-tint,var(--dim))!important;fill-opacity:.94}
