@@ -150,25 +150,61 @@ External proof, using the monitor's explicit `teajia-d1-budget/1.0` user agent:
 The earlier **403 / Cloudflare 1010** came from the Python probe's default user
 agent, before the origin. The monitor now sends its explicit truthful user agent.
 
-**Receiver availability is not execution readiness.** The receiver's configured
-repair host is `innerstellar`, with dry-run disabled. Its presence check, run as
-the actual `i64os` service user, currently fails SSH with hostname resolution
-failure. Tailscale requires reauthentication. In addition, `/home/i64os/.ssh`
-contains only `authorized_keys`, with no outbound identity or host alias; the
-existing root-only studio alias/key is not available to the service. The
-innerstellar access skill documents only that root/Tailscale route, not a reverse
-tunnel, and no reverse SSH listener was present. No root private key was copied
-into the application. A deliberate least-privilege service SSH setup and restored
-private connectivity are still required before automatic repair execution can
-be declared operational. The monitor retains failure artifacts and receiver
-acceptance remains distinct from completed repair or publication.
+**Receiver availability is not execution readiness.** The first service-user
+probe failed: Tailscale needed reauthentication and the service had no outbound
+SSH identity/alias. The configured executor was Innerstellar, with dry-run off.
+The monitor was held explicitly unready while these dependencies were repaired.
+The workflow defaults `I64OS_REPAIR_READY` to false: in that state it persists
+intent but sends no job and exits 4, even at healthy usage. Current readiness is
+**true**, after the restoration and checks below. Receiver acceptance remains
+distinct from completed repair or publication.
 
-To prevent an acknowledged webhook from concealing that known executor gap,
-GitHub repository variable `I64OS_REPAIR_READY` is explicitly **false** (set and
-read back). The workflow defaults it to false. Until it is explicitly true, the
-monitor persists incident intent but sends no repair job and exits 4 with the
-network sign-in/service SSH credential blocker. This remains visible even if
-usage is below threshold. Enable it only after the exact service-user presence
-probe confirms the configured repair host, Claude availability and GitHub login.
-The Tailscale authentication URL was returned privately in the task handoff;
-it is not stored in this permanent incident record.
+### Executor restoration after owner sign-in
+
+The owner completed Tailscale sign-in during this task. The VPS then reported
+`Running` with its existing private address, and the established root-to-studio
+path reached Innerstellar. This resolves the network blocker above.
+
+A dedicated Ed25519 service identity was installed in the actual `i64os` Unix
+home, `/opt/i64os-core/.ssh`, with mode-0600 key/config/known-hosts files. The
+initial `/home/i64os` assumption was corrected; temporary duplicate setup files
+there were removed without changing the pre-existing `authorized_keys`.
+The root private key was not copied. The studio's authorized-key entry restricts
+this new key to source `100.126.166.59`, disables forwarding and PTY access, and
+forces `C:/ProgramData/i64os-repair/i64os-repair-ssh.ps1`. Existing authorized-key
+entries were preserved and backed up before adding the dedicated entry.
+
+The reviewed source is [i64os-repair-ssh.ps1](../../scripts/i64os-repair-ssh.ps1),
+with [offline parser tests](../../scripts/i64os-repair-ssh.test.ps1). The wrapper
+translates the receiver's existing POSIX-shaped command grammar for the Windows
+studio, passing prompt text only over stdin. It accepts the exact presence
+probe, fixed existing Claude tool lists with at most 150 turns, and the existing
+PR checks/owner-triggered merge grammar for the two already allowed repositories.
+It does not evaluate arbitrary SSH command text. Its installed source matches
+the reviewed repository file by SHA-256 comparison.
+
+Read-only operational proof as the actual `i64os` service user:
+
+- The exact receiver presence command returned **exit 0**: Claude Code **2.1.259**
+  logged in, Git **2.54.0.windows.1**, `GIT_BASH_OK`, and `GH_OK`.
+- The active GitHub credential has push access to both existing repair repos.
+  An unrelated expired saved account made `gh auth status` fail, so readiness
+  checks the active credential's exact repository access instead. No GitHub
+  credential was copied and no account permission was expanded.
+- Arbitrary `hostname` and the legitimate probe suffixed with `; whoami` were
+  both refused with **exit 126** by the forced command.
+- The offline PowerShell validator passed **4 accepted / 16 refused** fixtures,
+  including newline/semicolon injection, excessive turns, widened tools,
+  unapproved repositories and malformed merge commands. No agent was launched.
+
+Only after those checks, `I64OS_REPAIR_READY` was set and read back as **true**,
+superseding the temporary false state above. The default remains false for an
+unconfigured deployment. This verifies receiver routing/authentication and
+executor availability; it does not claim that a real repair has completed or
+published. No fabricated incident consumed a repair attempt or AI credits.
+
+The dedicated key and parser are not a repository/filesystem sandbox. The
+existing Claude git/GitHub/Node/npm authority remains broad on the trusted
+studio host. Owner approval for merging is enforced by the existing receiver
+upstream; neither this wrapper nor the monitor originates a merge. Normal i64os
+deployment does not remove the service SSH directory or the loopback drop-in.

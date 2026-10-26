@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/check-d1-budget*'
+      - 'scripts/i64os-repair-ssh*'
       - '.github/workflows/d1-budget.yml'
   workflow_dispatch:
   schedule:
@@ -12,6 +13,7 @@ on:
   pull_request:
     paths:
       - 'scripts/check-d1-budget*'
+      - 'scripts/i64os-repair-ssh*'
       - '.github/workflows/d1-budget.yml'
 
 permissions:
@@ -35,6 +37,9 @@ jobs:
           node-version: '22'
       - name: Test budget monitor
         run: node --test scripts/check-d1-budget*.test.mjs
+      - name: Test dedicated SSH command grammar
+        shell: pwsh
+        run: ./scripts/i64os-repair-ssh.test.ps1
       - name: Restore last durable repair state
         if: github.event_name != 'pull_request'
         env:

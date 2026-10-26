@@ -30,8 +30,9 @@ not prove that its repair executor can connect to the studio machine. While
 false, every workflow records an explicit repair-readiness failure (exit 4),
 preserves incident intent, and sends no repair job. Set it true only after the
 service-user SSH presence probe confirms both Claude and authenticated GitHub
-on the configured repair host. On October 26 it was deliberately set false:
-Tailscale needs login and the service user lacks an outbound SSH identity.
+on the configured repair host. On October 26 it was temporarily set false
+while those dependencies were broken, then set true only after the actual
+service-user probe and command-rejection tests passed (see the incident record).
 
 Default budgets are Workers Free: 5,000,000 rows read and 100,000 rows written
 per UTC day. Repository variables `D1_DAILY_READ_BUDGET` and
@@ -112,3 +113,21 @@ Sources:
 - https://developers.cloudflare.com/d1/observability/metrics-analytics/
 - https://developers.cloudflare.com/d1/platform/pricing/
 - https://developers.cloudflare.com/analytics/graphql-api/getting-started/authentication/api-token-auth/
+
+
+## Studio SSH entry
+
+The source for the Windows forced command is
+[`i64os-repair-ssh.ps1`](i64os-repair-ssh.ps1); its offline validator fixtures are
+[`i64os-repair-ssh.test.ps1`](i64os-repair-ssh.test.ps1). They do not run an AI job.
+The dedicated key is source-restricted to the VPS's private address and disables
+forwarding and PTY access. The wrapper accepts only the existing presence,
+bounded Claude, and approved-repository PR check/merge command grammar. It
+passes the brief on stdin rather than interpolating it into command text.
+
+This is **not a repository or filesystem sandbox**. Claude's existing git,
+GitHub, Node and npm tool authority is broad; the studio remains a trusted
+executor. The command wrapper does not prove owner approval itself: the existing
+receiver enforces the owner-tap merge policy upstream. It adds no automatic
+merge or billing authority. The presence probe checks active repository access
+rather than failing on an unrelated expired saved GitHub account.
