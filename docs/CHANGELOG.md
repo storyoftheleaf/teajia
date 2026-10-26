@@ -194,3 +194,9 @@ Restored the prototype’s connected 1–10 bar with separators and rounded impr
 ### Single-choice sensory groups
 
 Throat feel now replaces its previous choice, matching Weight and Persistence. All three use connected segmented controls. Restored lighter vocabulary typography and softly grouped Effect cards; other sensory words remain multi-select.
+
+### Remove duplicate tasting header save
+
+Removed the stray header Save and its extra toolbar row. Close now sits inside the centered tea pill; saving remains beside notes and in the existing save-on-exit protection.
+
+Restored single-line, radially angled overview category labels to match the approved reference. Label fitting scales within the slice instead of wrapping names.

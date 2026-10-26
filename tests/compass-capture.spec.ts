@@ -494,13 +494,13 @@ test.describe('Curate field capture preservation', () => {
     })).toEqual({ decision: 'considering', sampleState: null });
   });
 
-  test('tasting overlay exposes Save, clears the global nav, and protects unsaved work', async ({ page }) => {
+  test('tasting overlay saves from impression, clears the global nav, and protects unsaved work', async ({ page }) => {
     await openCompass(page);
     await page.getByPlaceholder('Tea name').filter({ visible: true }).fill('Protected tasting');
     await page.getByRole('button', { name: /tasting profile/i }).click();
 
     const close = page.getByRole('button', { name: 'Close', exact: true }).filter({ visible: true });
-    const save = page.getByRole('button', { name: 'Save', exact: true });
+    const save = page.getByRole('button', { name: 'Save notes', exact: true });
     // The "Save this tasting?" dialog's own Save action, distinct from the
     // toolbar's: the dialog does not unmount the toolbar behind it, so both
     // buttons are on screen at once once the dialog opens.
@@ -512,6 +512,8 @@ test.describe('Curate field capture preservation', () => {
 
     await page.getByRole('button', { name: 'Texture', exact: true }).filter({ visible: true }).click();
     await page.getByRole('button', { name: 'Silky', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
+    await page.getByRole('button', {name:'Open your impression',exact:true}).click();
     await expect(save).toBeVisible();
     const saveBox = await save.boundingBox();
     expect(saveBox).not.toBeNull();

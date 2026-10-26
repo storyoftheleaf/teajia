@@ -5775,3 +5775,5 @@ body.cart-panel-open .commerce-dock {
 .connected-sensations-state .connected-sensation-choices { gap:3px; }
 .connected-sensations-state .connected-sensation-choice { background:transparent; border-color:transparent; border-radius:8px; }
 .connected-sensations-state .connected-sensation-choice[aria-pressed="true"] { background:var(--tea-elevated); }
+
+.tasting-heading-close { position:absolute; left:20px; top:max(16px, calc(env(safe-area-inset-top) + 6px)); display:grid; place-items:center; width:44px; height:44px; border-radius:50%; color:var(--tea-text-sec); background:transparent; }

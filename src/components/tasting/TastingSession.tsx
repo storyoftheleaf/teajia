@@ -557,11 +557,10 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
         {adminMode && <button type="button" className="tasting-heading-mic tap-target" disabled={silentVoice.state === 'transcribing'} aria-label={silentVoice.state === 'recording' ? 'Stop recording' : 'Record into your notes'} aria-pressed={silentVoice.state === 'recording'} onClick={() => { setVoiceError(''); if(silentVoice.state === 'recording') silentVoice.stop(); else void silentVoice.start(); }}>
           {silentVoice.state === 'transcribing' ? <Loader2 size={18} className="animate-spin"/> : <Mic size={18}/>}
         </button>}
-        <div className="tasting-heading-tools">
-          {detailsPanel && <button type="button" className="tap-target" onClick={() => setPhase(phase === 'details' ? 'tasting' : 'details')}>{phase === 'details' ? 'Tasting' : 'Tea details'}</button>}
-          {phase === 'tasting' && <button type="button" className="tap-target" onClick={handleSave} disabled={!canSave} aria-label={saveState === 'error' ? 'Retry save' : 'Save'}>{saveState === 'saving' ? 'Saving…' : saveState === 'error' ? 'Retry save' : 'Save'}</button>}
-          <button type="button" className="tap-target" onClick={handleCloseRequest} aria-label="Close"><X size={16}/></button>
-        </div>
+        <button type="button" className="tasting-heading-close tap-target" onClick={handleCloseRequest} aria-label="Close"><X size={16}/></button>
+        {detailsPanel && <div className="tasting-heading-tools">
+          <button type="button" className="tap-target" onClick={() => setPhase(phase === 'details' ? 'tasting' : 'details')}>{phase === 'details' ? 'Tasting' : 'Tea details'}</button>
+        </div>}
       </div>
       {voiceError && <p role="alert" className="px-4 text-ui-12 text-tea-text-sec">{voiceError}</p>}
       {silentVoice.state !== 'idle' && <p role="status" className="px-4 text-ui-12 text-tea-text-sec">{silentVoice.state === 'recording' ? 'Recording into your notes…' : 'Transcribing into your notes…'}</p>}

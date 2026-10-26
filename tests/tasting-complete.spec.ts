@@ -85,7 +85,7 @@ test('clearing the sole saved impression can be saved and stays cleared on reope
   await expect(love).toHaveAttribute('aria-pressed', 'true');
   await love.click();
   await expect(love).toHaveAttribute('aria-pressed', 'false');
-  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Save notes', exact: true })).toBeEnabled();
   await nav.getByRole('button', { name: 'Leave tasting', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Save and close', exact: true })).toBeEnabled();
   await page.getByRole('button', { name: 'Save and close', exact: true }).click();
