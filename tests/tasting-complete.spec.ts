@@ -122,3 +122,23 @@ test('Save notes persists typed text and rating from the notes area', async ({ p
   })).toMatchObject({quality:7,notes:[{id:'personal-impression-draft',text:'A long, gentle finish.'}]});
   await expectNoUnhandledCompassApi(page);
 });
+
+test('throat feel, weight and persistence replace their previous choice', async ({page}) => {
+  await page.setViewportSize({width:320,height:740});
+  await installCompassHarness(page);
+  await openCompass(page);
+  await page.getByPlaceholder('Tea name').filter({visible:true}).fill('Single choices');
+  await page.getByRole('button',{name:/tasting profile/i}).click();
+  await page.getByRole('navigation',{name:'Tasting sections'}).getByRole('button',{name:'Texture',exact:true}).click();
+  for (const [name, first, second] of [
+    ['Throat feel','Comfortable','Irritated'],
+    ['Weight','Light','Full'],
+    ['Persistence','Brief','Lingering'],
+  ]) {
+    const group=page.getByRole('group',{name,exact:true});
+    await group.getByRole('button',{name:first,exact:true}).click();
+    await group.getByRole('button',{name:second,exact:true}).click();
+    await expect(group.getByRole('button',{name:first,exact:true})).toHaveAttribute('aria-pressed','false');
+    await expect(group.getByRole('button',{name:second,exact:true})).toHaveAttribute('aria-pressed','true');
+  }
+});

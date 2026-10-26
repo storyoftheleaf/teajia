@@ -5741,8 +5741,9 @@ body.cart-panel-open .commerce-dock {
 .connected-sensation-choice { min-width: 0; min-height: 44px; padding: 10px 8px; border: 1px solid var(--tea-border); border-radius: 12px; background: var(--tea-surface); color: var(--tea-text-sec); transition: background .15s, color .15s; }
 .connected-sensation-choice[aria-pressed="true"] { background: var(--tea-elevated); color: var(--tea-text); }
 .connected-sensation-choice:focus-visible { outline: 2px solid var(--tea-gold); outline-offset: 2px; }
-.connected-sensation-single { gap: 1px; border-radius: 12px; overflow: hidden; background: var(--tea-border); }
-.connected-sensation-single .connected-sensation-choice { border: 0; border-radius: 0; }
+.connected-sensation-single { gap:0; border:1px solid var(--tea-border); border-radius:8px; overflow:hidden; background:var(--tea-surface); }
+.connected-sensation-single .connected-sensation-choice { border:0; border-right:1px solid var(--tea-border); border-radius:0; padding:10px 4px; }
+.connected-sensation-single .connected-sensation-choice:last-child { border-right:0; }
 .connected-sensation-return { animation: connected-sensation-return 1.6s ease-out both; }
 @keyframes connected-sensation-return { 0%, 20% { box-shadow: inset 0 0 0 1px var(--tea-gold); filter: brightness(1.06); } 100% { box-shadow: inset 0 0 0 1px transparent; filter: brightness(1); } }
 @media (prefers-reduced-motion: reduce) { .connected-sensation-return { animation: none; } .connected-sensation-choice { transition: none; } }
@@ -5768,3 +5769,9 @@ body.cart-panel-open .commerce-dock {
 .tasting-notes-save-row > span { color:var(--tea-text-dim); }
 .tasting-impression .tasting-notes-save { flex-shrink:0; min-height:44px; padding:0 14px; border:1px solid var(--tea-border); border-radius:8px; background:var(--tea-surface); color:var(--tea-text); font-family:var(--font-body); font-size:13px; }
 .tasting-notes-save:disabled { opacity:.45; cursor:default; }
+
+/* Effect follows the earlier softly grouped vocabulary cards. */
+.connected-sensations-state .connected-sensation-family:not([data-sensation-group="custom"]) { margin-bottom:10px; padding:10px; border:0; border-radius:14px; background:color-mix(in srgb,var(--tea-surface) 48%,var(--tea-bg)); }
+.connected-sensations-state .connected-sensation-choices { gap:3px; }
+.connected-sensations-state .connected-sensation-choice { background:transparent; border-color:transparent; border-radius:8px; }
+.connected-sensations-state .connected-sensation-choice[aria-pressed="true"] { background:var(--tea-elevated); }
