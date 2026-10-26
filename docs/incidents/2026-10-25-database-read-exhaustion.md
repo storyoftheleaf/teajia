@@ -1,6 +1,6 @@
 # Database read exhaustion — 2026-10-25
 
-Status: initial repair `feb6ccab63064a3e933acd68c3fe485fa7e63509` independently proven live by release run 308 (build `mvom89fo`). The October 26 follow-up below is prepared for verified background publication; its live proof belongs to its own release artifacts.
+Status: initial repair `feb6ccab63064a3e933acd68c3fe485fa7e63509` independently proven live by release run 308 (build `mvom89fo`). The October 26 follow-up `01f1499c` is independently proven live as build `mvopslrr`; later releases retain it.
 
 ## What failed
 
@@ -208,3 +208,21 @@ existing Claude git/GitHub/Node/npm authority remains broad on the trusted
 studio host. Owner approval for merging is enforced by the existing receiver
 upstream; neither this wrapper nor the monitor originates a merge. Normal i64os
 deployment does not remove the service SSH directory or the loopback drop-in.
+
+### 2026-10-26 real repair acceptance and result retention
+
+A controlled, explicitly labeled acceptance incident (`acceptance_loopback_20261026`) went through the production `deliverRepair` transport, authenticated receiver and dedicated studio executor. It found a genuine bootstrap regression and opened i64os PR #210 (`e138936e3543e0e2b8fc135f6f7080f3aa130ebc`): rerunning the tunnel bootstrap would restore the private-network origin after the core moved to loopback. This was not a fabricated quota alert or live outage. No inventory data was changed.
+
+The actual executor completed successfully but omitted its required result footer while CI was pending. The original attempt `01M5V4SQ7NRZVK104Z7VYCVQAY` remains recorded as stopped; its history is not rewritten. Combined i64os PR #211 (`a12a8a6c7a97ed697cedccd0e81c4df57bc66730`, including the operational brief from PR #209) fixes the resulting tracking gap: a unique correct-repository PR is only a candidate, independent GitHub checks must include an actual passing check, and pending/unavailable results are retained as restricted local artifacts. The existing daily morning job reconciles them without another model invocation. Reconciliation creates an idempotent owner-review entry, preserves stopped history, quarantines malformed artifacts, and never reopens a merged result. Failed checks remain stopped; future repairs still require the owner's merge action.
+
+Both runtime module mirrors were updated with backups under `/opt/i64os-core/store/repair-acceptance-backups/result-20261026` and matching SHA proofs. The core was restarted once after the original executor had finished. Verified: local health 200; authenticated invalid-schema request 400; unauthenticated repair request 401; private repair listing 404. The acceptance output is stored under `/opt/i64os-core/store/repair-results/` as mode 0600, owned by `i64os`. No readiness claim substitutes for the eventual PR checks and queue evidence.
+
+The persistent service overrides are `/etc/systemd/system/i64os-core.service.d/95-loopback-tunnel.conf` (`BIND_ADDRESS=127.0.0.1:5570`) and `/etc/systemd/system/i64os-core-outage-report.service.d/95-loopback.conf` (`OUTAGE_CORE_ADDR=http://127.0.0.1:5570`). Both existing cron database consumers now invoke the `i64os` service user; the installer source and an offline regression test preserve that choice across installation. Schedules and credentials were not changed. This avoids root-owned WAL files making the receiver unwritable again.
+
+Durable acceptance evidence lives in `outputs/repair-acceptance/`: receipt and captured-output provenance; both-mirror runtime hashes; endpoint health; `result-source-integration.json` for exact-revision source CI/merge; and `repair-ci-completion.json` for PR #210 CI followed by service-user reconciliation. The latter runs the reconciliation function directly and does not send a morning message. These state files distinguish waiting, failed and completed work; consult them before claiming the full chain has finished.
+
+Acceptance completion: PR #210's CI passed and the saved result was independently reconciled to pending review item `01M5V601CGRCVEHPBD2HCEN6W8`. With the owner's explicit publish authorization, the existing `mergeRepair` path rechecked CI and merged it as `0461c42f119911d705a604cc06130b954034c862`; the local incident is resolved. The installed bootstrap script matches that merged commit (SHA-256 `1cb8e455b533440a764aa16ed7387e593107811d76a633f6295b1c2ddcb051d1`); it was installed but not executed, because the live tunnel was already correct. Five focused regression tests also passed independently against the exact repair PR head.
+
+PR #211 source integration uses a persistent macOS LaunchAgent (`com.i64os.repair-source-integration-211`), not a model waiting for CI. `outputs/repair-acceptance/result-source-runner.json` records its exact revision, CI run, script, status file and resume command. If that integration fails, the reviewed modules remain live, but a normal deployment from a main revision lacking the fix could overwrite them; do not claim source integration complete until its recorded state is `merged`.
+
+PR #211 publication completed as `747e5af3` after successful CI. All 16 relevant runtime/installer files match the merged revision, the acceptance repair is merged and resolved, and its publication runner exited successfully. The next bounded read reductions are documented in [secondary admin reads](2026-10-26-secondary-read-reduction.md).

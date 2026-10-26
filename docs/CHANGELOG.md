@@ -4,6 +4,10 @@
 
 ## Tasting navigation material 2026-10-26
 
+## 2026-10-26 — smaller secondary admin reads
+
+Product stories read only their own product. Vendor profiles receive shared pricing with their vendor products and avoid a second whole-inventory read. Removed the unused incoming-share poll from the admin shell; Compass retains its own live refresh and sharing actions. Scoped story caches preserve mutation invalidation and account isolation. Controlled measurements and verification: [secondary admin reads](incidents/2026-10-26-secondary-read-reduction.md).
+
 - Tasting uses the site bottom bar’s paper texture, shadow, colors, and active-label treatment while retaining its centered emblem, tasting labels, and folding transition.
 
 ## Wheel inset separator 2026-10-26
@@ -64,6 +68,8 @@ Added `/tasting-v2/` as a separate browser-local tasting preview, preserving its
 
 ## 2026-10
 
+- 2026-10-26: **Form, piece weight and price basis in Stock.** The arrowless form action opens a bottom sheet separating one piece/pack weight, the cost and grams purchased, and remaining stock. Live per-gram/full/half-piece previews follow shared freight, currency and markup rules, preserve fixed retail overrides, and save without stock adjustments. Existing piece-weight and whole-piece fields now pass through the browser’s catalog update boundary. Whole-piece saves no longer target a nonexistent listing column, and the public catalogue now carries the saved sales setting.
+
 - 2026-10-17: **A pending arrival can be taken off the list.** Correcting a tea left its duplicate arrival sitting on the incoming shelf with no door that could remove it: `curate_correct` answers "Unsupported Curate entity" for an arrival, `curate_undo` deliberately preserves them, and the only reject was the admin screen. New `curate_reject_arrival` (owner or explicit `curate_manage`, `stock:write`, preview then confirm) marks the `curate_receipt_proposals` row `rejected` — the third value the column has carried since migration 0000, so no schema change — and keeps it, rather than deleting the evidence a `stock_ledger` row can point at. It adds and removes no stock, and refuses by name any arrival that is not pending: one already approved has grams on the shelf, and the answer is `remove_stock`, not a status flip that would deny a receipt the shop is selling against. The write goes through `prepareCurateRecordedWrite` with `arrival` registered as a recorded Curate entity, so the removal is attributable in `curate_history` and `curate_undo` puts the arrival back on the list with its review stamps cleared. An arrival whose linked order or tea can no longer be read is still rejectable, because that is the row most likely to need it. Enforced by nine cases in `worker/tests/mcp-curate-arrivals.test.ts`, including the accepted-arrival refusal asserted against real stock through the authenticated `/mcp` route.
 
 - 2026-10-17: **Library uses the shop tea row.** Shop and Library now share the same year/save tile, tea identity, origin, description and type wash. An attached Library row keeps vendor, sample/tasting context, photos and actions together on desktop and mobile. Costs remain explicitly labelled; the existing detail panel, mobile expansion and Library workflows remain available.
@@ -87,6 +93,10 @@ Added `/tasting-v2/` as a separate browser-local tasting preview, preserving its
 - 2026-10-08 — **Curate agent workspace and Samples only, implemented for release review.** Structured tea, vendor and quote fields replace note fallbacks. Private role-labelled uploads attach source files with preview/confirm; corrections cover transcripts, todos, individual photos, soft deletion and duplicate redirects. Actor history and guarded undo include linked sample creation and explicit tasting consumption. Inventory lists received/tasted Curate teas without full stock and starts supplier orders from their identities. Managers see their entire selected account while original authorship and account boundaries remain intact. Schema-only migrations 0035–0037. [Behavior and operational limits](CURATE_WORKSPACE.md).
 
 - 2026-10-08 — **Curate and the samples shelf connected, implemented for release review.** App and agent sample writes share an account-scoped server bridge with vendor batches, retry-safe sample identity, explicit received grams/state and photo propagation. Shelf status and tasting writes update Curate in the same batch; the browser immediately refreshes canonical identities while retaining its offline outbox, and both Browse screens share tasting counts. Reviewed arrivals preserve private tea details and use the exact supplier order line total as batch cost; mismatched quantities are refused. Agent arrival list/approval uses the same acceptance service and durable preview/confirm. The cleanup report is read-only; live account verification, XWT backfill, duplicate/empty-set decisions and freight allocation remain pending. The [Worker-first release runner](VERIFIED_RELEASES.md) pins API and frontend proof to one revision; production status lives in its release artifacts.
+
+## 2026-10
+
+- 2026-10-26: **Stock Reference Columns.** Compact tea cards below 768px switch to the spreadsheet on tablets. Given name, year and retail save from small sheets; stock opens the existing movement flow. Camera capture/library uploads and saves product photos, the handleless teacup opens existing tastings, and More keeps freight/history/full editing secondary.
 
 ## 2026-09
 

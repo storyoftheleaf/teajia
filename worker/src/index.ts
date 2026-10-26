@@ -1074,7 +1074,6 @@ const LISTING_MIRROR_COLUMNS: Record<string, string> = {
   quantity_purchased:    'quantity_purchased',
   source_compass_entry_id:'source_compass_entry_id',
   stock_verified_at:     'stock_verified_at',
-  sold_in_whole_units:   'sold_in_whole_units',
   is_personal:           'is_personal',
   can_reorder:           'can_reorder',
   is_public:             'is_public',
@@ -10135,13 +10134,22 @@ const handleGetVendorProducts: Handler = async (request, env, params) => {
 
   const result = await env.DB.prepare(`
     SELECT id, product_name, given_name, chinese_name, type, image_url,
-      origin_country, origin_region, stock_grams, status, cost_amount, cost_currency
+      origin_country, origin_region, stock_grams, status, cost_amount, cost_currency,
+      cost_currency_source, quantity_purchased, quantity_units, shipping_rate_per_kg
     FROM products
     WHERE vendor_id = ? AND account_id = ?
     ORDER BY product_name ASC
   `).bind(params.id, accountId).all();
 
-  return json(result.results);
+  const ratesResult = await env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates').all();
+  const rates = new Map<string, number>((ratesResult.results as any[]).map(r => [r.currency, r.rate_to_usd]));
+  const shopDefaultPerKgUsd = await shopFreightPerKgUsd(env, accountId, rates);
+  // Keep the supplied-products contract's raw stock/currency values. Only add
+  // the shared pricing result used by vendor economics, without a second
+  // whole-account inventory read or its collection-publication joins.
+  return json((result.results as any[]).map(row => ({
+    ...row, cost_per_gram_usd: addPricingFields(row, rates, shopDefaultPerKgUsd).cost_per_gram_usd,
+  })));
 };
 
 const handleLinkVendorProduct: Handler = async (request, env, params) => {
@@ -21674,7 +21682,7 @@ async function fetchPublicProductsForAccount(
               COALESCE(tp.experience, p.experience) AS experience,
               p.cost_amount, p.cost_currency, p.quantity_purchased,
               p.shipping_rate_per_kg, p.fixed_retail_price_usd,
-              p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.piece_weight_g,
+              p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.piece_weight_g, p.sold_in_whole_units,
               p.tasting, p.tasting_source,
               p.cultivar,
               (SELECT COUNT(*) > 0 FROM collection_items ci

@@ -1,3 +1,4 @@
+import { enteredYear } from '../enteredYear';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { PhoneTeaHeader, type TeaAction } from './inventory/phone/PhoneTeaHeader';
 import { useQueryClient } from '@tanstack/react-query';
@@ -1557,7 +1558,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   </>
                 )}
                 <FieldCell label="Year">
-                  <GhostInput variant="bordered" value={product.year || ''} onSave={(val) => handleUpdate(product.id, 'year', val)} type="number" className="tabular-nums" />
+                  <GhostInput variant="bordered" value={product.year || ''} onSave={(val) => { try { const year = enteredYear(val); handleUpdate(product.id, 'year', year); } catch (error) { showToast(error instanceof Error ? error.message : 'Enter a valid year or decade.', 'error'); } }} type="text" className="tabular-nums" />
                 </FieldCell>
               </FieldGrid>
 
