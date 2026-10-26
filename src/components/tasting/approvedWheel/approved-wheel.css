@@ -317,3 +317,7 @@
 .approved-taste-wheel.study-phone .approved-wheel-journey .split-senses[data-sense-study="5"] #radial .split-note-surface .sense-caption.sense-picked{font-weight:600!important}
 .approved-taste-wheel.study-phone .approved-wheel-journey .split-senses[data-sense-study="5"] #radial .split-note-surface .sense-caption{fill:var(--sense-label-tint,var(--dim))!important;fill-opacity:.84;letter-spacing:.15px!important}
 .approved-taste-wheel.study-phone .approved-wheel-journey .split-senses[data-sense-study="5"] #radial .split-note-surface .sense-caption.sense-picked{fill:var(--sense-label-tint,var(--dim))!important;fill-opacity:.94}
+
+/* The inset separator belongs to the page, not the category palette. */
+.approved-taste-wheel .approved-wheel-journey .split-senses #radial #icon-band-separator{stroke:var(--tea-bg)}
+.approved-taste-wheel .approved-wheel-journey .split-senses #radial .ring-hairline{stroke:var(--tea-border)}

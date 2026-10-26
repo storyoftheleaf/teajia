@@ -1,3 +1,7 @@
+## Wheel inset separator 2026-10-26
+
+- The narrow band between the category wheel and flavor ring matches the page background, with a fine border. Wheel colors and the small Taste/Aroma caption scaling remain unchanged.
+
 ## Wheel label hierarchy 2026-10-26
 
 - Category and flavor names grow with wheels wider than the phone baseline. Taste and Aroma retain their small 11-pixel screen-size cap, preserving their secondary role as the wheel expands. Verified at phone and larger viewport sizes.
