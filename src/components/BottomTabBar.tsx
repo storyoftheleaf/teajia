@@ -43,7 +43,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     const reopen = () => {
       setReturningFromTasting(true);
       clearTimeout(timer);
-      timer = setTimeout(() => setReturningFromTasting(false), 650);
+      timer = setTimeout(() => setReturningFromTasting(false), 750);
     };
     window.addEventListener('teajia:tasting-closed', reopen);
     return () => { window.removeEventListener('teajia:tasting-closed', reopen); clearTimeout(timer); };

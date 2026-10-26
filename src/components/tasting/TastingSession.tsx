@@ -535,9 +535,9 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   return createPortal(
     <div data-tasting-session-overlay className={`fixed inset-0 z-takeover lg:bg-black/75 lg:backdrop-blur-sm lg:flex lg:items-center lg:justify-center${className ? ` ${className}` : ''}`}>
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
       className="fixed inset-0 bg-tea-bg flex flex-col lg:relative lg:inset-auto lg:w-[540px] lg:h-[min(94vh,960px)] lg:rounded-xl lg:border lg:border-tea-border lg:overflow-hidden"
       style={{

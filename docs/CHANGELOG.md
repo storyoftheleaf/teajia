@@ -1,3 +1,7 @@
+## Tasting bar motion 2026-10-26
+
+- The actual site bar now folds inward before the tasting bar unfolds; labels appear only after expansion. Returning fades the tasting labels first, folds the sides into the circle, then opens the site bar and reveals its labels. Reduced-motion preferences skip the sequence. Colors and materials are unchanged.
+
 ## Tasting navigation material 2026-10-26
 
 - Tasting uses the site bottom bar’s paper texture, shadow, colors, and active-label treatment while retaining its centered emblem, tasting labels, and folding transition.
