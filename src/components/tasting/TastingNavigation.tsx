@@ -26,8 +26,9 @@ export function TastingNavigation({ activeSection, onSelect, onClose }: Props) {
     </button>
   ));
   return <nav aria-label="Tasting sections" className={`tasting-capsule lg:hidden${closing ? ' is-closing' : ''}`}>
+    <span aria-hidden="true" className="tasting-capsule-surface bottom-nav-bar" />
     <div className="tasting-capsule-wing">{choices(0)}</div>
-    <button type="button" className="tasting-capsule-seal" aria-label="Leave tasting" onClick={leave} disabled={closing}>
+    <button type="button" className="tasting-capsule-seal paper-surface" aria-label="Leave tasting" onClick={leave} disabled={closing}>
       <LogoEmblem size={42} color="var(--tea-text)" />
     </button>
     <div className="tasting-capsule-wing">{choices(2)}</div>

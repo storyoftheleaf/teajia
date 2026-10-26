@@ -1,3 +1,7 @@
+## Tasting navigation material 2026-10-26
+
+- Tasting uses the site bottom bar’s paper texture, shadow, colors, and active-label treatment while retaining its centered emblem, tasting labels, and folding transition.
+
 ## Wheel inset separator 2026-10-26
 
 - The narrow band between the category wheel and flavor ring matches the page background, with a fine border. Wheel colors and the small Taste/Aroma caption scaling remain unchanged.
