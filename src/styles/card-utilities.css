@@ -5757,3 +5757,9 @@ body.cart-panel-open .commerce-dock {
 .tasting-heading-tools { display:flex; justify-content:flex-end; align-items:center; gap:8px; height:44px; color:var(--tea-text-sec); font-size:12px; }
 .tasting-heading-tools button { display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; }
 .tasting-heading-tools button:disabled { opacity:.45; }
+
+/* Rating is a row of numerals, with invisible touch space rather than tiles. */
+.tasting-impression-numbers button,
+.tasting-impression-numbers button[aria-pressed="true"] { border:0; background:transparent; box-shadow:none; border-radius:0; }
+.tasting-impression-numbers button { color:var(--tea-text-dim); }
+.tasting-impression-numbers button[aria-pressed="true"] { color:var(--tea-text); font-weight:600; }
