@@ -35,3 +35,12 @@ export const getThemeTextColor = (type: string) => {
   if (normalized && THEME_TEXT_OVERRIDES[normalized]) return THEME_TEXT_OVERRIDES[normalized]!;
   return getThemeColor(type);
 };
+
+/** Stock strip surfaces and readable text have different colour needs. */
+export const getStockTypeFinish = (type: string) => {
+  const normalized = normalizeTeaType(type);
+  if (normalized === 'Dark') return { tint: '#9D704E', text: '#C0A086', lightness: '.315' };
+  if (normalized === 'Shou') return { tint: '#191A19', text: '#B0ACA6', lightness: '.275' };
+  const colour = getThemeTextColor(type);
+  return { tint: colour, text: colour, lightness: '.32' };
+};

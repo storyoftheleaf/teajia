@@ -67,7 +67,7 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(row.locator('.stock-record')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
-  await expect(row.locator('.stock-quantity-edit')).toHaveText('100');
+  await expect(row.locator('.stock-quantity-edit .stock-number')).toHaveText('100');
   await expect(row.locator('.stock-figures')).not.toContainText('per');
   await row.locator('.stock-quantity-edit').click();
   await expect(page.getByRole('dialog', { name: 'Change stock: Cloud Oolong', exact: true })).toBeVisible();

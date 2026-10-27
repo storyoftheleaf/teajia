@@ -5993,7 +5993,7 @@ body.cart-panel-open .commerce-dock {
 /* Phone references are a single light row; each value owns its click area. */
 @media(max-width:767px) {
   .stock-view .stock-subtitle {
-    grid-template-columns:minmax(0,1.2fr) minmax(0,.9fr) minmax(0,.9fr);
+    grid-template-columns:minmax(0,1fr) auto auto;
     gap:6px;
     margin-inline:-9px;
     padding-inline:9px;
@@ -6002,8 +6002,8 @@ body.cart-panel-open .commerce-dock {
   }
   .stock-view .stock-subtitle .stock-inline-edit { display:block; width:100%; max-width:100%; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border:0; }
   .stock-view .stock-given-name { text-align:left; }
-  .stock-view .stock-form-edit { text-align:center; justify-self:stretch; }
-  .stock-view .stock-subtitle>[data-field=type] { display:block; width:100%; min-width:0; overflow:hidden!important; text-overflow:ellipsis; white-space:nowrap!important; }
+  .stock-view .stock-subtitle .stock-form-edit { width:auto; max-width:130px; text-align:right; justify-self:end; }
+  .stock-view .stock-subtitle>[data-field=type] { display:block; width:auto; max-width:110px; min-width:0; overflow:hidden!important; text-overflow:ellipsis; white-space:nowrap!important; }
   .stock-view .stock-subtitle>[data-field=type]>span { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap!important; text-align:right; }
   .stock-view .stock-inline-edit:hover,.stock-view .stock-inline-edit:active { background:transparent; text-decoration:underline; text-decoration-color:var(--tea-border); text-underline-offset:4px; }
   .stock-view .stock-inline-edit:focus-visible { outline:1px solid var(--tea-gold); outline-offset:-2px; border-radius:3px; }
@@ -6030,4 +6030,154 @@ body.cart-panel-open .commerce-dock {
     background:linear-gradient(oklch(from var(--tea-bg) calc(l - .018) c h),oklch(from var(--tea-bg) calc(l - .018) c h)) center / 100% 32px no-repeat;
   }
   .stock-view .stock-workbar { margin-bottom:0; }
+}
+
+.stock-caption { display:none; }
+.stock-title-line { display:contents; }
+.stock-more-action { color:var(--tea-text-sec); }
+
+/* Stock uses the approved Type strip structure; local studies retain alternative finishes. */
+@media(max-width:767px) {
+  .stock-view .stock-record[data-card-study] .stock-workbar { gap:6px; margin-bottom:0; }
+  .stock-view .stock-record[data-card-study] .stock-figure { display:block; min-height:44px; }
+  .stock-view .stock-record[data-card-study] .stock-figure dt { position:absolute; top:5px; padding:0; line-height:12px!important; }
+  .stock-view .stock-record[data-card-study] .stock-figure dd { position:static; line-height:1.1; }
+  .stock-view .stock-record[data-card-study] .stock-figure dd button { align-items:center!important; padding:10px 2px 0!important; }
+  .stock-view .stock-record[data-card-study] .stock-figure dd>.stock-field { position:absolute; top:19px; left:0; right:0; justify-content:center; }
+
+  /* 1: a single fine vertical thread; the content stays neutral. */
+  .stock-view .stock-record[data-card-study="1"]::before { content:""; position:absolute; inset:0 auto 0 0; width:2px; background:var(--stock-tea-hue); pointer-events:none; z-index:1; }
+  .stock-view .stock-record[data-card-study="1"] .stock-figure+.stock-figure { border-left:0; }
+  .stock-view .stock-record[data-card-study="1"] .stock-quick-actions { border-color:var(--tea-border); }
+
+  /* 2: a muted tea-coloured middle strip, with an otherwise quiet card. */
+  .stock-view .stock-record[data-card-study="2"] {
+    --stock-strip-l: .32;
+    background:linear-gradient(155deg,color-mix(in srgb,var(--stock-tea-hue) 6%,var(--tea-bg)),var(--tea-bg) 78%);
+  }
+  .stock-view .stock-record[data-card-study="2"] .stock-title-line { display:flex; align-items:center; gap:4px; min-height:44px; }
+  .stock-view .stock-record[data-card-study="2"] .stock-title { flex:1; min-width:0; width:auto; margin:0; padding:7.5px 0; background:transparent; }
+  .stock-view .stock-record[data-card-study="2"] .stock-more-action { position:static; flex:0 0 44px; width:44px; height:44px; min-height:44px; display:flex; align-items:center; justify-content:center; border:0; border-radius:5px; background:transparent; }
+  .stock-view .stock-record[data-card-study="2"] .stock-more-action:hover { color:var(--tea-gold); background:transparent; }
+  .stock-view .stock-record[data-card-study="2"] .stock-more-action:focus-visible { outline:1px solid var(--tea-gold); outline-offset:-3px; }
+  .stock-view .stock-record[data-card-study="2"] .stock-subtitle { position:relative; isolation:isolate; min-height:38px; background:transparent; }
+  .stock-view .stock-record[data-card-study="2"] .stock-subtitle .stock-inline-edit { min-height:38px; }
+  .stock-view .stock-record[data-card-study="2"] .stock-subtitle::before {
+    content:"";
+    position:absolute;
+    inset:0;
+    z-index:-1;
+    pointer-events:none;
+    background:linear-gradient(110deg,
+      oklch(from var(--stock-tea-hue) calc(var(--stock-strip-l) + .012) calc(c * .55) h),
+      oklch(from var(--stock-tea-hue) var(--stock-strip-l) calc(c * .55) h) 62%,
+      oklch(from var(--stock-tea-hue) calc(var(--stock-strip-l) - .018) calc(c * .55) h));
+    border-block:1px solid color-mix(in srgb,var(--stock-tea-hue) 34%,var(--tea-bg));
+  }
+  .stock-view .stock-record[data-card-study="2"] .stock-subtitle>[data-field=type]>span { color:var(--stock-tea-label)!important; }
+  .stock-view .stock-record[data-card-study="2"] .stock-figure+.stock-figure { border-left:0; }
+  .stock-view .stock-record[data-card-study="2"] .stock-figures { border-top:0; }
+  .stock-view .stock-record[data-card-study="2"] .stock-workbar { margin:0; padding:0 0 2px; gap:0; border:0; background:linear-gradient(105deg,color-mix(in srgb,var(--stock-tea-hue) 6%,var(--tea-bg)),color-mix(in srgb,var(--tea-surface) 25%,var(--tea-bg))); }
+  .stock-view .stock-record[data-card-study="2"] .stock-quick-actions { border-right:0; }
+  .stock-view .stock-record[data-card-study="2"] .stock-figure dt { width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  .stock-view .stock-record[data-card-study="2"] .stock-figure dd { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; height:44px; }
+  .stock-view .stock-record[data-card-study="2"] .stock-figure dd button { display:flex; flex-direction:column; align-items:center!important; justify-content:center; gap:2px; padding:0!important; }
+  .stock-view .stock-record[data-card-study="2"] .stock-number { display:block; font-size:15px; line-height:18px; font-variant-numeric:lining-nums tabular-nums; }
+  .stock-view .stock-record[data-card-study="2"] .stock-caption { display:block; color:var(--tea-text-dim); font-family:'Plus Jakarta Sans',system-ui,sans-serif; font-size:10px; line-height:12px; font-weight:400; letter-spacing:0; white-space:nowrap; }
+  .stock-view .stock-record[data-card-study="2"] .stock-figure dd>.stock-field { position:static; font-size:15px!important; line-height:18px!important; }
+  .stock-view .stock-record[data-card-study="2"] .stock-subtitle>[data-field=type] { border-left:1px solid color-mix(in srgb,var(--stock-tea-hue) 38%,var(--tea-border)); padding-left:8px!important; }
+
+  /* 3: one soft wash under the three references; photo and tasting stay neutral. */
+  .stock-view .stock-record[data-card-study="3"] .stock-figures { background:color-mix(in srgb,var(--stock-tea-hue) 12%,var(--tea-bg)); border-radius:3px; }
+  .stock-view .stock-record[data-card-study="3"] .stock-figure+.stock-figure { border-left:1px solid var(--tea-border); }
+  .stock-view .stock-record[data-card-study="3"] .stock-quick-actions { border-right:0; }
+
+  /* 4: tea colour lives in a fine inset outline and a small reference rule. */
+  .stock-view .stock-record[data-card-study="4"]::before { content:""; position:absolute; inset:0; border:1px solid color-mix(in srgb,var(--stock-tea-hue) 42%,var(--tea-border)); border-radius:4px; pointer-events:none; z-index:1; }
+  .stock-view .stock-record[data-card-study="4"] .stock-figures { border-top:1px solid color-mix(in srgb,var(--stock-tea-hue) 42%,var(--tea-border)); }
+  .stock-view .stock-record[data-card-study="4"] .stock-figure+.stock-figure { border-left:0; }
+  .stock-view .stock-record[data-card-study="4"] .stock-quick-actions { border-right:0; }
+
+  /* 5: a low tint across the whole body, with a neutral title and dark middle. */
+  .stock-view .stock-record[data-card-study="5"] { background:color-mix(in srgb,var(--stock-tea-hue) 9%,var(--tea-bg)); }
+  .stock-view .stock-record[data-card-study="5"] .stock-subtitle { background:linear-gradient(color-mix(in srgb,var(--stock-tea-hue) 3%,var(--tea-bg)),color-mix(in srgb,var(--stock-tea-hue) 3%,var(--tea-bg))) center / 100% 30px no-repeat; }
+  .stock-view .stock-record[data-card-study="5"] .stock-quick-actions { color:var(--stock-tea-hue); border-right:0; }
+  .stock-view .stock-record[data-card-study="5"] .stock-quick-actions>button { color:var(--stock-tea-hue); }
+  .stock-view .stock-record[data-card-study="5"] .stock-figure+.stock-figure { border-left:0; }
+}
+
+/* Fine metalwork (4) is the default; all finishes share the approved geometry. */
+@media(max-width:767px) {
+  .stock-view .stock-record[data-card-polish="1"] {
+    background:linear-gradient(175deg,color-mix(in srgb,var(--stock-tea-hue) 5%,var(--tea-bg)),var(--tea-bg));
+  }
+  .stock-view .stock-record[data-card-polish="1"] .stock-subtitle::before {
+    background:linear-gradient(112deg,
+      oklch(from var(--stock-tea-hue) calc(var(--stock-strip-l) + .014) calc(c * .48) h),
+      oklch(from var(--stock-tea-hue) var(--stock-strip-l) calc(c * .48) h) 60%,
+      oklch(from var(--stock-tea-hue) calc(var(--stock-strip-l) - .012) calc(c * .48) h));
+    border-color:color-mix(in srgb,var(--stock-tea-label) 17%,var(--tea-bg));
+  }
+  .stock-view .stock-record[data-card-polish="1"] .stock-workbar {
+    background:linear-gradient(180deg,color-mix(in srgb,var(--tea-surface) 18%,var(--tea-bg)),var(--tea-bg));
+  }
+
+  .stock-view .stock-record[data-card-polish="2"] {
+    background:linear-gradient(180deg,oklch(from var(--tea-bg) calc(l - .018) c h),oklch(from var(--tea-bg) calc(l - .035) c h));
+  }
+  .stock-view .stock-record[data-card-polish="2"] .stock-subtitle::before {
+    background:linear-gradient(112deg,
+      oklch(from var(--stock-tea-hue) calc(var(--stock-strip-l) - .01) calc(c * .58) h),
+      oklch(from var(--stock-tea-hue) calc(var(--stock-strip-l) - .042) calc(c * .58) h));
+    border-color:color-mix(in srgb,var(--stock-tea-label) 20%,var(--tea-bg));
+  }
+  .stock-view .stock-record[data-card-polish="2"] .stock-workbar {
+    background:oklch(from var(--tea-bg) calc(l - .025) c h);
+  }
+  .stock-view .stock-record[data-card-polish="2"] .stock-title>button,
+  .stock-view .stock-record[data-card-polish="2"] .stock-number { color:var(--tea-text); }
+  .stock-view .stock-record[data-card-polish="2"] .stock-caption { color:var(--tea-text-sec); }
+
+  .stock-view .stock-record[data-card-polish="3"] {
+    background:linear-gradient(140deg,color-mix(in srgb,var(--tea-surface) 32%,var(--tea-bg)),color-mix(in srgb,var(--tea-surface) 14%,var(--tea-bg)));
+  }
+  .stock-view .stock-record[data-card-polish="3"] .stock-subtitle::before {
+    background:linear-gradient(112deg,
+      oklch(from var(--stock-tea-hue) calc(var(--stock-strip-l) + .025) calc(c * .43) h),
+      oklch(from var(--stock-tea-hue) calc(var(--stock-strip-l) + .005) calc(c * .43) h));
+    border-color:var(--tea-border);
+  }
+  .stock-view .stock-record[data-card-polish="3"] .stock-workbar {
+    background:color-mix(in srgb,var(--tea-surface) 43%,var(--tea-bg));
+  }
+  .stock-view .stock-record[data-card-polish="3"] .stock-caption,
+  .stock-view .stock-record[data-card-polish="3"] .stock-more-action { color:var(--tea-text-sec); }
+
+  .stock-view .stock-record[data-card-polish="4"] {
+    --stock-metal-l:var(--stock-strip-l);
+    background:linear-gradient(180deg,var(--tea-bg),color-mix(in srgb,var(--tea-elevated) 8%,var(--tea-bg)));
+  }
+  .stock-view .stock-record[data-card-polish="4"]::after {
+    content:""; position:absolute; inset:0; pointer-events:none; z-index:1;
+    border:1px solid color-mix(in srgb,var(--stock-tea-label) 30%,var(--tea-border)); border-radius:4px;
+  }
+  .stock-view .stock-record[data-card-polish="4"] .stock-subtitle::before {
+    background:linear-gradient(180deg,
+      oklch(from var(--stock-tea-hue) calc(var(--stock-metal-l) + .025) calc(c * .35) h),
+      oklch(from var(--stock-tea-hue) calc(var(--stock-metal-l) + .003) calc(c * .35) h) 20%,
+      oklch(from var(--stock-tea-hue) calc(var(--stock-metal-l) - .02) calc(c * .35) h));
+    border-top-color:color-mix(in srgb,var(--stock-tea-label) 42%,var(--tea-bg));
+    border-bottom-color:var(--tea-border);
+  }
+  .stock-view .stock-record[data-card-polish="4"] .stock-workbar { background:var(--tea-bg); }
+  .stock-view .stock-record[data-card-polish="4"] .stock-caption { color:var(--tea-text-sec); }
+  .stock-view .stock-record[data-card-polish="4"] .stock-quick-actions svg { stroke-width:1.25; }
+}
+
+/* The selected finish follows the app theme without changing its layout. */
+@media(max-width:767px) {
+  .light .stock-view .stock-record[data-card-polish="4"] { --stock-metal-l:.83; }
+  .light .stock-view .stock-record[data-card-polish="4"] .stock-subtitle>[data-field=type]>span { color:var(--tea-text-sec)!important; }
+  .light .dark .stock-view .stock-record[data-card-polish="4"] { --stock-metal-l:var(--stock-strip-l); }
+  .light .dark .stock-view .stock-record[data-card-polish="4"] .stock-subtitle>[data-field=type]>span { color:var(--stock-tea-label)!important; }
 }
