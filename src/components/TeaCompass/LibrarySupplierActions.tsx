@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Pencil } from 'lucide-react';
 import { SupplierSheet } from '../shared/SupplierSheet';
 
 interface LibrarySupplierActionsProps {
@@ -23,9 +24,9 @@ export const LibrarySupplierActions: React.FC<LibrarySupplierActionsProps> = ({
         aria-haspopup="dialog"
         title="Edit this supplier's shared name and details"
         onClick={(event) => { event.stopPropagation(); setOpen(true); }}
-        className="tap-target shrink-0 justify-end text-ui-11 text-tea-text-dim hover:text-tea-text disabled:opacity-50"
+        className="tap-target library-supplier-edit shrink-0 text-ui-11 text-tea-text-sec hover:text-tea-text disabled:opacity-50"
       >
-        Edit
+        <Pencil size={16} aria-hidden="true" />
       </button>
       {open && !disabled && (
         <SupplierSheet

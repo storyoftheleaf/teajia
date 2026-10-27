@@ -205,6 +205,10 @@ Build this tea now brings source passage review, AI details and an editable desc
 
 Fixed live tea review routes refusing to run when the Groq key is missing even though Workers AI is already installed. Both detail extraction and description drafting can use that binding, retaining the existing source checks, field validation, exact citations and explicit-save behavior.
 
+## Library quote-weight popup and direct currency picker 2026-10-25
+
+- Every Library quote weight now opens one confirmation popup with grams, jin, cake, brick and tuo choices. Grams include 75g and 150g; jin explicitly offers 500g or 600g. Recorded pack weights remain suggestions until confirmed, and the confirmed total is used for price-per-gram calculations without altering received stock. A symbol-based currency picker beside the top Add icon changes display currency in one selection while preserving original quote currencies.
+
 ## 2026-10-25: Mobile tasting capsule
 
 The mobile tasting navigation now uses the site capsule with a larger central emblem and folding exit. Texture, Effect, Taste and Storage stay directly accessible; notes move to the mobile header. Storage adds character and unwanted notes above an Appearance group. Existing journal persistence and unsaved-change protection remain in place. Corrected three stale line references in the existing Worker diagnostic baseline without adding allowed errors.

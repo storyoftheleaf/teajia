@@ -66,6 +66,12 @@ describe('Library phone row', () => {
     expect(markup).toContain('>10.00<');
     expect(markup).not.toContain('>0.1<');
   });
+  it('asks before using an existing pack weight as the quote basis', () => {
+    const markup = render({ entry: { ...entry, pricePerUnitGrams: null, packSizeGrams: 357 } });
+    expect(markup).toContain('Confirm quoted grams for Silver Needle');
+    expect(markup).toContain('>0.0<');
+    expect(markup).not.toContain('>357<');
+  });
   it('offers a positive choice and makes it selected for ordered tea', () => {
     expect(render()).toContain('aria-pressed="false"');
     expect(render()).not.toContain('data-chosen-marker');
@@ -92,7 +98,7 @@ describe('Library phone row', () => {
     const markup = render({ readOnly: true });
     expect(markup).not.toContain('>Reject<');
     expect(markup).not.toContain('aria-label="Edit quote');
-    expect(markup).toContain('Open Silver Needle details');
+    expect(markup).toContain('Edit details for Silver Needle');
   });
   it('retains tea type accents without merging adjacent card backgrounds', () => {
     const white = render();

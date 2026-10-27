@@ -19,7 +19,8 @@ export function LibraryGivenName({ entry, onSave, readOnly = false }: {
     readOnly={readOnly}
     onSave={async value => {
       await onSave(value);
-      if (entry.draftProductId) await queryClient.invalidateQueries({ queryKey: ['products'] });
+      // The product may carry the backlink before this entry has a forward ID.
+      await queryClient.invalidateQueries({ queryKey: ['products'] });
     }}
   />;
 }

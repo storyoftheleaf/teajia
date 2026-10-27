@@ -214,9 +214,10 @@ export const SupplierSheet: React.FC<SupplierSheetProps> = ({ vendorId, vendorNa
             There is no supplier card called {vendorName} yet, so there is nothing to change here. Save the supplier first.
           </p>
         )}
-        {resolving && <p className="py-3 text-ui-13 text-tea-text-sec">Loading…</p>}
+        {(resolving || (!!id && card.isLoading)) && <p className="py-3 text-ui-13 text-tea-text-sec">Loading…</p>}
 
-        {id && (
+        {id && card.isError && <p role="alert" className="py-3 text-ui-13 text-tea-text-sec">Could not load the saved supplier details. <button type="button" className="tap-target" onClick={() => void card.refetch()}>Retry</button></p>}
+        {id && card.data && (
           <>
             {/* Name */}
             <section aria-label="Name" className="py-2 border-b border-tea-border">

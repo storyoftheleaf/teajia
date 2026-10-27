@@ -1,3 +1,5 @@
+import { useProducts } from '../../admin/hooks/useAdminData';
+import { sharedStockRecordId, sharedStockRecordHref } from '../../lib/sharedTeaRecord';
 import { CurateRecordTools } from '../curate/CurateRecordTools';
 import { syncCompassEntries, hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { LibraryInlineValue } from './LibraryInlineValue';
@@ -29,6 +31,7 @@ import type { CompassVerdict } from './types';
 
 interface CompassEntryDetailPanelProps {
   entryId: string;
+  embedded?: boolean;
   onEdit?: (id: string) => void;
   onOpenInventory?: (productId: string) => void;
   onClose: () => void;
@@ -40,7 +43,7 @@ function RecordGroup({ title, children, active }: { title: string; children: Rea
   if (!active) return null;
   return <section className="space-y-3 py-3" aria-label={title}>{children}</section>;
 }
-export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = ({ entryId, onEdit, onOpenInventory, onClose, onShare, onAcquire }) => {
+export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = ({ entryId, embedded = false, onEdit, onOpenInventory, onClose, onShare, onAcquire }) => {
   const navigate = useNavigate();
   const entry = useTeaCompassStore(s => s.pendingEntries.find(e => e.id === entryId) ?? s.entries.find(e => e.id === entryId));
   const syncError = useTeaCompassStore(s => s.syncError);
@@ -58,6 +61,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   const ledgerAccountId = useLedgerStore(s => s.accountScopeId);
   const transactions = ledgerAccountId === accountScopeId ? ledgerTransactions : [];
   const purchases = useLibraryPurchases();
+  const stockProducts = useProducts();
   const [tastingOpen, setTastingOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [activeSection, setActiveSection] = useState('tea');
@@ -67,6 +71,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   const [noteMessage, setNoteMessage] = useState('');
   useEffect(() => { setConfirmDelete(false); setNewNote(''); setNoteMessage(''); setActiveSection('tea'); setMoreFieldsOpen(false); }, [entryId, accountScopeRevision]);
   if (!entry) return null;
+  const stockProductId = sharedStockRecordId(entry, stockProducts.data || []);
   const validPhotos = (entry.photos || []).filter(Boolean);
   const notes = allNotes.filter(note => !note.deleted && note.accountId === accountScopeId && (note.compassEntryId === entry.id || (!!entry.teaKey && note.teaKey === entry.teaKey)));
   const purchase = purchases.stateFor({ entryId: entry.id, productId: entry.draftProductId, chosen: entry.decision === 'selected' });
@@ -99,16 +104,16 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   };
   const saveField = (field: LibraryInlineField) => (value: string) => savePatch(libraryInlinePatch(entry, field, value));
   return <div className="tea-record-panel flex h-full min-w-0 flex-col" data-testid="library-entry-detail">
-    <header className="shrink-0 flex min-h-14 items-center gap-2 border-b border-tea-border px-3 py-1" data-testid="tea-record-header">
+    {!embedded && <header className="shrink-0 flex min-h-14 items-center gap-2 border-b border-tea-border px-3 py-1" data-testid="tea-record-header">
       <button type="button" onClick={onClose} aria-label="Close detail panel" className="tap-target min-h-11 min-w-11 flex items-center justify-center text-tea-text-sec"><X size={18} /></button>
       <h2 className={`${T.h3} min-w-0 flex-1 truncate text-tea-text`}>Tea record</h2>
       <span role="status" className="shrink-0 text-ui-11 text-tea-text-dim">{syncError ? 'Saved locally' : entry.synced ? 'Saved' : 'Saving…'}</span>
-    </header>
+    </header>}
     <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-nav-gap" data-testid="tea-record-scroll">
       <div className="library-tea-card my-2">
         <div className="library-tea-identity">
           <div className="library-card-title-row">
-            <LibraryInlineValue value={identity.name} display={identity.name || 'Name this tea'} label="Tea name" onSave={saveField('name')} className={`${T.h3} library-card-name`} />
+            <LibraryInlineValue multiline value={identity.name} display={identity.name || 'Name this tea'} label="Tea name" onSave={saveField('name')} className={`${T.h3} library-card-name`} />
           </div>
           <div className="library-card-subrow">
           <LibraryGivenName entry={entry} onSave={value => savePatch({ givenName: value.trim() || null })} />
@@ -244,7 +249,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
       </div>
       <section aria-label="Inventory handoff" className="border-t border-tea-border py-2 flex flex-wrap items-center justify-between gap-2">
         <span className="text-ui-12 text-tea-text-sec">{entry.draftProductId ? 'Stock & listing' : 'Create a private inventory listing'}</span>
-        <CreateInventoryRecordAction entryId={entry.id} compact productId={entry.draftProductId} onOpenInventory={onOpenInventory ?? (productId => navigate(`/admin/stock?panel=${encodeURIComponent(productId)}`))} />
+        <>{stockProductId ? <button type="button" className="tap-target min-h-11 text-ui-12 text-tea-text" onClick={() => navigate(sharedStockRecordHref(stockProductId))}>View in Stock</button> : <CreateInventoryRecordAction entryId={entry.id} compact productId={entry.draftProductId} onOpenInventory={onOpenInventory ?? (productId => navigate(sharedStockRecordHref(productId)))} />}</>
       </section>
     </div>
     <BottomSheet open={moreFieldsOpen} onOpenChange={setMoreFieldsOpen} title="Tea details & sourcing"><StructuredTeaFields flat entry={entry} onChange={patch => updateEntry(entry.id, patch)} /></BottomSheet>

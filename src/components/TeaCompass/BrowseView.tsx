@@ -1,17 +1,19 @@
 import React, { useMemo, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
-import { Search, X, Trash2, ListChecks, ChevronRight } from 'lucide-react';
+import { Search, X, Trash2, ListChecks, SlidersHorizontal, ArrowDownWideNarrow, ChevronDown } from 'lucide-react';
 import { SessionReview } from './SessionReview';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import Fuse from 'fuse.js';
 import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompassStore';
+import { LibraryCurrencyPicker } from './LibraryCurrencyPicker';
+import { sharedStockRecordId } from '../../lib/sharedTeaRecord';
 import { BrowseCard } from './BrowseCard';
 import { LibrarySupplierActions } from './LibrarySupplierActions';
 import { librarySupplierGroups, libraryEntryChosen, libraryEntryRejected } from './librarySupplierGroups';
 import { useRates, useCustomers } from '../../admin/hooks/useAdminData';
-import { SHOP_CURRENCY_KEYS, rateToUsd } from '../../lib/currency';
+import { rateToUsd } from '../../lib/currency';
 import { useLibraryPurchases } from '../../lib/libraryPurchaseState';
-import { LIBRARY_PRICE_KEY, readLibraryPricePreference, libraryEntryTransferred, type LibraryPricePreference } from './libraryPriceDisplay';
+import { readLibraryPricePreference, libraryEntryTransferred, type LibraryPricePreference } from './libraryPriceDisplay';
 import { CompassIcon } from './CompassIcon';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
 import { isUntriaged, entryDisplayTitle, entryIsSample, entryHasBeenTasted, entryNeedsTasting } from './types';
@@ -46,6 +48,7 @@ interface BrowseViewProps {
   onNewCapture: () => void;
   /** External search query, when provided, overrides and hides the internal search input */
   externalSearchQuery?: string;
+  displayPreference?: LibraryPricePreference;
   /** Desktop: fires when a card is tapped, shows detail panel in right column */
   onSelectEntry?: (id: string) => void;
   /** Desktop: which entry is currently shown in the right detail panel */
@@ -119,19 +122,15 @@ const PhotoTile: React.FC<{
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture, externalSearchQuery, onSelectEntry, selectedEntryId, gridMode, onAcquireEntry, onOpenDetail }) => {
+export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture, externalSearchQuery, onSelectEntry, selectedEntryId, gridMode, onAcquireEntry, onOpenDetail, displayPreference }) => {
   const { data: rates = [] } = useRates();
   const purchases = useLibraryPurchases();
   const { data: suppliers = [] } = useCustomers();
   const [showRejected, setShowRejected] = useState(false);
   const [collapsedSuppliers, setCollapsedSuppliers] = useState<Set<string>>(() => new Set());
-  const [pricePreference, setPricePreference] = useState(readLibraryPricePreference);
-  const [priceSettingsOpen, setPriceSettingsOpen] = useState(false);
+  const [localPreference, setLocalPreference] = useState(readLibraryPricePreference);
+  const pricePreference = displayPreference ?? localPreference;
   const [showTransferred, setShowTransferred] = useState(false);
-  const changePricePreference = (next: LibraryPricePreference) => {
-    setPricePreference(next);
-    try { localStorage.setItem(LIBRARY_PRICE_KEY, JSON.stringify(next)); } catch { /* Settings remain usable without browser storage. */ }
-  };
   const prefersReducedMotion = useReducedMotion();
   const { entries, browseFilter, setBrowseFilter, browseSort, setBrowseSort, browseLayout, setBrowseLayout, libraryFilters, setLibraryFilters, removeEntry, hydrationStatus } = useTeaCompassStore();
   const [cleanupDismissed, setCleanupDismissed] = useState(false);
@@ -316,6 +315,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             >
               <BrowseCard
                 entry={entry}
+                stockProductId={sharedStockRecordId(entry, inventoryProducts)}
                 onEdit={onEditEntry}
                 tasteQueueActive={opts?.tasteQueueActive}
                 onSelect={onSelectEntry}
@@ -360,7 +360,6 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                 })}>
                 <span className="library-supplier-name">{group.label}</span>
                 <span className="library-supplier-count">{group.entries.length} {group.entries.length === 1 ? 'tea' : 'teas'}</span>
-                <ChevronRight size={16} className={collapsed ? '' : 'rotate-90'} aria-hidden />
               </button>
               {group.key && <LibrarySupplierActions supplierId={group.entries[0].linkedCustomerId || group.entries[0].vendorId} supplierName={group.label} />}
               </div>
@@ -542,6 +541,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             key={opt.value}
             type="button"
             onClick={() => { setShowRejected(false); setBrowseFilter(opt.value); }}
+            aria-pressed={!showRejected && browseFilter === opt.value}
             className={`tap-target inline-flex min-h-11 items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
               !showRejected && browseFilter === opt.value
                 ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
@@ -566,6 +566,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           className={`tap-target inline-flex min-h-11 items-center rounded-md border px-3 text-ui-12 transition-colors ${activeLibraryFilterCount(libraryFilters) ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub'}`}
           aria-label={activeLibraryFilterCount(libraryFilters) ? `${activeLibraryFilterCount(libraryFilters)} filters` : 'Filters'}
         >
+          <SlidersHorizontal size={14} aria-hidden="true" />
           {activeLibraryFilterCount(libraryFilters) ? `${activeLibraryFilterCount(libraryFilters)} filter${activeLibraryFilterCount(libraryFilters) === 1 ? '' : 's'}` : 'Filters'}
         </button>
 
@@ -582,27 +583,15 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           }`}
           title="Sort within each supplier"
         >
-          <span>{SORT_LABELS[browseSort]}</span>
+          <ArrowDownWideNarrow size={14} aria-hidden="true" /><span>{browseSort === 'recent' ? 'Recent' : SORT_LABELS[browseSort]}</span><ChevronDown size={12} aria-hidden="true" />
         </button>
-        {untriaged.length >= 2 && <button type="button" className="tap-target text-ui-12 text-tea-text-sec" onClick={() => setReviewOpen(true)} aria-label={`Review ${untriaged.length} tasted teas`}>Review {untriaged.length}</button>}
-        <button type="button" className="tap-target text-ui-12 text-tea-text-sec" onClick={() => setPriceSettingsOpen(true)} aria-label="Price display settings">
-          {pricePreference.currency === 'source' ? 'Source' : pricePreference.currency} / g
-        </button>
+        {untriaged.length >= 2 && <button type="button" className="tap-target library-review-action text-ui-12 text-tea-text-sec" onClick={() => setReviewOpen(true)} aria-label={`Review ${untriaged.length} tasted teas`}>Review {untriaged.length}</button>}
+        {!displayPreference && <LibraryCurrencyPicker preference={pricePreference} onChange={setLocalPreference} />}
         </div>
       </div>
       {showRejected && <p className="text-ui-12 text-tea-text-sec">Rejected teas stay here with their notes. Search to find one, then restore it.</p>}
       {showTransferred && <p className="text-ui-12 text-tea-text-sec">Transferred to Inventory. Open a record to revisit its sourcing and tastings.</p>}
-      <BottomSheet open={priceSettingsOpen} onOpenChange={setPriceSettingsOpen} title="Price display" description="Source quotes stay unchanged in each record.">
-        <div className="grid gap-3 px-1 pb-4">
-          <label className="flex min-w-0 flex-col gap-2 text-ui-12 text-tea-text-sec">Currency
-            <select aria-label="Price display currency" value={pricePreference.currency} onChange={event => changePricePreference({ ...pricePreference, currency: event.target.value })} className="min-h-11 min-w-0 rounded-md border border-tea-border bg-tea-surface px-2 text-ui-16 text-tea-text">
-              <option value="source">Source quote</option>
-              {SHOP_CURRENCY_KEYS.filter(currency => currency !== 'UNK').map(currency => <option key={currency} value={currency}>{currency}{currency !== 'USD' && rateToUsd(rates, currency) == null ? ' (rate unavailable)' : ''}</option>)}
-            </select>
-          </label>
 
-        </div>
-      </BottomSheet>
 
       <ActiveFilterSummary
         filters={libraryFilters}

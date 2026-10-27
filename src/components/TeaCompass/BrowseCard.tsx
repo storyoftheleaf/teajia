@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { LoaderCircle } from 'lucide-react';
+import { LoaderCircle, MoreHorizontal, Camera } from 'lucide-react';
 import { useToast } from '../../admin/components/Toast';
-import { useTheme } from '../../context/ThemeContext';
-import { getTeaLedgerTones, TYPOGRAPHY_CLASSES } from '../../designTokens';
+import { getStockTypeFinish } from '../../admin/themeUtils';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { syncCompassEntries } from '../../lib/teaCompassSync';
+import { TEA_TYPES } from '../../wisdom';
 import { BottomSheet } from '../shared/BottomSheet';
+import { TeaCupIcon } from '../shared/TeaCupIcon';
+import { PhotoCapture } from './PhotoCapture';
+import { LibraryQuoteWeight } from './LibraryQuoteWeight';
 import { LibraryGivenName } from './LibraryGivenName';
 import { LibraryInlineValue } from './LibraryInlineValue';
 import { libraryCardAmounts, libraryChosen, libraryIdentity, libraryInlinePatch, type LibraryInlineField } from './libraryCardWorkflow';
@@ -20,6 +24,7 @@ import { type LibraryPurchaseState } from '../../lib/libraryPurchaseState';
 
 export interface BrowseCardProps {
   entry: TeaCompassEntry;
+  stockProductId?: string;
   readOnly?: boolean;
   tastingRecorded?: boolean;
   onEdit: (id: string) => void;
@@ -57,17 +62,20 @@ export function getDateGroup(dateStr: string): string {
   return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, readOnly = false, tastingRecorded, onEdit, onSelect, onOpenDetail, isSelected, onAcquire, pricePreference = DEFAULT_LIBRARY_PRICE, rates, purchaseState, purchaseStatusUnknown }) => {
-  const { theme } = useTheme();
+export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, readOnly = false, tastingRecorded, onEdit, onSelect, onOpenDetail, isSelected, onAcquire, pricePreference = DEFAULT_LIBRARY_PRICE, rates, purchaseState, purchaseStatusUnknown }) => {
   const { showToast } = useToast();
   const updateEntry = useTeaCompassStore((state) => state.updateEntry);
+  const [typeOpen, setTypeOpen] = useState(false);
+  const [typeBusy, setTypeBusy] = useState(false);
+  const [typeError, setTypeError] = useState('');
+  const [photosOpen, setPhotosOpen] = useState(false);
   const [tastingOpen, setTastingOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [actionError, setActionError] = useState('');
   const [actionBusy, setActionBusy] = useState(false);
   const validPhotos = (entry.photos || []).filter(Boolean);
-  const tones = getTeaLedgerTones(entry.type || (entry.category === 'teaware' ? 'Teaware' : 'Misc'), theme, 2);
+  const finish = getStockTypeFinish(entry.type || '');
   const identity = libraryIdentity(entry);
   const title = identity.name || entry.chineseName || 'Name this tea';
   const openDetail = () => (onOpenDetail || onSelect || onEdit)(entry.id);
@@ -122,17 +130,24 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, readOnly = false,
   return (
     <>
       <article data-testid={`library-entry-${entry.id}`} className={`library-tea-card ${isSelected ? 'library-tea-card-selected' : ''}`}
-        style={{ '--library-accent': tones.markFg, '--library-tea-tint': tones.markBg } as React.CSSProperties}>
+        style={{ '--library-accent': finish.text, '--library-metal-hue': finish.tint, '--library-metal-l': finish.lightness } as React.CSSProperties}>
         <div className="library-tea-identity">
           <div className="library-card-title-row">
-            <LibraryInlineValue className={`${TYPOGRAPHY_CLASSES.h3} library-card-name text-tea-text`} value={identity.name} display={title} label={`Edit tea name: ${title}`} readOnly={readOnly} onSave={saveField('name')} />
+            <LibraryInlineValue multiline className={`${TYPOGRAPHY_CLASSES.h3} library-card-name text-tea-text`} value={identity.name} display={title} label={`Edit tea name: ${title}`} readOnly={readOnly} onSave={saveField('name')} />
+            <button type="button" className="tap-target library-more-action" aria-label={`Edit details for ${title}`} title={description || 'Edit tea details'} onClick={openDetail}><MoreHorizontal size={18} /></button>
           </div>
           <div className="library-card-subrow">
             <LibraryGivenName entry={entry} readOnly={readOnly} onSave={value => savePatch({ givenName: value.trim() || null })} />
+            {entry.category !== 'teaware' && (readOnly ? <span className="library-card-type">{entry.type || 'Type not set'}</span> : <button type="button" className="tap-target library-card-type" aria-label={`Choose tea type for ${title}`} aria-haspopup="dialog" onClick={() => { setTypeError(''); setTypeOpen(true); }}>{entry.type || 'Choose type'}</button>)}
             {rating != null && Number.isFinite(rating) && <span className="text-ui-11 text-tea-text-dim whitespace-nowrap" aria-label={`Rating ${rating} out of 10`}>{rating}/10</span>}
             <LibraryInlineValue className="library-card-year text-ui-13 text-tea-text-sec" value={identity.year} display={identity.year || 'Add year'} label={`Edit year for ${title}`} readOnly={readOnly} onSave={saveField('year')} />
           </div>
         </div>
+        <div className="library-workbar">
+          <div className="library-quick-actions">
+            <button type="button" className="tap-target" aria-label={`Photos for ${title}`} title="Take photo or open photo library" onClick={() => setPhotosOpen(true)}><Camera size={17} /></button>
+          {entry.category !== 'teaware' && <button type="button" onClick={() => readOnly ? openDetail() : setTastingOpen(true)} className={`tap-target library-tea-primary text-ui-12 ${tasted ? 'is-tasted' : ''}`} aria-label={`Taste ${title}`} title={readOnly ? 'View tasting status (read-only)' : tasted ? 'Edit tasting' : 'Begin tasting'}><TeaCupIcon /><span className="sr-only">Taste</span></button>}
+          </div>
         <div className="library-ribbon-prices" aria-label={`Prices in ${amounts.currency}`}>
           <div className="library-ribbon-metric" title={`Calculated in ${amounts.currency}`}>
             <span className="text-ui-10 text-tea-text-dim">{entry.category === 'teaware' ? 'Price / piece' : 'Per gram'}</span>
@@ -144,8 +159,9 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, readOnly = false,
           </div>
           <div className="library-ribbon-metric">
             <span className="text-ui-10 text-tea-text-dim">{entry.category === 'teaware' ? 'Quoted quantity' : 'Weight (g)'}</span>
-            {entry.category === 'teaware' ? <strong className="text-ui-16 text-tea-text">1 piece</strong> : <LibraryInlineValue className={`text-ui-16 font-semibold text-tea-text ${!knownWeight ? 'library-unset' : ''}`} value={entry.pricePerUnitGrams == null ? '' : String(entry.pricePerUnitGrams)} display={knownWeight ? entry.pricePerUnitGrams!.toLocaleString() : 'Add'} label={`Edit quoted grams for ${title}`} numeric readOnly={readOnly} onSave={saveField('pricePerUnitGrams')} />}
+            {entry.category === 'teaware' ? <strong className="text-ui-16 text-tea-text">1 piece</strong> : <LibraryQuoteWeight title={title} weight={entry.pricePerUnitGrams} packWeight={entry.packSizeGrams} form={entry.form} readOnly={readOnly} onSave={(value, form) => savePatch({ ...libraryInlinePatch(entry, 'pricePerUnitGrams', value), ...(form ? { form } : {}) })} />}
           </div>
+        </div>
         </div>
         {purchaseStatusUnknown && <p role="status" className="text-ui-11 text-tea-text-dim py-1">{purchaseStatusUnknown}</p>}
         <div className="library-tea-actions">
@@ -158,11 +174,29 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, readOnly = false,
             {actionBusy ? 'Saving…' : chosen ? 'Chosen' : 'Choose'}
           </button>}
           {!readOnly && <button type="button" disabled={actionBusy} className="tap-target library-tea-reject text-ui-12 text-tea-text-sec" onClick={() => rejected ? void runAction({ decision: 'considering', ...(entry.status === 'pass' ? { status: 'noted' as const } : {}) }, 'Restored') : setRejectOpen(true)}>{rejected ? 'Restore' : 'Reject'}</button>}
-          {entry.category !== 'teaware' && <button type="button" onClick={() => readOnly ? openDetail() : setTastingOpen(true)} className={`tap-target library-tea-primary text-ui-12 ${tasted ? 'is-tasted' : ''}`} aria-label={`Taste ${title}`} title={readOnly ? 'View tasting status (read-only)' : tasted ? 'Edit tasting' : 'Begin tasting'}>Taste</button>}
-            <button type="button" className="tap-target library-detail-link text-ui-13 text-tea-text-dim" onClick={openDetail} aria-label={`Open ${title} details and Orders`} title={description || 'Details & Orders'}>Details</button>
+          <button type="button" className="tap-target library-add-information text-ui-12 text-tea-text-sec" onClick={openDetail}>Add information</button>
+
         </div>
         {actionError && <p role="alert" className="text-ui-11 text-tea-text-sec">{actionError}</p>}
       </article>
+      <BottomSheet open={typeOpen} onOpenChange={open => { if (!typeBusy) setTypeOpen(open); }} title="Tea type" description={title}>
+        <div className="library-type-options" aria-busy={typeBusy}>
+          {TEA_TYPES.map(type => <button type="button" key={type} disabled={typeBusy} aria-pressed={entry.type === type} onClick={async () => {
+            setTypeBusy(true); setTypeError('');
+            try { await savePatch({ type }); setTypeOpen(false); }
+            catch (error) { setTypeError(error instanceof Error ? error.message : 'Could not save. Try again.'); }
+            finally { setTypeBusy(false); }
+          }}>{type}</button>)}
+        </div>
+        {typeBusy && <p role="status" className="text-ui-12 text-tea-text-sec">Saving…</p>}
+        {typeError && <p role="alert" className="text-ui-12 text-tea-text-sec">{typeError}</p>}
+      </BottomSheet>
+      <BottomSheet open={photosOpen} onOpenChange={setPhotosOpen} title="Tea photos" description={title}>
+        {readOnly ? <p className="text-ui-12 text-tea-text-sec">Open the tea details to view source material.</p> : <PhotoCapture photos={validPhotos}
+          onPhotoTaken={url => { const current = useTeaCompassStore.getState().getEntry(entry.id) || entry; void savePatch({ photos: [...current.photos, url] }).catch(error => showToast(String(error.message), 'error')); }}
+          onPhotoReplaced={(oldUrl, newUrl) => { const current = useTeaCompassStore.getState().getEntry(entry.id) || entry; void savePatch({ photos: current.photos.map(url => url === oldUrl ? newUrl : url) }).catch(error => showToast(String(error.message), 'error')); }}
+          onExtracted={data => { const current = useTeaCompassStore.getState().getEntry(entry.id) || entry; void savePatch({ ...(!current.originRegion && data.region ? { originRegion: data.region } : {}), ...(!current.year && data.year ? { year: data.year } : {}) }).catch(error => showToast(String(error.message), 'error')); }} />}
+      </BottomSheet>
       {!readOnly && <BottomSheet open={rejectOpen} onOpenChange={setRejectOpen} title="Reject tea" description="Keep this tea in Rejected, where you can find and restore it.">
         <label className="block text-ui-13 text-tea-text">Reason (optional)
           <textarea className="w-full rounded border border-tea-border bg-tea-surface text-tea-text p-3" rows={3} value={rejectReason} onChange={event => setRejectReason(event.target.value)} />

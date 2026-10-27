@@ -21,6 +21,8 @@ import { entryIsSample } from './types';
 import { CompassIcon } from './CompassIcon';
 import { SessionStack } from './SessionStack';
 import { CaptureCard, type CaptureCardActions } from './CaptureCard';
+import { LibraryCurrencyPicker } from './LibraryCurrencyPicker';
+import { readLibraryPricePreference } from './libraryPriceDisplay';
 import { BrowseView } from './BrowseView';
 import { LedgerView } from './LedgerView';
 import { useVoiceRecorder } from './useVoiceRecorder';
@@ -85,6 +87,7 @@ const CompassRightEmptyState: React.FC<{
 // ─── Main Tea Compass ────────────────────────────────────────────────────
 
 export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, initialEntryId, initialDevelopmentProduct, initialCaptureOption, initialSampleOrder, initialSampleSetId, onSampleOrderRouteClose }) => {
+  const [libraryDisplayPreference, setLibraryDisplayPreference] = useState(readLibraryPricePreference);
   const activeEntryId = useTeaCompassStore((s) => s.activeEntryId);
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
@@ -713,7 +716,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // grid (no narrow rail beside an empty detail panel). Selecting an entry
   // collapses back to rail + detail. Only Library has an "empty right pane"
   // state; Source (editor) and Ledger (overview) always fill their pane.
-  const libraryGrid = mode === 'library' && !tastingSelectedEntryId;
+  const libraryGrid = mode === 'library';
 
   return (
     <div className="flex flex-col relative h-full min-h-0 bg-tea-bg">
@@ -941,11 +944,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     type="button"
                     onClick={() => setLibraryAddOpen(true)}
                     aria-label="Add to Library"
-                    className="flex min-h-11 shrink-0 items-center gap-1 rounded-md border border-tea-border bg-tea-surface px-2 text-ui-12 text-tea-text hover:bg-tea-elevated"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-tea-border bg-tea-surface text-tea-text hover:bg-tea-elevated"
                   >
-                    <Plus size={12} />
-                    Add
+                    <Plus size={18} />
                   </button>
+                  <LibraryCurrencyPicker preference={libraryDisplayPreference} onChange={setLibraryDisplayPreference} />
                 </>
               )}
             </div>
@@ -1194,6 +1197,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     </div>
                   )}
                   <BrowseView
+                    displayPreference={libraryDisplayPreference}
                     onEditEntry={handleEditEntry}
                     onNewCapture={handleNewCapture}
                     externalSearchQuery={tabSearchQuery}
@@ -1302,11 +1306,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     type="button"
                     onClick={() => setLibraryAddOpen(true)}
                     aria-label="Add to Library"
-                    className="flex min-h-11 shrink-0 items-center gap-1 rounded-md border border-tea-border bg-tea-surface px-2 text-ui-12 text-tea-text hover:bg-tea-elevated"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-tea-border bg-tea-surface text-tea-text hover:bg-tea-elevated"
                   >
-                    <Plus size={12} />
-                    Add
+                    <Plus size={18} />
                   </button>
+                  <LibraryCurrencyPicker preference={libraryDisplayPreference} onChange={setLibraryDisplayPreference} />
                 </>
               )}
             </div>
@@ -1556,6 +1560,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       </div>
                     )}
                     <BrowseView
+                    displayPreference={libraryDisplayPreference}
                       onEditEntry={handleEditEntry}
                       onNewCapture={handleNewCapture}
                       externalSearchQuery={tabSearchQuery}
@@ -1678,30 +1683,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   </motion.div>
                 )}
 
-                {/* TASTING RIGHT: entry detail panel or empty state */}
-                {mode === 'library' && (
-                  <motion.div
-                    key="right-tasting"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    className="h-full"
-                  >
-                    {tastingSelectedEntryId ? (
-                      <CompassEntryDetailPanel
-                        entryId={tastingSelectedEntryId}
-                        onEdit={(id) => { handleEditEntry(id); setTastingSelectedEntryId(null); }}
-                        onClose={() => setTastingSelectedEntryId(null)}
-                        onShare={hasToken() ? (id) => { setActiveEntry(id); setShareModalOpen(true); } : undefined}
-                        onAcquire={openLibraryAcquisition}
-                        onOpenInventory={(productId) => navigate(`/admin/inventory?panel=${encodeURIComponent(productId)}`)}
-                      />
-                    ) : (
-                      <CompassRightEmptyState mode="library" onNewCapture={() => handleNewCapture()} />
-                    )}
-                  </motion.div>
-                )}
+
 
                 {/* BUYING RIGHT: spending overview panel */}
                 {mode === 'buying' && (
@@ -1760,11 +1742,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       <ArCreatePairing />
       <ArTranscriptHandoff />
 
-      {mode === 'library' && tastingSelectedEntryId && <section className="fixed inset-0 z-modal flex flex-col bg-tea-bg lg:hidden" aria-label="Tea record">
-        <CompassEntryDetailPanel entryId={tastingSelectedEntryId} onClose={() => setTastingSelectedEntryId(null)} onAcquire={openLibraryAcquisition}
-          onOpenInventory={(productId) => navigate(`/admin/inventory?panel=${encodeURIComponent(productId)}`)}
-          onShare={hasToken() ? (id) => { setActiveEntry(id); setShareModalOpen(true); } : undefined} />
-      </section>}
+      <BottomSheet open={mode === 'library' && !!tastingSelectedEntryId} onOpenChange={open => { if (!open) setTastingSelectedEntryId(null); }} title="Tea details" large className="library-details-sheet">
+        {tastingSelectedEntryId && <CompassEntryDetailPanel embedded entryId={tastingSelectedEntryId} onClose={() => setTastingSelectedEntryId(null)} onAcquire={openLibraryAcquisition}
+          onOpenInventory={(productId) => navigate(`/admin/stock?panel=${encodeURIComponent(productId)}`)}
+          onShare={hasToken() ? (id) => { setActiveEntry(id); setShareModalOpen(true); } : undefined} />}
+      </BottomSheet>
       <BottomSheet open={libraryAddOpen} onOpenChange={setLibraryAddOpen} title="Add to Library" description="Capture something new or continue an import" large>
         <SheetOption label="New tea" hint="Capture notes, photos and a supplier quote in Source" onSelect={() => { setLibraryAddOpen(false); handleNewCapture(); }} />
         <SheetOption label="New teaware" hint="Capture a piece and its provenance" onSelect={() => { setLibraryAddOpen(false); handleNewCapture('teaware'); }} />
