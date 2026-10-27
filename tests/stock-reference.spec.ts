@@ -23,7 +23,7 @@ test('Stock reference cards resize and persist naming and photos, and continue a
     if (!sessionStorage.getItem('stock-reference-seeded')) {
       localStorage.setItem('teajia-storage', JSON.stringify({ version: 2, state: {
         activeAccountId: 'acct', activeUserId: 'admin', memberships: [{ account_id: 'acct', account_name: 'Test shop', role: 'owner' }],
-        inventoryColumns: ['productName', 'type', 'year', 'stockGrams', 'pricePerGramUSD'], inventoryGroupBy: 'vendor',
+        inventoryColumns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'pricePerGramUSD', 'vendor', 'form'], inventoryGroupBy: 'vendor',
         tastingJournal: [{ id: 'journal-reference', accountId: 'acct', productId: 'tea-reference', productName: 'Cloud Oolong', productType: 'Oolong', createdAt: '2026-10-20T00:00:00.000Z', synced: true,
           note: { tasting: { notes: [{ id: 'note-reference', text: 'Orchid and warm stone', createdAt: '2026-10-20T00:00:00.000Z' }] }, updatedAt: '2026-10-20T00:00:00.000Z' },
           tastings: [{ id: 'tasting-reference', createdAt: '2026-10-20T00:00:00.000Z', tasting: {} }],
@@ -67,7 +67,8 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await page.setViewportSize({ width: 768, height: 900 });
   await expect(row.locator('.stock-record')).toHaveCount(0);
   await expect(page.getByTestId('inventory-column-row')).toBeVisible();
-  await expect(page.getByTestId('inventory-column-row').locator('th')).toHaveText(['Product', 'Type', 'Year', 'Stock', 'Ship $/kg', 'Retail']);
+  await expect(page.getByTestId('inventory-column-row').locator('th')).toHaveText(['Product', 'Type', 'Year', 'Origin', 'Stock', 'Ship $/kg', 'Retail', 'Source', 'Leaf']);
+  expect((await page.getByTestId('inventory-column-row').locator('th').last().boundingBox())!.x + (await page.getByTestId('inventory-column-row').locator('th').last().boundingBox())!.width).toBeLessThanOrEqual(768);
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(row.locator('.stock-record')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
