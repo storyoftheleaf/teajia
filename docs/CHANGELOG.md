@@ -1,3 +1,9 @@
+## Stock spreadsheet and direct browsing 2026-10-27
+
+- Type, supplier, stock view and tasting can be combined from the compact heading. All views remain available; Incoming and the tasting library move into actions. A single icon expands or collapses every visible group, retaining its summary.
+- Missing suppliers show Unknown and can be assigned per tea. The desktop spreadsheet restores proportional columns and gains quiet cell dividers, aligned figures and headers, and no duplicate year beside the name.
+- Cards fit two across from 680–767px, retain one column on smaller phones, and become the spreadsheet at 768px. Existing naming, photos, tasting, pricing and stock actions remain connected.
+
 ## Stock Fine metalwork finish 2026-10-27
 
 - Stock uses the selected Fine metalwork card finish, with tea-specific color strips, aligned actions and numbers, and labels below the figures. The bottom row has two extra pixels of clearance. Closed supplier groups retain their tea count and grams. The desktop spreadsheet and existing editing actions remain available.
