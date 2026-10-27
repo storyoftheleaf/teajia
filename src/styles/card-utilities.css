@@ -6349,3 +6349,9 @@ body.cart-panel-open .commerce-dock {
   .stock-view .stock-mobile-cell,.stock-view .stock-record { height:100%; }
   .stock-view .stock-record .stock-workbar { margin-top:auto; }
 }
+
+/* Keep the full-width mobile wheel within thumb reach of its navigation. */
+@media(max-width:1023px){
+  .tasting-mobile-content .tasting-scroll > .tasting-wheel-panel{min-height:100%;display:flex;flex-direction:column;justify-content:center;padding-left:0;padding-right:0;}
+  .tasting-wheel-panel .approved-taste-wheel.study-phone{max-width:none;padding-bottom:0;}
+}
