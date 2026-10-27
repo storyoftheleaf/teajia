@@ -1,3 +1,7 @@
+## Tasting controls and Four chambers Effect 2026-10-27
+
+- Tasting keeps Save visible in its header, with a distinct impression entry. Effect uses the approved four-panel layout for Mood, Energy, Mind and Body; existing vocabulary, custom words and saved selections are preserved. Recap navigation no longer replays on subsequent wheel selections, and section transitions respect reduced motion.
+
 ## Stock Fine metalwork finish 2026-10-27
 
 - Stock uses the selected Fine metalwork card finish, with tea-specific color strips, aligned actions and numbers, and labels below the figures. The bottom row has two extra pixels of clearance. Closed supplier groups retain their tea count and grams. The desktop spreadsheet and existing editing actions remain available.

@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { Check, Info, Plus, X } from 'lucide-react';
+import { Check, Info, Plus, X, Moon, Zap, Focus, Wind } from 'lucide-react';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { TastingData } from '../../types';
 import './connected-sensations.css';
@@ -20,6 +20,7 @@ export function ConnectedSensations({ value, onChange, section, reveal }: Connec
   const prefix = useId();
   const data = value as SensoryTastingData;
   const groups = SENSATION_GROUPS[section];
+  const effectIcons: Record<string, React.ComponentType<{ size?: number; 'aria-hidden'?: boolean }>> = { mood: Moon, activation: Zap, mind: Focus, physical: Wind };
 
   useEffect(() => {
     setCustom('');
@@ -48,7 +49,7 @@ export function ConnectedSensations({ value, onChange, section, reveal }: Connec
       {groups.map(group => (
         <section key={group.id} data-sensation-group={group.id} className="connected-sensation-family" aria-labelledby={`${prefix}-${group.id}`}>
           <div className="connected-sensation-heading flex min-h-11 items-center justify-between gap-2">
-            <h3 id={`${prefix}-${group.id}`} className={`${section === 'state' ? TYPOGRAPHY_CLASSES.label : TYPOGRAPHY_CLASSES.h3} text-tea-text`}>{group.label}</h3>
+            <h3 id={`${prefix}-${group.id}`} className={`${section === 'state' ? TYPOGRAPHY_CLASSES.label : TYPOGRAPHY_CLASSES.h3} text-tea-text`}>{section === 'state' && effectIcons[group.id] && React.createElement(effectIcons[group.id], { size: 16, 'aria-hidden': true })}{group.label}</h3>
             <button type="button" className="connected-sensation-info flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-tea-text-dim focus-visible:ring-2 focus-visible:ring-tea-gold" aria-label={`Explain ${group.label}`} aria-expanded={guide === group.id} aria-controls={`${prefix}-${group.id}-guide`} onClick={() => setGuide(guide === group.id ? null : group.id)}><Info size={15} strokeWidth={1.3} /></button>
           </div>
           <div className={`connected-sensation-choices ${group.terms.length === 3 ? 'connected-sensation-three' : ''} ${group.single ? 'connected-sensation-single' : ''}`} role="group" aria-label={group.label}>
