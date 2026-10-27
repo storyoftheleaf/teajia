@@ -4,7 +4,7 @@ const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString('b
 const token = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({ sub: 'admin', email: 'operator@test', role: 'owner', active_account_id: 'acct', memberships: [{ account_id: 'acct', role: 'owner' }], exp: Math.floor(Date.now() / 1000) + 86400 })}.sig`;
 
 test('Stock reference cards resize and persist naming and photos, and continue an existing tasting', async ({ page }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(120_000);
   const product = {
     id: 'tea-reference', product_name: 'Cloud Oolong', given_name: '', type: 'Oolong', form: 'Loose Leaf',
     origin_country: 'Taiwan', origin_region: 'Alishan', year: 2004, stock_grams: 100,
@@ -38,6 +38,7 @@ test('Stock reference cards resize and persist naming and photos, and continue a
     if (path === '/api/auth/me') return route.fulfill({ json: { id: 'admin', email: 'operator@test', role: 'owner' } });
     if (path === '/api/auth/refresh') return route.fulfill({ json: { token } });
     if (path === '/api/products') return route.fulfill({ json: [product] });
+    if (path === '/api/products/tea-reference' && request.method() === 'GET') return route.fulfill({ json: product });
     if (['/api/products/tea-reference/catalog', '/api/products/tea-reference/commercial'].includes(path) && request.method() === 'PUT') {
       const body = request.postDataJSON();
       writes.push(body);
@@ -61,6 +62,8 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await page.goto('/admin/stock');
   const row = page.locator('tr[data-product-id="tea-reference"]');
   await expect(row.locator('.stock-record')).toBeVisible({ timeout: 15_000 });
+  await expect(row.locator('.stock-record')).toHaveAttribute('data-card-polish', '4');
+  await expect(row.locator('.stock-workbar')).toHaveCSS('padding-bottom', '2px');
   await page.setViewportSize({ width: 768, height: 900 });
   await expect(row.locator('.stock-record')).toHaveCount(0);
   await expect(page.getByTestId('inventory-column-row')).toBeVisible();

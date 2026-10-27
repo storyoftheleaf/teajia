@@ -1,3 +1,7 @@
+## Stock Fine metalwork finish 2026-10-27
+
+- Stock uses the selected Fine metalwork card finish, with tea-specific color strips, aligned actions and numbers, and labels below the figures. The bottom row has two extra pixels of clearance. Closed supplier groups retain their tea count and grams. The desktop spreadsheet and existing editing actions remain available.
+
 ## Tasting bar motion 2026-10-26
 
 - The actual site bar now folds inward before the tasting bar unfolds; labels appear only after expansion. Returning fades the tasting labels first, folds the sides into the circle, then opens the site bar and reveals its labels. Reduced-motion preferences skip the sequence. Colors and materials are unchanged.
