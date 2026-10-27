@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SqliteD1 } from './helpers/sqliteD1';
-import { handleArBridge, readTeaArExcerpt } from '../src/curateArBridge';
+import { expireArBridgeRequests, handleArBridge, readTeaArExcerpt } from '../src/curateArBridge';
 
 let db: SqliteD1;
 const scope = { accountId: 'account-a', userId: 'user-a' };
@@ -36,7 +36,7 @@ beforeEach(() => {
   db.sqlite.prepare('INSERT INTO tea_compass_entries (id,account_id) VALUES (?,?)').run('tea-a', scope.accountId);
   db.sqlite.prepare('INSERT INTO tea_compass_entries (id,account_id) VALUES (?,?)').run('tea-b', other.accountId);
 });
-afterEach(() => db.close());
+afterEach(() => { vi.restoreAllMocks(); db.close(); });
 
 describe('local AR connector pairing', () => {
   it('keeps secrets hashed, requires the secret for exchange, and retries the same paired token safely', async () => {
@@ -258,5 +258,47 @@ describe('full transcript references', () => {
     expect(first.mode).toBe('excerpt');
     expect((await call('links', { scope, body: { ...input, mode: 'full' } })).status).toBe(409);
     expect(await (await call('links', { scope, body: { ...input, mode: 'full', update: true, expectedHash: source.hash } })).json()).toMatchObject({ link: { id: first.id, mode: 'full' } });
+  });
+});
+
+
+describe('idle connector database budget', () => {
+  it('keeps three-second pickup while coalescing heartbeat writes across requests', async () => {
+    const connector = await pair();
+    const start = Date.now();
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(start);
+    const prepare = vi.spyOn(db, 'prepare');
+    for (let i = 0; i < 20; i++) {
+      clock.mockReturnValue(start + i * 3000);
+      expect(await (await call('connector/poll', { token: connector.token, method: 'POST' })).json()).toEqual({ jobs: [] });
+    }
+    // 60 baseline operations plus two heartbeat writes, formerly 120.
+    expect(prepare).toHaveBeenCalledTimes(62);
+    expect(prepare.mock.calls.filter(([sql]) => sql.startsWith('UPDATE curate_ar_devices'))).toHaveLength(2);
+    expect(prepare.mock.calls.some(([sql]) => sql.startsWith('DELETE'))).toBe(false);
+    expect(await (await call('status', { scope })).json()).toMatchObject({ connected: true });
+    const request = await (await call('requests', { scope, body: { kind: 'search', query: 'Yiwu' } })).json() as any;
+    // A new job is claimed on the very next poll, inside the heartbeat interval.
+    const picked = await (await call('connector/poll', { token: connector.token, method: 'POST' })).json() as any;
+    expect(picked.jobs[0].id).toBe(request.id);
+    await call('disconnect', { scope, method: 'DELETE' });
+    expect((await call('connector/poll', { token: connector.token, method: 'POST' })).status).toBe(401);
+  });
+
+  it('erases expired originals on the next poll and still garbage collects old rows', async () => {
+    const connector = await pair();
+    const requested = await job(connector.token);
+    await call('connector/result', { token: connector.token, body: { id: requested.id, result } });
+    const now = Date.now();
+    db.sqlite.prepare('UPDATE curate_ar_jobs SET expires_at=? WHERE id=?').run(now - 1, requested.id);
+    expect(await (await call('connector/poll', { token: connector.token, method: 'POST' })).json()).toEqual({ jobs: [] });
+    expect(db.sqlite.prepare('SELECT status,result_json,result_hash FROM curate_ar_jobs WHERE id=?').get(requested.id)).toMatchObject({ status: 'expired', result_json: null, result_hash: null });
+    const unpaired = await (await call('pair/start', { method: 'POST' })).json() as any;
+    db.sqlite.prepare('UPDATE curate_ar_devices SET pair_expires_at=? WHERE id=?').run(now - 25 * 3600000, unpaired.deviceId);
+    db.sqlite.prepare('UPDATE curate_ar_jobs SET expires_at=? WHERE id=?').run(now - 25 * 3600000, requested.id);
+    await expireArBridgeRequests(db as unknown as D1Database, now);
+    expect(db.sqlite.prepare('SELECT id FROM curate_ar_jobs WHERE id=?').get(requested.id)).toBeUndefined();
+    expect(db.sqlite.prepare('SELECT id FROM curate_ar_devices WHERE id=?').get(unpaired.deviceId)).toBeUndefined();
+    expect(db.sqlite.prepare('SELECT id FROM curate_ar_devices WHERE id=?').get(connector.deviceId)).toBeTruthy();
   });
 });

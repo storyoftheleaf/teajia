@@ -17,7 +17,7 @@ export function TastingNavigation({ activeSection, onSelect, onClose }: Props) {
     if (closing) return;
     setClosing(true);
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    timer.current = setTimeout(() => { onClose(); setClosing(false); }, reduced ? 0 : 580);
+    timer.current = setTimeout(() => { onClose(); setClosing(false); }, reduced ? 0 : 660);
   }
   const choices = (start: number) => ALL_SECTIONS.slice(start, start + 2).map(section => (
     <button key={section.id} type="button" aria-pressed={activeSection === section.id}

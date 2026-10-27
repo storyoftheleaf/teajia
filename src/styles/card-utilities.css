@@ -4199,10 +4199,23 @@ body:has(.commerce-dock) [data-testid='bottom-tab-bar'] {
   padding-top: 0.25rem;
 }
 
-/* Tasting is a full-screen task on mobile. The global navigation must leave
-   the stage so it cannot cover the tasting tabs or the persistent Save action. */
+/* Let the actual site bar fold above the takeover, then remove it from
+   visibility and hit testing while the tasting navigation unfolds. */
 body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
-  display: none;
+  pointer-events: none;
+  animation: tasting-site-fold .42s cubic-bezier(.65,0,.2,1) both !important;
+}
+body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] > div {
+  animation: tasting-site-words-out .16s ease-out both;
+}
+@keyframes tasting-site-fold {
+  0% { z-index:81;visibility:visible;clip-path:inset(0 0 round 26px); }
+  99% { z-index:81;visibility:visible;clip-path:inset(0 calc(50% - 26px) round 26px); }
+  100% { z-index:81;visibility:hidden;clip-path:inset(0 calc(50% - 26px) round 26px); }
+}
+@keyframes tasting-site-words-out { to { opacity:0; } }
+@media(prefers-reduced-motion:reduce) {
+  body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] { animation:none!important;visibility:hidden; }
 }
 
 .curate-decision-control {
@@ -5668,8 +5681,8 @@ body.cart-panel-open .commerce-dock {
 
 /* Tasting keeps the site's floating capsule proportions and an overlapping seal. */
 .tasting-capsule { position:absolute;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom, 0px));height:52px;display:flex;align-items:center;isolation:isolate;z-index:2;padding:0 4px; }
-.tasting-capsule-surface { pointer-events:none;position:absolute;inset:0;z-index:-1;border-radius:9999px;border:1px solid var(--tea-keyline);background:rgb(var(--tea-bg-rgb) / .92);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);clip-path:inset(-40px round 26px);animation:tasting-surface-open .6s cubic-bezier(.65,0,.2,1) both;transition:clip-path .5s cubic-bezier(.65,0,.2,1) .08s; }
-.tasting-capsule-wing { flex:1;min-width:0;display:grid;grid-template-columns:repeat(2,minmax(44px,1fr));animation:tasting-capsule-words .6s both;transition:opacity .16s,transform .48s cubic-bezier(.65,0,.2,1); }
+.tasting-capsule-surface { pointer-events:none;position:absolute;inset:0;z-index:-1;border-radius:9999px;border:1px solid var(--tea-keyline);background:rgb(var(--tea-bg-rgb) / .92);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);clip-path:inset(-40px round 26px);animation:tasting-surface-open .5s cubic-bezier(.65,0,.2,1) .42s backwards;transition:clip-path .5s cubic-bezier(.65,0,.2,1) .16s; }
+.tasting-capsule-wing { flex:1;min-width:0;display:grid;grid-template-columns:repeat(2,minmax(44px,1fr));animation:tasting-capsule-words .18s ease-out .92s backwards;transition:opacity .16s,transform .48s cubic-bezier(.65,0,.2,1); }
 .tasting-capsule-choice { height:48px;min-width:44px;white-space:nowrap;font-family:var(--font-display);font-size:clamp(12.5px,4vw,15px);font-weight:400;text-transform:lowercase;color:var(--tea-text-sec);background:transparent;transition:color .45s,font-weight .45s,filter .45s; }
 .tasting-capsule-choice[aria-pressed=true] { color:var(--tea-gold);font-weight:600;filter:drop-shadow(0 0 8px rgb(var(--tea-gold-rgb) / .75)) drop-shadow(0 0 18px rgb(var(--tea-gold-rgb) / .32)); }
 .tasting-capsule-seal { flex:0 0 56px;width:56px;height:56px;display:grid;place-items:center;border-radius:50%;border:1px solid var(--tea-keyline);background:rgb(var(--tea-bg-rgb) / .92);backdrop-filter:blur(20px) saturate(180%);color:var(--tea-text-sec);isolation:isolate; }
@@ -5685,7 +5698,7 @@ body.cart-panel-open .commerce-dock {
 @media(max-width:1023px){.tasting-mobile-content .tasting-scroll>div{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px));}}
 @keyframes tasting-capsule-open { from{clip-path:inset(0 calc(50% - 26px) round 26px)}to{clip-path:inset(0 0 round 26px)} }
 @keyframes tasting-surface-open { from{clip-path:inset(0 calc(50% - 26px) round 26px)}to{clip-path:inset(-40px round 26px)} }
-@keyframes tasting-capsule-words { 0%,45%{opacity:0}100%{opacity:1} }
+@keyframes tasting-capsule-words { from{opacity:0}to{opacity:1} }
 @media(prefers-reduced-motion:reduce){.tasting-capsule-surface,.tasting-capsule-wing{animation:none!important;transition:none!important;}}
 /* Storage character: a sculpted rail with a native accessible range. */
 .tasting-storage-rail { position: relative; display: flex; align-items: center; height: 54px; padding: 0 12px; border: 1px solid var(--tea-border); border-radius: 28px; background: linear-gradient(100deg, var(--tea-surface), var(--tea-elevated), var(--tea-surface)); }
@@ -5703,8 +5716,9 @@ body.cart-panel-open .commerce-dock {
 .tasting-storage-ticks i:nth-child(3) { height: 17px; }
 @media(min-width:1024px){.tasting-capsule{display:none;}}
 
-.bottom-nav-bar.tasting-site-reopen{animation:tasting-capsule-open .6s cubic-bezier(.65,0,.2,1) both!important;}
-@media(prefers-reduced-motion:reduce){.bottom-nav-bar.tasting-site-reopen{animation:none!important;}}
+.bottom-nav-bar.tasting-site-reopen{animation:tasting-capsule-open .5s cubic-bezier(.65,0,.2,1) both!important;}
+.bottom-nav-bar.tasting-site-reopen > div{animation:tasting-capsule-words .18s ease-out .5s both;}
+@media(prefers-reduced-motion:reduce){.bottom-nav-bar.tasting-site-reopen,.bottom-nav-bar.tasting-site-reopen > div{animation:none!important;}}
 
 /* Your impression: one compact editor with a readable, linked tasting recap. */
 .tasting-impression { min-width: 0; padding: 0 16px 24px; color: var(--tea-text); }
