@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Check, Leaf, Sparkles, Mic, Loader2,
   Heart, ThumbsUp, Minus, ThumbsDown, ShoppingCart,
-  Thermometer, Timer, X,
+  Thermometer, Timer, X, ChevronRight,
 } from 'lucide-react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import type { TastingData, CustomerTasting } from '../../types';
@@ -255,6 +255,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   latestData.current = tastingData;
   const changeRef = useRef<(data: TastingData) => void>(() => {});
   const [voiceError, setVoiceError] = useState('');
+  const [showSaveGuidance, setShowSaveGuidance] = useState(false);
   const silentVoice = useVoiceCapture({
     onTranscribed: text => {
       changeRef.current(appendImpressionTranscript(latestData.current, text));
@@ -546,22 +547,30 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
       }}
     >
       <div className="tasting-session-header">
+        <div className="tasting-header-controls">
+        <button type="button" className="tasting-heading-close tap-target" onClick={handleCloseRequest} aria-label="Close"><X size={18}/></button>
         <button type="button" className="tasting-heading-trigger" aria-label="Open your impression" onClick={() => { setPhase('tasting'); setShowNote(true); }}>
           <span className="tasting-heading-name">{item.name}</span>
           <span className="tasting-heading-summary">{[
             tastingData.quality != null ? `${tastingData.quality} / 10` : '',
             verdict ? ({love:'Love',like:'Like',neutral:'Neutral',pass:'Dislike'}[verdict]) : '',
             wouldBuy ? 'Want to purchase' : '',
-          ].filter(Boolean).join(' · ') || 'Click to judge this tea'} <span aria-hidden="true">›</span></span>
+          ].filter(Boolean).join(' · ') || 'Your impression'} <ChevronRight size={14} aria-hidden="true" /></span>
         </button>
         {adminMode && <button type="button" className="tasting-heading-mic tap-target" disabled={silentVoice.state === 'transcribing'} aria-label={silentVoice.state === 'recording' ? 'Stop recording' : 'Record into your notes'} aria-pressed={silentVoice.state === 'recording'} onClick={() => { setVoiceError(''); if(silentVoice.state === 'recording') silentVoice.stop(); else void silentVoice.start(); }}>
           {silentVoice.state === 'transcribing' ? <Loader2 size={18} className="animate-spin"/> : <Mic size={18}/>}
         </button>}
-        <button type="button" className="tasting-heading-close tap-target" onClick={handleCloseRequest} aria-label="Close"><X size={16}/></button>
+        <button type="button" className="tasting-heading-save tap-target" aria-label={saveState === 'saving' ? 'Saving tasting' : saveState === 'saved' ? 'Tasting saved' : 'Save tasting'} disabled={saveState === 'saving' || saveState === 'saved' || silentVoice.state !== 'idle'} onClick={() => {
+          if (canSave) { setShowSaveGuidance(false); void handleSave(); }
+          else { setPhase('tasting'); setShowNote(true); setShowSaveGuidance(true); }
+        }}>{saveState === 'saving' ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : null}{saveState === 'saved' ? 'Saved' : saveState === 'saving' ? 'Saving' : saveState === 'error' ? 'Retry' : 'Save'}</button>
+        </div>
         {detailsPanel && <div className="tasting-heading-tools">
           <button type="button" className="tap-target" onClick={() => setPhase(phase === 'details' ? 'tasting' : 'details')}>{phase === 'details' ? 'Tasting' : 'Tea details'}</button>
         </div>}
       </div>
+      {showSaveGuidance && !canSave && saveState === 'idle' && <p role="status" className="tasting-save-guidance">{verdictRequired && verdict === null ? 'Choose your impression to save this tasting.' : 'Add a note, rating or tasting observation to save.'}</p>}
+      {saveState === 'error' && <p role="alert" className="tasting-save-guidance">Could not save. Your edits are still here. Try Save again.</p>}
       {voiceError && <p role="alert" className="px-4 text-ui-12 text-tea-text-sec">{voiceError}</p>}
       {silentVoice.state !== 'idle' && <p role="status" className="px-4 text-ui-12 text-tea-text-sec">{silentVoice.state === 'recording' ? 'Recording into your notes…' : 'Transcribing into your notes…'}</p>}
 

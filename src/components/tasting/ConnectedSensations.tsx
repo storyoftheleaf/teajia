@@ -1,7 +1,8 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { Info, Plus, X } from 'lucide-react';
+import { Check, Info, Plus, X, Moon, Zap, Focus, Wind } from 'lucide-react';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { TastingData } from '../../types';
+import './connected-sensations.css';
 import { SENSATION_GROUPS, sensationIsSelected, toggleSensation, addSensoryCustom, removeSensoryCustom, type SensationSection, type SensoryTastingData } from './connectedSensationsVocabulary';
 
 interface ConnectedSensationsProps {
@@ -19,6 +20,7 @@ export function ConnectedSensations({ value, onChange, section, reveal }: Connec
   const prefix = useId();
   const data = value as SensoryTastingData;
   const groups = SENSATION_GROUPS[section];
+  const effectIcons: Record<string, React.ComponentType<{ size?: number; 'aria-hidden'?: boolean }>> = { mood: Moon, activation: Zap, mind: Focus, physical: Wind };
 
   useEffect(() => {
     setCustom('');
@@ -46,13 +48,13 @@ export function ConnectedSensations({ value, onChange, section, reveal }: Connec
       <h2 className={`${TYPOGRAPHY_CLASSES.h2} mb-4 text-tea-text`}>{section === 'body' ? 'How does it feel?' : 'How do you feel?'}</h2>
       {groups.map(group => (
         <section key={group.id} data-sensation-group={group.id} className="connected-sensation-family" aria-labelledby={`${prefix}-${group.id}`}>
-          <div className="flex min-h-11 items-center justify-between gap-2">
-            <h3 id={`${prefix}-${group.id}`} className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>{group.label}</h3>
-            <button type="button" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-tea-text-dim focus-visible:ring-2 focus-visible:ring-tea-gold" aria-label={`Explain ${group.label}`} aria-expanded={guide === group.id} aria-controls={`${prefix}-${group.id}-guide`} onClick={() => setGuide(guide === group.id ? null : group.id)}><Info size={15} strokeWidth={1.3} /></button>
+          <div className="connected-sensation-heading flex min-h-11 items-center justify-between gap-2">
+            <h3 id={`${prefix}-${group.id}`} className={`${section === 'state' ? TYPOGRAPHY_CLASSES.label : TYPOGRAPHY_CLASSES.h3} text-tea-text`}>{section === 'state' && effectIcons[group.id] && React.createElement(effectIcons[group.id], { size: 16, 'aria-hidden': true })}{group.label}</h3>
+            <button type="button" className="connected-sensation-info flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-tea-text-dim focus-visible:ring-2 focus-visible:ring-tea-gold" aria-label={`Explain ${group.label}`} aria-expanded={guide === group.id} aria-controls={`${prefix}-${group.id}-guide`} onClick={() => setGuide(guide === group.id ? null : group.id)}><Info size={15} strokeWidth={1.3} /></button>
           </div>
           <div className={`connected-sensation-choices ${group.terms.length === 3 ? 'connected-sensation-three' : ''} ${group.single ? 'connected-sensation-single' : ''}`} role="group" aria-label={group.label}>
             {group.terms.map(term => (
-              <button key={`${term.id}-${highlight === term.id || highlight === term.label ? reveal?.stamp : ''}`} type="button" data-sensation-word={term.id} aria-pressed={sensationIsSelected(data, term)} className={`${group.single ? TYPOGRAPHY_CLASSES.link : TYPOGRAPHY_CLASSES.bodyLight} connected-sensation-choice ${highlight === term.id || highlight === term.label ? 'connected-sensation-return' : ''}`} onClick={() => { setHighlight(null); onChange(toggleSensation(data, section, group.id, term.id)); }}>{term.label}</button>
+              <button key={`${term.id}-${highlight === term.id || highlight === term.label ? reveal?.stamp : ''}`} type="button" data-sensation-word={term.id} aria-pressed={sensationIsSelected(data, term)} className={`${section === 'state' || group.single ? TYPOGRAPHY_CLASSES.link : TYPOGRAPHY_CLASSES.bodyLight} connected-sensation-choice ${highlight === term.id || highlight === term.label ? 'connected-sensation-return' : ''}`} onClick={() => { setHighlight(null); onChange(toggleSensation(data, section, group.id, term.id)); }}>{section === 'state' && <span className="connected-sensation-mark" aria-hidden="true"><Check size={11} strokeWidth={2} /></span>}<span>{term.label}</span></button>
             ))}
           </div>
           <div id={`${prefix}-${group.id}-guide`} hidden={guide !== group.id} className="pt-3">

@@ -46,7 +46,11 @@ export function ApprovedTasteWheel({ value, onChange, reveal }: ApprovedTasteWhe
     if (family) { wheel.current?.navigate(family); wheel.current?.locate(word, sense); }
     host.current?.scrollIntoView({ behavior: reducedMotion ? 'instant' : 'smooth', block: 'nearest' });
   }, [reducedMotion]);
-  useEffect(() => { if (reveal) showWord(reveal.word, reveal.sense); }, [reveal, showWord]);
+  // A recap request is an event. Recreated prop objects must not replay it
+  // after a selection and pull the wheel back to an earlier family.
+  useEffect(() => {
+    if (reveal) showWord(reveal.word, reveal.sense);
+  }, [reveal?.word, reveal?.sense, reveal?.stamp, showWord]);
 
   return <div className="approved-taste-wheel study-phone" aria-label="Taste and aroma tasting">
     <section className="approved-wheel-journey" aria-label="Taste and aroma wheel"><div ref={host} /></section>

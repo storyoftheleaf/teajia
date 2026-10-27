@@ -2,6 +2,10 @@
 
 - The mobile taste wheel uses the full content width and sits closer to the floating navigation. Empty selection summaries take no space; selected words remain available below the wheel with scrolling clearance. Colors and bar motion are unchanged.
 
+## Tasting controls and Four chambers Effect 2026-10-27
+
+- Tasting keeps Save visible in its header, with a distinct impression entry. Effect uses the approved four-panel layout for Mood, Energy, Mind and Body; existing vocabulary, custom words and saved selections are preserved. Recap navigation no longer replays on subsequent wheel selections, and section transitions respect reduced motion.
+
 ## Stock spreadsheet and direct browsing 2026-10-27
 
 - Type, supplier, stock view and tasting can be combined from the compact heading. All views remain available; Incoming and the tasting library move into actions. A single icon expands or collapses every visible group, retaining its summary.
