@@ -6349,3 +6349,7 @@ body.cart-panel-open .commerce-dock {
   .stock-view .stock-mobile-cell,.stock-view .stock-record { height:100%; }
   .stock-view .stock-record .stock-workbar { margin-top:auto; }
 }
+
+@media(min-width:768px) {
+  .stock-view :is(th:has([aria-label^="Sort by Year"]),th:has([aria-label^="Sort by Stock"]),[data-stock-column=year],[data-stock-column=stockGrams]) { padding-left:6px; padding-right:6px; }
+}
