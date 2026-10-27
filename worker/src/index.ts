@@ -5,7 +5,7 @@ import { handleArBridge, expireArBridgeRequests } from './curateArBridge';
 import { descriptionForTeaRecord } from './curateTeaDescriptionRequest';
 import { TeaDescriptionError } from './curateTeaDescription';
 import { promoteCompassEntry, CompassPromotionError } from './curatePromotion';
-import { applySupplierRename, listSupplierFreight, previewSupplierRename, SupplierRenameRefusal } from './supplierRename';
+import { applySupplierRename, cleanSupplierName, listSupplierFreight, previewSupplierRename, SupplierRenameRefusal } from './supplierRename';
 import { authPagePath } from '../../src/lib/authNavigation';
 import {
   mcpFetch, publicMcpFetch, mcpAdminMintToken, mcpAdminListTokens, mcpAdminRevokeToken,
@@ -9808,15 +9808,26 @@ const handleCreateCustomer: Handler = async (request, env) => {
 
   if (body.tags !== undefined) body.tags = customerTagsForStore(body.tags);
   if (Array.isArray(body.contacts)) body.contacts = JSON.stringify(body.contacts);
+  const supplier = body.type === 'supplier' || body.type === 'vendor'
+    || customerTagList(body.tags).some(tag => tag.toLowerCase() === 'vendor')
+    || parseJsonArray(body.relationship_kinds).includes('vendor');
+  if (supplier) {
+    try { body.name = cleanSupplierName(body.name); }
+    catch (error) {
+      if (error instanceof SupplierRenameRefusal) return json({ error: error.message, code: error.code }, error.status);
+      throw error;
+    }
+  }
 
   await env.DB.prepare(
-    `INSERT INTO customers (id, account_id, type, name, company, email, phone, whatsapp, address, city, country, preferred_currency, tags, notes, source, contacts)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO customers (id, account_id, type, name, chinese_name, company, email, phone, whatsapp, address, city, country, preferred_currency, tags, notes, source, contacts)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
     accountId,
     body.type || 'customer',
     body.name,
+    body.chinese_name ?? null,
     body.company || null,
     body.email || null,
     body.phone || null,
@@ -9854,6 +9865,34 @@ const handleUpdateCustomer: Handler = async (request, env, params) => {
 
   const CUSTOMER_ALLOWED_COLS = new Set(['name','chinese_name','email','phone','notes','tags','address','city','country','source','vip','preferred_currency','whatsapp','line','referred_by','type','company','contacts','business_card_photo','storefront_photo','latitude','longitude']);
   const cols = Object.keys(body).filter(k => CUSTOMER_ALLOWED_COLS.has(k));
+  const supplier = customerTagList(authorized.customer.tags).some(tag => tag.toLowerCase() === 'vendor')
+    || authorized.customer.type === 'vendor' || authorized.customer.type === 'supplier';
+  if (supplier && Object.prototype.hasOwnProperty.call(body, 'name')) {
+    try { body.name = cleanSupplierName(body.name); }
+    catch (error) {
+      if (error instanceof SupplierRenameRefusal) return json({ error: error.message, code: error.code }, error.status);
+      throw error;
+    }
+  }
+  if (supplier && Object.prototype.hasOwnProperty.call(body, 'name') && body.name !== authorized.customer.name) {
+    // A contact may be both a buyer and a supplier. Access to its buyer card
+    // does not grant permission to rename its catalogue and sourcing records.
+    const catalog = await requireBundle(request, env, 'catalog');
+    if ('error' in catalog) return catalog.error;
+    const otherCols = cols.filter(col => col !== 'name');
+    const extra = otherCols.length ? [env.DB.prepare(
+      `UPDATE customers SET ${otherCols.map(col => `${col} = ?`).join(', ')}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+    ).bind(...otherCols.map(col => body[col] ?? null), params.id, accountId)] : [];
+    try {
+      await applySupplierRename(env.DB, accountId, params.id, body.name,
+        body.expected_old_name ?? authorized.customer.name, extra);
+    } catch (error) {
+      if (error instanceof SupplierRenameRefusal) return json({ error: error.message, code: error.code }, error.status);
+      throw error;
+    }
+    await ensureRelationshipsFromCustomerBody(env, accountId, params.id, body, 'manual');
+    return json({ success: true });
+  }
   if (cols.length > 0) {
     const sets = cols.map(c => `${c} = ?`).join(', ');
     const result = await env.DB.prepare(
@@ -22025,9 +22064,8 @@ const handleUpdatePurchaseOrder: Handler = async (request, env, params) => {
 };
 
 // ── Supplier sheet: rename a supplier everywhere, and read how it ships ──
-// The card's contact fields are edited through PUT /api/customers/:id; the name
-// is NOT, because a name copied into a dozen tables needs its own all-or-nothing
-// route (see supplierRename.ts).
+// Contact edits and this dedicated rename route both use the shared atomic
+// supplier correction, so names copied into other records cannot drift.
 
 const supplierRefusal = (e: unknown): Response | null =>
   e instanceof SupplierRenameRefusal ? json({ error: e.message, code: e.code }, e.status) : null;

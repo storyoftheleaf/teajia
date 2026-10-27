@@ -78,11 +78,12 @@ export interface SupplierRenamePreview {
 
 const NAME_MAX = 200;
 
-/** The new name as it will be stored: trimmed, one line, not empty, not absurd. */
+/** Main supplier names are English/romanized; Chinese belongs in chinese_name. */
 export function cleanSupplierName(raw: unknown): string {
   const name = typeof raw === 'string' ? raw.replace(/\s+/g, ' ').trim() : '';
   if (!name) throw new SupplierRenameRefusal('Type the new name first.', 400, 'name_required');
   if (name.length > NAME_MAX) throw new SupplierRenameRefusal(`A name can be at most ${NAME_MAX} characters.`, 400, 'name_too_long');
+  if (/\p{Script=Han}/u.test(name)) throw new SupplierRenameRefusal('Use an English or romanized supplier name. Put Chinese in the Chinese name field.', 400, 'english_name_required');
   return name;
 }
 
@@ -138,14 +139,20 @@ export async function previewSupplierRename(
 ): Promise<SupplierRenamePreview> {
   const newName = cleanSupplierName(rawName);
   const card = await loadSupplier(db, accountId, vendorId);
-  if (card.name === newName) throw new SupplierRenameRefusal('That is already the name.', 400, 'unchanged');
-  await assertNoNameClash(db, accountId, vendorId, newName);
+  const sameName = card.name === newName;
+  if (!sameName) await assertNoNameClash(db, accountId, vendorId, newName);
 
-  const counts: SupplierRenameCount[] = [{ table: 'customers', label: 'the supplier card', by_id: 1, by_name: 0 }];
+  const counts: SupplierRenameCount[] = [{ table: 'customers', label: 'the supplier card', by_id: sameName ? 0 : 1, by_name: 0 }];
   for (const col of SUPPLIER_NAME_COLUMNS) {
     const byId = col.idColumn ? await count(db, col.table, idWhere(col), [accountId, vendorId, newName]) : 0;
     const byName = await count(db, col.table, textWhere(col), [accountId, card.name, newName]);
     counts.push({ table: col.table, label: col.label, by_id: byId, by_name: byName });
+  }
+  // An older contact-only edit may already have corrected the card while
+  // leaving its id-linked copies stale. Reconcile those copies without using
+  // an old text alias to guess which unlinked or other supplier rows belong.
+  if (sameName && !counts.slice(1).some(count => count.by_id > 0)) {
+    throw new SupplierRenameRefusal('That is already the name.', 400, 'unchanged');
   }
   const total = counts.reduce((sum, c) => sum + c.by_id + c.by_name, 0);
   return { vendor_id: card.id, old_name: card.name, new_name: newName, counts, total };
@@ -158,6 +165,7 @@ export async function previewSupplierRename(
  */
 export async function applySupplierRename(
   db: Db, accountId: string, vendorId: string, rawName: unknown, expectedOldName?: unknown,
+  additionalStatements: ReturnType<Db['prepare']>[] = [],
 ): Promise<SupplierRenamePreview> {
   const preview = await previewSupplierRename(db, accountId, vendorId, rawName);
   if (typeof expectedOldName === 'string' && expectedOldName.trim() && expectedOldName.trim() !== preview.old_name) {
@@ -168,7 +176,7 @@ export async function applySupplierRename(
   }
   const { new_name: newName, old_name: oldName } = preview;
 
-  const statements = [
+  const statements = oldName === newName ? [] : [
     db.prepare(`UPDATE customers SET name = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
       .bind(newName, vendorId, accountId),
   ];
@@ -185,7 +193,9 @@ export async function applySupplierRename(
         .bind(newName, accountId, oldName, newName),
     );
   }
-  await db.batch(statements);
+  // A contact editor may save other fields with the correction. They must
+  // commit with the names, so a failed contact edit cannot leave a half-save.
+  await db.batch([...statements, ...additionalStatements]);
   return preview;
 }
 

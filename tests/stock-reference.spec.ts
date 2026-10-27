@@ -8,7 +8,7 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   const product = {
     id: 'tea-reference', product_name: 'Cloud Oolong', given_name: '', type: 'Oolong', form: 'Loose Leaf',
     origin_country: 'Taiwan', origin_region: 'Alishan', year: 2004, stock_grams: 100,
-    low_stock_threshold: 200, cost_amount: 20, cost_currency: 'USD', quantity_purchased: 100,
+    is_sample: 1, low_stock_threshold: 200, cost_amount: 20, cost_currency: 'USD', quantity_purchased: 100,
     retail_price_per_gram_usd: .4, cost_per_gram_usd: .1, shipping_rate_per_kg: null,
     description: 'Floral tea', tasting_notes: [], image_url: '', additional_images: '[]', status: 'Active',
     is_public: 0, shown_in_shop: 0, can_reorder: 0, inventory_purpose: 'working', vendor: 'Cloud Mountain',
@@ -67,7 +67,41 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(row.locator('.stock-record')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  await expect(row.locator('.stock-quantity-edit')).toHaveText('100');
+  await expect(row.locator('.stock-figures')).not.toContainText('per');
+  await row.locator('.stock-quantity-edit').click();
+  await expect(page.getByRole('dialog', { name: 'Change stock: Cloud Oolong', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Close stock movement', exact: true }).click();
   await page.screenshot({ path: test.info().outputPath('stock-phone.png') });
+
+  const viewBar = page.getByTestId('inventory-purpose-row');
+  await expect(viewBar.getByRole('button')).toHaveCount(1);
+  await expect(viewBar).not.toContainText('Flagged');
+  await viewBar.getByLabel('Show teas', { exact: true }).selectOption({ label: 'Shop stock' });
+  await expect(viewBar.getByLabel('Show teas', { exact: true })).toHaveValue('default-forsale');
+  await viewBar.getByLabel('Show teas', { exact: true }).selectOption({ label: 'All teas' });
+  await viewBar.getByRole('button', { name: 'View options', exact: true }).click();
+  const viewSheet = page.getByRole('dialog', { name: 'View options', exact: true });
+  await viewSheet.getByLabel('Group by', { exact: true }).selectOption('type');
+  await viewSheet.getByLabel('Order by', { exact: true }).selectOption('year');
+  await viewSheet.getByRole('button', { name: 'Descending', exact: false }).click();
+  await expect(viewSheet.getByRole('button', { name: 'Descending', exact: false })).toHaveAttribute('aria-pressed', 'true');
+  await page.screenshot({ path: test.info().outputPath('stock-view-options.png'), animations: 'disabled' });
+  await viewSheet.getByRole('button', { name: 'Cost', exact: true }).click();
+  await viewSheet.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(row.locator('.stock-figures')).toContainText('Cost / g');
+  await viewBar.getByRole('button', { name: 'View options', exact: true }).click();
+  await viewSheet.getByLabel('Group by', { exact: true }).selectOption('vendor');
+  await viewSheet.getByRole('button', { name: 'Retail', exact: true }).click();
+  await viewSheet.getByRole('button', { name: 'Close', exact: true }).click();
+  for (const width of [320, 390, 768, 1280]) {
+    await page.setViewportSize({ width, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+    expect((await viewBar.boundingBox())!.height).toBe(48);
+    await expect(page.locator('[data-vaul-drawer][data-state="closed"]')).toHaveCount(0);
+    await page.screenshot({ path: test.info().outputPath(`stock-controls-${width}.png`), animations: 'disabled' });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
 
   const form = row.getByRole('button', { name: 'Edit form and pricing for Cloud Oolong', exact: true });
   await expect(form).toHaveText('Loose leaf');
@@ -83,6 +117,19 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await expect(formSheet.locator('dl')).toContainText('$0.34');
   await expect(formSheet.locator('dl')).toContainText('$120.11');
   await expect(formSheet.locator('dl')).toContainText('$62.05');
+  for (const width of [320, 390, 740]) {
+    await page.setViewportSize({ width, height: 844 });
+    const inputBounds = await formSheet.evaluate(root => ['Purchase cost · USD', 'Grams this cost bought'].map(label => {
+      const input = root.querySelector(`input[aria-label="${label}"]`)!;
+      const rect = input.getBoundingClientRect();
+      return { y: rect.y, height: rect.height };
+    }));
+    expect(inputBounds[0].y).toBe(inputBounds[1].y);
+    expect(inputBounds[0].height).toBe(inputBounds[1].height);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+    await page.screenshot({ path: test.info().outputPath(`stock-form-polish-${width}.png`) });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: test.info().outputPath('stock-form-pricing.png') });
   await formSheet.getByRole('button', { name: 'Save form & pricing', exact: true }).click();
   await expect(formSheet.getByRole('alert')).toContainText('Pricing could not be saved');
@@ -112,6 +159,16 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await nameDialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(nameDialog).toHaveCount(0);
   await expect(row.locator('.stock-given-name')).toHaveText('Moon over Alishan');
+  for (const width of [320, 390, 740]) {
+    await page.setViewportSize({ width, height: 844 });
+    await row.locator('.stock-given-name').hover();
+    expect((await row.locator('.stock-record').boundingBox())!.height).toBeLessThan(145);
+    const nameBounds = await row.locator('.stock-given-name').boundingBox();
+    const formBounds = await row.locator('.stock-form-edit').boundingBox();
+    expect(nameBounds!.x + nameBounds!.width).toBeLessThanOrEqual(formBounds!.x);
+    await page.screenshot({ path: test.info().outputPath(`stock-slim-references-${width}.png`) });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
   await expect(row.locator('.stock-given-name')).toHaveText('Moon over Alishan');
   expect(writes.filter(write => write.given_name === 'Moon over Alishan')).toHaveLength(2);

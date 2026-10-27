@@ -37,7 +37,9 @@ export interface SupplierSheetProps {
   open: boolean;
   onClose: () => void;
   /** Called after the rename has landed everywhere, so a list can show the new name. */
-  onRenamed?: (newName: string) => void;
+  onRenamed?: (newName: string, change?: { vendorId: string; oldName: string }) => void;
+  /** Open directly on correcting the shared supplier name. */
+  initialMode?: 'details' | 'rename';
   /** Opens this supplier's stock (sums, teas, select all). Shown as a last row when given. */
   onShowStock?: () => void;
 }
@@ -108,7 +110,7 @@ const FreightBills: React.FC<{ bills: SupplierFreightBill[] }> = ({ bills }) => 
   </ul>
 );
 
-export const SupplierSheet: React.FC<SupplierSheetProps> = ({ vendorId, vendorName, open, onClose, onRenamed, onShowStock }) => {
+export const SupplierSheet: React.FC<SupplierSheetProps> = ({ vendorId, vendorName, open, onClose, onRenamed, onShowStock, initialMode = 'details' }) => {
   const queryClient = useQueryClient();
   const [shownName, setShownName] = useState(vendorName);
   useEffect(() => { setShownName(vendorName); }, [vendorName]);
@@ -146,13 +148,20 @@ export const SupplierSheet: React.FC<SupplierSheetProps> = ({ vendorId, vendorNa
   const [nameError, setNameError] = useState('');
   const [working, setWorking] = useState(false);
 
+  const autoRenameStarted = useRef(false);
+  useEffect(() => {
+    if (!open) { autoRenameStarted.current = false; return; }
+    if (initialMode === 'rename' && id && card.data && !autoRenameStarted.current) {
+      autoRenameStarted.current = true; setDraftName(currentName);
+    }
+  }, [open, id, currentName, initialMode, card.data]);
+
   const startRename = () => { setNameError(''); setPreview(null); setDraftName(currentName); };
   const cancelRename = () => { setDraftName(null); setPreview(null); setNameError(''); };
 
   const askPreview = async () => {
     const next = (draftName ?? '').trim();
     if (!id || !next) return;
-    if (next === currentName) { cancelRename(); return; }
     setWorking(true); setNameError('');
     try { setPreview(await api.suppliers.renamePreview(id, next)); }
     catch (e) { setNameError(e instanceof Error ? e.message : 'Could not check that name.'); }
@@ -168,7 +177,7 @@ export const SupplierSheet: React.FC<SupplierSheetProps> = ({ vendorId, vendorNa
       queryClient.setQueryData<SupplierCard>(['supplier-sheet', id], (old) => (old ? { ...old, name: done.new_name } : old));
       applySupplierRenameLocally(queryClient, { vendorId: id, oldName: done.old_name, newName: done.new_name });
       cancelRename();
-      onRenamed?.(done.new_name);
+      onRenamed?.(done.new_name, { vendorId: id, oldName: done.old_name });
     } catch (e) {
       setNameError(e instanceof Error ? e.message : 'Could not rename. Nothing was changed.');
     } finally { setWorking(false); }
@@ -198,7 +207,7 @@ export const SupplierSheet: React.FC<SupplierSheetProps> = ({ vendorId, vendorNa
   const summary = useMemo(() => (preview ? describeRename(preview) : ''), [preview]);
 
   return (
-    <BottomSheet open={open} onOpenChange={(o) => { if (!o) { cancelRename(); onClose(); } }} title={currentName} description="Supplier">
+    <BottomSheet open={open} onOpenChange={(o) => { if (!o && !working) { cancelRename(); onClose(); } }} title={currentName} description="Supplier">
       <div data-testid="supplier-sheet" className="px-3 pb-2">
         {unresolved && (
           <p className="py-3 text-ui-13 text-tea-text-sec">
@@ -211,7 +220,7 @@ export const SupplierSheet: React.FC<SupplierSheetProps> = ({ vendorId, vendorNa
           <>
             {/* Name */}
             <section aria-label="Name" className="py-2 border-b border-tea-border">
-              <div className={label}>Name</div>
+              <div className={label}>English name</div>
               {draftName === null ? (
                 <div className="mt-1 flex items-baseline gap-3 min-w-0">
                   <span data-testid="supplier-name" className="min-w-0 truncate font-display text-ui-20 text-tea-text">{currentName}</span>
@@ -233,7 +242,7 @@ export const SupplierSheet: React.FC<SupplierSheetProps> = ({ vendorId, vendorNa
                       </p>
                     </div>
                   ) : (
-                    <p className="mt-1 mb-0 text-ui-12 text-tea-text-sec">You will see what changes before anything does.</p>
+                    <p className="mt-1 mb-0 text-ui-12 text-tea-text-sec">Correct the English spelling here. This updates all its teas and admin records. Original Chinese spelling has its own field under Contact.</p>
                   )}
                   {nameError && <p role="alert" className="mt-2 mb-0 text-ui-12 text-tea-error">{nameError}</p>}
                   <div className="mt-3 flex items-center justify-between">
@@ -260,7 +269,7 @@ export const SupplierSheet: React.FC<SupplierSheetProps> = ({ vendorId, vendorNa
                 <div className="mt-1">
                   {CONTACT_FIELDS.map((f) => (
                     <div key={f.key} className="flex items-center gap-3 min-w-0">
-                      <span className="w-16 shrink-0 text-ui-12 text-tea-text-sec">{f.label}</span>
+                      <span className="w-24 shrink-0 text-ui-12 text-tea-text-sec">{f.label}</span>
                       <TapField
                         value={String(card.data?.[f.key] ?? '')} aria={f.label} placeholder={f.placeholder}
                         inputMode={f.inputMode} busy={savingField === f.key} className="num"

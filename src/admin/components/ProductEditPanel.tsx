@@ -244,6 +244,7 @@ export const VendorPicker = ({ value, onChange, productId, className }: {
   const { data: customers = [], refetch: refetchCustomers } = useCustomers();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(value);
+  const [vendorError, setVendorError] = useState('');
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const vendors = useMemo(
@@ -273,6 +274,8 @@ export const VendorPicker = ({ value, onChange, productId, className }: {
   const isNew = query.trim() && !vendors.some(v => v.toLowerCase() === query.trim().toLowerCase());
 
   const handleSelectVendor = async (name: string) => {
+    if (/\p{Script=Han}/u.test(name)) { setVendorError('Use an English supplier name. Keep Chinese in the supplier’s Chinese name field.'); return; }
+    setVendorError('');
     onChange(name);
     setOpen(false);
     if (!name) return;
@@ -301,10 +304,10 @@ export const VendorPicker = ({ value, onChange, productId, className }: {
       <input
         type="text"
         value={query}
-        onChange={e => { setQuery(e.target.value); setOpen(true); }}
+        onChange={e => { setVendorError(''); setQuery(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
-        onBlur={() => { setTimeout(() => handleSelectVendor(query.trim()), 150); }}
-        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSelectVendor(query.trim()); } }}
+        onBlur={() => { setTimeout(() => { setQuery(value); setOpen(false); }, 150); }}
+        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); const name = query.trim(); if (!name || allOptions.some(option => option.toLowerCase() === name.toLowerCase())) handleSelectVendor(name); else setOpen(true); } }}
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="off"
@@ -312,8 +315,10 @@ export const VendorPicker = ({ value, onChange, productId, className }: {
         data-1p-ignore
         data-lpignore="true"
         className={className}
-        placeholder="Type or pick a source..."
+        aria-label="Supplier for this tea"
+        placeholder="Pick a supplier for this tea..."
       />
+      {vendorError && <p role="alert" className="mt-1 text-ui-12 text-tea-text-sec">{vendorError}</p>}
       {open && (filtered.length > 0 || (query.trim() && isNew)) && (
         <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-accent-sub rounded-xl shadow-lg max-h-48 overflow-y-auto">
           {isNew && query.trim() && (
@@ -932,6 +937,7 @@ export interface ProductEditPanelProps {
   rightOffset?: number;
   /** Open the store preview (the Alcove / shop-card view) for this product.
    *  Surfaced high in the panel so full edit shows how it looks in the shop. */
+  onCorrectSupplierName?: (product: Product) => void;
   onShowStorePreview?: (product: Product) => void;
   /** Opens movement-first stock entry instead of directly overwriting stock. */
   onOpenStockMovement?: (product: Product, trigger: HTMLElement) => void;
@@ -962,6 +968,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   filterLabel,
   rightOffset = 0,
   onShowStorePreview,
+  onCorrectSupplierName,
   onOpenStockMovement,
   onRecount,
   onTeaAction,
@@ -1576,8 +1583,8 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               {/* Vendor row. Profile link sits trailing-right for clean label edge. */}
               <div className="mt-4 flex flex-col gap-1.5">
                 <div className="flex items-center justify-between leading-none">
-                  <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em]">Vendor</span>
-                  {product.vendor && (
+                  <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em]">Supplier for this tea</span>
+                  {product.vendor && onCorrectSupplierName ? <button type="button" className="tap-target text-ui-11 text-tea-gold" onClick={() => onCorrectSupplierName(product)}>Correct name everywhere</button> : product.vendor && (
                     <button
                       onClick={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor || '')}`)}
                       className="flex items-center gap-0.5 text-ui-11 text-admin-text-sec hover:text-admin-text uppercase tracking-[0.06em] transition-colors"

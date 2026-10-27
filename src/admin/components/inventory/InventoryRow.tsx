@@ -15,6 +15,7 @@ import { useTeaCompassStore } from '../../../lib/teaCompassStore';
 import { HouseNameField, ItemCode, QuoteField, moneyMark } from './phone/SampleDecide';
 
 export interface InventoryRowProps {
+  priceMode?: 'retail' | 'cost';
   onSavePricing: (id: string, changes: FormPricingChanges) => Promise<void>;
   onSaveField?: (id: string, field: keyof Product, value: unknown) => Promise<void>;
   onQuickTaste?: () => void;
@@ -489,7 +490,7 @@ function InventoryRowBase(props: InventoryRowProps) {
     >
       {/* Phone cards keep direct actions; spreadsheet rows use the shared rail. */}
       {stockPhone ? <td className="stock-mobile-cell" colSpan={(splitView ? splitViewCols : visibleCols).length}>
-        <StockMobileRecord product={product} name={displayName} index={globalIdx} editing={isEditMode}
+        <StockMobileRecord onStockChange={trigger => onStockMovement(product, trigger)} product={product} name={displayName} index={globalIdx} editing={isEditMode}
           onEdit={() => onOpenPanel(product)}
           onSavePricing={changes => props.onSavePricing(product.id, changes)}
           onSaveChange={async (field, value) => { await (props.onSaveField ? props.onSaveField(product.id, field, value) : onProductUpdate(product.id, field, value)); }}
@@ -497,7 +498,7 @@ function InventoryRowBase(props: InventoryRowProps) {
           onHistory={() => onStockHistory(product.id, product.productName)}
           freightUsd={product.type === 'Teaware' ? 0 : shippingRateUsdFor(product.shippingRatePerKg, costRateToUsd?.(product) ?? null, shopFreightPerKgUsd)}
           onUpdate={value => onProductUpdate(product.id, 'productName', value)}
-          fields={['type', product.type === 'Teaware' ? 'quantityUnits' : 'stockGrams', 'pricePerGramUSD'].map((key, colIdx) => {
+          fields={['type', product.type === 'Teaware' ? 'quantityUnits' : 'stockGrams', props.priceMode === 'cost' ? 'costPerGramUSD' : 'pricePerGramUSD'].map((key, colIdx) => {
             const cell = renderCell(key, colIdx) as React.ReactElement<any>;
             return { key, label: key, content: cell.props.children, className: cell.props.className };
           })} />
@@ -508,6 +509,7 @@ function InventoryRowBase(props: InventoryRowProps) {
 
 export const InventoryRow = React.memo(InventoryRowBase, (prev, next) =>
   prev.product === next.product &&
+  prev.priceMode === next.priceMode &&
   prev.globalIdx === next.globalIdx &&
   prev.isSelected === next.isSelected &&
   prev.focusedCol === next.focusedCol &&
