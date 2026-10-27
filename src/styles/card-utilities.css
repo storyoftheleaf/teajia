@@ -6181,3 +6181,7 @@ body.cart-panel-open .commerce-dock {
   .light .dark .stock-view .stock-record[data-card-polish="4"] { --stock-metal-l:var(--stock-strip-l); }
   .light .dark .stock-view .stock-record[data-card-polish="4"] .stock-subtitle>[data-field=type]>span { color:var(--stock-tea-label)!important; }
 }
+
+.stock-view [data-stock-group][data-collapsed=true] .stock-group-main-toggle { flex-direction:row; align-items:center; gap:8px; }
+.stock-view [data-stock-group][data-collapsed=true] .stock-group-name { min-width:0; }
+.stock-view [data-stock-group][data-collapsed=true] .stock-group-main-toggle .stock-group-summary { display:flex; width:auto; gap:8px; flex-shrink:0; white-space:nowrap; }

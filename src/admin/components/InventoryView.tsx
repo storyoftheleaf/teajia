@@ -2918,7 +2918,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="stock-group-head stock-group-menu-head">
                       <button type="button" className="stock-group-main-toggle" aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${groupLabel}`} aria-expanded={!isCollapsed} onClick={() => toggleCollapsedGroup(groupKey)}>
                         <span className="stock-group-name">{groupLabel}</span>
-                        {!isCollapsed && <span className="stock-group-summary"><span>{items.length} {inventoryCategory === 'teaware' ? 'items' : items.length === 1 ? 'tea' : 'teas'}</span><span>{totalStock}{inventoryCategory === 'teaware' ? ' units' : 'g'}</span><span>${fmtNum(totalRetail)}</span></span>}
+                        <span className="stock-group-summary"><span>{items.length} {inventoryCategory === 'teaware' ? 'items' : items.length === 1 ? 'tea' : 'teas'}</span><span>{totalStock}{inventoryCategory === 'teaware' ? ' units' : 'g'}</span>{!isCollapsed && <span>${fmtNum(totalRetail)}</span>}</span>
                       </button>
                       <div className="stock-group-actions">
                         {inventoryGroupBy === 'vendor' && items.some(product => product.vendor) ? <AnchoredMenu align="right" width={180} trigger={props => <button {...props} type="button" className="tap-target" aria-label={`Supplier actions for ${groupLabel}`}><ChevronDown size={16} aria-hidden="true"/></button>}>

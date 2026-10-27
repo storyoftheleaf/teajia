@@ -152,7 +152,7 @@ test.describe('Stock opens the supplier sheet from the supplier name', () => {
   });
 });
 
-test('supplier arrow offers Edit while the heading folds and hides totals on phone and desktop', async ({ page }) => {
+test('supplier arrow offers Edit while closed headings retain tea counts and grams', async ({ page }) => {
   await page.route('**/api/**', route => route.fulfill({ json: [] }));
   const seen = await prepare(page);
   await page.goto('/admin/stock');
@@ -172,7 +172,9 @@ test('supplier arrow offers Edit while the heading folds and hides totals on pho
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'Collapse Master Bo', exact: true }).click();
   const collapsed = page.locator('[data-stock-group="Master Bo"]');
-  await expect(collapsed.locator('.stock-group-summary')).toHaveCount(0);
+  await expect(collapsed.locator('.stock-group-summary')).toContainText('3 teas');
+  await expect(collapsed.locator('.stock-group-summary')).toContainText('87g');
+  await expect(collapsed.locator('.stock-group-summary')).not.toContainText('$');
   await expect(collapsed.locator('tr[data-product-id]')).toHaveCount(0);
   await page.screenshot({ path: test.info().outputPath('supplier-collapsed-heading.png') });
   await collapsed.getByRole('button', { name: 'Supplier actions for Master Bo', exact: true }).click();
