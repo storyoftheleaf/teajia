@@ -28,6 +28,7 @@ export interface BrowseCardProps {
   readOnly?: boolean;
   tastingRecorded?: boolean;
   onEdit: (id: string) => void;
+  onOpenTasting?: (id: string) => void;
   tasteQueueActive?: boolean;
   onSelect?: (id: string) => void;
   onOpenDetail?: (id: string) => void;
@@ -62,7 +63,7 @@ export function getDateGroup(dateStr: string): string {
   return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, readOnly = false, tastingRecorded, onEdit, onSelect, onOpenDetail, isSelected, onAcquire, pricePreference = DEFAULT_LIBRARY_PRICE, rates, purchaseState, purchaseStatusUnknown }) => {
+export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, readOnly = false, tastingRecorded, onOpenTasting, onEdit, onSelect, onOpenDetail, isSelected, onAcquire, pricePreference = DEFAULT_LIBRARY_PRICE, rates, purchaseState, purchaseStatusUnknown }) => {
   const { showToast } = useToast();
   const updateEntry = useTeaCompassStore((state) => state.updateEntry);
   const [typeOpen, setTypeOpen] = useState(false);
@@ -146,7 +147,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
         <div className="library-workbar">
           <div className="library-quick-actions">
             <button type="button" className="tap-target" aria-label={`Photos for ${title}`} title="Take photo or open photo library" onClick={() => setPhotosOpen(true)}><Camera size={17} /></button>
-          {entry.category !== 'teaware' && <button type="button" onClick={() => readOnly ? openDetail() : setTastingOpen(true)} className={`tap-target library-tea-primary text-ui-12 ${tasted ? 'is-tasted' : ''}`} aria-label={`Taste ${title}`} title={readOnly ? 'View tasting status (read-only)' : tasted ? 'Edit tasting' : 'Begin tasting'}><TeaCupIcon /><span className="sr-only">Taste</span></button>}
+          {entry.category !== 'teaware' && <button type="button" onClick={() => readOnly ? openDetail() : onOpenTasting ? onOpenTasting(entry.id) : setTastingOpen(true)} className={`tap-target library-tea-primary text-ui-12 ${tasted ? 'is-tasted' : ''}`} aria-label={`Taste ${title}`} title={readOnly ? 'View tasting status (read-only)' : tasted ? 'Edit tasting' : 'Begin tasting'}><TeaCupIcon /><span className="sr-only">Taste</span></button>}
           </div>
         <div className="library-ribbon-prices" aria-label={`Prices in ${amounts.currency}`}>
           <div className="library-ribbon-metric" title={`Calculated in ${amounts.currency}`}>

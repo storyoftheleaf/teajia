@@ -190,7 +190,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
   const openedWith = initialData ?? existingEntry?.note.tasting ?? {};
   const [tastingData, setTastingData] = useState<TastingData>(openedWith);
-  // The state the panel opened in. Closing compares against this, not against
+  // The opened or most recently saved state. Closing compares against this, not against
   // "is there any data at all", so a tea you have tasted before closes on the
   // first tap instead of asking about work you did in an earlier session.
   const baselineRef = useRef<string>(tastingFingerprint(openedWith));
@@ -273,8 +273,6 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     onError: setVoiceError,
   });
 
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
-  useEffect(() => () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); }, []);
 
   // Auto-save + close when Account or Search is opened
   const dismissHandlerRef = useRef<() => void>(null!);
@@ -361,11 +359,14 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   const changedExisting = baselineRef.current !== tastingFingerprint({}) && tastingFingerprint(tastingData) !== baselineRef.current;
   const canSave = (hasNotes || changedExisting) && (saveState === 'idle' || saveState === 'error') && (!verdictRequired || verdict !== null);
 
-  // Dirty means "different from how it opened", which is the only question the
+  useEffect(() => {
+    if (saveState === 'saved' && tastingFingerprint(tastingData) !== baselineRef.current) setSaveState('idle');
+  }, [tastingData, saveState]);
+
+  // Dirty means "different from the last saved state", which is the question the
   // close button needs answered.
   const isDirty =
     phase === 'tasting' &&
-    saveState !== 'saved' &&
     tastingFingerprint(tastingData) !== baselineRef.current;
 
   const handleCloseRequest = useCallback(() => {
@@ -389,7 +390,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     if (!canSave) return false;
     if (previewOnly) {
       onAfterSave?.(tastingData, verdict ?? undefined, wouldBuy);
-      onClose();
+      baselineRef.current = tastingFingerprint(tastingData);
+      setSaveState('saved');
       return true;
     }
     setSaveState('saving');
@@ -471,18 +473,9 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
       return false;
     }
 
-    setSaveState('saved');
-    // Show confirmation screen for all modes
-    setPhase('saved');
-    // Pre-populate description draft from tasting data
-    if (onWriteDescription) {
-      setDescriptionDraft(generateDescription(tastingData));
-    }
-    // Admin: auto-close after 2s only when no action buttons need attention
-    if (adminMode && !onCreatePO && !onWriteDescription) {
-      saveTimerRef.current = setTimeout(() => onClose(), 2000);
-    }
-    // Customer: stays open until user taps Done
+    baselineRef.current = tastingFingerprint(tastingData);
+    setSaveState(tastingFingerprint(latestData.current) === baselineRef.current ? 'saved' : 'idle');
+    if (onWriteDescription) setDescriptionDraft(generateDescription(tastingData));
     return true;
   }, [previewOnly, item, tastingData, verdict, wouldBuy, addTasting, onSave, onAfterSave, adminMode, activeAccountId, activeAccount, canSave, onClose, onCreatePO, onWriteDescription, phase]);
 
@@ -574,6 +567,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
           else { setPhase('tasting'); setShowNote(true); setShowSaveGuidance(true); }
         }}>{saveState === 'saving' ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : null}{saveState === 'saved' ? 'Saved' : saveState === 'saving' ? 'Saving' : saveState === 'error' ? 'Retry' : 'Save'}</button>
         </div>
+        {saveState === 'saved' && (guestTasting || onOrderTea || onCreatePO || onWriteDescription) && <div className="tasting-heading-tools"><button type="button" className="tap-target" onClick={() => setPhase('saved')}>Review saved tasting</button></div>}
         {detailsPanel && <div className="tasting-heading-tools">
           <button type="button" className="tap-target" onClick={() => setPhase(phase === 'details' ? 'tasting' : 'details')}>{phase === 'details' ? 'Tasting' : 'Tea details'}</button>
         </div>}
