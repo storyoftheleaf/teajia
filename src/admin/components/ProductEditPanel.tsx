@@ -1376,7 +1376,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               {sharedRecordId && <button type="button" data-testid="inventory-open-tea-record" data-compass-entry-id={sharedRecordId}
                 onClick={() => navigate(sharedTeaRecordHref(sharedRecordId))}
                 className="min-h-11 inline-flex items-center gap-2 text-ui-12 text-admin-text-sec hover:text-admin-text">
-                <BookOpen size={14} />Open tea record
+                <BookOpen size={14} />View in Library
               </button>}
               {sharedRecordId && <button type="button" data-testid="inventory-reorder-ledger" disabled={openingOrder}
                 onClick={() => void openReorder()}

@@ -1,0 +1,76 @@
+import { test, expect } from './fixtures';
+import { installCompassHarness } from './helpers/compassHarness';
+test('metalwork keeps Library edits and actions at phone and desktop widths', async ({page}) => {
+ await installCompassHarness(page,{products:[{id:'stock-dark',source_compass_entry_id:'metal-dark',product_name:'Oil-Paper Tea Brick',type:'Dark'}],compassEntries:[
+ {id:'metal-dark',category:'tea',name:'Oil-Paper Tea Brick',type:'Dark',year:'1980s',vendor_name:'Huang Wei',vendor_id:'vendor-chen',status:'noted',price_amount:500,price_currency:'Yuan',price_per_unit_grams:500,created_at:new Date().toISOString()},
+ {id:'metal-shou',category:'tea',name:'Aged Palace Tea',type:'',vendor_name:'Huang Wei',vendor_id:'vendor-chen',status:'noted',price_amount:380,price_currency:'Yuan',price_per_unit_grams:500,created_at:new Date().toISOString()}
+ ]});
+ await page.addInitScript(() => localStorage.setItem('teajia.library.price-display.v1', JSON.stringify({currency:'source',basis:'gram'})));
+ await page.setViewportSize({width:390,height:844});
+ await page.goto('/admin/compass?tab=library');
+ const card=page.getByTestId('library-entry-metal-dark').filter({visible:true});
+ await expect(card).toBeVisible();
+ await page.waitForTimeout(700);
+ const untyped=page.getByTestId('library-entry-metal-shou').filter({visible:true});
+ await expect(untyped.getByRole('button',{name:'Choose tea type for Aged Palace Tea'})).toHaveText('Choose type');
+ await untyped.getByRole('button',{name:'Choose tea type for Aged Palace Tea'}).click();
+ await page.getByRole('button',{name:'Shou',exact:true}).click();
+ await expect(untyped.getByRole('button',{name:'Choose tea type for Aged Palace Tea'})).toHaveText('Shou');
+ await untyped.getByRole('button',{name:'Choose tea type for Aged Palace Tea'}).click();
+ await expect(page.getByRole('button',{name:'Shou',exact:true})).toHaveAttribute('aria-pressed','true');
+ await page.getByRole('button',{name:'White',exact:true}).click();
+ await expect(untyped.getByRole('button',{name:'Choose tea type for Aged Palace Tea'})).toHaveText('White');
+ await page.screenshot({path:'/tmp/library-metalwork-mobile.png'});
+ await card.getByRole('button',{name:'Edit tea name: Oil-Paper Tea Brick',exact:true}).click();
+ const titleEditor=card.getByRole('textbox',{name:'Edit tea name: Oil-Paper Tea Brick',exact:true});
+ await expect(titleEditor).toBeVisible();
+ expect(await titleEditor.evaluate((el:HTMLTextAreaElement)=>el.selectionStart===el.selectionEnd)).toBeTruthy();
+ await titleEditor.fill('A revised title');
+ await card.getByRole('button',{name:'Cancel',exact:true}).click();
+ await expect(card.getByRole('button',{name:'Edit tea name: Oil-Paper Tea Brick',exact:true})).toBeVisible();
+ await card.getByRole('button',{name:'Edit tea name: Oil-Paper Tea Brick',exact:true}).click();
+ await card.getByRole('textbox',{name:'Edit tea name: Oil-Paper Tea Brick',exact:true}).fill('Oil-Paper Tea Brick');
+ await page.screenshot({path:'/tmp/library-title-editor.png'});
+ await card.getByRole('button',{name:'Save',exact:true}).click();
+
+ await card.getByRole('button',{name:'Edit year for Oil-Paper Tea Brick',exact:true}).click();
+ const yearInput=card.getByRole('textbox',{name:'Edit year for Oil-Paper Tea Brick'});
+ const selectedColors=await yearInput.evaluate(el=>({selected:getComputedStyle(el,'::selection').color,normal:getComputedStyle(el).color}));
+ expect(selectedColors.selected).toBe(selectedColors.normal);
+ await page.screenshot({path:'/tmp/library-selected-year.png'});
+ await card.getByRole('textbox',{name:'Edit year for Oil-Paper Tea Brick'}).fill('1985');
+ await card.getByRole('textbox',{name:'Edit year for Oil-Paper Tea Brick'}).press('Enter');
+ await expect(card.getByRole('button',{name:'Edit year for Oil-Paper Tea Brick',exact:true})).toHaveText('1985');
+ await card.getByRole('button',{name:/Edit quote in/}).click();
+ await card.getByRole('textbox',{name:/Edit quote in/}).fill('550');
+ await card.getByRole('textbox',{name:/Edit quote in/}).press('Enter');
+ await card.getByRole('button',{name:/quoted grams/}).click();
+ await expect(page.getByRole('heading',{name:'What does the quote cover?'})).toBeVisible();
+ await page.getByRole('button',{name:'Cancel',exact:true}).click();
+ await card.getByRole('button',{name:'Choose',exact:true}).click();
+ await expect(card.getByRole('button',{name:'Chosen',exact:true})).toHaveAttribute('aria-pressed','true');
+ await card.getByRole('button',{name:'Reject',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Reject tea',exact:true})).toBeVisible();
+ await page.keyboard.press('Escape');
+ await card.getByRole('button',{name:'Photos for Oil-Paper Tea Brick'}).click();
+ await expect(page.getByRole('heading',{name:'Tea photos',exact:true})).toBeVisible();
+ await page.keyboard.press('Escape');
+ await card.getByRole('button',{name:'Taste Oil-Paper Tea Brick',exact:true}).click();
+ await expect(page.getByRole('button',{name:/close/i}).last()).toBeVisible();
+ await page.keyboard.press('Escape');
+ await page.setViewportSize({width:1440,height:950});
+ await page.goto('/admin/compass?tab=library');
+ await expect(page.getByTestId('library-entry-metal-dark').filter({visible:true})).toBeVisible();
+ await page.waitForTimeout(700);
+ await page.screenshot({path:'/tmp/library-metalwork-desktop.png'});
+ await page.getByTestId('library-entry-metal-dark').filter({visible:true}).getByRole('button',{name:'Edit details for Oil-Paper Tea Brick'}).click();
+
+ await expect(page.getByTestId('library-entry-detail').filter({visible:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'View in Stock',exact:true})).toBeVisible();
+ await expect(page.getByRole('dialog',{name:'Tea details',exact:true})).toBeVisible();
+ await page.waitForTimeout(400);
+ await page.screenshot({path:'/tmp/library-details-sheet.png'});
+ await page.getByRole('button',{name:'Close',exact:true}).click();
+ await expect(page.getByTestId('library-entry-detail')).toHaveCount(0);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+});

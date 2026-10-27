@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
-import { Search, X, Trash2, ListChecks, ChevronRight } from 'lucide-react';
+import { Search, X, Trash2, ListChecks, SlidersHorizontal, ArrowDownWideNarrow, ChevronDown } from 'lucide-react';
 import { SessionReview } from './SessionReview';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import Fuse from 'fuse.js';
 import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompassStore';
 import { LibraryCurrencyPicker } from './LibraryCurrencyPicker';
+import { sharedStockRecordId } from '../../lib/sharedTeaRecord';
 import { BrowseCard } from './BrowseCard';
 import { LibrarySupplierActions } from './LibrarySupplierActions';
 import { librarySupplierGroups, libraryEntryChosen, libraryEntryRejected } from './librarySupplierGroups';
@@ -314,6 +315,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             >
               <BrowseCard
                 entry={entry}
+                stockProductId={sharedStockRecordId(entry, inventoryProducts)}
                 onEdit={onEditEntry}
                 tasteQueueActive={opts?.tasteQueueActive}
                 onSelect={onSelectEntry}
@@ -358,7 +360,6 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                 })}>
                 <span className="library-supplier-name">{group.label}</span>
                 <span className="library-supplier-count">{group.entries.length} {group.entries.length === 1 ? 'tea' : 'teas'}</span>
-                <ChevronRight size={16} className={collapsed ? '' : 'rotate-90'} aria-hidden />
               </button>
               {group.key && <LibrarySupplierActions supplierId={group.entries[0].linkedCustomerId || group.entries[0].vendorId} supplierName={group.label} />}
               </div>
@@ -540,6 +541,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             key={opt.value}
             type="button"
             onClick={() => { setShowRejected(false); setBrowseFilter(opt.value); }}
+            aria-pressed={!showRejected && browseFilter === opt.value}
             className={`tap-target inline-flex min-h-11 items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
               !showRejected && browseFilter === opt.value
                 ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
@@ -564,6 +566,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           className={`tap-target inline-flex min-h-11 items-center rounded-md border px-3 text-ui-12 transition-colors ${activeLibraryFilterCount(libraryFilters) ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub'}`}
           aria-label={activeLibraryFilterCount(libraryFilters) ? `${activeLibraryFilterCount(libraryFilters)} filters` : 'Filters'}
         >
+          <SlidersHorizontal size={14} aria-hidden="true" />
           {activeLibraryFilterCount(libraryFilters) ? `${activeLibraryFilterCount(libraryFilters)} filter${activeLibraryFilterCount(libraryFilters) === 1 ? '' : 's'}` : 'Filters'}
         </button>
 
@@ -580,9 +583,9 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           }`}
           title="Sort within each supplier"
         >
-          <span>{SORT_LABELS[browseSort]}</span>
+          <ArrowDownWideNarrow size={14} aria-hidden="true" /><span>{browseSort === 'recent' ? 'Recent' : SORT_LABELS[browseSort]}</span><ChevronDown size={12} aria-hidden="true" />
         </button>
-        {untriaged.length >= 2 && <button type="button" className="tap-target text-ui-12 text-tea-text-sec" onClick={() => setReviewOpen(true)} aria-label={`Review ${untriaged.length} tasted teas`}>Review {untriaged.length}</button>}
+        {untriaged.length >= 2 && <button type="button" className="tap-target library-review-action text-ui-12 text-tea-text-sec" onClick={() => setReviewOpen(true)} aria-label={`Review ${untriaged.length} tasted teas`}>Review {untriaged.length}</button>}
         {!displayPreference && <LibraryCurrencyPicker preference={pricePreference} onChange={setLocalPreference} />}
         </div>
       </div>

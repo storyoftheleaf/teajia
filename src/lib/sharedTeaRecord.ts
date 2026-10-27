@@ -9,3 +9,13 @@ export function sharedTeaRecordId(product: { id: string; sourceCompassEntryId?: 
 export function sharedTeaRecordHref(entryId: string): string {
   return `/admin/compass?tab=library&entry=${encodeURIComponent(entryId)}`;
 }
+
+/** Resolve only a verified product in this account, never a name match or stale ID. */
+export function sharedStockRecordId(entry: Pick<TeaCompassEntry, 'id' | 'draftProductId'>, products: readonly { id: string; source_compass_entry_id?: string | null; sourceCompassEntryId?: string | null }[]): string | undefined {
+  const backlink = products.find(product => (product.source_compass_entry_id ?? product.sourceCompassEntryId) === entry.id);
+  if (backlink) return backlink.id;
+  return products.find(product => product.id === entry.draftProductId && !(product.source_compass_entry_id ?? product.sourceCompassEntryId))?.id;
+}
+export function sharedStockRecordHref(productId: string): string {
+  return `/admin/stock?panel=${encodeURIComponent(productId)}`;
+}

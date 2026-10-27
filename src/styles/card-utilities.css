@@ -5671,3 +5671,112 @@ body.cart-panel-open .commerce-dock {
 .library-weight-options button, .library-weight-presets button { min-height: 44px; padding: 0 8px; border: 1px solid var(--tea-border); border-radius: 5px; font-size: 13px; color: var(--tea-text-sec); background: var(--tea-surface); }
 .library-weight-options button[aria-pressed='true'], .library-weight-presets button[aria-pressed='true'] { border-color: var(--tea-gold); background: var(--tea-accent-sub); color: var(--tea-text); }
 .library-weight-options button:focus-visible, .library-weight-presets button:focus-visible { outline: 2px solid var(--tea-gold); }
+
+/* Unified Library console: views inside a single panel, tools immediately below. */
+.library-controls { display: grid; grid-template-columns: minmax(0,1fr); gap: 0; padding: 4px; border: 1px solid var(--tea-border); border-radius: 7px; background: var(--tea-surface); }
+.library-controls .library-segments { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 2px; padding: 2px; border: 1px solid var(--tea-border); border-radius: 5px; background: var(--tea-bg); }
+.library-controls .library-segments > button { min-width: 0; padding: 0 3px; gap: 4px; justify-content: center; white-space: nowrap; border-radius: 3px; }
+.library-controls .library-segments > button[aria-pressed='true'] { background: var(--tea-elevated); box-shadow: none; color: var(--tea-text); }
+.library-controls .library-tools { width: 100%; display: flex; flex-wrap: wrap; gap: 4px 8px; justify-content: flex-start; padding: 0 3px; }
+.library-controls .library-tools > button { display: inline-flex; align-items: center; gap: 5px; min-height: 44px; padding: 0 5px; }
+.library-controls .library-tools .library-review-action { margin-left: auto; }
+
+/* Library uses Stock's Fine metalwork finish with its existing edit controls. */
+.library-supplier-groups { gap: 12px; }
+.library-supplier-group, .library-supplier-group[data-tone='1'] {
+  border-radius: 5px; padding: 6px;
+  background: linear-gradient(125deg,var(--tea-elevated),var(--tea-surface));
+  border-color: color-mix(in srgb,var(--tea-text-dim) 35%,var(--tea-border));
+}
+.library-supplier-header { padding: 2px 4px 6px; }
+.library-supplier-heading { display:grid; grid-template-columns:minmax(0,1fr) 20px; gap:4px 8px; padding-block:4px; }
+.library-supplier-name { font-size:20px; }
+.library-supplier-count { grid-row:2; font-size:11px; }
+.library-supplier-heading > svg { grid-column:2; grid-row:1 / 3; }
+.library-card-grid { gap:8px; }
+.library-tea-card {
+  padding:0; border-radius:4px; box-shadow:none;
+  border-color:color-mix(in srgb,var(--library-accent) 30%,var(--tea-border));
+  background:linear-gradient(180deg,var(--tea-bg),color-mix(in srgb,var(--tea-elevated) 8%,var(--tea-bg)));
+}
+.library-tea-card .library-card-title-row { padding:0 10px; }
+.library-tea-card .library-card-name { font-size:22px; line-height:1.15; font-weight:400; }
+.library-tea-card .library-card-name > button { min-height:44px; padding:5px 0; }
+.library-tea-card .library-card-subrow {
+  height:auto; min-height:34px; padding:0 10px; gap:8px; align-items:center;
+  background:linear-gradient(180deg,
+    oklch(from var(--library-metal-hue) calc(var(--library-metal-l) + .025) calc(c * .35) h),
+    oklch(from var(--library-metal-hue) calc(var(--library-metal-l) + .003) calc(c * .35) h) 20%,
+    oklch(from var(--library-metal-hue) calc(var(--library-metal-l) - .02) calc(c * .35) h));
+  border-top:1px solid color-mix(in srgb,var(--library-accent) 42%,var(--tea-bg));
+  border-bottom:1px solid var(--tea-border);
+}
+.library-tea-card .library-given-name > button, .library-tea-card .library-card-year > button { align-items:center; font-size:12px; height:34px; min-height:34px; }
+.library-tea-card .library-card-subrow > .library-card-year { flex:0 0 58px; }
+.library-card-type { font-size:11px; color:var(--library-accent); white-space:nowrap; border-left:1px solid var(--tea-border); padding-left:8px; }
+.library-tea-card .library-ribbon-prices { margin:0; border:0; border-radius:0; overflow:visible; background:transparent; }
+.library-tea-card .library-ribbon-metric { background:transparent; border:0; padding:4px 6px 6px; min-height:52px; justify-content:center; gap:1px; }
+.library-tea-card .library-ribbon-metric > span:first-child { order:2; color:var(--tea-text-sec); font-size:10px; line-height:12px; min-height:12px; }
+.library-tea-card .library-ribbon-metric > strong, .library-tea-card .library-ribbon-metric .library-inline-value { font-size:15px; font-weight:500; line-height:20px; }
+.library-tea-card .library-ribbon-metric > strong { min-height:24px; }
+.library-tea-card .library-ribbon-metric .library-inline-value > button { min-height:24px; height:24px; padding:0; justify-content:center; align-items:center; }
+.library-tea-card .library-ribbon-metric .library-inline-value > button::after { inset:-4px 0 -16px; }
+.library-tea-card .library-tea-actions { margin:0; padding:0 4px 3px; min-height:44px; border-top:1px solid var(--tea-border); background:transparent; gap:2px; }
+.library-tea-card .library-tea-actions > button { border:0; border-radius:3px; margin:0; background:transparent; min-height:44px; font-size:12px; }
+.library-tea-card .library-tea-actions .library-tea-primary { box-shadow:inset 0 -1px var(--library-accent); font-weight:600; color:var(--tea-text); }
+.library-tea-card .library-tea-actions .library-choose[aria-pressed='true'] { background:var(--tea-accent-sub); color:var(--tea-text); box-shadow:inset 0 -2px var(--tea-gold); }
+.light .library-tea-card { --library-metal-l:.83!important; }
+.light .library-card-type { color:var(--tea-text-sec); }
+
+/* Identical tasting/menu affordances across the two tea workspaces. */
+.library-tea-card .library-card-title-row { display:flex; align-items:center; gap:4px; }
+.library-more-action { flex:0 0 36px; min-height:44px; display:flex; align-items:center; justify-content:center; color:var(--tea-text-sec); }
+.library-tea-card .library-tea-actions { grid-template-columns:minmax(0,1fr) minmax(0,1fr) 48px; }
+.library-tea-card .library-tea-actions .library-tea-primary { display:flex; align-items:center; justify-content:center; box-shadow:none; color:var(--tea-text); }
+.library-tea-card .library-tea-actions .library-tea-primary.is-tasted { color:var(--library-accent); background:var(--tea-accent-sub); }
+.library-record-links { display:grid; gap:4px; padding-bottom:16px; }
+.library-record-links > :is(a,button) { display:flex; align-items:center; justify-content:space-between; min-height:48px; padding:8px 12px; border:1px solid var(--tea-border); border-radius:4px; color:var(--tea-text); text-align:left; }
+.library-record-links > p { margin-top:8px; }
+
+/* Stock geometry plus one compact Library decision row. */
+.library-tea-card .library-card-name { font-size:20px; }
+.library-tea-card .library-card-name > button, .library-more-action { min-height:40px; }
+.library-tea-card .library-card-subrow { min-height:32px; }
+.library-tea-card .library-given-name > button, .library-tea-card .library-card-year > button { height:32px; min-height:32px; }
+.library-workbar { display:grid; grid-template-columns:76px minmax(0,1fr); align-items:center; }
+.library-quick-actions { display:flex; align-items:center; }
+.library-quick-actions > button { width:38px; min-height:44px; display:flex; align-items:center; justify-content:center; color:var(--tea-text-sec); background:transparent; border:0; padding:0; }
+.library-quick-actions .library-tea-primary.is-tasted { color:var(--library-accent); }
+.library-tea-card .library-ribbon-metric { min-height:48px; padding:2px 3px 4px; }
+.library-tea-card .library-tea-actions { grid-template-columns:1fr 1fr 1.4fr; min-height:36px; padding:0 4px; }
+.library-tea-card .library-tea-actions > button { min-height:36px; font-size:11px; }
+
+/* A long source title stays readable while editing; taps never replace it accidentally. */
+.library-tea-card .library-card-title-row:has(.library-title-editor) { align-items:flex-start; padding-block:6px; }
+.library-title-editor { display:block; width:100%; min-height:72px; padding:8px; resize:vertical; border:1px solid var(--tea-border); border-radius:4px; background:var(--tea-bg); color:var(--tea-text); font-family:inherit; font-size:18px; line-height:1.4; }
+.library-title-editor::selection { background:var(--tea-accent-sub); color:var(--tea-text); }
+.library-title-editor:focus { outline:1px solid var(--tea-gold); }
+.library-title-editor-actions { display:flex; justify-content:flex-end; gap:8px; }
+.library-title-editor-actions > button { min-height:44px; padding:0 12px; font-family:var(--font-sans); font-size:12px; color:var(--tea-text); }
+.library-title-editor-actions > button:last-child { font-weight:600; }
+.library-details-sheet { height:88dvh; max-width:48rem; margin-inline:auto; }
+.library-details-sheet .tea-record-panel { height:auto; }
+.library-details-sheet [data-testid="tea-record-scroll"] { overflow:visible; padding-inline:8px; }
+
+/* Type remains an editable slot even before classification. */
+.library-card-subrow > button.library-card-type { flex:0 0 auto; min-height:32px; padding:0 0 0 8px; font-size:11px; }
+.library-type-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; padding-bottom:12px; }
+.library-type-options > button { min-height:44px; padding:8px; border:1px solid var(--tea-border); border-radius:4px; background:var(--tea-surface); color:var(--tea-text); font-size:13px; }
+.library-type-options > button[aria-pressed='true'] { border-color:var(--tea-gold); background:var(--tea-accent-sub); }
+.library-type-options > button:focus-visible { outline:2px solid var(--tea-gold); }
+
+.library-supplier-heading { grid-template-columns:minmax(0,1fr); }
+.library-supplier-edit { display:inline-flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; padding:0; border:0; background:transparent; }
+
+/* Editable tea fields keep readable text when the browser selects their value. */
+.library-inline-value :is(input,textarea)::selection,
+.library-details-sheet :is(input,textarea)::selection,
+.library-title-editor::selection {
+  color:var(--tea-text);
+  background:color-mix(in srgb,var(--tea-gold) 28%,var(--tea-bg));
+}

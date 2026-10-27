@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-export function LibraryInlineValue({ value, display, label, onSave, readOnly, numeric, hint, className = '' }: {
+export function LibraryInlineValue({ value, display, label, onSave, readOnly, numeric, hint, multiline = false, className = '' }: {
   value: string; display: string; label: string; onSave: (value: string) => Promise<void>;
-  readOnly?: boolean; numeric?: boolean; hint?: string; className?: string;
+  readOnly?: boolean; numeric?: boolean; hint?: string; multiline?: boolean; className?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -23,9 +23,19 @@ export function LibraryInlineValue({ value, display, label, onSave, readOnly, nu
   return <span className={`library-inline-value ${className}`}>
     {editing ? <>
       {hint && <span className="library-inline-hint text-ui-10 text-tea-text-sec">{hint}</span>}
-      <input aria-label={label} aria-invalid={status === 'error'} value={draft} autoFocus inputMode={numeric ? 'decimal' : 'text'} disabled={status === 'saving'}
+      {multiline ? <>
+        <textarea aria-label={label} aria-invalid={status === 'error'} value={draft} autoFocus rows={2} disabled={status === 'saving'}
+          className="library-title-editor" onChange={event => { setDraft(event.target.value); setError(''); }}
+          onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); cancelled.current = true; setEditing(false); setStatus('idle'); } }} />
+        <div className="library-title-editor-actions">
+          <button type="button" disabled={status === 'saving'} onClick={() => { cancelled.current = true; setEditing(false); setStatus('idle'); }}>Cancel</button>
+          <button type="button" disabled={status === 'saving' || !draft.trim()} onClick={() => void commit()}>Save</button>
+        </div>
+      </> : (
+<input aria-label={label} aria-invalid={status === 'error'} value={draft} autoFocus inputMode={numeric ? 'decimal' : 'text'} disabled={status === 'saving'}
         onFocus={event => event.currentTarget.select()} onChange={event => { setDraft(event.target.value); setError(''); }} onBlur={() => void commit()}
         onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); void commit(); } if (event.key === 'Escape') { event.preventDefault(); cancelled.current = true; setEditing(false); setStatus('idle'); } }} />
+      )}
     </> : readOnly ? <span>{display}</span> : <button type="button" className="tap-target" title={display} aria-label={label} onClick={() => { setDraft(value); cancelled.current = false; setEditing(true); }}>{display}</button>}
     {status === 'saving' && <span role="status" className="library-inline-hint text-ui-10 text-tea-text-dim">Saving…</span>}
     {status === 'saved' && <span role="status" className="library-inline-hint text-ui-10 text-tea-text-dim">Saved</span>}

@@ -25,7 +25,7 @@ describe('Library active record scope', () => {
     const markup = render();
     expect(markup).toContain('Received encounter');
     expect(markup).toContain('Promoted encounter');
-    expect(markup).toContain('Most recent'); // Transfer-only view remains in View & sort.
+    expect(markup).toContain('Recent'); // Transfer-only view remains in View & sort.
     expect(markup).toMatch(/All<\/span><span[^>]*>2</);
   });
   it('keeps untasted received samples in the queue even after product linking', () => {

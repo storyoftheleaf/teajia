@@ -15,6 +15,7 @@ describe('encounter given name', () => {
     expect(renderToStaticMarkup(<LibraryGivenName entry={{}} onSave={save} />)).toContain('Name of the tea');
     await mocks.editor!.onSave('Amber Sky');
     expect(save).toHaveBeenCalledWith('Amber Sky');
+    expect(mocks.invalidate).toHaveBeenCalledWith({ queryKey: ['products'] });
   });
   it('replaces legacy repeated titles with an edit action without changing the stored value', () => {
     const save = vi.fn();

@@ -98,7 +98,7 @@ describe('Library phone row', () => {
     const markup = render({ readOnly: true });
     expect(markup).not.toContain('>Reject<');
     expect(markup).not.toContain('aria-label="Edit quote');
-    expect(markup).toContain('Open Silver Needle details');
+    expect(markup).toContain('Edit details for Silver Needle');
   });
   it('retains tea type accents without merging adjacent card backgrounds', () => {
     const white = render();
