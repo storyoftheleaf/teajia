@@ -75,3 +75,18 @@ export function stripMatchingYear(name: string, year: number | string | null | u
   const stripped = name.replace(new RegExp(`[\\s,\\-\u2013\u2014]*${y}\\s*$`), '').trim();
   return stripped.length > 0 ? stripped : name;
 }
+
+/** A copied source name is not a distinct chosen name. This only changes display. */
+export function distinctGivenName(sourceName: string, givenName: string | null | undefined, year: number | string | null | undefined): string {
+  const given = givenName?.trim() || '';
+  if (!given || given.toLowerCase() === 'unnamed') return '';
+  const vintage = String(year ?? '').trim();
+  const normalize = (value: string) => {
+    let name = value.trim().toLowerCase().replace(/\s+/g, ' ');
+    if (/^\d{4}s?$/.test(vintage)) {
+      name = name.replace(new RegExp(`^${vintage}[\\s,–—-]+|[\\s,–—-]+${vintage}$`, 'gi'), '').trim();
+    }
+    return name;
+  };
+  return normalize(given) === normalize(sourceName) ? '' : given;
+}

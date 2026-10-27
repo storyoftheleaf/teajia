@@ -8,7 +8,7 @@ import { fmtNum } from '../../../utils/formatNumber';
 import { getThemeTextColor } from '../../themeUtils';
 import { TYPE_OPTIONS } from './config';
 import type { ColDef } from './types';
-import { stripMatchingYear } from './helpers';
+import { distinctGivenName, stripMatchingYear } from './helpers';
 import { shippingRateUsdFor } from '../../../lib/shippingRate';
 import { isSampleRow, joinItemCode, linkedEntryId, sampleQuote, splitItemCode } from './sampleRows';
 import { useTeaCompassStore } from '../../../lib/teaCompassStore';
@@ -175,7 +175,7 @@ function InventoryRowBase(props: InventoryRowProps) {
             : product.form || ' '
           : <span className="flex items-baseline gap-1.5 min-w-0">
               {!yearHasColumn && product.year && <span data-stock-inline-year className="num opacity-80">{product.year}</span>}
-              <HouseNameField value={product.givenName ?? ''} aria={`House name for ${displayName}`} onSave={(val) => onProductUpdate(product.id, 'givenName', val)} className="text-ui-11" />
+              <HouseNameField value={distinctGivenName(coded.name, product.givenName, product.year)} emptyLabel="Unnamed" aria={`House name for ${displayName}`} onSave={(val) => onProductUpdate(product.id, 'givenName', val)} className="text-ui-11" />
               <ItemCode code={coded.code} />
               {likedScore != null && <span aria-label={`Liked ${likedScore} of 10`} className="shrink-0 num text-tea-gold-lt">{likedScore}/10</span>}
             </span>;
