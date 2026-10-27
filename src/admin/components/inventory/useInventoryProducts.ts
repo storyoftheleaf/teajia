@@ -225,7 +225,7 @@ export function useInventoryProducts({
       // than the generic "Unknown" bucket.
       const key = inventoryGroupBy === 'ownerUserId'
         ? (p.ownerUserId ? `Seller · ${p.ownerUserId.slice(0, 8)}` : 'House stock')
-        : String((p as unknown as Record<string, unknown>)[inventoryGroupBy] ?? 'Unknown');
+        : String((p as unknown as Record<string, unknown>)[inventoryGroupBy] ?? '').trim() || 'Unknown';
       if (!groups[key]) groups[key] = { key, label: key, items: [], totalStock: 0, totalRetail: 0, lifecycle: false };
       groups[key].items.push(p);
       groups[key].totalStock += Number(p.stockGrams) || 0;

@@ -242,3 +242,58 @@ test('typing a supplier spelling in one tea does not silently create or assign a
   await page.getByRole('button', { name: 'Correct name everywhere', exact: true }).click();
   await expect(page.getByTestId('supplier-sheet').getByLabel('New name')).toHaveValue('Master Bo');
 });
+
+test('Stock shortcuts, smaller view menu and missing suppliers remain connected', async ({ page }) => {
+  await prepare(page);
+  const shelf = MOCK_PRODUCTS.slice(0, 3).map((product, index) => ({ ...product, vendor: index < 2 ? (index ? '  ' : '') : 'Master Bo', vendor_id: index < 2 ? null : 'bo' }));
+  const writes: Array<{ id: string; vendor: string }> = [];
+  await page.route('**/api/products', route => route.fulfill({ json: shelf }));
+  await page.route('**/api/customers', route => route.fulfill({ json: [{ id: 'bo', name: 'Master Bo', tags: ['vendor'] }] }));
+  await page.route('**/api/products/*/commercial', route => {
+    const id = new URL(route.request().url()).pathname.split('/')[3];
+    const body = route.request().postDataJSON();
+    writes.push({ id, vendor: body.vendor });
+    Object.assign(shelf.find(product => product.id === id)!, body);
+    return route.fulfill({ json: { success: true } });
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/admin/stock');
+  await page.locator('tr[data-product-id]').first().waitFor();
+  await page.evaluate(async () => {
+    const { useAppStore } = await import('/src/lib/store.ts');
+    useAppStore.getState().setInventoryGroupBy('vendor');
+  });
+  await expect(page.locator('[data-stock-group="Unknown"]')).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Show teas', exact: true }).locator('option')).toHaveCount(5);
+  await page.getByRole('button', { name: 'Collapse all', exact: true }).click();
+  await expect(page.locator('tr[data-product-id]')).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator('[data-stock-group="Unknown"][data-collapsed="true"]')).toBeVisible();
+  await page.getByRole('button', { name: 'Expand all', exact: true }).click();
+  await expect(page.locator('tr[data-product-id]')).toHaveCount(3);
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({ width, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+    await expect(page.getByRole('button', { name: 'Tasting library', exact: true })).toBeVisible();
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'View options', exact: true }).click();
+  await page.getByText('More filters', { exact: true }).click();
+  await expect(page.getByRole('combobox', { name: 'More Stock filters' }).locator('option')).toHaveCount(18);
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Supplier actions for Unknown', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Assign suppliers', exact: true }).click();
+  const sheet = page.getByRole('dialog', { name: 'Unknown supplier', exact: true });
+  const picker = sheet.getByRole('textbox', { name: 'Supplier for this tea' }).first();
+  await picker.fill('Master');
+  await sheet.getByRole('button', { name: 'Master Bo', exact: true }).click();
+  await sheet.getByRole('button', { name: `Save supplier for ${shelf[0].product_name}`, exact: true }).click();
+  await expect.poll(() => writes.length).toBe(1);
+  expect(writes[0]).toEqual({ id: shelf[0].id, vendor: 'Master Bo' });
+  await page.keyboard.press('Escape');
+  await expect(page.locator('[data-stock-group="Unknown"] tr[data-product-id]')).toHaveCount(1);
+  await expect(page.locator('[data-stock-group="Master Bo"] tr[data-product-id]')).toHaveCount(2);
+  await page.screenshot({ path: test.info().outputPath('stock-simplified-and-unknown.png') });
+  await page.getByRole('button', { name: 'Tasting library', exact: true }).click();
+  await expect(page).toHaveURL(/\/account\/journal$/);
+});

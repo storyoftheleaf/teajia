@@ -5986,6 +5986,11 @@ body.cart-panel-open .commerce-dock {
 .heading-study-options-host>button { display:none!important; }
 
 .stock-current-view { min-width:0; flex:1; }
+.stock-list-shortcuts { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 12px; min-height:36px; border-bottom:1px solid var(--tea-border); color:var(--tea-text-sec); font-size:11px; }
+.stock-list-shortcuts button { min-height:36px; white-space:nowrap; }
+.stock-list-shortcuts button:hover { color:var(--tea-text); }
+.stock-list-shortcuts button:disabled { opacity:.45; }
+.stock-list-shortcuts button:focus-visible { outline:2px solid var(--tea-gold); outline-offset:2px; }
 .stock-current-view select { width:100%; max-width:220px; min-height:44px; padding:0 4px; background:transparent; color:var(--tea-text); border:0; font-size:13px; }
 .stock-arrangement-button { display:flex; align-items:center; gap:8px; min-height:44px; max-width:64%; min-width:0; padding:0 10px; border:1px solid var(--tea-border); border-radius:5px; color:var(--tea-text-sec); font-size:12px; }
 .stock-arrangement-button span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
