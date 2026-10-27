@@ -192,3 +192,34 @@ test('site and tasting bars fold in sequence without moving the center', async (
   await expect(site.locator(':scope > div')).toHaveCSS('opacity', '1');
   await page.screenshot({ path: '/tmp/tasting-fold-return.png' });
 });
+
+test('visible header Save works from Effect and preserves the same tasting', async ({page}) => {
+  await page.setViewportSize({width:390,height:844});
+  await installCompassHarness(page);
+  await openCompass(page);
+  await page.getByPlaceholder('Tea name').filter({visible:true}).fill('Header save review');
+  await page.getByRole('button',{name:/tasting profile/i}).click();
+  const save=page.getByRole('button',{name:'Save tasting',exact:true});
+  await expect(save).toBeVisible();
+  await save.click();
+  await expect(page.getByRole('status').filter({hasText:'Add a note'})).toBeVisible();
+  await page.getByRole('button',{name:'Love',exact:true}).click();
+  const nav=page.getByRole('navigation',{name:'Tasting sections'});
+  await nav.getByRole('button',{name:'Effect',exact:true}).click();
+  await page.getByRole('button',{name:'Calm',exact:true}).click();
+  await expect(save).toBeInViewport();
+  await page.waitForTimeout(1600);
+  await page.screenshot({path:'/tmp/tasting-effect-refined.png'});
+  await page.setViewportSize({width:320,height:740});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await expect(save).toBeInViewport();
+  await page.screenshot({path:'/tmp/tasting-effect-narrow.png'});
+  await save.click();
+  await expect.poll(()=>page.evaluate(async()=>{
+    // @ts-expect-error Vite exposes the local fixture store.
+    const {useTeaCompassStore}=await import('/src/lib/teaCompassStore.ts');
+    const state=useTeaCompassStore.getState();
+    return state.getEntry(state.activeEntryId)?.tasting;
+  })).toMatchObject({impression:'love',feeling:['calming']});
+  await expectNoUnhandledCompassApi(page);
+});
