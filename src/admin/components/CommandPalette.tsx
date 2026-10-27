@@ -3,12 +3,13 @@ import { Command } from 'cmdk';
 import { useNavigate } from 'react-router-dom';
 import { Search, Leaf, Coffee, Settings, UserCheck, History, FolderOpen, Plus, Sparkles } from 'lucide-react';
 import { useAppStore } from '../store';
+import { useProducts } from '../hooks/useAdminData';
 import { api } from '../../lib/api';
 
 export const CommandPalette = ({ onAddProduct, externalOpen, onOpenChange }: { onAddProduct: () => void; externalOpen?: boolean; onOpenChange?: (open: boolean) => void }) => {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [products, setProducts] = useState<any[]>([]);
+  const { data: products = [] } = useProducts({ enabled: open });
   const [customers, setCustomers] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -24,11 +25,9 @@ export const CommandPalette = ({ onAddProduct, externalOpen, onOpenChange }: { o
   useEffect(() => {
     if (open && !loaded) {
       Promise.all([
-        api.products.list().catch(() => []),
         api.customers.list().catch(() => []),
         api.events.listAdmin().catch(() => []),
-      ]).then(([prods, custs, evts]) => {
-        setProducts(Array.isArray(prods) ? prods : prods.products || []);
+      ]).then(([custs, evts]) => {
         setCustomers(Array.isArray(custs) ? custs : custs.customers || []);
         setEvents(Array.isArray(evts) ? evts : evts.events || []);
         setLoaded(true);

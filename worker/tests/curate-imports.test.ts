@@ -39,8 +39,18 @@ class ImportStatement {
   }
   async all() {
     const sql = this.normalized();
+    // These are single-row lookups even when the budgeted adapter uses all()
+    // to retain D1 read metadata. Keep the list filtering below unchanged.
+    if (sql.includes('where id = ?') || sql.includes('client_idempotency_key = ?')
+      || sql.includes('client_evidence_id = ?') || sql.includes('source_compass_entry_id = ?')) {
+      const row = await this.first();
+      return { results: row == null ? [] : [row] };
+    }
     const table = this.db.tableFor(sql);
-    if (!table) return { results: [] };
+    if (!table) {
+      const row = await this.first();
+      return { results: row == null ? [] : [row] };
+    }
     let rows = [...table.values()];
     if (sql.includes('batch_id = ?')) rows = rows.filter(row => row.batch_id === this.values[0]);
     if (sql.includes('batch_id = ?') && sql.includes('account_id = ?')) rows = rows.filter(row => row.account_id === this.values[1]);

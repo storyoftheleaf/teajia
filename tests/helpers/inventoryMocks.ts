@@ -91,6 +91,13 @@ export async function mockInventoryApi(page: Page) {
     contentType: 'application/json',
     body: JSON.stringify(MOCK_PRODUCTS),
   }));
+  await page.route('**/api/products/*', route => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    const id = decodeURIComponent(new URL(route.request().url()).pathname.split('/').at(-1)!);
+    if (id === 'public') return route.fallback();
+    const product = MOCK_PRODUCTS.find(row => row.id === id);
+    return route.fulfill({ status: product ? 200 : 404, json: product ?? { error: 'Product not found', code: 'product_not_found' } });
+  });
   await page.route('**/api/inventory/summaries', route => route.fulfill({
     status: 200,
     contentType: 'application/json',

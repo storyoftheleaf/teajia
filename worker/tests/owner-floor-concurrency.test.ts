@@ -67,7 +67,8 @@ class OwnerFloorStatement {
   }
 
   async all() {
-    return { results: [] };
+    const row = await this.first();
+    return { results: row == null ? [] : [row] };
   }
 
   run() {

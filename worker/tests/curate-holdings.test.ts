@@ -1,4 +1,6 @@
 import {describe,it,expect} from 'vitest';
+import {readFileSync} from 'node:fs';
+import {join} from 'node:path';
 import {SqliteD1} from './helpers/sqliteD1';
 import {readCurateHoldings} from '../src/curateHoldings';
 function setup() {
@@ -57,6 +59,45 @@ describe('one samples-only holdings reading for browser and agents',()=>{
   expect((await readCurateHoldings(db as any,'a',{samplesOnly:true})).map(h=>h.entry.id)).toContain('received');
   db.exec("UPDATE tea_samples SET archived_at='2026-10-08' WHERE id='r'");
   expect((await readCurateHoldings(db as any,'a',{samplesOnly:true})).map(h=>h.entry.id)).not.toContain('received');
+ });
+ it('costs the same two queries whether the shop holds three teas or three hundred',async()=>{
+  // The reading used to run one query per tea for its sample portions and a
+  // correlated SUM over every product for its stock, so one listing read 93,817
+  // rows on D1 and a day of them exhausted the free-tier daily allowance, which
+  // takes the whole API down. Counting statements is the cheapest way to say
+  // "rows read scale with the answer": an N+1 cannot come back without this
+  // number moving.
+  const db=setup();let statements=0;const prepare=db.prepare.bind(db);
+  (db as any).prepare=(sql:string)=>{statements++;return prepare(sql);};
+  await readCurateHoldings(db as any,'a');
+  expect(statements).toBe(2);
+  for(let i=0;i<60;i++) db.sqlite.prepare('INSERT INTO tea_compass_entries VALUES(?,?,?,?,?,NULL,NULL,NULL,NULL)').run('bulk'+i,'a','Bulk '+i,'Vendor','received');
+  for(let i=0;i<60;i++) db.sqlite.prepare('INSERT INTO products VALUES(?,?,?,?,?)').run('bulk-p'+i,'a','bulk'+i,10,'working');
+  for(let i=0;i<60;i++) db.sqlite.prepare("INSERT INTO tea_samples(id,account_id,compass_entry_id,set_id,name,grams,status,created_at,grams_known) VALUES(?,?,?,'set',?,5,'received','2026-02-01',1)").run('bulk-s'+i,'a','bulk'+i,'Bag '+i);
+  statements=0;
+  const holdings=await readCurateHoldings(db as any,'a');
+  expect(holdings).toHaveLength(64);
+  expect(statements).toBe(2);
+  statements=0;
+  // And asking for a handful of teas reads the merge families of those teas only.
+  expect((await readCurateHoldings(db as any,'a',{teaIds:['bulk0','bulk1','received']})).map(h=>h.entry.id).sort()).toEqual(['bulk0','bulk1','received']);
+  expect(statements).toBe(2);
+  expect(await readCurateHoldings(db as any,'a',{teaIds:[]})).toEqual([]);
+ });
+ it('keeps the recursive step driven by the merge queue, which one character decides',()=>{
+  // A SCAN, not coverage, and labelled as one: the difference this makes is
+  // invisible without a real D1 reporting rows_read, so no behavioural test
+  // here can go red for it. It is guarded anyway because `+e.account_id` reads
+  // exactly like a typo and is the whole fix. Unpinned, SQLite makes
+  // tea_compass_entries the outer loop and re-reads every row in the account
+  // per step: 142,009 rows for a page of 201 teas on a 300-tea shelf against
+  // Miniflare's D1, against 4,755 pinned. Measured in
+  // todo/plans/curate-holdings-d1-reads-measurement.md; re-measure with
+  // worker/scripts/measure-holdings-rows.mjs before changing this line.
+  const source=readFileSync(join(process.cwd(),'worker/src/curateHoldings.ts'),'utf8');
+  expect(source).toContain('FROM family f JOIN tea_compass_entries e ON e.merged_into_id=f.id');
+  expect(source).toContain('WHERE +e.account_id=?');
+  expect(source).not.toContain('FROM tea_compass_entries e JOIN family f');
  });
  it('reads positive stock in the merge family once and never calls samples full stock',async()=>{
   const db=setup();db.exec(`INSERT INTO tea_compass_entries VALUES('duplicate','a','Duplicate','Vendor','received','duplicate-product','2026-01-01',NULL,'received');

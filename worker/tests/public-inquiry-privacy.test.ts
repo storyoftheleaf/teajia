@@ -36,6 +36,7 @@ function envMatchingOnly(expectedToken: string | null) {
     DB: {
       prepare: () => ({
         bind: (...values: unknown[]) => ({
+          async all() { const row = await this.first(); return { results: row == null ? [] : [row] }; },
           first: async () => {
             if (!expectedToken) return null;
             const digest = await crypto.subtle.digest(

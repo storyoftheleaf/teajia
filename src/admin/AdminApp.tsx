@@ -1,11 +1,11 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/shared/PullToRefreshIndicator';
 import { EmblemLoader } from '../components/shared/EmblemLoader';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   isConfigured,
   hasToken,
@@ -18,10 +18,10 @@ import {
   hydrateAccountStateFromToken,
   ensureTokenRefreshed,
   shouldProactivelyRefreshToken,
-  api,
 } from '../lib/api';
 import { Product } from './types';
 import { authPagePath } from '../lib/authNavigation';
+import { adminShellNeedsProducts } from './productQueries';
 import { adminAuthReturnTo } from './authNavigation';
 
 import { useProducts, useRates } from './hooks/useAdminData';
@@ -358,22 +358,22 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
 
   // React Query Hooks, only fetch when authenticated to avoid 401 errors on initial load
   const isLoggedIn = isAuthenticated || isDevAdmin;
-  const { data: products = [], isLoading: productsLoading, isError: productsError, error: productsErrorObj, refetch: refetchProducts } = useProducts({ enabled: isLoggedIn });
-  const { data: rates = [], refetch: refetchRates } = useRates();
-
-  // Incoming compass shares, poll every 60s for badge count
-  const { data: incomingSharesData } = useQuery({
-    queryKey: ['compass-incoming'],
-    queryFn: () => api.compass.getIncoming(),
-    enabled: isLoggedIn && hasToken(),
-    refetchInterval: 60_000,
-    select: (data: { shares?: Array<{ id: string }> }) => (data?.shares || []) as Array<{ id: string }>,
+  const needsProducts = adminShellNeedsProducts(location.pathname, {
+    registry: isCartOpen, commandPalette: isCommandPaletteOpen,
+    createProduct: isCreateModalOpen || !!editingProduct, importProducts: isImportOpen,
   });
-  const incomingShareCount = incomingSharesData?.length ?? 0;
+  const { data: products = [], isLoading: productsLoading, isError: productsError, error: productsErrorObj,
+    refetch: refetchProducts, refreshProducts, removeProduct } = useProducts({ enabled: isLoggedIn && needsProducts });
+  const reconcileProducts = useCallback((ids: readonly string[]) => {
+    void refreshProducts(ids).then(ready => {
+      if (!ready) showToast('Could not reload the latest product details. Refresh Stock to check them.', 'info');
+    });
+  }, [refreshProducts, showToast]);
+  const { data: rates = [], refetch: refetchRates } = useRates();
 
   // Pull-to-refresh (mobile)
   const { pullDistance, isRefreshing, progress } = usePullToRefresh(async () => {
-    await Promise.all([refetchProducts(), refetchRates()]);
+    await Promise.all([...(needsProducts ? [refetchProducts()] : []), refetchRates()]);
   });
 
   const loading = productsLoading;
@@ -483,7 +483,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   };
 
   const handleRefresh = () => {
-    refetchProducts();
+    if (needsProducts) refetchProducts();
     refetchRates();
     showToast("Data refreshed", 'info');
   };
@@ -585,6 +585,8 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                       onImportClick={() => setIsImportOpen(true)}
                       onAddClick={() => setIsCreateModalOpen(true)}
                       onRefresh={refetchProducts}
+                      onProductsChanged={reconcileProducts}
+                      onProductDeleted={removeProduct}
                       externalCategory={inventoryCategory}
                       externalSearchQuery={inventorySearchQuery}
                       onSearchQueryChange={setInventorySearchQuery}
@@ -700,7 +702,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
           isOpen={isCreateModalOpen || !!editingProduct}
           onClose={() => { setIsCreateModalOpen(false); setEditingProduct(null); }}
           initialData={editingProduct || undefined}
-          onSuccess={() => { refetchProducts(); setEditingProduct(null); setIsCreateModalOpen(false); }}
+          onSuccess={(id) => { if (id) reconcileProducts([id]); else refetchProducts(); setEditingProduct(null); setIsCreateModalOpen(false); }}
           rates={rates}
         />
 

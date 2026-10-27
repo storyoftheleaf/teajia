@@ -1,3 +1,5 @@
+import type { FormPricingChanges } from './stock/FormPricingSheet';
+import { StockMobileRecord, useStockPhone } from './stock/StockMobileRecord';
 import React, { useLayoutEffect, useRef } from 'react';
 import { Check, Plus } from 'lucide-react';
 import { GhostInput } from '../ProductEditPanel';
@@ -13,6 +15,11 @@ import { useTeaCompassStore } from '../../../lib/teaCompassStore';
 import { HouseNameField, ItemCode, QuoteField, moneyMark } from './phone/SampleDecide';
 
 export interface InventoryRowProps {
+  priceMode?: 'retail' | 'cost';
+  onSavePricing: (id: string, changes: FormPricingChanges) => Promise<void>;
+  onSaveField?: (id: string, field: keyof Product, value: unknown) => Promise<void>;
+  onQuickTaste?: () => void;
+  onQuickJournal?: () => void;
   product: Product;
   globalIdx: number;
   isSelected: boolean;
@@ -44,7 +51,7 @@ export interface InventoryRowProps {
   onLongPressSelect: (productId: string, globalIdx: number) => void;
   /** Mobile long-press (touch only) opens the quick-edit sheet for this product. */
   onLongPressQuickEdit: (productId: string, globalIdx: number) => void;
-  onProductUpdate: (id: string, field: keyof Product, value: any) => void;
+  onProductUpdate: (id: string, field: keyof Product, value: any) => void | Promise<void>;
   onSelectionAwareUpdate: (product: Product, field: keyof Product, value: any) => void;
   onOpenPanel: (product: Product) => void;
   onToggleDropdown: (productId: string | null) => void;
@@ -60,9 +67,10 @@ export interface InventoryRowProps {
 
 // Canonical inventory row, see DesignSystemShowcase § Inventory list (INV_ROWS).
 // Serif numerics for year/grams/price, dot+label for type, gold-tinted active row.
-// Information-first: the row body selects (it has no action cluster). Every row
-// action lives in the unified action rail that appears when rows are selected.
+// The spreadsheet row selects and uses the shared action rail. Phone cards
+// keep photo, tasting and direct field editing beside the tea.
 function InventoryRowBase(props: InventoryRowProps) {
+  const stockPhone = useStockPhone();
   const {
     product, globalIdx, isSelected, focusedCol, isEditMode, visibleCols, splitViewCols,
     splitView, stickyFirstCol, alignLeft, legacyMobileLayout, costRateToUsd, shopFreightPerKgUsd, rowHeight, isPanelOpen, isDropdownOpen,
@@ -475,22 +483,33 @@ function InventoryRowBase(props: InventoryRowProps) {
         onRowClick(product.id, globalIdxRef.current, e);
       }}
       onKeyDown={(e) => {
-        if (e.key !== 'Enter' && e.key !== ' ') return;
+        if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return;
         e.preventDefault();
         onRowClick(product.id, globalIdxRef.current, e as unknown as React.MouseEvent);
       }}
     >
-      {/* Rows are information-first: the per-row action cluster (star / eye /
-          edit / more) was removed. Selecting a row reveals the unified action
-          rail at the right edge, which is now the single surface for every row
-          action. The Edit pencil moved into that rail (single-select only). */}
-      {(splitView ? splitViewCols : visibleCols).map((col, colIdx) => renderCell(col.key, colIdx))}
+      {/* Phone cards keep direct actions; spreadsheet rows use the shared rail. */}
+      {stockPhone ? <td className="stock-mobile-cell" colSpan={(splitView ? splitViewCols : visibleCols).length}>
+        <StockMobileRecord onStockChange={trigger => onStockMovement(product, trigger)} product={product} name={displayName} index={globalIdx} editing={isEditMode}
+          onEdit={() => onOpenPanel(product)}
+          onSavePricing={changes => props.onSavePricing(product.id, changes)}
+          onSaveChange={async (field, value) => { await (props.onSaveField ? props.onSaveField(product.id, field, value) : onProductUpdate(product.id, field, value)); }}
+          onTaste={() => props.onQuickTaste?.()} onJournal={() => props.onQuickJournal?.()}
+          onHistory={() => onStockHistory(product.id, product.productName)}
+          freightUsd={product.type === 'Teaware' ? 0 : shippingRateUsdFor(product.shippingRatePerKg, costRateToUsd?.(product) ?? null, shopFreightPerKgUsd)}
+          onUpdate={value => onProductUpdate(product.id, 'productName', value)}
+          fields={['type', product.type === 'Teaware' ? 'quantityUnits' : 'stockGrams', props.priceMode === 'cost' ? 'costPerGramUSD' : 'pricePerGramUSD'].map((key, colIdx) => {
+            const cell = renderCell(key, colIdx) as React.ReactElement<any>;
+            return { key, label: key, content: cell.props.children, className: cell.props.className };
+          })} />
+      </td> : (splitView ? splitViewCols : visibleCols).map((col, colIdx) => React.cloneElement(renderCell(col.key, colIdx), { 'data-stock-column': col.key }))}
     </tr>
   );
 }
 
 export const InventoryRow = React.memo(InventoryRowBase, (prev, next) =>
   prev.product === next.product &&
+  prev.priceMode === next.priceMode &&
   prev.globalIdx === next.globalIdx &&
   prev.isSelected === next.isSelected &&
   prev.focusedCol === next.focusedCol &&

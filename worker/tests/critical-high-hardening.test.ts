@@ -38,7 +38,7 @@ describe('critical and high hardening contracts', () => {
             if (normalized.includes('from users where lower(email)')) return state.user;
             return null;
           },
-          async all() { return { results: [] }; },
+          async all() { const row = await this.first(); return { results: row == null ? [] : [row] }; },
           async run() {
             if (normalized.startsWith('insert into users')) {
               state.user = { id: values[0], email: values[1], username: values[2], name: values[3], role: 'user', platform_role: null, session_version: 0 };

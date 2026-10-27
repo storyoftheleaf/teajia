@@ -20,6 +20,8 @@ import { api } from '../../lib/api';
 import { useAppStore } from '../store';
 import type { Product } from '../types';
 import { mapAdminProduct } from '../productAdapter';
+import { usePrivateQueryScope } from '../hooks/usePrivateQueryScope';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
 // ────────────────────────────────────────────────────────
 // Types
@@ -240,21 +242,24 @@ export const ProductStoryView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { openPurchaseOrder } = useAppStore();
+  const scope = usePrivateQueryScope();
 
   // ── Product ───────────────────────────────────────────
-  const { data: productsRaw } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => api.products.list(),
+  const { data: productRows, isPending: productPending, error: productError, refetch: refetchProduct } = useQuery({
+    // Preserve the products prefix and mapped-array shape used by mutation cache writers.
+    queryKey: ['products', 'detail', ...scope.key, id],
+    queryFn: async () => [mapAdminProduct(await api.products.get(id!))],
+    enabled: scope.ready && !!id,
     staleTime: 60_000,
   });
-  const products: Product[] = Array.isArray(productsRaw) ? productsRaw.map(mapAdminProduct) : [];
-  const product = products.find(p => p.id === id);
+  const product = scope.ready ? productRows?.[0] : undefined;
+  const storyReady = scope.ready && !!product;
 
   // ── Stock ledger ──────────────────────────────────────
   const { data: ledgerRaw } = useQuery({
-    queryKey: ['stock-ledger', id],
+    queryKey: ['stock-ledger', ...scope.key, id],
     queryFn: () => api.stockLedger.list(id, 50, 0),
-    enabled: !!id,
+    enabled: storyReady && !!id,
     staleTime: 60_000,
   });
   const ledger: LedgerEntry[] = Array.isArray(ledgerRaw)
@@ -263,17 +268,18 @@ export const ProductStoryView: React.FC = () => {
 
   // ── Events this tea was served at ────────────────────
   const { data: eventsRaw = [] } = useQuery({
-    queryKey: ['product-events', id],
+    queryKey: ['product-events', ...scope.key, id],
     queryFn: () => api.products.getEvents(id!),
-    enabled: !!id,
+    enabled: storyReady && !!id,
     staleTime: 60_000,
   });
   const events: EventRef[] = Array.isArray(eventsRaw) ? eventsRaw : [];
 
   // ── Compass entry (sourcing origin) ──────────────────
   const { data: compassRaw = [] } = useQuery({
-    queryKey: ['compass-entries'],
+    queryKey: ['compass-entries', ...scope.key],
     queryFn: () => api.compass.list(),
+    enabled: storyReady && !!product?.sourceCompassEntryId,
     staleTime: 60_000,
   });
   const compassEntries: CompassEntry[] = Array.isArray(compassRaw) ? compassRaw : [];
@@ -284,9 +290,9 @@ export const ProductStoryView: React.FC = () => {
   // ── Tasting notes across all events ──────────────────
   // We'll collect notes from the first event's admin endpoint as a proxy
   const { data: tastingNotesRaw = [] } = useQuery({
-    queryKey: ['product-tasting-notes', events[0]?.id],
+    queryKey: ['product-tasting-notes', ...scope.key, id, events[0]?.id],
     queryFn: () => api.events.getTastingNotes(events[0]!.id),
-    enabled: events.length > 0,
+    enabled: storyReady && events.length > 0,
     staleTime: 60_000,
   });
   const allTastingNotes: TastingNote[] = useMemo(() => {
@@ -335,10 +341,13 @@ export const ProductStoryView: React.FC = () => {
   // ────────────────────────────────────────────────────────
 
   if (!product) {
+    const loading = !!id && (!scope.ready || productPending);
+    const failed = !!productError && (productError as { status?: number }).status !== 404;
     return (
       <div className="h-full flex items-center justify-center px-6">
         <div className="text-center">
-          <p className="h3 mb-2">Tea not found</p>
+          <p className={`${TYPOGRAPHY_CLASSES.h3} mb-2`} role="status">{loading ? 'Loading tea' : failed ? 'Could not load tea' : 'Tea not found'}</p>
+          {failed && <button onClick={() => { void refetchProduct(); }} className="tap-target text-ui-12 text-tea-text-sec mr-4">Try again</button>}
           <button
             onClick={() => navigate(-1)}
             className="inline-flex items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"

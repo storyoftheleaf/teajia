@@ -42,7 +42,7 @@ function countingDb() {
         }
         return null;
       },
-      all: async () => { calls.queries += 1; return { results: [] }; },
+      all: async () => { const row = await stmt.first(); return { results: row == null ? [] : [row] }; },
       run: async () => { calls.queries += 1; return { success: true }; },
     };
     return stmt;

@@ -21,6 +21,7 @@ class ExistingUserJoinDb {
         };
         return null;
       },
+      all: async () => { const row = await statement.first(); return { results: row == null ? [] : [row] }; },
       run: async () => { this.writes += 1; return { success: true, meta: { changes: 1 } }; },
     };
     return statement;

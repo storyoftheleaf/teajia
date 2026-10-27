@@ -18,7 +18,7 @@ export function useAdminOverlay() {
   const { isAdmin, isAuthenticated } = useAuth();
   const enabled = isAdmin && isAuthenticated;
 
-  const { data: products = [], refetch: refetchProducts } = useProducts();
+  const { data: products = [], refetch: refetchProducts, refreshProducts } = useProducts({ enabled });
   const { data: invoices = [] } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => api.invoices.list(100),
@@ -65,7 +65,7 @@ export function useAdminOverlay() {
 
   const updateProduct = async (id: string, data: Record<string, any>) => {
     await api.products.updateByDomain(id, data);
-    refetchProducts();
+    await refreshProducts([id]);
   };
 
   return {

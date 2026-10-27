@@ -1,3 +1,4 @@
+import { shouldRetryQuery } from './lib/serviceAvailability';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -19,7 +20,7 @@ const queryClient = new QueryClient({
       staleTime: 1000 * 60 * 5, // 5 minutes
       gcTime: 1000 * 60 * 60 * 24, // 24h — kept on disk
       refetchOnWindowFocus: false,
-      retry: 1,
+      retry: shouldRetryQuery,
       retryDelay: attemptIndex => Math.min(500 * (2 ** attemptIndex), 2_000),
     },
   },

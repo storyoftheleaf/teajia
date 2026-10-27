@@ -60,13 +60,18 @@ class OrderDb {
           const scoped = normalized.includes('where ili.invoice_id = ? and ili.account_id = ?') && values[0] === 'inv-a' && values[1] === 'acct-a';
           return { results: lines.filter(row => row.invoice_id === values[0] && (!scoped || row.account_id === values[1])).map(row => ({ ...row })) };
         }
+        if (normalized.includes('from invoices i') && normalized.includes('i.id = ?')) {
+          const row = await statement.first();
+          return { results: row == null ? [] : [row] };
+        }
         if (normalized.includes('from invoices i')) {
           const accountId = values[0];
           if (!this.ownershipValid(normalized, values, 1)) return { results: invoices.filter(row => row.account_id === accountId).map(row => ({ ...row, line_total: 13, line_count: 2 })) };
           const totalsSafe = this.listTotalsValid(normalized);
           return { results: invoices.filter(row => row.account_id === accountId && (row.customer_id === 'customer-a' || row.customer_whatsapp?.replace(/[^0-9]/g, '') === '123') && !['Draft', 'Void'].includes(row.status)).map(row => ({ ...row, line_total: row.id === 'inv-a' ? (totalsSafe ? 13 : 113) : 0, line_count: row.id === 'inv-a' ? (totalsSafe ? 2 : 3) : 0 })) };
         }
-        return { results: [] };
+        const row = await statement.first();
+        return { results: row == null ? [] : [row] };
       },
     }; return statement;
   }

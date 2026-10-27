@@ -22,7 +22,11 @@ class RepairDb {
         if (normalized.includes('from account_members am join accounts')) return { role: this.role, permissions: '{}', kind: 'location' };
         return null;
       },
-      all: async () => normalized.includes('from invoice_line_items') ? { results: this.lines.filter(line => line.account_id === values[0] && !this.repairs.some(repair => repair.line_item_id === line.line_item_id)).map(line => ({ ...line })) } : { results: [] },
+      all: async () => {
+        if (normalized.includes('from invoice_line_items')) return { results: this.lines.filter(line => line.account_id === values[0] && !this.repairs.some(repair => repair.line_item_id === line.line_item_id)).map(line => ({ ...line })) };
+        const row = await stmt.first();
+        return { results: row == null ? [] : [row] };
+      },
       run: async () => {
         if (normalized.startsWith('update invoice_line_items')) {
           const [price, id, invoice, account, old] = values;

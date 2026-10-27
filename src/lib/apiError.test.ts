@@ -15,3 +15,10 @@ describe('API error retry classification', () => {
     }
   });
 });
+
+it('never queues an explicitly nonretryable budget or partial-write refusal', () => {
+  for (const status of [409, 503]) {
+    expect(isTransientApiError(new ApiError('Check the saved result', status, { retryable: false }))).toBe(false);
+  }
+  expect(isTransientApiError(new ApiError('Narrow the request', 503, { code: 'database_read_budget_exceeded' }))).toBe(false);
+});

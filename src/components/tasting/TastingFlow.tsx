@@ -1,15 +1,15 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Circle, Leaf, Moon, Palette,
-  X,
 } from 'lucide-react';
 import type { TastingData } from '../../types';
 import { useTastingFlow } from './useTastingFlow';
-import { BodyZone } from './BodyZone';
-import { ThroatZone } from './ThroatZone';
-import { StateZone } from './StateZone';
-import { FlavorSplit } from './FlavorSplit';
+import { ConnectedSensations } from './ConnectedSensations';
+import { ApprovedTasteWheel } from './ApprovedTasteWheel';
+import { StorageZone } from './StorageZone';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
+import { resolveTermLabel } from '../../data/tastingTaxonomy';
 import { AppearanceZone } from './AppearanceZone';
 
 /* ─── Section definition (exported so TastingSession can render the tab bar) ─── */
@@ -24,10 +24,10 @@ export interface SectionDef {
 }
 
 export const ALL_SECTIONS: SectionDef[] = [
-  { id: 'body',       label: 'Body',   subtitle: 'How does it feel in your mouth?',    icon: Circle },
+  { id: 'body',       label: 'Texture',   subtitle: 'How does it feel in your mouth?',    icon: Circle },
   { id: 'state',      label: 'Effect', subtitle: 'What did the tea do to you?',        icon: Moon },
-  { id: 'flavor',     label: 'Flavor', subtitle: 'What do you taste?',                 icon: Leaf },
-  { id: 'appearance', label: 'Look',   subtitle: 'What does the liquor look like?',    icon: Palette },
+  { id: 'flavor',     label: 'Taste', subtitle: 'What do you taste?',                 icon: Leaf },
+  { id: 'appearance', label: 'Storage',   subtitle: 'Storage character and appearance',    icon: Palette },
 ];
 
 /* ─── Transition variants ─── */
@@ -63,29 +63,22 @@ interface TastingFlowProps {
   simplified?: boolean;
   /** Tea type used to highlight likely flavor families */
   teaType?: string;
+  reveal?: { word: string; group?: string; sense?: 'taste' | 'aroma'; stamp: number };
 }
 
 export const TastingFlow: React.FC<TastingFlowProps> = ({
   value,
   onChange,
   activeSectionId: controlledSectionId,
-  onSectionChange: onControlledSectionChange,
   onCountsChange,
-  simplified = false,
-  teaType,
+  reveal,
 }) => {
   // Uncontrolled fallback, used when admin views don't provide activeSectionId
-  const [internalSectionId, setInternalSectionId] = useState<SectionId>('body');
+  const [internalSectionId] = useState<SectionId>('body');
   const activeSectionId = controlledSectionId ?? internalSectionId;
-  const onSectionChange = (id: SectionId) => {
-    setInternalSectionId(id);
-    onControlledSectionChange?.(id);
-  };
   const flow = useTastingFlow(value, onChange);
   const sections = ALL_SECTIONS;
 
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const activeIdx = sections.findIndex((s) => s.id === activeSectionId);
@@ -115,14 +108,17 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
       (value.finish?.length ?? 0) +
       (value.cleanliness ? 1 : 0) +
       (value.huiGan ? 1 : 0) +
-      (value.tangGan ? 1 : 0),
+      (value.tangGan ? 1 : 0) +
+      (value.sensoryCustom?.body?.length ?? 0),
     state:
       (value.feeling?.length ?? 0) +
-      (value.quality != null ? 1 : 0),
-    flavor: value.flavor?.length ?? 0,
+      (value.sensoryCustom?.state?.length ?? 0),
+    flavor: (value.flavor?.length ?? 0) + (value.aroma?.length ?? 0),
     appearance:
       (value['liquor-color']?.length ?? 0) +
-      (value.clarity ? 1 : 0),
+      (value.clarity ? 1 : 0) +
+      (value.storageCharacter != null ? 1 : 0) +
+      (value.storageNotes?.length ?? 0),
   }), [
     value.body,
     value.finish,
@@ -130,16 +126,14 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
     value.huiGan,
     value.tangGan,
     value.feeling,
-    value.quality,
+    value.sensoryCustom,
+    value.aroma,
     value.flavor,
     value['liquor-color'],
     value.clarity,
+    value.storageCharacter,
+    value.storageNotes,
   ]);
-
-  const getSectionCount = useCallback(
-    (sectionId: SectionId): number => sectionCounts[sectionId] ?? 0,
-    [sectionCounts]
-  );
 
   // Push counts to parent whenever they change
   useEffect(() => {
@@ -147,74 +141,48 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
     onCountsChange(sectionCounts);
   }, [onCountsChange, sectionCounts]);
 
-  /* ─── Swipe ─── */
-
-  const goNext = useCallback(() => {
-    if (activeIdx < sections.length - 1) onSectionChange(sections[activeIdx + 1].id);
-  }, [activeIdx, sections, onSectionChange]);
-
-  const goPrev = useCallback(() => {
-    if (activeIdx > 0) onSectionChange(sections[activeIdx - 1].id);
-  }, [activeIdx, sections, onSectionChange]);
-
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-  }, []);
-
-  const handleTouchEnd = useCallback(
-    (e: React.TouchEvent) => {
-      const dx = e.changedTouches[0].clientX - touchStartX.current;
-      const dy = e.changedTouches[0].clientY - touchStartY.current;
-      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-        if (dx < 0) goNext();
-        else goPrev();
-      }
-    },
-    [goNext, goPrev]
-  );
-
+  useEffect(() => {
+    if (activeSectionId !== 'appearance' || !reveal) return;
+    const normalize = (text: string | null | undefined) => text?.trim().toLocaleLowerCase() ?? '';
+    const labels = new Set([normalize(reveal.word), normalize(resolveTermLabel(reveal.word))]);
+    const isColor = value['liquor-color']?.includes(reveal.word);
+    const isAppearance = isColor || value.clarity === reveal.word || reveal.group === 'appearance';
+    const root = isAppearance
+      ? contentRef.current?.querySelector<HTMLElement>('[aria-labelledby="tasting-appearance-heading"]')
+      : contentRef.current;
+    const controls = Array.from(root?.querySelectorAll<HTMLElement>('button, input, [role="radio"]') ?? []);
+    const target = reveal.word === 'storage-character'
+      ? controls.find(control => normalize(control.getAttribute('aria-label')).startsWith('storage character'))
+      : controls.find(control => [
+        control.textContent,
+        control.getAttribute('aria-label'),
+        control.getAttribute('aria-valuetext'),
+        control.getAttribute('value'),
+      ].some(label => !!normalize(label) && labels.has(normalize(label))))
+        // The compact colour bar exposes the group rather than individual radios.
+        ?? (isColor ? root?.querySelector<HTMLElement>('[role="radiogroup"][aria-label="Liquor color"]') : null);
+    if (!target) return;
+    target.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+    target.classList.add('connected-sensation-return');
+    const timer = window.setTimeout(() => target.classList.remove('connected-sensation-return'), 1600);
+    return () => { window.clearTimeout(timer); target.classList.remove('connected-sensation-return'); };
+  }, [activeSectionId, reveal?.word, reveal?.stamp]);
 
   /* ─── Section content renderer ─── */
 
   function renderSectionContent(sectionId: SectionId) {
     switch (sectionId) {
       case 'body':
-        return (
-          <>
-            <BodyZone flow={flow} value={value} onChange={onChange} />
-            <div className="divider-warm my-3" />
-            <ThroatZone flow={flow} value={value} onChange={onChange} simplified={simplified} />
-          </>
-        );
       case 'state':
-        return <StateZone flow={flow} value={value} onChange={onChange} />;
-      case 'flavor': {
-        const flavorCount = flow.getCategoryCount('flavor');
-        return (
-          <div role="group" aria-label="Flavor and taste">
-            <div className="flex justify-end mb-1 -mt-1">
-              <button
-                type="button"
-                onClick={() => flow.clearCategory('flavor')}
-                className={`text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors flex items-center gap-1 px-2 py-1 ${flavorCount > 0 ? 'visible' : 'invisible'}`}
-                aria-label="Clear flavor selections"
-                tabIndex={flavorCount > 0 ? 0 : -1}
-              >
-                <X size={10} />
-                Clear
-              </button>
-            </div>
-            <FlavorSplit
-              selected={value.flavor || []}
-              onToggle={(termId) => flow.toggleTerm('flavor', termId)}
-              teaType={teaType}
-            />
-          </div>
-        );
-      }
+        return <ConnectedSensations value={value} onChange={onChange} section={sectionId} reveal={reveal} />;
+      case 'flavor':
+        return <ApprovedTasteWheel value={value} onChange={onChange} reveal={reveal ? { ...reveal, sense: reveal.sense ?? 'taste' } : undefined} />;
       case 'appearance':
-        return <AppearanceZone flow={flow} value={value} onChange={onChange} />;
+        return <><h2 className={`${TYPOGRAPHY_CLASSES.h2} mb-4 text-tea-text`}>Storage</h2><StorageZone value={value} onChange={onChange} />
+          <section aria-labelledby="tasting-appearance-heading" className="mt-5 border-t border-tea-border pt-4">
+            <h2 id="tasting-appearance-heading" className={`${TYPOGRAPHY_CLASSES.h3} mb-3`}>Appearance</h2>
+            <AppearanceZone flow={flow} value={value} onChange={onChange} compact />
+          </section></>;
       default:
         return null;
     }
@@ -230,8 +198,6 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
         <div
           ref={contentRef}
           className="relative overflow-x-hidden overflow-y-auto h-full tasting-scroll"
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
         >
           {/* One panel, swapped by key, animating only on the way IN.
 
@@ -249,14 +215,8 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
             initial="enter"
             animate="center"
             transition={sectionTransition}
-            className="px-4 pb-4 pt-3"
+            className={`pb-4 pt-3 ${activeSection.id === 'flavor' ? 'px-1.5' : 'px-4'}`}
           >
-            <p
-              className="text-ui-11 text-tea-text-dim italic mb-3"
-              style={{ fontFamily: 'var(--font-body)' }}
-            >
-              {activeSection.subtitle}
-            </p>
             {renderSectionContent(activeSection.id)}
           </motion.div>
         </div>

@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, getTokenClaims } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { ExchangeRate, Customer } from '../types';
@@ -6,6 +7,7 @@ import { shopFreightDefaultFrom, type ShopFreightDefault } from '../../lib/shipp
 import { rateToUsd } from '../../lib/currency';
 import { loadLastKnownRates, saveLastKnownRates } from '../lastKnownRates';
 import { mapAdminProduct } from '../productAdapter';
+import { createProductReconciler } from '../productQueries';
 export { normalizeAdminProductTastingSource } from '../productAdapter';
 
 const useAccountQueryScope = () => {
@@ -19,13 +21,25 @@ const useAccountQueryScope = () => {
 // Fetch Products
 export const useProducts = (options?: { enabled?: boolean }) => {
   const { accountScope, userScope } = useAccountQueryScope();
-  return useQuery({
+  const client = useQueryClient();
+  const queryOptions = {
     queryKey: ['products', accountScope, userScope],
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
-    enabled: options?.enabled ?? true,
     queryFn: async () => (await api.products.list() || []).map(mapAdminProduct),
-  });
+  };
+  const query = useQuery({ ...queryOptions, enabled: options?.enabled ?? true });
+  const reconciler = useMemo(() => createProductReconciler(
+    client, ['products', accountScope, userScope],
+    async id => mapAdminProduct(await api.products.get(id)),
+    () => (useAppStore.getState().activeAccountId ?? 'no-account') === accountScope
+      && (getTokenClaims()?.sub ?? 'anonymous') === userScope,
+  ), [client, accountScope, userScope]);
+  return { ...query,
+    ensureProducts: () => client.fetchQuery(queryOptions),
+    refreshProducts: reconciler.refresh,
+    removeProduct: reconciler.remove,
+  };
 };
 
 /**
@@ -145,10 +159,11 @@ export const useShopFreightDefault = (): ShopFreightDefault => {
 };
 
 // Fetch Customers
-export const useCustomers = () => {
+export const useCustomers = (options?: { enabled?: boolean }) => {
   const { accountScope, userScope } = useAccountQueryScope();
   return useQuery({
     queryKey: ['customers', accountScope, userScope],
+    enabled: options?.enabled ?? true,
     staleTime: 1000 * 60 * 5,   // 5 min, same as products
     refetchOnWindowFocus: false,
     queryFn: async () => {

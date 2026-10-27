@@ -494,13 +494,13 @@ test.describe('Curate field capture preservation', () => {
     })).toEqual({ decision: 'considering', sampleState: null });
   });
 
-  test('tasting overlay exposes Save, clears the global nav, and protects unsaved work', async ({ page }) => {
+  test('tasting overlay saves from impression, clears the global nav, and protects unsaved work', async ({ page }) => {
     await openCompass(page);
     await page.getByPlaceholder('Tea name').filter({ visible: true }).fill('Protected tasting');
     await page.getByRole('button', { name: /tasting profile/i }).click();
 
     const close = page.getByRole('button', { name: 'Close', exact: true }).filter({ visible: true });
-    const save = page.getByRole('button', { name: 'Save', exact: true });
+    const save = page.getByRole('button', { name: 'Save notes', exact: true });
     // The "Save this tasting?" dialog's own Save action, distinct from the
     // toolbar's: the dialog does not unmount the toolbar behind it, so both
     // buttons are on screen at once once the dialog opens.
@@ -510,7 +510,10 @@ test.describe('Curate field capture preservation', () => {
     // Device-scale rounding can report a CSS 44px target as 43.999999px.
     expect((await close.boundingBox())!.height).toBeGreaterThanOrEqual(43.9);
 
-    await page.getByRole('radiogroup', { name: 'Body weight' }).getByRole('radio', { name: 'Medium' }).click();
+    await page.getByRole('button', { name: 'Texture', exact: true }).filter({ visible: true }).click();
+    await page.getByRole('button', { name: 'Silky', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
+    await page.getByRole('button', {name:'Open your impression',exact:true}).click();
     await expect(save).toBeVisible();
     const saveBox = await save.boundingBox();
     expect(saveBox).not.toBeNull();
@@ -535,7 +538,7 @@ test.describe('Curate field capture preservation', () => {
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
       const state = useTeaCompassStore.getState();
       return state.getEntry(state.activeEntryId!)?.tasting?.body ?? [];
-    })).toContain('medium');
+    })).toContain('silky');
   });
 
   test('authenticated capture keeps Share reachable outside the action footer', async ({ page }) => {

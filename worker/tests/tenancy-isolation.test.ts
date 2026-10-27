@@ -52,8 +52,10 @@ class Statement {
   }
   async all() {
     const table = this.table();
-    if (!table) return { results: [] };
+    if (!table) { const row = await this.first(); return { results: row == null ? [] : [row] }; }
     let rows = this.scoped(this.db.rows[table]);
+    const requestedId = this.values.find(value => typeof value === 'string' && /^(customer|event|invoice|product|journey|visit|entry)-/.test(value));
+    if (requestedId) rows = rows.filter(row => row.id === requestedId || row.invoice_id === requestedId);
     if (this.normalized().includes('invoice_id = ?')) rows = rows.filter(row => row.invoice_id === this.values[0]);
     if (this.normalized().includes('user_id = ?')) rows = rows.filter(row => row.user_id === this.values[0]);
     return { results: rows.map(row => ({ ...row })) };

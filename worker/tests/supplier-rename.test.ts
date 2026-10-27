@@ -137,6 +137,45 @@ describe('renaming a supplier changes every record that carries the name', () =>
     expect(get(db, `SELECT story FROM curate_vendor_profiles WHERE vendor_id = 'bo'`).story).toBe('Old family shop');
   });
 
+  it('reconciles stale id-linked names when the supplier card is already correct, then refuses a no-op without writes', async () => {
+    const db = makeDb();
+    seedMasterBo(db);
+    run(db, "UPDATE customers SET name = 'Bo Lin', updated_at = '2000-01-01' WHERE id = 'bo'");
+    for (let index = 0; index < 4; index += 1) {
+      run(db, `INSERT INTO products (id, account_id, product_name, type, vendor, vendor_id, stock_grams)
+        VALUES (?, ?, 'Tea', 'Oolong', 'Master Bo (old spelling)', 'bo', 50)`, `stale-${index}`, A);
+    }
+    run(db, `INSERT INTO products (id, account_id, product_name, type, vendor, vendor_id)
+      VALUES ('aligned', ?, 'Tea', 'Oolong', 'Bo Lin', 'bo'),
+        ('other-supplier', ?, 'Tea', 'Oolong', 'Master Bo (old spelling)', 'bo-twin'),
+        ('unlinked-alias', ?, 'Tea', 'Oolong', 'Master Bo (old spelling)', NULL)`, A, A, A);
+    run(db, `INSERT INTO tea_profiles (id, slug, originated_by_account_id, curated_by_account_id, name)
+      VALUES ('prof_stale-0', 'stale-0', ?, ?, 'Tea')`, A, A);
+    run(db, `INSERT INTO product_listings (id, account_id, profile_id, legacy_product_id, vendor, vendor_id)
+      VALUES ('list_stale-0', ?, 'prof_stale-0', 'stale-0', 'Master Bo (old spelling)', 'bo')`, A);
+
+    const preview = await previewSupplierRename(db as any, A, 'bo', 'Bo Lin');
+    expect(preview).toMatchObject({ old_name: 'Bo Lin', new_name: 'Bo Lin' });
+    expect(preview.counts.find(count => count.table === 'customers')).toMatchObject({ by_id: 0, by_name: 0 });
+    expect(preview.counts.find(count => count.table === 'products')).toMatchObject({ by_id: 4, by_name: 0 });
+    expect(preview.counts.find(count => count.table === 'product_listings')).toMatchObject({ by_id: 1, by_name: 0 });
+    expect(names(db, 'products', 'vendor', 'stale-0')).toBe('Master Bo (old spelling)');
+    await applySupplierRename(db as any, A, 'bo', 'Bo Lin', 'Bo Lin');
+    for (let index = 0; index < 4; index += 1) expect(names(db, 'products', 'vendor', `stale-${index}`)).toBe('Bo Lin');
+    expect(names(db, 'product_listings', 'vendor', 'list_stale-0')).toBe('Bo Lin');
+    expect(names(db, 'tea_compass_entries', 'vendor_name', 't-id-2')).toBe('Bo Lin');
+    expect(names(db, 'products', 'vendor', 'aligned')).toBe('Bo Lin');
+    expect(names(db, 'products', 'vendor', 'other-supplier')).toBe('Master Bo (old spelling)');
+    expect(names(db, 'products', 'vendor', 'unlinked-alias')).toBe('Master Bo (old spelling)');
+    expect(names(db, 'tea_compass_entries', 'vendor_name', 't-id-3')).toBe('Master Bo');
+    expect(names(db, 'tea_compass_entries', 'vendor_name', 't-twin')).toBe('Master Bo');
+    expect(get(db, "SELECT updated_at FROM customers WHERE id = 'bo'").updated_at).toBe('2000-01-01');
+    const changes = get(db, 'SELECT total_changes() AS n').n;
+    await expect(previewSupplierRename(db as any, A, 'bo', 'Bo Lin')).rejects.toMatchObject({ code: 'unchanged' });
+    await expect(applySupplierRename(db as any, A, 'bo', 'Bo Lin')).rejects.toMatchObject({ code: 'unchanged' });
+    expect(get(db, 'SELECT total_changes() AS n').n).toBe(changes);
+  });
+
   it('covers every name column the schema has for a supplier (a new vendor_name column fails here)', () => {
     const db = makeDb();
     const known = new Set(SUPPLIER_NAME_COLUMNS.map(c => `${c.table}.${c.nameColumn}`));
@@ -175,11 +214,31 @@ describe('renaming a supplier changes every record that carries the name', () =>
     };
     expect(await code(() => previewSupplierRename(db as any, A, 'bo', 'master bo tea co'))).toBe('name_taken');
     expect(await code(() => previewSupplierRename(db as any, A, 'bo', '   '))).toBe('name_required');
+    // The fixture's id-linked alias is intentionally stale; align it before
+    // asking for a no-op. A same-name request may now repair stale id copies.
+    run(db, "UPDATE tea_compass_entries SET vendor_name = 'Master Bo' WHERE id = 't-id-2'");
     expect(await code(() => previewSupplierRename(db as any, A, 'bo', 'Master Bo'))).toBe('unchanged');
     expect(await code(() => previewSupplierRename(db as any, A, 'plain', 'Someone'))).toBe('not_a_supplier');
     expect(await code(() => previewSupplierRename(db as any, A, 'bo-other-shop', 'Someone'))).toBe('not_found');
     expect(await code(() => applySupplierRename(db as any, A, 'bo', 'Bo Lin', 'Somebody Else'))).toBe('name_changed');
     expect(names(db, 'customers', 'name', 'bo')).toBe('Master Bo');
+  });
+
+  it('refuses Chinese or mixed main names without writes and preserves the separate Chinese name on an English correction', async () => {
+    const db = makeDb();
+    seedMasterBo(db);
+    run(db, "UPDATE customers SET chinese_name = '博师傅' WHERE id = 'bo'");
+    const changes = get(db, 'SELECT total_changes() AS n').n;
+    for (const name of ['博师傅', '博师傅 Master Bo', 'Master Bo 博', '𠀀 Tea']) {
+      await expect(previewSupplierRename(db as any, A, 'bo', name)).rejects.toMatchObject({ status: 400, code: 'english_name_required' });
+      await expect(applySupplierRename(db as any, A, 'bo', name)).rejects.toMatchObject({ status: 400, code: 'english_name_required' });
+    }
+    expect(get(db, 'SELECT total_changes() AS n').n).toBe(changes);
+    expect(names(db, 'customers', 'name', 'bo')).toBe('Master Bo');
+    expect(names(db, 'tea_compass_entries', 'vendor_name', 't-id-2')).toBe('Bo (Menghai)');
+    await applySupplierRename(db as any, A, 'bo', 'Bo Lin');
+    expect(names(db, 'customers', 'name', 'bo')).toBe('Bo Lin');
+    expect(get(db, "SELECT chinese_name FROM customers WHERE id = 'bo'").chinese_name).toBe('博师傅');
   });
 
   it('a case-only change is a rename', async () => {

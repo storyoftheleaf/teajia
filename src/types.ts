@@ -38,11 +38,22 @@ export interface TastingData {
 
   // Section 3: Feeling (settling, lifting, body, mind)
   feeling?: string[];           // qi / mood / effect terms
-  clarity?: 'clear' | 'hazy' | 'cloudy';
+  clarity?: 'clear' | 'bright' | 'hazy' | 'cloudy';
   quality?: number;             // 1-10 overall verdict
 
   // Section 4: Flavor (families + specific terms)
+  aroma?: string[];
+  tasteIntensities?: Record<string, string>;
+  aromaIntensities?: Record<string, string>;
+  sensoryCustom?: Partial<Record<'body' | 'state', string[]>>;
+  impression?: 'love' | 'like' | 'neutral' | 'pass';
+  wantToPurchase?: boolean;
+  inCollection?: boolean;
   flavor?: string[];            // family-level or specific sub-terms
+
+  // Storage impressions are separate from appearance and legacy cleanliness.
+  storageCharacter?: number;   // 0..4: Parched, Dry, Sweet spot, Wet, Near mouldy
+  storageNotes?: string[];     // unwanted storage impressions
 
   // Section 5: Appearance (color + clarity)
   'liquor-color'?: string[];    // color swatch

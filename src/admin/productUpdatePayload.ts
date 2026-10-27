@@ -1,3 +1,4 @@
+import { enteredYear } from './enteredYear';
 import type { Product } from './types';
 
 /**
@@ -101,7 +102,7 @@ export function buildProductUpdatePayload(field: keyof Product, value: any): Rec
     case 'pricePerGramUSD': return { fixed_retail_price_usd: enteredNumber(value) };
     case 'productName': return { product_name: value };
     case 'originRegion': return { origin_region: value };
-    case 'year': return { year: enteredNumber(value) };
+    case 'year': return { year: enteredYear(value) };
     case 'isFeatured': return { is_featured: value };
     case 'isPublic': return { is_public: value };
     case 'showWisdom': return { show_wisdom: value };

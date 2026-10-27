@@ -1,3 +1,5 @@
+import { useQueryClient } from '@tanstack/react-query';
+import { applySupplierRenameLocally } from '../../components/shared/supplierRenameCaches';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Search, Plus, X, Trash2, Edit3, Phone, Mail, MessageCircle, MapPin, Loader2, ChevronDown, ChevronUp, Leaf, ExternalLink, Users, ArrowUpDown, ArrowUp, ArrowDown, Check, Calendar, Link, AtSign, Send, Lock, Hash, MessagesSquare, Columns, Download, MoreHorizontal } from 'lucide-react';
@@ -1381,6 +1383,7 @@ export const CustomerDetail = ({
 
 // ── Main CustomersView ──
 export const CustomersView = () => {
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
   const { data: customers = [], isLoading, refetch } = useCustomers();
@@ -1458,6 +1461,10 @@ export const CustomersView = () => {
     try {
       if (editingCustomer) {
         await api.customers.update(editingCustomer.id, data);
+        if ((editingCustomer.tags?.includes('vendor') || ['vendor', 'supplier'].includes(String(editingCustomer.type))) && editingCustomer.name !== data.name) {
+          applySupplierRenameLocally(queryClient, { vendorId: editingCustomer.id, oldName: editingCustomer.name, newName: data.name.trim() });
+          setViewingCustomer(previous => previous?.id === editingCustomer.id ? { ...previous, name: data.name.trim() } : previous);
+        }
         await api.customers.updateRelationships(editingCustomer.id, data.relationship_kinds);
         showToast('Contact updated', 'success');
       } else {

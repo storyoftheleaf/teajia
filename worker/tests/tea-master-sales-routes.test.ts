@@ -43,9 +43,9 @@ class FulfillmentRaceDb {
     const statement = {
       inner,
       bind: (...values: unknown[]) => { inner.bind(...values); return statement; },
-      first: async () => {
-        const result = inner.first();
-        if (!this.injected && result && normalized.startsWith('update invoices set fulfillment_claim_token = ?')) {
+      all: async () => {
+        const result = inner.all();
+        if (!this.injected && result.results.length && normalized.startsWith('update invoices set fulfillment_claim_token = ?')) {
           this.injected = true;
           this.inner.sqlite.prepare(`INSERT INTO stock_holds
             (id,account_id,invoice_id,product_id,held_grams,expires_at)
@@ -53,7 +53,6 @@ class FulfillmentRaceDb {
         }
         return result;
       },
-      all: async () => inner.all(),
       run: async () => inner.run(),
     };
     return statement;

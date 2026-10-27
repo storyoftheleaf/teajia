@@ -31,6 +31,9 @@ export interface PricedProductRow {
   stock_grams: number | null;
 }
 
+/** Supplied products now carry the same pricing inputs and output as inventory. */
+export interface PricedVendorProductRow extends VendorProductRow, PricedProductRow {}
+
 export interface VendorEconomics {
   totalCostUsd: number | null;
   avgCostPerGramUsd: number | null;

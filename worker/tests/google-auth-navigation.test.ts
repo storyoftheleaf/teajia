@@ -7,10 +7,13 @@ const env = {
   GOOGLE_CLIENT_SECRET: 'secret',
   APP_URL: 'https://teajia.com',
   DB: {
-    prepare: () => ({
+    prepare: (sql: string) => ({
       bind() { return this; },
       first: async () => ({ id: 'user', email: 'tea@example.com', name: 'Tea', role: 'user', session_version: 0 }),
-      all: async () => ({ results: [] }),
+      async all() {
+        // User lookups and membership enumeration are different queries.
+        return { results: /from users/i.test(sql) ? [await this.first()] : [] };
+      },
     }),
   },
 } as any;

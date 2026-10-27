@@ -10,6 +10,7 @@ type Row = Record<string, any>;
 const PAIR_MS = 10 * 60 * 1000;
 const JOB_MS = 60 * 60 * 1000;
 const LEASE_MS = 2 * 60 * 1000;
+const HEARTBEAT_MS = 30 * 1000;
 const MAX_BODY_BYTES = 900_000;
 const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export class BridgeError extends Error {
@@ -50,10 +51,13 @@ function scoped(ctx?: ArBridgeScope): ArBridgeScope {
   if (!ctx?.accountId || !ctx.userId) fail(401, 'ar_sign_in_required', 'Sign in to this shop to connect its archive.');
   return ctx;
 }
-export async function expireArBridgeRequests(db: D1Database, now = Date.now()): Promise<void> {
+async function eraseExpiredArResults(db: D1Database, now: number): Promise<void> {
   // Originals are removed at the first bridge request after the one-hour
   // deadline, even if their connector never returns or the browser is closed.
   await db.prepare(`UPDATE curate_ar_jobs SET status='expired',result_json=NULL,result_hash=NULL,error=NULL,claimed_device_id=NULL,lease_until=NULL WHERE expires_at<=? AND status!='expired'`).bind(now).run();
+}
+export async function expireArBridgeRequests(db: D1Database, now = Date.now()): Promise<void> {
+  await eraseExpiredArResults(db, now);
   await db.prepare(`DELETE FROM curate_ar_jobs WHERE expires_at<?`).bind(now - 24 * JOB_MS).run();
   await db.prepare(`DELETE FROM curate_ar_devices WHERE account_id IS NULL AND pair_expires_at<?`).bind(now - 24 * JOB_MS).run();
 }
@@ -155,8 +159,14 @@ export async function handleArBridge(request: Request, env: { DB: D1Database }, 
     }
     if (action === 'connector/poll' && request.method === 'POST') {
       const device = await deviceFor(request, db);
-      await expireArBridgeRequests(db, now);
-      await db.prepare('UPDATE curate_ar_devices SET last_seen_at=? WHERE id=? AND revoked_at IS NULL').bind(now, device.id).run();
+      // Keep the privacy deadline exact, but leave tombstone/unpaired-device
+      // garbage collection to other bridge requests and the hourly cron.
+      await eraseExpiredArResults(db, now);
+      // The authenticated row is read on every poll: no isolate-local cache and
+      // no delay to job pickup or revocation. Guard concurrent heartbeat writes.
+      if (device.last_seen_at == null || now - device.last_seen_at >= HEARTBEAT_MS) {
+        await db.prepare('UPDATE curate_ar_devices SET last_seen_at=? WHERE id=? AND revoked_at IS NULL AND (last_seen_at IS NULL OR last_seen_at<=?)').bind(now, device.id, now - HEARTBEAT_MS).run();
+      }
       const claimed = await db.prepare(`UPDATE curate_ar_jobs SET status='claimed',claimed_device_id=?,lease_until=?
         WHERE id=(SELECT id FROM curate_ar_jobs WHERE account_id=? AND created_by_user_id=? AND expires_at>? AND
           (status='pending' OR (status='claimed' AND (claimed_device_id=? OR lease_until<=?)))

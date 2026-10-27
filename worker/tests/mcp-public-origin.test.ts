@@ -33,7 +33,7 @@ class EmptyReadsDb {
     const statement = {
       bind: () => statement,
       first: async () => null,
-      all: async () => ({ results: [] }),
+      all: async () => { const row = await statement.first(); return { results: row == null ? [] : [row] }; },
       run: async () => ({ success: true, meta: { changes: 0 } }),
     };
     return statement;
@@ -91,7 +91,7 @@ class PublicAccountDb {
         }
         return null;
       },
-      all: async () => ({ results: [] }),
+      all: async () => { const row = await statement.first(); return { results: row == null ? [] : [row] }; },
       run: async () => ({ success: true, meta: { changes: 0 } }),
     };
     return statement;

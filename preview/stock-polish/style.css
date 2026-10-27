@@ -1,0 +1,6 @@
+@import url('../stock-sorting/style.css');
+.variants { grid-template-columns:repeat(4,minmax(0,1fr)); }
+@media(max-width:650px) {
+  .variants { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .variants button:last-child { grid-column:auto; }
+}

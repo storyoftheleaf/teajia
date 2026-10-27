@@ -57,7 +57,7 @@ class ConfirmCollectionDb {
             }],
           };
         }
-        return { results: [] };
+        const row = await statement.first(); return { results: row ? [row] : [] };
       },
       run: async () => ({ success: true, meta: { changes: 1 }, bindings }),
     };

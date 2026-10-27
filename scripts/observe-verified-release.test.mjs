@@ -154,3 +154,25 @@ test('reclaims an orphaned PID lock and resumes without another publication', as
     assert.equal(state.statePath, join(h.dir, 'observer-state.json'));
   } finally { rmSync(h.dir, { recursive: true, force: true }); }
 });
+
+test('durable observer holds a configured production lease and releases it on success or failure', async () => {
+  for (const failure of [false, true]) {
+    const h = harness(failure ? { stepFailure: true } : {});
+    const leasePath = join(h.dir, 'production-lease.json');
+    writeFileSync(h.path, JSON.stringify({ ...config, publicationLeasePath: leasePath }));
+    const execute = h.dependencies.execute;
+    let observedLease = false;
+    h.dependencies.execute = (...args) => {
+      const lease = JSON.parse(readFileSync(leasePath, 'utf8'));
+      assert.equal(lease.candidate, candidate);
+      observedLease = true;
+      return execute(...args);
+    };
+    try {
+      if (failure) await assert.rejects(observe(h.path, h.dependencies));
+      else assert.equal((await observe(h.path, h.dependencies)).status, 'live');
+      assert.equal(observedLease, true);
+      assert.equal(existsSync(leasePath), false);
+    } finally { rmSync(h.dir, { recursive: true, force: true }); }
+  }
+});

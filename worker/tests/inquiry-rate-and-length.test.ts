@@ -34,7 +34,7 @@ class WritesOnlyDb {
     const statement = {
       bind: (...next: unknown[]) => { values = next; return statement; },
       first: async () => (normalized.startsWith('select id from accounts') ? { id: this.accountId } : null),
-      all: async () => ({ results: [] }),
+      all: async () => { const row = await statement.first(); return { results: row == null ? [] : [row] }; },
       run: async () => {
         const table = normalized.startsWith('insert into inquiries') ? 'inquiries'
           : normalized.startsWith('insert or ignore into newsletter_subscribers') ? 'newsletter_subscribers'

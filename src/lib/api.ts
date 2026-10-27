@@ -1,3 +1,4 @@
+import { createServiceAvailabilityGuard, shouldReportServiceIncident } from './serviceAvailability';
 import type { ShippingRoute } from '../components/shared/routeFreight';
 import type { SupplierFreightBill, SupplierRenamePreview } from '../components/shared/supplierSheetTypes';
 import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, AdminContributor, Bundle, ContributorOption, ContributorWrite, CurateReceiptProposal, CustomerOrderDetail, DbArticle, PlatformRole, TastingData } from '../types';
@@ -808,6 +809,7 @@ const PRODUCT_CATALOG_UPDATE_FIELDS = new Set([
   'material', 'capacity_ml', 'teaware_category', 'description', 'notes', 'tags', 'moods',
   'tasting_notes', 'brewing_notes', 'tasting', 'tasting_source', 'lore', 'processing_notes',
   'terroir', 'mood', 'experience', 'image_url', 'additional_images', 'bag_photo_url', 'quantity_units',
+  'piece_weight_g', 'sold_in_whole_units',
   'tea_key', 'source_compass_entry_id',
 ]);
 
@@ -1029,6 +1031,8 @@ function routeFromUrl(url: string): string {
   }
 }
 
+const serviceAvailability = createServiceAvailabilityGuard();
+
 export async function fetchWithTimeout(url: string, options: ApiRequestInit = {}): Promise<Response> {
   const {
     background = false,
@@ -1038,6 +1042,11 @@ export async function fetchWithTimeout(url: string, options: ApiRequestInit = {}
     ...requestInit
   } = options;
   const method = (requestInit.method || 'GET').toUpperCase();
+  const blocked = serviceAvailability.blockedResponse(url);
+  if (blocked) {
+    responseIncidentContext.set(blocked, { route: routeFromUrl(url), method, reportIncident: false });
+    return blocked;
+  }
   const retryTimeouts = retryTimeoutOption ?? (method === 'GET' || method === 'HEAD');
   // When timeouts are retryable, fail each attempt fast and try a fresh
   // connection; a blackholed socket never recovers by waiting longer.
@@ -1049,6 +1058,7 @@ export async function fetchWithTimeout(url: string, options: ApiRequestInit = {}
     const timeoutId = setTimeout(() => controller.abort(), attemptTimeoutMs);
     try {
       const response = await fetch(url, { ...requestInit, signal: controller.signal });
+      await serviceAvailability.observeResponse(url, response);
       responseIncidentContext.set(response, {
         route: routeFromUrl(url),
         method,
@@ -1151,6 +1161,7 @@ async function probeSiteReachability(): Promise<boolean> {
 }
 
 function reportClientIncident(error: unknown, context: { route: string; method: string }): void {
+  if (!shouldReportServiceIncident(error)) return;
   const incident = classifyIncident(error, context);
   const now = Date.now();
   const lastReportedAt = _incidentReportedAt.get(incident.signature) ?? 0;
@@ -1196,7 +1207,10 @@ export class EmailDeliveryUnavailableError extends Error {
 
 /** Retry only failures that may succeed without changing the request. */
 export function isTransientApiError(error: unknown): boolean {
-  if (error instanceof ApiError) return error.status === 408 || error.status === 429 || error.status >= 500;
+  if (error instanceof ApiError) {
+    if (error.data?.retryable === false || error.data?.code === 'database_read_budget_exceeded') return false;
+    return error.status === 408 || error.status === 429 || error.status >= 500;
+  }
   if (!(error instanceof Error)) return false;
   return /timed out|couldn.t reach the server|network|offline|failed to fetch/i.test(error.message);
 }
@@ -1845,6 +1859,7 @@ export const api = {
   },
 
   products: {
+    get: async (id: string) => authedFetch(`${API_URL}/api/products/${encodeURIComponent(id)}`),
     list: async () => {
       return authedFetch(`${API_URL}/api/products`)
     },
@@ -2905,6 +2920,34 @@ export const api = {
     attachments: (entityType: string, entityId: string): Promise<any[]> => authedFetch(`${API_URL}/api/curate/attachments?entity_type=${encodeURIComponent(entityType)}&entity_id=${encodeURIComponent(entityId)}`),
     upload: (input: Record<string, unknown>): Promise<any> => authedFetch(`${API_URL}/api/curate/attachments`, { method: 'POST', body: JSON.stringify(input) }),
     holdings: (samplesOnly = false, teaId?: string): Promise<any[]> => authedFetch(`${API_URL}/api/curate/holdings?samples_only=${samplesOnly}${teaId ? `&tea_id=${encodeURIComponent(teaId)}` : ''}`),
+    /**
+     * Every holding, read one bounded page at a time.
+     *
+     * The server answers at most 200 canonical teas per call now, because the
+     * unbounded version of this read exhausted D1's daily row allowance and
+     * took the whole API down. A screen that lists the shelf therefore pages,
+     * and `samples_only` makes that mandatory rather than merely tidy: the
+     * filter is applied to the page, so a page of 200 teas can return two
+     * samples, or none, with more still to come. Stopping on an empty page
+     * would hide the rest of the samples; the loop follows `has_more`.
+     *
+     * `pageCap` is the stop of last resort, not a page size: a shelf larger
+     * than 10,000 teas should be served by a real query, not by this loop.
+     */
+    allHoldings: async (samplesOnly = false, pageCap = 50): Promise<any[]> => {
+      const all: any[] = [];
+      let cursor: string | null = null;
+      for (let page = 0; page < pageCap; page++) {
+        const query = new URLSearchParams({ samples_only: String(samplesOnly), paged: '1' });
+        if (cursor) query.set('cursor', cursor);
+        const result: { holdings?: any[]; has_more?: boolean; next_cursor?: string | null } =
+          await authedFetch(`${API_URL}/api/curate/holdings?${query.toString()}`);
+        all.push(...(result?.holdings ?? []));
+        if (!result?.has_more || !result?.next_cursor) return all;
+        cursor = result.next_cursor;
+      }
+      return all;
+    },
     history: (entityType: string, entityId: string): Promise<any> => authedFetch(`${API_URL}/api/curate/history?entity_type=${encodeURIComponent(entityType)}&entity_id=${encodeURIComponent(entityId)}`),
     correct: (command: Record<string, unknown>, confirm?: string): Promise<any> => authedFetch(`${API_URL}/api/curate/correct`, { method: 'POST', body: JSON.stringify({ command, confirm }) }),
     undo: (confirm?: string, mutationId?: string): Promise<any> => authedFetch(`${API_URL}/api/curate/undo`, { method: 'POST', body: JSON.stringify({ confirm, mutation_id: mutationId }) }),

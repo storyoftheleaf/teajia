@@ -103,7 +103,7 @@ jobs:
 
       - name: Coordinated publication observer tests
         if: github.event_name == 'workflow_dispatch' && inputs.publish_main_expected != ''
-        run: node --test scripts/publish-verified-release.test.mjs scripts/observe-verified-release.test.mjs
+        run: node --test scripts/publish-verified-release.test.mjs scripts/observe-verified-release.test.mjs scripts/check-production-release-lease.test.mjs
 
       - name: Worker tests
         run: npm run test:worker

@@ -55,7 +55,8 @@ class SampleRequestDb {
         if (normalized.includes('from tea_sample_sets') && normalized.includes("purpose = 'customer-request'")) {
           return { results: this.sampleSets.filter((set) => set.account_id === values[0] && set.user_id === values[1]) };
         }
-        return { results: [] };
+        const row = await statement.first();
+        return { results: row == null ? [] : [row] };
       },
       run: async () => {
         if (normalized.startsWith('insert or ignore into tea_sample_sets')) {
@@ -136,7 +137,7 @@ class AdminSampleDb {
         if (normalized.includes('select * from tea_sample_tastings where id = ?')) return this.tastings.get(String(values[0])) ?? null;
         return null;
       },
-      all: async () => ({ results: [] }),
+      all: async () => { const row = await statement.first(); return { results: row == null ? [] : [row] }; },
       run: async () => {
         if (normalized.startsWith('insert into tea_samples')) {
           const columns = sql.match(/tea_samples\s*\(([^)]+)\)/i)?.[1].split(',').map((column) => column.trim()) ?? [];

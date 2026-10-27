@@ -7,6 +7,7 @@ interface AppearanceZoneProps {
   flow: TastingFlowState;
   value: TastingData;
   onChange: (data: TastingData) => void;
+  compact?: boolean;
 }
 
 const CLARITY_OPTIONS = [
@@ -24,7 +25,7 @@ const VESSEL_OPTIONS = [
   { id: 'Mug', label: 'Mug' },
 ];
 
-const AppearanceZoneInner: React.FC<AppearanceZoneProps> = ({ flow, value, onChange }) => {
+const AppearanceZoneInner: React.FC<AppearanceZoneProps> = ({ flow, value, onChange, compact = false }) => {
   return (
     <div role="group" aria-label="Appearance: color and clarity">
       {/* Color swatches */}
@@ -69,6 +70,7 @@ const AppearanceZoneInner: React.FC<AppearanceZoneProps> = ({ flow, value, onCha
         </div>
       </div>
 
+      {!compact && <>
       <div className="divider-warm mb-4" />
 
       {/* Vessel: primary brewing field */}
@@ -158,6 +160,7 @@ const AppearanceZoneInner: React.FC<AppearanceZoneProps> = ({ flow, value, onCha
           </div>
         </div>
       </div>
+      </>}
     </div>
   );
 };

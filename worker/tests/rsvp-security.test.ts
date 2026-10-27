@@ -6,6 +6,7 @@ class RsvpDb {
     const normalized = sql.replace(/\s+/g, ' ').trim().toLowerCase();
     const statement = {
       bind: () => statement,
+      all: async () => { const row = await statement.first(); return { results: row == null ? [] : [row] }; },
       first: async () => {
         // Public RSVP now resolves only active events on active/public hosts.
         if (normalized.includes('from events e join accounts a') && normalized.includes("a.public_enabled = 1")) {

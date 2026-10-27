@@ -36,7 +36,9 @@ import { eventsToolModule } from './mcpTools/events';
 import { writingToolModule } from './mcpTools/writing';
 import { costCurrencyTools } from './mcpTools/costCurrency';
 import { curateIntakeTools, curateManagerAccess } from './mcpTools/curateIntake';
-import { readCurateHoldings } from './curateHoldings';
+import { readCurateHoldings, MAX_CURATE_HOLDINGS_PAGE } from './curateHoldings';
+import { withD1ReadBudget, resolveD1Budget, settleD1Budget, classifyD1Failure } from './d1Budget';
+import { budgetRefusal } from './d1BudgetResponse';
 import { curateSupplyTools } from './mcpTools/curateSupply';
 import { curatePhotoTools } from './mcpTools/curatePhotos';
 import { curateArrivalTools } from './mcpTools/curateArrivals';
@@ -166,6 +168,35 @@ function authenticationDependencyUnavailable(): Response {
     jsonrpc: '2.0',
     id: null,
     error: { code: -32002, message: 'Authentication dependency unavailable' },
+  }, 503);
+}
+
+/**
+ * The auth path could not read the database, and says which half is broken.
+ *
+ * Until 2026-10-25 all three of the reads below answered
+ * `authenticationDependencyUnavailable()` for every failure, so when D1's
+ * daily row-read quota ran out the one connected agent was told its token was
+ * the problem. It was not. A message that is confidently wrong about which
+ * half is broken costs more than silence: it sends whoever reads it to mint a
+ * second token that fails identically.
+ *
+ * Four codes, because there are four different next actions. No part of the
+ * provider's message is echoed — only the classification — so nothing SQL,
+ * stack or secret shaped can ride out on an unauthenticated response.
+ */
+function authenticationDependencyFailure(error: unknown): Response {
+  const kind = classifyD1Failure(error);
+  if (kind === 'auth') return authenticationDependencyUnavailable();
+  const [code, message] = kind === 'budget'
+    ? [-32003, 'Database read budget exceeded for this request']
+    : kind === 'quota'
+      ? [-32004, 'Database unavailable: daily read quota exceeded']
+      : [-32004, 'Database unavailable'] as const;
+  return json({
+    jsonrpc: '2.0',
+    id: null,
+    error: { code, message, data: { reason: kind } },
   }, 503);
 }
 
@@ -427,8 +458,8 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
     row = await env.DB.prepare(
       'SELECT id, account_id, user_id, user_email, revoked_at, scopes, creator_tier, expires_at FROM mcp_tokens WHERE token_hash = ?'
     ).bind(hash).first() as McpTokenRow | null;
-  } catch {
-    return authenticationDependencyUnavailable();
+  } catch (error) {
+    return authenticationDependencyFailure(error);
   }
 
   if (!row || row.revoked_at) {
@@ -449,8 +480,8 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
       .bind(row.user_id).first() as CurrentUserRow | null;
     account = await env.DB.prepare('SELECT status FROM accounts WHERE id = ?')
       .bind(row.account_id).first() as { status: string | null } | null;
-  } catch {
-    return authenticationDependencyUnavailable();
+  } catch (error) {
+    return authenticationDependencyFailure(error);
   }
   if (!user || !account || account.status !== 'active') {
     return unauthorized(request, 'Invalid or revoked token');
@@ -470,8 +501,8 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
            FROM account_members am
           WHERE am.user_id = ? AND am.account_id = ? AND am.status = 'active'`
       ).bind(user.id, row.account_id).first() as CurrentMembershipRow | null;
-    } catch {
-      return authenticationDependencyUnavailable();
+    } catch (error) {
+      return authenticationDependencyFailure(error);
     }
     if (!membership) return unauthorized(request, 'Invalid or revoked token');
     if (membership.role === 'owner') creatorTier = 'account_owner';
@@ -1032,6 +1063,69 @@ function curateHoldingSummary(holding: Awaited<ReturnType<typeof readCurateHoldi
   };
 }
 
+/**
+ * Candidate rows one search may read per side before it stops reading and says
+ * so.
+ *
+ * Scoring is done in JavaScript over every non-archived row, which is the only
+ * way a fuzzy match can rank, and for a 139-tea shelf it is a few hundred rows
+ * and nothing to think about. It is also a scan with no ceiling on a path an
+ * agent calls on every turn, which is exactly the shape that spent a day's D1
+ * allowance in an afternoon. So the scan is bounded, one row past the ceiling
+ * so the truncation is detectable, and a search that hits it reports
+ * `candidates_truncated` rather than quietly ranking part of the shelf as
+ * though it were all of it. Four hundred times the shop's current size: a
+ * shelf that reaches it has outgrown in-memory scoring and needs an index, not
+ * a bigger number here.
+ */
+const SEARCH_CANDIDATE_CEILING = 5_000;
+
+/**
+ * The teas a search will PRINT, and only those, before their holdings are read.
+ *
+ * `search_tea` is the busiest door onto `readCurateHoldings`, and it used to
+ * read every holding in the shop and then throw away all but the few it scored
+ * above the threshold. The scoring only looks at columns on the compass entry
+ * itself, so the entries are scored from a plain read first and the holdings
+ * reading is asked for the surviving ids. The order is unchanged: the entries
+ * arrive in the same vendor, name, id order the holdings reading returns, and
+ * sorting by score is stable, so ties still break the same way.
+ */
+async function searchCurateHoldings(env: Env, accountId: string, query: string, limit: number) {
+  const { results } = await env.DB.prepare(
+    `SELECT id, name, chinese_name, vendor_name, vendor_item_number, origin_region, year
+       FROM tea_compass_entries
+      WHERE account_id = ? AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL
+      ORDER BY vendor_name, name, id
+      LIMIT ?`
+  ).bind(accountId, SEARCH_CANDIDATE_CEILING + 1).all<Record<string, any>>();
+
+  const truncated = results.length > SEARCH_CANDIDATE_CEILING;
+  const scored = results
+    .slice(0, SEARCH_CANDIDATE_CEILING)
+    .map(entry => ({
+      id: String(entry.id),
+      score: scoreMatch(query, [entry.name, entry.chinese_name, entry.vendor_name,
+        entry.vendor_item_number, entry.origin_region, String(entry.year ?? '')]),
+    }))
+    .filter(item => item.score > 0.3)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+  if (!scored.length) return { holdings: [] as Array<{ holding: Awaited<ReturnType<typeof readCurateHoldings>>[number]; score: number }>, truncated };
+
+  const byId = new Map((await readCurateHoldings(env.DB, accountId, {
+    teaIds: scored.map(item => item.id),
+    limit: Math.min(scored.length, MAX_CURATE_HOLDINGS_PAGE),
+  })).map(holding => [String(holding.entry.id), holding] as const));
+  return {
+    holdings: scored.flatMap(item => {
+      const holding = byId.get(item.id);
+      return holding ? [{ holding, score: item.score }] : [];
+    }),
+    truncated,
+  };
+}
+
 async function toolSearchTea(env: Env, auth: McpAuth, args: any) {
   const { accountId } = auth;
   const query = String(args?.query || '').trim();
@@ -1045,10 +1139,14 @@ async function toolSearchTea(env: Env, auth: McpAuth, args: any) {
             origin_country, origin_region, vendor, stock_grams, quantity_units,
             low_stock_threshold, fixed_retail_price_usd, status
        FROM products
-      WHERE account_id = ? AND status != 'Archived'`
-  ).bind(accountId).all();
+      WHERE account_id = ? AND status != 'Archived'
+      ORDER BY id
+      LIMIT ?`
+  ).bind(accountId, SEARCH_CANDIDATE_CEILING + 1).all();
 
+  const productsTruncated = results.length > SEARCH_CANDIDATE_CEILING;
   const scored = (results as unknown as ProductRow[])
+    .slice(0, SEARCH_CANDIDATE_CEILING)
     .map(p => ({
       product: p,
       score: scoreMatch(query, [p.given_name, p.product_name, p.chinese_name, p.origin_region, p.vendor, p.year]),
@@ -1057,19 +1155,21 @@ async function toolSearchTea(env: Env, auth: McpAuth, args: any) {
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 
-  const curateHoldings = await curateManagerAccess(env, auth)
-    ? (await readCurateHoldings(env.DB, accountId)).map(holding => ({
-        holding,
-        score: scoreMatch(query, [holding.entry.name, holding.entry.chinese_name,
-          holding.entry.vendor_name, holding.entry.vendor_item_number, holding.entry.origin_region,
-          String(holding.entry.year ?? '')]),
-      })).filter(item => item.score > 0.3).sort((a, b) => b.score - a.score).slice(0, limit)
-    : [];
+  const curate = await curateManagerAccess(env, auth)
+    ? await searchCurateHoldings(env, accountId, query, limit)
+    : { holdings: [], truncated: false };
 
   return {
     matches: scored.map(s => productSummary(s.product, s.score)),
-    curate_holdings: curateHoldings.map(item => curateHoldingSummary(item.holding, item.score)),
+    curate_holdings: curate.holdings.map(item => curateHoldingSummary(item.holding, item.score)),
     ambiguous: scored.length >= 2 && scored[0].score - scored[1].score < 0.1,
+    // Only present when it is true, so an ordinary answer is unchanged and a
+    // reader who sees this knows the ranking is over part of the shelf.
+    ...(productsTruncated || curate.truncated ? {
+      candidates_truncated: true,
+      candidate_ceiling: SEARCH_CANDIDATE_CEILING,
+      candidates_truncated_note: 'More teas matched the filter than one search may read. Narrow the query; the ranking above is over the first ' + SEARCH_CANDIDATE_CEILING + ' rows only.',
+    } : {}),
   };
 }
 
@@ -7135,7 +7235,12 @@ const SERVER_INFO = {
 // older clients negotiate down cleanly instead of being forced to our default.
 const PROTOCOL_VERSION = '2025-06-18';
 
-export async function mcpFetch(request: Request, env: Env): Promise<Response> {
+async function mcpFetchInner(request: Request, env: Env): Promise<Response> {
+  // The request entry point in index.ts already budgeted this database, and
+  // `withD1ReadBudget` hands the same one back rather than opening a second
+  // ledger. Asking here too is what covers the tests that reach this handler
+  // directly, so the budget is not a property of one caller's politeness.
+  env = { ...env, DB: withD1ReadBudget(env.DB, resolveD1Budget(env as unknown as Record<string, unknown>)) };
   if (request.method === 'GET') {
     // Lightweight health probe so you can curl /mcp to see it's up without auth.
     return json({
@@ -7195,6 +7300,16 @@ export async function mcpFetch(request: Request, env: Env): Promise<Response> {
         return rpcError(id, -32601, `Method not found: ${method}`);
     }
   } catch (err: any) {
+    // A spent budget is not an internal error and must not be reported as one:
+    // the request is answerable, it was simply too large for one go, and the
+    // caller's next move is to ask for a page rather than to retry the same
+    // thing. Its own code so a client can tell the two apart.
+    await settleD1Budget(env.DB);
+    const refusal = budgetRefusal(env.DB, err);
+    if (refusal) return rpcError(id, refusal.rpcCode, refusal.body.message, refusal.body);
+    const failure = classifyD1Failure(err);
+    if (failure === 'quota') return rpcError(id, -32004, 'Database unavailable: daily read quota exceeded', { reason: 'quota' });
+    if (failure === 'database') return rpcError(id, -32004, 'Database unavailable', { reason: 'database' });
     return rpcError(id, -32603, err?.message || 'Internal error');
   }
 }
@@ -8231,7 +8346,7 @@ function publicToolDefs() {
   }));
 }
 
-export async function publicMcpFetch(request: Request, env: Env): Promise<Response> {
+async function publicMcpFetchInner(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   const account = await resolvePublicAccount(env, url.searchParams.get('account'));
 
@@ -8292,6 +8407,36 @@ export async function publicMcpFetch(request: Request, env: Env): Promise<Respon
         return rpcError(id, -32601, `Method not found: ${method}`);
     }
   } catch (err: any) {
+    // A spent budget is not an internal error and must not be reported as one:
+    // the request is answerable, it was simply too large for one go, and the
+    // caller's next move is to ask for a page rather than to retry the same
+    // thing. Its own code so a client can tell the two apart.
+    await settleD1Budget(env.DB);
+    const refusal = budgetRefusal(env.DB, err);
+    if (refusal) return rpcError(id, refusal.rpcCode, refusal.body.message, refusal.body);
+    const failure = classifyD1Failure(err);
+    if (failure === 'quota') return rpcError(id, -32004, 'Database unavailable: daily read quota exceeded', { reason: 'quota' });
+    if (failure === 'database') return rpcError(id, -32004, 'Database unavailable', { reason: 'database' });
     return rpcError(id, -32603, err?.message || 'Internal error');
   }
 }
+
+/** Preserve JSON-RPC semantics even when legacy auth/tool handlers catch errors. */
+async function budgetedMcp(request: Request, env: Env, handler: typeof mcpFetchInner): Promise<Response> {
+  env = { ...env, DB: withD1ReadBudget(env.DB, resolveD1Budget(env as unknown as Record<string, unknown>)) };
+  const copy = request.clone();
+  let response: Response | undefined;
+  let caught: unknown;
+  try { response = await handler(request, env); } catch (error) { caught = error; }
+  await settleD1Budget(env.DB);
+  const refusal = budgetRefusal(env.DB, caught);
+  if (refusal) {
+    let id: string | number | null = null;
+    try { const value = (await copy.json() as { id?: unknown }).id; if (typeof value === 'string' || typeof value === 'number') id = value; } catch { /* malformed/GET */ }
+    return rpcError(id, refusal.rpcCode, refusal.body.message, refusal.body);
+  }
+  if (caught) throw caught;
+  return response!;
+}
+export const mcpFetch = (request: Request, env: Env) => budgetedMcp(request, env, mcpFetchInner);
+export const publicMcpFetch = (request: Request, env: Env) => budgetedMcp(request, env, publicMcpFetchInner);

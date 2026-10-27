@@ -9,24 +9,30 @@ const token = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({
 
 /** `bareTeas` answers the vendor's teas with a bare list instead of the server's { entries } shape. */
 async function prepare(page: Page, { bareTeas = false } = {}) {
+  const reads: string[] = [];
   await page.addInitScript(value => localStorage.setItem('teajia_token', value), token);
   await page.route('**/api/**', route => {
     const pathname = new URL(route.request().url()).pathname;
+    reads.push(pathname);
     let body: unknown = [];
     if (pathname === '/api/auth/me') body = { id: 'admin-1', email: 'admin@teajia.com', role: 'owner' };
     if (pathname === '/api/auth/refresh') body = { token };
     if (pathname === '/api/accounts/acct-bali') body = { id: 'acct-bali', name: 'Teajia Bali', slug: 'teajia-bali' };
     if (pathname === '/api/rates') body = [{ currency: 'Yuan', rate_to_usd: 8, last_updated: new Date().toISOString() }];
-    if (pathname === '/api/products') body = [{
+    if (pathname === '/api/products' || pathname === '/api/products/tea-1') {
+      const product = {
       id: 'tea-1', product_name: 'Raw Worker Tea', given_name: 'Story Tea', type: 'Puer',
       stock_grams: 500, retail_price_per_gram_usd: 0.25, cost_amount: 88, cost_currency: 'CNY', status: 'Active',
       cost_currency_source: 'stated', quantity_purchased: 100, quantity_units: null, cost_per_gram_usd: 0.13,
-    }];
+      };
+      body = pathname === '/api/products' ? [product] : product;
+    }
     if (pathname === '/api/customers/vendor-1') body = { id: 'vendor-1', name: 'Target Vendor', tags: [], contacts: [] };
     if (pathname === '/api/customers/vendor-1/products') body = [{
       id: 'tea-1', product_name: 'Raw Worker Tea', given_name: 'Vendor Tea', type: 'Puer',
       image_url: null, origin_country: 'China', origin_region: 'Yunnan', stock_grams: 500,
-      status: 'Active', cost_amount: 88, cost_currency: 'CNY',
+      status: 'Active', cost_amount: 88, cost_currency: 'CNY', cost_per_gram_usd: 0.13,
+      cost_currency_source: 'stated', quantity_purchased: 100, quantity_units: null, shipping_rate_per_kg: null,
     }];
     if (pathname === '/api/purchase-orders') body = [
       { id: 'po-1', vendor_id: 'vendor-1', vendor_name: 'Target Vendor', total_usd: 0, status: 'pending', created_at: '2026-09-01' },
@@ -43,6 +49,7 @@ async function prepare(page: Page, { bareTeas = false } = {}) {
     if (pathname === '/api/invoices') body = [{ id: 'sale-1', customer_name: 'Target Vendor', invoice_number: 'SALE-1' }];
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
   });
+  return reads;
 }
 
 for (const viewport of ['Desktop Chrome', 'Mobile Chrome']) {
@@ -50,11 +57,13 @@ for (const viewport of ['Desktop Chrome', 'Mobile Chrome']) {
     test.use({ viewport: viewport === 'Mobile Chrome' ? { width: 393, height: 852 } : { width: 1280, height: 800 } });
 
     test('product story renders a raw Worker row', async ({ page }) => {
-      await prepare(page);
+      const reads = await prepare(page);
       await page.goto('/admin/products/tea-1/story');
       await expect(page.getByText('Story Tea').first()).toBeVisible();
       await expect(page.getByText('0.250', { exact: false })).toBeVisible();
       await expect(page.getByText('Tea not found')).toHaveCount(0);
+      expect(reads.filter(path => path === '/api/products/tea-1')).toHaveLength(1);
+      expect(reads).not.toContain('/api/products');
     });
 
     test('vendor profile still renders when the vendor\'s teas come back as a bare list', async ({ page }) => {
@@ -65,7 +74,7 @@ for (const viewport of ['Desktop Chrome', 'Mobile Chrome']) {
     });
 
     test('vendor profile shows recorded CNY cost and purchases, not sales invoices', async ({ page }) => {
-      await prepare(page);
+      const reads = await prepare(page);
       await page.goto('/admin/vendors/vendor-1');
       await expect(page.getByText('Vendor Tea')).toBeVisible();
       await expect(page.getByText('88 CNY')).toBeVisible();
@@ -77,6 +86,7 @@ for (const viewport of ['Desktop Chrome', 'Mobile Chrome']) {
       await expect(page.getByText('Inventory receipt')).toBeVisible();
       await expect(page.getByText('SALE-1')).toHaveCount(0);
       await expect(page.getByText('$90.00 USD')).toHaveCount(0);
+      expect(reads).not.toContain('/api/products');
     });
   });
 }

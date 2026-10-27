@@ -34,6 +34,7 @@ export interface SupplierFreightBill {
 export interface SupplierCard {
   id: string;
   name: string;
+  chinese_name?: string | null;
   company?: string | null;
   whatsapp?: string | null;
   phone?: string | null;
@@ -46,6 +47,7 @@ export interface SupplierCard {
 
 /** The contact fields the sheet edits, in the order it shows them. */
 export const CONTACT_FIELDS: ReadonlyArray<{ key: keyof SupplierCard; label: string; inputMode?: 'text' | 'tel' | 'email'; placeholder: string }> = [
+  { key: 'chinese_name', label: 'Chinese name', placeholder: 'optional original spelling' },
   { key: 'whatsapp', label: 'WhatsApp', inputMode: 'tel', placeholder: 'add a number' },
   { key: 'wechat', label: 'WeChat', placeholder: 'add an id' },
   { key: 'phone', label: 'Phone', inputMode: 'tel', placeholder: 'add a number' },

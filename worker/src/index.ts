@@ -1,10 +1,11 @@
+import { guardDatabase, databaseUnavailableResponse } from './databaseGuard';
 import { hasTeaVoiceProvider, transcribeTeaVoice, TeaVoiceTranscriptionError } from './curateVoiceTranscription';
 import { workingMaterialForTeaRecord, WorkingMaterialError } from './curateWorkingMaterial';
 import { handleArBridge, expireArBridgeRequests } from './curateArBridge';
 import { descriptionForTeaRecord } from './curateTeaDescriptionRequest';
 import { TeaDescriptionError } from './curateTeaDescription';
 import { promoteCompassEntry, CompassPromotionError } from './curatePromotion';
-import { applySupplierRename, listSupplierFreight, previewSupplierRename, SupplierRenameRefusal } from './supplierRename';
+import { applySupplierRename, cleanSupplierName, listSupplierFreight, previewSupplierRename, SupplierRenameRefusal } from './supplierRename';
 import { authPagePath } from '../../src/lib/authNavigation';
 import {
   mcpFetch, publicMcpFetch, mcpAdminMintToken, mcpAdminListTokens, mcpAdminRevokeToken,
@@ -152,6 +153,8 @@ import { validateCompassQuoteLink } from './curateQuotes';
 import { requireCurateManager, prepareCurateRecordedWrite } from './curateMutations';
 import { RouteRefusal, listRoutes, removeRoute, saveRoute } from './shippingRoutes';
 import { handleLibraryPreview, LIBRARY_PREVIEW_ORIGIN } from './libraryPreview';
+import { withD1ReadBudget, resolveD1Budget, settleD1Budget } from './d1Budget';
+import { budgetRefusal } from './d1BudgetResponse';
 interface Env extends WorkerReleaseEnv {
   DB: D1Database;
   WHATSAPP_ORDER_ACCOUNT_ID?: string;
@@ -236,7 +239,6 @@ interface Env extends WorkerReleaseEnv {
   WORDFORGE_INTEGRATION_TOKEN?: string;
   WORDFORGE_ACCOUNT_ID?: string;
 }
-
 interface RateLimiterBinding {
   limit: (opts: { key: string }) => Promise<{ success: boolean }>;
 }
@@ -1072,7 +1074,6 @@ const LISTING_MIRROR_COLUMNS: Record<string, string> = {
   quantity_purchased:    'quantity_purchased',
   source_compass_entry_id:'source_compass_entry_id',
   stock_verified_at:     'stock_verified_at',
-  sold_in_whole_units:   'sold_in_whole_units',
   is_personal:           'is_personal',
   can_reorder:           'can_reorder',
   is_public:             'is_public',
@@ -1574,7 +1575,7 @@ function cors(response: Response, origin: string | null): Response {
 }
 
 // Simple path router
-function matchRoute(method: string, path: string, routes: [string, string, Handler][]): { handler: Handler; params: Record<string, string> } | null {
+function matchRoute(method: string, path: string, routes: [string, string, Handler][]): { handler: Handler; params: Record<string, string>; pattern: string } | null {
   for (const [routeMethod, pattern, handler] of routes) {
     if (routeMethod !== method) continue;
     const patternParts = pattern.split('/');
@@ -1590,7 +1591,7 @@ function matchRoute(method: string, path: string, routes: [string, string, Handl
         break;
       }
     }
-    if (match) return { handler, params };
+    if (match) return { handler, params, pattern };
   }
   return null;
 }
@@ -2657,7 +2658,7 @@ const handleGoogleCallback: Handler = async (request, env) => {
   return Response.redirect(destination.toString(), 302);
 };
 
-const handleGetProducts: Handler = async (request, env) => {
+const handleGetProducts: Handler = async (request, env, params) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
@@ -2676,8 +2677,8 @@ const handleGetProducts: Handler = async (request, env) => {
           AND cp.target_type = 'shop'
           AND cp.unpublished_at IS NULL) AS is_featured_derived
       FROM products p
-      WHERE p.account_id = ?
-      ORDER BY p.created_at DESC`).bind(accountId),
+      WHERE p.account_id = ?${params?.id ? ' AND p.id = ?' : ''}
+      ORDER BY p.created_at DESC`).bind(accountId, ...(params?.id ? [params.id] : [])),
   ]);
   const rates = new Map<string, number>();
   for (const r of ratesResult.results as any[]) {
@@ -2703,7 +2704,7 @@ const handleGetProducts: Handler = async (request, env) => {
     }
     return addPricingFields(p, rates, shopDefaultPerKgUsd);
   });
-  return json(products);
+  return params?.id ? (products[0] ? json(products[0]) : restError(404, 'Product not found', 'product_not_found')) : json(products);
 };
 
 // Public-safe fields whitelist
@@ -9807,15 +9808,26 @@ const handleCreateCustomer: Handler = async (request, env) => {
 
   if (body.tags !== undefined) body.tags = customerTagsForStore(body.tags);
   if (Array.isArray(body.contacts)) body.contacts = JSON.stringify(body.contacts);
+  const supplier = body.type === 'supplier' || body.type === 'vendor'
+    || customerTagList(body.tags).some(tag => tag.toLowerCase() === 'vendor')
+    || parseJsonArray(body.relationship_kinds).includes('vendor');
+  if (supplier) {
+    try { body.name = cleanSupplierName(body.name); }
+    catch (error) {
+      if (error instanceof SupplierRenameRefusal) return json({ error: error.message, code: error.code }, error.status);
+      throw error;
+    }
+  }
 
   await env.DB.prepare(
-    `INSERT INTO customers (id, account_id, type, name, company, email, phone, whatsapp, address, city, country, preferred_currency, tags, notes, source, contacts)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO customers (id, account_id, type, name, chinese_name, company, email, phone, whatsapp, address, city, country, preferred_currency, tags, notes, source, contacts)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
     accountId,
     body.type || 'customer',
     body.name,
+    body.chinese_name ?? null,
     body.company || null,
     body.email || null,
     body.phone || null,
@@ -9853,6 +9865,34 @@ const handleUpdateCustomer: Handler = async (request, env, params) => {
 
   const CUSTOMER_ALLOWED_COLS = new Set(['name','chinese_name','email','phone','notes','tags','address','city','country','source','vip','preferred_currency','whatsapp','line','referred_by','type','company','contacts','business_card_photo','storefront_photo','latitude','longitude']);
   const cols = Object.keys(body).filter(k => CUSTOMER_ALLOWED_COLS.has(k));
+  const supplier = customerTagList(authorized.customer.tags).some(tag => tag.toLowerCase() === 'vendor')
+    || authorized.customer.type === 'vendor' || authorized.customer.type === 'supplier';
+  if (supplier && Object.prototype.hasOwnProperty.call(body, 'name')) {
+    try { body.name = cleanSupplierName(body.name); }
+    catch (error) {
+      if (error instanceof SupplierRenameRefusal) return json({ error: error.message, code: error.code }, error.status);
+      throw error;
+    }
+  }
+  if (supplier && Object.prototype.hasOwnProperty.call(body, 'name') && body.name !== authorized.customer.name) {
+    // A contact may be both a buyer and a supplier. Access to its buyer card
+    // does not grant permission to rename its catalogue and sourcing records.
+    const catalog = await requireBundle(request, env, 'catalog');
+    if ('error' in catalog) return catalog.error;
+    const otherCols = cols.filter(col => col !== 'name');
+    const extra = otherCols.length ? [env.DB.prepare(
+      `UPDATE customers SET ${otherCols.map(col => `${col} = ?`).join(', ')}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+    ).bind(...otherCols.map(col => body[col] ?? null), params.id, accountId)] : [];
+    try {
+      await applySupplierRename(env.DB, accountId, params.id, body.name,
+        body.expected_old_name ?? authorized.customer.name, extra);
+    } catch (error) {
+      if (error instanceof SupplierRenameRefusal) return json({ error: error.message, code: error.code }, error.status);
+      throw error;
+    }
+    await ensureRelationshipsFromCustomerBody(env, accountId, params.id, body, 'manual');
+    return json({ success: true });
+  }
   if (cols.length > 0) {
     const sets = cols.map(c => `${c} = ?`).join(', ');
     const result = await env.DB.prepare(
@@ -10133,13 +10173,22 @@ const handleGetVendorProducts: Handler = async (request, env, params) => {
 
   const result = await env.DB.prepare(`
     SELECT id, product_name, given_name, chinese_name, type, image_url,
-      origin_country, origin_region, stock_grams, status, cost_amount, cost_currency
+      origin_country, origin_region, stock_grams, status, cost_amount, cost_currency,
+      cost_currency_source, quantity_purchased, quantity_units, shipping_rate_per_kg
     FROM products
     WHERE vendor_id = ? AND account_id = ?
     ORDER BY product_name ASC
   `).bind(params.id, accountId).all();
 
-  return json(result.results);
+  const ratesResult = await env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates').all();
+  const rates = new Map<string, number>((ratesResult.results as any[]).map(r => [r.currency, r.rate_to_usd]));
+  const shopDefaultPerKgUsd = await shopFreightPerKgUsd(env, accountId, rates);
+  // Keep the supplied-products contract's raw stock/currency values. Only add
+  // the shared pricing result used by vendor economics, without a second
+  // whole-account inventory read or its collection-publication joins.
+  return json((result.results as any[]).map(row => ({
+    ...row, cost_per_gram_usd: addPricingFields(row, rates, shopDefaultPerKgUsd).cost_per_gram_usd,
+  })));
 };
 
 const handleLinkVendorProduct: Handler = async (request, env, params) => {
@@ -21672,7 +21721,7 @@ async function fetchPublicProductsForAccount(
               COALESCE(tp.experience, p.experience) AS experience,
               p.cost_amount, p.cost_currency, p.quantity_purchased,
               p.shipping_rate_per_kg, p.fixed_retail_price_usd,
-              p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.piece_weight_g,
+              p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.piece_weight_g, p.sold_in_whole_units,
               p.tasting, p.tasting_source,
               p.cultivar,
               (SELECT COUNT(*) > 0 FROM collection_items ci
@@ -22015,9 +22064,8 @@ const handleUpdatePurchaseOrder: Handler = async (request, env, params) => {
 };
 
 // ── Supplier sheet: rename a supplier everywhere, and read how it ships ──
-// The card's contact fields are edited through PUT /api/customers/:id; the name
-// is NOT, because a name copied into a dozen tables needs its own all-or-nothing
-// route (see supplierRename.ts).
+// Contact edits and this dedicated rename route both use the shared atomic
+// supplier correction, so names copied into other records cannot drift.
 
 const supplierRefusal = (e: unknown): Response | null =>
   e instanceof SupplierRenameRefusal ? json({ error: e.message, code: e.code }, e.status) : null;
@@ -29219,6 +29267,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/products/public/:id/selected-by', handleGetProductSelectedBy],
   ['GET', '/sitemap-products.xml', handleProductSitemap],
   ['GET', '/api/products', handleGetProducts],
+  ['GET', '/api/products/:id', handleGetProducts],
   ['GET', '/api/inventory/summaries', handleGetInventorySummaries],
   ['POST', '/api/products', handleCreateProduct],
   ['POST', '/api/products/bulk', handleBulkCreateProducts],
@@ -29991,7 +30040,13 @@ async function reportStaleExchangeRates(env: Env, lastRefresh?: RateRefreshResul
   await handoffToRepair(env, write);
 }
 
-export default {
+/**
+ * Every route, unchanged. The exported handler below is the only thing that
+ * wraps it, and it exists so that the per-request D1 budget is applied at the
+ * ONE place the database enters a request rather than at each of the hundreds
+ * of places a route reaches for it.
+ */
+const requestHandler = {
   async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin') || '';
@@ -30289,5 +30344,93 @@ export default {
       }
     }
 
+  },
+};
+
+/**
+ * The handler the Workers runtime sees: the routes above, under a budget.
+ *
+ * The budgeted database is built once, here, and the request is given an env
+ * carrying it, so a route cannot opt out by accident — there is no unwrapped
+ * `env.DB` downstream to reach for. The MCP handler asks for a budget too and
+ * gets this same one back, because `withD1ReadBudget` is idempotent; the point
+ * is one ledger per request however the request arrived.
+ *
+ * A request that spends its budget is REFUSED, in words, with the figures. It
+ * is the one error here that is safe to describe: no SQL, no stack, nothing a
+ * caller did not already know, and a caller who is told `rows_read` can
+ * actually narrow the question. The response explicitly forbids automatic replay; if earlier changes
+ * committed it instead requires reconciliation with the stored result.
+ */
+const budgetedHandler = {
+  async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
+    const budgeted: Env = { ...env, DB: withD1ReadBudget(env.DB, resolveD1Budget(env as unknown as Record<string, unknown>)) };
+    let response: Response | undefined;
+    let caught: unknown;
+    try { response = await requestHandler.fetch(request, budgeted, ctx); }
+    catch (error) { caught = error; }
+    await settleD1Budget(budgeted.DB);
+    const refusal = budgetRefusal(budgeted.DB, caught);
+    if (refusal) {
+      // MCP has its own JSON-RPC boundary, including swallowed auth failures.
+      const path = new URL(request.url).pathname;
+      if (response && (path === '/mcp' || path === '/mcp/public')) return response;
+      // Best-effort work after a confirmed successful mutation must not turn
+      // its committed result into an invitation to submit it again.
+      if (response?.ok && refusal.body.writes_committed && !['GET', 'HEAD'].includes(request.method)) return response;
+      console.error('D1 request refused', request.method, path, refusal.body.error);
+      return cors(json(refusal.body, refusal.status), resolveAllowedOrigin(request.headers.get('Origin') || ''));
+    }
+    if (caught) throw caught;
+    return response!;
+  },
+
+  scheduled: requestHandler.scheduled,
+};
+
+export default {
+  async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
+    // Preflight and object delivery remain independent of the database.
+    const path = new URL(request.url).pathname;
+    if (!env.DB || request.method === 'OPTIONS' || path === '/api/release' || path.startsWith('/api/media/')) {
+      return budgetedHandler.fetch(request, env, ctx);
+    }
+    const guard = guardDatabase(env.DB);
+    const unavailable = () => cors(databaseUnavailableResponse(), resolveAllowedOrigin(request.headers.get('Origin') || ''));
+    if (guard.blocked()) return unavailable();
+    try {
+      const response = await budgetedHandler.fetch(request, { ...env, DB: guard.database }, ctx);
+      // Older handlers catch DB errors themselves; never let that disguise a
+      // quota outage as invalid credentials or empty data. Preserve a confirmed
+      // successful write if only a subsequent best-effort query failed.
+      if (guard.quotaHit() && guard.writesCommitted()) {
+        const body = {
+          error: 'Earlier database changes may have completed. Refresh and check the result before making further changes.',
+          code: 'database_write_reconciliation_required', retryable: false, writes_committed: true,
+        };
+        if (path === '/mcp' || path === '/mcp/public') {
+          const rpc = await response.clone().json() as any;
+          if (rpc.error || rpc.result?.isError) return cors(json({ jsonrpc: '2.0', id: rpc.id ?? null,
+            error: { code: -32005, message: body.error, data: body } }), resolveAllowedOrigin(request.headers.get('Origin') || ''));
+        } else if (!response.ok || ['GET', 'HEAD'].includes(request.method)) {
+          return cors(json(body, 409), resolveAllowedOrigin(request.headers.get('Origin') || ''));
+        }
+      }
+      return guard.quotaHit() && (response.status >= 400 || request.method === 'GET' || request.method === 'HEAD') ? unavailable() : response;
+    } catch (error) {
+      if (guard.quotaHit()) return unavailable();
+      throw error;
+    } finally {
+      const metrics = guard.metrics();
+      if (metrics.rowsRead >= 10_000) {
+        // No SQL, bindings, query strings or user identifiers in diagnostics.
+        console.warn('D1 expensive request', { route: matchRoute(request.method, path, routes)?.pattern ?? 'non-rest', method: request.method, ...metrics });
+      }
+    }
+  },
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    const guard = guardDatabase(env.DB);
+    if (guard.blocked()) { console.error('D1 quota cooldown: scheduled work deferred'); return; }
+    await requestHandler.scheduled(event, { ...env, DB: guard.database }, ctx);
   },
 };
