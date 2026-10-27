@@ -174,7 +174,18 @@ test('supplier arrow offers Edit while closed headings retain tea counts and gra
   const collapsed = page.locator('[data-stock-group="Master Bo"]');
   await expect(collapsed.locator('.stock-group-summary')).toContainText('3 teas');
   await expect(collapsed.locator('.stock-group-summary')).toContainText('87g');
-  await expect(collapsed.locator('.stock-group-summary')).not.toContainText('$');
+  await expect(collapsed.locator('.stock-group-summary')).toContainText('$');
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({ width, height: 844 });
+    const name = await collapsed.locator('.stock-group-name').boundingBox();
+    const summary = await collapsed.locator('.stock-group-summary').boundingBox();
+    expect(summary!.y).toBeGreaterThanOrEqual(name!.y + name!.height);
+    const values = await collapsed.locator('.stock-group-summary > span').all();
+    const boxes = await Promise.all(values.map(value => value.boundingBox()));
+    expect(Math.max(...boxes.map(box => box!.y)) - Math.min(...boxes.map(box => box!.y))).toBeLessThan(1);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
   await expect(collapsed.locator('tr[data-product-id]')).toHaveCount(0);
   await page.screenshot({ path: test.info().outputPath('supplier-collapsed-heading.png') });
   await collapsed.getByRole('button', { name: 'Supplier actions for Master Bo', exact: true }).click();

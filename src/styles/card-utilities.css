@@ -5996,10 +5996,10 @@ body.cart-panel-open .commerce-dock {
 .stock-view [data-stock-group]>.stock-group-menu-head { grid-template-columns:minmax(0,1fr) 44px; gap:0; padding:2px 6px 7px; }
 .stock-group-main-toggle { display:flex; flex-direction:column; gap:4px; width:100%; min-width:0; min-height:44px; padding:4px; background:transparent; border:0; text-align:left; }
 .stock-group-main-toggle .stock-group-name { min-height:32px; align-items:center; }
-.stock-view .stock-group-main-toggle .stock-group-summary { width:calc(100% + 44px); padding:0; }
+.stock-view .stock-group-main-toggle .stock-group-summary { display:grid; grid-template-columns:1fr auto auto; width:calc(100% + 44px); padding:0; }
 .stock-group-menu-head .stock-group-actions { align-self:start; }
 .stock-view [data-stock-group][data-collapsed=true] { padding-bottom:0; }
-.stock-view [data-stock-group][data-collapsed=true]>.stock-group-menu-head { border-bottom:0; padding-bottom:2px; }
+.stock-view [data-stock-group][data-collapsed=true]>.stock-group-menu-head { border-bottom:0; }
 .stock-supplier-edit-option { display:flex; align-items:center; gap:8px; width:100%; min-height:44px; padding:8px 12px; font-size:13px; text-align:left; color:var(--tea-text-sec); }
 .stock-supplier-edit-option:hover { background:var(--tea-surface); color:var(--tea-text); }
 .stock-group-main-toggle:focus-visible { outline:2px solid var(--tea-gold); outline-offset:-2px; border-radius:4px; }
@@ -6195,7 +6195,3 @@ body.cart-panel-open .commerce-dock {
   .light .dark .stock-view .stock-record[data-card-polish="4"] { --stock-metal-l:var(--stock-strip-l); }
   .light .dark .stock-view .stock-record[data-card-polish="4"] .stock-subtitle>[data-field=type]>span { color:var(--stock-tea-label)!important; }
 }
-
-.stock-view [data-stock-group][data-collapsed=true] .stock-group-main-toggle { flex-direction:row; align-items:center; gap:8px; }
-.stock-view [data-stock-group][data-collapsed=true] .stock-group-name { min-width:0; }
-.stock-view [data-stock-group][data-collapsed=true] .stock-group-main-toggle .stock-group-summary { display:flex; width:auto; gap:8px; flex-shrink:0; white-space:nowrap; }
