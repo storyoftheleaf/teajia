@@ -1,0 +1,83 @@
+/* Effect keeps its own quiet inset material, with a visible selection mark. */
+.connected-sensations.connected-sensations-state .connected-sensation-family:not([data-sensation-group="custom"]) {
+  margin-bottom: 10px;
+  padding: 0 12px 12px;
+  border: 1px solid var(--tea-border);
+  border-radius: 12px;
+  background: linear-gradient(145deg, var(--tea-surface), color-mix(in srgb, var(--tea-surface) 55%, var(--tea-bg)));
+  box-shadow: inset 0 1px 0 var(--tea-accent-sub);
+}
+
+.connected-sensations-state .connected-sensation-heading {
+  padding-left: 2px;
+}
+
+.connected-sensations-state .connected-sensation-heading h3 {
+  color: var(--tea-text-dim);
+}
+
+.connected-sensations-state .connected-sensation-info {
+  margin-right: -10px;
+}
+
+.connected-sensations.connected-sensations-state .connected-sensation-choices {
+  gap: 5px;
+}
+
+.connected-sensations.connected-sensations-state .connected-sensation-choice {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 1px solid var(--tea-border);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--tea-bg) 60%, var(--tea-surface));
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.25;
+  text-wrap: pretty;
+}
+
+.connected-sensations.connected-sensations-state .connected-sensation-choice[aria-pressed="true"] {
+  border-color: var(--tea-gold);
+  background: var(--tea-accent-sub);
+  color: var(--tea-text);
+  box-shadow: inset 0 0 0 1px var(--tea-accent-sub);
+}
+
+.connected-sensation-mark {
+  display: flex;
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--tea-border);
+  border-radius: 50%;
+  color: var(--tea-gold);
+}
+
+.connected-sensation-mark svg { visibility: hidden; }
+.connected-sensation-choice[aria-pressed="true"] .connected-sensation-mark { border-color: transparent; }
+.connected-sensation-choice[aria-pressed="true"] .connected-sensation-mark svg { visibility: visible; }
+
+.connected-sensations-state [data-sensation-group="change"] .connected-sensation-choices {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.connected-sensations-state .connected-sensation-three .connected-sensation-choice {
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-inline: 5px;
+  text-align: center;
+}
+
+@media (hover: hover) {
+  .connected-sensations-state .connected-sensation-info:hover { color: var(--tea-text); }
+  .connected-sensations.connected-sensations-state .connected-sensation-choice:hover {
+    background: var(--tea-accent-sub);
+    border-color: var(--tea-gold);
+  }
+}

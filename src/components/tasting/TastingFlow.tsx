@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
   Circle, Leaf, Moon, Palette,
 } from 'lucide-react';
@@ -29,23 +29,6 @@ export const ALL_SECTIONS: SectionDef[] = [
   { id: 'flavor',     label: 'Taste', subtitle: 'What do you taste?',                 icon: Leaf },
   { id: 'appearance', label: 'Storage',   subtitle: 'Storage character and appearance',    icon: Palette },
 ];
-
-/* ─── Transition variants ─── */
-
-const sectionVariants = {
-  enter: (direction: number) => ({
-    x: direction > 0 ? 60 : -60,
-    opacity: 0,
-  }),
-  center: { x: 0, opacity: 1 },
-  // No exit variant on purpose. See the swap comment further down: sections are
-  // replaced outright, so nothing ever animates out.
-};
-
-const sectionTransition = {
-  x: { type: 'spring' as const, stiffness: 260, damping: 28, mass: 0.8 },
-  opacity: { duration: 0.12 },
-};
 
 /* ─── Props ─── */
 
@@ -83,22 +66,7 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
 
   const activeIdx = sections.findIndex((s) => s.id === activeSectionId);
 
-  /* ─── Slide direction ───────────────────────────────────────────────────
-   *
-   * Worked out during the render that changes section, NOT in an effect
-   * afterwards. The effect version stored a fresh timestamp beside the
-   * direction, and that timestamp was part of the panel's key, so one tap
-   * changed the key twice: once for the new section, then again a frame later.
-   * A ref read and written in render keeps one section change to one key
-   * change, which is what a keyed swap needs to be predictable. */
-  const prevSectionRef = useRef<SectionId>(activeSectionId);
-  const directionRef = useRef(0);
-  if (prevSectionRef.current !== activeSectionId) {
-    const prevIdx = sections.findIndex((s) => s.id === prevSectionRef.current);
-    directionRef.current = activeIdx > prevIdx ? 1 : -1;
-    prevSectionRef.current = activeSectionId;
-  }
-  const direction = directionRef.current;
+  const reducedMotion = useReducedMotion();
 
   /* ─── Count helpers ─── */
 
@@ -210,11 +178,9 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
               nothing has to finish before the next section can appear. */}
           <motion.div
             key={activeSection.id}
-            custom={direction}
-            variants={sectionVariants}
-            initial="enter"
-            animate="center"
-            transition={sectionTransition}
+            initial={reducedMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: reducedMotion ? 0 : 0.16 }}
             className={`pb-4 pt-3 ${activeSection.id === 'flavor' ? 'px-1.5' : 'px-4'}`}
           >
             {renderSectionContent(activeSection.id)}
