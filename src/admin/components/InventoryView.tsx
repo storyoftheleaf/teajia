@@ -1,5 +1,8 @@
 import { StockHeadingStudy } from './inventory/stock/StockHeadingStudy';
+import type { InventoryFacetFilter } from './inventory/domain';
+import { StockBrowseBar } from './inventory/stock/StockBrowseBar';
 import { StockViewOptions } from './inventory/stock/StockViewOptions';
+import { UnknownSupplierSheet } from './inventory/stock/UnknownSupplierSheet';
 import { formPricingPreview } from './inventory/stock/formPricingModel';
 import type { FormPricingChanges } from './inventory/stock/FormPricingSheet';
 import { CurateSamplesView } from './CurateSamplesView';
@@ -11,7 +14,7 @@ import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Download,
   AlertTriangle, Archive, ArrowUpDown, ArrowUp, ArrowDown, Layers, MoreHorizontal, Check, X as XIcon, Star, Sparkles, RefreshCw, ChevronDown, ChevronRight, MapPin, Search, Leaf, Image as ImageIcon, History, SlidersHorizontal,
-  Pencil, BookOpen,
+  Pencil, BookOpen, ChevronsUp, ChevronsDown,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Papa from 'papaparse';
@@ -85,7 +88,7 @@ import { StockMovementPanel } from './inventory/StockMovementPanel';
 import { InventorySourcePanel } from './inventory/InventorySourcePanel';
 import { SupplierSheet } from '../../components/shared/SupplierSheet';
 import { TastingSession } from '../../components/tasting/TastingSession';
-import { adaptInventorySummaryRows, buildPersonalJournalHref, getPersonalTastingAction, inventorySummaryStatusMessage, isInventoryPublicationGateChangeAllowed, isInventorySelectionPublishable } from './inventory/domain';
+import { adaptInventorySummaryRows, inventoryMatchesFacetFilter, buildPersonalJournalHref, getPersonalTastingAction, inventorySummaryStatusMessage, isInventoryPublicationGateChangeAllowed, isInventorySelectionPublishable } from './inventory/domain';
 import type { IncomingInventorySummary, InventorySummaryRow, InventorySummaryStatus, InventoryWritingSummary, PersonalTastingSummary } from './inventory/domain';
 
 interface InventoryViewProps {
@@ -205,6 +208,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // --- STATE ---
   const [searchParams, setSearchParams] = useSearchParams();
   const vendorFilter = searchParams.get('vendor') || '';
+  const teaTypeFilter = searchParams.get('teaType') || '';
+  const tastingValue = searchParams.get('tasting') || '';
+  const tastingFilter: InventoryFacetFilter | '' = ['Untasted', 'Tasted', 'HasProductTasting', 'NeedsProductTasting'].includes(tastingValue) ? tastingValue as InventoryFacetFilter : '';
   const batchFilter = searchParams.get('batch') || '';
   const panelParam = searchParams.get('panel') || '';
   // A wisdom entry as a filter, in the same shape as vendor and batch: the
@@ -239,7 +245,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const vendorSuggestions = useMemo(() => {
     const counts = new Map<string, number>();
     for (const product of products) {
-      if (product.vendor && product.status !== 'Archived') counts.set(product.vendor, (counts.get(product.vendor) || 0) + 1);
+      const name = product.vendor?.trim();
+      if (name && product.status !== 'Archived') counts.set(name, (counts.get(name) || 0) + 1);
     }
     return [...counts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
   }, [products]);
@@ -404,7 +411,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
    */
   const contextChips = useMemo(() => {
     const chips: Array<{ key: string; kind: string; label: string; back?: string }> = [];
-    if (vendorFilter) chips.push({ key: 'vendor', kind: 'Source', label: vendorFilter });
     if (batchFilter) chips.push({ key: 'batch', kind: 'Batch', label: activeBatch?.label || 'Batch' });
     if (wisdomFilter) {
       chips.push({
@@ -517,6 +523,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // rename him everywhere, edit his contact, and see how he ships. It carries the
   // product it was opened from so "Stock from …" can open the supplier page.
   const [supplierSheetProduct, setSupplierSheetProduct] = useState<Product | null>(null);
+  const [unknownSupplierProducts, setUnknownSupplierProducts] = useState<Product[] | null>(null);
   const [supplierSheetMode, setSupplierSheetMode] = useState<'details' | 'rename'>('details');
   // Inline quick-edit, opened by a long-press on a row. Holds the id of the one
   // row that is currently expanded; the panel slides down directly under it.
@@ -723,7 +730,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const curateSampleHoldings = useQuery<SampleHolding[]>({
     queryKey: ['curate-samples-only', sampleAccountId],
     queryFn: () => api.curateWorkspace.allHoldings(true),
-    enabled: samplesOnTable && !!sampleAccountId,
+    enabled: filterType === 'Samples' && !!sampleAccountId,
   });
   const [showRejectedSamples, setShowRejectedSamples] = useState(false);
   // The one sample row open on the table; closed rows read like any Stock row.
@@ -736,7 +743,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     const linked = new Set(localProducts.map((p) => linkedEntryId(p, compassEntries)).filter(Boolean) as string[]);
     const productIds = new Set(localProducts.map((p) => p.id));
     const curateRows = holdings
-      .filter((h) => !linked.has(String(h.entry.id)) && !(h.entry.draft_product_id && productIds.has(String(h.entry.draft_product_id))))
+      .filter((h) => (!vendorFilter || String(h.entry.vendor_name ?? '').trim().toLowerCase() === vendorFilter.trim().toLowerCase()) && !linked.has(String(h.entry.id)) && !(h.entry.draft_product_id && productIds.has(String(h.entry.draft_product_id))))
       .map((h) => {
         const p = curateHoldingAsProduct(h, compassEntries.find((e) => e.id === h.entry.id) ?? null);
         // rateToUsd is units of that money per dollar, so dollars = amount / rate.
@@ -752,7 +759,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       return showRejectedSamples;
     });
     return { tableProducts: kept, rejectedSampleCount: rejected };
-  }, [samplesOnTable, localProducts, curateSampleHoldings.data, compassEntries, rates, showRejectedSamples]);
+  }, [samplesOnTable, localProducts, curateSampleHoldings.data, compassEntries, rates, showRejectedSamples, vendorFilter]);
 
   const {
     activeColumnDefs,
@@ -768,6 +775,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     inventoryCategory,
     searchQuery,
     filterType,
+    teaTypeFilter: inventoryCategory === 'tea' ? teaTypeFilter : '',
+    tastingFilter: inventoryCategory === 'tea' ? tastingFilter : '',
     inventorySortConfig,
     inventoryColumns,
     inventoryGroupBy,
@@ -879,7 +888,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   const renderCols = useMemo(() => {
     if (isMobile && splitView) return splitViewCols;
-    if (unifiedLayout && inventoryCategory === 'tea' && filterType === 'All') {
+    if (isMobile && unifiedLayout && inventoryCategory === 'tea' && filterType === 'All') {
       const byKey = new Map<string, ColDef>(visibleCols.map(c => [c.key, c]));
       // Source (vendor) and Leaf (form) aren't in the desktop All view's columns,
       // so pull their ColDefs from TEA_COLUMN_DEFS to show them on the mobile swipe.
@@ -919,7 +928,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [renderCols, inventoryMobileColWidths],
   );
-  const mobileTableStyle = unifiedLayout ? { minWidth: mobileTableMinWidth } : undefined;
+  const mobileTableStyle = isMobile && unifiedLayout ? { minWidth: mobileTableMinWidth } : undefined;
 
   // A lifecycle heading ("Published", "Ready, private", …) is a label for the
   // section beneath it, not a row of data, so it must read the same at every
@@ -944,7 +953,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   }, [mobileHScroll]);
 
   const renderColEl = (col: ColDef) =>
-    unifiedLayout
+    isMobile && unifiedLayout
       ? <col key={col.key} style={{ width: mobileColPxWidth(col.key) }} />
       : <col key={col.key} className={col.defaultWidth} />;
 
@@ -1633,7 +1642,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Canonical column header, font-serif text-ui-11 uppercase tracking-display text-tea-text-sec.
   // Numeric columns (grams, retail/g, cost, capacity, units) right-align; everything else left.
   const RIGHT_ALIGN_KEYS = new Set([
-    'stockGrams', 'pricePerGramUSD', 'costAmount', 'costPerGramUSD', 'capacityMl', 'quantityUnits',
+    'stockGrams', 'pricePerGramUSD', 'costAmount', 'costPerGramUSD', 'shippingRatePerKg', 'capacityMl', 'quantityUnits',
   ]);
   const SortHeader = ({ colKey, label, align: alignProp, sticky, forceLeft, resizable }: { colKey: keyof Product, label: string, align?: 'left' | 'right' | 'center', sticky?: boolean, forceLeft?: boolean, resizable?: boolean }) => {
       // On the mobile swipe table every column reads left-aligned (Adrian's call:
@@ -2180,6 +2189,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Big, thumb-reachable action row for the mobile bottom sheets.
   const actionRow = 'w-full flex items-center gap-3 px-3 py-3.5 rounded-xl text-left text-base transition-colors disabled:opacity-50';
 
+  const stockViews = (savedViews.length > 0 ? savedViews : activeDefaultViews).filter(view => inventoryCategory === 'teaware' ? view.id.includes('teaware') : !view.id.includes('teaware'));
+  const stockViewLabel = (view: typeof stockViews[number]) => view.filterType === 'All' ? (inventoryCategory === 'tea' ? 'All teas' : 'All teaware') : view.filterType === 'Working' ? 'Shop stock' : view.name || VIEW_FILTER_LABELS[view.filterType] || view.filterType;
+  const selectStockView = (view: typeof stockViews[number]) => { setGlossaryMode(false); setActiveView(view.id); setFilterType(view.filterType); };
   const currentSort = inventorySortConfig[0] || { key: 'productName' as keyof Product, direction: 'asc' as const };
   const adjustMenu = <>
     <button type="button" onClick={() => setShowAdjust(true)} aria-haspopup="dialog" aria-expanded={showAdjust} className="tap-target inline-flex shrink-0 items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text" aria-label="View options"><SlidersHorizontal size={15} aria-hidden="true" />View options</button>
@@ -2191,6 +2203,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       onSortChange={key => setInventorySortConfig([{ key: key as keyof Product, direction: currentSort.direction }])}
       onSortDirectionChange={direction => setInventorySortConfig([{ key: currentSort.key, direction }])}
       priceMode={priceMode} onPriceModeChange={setPriceMode}
+
       columns={isMobile ? undefined : activeColumnDefs.map(col => ({ key: col.key, label: col.label, checked: inventoryColumns.includes(col.key), disabled: 'alwaysVisible' in col && col.alwaysVisible }))}
       onColumnChange={toggleInventoryColumn}
       previewCurrency={{ value: currency, options: rates.map(rate => rate.currency), onChange: value => setCurrency(value as typeof currency) }}
@@ -2336,9 +2349,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       );
                     })()}
 
-                    <button type="button" onClick={openIncoming} className="tap-target inline-flex items-center font-mono text-ui-9 text-tea-text-sec hover:text-tea-text md:text-ui-11">
-                      Incoming
-                    </button>
+
 
                     {/* find, mobile icon (desktop uses the field above; md:!hidden beats .tap-target) */}
                     <button ref={isMobile ? mobileSearchTriggerRef : undefined} type="button" onClick={() => setMobileSearchExpanded(true)} aria-label="Search inventory" className="tap-target md:!hidden text-tea-text hover:text-tea-text"><Search size={phoneList ? 22 : 18} /></button>
@@ -2352,6 +2363,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         six non-overlapping 44px targets at 390px. */}
                     <button type="button" onClick={onAddClick} aria-label="Add new tea" className="tap-target !hidden md:!inline-flex items-center gap-1 text-tea-gold hover:text-tea-gold-lt"><Plus size={18} /><span className="font-mono text-ui-11 uppercase tracking-[0.08em]">Add</span></button>
 
+                    <button type="button" onClick={() => setShowAdjust(true)} aria-label="View options" title="Arrange Stock" aria-haspopup="dialog" aria-expanded={showAdjust} className="tap-target text-tea-text-sec hover:text-tea-text"><SlidersHorizontal size={18} aria-hidden="true" /></button>
+                    {groupedProducts && groupedProducts.length > 0 && <button type="button" className="tap-target text-tea-text-sec hover:text-tea-text" aria-label={groupedProducts.every(group => collapsedGroups.has(group.key)) ? 'Expand all' : 'Collapse all'} title={groupedProducts.every(group => collapsedGroups.has(group.key)) ? 'Expand all' : 'Collapse all'} onClick={() => setSearchParams(params => withInventoryFold(params, groupedProducts.every(group => collapsedGroups.has(group.key)) ? new Set() : new Set([...collapsedGroups, ...groupedProducts.map(group => group.key)])), { replace: true })}>{groupedProducts.every(group => collapsedGroups.has(group.key)) ? <ChevronsDown size={18} aria-hidden="true" /> : <ChevronsUp size={18} aria-hidden="true" />}</button>}
                     {/* overflow */}
                     <button type="button" onClick={() => setShowOptions(!showOptions)} aria-label="Open inventory actions" aria-expanded={showOptions} className="tap-target text-tea-text-sec hover:text-tea-text"><MoreHorizontal size={18} /></button>
 
@@ -2365,10 +2378,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
             {/* Tier 2, lens rail + shape controls */}
             {(() => {
-              const allViews = savedViews.length > 0 ? savedViews.filter(v => inventoryCategory === 'teaware' ? v.id.includes('teaware') : !v.id.includes('teaware')) : activeDefaultViews;
-              const selectView = (view: typeof allViews[number]) => { setGlossaryMode(false); setActiveView(view.id); setFilterType(view.filterType); };
+              const allViews = stockViews;
+              const selectView = selectStockView;
               const current = allViews.find(view => view.id === activeViewId);
-              const viewLabel = (view: typeof allViews[number]) => view.filterType === 'All' ? (inventoryCategory === 'tea' ? 'All teas' : 'All teaware') : view.filterType === 'Working' ? 'Shop stock' : view.name || VIEW_FILTER_LABELS[view.filterType] || view.filterType;
+              const viewLabel = stockViewLabel;
               const groupLabel = phoneList ? PHONE_GROUP_LABELS[phoneGroupBy] : GROUPBY_OPTIONS.find(option => option.value === (inventoryGroupBy || ''))?.label;
               const sortLabel = SORT_OPTIONS.find(([key]) => key === currentSort.key)?.[1] || 'Name';
               const headingStudy = import.meta.env.DEV ? Number(searchParams.get('headingStudy')) : 0;
@@ -2382,15 +2395,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 onOptions={() => setShowAdjust(true)}
               /><div className="heading-study-options-host">{adjustMenu}</div></>;
               return (
-                <div data-testid="inventory-purpose-row" data-inventory-header-row className="stock-view-bar">
-                  <label className="stock-current-view"><span className="sr-only">Show teas</span><select aria-label="Show teas" value={current?.id || allViews[0]?.id || ''} onChange={event => { const view = allViews.find(v => v.id === event.target.value); if (view) selectView(view); }}>
-                    {allViews.map(view => <option key={view.id} value={view.id}>{viewLabel(view)}</option>)}
-                  </select></label>
-                  <button type="button" onClick={() => setShowAdjust(true)} aria-label="View options" aria-haspopup="dialog" aria-expanded={showAdjust} className="stock-arrangement-button">
-                    <span>{groupLabel === 'Vendor' ? 'Supplier' : groupLabel && groupLabel !== 'None' ? groupLabel : 'Ungrouped'} · {sortLabel} {currentSort.direction === 'asc' ? '↑' : '↓'}</span><ChevronDown size={13} aria-hidden="true" />
-                  </button>
+                <StockBrowseBar tea={inventoryCategory === 'tea'} type={teaTypeFilter}
+                  types={[...new Set([...products.filter(product => product.type !== 'Teaware').map(product => product.type), ...(filterType === 'Samples' ? (curateSampleHoldings.data ?? []).map(holding => String(holding.entry.type ?? '')) : [])].filter(Boolean))].sort((a, b) => a.localeCompare(b))}
+                  onType={value => setSearchParams(params => withParam(params, 'teaType', value || null), { replace: true })}
+                  supplier={vendorFilter} suppliers={[...new Set([...vendorSuggestions.map(supplier => supplier.name), ...(filterType === 'Samples' ? (curateSampleHoldings.data ?? []).map(holding => String(holding.entry.vendor_name ?? '').trim()).filter(Boolean) : []), ...(vendorFilter ? [vendorFilter] : [])])].sort((a, b) => a.localeCompare(b))}
+                  onSupplier={value => setSearchParams(params => withParam(params, 'vendor', value || null), { replace: true })}
+                  view={current?.id || allViews[0]?.id || ''} views={allViews.map(view => ({ value: view.id, label: viewLabel(view), filter: view.filterType }))}
+                  onView={id => { const view = allViews.find(view => view.id === id); if (view) selectView(view); }}
+                  tasting={tastingFilter} onTasting={value => setSearchParams(params => withParam(params, 'tasting', value || null), { replace: true })}>
                   <div className="heading-study-options-host">{adjustMenu}</div>
-                </div>
+                </StockBrowseBar>
               );
             })()}
           </div>
@@ -2413,6 +2427,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 tabIndex={-1}
                 ref={(el) => el?.focus()}
               >
+                  <button type="button" onClick={openIncoming} className="px-3 py-2 text-left text-ui-12 text-tea-text-sec hover:bg-tea-bg flex items-center gap-2"><Layers size={15} aria-hidden="true" />Incoming</button>
+                  <button type="button" onClick={() => { setShowOptions(false); navigate('/account/journal'); }} className="px-3 py-2 text-left text-ui-12 text-tea-text-sec hover:bg-tea-bg flex items-center gap-2"><BookOpen size={15} aria-hidden="true" />Tasting library</button>
                   {!isEditMode && (
                     <button onClick={() => { setIsEditMode(true); setShowOptions(false); }} className="px-3 py-2 text-left text-ui-11 text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
                       <Pencil size={13} /> Edit table
@@ -2460,6 +2476,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             {isMobile && (
               <BottomSheet open={showOptions} onOpenChange={setShowOptions} title="Inventory actions">
                 <div className="px-1">
+                  <button type="button" onClick={openIncoming} className={`${actionRow} text-tea-text hover:bg-tea-surface`}><Layers size={18} aria-hidden="true" />Incoming</button>
+                  <button type="button" onClick={() => { setShowOptions(false); navigate('/account/journal'); }} className={`${actionRow} text-tea-text hover:bg-tea-surface`}><BookOpen size={18} aria-hidden="true" />Tasting library</button>
                   <button onClick={() => { onAddClick(); setShowOptions(false); }} className={`${actionRow} text-tea-text hover:bg-tea-gold/[0.06]`}><Plus size={18} className="shrink-0 text-tea-gold" /> Add tea</button>
                   <button onClick={() => { setFilterType(filterType === 'Pending' ? 'All' : 'Pending'); setShowOptions(false); }} className={`${actionRow} ${filterType === 'Pending' ? 'text-tea-gold bg-tea-gold/[0.10]' : 'text-tea-text hover:bg-tea-gold/[0.06]'}`}><Sparkles size={18} className={`shrink-0 ${filterType === 'Pending' ? 'text-tea-gold' : 'text-tea-text-sec'}`} /> <span className="flex-1">Pending AI</span>{pendingCount > 0 && <span className="font-mono text-ui-11 text-tea-gold bg-tea-gold/10 rounded-full px-2 py-0.5">{pendingCount}</span>}</button>
                   <div className="h-px bg-tea-border my-1.5 mx-3" />
@@ -2831,6 +2849,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               embedded
               rowsOnly
               products={processedProducts}
+              allProducts={localProducts}
+              matchesHolding={(product, holding) => (!teaTypeFilter || product.type === teaTypeFilter)
+                && (!vendorFilter || product.vendor?.trim().toLowerCase() === vendorFilter.trim().toLowerCase())
+                && (!tastingFilter || inventoryMatchesFacetFilter(product, tastingFilter,
+                  effectivePersonalTastingByProductId[product.id] ?? { count: tastingJournal.filter(entry => !entry.archived && entry.compassEntryId === holding.entry.id && (!entry.accountId || entry.accountId === tastingAccountId)).reduce((count, entry) => count + Math.max(1, entry.tastings?.length ?? 0), 0) },
+                  { description: !!product.description?.trim(), draftArticleCount: 0, publishedArticleCount: 0 }))}
               onOpenProduct={stableOpenPanel}
               onProductUpdate={handleProductUpdate}
               onOpenSupplier={(vendorId, name) => setSupplierSheetProduct({ id: `supplier:${vendorId ?? name}`, vendor: name, vendorId: vendorId ?? undefined } as Product)}
@@ -2902,7 +2926,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <thead data-testid="inventory-column-row" data-inventory-header-row className="bg-tea-surface md:bg-tea-bg">
                   <tr>
                     {renderCols.map((col, i) => (
-                      <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} sticky={mobileHScroll && i === 0} forceLeft={unifiedLayout} resizable={mobileHScroll} />
+                      <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} sticky={mobileHScroll && i === 0} forceLeft={isMobile && unifiedLayout} resizable={mobileHScroll} />
                     ))}
                   </tr>
                 </thead>
@@ -2918,11 +2942,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="stock-group-head stock-group-menu-head">
                       <button type="button" className="stock-group-main-toggle" aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${groupLabel}`} aria-expanded={!isCollapsed} onClick={() => toggleCollapsedGroup(groupKey)}>
                         <span className="stock-group-name">{groupLabel}</span>
-                        <span className="stock-group-summary"><span>{items.length} {inventoryCategory === 'teaware' ? 'items' : items.length === 1 ? 'tea' : 'teas'}</span><span>{totalStock}{inventoryCategory === 'teaware' ? ' units' : 'g'}</span>{!isCollapsed && <span>${fmtNum(totalRetail)}</span>}</span>
+                        <span className="stock-group-summary"><span>{items.length} {inventoryCategory === 'teaware' ? 'items' : items.length === 1 ? 'tea' : 'teas'}</span><span>{totalStock}{inventoryCategory === 'teaware' ? ' units' : 'g'}</span><span>${fmtNum(totalRetail)}</span></span>
                       </button>
                       <div className="stock-group-actions">
-                        {inventoryGroupBy === 'vendor' && items.some(product => product.vendor) ? <AnchoredMenu align="right" width={180} trigger={props => <button {...props} type="button" className="tap-target" aria-label={`Supplier actions for ${groupLabel}`}><ChevronDown size={16} aria-hidden="true"/></button>}>
-                          {close => <button type="button" role="menuitem" className="stock-supplier-edit-option" onClick={() => { close(); setSupplierSheetMode('rename'); setSupplierSheetProduct(items.find(product => product.vendor)!); }}><Pencil size={15} aria-hidden="true"/>Edit supplier name</button>}
+                        {inventoryGroupBy === 'vendor' ? <AnchoredMenu align="right" width={180} trigger={props => <button {...props} type="button" className="tap-target" aria-label={`Supplier actions for ${groupLabel}`}><ChevronDown size={16} aria-hidden="true"/></button>}>
+                          {close => <button type="button" role="menuitem" className="stock-supplier-edit-option" onClick={() => { close(); const supplier = items.find(product => product.vendor?.trim()); if (supplier) { setSupplierSheetMode('rename'); setSupplierSheetProduct(supplier); } else setUnknownSupplierProducts(items); }}><Pencil size={15} aria-hidden="true"/>{items.some(product => product.vendor?.trim()) ? 'Edit supplier name' : 'Assign suppliers'}</button>}
                         </AnchoredMenu> : <button type="button" className="tap-target" aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} group ${groupLabel}`} onClick={() => toggleCollapsedGroup(groupKey)}>{isCollapsed ? <ChevronRight size={16}/> : <ChevronDown size={16}/>}</button>}
                       </div>
                     </div>
@@ -2952,7 +2976,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   splitViewCols={renderSplitCols}
                                   splitView={splitView}
                                   stickyFirstCol={mobileHScroll}
-                                  alignLeft
+                                  alignLeft={isMobile}
                                   legacyMobileLayout={false}
                                   rowHeight={effectiveRowHeight}
                                   isPanelOpen={panelProduct?.id === product.id}
@@ -3028,7 +3052,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           ))
                         ) : (
                           renderCols.map((col, i) => (
-                            <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} sticky={mobileHScroll && i === 0} forceLeft={unifiedLayout} resizable={mobileHScroll} />
+                            <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} sticky={mobileHScroll && i === 0} forceLeft={isMobile && unifiedLayout} resizable={mobileHScroll} />
                           ))
                         )}
                     </tr>
@@ -3051,7 +3075,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               splitViewCols={renderSplitCols}
                               splitView={splitView}
                               stickyFirstCol={mobileHScroll}
-                              alignLeft
+                              alignLeft={isMobile}
                               legacyMobileLayout={false}
                               rowHeight={effectiveRowHeight}
                               isPanelOpen={panelProduct?.id === product.id}
@@ -3257,6 +3281,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           if (idx > 0) setDetailsProduct(processedProducts[idx - 1]);
         }) : undefined}
       />
+
+      {unknownSupplierProducts && <UnknownSupplierSheet products={unknownSupplierProducts} onSave={(id, name) => handleProductUpdate(id, 'vendor', name, { throwOnError: true })} onClose={() => setUnknownSupplierProducts(null)} />}
 
       {supplierSheetProduct?.vendor && (
         <SupplierSheet

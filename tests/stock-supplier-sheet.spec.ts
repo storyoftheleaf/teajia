@@ -174,7 +174,18 @@ test('supplier arrow offers Edit while closed headings retain tea counts and gra
   const collapsed = page.locator('[data-stock-group="Master Bo"]');
   await expect(collapsed.locator('.stock-group-summary')).toContainText('3 teas');
   await expect(collapsed.locator('.stock-group-summary')).toContainText('87g');
-  await expect(collapsed.locator('.stock-group-summary')).not.toContainText('$');
+  await expect(collapsed.locator('.stock-group-summary')).toContainText('$');
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({ width, height: 844 });
+    const name = await collapsed.locator('.stock-group-name').boundingBox();
+    const summary = await collapsed.locator('.stock-group-summary').boundingBox();
+    expect(summary!.y).toBeGreaterThanOrEqual(name!.y + name!.height);
+    const values = await collapsed.locator('.stock-group-summary > span').all();
+    const boxes = await Promise.all(values.map(value => value.boundingBox()));
+    expect(Math.max(...boxes.map(box => box!.y)) - Math.min(...boxes.map(box => box!.y))).toBeLessThan(1);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
   await expect(collapsed.locator('tr[data-product-id]')).toHaveCount(0);
   await page.screenshot({ path: test.info().outputPath('supplier-collapsed-heading.png') });
   await collapsed.getByRole('button', { name: 'Supplier actions for Master Bo', exact: true }).click();
@@ -230,4 +241,72 @@ test('typing a supplier spelling in one tea does not silently create or assign a
   expect(creations).toBe(0);
   await page.getByRole('button', { name: 'Correct name everywhere', exact: true }).click();
   await expect(page.getByTestId('supplier-sheet').getByLabel('New name')).toHaveValue('Master Bo');
+});
+
+test('Stock shortcuts, smaller view menu and missing suppliers remain connected', async ({ page }) => {
+  await prepare(page);
+  const shelf = MOCK_PRODUCTS.slice(0, 3).map((product, index) => ({ ...product, vendor: index < 2 ? (index ? '  ' : '') : 'Master Bo', vendor_id: index < 2 ? null : 'bo' }));
+  const writes: Array<{ id: string; vendor: string }> = [];
+  await page.route('**/api/products', route => route.fulfill({ json: shelf }));
+  await page.route('**/api/customers', route => route.fulfill({ json: [{ id: 'bo', name: 'Master Bo', tags: ['vendor'] }] }));
+  await page.route('**/api/products/*/commercial', route => {
+    const id = new URL(route.request().url()).pathname.split('/')[3];
+    const body = route.request().postDataJSON();
+    writes.push({ id, vendor: body.vendor });
+    Object.assign(shelf.find(product => product.id === id)!, body);
+    return route.fulfill({ json: { success: true } });
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/admin/stock');
+  await page.locator('tr[data-product-id]').first().waitFor();
+  await page.evaluate(async () => {
+    const { useAppStore } = await import('/src/lib/store.ts');
+    useAppStore.getState().setInventoryGroupBy('vendor');
+  });
+  await expect(page.locator('[data-stock-group="Unknown"]')).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Show teas', exact: true }).locator('option')).toHaveCount(18);
+  await page.getByRole('combobox', { name: 'Tea type', exact: true }).selectOption(shelf[0].type);
+  await expect(page.locator('tr[data-product-id]')).toHaveCount(1);
+  await page.getByRole('combobox', { name: 'Supplier', exact: true }).selectOption('Master Bo');
+  await expect(page.locator('tr[data-product-id]')).toHaveCount(0);
+  await expect(page.getByRole('combobox', { name: 'Tea type', exact: true })).toHaveValue(shelf[0].type);
+  await page.getByRole('combobox', { name: 'Supplier', exact: true }).selectOption('');
+  await expect(page).not.toHaveURL(/vendor=/);
+  await expect(page.getByRole('combobox', { name: 'Supplier', exact: true })).toHaveValue('');
+  await page.getByRole('combobox', { name: 'Tea type', exact: true }).selectOption('');
+  await expect(page.locator('tr[data-product-id]')).toHaveCount(3);
+  await page.getByRole('button', { name: 'Collapse all', exact: true }).click();
+  await expect(page.locator('tr[data-product-id]')).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator('[data-stock-group="Unknown"][data-collapsed="true"]')).toBeVisible();
+  await page.getByRole('button', { name: 'Expand all', exact: true }).click();
+  await expect(page.locator('tr[data-product-id]')).toHaveCount(3);
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({ width, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+    expect((await page.getByTestId('inventory-purpose-row').boundingBox())!.height).toBe(48);
+    await expect(page.getByRole('combobox', { name: 'Tea type', exact: true })).toBeVisible();
+    await expect(page.getByRole('combobox', { name: 'Supplier', exact: true })).toBeVisible();
+    await expect(page.getByRole('combobox', { name: 'Tasting status', exact: true })).toBeVisible();
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'View options', exact: true }).click();
+  await expect(page.getByText('More filters', { exact: true })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Supplier actions for Unknown', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Assign suppliers', exact: true }).click();
+  const sheet = page.getByRole('dialog', { name: 'Unknown supplier', exact: true });
+  const picker = sheet.getByRole('textbox', { name: 'Supplier for this tea' }).first();
+  await picker.fill('Master');
+  await sheet.getByRole('button', { name: 'Master Bo', exact: true }).click();
+  await sheet.getByRole('button', { name: `Save supplier for ${shelf[0].product_name}`, exact: true }).click();
+  await expect.poll(() => writes.length).toBe(1);
+  expect(writes[0]).toEqual({ id: shelf[0].id, vendor: 'Master Bo' });
+  await page.keyboard.press('Escape');
+  await expect(page.locator('[data-stock-group="Unknown"] tr[data-product-id]')).toHaveCount(1);
+  await expect(page.locator('[data-stock-group="Master Bo"] tr[data-product-id]')).toHaveCount(2);
+  await page.screenshot({ path: test.info().outputPath('stock-simplified-and-unknown.png') });
+  await page.getByRole('button', { name: 'Open inventory actions', exact: true }).click();
+  await page.getByRole('button', { name: 'Tasting library', exact: true }).click();
+  await expect(page).toHaveURL(/\/account\/journal$/);
 });

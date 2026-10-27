@@ -11,7 +11,7 @@ import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { PhoneSamplesList } from './inventory/phone/PhoneSamplesList';
 import type { PhoneGroupBy } from './inventory/phone/groupStock';
 import type { Product } from '../types';
-import { linkedEntryId, productSampleHolding } from './inventory/sampleRows';
+import { curateHoldingAsProduct, linkedEntryId, productSampleHolding } from './inventory/sampleRows';
 import { linkProductToCurate } from './inventory/phone/sampleDecisions';
 
 type Portion = { id: string; name: string; grams: number | null; status: string; compass_entry_id: string };
@@ -22,7 +22,7 @@ const control = 'min-h-11 w-full rounded-md border border-tea-border bg-tea-bg p
 const button = 'tap-target min-h-11 rounded-md px-3 text-ui-13 text-tea-text-sec hover:bg-tea-accent-sub focus-visible:outline focus-visible:outline-tea-gold disabled:opacity-50';
 const categories = TASTING_TAXONOMY.categories.filter(c => ['body','finish','feeling','flavor','liquor-color'].includes(c.id));
 
-export function CurateSamplesView({ search = '', groupBy = 'vendor', embedded = false, rowsOnly = false, sortKey = null, sortDir = 'asc', onCount, products = [], onOpenProduct, onProductUpdate, onOpenSupplier }: { search?: string; groupBy?: PhoneGroupBy; embedded?: boolean; rowsOnly?: boolean; sortKey?: string | null; sortDir?: 'asc' | 'desc'; onCount?: (n: number) => void; products?: Product[]; onOpenProduct?: (p: Product) => void; onProductUpdate?: (id: string, field: keyof Product, value: unknown) => void; onOpenSupplier?: (vendorId: string | null, name: string) => void }) {
+export function CurateSamplesView({ search = '', groupBy = 'vendor', embedded = false, rowsOnly = false, sortKey = null, sortDir = 'asc', onCount, products = [], allProducts = products, matchesHolding, onOpenProduct, onProductUpdate, onOpenSupplier }: { search?: string; groupBy?: PhoneGroupBy; embedded?: boolean; rowsOnly?: boolean; sortKey?: string | null; sortDir?: 'asc' | 'desc'; onCount?: (n: number) => void; products?: Product[]; allProducts?: Product[]; matchesHolding?: (product: Product, holding: Holding) => boolean; onOpenProduct?: (p: Product) => void; onProductUpdate?: (id: string, field: keyof Product, value: unknown) => void; onOpenSupplier?: (vendorId: string | null, name: string) => void }) {
  const accountId = useAppStore(s => s.activeAccountId);
  const client = useQueryClient();
  const holdings = useQuery<Holding[]>({ queryKey: ['curate-samples-only', accountId], queryFn: () => api.curateWorkspace.allHoldings(true), enabled: !!accountId });
@@ -86,8 +86,17 @@ export function CurateSamplesView({ search = '', groupBy = 'vendor', embedded = 
  // is never shown twice.
  const productRows = useMemo(() => products.map(p => productSampleHolding(p, linkedEntryId(p, compassEntries))), [products, compassEntries]);
  const productById = useMemo(() => new Map(products.map(p => [p.id, p])), [products]);
- const linkedIds = new Set(productRows.map(h => String(h.entry.id)));
- const allRows = [...productRows, ...(holdings.data ?? []).filter(h => !linkedIds.has(String(h.entry.id)) && !(h.entry.draft_product_id && productById.has(String(h.entry.draft_product_id))))];
+ // Link against the whole shelf, not only the matching rows: filtering a bought
+ // sample out must not bring its Curate holding back as a second route to it.
+ const linkedIds = new Set(allProducts.map(product => linkedEntryId(product, compassEntries)).filter(Boolean));
+ const allProductIds = new Set(allProducts.map(product => product.id));
+ const extraRows = (holdings.data ?? []).filter(holding => {
+  if (linkedIds.has(String(holding.entry.id)) || (holding.entry.draft_product_id && allProductIds.has(String(holding.entry.draft_product_id)))) return false;
+  if (!matchesHolding) return true;
+  const product = curateHoldingAsProduct(holding, compassEntries.find(entry => entry.id === String(holding.entry.id)) ?? null);
+  return matchesHolding({ ...product, description: String(holding.entry.description ?? ''), tastingNotes: [] }, holding);
+ });
+ const allRows = [...productRows, ...extraRows];
  const productOf = (h: Holding) => (h.entry.__product_id ? productById.get(String(h.entry.__product_id)) : undefined);
  const writesFor = (h: Holding) => {
   const p = productOf(h);

@@ -16,6 +16,8 @@ type UseInventoryProductsArgs = {
   inventoryCategory: InventoryCategory;
   searchQuery: string;
   filterType: string;
+  teaTypeFilter?: string;
+  tastingFilter?: InventoryFacetFilter | '';
   inventorySortConfig: { key: string; direction: InventorySortDirection }[];
   inventoryColumns: string[];
   inventoryGroupBy: string | null;
@@ -42,6 +44,8 @@ export function useInventoryProducts({
   inventoryCategory,
   searchQuery,
   filterType,
+  teaTypeFilter = '',
+  tastingFilter = '',
   inventorySortConfig,
   inventoryColumns,
   inventoryGroupBy,
@@ -105,6 +109,8 @@ export function useInventoryProducts({
       );
     }
 
+    if (teaTypeFilter) result = result.filter(product => product.type === teaTypeFilter);
+
     if (filterType === 'Alerts') {
       result = result.filter(p => p.status === 'Draft' || p.stockGrams <= p.lowStockThreshold || p.pricePerGramUSD === 0 || p.recheckStock);
     } else if (filterType === 'NeedsDevelopment') {
@@ -154,6 +160,15 @@ export function useInventoryProducts({
       result = result.filter(p => p.type === filterType);
     }
 
+    if (tastingFilter && shouldApplyInventoryFacetFilter(tastingFilter, summaryStatus)) {
+      result = result.filter(product => inventoryMatchesFacetFilter(
+        product,
+        tastingFilter,
+        personalTastingByProductId[product.id] ?? { count: 0 },
+        writingSummaryByProductId[product.id] ?? { description: !!product.description.trim(), draftArticleCount: 0, publishedArticleCount: 0 },
+      ));
+    }
+
     const sorted = [...result].sort((a, b) => {
       for (const sort of inventorySortConfig) {
         const key = sort.key as keyof Product;
@@ -191,7 +206,7 @@ export function useInventoryProducts({
     }
 
     return sorted;
-  }, [localProducts, searchQuery, filterType, inventorySortConfig, inventoryCategory, isEditMode, personalTastingByProductId, writingSummaryByProductId, summaryStatus]);
+  }, [localProducts, searchQuery, filterType, teaTypeFilter, tastingFilter, inventorySortConfig, inventoryCategory, isEditMode, personalTastingByProductId, writingSummaryByProductId, summaryStatus]);
 
   const visibleCols = useMemo(() => activeColumnDefs.filter(col => {
     const isCostCol = col.key === 'costAmount' || col.key === 'costPerGramUSD';
@@ -225,7 +240,7 @@ export function useInventoryProducts({
       // than the generic "Unknown" bucket.
       const key = inventoryGroupBy === 'ownerUserId'
         ? (p.ownerUserId ? `Seller · ${p.ownerUserId.slice(0, 8)}` : 'House stock')
-        : String((p as unknown as Record<string, unknown>)[inventoryGroupBy] ?? 'Unknown');
+        : String((p as unknown as Record<string, unknown>)[inventoryGroupBy] ?? '').trim() || 'Unknown';
       if (!groups[key]) groups[key] = { key, label: key, items: [], totalStock: 0, totalRetail: 0, lifecycle: false };
       groups[key].items.push(p);
       groups[key].totalStock += Number(p.stockGrams) || 0;
