@@ -1,3 +1,11 @@
+## Mobile wheel spacing 2026-10-27
+
+- The mobile taste wheel uses the full content width and sits closer to the floating navigation. Empty selection summaries take no space; selected words remain available below the wheel with scrolling clearance. Colors and bar motion are unchanged.
+
+## Stock column proportions and chosen names 2026-10-27
+
+- Year and Stock use narrower spreadsheet columns; Origin has more room. A copied source name, including a copy with the same vintage attached, displays as Unnamed instead of repeating below the tea title. Distinct chosen names remain editable, with no automatic changes to stored names.
+
 ## Tasting controls and Four chambers Effect 2026-10-27
 
 - Tasting keeps Save visible in its header, with a distinct impression entry. Effect uses the approved four-panel layout for Mood, Energy, Mind and Body; existing vocabulary, custom words and saved selections are preserved. Recap navigation no longer replays on subsequent wheel selections, and section transitions respect reduced motion.

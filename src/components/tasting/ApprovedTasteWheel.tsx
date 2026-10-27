@@ -68,7 +68,7 @@ export function ApprovedTasteWheel({ value, onChange, reveal }: ApprovedTasteWhe
       </div>}
       <div ref={host} />
     </section>
-    <section className="category-observations" aria-label="Your complete tasting">
+    {(tastes.length > 0 || aromas.length > 0) && <section className="category-observations" aria-label="Your complete tasting">
       <motion.div layout transition={transition} className={`study-observations ${hasBoth ? 'has-both' : 'single-sense'}`} aria-label="All selected tastes and aromas">
         <motion.span className="summary-divider" aria-hidden="true" initial={false} animate={{ opacity: hasBoth ? 1 : 0 }} transition={{ duration: reducedMotion ? 0 : .2, delay: !reducedMotion && hasBoth ? .44 : 0, ease: 'easeInOut' }} />
         <AnimatePresence initial={false} mode="popLayout">
@@ -82,6 +82,6 @@ export function ApprovedTasteWheel({ value, onChange, reveal }: ApprovedTasteWhe
           </motion.div>)}
         </AnimatePresence>
       </motion.div>
-    </section>
+    </section>}
   </div>;
 }

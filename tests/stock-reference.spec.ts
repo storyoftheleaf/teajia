@@ -6,7 +6,7 @@ const token = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({ sub: 'admin', 
 test('Stock reference cards resize and persist naming and photos, and continue an existing tasting', async ({ page }) => {
   test.setTimeout(120_000);
   const product = {
-    id: 'tea-reference', product_name: 'Cloud Oolong', given_name: '', type: 'Oolong', form: 'Loose Leaf',
+    id: 'tea-reference', product_name: 'Cloud Oolong', given_name: 'Cloud Oolong', type: 'Oolong', form: 'Loose Leaf',
     origin_country: 'Taiwan', origin_region: 'Alishan', year: 2004, stock_grams: 100,
     is_sample: 1, low_stock_threshold: 200, cost_amount: 20, cost_currency: 'USD', quantity_purchased: 100,
     retail_price_per_gram_usd: .4, cost_per_gram_usd: .1, shipping_rate_per_kg: null,
@@ -70,6 +70,10 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await expect(row.locator('[data-stock-column=productName] [data-stock-inline-year]')).toHaveCount(0);
   await expect(row.locator('[data-stock-column=year]')).toContainText('2004');
   await expect(row.locator('[data-stock-column=stockGrams]')).toHaveCSS('text-align', 'right');
+  await expect(row.getByRole('button', { name: 'House name for Cloud Oolong', exact: true })).toHaveText('Unnamed');
+  const yearWidth = (await row.locator('[data-stock-column=year]').boundingBox())!.width;
+  const stockWidth = (await row.locator('[data-stock-column=stockGrams]').boundingBox())!.width;
+  expect((await row.locator('[data-stock-column=originRegion]').boundingBox())!.width).toBeGreaterThan(Math.max(yearWidth, stockWidth) * 2);
   await expect(page.getByTestId('inventory-column-row').locator('th')).toHaveText(['Product', 'Type', 'Year', 'Origin', 'Stock', 'Ship $/kg', 'Retail', 'Source', 'Leaf']);
   expect((await page.getByTestId('inventory-column-row').locator('th').last().boundingBox())!.x + (await page.getByTestId('inventory-column-row').locator('th').last().boundingBox())!.width).toBeLessThanOrEqual(768);
   await page.setViewportSize({ width: 390, height: 844 });

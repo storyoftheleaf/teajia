@@ -1,5 +1,4 @@
-/* =====================================
-   Typography helpers, match TYPOGRAPHY_CLASSES in src/designTokens.ts
+/* ==============================   Typography helpers, match TYPOGRAPHY_CLASSES in src/designTokens.ts
    Use `<h2 className="h2">` etc. instead of long Tailwind chains.
    Source of truth: docs/DESIGN_SYSTEM.md §3
    ============================================ */
@@ -117,8 +116,7 @@
 }
 .slide-loop { animation: slide-loop 3s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
 
-/* =====================================
-   Sidebar-aware full-screen panel offset
+/* ==============================   Sidebar-aware full-screen panel offset
    Add to any fixed inset-0 full-screen overlay so it
    doesn't cover the desktop left sidebar.
    --teajia-sidebar-w is set by LeftSidebar's useEffect.
@@ -130,8 +128,7 @@
   }
 }
 
-/* =====================================
-   CSS Custom Properties: Theme-adaptive values
+/* ==============================   CSS Custom Properties: Theme-adaptive values
    ============================================ */
 
 :root {
@@ -298,8 +295,7 @@
   color: var(--tea-bg);
 }
 
-/* =====================================
-   Theme-aware image filter classes
+/* ==============================   Theme-aware image filter classes
    Used by EditableImage and similar components.
    Applied via className so they adapt to dark/light mode.
    ============================================ */
@@ -314,8 +310,7 @@
   filter: saturate(0.9) contrast(1.02) brightness(0.98);
 }
 
-/* =====================================
-   Numeric Display, consistent across entire site
+/* ==============================   Numeric Display, consistent across entire site
    Lora with tabular (equal-width), lining (flat, uniform-height)
    figures. Every price, weight and quantity on the site comes through here.
    ============================================ */
@@ -347,8 +342,7 @@ input[type="number"]::-webkit-outer-spin-button {
   display: none;
 }
 
-/* =====================================
-   Unified Card Grid Item Styles
+/* ==============================   Unified Card Grid Item Styles
    Single source of truth for Tea & Teaware cards
    ============================================ */
 
@@ -468,8 +462,7 @@ input[type="number"]::-webkit-outer-spin-button {
   margin-top: auto;
 }
 
-/* =====================================
-   Alcove-Inspired Inset Panel
+/* ==============================   Alcove-Inspired Inset Panel
    Warm recessed surface with edge lighting and grain.
    Use on sections that need atmospheric depth.
    ============================================ */
@@ -506,8 +499,7 @@ input[type="number"]::-webkit-outer-spin-button {
     inset 0 -1px 0 rgba(142, 109, 46, 0.02);
 }
 
-/* =====================================
-   Surface Treatments, "The Alcove System"
+/* ==============================   Surface Treatments, "The Alcove System"
    Standard warm texture treatment for panels, drawers,
    modals, and any container needing atmospheric depth.
    See designTokens.ts §12 for full documentation.
@@ -652,8 +644,7 @@ input[type="number"]::-webkit-outer-spin-button {
    Ensures intentional vertical breathing room above and below any divider.
    Use on the wrapper element that contains the divider line. */
 
-/* =====================================
-   Light Mode Support
+/* ==============================   Light Mode Support
    ============================================ */
 
 /* Light mode, colors handled automatically via CSS variable switching on :root.
@@ -664,8 +655,7 @@ input[type="number"]::-webkit-outer-spin-button {
   border: none;
 }
 
-/* =====================================
-   Swipe Carousel Scroll Utilities
+/* ==============================   Swipe Carousel Scroll Utilities
    ============================================ */
 
 /* Hide scrollbar but keep functionality */
@@ -737,8 +727,7 @@ input[type="number"]::-webkit-outer-spin-button {
   }
 }
 
-/* =====================================
-   Skeleton Loader: Editorial Fade Pulse
+/* ==============================   Skeleton Loader: Editorial Fade Pulse
    Replaced left-to-right shimmer sweep with a
    gentle opacity pulse. Reads as "considered" rather
    than "tech product" loading.
@@ -759,8 +748,7 @@ input[type="number"]::-webkit-outer-spin-button {
   animation: skeleton-pulse 1.8s ease-in-out infinite;
 }
 
-/* =====================================
-   Nav Controls, circular close / prev / next buttons
+/* ==============================   Nav Controls, circular close / prev / next buttons
    Single source of truth for modal navigation UI.
 
    STYLE: "Gold whisper", faint gold border, no harsh lines.
@@ -840,8 +828,7 @@ input[type="number"]::-webkit-outer-spin-button {
   background: rgba(142, 109, 46, 0.06);
 }
 
-/* =====================================
-   Visual Features - Reveal Animation
+/* ==============================   Visual Features - Reveal Animation
    ============================================ */
 
 @keyframes revealUp {
@@ -871,8 +858,7 @@ input[type="number"]::-webkit-outer-spin-button {
   animation: revealUp 0.5s ease-out forwards;
 }
 
-/* =====================================
-   Pills, Badges & Tags: Global Style System
+/* ==============================   Pills, Badges & Tags: Global Style System
    Single source of truth for all interactive
    pill/chip/badge/tag elements across the site.
 
@@ -1451,8 +1437,7 @@ input[type="number"]::-webkit-outer-spin-button {
   color: var(--tea-text);
 }
 
-/* =====================================
-   Staggered Grid Entrance Animations (#2)
+/* ==============================   Staggered Grid Entrance Animations (#2)
    Apply .stagger-grid to the grid container.
    Children get staggered fadeIn + slideUp.
    ============================================ */
@@ -1494,8 +1479,7 @@ input[type="number"]::-webkit-outer-spin-button {
   }
 }
 
-/* =====================================
-   Cart Badge Pulse (#6)
+/* ==============================   Cart Badge Pulse (#6)
    ============================================ */
 
 @keyframes badgePulse {
@@ -1512,8 +1496,7 @@ input[type="number"]::-webkit-outer-spin-button {
   animation: badgePulse 0.4s ease-out;
 }
 
-/* =====================================
-   Animated Section Divider (#12)
+/* ==============================   Animated Section Divider (#12)
    ============================================ */
 
 @keyframes dividerGrow {
@@ -1564,12 +1547,10 @@ input[type="number"]::-webkit-outer-spin-button {
   background: rgba(142, 109, 46, 0.3);
 }
 
-/* =====================================
-   Image Hover Zoom Enhancement (#13)
+/* ==============================   Image Hover Zoom Enhancement (#13)
    ============================================ */
 
-/* =====================================
-   Skeleton-to-Content Morphing (#14)
+/* ==============================   Skeleton-to-Content Morphing (#14)
    ============================================ */
 
 @keyframes skeletonFadeOut {
@@ -1597,8 +1578,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 
-/* =====================================
-   Glassmorphism Utilities (#11)
+/* ==============================   Glassmorphism Utilities (#11)
    ============================================ */
 
 .glass-panel {
@@ -1618,8 +1598,7 @@ input[type="number"]::-webkit-outer-spin-button {
     0 8px 32px rgba(0, 0, 0, 0.15);
 }
 
-/* =====================================
-   Animated Focus Ring (#49)
+/* ==============================   Animated Focus Ring (#49)
    Keyboard-accessible focus indicator with
    gold pulse on first appearance, then steady.
    ============================================ */
@@ -1646,8 +1625,7 @@ input[type="number"]::-webkit-outer-spin-button {
   }
 }
 
-/* =====================================
-   Sale/Featured Badge Shimmer (#28)
+/* ==============================   Sale/Featured Badge Shimmer (#28)
    ============================================ */
 
 @keyframes badgeShimmer {
@@ -1655,8 +1633,7 @@ input[type="number"]::-webkit-outer-spin-button {
   100% { background-position: 200% 0; }
 }
 
-/* =====================================
-   Subtle Animated Aurora on Hero Sections (#37)
+/* ==============================   Subtle Animated Aurora on Hero Sections (#37)
    ============================================ */
 
 @keyframes auroraShift {
@@ -1664,8 +1641,7 @@ input[type="number"]::-webkit-outer-spin-button {
   50% { background-position: 100% 50%; }
 }
 
-/* =====================================
-   Animated Leaf Accent (#55)
+/* ==============================   Animated Leaf Accent (#55)
    Gentle swaying leaf for decorative use.
    ============================================ */
 
@@ -1674,16 +1650,14 @@ input[type="number"]::-webkit-outer-spin-button {
   50% { transform: rotate(3deg); }
 }
 
-/* =====================================
-   Typography Utilities
+/* ==============================   Typography Utilities
    ============================================ */
 
 /* Body text: minimum readable size with comfortable line height */
 
 /* Secondary/meta text */
 
-/* =====================================
-   Truncation Gradient Fade Utilities (#38)
+/* ==============================   Truncation Gradient Fade Utilities (#38)
    Surface variant, gradient matches the surface background.
    ============================================ */
 
@@ -1692,8 +1666,7 @@ input[type="number"]::-webkit-outer-spin-button {
   background: linear-gradient(to bottom, transparent, var(--tea-surface));
 }
 
-/* =====================================
-   Mobile Inventory: Expanded Detail Panel
+/* ==============================   Mobile Inventory: Expanded Detail Panel
    Warm inset panel for product detail on expand.
    ============================================ */
 
@@ -1717,12 +1690,10 @@ input[type="number"]::-webkit-outer-spin-button {
     inset 0 -1px 0 rgba(0, 0, 0, 0.04);
 }
 
-/* =====================================
-   Mobile Inventory: Stock Status Indicators
+/* ==============================   Mobile Inventory: Stock Status Indicators
    ============================================ */
 
-/* =====================================
-   Mobile Inventory: Row Type Accent Strip
+/* ==============================   Mobile Inventory: Row Type Accent Strip
    Subtle left-edge color derived from tea type.
    ============================================ */
 
@@ -1748,8 +1719,7 @@ input[type="number"]::-webkit-outer-spin-button {
   opacity: 1;
 }
 
-/* =====================================
-   Article Card: Editorial Magazine Styling
+/* ==============================   Article Card: Editorial Magazine Styling
    Premium visual treatment for magazine article cards.
    ============================================ */
 
@@ -1763,8 +1733,7 @@ input[type="number"]::-webkit-outer-spin-button {
 
 /* Light mode */
 
-/* =====================================
-   Reader: Chapter Number & Image Reveal
+/* ==============================   Reader: Chapter Number & Image Reveal
    Overrides for chapterNumberReveal keyframe:
    final opacity raised to 0.07, blur-to-sharp transition added.
    ============================================ */
@@ -1782,8 +1751,7 @@ input[type="number"]::-webkit-outer-spin-button {
   }
 }
 
-/* =====================================
-   Reader: Enhanced Progress Indicator
+/* ==============================   Reader: Enhanced Progress Indicator
    ============================================ */
 
 .reader-progress-track {
@@ -1824,8 +1792,7 @@ input[type="number"]::-webkit-outer-spin-button {
   box-shadow: 0 0 8px rgba(142, 109, 46, 0.3);
 }
 
-/* =====================================
-   Reader: New Animation Keyframes
+/* ==============================   Reader: New Animation Keyframes
    Used by Reader.tsx and reader-animations.css.
    ============================================ */
 
@@ -1872,8 +1839,7 @@ input[type="number"]::-webkit-outer-spin-button {
   to { clip-path: inset(0 0% 0 0); opacity: 1; }
 }
 
-/* =====================================
-   Texture Mode Classes
+/* ==============================   Texture Mode Classes
    Paper texture variants for Reader and editorial surfaces.
    ============================================ */
 
@@ -1883,8 +1849,7 @@ input[type="number"]::-webkit-outer-spin-button {
 
 /* Rough: heavy grain using denser SVG noise pattern */
 
-/* =====================================
-   Text Effect Classes
+/* ==============================   Text Effect Classes
    Animated underlines, CJK accents, typewriter.
    ============================================ */
 
@@ -1925,8 +1890,7 @@ input[type="number"]::-webkit-outer-spin-button {
 /* No drop caps anywhere on the site (Adrian, 2026-09-28). The .drop-cap and
    .drop-cap-gold classes are gone; an opening paragraph is set like any other. */
 
-/* =====================================
-   Reduced Motion Support
+/* ==============================   Reduced Motion Support
    Disables all translate/scale/rotate animations
    and skips animated states to final values.
    ============================================ */
@@ -2050,8 +2014,7 @@ input[type="number"]::-webkit-outer-spin-button {
   }
 }
 
-/* =====================================
-   Reader: Image Reveal Animation
+/* ==============================   Reader: Image Reveal Animation
    Subtle scale-down entrance for full-bleed
    images. Used in IMG_FULL_BLEED and similar.
    ============================================ */
@@ -2068,8 +2031,7 @@ input[type="number"]::-webkit-outer-spin-button {
   }
 }
 
-/* =====================================
-   Tasting Flow: UI Classes
+/* ==============================   Tasting Flow: UI Classes
    ============================================ */
 
 /* ── Flavor group card ── */
@@ -2162,8 +2124,7 @@ input[type="number"]::-webkit-outer-spin-button {
 
 /* Mouthfeel weight toggle, no inline borders */
 
-/* =====================================
-   Set Card: Full-Width Editorial Layout
+/* ==============================   Set Card: Full-Width Editorial Layout
    Used in Shop > Sets tab for starter sets.
    ============================================ */
 
@@ -2221,8 +2182,7 @@ input[type="number"]::-webkit-outer-spin-button {
   opacity: 0.85;
 }
 
-/* =====================================
-   Tasting Capture: Single-page tasting flow
+/* ==============================   Tasting Capture: Single-page tasting flow
    ============================================ */
 
 /* ── Step-node quality scale ── */
@@ -2304,14 +2264,12 @@ input[type="number"]::-webkit-outer-spin-button {
 
 /* ── Sub-terms expansion ── */
 
-/* =====================================
-   Magazine Card: Elevated Cover Page
+/* ==============================   Magazine Card: Elevated Cover Page
    ============================================ */
 
 /* Hero card variant */
 
-/* =====================================
-   Page Header Tabs: Navigation Tab System
+/* ==============================   Page Header Tabs: Navigation Tab System
    Used by PageHeaderTabs component (Shop, Magazine,
    TeaInventory, ResourcesPage, ForYourPractice).
    Inactive tabs are dimmed to maximize contrast
@@ -2331,8 +2289,7 @@ input[type="number"]::-webkit-outer-spin-button {
   animation: breath 3.8s ease-in-out infinite;
 }
 
-/* =====================================
-   Alcove Card: Shared Styles
+/* ==============================   Alcove Card: Shared Styles
    Used by AlcoveCard and its subcomponents.
    Replaces inline-style hover handlers and
    provides 44×44 hit areas on touch devices.
@@ -2382,10 +2339,8 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* Faint tonal band: the quiet card's only differentiation device. */
-/* =====================================
-   Paper ground and the label plate
-   =====================================
-
+/* ==============================   Paper ground and the label plate
+   ==============================
    The reading ground. Barely visible on purpose: on a bright screen you
    notice it, in sun you do not. It reuses the grain the alcove panels
    already carry rather than introducing a second texture system, and it
@@ -2847,8 +2802,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 .alcove-magazine-link:hover { color: var(--tea-text); }
 
-/* =====================================
-   Alcove Card: surfaces lifted out of inline styles.
+/* ==============================   Alcove Card: surfaces lifted out of inline styles.
 
    The alcove painted roughly forty inline style blocks, and `lint:colors`
    reads className strings only. The one surface in the shop carrying the most
@@ -3351,8 +3305,7 @@ input[type="number"]::-webkit-outer-spin-button {
   color: var(--tea-text);
 }
 
-/* =====================================
-   Tap target floor: 44×44 minimum per WCAG 2.5.5 / Apple HIG / Material Design.
+/* ==============================   Tap target floor: 44×44 minimum per WCAG 2.5.5 / Apple HIG / Material Design.
    Apply to any interactive button or icon-only control. Doesn't change visual
    size of the element's content; just adds invisible padding around the click area.
    ============================================ */
@@ -3372,8 +3325,7 @@ input[type="number"]::-webkit-outer-spin-button {
   justify-content: center;
 }
 
-/* =====================================
-   Gram Slider, a precision gauge for the Curate capture form (reused by the
+/* ==============================   Gram Slider, a precision gauge for the Curate capture form (reused by the
    quick-sale sheet). Continuous value with soft magnetic snap to presets; see
    src/components/TeaCompass/GramSlider.tsx for interaction logic.
 
@@ -3503,8 +3455,7 @@ input[type="number"]::-webkit-outer-spin-button {
   pointer-events: none;
 }
 
-/* =====================================
-   Setting utilities: the details of fine typesetting
+/* ==============================   Setting utilities: the details of fine typesetting
 
    Three properties that have to be set on the element rather than composed out
    of Tailwind classes, and that are reusable anywhere text is being set rather
@@ -3537,8 +3488,7 @@ input[type="number"]::-webkit-outer-spin-button {
   font-feature-settings: 'tnum' 1, 'lnum' 1;
 }
 
-/* =====================================
-   Bottom Nav Clearance Utilities
+/* ==============================   Bottom Nav Clearance Utilities
    The mobile bottom nav is a floating capsule:
    52px tall, lifted 12px above safe-area-inset-bottom, with 16px side margins.
    Total bottom-area occupied = 12px float gap + 52px bar + safe-area = 64px + safe-area.
@@ -3571,10 +3521,8 @@ input[type="number"]::-webkit-outer-spin-button {
 .pb-nav-verdict { padding-bottom: calc(2rem + 80px + 30px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .pb-nav-verdict { padding-bottom: 2rem; } }
 
-/* =====================================
-   The commerce bar, docked to the navigation
-   =====================================
-
+/* ==============================   The commerce bar, docked to the navigation
+   ==============================
    Two rounded bars stacked at the bottom of a phone read as two apps
    arguing over the same corner. Docked, they are one object: the commerce
    bar takes the navigation's own insets and colours, sits flush on its top
@@ -4030,8 +3978,7 @@ body:has(.commerce-dock) [data-testid='bottom-tab-bar'] {
 .bottom-nav-gap { bottom: calc(1rem + 80px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .bottom-nav-gap { bottom: 1rem; } }
 
-/* =====================================
-   Page chrome, canonical wide / narrow wrappers
+/* ==============================   Page chrome, canonical wide / narrow wrappers
    Per DESIGN_SYSTEM.md §4 "Promote both to named utilities".
    Wide pages (tables/hubs/dashboards): .admin-page  → px-4 md:px-6 lg:px-10, max-w-7xl
    Narrow pages (forms/settings/reading): .admin-page-narrow → px-4 md:px-6, max-w-3xl
@@ -4049,8 +3996,7 @@ body:has(.commerce-dock) [data-testid='bottom-tab-bar'] {
   padding-inline: 1rem;
 }
 
-/* =====================================
-   Curate working surface
+/* ==============================   Curate working surface
    Two-role type system for Source, Library and Samples. The visible control
    stays compact while the interaction box keeps the 44px touch floor.
    ============================================ */
@@ -4420,10 +4366,8 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] > div {
   }
 }
 
-/* =====================================
-   Admin Neutral Surface
-   =====================================
-   A separate, intentionally-cool palette for admin work surfaces
+/* ==============================   Admin Neutral Surface
+   ==============================   A separate, intentionally-cool palette for admin work surfaces
    (inventory panel, etc.) where the operator spends hours editing
    data. The warm tea palette stays on customer-facing surfaces; admin
    gets a Linear/Notion/Claude-style neutral that has a wider luminance
@@ -4575,10 +4519,8 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] > div {
 .inv-tight th,
 .inv-tight td { padding-left: 6px; padding-right: 6px; }
 
-/* =====================================
-   The reference's quiet ground (/wisdom)
-   =====================================
-   A block of records on a page of apparatus, and the whole problem is that it
+/* ==============================   The reference's quiet ground (/wisdom)
+   ==============================   A block of records on a page of apparatus, and the whole problem is that it
    has to be seen without being a slab.
 
    The reference tried both ends of that first. Flat, with the grouping carried
@@ -6350,6 +6292,16 @@ body.cart-panel-open .commerce-dock {
   .stock-view .stock-record .stock-workbar { margin-top:auto; }
 }
 
+/* Keep the full-width mobile wheel within thumb reach of its navigation. */
+@media(max-width:1023px){
+  .tasting-mobile-content .tasting-scroll > .tasting-wheel-panel{min-height:100%;display:flex;flex-direction:column;justify-content:center;padding-left:0;padding-right:0;}
+  .tasting-wheel-panel .approved-taste-wheel.study-phone{max-width:none;padding-bottom:0;}
+}
+
+
+@media(min-width:768px) {
+  .stock-view :is(th:has([aria-label^="Sort by Year"]),th:has([aria-label^="Sort by Stock"]),[data-stock-column=year],[data-stock-column=stockGrams]) { padding-left:6px; padding-right:6px; }
+}
 /* Tasting has a visible save action and a distinct impression entry. */
 .tasting-header-controls { display:flex; align-items:center; gap:6px; }
 .tasting-heading-trigger { flex:1; min-width:0; width:auto; min-height:52px; padding:6px 10px; border-radius:14px; background:linear-gradient(140deg,var(--tea-surface),var(--tea-bg)); box-shadow:inset 0 1px 0 var(--tea-border); text-align:left; align-items:flex-start; }

@@ -70,7 +70,7 @@ export const QuoteField: React.FC<{ value: number | null; aria: string; display:
  * The house name, typed in place. Empty shows a thin italic "name this" so it is
  * clear where to tap; Enter or leaving the field saves, Escape keeps what was there.
  */
-export const HouseNameField: React.FC<{ value: string; aria: string; onSave: (text: string) => void; className?: string }> = ({ value, aria, onSave, className = '' }) => {
+export const HouseNameField: React.FC<{ value: string; aria: string; onSave: (text: string) => void; className?: string; emptyLabel?: string }> = ({ value, aria, onSave, className = '', emptyLabel = 'name this' }) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const ref = useRef<HTMLInputElement>(null);
@@ -82,7 +82,7 @@ export const HouseNameField: React.FC<{ value: string; aria: string; onSave: (te
       className={`min-w-0 bg-transparent border-0 border-b border-tea-border focus:border-tea-gold outline-none p-0 text-tea-text ${className}`} />;
   }
   return <button type="button" aria-label={aria} onClick={(e) => { e.stopPropagation(); setDraft(value); setEditing(true); }}
-    className={`min-w-0 truncate text-left hover:text-tea-gold ${value.trim() ? '' : 'italic font-light text-tea-text-sec'} ${className}`}>{value.trim() || 'name this'}</button>;
+    className={`min-w-0 truncate text-left hover:text-tea-gold ${value.trim() ? '' : 'italic font-light text-tea-text-sec'} ${className}`}>{value.trim() || emptyLabel}</button>;
 };
 
 /** The item code, small and quiet: Adrian's own identifier, not part of the name. */
