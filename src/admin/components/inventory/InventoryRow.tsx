@@ -120,6 +120,7 @@ function InventoryRowBase(props: InventoryRowProps) {
   // name and kept when the name is edited, never as the start of the name.
   const coded = splitItemCode(product.productName);
   const displayName = stripMatchingYear(coded.name, product.year);
+  const yearHasColumn = (splitView ? splitViewCols : visibleCols).some(column => column.key === 'year');
   /** A typed number, or null when the field was emptied: never zero for "nobody said". */
   const typed = (text: string): number | null => (text.trim() === '' ? null : Number(text.trim()));
 
@@ -173,7 +174,7 @@ function InventoryRowBase(props: InventoryRowProps) {
             ? <>{product.givenName}{product.form && <span className="ml-1 opacity-70">· {product.form}</span>}</>
             : product.form || ' '
           : <span className="flex items-baseline gap-1.5 min-w-0">
-              {product.year && <span className="num opacity-80">{product.year}</span>}
+              {!yearHasColumn && product.year && <span data-stock-inline-year className="num opacity-80">{product.year}</span>}
               <HouseNameField value={product.givenName ?? ''} aria={`House name for ${displayName}`} onSave={(val) => onProductUpdate(product.id, 'givenName', val)} className="text-ui-11" />
               <ItemCode code={coded.code} />
               {likedScore != null && <span aria-label={`Liked ${likedScore} of 10`} className="shrink-0 num text-tea-gold-lt">{likedScore}/10</span>}

@@ -1642,7 +1642,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Canonical column header, font-serif text-ui-11 uppercase tracking-display text-tea-text-sec.
   // Numeric columns (grams, retail/g, cost, capacity, units) right-align; everything else left.
   const RIGHT_ALIGN_KEYS = new Set([
-    'stockGrams', 'pricePerGramUSD', 'costAmount', 'costPerGramUSD', 'capacityMl', 'quantityUnits',
+    'stockGrams', 'pricePerGramUSD', 'costAmount', 'costPerGramUSD', 'shippingRatePerKg', 'capacityMl', 'quantityUnits',
   ]);
   const SortHeader = ({ colKey, label, align: alignProp, sticky, forceLeft, resizable }: { colKey: keyof Product, label: string, align?: 'left' | 'right' | 'center', sticky?: boolean, forceLeft?: boolean, resizable?: boolean }) => {
       // On the mobile swipe table every column reads left-aligned (Adrian's call:
@@ -2926,7 +2926,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <thead data-testid="inventory-column-row" data-inventory-header-row className="bg-tea-surface md:bg-tea-bg">
                   <tr>
                     {renderCols.map((col, i) => (
-                      <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} sticky={mobileHScroll && i === 0} forceLeft={unifiedLayout} resizable={mobileHScroll} />
+                      <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} sticky={mobileHScroll && i === 0} forceLeft={isMobile && unifiedLayout} resizable={mobileHScroll} />
                     ))}
                   </tr>
                 </thead>
@@ -2976,7 +2976,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   splitViewCols={renderSplitCols}
                                   splitView={splitView}
                                   stickyFirstCol={mobileHScroll}
-                                  alignLeft
+                                  alignLeft={isMobile}
                                   legacyMobileLayout={false}
                                   rowHeight={effectiveRowHeight}
                                   isPanelOpen={panelProduct?.id === product.id}
@@ -3052,7 +3052,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           ))
                         ) : (
                           renderCols.map((col, i) => (
-                            <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} sticky={mobileHScroll && i === 0} forceLeft={unifiedLayout} resizable={mobileHScroll} />
+                            <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} sticky={mobileHScroll && i === 0} forceLeft={isMobile && unifiedLayout} resizable={mobileHScroll} />
                           ))
                         )}
                     </tr>
@@ -3075,7 +3075,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               splitViewCols={renderSplitCols}
                               splitView={splitView}
                               stickyFirstCol={mobileHScroll}
-                              alignLeft
+                              alignLeft={isMobile}
                               legacyMobileLayout={false}
                               rowHeight={effectiveRowHeight}
                               isPanelOpen={panelProduct?.id === product.id}

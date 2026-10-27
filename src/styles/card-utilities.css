@@ -6207,3 +6207,30 @@ body.cart-panel-open .commerce-dock {
 .stock-browse-bar select:focus-visible { outline:2px solid var(--tea-gold); outline-offset:-2px; }
 .stock-browse-teaware { grid-template-columns:repeat(2,minmax(0,1fr)); }
 @media(min-width:768px) { .stock-browse-bar { max-width:920px; gap:24px; } .stock-browse-bar select { font-size:14px; } }
+
+/* Spreadsheet refinement: phone/card geometry stays unchanged. */
+@media(min-width:768px) {
+  .stock-view table.inv-tight th { padding:8px 10px; font-size:11px; line-height:1.25; letter-spacing:.04em; background:var(--tea-bg); }
+  .stock-view table.inv-tight th+th { border-left:1px solid var(--tea-border); }
+  .stock-view table.inv-tight th.text-right>button { flex-direction:row-reverse; }
+  .stock-view tr[data-product-id]>td { padding:5px 10px; vertical-align:middle; border-right:1px solid var(--tea-border); }
+  .stock-view tr[data-product-id]>td:last-child { border-right:0; }
+  .stock-view tr[data-product-id]:not([aria-selected=true]):hover { background:var(--tea-accent-sub); }
+  .stock-view [data-stock-column=productName]>div { gap:1px; }
+  .stock-view [data-stock-column=productName]>div>button { font-size:15px; line-height:18px; }
+  .stock-view [data-stock-column=productName]>div>span { font-size:11px; line-height:14px; color:var(--tea-text-dim); }
+  .stock-view [data-stock-column]:not([data-stock-column=productName]) { font-variant-numeric:lining-nums tabular-nums; }
+  .stock-view [data-stock-group]>.stock-group-menu-head { padding:4px 6px; background:var(--stock-shell); border-bottom:1px solid var(--tea-border); }
+  .stock-view .stock-group-main-toggle { gap:2px; padding:2px 4px; }
+  .stock-view .stock-group-main-toggle .stock-group-name { min-height:24px; font-size:18px; }
+  .stock-view .stock-group-main-toggle .stock-group-summary { font-size:11px; }
+}
+
+/* Two comfortable phone-width cards before the spreadsheet takes over. */
+@media(min-width:680px) and (max-width:767px) {
+  .stock-view table.inv-tight tbody { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; padding-top:6px; }
+  .stock-view table.inv-tight tbody>tr[data-product-id] { min-width:0; margin-top:0; }
+  .stock-view table.inv-tight tbody>tr:not([data-product-id]) { grid-column:1/-1; }
+  .stock-view .stock-mobile-cell,.stock-view .stock-record { height:100%; }
+  .stock-view .stock-record .stock-workbar { margin-top:auto; }
+}

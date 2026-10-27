@@ -67,6 +67,9 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await page.setViewportSize({ width: 768, height: 900 });
   await expect(row.locator('.stock-record')).toHaveCount(0);
   await expect(page.getByTestId('inventory-column-row')).toBeVisible();
+  await expect(row.locator('[data-stock-column=productName] [data-stock-inline-year]')).toHaveCount(0);
+  await expect(row.locator('[data-stock-column=year]')).toContainText('2004');
+  await expect(row.locator('[data-stock-column=stockGrams]')).toHaveCSS('text-align', 'right');
   await expect(page.getByTestId('inventory-column-row').locator('th')).toHaveText(['Product', 'Type', 'Year', 'Origin', 'Stock', 'Ship $/kg', 'Retail', 'Source', 'Leaf']);
   expect((await page.getByTestId('inventory-column-row').locator('th').last().boundingBox())!.x + (await page.getByTestId('inventory-column-row').locator('th').last().boundingBox())!.width).toBeLessThanOrEqual(768);
   await page.setViewportSize({ width: 390, height: 844 });
