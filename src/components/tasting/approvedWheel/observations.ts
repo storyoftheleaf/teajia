@@ -1,6 +1,7 @@
 import taxonomy from '../../../data/teajia-tasting-taxonomy.json';
 import type { TastingData } from '../../../types';
-import { families, type WheelNote } from './TeaWheel';
+import type { WheelNote } from './TeaWheel';
+import { families } from './families';
 
 export type WheelSense = 'taste' | 'aroma';
 const terms = taxonomy.categories.find(category => category.id === 'flavor')!.groups.flatMap(group => group.terms.map(term => ({ ...term, group: group.label })));

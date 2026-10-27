@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import type { TastingData } from '../../types';
-import { mount, type WheelHandle } from './approvedWheel/TeaWheel';
+import type { WheelHandle } from './approvedWheel/TeaWheel';
 import { tastingWordFamily, tastingWordLabel, toggleWheelObservation, wheelNotes, type WheelSense } from './approvedWheel/observations';
 import './approvedWheel/approved-wheel.css';
 
@@ -19,6 +19,8 @@ export function ApprovedTasteWheel({ value, onChange, reveal }: ApprovedTasteWhe
   const current = useRef({ value, onChange });
   current.current = { value, onChange };
   const reducedMotion = useReducedMotion();
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [attempt, setAttempt] = useState(0);
   const tastes = [...new Set((value.flavor || []).map(tastingWordLabel))];
   const aromas = [...new Set((value.aroma || []).map(tastingWordLabel))];
   const hasBoth = tastes.length > 0 && aromas.length > 0;
@@ -28,17 +30,23 @@ export function ApprovedTasteWheel({ value, onChange, reveal }: ApprovedTasteWhe
   useEffect(() => { previousBoth.current = hasBoth; }, [hasBoth]);
   useEffect(() => {
     if (!host.current) return;
-    wheel.current = mount(host.current, {
-      notes: wheelNotes(current.current.value), splitSenses: true, study: 5, innerGlow: false, compactSummary: true,
-      onToggleSense(word, _group, sense) {
-        const next = toggleWheelObservation(current.current.value, word, sense);
-        current.current = { ...current.current, value: next };
-        wheel.current?.updateNotes(wheelNotes(next));
-        current.current.onChange(next);
-      },
-    });
-    return () => { wheel.current?.destroy(); wheel.current = null; };
-  }, []);
+    let cancelled = false;
+    setLoadState('loading');
+    import('./approvedWheel/TeaWheel').then(({ mount }) => {
+      if (cancelled || !host.current) return;
+      wheel.current = mount(host.current, {
+        notes: wheelNotes(current.current.value), splitSenses: true, study: 5, innerGlow: false, compactSummary: true,
+        onToggleSense(word, _group, sense) {
+          const next = toggleWheelObservation(current.current.value, word, sense);
+          current.current = { ...current.current, value: next };
+          wheel.current?.updateNotes(wheelNotes(next));
+          current.current.onChange(next);
+        },
+      });
+      setLoadState('ready');
+    }).catch(() => { if (!cancelled) setLoadState('error'); });
+    return () => { cancelled = true; wheel.current?.destroy(); wheel.current = null; };
+  }, [attempt]);
   useEffect(() => { wheel.current?.updateNotes(wheelNotes(value)); }, [value]);
   const showWord = useCallback((input: string, sense: WheelSense) => {
     const word = tastingWordLabel(input);
@@ -49,11 +57,17 @@ export function ApprovedTasteWheel({ value, onChange, reveal }: ApprovedTasteWhe
   // A recap request is an event. Recreated prop objects must not replay it
   // after a selection and pull the wheel back to an earlier family.
   useEffect(() => {
-    if (reveal) showWord(reveal.word, reveal.sense);
-  }, [reveal?.word, reveal?.sense, reveal?.stamp, showWord]);
+    if (reveal && loadState === 'ready') showWord(reveal.word, reveal.sense);
+  }, [reveal?.word, reveal?.sense, reveal?.stamp, showWord, loadState]);
 
   return <div className="approved-taste-wheel study-phone" aria-label="Taste and aroma tasting">
-    <section className="approved-wheel-journey" aria-label="Taste and aroma wheel"><div ref={host} /></section>
+    <section className="approved-wheel-journey" aria-label="Taste and aroma wheel" aria-busy={loadState === 'loading'}>
+      {loadState !== 'ready' && <div className="tasting-wheel-loading tasting-loading-state" role={loadState === 'error' ? 'alert' : 'status'}>
+        <span>{loadState === 'error' ? 'The taste wheel could not load.' : 'Loading taste wheel…'}</span>
+        {loadState === 'error' && <button type="button" className="tap-target" onClick={() => setAttempt(n => n + 1)}>Try again</button>}
+      </div>}
+      <div ref={host} />
+    </section>
     <section className="category-observations" aria-label="Your complete tasting">
       <motion.div layout transition={transition} className={`study-observations ${hasBoth ? 'has-both' : 'single-sense'}`} aria-label="All selected tastes and aromas">
         <motion.span className="summary-divider" aria-hidden="true" initial={false} animate={{ opacity: hasBoth ? 1 : 0 }} transition={{ duration: reducedMotion ? 0 : .2, delay: !reducedMotion && hasBoth ? .44 : 0, ease: 'easeInOut' }} />

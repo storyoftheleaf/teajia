@@ -244,6 +244,15 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
   const [activeSectionId, setActiveSectionId] = useState<SectionId>('body');
   const [showNote, setShowNote] = useState(true);
+  const [contentReady, setContentReady] = useState(false);
+  useEffect(() => {
+    let nextFrame = 0;
+    const firstFrame = requestAnimationFrame(() => {
+      // Give the shell a paint before constructing the editing workspace.
+      nextFrame = requestAnimationFrame(() => setContentReady(true));
+    });
+    return () => { cancelAnimationFrame(firstFrame); cancelAnimationFrame(nextFrame); };
+  }, []);
   const [descriptionDraft, setDescriptionDraft] = useState('');
   const [savingDescription, setSavingDescription] = useState(false);
   const [sectionCounts, setSectionCounts] = useState<Record<SectionId, number>>({
@@ -536,7 +545,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   return createPortal(
     <div data-tasting-session-overlay className={`fixed inset-0 z-takeover lg:bg-black/75 lg:backdrop-blur-sm lg:flex lg:items-center lg:justify-center${className ? ` ${className}` : ''}`}>
     <motion.div
-      initial={{ opacity: 0 }}
+      initial={false}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
@@ -590,7 +599,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
           /* ── Tasting phase ── */
           <motion.div
             key="tasting"
-            initial={{ opacity: 0 }}
+            initial={false}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="flex-1 min-h-0 flex flex-col"
@@ -758,7 +767,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 than as a hint that the list continues. The hairline already says
                 where the content stops. */}
             <div className="flex-1 min-h-0 overflow-hidden relative tasting-mobile-content">
-              {showNote ? (
+              {!contentReady ? <div role="status" className="tasting-loading-state">Opening tasting…</div> : showNote ? (
                 <div className="h-full overflow-y-auto tasting-scroll pt-3">
                   <YourImpression value={tastingData} onChange={handleTastingChange}
                     verdict={verdict} onVerdict={next => { setVerdict(next); handleTastingChange({...tastingData, impression:next ?? undefined}); }}

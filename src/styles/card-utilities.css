@@ -6363,3 +6363,8 @@ body.cart-panel-open .commerce-dock {
 .tasting-heading-save:disabled { opacity:.65; }
 .tasting-header-controls button:focus-visible { outline:2px solid var(--tea-gold); outline-offset:2px; }
 .tasting-save-guidance { margin:8px 16px 0; font-size:12px; color:var(--tea-text-sec); }
+
+/* The tasting shell stays usable while its wheel loads separately. */
+.tasting-loading-state { display:flex; align-items:center; justify-content:center; gap:12px; padding:24px; color:var(--tea-text-sec); font-size:13px; }
+.tasting-wheel-loading { flex-direction:column; width:100%; aspect-ratio:1; border:1px solid var(--tea-border); border-radius:50%; background:radial-gradient(circle,var(--tea-surface),var(--tea-bg) 70%); }
+.tasting-wheel-loading button { min-height:44px; padding:0 16px; border:1px solid var(--tea-border); border-radius:8px; }
