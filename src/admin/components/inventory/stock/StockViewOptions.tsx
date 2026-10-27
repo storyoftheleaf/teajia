@@ -16,7 +16,6 @@ type Props = {
   onPriceModeChange: (value: 'retail' | 'cost') => void;
   columns?: readonly { key: string; label: string; checked: boolean; disabled?: boolean }[];
   onColumnChange: (key: string) => void;
-  filters?: { value: string; options: readonly { value: string; label: string }[]; onChange: (value: string) => void };
   previewCurrency: { value: string; options: readonly string[]; onChange: (value: string) => void };
 };
 
@@ -29,7 +28,6 @@ export function StockViewOptions(props: Props) {
       </div>
       <fieldset><legend className={T.label}>Direction</legend><div className="stock-view-segments">{(['asc', 'desc'] as const).map(value => <button key={value} type="button" aria-pressed={props.sortDirection === value} onClick={() => props.onSortDirectionChange(value)}>{value === 'asc' ? 'Ascending ↑' : 'Descending ↓'}</button>)}</div></fieldset>
       <fieldset><legend className={T.label}>Prices · USD</legend><div className="stock-view-segments">{(['retail', 'cost'] as const).map(value => <button key={value} type="button" aria-pressed={props.priceMode === value} onClick={() => props.onPriceModeChange(value)}>{value === 'retail' ? 'Retail' : 'Cost'}</button>)}</div></fieldset>
-      {props.filters && <details className="stock-view-details"><summary>More filters</summary><label className="block pt-2"><span className={T.label}>Show teas</span><select aria-label="More Stock filters" className="stock-view-select" value={props.filters.value} onChange={event => props.filters?.onChange(event.target.value)}>{props.filters.options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label></details>}
       {props.columns && <details className="stock-view-details"><summary>Table columns</summary><div className="grid grid-cols-2 gap-x-3 pt-2">{props.columns.map(column => <label key={column.key} className="flex min-h-11 items-center gap-2 text-ui-14"><input type="checkbox" className="accent-tea-gold" checked={column.checked} disabled={column.disabled} onChange={() => props.onColumnChange(column.key)} />{column.label}</label>)}</div></details>}
       <details className="stock-view-details"><summary>Shop preview currency</summary><label className="block pt-2"><span className={T.label}>Currency for shop preview</span><select className="stock-view-select" value={props.previewCurrency.value} onChange={event => props.previewCurrency.onChange(event.target.value)}>{props.previewCurrency.options.map(value => <option key={value} value={value}>{value}</option>)}</select></label><p className="mt-2 text-ui-13 text-tea-text-sec">Stock prices are shown in USD.</p></details>
     </div>

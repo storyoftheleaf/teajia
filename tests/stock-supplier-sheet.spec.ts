@@ -264,7 +264,17 @@ test('Stock shortcuts, smaller view menu and missing suppliers remain connected'
     useAppStore.getState().setInventoryGroupBy('vendor');
   });
   await expect(page.locator('[data-stock-group="Unknown"]')).toBeVisible();
-  await expect(page.getByRole('combobox', { name: 'Show teas', exact: true }).locator('option')).toHaveCount(5);
+  await expect(page.getByRole('combobox', { name: 'Show teas', exact: true }).locator('option')).toHaveCount(18);
+  await page.getByRole('combobox', { name: 'Tea type', exact: true }).selectOption(shelf[0].type);
+  await expect(page.locator('tr[data-product-id]')).toHaveCount(1);
+  await page.getByRole('combobox', { name: 'Supplier', exact: true }).selectOption('Master Bo');
+  await expect(page.locator('tr[data-product-id]')).toHaveCount(0);
+  await expect(page.getByRole('combobox', { name: 'Tea type', exact: true })).toHaveValue(shelf[0].type);
+  await page.getByRole('combobox', { name: 'Supplier', exact: true }).selectOption('');
+  await expect(page).not.toHaveURL(/vendor=/);
+  await expect(page.getByRole('combobox', { name: 'Supplier', exact: true })).toHaveValue('');
+  await page.getByRole('combobox', { name: 'Tea type', exact: true }).selectOption('');
+  await expect(page.locator('tr[data-product-id]')).toHaveCount(3);
   await page.getByRole('button', { name: 'Collapse all', exact: true }).click();
   await expect(page.locator('tr[data-product-id]')).toHaveCount(0);
   await page.reload();
@@ -274,12 +284,14 @@ test('Stock shortcuts, smaller view menu and missing suppliers remain connected'
   for (const width of [320, 390, 1440]) {
     await page.setViewportSize({ width, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
-    await expect(page.getByRole('button', { name: 'Tasting library', exact: true })).toBeVisible();
+    expect((await page.getByTestId('inventory-purpose-row').boundingBox())!.height).toBe(48);
+    await expect(page.getByRole('combobox', { name: 'Tea type', exact: true })).toBeVisible();
+    await expect(page.getByRole('combobox', { name: 'Supplier', exact: true })).toBeVisible();
+    await expect(page.getByRole('combobox', { name: 'Tasting status', exact: true })).toBeVisible();
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'View options', exact: true }).click();
-  await page.getByText('More filters', { exact: true }).click();
-  await expect(page.getByRole('combobox', { name: 'More Stock filters' }).locator('option')).toHaveCount(18);
+  await expect(page.getByText('More filters', { exact: true })).toHaveCount(0);
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Supplier actions for Unknown', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Assign suppliers', exact: true }).click();
@@ -294,6 +306,7 @@ test('Stock shortcuts, smaller view menu and missing suppliers remain connected'
   await expect(page.locator('[data-stock-group="Unknown"] tr[data-product-id]')).toHaveCount(1);
   await expect(page.locator('[data-stock-group="Master Bo"] tr[data-product-id]')).toHaveCount(2);
   await page.screenshot({ path: test.info().outputPath('stock-simplified-and-unknown.png') });
+  await page.getByRole('button', { name: 'Open inventory actions', exact: true }).click();
   await page.getByRole('button', { name: 'Tasting library', exact: true }).click();
   await expect(page).toHaveURL(/\/account\/journal$/);
 });

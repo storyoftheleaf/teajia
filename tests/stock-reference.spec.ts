@@ -67,6 +67,7 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await page.setViewportSize({ width: 768, height: 900 });
   await expect(row.locator('.stock-record')).toHaveCount(0);
   await expect(page.getByTestId('inventory-column-row')).toBeVisible();
+  await expect(page.getByTestId('inventory-column-row').locator('th')).toHaveText(['Product', 'Type', 'Year', 'Stock', 'Ship $/kg', 'Retail']);
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(row.locator('.stock-record')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
@@ -78,12 +79,12 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await page.screenshot({ path: test.info().outputPath('stock-phone.png') });
 
   const viewBar = page.getByTestId('inventory-purpose-row');
-  await expect(viewBar.getByRole('button')).toHaveCount(1);
+  await expect(viewBar.getByRole('combobox')).toHaveCount(4);
   await expect(viewBar).not.toContainText('Flagged');
   await viewBar.getByLabel('Show teas', { exact: true }).selectOption({ label: 'Shop stock' });
   await expect(viewBar.getByLabel('Show teas', { exact: true })).toHaveValue('default-forsale');
-  await viewBar.getByLabel('Show teas', { exact: true }).selectOption({ label: 'All teas' });
-  await viewBar.getByRole('button', { name: 'View options', exact: true }).click();
+  await viewBar.getByLabel('Show teas', { exact: true }).selectOption({ label: 'All' });
+  await page.getByRole('button', { name: 'View options', exact: true }).click();
   const viewSheet = page.getByRole('dialog', { name: 'View options', exact: true });
   await viewSheet.getByLabel('Group by', { exact: true }).selectOption('type');
   await viewSheet.getByLabel('Order by', { exact: true }).selectOption('year');
@@ -93,7 +94,7 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await viewSheet.getByRole('button', { name: 'Cost', exact: true }).click();
   await viewSheet.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(row.locator('.stock-figures')).toContainText('Cost / g');
-  await viewBar.getByRole('button', { name: 'View options', exact: true }).click();
+  await page.getByRole('button', { name: 'View options', exact: true }).click();
   await viewSheet.getByLabel('Group by', { exact: true }).selectOption('vendor');
   await viewSheet.getByRole('button', { name: 'Retail', exact: true }).click();
   await viewSheet.getByRole('button', { name: 'Close', exact: true }).click();
