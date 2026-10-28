@@ -118,6 +118,17 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await page.setViewportSize({ width: 390, height: 844 });
 
   await row.getByRole('button', { name: 'More details for Cloud Oolong', exact: true }).click();
+  const detailsSheet = page.getByRole('dialog', { name: 'Tea details', exact: true });
+  await detailsSheet.getByRole('button', { name: 'Edit Chinese name', exact: true }).click();
+  await detailsSheet.getByRole('textbox', { name: 'Chinese name', exact: true }).fill('高山茶');
+  await detailsSheet.getByRole('button', { name: 'Save Chinese name', exact: true }).click();
+  await expect(detailsSheet.getByRole('button', { name: 'Edit Chinese name', exact: true })).toHaveText('高山茶');
+  expect(writes).toContainEqual({ chinese_name: '高山茶' });
+  await detailsSheet.getByRole('button', { name: 'Edit Region', exact: true }).click();
+  await detailsSheet.getByRole('textbox', { name: 'Region', exact: true }).fill('Do not save');
+  await detailsSheet.getByRole('button', { name: 'Cancel Region', exact: true }).click();
+  await expect(detailsSheet.getByRole('button', { name: 'Edit Region', exact: true })).toHaveText('Alishan');
+  await page.screenshot({ path: test.info().outputPath('stock-editable-details.png') });
   await page.getByRole('button', { name: 'Delete tea', exact: true }).click();
   const deleteDialog = page.getByRole('dialog', { name: 'Delete this tea?', exact: true });
   await expect(deleteDialog).toBeVisible();

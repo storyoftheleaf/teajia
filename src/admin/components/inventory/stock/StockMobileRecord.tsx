@@ -80,7 +80,7 @@ export function StockMobileRecord({product,name,fields,editing,index,onEdit,onUp
    {panel==='form'&&<FormPricingSheet product={product} onSave={onSavePricing} onClose={()=>setPanel(null)}/>}
    {panel==='freight'&&<FreightSheet product={product} onSave={v=>onSaveChange('shippingRatePerKg',v)} onClose={()=>setPanel(null)}/>}
    {panel==='photos'&&<QuickPhotoSheet product={product} onSave={onSaveChange} onClose={()=>setPanel(null)}/>}
-   {panel==='more'&&<MiniMoreSheet onDelete={leave(onDelete)} product={product} journal={journal} place={place} onClose={()=>setPanel(null)} onEdit={leave(onEdit)} onHistory={leave(onHistory)} onJournal={leave(onJournal)} onFreight={()=>setPanel('freight')} freightUsd={freightUsd} onSave={onSaveChange}/>}
+   {panel==='more'&&<MiniMoreSheet onForm={()=>setPanel('form')} onTaste={leave(onTaste)} onCount={trigger=>{setPanel(null);onStockChange(trigger)}} onDelete={leave(onDelete)} product={product} journal={journal} place={place} onClose={()=>setPanel(null)} onEdit={leave(onEdit)} onHistory={leave(onHistory)} onJournal={leave(onJournal)} onFreight={()=>setPanel('freight')} freightUsd={freightUsd} onSave={onSaveChange}/>}
    {(['productName','givenName','year','fixedRetailPriceUSD','costAmount'] as const).includes(panel as MiniField)&&<MiniEditSheet key={panel} product={product} field={panel as MiniField} onSave={onSaveChange} onClose={()=>setPanel(null)}/>}
   </div>
  </article>
