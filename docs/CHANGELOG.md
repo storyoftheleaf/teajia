@@ -1,3 +1,7 @@
+## 2026-10-28: Review an AR transcript in its existing tea before linking
+
+Fixed blocked pointer and keyboard controls when Build this tea opens from the Library Tea details drawer. The review now shares the drawer’s dialog-layer and focus system. The AR transcript receiver offers Review tea workspace for each existing tea: the complete original is staged with Working material and Public description without saving a source link, tea field or description. Discard returns to the receiver. Verified on desktop and 390px phone layouts with no source/tea writes.
+
 ## Compact tasting selections and impression button 2026-10-28
 
 - Taste and Aroma selections wrap across compact rows. Basic tastes include Umami; returning sweetness (Hui gan) uses a None-to-Strong slider. Unrecorded answers and older notes are preserved.

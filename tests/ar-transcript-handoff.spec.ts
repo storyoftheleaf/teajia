@@ -56,3 +56,41 @@ test('receiver shows existing links and makes closing without confirmation read-
   expect(mutations).toHaveLength(0);
   await expectNoUnhandledCompassApi(page);
 });
+
+for (const viewport of ['phone', 'desktop'] as const) {
+  test(`${viewport} previews a transcript in the same tea workspace without saving the link`, async ({ page }) => {
+    await page.setViewportSize(viewport === 'phone' ? { width: 390, height: 844 } : { width: 1360, height: 900 });
+    await installCompassHarness(page, { compassEntries: [entry('tea-one', 'Aged Shuixian')] });
+    const writes: string[] = [];
+    await page.route('**/api/curate/ar-create/**', route => {
+      const request = route.request(); const path = new URL(request.url()).pathname.split('/ar-create')[1];
+      if (path === '/status') return route.fulfill({ json: { connected: true, paired: true, canSearch: true } });
+      if (path === '/requests') return route.fulfill({ json: { id: 'preview-read', status: 'complete', result: { source: { id: sourceId, title: 'Shop conversation', hash, text: transcript } } } });
+      if (path === '/links') {
+        if (request.method() !== 'GET') writes.push(path);
+        return route.fulfill({ json: { links: [] } });
+      }
+      return route.fallback();
+    });
+    await page.route('**/api/curate/working-material', route => {
+      const input = route.request().postDataJSON();
+      expect(input.sources[0].text).toBe(transcript);
+      return route.fulfill({ json: { notes: [{ id: 'review-note', kind: 'identity', text: 'Identified as aged Shuixian.', quote: 'This is aged Shuixian.', requestId: 'preview-read', sourceId, title: 'Shop conversation', start: 11, end: 32, attribution: 'unclear', relevance: 'this_tea' }], coverage: { sources: 1, characters: transcript.length, chunks: 1, completedChunks: 1 }, sourceSignature: 'preview-signature' } });
+    });
+    await page.goto(`/admin/compass?tab=library&arSource=${sourceId}`);
+    const handoff = page.getByRole('dialog', { name: 'Link transcript to teas', exact: true });
+    await handoff.getByRole('button', { name: 'Review Aged Shuixian workspace', exact: true }).click();
+    const workspace = page.getByRole('dialog', { name: 'Build this tea', exact: true });
+    await expect(workspace.getByRole('heading', { name: 'Working material', exact: true })).toBeVisible();
+    await expect(workspace.getByRole('heading', { name: 'Public description', exact: true })).toBeVisible();
+    await workspace.getByRole('button', { name: 'Review full transcripts', exact: true }).click();
+    await expect(workspace.getByText('Identified as aged Shuixian.', { exact: true })).toBeVisible();
+    expect(writes).toHaveLength(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await workspace.getByRole('button', { name: 'Discard changes', exact: true }).click();
+    await expect(handoff).toBeVisible();
+    await expect(handoff.getByRole('checkbox', { name: 'Link Aged Shuixian', exact: true })).not.toBeChecked();
+    expect(writes).toHaveLength(0);
+    await expectNoUnhandledCompassApi(page);
+  });
+}

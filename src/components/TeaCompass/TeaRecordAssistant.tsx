@@ -13,7 +13,7 @@ import { DraftVoiceMaterial } from './DraftVoiceMaterial';
 import { WorkingMaterialReview, type WorkingMaterialResult } from './WorkingMaterialReview';
 import { useLiveTeaTranscripts } from './useLiveTeaTranscripts';
 import { syncNotes } from '../../lib/notesSync';
-import { Modal } from '../shared/Modal';
+import { TeaReviewDialog } from './TeaReviewDialog';
 import { syncCompassEntries } from '../../lib/teaCompassSync';
 import { useQueryClient } from '@tanstack/react-query';
 import type { TeaCompassEntry } from './types';
@@ -46,18 +46,18 @@ export function TeaRecordAssistant({ entry, compact = false }: { entry: TeaCompa
   return <section className={`border-t border-tea-border ${compact ? 'py-1' : 'py-4'}`}>
     <div className="flex flex-wrap items-center justify-between gap-2">{!compact && <h3 className={T.h3}>Build this tea</h3>}<button type="button" className="tap-target min-h-11 rounded-md border border-tea-border px-3 text-ui-13 text-tea-text" onClick={() => setOpen(true)}>Build this tea</button></div>
     {!compact && <p className="mt-1 text-ui-12 text-tea-text-sec">Bring your sources, reviewed details and description together.</p>}
-    <Modal isOpen={open} onClose={() => { if (!committing) setOpen(false); }} ariaLabel="Build this tea" variant="panel" hideClose>
+    <TeaReviewDialog open={open} onClose={() => { if (!committing) setOpen(false); }} title="Build this tea">
       {open && <AssistantReview key={`${accountId}:${userId}:${revision}:${entry.id}`} entry={entry} onClose={() => setOpen(false)} onCommitChange={setCommitting} />}
-    </Modal>
+    </TeaReviewDialog>
   </section>;
 }
 
-function AssistantReview({ entry, onClose, onCommitChange }: { entry: TeaCompassEntry; onClose: () => void; onCommitChange: (value: boolean) => void }) {
+export function AssistantReview({ entry, onClose, onCommitChange, initialSource }: { entry: TeaCompassEntry; onClose: () => void; onCommitChange: (value: boolean) => void; initialSource?: StagedArPassage }) {
   const queryClient = useQueryClient();
   const savedLinks = useRef(new Map<string, { hash: string }>());
   const [removals, setRemovals] = useState<string[]>([]);
   const removedLinks = useRef(new Set<string>());
-  const [staged, setStaged] = useState<StagedArPassage[]>([]);
+  const [staged, setStaged] = useState<StagedArPassage[]>(() => initialSource ? [initialSource] : []);
   const [keepPassages, setKeepPassages] = useState<Record<string, boolean>>({});
   const [description, setDescription] = useState<DescriptionSelection | null>(null);
   const [saving, setSaving] = useState(false);
