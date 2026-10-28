@@ -5,7 +5,8 @@ import { arCreateApi, type ArTeaSourceLink } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
-import { Modal } from '../shared/Modal';
+import { TeaReviewDialog } from './TeaReviewDialog';
+import { AssistantReview } from './TeaRecordAssistant';
 import { awaitArJob, type StagedArPassage } from './ArTeaSources';
 
 const validId = (id: string) => /^[A-Za-z0-9_-]{1,160}$/.test(id);
@@ -23,9 +24,9 @@ export function ArTranscriptHandoff() {
     navigate({ pathname: location.pathname, search: query.toString() }, { replace: true });
   };
   if (sourceId === null) return null;
-  return <Modal isOpen ariaLabel="Link transcript to teas" variant="panel" hideClose onClose={close}>
+  return <TeaReviewDialog open title="Link transcript to teas" onClose={close}>
     <TranscriptReview key={`${sourceId}:${accountId}:${userId}:${revision}`} sourceId={sourceId} onClose={close} onBusy={setCommitting} />
-  </Modal>;
+  </TeaReviewDialog>;
 }
 function TranscriptReview({ sourceId, onClose, onBusy }: { sourceId: string; onClose: () => void; onBusy: (busy: boolean) => void }) {
   const entries = useTeaCompassStore(state => state.entries);
@@ -40,6 +41,8 @@ function TranscriptReview({ sourceId, onClose, onBusy }: { sourceId: string; onC
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [previewEntryId, setPreviewEntryId] = useState<string | null>(null);
+  const [previewCommitting, setPreviewCommitting] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [retry, setRetry] = useState(0);
@@ -65,7 +68,8 @@ function TranscriptReview({ sourceId, onClose, onBusy }: { sourceId: string; onC
     })();
     return () => controller.abort();
   }, [ready, sourceId, retry]);
-  useEffect(() => { onBusy(saving); return () => onBusy(false); }, [saving, onBusy]);
+  useEffect(() => { onBusy(saving || previewCommitting); return () => onBusy(false); }, [saving, previewCommitting, onBusy]);
+  const previewEntry = ready ? entries.find(entry => entry.id === previewEntryId) : undefined;
   const upToDate = (link?: Omit<ArTeaSourceLink, 'text'>) => !!source && link?.mode === 'full' && link.hash === source.hash && link.start === 0 && link.end === source.text.length;
   const filtered = ready ? entries.filter(entry => entry.category !== 'teaware').filter(entry => [entry.name, entry.chineseName, entry.vendorName].some(value => value?.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))) : [];
   const save = async () => {
@@ -108,11 +112,14 @@ function TranscriptReview({ sourceId, onClose, onBusy }: { sourceId: string; onC
           {source && !filtered.length && <p className="py-3 text-ui-13 text-tea-text-sec">No matching tea records in this shop. Add the tea in Library first, then return here.</p>}
           {filtered.map(entry => {
             const link = links.find(item => item.entryId === entry.id); const linked = upToDate(link);
-            return <div key={entry.id} className="flex min-w-0 items-center gap-2 border-b border-tea-border py-2"><label className="flex min-h-11 min-w-0 flex-1 items-center gap-3"><input type="checkbox" aria-label={`Link ${entry.name || entry.chineseName || 'Untitled tea'}`} checked={selected.includes(entry.id)} disabled={!source || loading || saving || linked || (!selected.includes(entry.id) && selected.length >= 10)} onChange={() => setSelected(previous => previous.includes(entry.id) ? previous.filter(id => id !== entry.id) : [...previous, entry.id])} className="h-5 w-5 shrink-0 accent-tea-gold" /><span className="min-w-0 break-words text-ui-13 text-tea-text">{entry.name || entry.chineseName || 'Untitled tea'}<span className="mt-1 block text-ui-12 text-tea-text-sec">{linked ? 'Linked · current full transcript' : link ? 'Linked · select to refresh or use full transcript' : entry.teaKey ? 'Inventory · same tea record' : entry.type || 'Library'}</span></span></label>{link && <a className={`${action} shrink-0`} href={`/admin/compass?tab=library&entry=${encodeURIComponent(entry.id)}`}>Open tea</a>}</div>;
+            return <div key={entry.id} className="flex min-w-0 flex-wrap items-center gap-2 border-b border-tea-border py-2"><label className="flex min-h-11 min-w-0 flex-1 items-center gap-3"><input type="checkbox" aria-label={`Link ${entry.name || entry.chineseName || 'Untitled tea'}`} checked={selected.includes(entry.id)} disabled={!source || loading || saving || linked || (!selected.includes(entry.id) && selected.length >= 10)} onChange={() => setSelected(previous => previous.includes(entry.id) ? previous.filter(id => id !== entry.id) : [...previous, entry.id])} className="h-5 w-5 shrink-0 accent-tea-gold" /><span className="min-w-0 break-words text-ui-13 text-tea-text">{entry.name || entry.chineseName || 'Untitled tea'}<span className="mt-1 block text-ui-12 text-tea-text-sec">{linked ? 'Linked · current full transcript' : link ? 'Linked · select to refresh or use full transcript' : entry.teaKey ? 'Inventory · same tea record' : entry.type || 'Library'}</span></span></label><button type="button" disabled={!source || loading || saving} aria-label={`Review ${entry.name || entry.chineseName || 'Untitled tea'} workspace`} className={`${action} shrink-0`} onClick={() => setPreviewEntryId(entry.id)}>Review tea workspace</button>{link && <a className={`${action} shrink-0`} href={`/admin/compass?tab=library&entry=${encodeURIComponent(entry.id)}`}>Open tea</a>}</div>;
           })}
         </section>
       </div>
     </div>
     <footer className="shrink-0 border-t border-tea-border px-4 pt-2 pb-nav-gap md:px-6"><div className="mx-auto flex max-w-5xl items-center justify-between gap-3"><p role="status" className="text-ui-12 text-tea-text-sec">{selected.length ? `${selected.length} selected` : 'Nothing selected'}</p><button type="button" disabled={saving || loading || !source || !selected.length} onClick={() => void save()} className="cta-solid min-h-11 rounded-md px-4 text-ui-13 disabled:opacity-50">{saving ? 'Linking…' : 'Link selected teas'}</button></div></footer>
+    <TeaReviewDialog open={!!previewEntry && !!source} title="Build this tea" onClose={() => { if (!previewCommitting) setPreviewEntryId(null); }}>
+      {previewEntry && source && <AssistantReview key={`${previewEntry.id}:${source.hash}`} entry={previewEntry} initialSource={source} onClose={() => setPreviewEntryId(null)} onCommitChange={setPreviewCommitting} />}
+    </TeaReviewDialog>
   </section>;
 }

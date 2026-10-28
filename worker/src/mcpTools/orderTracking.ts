@@ -8,7 +8,7 @@
  * Setting a number moves a Placed or Sent order to Shipped, because a parcel
  * with a tracking number has left. It never marks an order Received: receiving
  * puts tea on the shelf with its cost, and that stays a reviewed step
- * (curate_approve_arrival, or Receive in the app).
+ * (record_arrival, compatible Curate approval, or Receive in the app).
  */
 import { agentName, str } from './curateIntake';
 import type { ToolHandler, ToolModule } from './registry';
@@ -26,8 +26,8 @@ type TrackingTicket = {
 };
 
 /** Statuses an order is "in process" in: placed and not yet received or cancelled. */
-export const IN_PROCESS = ['confirmed', 'sent', 'shipped'] as const;
-const STEP_WORD: Record<string, string> = { confirmed: 'Placed', sent: 'Sent to supplier', shipped: 'Shipped' };
+export const IN_PROCESS = ['pending', 'ordered', 'confirmed', 'sent', 'shipped'] as const;
+const STEP_WORD: Record<string, string> = { pending: 'Pending', ordered: 'Ordered', confirmed: 'Placed', sent: 'Sent to supplier', shipped: 'Shipped' };
 
 function teasOf(itemsJson: unknown): string[] {
   try {
@@ -39,6 +39,7 @@ function teasOf(itemsJson: unknown): string[] {
 function reading(row: Row) {
   return {
     order_id: row.id,
+    receipt_id: row.receipt_id ?? null,
     supplier: row.vendor_name,
     route: row.ship_mode === 'sea' ? 'boat' : row.ship_mode === 'air' ? 'air' : null,
     step: STEP_WORD[row.status] ?? row.status,
@@ -51,7 +52,7 @@ function reading(row: Row) {
 const list: ToolHandler = async (env, auth, args) => {
   const supplier = str(args?.supplier, 200);
   const rows = await env.DB.prepare(
-    `SELECT id, vendor_name, ship_mode, status, tracking_number, items_json, created_at FROM purchase_orders
+    `SELECT id, receipt_id, vendor_name, ship_mode, status, tracking_number, items_json, created_at FROM purchase_orders
       WHERE account_id = ? AND status IN (${IN_PROCESS.map(() => '?').join(', ')})
         ${supplier ? 'AND vendor_name LIKE ?' : ''}
       ORDER BY created_at DESC LIMIT 50`,
@@ -99,7 +100,7 @@ export const orderTrackingTools: ToolModule = {
   defs: [
     {
       name: 'list_orders_in_process', scope: 'inventory:read',
-      description: 'Read purchase orders on their way (Placed, Sent to supplier, Shipped): supplier, route (air or boat), step, tracking number and teas. Filter by supplier name. Never changes anything.',
+      description: 'Read open purchase orders (Pending, Ordered, Placed, Sent to supplier, Shipped), including purchases created by invoice intake: supplier, route (air or boat), step, tracking number, linked receipt ID and teas. Use get_purchase for quantities, arrival history and attention items. Filter by supplier name. Never changes anything.',
       inputSchema: {
         type: 'object', properties: { supplier: { type: 'string' }, agent: { type: 'string' } },
         additionalProperties: false,

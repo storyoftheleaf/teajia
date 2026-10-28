@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { installedTeaJson, INSTALLED_TEA_MODEL } from '../src/curateInstalledAi';
 import { fileSaid } from '../src/curateSaidFiling';
-import { proposeTeaDescription } from '../src/curateTeaDescription';
+import { proposeTeaDescription, teaDescriptionSchema } from '../src/curateTeaDescription';
 const passage = 'The supplier describes this Shuixian as over thirty years old.';
 const input = { facts: {}, sources: [{ id: 'talk-1', title: 'Shop conversation', text: passage }] };
 describe('tea previews use the existing installed AI binding without a Groq key', () => {
@@ -16,6 +16,7 @@ describe('tea previews use the existing installed AI binding without a Groq key'
   const result = await proposeTeaDescription({ AI: { run } }, input);
   expect(result.citations).toEqual([{ sourceId: 'talk-1', quote: passage }]);
   expect(result.description).toContain('described by its supplier');
+  expect(run).toHaveBeenCalledWith(INSTALLED_TEA_MODEL, expect.objectContaining({ response_format: { type: 'json_schema', json_schema: teaDescriptionSchema(['talk-1']) } }));
  });
  it('rejects fabricated citations from the installed provider too', async () => {
   const run = vi.fn().mockResolvedValue({ response: JSON.stringify({ paragraphs: [{ text: 'Invented.', citations: [{ sourceId: 'talk-1', quote: 'invented evidence' }] }] }) });
@@ -31,6 +32,26 @@ describe('tea previews use the existing installed AI binding without a Groq key'
    const result = installedTeaJson({ AI: { run: () => new Promise(() => {}) } }, [], 100);
    const assertion = expect(result).rejects.toThrow('too long');
    await vi.advanceTimersByTimeAsync(20_000); await assertion;
+   expect(vi.getTimerCount()).toBe(0);
+  } finally { vi.useRealTimers(); }
+ });
+ it('allows the working-material caller 40 seconds without changing the default deadline', async () => {
+  vi.useFakeTimers();
+  try {
+   const result = installedTeaJson({ AI: { run: () => new Promise(resolve => setTimeout(() => resolve({ response: { notes: [] } }), 24_500)) } }, [], 2600, { type: 'object' }, 40_000);
+   await vi.advanceTimersByTimeAsync(24_500);
+   await expect(result).resolves.toEqual({ notes: [] });
+   expect(vi.getTimerCount()).toBe(0);
+   await expect(installedTeaJson({ AI: { run: vi.fn() } }, [], 100, undefined, 40_001)).rejects.toThrow('bounded');
+  } finally { vi.useRealTimers(); }
+ });
+ it('still refuses a working-material request at its bounded 40-second deadline', async () => {
+  vi.useFakeTimers();
+  try {
+   const result = installedTeaJson({ AI: { run: () => new Promise(() => {}) } }, [], 2600, { type: 'object' }, 40_000);
+   const assertion = expect(result).rejects.toThrow('too long');
+   await vi.advanceTimersByTimeAsync(40_000);
+   await assertion;
    expect(vi.getTimerCount()).toBe(0);
   } finally { vi.useRealTimers(); }
  });

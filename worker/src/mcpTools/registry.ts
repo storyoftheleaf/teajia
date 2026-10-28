@@ -1,3 +1,4 @@
+import type { CurateFinalizeMovement } from '../curateImports';
 /**
  * Where MCP tools added from here on live.
  *
@@ -36,11 +37,18 @@ export interface CurateReceiptService {
   accept: (scope: { accountId: string; userId: string; email?: string }, proposalId: string) => Promise<Response>;
 }
 
+export interface InventoryReceiptService {
+  receive: (scope: { accountId:string; userId:string; email?:string|null }, lineId:string, input:Record<string,unknown>) => Promise<Response>;
+  cancel: (scope: { accountId:string; userId:string; email?:string|null }, lineId:string) => Promise<Response>;
+  receiveImport: (scope: { accountId:string; userId:string; email?:string|null }, line:Parameters<CurateFinalizeMovement>[0], key:string) => ReturnType<CurateFinalizeMovement>;
+}
+
 export interface ToolEnv {
   DB: D1Database;
   MEDIA_BUCKET?: R2Bucket;
   ATLAS_BUCKET?: R2Bucket;
   curateReceipts?: CurateReceiptService;
+  inventoryReceipts?: InventoryReceiptService;
 }
 
 /** The scopes a module may ask for. Mirrors MCP_SCOPES in mcp.ts. */

@@ -39,10 +39,10 @@ describe('Storage observations', () => {
     expect(withStorageCharacter({}, 1.8).storageCharacter).toBe(2);
     expect(withStorageCharacter({}, NaN).storageCharacter).toBeUndefined();
   });
-  it('keeps legacy Incense visible and removable without offering it to new tastings', () => {
-    expect(STORAGE_NOTES.map(([note]) => note)).not.toContain('Incense');
+  it('offers unwanted Incense under Storage and preserves its existing strength', () => {
+    expect(STORAGE_NOTES.map(([note]) => note)).toContain('Incense');
     const empty = renderToStaticMarkup(<StorageZone value={{}} onChange={() => {}} />);
-    expect(empty).not.toContain('Incense');
+    expect(empty).toContain('>Incense</button>');
     const saved: TastingData = { storageNotes: ['Incense', 'Musty'], observationIntensity: { 'storage:Incense': 'Strong', 'storage:Musty': 'Slight', 'sensation:silky': 'Moderate' } };
     const html = renderToStaticMarkup(<StorageZone value={saved} onChange={() => {}} />);
     expect(html).toContain('>Incense</button>');
@@ -50,7 +50,7 @@ describe('Storage observations', () => {
     const removed = toggleStorageNote(saved, 'Incense');
     expect(removed.storageNotes).toEqual(['Musty']);
     expect(removed.observationIntensity).toEqual({ 'storage:Musty': 'Slight', 'sensation:silky': 'Moderate' });
-    expect(renderToStaticMarkup(<StorageZone value={removed} onChange={() => {}} />)).not.toContain('Incense');
+    expect(removed.storageNotes).not.toContain('Incense');
     expect(toggleStorageNote({}, 'Musty').observationIntensity).toBeUndefined();
   });
 

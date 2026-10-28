@@ -5,6 +5,7 @@ import { ObservationIntensity, withObservationIntensity } from './ObservationInt
 
 export const STORAGE_CHARACTER_WORDS = ['Parched', 'Dry', 'Sweet spot', 'Wet', 'Near mouldy'] as const;
 export const STORAGE_NOTES = [
+  ['Incense', 'An unwanted incense-like smell or taste.'],
   ['Musty', 'An unpleasant closed, stale, damp-room note.'],
   ['Stale', 'A tired, stale taste or aroma.'],
   ['Sour off-note', 'An unwanted sour note in this tasting.'],

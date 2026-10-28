@@ -43,6 +43,7 @@ import { curateSupplyTools } from './mcpTools/curateSupply';
 import { curatePhotoTools } from './mcpTools/curatePhotos';
 import { curateArrivalTools } from './mcpTools/curateArrivals';
 import { orderTrackingTools } from './mcpTools/orderTracking';
+import { purchaseArrivalTools } from './mcpTools/purchaseArrivals';
 import { curateAttachmentTools } from './mcpTools/curateAttachments';
 import { curateManageModule } from './mcpTools/curateManage';
 import { curateQuoteTools } from './mcpTools/curateQuotes';
@@ -50,7 +51,7 @@ import { curatePromotionTools } from './mcpTools/curatePromotion';
 import { curateDrivePhotosModule } from './mcpTools/curateDrivePhotos';
 import { supplierRenameTools } from './mcpTools/supplierRename';
 import { curateDisplayNameTools } from './mcpTools/curateDisplayNames';
-import type { CurateReceiptService } from './mcpTools/registry';
+import type { CurateReceiptService, InventoryReceiptService } from './mcpTools/registry';
 import { resolveShopFreightDefault, shippingPerGramUsd } from './shippingRate';
 import { deductStockForPaidInvoice } from './orderLifecycle';
 import { costNeedsCurrency, createMissingCost, currencyStated, costCurrencySourceFor, CURRENCY_SOURCE_STATED, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
@@ -104,6 +105,7 @@ import { mergeProductTasting, readStoredTasting, tastingHasTerms, tastingTermLab
 type Env = {
   DB: D1Database;
   curateReceipts?: CurateReceiptService;
+  inventoryReceipts?: InventoryReceiptService;
   JWT_SECRET: string;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
   OAUTH_AUTHORIZE_LIMITER?: RateLimiterBinding;
@@ -6029,7 +6031,7 @@ async function toolIntakeFinalize(env: Env, auth: McpAuth, args: any) {
         review_state: draft.batch?.review_state ?? null,
         item_count: items.length,
         by_disposition: byDisposition,
-        note: 'Finalizing creates Draft products + Curate identities for all non-abandoned items. Stock movements are created for received/in_transit dispositions.',
+        note: 'Finalizing creates Draft products + Curate identities for all non-abandoned items. Stock movements are created only for received dispositions; in-transit items remain expected until an arrival is recorded.',
       },
       confirmation_token: token,
       expires_in_seconds: PENDING_TTL_MS / 1000,
@@ -6047,34 +6049,8 @@ async function toolIntakeFinalize(env: Env, auth: McpAuth, args: any) {
 async function commitIntakeFinalize(env: Env, m: Extract<PendingMutation, { kind: 'intake_finalize' }>) {
   const ctx: CurateImportContext = { accountId: m.accountId, userId: m.userId };
 
-  const receiveLine: CurateFinalizeMovement = async (line, idempotencyKey) => {
-    // Idempotency guard — replay safe under concurrent confirm calls.
-    const prior = await env.DB.prepare(
-      'SELECT id FROM stock_ledger WHERE account_id = ? AND idempotency_key = ?'
-    ).bind(m.accountId, idempotencyKey).first<{ id: string }>();
-    if (prior) return { movementId: prior.id };
-
-    const amountCol = line.unit === 'g' ? 'stock_grams' : 'quantity_units';
-    const product = await env.DB.prepare(
-      `SELECT ${amountCol} FROM products WHERE id = ? AND account_id = ?`
-    ).bind(line.productId, m.accountId).first<Record<string, number>>();
-    const current = product ? Number(product[amountCol] ?? 0) : 0;
-    const balanceAfter = current + line.quantity;
-    const movementId = crypto.randomUUID();
-    const fingerprint = JSON.stringify({ quantity: line.quantity, unit: line.unit, source_compass_entry_id: line.compassEntryId });
-
-    await env.DB.batch([
-      env.DB.prepare(
-        `INSERT INTO stock_ledger (id, account_id, product_id, delta, balance_after, reason, movement_type, movement_unit, idempotency_key, inventory_receipt_line_id, source_compass_entry_id, note, movement_fingerprint)
-         VALUES (?, ?, ?, ?, ?, 'RECEIPT', 'receipt', ?, ?, ?, ?, 'Curate import finalized via MCP', ?)`
-      ).bind(movementId, m.accountId, line.productId, line.quantity, balanceAfter,
-        line.unit === 'g' ? 'gram' : 'unit', idempotencyKey, line.id, line.compassEntryId ?? null, fingerprint),
-      env.DB.prepare(
-        `UPDATE products SET ${amountCol} = ?, stock_known_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND account_id = ?`
-      ).bind(balanceAfter, line.productId, m.accountId),
-    ]);
-    return { movementId };
-  };
+  if (!env.inventoryReceipts) return { error:'inventory_receiving_unavailable' };
+  const receiveLine: CurateFinalizeMovement = (line, key) => env.inventoryReceipts!.receiveImport(ctx, line, key);
 
   const req = new Request(`http://localhost/api/curate/imports/${m.importId}/finalize`, {
     method: 'POST',
@@ -6798,7 +6774,7 @@ const TOOL_DEFS = [
             additionalProperties: false,
           },
         },
-        confirm: { type: 'string', description: 'The confirmation_token from the preview. Send it only after Adrian said yes to the read-back.' },
+        confirm: { type: 'string', description: 'The confirmation_token from the preview. An explicit instruction to file the stated invoice already authorizes confirmation after checking the preview against it. Ask only about ambiguous or missing facts; do not require another manual approval for the same authorized operation.' },
       },
       required: ['import_id'],
     },
@@ -6838,7 +6814,7 @@ const TOOL_DEFS = [
   {
     name: 'intake_finalize',
     scope: 'stock:write',
-    description: 'Finalize a Curate import draft, creating Draft products and Curate identities for all non-abandoned items. Items with received/in_transit disposition also generate inventory receipts and stock movements. Two-step preview/confirm: first call returns a preview + confirmation_token, second call with confirm: <token> commits.',
+    description: 'Finalize a Curate import draft, creating Draft products and Curate identities for all non-abandoned items. Bought items create linked purchases and inventory receipts; only received items add stock. Use record_arrival later for ordered/in-transit goods. Two-step preview/confirm: first call returns a preview + confirmation_token, second call with confirm: <token> commits.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -7050,6 +7026,7 @@ const TOOL_MODULES: ToolModule[] = [
   curatePhotoTools,
   curateArrivalTools,
   orderTrackingTools,
+  purchaseArrivalTools,
   curateAttachmentTools,
   curateManageModule,
   curateQuoteTools,

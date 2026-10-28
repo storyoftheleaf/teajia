@@ -1,4 +1,8 @@
 import { requireCurateManager } from '../curateMutations';
+import { capturedHoldingFields } from '../capturedHolding';
+import { nameProductColumns } from '../productDefaults';
+import { canonicalizeCostCurrency, stampCostCurrencySource } from '../costCurrency';
+import { inventoryPurposeConflict } from '../inventoryDomain';
 import { readVendorStructuredProfile } from '../curateVendorProfile';
 import { listCurateQuotes } from '../curateQuotes';
 /**
@@ -19,8 +23,8 @@ import { listCurateQuotes } from '../curateQuotes';
  *     as history.
  *   - `curate_order` writes the shop's existing purchase order (the Purchase
  *     Orders page and the vendor's page already list them), with the message to
- *     copy, and one pending receipt per tea: the "approve when it arrives" step
- *     the app already knows how to accept.
+ *     copy, and one linked expected delivery. An arrival moves stock against its
+ *     receipt lines; creating the purchase does not add shelf stock.
  *   - `curate_get_vendor` reads it all back in one place, so the next agent
  *     knows that a Hong Kong vendor quotes in HKD, stores in Hong Kong, and
  *     costs so much a kilo to reach Bali.
@@ -182,7 +186,7 @@ const QTY_UNIT_GRAMS: Record<string, number> = { g: 1, liang: 50, jin: 500, kg: 
 
 type OrderLine = {
   entryId: string; productId: string | null; name: string; type: string | null; grams: number;
-  quantityWords: string; unitPrice: string; lineTotal: number;
+  quantity: number; unit: 'g' | 'unit'; quantityWords: string; unitPrice: string; lineTotal: number;
 };
 type OrderTicket = {
   kind: 'curate:order'; accountId: string; userId: string; agent: string; vendorPlan: VendorPlan;
@@ -205,9 +209,12 @@ const toolOrder: ToolHandler = async (env, auth, args) => {
 
   const lines: OrderLine[] = [];
   let currency: string | null = null;
+  const seenEntries = new Set<string>();
   for (const [i, raw] of rawLines.entries()) {
     const teaId = str(raw?.tea_id, 80);
     if (!teaId) throw new Error(`lines[${i}] has no tea_id (from curate_find).`);
+    if (seenEntries.has(teaId)) throw new Error('Combine repeated quantities for the same Curate item into one order line.');
+    seenEntries.add(teaId);
     const e = await entryById(env, auth, teaId);
     if (!e) throw new Error(`lines[${i}]: no such tea in Curate.`);
     const label = e.shop_name ? `${e.name} (${e.shop_name})` : (e.name ?? 'this tea');
@@ -218,7 +225,12 @@ const toolOrder: ToolHandler = async (env, auth, args) => {
     let grams: number;
     let pieces: number | null = null;
     const pieceGrams = raw?.piece_grams != null ? Number(raw.piece_grams) : null;
-    if (qUnit === 'piece') {
+    const teaware = e.category === 'teaware' || e.type === 'Teaware';
+    if (teaware) {
+      if (!['piece','unit'].includes(qUnit) || !Number.isInteger(qAmount)) throw new Error(`Order ${label} in whole pieces.`);
+      pieces = qAmount;
+      grams = pieceGrams && pieceGrams > 0 ? qAmount * pieceGrams : 0;
+    } else if (qUnit === 'piece') {
       if (!pieceGrams || !Number.isFinite(pieceGrams) || pieceGrams <= 0) throw new Error(`How much does one piece of ${label} weigh? piece_grams is needed for freight and stock.`);
       pieces = qAmount;
       grams = qAmount * pieceGrams;
@@ -235,6 +247,7 @@ const toolOrder: ToolHandler = async (env, auth, args) => {
       : null);
     if (!price) throw new Error(`${label} has no price with a currency. Ask Adrian what it costs and per what.`);
     let lineTotal: number;
+    if (teaware && price.price_per_unit_grams != null) throw new Error(`Give the price of ${label} per piece.`);
     if (price.price_per_unit_grams != null) lineTotal = price.price_amount * grams / price.price_per_unit_grams;
     else if (pieces != null) lineTotal = price.price_amount * pieces;
     else throw new Error(`${label} is priced per piece: give quantity in pieces, or piece_grams.`);
@@ -242,6 +255,7 @@ const toolOrder: ToolHandler = async (env, auth, args) => {
     currency = price.price_currency;
     lines.push({
       entryId: e.id, productId: e.draft_product_id ?? null, name: e.shop_name ?? e.name ?? 'Unnamed tea', type: e.category === 'teaware' ? 'Teaware' : (e.type ?? null), grams,
+      quantity: teaware ? qAmount : grams, unit: teaware ? 'unit' : 'g',
       quantityWords: `${qAmount} ${qUnit}`, unitPrice: price.price_per_unit_grams != null ? `${money(price.price_amount, price.price_currency)} per ${price.price_per_unit_grams} g` : `${money(price.price_amount, price.price_currency)} per piece`,
       lineTotal,
     });
@@ -270,7 +284,7 @@ const toolOrder: ToolHandler = async (env, auth, args) => {
     freightLines.push(`${r.leg}: ${usd(perKgUsd * weightKg)} (${money(r.total_amount / r.weight_kg, r.currency)}/kg)`);
   }
   const grams = weightKg * 1000;
-  const landed = freightKnown
+  const landed = freightKnown && grams > 0
     ? `Landed about ${usd(totalUsd + freightUsd)} (${usd((totalUsd + freightUsd) / grams)}/g): goods ${money(total, currency!)} ≈ ${usd(totalUsd)}, freight ${usd(freightUsd)} for ${weightKg} kg.`
     : `Goods ${money(total, currency!)} ≈ ${usd(totalUsd)}. No shipping cost on record for this route yet, so the landed cost is unknown.`;
   const vendorName = vendorPlan.name;
@@ -293,7 +307,7 @@ const toolOrder: ToolHandler = async (env, auth, args) => {
     freight: freightLines,
     shared_legs_available: wanted.length ? undefined : sharedAll.map(r => r.leg),
     message_to_copy: message,
-    after_confirm: 'The order waits on the Purchase Orders page with this message to copy, and each tea waits as an arrival to approve into stock.',
+    after_confirm: 'The purchase and expected delivery are linked automatically. Stock stays unchanged until the agent records an arrival; the Purchases screen tracks the same record.',
   }, token);
 };
 
@@ -307,33 +321,64 @@ async function commitOrder(env: ToolEnv, auth: ToolAuth, t: OrderTicket) {
   const contact = [reach?.wechat ? `WeChat ${reach.wechat}` : null, reach?.whatsapp ? `WhatsApp ${reach.whatsapp}` : null, reach?.phone ?? null].filter(Boolean).join(' · ') || null;
   const poId = crypto.randomUUID();
   const now = new Date().toISOString();
-  const items = t.lines.map(l => ({
-    product_id: l.productId, product_name: l.name, quantity_grams: l.grams,
-    compass_entry_id: l.entryId, quantity: l.quantityWords, unit_price: l.unitPrice,
-    line_total: Math.round(l.lineTotal * 100) / 100, currency: t.currency,
-  }));
-  const statements: D1PreparedStatement[] = [
-    env.DB.prepare(
-      `INSERT INTO purchase_orders (id, account_id, vendor_name, vendor_id, vendor_contact, items_json, total_usd, display_currency, status, message_text, notes, freight_estimate_json, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)`
-    ).bind(poId, auth.accountId, vendor.name, vendor.id, contact, JSON.stringify(items), Math.round(t.totalUsd * 100) / 100, t.currency, t.message, null, t.freightEstimate ? JSON.stringify(t.freightEstimate) : null, now, now),
-  ];
+  const receiptId = `po_${poId}`;
+  const statements: D1PreparedStatement[] = [];
+  const items: Array<Record<string, any>> = [];
   for (const l of t.lines) {
-    statements.push(env.DB.prepare(
-      `INSERT INTO curate_receipt_proposals (id, account_id, compass_entry_id, product_id, product_name, product_type, purpose, quantity, unit, acquisition_kind, idempotency_key, proposed_by_user_id)
-       VALUES (?, ?, ?, ?, ?, ?, 'working', ?, 'g', 'purchase', ?, ?)`
-    ).bind(crypto.randomUUID(), auth.accountId, l.entryId, l.productId, l.name, l.type, l.grams, `order:${poId}:${l.entryId}`, auth.userId));
-    statements.push(env.DB.prepare(
-      `UPDATE tea_compass_entries SET decision = 'selected', status = 'buying', buy_quantity_grams = ?,
-         vendor_id = COALESCE(vendor_id, ?), vendor_name = COALESCE(vendor_name, ?)${t.shipsBy ? ', transport_mode = ?' : ''}, updated_at = datetime('now')
-       WHERE id = ? AND account_id = ?`
-    ).bind(l.grams, vendor.id, vendor.name, ...(t.shipsBy ? [t.shipsBy] : []), l.entryId, auth.accountId));
+    const entry = await entryById(env, auth, l.entryId);
+    if (!entry) throw new Error('Order item is no longer available');
+    let product = entry.draft_product_id
+      ? await env.DB.prepare('SELECT * FROM products WHERE id=? AND account_id=?').bind(entry.draft_product_id,auth.accountId).first<Record<string, any>>()
+      : await env.DB.prepare('SELECT * FROM products WHERE source_compass_entry_id=? AND account_id=?').bind(l.entryId,auth.accountId).first<Record<string, any>>();
+    if (entry.draft_product_id && !product) throw new Error('Linked holding is not in this account');
+    if (product && ((product.source_compass_entry_id && product.source_compass_entry_id!==l.entryId)
+      || (product.type==='Teaware'?'unit':'g')!==l.unit || inventoryPurposeConflict(product,'working'))) {
+      throw new Error('Order item does not match its holding category, purpose or identity');
+    }
+    const productId = product?.id ?? `holding_${auth.accountId}_${l.entryId}`;
+    if (!product) {
+      const values: Record<string, any> = nameProductColumns({
+        ...capturedHoldingFields(entry,l.quantity), id:productId,account_id:auth.accountId,
+        type:l.type || (l.unit==='unit'?'Teaware':'Misc'),product_name:l.name,given_name:l.name,
+        status:'Draft',stock_grams:l.unit==='g'?0:null,quantity_units:l.unit==='unit'?0:null,
+        inventory_purpose:'working',is_sample:0,is_personal:0,is_public:0,shown_in_shop:0,
+        source_compass_entry_id:l.entryId,owner_user_id:auth.userId,
+        vendor_id:vendor.id,vendor:vendor.name,cost_amount:l.unit==='unit'?l.lineTotal/l.quantity:l.lineTotal,cost_currency:t.currency,quantity_purchased:l.unit==='unit'?1:l.quantity,
+      });
+      canonicalizeCostCurrency(values); stampCostCurrencySource(values);
+      const columns = Object.keys(values);
+      statements.push(env.DB.prepare(`INSERT OR IGNORE INTO products (${columns.join(',')}) VALUES (${columns.map(()=>'?').join(',')})`)
+        .bind(...columns.map(column=>values[column])));
+    }
+    items.push({product_id:productId,product_name:l.name,quantity:l.quantity,unit:l.unit,
+      ...(l.unit==='g'?{quantity_grams:l.quantity}:{}),quantity_words:l.quantityWords,compass_entry_id:l.entryId,
+      unit_price:l.lineTotal/l.quantity,total_cost:l.lineTotal,line_total:l.lineTotal,currency:t.currency});
+    statements.push(env.DB.prepare(`UPDATE tea_compass_entries SET draft_product_id=?,decision='selected',status='buying',
+      buy_quantity_grams=?,buy_quantity_units=?,vendor_id=COALESCE(vendor_id,?),vendor_name=COALESCE(vendor_name,?),
+      transport_mode=COALESCE(?,transport_mode),updated_at=datetime('now') WHERE id=? AND account_id=?`)
+      .bind(productId,l.unit==='g'?l.quantity:null,l.unit==='unit'?l.quantity:null,vendor.id,vendor.name,t.shipsBy,l.entryId,auth.accountId));
+  }
+  statements.push(env.DB.prepare(`INSERT INTO inventory_receipts
+    (id,account_id,state,vendor_name,source_kind,source_ref,created_by_user_id,idempotency_key,request_fingerprint,transport_mode)
+    VALUES(?,?,'ordered',?,'purchase_order',?,?,?,?,?)`)
+    .bind(receiptId,auth.accountId,vendor.name,poId,auth.userId,`purchase:${poId}`,JSON.stringify(items),t.shipsBy));
+  statements.push(env.DB.prepare(`INSERT INTO purchase_orders
+    (id,account_id,vendor_name,vendor_id,vendor_contact,items_json,total_usd,display_currency,status,message_text,notes,freight_estimate_json,receipt_id,ship_mode,created_at,updated_at)
+    VALUES(?,?,?,?,?,?,?,?,'ordered',?,NULL,?,?,?,?,?)`)
+    .bind(poId,auth.accountId,vendor.name,vendor.id,contact,JSON.stringify(items),Math.round(t.totalUsd*100)/100,t.currency,
+      t.message,t.freightEstimate?JSON.stringify(t.freightEstimate):null,receiptId,['air','sea'].includes(t.shipsBy??'')?t.shipsBy:null,now,now));
+  for (const [index,item] of items.entries()) {
+    statements.push(env.DB.prepare(`INSERT INTO inventory_receipt_lines
+      (id,receipt_id,account_id,product_id,expected_quantity,unit,intended_purpose,source_kind,source_ref,original_cost_amount,original_cost_currency,original_unit_cost)
+      VALUES(?,?,?,?,?,?,'working','purchase_order',?,?,?,?)`)
+      .bind(`${receiptId}_${index}`,receiptId,auth.accountId,item.product_id,item.quantity,item.unit,poId,item.total_cost,item.currency,item.unit_price));
   }
   await env.DB.batch(statements);
   return {
     committed: true,
-    purchase_order_id: poId,
-    where: 'Purchase Orders page (/admin/purchase-orders) and the vendor\'s page; arrivals wait to be approved into stock.',
+    purchase_order_id: poId, receipt_id: receiptId,
+    lines: items.map((item,index)=>({receipt_line_id:`${receiptId}_${index}`,product_id:item.product_id,product_name:item.product_name,quantity:item.quantity,unit:item.unit})),
+    where: 'Purchases (/admin/purchase-orders): the purchase and expected delivery are connected. Record arrivals against the returned receipt lines.',
     message_to_copy: t.message,
     freight_estimate: t.freightEstimate ?? null,
   };
@@ -359,7 +404,7 @@ const toolGetVendor: ToolHandler = async (env, auth, args) => {
     env.DB.prepare('SELECT * FROM curate_vendor_profiles WHERE vendor_id = ? AND account_id = ?').bind(id, auth.accountId).first<Record<string, any>>(),
     env.DB.prepare(`SELECT * FROM tea_compass_entries WHERE account_id = ? AND vendor_id = ? AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL ${manager ? '' : 'AND user_id = ?'} ORDER BY updated_at DESC LIMIT 50`)
       .bind(auth.accountId, id, ...(manager ? [] : [auth.userId])).all<Record<string, any>>(),
-    env.DB.prepare('SELECT id, status, total_usd, display_currency, items_json, message_text, created_at FROM purchase_orders WHERE account_id = ? AND vendor_id = ? ORDER BY created_at DESC LIMIT 20')
+    env.DB.prepare('SELECT id, status, total_usd, display_currency, items_json, message_text, receipt_id, created_at FROM purchase_orders WHERE account_id = ? AND vendor_id = ? ORDER BY created_at DESC LIMIT 20')
       .bind(auth.accountId, id).all<Record<string, any>>(),
     env.DB.prepare('SELECT id, text, created_at FROM curate_todos WHERE account_id = ? AND vendor_id = ? AND done_at IS NULL').bind(auth.accountId, id).all(),
     loadRates(env),
@@ -379,8 +424,8 @@ const toolGetVendor: ToolHandler = async (env, auth, args) => {
     shared_freight: shared.map(r => legReading(r, rates)),
     teas: (teas.results ?? []).map(e => ({ id: e.id, name: e.name, shop_name: e.shop_name ?? null, status: e.status, decision: e.decision, missing: teaMissing(e) })),
     orders: (orders.results ?? []).map(o => ({
-      id: o.id, status: o.status, total_usd: o.total_usd, currency: o.display_currency, created_at: o.created_at,
-      items: parseJson<any[]>(o.items_json, []).map(i => `${i.quantity ?? `${i.quantity_grams} g`} of ${i.product_name}`),
+      id: o.id, receipt_id: o.receipt_id, status: o.status, total_usd: o.total_usd, currency: o.display_currency, created_at: o.created_at,
+      items: parseJson<any[]>(o.items_json, []).map(i => `${i.quantity_words ?? (typeof i.quantity === 'number' ? `${i.quantity} ${i.unit ?? 'g'}` : i.quantity) ?? `${i.quantity_grams} g`} of ${i.product_name}`),
     })),
     open_todos: todos.results ?? [],
   };
@@ -438,7 +483,7 @@ const defs: ToolDefinition[] = [
   {
     name: 'curate_order',
     scope: 'stock:write',
-    description: 'Use this when Adrian decides to buy, e.g. "I want one kilo of it". Writes the order to the Purchase Orders page with the message to send the vendor (pass message in the vendor\'s language, Chinese with English beneath for a Chinese-speaking vendor), works out the cost landed in Bali from the vendor\'s shipping legs, and leaves each tea as an arrival to approve into stock. Prices come from the tea unless given. One order is one vendor and one currency. Two steps (preview, then confirm).',
+    description: 'Use this when Adrian decides to buy, e.g. "I want one kilo of it". Writes the order to the Purchase Orders page with the message to send the vendor (pass message in the vendor\'s language, Chinese with English beneath for a Chinese-speaking vendor), works out the cost landed in Bali from the vendor\'s shipping legs, and automatically connects its expected delivery without adding shelf stock. Use the returned receipt line IDs to record partial or complete arrivals. Prices come from the tea unless given. One order is one vendor and one currency. Two steps (preview, then confirm).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -453,7 +498,7 @@ const defs: ToolDefinition[] = [
               tea_id: { type: 'string', description: 'From curate_find.' },
               quantity: {
                 type: 'object',
-                properties: { amount: { type: 'number' }, unit: { type: 'string', enum: ['g', 'liang', 'jin', 'kg', 'piece'] } },
+                properties: { amount: { type: 'number' }, unit: { type: 'string', enum: ['g', 'liang', 'jin', 'kg', 'piece', 'unit'] } },
                 required: ['amount', 'unit'],
                 additionalProperties: false,
               },

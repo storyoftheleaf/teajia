@@ -32,8 +32,8 @@ export interface TastingData {
   finish?: string[];            // throat sensations + finish character/duration terms
   cleanliness?: string;         // 'clean' | 'some-edge' | 'rough'
   basicTastes?: Array<'Sweet' | 'Bitter' | 'Sour / tart' | 'Umami' | 'Salty'>;
-  huiGanIntensity?: number;     // 0 None, 1 Slight, 2 Moderate, 3 Strong; absent means unrecorded
-  observationIntensity?: Record<string, 'Slight' | 'Moderate' | 'Strong'>;
+  huiGanIntensity?: number;     // 0 Not noticed, 1 Subtle, 2 Moderate, 3 Pronounced; absent means unrecorded
+  observationIntensity?: Record<string, 1 | 2 | 3 | 4 | 5 | 'Slight' | 'Moderate' | 'Strong'>;
   huiGan?: boolean;             // 回甘 — Returning sweetness
   yun?: boolean;                // 韵 — Resonance / lingering character
   qi?: boolean;                 // 气 — Vitality / body energy
@@ -45,6 +45,7 @@ export interface TastingData {
   quality?: number;             // 1-10 overall verdict
 
   // Section 4: Flavor (families + specific terms)
+  flavorFamilies?: string[];    // broad resemblance; taste/aroma channel not specified
   aroma?: string[];
   tasteIntensities?: Record<string, string>;
   aromaIntensities?: Record<string, string>;

@@ -13,7 +13,7 @@ import { COMMERCE_CHANGED_EVENT, refreshCommerceQueries, type CommerceChange } f
 import { mediaUrl } from '../../lib/mediaUrl';
 import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 import { BottomSheet } from '../../components/shared/BottomSheet';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link, Navigate } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Download,
   AlertTriangle, Archive, ArrowUpDown, ArrowUp, ArrowDown, Layers, MoreHorizontal, Check, X as XIcon, Star, Sparkles, RefreshCw, ChevronDown, ChevronRight, MapPin, Search, Leaf, Image as ImageIcon, History, SlidersHorizontal,
@@ -2157,7 +2157,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   const receiptId = searchParams.get('receipt');
 
-  if (searchParams.get('incoming') === '1' || receiptId) {
+  if (searchParams.get('incoming') === '1' && !receiptId) return <Navigate to="/admin/purchase-orders?view=coming" replace/>;
+  if (receiptId) {
     return <div className="h-full flex flex-col overflow-hidden bg-tea-bg"><IncomingReceiptsPanel receiptId={receiptId} onClose={() => { const next = new URLSearchParams(searchParams); next.delete('incoming'); next.delete('receipt'); setSearchParams(next); }} /></div>;
   }
 
@@ -2236,7 +2237,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   const corpusBtn = (active: boolean) => `tap-target relative font-display text-ui-20 font-medium leading-none px-0.5 ${active ? 'text-tea-gold after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:bg-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`;
   const openIncoming = () => {
-    setSearchParams(params => withParam(params, 'incoming', '1'));
+    navigate('/admin/purchase-orders?view=coming');
     setShowOptions(false);
   };
 

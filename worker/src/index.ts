@@ -1,3 +1,5 @@
+import { readPurchaseTracking } from './purchaseTracking';
+import type { CurateFinalizeMovement } from './curateImports';
 import { suppressVerificationNotifications, LIVE_VERIFICATION_POLICY } from './liveVerificationPolicy';
 import { guardDatabase, databaseUnavailableResponse } from './databaseGuard';
 import { hasTeaVoiceProvider, transcribeTeaVoice, TeaVoiceTranscriptionError } from './curateVoiceTranscription';
@@ -16150,11 +16152,30 @@ const handleRejectReceiptProposal: Handler = async (request, env, params) => {
 async function acceptCurateReceipt(env: Env, ctx: { accountId: string; userId: string; email?: string | null }, proposalId: string): Promise<Response> {
   const proposal = await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(proposalId, ctx.accountId).first() as Record<string, any> | null;
   if (!proposal) return json({ error: 'Receipt proposal not found' }, 404);
-  if (proposal.status === 'accepted') return json({ proposal, product_id: proposal.product_id, ledger_id: proposal.ledger_id, alreadyAccepted: true });
+  const linkedOrderId = /^order:([^:]+):/.exec(String(proposal.idempotency_key || ''))?.[1];
+  if (proposal.status === 'accepted') {
+    if(linkedOrderId) await preparePurchaseReceipt(env,ctx,linkedOrderId);
+    return json({ proposal, product_id: proposal.product_id, ledger_id: proposal.ledger_id, alreadyAccepted: true });
+  }
   if (proposal.status !== 'pending') return json({ error: 'Rejected receipt cannot be accepted' }, 409);
   let decoded;
   try { decoded = decodeReceiptProposal(proposal); }
   catch (error) { return json({ error: (error as Error).message }, 400); }
+  // An older proposal may now be represented by the canonical purchase delivery.
+  // Receive through that line, never through the old independent stock addition.
+  if (linkedOrderId) {
+    const order = await env.DB.prepare('SELECT receipt_id FROM purchase_orders WHERE id=? AND account_id=?').bind(linkedOrderId,ctx.accountId).first() as any;
+    if(order?.receipt_id){
+      const matches = await env.DB.prepare(`SELECT l.* FROM inventory_receipt_lines l JOIN products p ON p.id=l.product_id AND p.account_id=l.account_id WHERE l.receipt_id=? AND l.account_id=? AND (l.product_id=? OR p.source_compass_entry_id=?)`).bind(order.receipt_id,ctx.accountId,proposal.product_id??'',proposal.compass_entry_id??'').all<any>();
+      if(matches.results.length!==1)return json({error:'Match the legacy arrival to its purchase item before receiving'},409);
+      const target=matches.results[0];
+      if(Number(target.expected_quantity)!==decoded.quantity||target.unit!==decoded.unit)return json({error:'Purchase quantities changed. Record explicit arrival quantities on the delivery.'},409);
+      const received=await receiveInventoryLine(env,ctx,target.id,{quantity:decoded.quantity,idempotency_key:`curate-proposal:${proposal.id}`});
+      const value=await received.json() as any;if(!received.ok)return json(value,received.status);
+      await env.DB.prepare("UPDATE curate_receipt_proposals SET status='accepted',product_id=?,ledger_id=?,reviewed_by_user_id=?,reviewed_at=datetime('now'),updated_at=datetime('now') WHERE id=? AND account_id=? AND status='pending'").bind(target.product_id,value.ledger_id,ctx.userId,proposal.id,ctx.accountId).run();
+      return json({proposal:await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(proposal.id,ctx.accountId).first(),product_id:target.product_id,ledger_id:value.ledger_id,alreadyAccepted:!!value.already_received});
+    }
+  }
   const inventory = receiptInventoryValues(decoded);
   let receiptDetails: Record<string, any>;
   try { receiptDetails = await receiptProductDetails(env.DB, ctx.accountId, proposal); }
@@ -16239,6 +16260,7 @@ async function acceptCurateReceipt(env: Env, ctx: { accountId: string; userId: s
     if (committed?.status === 'accepted') return json({ proposal: committed, product_id: committed.product_id, ledger_id: committed.ledger_id, alreadyAccepted: true });
     throw error;
   }
+  if(linkedOrderId) await preparePurchaseReceipt(env,ctx,linkedOrderId);
   return json({ proposal: await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(proposal.id, ctx.accountId).first(), product_id: productId, ledger_id: ledgerId, alreadyAccepted: false });
 }
 
@@ -16442,17 +16464,16 @@ const handleUpdateInventoryReceiptTransport: Handler = async (request, env, para
 
 const loadReceiptLine = async (env: Env, id: string, accountId: string) => env.DB.prepare(`SELECT l.*, r.state receipt_state, r.vendor_name FROM inventory_receipt_lines l JOIN inventory_receipts r ON r.id=l.receipt_id AND r.account_id=l.account_id WHERE l.id=? AND l.account_id=?`).bind(id,accountId).first() as Promise<any>;
 
-const handleReceiveInventoryLine: Handler = async (request, env, params) => {
-  const ctx = await requireBundle(request, env, 'stock'); if ('error' in ctx) return ctx.error;
-  const line = await loadReceiptLine(env, params.id, ctx.accountId); if (!line) return json({ error: 'Receipt line not found' }, 404);
-  const body = await request.json().catch(() => ({})) as any;
+export async function receiveInventoryLine(env: Env, ctx: MovementContext, lineId: string, body: Record<string, any>): Promise<Response> {
+  const line = await loadReceiptLine(env, lineId, ctx.accountId); if (!line) return json({ error: 'Receipt line not found' }, 404);
   if (typeof body.idempotency_key === 'string' && body.idempotency_key.trim()) {
     const prior = await env.DB.prepare('SELECT * FROM stock_ledger WHERE account_id = ? AND idempotency_key = ?').bind(ctx.accountId,body.idempotency_key.trim()).first() as any;
     if (prior) {
       let priorInput: any = null; try { priorInput = JSON.parse(prior.movement_fingerprint || 'null'); } catch { /* legacy row */ }
       const sameQuantity = body.quantity != null && Number(body.quantity) === Number(priorInput?.quantity);
-      if (prior.inventory_receipt_line_id !== line.id || prior.movement_type !== 'receipt' || !sameQuantity) return json({ error:'idempotency_key already used for a different receipt' },409);
+      if (prior.inventory_receipt_line_id !== line.id || prior.product_id !== line.product_id || prior.movement_type !== 'receipt' || !sameQuantity || (body.source_compass_entry_id != null && priorInput?.source_compass_entry_id !== body.source_compass_entry_id)) return json({ error:'idempotency_key already used for a different receipt' },409);
       const remainingNow = remainingReceiptQuantity(Number(line.expected_quantity),Number(line.received_quantity),Number(line.cancelled_quantity));
+      await updatePurchaseReceiptStatus(env,ctx.accountId,line.receipt_id);
       return json({ received_quantity:Number(line.received_quantity),remaining_quantity:remainingNow,state:line.receipt_state,ledger_id:prior.id,batch_id:prior.batch_id,already_received:true });
     }
   }
@@ -16471,6 +16492,19 @@ const handleReceiveInventoryLine: Handler = async (request, env, params) => {
   const newReceived = Number(line.received_quantity) + quantity; const state = deriveReceiptState(line.receipt_state as InventoryReceiptState,Number(line.expected_quantity),newReceived,Number(line.cancelled_quantity));
   const statementFactory = (guard: string): D1PreparedStatement[] => {
     const statements: D1PreparedStatement[] = [];
+    // A previously empty and unpriced holding may take its first invoice basis.
+    // Teaware stores a per-piece cost; tea stores the invoice total and grams.
+    // Zero is an explicit cost; missing cost remains NULL. Never reprice an existing shelf.
+    const rawCost = line.unit === 'unit' ? (line.original_unit_cost ?? (line.original_cost_amount == null ? null : Number(line.original_cost_amount) / Number(line.expected_quantity))) : line.original_cost_amount;
+    if (Number(product[amountCol] ?? 0) === 0 && product.cost_amount == null && rawCost != null && Number.isFinite(Number(rawCost)) && Number(rawCost) >= 0) {
+      const costQuantity = line.unit === 'unit' ? 1 : Number(line.expected_quantity);
+      const currency = line.original_cost_currency ? canonicalCurrency(line.original_cost_currency) : null;
+      if (Number(rawCost) === 0 || currency) {
+        statements.push(env.DB.prepare(`UPDATE products SET cost_amount=?,cost_currency=?,quantity_purchased=? WHERE id=? AND account_id=? AND cost_amount IS NULL AND stock_movement_guard=?`).bind(Number(rawCost),currency,costQuantity,line.product_id,ctx.accountId,guard));
+        statements.push(env.DB.prepare(`UPDATE product_listings SET cost_amount=(SELECT cost_amount FROM products WHERE id=? AND account_id=?),cost_currency=(SELECT cost_currency FROM products WHERE id=? AND account_id=?),quantity_purchased=(SELECT quantity_purchased FROM products WHERE id=? AND account_id=?) WHERE legacy_product_id=? AND account_id=? AND EXISTS(SELECT 1 FROM products WHERE id=? AND account_id=? AND stock_movement_guard=?)`).bind(line.product_id,ctx.accountId,line.product_id,ctx.accountId,line.product_id,ctx.accountId,line.product_id,ctx.accountId,line.product_id,ctx.accountId,guard));
+      }
+    }
+    if(product.source_compass_entry_id)statements.push(env.DB.prepare(`UPDATE tea_compass_entries SET status='in_stock',updated_at=datetime('now') WHERE id=? AND account_id=? AND EXISTS(SELECT 1 FROM products WHERE id=? AND account_id=? AND stock_movement_guard=?)`).bind(product.source_compass_entry_id,ctx.accountId,line.product_id,ctx.accountId,guard));
     if (createsBatch) statements.push(env.DB.prepare(`INSERT OR IGNORE INTO batches (id,account_id,label,intake_date,vendor,note) SELECT ?,?,?,date('now'),?,'Inventory receipt' WHERE EXISTS (SELECT 1 FROM products WHERE id=? AND account_id=? AND stock_movement_guard=?)`).bind(batchId,ctx.accountId,`Receipt · ${line.vendor_name || 'Incoming'}`,line.vendor_name||null,line.product_id,ctx.accountId,guard));
     statements.push(env.DB.prepare(`UPDATE products SET inventory_purpose=?, is_sample=?, is_personal=? WHERE id=? AND account_id=? AND stock_movement_guard=?`).bind(line.intended_purpose,line.intended_purpose==='sample'?1:0,line.intended_purpose==='personal'?1:0,line.product_id,ctx.accountId,guard));
     statements.push(env.DB.prepare(`UPDATE inventory_receipt_lines SET received_quantity=received_quantity+?,intake_batch_id=?,updated_at=datetime('now') WHERE id=? AND account_id=? AND EXISTS (SELECT 1 FROM products WHERE id=? AND account_id=? AND stock_movement_guard=?)`).bind(quantity,batchId,line.id,ctx.accountId,line.product_id,ctx.accountId,guard));
@@ -16481,7 +16515,7 @@ const handleReceiveInventoryLine: Handler = async (request, env, params) => {
     ELSE state END,updated_at=datetime('now') WHERE id=? AND account_id=? AND EXISTS (SELECT 1 FROM products WHERE id=? AND account_id=? AND stock_movement_guard=?)`).bind(line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId,line.product_id,ctx.accountId,guard));
     return statements;
   };
-  const movement = decodeStockMovement({ movement_type:'receipt', quantity, unit:line.unit, expected_balance:Number(product[amountCol] || 0), idempotency_key:body.idempotency_key || `receipt-line:${line.id}:received:${newReceived}`, note:'Received incoming stock', batch_id:batchId });
+  const movement = decodeStockMovement({ movement_type:'receipt', quantity, unit:line.unit, expected_balance:Number(product[amountCol] || 0), idempotency_key:body.idempotency_key || `receipt-line:${line.id}:received:${newReceived}`, note:typeof body.note === 'string' ? body.note : 'Received incoming stock', batch_id:batchId, source_compass_entry_id:body.source_compass_entry_id ?? product.source_compass_entry_id ?? null });
   try {
     const result = await applyStockMovement(env,ctx,line.product_id,movement,{ statementFactory, inventoryReceiptLineId:line.id, allowNewBatchId:createsBatch });
     if (result.status >= 400) return json(result.value,result.status);
@@ -16495,62 +16529,45 @@ const handleReceiveInventoryLine: Handler = async (request, env, params) => {
   } catch (error) { console.error('Receipt stock movement failed',error); return json({ error:'Receipt failed' },500); }
 };
 
-const handleFinalizeCurateImport: Handler = async (request, env, params) => {
+const handleReceiveInventoryLine: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'stock'); if ('error' in ctx) return ctx.error;
-  return finalizeCurateImportRequest(request, env, { accountId: ctx.accountId, userId: ctx.userId }, params, async (line, idempotencyKey) => {
-    const persisted = await loadReceiptLine(env, line.id, ctx.accountId);
-    if (!persisted || persisted.receipt_id !== line.receiptId) throw new Error('Receipt line not found');
-    const prior = await env.DB.prepare('SELECT * FROM stock_ledger WHERE account_id = ? AND idempotency_key = ?').bind(ctx.accountId, idempotencyKey).first() as Record<string, unknown> | null;
-    if (prior) {
-      let fingerprint: Record<string, unknown> | null = null;
-      try { fingerprint = JSON.parse(String(prior.movement_fingerprint)) as Record<string, unknown>; } catch { /* malformed legacy row cannot replay */ }
-      if (prior.product_id !== line.productId || prior.inventory_receipt_line_id !== line.id || prior.movement_type !== 'receipt'
-        || Number(fingerprint?.quantity) !== line.quantity || fingerprint?.unit !== line.unit || fingerprint?.source_compass_entry_id !== line.compassEntryId) {
-        throw new Error('idempotency_key already used for a different stock movement');
-      }
-      return { movementId: String(prior.id) };
-    }
-    const product = await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(line.productId, ctx.accountId).first() as Record<string, any> | null;
-    if (!product) throw new Error('Product not found');
-    const amountColumn = line.unit === 'g' ? 'stock_grams' : 'quantity_units';
-    const current = Number(product[amountColumn] ?? 0);
-    const batchId = persisted.intake_batch_id || `receipt-${persisted.receipt_id}`;
-    const createsBatch = !persisted.intake_batch_id;
-    const movement = decodeStockMovement({
-      movement_type: 'receipt', quantity: line.quantity, unit: line.unit, expected_balance: current,
-      idempotency_key: idempotencyKey, note: 'Received Curate import', batch_id: batchId,
-      source_compass_entry_id: line.compassEntryId,
-    });
-    const result = await applyStockMovement(env, ctx, line.productId, movement, {
-      inventoryReceiptLineId: line.id, allowNewBatchId: createsBatch,
-      statementFactory: guard => [
-        ...(createsBatch ? [env.DB.prepare(`INSERT OR IGNORE INTO batches (id, account_id, label, intake_date, vendor, note)
-          SELECT ?, ?, ?, date('now'), ?, 'Curate inventory import' WHERE EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND stock_movement_guard = ?)`)
-          .bind(batchId, ctx.accountId, `Receipt · ${persisted.vendor_name || 'Curate import'}`, persisted.vendor_name || null, line.productId, ctx.accountId, guard)] : []),
-        env.DB.prepare(`UPDATE inventory_receipt_lines SET received_quantity = expected_quantity, intake_batch_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND stock_movement_guard = ?)`)
-          .bind(batchId, line.id, ctx.accountId, line.productId, ctx.accountId, guard),
-        env.DB.prepare(`UPDATE inventory_receipts SET state = CASE WHEN NOT EXISTS (SELECT 1 FROM inventory_receipt_lines WHERE receipt_id = ? AND account_id = ? AND received_quantity < expected_quantity) THEN 'received' ELSE 'partially_received' END, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND stock_movement_guard = ?)`)
-          .bind(persisted.receipt_id, ctx.accountId, persisted.receipt_id, ctx.accountId, line.productId, ctx.accountId, guard),
-      ],
-    });
-    if (result.status >= 400) throw new Error(String((result.value as Record<string, unknown>).error ?? 'Stock receipt failed'));
-    return { movementId: String((result.value as Record<string, unknown>).id) };
-  });
+  return receiveInventoryLine(env, ctx, params.id, await request.json().catch(() => ({})) as any);
 };
 
-const handleCancelInventoryLine: Handler = async (request, env, params) => {
+/** Invoice finalization uses exactly the same receipt/ledger operation as a later arrival. */
+export async function receiveFinalizedImportLine(env: Env, ctx: MovementContext, line: Parameters<CurateFinalizeMovement>[0], idempotencyKey: string) {
+  const persisted = await loadReceiptLine(env, line.id, ctx.accountId);
+  if (!persisted || persisted.receipt_id !== line.receiptId || persisted.product_id !== line.productId) throw new Error('Receipt line not found');
+  const result = await receiveInventoryLine(env, ctx, line.id, { quantity:line.quantity, idempotency_key:idempotencyKey, source_compass_entry_id:line.compassEntryId, note:'Received Curate import' });
+  const value = await result.json() as any;
+  if (!result.ok) throw new Error(value.error || 'Stock receipt failed');
+  return { movementId: String(value.ledger_id) };
+}
+
+const handleFinalizeCurateImport: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'stock'); if ('error' in ctx) return ctx.error;
-  const line = await loadReceiptLine(env,params.id,ctx.accountId); if (!line) return json({ error:'Receipt line not found' },404);
+  return finalizeCurateImportRequest(request, env, { accountId:ctx.accountId, userId:ctx.userId }, params,
+    (line, key) => receiveFinalizedImportLine(env, ctx, line, key));
+};
+
+export async function cancelInventoryLine(env: Env, ctx: MovementContext, lineId: string): Promise<Response> {
+  const line = await loadReceiptLine(env,lineId,ctx.accountId); if (!line) return json({ error:'Receipt line not found' },404);
   const remaining=remainingReceiptQuantity(Number(line.expected_quantity),Number(line.received_quantity),Number(line.cancelled_quantity)); if (!remaining) return json({ cancelled_quantity:Number(line.cancelled_quantity),state:line.receipt_state,already_cancelled:true });
   const state=deriveReceiptState(line.receipt_state,Number(line.expected_quantity),Number(line.received_quantity),Number(line.cancelled_quantity)+remaining);
-  await env.DB.batch([env.DB.prepare(`UPDATE inventory_receipt_lines SET cancelled_quantity=cancelled_quantity+?,updated_at=datetime('now') WHERE id=? AND account_id=?`).bind(remaining,line.id,ctx.accountId),env.DB.prepare(`UPDATE inventory_receipts SET state=CASE
+  const changes = await env.DB.batch([env.DB.prepare(`UPDATE inventory_receipt_lines SET cancelled_quantity=expected_quantity-received_quantity,updated_at=datetime('now') WHERE id=? AND account_id=? AND received_quantity=? AND cancelled_quantity=?`).bind(line.id,ctx.accountId,Number(line.received_quantity),Number(line.cancelled_quantity)),env.DB.prepare(`UPDATE inventory_receipts SET state=CASE
     WHEN (SELECT COALESCE(SUM(expected_quantity-received_quantity-cancelled_quantity),0) FROM inventory_receipt_lines WHERE receipt_id=? AND account_id=?)=0
       THEN CASE WHEN (SELECT COALESCE(SUM(received_quantity),0) FROM inventory_receipt_lines WHERE receipt_id=? AND account_id=?)>0 THEN 'received' ELSE 'cancelled' END
     WHEN (SELECT COALESCE(SUM(received_quantity),0) FROM inventory_receipt_lines WHERE receipt_id=? AND account_id=?)>0 THEN 'partially_received'
     ELSE state END,updated_at=datetime('now') WHERE id=? AND account_id=?`).bind(line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId)]);
+  if (!changes[0]?.meta?.changes) return json({error:'Delivery changed before cancellation; read it again.'},409);
   await updatePurchaseReceiptStatus(env,ctx.accountId,line.receipt_id);
   const persistedReceipt = await env.DB.prepare('SELECT * FROM inventory_receipts WHERE id=? AND account_id=?').bind(line.receipt_id,ctx.accountId).first() as any;
   return json({ cancelled_quantity:Number(line.cancelled_quantity)+remaining,state:persistedReceipt?.state || state });
+};
+
+const handleCancelInventoryLine: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'stock'); if ('error' in ctx) return ctx.error;
+  return cancelInventoryLine(env, ctx, params.id);
 };
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -22051,6 +22068,11 @@ const handleCompleteIntakeCommit: Handler = async (request, env, params) => {
     : restError(404, 'Intake commit not found', 'intake_commit_not_found');
 };
 
+const handlePurchaseTracking: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'stock'); if ('error' in ctx) return ctx.error;
+  return json(await readPurchaseTracking(env, ctx.accountId));
+};
+
 const handleListPurchaseOrders: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'stock');
   if ('error' in ctx) return ctx.error;
@@ -22092,9 +22114,14 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
     const prior = await env.DB.prepare(
       'SELECT id, status, receipt_id, create_request_fingerprint FROM purchase_orders WHERE account_id = ? AND create_request_key = ?'
     ).bind(accountId, requestKey).first<{ id: string; status: string; receipt_id: string | null; create_request_fingerprint: string | null }>();
-    if (prior) return prior.create_request_fingerprint === fingerprint
-      ? json({ id: prior.id, idempotent: true, ...(body.status==='received'&&prior.status==='pending'&&!prior.receipt_id?{receipt_review_required:true,status:'pending'}:{}) })
-      : restError(409, 'Purchase request key was used for different details', 'purchase_request_conflict');
+    if (prior) {
+      if (prior.create_request_fingerprint !== fingerprint) return restError(409, 'Purchase request key was used for different details', 'purchase_request_conflict');
+      if (['ordered','confirmed','sent','shipped'].includes(body.status)) {
+        const prepared = await preparePurchaseReceipt(env, ctx, prior.id);
+        return json({ id:prior.id, idempotent:true, ...prepared.value }, prepared.status);
+      }
+      return json({ id: prior.id, idempotent: true, ...(body.status==='received'&&prior.status==='pending'&&!prior.receipt_id?{receipt_review_required:true,status:'pending'}:{}) });
+    }
   }
 
   const id = crypto.randomUUID();
@@ -22136,6 +22163,10 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
     if(!prepared.value.receipt_id)return json({id,receipt_review_required:true,unresolved_items:prepared.value.unresolved_items,status:'pending'},201);
     const current=await env.DB.prepare('SELECT state FROM inventory_receipts WHERE id=? AND account_id=?').bind(prepared.value.receipt_id,accountId).first() as any;
     if(current?.state!=='received')return json({error:'Receive the matched lines before marking this purchase received',id,receipt_id:prepared.value.receipt_id},409);
+  }
+  if(['ordered','confirmed','sent','shipped'].includes(body.status)){
+    const prepared=await preparePurchaseReceipt(env,ctx,id);
+    return json({id,...prepared.value},201);
   }
   return json({ id }, 201);
 };
@@ -29574,6 +29605,7 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/intake-commits/:id', handleSaveIntakeCommit],
   ['POST', '/api/intake-commits/:id/complete', handleCompleteIntakeCommit],
   ['GET', '/api/purchase-orders', handleListPurchaseOrders],
+  ['GET', '/api/purchase-orders/tracking', handlePurchaseTracking],
   ['POST', '/api/purchase-orders', handleCreatePurchaseOrder],
   ['PUT','/api/curate/imports/:id/intake-state',handleSaveIntakeState],
   ['POST','/api/purchase-orders/:id/prepare-receipt',handlePreparePurchaseReceipt],
@@ -30269,6 +30301,11 @@ const requestHandler = {
       const response = await mcpFetch(request, {
         ...env,
         curateReceipts: { accept: (scope, proposalId) => acceptCurateReceipt(env, scope, proposalId) },
+        inventoryReceipts: {
+          receive: (scope, lineId, input) => receiveInventoryLine(env, scope, lineId, input),
+          cancel: (scope, lineId) => cancelInventoryLine(env, scope, lineId),
+          receiveImport: (scope, line, key) => receiveFinalizedImportLine(env, scope, line, key),
+        },
       });
       return cors(response, corsOrigin);
     }

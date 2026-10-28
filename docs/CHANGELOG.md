@@ -1,3 +1,36 @@
+## 2026-10-28: Attach original passages to full-transcript working notes
+
+## 2026-10-28: Full-screen tasting for desktop and phone
+
+Removed the narrow desktop dialog and backdrop. Tasting now occupies the entire window. Desktop gives the wheel and its observations separate columns, with a wheel sized to the available height; portrait phones keep the full-width wheel and capsule navigation, while landscape phones place observations beside a smaller wheel above the navigation. Save, close, existing selections and recap links keep their behavior.
+
+## 2026-10-28: The five tastes joins the existing wheel
+
+Moved Sweet, Bitter, Sour / tart, Savory (umami) and Salty into one wheel category named The five tastes. Each taste is a single independent choice, with no aroma half or broad-family recording action. Existing saved values and recap links reopen the category; the separate button row is removed. Other families retain their Taste/Aroma halves.
+
+## 2026-10-28: Remove returning sweetness from Taste
+
+Removed the returning-sweetness control, Taste count and Taste recap entry. Earlier saved values remain stored; flavor families, taste qualities and aroma choices are unchanged.
+
+## 2026-10-28: Record broad flavor families in the existing tasting flow
+
+Exploring the existing wheel no longer leaves beginners needing a flower or a sensory channel: Record Floral saves the family alone. Specific notes remain optional and do not automatically record their parent. Saved families appear in the impression recap and reopen for editing. Taste qualities explain resemblance versus sip sweetness, display Savory (umami), and keep Salty directly available. Returning sweetness distinguishes unrecorded, explicit Not noticed and legacy unspecified strength. Incense is offered as an unwanted Storage note rather than a flavor suggestion; existing records remain intact. No database migration or separate flavor-wheel screen is involved.
+
+
+The full-transcript model now selects indexed original passages instead of retyping quotations. Each chosen ID resolves to its exact source text and UTF-16 offsets, including repeated identical remarks; unknown IDs fail the review. Lossless passage spans preserve every character/newline and bound long lines without splitting surrogate pairs. Working-material inference allows up to 40 seconds per call within the existing full-review deadline; other AI calls keep their 20-second limit. 44 focused tests and Worker typecheck pass. Source/account/hash guards and explicit acceptance remain unchanged.
+
+## 2026-10-28: Agent-led invoices, arrivals and purchase tracking
+
+Invoice finalization and Curate ordering create connected purchases and expected receipts automatically. Agents can record partial or complete arrivals through MCP; repeat requests do not add stock twice, and Stock, arrival history and purchase status stay synchronized. Purchases combines incoming tracking with compact supplier rows, Coming/Received/Needs attention filters, read-only invoice evidence and secondary manual controls. Unfinished invoices and historical records needing evidence remain visible for review. Stock Incoming opens the same tracking screen. No new migration is required.
+
+## 2026-10-28: Require structured AI replies for tea working material and descriptions
+
+The installed tea model could return malformed object keys in generic JSON mode, causing full-transcript reviews and description proposals to fail even after successful inference. Both tasks now provide explicit response schemas, including allowed working-note kinds, attribution/relevance and description source identities. Recognized Groq GPT-OSS models use their supported strict schema format; other configured models keep their existing JSON format. Exact source quotation and scope checks remain unchanged, and proposals still save nothing. Verified against the same installed model with invented description and 12,000-character transcript inputs, plus focused validation tests.
+
+## 2026-10-28: Review an AR transcript in its existing tea before linking
+
+Fixed blocked pointer and keyboard controls when Build this tea opens from the Library Tea details drawer. The review now shares the drawer’s dialog-layer and focus system. The AR transcript receiver offers Review tea workspace for each existing tea: the complete original is staged with Working material and Public description without saving a source link, tea field or description. Discard returns to the receiver. Verified on desktop and 390px phone layouts with no source/tea writes.
+
 ## Compact tasting selections and impression button 2026-10-28
 
 - Taste and Aroma selections wrap across compact rows. Basic tastes include Umami; returning sweetness (Hui gan) uses a None-to-Strong slider. Unrecorded answers and older notes are preserved.

@@ -81,6 +81,21 @@ describe('Compass sync acknowledgements', () => {
     expect(ids).toEqual(['saved-just-now', 'still-here', 'unsent-here']);
   });
 
+  it('roundtrips a broad family through strict server JSON without inventing a sense', async () => {
+    const tasting = { flavorFamilies: ['floral'], basicTastes: ['Umami' as const], huiGanIntensity: 0, huiGan: false };
+    useTeaCompassStore.setState({ entries: [{ ...entry('broad'), tasting }] });
+    syncMock.mockImplementation(async (entries) => {
+      const decoded = decodeCompassWrite(entries[0], true);
+      expect(decoded).toHaveProperty('values');
+      if (!('values' in decoded)) throw new Error('Tasting rejected by server codec');
+      listMock.mockResolvedValue({ entries: [{ id: 'broad', name: 'broad', ...decoded.values }] });
+      return { syncedIds: ['broad'] };
+    });
+    await syncCompassEntries('acct-a');
+    await hydrateCompassEntries('acct-a');
+    expect(useTeaCompassStore.getState().entries[0].tasting).toEqual(tasting);
+  });
+
   it('roundtrips private shop and transport fields through the server codec', async () => {
     listMock.mockResolvedValue({ entries: [{ ...entry('sourcing'), shop_name: '惜物堂', transport_mode: 'air', photos: '[]', audio_clips: '[]' }] });
     await hydrateCompassEntries('acct-a');
