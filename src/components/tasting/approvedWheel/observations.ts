@@ -1,7 +1,8 @@
 import taxonomy from '../../../data/teajia-tasting-taxonomy.json';
 import type { TastingData } from '../../../types';
 import type { WheelNote } from './TeaWheel';
-import { families } from './families';
+import { families, FIVE_TASTES_NAME } from './families';
+import { BASIC_TASTES, basicTasteLabel, toggleBasicTaste } from '../tasteQualityState';
 
 export type WheelSense = 'taste' | 'aroma';
 const terms = taxonomy.categories.find(category => category.id === 'flavor')!.groups.flatMap(group => group.terms.map(term => ({ ...term, group: group.label })));
@@ -20,7 +21,7 @@ const groupAliases: Record<string, string> = {
   Mineral: 'Stone & metal', 'Mineral-like': 'Stone & metal', 'Fresh & vegetal': 'Vegetal',
 };
 export function tastingWordFamily(word: string): string | undefined {
-  const direct = families.find(family => family.name === word || family.notes.includes(word));
+  const direct = families.find(family => !family.singleSense && (family.name === word || family.notes.includes(word)));
   if (direct) return direct.name;
   const term = terms.find(term => term.id === tastingWordId(word));
   return groupAliases[word] || (term && (groupAliases[term.group] || term.group));
@@ -29,7 +30,7 @@ export function wheelNotes(value: TastingData): WheelNote[] {
   const taste = new Set((value.flavor || []).map(tastingWordLabel));
   const aroma = new Set((value.aroma || []).map(tastingWordLabel));
   const broad = (value.flavorFamilies || []).map(tastingWordLabel);
-  return [...new Set([...broad, ...taste, ...aroma])].map(name => ({name, group: tastingWordFamily(name) || '', taste: taste.has(name), aroma: aroma.has(name)}));
+  return [...new Set([...broad, ...taste, ...aroma])].map(name => ({name, group: tastingWordFamily(name) || '', taste: taste.has(name), aroma: aroma.has(name)})).concat((value.basicTastes || []).map(taste => ({ name: basicTasteLabel(taste), group: FIVE_TASTES_NAME, taste: true, aroma: false })));
 }
 export function toggleWheelObservation(value: TastingData, word: string, sense: WheelSense): TastingData {
   const field = sense === 'taste' ? 'flavor' : 'aroma';
@@ -45,8 +46,14 @@ export function toggleWheelObservation(value: TastingData, word: string, sense: 
 export const broadFamilyLabel = (family: string): string => family === 'Earth & fungi' ? 'Earthy' : family === 'Stone & metal' ? 'Mineral-like' : family;
 /** Broad resemblance is a complete observation; no sense or child is inferred. */
 export function toggleBroadFamily(value: TastingData, family: string): TastingData {
+  if (family === FIVE_TASTES_NAME) return value;
   const word = broadFamilyLabel(family);
   const values = value.flavorFamilies || [];
   const selected = values.some(id => tastingWordLabel(id) === word);
   return { ...value, flavorFamilies: selected ? values.filter(id => tastingWordLabel(id) !== word) : [...values, tastingWordId(word)] };
+}
+
+export function toggleBasicWheelTaste(value: TastingData, word: string): TastingData {
+  const taste = BASIC_TASTES.find(taste => basicTasteLabel(taste) === word);
+  return taste ? toggleBasicTaste(value, taste) : value;
 }

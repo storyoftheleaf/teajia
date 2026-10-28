@@ -19,7 +19,10 @@ for (const width of [320, 390, 1280]) {
     await expect(page.getByRole('button', { name: 'Rose · Taste', exact: true })).toHaveAttribute('aria-pressed', 'false');
     await expect(page.getByRole('button', { name: 'Rose · Aroma', exact: true })).toHaveAttribute('aria-pressed', 'false');
     await expect(page.getByRole('slider', { name: 'Returning sweetness intensity', exact: true })).toHaveCount(0);
-    await page.getByRole('button', { name: 'Savory (umami)', exact: true }).click();
+    await page.getByRole('button', { name: 'Explore The five tastes', exact: true }).focus();
+    await page.keyboard.press('Enter');
+    await page.getByRole('button', { name: 'Savory (umami)', exact: true }).focus();
+    await page.keyboard.press('Enter');
     await page.screenshot({ path: `test-results/taste-family-${width}.png`, fullPage: true });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     if (width < 1024) await nav.getByRole('button', { name: 'Leave tasting', exact: true }).click();

@@ -6475,3 +6475,6 @@ body.cart-panel-open .commerce-dock {
 .tasting-family-record>button[aria-pressed=true] { background:var(--tea-elevated); border-color:var(--tea-text-dim); }
 .tasting-family-record>button:focus-visible { outline:2px solid var(--tea-gold); outline-offset:2px; }
 .tasting-basic-tastes button[data-priority=secondary]:not([aria-pressed=true]) { background:transparent; color:var(--tea-text-dim); }
+
+.approved-taste-wheel .tasting-five-tastes-help { margin:8px 16px; }
+.approved-taste-wheel .approved-wheel-journey .tea-wheel .single-taste-note span { color:var(--tea-text)!important; }

@@ -1,5 +1,9 @@
 ## 2026-10-28: Attach original passages to full-transcript working notes
 
+## 2026-10-28: The five tastes joins the existing wheel
+
+Moved Sweet, Bitter, Sour / tart, Savory (umami) and Salty into one wheel category named The five tastes. Each taste is a single independent choice, with no aroma half or broad-family recording action. Existing saved values and recap links reopen the category; the separate button row is removed. Other families retain their Taste/Aroma halves.
+
 ## 2026-10-28: Remove returning sweetness from Taste
 
 Removed the returning-sweetness control, Taste count and Taste recap entry. Earlier saved values remain stored; flavor families, taste qualities and aroma choices are unchanged.

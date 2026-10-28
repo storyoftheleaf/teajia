@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { TasteQualities } from './TasteQualities';
 import type { TastingData } from '../../types';
 import type { WheelHandle } from './approvedWheel/TeaWheel';
-import { broadFamilyLabel, toggleBroadFamily, tastingWordFamily, tastingWordLabel, toggleWheelObservation, wheelNotes, type WheelSense } from './approvedWheel/observations';
+import { broadFamilyLabel, toggleBroadFamily, toggleBasicWheelTaste, tastingWordFamily, tastingWordLabel, toggleWheelObservation, wheelNotes, type WheelSense } from './approvedWheel/observations';
 import './approvedWheel/approved-wheel.css';
-import { families } from './approvedWheel/families';
+import { families, FIVE_TASTES_NAME } from './approvedWheel/families';
+import { basicTasteLabel } from './tasteQualityState';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
 export { tastingWordLabel, tastingWordId, tastingWordFamily } from './approvedWheel/observations';
@@ -36,6 +36,12 @@ export function ApprovedTasteWheel({ value, onChange, reveal }: ApprovedTasteWhe
       wheel.current = mount(host.current, {
         notes: wheelNotes(current.current.value), splitSenses: true, study: 5, innerGlow: false, compactSummary: true,
         onNavigate: setActiveFamily,
+        onToggle(word) {
+          const next = toggleBasicWheelTaste(current.current.value, word);
+          current.current = { ...current.current, value: next };
+          wheel.current?.updateNotes(wheelNotes(next));
+          current.current.onChange(next);
+        },
         onToggleSense(word, _group, sense) {
           const next = toggleWheelObservation(current.current.value, word, sense);
           current.current = { ...current.current, value: next };
@@ -49,7 +55,12 @@ export function ApprovedTasteWheel({ value, onChange, reveal }: ApprovedTasteWhe
   }, [attempt]);
   useEffect(() => { wheel.current?.updateNotes(wheelNotes(value)); }, [value]);
   const showWord = useCallback((input: string, sense: WheelSense) => {
-    if (input === 'hui-gan' || input.startsWith('basic:')) { host.current?.parentElement?.parentElement?.querySelector('.tasting-taste-qualities')?.scrollIntoView({ block: 'nearest' }); return; }
+    if (input.startsWith('basic:')) {
+      wheel.current?.navigate(FIVE_TASTES_NAME);
+      wheel.current?.locate(basicTasteLabel(input.slice(6) as NonNullable<TastingData['basicTastes']>[number]), 'taste');
+      host.current?.scrollIntoView({ block: 'nearest' });
+      return;
+    }
     const isBroad = input.startsWith('family:');
     const word = tastingWordLabel(isBroad ? input.slice(7) : input);
     const family = tastingWordFamily(word);
@@ -70,7 +81,7 @@ export function ApprovedTasteWheel({ value, onChange, reveal }: ApprovedTasteWhe
       </div>}
       <div ref={host} />
     </section>
-    {familyDetails && <section className="tasting-family-record" aria-label="Broad flavor observation">
+    {familyDetails && !familyDetails.singleSense && <section className="tasting-family-record" aria-label="Broad flavor observation">
       <div>
         <p className={`${TYPOGRAPHY_CLASSES.accountMeta} text-tea-text-sec`}>{familyDetails.description}</p>
         <p className={`${TYPOGRAPHY_CLASSES.accountMeta} text-tea-text-dim`}>The family is enough. Specific notes are optional.</p>
@@ -90,6 +101,9 @@ export function ApprovedTasteWheel({ value, onChange, reveal }: ApprovedTasteWhe
         </div>
       </div>)}
     </section>}
-    <TasteQualities value={value} onChange={onChange} />
+    {familyDetails?.singleSense && <p className={`${TYPOGRAPHY_CLASSES.accountMeta} tasting-five-tastes-help text-tea-text-sec`}>{familyDetails.description}</p>}
+    {!!value.basicTastes?.length && <section className="tasting-sense-lists" aria-label="Selected five tastes"><div className="tasting-sense-row">
+      <span className="tasting-sense-label">Five tastes</span><div className="tasting-sense-words">{value.basicTastes.map(taste => <button key={taste} type="button" onClick={() => showWord(`basic:${taste}`, 'taste')} aria-label={`Show ${basicTasteLabel(taste)} on wheel`}>{basicTasteLabel(taste)}</button>)}</div>
+    </div></section>}
   </div>;
 }

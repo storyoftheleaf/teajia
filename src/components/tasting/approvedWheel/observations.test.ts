@@ -50,3 +50,14 @@ it('keeps unwanted Incense out of the suggested flavor families', async () => {
   const { families } = await import('./families');
   expect(families.flatMap(family => family.notes)).not.toContain('Incense');
 });
+
+it('renders saved basic tastes in their own wheel category without changing aromatic notes', async () => {
+  const { FIVE_TASTES_NAME, families } = await import('./families');
+  const { toggleBasicWheelTaste } = await import('./observations');
+  expect(families.find(f => f.name === FIVE_TASTES_NAME)).toMatchObject({ singleSense: true, notes: ['Sweet', 'Bitter', 'Sour / tart', 'Savory (umami)', 'Salty'] });
+  const value = { flavor: ['honey'], aroma: ['honey'], basicTastes: ['Umami' as const] };
+  expect(wheelNotes(value)).toContainEqual({ name: 'Savory (umami)', group: 'The five tastes', taste: true, aroma: false });
+  expect(toggleBasicWheelTaste(value, 'Savory (umami)')).toEqual({ ...value, basicTastes: [] });
+  expect(toggleBasicWheelTaste(value, 'Sweet')).toEqual({ ...value, basicTastes: ['Umami', 'Sweet'] });
+  expect(toggleBroadFamily(value, 'The five tastes')).toBe(value);
+});
