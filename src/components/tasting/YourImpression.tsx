@@ -44,9 +44,11 @@ export interface YourImpressionProps {
   savingNotes?: boolean;
   notesSaveError?: boolean;
   notesSaveHint?: string;
+  voiceState?: 'idle' | 'recording' | 'transcribing';
+  voiceError?: string;
 }
 
-export function YourImpression({ value, onChange, verdict, onVerdict, wouldBuy, onWouldBuy, inCollection, onCollection, selections, onResume, onSaveNotes, canSaveNotes = false, savingNotes = false, notesSaveError = false, notesSaveHint }: YourImpressionProps) {
+export function YourImpression({ value, onChange, verdict, onVerdict, wouldBuy, onWouldBuy, inCollection, onCollection, selections, onResume, onSaveNotes, canSaveNotes = false, savingNotes = false, notesSaveError = false, notesSaveHint, voiceState = 'idle', voiceError }: YourImpressionProps) {
   const notesId = useId();
   const rating = value.quality;
   const historical = (value.notes ?? []).filter(note => typeof note === 'string' || note.id !== IMPRESSION_NOTE_ID);
@@ -69,6 +71,7 @@ export function YourImpression({ value, onChange, verdict, onVerdict, wouldBuy, 
     <div className="tasting-impression-notes">
       <label htmlFor={notesId} className={TYPOGRAPHY_CLASSES.label}>Your notes</label>
       <textarea id={notesId} className={TYPOGRAPHY_CLASSES.bodyLight} rows={4} value={impressionNoteText(value)} onChange={event => onChange(updateImpressionNote(value, event.target.value))} placeholder="Anything you’d like to add…" />
+      {(voiceError || voiceState !== 'idle') && <p className={TYPOGRAPHY_CLASSES.accountMeta} role={voiceError ? 'alert' : 'status'}>{voiceError || (voiceState === 'recording' ? 'Recording… Tap the microphone to finish.' : 'Adding your words…')}</p>}
       {onSaveNotes && <div className="tasting-notes-save-row">
         <span className={TYPOGRAPHY_CLASSES.accountMeta} role={notesSaveError ? 'alert' : undefined}>{notesSaveError ? 'Could not save. Please try again.' : notesSaveHint}</span>
         <button type="button" className="tap-target tasting-notes-save" onClick={onSaveNotes} disabled={!canSaveNotes || savingNotes}>{savingNotes ? 'Saving…' : notesSaveError ? 'Retry save notes' : 'Save notes'}</button>
