@@ -115,12 +115,35 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   }
   await page.setViewportSize({ width: 390, height: 844 });
 
+  await row.getByRole('button', { name: 'More details for Cloud Oolong', exact: true }).click();
+  await page.getByRole('button', { name: 'Delete tea', exact: true }).click();
+  const deleteDialog = page.getByRole('dialog', { name: 'Delete this tea?', exact: true });
+  await expect(deleteDialog).toBeVisible();
+  await expect(deleteDialog.getByRole('button', { name: 'Delete permanently', exact: true })).toBeDisabled();
+  await deleteDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(deleteDialog).toHaveCount(0);
+  const nameButton = row.getByRole('button', { name: 'Edit name for Cloud Oolong', exact: true });
+  const nameBounds = (await nameButton.boundingBox())!;
+  await nameButton.click({ position: { x: nameBounds.width - 4, y: 3 } });
+  const nameSheet = page.getByRole('dialog', { name: 'Tea name', exact: true });
+  await expect(nameSheet.getByRole('textbox', { name: 'Tea name', exact: true })).toHaveValue('Cloud Oolong');
+  await nameSheet.getByRole('button', { name: 'Close', exact: true }).click();
+  await row.getByRole('button', { name: 'Edit type for Cloud Oolong', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Form & pricing', exact: true }).getByRole('button', { name: 'Teaware', exact: true })).toBeVisible();
+  await page.getByRole('dialog', { name: 'Form & pricing', exact: true }).getByRole('button', { name: 'Close', exact: true }).click();
   const form = row.getByRole('button', { name: 'Edit form and pricing for Cloud Oolong', exact: true });
   await expect(form).toHaveText('Loose leaf');
   await expect(row.getByText('Low stock', { exact: true })).toHaveCount(0);
   await expect(row.locator('select')).toHaveCount(0);
   await form.click();
   const formSheet = page.getByRole('dialog', { name: 'Form & pricing', exact: true });
+  await formSheet.getByLabel('One piece / pack weighs · g', { exact: true }).click();
+  await expect(formSheet).toBeVisible();
+  await page.locator('[data-vaul-overlay]').click({ position: { x: 8, y: 8 } });
+  await expect(formSheet).toHaveCount(0);
+  await form.click();
+  await expect(formSheet.locator('details')).toHaveCount(0);
+  await formSheet.getByRole('button', { name: 'Red', exact: true }).click();
   await formSheet.getByRole('button', { name: 'Cake', exact: true }).click();
   await formSheet.getByLabel('One piece / pack weighs · g', { exact: true }).fill('357');
   await formSheet.getByLabel('Purchase cost · USD', { exact: true }).fill('5');
@@ -149,7 +172,7 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await formSheet.getByRole('button', { name: 'Save form & pricing', exact: true }).click();
   await expect(formSheet).toHaveCount(0);
   await expect(form).toHaveText('Cake · 357 g');
-  expect(writes).toContainEqual({ form: 'Cake', piece_weight_g: 357 });
+  expect(writes).toContainEqual({ type: 'Red', form: 'Cake', piece_weight_g: 357 });
   expect(writes).toContainEqual({ cost_amount: 5, quantity_purchased: 50 });
   expect(writes.some(write => 'stock_grams' in write || 'quantity_units' in write)).toBe(false);
   await page.reload();

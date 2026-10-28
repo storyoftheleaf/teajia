@@ -492,7 +492,7 @@ function InventoryRowBase(props: InventoryRowProps) {
     >
       {/* Phone cards keep direct actions; spreadsheet rows use the shared rail. */}
       {stockPhone ? <td className="stock-mobile-cell" colSpan={(splitView ? splitViewCols : visibleCols).length}>
-        <StockMobileRecord onStockChange={trigger => onStockMovement(product, trigger)} product={product} name={displayName} index={globalIdx} editing={isEditMode}
+        <StockMobileRecord onDelete={() => onDeleteRequest(product)} onStockChange={trigger => onStockMovement(product, trigger)} product={product} name={displayName} index={globalIdx} editing={isEditMode}
           onEdit={() => onOpenPanel(product)}
           onSavePricing={changes => props.onSavePricing(product.id, changes)}
           onSaveChange={async (field, value) => { await (props.onSaveField ? props.onSaveField(product.id, field, value) : onProductUpdate(product.id, field, value)); }}

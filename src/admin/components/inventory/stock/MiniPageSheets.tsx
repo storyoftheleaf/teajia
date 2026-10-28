@@ -9,8 +9,8 @@ import { effectivePurpose } from '../domain';
 import type { Product } from '../../../types';
 
 export type SaveField = (field: keyof Product, value: unknown) => Promise<void>;
-export type MiniField = 'givenName' | 'year' | 'fixedRetailPriceUSD' | 'costAmount';
-const labels: Record<MiniField,string> = { givenName:'Given name',year:'Year / vintage',fixedRetailPriceUSD:'Retail · USD per gram',costAmount:'Purchase cost' };
+export type MiniField = 'productName' | 'givenName' | 'year' | 'fixedRetailPriceUSD' | 'costAmount';
+const labels: Record<MiniField,string> = { productName:'Tea name',givenName:'Given name',year:'Year / vintage',fixedRetailPriceUSD:'Retail · USD per gram',costAmount:'Purchase cost' };
 export function MiniEditSheet({ product, field, onSave, onClose }: {product:Product;field:MiniField;onSave:SaveField;onClose:()=>void}) {
   const original=product[field];
   const label=field==='fixedRetailPriceUSD'&&product.type==='Teaware'?'Retail · USD per piece':labels[field];
@@ -18,11 +18,12 @@ export function MiniEditSheet({ product, field, onSave, onClose }: {product:Prod
   const [saving,setSaving]=useState(false),[error,setError]=useState('');
   const savingRef=useRef(false);
   const numeric=field==='fixedRetailPriceUSD'||field==='costAmount';
-  const help=field==='givenName'?'Your chosen name for this tea. The original tea name stays unchanged.':field==='year'?'An exact year or an approximate decade, for example 1998 or 1980s. Clear to leave it unknown.':field==='fixedRetailPriceUSD'?`A fixed retail override in USD per ${product.type==='Teaware'?'piece':'gram'}. Clear to return to calculated retail. A typed zero is an explicit zero price.`:`Total purchase cost in ${product.costCurrency || 'USD'}.`;
+  const help=field==='productName'?'Edit the original name on this same record.':field==='givenName'?'Your chosen name for this tea. The original tea name stays unchanged.':field==='year'?'An exact year or an approximate decade, for example 1998 or 1980s. Clear to leave it unknown.':field==='fixedRetailPriceUSD'?`A fixed retail override in USD per ${product.type==='Teaware'?'piece':'gram'}. Clear to return to calculated retail. A typed zero is an explicit zero price.`:`Total purchase cost in ${product.costCurrency || 'USD'}.`;
   async function save(){
     if(savingRef.current)return;
     setError('');
     try{
+      if(field==='productName'&&!value.trim())throw new Error('Enter a name.');
       const next=field==='year'?enteredYear(value):numeric?enteredNumber(value):value.trim();
       if(numeric && value.trim()!=='' && (next===null || Number(next)<0))throw new Error('Enter zero or a positive number.');
       savingRef.current=true;setSaving(true);await onSave(field,next);onClose();
@@ -37,7 +38,7 @@ export function MiniEditSheet({ product, field, onSave, onClose }: {product:Prod
   </div></BottomSheet>
 }
 const date=(value?:string|null)=>value?new Date(value).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}):'Not yet verified';
-export function MiniMoreSheet({product,journal,place,onClose,onEdit,onHistory,onJournal,onFreight,freightUsd,onSave}:{product:Product;journal?:CustomerTasting;place:string;onClose:()=>void;onEdit:()=>void;onHistory:()=>void;onJournal:()=>void;onFreight:()=>void;freightUsd:number|null;onSave:SaveField}){
+export function MiniMoreSheet({product,journal,place,onClose,onEdit,onDelete,onHistory,onJournal,onFreight,freightUsd,onSave}:{product:Product;journal?:CustomerTasting;place:string;onClose:()=>void;onEdit:()=>void;onDelete:()=>void;onHistory:()=>void;onJournal:()=>void;onFreight:()=>void;freightUsd:number|null;onSave:SaveField}){
  const activeUser=useAppStore(state=>state.activeUserId);
  const [saving,setSaving]=useState(false),[error,setError]=useState('');
   const savingRef=useRef(false);
@@ -48,6 +49,7 @@ export function MiniMoreSheet({product,journal,place,onClose,onEdit,onHistory,on
  <fieldset disabled={saving}><legend className={`${T.label} mb-2 text-tea-text-dim`}>Purpose</legend><div className="grid grid-cols-3 gap-1">{(['working','sample','personal'] as const).map(v=><button type="button" key={v} aria-pressed={effectivePurpose(product)===v} onClick={()=>{void purpose(v)}} className={`${T.link} min-h-11 rounded-md border border-tea-border px-2 ${effectivePurpose(product)===v?'bg-tea-accent-sub text-tea-text':'text-tea-text-sec'}`}>{v==='working'?'Shop stock':v==='sample'?'Sample':'Personal'}</button>)}</div></fieldset>
  {error&&<p role="alert" className={`${T.link} text-tea-text-sec`}>{error}</p>}
  <div className="grid grid-cols-2 gap-2">{[[`Freight ${product.type==='Teaware'?'included':freightUsd==null?'—':'$'+freightUsd.toFixed(2)+'/kg'}`,onFreight],['Stock history',onHistory],['Personal journal',onJournal],['Full editor',onEdit]].map(([label,action])=><button type="button" key={label as string} disabled={saving} onClick={action as ()=>void} className={`${T.link} min-h-11 rounded-md border border-tea-border bg-tea-surface px-2 text-tea-text`}>{label as string}</button>)}</div>
+ <button type="button" disabled={saving} onClick={onDelete} className={`${T.link} min-h-11 w-full border-t border-tea-border text-left text-tea-text-sec`}>Delete {product.type==='Teaware'?'item':'tea'}</button>
  <p className={`${T.link} text-tea-text-sec`}>The full editor keeps pricing, brewing and tasting profiles, linked writing, shop visibility, collections and sales tools available.</p>
  </div></BottomSheet>
 }

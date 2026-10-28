@@ -5980,8 +5980,16 @@ body.cart-panel-open .commerce-dock {
 /* Form and pricing: one neutral surface, aligned fields, gold for decisions. */
 .stock-form-dialog{width:100%;max-width:620px;margin-inline:auto}
 .stock-form-sheet{max-width:560px;margin-inline:auto}
-.stock-form-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
-.stock-form-options button{width:100%;padding-inline:4px}
+.stock-form-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px}
+.stock-form-options button{width:100%;padding-inline:3px;border-color:transparent;background:transparent;font-size:13px;letter-spacing:0;border-radius:5px}
+.stock-form-options button[aria-pressed="true"]{background:var(--tea-accent-sub);border-color:var(--tea-gold);color:var(--tea-text)}
+.stock-form-options button:hover{background:var(--tea-surface)}
+.stock-form-help{margin:6px 0 0;font-size:11px;line-height:1.45;color:var(--tea-text-dim)}
+.stock-form-sheet legend,.stock-form-sheet label,.stock-form-sheet dt{font-size:11px;letter-spacing:.04em}
+.stock-form-sheet .stock-retail-figures dd{font-size:18px}
+.stock-form-sheet .stock-retail-summary{padding-block:10px}
+.stock-form-sheet>button{background:var(--tea-accent-sub);color:var(--tea-text);border:1px solid var(--tea-border);box-shadow:none;text-transform:none;letter-spacing:0}
+@media(max-width:350px){.stock-form-options button{font-size:12px}}
 .stock-form-sheet label,.stock-form-sheet legend,.stock-form-sheet dt{color:var(--tea-text-dim)}
 .stock-form-input{display:block;width:100%;height:44px;min-width:0;margin-top:6px;padding:9px 12px;border:1px solid var(--tea-border);border-radius:5px;background:var(--tea-surface);color:var(--tea-text);font:inherit;font-size:16px;font-variant-numeric:tabular-nums;outline:none}
 .stock-form-input::placeholder{color:var(--tea-text-dim)}
@@ -6260,6 +6268,12 @@ body.cart-panel-open .commerce-dock {
 .stock-browse-bar>label { display:block; position:relative; min-width:0; }
 .stock-browse-bar>label>span { position:absolute; top:4px; left:0; font-size:10px; line-height:12px; color:var(--tea-text-dim); pointer-events:none; }
 .stock-browse-bar select { display:block; width:100%; min-width:0; min-height:47px; padding:12px 12px 0 0; border:0; border-radius:0; background:transparent; color:var(--tea-text); font-size:12px; text-overflow:ellipsis; }
+/* Keep the closed filter in the site's palette, and let the native picker
+   use a complete system palette, including its group headings. Safari keeps
+   its platform picker; no custom menu or selection behavior is substituted. */
+.stock-browse-bar select { color-scheme: inherit; }
+.stock-browse-bar select option,
+.stock-browse-bar select optgroup { background-color: Canvas; color: CanvasText; }
 .stock-browse-bar select:focus-visible { outline:2px solid var(--tea-gold); outline-offset:-2px; }
 .stock-browse-teaware { grid-template-columns:repeat(2,minmax(0,1fr)); }
 @media(min-width:768px) { .stock-browse-bar { max-width:920px; gap:24px; } .stock-browse-bar select { font-size:14px; } }
@@ -6359,3 +6373,6 @@ body.cart-panel-open .commerce-dock {
 .tasting-quality-label { color:var(--tea-text-dim); text-transform:none; letter-spacing:0; margin:0 0 6px; }
 .tasting-huigan-heading { display:flex; align-items:center; justify-content:space-between; min-height:44px; gap:8px; }
 .tasting-huigan-heading .tasting-quality-label { margin:0; }
+/* The title's whole padded area belongs to its editor, not the parent row. */
+.stock-view .stock-record[data-card-study="2"] .stock-title { padding-block:0; }
+.stock-view .stock-record[data-card-study="2"] .stock-title>button { min-height:44px; padding-block:7.5px; }
