@@ -31,6 +31,9 @@ export interface TastingData {
   // Section 2: Movement (throat, duration, finish character)
   finish?: string[];            // throat sensations + finish character/duration terms
   cleanliness?: string;         // 'clean' | 'some-edge' | 'rough'
+  basicTastes?: Array<'Sweet' | 'Bitter' | 'Sour / tart' | 'Umami' | 'Salty'>;
+  huiGanIntensity?: number;     // 0 None, 1 Slight, 2 Moderate, 3 Strong; absent means unrecorded
+  observationIntensity?: Record<string, 'Slight' | 'Moderate' | 'Strong'>;
   huiGan?: boolean;             // 回甘 — Returning sweetness
   yun?: boolean;                // 韵 — Resonance / lingering character
   qi?: boolean;                 // 气 — Vitality / body energy

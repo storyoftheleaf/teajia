@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { TastingData } from '../../types';
+import { ObservationIntensity, withObservationIntensity } from './ObservationIntensity';
 
 export const STORAGE_CHARACTER_WORDS = ['Parched', 'Dry', 'Sweet spot', 'Wet', 'Near mouldy'] as const;
 export const STORAGE_NOTES = [
@@ -9,7 +10,6 @@ export const STORAGE_NOTES = [
   ['Sour off-note', 'An unwanted sour note in this tasting.'],
   ['Foreign odor', 'An unwanted smell that feels out of place.'],
   ['Cardboard', 'An unwanted papery or cardboard-like taste.'],
-  ['Incense', 'An unwanted incense-like taste or smell.'],
   ['Moldy', 'An unwanted mold-like taste or smell.'],
   ['Mildewy', 'A damp-cloth or mildew-like smell.'],
   ['Dusty', 'A dusty, stale-room impression.'],
@@ -32,7 +32,12 @@ export function withStorageCharacter(value: TastingData, character: number | und
 
 export function toggleStorageNote(value: TastingData, note: string): TastingData {
   const notes = value.storageNotes ?? [];
-  return { ...value, storageNotes: notes.includes(note) ? notes.filter(item => item !== note) : [...notes, note] };
+  const next = { ...value, storageNotes: notes.includes(note) ? notes.filter(item => item !== note) : [...notes, note] };
+  if (notes.includes(note) && value.observationIntensity) {
+    next.observationIntensity = { ...value.observationIntensity };
+    delete next.observationIntensity[`storage:${note}`];
+  }
+  return next;
 }
 
 export function StorageZone({ value, onChange }: StorageZoneProps) {
@@ -86,13 +91,19 @@ export function StorageZone({ value, onChange }: StorageZoneProps) {
           <details className="relative">
             <summary className={`${TYPOGRAPHY_CLASSES.link} flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-xl text-tea-text-dim focus-visible:ring-2 focus-visible:ring-tea-gold`} aria-label="Explain unwanted notes">?</summary>
             <div className="absolute right-0 z-10 max-h-60 overflow-y-auto w-64 max-w-[75vw] rounded-xl border border-tea-border bg-tea-elevated p-3 shadow-lg">
-              <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}>What detracts from the taste?</p>
+              <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}>Unwanted cleanliness notes, not wood, incense or camphor character. These describe what you notice, not proof of how the tea was stored.</p>
               <dl className="mt-2 space-y-2">{STORAGE_NOTES.map(([note, meaning]) => <div key={note}><dt className={`${TYPOGRAPHY_CLASSES.link} text-tea-text`}>{note}</dt><dd className={`${TYPOGRAPHY_CLASSES.accountMeta} text-tea-text-sec`}>{meaning}</dd></div>)}</dl>
             </div>
           </details>
         </div>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Unwanted storage notes">
-          {STORAGE_NOTES.map(([note]) => <button key={note} type="button" aria-pressed={value.storageNotes?.includes(note) ?? false} onClick={() => onChange(toggleStorageNote(value, note))} className={`${TYPOGRAPHY_CLASSES.link} min-h-11 rounded-xl px-3 transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold ${value.storageNotes?.includes(note) ? 'bg-tea-elevated text-tea-text' : 'bg-tea-surface text-tea-text-sec hover:bg-tea-elevated'}`}>{note}</button>)}
+          {[...STORAGE_NOTES.map(([note]) => note as string), ...(value.storageNotes ?? []).filter(note => !STORAGE_NOTES.some(([known]) => known === note))].map(note => {
+            const selected = value.storageNotes?.includes(note) ?? false;
+            return <div key={note} className={`observation-choice flex min-w-0 items-center rounded-xl ${selected ? 'bg-tea-elevated' : 'bg-tea-surface'}`} data-selected={selected}>
+              <button type="button" aria-pressed={selected} onClick={() => onChange(toggleStorageNote(value, note))} className={`${TYPOGRAPHY_CLASSES.link} min-h-11 rounded-xl px-3 transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold ${selected ? 'text-tea-text' : 'text-tea-text-sec hover:bg-tea-elevated'}`}>{note}</button>
+              {selected && <ObservationIntensity label={note} intensity={value.observationIntensity?.[`storage:${note}`]} onChange={level => onChange(withObservationIntensity(value, `storage:${note}`, level))} />}
+            </div>;
+          })}
         </div>
       </section>
     </div>

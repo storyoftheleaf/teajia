@@ -553,11 +553,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
         <button type="button" className="tasting-heading-close tap-target" onClick={handleCloseRequest} aria-label="Close"><X size={18}/></button>
         <button type="button" className="tasting-heading-trigger" aria-label="Open your impression" onClick={() => { setPhase('tasting'); setShowNote(true); }}>
           <span className="tasting-heading-name">{item.name}</span>
-          <span className="tasting-heading-summary">{[
-            tastingData.quality != null ? `${tastingData.quality} / 10` : '',
-            verdict ? ({love:'Love',like:'Like',neutral:'Neutral',pass:'Dislike'}[verdict]) : '',
-            wouldBuy ? 'Want to purchase' : '',
-          ].filter(Boolean).join(' · ') || 'Your impression'} <ChevronRight size={14} aria-hidden="true" /></span>
+          <span className="tasting-heading-summary">Impression <ChevronRight size={14} aria-hidden="true" /></span>
         </button>
         {adminMode && <button type="button" className="tasting-heading-mic tap-target" disabled={silentVoice.state === 'transcribing'} aria-label={silentVoice.state === 'recording' ? 'Stop recording' : 'Record into your notes'} aria-pressed={silentVoice.state === 'recording'} onClick={() => { setVoiceError(''); if(silentVoice.state === 'recording') silentVoice.stop(); else void silentVoice.start(); }}>
           {silentVoice.state === 'transcribing' ? <Loader2 size={18} className="animate-spin"/> : <Mic size={18}/>}
