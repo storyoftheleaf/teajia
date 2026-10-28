@@ -37,17 +37,6 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   isMenuOpen = false,
   isAdminRoute = false,
 }) => {
-  const [returningFromTasting, setReturningFromTasting] = React.useState(false);
-  React.useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const reopen = () => {
-      setReturningFromTasting(true);
-      clearTimeout(timer);
-      timer = setTimeout(() => setReturningFromTasting(false), 750);
-    };
-    window.addEventListener('teajia:tasting-closed', reopen);
-    return () => { window.removeEventListener('teajia:tasting-closed', reopen); clearTimeout(timer); };
-  }, []);
   const navigate = useNavigate();
   const location = useLocation();
   // Derive admin route state from location, same value as the `isAdminRoute` prop,
@@ -225,7 +214,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         aria-label="Main navigation"
         data-testid="bottom-tab-bar"
         onContextMenu={(e) => e.preventDefault()}
-        className={`bottom-nav-bar ${returningFromTasting ? 'tasting-site-reopen' : ''} fixed z-nav flex rounded-full transition-transform duration-200 select-none overflow-hidden left-3 right-3 min-[375px]:left-4 min-[375px]:right-4 animate-[slideUp_0.4s_ease-out] lg:hidden ${
+        className={`bottom-nav-bar fixed z-nav flex rounded-full transition-transform duration-200 select-none overflow-hidden left-3 right-3 min-[375px]:left-4 min-[375px]:right-4 lg:hidden ${
           isOnAdmin ? 'lg:hidden' : ''
         } ${shouldHide ? 'translate-y-[calc(100%+24px)]' : 'translate-y-0'}`}
         style={{

@@ -166,8 +166,9 @@ test('wheel names grow with the wheel while sense captions remain small', async 
   await page.screenshot({ path: '/tmp/tasting-wheel-scaling-phone.png' });
 });
 
-test('site and tasting bars fold in sequence without moving the center', async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: 'no-preference' });
+for (const reducedMotion of ['no-preference', 'reduce'] as const) {
+ test(`tasting bar uses one stationary transition (${reducedMotion})`, async ({ page }) => {
+  await page.emulateMedia({ reducedMotion });
   await page.setViewportSize({ width: 390, height: 844 });
   await installCompassHarness(page);
   await openCompass(page);
@@ -176,22 +177,21 @@ test('site and tasting bars fold in sequence without moving the center', async (
   const tasting = page.getByRole('navigation', { name: 'Tasting sections' });
   const seal = tasting.getByRole('button', { name: 'Leave tasting' });
   const firstPosition = await seal.boundingBox();
-  await expect(site).toHaveCSS('animation-name', 'tasting-site-fold');
-  await expect(tasting.locator('.tasting-capsule-wing').first()).toHaveCSS('animation-delay', '0.92s');
   await expect(site).toBeHidden();
-  await expect(tasting.locator('.tasting-capsule-wing').first()).toHaveCSS('opacity', '1');
+  await expect(tasting).toHaveCSS('animation-name', reducedMotion === 'reduce' ? 'none' : 'tasting-capsule-words');
+  await expect(tasting.locator('.tasting-capsule-wing').first()).toHaveCSS('animation-name', 'none');
+  await expect(tasting.locator('.tasting-capsule-surface')).toHaveCSS('animation-name', 'none');
+  await expect(tasting).toHaveCSS('opacity', '1');
   const settled = await seal.boundingBox();
   expect(settled!.x).toBeCloseTo(firstPosition!.x, 1);
   expect(settled!.y).toBeCloseTo(firstPosition!.y, 1);
-  await page.screenshot({ path: '/tmp/tasting-fold-open.png' });
+  await page.screenshot({ path: '/tmp/tasting-bar-steady.png' });
   await seal.click();
-  await expect(tasting).toHaveClass(/is-closing/);
   await expect(tasting).toBeHidden();
-  await expect(site).toHaveClass(/tasting-site-reopen/);
-  await expect(site.locator(':scope > div')).toHaveCSS('animation-delay', '0.5s');
-  await expect(site.locator(':scope > div')).toHaveCSS('opacity', '1');
-  await page.screenshot({ path: '/tmp/tasting-fold-return.png' });
-});
+  await expect(site).toBeVisible();
+  await expect(site).toHaveCSS('animation-name', 'none');
+ });
+}
 
 test('visible header Save works from Effect and preserves the same tasting', async ({page}) => {
   await page.setViewportSize({width:390,height:844});
