@@ -3,7 +3,8 @@ import { Check, Info, Plus, X, Moon, Zap, Focus, Wind } from 'lucide-react';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { TastingData } from '../../types';
 import './connected-sensations.css';
-import { SENSATION_GROUPS, sensationIsSelected, toggleSensation, addSensoryCustom, removeSensoryCustom, type SensationSection, type SensoryTastingData } from './connectedSensationsVocabulary';
+import { ObservationIntensity, withObservationIntensity } from './ObservationIntensity';
+import { SENSATION_GROUPS, sensationAllowsIntensity, sensationIsSelected, toggleSensation, addSensoryCustom, removeSensoryCustom, type SensationSection, type SensoryTastingData } from './connectedSensationsVocabulary';
 
 interface ConnectedSensationsProps {
   value: TastingData;
@@ -54,7 +55,10 @@ export function ConnectedSensations({ value, onChange, section, reveal }: Connec
           </div>
           <div className={`connected-sensation-choices ${group.terms.length === 3 ? 'connected-sensation-three' : ''} ${group.single ? 'connected-sensation-single' : ''}`} role="group" aria-label={group.label}>
             {group.terms.map(term => (
-              <button key={`${term.id}-${highlight === term.id || highlight === term.label ? reveal?.stamp : ''}`} type="button" data-sensation-word={term.id} aria-pressed={sensationIsSelected(data, term)} className={`${section === 'state' || group.single ? TYPOGRAPHY_CLASSES.link : TYPOGRAPHY_CLASSES.bodyLight} connected-sensation-choice ${highlight === term.id || highlight === term.label ? 'connected-sensation-return' : ''}`} onClick={() => { setHighlight(null); onChange(toggleSensation(data, section, group.id, term.id)); }}>{section === 'state' && <span className="connected-sensation-mark" aria-hidden="true"><Check size={11} strokeWidth={2} /></span>}<span>{term.label}</span></button>
+              <div key={`${term.id}-${highlight === term.id || highlight === term.label ? reveal?.stamp : ''}`} className="observation-choice flex min-w-0 items-center" data-selected={sensationIsSelected(data, term)}>
+              <button type="button" data-sensation-word={term.id} aria-pressed={sensationIsSelected(data, term)} className={`${section === 'state' || group.single ? TYPOGRAPHY_CLASSES.link : TYPOGRAPHY_CLASSES.bodyLight} connected-sensation-choice ${highlight === term.id || highlight === term.label ? 'connected-sensation-return' : ''}`} onClick={() => { setHighlight(null); onChange(toggleSensation(data, section, group.id, term.id)); }}>{section === 'state' && <span className="connected-sensation-mark" aria-hidden="true"><Check size={11} strokeWidth={2} /></span>}<span>{term.label}</span></button>
+              {sensationIsSelected(data, term) && sensationAllowsIntensity(group.id, term.id) && <ObservationIntensity label={term.label} intensity={data.observationIntensity?.[`sensation:${term.id}`]} onChange={level => onChange(withObservationIntensity(data, `sensation:${term.id}`, level))} />}
+              </div>
             ))}
           </div>
           <div id={`${prefix}-${group.id}-guide`} hidden={guide !== group.id} className="pt-3">
@@ -64,7 +68,7 @@ export function ConnectedSensations({ value, onChange, section, reveal }: Connec
         </section>
       ))}
       <section className="connected-sensation-family" data-sensation-group="custom" aria-label="Your own words">
-        {!!data.sensoryCustom?.[section]?.length && <div className="mb-2 flex flex-wrap gap-2">{data.sensoryCustom[section]!.map(word => <button type="button" key={`${word}-${highlight === word ? reveal?.stamp : ''}`} data-sensation-word={word} aria-label={`Remove ${word}`} className={`${TYPOGRAPHY_CLASSES.link} flex min-h-11 items-center gap-2 rounded-xl bg-tea-elevated px-3 text-tea-text focus-visible:ring-2 focus-visible:ring-tea-gold ${highlight === word ? 'connected-sensation-return' : ''}`} onClick={() => onChange(removeSensoryCustom(data, section, word))}>{word}<X size={12} aria-hidden="true" /></button>)}</div>}
+        {!!data.sensoryCustom?.[section]?.length && <div className="mb-2 flex flex-wrap gap-2">{data.sensoryCustom[section]!.map(word => <div key={`${word}-${highlight === word ? reveal?.stamp : ''}`} className="observation-choice flex min-w-0 items-center rounded-xl bg-tea-elevated"><button type="button" data-sensation-word={word} aria-label={`Remove ${word}`} className={`${TYPOGRAPHY_CLASSES.link} flex min-h-11 items-center gap-2 rounded-xl bg-tea-elevated px-3 text-tea-text focus-visible:ring-2 focus-visible:ring-tea-gold ${highlight === word ? 'connected-sensation-return' : ''}`} onClick={() => onChange(removeSensoryCustom(data, section, word))}>{word}<X size={12} aria-hidden="true" /></button><ObservationIntensity label={word} intensity={data.observationIntensity?.[`sensation:custom:${section}:${word}`]} onChange={level => onChange(withObservationIntensity(data, `sensation:custom:${section}:${word}`, level))} /></div>)}</div>}
         <div className="flex items-center gap-2 rounded-xl border border-tea-border bg-tea-surface pl-3 focus-within:ring-1 focus-within:ring-tea-gold">
           <input aria-label={`Add your own ${section === 'body' ? 'texture' : 'effect'} word`} className={`${TYPOGRAPHY_CLASSES.link} min-h-11 min-w-0 flex-1 bg-transparent text-tea-text placeholder:text-tea-text-dim focus:outline-none`} value={custom} onChange={event => setCustom(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); saveCustom(); } }} placeholder="Your own words…" />
           <button type="button" aria-label="Add word" disabled={!custom.trim()} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-tea-text-sec disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-tea-gold" onClick={saveCustom}><Plus size={18} /></button>

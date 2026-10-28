@@ -317,6 +317,12 @@ export const SENSATION_GROUPS: Record<SensationSection, SensationGroup[]> = {
           "field": "feeling"
         },
         {
+          "id": "stomach-discomfort",
+          "label": "Stomach discomfort",
+          "meaning": "An uncomfortable sensation in the stomach.",
+          "field": "feeling"
+        },
+        {
           "id": "feeling-tingling",
           "label": "Tingling",
           "meaning": "A prickling sensation beyond the mouth.",
@@ -341,6 +347,17 @@ export const SENSATION_GROUPS: Record<SensationSection, SensationGroup[]> = {
   ]
 };
 
+export function sensationAllowsIntensity(groupId: string, termId: string): boolean {
+  return !['weight', 'duration', 'change'].includes(groupId)
+    && !['throat-comfortable', 'clean-finish'].includes(termId);
+}
+
+function clearSensationIntensities(value: SensoryTastingData, ids: string[]) {
+  if (!value.observationIntensity || !ids.length) return;
+  value.observationIntensity = { ...value.observationIntensity };
+  for (const id of ids) delete value.observationIntensity[`sensation:${id}`];
+}
+
 const LEGACY_THROAT: Record<string, string> = { clean: 'throat-comfortable', 'some-edge': 'throat-slight-edge', rough: 'throat-irritated' };
 
 export function sensationIsSelected(value: TastingData, term: SensationTerm): boolean {
@@ -364,6 +381,7 @@ export function toggleSensation(value: SensoryTastingData, section: SensationSec
   let current = next[term.field] ?? [];
   if (section === 'state') {
     if (term.id === 'no-clear-change' && !wasSelected) {
+      clearSensationIntensities(next, [...(next.feeling ?? []), ...(next.sensoryCustom?.state ?? []).map(word => `custom:state:${word}`)]);
       next.feeling = ['no-clear-change'];
       next.sensoryCustom = { ...next.sensoryCustom, state: [] };
       return next;
@@ -371,6 +389,7 @@ export function toggleSensation(value: SensoryTastingData, section: SensationSec
     current = current.filter(id => id !== 'no-clear-change');
   }
   const without = current.filter(id => id !== term.id && !(group.single && group.terms.some(option => option.id === id)));
+  clearSensationIntensities(next, current.filter(id => !without.includes(id)));
   next[term.field] = wasSelected ? without : [...without, term.id];
   return next;
 }
@@ -386,5 +405,7 @@ export function addSensoryCustom(value: SensoryTastingData, section: SensationSe
 }
 
 export function removeSensoryCustom(value: SensoryTastingData, section: SensationSection, word: string): SensoryTastingData {
-  return { ...value, sensoryCustom: { ...value.sensoryCustom, [section]: (value.sensoryCustom?.[section] ?? []).filter(item => item !== word) } };
+  const next = { ...value, sensoryCustom: { ...value.sensoryCustom, [section]: (value.sensoryCustom?.[section] ?? []).filter(item => item !== word) } };
+  clearSensationIntensities(next, [`custom:${section}:${word}`]);
+  return next;
 }

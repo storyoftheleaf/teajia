@@ -1,3 +1,9 @@
+## Compact tasting selections and impression button 2026-10-28
+
+- Taste and Aroma selections wrap across compact rows. Basic tastes include Umami; returning sweetness (Hui gan) uses a None-to-Strong slider. Unrecorded answers and older notes are preserved.
+- Texture, Effect and unwanted storage observations support optional strength. Effect includes stomach discomfort; Incense is no longer suggested as an unwanted storage note.
+- The selected filled impression button stays on one line alongside close, voice and Save. The impression recap uses compact category rows.
+
 ## Mobile wheel spacing 2026-10-27
 
 - The mobile taste wheel uses the full content width and sits closer to the floating navigation. Empty selection summaries take no space; selected words remain available below the wheel with scrolling clearance. Colors and bar motion are unchanged.

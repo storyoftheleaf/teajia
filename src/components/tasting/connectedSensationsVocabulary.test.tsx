@@ -1,8 +1,9 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import { withObservationIntensity } from './ObservationIntensity';
 import { ConnectedSensations } from './ConnectedSensations';
-import { SENSATION_GROUPS, selectedSensations, toggleSensation, addSensoryCustom, removeSensoryCustom, type SensoryTastingData } from './connectedSensationsVocabulary';
+import { SENSATION_GROUPS, sensationAllowsIntensity, selectedSensations, toggleSensation, addSensoryCustom, removeSensoryCustom, type SensoryTastingData } from './connectedSensationsVocabulary';
 
 describe('Connected Texture and Effect', () => {
   it('keeps the approved family order and all visible choices', () => {
@@ -59,4 +60,38 @@ describe('Connected Texture and Effect', () => {
     expect(removeSensoryCustom(custom, 'state', 'Floating gently').sensoryCustom).toEqual({ body: ['Bouncy'], state: [] });
     expect(JSON.parse(JSON.stringify(custom)).storageNotes).toEqual(['Musty']);
   });
+  it('keeps independently chosen intensities and clears only removed observations', () => {
+    let value: SensoryTastingData = { body: ['silky', 'rough'], feeling: ['calming'], storageNotes: ['Musty'] };
+    value = withObservationIntensity(value, 'sensation:silky', 'Slight');
+    value = withObservationIntensity(value, 'sensation:rough', 'Strong');
+    value = withObservationIntensity(value, 'storage:Musty', 'Moderate');
+    const removed = toggleSensation(value, 'body', 'texture', 'silky');
+    expect(removed.observationIntensity).toEqual({ 'sensation:rough': 'Strong', 'storage:Musty': 'Moderate' });
+    expect(value.observationIntensity?.['sensation:silky']).toBe('Slight');
+    expect(withObservationIntensity(value, 'sensation:rough', undefined).observationIntensity).toEqual({ 'sensation:silky': 'Slight', 'storage:Musty': 'Moderate' });
+    expect(toggleSensation({}, 'body', 'texture', 'silky').observationIntensity).toBeUndefined();
+  });
+
+  it('offers no intensity for absence, weight, or persistence and clears effects on no-change', () => {
+    for (const [group, term] of [['weight', 'light'], ['duration', 'lingering'], ['change', 'no-clear-change'], ['throat', 'throat-comfortable'], ['finish', 'clean-finish']]) {
+      expect(sensationAllowsIntensity(group, term)).toBe(false);
+    }
+    const value: SensoryTastingData = { feeling: ['calming'], sensoryCustom: { state: ['Floating'] }, observationIntensity: { 'sensation:calming': 'Slight', 'sensation:custom:state:Floating': 'Strong', 'sensation:silky': 'Moderate' } };
+    expect(toggleSensation(value, 'state', 'change', 'no-clear-change').observationIntensity).toEqual({ 'sensation:silky': 'Moderate' });
+    const html = renderToStaticMarkup(<ConnectedSensations section="body" value={{ body: ['light', 'silky'], finish: ['lingering', 'clean-finish'] }} onChange={() => {}} />);
+    expect(html).toContain('Intensity for Silky');
+    expect(html).not.toContain('Intensity for Light');
+    expect(html).not.toContain('Intensity for Lingering');
+    expect(html).not.toContain('Intensity for Clean finish');
+    expect(html).not.toContain('Silky: Moderate');
+  });
+
+  it('adds stomach discomfort without inventing body coolness', () => {
+    const body = SENSATION_GROUPS.state.find(group => group.id === 'physical')!;
+    expect(body.terms.map(term => term.label)).toContain('Stomach discomfort');
+    expect(body.terms.map(term => term.label)).not.toContain('Coolness');
+    expect(toggleSensation({}, 'state', 'physical', 'stomach-discomfort').feeling).toEqual(['stomach-discomfort']);
+    expect(removeSensoryCustom({ sensoryCustom: { body: ['Bouncy'] }, observationIntensity: { 'sensation:custom:body:Bouncy': 'Strong', 'storage:Musty': 'Slight' } }, 'body', 'Bouncy').observationIntensity).toEqual({ 'storage:Musty': 'Slight' });
+  });
+
 });

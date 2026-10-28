@@ -1,7 +1,7 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { StorageZone, withStorageCharacter, toggleStorageNote } from './StorageZone';
+import { StorageZone, STORAGE_NOTES, withStorageCharacter, toggleStorageNote } from './StorageZone';
 import type { TastingData } from '../../types';
 
 describe('Storage observations', () => {
@@ -39,4 +39,19 @@ describe('Storage observations', () => {
     expect(withStorageCharacter({}, 1.8).storageCharacter).toBe(2);
     expect(withStorageCharacter({}, NaN).storageCharacter).toBeUndefined();
   });
+  it('keeps legacy Incense visible and removable without offering it to new tastings', () => {
+    expect(STORAGE_NOTES.map(([note]) => note)).not.toContain('Incense');
+    const empty = renderToStaticMarkup(<StorageZone value={{}} onChange={() => {}} />);
+    expect(empty).not.toContain('Incense');
+    const saved: TastingData = { storageNotes: ['Incense', 'Musty'], observationIntensity: { 'storage:Incense': 'Strong', 'storage:Musty': 'Slight', 'sensation:silky': 'Moderate' } };
+    const html = renderToStaticMarkup(<StorageZone value={saved} onChange={() => {}} />);
+    expect(html).toContain('>Incense</button>');
+    expect(html).toContain('Intensity for Incense: Strong');
+    const removed = toggleStorageNote(saved, 'Incense');
+    expect(removed.storageNotes).toEqual(['Musty']);
+    expect(removed.observationIntensity).toEqual({ 'storage:Musty': 'Slight', 'sensation:silky': 'Moderate' });
+    expect(renderToStaticMarkup(<StorageZone value={removed} onChange={() => {}} />)).not.toContain('Incense');
+    expect(toggleStorageNote({}, 'Musty').observationIntensity).toBeUndefined();
+  });
+
 });
