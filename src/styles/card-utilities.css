@@ -6478,3 +6478,117 @@ body.cart-panel-open .commerce-dock {
 
 .approved-taste-wheel .tasting-five-tastes-help { margin:8px 16px; }
 .approved-taste-wheel .approved-wheel-journey .tea-wheel .single-taste-note span { color:var(--tea-text)!important; }
+/* The attached strength editor overlays following rows without changing layout. */
+.observation-choice.observation-choice {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-self: start;
+  align-items: center;
+}
+.observation-intensity { display: contents; }
+.observation-choice:has(.observation-intensity-panel) { z-index: 30; }
+.observation-intensity-panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--tea-border);
+  border-radius: 0 0 10px 10px;
+  background: var(--tea-elevated);
+  color: var(--tea-text-sec);
+  box-shadow: 0 8px 16px rgb(0 0 0 / 0.22);
+}
+.observation-strength-control { position: relative; height: 44px; }
+.observation-strength-ramp {
+  position: absolute;
+  inset: 4px 7px;
+  background: var(--tea-border);
+  clip-path: polygon(0 86%, 100% 0, 100% 100%, 0 100%);
+  pointer-events: none;
+}
+.observation-strength-ramp i {
+  display: block;
+  height: 100%;
+  width: var(--strength-fill);
+  background: var(--tea-text-sec);
+}
+.observation-intensity-panel input {
+  position: relative;
+  display: block;
+  appearance: none;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.observation-intensity-panel input::-webkit-slider-runnable-track { height: 2px; background: transparent; }
+.observation-intensity-panel input::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 32px;
+  margin-top: -15px;
+  border: 2px solid var(--tea-elevated);
+  border-radius: 5px;
+  background: var(--tea-text);
+}
+.observation-intensity-panel input::-moz-range-track { height: 2px; background: transparent; }
+.observation-intensity-panel input::-moz-range-thumb { width: 10px; height: 28px; border: 2px solid var(--tea-elevated); border-radius: 5px; background: var(--tea-text); }
+.observation-intensity-panel input:focus-visible { outline: 2px solid var(--tea-text-sec); outline-offset: 2px; border-radius: 4px; }
+.observation-strength-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  font-size: 10px;
+  line-height: 1.3;
+}
+.observation-strength-clear {
+  display: block;
+  min-height: 44px;
+  width: 100%;
+  font-size: 11px;
+  color: var(--tea-text-sec);
+}
+
+@media (min-width: 1024px) {
+  [data-tasting-session-overlay] .tasting-session-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--tea-border);
+  }
+  [data-tasting-session-overlay] .tasting-heading-trigger { flex: 0 1 420px; }
+  [data-tasting-session-overlay] .tasting-heading-mic { margin-left: auto; }
+  [data-tasting-session-overlay] .tasting-heading-save { margin-left: auto; min-width: 72px; }
+  [data-tasting-session-overlay] .tasting-heading-mic + .tasting-heading-save { margin-left: 8px; }
+  .tasting-desktop-workspace { position: relative; padding-left: 224px; }
+  .tasting-desktop-nav {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 224px;
+    flex-direction: column;
+    gap: 6px;
+    padding: 24px 16px;
+    border-right: 1px solid var(--tea-border);
+  }
+  .tasting-desktop-nav button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 48px;
+    padding: 12px;
+    border-radius: 8px;
+    text-align: left;
+    color: var(--tea-text-sec);
+  }
+  .tasting-desktop-nav button[aria-current=page] { background: var(--tea-elevated); color: var(--tea-text); }
+  .tasting-desktop-nav button:hover { background: var(--tea-surface); }
+  .tasting-desktop-nav button:focus-visible { outline: 2px solid var(--tea-gold); }
+  .tasting-desktop-nav small { margin-left: auto; font-size: 12px; }
+  .tasting-desktop-nav .tasting-desktop-impression { margin-top: 16px; border-top: 1px solid var(--tea-border); border-radius: 0; }
+  .tasting-desktop-workspace .tasting-mobile-content { width: 100%; max-width: 880px; margin: 0 auto; padding: 20px 24px 0; }
+  .tasting-desktop-workspace .tasting-wheel-panel { max-width: 700px; margin: 0 auto; }
+}

@@ -1,3 +1,4 @@
+import { intensityLabel } from './ObservationIntensity';
 import type { TastingData } from '../../types';
 import { resolveTermLabel } from '../../data/tastingTaxonomy';
 import { selectedSensations, type SensationSection, type SensoryTastingData } from './connectedSensationsVocabulary';
@@ -15,7 +16,7 @@ export function tastingRecap(value: TastingData): TastingRecapGroup[] {
   const data = value as SensoryTastingData;
   function sensations(section: SensationSection) {
     const selected = selectedSensations(value, section);
-    const words = selected.map(({ id, label }) => ({ id, label: value.observationIntensity?.[`sensation:${id}`] ? `${label} · ${value.observationIntensity[`sensation:${id}`]}` : label }));
+    const words = selected.map(({ id, label }) => ({ id, label: value.observationIntensity?.[`sensation:${id}`] ? `${label} · ${intensityLabel(value.observationIntensity[`sensation:${id}`])}` : label }));
     const known = new Set(selected.map(term => term.id));
     const legacy = section === 'body' ? [...(value.body ?? []), ...(value.finish ?? [])] : value.feeling ?? [];
     for (const id of legacy) if (!known.has(id)) { words.push({ id, label: resolveTermLabel(id) }); known.add(id); }
@@ -24,7 +25,7 @@ export function tastingRecap(value: TastingData): TastingRecapGroup[] {
   }
   const character = withStorageCharacter(value, value.storageCharacter).storageCharacter;
   const storage: {id:string;label:string}[] = character === undefined ? [] : [{ id: 'storage-character', label: STORAGE_CHARACTER_WORDS[character] }];
-  storage.push(...(value.storageNotes ?? []).map(id => ({ id, label: value.observationIntensity?.[`storage:${id}`] ? `${id} · ${value.observationIntensity[`storage:${id}`]}` : id })));
+  storage.push(...(value.storageNotes ?? []).map(id => ({ id, label: value.observationIntensity?.[`storage:${id}`] ? `${id} · ${intensityLabel(value.observationIntensity[`storage:${id}`])}` : id })));
   const appearance = (value['liquor-color'] ?? []).map(id => ({ id, label: resolveTermLabel(id) }));
   if (value.clarity) appearance.push({ id: value.clarity, label: resolveTermLabel(value.clarity) });
   const groups: TastingRecapGroup[] = [
