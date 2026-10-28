@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { tastingWordId, tastingWordLabel, toggleWheelObservation, wheelNotes } from './observations';
+import { tastingWordId, tastingWordLabel, toggleBroadFamily, toggleWheelObservation, wheelNotes } from './observations';
 
 describe('approved wheel persistence', () => {
   it('keeps legacy flavor IDs and unknown observations when adding an aroma', () => {
@@ -24,4 +24,29 @@ describe('approved wheel persistence', () => {
     expect(toggleWheelObservation(value, 'Honey', 'taste')).toEqual({ ...value, flavor: ['umami'] });
     expect(value.flavor).toEqual(['Honey', 'honey', 'umami']);
   });
+});
+
+describe('broad family observations', () => {
+  it('records a family without inventing taste, aroma or a specific note', () => {
+    const next = toggleBroadFamily({ notes: ['Keep'] }, 'Floral');
+    expect(next).toEqual({ notes: ['Keep'], flavorFamilies: ['floral'] });
+    expect(wheelNotes(next)).toEqual([{ name: 'Floral', group: 'Floral', taste: false, aroma: false }]);
+    expect(toggleBroadFamily(next, 'Floral')).toEqual({ notes: ['Keep'], flavorFamilies: [] });
+  });
+  it('does not automatically add a parent when recording a flower', () => {
+    expect(toggleWheelObservation({}, 'Rose', 'taste')).toEqual({ flavor: ['rose'] });
+    const broad = toggleBroadFamily({}, 'Floral');
+    const specific = toggleWheelObservation(broad, 'Rose', 'aroma');
+    expect(specific).toEqual({ flavorFamilies: ['floral'], aroma: ['rose'] });
+    expect(toggleBroadFamily(specific, 'Floral')).toEqual({ flavorFamilies: [], aroma: ['rose'] });
+  });
+  it('uses understandable Earthy and Mineral-like broad labels', () => {
+    expect(toggleBroadFamily({}, 'Earth & fungi')).toEqual({ flavorFamilies: ['earthy'] });
+    expect(toggleBroadFamily({}, 'Stone & metal')).toEqual({ flavorFamilies: ['mineral'] });
+  });
+});
+
+it('keeps unwanted Incense out of the suggested flavor families', async () => {
+  const { families } = await import('./families');
+  expect(families.flatMap(family => family.notes)).not.toContain('Incense');
 });

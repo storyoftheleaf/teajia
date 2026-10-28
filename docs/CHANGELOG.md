@@ -1,5 +1,10 @@
 ## 2026-10-28: Attach original passages to full-transcript working notes
 
+## 2026-10-28: Record broad flavor families in the existing tasting flow
+
+Exploring the existing wheel no longer leaves beginners needing a flower or a sensory channel: Record Floral saves the family alone. Specific notes remain optional and do not automatically record their parent. Saved families appear in the impression recap and reopen for editing. Taste qualities explain resemblance versus sip sweetness, display Savory (umami), and keep Salty directly available. Returning sweetness distinguishes unrecorded, explicit Not noticed and legacy unspecified strength. Incense is offered as an unwanted Storage note rather than a flavor suggestion; existing records remain intact. No database migration or separate flavor-wheel screen is involved.
+
+
 The full-transcript model now selects indexed original passages instead of retyping quotations. Each chosen ID resolves to its exact source text and UTF-16 offsets, including repeated identical remarks; unknown IDs fail the review. Lossless passage spans preserve every character/newline and bound long lines without splitting surrogate pairs. Working-material inference allows up to 40 seconds per call within the existing full-review deadline; other AI calls keep their 20-second limit. 44 focused tests and Worker typecheck pass. Source/account/hash guards and explicit acceptance remain unchanged.
 
 ## 2026-10-28: Agent-led invoices, arrivals and purchase tracking

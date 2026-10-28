@@ -28,7 +28,8 @@ export function tastingWordFamily(word: string): string | undefined {
 export function wheelNotes(value: TastingData): WheelNote[] {
   const taste = new Set((value.flavor || []).map(tastingWordLabel));
   const aroma = new Set((value.aroma || []).map(tastingWordLabel));
-  return [...new Set([...taste, ...aroma])].map(name => ({name, group: tastingWordFamily(name) || '', taste: taste.has(name), aroma: aroma.has(name)}));
+  const broad = (value.flavorFamilies || []).map(tastingWordLabel);
+  return [...new Set([...broad, ...taste, ...aroma])].map(name => ({name, group: tastingWordFamily(name) || '', taste: taste.has(name), aroma: aroma.has(name)}));
 }
 export function toggleWheelObservation(value: TastingData, word: string, sense: WheelSense): TastingData {
   const field = sense === 'taste' ? 'flavor' : 'aroma';
@@ -39,4 +40,13 @@ export function toggleWheelObservation(value: TastingData, word: string, sense: 
   const intensities = { ...value[intensityField] };
   if (selected) for (const id of Object.keys(intensities)) if (tastingWordLabel(id) === word) delete intensities[id];
   return { ...value, [field]: next, ...(value[intensityField] ? { [intensityField]: intensities } : {}) };
+}
+
+export const broadFamilyLabel = (family: string): string => family === 'Earth & fungi' ? 'Earthy' : family === 'Stone & metal' ? 'Mineral-like' : family;
+/** Broad resemblance is a complete observation; no sense or child is inferred. */
+export function toggleBroadFamily(value: TastingData, family: string): TastingData {
+  const word = broadFamilyLabel(family);
+  const values = value.flavorFamilies || [];
+  const selected = values.some(id => tastingWordLabel(id) === word);
+  return { ...value, flavorFamilies: selected ? values.filter(id => tastingWordLabel(id) !== word) : [...values, tastingWordId(word)] };
 }

@@ -5,7 +5,9 @@ import { families as sourceFamilies } from './families';
 let serial=0;
 export function mount(container,options={}){
 const global=window;
-const families=sourceFamilies.map(f=>({...f,notes:f.notes.filter(n=>!options.termFilter||options.termFilter(n,f.name))}));
+// Keep a previously saved Incense observation editable without suggesting it to new tastings.
+const legacyIncense=(options.notes||[]).some(n=>n.name==='Incense'&&(n.taste||n.aroma));
+const families=sourceFamilies.map(f=>({...f,notes:[...f.notes,...(legacyIncense&&f.name==='Wood & resin'?['Incense']:[])].filter(n=>!options.termFilter||options.termFilter(n,f.name))}));
 const root=global.document.createElement('div');root.className='tea-wheel'+(options.splitSenses?' split-senses':'');container.append(root);
 root.dataset.senseStudy=String(options.study||1);
 const uid='tea-wheel-'+(++serial)+'-';

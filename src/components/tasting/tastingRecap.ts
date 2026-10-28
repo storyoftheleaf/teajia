@@ -31,7 +31,8 @@ export function tastingRecap(value: TastingData): TastingRecapGroup[] {
   const groups: TastingRecapGroup[] = [
     { id: 'body', label: 'Texture', words: sensations('body') },
     { id: 'state', label: 'Effect', words: sensations('state') },
-    { id: 'flavor', label: 'Taste', words: [...(value.flavor ?? []).map(id => ({ id, label: tastingWordLabel(id) })), ...(value.basicTastes ?? []).map(label => ({ id: `basic:${label}`, label })), ...(value.huiGanIntensity !== undefined ? [{ id: 'hui-gan', label: `Returning sweetness · ${RETURNING_SWEETNESS[value.huiGanIntensity] ?? 'Unspecified'}` }] : value.huiGan ? [{ id: 'hui-gan', label: 'Returning sweetness' }] : [])] },
+    { id: 'flavor-families', label: 'Flavor families', words: (value.flavorFamilies ?? []).map(id => ({ id: `family:${id}`, label: tastingWordLabel(id) })) },
+    { id: 'flavor', label: 'Taste', words: [...(value.flavor ?? []).map(id => ({ id, label: tastingWordLabel(id) })), ...(value.basicTastes ?? []).map(label => ({ id: `basic:${label}`, label: label === 'Umami' ? 'Savory (umami)' : label })), ...(value.huiGanIntensity !== undefined ? [{ id: 'hui-gan', label: `Returning sweetness · ${RETURNING_SWEETNESS[value.huiGanIntensity] ?? 'Unspecified'}` }] : value.huiGan !== undefined ? [{ id: 'hui-gan', label: value.huiGan ? 'Returning sweetness' : 'Returning sweetness · Not noticed' }] : [])] },
     { id: 'aroma', label: 'Aroma', words: (value.aroma ?? []).map(id => ({ id, label: tastingWordLabel(id) })) },
     { id: 'storage', label: 'Storage', words: storage },
     { id: 'appearance', label: 'Appearance', words: appearance },

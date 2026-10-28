@@ -12,5 +12,6 @@ export function mount(container: HTMLElement, options: {
   study: number;
   innerGlow: boolean;
   compactSummary: boolean;
+  onNavigate?(family: string | null): void;
   onToggleSense(name: string, group: string, sense: 'taste' | 'aroma'): void;
 }): WheelHandle;

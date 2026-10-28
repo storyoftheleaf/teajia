@@ -80,7 +80,7 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
     state:
       (value.feeling?.length ?? 0) +
       (value.sensoryCustom?.state?.length ?? 0),
-    flavor: (value.flavor?.length ?? 0) + (value.aroma?.length ?? 0) + (value.basicTastes?.length ?? 0) + (value.huiGanIntensity !== undefined || value.huiGan ? 1 : 0),
+    flavor: (value.flavorFamilies?.length ?? 0) + (value.flavor?.length ?? 0) + (value.aroma?.length ?? 0) + (value.basicTastes?.length ?? 0) + (value.huiGanIntensity !== undefined || value.huiGan !== undefined ? 1 : 0),
     appearance:
       (value['liquor-color']?.length ?? 0) +
       (value.clarity ? 1 : 0) +
@@ -98,6 +98,7 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
     value.sensoryCustom,
     value.aroma,
     value.flavor,
+    value.flavorFamilies,
     value['liquor-color'],
     value.clarity,
     value.storageCharacter,

@@ -2,8 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { TasteQualities } from './TasteQualities';
 import type { TastingData } from '../../types';
 import type { WheelHandle } from './approvedWheel/TeaWheel';
-import { tastingWordFamily, tastingWordLabel, toggleWheelObservation, wheelNotes, type WheelSense } from './approvedWheel/observations';
+import { broadFamilyLabel, toggleBroadFamily, tastingWordFamily, tastingWordLabel, toggleWheelObservation, wheelNotes, type WheelSense } from './approvedWheel/observations';
 import './approvedWheel/approved-wheel.css';
+import { families } from './approvedWheel/families';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
 export { tastingWordLabel, tastingWordId, tastingWordFamily } from './approvedWheel/observations';
 interface ApprovedTasteWheelProps {
@@ -20,6 +22,9 @@ export function ApprovedTasteWheel({ value, onChange, reveal }: ApprovedTasteWhe
   current.current = { value, onChange };
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [attempt, setAttempt] = useState(0);
+  const [activeFamily, setActiveFamily] = useState<string | null>(null);
+  const broad = [...new Set((value.flavorFamilies || []).map(tastingWordLabel))];
+  const familyDetails = families.find(family => family.name === activeFamily);
   const tastes = [...new Set((value.flavor || []).map(tastingWordLabel))];
   const aromas = [...new Set((value.aroma || []).map(tastingWordLabel))];
   useEffect(() => {
@@ -30,6 +35,7 @@ export function ApprovedTasteWheel({ value, onChange, reveal }: ApprovedTasteWhe
       if (cancelled || !host.current) return;
       wheel.current = mount(host.current, {
         notes: wheelNotes(current.current.value), splitSenses: true, study: 5, innerGlow: false, compactSummary: true,
+        onNavigate: setActiveFamily,
         onToggleSense(word, _group, sense) {
           const next = toggleWheelObservation(current.current.value, word, sense);
           current.current = { ...current.current, value: next };
@@ -44,9 +50,10 @@ export function ApprovedTasteWheel({ value, onChange, reveal }: ApprovedTasteWhe
   useEffect(() => { wheel.current?.updateNotes(wheelNotes(value)); }, [value]);
   const showWord = useCallback((input: string, sense: WheelSense) => {
     if (input === 'hui-gan' || input.startsWith('basic:')) { host.current?.parentElement?.parentElement?.querySelector('.tasting-taste-qualities')?.scrollIntoView({ block: 'nearest' }); return; }
-    const word = tastingWordLabel(input);
+    const isBroad = input.startsWith('family:');
+    const word = tastingWordLabel(isBroad ? input.slice(7) : input);
     const family = tastingWordFamily(word);
-    if (family) { wheel.current?.navigate(family); wheel.current?.locate(word, sense); }
+    if (family) { wheel.current?.navigate(family); if (!isBroad) wheel.current?.locate(word, sense); }
     host.current?.scrollIntoView({ behavior: 'auto', block: 'nearest' });
   }, []);
   // A recap request is an event. Recreated prop objects must not replay it
@@ -63,6 +70,18 @@ export function ApprovedTasteWheel({ value, onChange, reveal }: ApprovedTasteWhe
       </div>}
       <div ref={host} />
     </section>
+    {familyDetails && <section className="tasting-family-record" aria-label="Broad flavor observation">
+      <div>
+        <p className={`${TYPOGRAPHY_CLASSES.accountMeta} text-tea-text-sec`}>{familyDetails.description}</p>
+        <p className={`${TYPOGRAPHY_CLASSES.accountMeta} text-tea-text-dim`}>The family is enough. Specific notes are optional.</p>
+      </div>
+      <button type="button" className={TYPOGRAPHY_CLASSES.link} aria-pressed={broad.includes(broadFamilyLabel(familyDetails.name))} onClick={() => onChange(toggleBroadFamily(value, familyDetails.name))}>Record {broadFamilyLabel(familyDetails.name)}</button>
+    </section>}
+    {broad.length > 0 && <section className="tasting-sense-lists" aria-label="Recorded flavor families">
+      <div className="tasting-sense-row"><span className="tasting-sense-label">Family</span><div className="tasting-sense-words">
+        {broad.map(word => <button key={word} type="button" aria-label={`Remove ${word} family`} onClick={() => onChange(toggleBroadFamily(value, word))}>{word} <span aria-hidden="true">×</span></button>)}
+      </div></div>
+    </section>}
     {(tastes.length > 0 || aromas.length > 0) && <section className="tasting-sense-lists" aria-label="All selected tastes and aromas">
       {(['taste', 'aroma'] as const).filter(sense => (sense === 'taste' ? tastes : aromas).length > 0).map(sense => <div key={sense} className="tasting-sense-row">
         <span className="tasting-sense-label">{sense === 'taste' ? 'Taste' : 'Aroma'}</span>

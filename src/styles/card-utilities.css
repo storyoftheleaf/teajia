@@ -6354,7 +6354,8 @@ body.cart-panel-open .commerce-dock {
 .tasting-basic-tastes button { flex:1 0 auto; min-height:44px; padding:8px 10px; border:1px solid var(--tea-border); border-radius:10px; background:var(--tea-surface); color:var(--tea-text-sec); }
 .tasting-basic-tastes button[aria-pressed=true] { background:var(--tea-elevated); color:var(--tea-text); border-color:var(--tea-text-dim); }
 .tasting-basic-tastes button:focus-visible { outline:2px solid var(--tea-gold); outline-offset:2px; }
-.tasting-huigan-labels { display:flex; justify-content:space-between; gap:8px; padding:3px 4px 0; font:12px/1.5 var(--font-body); color:var(--tea-text-dim); }
+.tasting-huigan-labels { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); text-align:center; gap:2px; padding:3px 0 0; font:11px/1.5 var(--font-body); color:var(--tea-text-dim); }
+.tasting-huigan-labels span { overflow-wrap:normal; }
 .tasting-huigan-labels [data-current=true] { color:var(--tea-text); }
 .tasting-huigan-rail .tasting-storage-ticks i:nth-child(3) { height:10px; }
 
@@ -6465,3 +6466,12 @@ body.cart-panel-open .commerce-dock {
  .purchase-tracking-quantities>span { justify-content:flex-start; gap:8px; }
  .purchase-tracking-item-note,.purchase-receiving-arrival,.purchase-receiving-item-details { grid-column:1 / -1; }
 }
+
+/* A family can stand alone, with no required note or sensory channel. */
+.tasting-family-record { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 12px; margin:0 16px 8px; }
+.tasting-family-record p { margin:0; }
+.tasting-family-record>div { flex:1 1 180px; min-width:0; }
+.tasting-family-record>button { min-height:44px; padding:8px 12px; border:1px solid var(--tea-border); border-radius:10px; background:var(--tea-surface); color:var(--tea-text); }
+.tasting-family-record>button[aria-pressed=true] { background:var(--tea-elevated); border-color:var(--tea-text-dim); }
+.tasting-family-record>button:focus-visible { outline:2px solid var(--tea-gold); outline-offset:2px; }
+.tasting-basic-tastes button[data-priority=secondary]:not([aria-pressed=true]) { background:transparent; color:var(--tea-text-dim); }

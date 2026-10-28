@@ -529,7 +529,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
   const noteControl = <button type="button" className="tap-target px-3 text-ui-12 text-tea-text" onClick={() => setShowNote(true)}>Your impression</button>;
   const resumeSelection = (section: string, word?: string) => {
-    const target: SectionId = section === 'aroma' ? 'flavor' : section === 'storage' ? 'appearance' : section as SectionId;
+    const target: SectionId = section === 'aroma' || section === 'flavor-families' ? 'flavor' : section === 'storage' ? 'appearance' : section as SectionId;
     setActiveSectionId(target);
     setReveal(word ? { word, sense: section === 'aroma' ? 'aroma' : 'taste', stamp: Date.now() } : undefined);
     setShowNote(false);
