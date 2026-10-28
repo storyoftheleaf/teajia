@@ -45,7 +45,7 @@ export async function observe(path) {
       const url = deploymentUrl(body.check_runs, state.revision);
       if (url) {
         const direct = artifact(url, state.revision);
-        const production = artifact('https://teajia.com', state.revision);
+        const production = artifact('https://www.teajia.com', state.revision);
         persist({ deploymentUrl: url, buildId: direct.buildId, direct, production });
         if (proofMatches(direct, production)) { persist({ state: 'live', verifiedAt: new Date().toISOString() }); break; }
       }

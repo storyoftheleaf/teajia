@@ -26,7 +26,7 @@ describe('basic tastes and returning sweetness', () => {
     expect(setReturningSweetness({}, 0)).toEqual({ huiGan: false, huiGanIntensity: 0 });
     expect(setReturningSweetness({ aroma: ['rose'] }, 3)).toEqual({ aroma: ['rose'], huiGan: true, huiGanIntensity: 3 });
     expect(setReturningSweetness({ huiGan: true }, undefined).huiGanIntensity).toBeUndefined();
-    expect(tastingRecap({ huiGan: true }).find(g => g.id === 'flavor')?.words).toContainEqual({ id: 'hui-gan', label: 'Returning sweetness' });
-    expect(tastingRecap({ huiGanIntensity: 0 }).find(g => g.id === 'flavor')?.words).toContainEqual({ id: 'hui-gan', label: 'Returning sweetness · Not noticed' });
+    expect(tastingRecap({ huiGan: true })).toEqual([]);
+    expect(tastingRecap({ huiGanIntensity: 0 })).toEqual([]);
   });
 });

@@ -11,34 +11,14 @@ function render(value: TastingData) {
 }
 
 describe('taste observation states', () => {
-  it('does not present an untouched returning-sweetness observation as a zero', () => {
-    const html = render({});
-    expect(html).toContain('aria-valuetext="Unrecorded"');
-    expect(html).toMatch(/<p[^>]*>Unrecorded<\/p>/);
-    expect(html).not.toContain('data-current="true"');
-    expect(html).not.toContain('aria-label="Clear returning sweetness"');
-  });
-
-  it('presents an explicit zero as recorded and clearable', () => {
-    const html = render({ huiGan: false, huiGanIntensity: 0 });
-    expect(html).toContain('aria-valuetext="Not noticed"');
-    expect(html).toContain('data-current="true">Not noticed');
-    expect(html).toContain('aria-label="Clear returning sweetness"');
-    expect(html).not.toContain('>Unrecorded</p>');
-  });
-
-  it('preserves legacy true without displaying an invented intensity', () => {
-    const html = render({ huiGan: true });
-    expect(html).toContain('aria-valuetext="Returning sweetness recorded; strength not specified"');
-    expect(html).not.toContain('data-current="true"');
-    expect(html).toContain('Previously recorded; strength not specified.');
-  });
-
-  it('retains a legacy negative observation without mislabelling it unrecorded', () => {
-    const html = render({ huiGan: false });
-    expect(html).toContain('aria-valuetext="Not noticed"');
-    expect(html).toContain('data-current="true">Not noticed');
-    expect(html).not.toContain('>Unrecorded</p>');
+  it('omits returning sweetness for fresh and saved tastings without changing saved data', () => {
+    for (const value of [{}, { huiGan: true }, { huiGan: false, huiGanIntensity: 0 }, { huiGan: true, huiGanIntensity: 3 }]) {
+      const before = structuredClone(value);
+      const html = render(value);
+      expect(html).not.toContain('Returning sweetness');
+      expect(html).not.toContain('type="range"');
+      expect(value).toEqual(before);
+    }
   });
 
   it('displays the saved canonical Umami observation under the accessible savory label', () => {

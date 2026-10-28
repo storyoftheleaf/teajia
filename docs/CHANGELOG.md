@@ -1,5 +1,9 @@
 ## 2026-10-28: Attach original passages to full-transcript working notes
 
+## 2026-10-28: Remove returning sweetness from Taste
+
+Removed the returning-sweetness control, Taste count and Taste recap entry. Earlier saved values remain stored; flavor families, taste qualities and aroma choices are unchanged.
+
 ## 2026-10-28: Record broad flavor families in the existing tasting flow
 
 Exploring the existing wheel no longer leaves beginners needing a flower or a sensory channel: Record Floral saves the family alone. Specific notes remain optional and do not automatically record their parent. Saved families appear in the impression recap and reopen for editing. Taste qualities explain resemblance versus sip sweetness, display Savory (umami), and keep Salty directly available. Returning sweetness distinguishes unrecorded, explicit Not noticed and legacy unspecified strength. Incense is offered as an unwanted Storage note rather than a flavor suggestion; existing records remain intact. No database migration or separate flavor-wheel screen is involved.

@@ -18,15 +18,7 @@ for (const width of [320, 390, 1280]) {
     await expect(record).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByRole('button', { name: 'Rose · Taste', exact: true })).toHaveAttribute('aria-pressed', 'false');
     await expect(page.getByRole('button', { name: 'Rose · Aroma', exact: true })).toHaveAttribute('aria-pressed', 'false');
-    const returning = page.getByRole('slider', { name: 'Returning sweetness intensity', exact: true });
-    await expect(returning).toHaveAttribute('aria-valuetext', 'Unrecorded');
-    await returning.evaluate(element => element.scrollIntoView({ block: 'center' }));
-    const bounds = await returning.boundingBox();
-    if (!bounds) throw new Error('Returning sweetness control missing');
-    await page.mouse.click(bounds.x + 2, bounds.y + bounds.height / 2);
-    await expect(returning).toHaveAttribute('aria-valuetext', 'Not noticed');
-    await page.getByRole('button', { name: 'Clear returning sweetness', exact: true }).click();
-    await expect(returning).toHaveAttribute('aria-valuetext', 'Unrecorded');
+    await expect(page.getByRole('slider', { name: 'Returning sweetness intensity', exact: true })).toHaveCount(0);
     await page.getByRole('button', { name: 'Savory (umami)', exact: true }).click();
     await page.screenshot({ path: `test-results/taste-family-${width}.png`, fullPage: true });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
