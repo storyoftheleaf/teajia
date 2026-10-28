@@ -1,3 +1,4 @@
+import type { LogisticsTracking, LogisticsService, LogisticsServiceInput, LogisticsOrder, LogisticsOrderInput, LogisticsShipment, LogisticsShipmentInput, LogisticsShipmentUpdate, LogisticsReceiveInput } from './logisticsTypes';
 import type { InventoryReceipt } from '../admin/types';
 import { createServiceAvailabilityGuard, shouldReportServiceIncident } from './serviceAvailability';
 import type { ShippingRoute } from '../components/shared/routeFreight';
@@ -1404,7 +1405,7 @@ async function authedFetch(url: string, init: ApiRequestInit = {}): Promise<any>
   const accountId = useAppStore.getState().activeAccountId;
   const result = await handleResponse(await authenticatedResponse(url, init));
   if (init.method && !['GET', 'HEAD'].includes(init.method.toUpperCase()) &&
-      (/\/api\/(products|invoices|invoice-payments|inquiries|accounts|rates|stock|inventory|purchase-orders|listings|network|collections|rpc|curate\/receipt-proposals)(\/|$)/.test(url)
+      (/\/api\/(products|invoices|invoice-payments|inquiries|accounts|rates|stock|inventory|purchase-orders|logistics|listings|network|collections|rpc|curate\/receipt-proposals)(\/|$)/.test(url)
         || /\/api\/compass\/(sync|entries\/[^/]+(?:\/promote)?)(?:\?|$)/.test(url)
         || /\/api\/curate\/imports\/[^/]+\/finalize(?:\?|$)/.test(url))) {
     notifyCommerceChanged(accountId);
@@ -2321,6 +2322,32 @@ export const api = {
       authedFetch(`${API_URL}/api/intake-commits/${encodeURIComponent(id)}/complete`, {
         method: 'POST', body: '{}',
       }),
+  },
+
+  logistics: {
+    saveService: (id: string | null, input: LogisticsServiceInput): Promise<{ service: LogisticsService }> =>
+      authedFetch(`${API_URL}/api/logistics/services${id ? `/${encodeURIComponent(id)}` : ''}`, { method: id ? 'PATCH' : 'POST', body: JSON.stringify(input) }),
+    archiveService: (id: string): Promise<{ service: LogisticsService }> =>
+      authedFetch(`${API_URL}/api/logistics/services/${encodeURIComponent(id)}/archive`, { method: 'POST', body: '{}' }),
+    tracking: (): Promise<LogisticsTracking> => authedFetch(`${API_URL}/api/logistics`),
+    saveOrder: (id: string, input: LogisticsOrderInput): Promise<{ order: LogisticsOrder }> =>
+      authedFetch(`${API_URL}/api/logistics/orders/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(input) }),
+    markAtLogistics: (id: string): Promise<{ order: LogisticsOrder }> =>
+      authedFetch(`${API_URL}/api/logistics/orders/${encodeURIComponent(id)}/arrive`, { method: 'POST', body: '{}' }),
+    createShipment: (input: LogisticsShipmentInput): Promise<{ shipment: LogisticsShipment }> =>
+      authedFetch(`${API_URL}/api/logistics/shipments`, { method: 'POST', body: JSON.stringify(input), retryTimeouts: true }),
+    updateShipment: (id: string, input: LogisticsShipmentUpdate): Promise<{ shipment: LogisticsShipment }> =>
+      authedFetch(`${API_URL}/api/logistics/shipments/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(input) }),
+    cancelShipment: (id: string): Promise<{ shipment: LogisticsShipment }> =>
+      authedFetch(`${API_URL}/api/logistics/shipments/${encodeURIComponent(id)}/cancel`, { method: 'POST', body: '{}' }),
+    dispatchShipment: (id: string): Promise<{ shipment: LogisticsShipment }> =>
+      authedFetch(`${API_URL}/api/logistics/shipments/${encodeURIComponent(id)}/dispatch`, { method: 'POST', body: '{}' }),
+    receiveShipment: async (id: string, input: LogisticsReceiveInput): Promise<{ committed: true; recorded: Array<{ line_id: string; [key: string]: unknown }>; shipment: LogisticsShipment }> => {
+      const result = await authedFetch(`${API_URL}/api/logistics/shipments/${encodeURIComponent(id)}/receive`, { method: 'POST', body: JSON.stringify(input), retryTimeouts: true });
+      // HTTP success may contain a partial stock write. Keep the original intent until every line is confirmed.
+      if (result?.committed !== true) throw new Error('The arrival is not fully confirmed. Retry the same verified quantities to finish recording it.');
+      return result;
+    },
   },
 
   purchaseOrders: {

@@ -8,9 +8,13 @@ import { refreshCommerceQueries } from '../../../lib/refreshCommerce';
 import { TYPOGRAPHY_CLASSES as T } from '../../../designTokens';
 import { IncomingReceiptsPanel } from './IncomingReceiptsPanel';
 import { PurchaseInvoiceEvidence } from './PurchaseInvoiceEvidence';
+import type { LogisticsOrder, LogisticsTracking } from '../../../lib/logisticsTypes';
+import { LogisticsCreateShipment, LogisticsOrderFields, ManifestButtons, companyManifest } from './LogisticsControls';
+import { LogisticsServices } from './LogisticsServices';
+import { LogisticsShipmentCard } from './LogisticsShipmentCard';
 import { dueLabel, remainingOf, TRANSPORT_LABELS } from './incomingGroups';
 
-export type PurchaseTrackingFilter = 'all' | 'attention' | 'coming' | 'received' | 'cancelled';
+export type PurchaseTrackingFilter = 'all' | 'attention' | 'coming' | 'to_logistics' | 'at_logistics' | 'to_studio' | 'received' | 'cancelled';
 export const purchaseAttention = (row: PurchaseTrackingRow) => row.attention.filter(item => item.code !== 'partial_delivery');
 export function purchaseTrackingStage(row: PurchaseTrackingRow): PurchaseTrackingFilter {
   if (row.invoice_draft && !row.receipt && !row.purchase) return 'attention';
@@ -19,13 +23,38 @@ export function purchaseTrackingStage(row: PurchaseTrackingRow): PurchaseTrackin
   if (row.receipt?.state === 'cancelled' || (!row.receipt && row.purchase?.status === 'cancelled')) return 'cancelled';
   return 'coming';
 }
-export function matchesPurchaseTracking(row: PurchaseTrackingRow, filter: PurchaseTrackingFilter) {
+export function logisticsPurchaseStage(row: PurchaseTrackingRow, order?: LogisticsOrder, data?: LogisticsTracking): PurchaseTrackingFilter {
+  const stage = purchaseTrackingStage(row);
+  if (stage !== 'coming') return stage;
+  if (data?.shipments.some(shipment => (shipment.state === 'in_transit' || shipment.state === 'partially_received') && shipment.lines.some(line => line.purchase_id === row.purchase?.id && line.received_quantity < line.quantity))) return 'to_studio';
+  return order?.logistics_company_name ? order.logistics_arrived_at ? 'at_logistics' : 'to_logistics' : 'coming';
+}
+export function matchesPurchaseTracking(row: PurchaseTrackingRow, filter: PurchaseTrackingFilter, order?: LogisticsOrder, data?: LogisticsTracking) {
+  if (filter === 'to_logistics' || filter === 'at_logistics' || filter === 'to_studio') {
+    // A split purchase can have contents at logistics and other contents travelling.
+    if (filter === 'at_logistics') return Boolean(order?.logistics_arrived_at && order.lines.some(line => line.available_quantity > 0)) || Boolean(data?.shipments.some(shipment => shipment.state === 'draft' && shipment.lines.some(line => line.purchase_id === row.purchase?.id)));
+    return logisticsPurchaseStage(row, order, data) === filter;
+  }
   return filter === 'all' || (filter === 'attention' ? purchaseAttention(row).length > 0 : purchaseTrackingStage(row) === filter);
 }
 const date = (value?: string | null) => value && !Number.isNaN(Date.parse(value)) ? new Date(value).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : '';
 const number = (value: number) => Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 });
 const unit = (value: string) => value === 'unit' ? 'pc' : 'g';
 const supplier = (row: PurchaseTrackingRow) => row.purchase?.vendor_name || row.receipt?.vendor_name || row.arrival_proposal?.vendor_name || 'Supplier not recorded';
+export function logisticsOrderSummary(order: LogisticsOrder, data: LogisticsTracking): { label: string; quantities: string; tracking: string } {
+  const draft = data.shipments.filter(shipment => shipment.state === 'draft').flatMap(shipment => shipment.lines).filter(line => line.purchase_id === order.purchase_id);
+  const travelling = data.shipments.filter(shipment => shipment.state === 'in_transit' || shipment.state === 'partially_received').flatMap(shipment => shipment.lines).filter(line => line.purchase_id === order.purchase_id);
+  const describe = (lines: Array<{ quantity: number; unit: string }>) => {
+    const grams = lines.filter(line => line.unit === 'g').reduce((sum, line) => sum + line.quantity, 0);
+    const pieces = lines.filter(line => line.unit === 'unit').reduce((sum, line) => sum + line.quantity, 0);
+    return [grams > 0 ? `${number(grams)} g` : '', pieces > 0 ? `${number(pieces)} pc` : ''].filter(Boolean).join(' + ');
+  };
+  const waiting = describe([...order.lines.map(line => ({ quantity: line.available_quantity, unit: line.unit })), ...draft.map(line => ({ quantity: Math.max(0, line.quantity - line.received_quantity), unit: line.unit }))]);
+  const sent = describe(travelling.map(line => ({ quantity: Math.max(0, line.quantity - line.received_quantity), unit: line.unit })));
+  const waitingLabel = order.logistics_arrived_at ? 'At logistics' : 'To logistics';
+  return { label: waiting && sent ? 'Part sent' : sent ? 'To studio' : waitingLabel, quantities: [waiting ? `${waitingLabel} ${waiting}` : '', sent ? `To studio ${sent}` : ''].filter(Boolean).join(' · '), tracking: [order.logistics_company_name, order.inbound_courier, order.inbound_tracking_number ? `Inbound ${order.inbound_tracking_number}` : 'Inbound tracking not recorded'].filter(Boolean).join(' · ') };
+}
+
 function purchaseItems(purchase: PurchaseOrder | null): Array<{ name: string; quantity: number | null; unit: string }> {
   try {
     const parsed = JSON.parse(purchase?.items_json || '[]');
@@ -60,9 +89,10 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
   const queryClient = useQueryClient();
   const [params] = useSearchParams();
   const view = params.get('view');
-  const initialFilter: PurchaseTrackingFilter = view === 'coming' || view === 'attention' || view === 'received' || view === 'cancelled' ? view : 'all';
+  const initialFilter: PurchaseTrackingFilter = view === 'to_logistics' || view === 'at_logistics' || view === 'to_studio' || view === 'coming' || view === 'attention' || view === 'received' || view === 'cancelled' ? view : 'all';
   const [filter, setFilter] = useState<PurchaseTrackingFilter>(initialFilter);
   const [vendor, setVendor] = useState('all');
+  const [company, setCompany] = useState('all');
   const [open, setOpen] = useState<string | null>(initialOpen || params.get('purchaseId'));
   const [manualReceipt, setManualReceipt] = useState<string | null>(null);
   const [newForm, setNewForm] = useState(false);
@@ -73,12 +103,17 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
     queryKey: ['purchase-tracking', accountId], queryFn: () => api.purchaseOrders.tracking(),
     staleTime: 15_000, refetchOnWindowFocus: true, refetchInterval: 60_000,
   });
-  useEffect(() => { setOpen(initialOpen || params.get('purchaseId')); setManualReceipt(null); setMatch(null); setVendor('all'); setFilter(initialFilter); setError(''); }, [accountId, initialOpen, params]);
+  const logisticsQuery = useQuery({ queryKey: ['purchase-logistics', accountId], queryFn: () => api.logistics.tracking(), staleTime: 15_000, refetchOnWindowFocus: true, refetchInterval: 60_000 });
+  const logistics = logisticsQuery.data;
+  const orderFor = (row: PurchaseTrackingRow) => logistics?.orders.find(order => order.purchase_id === row.purchase?.id);
+  const companies = [...new Set([...(logistics?.orders.map(order => order.logistics_company_name) || []), ...(logistics?.shipments.map(shipment => shipment.logistics_company_name) || [])].filter((value): value is string => Boolean(value)))].sort();
+  useEffect(() => { setOpen(initialOpen || params.get('purchaseId')); setManualReceipt(null); setMatch(null); setVendor('all'); setCompany('all'); setFilter(initialFilter); setError(''); }, [accountId, initialOpen, params]);
   const rows = data?.rows || [];
   const vendors = [...new Set(rows.filter(row => !row.invoice_draft || row.purchase || row.receipt).map(supplier))].sort();
-  const scoped = rows.filter(row => vendor === 'all' || supplier(row) === vendor);
-  const visible = scoped.filter(row => matchesPurchaseTracking(row, filter));
-  const refresh = () => refreshCommerceQueries(queryClient, accountId);
+  const scoped = rows.filter(row => (vendor === 'all' || supplier(row) === vendor) && (company === 'all' || orderFor(row)?.logistics_company_name === company));
+  const visible = scoped.filter(row => matchesPurchaseTracking(row, filter, orderFor(row), logistics));
+  const visibleShipments = (logistics?.shipments || []).filter(shipment => shipment.state !== 'cancelled' && (company === 'all' || shipment.logistics_company_name === company) && (vendor === 'all' || shipment.lines.some(line => logistics?.orders.some(order => order.purchase_id === line.purchase_id && order.vendor_name === vendor))) && (filter === 'all' || filter === 'coming' && shipment.state !== 'received' || filter === 'at_logistics' && shipment.state === 'draft' || filter === 'to_studio' && (shipment.state === 'in_transit' || shipment.state === 'partially_received') || filter === 'received' && shipment.state === 'received' || filter === 'attention' && Boolean(shipment.freight_issue)));
+  const refresh = async () => { await Promise.all([refreshCommerceQueries(queryClient, accountId), queryClient.invalidateQueries({ queryKey: ['purchase-logistics', accountId] })]); };
   const mutate = async (action: () => Promise<unknown>) => {
     if (busy) return;
     setBusy(true); setError('');
@@ -97,21 +132,29 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
 
   return <section className="purchase-tracking font-sans text-ui-12 text-tea-text bg-tea-bg pb-nav-gap" aria-label="Purchases and deliveries">
     <header className="purchase-tracking-header">
-      <div><h1 className={T.h2}>Purchases</h1><p className="text-tea-text-sec">Coming, arrived and anything to resolve.</p></div>
-      <div className="purchase-tracking-tools"><button type="button" className="tap-target purchase-tracking-button" disabled={isFetching} onClick={() => void refetch()} aria-label="Refresh purchases"><RefreshCw size={14} className={isFetching ? 'animate-spin' : ''}/></button><button type="button" className="tap-target purchase-tracking-button" onClick={() => setNewForm(true)}><Plus size={14}/>Add purchase</button></div>
+      <div><h1 className={T.h2}>Purchases</h1><p className="text-tea-text-sec">Supplier → logistics → studio.</p></div>
+      <div className="purchase-tracking-tools"><button type="button" className="tap-target purchase-tracking-button" disabled={isFetching} onClick={() => { void refetch(); void logisticsQuery.refetch(); }} aria-label="Refresh purchases"><RefreshCw size={14} className={isFetching ? 'animate-spin' : ''}/></button><button type="button" className="tap-target purchase-tracking-button" onClick={() => setNewForm(true)}><Plus size={14}/>Add purchase</button></div>
     </header>
     <div className="purchase-tracking-filters">
-      <div role="group" aria-label="Filter purchases" className="purchase-tracking-tabs">{([['all', 'All'], ['attention', 'Needs attention'], ['coming', 'Coming'], ['received', 'Received']] as const).map(([key, label]) => <button key={key} type="button" className="tap-target" aria-pressed={filter === key} onClick={() => setFilter(key)}>{label}<span className="text-tea-text-dim">{scoped.filter(row => matchesPurchaseTracking(row, key)).length}</span></button>)}</div>
+      <div role="group" aria-label="Filter purchases" className="purchase-tracking-tabs">{([['all', 'All'], ['attention', 'Needs attention'], ['to_logistics', 'To logistics'], ['at_logistics', 'At logistics'], ['to_studio', 'To studio'], ['received', 'Received']] as const).map(([key, label]) => <button key={key} type="button" className="tap-target" aria-pressed={filter === key} onClick={() => setFilter(key)}>{label}<span className="text-tea-text-dim">{scoped.filter(row => matchesPurchaseTracking(row, key, orderFor(row), logistics)).length}</span></button>)}</div>
       <label className="purchase-tracking-supplier"><span className="sr-only">Supplier</span><select aria-label="Filter supplier" value={vendor} onChange={event => setVendor(event.target.value)}><option value="all">All suppliers</option>{vendors.map(value => <option key={value} value={value}>{value}</option>)}</select></label>
+      {companies.length > 0 && <label className="purchase-tracking-supplier"><select aria-label="Filter logistics company" value={company} onChange={event => setCompany(event.target.value)}><option value="all">All logistics companies</option>{companies.map(value => <option key={value}>{value}</option>)}</select></label>}
+      {company !== 'all' && logistics && <ManifestButtons manifest={companyManifest(company, logistics.orders, logistics.shipments)}/>}
     </div>
+    {logisticsQuery.isError && <p role="alert" className="purchase-tracking-notice">Logistics tracking could not be refreshed.<button type="button" className="tap-target underline" onClick={() => void logisticsQuery.refetch()}>Try again</button></p>}
+    {logistics && <LogisticsServices key={`services:${accountId}`} services={logistics.services || []} accountId={accountId} busy={busy} mutate={mutate}/> }
+    {logistics && <LogisticsCreateShipment key={accountId} data={logistics} busy={busy} mutate={mutate}/>}
     {(error || isError) && <p role="alert" className="purchase-tracking-notice">{error || 'Purchases could not be refreshed.'}<button type="button" className="tap-target underline" onClick={() => void refetch()}>Try again</button></p>}
     {isPending && <p role="status" className="purchase-tracking-notice"><Loader2 size={16} className="animate-spin"/>Loading purchases…</p>}
-    {!isPending && !isError && !visible.length && <p className="purchase-tracking-notice">{filter === 'attention' ? 'Nothing needs your attention.' : filter === 'received' ? 'No received purchases in this view.' : filter === 'coming' ? 'Nothing coming in this view.' : 'No purchases recorded yet.'}</p>}
-    <div className="purchase-tracking-list">{visible.map(row => {
+    {!isPending && !isError && !visible.length && !visibleShipments.length && <p className="purchase-tracking-notice">{filter === 'attention' ? 'Nothing needs your attention.' : filter === 'received' ? 'No received purchases in this view.' : filter === 'coming' ? 'Nothing coming in this view.' : 'No purchases recorded yet.'}</p>}
+    <div className="purchase-tracking-list">{visibleShipments.map(shipment => <LogisticsShipmentCard key={shipment.id} shipment={shipment} orders={logistics?.orders || []} busy={busy} mutate={mutate} accountId={accountId} openPurchase={id => { setFilter('all'); setOpen(id); }}/ >)}{visible.map(row => {
       const expanded = open === row.id || open === row.purchase?.id || open === row.receipt?.id;
       const attention = purchaseAttention(row);
       const receipt = row.receipt;
       const purchase = row.purchase;
+      const logisticsOrder = orderFor(row);
+      const routeStage = logisticsPurchaseStage(row, logisticsOrder, logistics);
+      const routeSummary = logisticsOrder?.logistics_company_name && logistics ? logisticsOrderSummary(logisticsOrder, logistics) : null;
       const items = receipt?.lines || [];
       const itemCount = row.invoice_draft && !purchase && !receipt ? row.invoice_draft.item_count : row.arrival_proposal ? 1 : items.length || purchaseItems(purchase).length;
       const title = row.invoice_draft && !purchase && !receipt ? row.invoice_draft.title || 'Invoice to review' : supplier(row);
@@ -124,9 +167,9 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
       return <article className="purchase-tracking-record" key={row.id} data-purchase-id={purchase?.id} data-receipt-id={receipt?.id}>
         <button type="button" className="purchase-tracking-open" aria-expanded={expanded} aria-label={`${expanded ? 'Close' : 'Open'} purchase from ${title}`} onClick={() => setOpen(expanded ? null : row.id)}>
           <div className="purchase-tracking-identity min-w-0"><h2 className={T.h3}>{title}</h2><div className="purchase-tracking-meta text-tea-text-sec"><span>{row.invoice_draft && !purchase && !receipt ? 'Invoice' : purchase?.po_number || date(purchase?.created_at) || 'Delivery'}</span><span>{itemCount} {itemCount === 1 ? 'item' : 'items'}</span>{total && <span>{total}</span>}</div></div>
-          <span className="purchase-tracking-status">{stageLabel(row)}{expanded ? <ChevronUp size={15}/> : <ChevronDown size={15}/>}</span>
+          <span className="purchase-tracking-status">{stage === 'coming' && !attention.length ? routeSummary?.label || ({ to_logistics: 'To logistics', at_logistics: 'At logistics', to_studio: 'To studio' } as Record<string,string>)[routeStage] || stageLabel(row) : stageLabel(row)}{expanded ? <ChevronUp size={15}/> : <ChevronDown size={15}/>}</span>
         </button>
-        {stage !== 'attention' && <div className="purchase-tracking-summary"><span>{stage === 'received' ? `Received${row.history.length ? ` · ${date(row.history[0].recorded_at)}` : ''}` : stage === 'cancelled' ? 'Cancelled' : remaining ? `${remaining} coming` : 'No quantity recorded'}</span><span className="text-tea-text-sec">{[transport, due?.text, purchase?.tracking_number ? `Tracking ${purchase.tracking_number}` : null].filter(Boolean).join(' · ')}</span></div>}
+        {stage !== 'attention' && <div className="purchase-tracking-summary"><span>{stage === 'received' ? `Received${row.history.length ? ` · ${date(row.history[0].recorded_at)}` : ''}` : stage === 'cancelled' ? 'Cancelled' : routeSummary?.quantities ? routeSummary.quantities : remaining ? `${remaining} coming` : 'No quantity recorded'}</span><span className="text-tea-text-sec">{routeSummary ? routeSummary.tracking : [transport, due?.text, purchase?.tracking_number ? `Tracking ${purchase.tracking_number}` : null].filter(Boolean).join(' · ')}</span></div>}
         {attention.length > 0 && <div className="purchase-tracking-attention"><span>{attention.map(item => item.message).join(' ')}</span>{row.invoice_draft && <Link className="tap-target purchase-tracking-button" to={`/admin/intake?importId=${encodeURIComponent(row.invoice_draft.id)}`}>Review invoice</Link>}{purchase && !receipt && <button type="button" disabled={busy} className="tap-target purchase-tracking-button" onClick={() => void matchPurchase(purchase)}>{legacy ? 'Link stock entry' : 'Match items'}</button>}</div>}
         {expanded && <div className="purchase-tracking-expanded">
           {items.length > 0 ? <div className="purchase-tracking-items">{items.map(line => <div className="purchase-tracking-item" key={line.id}>
@@ -139,10 +182,10 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
             {row.source_document && <PurchaseInvoiceEvidence key={`${accountId}:${row.source_document.import_id}`} importId={row.source_document.import_id} title={row.source_document.title}/> }
             {purchase?.notes && <details className="purchase-tracking-note"><summary className="tap-target" aria-label="Supplier note" title="Supplier note">Note</summary><p>{purchase.notes}</p></details>}
           {(purchase || receipt) && <details className="purchase-tracking-manual"><summary className="tap-target" aria-label="Make a change">Changes</summary><div className="purchase-tracking-manual-content">
-            {receipt && <button type="button" className="tap-target purchase-tracking-button" onClick={() => setManualReceipt(receipt.id)}>Record arrival / manage delivery</button>}
+            {receipt && !logisticsOrder?.logistics_company_name && <button type="button" className="tap-target purchase-tracking-button" onClick={() => setManualReceipt(receipt.id)}>Record arrival / manage delivery</button>}
             {purchase && !receipt && purchase.status !== 'cancelled' && <button type="button" disabled={busy} className="tap-target purchase-tracking-button" onClick={() => void matchPurchase(purchase)}>{legacy ? 'Link original stock entry' : 'Match purchase items'}</button>}
             {purchase && <label>Purchase status<select aria-label={`Purchase status for ${supplier(row)}`} value={purchase.status} disabled={busy || Boolean(receipt)} onChange={event => void mutate(() => api.purchaseOrders.updateStatus(purchase.id, event.target.value))}>{[...new Set(['pending', 'ordered', 'cancelled', purchase.status])].map(value => <option key={value} value={value}>{value.replace(/_/g, ' ')}</option>)}</select></label>}
-            {purchase && <TrackingField purchase={purchase} busy={busy} save={value=>mutate(()=>api.purchaseOrders.setTracking(purchase.id,value))}/>}
+            {purchase && logistics ? <LogisticsOrderFields key={JSON.stringify(logisticsOrder || purchase.id)} order={logisticsOrder} services={logistics.services || []} purchaseId={purchase.id} tracking={purchase.tracking_number} busy={busy} mutate={mutate}/> : purchase && <TrackingField purchase={purchase} busy={busy} save={value=>mutate(()=>api.purchaseOrders.setTracking(purchase.id,value))}/>}
           </div></details>}
           </div>
         </div>}

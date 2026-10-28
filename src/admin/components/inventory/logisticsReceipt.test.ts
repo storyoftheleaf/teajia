@@ -1,0 +1,30 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiError } from '../../../lib/api';
+import { confirmStudioReceipt, readReceiveIntent } from './logisticsReceipt';
+const values = new Map<string, string>();
+const storage = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value), removeItem: (key: string) => values.delete(key) };
+beforeEach(() => {
+  values.clear();
+  vi.stubGlobal('localStorage', storage);
+  vi.stubGlobal('sessionStorage', storage);
+  vi.stubGlobal('window', { dispatchEvent: vi.fn(), location: { origin: 'https://test' } });
+  vi.stubGlobal('navigator', { onLine: true });
+});
+afterEach(() => vi.unstubAllGlobals());
+describe('studio receive recovery', () => {
+  it('retains the same persisted key and quantities after a partial HTTP 200, and clears only on committed retry', async () => {
+    const input = { idempotency_key: 'original-key', lines: [{ line_id: 'first', quantity: 2 }, { line_id: 'second', quantity: 3 }] };
+    const fetchMock = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ committed: false, partial: true, recorded: [{ line_id: 'first' }], failed: { line_id: 'second' } }), { status: 200 })).mockResolvedValueOnce(new Response(JSON.stringify({ committed: true, recorded: [{ line_id: 'first' }, { line_id: 'second' }], shipment: { id: 'shipment' } }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    let failure: unknown;
+    try { await confirmStudioReceipt('shipment', input, 'pending'); } catch (cause) { failure = cause; }
+    expect(failure).toBeInstanceOf(Error);
+    expect(failure).not.toBeInstanceOf(ApiError);
+    expect(readReceiveIntent('pending')).toEqual(input);
+    const result = await confirmStudioReceipt('shipment', readReceiveIntent('pending')!, 'pending');
+    expect(result.committed).toBe(true);
+    expect(result.recorded).toHaveLength(2);
+    expect(readReceiveIntent('pending')).toBeNull();
+    expect(fetchMock.mock.calls.map(([, init]) => JSON.parse(init.body))).toEqual([input, input]);
+  });
+});

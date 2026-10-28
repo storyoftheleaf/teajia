@@ -1,3 +1,4 @@
+import { logisticsTools } from './mcpTools/logistics';
 // MCP server for Teajia — voice/agent control of this account's inventory.
 //
 // Speaks the Model Context Protocol over plain HTTP POST + JSON-RPC 2.0 (no SSE).
@@ -7027,6 +7028,7 @@ const TOOL_MODULES: ToolModule[] = [
   curateArrivalTools,
   orderTrackingTools,
   purchaseArrivalTools,
+  logisticsTools,
   curateAttachmentTools,
   curateManageModule,
   curateQuoteTools,

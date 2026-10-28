@@ -38,6 +38,7 @@ export interface CurateReceiptService {
 }
 
 export interface InventoryReceiptService {
+  receiveLogistics?: (scope: { accountId:string; userId:string; email?:string|null }, lineId:string, input:Record<string,unknown>, shipmentLineId:string) => Promise<Response>;
   receive: (scope: { accountId:string; userId:string; email?:string|null }, lineId:string, input:Record<string,unknown>) => Promise<Response>;
   cancel: (scope: { accountId:string; userId:string; email?:string|null }, lineId:string) => Promise<Response>;
   receiveImport: (scope: { accountId:string; userId:string; email?:string|null }, line:Parameters<CurateFinalizeMovement>[0], key:string) => ReturnType<CurateFinalizeMovement>;

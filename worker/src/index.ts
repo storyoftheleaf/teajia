@@ -1,3 +1,4 @@
+import { readLogistics, mutateLogistics, LogisticsError, type LogisticsAction } from './logistics';
 import { readPurchaseTracking } from './purchaseTracking';
 import type { CurateFinalizeMovement } from './curateImports';
 import { suppressVerificationNotifications, LIVE_VERIFICATION_POLICY } from './liveVerificationPolicy';
@@ -16464,8 +16465,12 @@ const handleUpdateInventoryReceiptTransport: Handler = async (request, env, para
 
 const loadReceiptLine = async (env: Env, id: string, accountId: string) => env.DB.prepare(`SELECT l.*, r.state receipt_state, r.vendor_name FROM inventory_receipt_lines l JOIN inventory_receipts r ON r.id=l.receipt_id AND r.account_id=l.account_id WHERE l.id=? AND l.account_id=?`).bind(id,accountId).first() as Promise<any>;
 
-export async function receiveInventoryLine(env: Env, ctx: MovementContext, lineId: string, body: Record<string, any>): Promise<Response> {
+export async function receiveInventoryLine(env: Env, ctx: MovementContext, lineId: string, body: Record<string, any>, logisticsLineId?: string): Promise<Response> {
   const line = await loadReceiptLine(env, lineId, ctx.accountId); if (!line) return json({ error: 'Receipt line not found' }, 404);
+  const managed = await env.DB.prepare('SELECT h.purchase_id FROM purchase_logistics h JOIN purchase_orders p ON p.id=h.purchase_id AND p.account_id=h.account_id WHERE p.receipt_id=? AND h.account_id=? LIMIT 1').bind(line.receipt_id,ctx.accountId).first();
+  if (managed && !logisticsLineId) return json({error:'This purchase travels through logistics. Receive its shipment at the studio instead.'},409);
+  const logisticsLine = logisticsLineId ? await env.DB.prepare('SELECT l.*,s.state shipment_state FROM logistics_shipment_lines l JOIN logistics_shipments s ON s.id=l.shipment_id AND s.account_id=l.account_id WHERE l.id=? AND l.receipt_line_id=? AND l.account_id=?').bind(logisticsLineId,line.id,ctx.accountId).first() as any : null;
+  if (logisticsLineId && !logisticsLine) return json({error:'Shipment line not found'},404);
   if (typeof body.idempotency_key === 'string' && body.idempotency_key.trim()) {
     const prior = await env.DB.prepare('SELECT * FROM stock_ledger WHERE account_id = ? AND idempotency_key = ?').bind(ctx.accountId,body.idempotency_key.trim()).first() as any;
     if (prior) {
@@ -16477,6 +16482,7 @@ export async function receiveInventoryLine(env: Env, ctx: MovementContext, lineI
       return json({ received_quantity:Number(line.received_quantity),remaining_quantity:remainingNow,state:line.receipt_state,ledger_id:prior.id,batch_id:prior.batch_id,already_received:true });
     }
   }
+  if (logisticsLine && (!['in_transit','partially_received'].includes(logisticsLine.shipment_state) || Number(body.quantity)>Number(logisticsLine.quantity)-Number(logisticsLine.received_quantity))) return json({error:'Invalid outstanding studio receipt quantity'},409);
   const remaining = remainingReceiptQuantity(Number(line.expected_quantity),Number(line.received_quantity),Number(line.cancelled_quantity));
   const quantity = Number(body.quantity);
   if (!Number.isFinite(quantity) || quantity <= 0 || quantity > remaining || (line.unit === 'unit' && !Number.isInteger(quantity))) return json({ error: 'invalid receive quantity' }, 400);
@@ -16492,6 +16498,14 @@ export async function receiveInventoryLine(env: Env, ctx: MovementContext, lineI
   const newReceived = Number(line.received_quantity) + quantity; const state = deriveReceiptState(line.receipt_state as InventoryReceiptState,Number(line.expected_quantity),newReceived,Number(line.cancelled_quantity));
   const statementFactory = (guard: string): D1PreparedStatement[] => {
     const statements: D1PreparedStatement[] = [];
+    if (logisticsLine) {
+      // These three writes share the stock ledger transaction. A lost response
+      // can be retried without ever losing or duplicating shipment receipts.
+      statements.push(env.DB.prepare(`UPDATE logistics_shipment_lines SET received_quantity=received_quantity+? WHERE id=? AND account_id=? AND EXISTS(SELECT 1 FROM products WHERE id=? AND account_id=? AND stock_movement_guard=?)`).bind(quantity,logisticsLine.id,ctx.accountId,line.product_id,ctx.accountId,guard));
+      statements.push(env.DB.prepare(`INSERT INTO logistics_studio_receipts(id,account_id,shipment_line_id,ledger_id,quantity,idempotency_key,received_at) SELECT ?,?,?,s.id,?,?,datetime('now') FROM stock_ledger s WHERE s.account_id=? AND s.idempotency_key=? AND EXISTS(SELECT 1 FROM products WHERE id=? AND account_id=? AND stock_movement_guard=?)`).bind(crypto.randomUUID(),ctx.accountId,logisticsLine.id,quantity,body.idempotency_key,ctx.accountId,body.idempotency_key,line.product_id,ctx.accountId,guard));
+      statements.push(env.DB.prepare(`UPDATE logistics_shipments SET state=CASE WHEN EXISTS(SELECT 1 FROM logistics_shipment_lines WHERE shipment_id=? AND account_id=? AND received_quantity<quantity) THEN 'partially_received' ELSE 'received' END WHERE id=? AND account_id=? AND EXISTS(SELECT 1 FROM products WHERE id=? AND account_id=? AND stock_movement_guard=?)`).bind(logisticsLine.shipment_id,ctx.accountId,logisticsLine.shipment_id,ctx.accountId,line.product_id,ctx.accountId,guard));
+    }
+
     // A previously empty and unpriced holding may take its first invoice basis.
     // Teaware stores a per-piece cost; tea stores the invoice total and grams.
     // Zero is an explicit cost; missing cost remains NULL. Never reprice an existing shelf.
@@ -16552,6 +16566,7 @@ const handleFinalizeCurateImport: Handler = async (request, env, params) => {
 
 export async function cancelInventoryLine(env: Env, ctx: MovementContext, lineId: string): Promise<Response> {
   const line = await loadReceiptLine(env,lineId,ctx.accountId); if (!line) return json({ error:'Receipt line not found' },404);
+  if(await env.DB.prepare("SELECT l.id FROM logistics_shipment_lines l JOIN logistics_shipments s ON s.id=l.shipment_id AND s.account_id=l.account_id WHERE l.receipt_line_id=? AND l.account_id=? AND l.received_quantity<l.quantity AND s.state!='cancelled' LIMIT 1").bind(line.id,ctx.accountId).first()) return json({error:'This line has goods reserved in a logistics shipment'},409);
   const remaining=remainingReceiptQuantity(Number(line.expected_quantity),Number(line.received_quantity),Number(line.cancelled_quantity)); if (!remaining) return json({ cancelled_quantity:Number(line.cancelled_quantity),state:line.receipt_state,already_cancelled:true });
   const state=deriveReceiptState(line.receipt_state,Number(line.expected_quantity),Number(line.received_quantity),Number(line.cancelled_quantity)+remaining);
   const changes = await env.DB.batch([env.DB.prepare(`UPDATE inventory_receipt_lines SET cancelled_quantity=expected_quantity-received_quantity,updated_at=datetime('now') WHERE id=? AND account_id=? AND received_quantity=? AND cancelled_quantity=?`).bind(line.id,ctx.accountId,Number(line.received_quantity),Number(line.cancelled_quantity)),env.DB.prepare(`UPDATE inventory_receipts SET state=CASE
@@ -22066,6 +22081,13 @@ const handleCompleteIntakeCommit: Handler = async (request, env, params) => {
   return result.meta.changes
     ? json({ success: true })
     : restError(404, 'Intake commit not found', 'intake_commit_not_found');
+};
+
+const logisticsHandler = (action?: LogisticsAction): Handler => async (request,env,params) => {
+  const scope=await requireBundle(request,env,'stock');if('error' in scope)return scope.error;
+  const service={DB:env.DB,inventoryReceipts:{receive:(ctx:any,lineId:string,body:any)=>receiveInventoryLine(env,ctx,lineId,body),receiveLogistics:(ctx:any,lineId:string,body:any,shipmentLineId:string)=>receiveInventoryLine(env,ctx,lineId,body,shipmentLineId),cancel:(ctx:any,lineId:string)=>cancelInventoryLine(env,ctx,lineId),receiveImport:(ctx:any,line:any,key:string)=>receiveFinalizedImportLine(env,ctx,line,key)}};
+  try { return json(action?await mutateLogistics(service,scope,action,params.id??'',await request.json().catch(()=>({})) as any):await readLogistics(service,scope.accountId)); }
+  catch(error){if(error instanceof LogisticsError)return json({error:error.message},error.status);throw error;}
 };
 
 const handlePurchaseTracking: Handler = async (request, env) => {
@@ -29606,6 +29628,17 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/intake-commits/:id/complete', handleCompleteIntakeCommit],
   ['GET', '/api/purchase-orders', handleListPurchaseOrders],
   ['GET', '/api/purchase-orders/tracking', handlePurchaseTracking],
+  ['GET','/api/logistics',logisticsHandler()],
+  ['POST','/api/logistics/services',logisticsHandler('service_create')],
+  ['PATCH','/api/logistics/services/:id',logisticsHandler('service_update')],
+  ['POST','/api/logistics/services/:id/archive',logisticsHandler('service_archive')],
+  ['PUT','/api/logistics/orders/:id',logisticsHandler('order')],
+  ['POST','/api/logistics/orders/:id/arrive',logisticsHandler('arrive')],
+  ['POST','/api/logistics/shipments',logisticsHandler('create')],
+  ['PATCH','/api/logistics/shipments/:id',logisticsHandler('update')],
+  ['POST','/api/logistics/shipments/:id/dispatch',logisticsHandler('dispatch')],
+  ['POST','/api/logistics/shipments/:id/cancel',logisticsHandler('cancel')],
+  ['POST','/api/logistics/shipments/:id/receive',logisticsHandler('receive')],
   ['POST', '/api/purchase-orders', handleCreatePurchaseOrder],
   ['PUT','/api/curate/imports/:id/intake-state',handleSaveIntakeState],
   ['POST','/api/purchase-orders/:id/prepare-receipt',handlePreparePurchaseReceipt],
@@ -30303,6 +30336,7 @@ const requestHandler = {
         curateReceipts: { accept: (scope, proposalId) => acceptCurateReceipt(env, scope, proposalId) },
         inventoryReceipts: {
           receive: (scope, lineId, input) => receiveInventoryLine(env, scope, lineId, input),
+          receiveLogistics: (scope, lineId, input, shipmentLineId) => receiveInventoryLine(env, scope, lineId, input, shipmentLineId),
           cancel: (scope, lineId) => cancelInventoryLine(env, scope, lineId),
           receiveImport: (scope, line, key) => receiveFinalizedImportLine(env, scope, line, key),
         },
