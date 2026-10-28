@@ -788,7 +788,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               )}
             </div>
 
-            <TastingNavigation confirmBeforeClose={isDirty} activeSection={showNote ? null : activeSectionId}
+            <TastingNavigation activeSection={showNote ? null : activeSectionId}
               onSelect={id => { setActiveSectionId(id); setShowNote(false); }} onClose={handleCloseRequest} />
 
             {/* Bottom bar: a flat word taskbar. One crisp hairline separates it

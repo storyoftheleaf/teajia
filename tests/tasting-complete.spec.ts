@@ -176,6 +176,20 @@ test('site and tasting bars fold in sequence without moving the center', async (
   const tasting = page.getByRole('navigation', { name: 'Tasting sections' });
   const seal = tasting.getByRole('button', { name: 'Leave tasting' });
   const firstPosition = await seal.boundingBox();
+  await page.evaluate(() => {
+    for (const el of document.querySelectorAll('[data-testid="bottom-tab-bar"], .tasting-capsule-seal, .tasting-capsule-surface')) {
+      for (const animation of el.getAnimations()) { animation.pause(); animation.currentTime = 330; }
+    }
+  });
+  await expect(seal).toBeHidden();
+  await expect(tasting.locator('.tasting-capsule-surface')).toBeHidden();
+  await page.screenshot({ path: '/tmp/tasting-circle-handoff.png' });
+  await page.evaluate(() => {
+    for (const el of document.querySelectorAll('[data-testid="bottom-tab-bar"], .tasting-capsule-seal, .tasting-capsule-surface')) {
+      for (const animation of el.getAnimations()) animation.play();
+    }
+  });
+
   await expect(site).toHaveCSS('animation-name', 'tasting-site-fold');
   await expect(tasting.locator('.tasting-capsule-wing').first()).toHaveCSS('animation-delay', '0.92s');
   await expect(site).toBeHidden();
@@ -185,7 +199,8 @@ test('site and tasting bars fold in sequence without moving the center', async (
   expect(settled!.y).toBeCloseTo(firstPosition!.y, 1);
   await page.screenshot({ path: '/tmp/tasting-fold-open.png' });
   await seal.click();
-  await expect(tasting).toHaveClass(/is-closing/);
+  // Return opens the site bar directly; there is no preliminary tasting fold.
+  await expect(tasting).toHaveCount(0);
   await expect(tasting).toBeHidden();
   await expect(site).toHaveClass(/tasting-site-reopen/);
   await expect(site.locator(':scope > div')).toHaveCSS('animation-delay', '0.5s');
