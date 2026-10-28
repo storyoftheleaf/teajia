@@ -314,3 +314,16 @@ describe('account-scoped committed Curate entries', () => {
     expect(merged.entriesByAccount['acct-a']?.map((item) => item.id)).toEqual(['persisted-a']);
   });
 });
+
+describe('saving an encounter before acquisition', () => {
+  it('makes a partial capture eligible for sync without ending the active capture', () => {
+    useTeaCompassStore.setState({ pendingEntries: [], entries: [], activeEntryId: null, sessionEntryIds: [] });
+    const store = useTeaCompassStore.getState();
+    const id = store.startNewCapture();
+    store.updateEntry(id, { name: 'Purchase quote' });
+    store.retainEntry(id);
+    expect(useTeaCompassStore.getState().entries.find(entry => entry.id === id)?.name).toBe('Purchase quote');
+    expect(useTeaCompassStore.getState().activeEntryId).toBe(id);
+    expect(useTeaCompassStore.getState().sessionEntryIds).toContain(id);
+  });
+});

@@ -6,7 +6,7 @@ import {
   normalizeCanonicalImportRecord,
 } from './curateImportCanonical';
 
-export const COMPASS_JSON_COLUMNS = new Set(['tasting', 'photos', 'audio_clips', 'route_quotes']);
+export const COMPASS_JSON_COLUMNS = new Set(['tasting', 'photos', 'audio_clips', 'route_quotes', 'tasting_history']);
 export const COMPASS_DECISIONS = new Set(['considering', 'selected', 'passed_on']);
 export const COMPASS_SAMPLE_STATES = new Set(['requested', 'received', 'tasted']);
 export const COMPASS_COLUMNS = [
@@ -14,7 +14,7 @@ export const COMPASS_COLUMNS = [
   'name', 'given_name', 'chinese_name', 'type', 'form', 'year', 'season', 'storage',
   'origin_country', 'origin_region', 'classification', 'cultivar', 'producer', 'description',
   'tea_key', 'price_amount', 'price_currency', 'price_per_unit_grams',
-  'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
+  'category', 'teaware_category', 'material', 'clay_type', 'material_note', 'sell_price', 'tasting_history', 'capacity_ml', 'quantity', 'era',
   'vendor_id', 'vendor_name', 'shop_name', 'transport_mode', 'linked_customer_id', 'notes', 'tasting', 'photos', 'audio_clips',
   'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total', 'verdict', 'decision', 'sample_state', 'sample_set_id', 'session_id',
   'journey_id', 'visit_id',
@@ -74,9 +74,9 @@ const CANONICAL_COMPASS_SOURCES: Partial<Record<CompassColumn, readonly (typeof 
   notes: ['processingNotes', 'sourceExcerpt'],
   vendor_id: ['vendorResolution'],
   vendor_name: ['vendorResolution'],
-  price_amount: ['priceAmountExact'],
+  price_amount: ['priceAmountExact', 'lineCostExact', 'unitCostExact'],
   price_currency: ['currency'],
-  price_per_unit_grams: ['unitCostExact'],
+  price_per_unit_grams: ['packWeight', 'weightUnit', 'totalQuantityGrams', 'unitCostExact'],
   buy_quantity_grams: ['totalQuantityGrams'],
   buy_quantity_units: ['totalUnits'],
   buy_total: ['lineCostExact'],

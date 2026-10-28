@@ -1,3 +1,4 @@
+import { ledgerLineTotal } from './acquisitionPricing';
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Font } from '@react-pdf/renderer';
 import type { LedgerTransaction, LedgerLineItem } from '../../lib/ledgerStore';
@@ -22,12 +23,7 @@ function fmtPrice(amount: number, currency: Currency): string {
   return `${sym}${amount.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
 }
 
-function lineTotal(item: LedgerLineItem): number {
-  if (item.priceIsPerGram) {
-    return item.pricePerUnit * (item.quantityGrams ?? 0);
-  }
-  return item.pricePerUnit * (item.quantityUnits ?? 1);
-}
+const lineTotal = ledgerLineTotal;
 
 const s = StyleSheet.create({
   page: {

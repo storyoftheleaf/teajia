@@ -13,11 +13,12 @@ export type MiniField = 'givenName' | 'year' | 'fixedRetailPriceUSD' | 'costAmou
 const labels: Record<MiniField,string> = { givenName:'Given name',year:'Year / vintage',fixedRetailPriceUSD:'Retail · USD per gram',costAmount:'Purchase cost' };
 export function MiniEditSheet({ product, field, onSave, onClose }: {product:Product;field:MiniField;onSave:SaveField;onClose:()=>void}) {
   const original=product[field];
+  const label=field==='fixedRetailPriceUSD'&&product.type==='Teaware'?'Retail · USD per piece':labels[field];
   const [value,setValue]=useState(original == null || original==='Unnamed' || (field==='givenName' && String(original).trim()===product.productName?.trim()) ? '' : String(original));
   const [saving,setSaving]=useState(false),[error,setError]=useState('');
   const savingRef=useRef(false);
   const numeric=field==='fixedRetailPriceUSD'||field==='costAmount';
-  const help=field==='givenName'?'Your chosen name for this tea. The original tea name stays unchanged.':field==='year'?'An exact year or an approximate decade, for example 1998 or 1980s. Clear to leave it unknown.':field==='fixedRetailPriceUSD'?'A fixed retail override in USD. Clear to return to calculated retail. A typed zero is an explicit zero price.':`Total purchase cost in ${product.costCurrency || 'USD'}.`;
+  const help=field==='givenName'?'Your chosen name for this tea. The original tea name stays unchanged.':field==='year'?'An exact year or an approximate decade, for example 1998 or 1980s. Clear to leave it unknown.':field==='fixedRetailPriceUSD'?`A fixed retail override in USD per ${product.type==='Teaware'?'piece':'gram'}. Clear to return to calculated retail. A typed zero is an explicit zero price.`:`Total purchase cost in ${product.costCurrency || 'USD'}.`;
   async function save(){
     if(savingRef.current)return;
     setError('');
@@ -27,10 +28,10 @@ export function MiniEditSheet({ product, field, onSave, onClose }: {product:Prod
       savingRef.current=true;setSaving(true);await onSave(field,next);onClose();
     }catch(e){setError(e instanceof Error?e.message:'Could not save. Try again.')}finally{savingRef.current=false;setSaving(false)}
   }
-  return <BottomSheet open onOpenChange={open=>{if(!open&&!savingRef.current)onClose()}} title={labels[field]} description={product.productName}><div className="stock-mini-sheet space-y-3 px-2 pb-3">
+  return <BottomSheet open onOpenChange={open=>{if(!open&&!savingRef.current)onClose()}} title={label} description={product.productName}><div className="stock-mini-sheet space-y-3 px-2 pb-3">
     <p className={`${T.link} text-tea-text-sec`}>{help}</p>
-    <label className={`${T.label} block text-tea-text-dim`} htmlFor="stock-mini-value">{labels[field]}</label>
-    <input id="stock-mini-value" aria-label={labels[field]} type={numeric?'number':'text'} inputMode={numeric?'decimal':field==='year'?'text':undefined} value={value} disabled={saving} onChange={e=>setValue(e.target.value)} className="w-full min-h-11 rounded-md border border-tea-border bg-tea-surface px-3 text-ui-16 text-tea-text focus:border-tea-gold focus:outline-none"/>
+    <label className={`${T.label} block text-tea-text-dim`} htmlFor="stock-mini-value">{label}</label>
+    <input id="stock-mini-value" aria-label={label} type={numeric?'number':'text'} inputMode={numeric?'decimal':field==='year'?'text':undefined} value={value} disabled={saving} onChange={e=>setValue(e.target.value)} className="w-full min-h-11 rounded-md border border-tea-border bg-tea-surface px-3 text-ui-16 text-tea-text focus:border-tea-gold focus:outline-none"/>
     {error&&<p role="alert" className={`${T.link} text-tea-text-sec`}>{error}</p>}
     <button type="button" disabled={saving} onClick={save} className={`${T.nav} cta-solid min-h-11 rounded-md w-full px-3 py-3 disabled:opacity-50`}>{saving?'Saving…':'Save'}</button>
   </div></BottomSheet>

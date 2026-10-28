@@ -411,4 +411,35 @@ describe('Compass sync acknowledgements', () => {
     expect(useTeaCompassStore.getState().accountScopeId).toBe('acct-b');
     expect(useTeaCompassStore.getState().entries.map((item) => item.id)).toEqual(['b-local']);
   });
+  it('keeps edits made during a save dirty until their own acknowledgement', async () => {
+    let resolve!: (value: unknown) => void;
+    syncMock.mockReturnValueOnce(new Promise(done => { resolve = done; }));
+    useTeaCompassStore.setState({ entries: [entry('editing')] });
+    const pending = syncCompassEntries('acct-a');
+    await vi.waitFor(() => expect(syncMock).toHaveBeenCalledTimes(1));
+    useTeaCompassStore.getState().updateEntry('editing', { name: 'Newer typing' });
+    resolve({ syncedIds: ['editing'] });
+    await pending;
+    expect(useTeaCompassStore.getState().entries[0]).toMatchObject({ name: 'Newer typing', synced: false });
+    syncMock.mockResolvedValueOnce({ syncedIds: ['editing'] });
+    await syncCompassEntries('acct-a');
+    expect(syncMock.mock.calls[1][0][0].name).toBe('Newer typing');
+    expect(useTeaCompassStore.getState().entries[0].synced).toBe(true);
+  });
+
+  it('round trips country and captured teaware details through server names', async () => {
+    syncMock.mockImplementation(async (rows) => {
+      listMock.mockResolvedValue({ entries: rows });
+      return { syncedIds: rows.map((row: { id: string }) => row.id) };
+    });
+    useTeaCompassStore.setState({ entries: [{ ...entry('pot'), originCountry: 'China', clayType: 'ZiNi', materialNote: 'Purple clay', sellPrice: 20,
+      tastingHistory: [{ data: { flavor: ['floral'] }, date: '2026-10-27' }] } as never] });
+    await syncCompassEntries('acct-a');
+    expect(syncMock.mock.calls[0][0][0]).toMatchObject({ origin_country: 'China', clay_type: 'ZiNi', material_note: 'Purple clay', sell_price: 20 });
+    useTeaCompassStore.setState({ entries: [] });
+    await hydrateCompassEntries('acct-a');
+    expect(useTeaCompassStore.getState().entries[0]).toMatchObject({ originCountry: 'China', clayType: 'ZiNi', materialNote: 'Purple clay', sellPrice: 20,
+      tastingHistory: [{ data: { flavor: ['floral'] }, date: '2026-10-27' }] });
+  });
+
 });

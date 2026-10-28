@@ -368,19 +368,11 @@ export function compassEntryToProductDraft(entry: TeaCompassEntry): Record<strin
   descParts.push(`---\nField notes from Curate capture on ${captureDate}`);
   const description = descParts.join('\n\n');
 
-  // Determine stock: grams for tea, units for teaware
-  let stockGrams = 0;
-  let quantityPurchased = 0;
-  if (entry.category === 'teaware') {
-    quantityPurchased = entry.buyQuantityUnits ?? entry.quantity ?? 1;
-    stockGrams = 0;
-  } else if (['Cake', 'Brick', 'Tuo'].includes(entry.form || '')) {
-    quantityPurchased = entry.buyQuantityUnits ?? 1;
-    stockGrams = entry.buyQuantityGrams ?? 0;
-  } else {
-    stockGrams = entry.buyQuantityGrams ?? 0;
-    quantityPurchased = 0;
-  }
+  // A quotation is a cost basis, never evidence that stock has been received.
+  const hasAcquisitionCost = entry.buyTotal != null;
+  const quantityPurchased = entry.category === 'teaware'
+    ? (hasAcquisitionCost ? entry.buyQuantityUnits ?? entry.quantity : entry.quantity)
+    : hasAcquisitionCost ? entry.buyQuantityGrams ?? null : entry.pricePerUnitGrams ?? null;
 
   // Build tasting data if present
   const tastingData = entry.tasting
@@ -396,7 +388,7 @@ export function compassEntryToProductDraft(entry: TeaCompassEntry): Record<strin
     year: entry.year || null,
     origin_country: entry.originCountry || '',
     origin_region: entry.originRegion || '',
-    stock_grams: stockGrams,
+    stock_grams: 0,
     quantity_purchased: quantityPurchased,
     /* `?? 0` said an entry with no price recorded was a tea that cost nothing,
        and the server then had a well formed zero to agree with. Null instead,

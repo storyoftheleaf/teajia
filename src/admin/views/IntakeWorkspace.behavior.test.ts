@@ -10,32 +10,37 @@ import { createServer, type ViteDevServer } from 'vite';
  * deleting the `plainCostWords(...)` call at this call site fails this test.
  */
 let server: ViteDevServer; let browser: Browser; let page: Page; let origin: string;
-let persistedPlan: any = null;
+const plans=new Map<string,any>();
+const drafts=new Map<string,any>();
 const operationCalls: Array<{ kind: string; payload: any }> = [];
 let purchaseFailures = 0;
 let getFailures = 0;
+let purchaseReview=false;
 let bulkResult: any = { inserted: 1, skipped: 0, results: [] };
 
 beforeAll(async () => {
   server = await createServer({
-    root: process.cwd(), logLevel: 'silent', server: { host: '127.0.0.1', port: 0, strictPort: false },
+    root: process.cwd(), cacheDir:`/tmp/teajia-intake-test-${process.pid}`, logLevel: 'silent', server: { host: '127.0.0.1', port: 0, strictPort: false },
     plugins: [{
       name: 'intake-workspace-test-page',
       configureServer(vite) {
         vite.middlewares.use('/__intake-operations', (req, res) => {
           const send = (status: number, value: any) => { res.statusCode = status; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(value)); };
-          if (req.method === 'GET') return send(200, { plan: persistedPlan, calls: operationCalls });
+          if (req.method === 'GET') return send(200, { plan: plans.get('test-import'), calls: operationCalls });
           let body = '';
           req.on('data', chunk => { body += chunk; });
           req.on('end', () => {
-            const { kind, payload } = JSON.parse(body);
-            if (kind === 'reset') { persistedPlan = null; operationCalls.length = 0; purchaseFailures = 0; getFailures = 0; bulkResult = { inserted: 1, skipped: 0, results: [] }; return send(200, {}); }
-            if (kind === 'configure') { purchaseFailures = payload.purchaseFailures ?? purchaseFailures; getFailures = payload.getFailures ?? getFailures; bulkResult = payload.bulkResult ?? bulkResult; return send(200, {}); }
-            if (kind === 'get') { if (getFailures-- > 0) return send(503, { error: 'Lookup unavailable' }); return persistedPlan ? send(200, persistedPlan) : send(404, { error: 'No plan' }); }
-            if (kind === 'save') { persistedPlan = { id: 'test-import', account_id: 'test-account', status: 'pending', ...payload }; operationCalls.push({ kind, payload }); return send(200, persistedPlan); }
-            if (kind === 'bulk') { operationCalls.push({ kind, payload }); return send(200, bulkResult); }
-            if (kind === 'purchase') { operationCalls.push({ kind, payload }); if (purchaseFailures-- > 0) return send(503, { error: 'Purchase record unavailable' }); return send(200, { id: 'purchase-1' }); }
-            if (kind === 'complete') { operationCalls.push({ kind, payload }); persistedPlan.status = 'completed'; return send(200, { success: true }); }
+            const { kind, payload, id='test-import' } = JSON.parse(body);
+            if (kind === 'reset') { plans.clear(); drafts.clear(); operationCalls.length = 0; purchaseFailures = 0; getFailures = 0; purchaseReview=false; bulkResult = { inserted: 1, skipped: 0, results: [] }; return send(200, {}); }
+            if (kind === 'configure') { if(payload.plan) plans.set('test-import',payload.plan);purchaseReview=payload.purchaseReview ?? purchaseReview; purchaseFailures = payload.purchaseFailures ?? purchaseFailures; getFailures = payload.getFailures ?? getFailures; bulkResult = payload.bulkResult ?? bulkResult; return send(200, {}); }
+            if (kind === 'create') { const nextId=payload.idempotency_key?.startsWith('intake-corrections:') ? 'correction-import' : 'test-import'; if (!drafts.has(nextId)) drafts.set(nextId,{batch:{id:nextId,intake_revision:0},sources:[],items:[]}); return send(200,drafts.get(nextId)); }
+            if (kind === 'draftGet') return send(200,drafts.get(id) || {batch:{id,intake_revision:0},sources:[],items:[]});
+            if (kind === 'draftSave') { const draft=drafts.get(id) || {batch:{id,intake_revision:0},sources:[],items:[]}; if (payload.expectedRevision !== undefined && payload.expectedRevision !== draft.batch.intake_revision) return send(409,{error:'Revision conflict'}); draft.batch.intake_state=payload.state;draft.batch.intake_revision++;drafts.set(id,draft);return send(200,{intake_revision:draft.batch.intake_revision}); }
+            if (kind === 'get') { if (getFailures-- > 0) return send(503, { error: 'Lookup unavailable' }); return plans.has(id) ? send(200, plans.get(id)) : send(404, { error: 'No plan' }); }
+            if (kind === 'save') { const plan={id,account_id:'test-account',status:'pending',...payload};plans.set(id,plan);operationCalls.push({kind,payload});return send(200,plan); }
+            if (kind === 'bulk') { operationCalls.push({ kind, payload }); return send(200,{...bulkResult,results:bulkResult.results?.length ? bulkResult.results.map((row:any,index:number)=>({...row,client_row_id:payload.products[index]?.client_row_id})) : payload.products.map((product:any,index:number)=>({client_row_id:product.client_row_id,status:'inserted',product_id:'product-'+index,ledger_id:'ledger-'+index}))}); }
+            if (kind === 'purchase') { operationCalls.push({ kind, payload }); if (purchaseFailures-- > 0) return send(503, { error: 'Purchase record unavailable' }); return send(200, { id: 'purchase-1',receipt_review_required:purchaseReview }); }
+            if (kind === 'complete') { operationCalls.push({ kind, payload }); plans.get(id).status = 'completed'; return send(200, { success: true }); }
             return send(400, { error: 'Unknown operation' });
           });
         });
@@ -89,6 +94,9 @@ describe('IntakeWorkspace cost refusal in plain words', () => {
     await expect.poll(() => page.getByText(
       'What did this cost? Enter the price, or 0 if it was a gift.', { exact: false },
     ).count(), { message: 'the operator-facing plain-words sentence never reached the toast' }).toBeGreaterThan(0);
+    await expect.poll(()=>page.getByRole('button', {name:/Add 1 to inventory/}).count()).toBe(1);
+    expect(await page.evaluate(() => (window as any).intakeWorkspaceTest.abandonCalls())).toBe(1);
+    expect(drafts.get('correction-import').batch.intake_state.items).toHaveLength(1);
     expect(await page.getByText('(missing: amount)').count(),
       'the raw server marker leaked onto the screen instead of the plain-words sentence').toBe(0);
   });
@@ -113,9 +121,11 @@ describe('IntakeWorkspace cost refusal in plain words', () => {
     await page.getByRole('button', { name: 'Resume import' }).click();
     await expect.poll(async () => (await calls()).filter(call => call.kind === 'complete').length).toBe(1);
     const all = await calls();
-    expect(all.map(call => call.kind)).toEqual(['save', 'bulk', 'purchase', 'bulk', 'purchase', 'complete']);
-    expect(all.filter(call => call.kind === 'bulk').map(call => call.payload.receiptLabel)).toEqual(['Intake test-import part 1', 'Intake test-import part 1']);
-    expect(all.filter(call => call.kind === 'purchase').map(call => call.payload.idempotency_key)).toEqual(['intake:test-import:po:0', 'intake:test-import:po:0']);
+    expect(all.map(call => call.kind)).toEqual(['save', 'bulk', 'purchase', 'purchase', 'complete']);
+    expect(all.filter(call => call.kind === 'bulk').map(call => call.payload.receiptLabel)).toEqual(['Intake test-import part 1']);
+    const purchases=all.filter(call=>call.kind==='purchase');
+    expect(purchases[0].payload.idempotency_key).toBe(purchases[1].payload.idempotency_key);
+    expect(purchases[0].payload).toEqual(purchases[1].payload);
     await expect.poll(() => page.evaluate(() => (window as any).intakeWorkspaceTest.abandonCalls())).toBe(1);
     await page.reload();
     await page.waitForFunction(() => Boolean((window as any).intakeWorkspaceTest));
@@ -137,4 +147,91 @@ describe('IntakeWorkspace cost refusal in plain words', () => {
     await page.getByRole('button', { name: 'Try again' }).click();
     await page.getByRole('button', { name: 'Browse files' }).waitFor();
   });
+  it('restores spreadsheet fields and shipping metadata after remounting the saved draft', async()=>{
+    await open();
+    await page.setInputFiles('input[type="file"]',{name:'costs.csv',mimeType:'text/csv',buffer:Buffer.from('Product Name,Type,Cost Amount,Cost Currency,Vendor,Quantity Purchased,Stock\nSaved Tea,Oolong,40,USD,Lin,100,100\n')});
+    await page.getByPlaceholder('Unnamed item').fill('Corrected Tea');
+    await page.getByPlaceholder('Total',{exact:true}).fill('12');
+    await page.getByRole('button',{name:'Save now'}).click();
+    await expect.poll(()=>page.evaluate(()=>(window as any).intakeWorkspaceTest.savedDraft()?.items?.[0]?.givenName)).toBe('Corrected Tea');
+    await page.evaluate(()=>(window as any).intakeWorkspaceTest.mount(false));
+    await expect.poll(()=>page.getByPlaceholder('Unnamed item').inputValue()).toBe('Corrected Tea');
+    expect(await page.getByPlaceholder('Total',{exact:true}).inputValue()).toBe('12');
+    const saved=await page.evaluate(()=>(window as any).intakeWorkspaceTest.savedDraft());
+    expect(saved.items[0]).toMatchObject({costAmount:40,costCurrency:'USD',vendor:'Lin',quantityPurchased:100});
+  });
+  it('restores pending purchase follow-ups without re-adding inventory', async()=>{
+    await open();
+    await page.evaluate(()=>(window as any).intakeWorkspaceTest.failPurchase());
+    await page.setInputFiles('input[type="file"]',{name:'costs.csv',mimeType:'text/csv',buffer:Buffer.from('Product Name,Type,Cost Amount,Cost Currency,Vendor,Quantity Purchased,Stock\nSaved Tea,Oolong,40,USD,Lin,100,100\n')});
+    await page.getByRole('button',{name:/Add 1 to inventory/}).click();
+    await page.getByRole('button',{name:'Resume import'}).waitFor();
+    await page.evaluate(()=>(window as any).intakeWorkspaceTest.mount(false));
+    await page.getByRole('button',{name:'Resume import'}).click();
+    await expect.poll(async()=>(await calls()).filter(call=>call.kind==='complete').length).toBe(1);
+    expect((await calls()).filter(call=>call.kind==='bulk')).toHaveLength(1);
+    const purchases=(await calls()).filter(call=>call.kind==='purchase');
+    expect(purchases).toHaveLength(2);
+    expect(purchases[0].payload).toEqual(purchases[1].payload);
+    const purchase=purchases[1].payload;
+    expect(purchase.total_usd).toBe(40);
+    expect(JSON.parse(purchase.items_json)[0]).toMatchObject({product_id:'product-0',quantity:100,unit:'g',total_cost:40,source_movement_id:'ledger-0'});
+  });
+
+  it('retains only rejected rows and their freight share while recording confirmed stock once',async()=>{
+    await open();
+    await page.evaluate(()=>(window as any).intakeWorkspaceTest.setBulkCreateResult({inserted:1,skipped:1,results:[
+      {status:'inserted',product_id:'confirmed',ledger_id:'opening'},
+      {status:'skipped',reason:'A product with this type and name already exists'},
+    ]}));
+    await page.setInputFiles('input[type="file"]',{name:'partial.csv',mimeType:'text/csv',buffer:Buffer.from('Given Name,Type,Cost Amount,Cost Currency,Vendor,Quantity Purchased,Stock\nFirst Tea,Oolong,40,USD,Lin,100,100\nSecond Tea,Oolong,30,USD,Lin,100,100\n')});
+    await page.getByPlaceholder('Total',{exact:true}).fill('12');
+    await page.getByRole('button',{name:/Add 2 to inventory/}).click();
+    await expect.poll(()=>page.getByRole('button',{name:/Add 1 to inventory/}).count()).toBe(1);
+    expect(await page.getByPlaceholder('Unnamed item').inputValue()).toBe('Second Tea');
+    expect(Number(await page.getByPlaceholder('Total',{exact:true}).inputValue())).toBe(6);
+    const purchase=(await calls()).find(call=>call.kind==='purchase')!.payload;
+    expect(purchase.total_usd).toBe(40);
+    expect(JSON.parse(purchase.items_json)).toEqual([expect.objectContaining({product_id:'confirmed',source_movement_id:'opening',quantity:100,total_cost:40})]);
+    const correction=drafts.get('correction-import').batch.intake_state;
+    expect(correction.items).toHaveLength(1);expect(correction.committedRowIds).toHaveLength(1);
+    await page.getByRole('button',{name:'Save now'}).click();
+    await page.evaluate(()=>(window as any).intakeWorkspaceTest.mount('/admin/intake?importId=correction-import'));
+    await expect.poll(()=>page.getByPlaceholder('Unnamed item').inputValue()).toBe('Second Tea');
+    expect((await calls()).filter(call=>call.kind==='bulk')).toHaveLength(1);
+    await page.screenshot({path:'/tmp/teajia-intake-corrections-integrated.png',animations:'disabled'});
+  });
+
+  it('replays a legacy immutable plan unchanged and hands its pending purchase to review',async()=>{
+    await open();
+    const product={product_name:'Legacy tea',type:'Oolong',stock_grams:100,cost_amount:40,cost_currency:'USD'};
+    const record={vendor_name:'Lin',items_json:JSON.stringify([{product_name:'Legacy tea',quantity:100,unit_price:40,currency:'USD'}]),status:'received'};
+    await page.evaluate(async({product,record})=>{
+      await (window as any).intakeWorkspaceTest.seedLegacyPlan({id:'test-import',status:'pending',batch_id:null,products:[product],purchase_records:[record]});
+      (window as any).intakeWorkspaceTest.mount('/admin/intake?importId=test-import');
+    },{product,record});
+    await page.getByRole('button',{name:'Resume import'}).click();
+    await page.getByText('Purchase review opened').waitFor();
+    const all=await calls();
+    expect(all.find(call=>call.kind==='bulk')!.payload.products).toEqual([product]);
+    expect(all.find(call=>call.kind==='purchase')!.payload).toEqual({...record,idempotency_key:'intake:test-import:po:0'});
+    expect(drafts.get('test-import').batch.intake_state.purchaseReviewIds).toEqual(['purchase-1']);
+    expect(all.filter(call=>call.kind==='complete')).toHaveLength(1);
+  });
+
+  it('keeps caret navigation inside an edited product and retains a failed field for retry',async()=>{
+    await open();
+    await page.evaluate(()=>(window as any).intakeWorkspaceTest.mountEditor());
+    const field=page.getByRole('textbox',{name:'Given name',exact:true});
+    await field.fill('Clear Sky');await field.press('ArrowLeft');
+    expect(await field.inputValue()).toBe('Clear Sky');
+    await page.evaluate(()=>(window as any).intakeWorkspaceTest.failSave());
+    await field.press('Tab');
+    await page.getByRole('button',{name:'Retry save',exact:true}).waitFor();
+    expect(await field.inputValue()).toBe('Clear Sky');
+    await page.getByRole('button',{name:'Retry save',exact:true}).click();
+    await expect.poll(()=>page.getByRole('button',{name:'Retry save',exact:true}).count()).toBe(0);
+    expect(await field.inputValue()).toBe('Clear Sky');
+  });
+
 });

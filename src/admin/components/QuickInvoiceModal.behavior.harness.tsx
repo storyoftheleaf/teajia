@@ -25,7 +25,8 @@ const toasts: Array<{ message: string; type?: string }> = [];
 const product = (id: string, name: string, type: Product['type'] = 'Oolong', status: Product['status'] = 'Active'): Product => ({
   id, givenName: name, productName: name, type, status, form: type === 'Teaware' ? 'Other' : 'Loose',
   originCountry: '', originRegion: '', pricePerGramUSD: type === 'Teaware' ? 20 : 0.4,
-  costPerGramUSD: 0, costAmount: 0, stockGrams: 100, lowStockThreshold: 0,
+  fixedRetailPriceUSD:type === 'Teaware'?25:null, quantityUnits:type === 'Teaware'?3:undefined,
+  costPerGramUSD: 0, costAmount: 0, stockGrams: type === 'Teaware'?0:100, lowStockThreshold: 0,
   description: '', tastingNotes: [], imageUrl: '', costCurrency: 'USD', quantityPurchased: 0,
   isPersonal: false, canReorder: false, isPublic: false, shownInShop: false,
 });

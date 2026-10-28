@@ -14,6 +14,7 @@ import { Button } from './Button';
 import { Icons } from '../Icons';
 import { CartItemRow } from './CartItem';
 import { api } from '../../lib/api';
+import { agreedItemForDisplay } from '../../lib/orderTrackingDomain';
 import { createHumanOrderRef, createInquiryPayloadKey, createTrackingToken, validateStoreCart } from '../../lib/publicCartDomain';
 import { checkoutLocation, readCheckoutDetails, validateCheckoutDetails, type CheckoutDetails, type DeliveryChoice, type ReplyChannel } from '../../lib/checkoutDetails';
 import { readRecentOrderRequests, rememberRecentOrderRequest, recentOrderRequestPath, type RecentOrderRequest } from '../../lib/recentOrderRequests';
@@ -178,17 +179,22 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
     try {
       const result = await api.inquiries.create({ tracking_token: identity.trackingToken, ref_number: identity.ref, store_slug: storeSlug, customer_name: details.name.trim(), customer_contact: contact, whatsapp_handoff: channel === 'whatsapp-chat', whatsapp_confirmation_consent: requestWhatsApp, customer_location: location, notes: details.notes.trim() || undefined, items_json: JSON.stringify(cart), total_estimate_usd: subtotal, currency: orderCurrency, source: 'website' });
       const trackingUrl = `${window.location.origin}/order/${result.tracking_token}`;
+      const savedItems: PublicCartItem[] = result.invoice_items ? result.invoice_items.map(line => {
+        const original = cart.find(item => item.id === line.product_id && item.quantityGrams === line.quantity);
+        return { ...original, ...agreedItemForDisplay(line), variant: original?.variant || '', storeSlug, storeName };
+      }) : [...cart];
+      const savedSubtotal = result.total_estimate_usd ?? savedItems.reduce((sum, item) => sum + item.totalPrice, 0);
       const message = buildOrderMessage({
         type: 'inquiry', ref: result.ref_number, invoiceNumber: result.invoice_number, trackingUrl,
         customerName: details.name.trim(), customerContact: contact, customerLocation: location,
         notes: details.notes.trim(), currency: orderCurrency,
-        items: cart.map(item => ({ name: item.name, variant: item.variant, quantity: item.packGrams ?? item.quantityGrams, packs: item.packs ?? 1, unit: item.category === 'tea' ? 'g' : ' pcs', price: shopPrice.total(item.totalPrice / (item.packs ?? 1)), total: shopPrice.total(item.totalPrice) })),
-        subtotal: shopPrice.total(subtotal), total: shopPrice.total(subtotal),
+        items: savedItems.map(item => ({ name: item.name, variant: item.variant, quantity: item.packGrams ?? item.quantityGrams, packs: item.packs ?? 1, unit: item.category === 'tea' ? 'g' : ' pcs', price: shopPrice.total(item.totalPrice / (item.packs ?? 1)), total: shopPrice.total(item.totalPrice) })),
+        subtotal: shopPrice.total(savedSubtotal), total: shopPrice.total(savedSubtotal),
       });
       const request: RecentOrderRequest = { trackingToken: result.tracking_token, reference: result.ref_number, storeSlug, createdAt: new Date().toISOString() };
       const remembered = rememberRecentOrderRequest(request);
       setWhatsappConsent(false);
-      setPlacedOrder({ request, items: [...cart], total: shopPrice.total(subtotal), message, remembered, invoiceNumber: result.invoice_number, handoff: channel === 'whatsapp-chat', viaWhatsApp: channel !== 'website' });
+      setPlacedOrder({ request, items: savedItems, total: shopPrice.total(savedSubtotal), message, remembered, invoiceNumber: result.invoice_number, handoff: channel === 'whatsapp-chat', viaWhatsApp: channel !== 'website' });
       setRecentRequests(readRecentOrderRequests(storeSlug));
       setUndoItem(null);
       clearPublicCart();

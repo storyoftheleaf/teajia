@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Currency } from '../admin/types';
+import type { CurateReceiptProposal } from '../types';
 import { canonicalCurrency } from './currency';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -33,6 +34,7 @@ export interface LedgerLineItem {
   compassEntryId?: string;   // If added from Tea Compass
   productId?: string;        // If added from inventory (for sales)
 
+  receiptProposal?: CurateReceiptProposal;
   addedAt: string;
 }
 
@@ -52,6 +54,9 @@ export interface LedgerTransaction {
 
   // State
   status: 'draft' | 'confirmed';
+  confirmationPending?: boolean;
+  confirmationError?: string;
+  remoteOrderId?: string;
   currency: Currency;
   /** The purchase order the shop recorded when this was confirmed. */
   purchaseOrderId?: string;
@@ -83,7 +88,7 @@ interface LedgerState {
   addLineItem: (transactionId: string, item: Omit<LedgerLineItem, 'id' | 'addedAt'>) => string;
   updateLineItem: (transactionId: string, itemId: string, updates: Partial<LedgerLineItem>) => void;
   removeLineItem: (transactionId: string, itemId: string) => void;
-  updateTransaction: (transactionId: string, updates: Partial<Pick<LedgerTransaction, 'counterpartyName' | 'counterpartyId' | 'currency' | 'status' | 'purchaseOrderId' | 'recordFailed' | 'purchaseOrderSent' | 'shipMode'>>) => void;
+  updateTransaction: (transactionId: string, updates: Partial<Pick<LedgerTransaction, 'counterpartyName' | 'counterpartyId' | 'currency' | 'status' | 'purchaseOrderId' | 'recordFailed' | 'purchaseOrderSent' | 'shipMode' | 'confirmationPending' | 'confirmationError' | 'remoteOrderId'>>) => void;
   addPhoto: (transactionId: string, url: string) => void;
   removePhoto: (transactionId: string, index: number) => void;
   removeTransaction: (transactionId: string) => void;

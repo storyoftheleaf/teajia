@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Minus, Plus, Check, BookOpen, BookmarkPlus, BookmarkCheck } from 'lucide-react';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import type { CompassStatus, TeaCompassEntry, TeaForm } from './types';
+import { acquisitionDraftLine } from './acquisitionPricing';
 import { DEFAULT_GRAMS } from './types';
 import type { Currency } from '../../admin/types';
 import { ledgerLinePrice } from './curatePricing';
@@ -82,22 +83,9 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
     const txId = getOrCreatePurchaseTransaction(vendorName, currency, entry.vendorId);
     const unitBased = entry.category === 'teaware' || isUnitBased(entry.form);
 
-    addLineItem(txId, {
-      name: entry.name || 'Unnamed',
-      chineseName: entry.chineseName,
-      type: entry.type,
-      form: entry.form,
-      year: entry.year,
-      quantityGrams: unitBased ? undefined : quantity,
-      quantityUnits: unitBased ? quantity : undefined,
-      unitWeightGrams: isUnitBased(entry.form) ? (DEFAULT_GRAMS[entry.form!] ?? 100) : undefined,
-      ...ledgerLinePrice(entry.priceAmount, entry.pricePerUnitGrams, unitBased),
-      currency,
-      ...(entry.priceAmount == null ? { unpriced: true as const } : {}),
-      compassEntryId: entry.id,
-    });
+    addLineItem(txId, acquisitionDraftLine(entry, quantity));
 
-    onStatusChange('in_stock');
+    onStatusChange('buying');
 
     setShowQtyPicker(false);
     setJustAdded(true);

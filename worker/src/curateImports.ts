@@ -159,7 +159,7 @@ async function fullBatch(env: ImportEnv, id: string, accountId: string) {
     env.DB.prepare('SELECT * FROM curate_import_items WHERE batch_id = ? AND account_id = ? ORDER BY position, created_at, id').bind(id, accountId).all<Record<string, unknown>>(),
   ]);
   return {
-    batch: { ...batch, analysis_annotations: typedAnalysisAnnotations(batch.analysis_annotations_json) },
+    batch: { ...batch, intake_state:parseJson(batch.intake_state,null), analysis_annotations: typedAnalysisAnnotations(batch.analysis_annotations_json) },
     sources: sources.results.map(sourceRow), groups: groups.results.map(groupRow), items: items.results.map(itemRow),
   };
 }

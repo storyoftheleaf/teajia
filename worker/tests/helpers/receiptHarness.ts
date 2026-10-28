@@ -125,6 +125,13 @@ class ReceiptStatement {
     if (sql.startsWith('update inventory_receipts set state=?')) return updateRow(this.db.receipts, this.sql, this.values);
     if (sql.startsWith('update inventory_receipts set transport_mode=?')) return updateRow(this.db.receipts, this.sql, this.values);
     if (sql.startsWith('update curate_receipt_proposals set')) return updateRow(this.db.proposals, this.sql, this.values);
+    if (sql.startsWith('update products set') && sql.includes('stock_movement_guard = ?') && [6,7].includes(this.values.length)) {
+      const recount=this.values.length===7;
+      const [balance,knownAt,guard,id,account,expected]=recount?[this.values[0],this.values[1],...this.values.slice(3)]:this.values;const row=this.db.products.get(id);
+      const column=sql.startsWith('update products set quantity_units')?'quantity_units':'stock_grams';
+      if(!row||row.account_id!==account||Number(row[column]??0)!==Number(expected))return {success:true,meta:{changes:0}};
+      row[column]=balance;row.stock_known_at=knownAt;if(recount){row.stock_verified_at=this.values[2];row.recheck_stock=0;}row.stock_movement_guard=guard;if(row.status==='Sold Out'&&balance>0){row.status='Active';row.sold_out_at=null;}return {success:true,meta:{changes:1}};
+    }
     if (sql.startsWith('update products set') && sql.includes('coalesce(')) return incrementRow(this.db.products, this.sql, this.values, false);
     if (sql.startsWith('update products set inventory_purpose=') && sql.includes('stock_movement_guard=?')) {
       const row = this.db.products.get(String(this.values[3]));

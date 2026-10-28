@@ -131,7 +131,7 @@ export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
     <button
       role="switch"
       aria-checked={product.isPublic}
-      aria-label="Show in shop"
+      aria-label="List in shop"
       disabled={!product.isPublic && !canPublish}
       title={!product.isPublic && !canPublish ? 'Arrival status must be ready before publication' : undefined}
       onClick={() => { if (product.isPublic || canPublish) onUpdate(product.id, 'isPublic', !product.isPublic); }}
@@ -145,7 +145,7 @@ export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
       >
         {product.isPublic && <Check size={11} strokeWidth={3} />}
       </span>
-      Show in shop
+      List in shop
     </button>
   );
 

@@ -261,6 +261,7 @@ const RecordPaymentForm: React.FC<RecordFormProps> = ({
 };
 
 export interface OrderPaymentsPanelViewProps {
+  readOnly?: boolean;
   invoiceId?: string;
   payment?: InvoicePayment | null;
   rows: InvoicePaymentRecord[];
@@ -278,7 +279,7 @@ export interface OrderPaymentsPanelViewProps {
 
 export const OrderPaymentsPanelView: React.FC<OrderPaymentsPanelViewProps> = ({
   payment, rows, mode, pendingRowId, recording, recordError, invoiceId,
-  onRetry, onRequestConfirm, onReject, onRecord, className = '',
+  onRetry, onRequestConfirm, onReject, onRecord, className = '', readOnly = false,
 }) => {
   const totals = orderPaymentTotals(payment);
   const claims = rows.filter((row) => row.status === 'claimed');
@@ -359,7 +360,7 @@ export const OrderPaymentsPanelView: React.FC<OrderPaymentsPanelViewProps> = ({
                   <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                     <button
                       type="button"
-                      disabled={busy}
+                      disabled={busy || readOnly}
                       onClick={() => onReject(row)}
                       className="tap-target min-h-[44px] text-ui-12 text-tea-text-sec hover:text-tea-text disabled:cursor-not-allowed disabled:opacity-60"
                     >
@@ -367,7 +368,7 @@ export const OrderPaymentsPanelView: React.FC<OrderPaymentsPanelViewProps> = ({
                     </button>
                     <button
                       type="button"
-                      disabled={busy}
+                      disabled={busy || readOnly}
                       onClick={() => onRequestConfirm(row)}
                       className="tap-target min-h-[44px] cta-solid px-4 rounded-xl text-ui-12 font-medium disabled:cursor-not-allowed disabled:opacity-60"
                     >
@@ -415,7 +416,7 @@ export const OrderPaymentsPanelView: React.FC<OrderPaymentsPanelViewProps> = ({
         </p>
       )}
 
-      {mode === 'ready' && (
+      {mode === 'ready' && !readOnly && (
         totals.outstanding > 0 ? (
           <RecordPaymentForm
             invoiceId={invoiceId}
@@ -436,6 +437,7 @@ export const OrderPaymentsPanelView: React.FC<OrderPaymentsPanelViewProps> = ({
 };
 
 export interface OrderPaymentsPanelProps {
+  readOnly?: boolean;
   invoiceId: string;
   invoiceNumber?: string;
   payment?: InvoicePayment | null;
@@ -448,7 +450,7 @@ export interface OrderPaymentsPanelProps {
 }
 
 export const OrderPaymentsPanel: React.FC<OrderPaymentsPanelProps> = ({
-  invoiceId, invoiceNumber, payment, onChanged, className,
+  invoiceId, invoiceNumber, payment, onChanged, className, readOnly,
 }) => {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
@@ -543,6 +545,7 @@ export const OrderPaymentsPanel: React.FC<OrderPaymentsPanelProps> = ({
   return (
     <>
       <OrderPaymentsPanelView
+        readOnly={readOnly}
         invoiceId={invoiceId}
         payment={payment}
         rows={rows}

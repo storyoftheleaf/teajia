@@ -40,7 +40,7 @@ describe('Quick Invoice sales eligibility', () => {
     expect(quickInvoiceStockLabel(suggestions[0].eligibility)).toBe('Mei Lin · 12g available · floor $0.30/g');
   });
 
-  it('defensively limits malformed eligibility responses to local active tea products', () => {
+  it('defensively limits malformed eligibility responses to local active products with compatible physical units', () => {
     const draft = { ...product('draft', 'Draft Tea'), status: 'Draft' as const };
     const archived = { ...product('archived', 'Archived Tea'), status: 'Archived' as const };
     const teaware = { ...product('tray', 'Tea Tray'), type: 'Teaware' as const };
@@ -52,6 +52,20 @@ describe('Quick Invoice sales eligibility', () => {
       [eligible('active'), eligible('draft'), eligible('archived'), eligible('tray'), eligible('misc'), eligible('missing'), eligible('unclassified')],
     );
     expect(suggestions.map(suggestion => suggestion.productId)).toEqual(['active']);
+  });
+
+  it('links eligible counted teaware at its fixed per-piece price',()=>{
+    const tray={...product('tray','Tea Tray'),type:'Teaware' as const,quantityUnits:3,pricePerGramUSD:30,fixedRetailPriceUSD:25};
+    const suggestions=buildEligibleQuickInvoiceSuggestions([tray],[eligible('tray',{quantity_unit:'unit',physical_quantity:3,available_quantity:3,price_floor:20})]);
+    expect(suggestions).toHaveLength(1);
+    expect(suggestions[0]).toMatchObject({productId:'tray',unit:'pcs',price:25});
+    expect(quickInvoiceStockLabel(suggestions[0].eligibility)).toBe('House stock · 3 pieces available · floor $20.00/piece');
+  });
+  it('refuses fractional linked pieces, altered linked units, and aggregate over-available pieces',()=>{
+    const rows=[eligible('tray',{quantity_unit:'unit',available_quantity:3})];
+    expect(validateQuickInvoiceLinkedItems([{name:'Tea Tray',productId:'tray',quantity:1.5,unit:'pcs',price:25}], 'ready',rows)).toContain('whole number of pieces');
+    expect(validateQuickInvoiceLinkedItems([{name:'Tea Tray',productId:'tray',quantity:1,unit:'g',price:25}], 'ready',rows)).toContain('counted in pieces');
+    expect(validateQuickInvoiceLinkedItems([{name:'Tea Tray',productId:'tray',quantity:4,unit:'pcs',price:25}], 'ready',rows)).toBe('Tea Tray has 3 pieces available; this invoice links 4 pieces.');
   });
 
   it('labels location-owned inventory as House stock and never uses physical total', () => {

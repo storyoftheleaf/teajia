@@ -4,6 +4,7 @@ import { X, Check, Minus, Plus } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import type { TeaCompassEntry, TeaForm } from './types';
+import { acquisitionDraftLine } from './acquisitionPricing';
 import { GRAM_PRESETS, DEFAULT_GRAMS } from './types';
 import type { Currency } from '../../admin/types';
 import { ledgerLinePrice } from './curatePricing';
@@ -322,7 +323,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
       const qty = quantities[entry.id] ?? 1;
       const total = getLinePrice(entry, qty);
       const updates: Partial<TeaCompassEntry> = {
-        status: 'in_stock' as const,
+        status: 'buying' as const,
         buyTotal: total,
       };
       if (entry.category === 'teaware' || isUnitBased(entry.form)) {
@@ -346,20 +347,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
       const txId = getOrCreatePurchaseTransaction(entry.vendorName || 'Unknown Vendor', lineCurrency, entry.vendorId);
       const qty = quantities[entry.id] ?? 1;
       const unitBased = entry.category === 'teaware' || isUnitBased(entry.form);
-      addLineItem(txId, {
-        name: entry.name,
-        chineseName: entry.chineseName,
-        type: entry.category === 'teaware' ? 'Teaware' : (entry.type || undefined),
-        form: entry.form,
-        year: entry.year,
-        quantityGrams: unitBased ? undefined : qty,
-        quantityUnits: unitBased ? qty : undefined,
-        unitWeightGrams: unitBased && entry.form ? getDefaultGrams(entry.form) : undefined,
-        ...ledgerLinePrice(entry.priceAmount, entry.pricePerUnitGrams, unitBased),
-        currency: lineCurrency,
-        ...(entry.priceAmount == null ? { unpriced: true as const } : {}),
-        compassEntryId: entry.id,
-      });
+      addLineItem(txId, acquisitionDraftLine(entry, qty));
     }
 
     setConfirmed(true);

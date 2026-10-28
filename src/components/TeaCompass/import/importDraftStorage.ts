@@ -48,3 +48,24 @@ export function clearImportDraft(accountId: string, storage?: Storage) {
   try { (storage ?? localStorage).removeItem(importDraftStorageKey(accountId)); }
   catch { /* Clearing an in-memory draft must not depend on browser storage. */ }
 }
+
+const correctionKey = (accountId: string, batchId: string, itemId: string) => `teajia-curate-correction:${accountId}:${batchId}:${itemId}`;
+
+export function saveImportCorrection(accountId: string, batchId: string, itemId: string, fields: Record<string, string>, storage?: Storage) {
+  if (!accountId) return;
+  try { (storage ?? localStorage).setItem(correctionKey(accountId, batchId, itemId), JSON.stringify(fields)); } catch { /* Keep editing if storage is unavailable. */ }
+}
+
+export function loadImportCorrection(accountId: string, batchId: string, itemId: string, storage?: Storage): Record<string, string> | null {
+  if (!accountId) return null;
+  try {
+    const fields: unknown = JSON.parse((storage ?? localStorage).getItem(correctionKey(accountId, batchId, itemId)) || 'null');
+    return fields && typeof fields === 'object' && !Array.isArray(fields) && Object.values(fields).every(value => typeof value === 'string')
+      ? fields as Record<string, string> : null;
+  } catch { return null; }
+}
+
+export function clearImportCorrection(accountId: string, batchId: string, itemId: string, storage?: Storage) {
+  if (!accountId) return;
+  try { (storage ?? localStorage).removeItem(correctionKey(accountId, batchId, itemId)); } catch { /* Do not block a successful save. */ }
+}

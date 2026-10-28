@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { OrderRefund } from './OrderRefund';
+import { refundProgress } from '../../lib/orderTrackingDomain';
 import { api, AUTH_TOKEN_CHANGED_EVENT, isTokenScopedToAccount } from '../../lib/api';
 import type { InvoiceWithItems, Product } from '../types';
 import { openWhatsAppStatus, buildQuickInvoiceDraftParam } from '../../lib/whatsapp';
@@ -85,7 +87,7 @@ function stockLabel(order: Pick<DbOrder, 'inventory_deducted' | 'status' | 'stoc
 }
 
 function orderStatusLabel(order: DbOrder): string {
-  if (order.status === 'Void' && order.refund_required) return 'Cancelled, refund needed';
+  if (order.status === 'Void') return refundProgress(order) || 'Cancelled';
   if (order.status === 'Draft' && order.source_inquiry_id) return 'Pending request';
   if (canShipNoChargeOrder(order)) return 'No charge, ready to ship';
   if (order.status === 'Pending' && order.payment_status === 'paid' && order.stock_exception) return 'Paid, stock needs attention';
@@ -134,6 +136,7 @@ interface DbOrderItem {
   product_name?: string;
   custom_name?: string | null;
   quantity: number;
+  quantity_unit?: 'g' | 'unit';
   price_at_sale: number;
   product?: Pick<Product, 'givenName' | 'type'>;
 }
@@ -165,7 +168,7 @@ export const OrdersView = () => {
   const [confirmState, setConfirmState] = useState<{
     type: 'ship' | 'no-charge-ship' | 'void' | 'delete' | 'accept-unpriced';
     invoice: DbOrder;
-    stockImpact?: { name: string; current: number; after: number }[];
+    stockImpact?: { name: string; current: number; after: number; unit: string }[];
     /** Lines still at no price, named, when the server refused to send. */
     unpricedLines?: string[];
   } | null>(null);
@@ -333,8 +336,9 @@ export const OrdersView = () => {
       }
       const stockImpact = Array.from(quantities, ([productId, line]) => {
         const product = products.find(product => product.id === productId);
-        const current = product?.stockGrams || 0;
-        return { name: line.name, current, after: current - line.quantity };
+        const unit = product?.type === 'Teaware' ? ' pieces' : 'g';
+        const current = Number(product?.type === 'Teaware' ? product.quantityUnits : product?.stockGrams) || 0;
+        return { name: line.name, current, after: current - line.quantity, unit };
       });
       setConfirmState({ type: 'no-charge-ship', invoice, stockImpact });
     } catch {
@@ -668,7 +672,7 @@ export const OrdersView = () => {
                             icon={<Eye size={14} />}
                             title="View Details"
                           />
-                          {!isVoid && (
+                          {!isVoid && !isFilled && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -783,12 +787,12 @@ export const OrdersView = () => {
                       )}
                     </div>
 
-                    <OrderPayLink
+                    {order.status !== 'Void' && order.status !== 'Draft' && <OrderPayLink
                       payment={order.payment}
                       invoiceNumber={order.invoice_number}
                       layout="inline"
                       className="mt-2"
-                    />
+                    />}
 
                     {/* Action gutter */}
                     <div className="flex items-center gap-2 mt-3 pt-3 border-t border-tea-border">
@@ -815,6 +819,7 @@ export const OrdersView = () => {
                         canEdit={order.status === 'Draft' || isPending}
                         canSplit={isPending && order.payment_status === 'unpaid' && !order.inventory_deducted}
                         isVoid={isVoid}
+                        canCancel={order.status !== 'Filled'}
                         onEdit={() => setEditInvoice(order)}
                         onSplit={() => setSplitInvoice(order)}
                         onVoid={() => setConfirmState({ type: 'void', invoice: order })}
@@ -868,14 +873,14 @@ export const OrdersView = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-y border-tea-border py-4 mb-5">
                   <OrderShipping key={viewingInvoice.id} order={viewingInvoice} onChanged={() => refreshViewedInvoice(true)} />
                   <div className="min-w-0">
-                <OrderPayLink
+                {viewingInvoice.status !== 'Void' && viewingInvoice.status !== 'Draft' && <OrderPayLink
                   payment={viewingInvoice.payment}
                   invoiceNumber={viewingInvoice.invoice_number}
                   customerName={viewingInvoice.customer_name}
                   customerWhatsapp={viewingInvoice.customer_whatsapp ?? null}
                   layout="block"
                   className="mb-6"
-                />
+                />}
 
                 {notificationLabel(viewingInvoice) && <p role="status" className="mb-6 rounded-md border border-tea-border bg-tea-surface p-3 text-ui-13 text-tea-text-sec">{notificationLabel(viewingInvoice)}</p>}
 
@@ -885,12 +890,20 @@ export const OrdersView = () => {
                     inside an edit that has not been saved, and a Filled order
                     never opens it at all. */}
                 <OrderPaymentsPanel
+                  readOnly={viewingInvoice.status === 'Void' || viewingInvoice.status === 'Draft'}
                   invoiceId={viewingInvoice.id}
                   invoiceNumber={viewingInvoice.invoice_number}
                   payment={viewingInvoice.payment}
                   onChanged={() => { void refreshViewedInvoice(); }}
                   className="mb-0"
                 />
+                {viewingInvoice.status === 'Void' && (viewingInvoice.refund_required || Number(viewingInvoice.refunded_usd) > 0) && <OrderRefund
+                  key={`${activeAccountId}:${viewingInvoice.id}:${viewingInvoice.refunded_usd || 0}`}
+                  invoiceId={viewingInvoice.id}
+                  refunded={Number(viewingInvoice.refunded_usd) || 0}
+                  due={Number(viewingInvoice.refund_due_usd ?? Math.max(0, Number(viewingInvoice.payment?.paid_usd || 0) - Number(viewingInvoice.refunded_usd || 0)))}
+                  onChanged={() => { void refreshViewedInvoice(); }}
+                />}
                   </div>
                 </div>
 
@@ -999,7 +1012,7 @@ export const OrdersView = () => {
                                     )}
                                 </div>
                                 <div className="text-right ml-4 shrink-0">
-                                    <div className="text-tea-text num">{item.quantity}g/u</div>
+                                    <div className="text-tea-text num">{item.quantity}{item.quantity_unit === 'unit' || (!item.quantity_unit && item.product?.type === 'Teaware') ? ' pieces' : 'g'}</div>
                                     <div className="text-tea-text-sec text-xs num">@ {item.price_at_sale} USD</div>
                                 </div>
                               </div>
@@ -1144,7 +1157,7 @@ export const OrdersView = () => {
         description={
           confirmState?.type === 'ship' ? 'This marks the paid order shipped. Stock was deducted when payment was confirmed.'
           : confirmState?.type === 'no-charge-ship' ? 'Review the stock impact below. Shipping this no-charge order deducts stock once and records the shipment.'
-          : confirmState?.type === 'void' ? (confirmState.invoice.payment_status === 'paid' || confirmState.invoice.payment_status === 'partial' ? 'This cancels the order and flags a refund needed. Confirmed payments remain in the record until you handle the refund.' : 'This cancels the unpaid order and releases its stock hold.')
+          : confirmState?.type === 'void' ? (confirmState.invoice.payment_status === 'paid' || confirmState.invoice.payment_status === 'partial' ? 'This cancels the unshipped order, restores deducted stock and records the refund due. Confirmed payments stay in the history.' : 'This cancels the unpaid order and releases its stock hold.')
           : confirmState?.type === 'accept-unpriced'
             ? 'The customer will be asked for nothing for these. Price them first if that is not what you meant.'
           : 'This will soft-delete this voided invoice. It can be recovered later.'
@@ -1175,7 +1188,7 @@ export const OrdersView = () => {
 
         {confirmState?.type === 'no-charge-ship' && confirmState.stockImpact && <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
           <h4 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">Stock impact</h4>
-          <div className="space-y-2">{confirmState.stockImpact.map((item, index) => <div key={index} className="flex justify-between gap-3 text-ui-12"><span className="text-tea-text truncate">{item.name}</span><span className="num text-tea-text-sec shrink-0">{item.current}g → {item.after}g</span></div>)}</div>
+          <div className="space-y-2">{confirmState.stockImpact.map((item, index) => <div key={index} className="flex justify-between gap-3 text-ui-12"><span className="text-tea-text truncate">{item.name}</span><span className="num text-tea-text-sec shrink-0">{item.current}{item.unit} → {item.after}{item.unit}</span></div>)}</div>
           {confirmState.stockImpact.some(item => item.after < 0) && <p className="mt-3 text-ui-12 text-tea-text-sec">Some tea is short. The server will keep the order unshipped until stock is available.</p>}
         </div>}
 
@@ -1223,11 +1236,12 @@ const MobileActions: React.FC<{
   canEdit: boolean;
   canSplit: boolean;
   isVoid: boolean;
+  canCancel: boolean;
   onEdit: () => void;
   onSplit: () => void;
   onVoid: () => void;
   onDelete: () => void;
-}> = ({ canEdit, canSplit, isVoid, onEdit, onSplit, onVoid, onDelete }) => {
+}> = ({ canEdit, canSplit, isVoid, canCancel, onEdit, onSplit, onVoid, onDelete }) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -1253,7 +1267,7 @@ const MobileActions: React.FC<{
                 </button>}
               </>
             )}
-            {!isVoid && (
+            {!isVoid && canCancel && (
               <button onClick={() => { setOpen(false); onVoid(); }} className="w-full text-left px-3 py-2 text-xs hover:bg-tea-elevated/50 flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors">
                 <XCircle size={12} /> Void
               </button>
