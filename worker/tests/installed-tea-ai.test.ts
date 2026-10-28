@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { installedTeaJson, INSTALLED_TEA_MODEL } from '../src/curateInstalledAi';
 import { fileSaid } from '../src/curateSaidFiling';
-import { proposeTeaDescription } from '../src/curateTeaDescription';
+import { proposeTeaDescription, teaDescriptionSchema } from '../src/curateTeaDescription';
 const passage = 'The supplier describes this Shuixian as over thirty years old.';
 const input = { facts: {}, sources: [{ id: 'talk-1', title: 'Shop conversation', text: passage }] };
 describe('tea previews use the existing installed AI binding without a Groq key', () => {
@@ -16,6 +16,7 @@ describe('tea previews use the existing installed AI binding without a Groq key'
   const result = await proposeTeaDescription({ AI: { run } }, input);
   expect(result.citations).toEqual([{ sourceId: 'talk-1', quote: passage }]);
   expect(result.description).toContain('described by its supplier');
+  expect(run).toHaveBeenCalledWith(INSTALLED_TEA_MODEL, expect.objectContaining({ response_format: { type: 'json_schema', json_schema: teaDescriptionSchema(['talk-1']) } }));
  });
  it('rejects fabricated citations from the installed provider too', async () => {
   const run = vi.fn().mockResolvedValue({ response: JSON.stringify({ paragraphs: [{ text: 'Invented.', citations: [{ sourceId: 'talk-1', quote: 'invented evidence' }] }] }) });

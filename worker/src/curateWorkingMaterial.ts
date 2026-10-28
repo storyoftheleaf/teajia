@@ -56,14 +56,29 @@ const instructions = [
   'Use the listed values exactly. Return {"notes":[]} when this chunk contains no relevant material. At most 24 notes per chunk. Each quotation must support its note, not just occur nearby.',
 ].join('\n');
 
+export const workingMaterialSchema: Record<string, unknown> = {
+  type: 'object', additionalProperties: false, required: ['notes'],
+  properties: { notes: { type: 'array', items: {
+    type: 'object', additionalProperties: false,
+    required: ['kind', 'text', 'quote', 'attribution', 'relevance'],
+    properties: {
+      kind: { type: 'string', enum: kinds }, text: { type: 'string' }, quote: { type: 'string' },
+      attribution: { type: 'string', enum: attributions }, relevance: { type: 'string', enum: relevances },
+    },
+  } } },
+};
+
 async function analyze(env: WorkingMaterialEnvironment, userContent: string): Promise<unknown> {
   const messages = [{ role: 'system', content: instructions }, { role: 'user', content: userContent }];
-  if (typeof env.AI?.run === 'function') return installedTeaJson(env, messages, 2600);
+  if (typeof env.AI?.run === 'function') return installedTeaJson(env, messages, 2600, workingMaterialSchema);
   if (!env.GROQ_API_KEY?.trim()) throw new WorkingMaterialError('The working-material AI is not configured on this server.', 'working_material_provider_unavailable', 503);
+  const model = env.CURATE_IMPORT_FALLBACK_MODEL || 'openai/gpt-oss-20b';
+  const supportsStrictSchema = /^openai\/gpt-oss-(20b|120b)$/.test(model);
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST', signal: AbortSignal.timeout(20_000),
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${env.GROQ_API_KEY}` },
-    body: JSON.stringify({ model: env.CURATE_IMPORT_FALLBACK_MODEL || 'openai/gpt-oss-20b', messages, temperature: 0, max_completion_tokens: 2600, response_format: { type: 'json_object' } }),
+    body: JSON.stringify({ model, messages, temperature: 0, max_completion_tokens: 2600,
+      response_format: supportsStrictSchema ? { type: 'json_schema', json_schema: { name: 'tea_working_material', strict: true, schema: workingMaterialSchema } } : { type: 'json_object' } }),
   });
   if (!response.ok) throw new WorkingMaterialError('Working-material analysis did not answer. Try again.', 'working_material_provider_failed', 502);
   const body = await response.json() as any;

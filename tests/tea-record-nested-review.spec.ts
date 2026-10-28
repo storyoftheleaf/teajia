@@ -33,6 +33,7 @@ for (const [screen, width, height] of [['desktop', 1360, 900], ['phone', 390, 84
     await expect(search).toBeFocused();
     await expect(search).toHaveValue('Shuixian');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await page.screenshot({ path: `/private/tmp/tea-review-controls-${screen}.png`, animations: 'disabled' });
     await workspace.getByRole('button', { name: 'Discard changes', exact: true }).click();
     await expect(workspace).not.toBeVisible();
     await expect(details.getByRole('tab', { name: 'Notes', exact: true })).toBeVisible();

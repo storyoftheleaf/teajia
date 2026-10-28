@@ -1,3 +1,7 @@
+## 2026-10-28: Require structured AI replies for tea working material and descriptions
+
+The installed tea model could return malformed object keys in generic JSON mode, causing full-transcript reviews and description proposals to fail even after successful inference. Both tasks now provide explicit response schemas, including allowed working-note kinds, attribution/relevance and description source identities. Recognized Groq GPT-OSS models use their supported strict schema format; other configured models keep their existing JSON format. Exact source quotation and scope checks remain unchanged, and proposals still save nothing. Verified against the same installed model with invented description and 12,000-character transcript inputs, plus focused validation tests.
+
 ## 2026-10-28: Review an AR transcript in its existing tea before linking
 
 Fixed blocked pointer and keyboard controls when Build this tea opens from the Library Tea details drawer. The review now shares the drawer’s dialog-layer and focus system. The AR transcript receiver offers Review tea workspace for each existing tea: the complete original is staged with Working material and Public description without saving a source link, tea field or description. Discard returns to the receiver. Verified on desktop and 390px phone layouts with no source/tea writes.

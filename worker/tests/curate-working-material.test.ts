@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { transcriptReviewChunks, workingMaterialForTeaRecord } from '../src/curateWorkingMaterial';
+import { transcriptReviewChunks, workingMaterialForTeaRecord, workingMaterialSchema } from '../src/curateWorkingMaterial';
 import { SqliteD1, seedIdentity } from './helpers/sqliteD1';
 
 let db: SqliteD1;
@@ -43,6 +43,7 @@ describe('complete transcript working material', () => {
       expect(JSON.stringify(payload)).not.toContain('Unreviewed client claim');
     }
     expect(changes()).toBe(before);
+    expect(run).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ response_format: { type: 'json_schema', json_schema: workingMaterialSchema } }));
   });
   it('covers every character with bounded overlapping chunks, including surrogate boundaries', () => {
     const text = `${'x'.repeat(11999)}🍵${'y'.repeat(24000)}`;
@@ -64,6 +65,17 @@ describe('complete transcript working material', () => {
     const result = await workingMaterialForTeaRecord(env, scope, { entryId: 'shuixian', sources: [proof] });
     expect(result.notes).toHaveLength(1);
     expect(result.notes[0].start).toBe(11550);
+  });
+  it.each(['openai/gpt-oss-20b', 'openai/gpt-oss-120b', 'configured-model'])('keeps the fallback provider compatible with %s without writing evidence', async model => {
+    const proof = source(claim);
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify({ notes: [note()] }) } }] }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const before = changes();
+    const result = await workingMaterialForTeaRecord({ DB: db as unknown as D1Database, GROQ_API_KEY: 'test', CURATE_IMPORT_FALLBACK_MODEL: model }, scope, { entryId: 'shuixian', sources: [proof] });
+    expect(result.notes[0].quote).toBe(claim);
+    const request = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(request.response_format).toEqual(model === 'configured-model' ? { type: 'json_object' } : { type: 'json_schema', json_schema: { name: 'tea_working_material', strict: true, schema: workingMaterialSchema } });
+    expect(changes()).toBe(before);
   });
   it('rejects invented quotations instead of silently returning incomplete coverage', async () => {
     const proof = source(claim);
