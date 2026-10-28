@@ -6,7 +6,7 @@ const token = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({ sub: 'admin', 
 test('Stock reference cards resize and persist naming and photos, and continue an existing tasting', async ({ page }) => {
   test.setTimeout(120_000);
   const product = {
-    id: 'tea-reference', product_name: 'Cloud Oolong', given_name: 'Cloud Oolong', type: 'Oolong', form: 'Loose Leaf',
+    id: 'tea-reference', product_name: 'Cloud Oolong', given_name: 'Cloud Oolong', type: 'Shou', form: 'Loose Leaf',
     origin_country: 'Taiwan', origin_region: 'Alishan', year: 2004, stock_grams: 100,
     is_sample: 1, low_stock_threshold: 200, cost_amount: 20, cost_currency: 'USD', quantity_purchased: 100,
     retail_price_per_gram_usd: .4, cost_per_gram_usd: .1, shipping_rate_per_kg: null,
@@ -143,6 +143,14 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await expect(formSheet).toHaveCount(0);
   await form.click();
   await expect(formSheet.locator('details')).toHaveCount(0);
+  await expect(formSheet.getByRole('button', { name: 'Shou Puer', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await formSheet.getByRole('button', { name: 'Shou Puer', exact: true }).click();
+  await formSheet.getByRole('button', { name: 'Save form & pricing', exact: true }).click();
+  await expect(formSheet).toHaveCount(0);
+  expect(writes).toContainEqual({ type: 'Shou Puer' });
+  await expect(row.getByRole('button', { name: 'Edit type for Cloud Oolong', exact: true })).toHaveText('Shou Puer');
+  failPricing = true;
+  await form.click();
   await formSheet.getByRole('button', { name: 'Red', exact: true }).click();
   await formSheet.getByRole('button', { name: 'Cake', exact: true }).click();
   await formSheet.getByLabel('One piece / pack weighs · g', { exact: true }).fill('357');

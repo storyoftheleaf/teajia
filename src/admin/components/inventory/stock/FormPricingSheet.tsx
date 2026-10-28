@@ -43,7 +43,7 @@ export function FormPricingSheet({ product, onSave, onClose }: { product: Produc
       if (cost !== (product.costAmount == null ? '' : String(product.costAmount)) && (paid === null || paid < 0)) throw new Error('Enter the purchase cost. Zero means it was free.');
       if (purchaseGrams !== (product.quantityPurchased > 0 ? String(product.quantityPurchased) : '') && (basisGrams === null || basisGrams <= 0)) throw new Error('Enter the grams that the purchase cost covered, greater than zero.');
       const changes: FormPricingChanges = {};
-      if (type !== stockTypeName(product.type)) changes.type = type;
+      if (type !== product.type) changes.type = type;
       if (form !== initialForm) changes.form = form as Product['form'];
       if (pieceWeight !== (product.pieceWeightG ?? null)) changes.pieceWeightG = pieceWeight;
       if (paid !== (product.costAmount ?? null)) changes.costAmount = paid!;
