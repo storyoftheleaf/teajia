@@ -6616,3 +6616,12 @@ body.cart-panel-open .commerce-dock {
 /* In type groups, use the repeated type slot for the tea's source. */
 .stock-view .stock-subtitle>.stock-source-label { max-width:130px; font-size:11px; }
 .stock-view .stock-record .stock-subtitle>.stock-source-label>span { color:var(--tea-text-dim)!important; }
+
+/* Stock identity: original and given names share one compact heading. */
+.stock-view .stock-record[data-card-study="2"] .stock-title-line { gap:6px; min-height:42px; }
+.stock-view .stock-record[data-card-study="2"] .stock-title>button,
+.stock-view .stock-record[data-card-study="2"] .stock-title>input { font-family:'Lora',Georgia,serif!important; font-size:16px!important; line-height:1.3!important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.stock-view .stock-title-line>.stock-given-name { flex:0 1 auto; max-width:35%; min-width:0; min-height:44px; border:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:right; font-size:12px; color:var(--tea-text-dim); }
+.stock-view .stock-record[data-card-study="2"] .stock-more-action { flex-basis:28px; width:28px; justify-content:flex-end; color:var(--tea-text-dim); }
+.stock-view .stock-subtitle>.stock-source-label { grid-column:1; grid-row:1; min-width:0; max-width:none; width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border:0; font-size:11px; }
+.stock-view .stock-subtitle>.stock-source-label>span { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

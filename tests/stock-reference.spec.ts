@@ -208,8 +208,12 @@ test('Stock reference cards resize and persist naming and photos, and continue a
     await row.locator('.stock-given-name').hover();
     expect((await row.locator('.stock-record').boundingBox())!.height).toBeLessThan(145);
     const nameBounds = await row.locator('.stock-given-name').boundingBox();
-    const formBounds = await row.locator('.stock-form-edit').boundingBox();
-    expect(nameBounds!.x + nameBounds!.width).toBeLessThanOrEqual(formBounds!.x);
+    const titleBounds = (await row.locator('.stock-title').boundingBox())!;
+    const moreBounds = (await row.locator('.stock-more-action').boundingBox())!;
+    const sourceBounds = (await row.locator('.stock-source-label').boundingBox())!;
+    expect(titleBounds.x + titleBounds.width).toBeLessThanOrEqual(nameBounds!.x);
+    expect(nameBounds!.x + nameBounds!.width).toBeLessThanOrEqual(moreBounds.x);
+    expect(sourceBounds.y).toBeGreaterThanOrEqual(nameBounds!.y + nameBounds!.height);
     await page.screenshot({ path: test.info().outputPath(`stock-slim-references-${width}.png`) });
   }
   await page.setViewportSize({ width: 390, height: 844 });
