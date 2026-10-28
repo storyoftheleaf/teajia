@@ -1,6 +1,10 @@
 ## 2026-10-28: Attach original passages to full-transcript working notes
 
-The full-transcript model now selects indexed original passages instead of retyping quotations. Each chosen ID resolves to its exact source text and UTF-16 offsets, including repeated identical remarks; unknown IDs fail the review. Lossless passage spans preserve every character/newline and bound long lines without splitting surrogate pairs. Working-material inference allows up to40seconds per call within the existing full-review deadline; other AI calls keep their20second limit.44 focused tests and Worker typecheck pass. Source/account/hash guards and explicit acceptance remain unchanged.
+The full-transcript model now selects indexed original passages instead of retyping quotations. Each chosen ID resolves to its exact source text and UTF-16 offsets, including repeated identical remarks; unknown IDs fail the review. Lossless passage spans preserve every character/newline and bound long lines without splitting surrogate pairs. Working-material inference allows up to 40 seconds per call within the existing full-review deadline; other AI calls keep their 20-second limit. 44 focused tests and Worker typecheck pass. Source/account/hash guards and explicit acceptance remain unchanged.
+
+## 2026-10-28: Agent-led invoices, arrivals and purchase tracking
+
+Invoice finalization and Curate ordering create connected purchases and expected receipts automatically. Agents can record partial or complete arrivals through MCP; repeat requests do not add stock twice, and Stock, arrival history and purchase status stay synchronized. Purchases combines incoming tracking with compact supplier rows, Coming/Received/Needs attention filters, read-only invoice evidence and secondary manual controls. Unfinished invoices and historical records needing evidence remain visible for review. Stock Incoming opens the same tracking screen. No new migration is required.
 
 ## 2026-10-28: Require structured AI replies for tea working material and descriptions
 

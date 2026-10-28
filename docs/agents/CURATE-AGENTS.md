@@ -3,7 +3,7 @@
 How Claude, ChatGPT, Hermes and GrokBot help Adrian source tea through Curate,
 and land everything in the same place the app does.
 
-Updated 2026-10-08. The tools are in `worker/src/mcpTools/curateIntake.ts`; the
+Updated 2026-10-28. The tools are in `worker/src/mcpTools/curateIntake.ts`; the
 tests that prove where each one writes are in
 `worker/tests/mcp-curate-intake.test.ts`.
 
@@ -16,10 +16,13 @@ tests that prove where each one writes are in
    on a website go to his suggestions list (`curate_suggest_teas`) and wait for
    his pick. Teas he tells you about go straight in (`curate_add_tea`) after he
    says yes to your read-back.
-3. **Read back, then confirm.** Every tool that changes a tea or a vendor answers
-   first with a preview and a `confirmation_token`. Read the preview to Adrian in
-   plain words. Only when he says yes, call the same tool again with
-   `confirm: <token>` (corrections and undo use `confirmation_token` instead). A token lasts 5 minutes and works once.
+3. **Preview the exact authorized change, then confirm.** Mutating tools return a
+   preview and a `confirmation_token`. Check it against Adrian’s instruction, then
+   call the same tool with `confirm: <token>` (corrections and undo use
+   `confirmation_token`). His explicit instruction to file an invoice or record
+   a stated arrival already authorizes that operation; do not make him repeat it
+   in the app or ask for another yes. Ask only about missing facts or a change
+   outside that instruction. Tokens expire and work once.
 4. **A price is an amount, a currency and a unit, or it is not a price.** "Twelve
    hundred a cake" is `{amount: 1200, currency: "Yuan", per: "piece"}`. If he did
    not say the currency, work it out from what he did say (bought in Hong Kong,
@@ -82,9 +85,10 @@ piece; the shipping cost the first time a route is used.
 `quantity: {amount: 1, unit: "kg"}`. Write the vendor message in their language
 (Chinese, with English beneath, for a Chinese-speaking shop) as `message`. Add
 the shared legs the route uses (`shared_legs`). The preview shows the cost
-landed in Bali. After his yes, the order waits on the Purchase Orders page with
-the message to copy, and the tea waits as an arrival he approves into stock
-when it lands.
+landed in Bali. Confirmation creates a linked purchase and expected receipt,
+with zero physical stock. The return includes `purchase_order_id`, `receipt_id`
+and receipt line IDs. Use `record_arrival` when the goods physically arrive;
+there is no separate delivery setup step and no second arrival proposal.
 
 **When he says what shipping cost.** "It cost HK$450 to send 3 kg from Yee On to
 Guangzhou" is `curate_record_freight` for that vendor and leg. "The boat to Bali
@@ -96,6 +100,54 @@ uses the shop's freight rate.
 **Import and export contacts.** A forwarder, a shipping agent or the distributor's
 warehouse is `curate_save_vendor` with `role: "freight"` or `role: "warehouse"`.
 They stay private and out of the vendor list.
+
+## Agent-led invoices and arrivals
+
+The Purchases screen is for tracking and exceptions. It reads the same records
+as `list_purchases` and `get_purchase`; it is not a manual task list Adrian must
+complete after the agent has worked.
+
+1. **Invoice:** `intake_start`, attach the source with `intake_add_source`, and
+   analyze/read/update the import using the current `tools/list` schemas. When
+   reconstructing a source the agent has read, `intake_add_items` accepts a batch
+   of explicit tea/teaware lines, costs, currencies, quantities and disposition.
+   Resolve the supplier and ambiguous product matches before finalizing. Keep
+   the original invoice attached. Do not create a separate `curate_order` for
+   an invoice already imported.
+2. **Finalize:** preview and confirm `intake_finalize`. Each stock-bearing vendor
+   group gets one linked purchase and inventory receipt. Ordered/in-transit goods
+   stay off the shelf. `received` is only for goods Adrian says are already here.
+   New holdings remain private Drafts; receiving does not publish them.
+3. **Arrival:** read `get_purchase` with the returned purchase or receipt ID.
+   Call `record_arrival` with `receipt_id`, a stable `idempotency_key`, and
+   `lines: [{line_id, quantity}]`. Quantities are this arrival, not cumulative
+   totals. Tea uses grams; teaware uses whole pieces. If he says everything has
+   arrived, use the recorded remainder. If the amount is unclear, ask rather
+   than assuming the whole invoice arrived.
+4. **Retry safely:** keep the same key and exact quantities after an interrupted
+   call. Bulk arrivals report which lines committed. Replaying does not add
+   those lines twice. The receipt, stock ledger and purchase status update
+   together per line; partial delivery remains a normal Coming state.
+5. **Tracking/changes:** `update_delivery_tracking` sets ETA, transport and
+   tracking without receiving stock. `cancel_delivery_remainder` cancels only
+   explicitly abandoned outstanding quantity. Both preview/confirm. Read back
+   `get_purchase` after a change to verify quantities, history and attention.
+
+Older standalone arrival proposals still use `curate_list_arrivals` and
+`curate_approve_arrival` / `curate_reject_arrival`. Do not process a proposal and
+an inventory receipt as two deliveries of the same goods. Historical stock
+that is already on the shelf must link to its original receipt/ledger evidence,
+not be received again. The tracking view keeps unresolved records visible.
+
+Unfinished invoice drafts also remain in Needs attention until completed or
+abandoned. Source invoice evidence opens read-only; Review invoice resumes an
+unfinished draft.
+
+The default screen shows compact supplier summaries, Coming/Received and Needs
+attention filters, linked Stock/invoice records and arrival history. Manual
+receiving and tracking corrections remain under Make a change. Do not overwrite
+historical arrival totals to correct shelf stock; use the stock adjustment
+operation with a reason so the ledger survives.
 
 ## Connecting
 
@@ -151,7 +203,7 @@ and so on. The Hermes skill for this is in the i64os repo at
 | `curate_todo` | Add, edit, complete or delete a reminder on a tea or vendor | preview, confirm |
 | `curate_get_vendor` | A vendor's card, what the shop knows about how they work, shipping cost per leg, their teas, orders and to-dos | read |
 | `curate_record_freight` | A shipping cost Adrian reports, per vendor and leg (or shared) | preview, confirm |
-| `curate_order` | An order to a vendor: the message to copy, the landed cost, an arrival to approve | preview, confirm |
+| `curate_order` | A vendor purchase with its expected receipt, source identities and landed cost | preview, confirm |
 | `intake_add_items` | Build an import draft by hand when analysis could not read it: teas plus the vendor group they belong to | preview, confirm |
 | `curate_reject_arrival` | A pending arrival that should not be there: a duplicate, or an order that is not coming. Never touches stock | preview, confirm |
 | `curate_set_product_vendor` | The supplier line shown on shelf products (up to 50 at once), from a vendor card's English name or text you give. Chinese is refused | preview, confirm |
