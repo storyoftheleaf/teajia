@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { refreshCommerceQueries } from '../../../lib/refreshCommerce';
 import { ArrowLeft, Loader2, PackageCheck } from 'lucide-react';
 import { api, ApiError } from '../../../lib/api';
 import { useAppStore } from '../../../lib/store';
@@ -26,7 +28,8 @@ function validReceiveQuantity(quantity: number, remaining: number, unit: string)
     && (unit !== 'unit' || Number.isInteger(quantity));
 }
 
-export function IncomingReceiptsPanel({ onClose, receiptId }: { onClose: () => void; receiptId?: string | null }) {
+export function IncomingReceiptsPanel({ onClose, receiptId, backLabel = 'Back to inventory' }: { onClose: () => void; receiptId?: string | null; backLabel?: string }) {
+  const queryClient = useQueryClient();
   const accountId = useAppStore(state => state.activeAccountId);
   const pendingKey = `teajia:pending-receive:${accountId || 'no-account'}`;
   const [receipts, setReceipts] = useState<InventoryReceipt[]>([]);
@@ -116,6 +119,7 @@ export function IncomingReceiptsPanel({ onClose, receiptId }: { onClose: () => v
     setWorking(key); setError(null);
     try {
       await action();
+      await refreshCommerceQueries(queryClient, accountId);
       if (!isCurrent()) return;
       setStale(true);
       if (!await load() && isCurrent()) setError('The change was saved, but the current receipt could not be refreshed. Retry the refresh before changing stock again.');
@@ -147,6 +151,7 @@ export function IncomingReceiptsPanel({ onClose, receiptId }: { onClose: () => v
     setError(null);
     try {
       await api.inventoryReceipts.receive(intent.lineId, intent.quantity, intent.key);
+      await refreshCommerceQueries(queryClient, accountId);
       if (!isCurrent()) return;
       rememberReceive({ ...intent, confirmed: true }, scopeKey, scopeEpoch);
       setStale(true);
@@ -175,7 +180,7 @@ export function IncomingReceiptsPanel({ onClose, receiptId }: { onClose: () => v
   return <section className="flex-1 min-h-0 overflow-auto pb-nav-gap bg-tea-bg" aria-label={title}>
     <div className="sticky top-0 z-10 bg-tea-bg border-b border-tea-border px-4 py-3 flex items-center gap-3">
       <div className="flex items-center gap-2 min-w-0">
-        <button className="tap-target text-tea-text-sec hover:text-tea-text" onClick={onClose} aria-label="Back to inventory"><ArrowLeft size={20}/></button>
+        <button className="tap-target text-tea-text-sec hover:text-tea-text" onClick={onClose} aria-label={backLabel}><ArrowLeft size={20}/></button>
         <div><h2 className="font-display text-ui-20 text-tea-text">{title}</h2><p className="text-ui-12 text-tea-text-sec">{receiptId ? 'The finalized vendor receipt and its inventory movements.' : 'Expected stock stays separate from current on-hand stock until it arrives.'}</p></div>
       </div>
     </div>

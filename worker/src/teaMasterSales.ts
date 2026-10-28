@@ -110,6 +110,7 @@ export interface InvoiceSaleLineInput {
   custom_name?: string | null;
   quantity: number;
   price_at_sale: number;
+  quantity_unit?: 'g'|'unit';
 }
 
 export interface AuthorizedInvoiceLine extends InvoiceSaleLineInput {
@@ -171,9 +172,11 @@ export async function authorizeInvoiceLines(env: { DB: D1Database }, input: {
       throw new SalesInvariantError(503, 'sales_authorization_unavailable');
     }
     if (!product) throw new SalesInvariantError(404, 'product_not_found', { product_id: line.product_id });
-    if (product.status !== 'Active' || !isTeaType(String(product.type ?? ''))) {
+    if (product.status !== 'Active' || (!isTeaType(String(product.type ?? '')) && product.type !== 'Teaware')) {
       throw new SalesInvariantError(400, 'product_not_sale_eligible', { product_id: line.product_id });
     }
+    const quantityUnit=product.type==='Teaware'?'unit':'g';
+    if((line.quantity_unit&&line.quantity_unit!==quantityUnit)||(quantityUnit==='unit'&&!Number.isInteger(quantity)))throw new SalesInvariantError(409,'sale_unit_mismatch');
     const stockOwnerUserId = product.owner_user_id == null ? null : String(product.owner_user_id);
     let grantRow: Record<string, unknown> | null = null;
     if (input.actorRole !== 'owner' && stockOwnerUserId && stockOwnerUserId !== input.actorUserId) {
@@ -202,7 +205,7 @@ export async function authorizeInvoiceLines(env: { DB: D1Database }, input: {
       if (!validation.ok) throw new SalesInvariantError(400, validation.reason, { product_id: line.product_id });
     }
     authorized.push({
-      ...line, product_id: line.product_id, stock_owner_user_id: stockOwnerUserId,
+      ...line, quantity_unit:quantityUnit, product_id: line.product_id, stock_owner_user_id: stockOwnerUserId,
       sales_grant_id: grant?.id ?? null,
       owner_share_type: grantRow?.owner_share_type === 'fixed' ? 'fixed' : 'percent',
       owner_share_value: grantRow == null ? 100 : Number(grantRow.owner_share_value),
@@ -301,7 +304,7 @@ export function buildInvoiceReservationStatements(env: { DB: D1Database }, input
     statements.push(env.DB.prepare(
       `INSERT INTO stock_holds (id, account_id, invoice_id, product_id, held_grams, expires_at)
        SELECT ?, ?, ?, ?,
-         CASE WHEN p.stock_grams - COALESCE((
+         CASE WHEN (CASE WHEN p.type='Teaware' THEN COALESCE(p.quantity_units,0) ELSE COALESCE(p.stock_grams,0) END) - COALESCE((
            SELECT SUM(h.held_grams) FROM stock_holds h
            WHERE h.account_id = ? AND h.product_id = ? AND h.invoice_id != ?
              AND (h.expires_at IS NULL OR h.expires_at > datetime('now'))

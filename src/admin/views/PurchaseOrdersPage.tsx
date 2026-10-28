@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Plus, ChevronDown, Loader2, X, Trash2 } from 'lucide-react';
-import { api, PurchaseOrder, PurchaseOrderItem } from '../../lib/api';
+import { api, PurchaseOrder } from '../../lib/api';
 import { useProducts, useCustomers } from '../hooks/useAdminData';
 import { useToast } from '../components/Toast';
-import { BatchPicker } from '../components/BatchPicker';
+import { IncomingReceiptsPanel } from '../components/inventory/IncomingReceiptsPanel';
+import { refreshCommerceQueries } from '../../lib/refreshCommerce';
 
 const PO_STATUSES = ['pending', 'ordered', 'received', 'cancelled'] as const;
 type PoStatus = typeof PO_STATUSES[number];
@@ -27,7 +29,8 @@ const STATUS_STYLES: Record<string, string> = {
 interface NewPoItem {
   product_id: string;
   product_name: string;
-  quantity_grams: number;
+  quantity: number;
+  unit: 'g' | 'unit';
 }
 
 function formatDate(iso: string): string {
@@ -44,7 +47,7 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
 
   const [vendorId, setVendorId] = useState('');
   const [vendorName, setVendorName] = useState('');
-  const [items, setItems] = useState<NewPoItem[]>([{ product_id: '', product_name: '', quantity_grams: 0 }]);
+  const [items, setItems] = useState<NewPoItem[]>([{ product_id: '', product_name: '', quantity: 0, unit:'g' }]);
   const [notes, setNotes] = useState('');
 
   const handleVendorChange = (id: string) => {
@@ -53,7 +56,7 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
     setVendorName(vendor?.name || '');
   };
 
-  const addItem = () => setItems(prev => [...prev, { product_id: '', product_name: '', quantity_grams: 0 }]);
+  const addItem = () => setItems(prev => [...prev, { product_id: '', product_name: '', quantity: 0, unit:'g' }]);
   const removeItem = (idx: number) => setItems(prev => prev.filter((_, i) => i !== idx));
 
   const updateItem = (idx: number, field: keyof NewPoItem, value: string | number) => {
@@ -61,7 +64,7 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
       if (i !== idx) return item;
       if (field === 'product_id') {
         const p = products.find((pr: any) => pr.id === value);
-        return { ...item, product_id: value as string, product_name: p ? (p.givenName || p.productName || '') : '' };
+        return { ...item, product_id: value as string, product_name: p ? (p.givenName || p.productName || '') : '', unit:p?.type==='Teaware'?'unit':'g' };
       }
       return { ...item, [field]: value };
     }));
@@ -70,15 +73,16 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!vendorName.trim()) return;
-    const validItems = items.filter(i => i.product_id && i.quantity_grams > 0);
+    const validItems = items.filter(i => i.product_id && i.quantity > 0 && (i.unit !== 'unit' || Number.isInteger(i.quantity)));
     await onSubmit({
       vendor_name: vendorName.trim(),
       vendor_id: vendorId || undefined,
       items_json: JSON.stringify(validItems.map(i => ({
         product_id: i.product_id,
         product_name: i.product_name,
-        quantity_grams: i.quantity_grams,
-      } satisfies PurchaseOrderItem))),
+        quantity: i.quantity,
+        unit: i.unit,
+      }))),
       notes: notes.trim() || undefined,
       status: 'pending',
     });
@@ -146,7 +150,7 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
                 >
                   <option value="">Select product…</option>
                   {products
-                    .filter((p: any) => p.type !== 'Teaware')
+
                     .map((p: any) => (
                       <option key={p.id} value={p.id}>{p.givenName || p.productName}</option>
                     ))}
@@ -154,14 +158,15 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
                 <div className="flex items-center gap-1 bg-tea-gold/[0.06] border border-tea-border rounded-xl px-3 py-2 shrink-0">
                   <input
                     type="number"
-                    value={item.quantity_grams || ''}
-                    onChange={e => updateItem(idx, 'quantity_grams', parseInt(e.target.value) || 0)}
+                    value={item.quantity || ''}
+                    onChange={e => updateItem(idx, 'quantity', Number(e.target.value))}
                     placeholder="0"
-                    inputMode="numeric"
+                    inputMode="decimal"
+                    min="0" step={item.unit === 'unit' ? 1 : 'any'}
                     className="w-12 bg-transparent text-sm text-right text-tea-text outline-none tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     style={{ MozAppearance: 'textfield' } as React.CSSProperties}
                   />
-                  <span className="text-ui-11 text-tea-text-dim">g</span>
+                  <span className="text-ui-11 text-tea-text-dim">{item.unit === 'unit' ? 'units' : 'g'}</span>
                 </div>
                 {items.length > 1 && (
                   <button type="button" onClick={() => removeItem(idx)} className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors shrink-0">
@@ -203,113 +208,49 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
   );
 };
 
-// ── Receive Stock Prompt ──
-const ReceiveStockPrompt: React.FC<{
-  po: PurchaseOrder;
-  onConfirm: (productId: string, grams: number, batchId: string | null) => Promise<void>;
-  onClose: () => void;
-}> = ({ po, onConfirm, onClose }) => {
-  const items: PurchaseOrderItem[] = (() => {
-    try { return JSON.parse(po.items_json); } catch { return []; }
-  })();
+// Legacy intake has already opened its stock. Link that original movement;
+// preparing its purchase receipt must never receive the same quantity again.
+const OriginalStockMovement:React.FC<{productId:string;quantity:number;value:string;onChange:(id:string)=>void}>=({productId,quantity,value,onChange})=>{
+  const [offset,setOffset]=useState(0);
+  React.useEffect(()=>setOffset(0),[productId]);
+  const {data,isLoading,isError,refetch}=useQuery({queryKey:['stock_ledger',productId,'purchase-link',offset],enabled:!!productId,queryFn:()=>api.stockLedger.list(productId,20,offset)});
+  const entries=(data?.entries || []).filter((entry:any)=>Number(entry.delta)===quantity&&['RECEIPT','PURCHASE_RECEIPT'].includes(String(entry.reason).toUpperCase()));
+  return <div className="space-y-1"><label className="text-ui-12 text-tea-text-sec">Original stock entry<select aria-label="Original stock entry" disabled={!productId||isLoading} value={value} onChange={event=>onChange(event.target.value)} className="admin-input mt-1 w-full"><option value="">{isLoading?'Loading stock history…':'Choose the stock already received'}</option>{entries.map((entry:any)=><option key={entry.id} value={entry.id}>{new Date(entry.created_at).toLocaleDateString()} · +{entry.delta} · {entry.reference || entry.note || entry.batch_label || 'Received stock'}</option>)}</select></label>{isError?<p role="alert" className="text-ui-12 text-tea-text-sec">Stock history could not be loaded. <button type="button" className="tap-target underline" onClick={()=>void refetch()}>Try again</button></p>:null}<div className="flex flex-wrap gap-3 text-ui-12 text-tea-text-sec">{offset>0&&<button type="button" className="tap-target underline" onClick={()=>setOffset(Math.max(0,offset-20))}>Newer entries</button>}{offset+20<(data?.total || 0)&&<button type="button" className="tap-target underline" onClick={()=>setOffset(offset+20)}>Older entries</button>}</div></div>;
+};
 
-  const [confirming, setConfirming] = useState(false);
-  const [batchId, setBatchId] = useState<string | null>(null);
-
-  if (!items.length) {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-priority flex items-center justify-center bg-tea-bg/80 backdrop-blur-md"
-        onClick={onClose}
-      >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.2 }}
-          className="bg-tea-surface rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl"
-          onClick={e => e.stopPropagation()}
-        >
-          <p className="text-sm text-tea-text-sec text-center">No line items to receive.</p>
-          <button onClick={onClose} className="mt-4 w-full text-xs text-tea-text-sec hover:text-tea-text transition-colors">Close</button>
-        </motion.div>
-      </motion.div>
-    );
+// Match older purchase lines explicitly before preparing a canonical receipt.
+const MatchPurchaseLines: React.FC<{po:PurchaseOrder;onClose:()=>void;onPrepared:(id:string)=>void}> = ({po,onClose,onPrepared}) => {
+  const {data:products=[]}=useProducts();
+  const legacyIntake=String((po as PurchaseOrder & {create_request_key?:string}).create_request_key || '').startsWith('intake:');
+  const [lines,setLines]=useState<Array<Record<string,any>>>(()=>{try{return JSON.parse(po.items_json).map((item:Record<string,any>)=>({...item,product_id:item.product_id||'',product_name:item.product_name||item.name||'Unnamed item',quantity:item.quantity??item.quantity_grams??0,unit:item.unit||'g'}))}catch{return []}});
+  const [saving,setSaving]=useState(false),[error,setError]=useState(legacyIntake?'Stock was already recorded by this intake. Link its original stock entry to review the purchase without adding stock again.':'Match each purchase line to its holding and confirm how much was ordered.');
+  const valid=lines.length>0&&lines.every(line=>(!legacyIntake||line.source_movement_id)&&line.product_id&&Number.isFinite(Number(line.quantity))&&Number(line.quantity)>0&&(line.unit!=='unit'||Number.isInteger(Number(line.quantity))));
+  const update=(index:number,patch:Record<string,unknown>)=>setLines(current=>current.map((line,i)=>i===index?{...line,...patch}:line));
+  async function prepare(){
+    if(saving||!valid)return;setSaving(true);
+    try{
+      const result=await api.purchaseOrders.prepareReceipt(po.id,{items:lines.map(line=>({...line,quantity:Number(line.quantity)}))});
+      if(!result.receipt_id)throw new Error(result.unresolved_items.map(item=>`Line ${item.index+1}: ${item.reason}`).join(' ')||'Complete the purchase lines first.');
+      onPrepared(result.receipt_id);
+    }catch(cause){setError(cause instanceof Error?cause.message:'Receipt could not be prepared. Try again.')}finally{setSaving(false)}
   }
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-priority flex items-end sm:items-center justify-center bg-tea-bg/80 backdrop-blur-md"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 20 }}
-        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-        className="bg-tea-surface rounded-t-xl sm:rounded-xl w-full max-w-md overflow-hidden shadow-2xl"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="px-5 py-4 border-b border-tea-border flex items-center justify-between">
-          <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Receive Stock</span>
-          <button onClick={onClose} className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close"><X size={15} /></button>
-        </div>
-        <div className="px-5 py-4 space-y-1">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex-1 h-px bg-tea-border" />
-            <span className="text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim shrink-0">Add to inventory?</span>
-            <div className="flex-1 h-px bg-tea-border" />
-          </div>
-          {items.map((item, idx) => (
-            <div key={idx} className="flex items-center justify-between py-1.5">
-              <span className="text-sm text-tea-text-sec">{item.product_name}</span>
-              <span className="text-sm text-tea-gold tabular-nums font-medium">+{item.quantity_grams}g</span>
-            </div>
-          ))}
-          <div className="pt-3">
-            <BatchPicker value={batchId} onChange={setBatchId} label="Receive into batch" />
-          </div>
-        </div>
-        <div className="px-5 pb-5 flex justify-between items-center gap-3">
-          <button onClick={onClose} className="px-2 py-2 text-xs text-tea-text-sec hover:text-tea-text transition-colors uppercase tracking-[0.15em]">Skip</button>
-          <button
-            disabled={confirming}
-            onClick={async () => {
-              setConfirming(true);
-              try {
-                for (const item of items) {
-                  if (item.product_id && item.quantity_grams > 0) {
-                    await onConfirm(item.product_id, item.quantity_grams, batchId);
-                  }
-                }
-                onClose();
-              } finally {
-                setConfirming(false);
-              }
-            }}
-            className="flex items-center gap-2 px-5 py-2.5 cta-solid text-xs font-semibold uppercase tracking-[0.12em] rounded-xl transition-colors disabled:opacity-50"
-          >
-            {confirming ? <Loader2 size={12} className="animate-spin" /> : null}
-            Add to stock
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
+  return <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg/80 p-3"><section role="dialog" aria-modal="true" aria-label="Match purchase lines" className="w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-xl border border-tea-border bg-tea-surface p-4 pb-nav-gap space-y-3">
+    <h2 className="h2">{legacyIntake?'Review':'Receive'} {po.vendor_name}</h2><p role="alert" className="text-ui-12 text-tea-text-sec">{error}</p>
+    {lines.map((line,index)=><div key={index} className="space-y-2 border-b border-tea-border py-2"><p className="text-ui-13 text-tea-text">{line.product_name}</p><div className="flex flex-wrap gap-2"><select aria-label={`Holding for line ${index+1}`} disabled={saving} value={line.product_id} onChange={event=>{const product=products.find(item=>item.id===event.target.value);update(index,{product_id:event.target.value,product_name:product?.givenName||product?.productName||line.product_name,unit:product?.type==='Teaware'?'unit':'g',source_movement_id:undefined})}} className="admin-input min-w-0 flex-1"><option value="">Choose holding</option>{products.map(product=><option key={product.id} value={product.id}>{product.givenName||product.productName}</option>)}</select><label className="text-ui-12 text-tea-text-sec"><input aria-label={`Quantity for line ${index+1}`} disabled={saving} type="number" min="0" step={line.unit==='unit'?1:'any'} value={line.quantity} onChange={event=>update(index,{quantity:event.target.value,source_movement_id:undefined})} className="admin-input w-24"/>{line.unit==='unit'?' units':' g'}</label></div>{legacyIntake&&<OriginalStockMovement productId={line.product_id} quantity={Number(line.quantity)} value={line.source_movement_id || ''} onChange={id=>update(index,{source_movement_id:id})}/>}</div>)}
+    <div className="flex flex-wrap justify-end gap-2"><button type="button" disabled={saving} onClick={onClose} className="tap-target px-3 text-ui-13 text-tea-text-sec">Cancel</button><button type="button" disabled={saving||!valid} onClick={()=>void prepare()} className="tap-target rounded-md cta-solid px-4 py-2 text-ui-13 disabled:opacity-50">{saving?'Preparing…':legacyIntake?'Link recorded stock':'Continue to receiving'}</button></div>
+  </section></div>;
 };
 
 // ── Main Page ──
 export const PurchaseOrdersPage: React.FC = () => {
   const { showToast } = useToast();
+  const [searchParams]=useSearchParams();
+  const reviewId=searchParams.get('purchaseId');
+  const openedReview=React.useRef<string|null>(null);
   const queryClient = useQueryClient();
   const [isNewFormOpen, setIsNewFormOpen] = useState(false);
+  const [receiptId, setReceiptId] = useState<string | null>(null);
+  const [preparingId, setPreparingId] = useState<string | null>(null);
   const [receivePo, setReceivePo] = useState<PurchaseOrder | null>(null);
 
   const { data: orders = [], isLoading } = useQuery<PurchaseOrder[]>({
@@ -318,6 +259,12 @@ export const PurchaseOrdersPage: React.FC = () => {
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
   });
+
+  React.useEffect(()=>{
+    if (!reviewId || openedReview.current===reviewId) return;
+    const order=orders.find(order=>order.id===reviewId);
+    if (order) {openedReview.current=reviewId;setReceivePo(order);}
+  },[reviewId,orders]);
 
   const createMutation = useMutation({
     mutationFn: (data: Parameters<typeof api.purchaseOrders.create>[0]) => api.purchaseOrders.create(data),
@@ -333,23 +280,21 @@ export const PurchaseOrdersPage: React.FC = () => {
     mutationFn: ({ id, status }: { id: string; status: string }) => api.purchaseOrders.updateStatus(id, status),
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ['purchase_orders'] });
-      if (vars.status === 'received') {
-        const po = orders.find(o => o.id === vars.id);
-        if (po) setReceivePo(po);
-      }
+
     },
     onError: (err: Error) => showToast(err.message || 'Failed to update status', 'error'),
   });
 
-  const incrementMutation = useMutation({
-    mutationFn: ({ productId, amount, batchId }: { productId: string; amount: number; batchId: string | null }) =>
-      api.rpc.incrementStock(productId, amount, batchId ?? undefined),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      showToast('Stock incremented', 'success');
-    },
-    onError: (err: Error) => showToast(err.message || 'Failed to add stock', 'error'),
-  });
+  const prepareReceipt = async (po:PurchaseOrder) => {
+    if(preparingId)return;setPreparingId(po.id);
+    try {
+      const result = await api.purchaseOrders.prepareReceipt(po.id);
+      if(result.receipt_id)setReceiptId(result.receipt_id);
+      else setReceivePo(po);
+    } catch(cause) { showToast(cause instanceof Error?cause.message:'Could not prepare receipt. Try again.','error'); }
+    finally {setPreparingId(null);}
+  };
+  if(receiptId)return <IncomingReceiptsPanel backLabel="Back to purchases" receiptId={receiptId} onClose={()=>{setReceiptId(null);void refreshCommerceQueries(queryClient);}}/>;
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
@@ -382,7 +327,7 @@ export const PurchaseOrdersPage: React.FC = () => {
         ) : (
           <div className="divide-y divide-tea-border">
             {orders.map(order => {
-              const items: PurchaseOrderItem[] = (() => {
+              const items: Array<Record<string, any>> = (() => {
                 try { return JSON.parse(order.items_json); } catch { return []; }
               })();
               return (
@@ -400,7 +345,7 @@ export const PurchaseOrdersPage: React.FC = () => {
                         <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
                           {items.map((item, idx) => (
                             <span key={idx} className="text-xs text-tea-text-sec">
-                              {item.product_name} <span className="text-tea-text-dim tabular-nums">{item.quantity_grams}g</span>
+                              {item.product_name} <span className="text-tea-text-dim tabular-nums">{item.quantity ?? item.quantity_grams}{item.unit === 'unit' ? ' units' : 'g'}</span>
                             </span>
                           ))}
                         </div>
@@ -414,18 +359,21 @@ export const PurchaseOrdersPage: React.FC = () => {
                     </div>
 
                     {/* Status selector */}
-                    <div className="relative shrink-0">
+                    <div className="flex shrink-0 flex-wrap items-center gap-2">
+                      {order.status !== 'received' && order.status !== 'cancelled' && <button type="button" disabled={Boolean(preparingId)} onClick={()=>void prepareReceipt(order)} className="tap-target rounded-md cta-solid px-3 py-1 text-ui-12 disabled:opacity-50">{preparingId===order.id?'Preparing…':'Receive'}</button>}
+                      <div className="relative">
                       <select
                         value={order.status}
                         onChange={e => statusMutation.mutate({ id: order.id, status: e.target.value })}
-                        disabled={statusMutation.isPending}
+                        disabled={statusMutation.isPending || order.status === 'received'}
                         className="appearance-none bg-tea-elevated border border-tea-border rounded-xl pl-3 pr-7 py-1.5 text-xs text-tea-text outline-none focus:border-tea-gold cursor-pointer"
                       >
-                        {PO_STATUSES.map(s => (
+                        {PO_STATUSES.filter(s=>s!=='received'||order.status==='received').map(s => (
                           <option key={s} value={s}>{STATUS_LABELS[s]}</option>
                         ))}
                       </select>
                       <ChevronDown size={10} className="absolute right-2 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -449,13 +397,7 @@ export const PurchaseOrdersPage: React.FC = () => {
       {/* Receive stock prompt */}
       <AnimatePresence>
         {receivePo && (
-          <ReceiveStockPrompt
-            po={receivePo}
-            onConfirm={async (productId, grams, batchId) => {
-              await incrementMutation.mutateAsync({ productId, amount: grams, batchId });
-            }}
-            onClose={() => setReceivePo(null)}
-          />
+          <MatchPurchaseLines po={receivePo} onPrepared={id=>{setReceivePo(null);setReceiptId(id);}} onClose={()=>setReceivePo(null)}/>
         )}
       </AnimatePresence>
     </div>

@@ -402,3 +402,13 @@ See ARCHITECTURE.md §1.2 for the 22 Phase 1B decisions. Additional historical d
 - docs/VISION_AUDIT_7_TECHNICAL.md (technical vision)
 - `worker/tests/tenancy-isolation.test.ts` and the resource-specific Worker suites (current authorization evidence)
 - CLAUDE.md (frontend invariants)
+
+## Curate-to-sale repair boundary (local, 2026-10-28)
+
+- Money crosses capture, Ledger and purchase-order boundaries as amount + currency + basis quantity + physical unit. Actual acquisition totals take precedence over an indicative quote. Defaults remain read-time policies; nullable values retain absence.
+- Capture acknowledgements apply only to the exact saved revision. Ledger drafts and Intake recovery are account scoped. Intake server snapshots use a revision check; duplicate purchase writes use a stable request identity.
+- `prepare-receipt` converts a purchase order into canonical incoming receipt lines. Existing opening movements are referenced, never received twice; unresolved legacy lines need explicit matching. Network holdings maintain a product/listing bridge for ordinary Stock and invoice paths.
+- `invoice_line_items.quantity_unit` freezes grams versus pieces for a sale. Refund records are append-only, scoped to account/invoice/request identity. Unshipped cancellation reverses the original physical movement and settlement once. Shipment creates an idempotent private purchased-tea trail for an identified buyer.
+- Personal order list/detail/payment-claim routes authenticate the buyer independently of the selected seller account; ownership is verified per invoice. Staff commerce endpoints retain account scoping. A guest order can be linked by an authenticated holder of its private tracking token, never by guessing an email.
+- Successful commerce mutations invalidate dependent browser queries and local readiness summaries. Public catalogue cache entries are invalidated in the mutation's Cloudflare location; other locations retain their short TTL.
+- Migration `0031_flow_continuity.sql` is additive. It does not guess corrections to historical quotes, holdings or invoices. No production data repair is included.

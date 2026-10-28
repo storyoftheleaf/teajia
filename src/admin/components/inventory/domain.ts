@@ -62,10 +62,10 @@ export type EffectivePublication = {
 };
 
 export function getEffectivePublication(
-  product: Pick<Product, 'isPublic' | 'shownInShop'>,
+  product: Pick<Product, 'isPublic' | 'shownInShop' | 'status'>,
 ): EffectivePublication {
   return {
-    state: product.isPublic && product.shownInShop ? 'published' : 'hidden',
+    state: product.status === 'Active' && product.isPublic && product.shownInShop ? 'published' : 'hidden',
     operatorGate: product.isPublic,
     locationGate: product.shownInShop,
   };

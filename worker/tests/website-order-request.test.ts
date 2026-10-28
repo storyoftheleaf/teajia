@@ -174,11 +174,11 @@ describe('website order requests', () => {
     }), { DB: db, JWT_SECRET: SECRET } as never, {} as never);
     expect(response.status).toBe(200);
     const tracked = await response.json() as any;
-    expect(tracked.contact).toEqual({ whatsapp: '+6281339712339' });
+    expect(tracked.contact).toEqual({ whatsapp: '+6281339712339',email:null });
     expect(JSON.stringify(tracked)).not.toContain('guest@example.com');
     expect(JSON.stringify(tracked)).not.toContain('+6281111111111');
     db.sqlite.exec("UPDATE accounts SET whatsapp_number=NULL WHERE id='shop'");
-    expect((await trackedOrder(db)).contact).toEqual({ whatsapp: null });
+    expect((await trackedOrder(db)).contact).toEqual({ whatsapp: null,email:null });
   });
 
   it('saves email and phone orders without consent without queueing a WhatsApp send', async () => {

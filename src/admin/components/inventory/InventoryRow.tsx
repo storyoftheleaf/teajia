@@ -77,6 +77,7 @@ function InventoryRowBase(props: InventoryRowProps) {
     onRowClick, onLongPressSelect, onLongPressQuickEdit, onProductUpdate, onSelectionAwareUpdate,
     onOpenPanel, onToggleDropdown, onStockHistory, onStockMovement, onRestock, onDeleteRequest, showToast, onOpenSource, sampleOpen,
   } = props;
+  const saveField = props.onSaveField || onProductUpdate;
   void onLongPressSelect; // retained in the prop type; long-press now routes to quick-edit
 
   const globalIdxRef = useRef(globalIdx);
@@ -189,7 +190,7 @@ function InventoryRowBase(props: InventoryRowProps) {
             <div className="flex flex-col justify-center">
               {isEditMode ? (
                 <div className="flex min-w-0 items-center gap-1">
-                  <GhostInput value={displayName} onSave={(val) => onProductUpdate(product.id, 'productName', joinItemCode(coded.code, val))} className={`min-w-0 flex-1 ${nameWeightCls} ${nameTone}`} ariaLabel="Product name" />
+                  <GhostInput value={displayName} onSave={(val) => saveField(product.id, 'productName', joinItemCode(coded.code, val))} className={`min-w-0 flex-1 ${nameWeightCls} ${nameTone}`} ariaLabel="Product name" />
                   <label className="tap-target inline-flex shrink-0 items-center gap-0.5 text-ui-9 uppercase tracking-[0.06em] text-tea-text-sec hover:text-tea-text" aria-label={`Change type for ${displayName}`}>
                     <Plus size={9} aria-hidden="true" />
                     <select
@@ -244,21 +245,21 @@ function InventoryRowBase(props: InventoryRowProps) {
       case 'year': return (
         <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 align-middle num overflow-hidden ${fr} ${isSold ? 'text-tea-text-dim' : 'text-tea-text-sec'}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Year" value={product.year || ''} onSave={(val) => onProductUpdate(product.id, 'year', val)} type="number" placeholder="YYYY" className="num text-ui-13 text-tea-text-sec" />
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Year" value={product.year ?? ''} onSave={(val) => saveField(product.id, 'year', val)} type="text" placeholder="YYYY or decade" className="num text-ui-13 text-tea-text-sec" />
             : <span>{product.year || '—'}</span>}
         </td>
       );
       case 'form': return (
         <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Leaf form" value={product.form || ''} onSave={(val) => onProductUpdate(product.id, 'form', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Leaf form" value={product.form || ''} onSave={(val) => saveField(product.id, 'form', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
             : <span className="truncate block">{product.form || '—'}</span>}
         </td>
       );
       case 'originRegion': return (
         <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Origin region" value={product.originRegion} onSave={(val) => onProductUpdate(product.id, 'originRegion', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Origin region" value={product.originRegion} onSave={(val) => saveField(product.id, 'originRegion', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
             : <span className="truncate block">{product.originRegion}</span>}
         </td>
       );
@@ -303,8 +304,8 @@ function InventoryRowBase(props: InventoryRowProps) {
       case 'costAmount': return (
         <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Cost amount" value={product.costAmount} onSave={(val) => onProductUpdate(product.id, 'costAmount', val)} type="number" align={numInputAlign} className={`num text-ui-13 ${numTone}`} />
-            : <span>{product.costAmount > 0 ? product.costAmount.toLocaleString() : '—'}</span>}
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Cost amount" value={product.costAmount ?? ''} onSave={(val) => saveField(product.id, 'costAmount', val)} type="number" align={numInputAlign} className={`num text-ui-13 ${numTone}`} />
+            : <span>{product.costAmount == null ? 'Cost needed' : product.costAmount.toLocaleString()}</span>}
         </td>
       );
       case 'costPerGramUSD': return (
@@ -363,7 +364,7 @@ function InventoryRowBase(props: InventoryRowProps) {
         return (
           <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${overrideTone}`}>
             {isEditMode
-              ? <GhostInput id={ghostId(colIndex)} ariaLabel="Retail price per gram (USD)" value={sellingPrice?.toFixed(2)} onSave={(val) => onProductUpdate(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)} type="number" align={numInputAlign} className={`num text-ui-13 ${overrideTone}`} />
+              ? <GhostInput id={ghostId(colIndex)} ariaLabel="Retail price per gram (USD)" value={sellingPrice?.toFixed(2)} onSave={(val) => saveField(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)} type="number" align={numInputAlign} className={`num text-ui-13 ${overrideTone}`} />
               : <span>{sellingPrice != null ? fmtNum(sellingPrice) : '—'}</span>}
           </td>
         );
@@ -371,21 +372,21 @@ function InventoryRowBase(props: InventoryRowProps) {
       case 'material': return (
         <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Material" value={product.material || ''} onSave={(val) => onProductUpdate(product.id, 'material', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Material" value={product.material || ''} onSave={(val) => saveField(product.id, 'material', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
             : <span className="truncate block">{product.material || '—'}</span>}
         </td>
       );
       case 'teawareCategory': return (
         <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Teaware category" value={product.teawareCategory || ''} onSave={(val) => onProductUpdate(product.id, 'teawareCategory', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Teaware category" value={product.teawareCategory || ''} onSave={(val) => saveField(product.id, 'teawareCategory', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
             : <span className="capitalize truncate block">{product.teawareCategory || '—'}</span>}
         </td>
       );
       case 'capacityMl': return (
         <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Capacity (ml)" value={product.capacityMl || ''} onSave={(val) => onProductUpdate(product.id, 'capacityMl', val)} type="number" align={numInputAlign} className={`num text-ui-13 ${numTone}`} />
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Capacity (ml)" value={product.capacityMl || ''} onSave={(val) => saveField(product.id, 'capacityMl', val)} type="number" align={numInputAlign} className={`num text-ui-13 ${numTone}`} />
             : <span>{product.capacityMl ? `${product.capacityMl}ml` : '—'}</span>}
         </td>
       );

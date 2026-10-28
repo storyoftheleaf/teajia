@@ -7,6 +7,8 @@ import { formPricingPreview } from './inventory/stock/formPricingModel';
 import type { FormPricingChanges } from './inventory/stock/FormPricingSheet';
 import { CurateSamplesView } from './CurateSamplesView';
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { COMMERCE_CHANGED_EVENT, refreshCommerceQueries, type CommerceChange } from '../../lib/refreshCommerce';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 import { BottomSheet } from '../../components/shared/BottomSheet';
@@ -159,6 +161,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   inventorySummary,
 }) => {
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const showInventoryToast = useCallback((message: string, type: string, options?: InventoryToastOptions) => {
     showToast(message, isInventoryToastType(type) ? type : 'info', options);
   }, [showToast]);
@@ -312,6 +315,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [inventorySummaryStatus, setInventorySummaryStatus] = useState<InventorySummaryStatus>('loading');
   const [inventorySummaryRefreshKey, setInventorySummaryRefreshKey] = useState(0);
   const inventorySummaryAccountRef = useRef<string | null>(null);
+  useEffect(() => {
+    const refresh = (event: Event) => {
+      const changed = (event as CustomEvent<CommerceChange>).detail;
+      if (!changed?.accountId || changed.accountId === tastingAccountId) setInventorySummaryRefreshKey(key => key + 1);
+    };
+    window.addEventListener(COMMERCE_CHANGED_EVENT, refresh);
+    return () => window.removeEventListener(COMMERCE_CHANGED_EVENT, refresh);
+  }, [tastingAccountId]);
   useEffect(() => {
     let cancelled = false;
     const accountChanged = inventorySummaryAccountRef.current !== tastingAccountId;
@@ -1174,6 +1185,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // GENERIC UPDATE HANDLER (Optimistic + DB)
   // Restock: create a pre-filled Tea Compass entry from a product and navigate
   const handleRestock = useCallback((product: Product) => {
+    if (product.sourceCompassEntryId) {
+      navigate(`/admin/compass?tab=sourcing&entry=${encodeURIComponent(product.sourceCompassEntryId)}`);
+      setRowDropdownId(null);
+      return;
+    }
     const category = product.type === 'Teaware' ? 'teaware' : 'tea';
     const newId = startNewCapture(category);
     const updates: Record<string, any> = {
@@ -1182,10 +1198,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       type: product.type,
       status: 'want',
       notes: `Restock from inventory: ${product.productName}`,
+      draftProductId: product.id,
     };
     if (product.vendor) updates.vendorName = product.vendor;
     if (product.costCurrency) updates.priceCurrency = product.costCurrency;
-    if (product.costPerGramUSD) updates.pricePerUnitGrams = product.costPerGramUSD;
+    if (product.costAmount != null && product.quantityPurchased > 0) {
+      updates.priceAmount = product.costAmount;
+      updates.pricePerUnitGrams = product.type === 'Teaware' ? undefined : product.quantityPurchased;
+    }
     if (product.originRegion) updates.originRegion = product.originRegion;
     if (product.form) updates.form = product.form;
     if (product.year) updates.year = product.year;
@@ -1258,7 +1278,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         const isTeaware = updated.type === 'Teaware';
         const nextCurrency = String(field === 'costCurrency' ? value : p.costCurrency) || 'USD';
         const calc = calculatePricing(
-          Number(field === 'costAmount' ? value : p.costAmount) || 0,
+          field === 'costAmount' ? enteredNumber(value) : p.costAmount,
           /* `??`, not `||`. The shop rate applies when nobody entered one, and
              that is what NULL means; a typed 0 is Adrian saying this tea ships
              free and has to survive to the preview, or the number he sees while
@@ -1271,7 +1291,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           ratesRef.current,
           isTeaware
         );
-        if (calc.suggestedRetailUSD > 0) {
+        if (calc.suggestedRetailUSD >= 0) {
           updated.pricePerGramUSD = parseFloat(calc.suggestedRetailUSD.toFixed(4));
         }
       }
@@ -1289,6 +1309,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       try {
         await api.products.setFeatured(id, Boolean(value));
         setLastSavedAt(Date.now());
+        void refreshCommerceQueries(queryClient, tastingAccountId);
         refreshChangedProducts([id]);
       } catch (err: any) {
         showToast(`Update failed: ${err.message}`, 'error');
@@ -1308,6 +1329,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       try {
         await api.products.updateShown(id, Boolean(value));
         setLastSavedAt(Date.now());
+        void refreshCommerceQueries(queryClient, tastingAccountId);
       } catch (err: any) {
         showToast(`Update failed: ${err.message}`, 'error');
         refreshChangedProducts([id]);
@@ -1326,6 +1348,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     try {
       await api.products.updateByDomain(id, dbPayload);
       setLastSavedAt(Date.now());
+      void refreshCommerceQueries(queryClient, tastingAccountId);
       // Show saved pill feedback for this cell
       const cellId = `${id}-${String(field)}`;
       setRecentlySavedCells(prev => new Set([...prev, cellId]));
@@ -3236,6 +3259,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         rates={rates}
         onClose={() => setPanelProduct(null)}
         onUpdate={handleProductUpdate}
+        onSaveField={(id,field,value)=>handleProductUpdate(id,field,value,{throwOnError:true})}
         products={panelGroup ? panelGroup.products : processedProducts}
         onNavigate={(p) => setPanelProduct(p)}
         filterLabel={panelGroup ? `from ${panelGroup.label}` : filterType !== 'All' ? (VIEW_FILTER_LABELS[filterType] || filterType) : undefined}
@@ -3382,7 +3406,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* Floating Stock History Panel (from table click) */}
       {stockHistoryProduct && !panelProduct && (
-        <div className="fixed bottom-4 right-4 z-40 w-96 max-h-[50vh] overflow-y-auto custom-scrollbar shadow-2xl rounded-xl">
+        <div className="fixed bottom-nav-gap right-3 left-3 sm:left-auto z-modal sm:w-96 max-h-[50vh] overflow-y-auto custom-scrollbar shadow-2xl rounded-xl">
           <StockLedgerPanel
             productId={stockHistoryProduct.id}
             productName={stockHistoryProduct.name}

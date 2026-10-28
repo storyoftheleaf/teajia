@@ -42,6 +42,8 @@ afterEach(async () => { await page?.close(); });
 
 async function open(options: Record<string, unknown> = {}) {
   page = await browser.newPage();
+  await page.route('**/version.json?probe=1',route=>route.fulfill({json:{build:'test'}}));
+  await page.route('**/api/incidents',route=>route.fulfill({json:{id:'test-incident'}}));
   await page.goto(`${origin}/__quick-invoice-test`);
   await page.waitForFunction(() => Boolean((window as any).quickInvoiceTest));
   await page.evaluate(value => (window as any).quickInvoiceTest.mount(value), options);
@@ -84,20 +86,43 @@ describe('QuickInvoiceModal linked sales behavior', () => {
     expect(await page.evaluate(() => (window as any).quickInvoiceTest.invoiceCalls().length)).toBe(0);
   }, 15_000);
 
-  it('fetches on open and renders only verified active tea suggestions with truthful Teaware copy', async () => {
+  it('fetches on open and renders verified active tea and counted teaware suggestions', async () => {
     await open();
     await expect.poll(() => textOf(page.getByRole('status'))).toContain('Checking eligible sales inventory');
     await page.evaluate(rows => (window as any).quickInvoiceTest.resolveRequest(0, rows), [
-      eligible('tea-a'), eligible('tray'), eligible('misc'), eligible('missing'), eligible('draft'), eligible('archived'),
+      eligible('tea-a'), eligible('tray',{quantity_unit:'unit',available_quantity:3}), eligible('misc'), eligible('missing'), eligible('draft'), eligible('archived'),
     ]);
     await itemName().focus();
     await expect.poll(() => page.getByText('Account A Tea', { exact: true }).count()).toBe(1);
-    expect(await page.getByText('Tea Tray', { exact: true }).count()).toBe(0);
+    expect(await page.getByText('Tea Tray', { exact: true }).count()).toBe(1);
     expect(await page.getByText('Misc Item', { exact: true }).count()).toBe(0);
     expect(await page.getByText('Missing Type', { exact: true }).count()).toBe(0);
     expect(await page.getByText('Draft Tea', { exact: true }).count()).toBe(0);
     expect(await page.getByText('Archived Tea', { exact: true }).count()).toBe(0);
-    await expect.poll(() => page.getByText(/Teaware.*custom/i).count()).toBeGreaterThan(0);
+    await expect.poll(() => page.getByText(/Linked teaware uses whole pieces/i).count()).toBeGreaterThan(0);
+  });
+
+  it('sells counted teaware in fixed pieces, refuses fractional pieces, and snapshots the unit',async()=>{
+    await open({prefill:{customerName:'Buyer'}});
+    await page.setViewportSize({width:390,height:844});
+    await page.evaluate(row=>(window as any).quickInvoiceTest.resolveRequest(0,[row]),eligible('tray',{quantity_unit:'unit',physical_quantity:3,available_quantity:3,price_floor:20}));
+    await itemName().fill('Tea Tray');
+    await page.getByText('Tea Tray',{exact:true}).click();
+    const quantity=page.getByRole('spinbutton',{name:'Quantity (pieces)',exact:true});
+    await expect.poll(()=>quantity.inputValue()).toBe('1');
+    expect(await page.getByRole('combobox',{name:'Line unit'}).isDisabled()).toBe(true);
+    expect(await page.getByRole('combobox',{name:'Line unit'}).inputValue()).toBe('pcs');
+    expect(await page.getByRole('spinbutton',{name:'Price per piece (USD)'}).inputValue()).toBe('25');
+    await quantity.fill('1.5');await saveDraft().click();
+    await expect.poll(()=>textOf(page.getByRole('alert'))).toContain('whole number of pieces');
+    expect(await page.evaluate(()=>(window as any).quickInvoiceTest.invoiceCalls().length)).toBe(0);
+    await quantity.fill('2');
+    mkdirSync('outputs/flow-repair-2026-10-28',{recursive:true});
+    await page.screenshot({path:'outputs/flow-repair-2026-10-28/invoice-teaware-pieces.png',animations:'disabled'});
+    await saveDraft().click();
+    await expect.poll(()=>page.evaluate(()=>(window as any).quickInvoiceTest.invoiceCalls().length)).toBe(1);
+    const items=await page.evaluate(()=>(window as any).quickInvoiceTest.invoiceCalls()[0].items);
+    expect(items).toEqual([expect.objectContaining({product_id:'tray',quantity:2,quantity_unit:'unit',price_at_sale:25})]);
   });
 
   it('shows an alert and retries after an eligibility error', async () => {
@@ -107,14 +132,14 @@ describe('QuickInvoiceModal linked sales behavior', () => {
     await page.getByRole('button', { name: 'Retry' }).click();
     await expect.poll(() => page.evaluate(() => (window as any).quickInvoiceTest.requestAccounts())).toEqual(['account-a', 'account-a']);
     await page.evaluate(row => (window as any).quickInvoiceTest.resolveRequest(1, [row]), eligible('tea-a'));
-    await itemName().focus();
+    await itemName().fill('Account A Tea');
     await expect.poll(() => page.getByText('Account A Tea', { exact: true }).count()).toBe(1);
   });
 
   it('keeps stale linked prefill unavailable and blocks invoice creation', async () => {
     await open({ prefill: { customerName: 'Buyer', items: [{ name: 'Old Tea', productId: 'old-tea', quantity: 5, price: 0.4 }] } });
     await page.evaluate(() => (window as any).quickInvoiceTest.resolveRequest(0, []));
-    await expect.poll(() => textOf(page.getByRole('status'))).toContain('No eligible linked tea inventory');
+    await expect.poll(() => textOf(page.getByRole('status'))).toContain('No eligible linked inventory');
     await expect.poll(() => page.getByText(/Unavailable for linked stock/).count()).toBeGreaterThan(0);
     await saveDraft().click();
     await expect.poll(() => textOf(page.getByRole('alert'))).toContain('no longer eligible');

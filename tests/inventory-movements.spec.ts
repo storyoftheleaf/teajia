@@ -471,3 +471,31 @@ test('stock movement dialog traps keyboard focus and Escape restores its trigger
   await expect(dialog).toHaveCount(0);
   await expect(trigger).toBeFocused();
 });
+
+test('an unconfirmed movement survives closing and retries its original request unchanged', async ({ page }) => {
+  const originalRequests: any[] = [];
+  await page.route('**/api/products/tea-1/movements', async route => {
+    const body = route.request().postDataJSON();
+    originalRequests.push(body);
+    if (originalRequests.length === 1) {
+      balance = 95;
+      await route.fulfill({ status: 500, json: { error: 'Response could not be confirmed' } });
+    } else {
+      await route.fulfill({ json: { id: 'saved-once', after_balance: 95, before_balance: 100, already_applied: true } });
+    }
+  });
+  await page.getByRole('button', { name: 'Change stock for Cloud Oolong', exact: true }).click();
+  await chooseMovement(page, 'Gift');
+  await page.getByRole('spinbutton', { name: 'Quantity', exact: true }).fill('5');
+  await page.getByRole('button', { name: 'Record movement', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Retry original movement', exact: true })).toBeVisible();
+  await expect(page.getByRole('spinbutton', { name: 'Quantity', exact: true })).toBeDisabled();
+  await page.screenshot({path:'outputs/flow-repair-2026-10-28/stock-movement-recovery.png',fullPage:true});
+  await page.getByRole('button', { name: 'Close stock movement', exact: true }).click();
+  await page.getByRole('button', { name: 'Change stock for Cloud Oolong', exact: true }).click();
+  await expect(page.getByRole('spinbutton', { name: 'Quantity', exact: true })).toHaveValue('5');
+  await page.getByRole('button', { name: 'Retry original movement', exact: true }).click();
+  await expect.poll(() => originalRequests.length).toBe(2);
+  expect(originalRequests[1]).toEqual(originalRequests[0]);
+  expect(balance).toBe(95);
+});

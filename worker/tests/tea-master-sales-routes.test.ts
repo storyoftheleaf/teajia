@@ -175,9 +175,10 @@ describe('Tea Master sales grants and eligibility', () => {
       expect.objectContaining({ product_id: 'location-tea', owner_id: null, permission_reason: 'location_stock' }),
     ]));
     const productIds = rows.map(row => row.product_id);
-    for (const excludedId of ['teaware', 'misc', 'missing-type', 'empty-type', 'draft-tea', 'archived-tea']) {
+    for (const excludedId of ['misc', 'missing-type', 'empty-type', 'draft-tea', 'archived-tea']) {
       expect(productIds).not.toContain(excludedId);
     }
+    expect(rows.find(row=>row.product_id==='teaware')).toMatchObject({quantity_unit:'unit',physical_quantity:0});
     expect(JSON.stringify(rows)).not.toContain('@test.dev');
   });
 });
@@ -186,7 +187,6 @@ describe('Tea Master invoice authorization, holds and settlements', () => {
   it.each([
     ['Draft', 'Oolong'],
     ['Archived', 'Oolong'],
-    ['Active', 'Teaware'],
     ['Active', 'Misc'],
     ['Active', 'MISSING_TYPE'],
     ['Active', ''],
@@ -206,6 +206,14 @@ describe('Tea Master invoice authorization, holds and settlements', () => {
     expect(db.sqlite.prepare('SELECT COUNT(*) AS count FROM invoices').get()).toEqual({ count: 0 });
     expect(db.sqlite.prepare('SELECT COUNT(*) AS count FROM invoice_line_items').get()).toEqual({ count: 0 });
     expect(db.sqlite.prepare('SELECT COUNT(*) AS count FROM stock_holds').get()).toEqual({ count: 0 });
+  });
+
+  it('accepts linked teaware as pieces and deducts it once on confirmed payment',async()=>{
+    const db=database();seed(db);db.sqlite.exec("INSERT INTO products(id,account_id,type,product_name,status,quantity_units,quantity_purchased,cost_amount,cost_currency) VALUES('teaware','account-a','Teaware','Cups','Active',4,4,40,'USD')");
+    const created=await call(db,'/api/invoices',{method:'POST',userId:'account-owner',body:{invoice:{customer_name:'Buyer',display_currency:'USD',status:'Pending'},lineItems:[{product_id:'teaware',quantity:2,quantity_unit:'unit',price_at_sale:30}]}});expect(created.status).toBe(201);const id=(await created.json() as any).id;
+    const payment=await call(db,`/api/invoices/${id}/payments`,{method:'POST',userId:'account-owner',body:{amount_usd:60,method_label:'Cash',request_id:'ware-once'}});expect(payment.status).toBe(201);
+    expect(db.sqlite.prepare("SELECT quantity_units FROM products WHERE id='teaware'").get()).toEqual({quantity_units:2});
+    await call(db,`/api/invoices/${id}/payments`,{method:'POST',userId:'account-owner',body:{amount_usd:60,method_label:'Cash',request_id:'ware-once'}});expect(db.sqlite.prepare("SELECT quantity_units FROM products WHERE id='teaware'").get()).toEqual({quantity_units:2});
   });
 
   it('denies another person\'s stock without a grant and validates grant price and quantity', async () => {

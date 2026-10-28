@@ -10,7 +10,7 @@ const order = (account: string, invoice: string, customer: string) => ({
 });
 
 beforeAll(async () => {
-  server = await createServer({ root: process.cwd(), logLevel: 'silent', server: { host: '127.0.0.1', port: 17779, strictPort: false }, plugins: [{
+  server = await createServer({ root: process.cwd(), cacheDir: '/tmp/teajia-orders-flow/node_modules/.vite', logLevel: 'silent', server: { host: '127.0.0.1', port: 17779, strictPort: false, watch: { usePolling: false, ignored: ['**/outputs/**', '**/.claude/**', '**/.worktrees/**'] } }, plugins: [{
     name: 'orders-view-test-page', configureServer(vite) { vite.middlewares.use('/__orders-view-test', async (_req, res) => {
       res.setHeader('Content-Type', 'text/html');
       res.end(await vite.transformIndexHtml('/__orders-view-test', '<div id="root"></div><script type="module" src="/src/admin/components/OrdersView.behavior.harness.tsx"></script>'));
@@ -20,9 +20,9 @@ beforeAll(async () => {
   origin = `http://127.0.0.1:${address.port}`; browser = await chromium.launch({ headless: true });
 }, 30_000);
 afterAll(async () => { await browser?.close(); await server?.close(); }, 30_000);
-afterEach(async () => { await page?.close(); });
+afterEach(async ({ task }) => { if (task.result?.state === 'fail' && page) console.error('Failed screen:', (await page.locator('body').innerText()).slice(0, 2400)); await page?.close(); });
 async function open() {
-  page = await browser.newPage({ viewport: { width: 390, height: 844 } }); await page.goto(`${origin}/__orders-view-test`);
+  page = await browser.newPage({ viewport: { width: 390, height: 844 } }); page.on('pageerror', error => console.error('Browser error:', error.message)); await page.route('**/api/**', route => route.fulfill({status:200,contentType:'application/json',body:route.request().url().endsWith('/attribution') ? JSON.stringify({items:[],settlement_visibility:'full',payment_recipient_kind:'none'}) : '[]'})); await page.goto(`${origin}/__orders-view-test`);
   await page.waitForFunction(() => Boolean((window as any).ordersViewTest)); await page.evaluate(() => (window as any).ordersViewTest.mount());
 }
 
@@ -215,5 +215,36 @@ describe('shipping and payment on one order screen', () => {
     await expect.poll(() => page.evaluate(() => (window as any).ordersViewTest.acceptCalls())).toEqual([
       { shipping_destination: null, tracking_number: 'CORRECTED123' },
     ]);
+  });
+});
+
+describe('cancelled order refund recovery', () => {
+  it('keeps the exact refund request after a lost response and reopening the order', async () => {
+    await open();
+    const cancelled = { ...order('account-a', 'INV-REFUND', 'Refund buyer'), status: 'Void', payment_status: 'paid', refund_required: true, refunded_usd: 0, refund_due_usd: 27.5,
+      payment: { total_usd: 27.5, paid_usd: 27.5, outstanding_usd: 0, claims_pending: 0, pay_url: null } };
+    const show = async () => {
+      await expect.poll(() => page.evaluate(() => (window as any).ordersViewTest.orderAccounts().length)).toBe(1);
+      await page.evaluate(value => (window as any).ordersViewTest.resolveOrders(0, [value]), cancelled);
+      await page.getByRole('button', { name: 'INV-REFUND', exact: true }).click();
+      await expect.poll(() => page.evaluate(() => (window as any).ordersViewTest.itemAccounts().length)).toBe(1);
+      await page.evaluate(() => (window as any).ordersViewTest.resolveItems(0, [{ id: 'cup-line', custom_name: 'Cup', quantity: 1, quantity_unit: 'unit', price_at_sale: 27.5 }]));
+    };
+    await show();
+    await page.getByRole('button', { name: 'Record refund sent', exact: true }).click();
+    await expect.poll(() => page.getByText('Connection interrupted after recording').count()).toBe(1);
+    const first = await page.evaluate(() => (window as any).ordersViewTest.refundCalls()[0]);
+    expect(first.amount_usd).toBe(27.5);
+    expect(await page.getByLabel('Refund amount USD').isDisabled()).toBe(true);
+    expect(await page.getByText('1 pieces', { exact: true }).count()).toBe(1);
+    await page.evaluate(() => (window as any).ordersViewTest.mount());
+    await show();
+    expect(await page.getByLabel('Refund amount USD').isDisabled()).toBe(true);
+    await page.screenshot({ path: 'outputs/flow-repair-2026-10-28/refund-mobile.png', fullPage: true });
+    await page.getByRole('button', { name: 'Retry refund record', exact: true }).click();
+    await expect.poll(() => page.evaluate(() => (window as any).ordersViewTest.refundCalls().length)).toBe(2);
+    expect(await page.evaluate(() => (window as any).ordersViewTest.refundCalls()[1])).toEqual(first);
+    expect(await page.evaluate(() => localStorage.getItem('teajia_refund_retry:account-a:account-a-invoice'))).toBeNull();
+    expect(await page.getByRole('button', { name: 'Record payment', exact: true }).count()).toBe(0);
   });
 });

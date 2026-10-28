@@ -37,7 +37,7 @@ function writePendingInvoiceKey(accountId: string, key: string | null): void {
 }
 
 export type QuickInvoiceEligibilityStatus = 'loading' | 'ready' | 'error';
-type LinkedQuickInvoiceItem = Pick<QuickLineItem, 'name' | 'productId' | 'quantity' | 'price'>;
+type LinkedQuickInvoiceItem = Pick<QuickLineItem, 'name' | 'productId' | 'quantity' | 'price'> & Partial<Pick<QuickLineItem,'unit'>>;
 
 export interface EligibleQuickInvoiceSuggestion {
   productId: string;
@@ -55,12 +55,14 @@ export function buildEligibleQuickInvoiceSuggestions(
   const productsById = new Map(products.map(product => [product.id, product]));
   return eligibleRows.flatMap(eligibility => {
     const product = productsById.get(eligibility.product_id);
-    if (!product || product.status !== 'Active' || !isTeaType(product.type)) return [];
+    if (!product || product.status !== 'Active' || (!isTeaType(product.type) && product.type !== 'Teaware')) return [];
+    const physicalUnit = product.type === 'Teaware' ? 'unit' : 'g';
+    if ((eligibility.quantity_unit ?? 'g') !== physicalUnit || !Number.isFinite(eligibility.available_quantity) || eligibility.available_quantity < 0) return [];
     return [{
       productId: product.id,
       name: product.givenName || product.productName || eligibility.product_name,
-      unit: 'g' as const,
-      price: Math.max(product.pricePerGramUSD ?? 0, eligibility.price_floor ?? 0),
+      unit: (physicalUnit === 'unit' ? 'pcs' : 'g') as 'pcs' | 'g',
+      price: Math.max(product.fixedRetailPriceUSD ?? product.pricePerGramUSD ?? 0, eligibility.price_floor ?? 0),
       product,
       eligibility,
     }];
@@ -71,8 +73,10 @@ const compactNumber = (value: number) => Number.isInteger(value) ? String(value)
 
 export function quickInvoiceStockLabel(row: EligibleSalesProduct): string {
   const owner = row.owner_id ? (row.owner_name || 'Stock owner') : 'House stock';
-  const floor = row.price_floor == null ? '' : ` · floor $${row.price_floor.toFixed(2)}/g`;
-  return `${owner} · ${compactNumber(row.available_quantity)}g available${floor}`;
+  const unit = row.quantity_unit === 'unit' ? ' pieces' : 'g';
+  const priceUnit = row.quantity_unit === 'unit' ? 'piece' : 'g';
+  const floor = row.price_floor == null ? '' : ` · floor $${row.price_floor.toFixed(2)}/${priceUnit}`;
+  return `${owner} · ${compactNumber(row.available_quantity)}${unit} available${floor}`;
 }
 
 export function validateQuickInvoiceLinkedItems(
@@ -89,8 +93,13 @@ export function validateQuickInvoiceLinkedItems(
   for (const item of linked) {
     const row = eligibleById.get(item.productId!);
     if (!row) return `${item.name} is no longer eligible for linked stock. Choose an eligible product or remove the line.`;
+    const pieces=row.quantity_unit==='unit';
+    if (item.unit && item.unit !== (pieces?'pcs':'g')) return `${item.name} is counted in ${pieces?'pieces':'grams'}. Keep its linked stock unit unchanged.`;
+    if (!Number.isFinite(item.quantity) || item.quantity <= 0) return `${item.name} needs a positive quantity.`;
+    if (pieces && !Number.isInteger(item.quantity)) return `${item.name} needs a whole number of pieces.`;
+    if (!Number.isFinite(item.price) || item.price < 0) return `${item.name} needs a valid price.`;
     if (row.price_floor != null && item.price < row.price_floor) {
-      return `${item.name} must be priced at $${row.price_floor.toFixed(2)}/g or above.`;
+      return `${item.name} must be priced at $${row.price_floor.toFixed(2)}/${pieces?'piece':'g'} or above.`;
     }
   }
 
@@ -103,7 +112,8 @@ export function validateQuickInvoiceLinkedItems(
   for (const [productId, total] of quantities) {
     const available = eligibleById.get(productId)!.available_quantity;
     if (total.quantity > available) {
-      return `${total.name} has ${compactNumber(available)}g available; this invoice links ${compactNumber(total.quantity)}g.`;
+      const unit = eligibleById.get(productId)!.quantity_unit === 'unit' ? ' pieces' : 'g';
+      return `${total.name} has ${compactNumber(available)}${unit} available; this invoice links ${compactNumber(total.quantity)}${unit}.`;
     }
   }
   return null;
@@ -166,6 +176,7 @@ function buildInvoiceCreatePayload(input: {
       product_id: item.productId ?? null,
       custom_name: item.productId ? null : (item.name.trim() || 'Item'),
       quantity: item.quantity,
+      quantity_unit: item.unit === 'pcs' ? 'unit' as const : 'g' as const,
       price_at_sale: item.price,
     })),
   };
@@ -278,8 +289,8 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
             name: item.name,
             productId: item.productId,
             quantity: item.quantity ?? (isTeaware ? 1 : 10),
-            unit: item.unit ?? (isTeaware ? 'pcs' : 'g'),
-            price: item.price ?? product?.pricePerGramUSD ?? 0,
+            unit: product ? (isTeaware ? 'pcs' : 'g') : item.unit ?? 'g',
+            price: item.price ?? product?.fixedRetailPriceUSD ?? product?.pricePerGramUSD ?? 0,
           };
         }));
       } else {
@@ -459,7 +470,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
         const name = item.product_id
           ? (item.given_name || item.product_name || item.custom_name || '')
           : (item.custom_name || '');
-        const unit: 'g' | 'pcs' = product ? (product.type === 'Teaware' ? 'pcs' : 'g') : 'g';
+        const unit: 'g' | 'pcs' = item.quantity_unit === 'unit' ? 'pcs' : item.quantity_unit === 'g' ? 'g' : product?.type === 'Teaware' ? 'pcs' : 'g';
         return {
           localId: crypto.randomUUID(),
           name,
@@ -491,6 +502,9 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
     if (!retry && lineItems.some(i => !i.name.trim())) {
       showToast('All items need a name', 'error');
       return;
+    }
+    if (!retry && lineItems.some(item=>!Number.isFinite(item.quantity)||item.quantity<=0||!Number.isFinite(item.price)||item.price<0)) {
+      showToast('Enter a positive quantity and a valid price for each item.', 'error'); return;
     }
     const linkedValidation = retry ? null : validateQuickInvoiceLinkedItems(lineItems, scopedEligibilityStatus, verifiedEligibleProducts);
     if (linkedValidation) {
@@ -807,9 +821,9 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                 </div>
               )}
               {scopedEligibilityStatus === 'ready' && eligibleSuggestions.length === 0 && (
-                <p role="status" aria-live="polite" className="mb-3 rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-11 text-tea-text-sec">No eligible linked tea inventory. Custom items are still available.</p>
+                <p role="status" aria-live="polite" className="mb-3 rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-11 text-tea-text-sec">No eligible linked inventory. Custom items are still available.</p>
               )}
-              <p className="mb-3 text-ui-10 text-tea-text-dim">Linked stock is limited to active tea. Add Teaware only as a custom line; it will not link to or deduct stock.</p>
+              <p className="mb-3 text-ui-10 text-tea-text-dim">Linked tea uses grams. Linked teaware uses whole pieces. Custom lines remain separate from stock.</p>
 
               <div className="space-y-0">
                 {lineItems.map((item, index) => (
@@ -894,7 +908,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                                     <span className="block truncate font-serif text-tea-text">{p.name}</span>
                                     <span className="mt-0.5 block text-ui-10 text-tea-text-dim">{quickInvoiceStockLabel(p.eligibility)}</span>
                                   </span>
-                                  <span className="shrink-0 tabular-nums text-tea-text-sec">${p.price.toFixed(2)}/g</span>
+                                  <span className="shrink-0 tabular-nums text-tea-text-sec">${p.price.toFixed(2)}/{p.unit === 'pcs' ? 'piece' : 'g'}</span>
                                 </button>
                               ))}
                             </div>
@@ -916,24 +930,29 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                         {/* Qty / Unit / Price, compact row below name */}
                         <div className="flex items-center gap-2 mt-2.5">
                           <input
-                            type="number" min={0} step={1}
+                            type="number" min={0} step={item.unit === 'pcs' ? 1 : 'any'}
+                            aria-label={item.unit === 'pcs' ? 'Quantity (pieces)' : 'Quantity (grams)'}
                             value={item.quantity}
                             onChange={e => updateItem(item.localId, { quantity: Number(e.target.value) || 0 })}
                             className="w-14 bg-tea-surface border border-tea-border rounded-xl px-2 py-1 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors num text-center"
                           />
                           <select
                             value={item.unit}
+                            aria-label="Line unit"
+                            disabled={Boolean(item.productId)}
+                            title={item.productId ? 'Linked stock keeps its physical unit' : undefined}
                             onChange={e => updateItem(item.localId, { unit: e.target.value as 'g' | 'pcs' })}
                             className="bg-tea-surface border border-tea-border rounded-xl px-2 py-1 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors"
                           >
                             <option value="g">g</option>
-                            <option value="pcs">pcs</option>
+                            <option value="pcs">pieces</option>
                           </select>
                           <span className="text-tea-text-dim text-xs select-none">×</span>
                           <div className="relative flex-1">
                             <span className="absolute left-2 top-1/2 -translate-y-1/2 text-tea-text-dim text-xs pointer-events-none">$</span>
                             <input
                               type="number" min={0} step={0.01}
+                              aria-label={item.unit === 'pcs' ? 'Price per piece (USD)' : 'Price per gram (USD)'}
                               value={item.price}
                               onChange={e => updateItem(item.localId, { price: Number(e.target.value) || 0 })}
                               className="w-full bg-tea-surface border border-tea-border rounded-xl pl-5 pr-2 py-1 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors num"
