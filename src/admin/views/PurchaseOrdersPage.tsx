@@ -7,6 +7,7 @@ import { api, PurchaseOrder } from '../../lib/api';
 import { useProducts, useCustomers } from '../hooks/useAdminData';
 import { useToast } from '../components/Toast';
 import { IncomingReceiptsPanel } from '../components/inventory/IncomingReceiptsPanel';
+import { PurchaseTrackingView } from '../components/inventory/PurchaseTrackingView';
 import { refreshCommerceQueries } from '../../lib/refreshCommerce';
 
 const PO_STATUSES = ['pending', 'ordered', 'received', 'cancelled'] as const;
@@ -103,7 +104,7 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-priority flex items-end sm:items-center justify-center bg-tea-bg/80 backdrop-blur-md"
+      className="fixed inset-0 z-modal flex items-end sm:items-center justify-center bg-tea-bg/80 backdrop-blur-md"
       onClick={onClose}
     >
       <motion.div
@@ -223,7 +224,7 @@ const MatchPurchaseLines: React.FC<{po:PurchaseOrder;onClose:()=>void;onPrepared
   const {data:products=[]}=useProducts();
   const legacyIntake=String((po as PurchaseOrder & {create_request_key?:string}).create_request_key || '').startsWith('intake:');
   const [lines,setLines]=useState<Array<Record<string,any>>>(()=>{try{return JSON.parse(po.items_json).map((item:Record<string,any>)=>({...item,product_id:item.product_id||'',product_name:item.product_name||item.name||'Unnamed item',quantity:item.quantity??item.quantity_grams??0,unit:item.unit||'g'}))}catch{return []}});
-  const [saving,setSaving]=useState(false),[error,setError]=useState(legacyIntake?'Stock was already recorded by this intake. Link its original stock entry to review the purchase without adding stock again.':'Match each purchase line to its holding and confirm how much was ordered.');
+  const [saving,setSaving]=useState(false),[error,setError]=useState(legacyIntake?'Stock was already recorded by this intake. Link its original stock entry to review the purchase without adding stock again.':'Match each invoice item to Stock and confirm the ordered quantity. This does not receive stock.');
   const valid=lines.length>0&&lines.every(line=>(!legacyIntake||line.source_movement_id)&&line.product_id&&Number.isFinite(Number(line.quantity))&&Number(line.quantity)>0&&(line.unit!=='unit'||Number.isInteger(Number(line.quantity))));
   const update=(index:number,patch:Record<string,unknown>)=>setLines(current=>current.map((line,i)=>i===index?{...line,...patch}:line));
   async function prepare(){
@@ -235,14 +236,14 @@ const MatchPurchaseLines: React.FC<{po:PurchaseOrder;onClose:()=>void;onPrepared
     }catch(cause){setError(cause instanceof Error?cause.message:'Receipt could not be prepared. Try again.')}finally{setSaving(false)}
   }
   return <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg/80 p-3"><section role="dialog" aria-modal="true" aria-label="Match purchase lines" className="w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-xl border border-tea-border bg-tea-surface p-4 pb-nav-gap space-y-3">
-    <h2 className="h2">{legacyIntake?'Review':'Receive'} {po.vendor_name}</h2><p role="alert" className="text-ui-12 text-tea-text-sec">{error}</p>
+    <h2 className="h2">{legacyIntake?'Link recorded stock':'Match purchase items'} · {po.vendor_name}</h2><p role="alert" className="text-ui-12 text-tea-text-sec">{error}</p>
     {lines.map((line,index)=><div key={index} className="space-y-2 border-b border-tea-border py-2"><p className="text-ui-13 text-tea-text">{line.product_name}</p><div className="flex flex-wrap gap-2"><select aria-label={`Holding for line ${index+1}`} disabled={saving} value={line.product_id} onChange={event=>{const product=products.find(item=>item.id===event.target.value);update(index,{product_id:event.target.value,product_name:product?.givenName||product?.productName||line.product_name,unit:product?.type==='Teaware'?'unit':'g',source_movement_id:undefined})}} className="admin-input min-w-0 flex-1"><option value="">Choose holding</option>{products.map(product=><option key={product.id} value={product.id}>{product.givenName||product.productName}</option>)}</select><label className="text-ui-12 text-tea-text-sec"><input aria-label={`Quantity for line ${index+1}`} disabled={saving} type="number" min="0" step={line.unit==='unit'?1:'any'} value={line.quantity} onChange={event=>update(index,{quantity:event.target.value,source_movement_id:undefined})} className="admin-input w-24"/>{line.unit==='unit'?' units':' g'}</label></div>{legacyIntake&&<OriginalStockMovement productId={line.product_id} quantity={Number(line.quantity)} value={line.source_movement_id || ''} onChange={id=>update(index,{source_movement_id:id})}/>}</div>)}
-    <div className="flex flex-wrap justify-end gap-2"><button type="button" disabled={saving} onClick={onClose} className="tap-target px-3 text-ui-13 text-tea-text-sec">Cancel</button><button type="button" disabled={saving||!valid} onClick={()=>void prepare()} className="tap-target rounded-md cta-solid px-4 py-2 text-ui-13 disabled:opacity-50">{saving?'Preparing…':legacyIntake?'Link recorded stock':'Continue to receiving'}</button></div>
+    <div className="flex flex-wrap justify-end gap-2"><button type="button" disabled={saving} onClick={onClose} className="tap-target px-3 text-ui-13 text-tea-text-sec">Cancel</button><button type="button" disabled={saving||!valid} onClick={()=>void prepare()} className="tap-target rounded-md cta-solid px-4 py-2 text-ui-13 disabled:opacity-50">{saving?'Preparing…':legacyIntake?'Link recorded stock':'Save matches'}</button></div>
   </section></div>;
 };
 
 // ── Main Page ──
-export const PurchaseOrdersPage: React.FC = () => {
+export const LegacyPurchaseOrdersPage: React.FC = () => {
   const { showToast } = useToast();
   const [searchParams]=useSearchParams();
   const reviewId=searchParams.get('purchaseId');
@@ -403,3 +404,7 @@ export const PurchaseOrdersPage: React.FC = () => {
     </div>
   );
 };
+
+/** Purchase entry points share the tracking view; manual forms remain available as fallbacks. */
+export const PurchaseOrdersPage: React.FC = () => <PurchaseTrackingView NewForm={NewPoForm} MatchForm={MatchPurchaseLines}/>;
+export { NewPoForm, MatchPurchaseLines };

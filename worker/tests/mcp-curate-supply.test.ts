@@ -138,14 +138,19 @@ describe('"I want one kilo of it"', () => {
     expect(result.committed).toBe(true);
 
     const po = db.sqlite.prepare('SELECT * FROM purchase_orders').get() as R;
-    expect(po).toMatchObject({ vendor_name: 'Yee On Tea', status: 'pending', display_currency: 'HKD', total_usd: 128.21 });
+    expect(po).toMatchObject({ vendor_name: 'Yee On Tea', status: 'ordered', display_currency: 'HKD', total_usd: 128.21 });
     expect(po.message_text).toMatch(/熟普洱/);
     expect(po.notes).toBeNull();
     expect(JSON.parse(po.freight_estimate_json).landed_estimate_usd).toBeCloseTo(161.52, 2);
     expect(JSON.parse(po.items_json)[0]).toMatchObject({ product_name: 'Deep Forest', quantity_grams: 1000, compass_entry_id: tea.id });
 
-    const arrival = db.sqlite.prepare('SELECT * FROM curate_receipt_proposals').get() as R;
-    expect(arrival).toMatchObject({ compass_entry_id: tea.id, quantity: 1000, unit: 'g', status: 'pending', acquisition_kind: 'purchase', product_name: 'Deep Forest' });
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM curate_receipt_proposals').get()).toEqual({n:0});
+    const arrival = db.sqlite.prepare('SELECT * FROM inventory_receipts WHERE id=?').get(po.receipt_id) as R;
+    expect(arrival).toMatchObject({state:'ordered',transport_mode:'sea',source_kind:'purchase_order',source_ref:po.id});
+    const line = db.sqlite.prepare('SELECT * FROM inventory_receipt_lines WHERE receipt_id=?').get(po.receipt_id) as R;
+    expect(line).toMatchObject({expected_quantity:1000,received_quantity:0,unit:'g',original_cost_amount:1000,original_cost_currency:'HKD'});
+    expect(db.sqlite.prepare('SELECT stock_grams,cost_amount,cost_currency,shipping_rate_per_kg,markup_multiplier,shown_in_shop FROM products WHERE id=?').get(line.product_id)).toEqual({stock_grams:0,cost_amount:1000,cost_currency:'HKD',shipping_rate_per_kg:null,markup_multiplier:null,shown_in_shop:0});
+    expect(result.receipt_id).toBe(po.receipt_id);
 
     expect(db.sqlite.prepare('SELECT decision, status, buy_quantity_grams FROM tea_compass_entries WHERE id = ?').get(tea.id))
       .toEqual({ decision: 'selected', status: 'buying', buy_quantity_grams: 1000 });

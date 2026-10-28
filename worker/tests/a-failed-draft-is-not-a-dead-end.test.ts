@@ -64,7 +64,7 @@ async function tool(db: SqliteD1, name: string, args: Record<string, unknown>, e
     method: 'POST',
     headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } }),
-  }), { DB: asyncD1(db), ...env } as any);
+  }), { DB: asyncD1(db), inventoryReceipts: { receiveImport: async () => { throw new Error('An in-transit invoice must not receive stock'); } }, ...env } as any);
   const body = await response.json() as any;
   if (body.error) throw new Error(`${name}: ${JSON.stringify(body.error)}`);
   return JSON.parse(body.result.content[0].text);

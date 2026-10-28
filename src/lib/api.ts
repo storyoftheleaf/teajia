@@ -1,3 +1,4 @@
+import type { InventoryReceipt } from '../admin/types';
 import { createServiceAvailabilityGuard, shouldReportServiceIncident } from './serviceAvailability';
 import type { ShippingRoute } from '../components/shared/routeFreight';
 import type { SupplierFreightBill, SupplierRenamePreview } from '../components/shared/supplierSheetTypes';
@@ -556,12 +557,54 @@ export interface PublicShelf {
   items: PublicShelfItem[];
 }
 
+export interface PurchaseArrivalHistory {
+  id: string;
+  line_id: string;
+  product_id: string;
+  quantity: number;
+  unit: 'g' | 'unit';
+  balance_after: number;
+  recorded_at: string;
+  recorded_by: string | null;
+  note: string | null;
+}
+
+/** The same tracking read model returned to agents and the purchase screen. */
+export interface PurchaseTrackingRow {
+  id: string;
+  invoice_draft?: {
+    id: string;
+    title: string | null;
+    item_count: number;
+    created_at: string;
+    analysis_state: string;
+    review_state: string;
+  } | null;
+  purchase: PurchaseOrder | null;
+  receipt: InventoryReceipt | null;
+  attention: Array<{ code: string; message: string }>;
+  arrival_proposal?: {
+    id: string;
+    vendor_name?: string | null;
+    product_name?: string | null;
+    quantity?: number;
+    unit?: string;
+    status?: string;
+    arrival_state?: string;
+  } | null;
+  history: PurchaseArrivalHistory[];
+  source_document: { import_id: string; title: string | null } | null;
+}
+
 export interface PurchaseOrder {
   id: string;
   account_id: string;
   vendor_name: string;
   vendor_id?: string | null;
   vendor_contact?: string | null;
+  receipt_id?: string | null;
+  po_number?: string | null;
+  create_request_key?: string | null;
   items_json: string; // JSON string of line items
   /** Null when the order could not be converted to dollars (no rate, or a tea with no price yet). */
   total_usd: number | null;
@@ -2281,6 +2324,7 @@ export const api = {
   },
 
   purchaseOrders: {
+    tracking: (): Promise<{ rows: PurchaseTrackingRow[] }> => authedFetch(`${API_URL}/api/purchase-orders/tracking`),
     list: async (): Promise<PurchaseOrder[]> => {
       return authedFetch(`${API_URL}/api/purchase-orders`)
     },

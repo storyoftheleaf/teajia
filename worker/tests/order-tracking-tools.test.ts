@@ -37,6 +37,29 @@ describe('order tracking for agents', () => {
     expect(r.orders[0].teas).toEqual(['1958 Aged Raw']);
   });
 
+  it('includes invoice and agent purchases before shipment and excludes closed purchases', async () => {
+    const { env, po } = setup();
+    await po('invoice', 'ordered');
+    await po('agent', 'pending');
+    await po('cancelled', 'cancelled');
+    await po('received', 'received');
+    await po('foreign', 'ordered', 'acct-b');
+    const result = await call(env, 'list_orders_in_process', {});
+    expect(result.orders.map((order: any) => order.order_id).sort()).toEqual(['agent', 'invoice']);
+    expect(result.orders.find((order: any) => order.order_id === 'invoice')).toMatchObject({ step: 'Ordered', receipt_id: null });
+  });
+
+  it.each(['pending', 'ordered'])('can track a %s purchase without marking it received', async status => {
+    const { db, env, po } = setup();
+    await po('invoice', status);
+    const preview = await call(env, 'set_order_tracking', { order_id: 'invoice', tracking_number: 'AIR-123' });
+    expect(preview.confirmation_token).toEqual(expect.any(String));
+    const result = await call(env, 'set_order_tracking', { order_id: 'invoice', tracking_number: 'AIR-123', confirm: preview.confirmation_token });
+    expect(result.committed).toBe(true);
+    expect(await db.prepare("SELECT tracking_number, status FROM purchase_orders WHERE id = 'invoice'").first()).toEqual({tracking_number:'AIR-123',status:'shipped'});
+    expect(await db.prepare('SELECT count(*) AS count FROM stock_ledger').first()).toEqual({count:0});
+  });
+
   it('previews, then on confirm sets the number and marks it Shipped', async () => {
     const { db, env, po } = setup();
     await po('p1', 'sent');

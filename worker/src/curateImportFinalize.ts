@@ -36,7 +36,7 @@ export interface FinalizeReceiptLineInput {
   transportMode: string | null;
 }
 export interface FinalizeReceiptLine extends FinalizeReceiptLineInput { id: string; receiptId?: string }
-export interface FinalizeReceipt { id: string; groupId: string; lines: FinalizeReceiptLine[] }
+export interface FinalizeReceipt { id: string; groupId: string; lines: FinalizeReceiptLine[]; purchase_order_id?: string }
 export interface FinalizeResultReceipt extends FinalizeReceipt { vendorId: string; vendorName: string }
 export interface CurateFinalizeResult {
   batchId: string; idempotencyKey: string; journey: { id: string; name: string } | null; receipts: FinalizeResultReceipt[];

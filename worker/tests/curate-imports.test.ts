@@ -12,7 +12,7 @@ class ImportStatement {
   values: unknown[] = [];
   constructor(readonly sql: string, private db: ImportDb) {}
   bind(...values: unknown[]) { this.values = values; return this; }
-  private normalized() { return this.sql.replace(/\s+/g, ' ').trim().toLowerCase(); }
+  private normalized() { return this.sql.replace(/\s*=\s*\?/g, ' = ?').replace(/\s+/g, ' ').trim().toLowerCase(); }
   async first() {
     const sql = this.normalized();
     if (sql.includes('select platform_role from users')) return { platform_role: null };
@@ -26,6 +26,9 @@ class ImportStatement {
     if (sql.includes('from products') && sql.includes('source_compass_entry_id = ?')) {
       return [...this.db.products.values()].find(row => row.account_id === this.values[0] && row.source_compass_entry_id === this.values[1]) ?? null;
     }
+    if (sql.includes('from purchase_orders') && sql.includes('create_request_key = ?')) return [...this.db.purchases.values()].find(row => row.account_id === this.values[0] && row.create_request_key === this.values[1]) ?? null;
+    if (sql.includes('from purchase_orders') && sql.includes('receipt_id = ?')) return [...this.db.purchases.values()].find(row => row.receipt_id === this.values[0] && row.account_id === this.values[1]) ?? null;
+    if (sql.includes('from curate_import_receipts')) return [...this.db.importReceipts.values()].find(row => row.account_id === this.values[0] && row.vendor_group_id === this.values[1]) ?? null;
     const table = this.db.tableFor(sql);
     if (table && sql.includes('where id = ?')) {
       const row = table.get(String(this.values[0]));
@@ -42,7 +45,8 @@ class ImportStatement {
     // These are single-row lookups even when the budgeted adapter uses all()
     // to retain D1 read metadata. Keep the list filtering below unchanged.
     if (sql.includes('where id = ?') || sql.includes('client_idempotency_key = ?')
-      || sql.includes('client_evidence_id = ?') || sql.includes('source_compass_entry_id = ?')) {
+      || sql.includes('client_evidence_id = ?') || sql.includes('source_compass_entry_id = ?')
+      || sql.includes('from purchase_orders') || sql.includes('from curate_import_receipts')) {
       const row = await this.first();
       return { results: row == null ? [] : [row] };
     }
@@ -52,6 +56,11 @@ class ImportStatement {
       return { results: row == null ? [] : [row] };
     }
     let rows = [...table.values()];
+    if (sql.includes('receipt_id = ?')) rows = rows.filter(row => row.receipt_id === this.values[0]);
+    if (sql.includes('join products p')) rows = rows.flatMap(row => {
+      const product = this.db.products.get(String(row.product_id));
+      return product?.account_id === row.account_id ? [{ ...row, product_name: product.product_name }] : [];
+    });
     if (sql.includes('batch_id = ?')) rows = rows.filter(row => row.batch_id === this.values[0]);
     if (sql.includes('batch_id = ?') && sql.includes('account_id = ?')) rows = rows.filter(row => row.account_id === this.values[1]);
     else if (sql.includes('account_id = ?') && sql.includes('user_id = ?')) rows = rows.filter(row => row.account_id === this.values[0] && row.user_id === this.values[1]);
@@ -279,7 +288,15 @@ class ImportDb {
   customers = new Map<string, Row>();
   journeys = new Map<string, Row>();
   visits = new Map<string, Row>();
+  receipts = new Map<string, Row>();
+  receiptLines = new Map<string, Row>();
+  importReceipts = new Map<string, Row>();
+  purchases = new Map<string, Row>();
   tableFor(sql: string) {
+    if (sql.includes('inventory_receipt_lines')) return this.receiptLines;
+    if (sql.includes('inventory_receipts')) return this.receipts;
+    if (sql.includes('curate_import_receipts')) return this.importReceipts;
+    if (sql.includes('purchase_orders')) return this.purchases;
     if (sql.trimStart().startsWith('delete from customers')) return this.customers;
     if (sql.includes('curate_import_sources')) return this.sources;
     if (sql.includes('curate_import_items')) return this.items;
@@ -294,7 +311,7 @@ class ImportDb {
   }
   prepare(sql: string) { return new ImportStatement(sql, this); }
   async batch(statements: ImportStatement[]) {
-    const snapshots = [this.batches, this.sources, this.items, this.compass, this.products, this.groups, this.customers, this.journeys, this.visits].map(table => new Map([...table].map(([id, row]) => [id, { ...row }])));
+    const snapshots = [this.batches, this.sources, this.items, this.compass, this.products, this.groups, this.customers, this.journeys, this.visits, this.receipts, this.receiptLines, this.importReceipts, this.purchases].map(table => new Map([...table].map(([id, row]) => [id, { ...row }])));
     try {
       this.inBatch = true;
       const results = [];
@@ -310,7 +327,7 @@ class ImportDb {
     catch (error) {
       this.inBatch = false;
       this.pendingVendorTerminalization = null;
-      [this.batches, this.sources, this.items, this.compass, this.products, this.groups, this.customers, this.journeys, this.visits] = snapshots;
+      [this.batches, this.sources, this.items, this.compass, this.products, this.groups, this.customers, this.journeys, this.visits, this.receipts, this.receiptLines, this.importReceipts, this.purchases] = snapshots;
       throw error;
     }
   }
@@ -455,10 +472,11 @@ describe('Curate import provenance API', () => {
     const { batch, items } = await created.json() as any;
     const item = db.items.get(items[0].id)!;
     Object.assign(db.batches.get(batch.id)!, { review_state: 'reviewing', analysis_state: 'complete' });
+    db.customers.set('vendor-a', { id:'vendor-a',account_id:'account-a',name:'Vendor A',tags:'["vendor"]' });
     db.groups.set('group-a', { id: 'group-a', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'a', resolved_vendor_customer_id: 'vendor-a', vendor_name: 'Vendor A', vendor_tags: '["vendor"]' });
     Object.assign(item, {
       vendor_group_id: 'group-a',
-      parsed_data_json: JSON.stringify({ disposition: 'received', duplicateResolution: 'matched', proposedCompassEntryId: 'entry-a', proposedProductId: 'holding-stale', totalQuantityGrams: 100, packCount: 1, lineCost: 20, currency: 'USD', unitCost: 0.2, inventoryPurpose: 'working', blockingFields: [] }),
+      parsed_data_json: JSON.stringify({ disposition: 'in_transit', duplicateResolution: 'matched', proposedCompassEntryId: 'entry-a', proposedProductId: 'holding-stale', totalQuantityGrams: 100, packCount: 1, lineCost: 20, currency: 'USD', unitCost: 0.2, inventoryPurpose: 'working', blockingFields: [] }),
     });
     db.compass.set('entry-a', { id: 'entry-a', account_id: 'account-a', user_id: 'user-a', category: 'tea', name: 'Tea' });
     db.products.set('holding-stale', { id: 'holding-stale', account_id: 'account-a', type: 'Oolong', inventory_purpose: 'working', source_compass_entry_id: 'entry-other' });
@@ -474,6 +492,8 @@ describe('Curate import provenance API', () => {
     db.products.get('holding-stale')!.source_compass_entry_id = 'entry-a';
     const retried = await request(db, `/api/curate/imports/${batch.id}/finalize`, { method: 'POST', body: JSON.stringify({ idempotency_key: 'finish-stale' }) });
     expect(retried.status).toBe(200);
+    expect(db.purchases).toHaveLength(1);
+    expect([...db.purchases.values()][0]).toMatchObject({ receipt_id:[...db.receipts.keys()][0],status:'ordered' });
     expect(db.products).toHaveLength(1);
     expect(db.compass).toHaveLength(1);
     const conflicting = await request(db, `/api/curate/imports/${batch.id}/finalize`, { method: 'POST', body: JSON.stringify({ idempotency_key: 'different-key' }) });
@@ -538,13 +558,14 @@ describe('Curate import provenance API', () => {
     const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Canonical finalization', items: [{ name: 'Canonical Aged Liu Bao', raw_text: 'WRONG RAW TEXT' }] }) });
     const { batch, items } = await created.json() as any;
     Object.assign(db.batches.get(batch.id)!, { review_state: 'reviewing', analysis_state: 'complete' });
+    db.customers.set('vendor-canonical', { id:'vendor-canonical',account_id:'account-a',name:'Canonical Vendor',tags:'["vendor"]' });
     db.groups.set('group-canonical', { id: 'group-canonical', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'canonical', resolved_vendor_customer_id: 'vendor-canonical', vendor_name: 'Canonical Vendor', vendor_tags: '["vendor"]' });
     db.items.get(items[0].id)!.vendor_group_id = 'group-canonical';
     db.items.get(items[0].id)!.parsed_data_json = JSON.stringify({
       sourceExcerpt: '\u9648\u5e74\u516d\u5821\u8336380\u5143/500\u514b x1=380\u5143', englishName: 'Canonical Aged Liu Bao', originalName: '\u9648\u5e74\u516d\u5821\u8336', chineseName: '\u516d\u5821\u8336',
       category: 'tea', type: 'Dark', classification: 'post-fermented tea', form: 'basket', year: 2012,
       originCountry: 'China', originRegion: 'Guangxi', description: 'Traditional aged basket tea',
-      disposition: 'received', inventoryPurpose: 'working', duplicateResolution: 'new', proposedCompassEntryId: null, proposedProductId: null,
+      disposition: 'in_transit', inventoryPurpose: 'working', duplicateResolution: 'new', proposedCompassEntryId: null, proposedProductId: null,
       totalQuantityGrams: 500, packWeight: 500, weightUnit: 'g', packCount: 1, lineCost: 380, lineCostExact: '380', currency: 'CNY', unitCost: 0.76, unitCostExact: '0.76',
       vendorResolution: { kind: 'existing', vendorId: 'vendor-canonical', vendorName: 'Canonical Vendor' }, blockingFields: [],
     });
@@ -552,6 +573,8 @@ describe('Curate import provenance API', () => {
     const finalized = await request(db, `/api/curate/imports/${batch.id}/finalize`, { method: 'POST', body: JSON.stringify({ idempotency_key: 'canonical-key' }) });
 
     expect(finalized.status).toBe(200);
+    expect(db.purchases).toHaveLength(1);
+    expect([...db.purchases.values()][0]).toMatchObject({ receipt_id:[...db.receipts.keys()][0],status:'ordered' });
     const identity = [...db.compass.values()][0];
     expect(identity).toMatchObject({
       name: 'Canonical Aged Liu Bao', chinese_name: '\u516d\u5821\u8336', type: 'Dark', classification: 'post-fermented tea', form: 'basket', year: 2012,

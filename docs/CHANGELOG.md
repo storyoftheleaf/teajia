@@ -1,3 +1,7 @@
+## 2026-10-28: Agent-led invoices, arrivals and purchase tracking
+
+Invoice finalization and Curate ordering create connected purchases and expected receipts automatically. Agents can record partial or complete arrivals through MCP; repeat requests do not add stock twice, and Stock, arrival history and purchase status stay synchronized. Purchases combines incoming tracking with compact supplier rows, Coming/Received/Needs attention filters, read-only invoice evidence and secondary manual controls. Unfinished invoices and historical records needing evidence remain visible for review. Stock Incoming opens the same tracking screen. No new migration is required.
+
 ## 2026-10-28: Require structured AI replies for tea working material and descriptions
 
 The installed tea model could return malformed object keys in generic JSON mode, causing full-transcript reviews and description proposals to fail even after successful inference. Both tasks now provide explicit response schemas, including allowed working-note kinds, attribution/relevance and description source identities. Recognized Groq GPT-OSS models use their supported strict schema format; other configured models keep their existing JSON format. Exact source quotation and scope checks remain unchanged, and proposals still save nothing. Verified against the same installed model with invented description and 12,000-character transcript inputs, plus focused validation tests.
