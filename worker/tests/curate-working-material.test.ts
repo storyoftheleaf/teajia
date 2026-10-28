@@ -76,7 +76,10 @@ describe('complete transcript working material', () => {
     const proof = source('x'.repeat(25000));
     const { env, run } = provider(payload => { if (payload.part === 2) throw new Error('Provider unavailable'); return []; });
     await expect(workingMaterialForTeaRecord(env, scope, { entryId: 'shuixian', sources: [proof] })).rejects.toMatchObject({ code: 'working_material_provider_failed' });
-    expect(run).toHaveBeenCalledTimes(3);
+    // Three chunks, and the one that refuses is asked once more before the
+    // proposal fails (`installedTeaJson`). A second refusal is the answer, so
+    // the remaining chunks are still never sent.
+    expect(run).toHaveBeenCalledTimes(4);
   });
   it('refuses a foreign tea before sending any private data to AI', async () => {
     const proof = source(claim); const { env, run } = provider();
