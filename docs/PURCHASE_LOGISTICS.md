@@ -27,7 +27,9 @@ Supplier cost and freight retain their own currencies. A landed total appears on
 
 Purchases opens on compact supplier and shipment summaries. Filters show To logistics, At logistics, To studio, Received and Needs attention. A purchase split between locations shows both quantities. Unmanaged older deliveries retain their existing Coming/Received behavior.
 
-Open a shipment for contents, its original purchases, costs and packing details. Secondary edits and verified studio receiving remain behind small disclosures. Saved services, grouping and correction tools are available without turning the tracking screen into a permanent form.
+The browser is a complete operating path; no agent review is required. Check arrivals at logistics groups supplier parcels by company, with their inbound tracking numbers and checkboxes. Select all or choose individual purchases to mark them at the hub. Combine purchases offers the same selection controls and editable quantities; Mark selected ready creates a ready-to-send group without changing stock. Its outbound tracking and Mark sent to studio action are directly on the shipment card.
+
+Receive all at studio fills only outstanding quantities and opens a compact check grouped by purchase and inbound tracking. Uncheck a purchase or item, or adjust partial quantities, then Confirm received shows the exact grams/pieces being added immediately. Interrupted saves retain the same request for safe retry. Open a shipment for contents, its original purchases, costs and packing details. Secondary edits remain behind small disclosures. Saved services, grouping and correction tools are available without turning the tracking screen into a permanent form.
 
 The logistics-company filter exposes a contents list for goods going to or waiting at that hub, including goods reserved in a draft shipment. Each outbound shipment has its own contents list. Download CSV for quantities, paid prices/currencies, freight, estimated volumes, source links and tracking; download Photo list for a printable document. The user chooses where to send it. No automatic message is sent to the logistics company.
 

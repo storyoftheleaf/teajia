@@ -46,8 +46,8 @@ describe('consolidated logistics', () => {
     expect(html).toContain('Confirmed bill');
     expect(html).toContain('estimated split');
     expect(html).toContain('0.004');
-    expect(html).toContain('At logistics');
-    expect(html).not.toContain('Confirm verified quantities');
+    expect(html).toContain('Ready to send');
+    expect(html).not.toContain('Receive all at studio');
     expect(html).toContain('<details class="logistics-edit">');
   });
 });

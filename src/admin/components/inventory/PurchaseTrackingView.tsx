@@ -10,6 +10,7 @@ import { IncomingReceiptsPanel } from './IncomingReceiptsPanel';
 import { PurchaseInvoiceEvidence } from './PurchaseInvoiceEvidence';
 import type { LogisticsOrder, LogisticsTracking } from '../../../lib/logisticsTypes';
 import { LogisticsCreateShipment, LogisticsOrderFields, ManifestButtons, companyManifest } from './LogisticsControls';
+import { LogisticsArrivalGroups } from './LogisticsArrivalGroups';
 import { LogisticsServices } from './LogisticsServices';
 import { LogisticsShipmentCard } from './LogisticsShipmentCard';
 import { dueLabel, remainingOf, TRANSPORT_LABELS } from './incomingGroups';
@@ -118,7 +119,7 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
     if (busy) return;
     setBusy(true); setError('');
     try { await action(); await refresh(); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'The change could not be saved.'); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'The change could not be saved.'); await refresh(); }
     finally { setBusy(false); }
   };
   const matchPurchase = async (purchase: PurchaseOrder) => {
@@ -143,6 +144,7 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
     </div>
     {logisticsQuery.isError && <p role="alert" className="purchase-tracking-notice">Logistics tracking could not be refreshed.<button type="button" className="tap-target underline" onClick={() => void logisticsQuery.refetch()}>Try again</button></p>}
     {logistics && <LogisticsServices key={`services:${accountId}`} services={logistics.services || []} accountId={accountId} busy={busy} mutate={mutate}/> }
+    {logistics && <LogisticsArrivalGroups key={`arrivals:${accountId}`} orders={logistics.orders.filter(order => scoped.some(row => row.purchase?.id === order.purchase_id && !['received', 'cancelled', 'attention'].includes(purchaseTrackingStage(row))))} busy={busy} mutate={mutate}/> }
     {logistics && <LogisticsCreateShipment key={accountId} data={logistics} busy={busy} mutate={mutate}/>}
     {(error || isError) && <p role="alert" className="purchase-tracking-notice">{error || 'Purchases could not be refreshed.'}<button type="button" className="tap-target underline" onClick={() => void refetch()}>Try again</button></p>}
     {isPending && <p role="status" className="purchase-tracking-notice"><Loader2 size={16} className="animate-spin"/>Loading purchases…</p>}

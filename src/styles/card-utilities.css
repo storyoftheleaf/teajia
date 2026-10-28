@@ -6656,3 +6656,20 @@ body.cart-panel-open .commerce-dock {
  .logistics-line-summary>span { white-space:nowrap; }
  .logistics-line-summary>span:first-of-type { white-space:normal; }
 }
+.logistics-selection>.logistics-arrival-choice,.logistics-selection>.logistics-ready-choice { min-height:44px; padding:4px; cursor:pointer; }
+.logistics-arrival-choice input[type=checkbox],.logistics-ready-choice input[type=checkbox] { flex:0 0 16px; width:16px; }
+.logistics-arrival-choice>span:nth-child(2),.logistics-ready-choice>span:nth-child(2) { flex:1; min-width:0; overflow-wrap:anywhere; }
+.logistics-arrival-choice>span:last-child { white-space:nowrap; }
+.logistics-ready-choice { border-bottom:1px solid var(--tea-border); }
+.logistics-receive-open { flex-basis:100%; }
+.logistics-receive-line>label { display:flex; flex:1; flex-wrap:nowrap; align-items:center; gap:8px; min-width:0; }
+.logistics-receive-line>label>span { min-width:0; overflow-wrap:anywhere; }
+.logistics-receive-line input[type=number] { flex:0 0 5rem; width:5rem; }
+.logistics-receive-line input[type=checkbox] { flex:0 0 16px; width:16px; }
+.logistics-dispatch { padding:6px 10px; }
+.logistics-dispatch label { display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-width:0; }
+.logistics-dispatch input { min-width:0; width:190px; max-width:100%; min-height:32px; padding:4px 7px; border:1px solid var(--tea-border); border-radius:4px; background:var(--tea-bg); color:var(--tea-text); }
+@media (max-width:640px) {
+ .logistics-dispatch label { flex:1 1 180px; }
+ .logistics-dispatch input { flex:1 1 170px; }
+}

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../../lib/api';
-import { confirmStudioReceipt, readReceiveIntent } from './logisticsReceipt';
+import { confirmStudioReceipt, readReceiveIntent, remainingReceiptQuantities, selectedReceiptLines } from './logisticsReceipt';
 const values = new Map<string, string>();
 const storage = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value), removeItem: (key: string) => values.delete(key) };
 beforeEach(() => {
@@ -26,5 +26,25 @@ describe('studio receive recovery', () => {
     expect(result.recorded).toHaveLength(2);
     expect(readReceiveIntent('pending')).toBeNull();
     expect(fetchMock.mock.calls.map(([, init]) => JSON.parse(init.body))).toEqual([input, input]);
+  });
+});
+
+describe('selecting a studio arrival', () => {
+  const lines = [
+    { id: 'tea', quantity: 1000, received_quantity: 250, unit: 'g' },
+    { id: 'cups', quantity: 4, received_quantity: 1, unit: 'unit' },
+    { id: 'done', quantity: 2, received_quantity: 2, unit: 'unit' },
+  ] as import('../../../lib/logisticsTypes').LogisticsShipmentLine[];
+  it('receive all selects only the unreceived balance, never cumulative ordered quantities', () => {
+    const quantities = remainingReceiptQuantities(lines);
+    expect(quantities).toEqual({ tea: '750', cups: '3' });
+    expect(selectedReceiptLines(lines, quantities)).toEqual([{ line_id: 'tea', quantity: 750 }, { line_id: 'cups', quantity: 3 }]);
+  });
+  it('allows a checked subset and partial grams while rejecting stale or impossible quantities', () => {
+    expect(selectedReceiptLines(lines, { tea: '125.5', cups: '' })).toEqual([{ line_id: 'tea', quantity: 125.5 }]);
+    const invalid: Record<string, string>[] = [{ tea: '751' }, { cups: '0.5' }, { tea: '-1' }, { tea: 'NaN' }, { done: '1' }, { unknown: '1' }];
+    for (const quantities of invalid) {
+      expect(() => selectedReceiptLines(lines, quantities)).toThrow('Check the selected quantities');
+    }
   });
 });
