@@ -11,6 +11,7 @@ import { formPricingPreview } from './formPricingModel';
 export type FormPricingChanges = Partial<Pick<Product, 'type' | 'form' | 'costAmount' | 'quantityPurchased' | 'soldInWholeUnits'>> & { pieceWeightG?: number | null };
 export type SaveFormPricing = (changes: FormPricingChanges) => Promise<void>;
 const money = (value: number | null) => value === null ? '\u2014' : `$${value.toFixed(2)}`;
+const stockTypeName = (value: string) => value === 'Shou' ? 'Shou Puer' : value === 'Sheng' ? 'Sheng Puer' : value;
 const formLabel = (value: string) => value === 'Loose' || value === 'Loose Leaf' ? 'Loose leaf' : value;
 
 export function FormPricingSheet({ product, onSave, onClose }: { product: Product; onSave: SaveFormPricing; onClose: () => void }) {
@@ -18,8 +19,8 @@ export function FormPricingSheet({ product, onSave, onClose }: { product: Produc
   const freight = useShopFreightDefault();
   const rawForm = String(product.form || '');
   const initialForm = rawForm === 'Loose Leaf' ? 'Loose' : rawForm;
-  const [type, setType] = useState(product.type);
-  const types = [...new Set<string>([...TEA_TYPES, ...NON_TEA_TYPES, ...(type ? [type] : [])])];
+  const [type, setType] = useState(stockTypeName(product.type) as Product['type']);
+  const types = [...new Set<string>([...TEA_TYPES.map(stockTypeName), ...NON_TEA_TYPES, ...(type ? [type] : [])])];
   const [form, setForm] = useState(initialForm);
   const [weight, setWeight] = useState(product.pieceWeightG == null ? '' : String(product.pieceWeightG));
   const [cost, setCost] = useState(product.costAmount == null ? '' : String(product.costAmount));
@@ -42,7 +43,7 @@ export function FormPricingSheet({ product, onSave, onClose }: { product: Produc
       if (cost !== (product.costAmount == null ? '' : String(product.costAmount)) && (paid === null || paid < 0)) throw new Error('Enter the purchase cost. Zero means it was free.');
       if (purchaseGrams !== (product.quantityPurchased > 0 ? String(product.quantityPurchased) : '') && (basisGrams === null || basisGrams <= 0)) throw new Error('Enter the grams that the purchase cost covered, greater than zero.');
       const changes: FormPricingChanges = {};
-      if (type !== product.type) changes.type = type;
+      if (type !== stockTypeName(product.type)) changes.type = type;
       if (form !== initialForm) changes.form = form as Product['form'];
       if (pieceWeight !== (product.pieceWeightG ?? null)) changes.pieceWeightG = pieceWeight;
       if (paid !== (product.costAmount ?? null)) changes.costAmount = paid!;
