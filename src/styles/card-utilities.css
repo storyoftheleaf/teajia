@@ -6612,3 +6612,7 @@ body.cart-panel-open .commerce-dock {
   .tasting-session-surface .approved-taste-wheel.study-phone { display:grid; grid-template-columns:minmax(0,min(60dvh,400px)) minmax(180px,260px); align-items:center; justify-content:center; gap:20px; padding-bottom:0; }
   .tasting-session-surface .approved-taste-wheel[data-has-details=false] { grid-template-columns:minmax(0,min(60dvh,400px)); }
 }
+
+/* In type groups, use the repeated type slot for the tea's source. */
+.stock-view .stock-subtitle>.stock-source-label { max-width:130px; font-size:11px; }
+.stock-view .stock-record .stock-subtitle>.stock-source-label>span { color:var(--tea-text-dim)!important; }

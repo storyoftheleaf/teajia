@@ -102,6 +102,8 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await viewSheet.getByRole('button', { name: 'Cost', exact: true }).click();
   await viewSheet.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(row.locator('.stock-figures')).toContainText('Cost / g');
+  await expect(row.getByRole('button', { name: 'Source for Cloud Oolong: Cloud Mountain', exact: true })).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath('stock-type-source.png') });
   await page.getByRole('button', { name: 'View options', exact: true }).click();
   await viewSheet.getByLabel('Group by', { exact: true }).selectOption('vendor');
   await viewSheet.getByRole('button', { name: 'Retail', exact: true }).click();
