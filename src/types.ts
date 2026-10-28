@@ -33,7 +33,7 @@ export interface TastingData {
   cleanliness?: string;         // 'clean' | 'some-edge' | 'rough'
   basicTastes?: Array<'Sweet' | 'Bitter' | 'Sour / tart' | 'Umami' | 'Salty'>;
   huiGanIntensity?: number;     // 0 Not noticed, 1 Subtle, 2 Moderate, 3 Pronounced; absent means unrecorded
-  observationIntensity?: Record<string, 'Slight' | 'Moderate' | 'Strong'>;
+  observationIntensity?: Record<string, 1 | 2 | 3 | 4 | 5 | 'Slight' | 'Moderate' | 'Strong'>;
   huiGan?: boolean;             // 回甘 — Returning sweetness
   yun?: boolean;                // 韵 — Resonance / lingering character
   qi?: boolean;                 // 气 — Vitality / body energy

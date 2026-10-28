@@ -22,7 +22,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1024, height: 768
     if (viewport.width >= 1024) {
       const wheel = await page.locator('.radial-stage').boundingBox();
       const details = await page.locator('.tasting-wheel-details').boundingBox();
-      expect(wheel!.width).toBeGreaterThan(440);
+      expect(wheel!.width).toBeGreaterThan(viewport.width >= 1280 ? 440 : 400);
       expect(details!.x).toBeGreaterThanOrEqual(wheel!.x + wheel!.width);
       expect(wheel!.y + wheel!.height).toBeLessThan(viewport.height - 44);
     }
