@@ -413,7 +413,8 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       'GET /api/curate/journeys': { journeys: scopedContext?.journeys ?? (options?.contextEmpty ? [] : [{ id: 'journey-taiwan', account_id: 'acct-bali', name: 'Taiwan', season: 'Spring', year: 2026 }]) },
       'GET /api/curate/visits': { visits: scopedContext?.visits ?? (options?.contextEmpty ? [] : [{ id: 'visit-chen', account_id: 'acct-bali', journey_id: 'journey-taiwan', vendor_id: 'vendor-chen', vendor_name: 'Chen Family', place: 'Taipei' }]) },
       'GET /api/curate/imports': { imports: options?.imports ?? [] },
-      // Curate v2's Today: nothing from an agent, no to-dos, nothing on the way, Drive not linked.
+      'GET /api/curate/receipt-proposals': [],
+      // Curate v2's Today preserves its agent, to-do and Drive fixtures.
       'GET /api/curate/suggestions': { waiting: options?.agentSuggestions ?? [] },
       'GET /api/curate/todos': { todos: options?.todos ?? [] },
       'GET /api/curate/drive': options?.drive ?? { connected: false },

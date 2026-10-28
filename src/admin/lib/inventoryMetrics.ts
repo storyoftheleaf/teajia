@@ -31,10 +31,11 @@ import { canonicalCurrency, isUnrecordedCurrency, rateToUsd, type RateRow } from
 /** Everything these totals read off a product. */
 export interface ValuedProduct {
   status?: string | null;
-  costAmount: number;
+  costAmount: number | null;
   costCurrency: string | null;
   quantityPurchased: number;
   stockGrams: number;
+  quantityUnits?: number;
   pricePerGramUSD: number;
   fixedRetailPriceUSD?: number | null;
   originRegion?: string | null;
@@ -75,7 +76,8 @@ export function inventoryMetrics(
     // Archived stock is not on the shelf, so it is in none of these.
     if (p.status === 'Archived') continue;
 
-    const itemTotalRetailUSD = (p.fixedRetailPriceUSD ?? p.pricePerGramUSD) * p.stockGrams;
+    const onHand = p.type === 'Teaware' ? (p.quantityUnits ?? 0) : p.stockGrams;
+    const itemTotalRetailUSD = (p.fixedRetailPriceUSD ?? p.pricePerGramUSD) * onHand;
     totalRetailUSD += itemTotalRetailUSD;
 
     const region = p.originRegion || 'Unknown';
@@ -85,7 +87,7 @@ export function inventoryMetrics(
     typeValue[type] = (typeValue[type] || 0) + itemTotalRetailUSD;
 
     const rate = isUnrecordedCurrency(p.costCurrency) ? 1 : rateToUsd(rates, p.costCurrency);
-    if (rate === null) {
+    if (rate === null || p.costAmount == null) {
       const named = canonicalCurrency(p.costCurrency) || 'unknown';
       costlessCurrencies.set(named, (costlessCurrencies.get(named) ?? 0) + 1);
       continue;
@@ -94,7 +96,7 @@ export function inventoryMetrics(
     // Cost per gram in USD at today's rate, rather than at whatever the row was
     // computed against whenever it was last written.
     const validBatchWeight = p.quantityPurchased > 0 ? p.quantityPurchased : 1;
-    const itemTotalCostUSD = ((p.costAmount / validBatchWeight) / rate) * p.stockGrams;
+    const itemTotalCostUSD = ((p.costAmount / validBatchWeight) / rate) * onHand;
     totalCostUSD += itemTotalCostUSD;
 
     // Canonicalised, or 'CNY' and 'Yuan' split one pile of money into two lines

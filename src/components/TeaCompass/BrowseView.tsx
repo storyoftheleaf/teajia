@@ -8,6 +8,7 @@ import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompas
 import { LibraryCurrencyPicker } from './LibraryCurrencyPicker';
 import { sharedStockRecordId } from '../../lib/sharedTeaRecord';
 import { BrowseCard } from './BrowseCard';
+import { TastingSession } from '../tasting/TastingSession';
 import { LibrarySupplierActions } from './LibrarySupplierActions';
 import { librarySupplierGroups, libraryEntryChosen, libraryEntryRejected } from './librarySupplierGroups';
 import { useRates, useCustomers } from '../../admin/hooks/useAdminData';
@@ -127,6 +128,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   const purchases = useLibraryPurchases();
   const { data: suppliers = [] } = useCustomers();
   const [showRejected, setShowRejected] = useState(false);
+  const [activeTastingId, setActiveTastingId] = useState<string | null>(null);
   const [collapsedSuppliers, setCollapsedSuppliers] = useState<Set<string>>(() => new Set());
   const [localPreference, setLocalPreference] = useState(readLibraryPricePreference);
   const pricePreference = displayPreference ?? localPreference;
@@ -195,6 +197,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
       return name ? { ...entry, vendorName: name } : entry;
     });
   }, [entries, suppliers]);
+  const activeTasting = entries.find(entry => entry.id === activeTastingId);
   const scopedEntries = useMemo(() => resolvedEntries.filter(entry => !showTransferred || libraryEntryTransferred(entry, entryPossession)), [resolvedEntries, entryPossession, showTransferred]);
   const visibleScopeEntries = useMemo(() => scopedEntries.filter(entry => !libraryEntryRejected(entry)), [scopedEntries]);
   const rejectedEntries = useMemo(() => scopedEntries.filter(libraryEntryRejected), [scopedEntries]);
@@ -317,6 +320,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                 entry={entry}
                 stockProductId={sharedStockRecordId(entry, inventoryProducts)}
                 onEdit={onEditEntry}
+                onOpenTasting={setActiveTastingId}
                 tasteQueueActive={opts?.tasteQueueActive}
                 onSelect={onSelectEntry}
                 onOpenDetail={onOpenDetail}
@@ -715,6 +719,13 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         }}
       />
 
+      {/* The active tasting survives a saved tea leaving the To taste filter. */}
+      {activeTasting && <TastingSession key={activeTasting.id}
+        item={{ id: activeTasting.id, name: activeTasting.name, type: activeTasting.type, image: activeTasting.photos?.[0], sourceType: 'compass', compassEntryId: activeTasting.id }}
+        initialData={activeTasting.tasting ?? activeTasting.tastingHistory?.at(-1)?.data}
+        onClose={() => setActiveTastingId(null)}
+        onAfterSave={(data, verdict) => useTeaCompassStore.getState().updateEntry(activeTasting.id, { tasting: data, ...(verdict ? { verdict } : {}) })}
+      />}
       {/* Batch tasting review, full-screen triage of untriaged tastings */}
       {reviewOpen && (
         <SessionReview

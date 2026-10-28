@@ -294,7 +294,7 @@ export function normalizeCanonicalImportRecord(value: Record<string, unknown>): 
     currency: currency(value.currency ?? value.priceCurrency ?? value.price_currency),
     priceBasis: priceBasis(value.priceBasis ?? value.price_basis),
     lineCostExact: exactDecimal(value.lineCostExact ?? value.line_cost_exact ?? value.lineCost ?? value.buy_total),
-    unitCostExact: exactDecimal(value.unitCostExact ?? value.unit_cost_exact ?? value.unitCost ?? value.price_per_unit_grams),
+    unitCostExact: exactDecimal(value.unitCostExact ?? value.unit_cost_exact ?? value.unitCost),
     totalQuantityGrams,
     totalUnits,
     disposition: itemDisposition,
@@ -318,13 +318,16 @@ function resolvedVendor(record: CanonicalImportRecord): { id: string | null; nam
 
 export function canonicalImportToCompassValues(record: CanonicalImportRecord): Partial<Record<CompassColumn, unknown>> {
   const vendor = resolvedVendor(record);
-  // This column is the weight the quoted amount buys, not the computed money/g.
-  // Keep per-pack quotes separate from whole-line totals when several packs were bought.
-  const quoteGrams = record.category !== 'tea' ? null
-    : record.priceBasis === 'line_total' ? record.totalQuantityGrams
-    : record.priceBasis === 'per_pack' && (record.weightUnit === 'g' || record.weightUnit === 'kg')
-      ? exactProduct(record.packWeight, 1, record.weightUnit === 'kg' ? 1000n : 1n)
-      : null;
+  const gramsPerPack = record.packWeight != null && (record.weightUnit === 'g' || record.weightUnit === 'kg')
+    ? exactProduct(record.packWeight, 1, record.weightUnit === 'kg' ? 1000n : 1n) : null;
+  // Quote amount and quote weight share one explicit basis. Unknown sizes stay unknown.
+  const quote = record.category === 'teaware' || record.weightUnit === 'count'
+    ? { amount: record.unitCostExact ?? record.priceAmountExact, grams: null }
+    : record.priceBasis === 'per_pack' && gramsPerPack != null && gramsPerPack > 0
+      ? { amount: record.priceAmountExact, grams: gramsPerPack }
+      : record.priceBasis === 'line_total' && record.totalQuantityGrams != null && record.totalQuantityGrams > 0
+        ? { amount: record.priceAmountExact ?? record.lineCostExact, grams: record.totalQuantityGrams }
+        : { amount: record.priceAmountExact, grams: null };
   return present({
     name: record.englishName,
     chinese_name: record.chineseName ?? record.originalName,
@@ -341,9 +344,9 @@ export function canonicalImportToCompassValues(record: CanonicalImportRecord): P
     notes: record.processingNotes ?? record.sourceExcerpt,
     vendor_id: vendor.id,
     vendor_name: vendor.name,
-    price_amount: record.priceAmountExact,
+    price_amount: quote.amount,
     price_currency: record.currency,
-    price_per_unit_grams: quoteGrams != null && quoteGrams > 0 ? quoteGrams : null,
+    price_per_unit_grams: quote.grams,
     buy_quantity_grams: record.totalQuantityGrams,
     buy_quantity_units: record.totalUnits,
     buy_total: record.lineCostExact,

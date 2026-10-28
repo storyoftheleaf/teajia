@@ -84,6 +84,7 @@ interface TeaCompassState {
 
   // Session
   startNewCapture: (category?: CompassCategory) => string; // returns new entry ID
+  retainEntry: (id: string) => void;
   commitEntry: (id: string) => void; // finalize entry: if has content → moves to entries; else discards
   // Mint a fresh capture run (sessionId). Subsequent captures group under the
   // new id instead of continuing the previous sitting. Uses the existing
@@ -482,6 +483,12 @@ const createdTeaCompassStore = create<TeaCompassState>()(
 
       startNewRun: () => {
         set({ currentSessionId: crypto.randomUUID(), lastCaptureAt: Date.now() });
+      },
+
+      retainEntry: (id) => {
+        const pending = get().pendingEntries.find(entry => entry.id === id);
+        if (!pending || !entryHasDeliberateInput(pending)) return;
+        set(state => ({ entries: [pending, ...state.entries], pendingEntries: state.pendingEntries.filter(entry => entry.id !== id) }));
       },
 
       commitEntry: (id) => {

@@ -65,6 +65,12 @@ export const OrderShipping: React.FC<{
     }
   };
 
+  if (closed) return <section aria-label="Shipping" className="min-w-0 text-ui-13 text-tea-text-sec">
+    <h4 className={`${T.h3} text-tea-text mb-2`}>Shipping cancelled</h4>
+    {order.shipping_destination && <p className="break-words">{order.shipping_destination}</p>}
+    {order.tracking_number && <p className="break-words">Tracking: {order.tracking_number}</p>}
+  </section>;
+
   return (
     <section aria-label="Shipping" className="min-w-0">
       <h4 className={`${T.h3} text-tea-text mb-3`}>Shipping</h4>

@@ -28,6 +28,12 @@ api.invoices.getItems = (invoiceId) => new Promise((resolve, reject) => itemRequ
 // scoping, not money, so the panel gets an empty list rather than reaching the
 // network when the modal opens.
 api.invoices.getPayments = async () => [];
+const refundCalls: Array<Record<string, unknown>> = [];
+api.invoices.recordRefund = async (_id, input) => {
+  refundCalls.push(input);
+  if (refundCalls.length === 1) throw new Error('Connection interrupted after recording');
+  return { success: true, refund_required: false, refunded_usd: input.amount_usd };
+};
 // Accepting a draft. Every call is recorded so a test can read back what was
 // sent, and `refuseUnpricedOnce` makes the next one answer the way the server
 // does when the order still carries a line at no price.
@@ -80,4 +86,5 @@ function setAccount(id: string) {
   refuseUnpricedOnce(lines: string[]) { unpricedRefusals = lines; acceptCalls.length = 0; },
   acceptCalls: () => acceptCalls,
   failNextUpdate() { failNextUpdate = true; },
+  refundCalls: () => refundCalls,
 };

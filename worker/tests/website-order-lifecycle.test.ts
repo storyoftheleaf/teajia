@@ -184,9 +184,9 @@ describe('website order lifecycle', () => {
     const cancelled = await admin(db, 'shop-a', '/api/rpc/cancel-invoice', { invoice_id: paidId });
     expect(cancelled.status).toBe(200);
     expect(await cancelled.json()).toMatchObject({ success: true, refund_required: true });
-    expect(invoice(db, paidId)).toMatchObject({ status: 'Void', refund_required: 1, inventory_deducted: 1 });
+    expect(invoice(db, paidId)).toMatchObject({ status: 'Void', refund_required: 1, inventory_deducted: 0 });
     expect(ledger(db, paidId)).toMatchObject([{ status: 'confirmed', amount_usd: 14 }]);
-    expect(stock(db)).toBe(950);
+    expect(stock(db)).toBe(1000);
     expect((await admin(db, 'shop-a', '/api/rpc/ship-invoice', { invoice_id: paidId })).status).toBe(409);
   });
 

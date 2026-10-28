@@ -370,6 +370,7 @@ export const INVOICE_PAYMENT_STATUSES = ['unpaid', 'partial', 'paid'] as const;
 export type InvoicePaymentStatus = typeof INVOICE_PAYMENT_STATUSES[number];
 
 export interface RetailInvoiceLineInput {
+  quantity_unit?: 'g'|'unit';
   product_id: string | null;
   custom_name: string | null;
   quantity: number;
@@ -450,7 +451,8 @@ export function validateRetailInvoiceInput(input: unknown): RetailInvoiceInput {
       throw new RangeError(`lineItems[${index}].price_at_sale must be a number`);
     }
     requireNonNegative(`lineItems[${index}].price_at_sale`, line.price_at_sale);
-    return { product_id: productId, custom_name: customName, quantity: line.quantity, price_at_sale: line.price_at_sale };
+    if(line.quantity_unit!==undefined&&!['g','unit'].includes(String(line.quantity_unit)))throw new RangeError('Invalid line quantity unit');
+    return { product_id: productId, custom_name: customName, quantity: line.quantity, price_at_sale: line.price_at_sale,...(line.quantity_unit?{quantity_unit:line.quantity_unit as 'g'|'unit'}:{}) };
   });
 
   return {

@@ -176,6 +176,20 @@ test('site and tasting bars fold in sequence without moving the center', async (
   const tasting = page.getByRole('navigation', { name: 'Tasting sections' });
   const seal = tasting.getByRole('button', { name: 'Leave tasting' });
   const firstPosition = await seal.boundingBox();
+  await page.evaluate(() => {
+    for (const el of document.querySelectorAll('[data-testid="bottom-tab-bar"], .tasting-capsule-seal, .tasting-capsule-surface')) {
+      for (const animation of el.getAnimations()) { animation.pause(); animation.currentTime = 330; }
+    }
+  });
+  await expect(seal).toBeHidden();
+  await expect(tasting.locator('.tasting-capsule-surface')).toBeHidden();
+  await page.screenshot({ path: '/tmp/tasting-circle-handoff.png' });
+  await page.evaluate(() => {
+    for (const el of document.querySelectorAll('[data-testid="bottom-tab-bar"], .tasting-capsule-seal, .tasting-capsule-surface')) {
+      for (const animation of el.getAnimations()) animation.play();
+    }
+  });
+
   await expect(site).toHaveCSS('animation-name', 'tasting-site-fold');
   await expect(tasting.locator('.tasting-capsule-wing').first()).toHaveCSS('animation-delay', '0.92s');
   await expect(site).toBeHidden();
@@ -185,12 +199,37 @@ test('site and tasting bars fold in sequence without moving the center', async (
   expect(settled!.y).toBeCloseTo(firstPosition!.y, 1);
   await page.screenshot({ path: '/tmp/tasting-fold-open.png' });
   await seal.click();
-  await expect(tasting).toHaveClass(/is-closing/);
+  // Return opens the site bar directly; there is no preliminary tasting fold.
+  await expect(tasting).toHaveCount(0);
   await expect(tasting).toBeHidden();
   await expect(site).toHaveClass(/tasting-site-reopen/);
+  await expect(site.locator('.tasting-return-emblem')).toHaveCSS('animation-name', 'tasting-emblem-depart');
+  await site.evaluate(el => {
+    for (const animation of el.getAnimations({ subtree: true })) { animation.pause(); animation.currentTime = 220; }
+  });
+  const emblemOpacity = await site.locator('.tasting-return-emblem').evaluate(el => Number(getComputedStyle(el).opacity));
+  expect(emblemOpacity).toBeGreaterThan(0);
+  expect(emblemOpacity).toBeLessThan(1);
+  await page.screenshot({ path: '/tmp/tasting-emblem-fade.png' });
+  await site.evaluate(el => { for (const animation of el.getAnimations({ subtree: true })) animation.play(); });
+
   await expect(site.locator(':scope > div')).toHaveCSS('animation-delay', '0.5s');
   await expect(site.locator(':scope > div')).toHaveCSS('opacity', '1');
   await page.screenshot({ path: '/tmp/tasting-fold-return.png' });
+  await expect(page.locator('[data-center-leaving]')).toHaveCount(0);
+  await expect(site.locator('.tasting-return-emblem')).toHaveCSS('opacity', '0');
+  // Past the old 750ms cleanup: the original slide-up must never replay.
+  await page.waitForTimeout(850);
+  await expect(site).toHaveClass(/tasting-site-reopen/);
+  await expect(site).toHaveCSS('animation-name', 'tasting-capsule-open');
+  expect(await site.evaluate(el => el.getAnimations().filter(a => a.playState === 'running').length)).toBe(0);
+  await page.getByRole('button', { name: /tasting profile/i }).click();
+  await expect(site).not.toHaveClass(/tasting-site-reopen/);
+  await page.getByRole('button', { name: 'Love', exact: true }).click();
+  await seal.click();
+  await expect(page.getByRole('button', { name: 'Save and close', exact: true })).toBeVisible();
+  await expect(tasting).not.toHaveClass(/is-closing/);
+
 });
 
 test('visible header Save works from Effect and preserves the same tasting', async ({page}) => {
@@ -222,4 +261,17 @@ test('visible header Save works from Effect and preserves the same tasting', asy
     return state.getEntry(state.activeEntryId)?.tasting;
   })).toMatchObject({impression:'love',feeling:['calming']});
   await expectNoUnhandledCompassApi(page);
+});
+
+test('reduced motion skips the restored bar sequence', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installCompassHarness(page);
+  await openCompass(page);
+  await page.getByRole('button', { name: /tasting profile/i }).click();
+  const nav = page.getByRole('navigation', { name: 'Tasting sections' });
+  await expect(nav.locator('.tasting-capsule-surface')).toHaveCSS('animation-name', 'none');
+  await nav.getByRole('button', { name: 'Leave tasting' }).click();
+  await expect(nav).toBeHidden();
+  await expect(page.getByTestId('bottom-tab-bar')).toHaveCSS('animation-name', 'none');
 });

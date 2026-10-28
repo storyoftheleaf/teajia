@@ -1977,8 +1977,8 @@ async function commitRecordSale(
     authorized.id = lineId;
     stmts.push(env.DB.prepare(
       `INSERT INTO invoice_line_items
-       (id,account_id,invoice_id,product_id,quantity,price_at_sale,stock_owner_user_id,sales_grant_id,owner_share_type,owner_share_value)
-       VALUES (?,?,?,?,?,?,?,?,?,?)`
+       (id,account_id,invoice_id,product_id,quantity,price_at_sale,stock_owner_user_id,sales_grant_id,owner_share_type,owner_share_value,quantity_unit)
+       VALUES (?,?,?,?,?,?,?,?,?,?,'g')`
     ).bind(lineId, m.accountId, invoiceId, line.productId, line.grams, line.pricePerGramUsd,
       authorized.stock_owner_user_id, authorized.sales_grant_id, authorized.owner_share_type, authorized.owner_share_value));
   }
@@ -4849,6 +4849,7 @@ async function toolListPaymentClaims(env: Env, accountId: string, args: any) {
 // land in exactly the same place.
 
 interface ConvertedLine {
+  quantity_unit?:'g'|'unit';
   product_id: string | null;
   custom_name: string | null;
   quantity: number;
@@ -4897,13 +4898,14 @@ async function resolveOrderRequestLines(
     }
     // Same linking rule as the collection-picks path: teas stay linked to the
     // product row, teaware is carried as a named line.
-    const mayRemainLinked = isTeaType(String(product.type || ''));
+    const mayRemainLinked = isTeaType(String(product.type || ''))||product.type==='Teaware';
     const catalogPrice = product.fixed_retail_price_usd == null ? null : Number(product.fixed_retail_price_usd);
     const fallbackPrice = Number(item.pricePerGram);
     const price = catalogPrice != null && Number.isFinite(catalogPrice)
       ? catalogPrice
       : (Number.isFinite(fallbackPrice) && fallbackPrice >= 0 ? fallbackPrice : 0);
     return {
+      quantity_unit:product.type==='Teaware'?'unit':'g',
       product_id: mayRemainLinked ? (product.id as string) : null,
       custom_name: mayRemainLinked ? null : (product.product_name as string) || name,
       quantity,
@@ -5076,8 +5078,8 @@ async function commitConvertOrderRequest(env: Env, m: Extract<PendingMutation, {
   ].filter(Boolean).join('\n');
 
   const lineStmts = lines.map(line => env.DB.prepare(
-    'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  ).bind(crypto.randomUUID(), m.accountId, invoiceId, line.product_id, line.custom_name, line.quantity, line.price_at_sale));
+    'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale,quantity_unit) VALUES (?, ?, ?, ?, ?, ?, ?,?)'
+  ).bind(crypto.randomUUID(), m.accountId, invoiceId, line.product_id, line.custom_name, line.quantity, line.price_at_sale,line.quantity_unit??'g'));
 
   // Invoice number from the account's sequence, retried on the unique index
   // collision.

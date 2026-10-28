@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronUp, History, Loader2, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAppStore } from '../../../lib/store';
+import { refreshCommerceQueries } from '../../../lib/refreshCommerce';
+import { movementStorageKey, readPendingMovement, type PendingMovement } from './movementRecovery';
 import { ApiError, api } from '../../../lib/api';
 import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
 import type { Product } from '../../types';
@@ -18,6 +21,8 @@ const ACTIONS: Array<{ value: MovementType; label: string }> = [
   { value: 'transfer', label: 'Transfer' },
 ];
 
+const readStoredMovement = (key:string) => {try{return readPendingMovement(sessionStorage.getItem(key))}catch{return null}};
+
 const OUTWARD = new Set<MovementType>(['sample_use', 'gift', 'waste', 'transfer']);
 
 export interface StockMovementPanelProps {
@@ -33,6 +38,12 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
   product, products, trigger, onClose, onRecorded, initialMovementType = 'receipt',
 }) => {
   const queryClient = useQueryClient();
+  const accountId = useAppStore(state => state.activeAccountId);
+  const userId = useAppStore(state => state.activeUserId);
+  const storageKey = movementStorageKey(`${accountId}:${userId}`, product.id);
+  const [pending, setPending] = useState<PendingMovement | null>(() => readStoredMovement(storageKey));
+  const scopeRef = useRef(storageKey); scopeRef.current = storageKey;
+  const savingRef = useRef(false);
   const movementUnit: 'g' | 'unit' = product.type === 'Teaware' ? 'unit' : 'g';
   const transferDestinations = products.filter(candidate => candidate.id !== product.id
     && !!product.sourceCompassEntryId
@@ -45,7 +56,7 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
   const triggerRef = useRef(trigger);
   const [movementType, setMovementType] = useState<MovementType>(initialMovementType);
   const [quantity, setQuantity] = useState('');
-  const [balance, setBalance] = useState(String(Math.round(initialBalance)));
+  const [balance, setBalance] = useState(String(initialBalance));
   const [currentBalance, setCurrentBalance] = useState(initialBalance);
   const [note, setNote] = useState('');
   const [reference, setReference] = useState('');
@@ -60,11 +71,23 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
   const next = movementType === 'recount'
     ? Number(balance)
     : current + (OUTWARD.has(movementType) ? -amount : amount);
-  const invalidQuantity = movementType !== 'recount' && (!Number.isFinite(amount) || amount <= 0);
-  const invalidBalance = movementType === 'recount' && (!Number.isFinite(next) || next < 0);
+  const invalidQuantity = movementType !== 'recount' && (!Number.isFinite(amount) || amount <= 0 || (movementUnit === 'unit' && !Number.isInteger(amount)));
+  const invalidBalance = movementType === 'recount' && (balance.trim() === '' || !Number.isFinite(next) || next < 0 || (movementUnit === 'unit' && !Number.isInteger(next)));
   const insufficient = OUTWARD.has(movementType) && Number.isFinite(amount) && amount > current;
   const transferUnavailable = movementType === 'transfer' && !destinationId;
-  const canSubmit = !saving && !invalidQuantity && !invalidBalance && !insufficient && !transferUnavailable;
+  const canSubmit = !saving && (Boolean(pending) || (!invalidQuantity && !invalidBalance && !insufficient && !transferUnavailable));
+
+  useEffect(() => {
+    const restored = readStoredMovement(storageKey);
+    setPending(restored); setSaving(false); savingRef.current=false;
+    if (restored) {
+      setMovementType(restored.body.movement_type as MovementType);
+      setQuantity(String(restored.body.quantity ?? '')); setBalance(String(restored.body.balance ?? initialBalance));
+      setCurrentBalance(restored.body.expected_balance); setNote(restored.body.note || '');
+      setReference(restored.body.source_invoice_number || ''); setDestinationId(restored.body.destination_product_id || '');
+      setError('The previous movement is unconfirmed. Retry the original request to confirm its result.');
+    }
+  }, [storageKey]);
 
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
@@ -93,16 +116,18 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
   const selectAction = (value: MovementType) => {
     setMovementType(value);
     setError('');
-    if (value === 'recount') setBalance(String(Math.round(current)));
+    if (value === 'recount') setBalance(String(current));
   };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || savingRef.current) return;
+    savingRef.current = true;
+    const requestScope = storageKey;
     setSaving(true);
     setError('');
     try {
-      const result = await api.stockMovements.create(product.id, {
+      const intent: PendingMovement = pending || {productId:product.id, body:{
         movement_type: movementType,
         unit: movementUnit,
         expected_balance: current,
@@ -111,12 +136,18 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
         ...(movementType === 'transfer' ? { destination_product_id: destinationId } : {}),
         ...(note.trim() ? { note: note.trim() } : {}),
         ...(reference.trim() ? { source_invoice_number: reference.trim() } : {}),
-      });
+      }};
+      sessionStorage.setItem(requestScope, JSON.stringify(intent));
+      setPending(intent);
+      const result = await api.stockMovements.create(intent.productId, intent.body);
+      sessionStorage.removeItem(requestScope);
+      if (scopeRef.current !== requestScope) return;
+      setPending(null);
       onRecorded(Number(result.after_balance), movementUnit, result.destination_product_id
         ? { id: String(result.destination_product_id), afterBalance: Number(result.destination_after_balance) }
         : undefined);
       setCurrentBalance(Number(result.after_balance));
-      await queryClient.invalidateQueries({ queryKey: ['stock_ledger', product.id] });
+      await refreshCommerceQueries(queryClient, accountId);
       setQuantity('');
       setNote('');
       setReference('');
@@ -124,16 +155,20 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
       setIdempotencyKey(crypto.randomUUID());
       setShowDetails(false);
     } catch (caught: any) {
+      if (scopeRef.current !== requestScope) return;
+      if (caught instanceof ApiError && [400,403,404].includes(caught.status)) { sessionStorage.removeItem(requestScope); setPending(null); }
       if (caught instanceof ApiError && caught.status === 409 && Number.isFinite(Number(caught.data?.current_balance))) {
+        sessionStorage.removeItem(requestScope); setPending(null);
         const latest = Number(caught.data?.current_balance);
         setCurrentBalance(latest);
         setIdempotencyKey(crypto.randomUUID());
         setError(`Stock changed to ${latest}${movementUnit === 'unit' ? ' units' : 'g'}. Review and retry.`);
       } else {
-        setError(caught?.message || 'Movement could not be recorded. Try again.');
+        setError(`${caught?.message || 'Movement could not be confirmed.'} Retry the original movement; its values are kept unchanged.`);
       }
     } finally {
-      setSaving(false);
+      savingRef.current = false;
+      if (scopeRef.current === requestScope) setSaving(false);
     }
   };
 
@@ -160,6 +195,7 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
 
         <div className="min-h-0 overflow-y-auto px-4 py-4 pb-nav-gap">
           <form onSubmit={submit} className="space-y-3">
+            <fieldset disabled={saving || Boolean(pending)} className="space-y-3">
             <div>
               <span className="block text-ui-12 text-tea-text-sec mb-1.5">Movement</span>
               <div role="group" aria-label="Movement type" className="grid grid-cols-4 gap-1.5">
@@ -188,7 +224,7 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
                 aria-label={movementType === 'recount' ? 'New balance' : 'Quantity'}
                 type="number"
                 min="0"
-                step="any"
+                step={movementUnit === 'unit' ? 1 : 'any'}
                 value={movementType === 'recount' ? balance : quantity}
                 onChange={event => movementType === 'recount' ? setBalance(event.target.value) : setQuantity(event.target.value)}
                 className="admin-input mt-1 w-full"
@@ -237,6 +273,7 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
               )}
             </div>
 
+            </fieldset>
             <div className="border-t border-tea-border pt-3">
               <button
                 type="button"
@@ -253,7 +290,7 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
             <div className="flex justify-between items-center border-t border-tea-border pt-3">
               <button type="button" onClick={onClose} className="tap-target text-ui-13 text-tea-text-sec hover:text-tea-text">Cancel</button>
               <button type="submit" disabled={!canSubmit} className="tap-target rounded-md cta-solid px-4 py-2 text-ui-13 disabled:opacity-50 inline-flex items-center gap-2">
-                {saving && <Loader2 size={14} className="animate-spin" />} Record movement
+                {saving && <Loader2 size={14} className="animate-spin" />} {pending ? 'Retry original movement' : 'Record movement'}
               </button>
             </div>
           </form>

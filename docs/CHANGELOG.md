@@ -1,3 +1,7 @@
+## Mobile wheel spacing 2026-10-27
+
+- The mobile taste wheel uses the full content width and sits closer to the floating navigation. Empty selection summaries take no space; selected words remain available below the wheel with scrolling clearance. Colors and bar motion are unchanged.
+
 ## Stock column proportions and chosen names 2026-10-27
 
 - Year and Stock use narrower spreadsheet columns; Origin has more room. A copied source name, including a copy with the same vintage attached, displays as Unnamed instead of repeating below the tea title. Distinct chosen names remain editable, with no automatic changes to stored names.
@@ -63,6 +67,8 @@ Added `/tasting-v2/` as a separate browser-local tasting preview, preserving its
 ## Transcript-first tea linking receiver 2026-10-22
 
 - AR Create can open a signed-in Teajia receiver using only its opaque source ID. The receiver obtains a full verified read, shows current source-to-tea links and confirms several existing tea records without creating duplicates or touching public descriptions. Reverse lookup uses the existing account-scoped reference table; no migration or broader connector credential is needed. AR Create owns the transcript-reader action and installed app activation under the shared link contract.
+
+- 2026-10-28: **Curate → Stock → completed-sale repairs prepared for authorized release.** Quote units, saved revisions, account-scoped purchase drafts, Intake recovery, canonical receiving, Network holding bridges, counted teaware sales, payment/cancellation/refund consistency and buyer-owned order history now connect through the existing flow. Empty shops stay empty; saved confirmation/tracking use server-priced invoice facts. New migration `0031` is additive. Verification and deployment boundaries are recorded in [repair results](audits/2026-10-28-flow-repair/RESULTS.md).
 
 ## Complete working material and public tea description 2026-10-21
 

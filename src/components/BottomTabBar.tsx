@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { LogoText } from './Logos';
+import { LogoText, LogoEmblem } from './Logos';
 import { Section } from '../types';
 
 import { useLongPress } from '../hooks/useLongPress';
@@ -39,14 +39,17 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 }) => {
   const [returningFromTasting, setReturningFromTasting] = React.useState(false);
   React.useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const reopen = () => {
-      setReturningFromTasting(true);
-      clearTimeout(timer);
-      timer = setTimeout(() => setReturningFromTasting(false), 750);
-    };
-    window.addEventListener('teajia:tasting-closed', reopen);
-    return () => { window.removeEventListener('teajia:tasting-closed', reopen); clearTimeout(timer); };
+    let wasTasting = !!document.querySelector('[data-tasting-session-overlay]');
+    const observer = new MutationObserver(() => {
+      const isTasting = !!document.querySelector('[data-tasting-session-overlay]');
+      if (isTasting === wasTasting) return;
+      wasTasting = isTasting;
+      // Keep the return class until the next opening. Removing it on a timer
+      // would replay the site's original slide-up entrance underneath it.
+      setReturningFromTasting(!isTasting);
+    });
+    observer.observe(document.body, { childList: true });
+    return () => observer.disconnect();
   }, []);
   const navigate = useNavigate();
   const location = useLocation();
@@ -363,6 +366,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           </button>
 
         </div>
+        {returningFromTasting && <span aria-hidden="true" className="tasting-return-emblem"><LogoEmblem size={42} color="var(--tea-text)" /></span>}
       </nav>
   );
 };

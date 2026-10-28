@@ -78,6 +78,7 @@ export interface SalesGrantWrite {
   expires_at?: string | null;
 }
 export interface EligibleSalesProduct {
+  quantity_unit?: 'g' | 'unit';
   product_id: string;
   product_name: string;
   owner_id: string | null;
@@ -207,6 +208,8 @@ export interface CurateImportBatch {
   analysis_model?: string | null; analysis_error?: string | null; completed_at?: string | null;
   analysis_annotations?: CurateImportAnnotation[];
   analysis_annotations_json?: string | null;
+  intake_state?: Record<string, unknown> | null;
+  intake_revision?: number;
 }
 export interface CurateImportVendorGroup {
   id: string; batch_id: string; position: number; proposed_vendor_name: string | null;
@@ -324,7 +327,7 @@ export interface OrderJourney {
  * an app path, navigated with the router, never an absolute URL.
  */
 export interface AttentionItem {
-  kind: 'request' | 'unpriced' | 'claim' | 'unsent';
+  kind: 'request' | 'unpriced' | 'claim' | 'unsent' | 'refund';
   id: string;
   /** Plain and human, and it names the person or the order. */
   label: string;
@@ -340,7 +343,7 @@ export interface AttentionItem {
 
 export interface AttentionResponse {
   items: AttentionItem[];
-  counts: { requests: number; unpriced: number; claims: number; unsent: number };
+  counts: { requests: number; unpriced: number; claims: number; unsent: number; refunds?: number };
 }
 
 /**
@@ -579,10 +582,17 @@ export interface PurchaseOrderItem {
   product_name: string;
   quantity_grams: number;
   unit_price_usd?: number;
+  id?: string;
+  compass_entry_id?: string;
+  quantity?: number;
+  unit?: 'g' | 'unit';
+  quantity_unit?: 'g' | 'unit';
+  received_quantity?: number;
 }
 
 import { useAppStore } from './store';
 import { classifyIncident } from './incidents';
+import { notifyCommerceChanged } from './refreshCommerce';
 
 // Production talks to the API on the app's OWN origin (teajia.com /
 // www.teajia.com), NOT a dedicated api.* host. The custom domain api.teajia.com
@@ -808,7 +818,7 @@ const PRODUCT_CATALOG_UPDATE_FIELDS = new Set([
   'origin_region', 'year', 'harvest', 'altitude', 'cultivar', 'processing', 'format',
   'material', 'capacity_ml', 'teaware_category', 'description', 'notes', 'tags', 'moods',
   'tasting_notes', 'brewing_notes', 'tasting', 'tasting_source', 'lore', 'processing_notes',
-  'terroir', 'mood', 'experience', 'image_url', 'additional_images', 'bag_photo_url', 'quantity_units',
+  'terroir', 'mood', 'experience', 'image_url', 'additional_images', 'bag_photo_url',
   'piece_weight_g', 'sold_in_whole_units',
   'tea_key', 'source_compass_entry_id',
 ]);
@@ -816,7 +826,7 @@ const PRODUCT_CATALOG_UPDATE_FIELDS = new Set([
 const PRODUCT_STOCK_UPDATE_FIELDS = new Set([
   'stock', 'stock_unit', 'stock_grams', 'low_stock_threshold', 'recheck_stock',
   'stock_verified_at', 'in_transit', 'in_transit_grams', 'in_transit_eta',
-  'session_reserve_grams', 'inventory_purpose', 'stock_known_at',
+  'session_reserve_grams', 'inventory_purpose', 'stock_known_at', 'quantity_units',
 ]);
 
 const PRODUCT_COMMERCIAL_UPDATE_FIELDS = new Set([
@@ -1348,7 +1358,15 @@ async function authenticatedResponse(url: string, init: ApiRequestInit = {}): Pr
 }
 
 async function authedFetch(url: string, init: ApiRequestInit = {}): Promise<any> {
-  return handleResponse(await authenticatedResponse(url, init));
+  const accountId = useAppStore.getState().activeAccountId;
+  const result = await handleResponse(await authenticatedResponse(url, init));
+  if (init.method && !['GET', 'HEAD'].includes(init.method.toUpperCase()) &&
+      (/\/api\/(products|invoices|invoice-payments|inquiries|accounts|rates|stock|inventory|purchase-orders|listings|network|collections|rpc|curate\/receipt-proposals)(\/|$)/.test(url)
+        || /\/api\/compass\/(sync|entries\/[^/]+(?:\/promote)?)(?:\?|$)/.test(url)
+        || /\/api\/curate\/imports\/[^/]+\/finalize(?:\?|$)/.test(url))) {
+    notifyCommerceChanged(accountId);
+  }
+  return result;
 }
 
 // A public read that a session may sharpen. With a token in storage it goes
@@ -1977,6 +1995,11 @@ export const api = {
         body: JSON.stringify(input),
       });
     },
+    recordRefund: async (id: string, input: { amount_usd: number; request_id: string; reference?: string; note?: string }): Promise<{ success: true; refund_required: boolean; refunded_usd?: number }> => {
+      return authedFetch(`${API_URL}/api/invoices/${encodeURIComponent(id)}/refunds`, {
+        method: 'POST', body: JSON.stringify(input), retryTimeouts: true,
+      });
+    },
     update: async (id: string, data: Record<string, any>) => {
       return authedFetch(`${API_URL}/api/invoices/${id}`, {
         method: 'PUT',
@@ -2273,12 +2296,14 @@ export const api = {
       status?: string;
       notes?: string;
       message_text?: string;
+      request_id?: string;
       idempotency_key?: string;
       ship_mode?: 'air' | 'sea';
-    }): Promise<{ id: string }> => {
+    }): Promise<{ id: string; status?: string; receipt_review_required?: boolean; unresolved_items?: Array<{ index: number; reason: string; item?: unknown }> }> => {
       return authedFetch(`${API_URL}/api/purchase-orders`, {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, request_id: data.request_id || data.idempotency_key || crypto.randomUUID() }),
+        retryTimeouts: true,
       });
     },
 
@@ -2292,6 +2317,10 @@ export const api = {
         body: JSON.stringify({ status }),
       });
     },
+    prepareReceipt: async (id: string, input: { items?: Array<Record<string, unknown>> } = {}): Promise<{ receipt_id: string | null; unresolved_items: Array<{ index: number; reason: string }>; already_prepared?: boolean }> =>
+      authedFetch(`${API_URL}/api/purchase-orders/${encodeURIComponent(id)}/prepare-receipt`, {
+        method: 'POST', body: JSON.stringify(input), retryTimeouts: true,
+      }),
   },
 
   /** How bought tea travels home (Settings). The buying basket estimates freight from these. */
@@ -2954,6 +2983,13 @@ export const api = {
     order: (input: Record<string, unknown>): Promise<any> => authedFetch(`${API_URL}/api/curate/order`, { method: 'POST', body: JSON.stringify(input) }),
   },
   compass: {
+    listReceiptProposals: async (params: { status?: 'pending' | 'accepted' | 'rejected'; compass_entry_id?: string } = {}): Promise<{ proposals: CurateReceiptProposal[] }> => {
+      const query = new URLSearchParams();
+      if (params.status) query.set('status', params.status);
+      if (params.compass_entry_id) query.set('compass_entry_id', params.compass_entry_id);
+      const result = await authedFetch(`${API_URL}/api/curate/receipt-proposals?${query}`);
+      return { proposals: Array.isArray(result) ? result : result.pending ?? result.proposals ?? [] };
+    },
     list: async (params?: { status?: string; vendor_id?: string }, options: ApiBackgroundOptions = {}) => {
       const qp = new URLSearchParams();
       if (params?.status) qp.set('status', params.status);
@@ -3113,6 +3149,10 @@ export const api = {
   },
 
   curateImports: {
+    saveIntakeState: (id: string, state: Record<string, unknown>, expectedRevision?: number): Promise<{ intake_revision: number }> =>
+      authedFetch(`${API_URL}/api/curate/imports/${encodeURIComponent(id)}/intake-state`, {
+        method: 'PUT', body: JSON.stringify({ state, expected_revision: expectedRevision }), retryTimeouts: true,
+      }),
     listIncomplete: (): Promise<{ imports: CurateImportDetail[] }> => authedFetch(`${API_URL}/api/curate/imports?state=incomplete`),
     create: (payload: {
       title: string; journey_id?: string; visit_id?: string;
@@ -3170,6 +3210,8 @@ export const api = {
   },
 
   inquiries: {
+    claim: async (trackingToken: string): Promise<{ success: true }> =>
+      authedFetch(`${API_URL}/api/inquiries/${encodeURIComponent(trackingToken)}/claim`, { method: 'POST', retryTimeouts: true }),
     create: async (data: {
       tracking_token: string;
       ref_number: string;
@@ -3184,17 +3226,19 @@ export const api = {
       total_estimate_usd: number;
       currency: string;
       source: 'whatsapp' | 'email' | 'copy' | 'website';
-    }): Promise<{ id: string; ref_number: string; tracking_token: string; source: string; success: true; invoice_id?: string; invoice_number?: string; idempotent?: true; email_sent?: boolean }> => {
+    }): Promise<{ id: string; ref_number: string; tracking_token: string; source: string; success: true; invoice_id?: string; invoice_number?: string; idempotent?: true; email_sent?: boolean; invoice_items?: import('./orderTrackingDomain').AgreedOrderItem[]; total_estimate_usd?: number }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/inquiries`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}) },
         body: JSON.stringify(data),
       });
       if (!res.ok) {
         const error = await res.json().catch(() => null) as { error?: string } | null;
         throw new Error(error?.error || 'Your order request could not be saved. Please try again.');
       }
-      return res.json();
+      const saved = await res.json();
+      notifyCommerceChanged(useAppStore.getState().activeAccountId);
+      return saved;
     },
 
     getByTrackingToken: async (token: string): Promise<{
@@ -3212,13 +3256,16 @@ export const api = {
         payment_status?: string | null;
         fulfilled_at?: string | null;
         refund_required?: boolean;
+        refunded_usd?: number;
+        refund_due_usd?: number;
       } | null;
       payment_status?: 'unpaid' | 'partial' | 'paid';
       shipping_destination?: string | null;
       tracking_number?: string | null;
       fulfilled_at?: string | null;
       notification_status?: string | null;
-      contact?: { whatsapp: string | null };
+      contact?: { whatsapp: string | null; email?: string | null };
+      invoice_items?: Array<{ id: string; product_id?: string | null; name: string; quantity: number; quantity_unit?: 'g' | 'unit'; unit_price_usd: number; line_total_usd: number }>;
       items_json: string;
       status: string;
       total_estimate_usd: number;
@@ -4420,6 +4467,9 @@ export const api = {
         line_items_count: number;
         payment: InvoicePayment | null;
         journey: OrderJourney | null;
+        refund_required?: boolean;
+        refunded_usd?: number;
+        refund_due_usd?: number;
       }>;
     }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/me/orders`, { headers: authHeaders() });

@@ -72,7 +72,7 @@ class ConfirmCollectionDb {
 describe('collection confirmation invoice lines', () => {
   it.each([
     ['tea', { type: 'Oolong', recommendedQuantity: 50, recommendedPriceUsd: 12, pickedQuantity: 100 }, { quantity: 100, price_at_sale: 0.24, total: 24, product_id: 'product-1', custom_name: null }],
-    ['teaware', { type: 'Teaware', recommendedQuantity: 1, recommendedPriceUsd: 18, pickedQuantity: 2 }, { quantity: 2, price_at_sale: 18, total: 36, product_id: null, custom_name: 'Test item' }],
+    ['teaware', { type: 'Teaware', recommendedQuantity: 1, recommendedPriceUsd: 18, pickedQuantity: 2 }, { quantity: 2, price_at_sale: 18, total: 36, product_id: 'product-1', custom_name: null }],
     ['misc', { type: 'Misc', recommendedQuantity: 1, recommendedPriceUsd: 6, pickedQuantity: 3 }, { quantity: 3, price_at_sale: 6, total: 18, product_id: null, custom_name: 'Test item' }],
     ['unclassified', { type: 'MISSING_TYPE', recommendedQuantity: 10, recommendedPriceUsd: 4, pickedQuantity: 2 }, { quantity: 2, price_at_sale: 0.4, total: 0.8, product_id: null, custom_name: 'Test item' }],
   ] as const)('stores the confirmed %s with safe linkage and pricing', async (_label, fixture, expected) => {

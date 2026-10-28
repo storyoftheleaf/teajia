@@ -1,3 +1,4 @@
+import { capturedHoldingFields, capturedRetailUsd } from './capturedHolding';
 import { tastingForShop, tastingHasTerms } from './curateImportTasting';
 import { compassVendorId } from './curateReceiptProduct';
 import { canonicalizeCostCurrency } from './costCurrency';
@@ -122,6 +123,12 @@ export async function promoteCompassEntry(db:D1Database, accountId:string, entry
     tea_key: entry.tea_key ?? null,
     source_compass_entry_id: entry.id,
   };
+  // Preserve durable capture identity while keeping vendor validation and shop-only tasting.
+  const captured = capturedHoldingFields(entry);
+  for (const field of ['origin_country', 'season', 'storage', 'producer', 'classification', 'cultivar', 'clay_type', 'material_note']) cols[field] = captured[field];
+  const retail = await capturedRetailUsd({ DB: db }, entry);
+  if (retail != null) cols.fixed_retail_price_usd = retail;
+
   // The same canonicalisation every other write door runs, so a compass entry
   // carrying 'cny' or 'hkd' promotes to the shop's own spelling instead of a
   // currency the exchange table has no row for. No-op when the entry's

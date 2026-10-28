@@ -1,3 +1,4 @@
+import { suppressVerificationNotifications } from './liveVerificationPolicy';
 import { internationalWhatsAppNumber } from '../../src/lib/whatsappContact';
 
 /** Opted-in customer confirmations from the store’s existing business number. */
@@ -193,6 +194,10 @@ export async function processPendingCustomerOrderNotifications(
 
   for (const row of rows.results ?? []) {
     result.examined++;
+    if(await suppressVerificationNotifications(db,row.account_id)){
+      await db.prepare("UPDATE order_whatsapp_outbox SET state='review_required',last_error='isolated_live_verification',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(row.id).run();
+      result.reviewRequired++;continue;
+    }
     // Old owner alerts retain their meaning and must never become customer sends.
     if (row.message_purpose !== 'customer_confirmation' || !row.consent_at ||
         !internationalWhatsAppNumber(row.recipient_number) || !validCustomerOrderUrl(row.invoice_url)) {

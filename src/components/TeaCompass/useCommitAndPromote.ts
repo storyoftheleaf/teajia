@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
-import { syncCompassEntries } from '../../lib/teaCompassSync';
+import { ensureCompassEncounterSaved } from '../../lib/teaCompassSync';
 import { api, hasToken, isTransientApiError } from '../../lib/api';
 
 export interface CommitResult {
@@ -27,12 +27,16 @@ export function useCommitAndPromote() {
         return result;
       }
 
+      const before = useTeaCompassStore.getState();
+      const accountId = before.accountScopeId;
+      const revision = before.accountScopeRevision;
       setBusy(true);
       try {
         // The compass entry might still be unsynced (the periodic sync
         // runs on a timer). Force a sync now so the worker can find it.
-        await syncCompassEntries();
+        await ensureCompassEncounterSaved(entryId);
         const { id, alreadyPromoted } = await api.compass.promote(entryId);
+        if (useTeaCompassStore.getState().accountScopeId !== accountId || useTeaCompassStore.getState().accountScopeRevision !== revision) return { promoted: false };
         // Mirror the link locally so a re-promote click would no-op via
         // the worker's idempotency.
         updateEntry(entryId, { draftProductId: id, synced: false });

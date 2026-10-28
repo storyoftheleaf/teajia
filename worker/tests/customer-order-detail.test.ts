@@ -1,110 +1,21 @@
-import { describe, expect, it } from 'vitest';
+import {afterEach,describe,expect,it} from 'vitest';
 import worker from '../src/index';
-
-const JWT_SECRET = 'order-detail-secret';
-const invoices = [
-  { id: 'inv-a', account_id: 'acct-a', invoice_number: 'A-001', customer_id: 'customer-a', customer_whatsapp: null, status: 'Filled', display_currency: 'USD', shipping_cost_usd: 3, created_at: '2026-07-01', payment_date: '2026-07-02', fulfilled_at: '2026-07-03T04:05:06Z', deleted_at: null },
-  { id: 'inv-other-user', account_id: 'acct-a', invoice_number: 'A-002', customer_id: 'customer-other', customer_whatsapp: null, status: 'Filled', display_currency: 'USD', shipping_cost_usd: 0, created_at: '2026-07-01', payment_date: null, deleted_at: null },
-  { id: 'inv-other-account', account_id: 'acct-b', invoice_number: 'B-001', customer_id: 'customer-a-b', customer_whatsapp: null, status: 'Filled', display_currency: 'USD', shipping_cost_usd: 0, created_at: '2026-07-01', payment_date: null, deleted_at: null },
-  { id: 'inv-draft', account_id: 'acct-a', invoice_number: 'A-D', customer_id: 'customer-a', customer_whatsapp: null, status: 'Draft', display_currency: 'USD', shipping_cost_usd: 0, created_at: '2026-07-01', payment_date: null, deleted_at: null },
-  { id: 'inv-void', account_id: 'acct-a', invoice_number: 'A-V', customer_id: 'customer-a', customer_whatsapp: null, status: 'Void', display_currency: 'USD', shipping_cost_usd: 0, created_at: '2026-07-01', payment_date: null, deleted_at: null },
-  { id: 'inv-phone', account_id: 'acct-a', invoice_number: 'A-P', customer_id: null, customer_whatsapp: '+1 (23)', status: 'Filled', display_currency: 'USD', shipping_cost_usd: 0, created_at: '2026-07-04', payment_date: null, fulfilled_at: '2026-07-04', deleted_at: null },
-];
-const customers = [
-  { id: 'customer-a', account_id: 'acct-a', user_id: 'user-a', email: 'member@example.com' },
-  { id: 'customer-other', account_id: 'acct-a', user_id: 'user-b', email: 'other@example.com' },
-  { id: 'customer-a-b', account_id: 'acct-b', user_id: 'user-a', email: 'member@example.com' },
-];
-const lines = [
-  { id: 'line-1', account_id: 'acct-a', invoice_id: 'inv-a', product_id: 'product-1', custom_name: null, product_name: 'Oolong', quantity: 2, price_at_sale: 4 },
-  { id: 'line-2', account_id: 'acct-a', invoice_id: 'inv-a', product_id: null, custom_name: 'Tea tin', product_name: null, quantity: 1, price_at_sale: 5 },
-  { id: 'line-cross', account_id: 'acct-b', invoice_id: 'inv-a', product_id: null, custom_name: 'Other tenant', product_name: null, quantity: 1, price_at_sale: 100 },
-];
-
-class OrderDb {
-  statements: Array<{ sql: string; values: any[] }> = [];
-  private ownershipValid(sql: string, values: any[], offset: number) {
-    const expected = ['user-a', 'acct-a', 'member@example.com', 'member@example.com', 'acct-a', '123', '123'];
-    return sql.includes('select id from customers where user_id = ? and account_id = ?')
-      && sql.includes('select id from customers where lower(email) = ? and account_id = ?')
-      && sql.includes("replace(replace(replace(replace(replace(coalesce(i.customer_whatsapp, ''), ' ', ''), '-', ''), '(', ''), ')', ''), '+', '') = ?")
-      && JSON.stringify(values.slice(offset)) === JSON.stringify(expected);
-  }
-  private listTotalsValid(sql: string) {
-    return sql.includes('select invoice_id, account_id')
-      && sql.includes('group by invoice_id, account_id')
-      && sql.includes('t.invoice_id = i.id and t.account_id = i.account_id');
-  }
-  prepare(sql: string) {
-    const normalized = sql.replace(/\s+/g, ' ').trim().toLowerCase(); let values: any[] = [];
-    const statement = {
-      bind: (...input: any[]) => { values = input; this.statements.push({ sql: normalized, values: [...input] }); return statement; },
-      first: async () => {
-        if (normalized === 'select platform_role from users where id = ?') return { platform_role: null };
-        if (normalized.includes('from account_members am')) return { role: 'owner', permissions: '{}', kind: 'location' };
-        if (normalized.includes('select status from accounts')) return { status: 'active' };
-        if (normalized.includes('select email, phone from users')) return { email: 'Member@Example.com', phone: '+1 (23)' };
-        if (normalized.includes('select whatsapp_number, contact_email from accounts')) return { whatsapp_number: '+62800', contact_email: 'orders@store.test' };
-        if (normalized.includes('from invoices i')) {
-          const [id, accountId] = values;
-          if (!this.ownershipValid(normalized, values, 2)) return null;
-          const invoice = invoices.find(row => row.id === id && row.account_id === accountId && !row.deleted_at && !['Draft', 'Void'].includes(row.status));
-          if (!invoice) return null;
-          const customer = customers.find(row => row.id === invoice.customer_id && row.account_id === accountId);
-          return customer?.user_id === 'user-a' || customer?.email.toLowerCase() === 'member@example.com' || invoice.customer_whatsapp?.replace(/[^0-9]/g, '') === '123' ? { ...invoice } : null;
-        }
-        return null;
-      },
-      all: async () => {
-        if (normalized.includes('from invoice_line_items ili')) {
-          const scoped = normalized.includes('where ili.invoice_id = ? and ili.account_id = ?') && values[0] === 'inv-a' && values[1] === 'acct-a';
-          return { results: lines.filter(row => row.invoice_id === values[0] && (!scoped || row.account_id === values[1])).map(row => ({ ...row })) };
-        }
-        if (normalized.includes('from invoices i') && normalized.includes('i.id = ?')) {
-          const row = await statement.first();
-          return { results: row == null ? [] : [row] };
-        }
-        if (normalized.includes('from invoices i')) {
-          const accountId = values[0];
-          if (!this.ownershipValid(normalized, values, 1)) return { results: invoices.filter(row => row.account_id === accountId).map(row => ({ ...row, line_total: 13, line_count: 2 })) };
-          const totalsSafe = this.listTotalsValid(normalized);
-          return { results: invoices.filter(row => row.account_id === accountId && (row.customer_id === 'customer-a' || row.customer_whatsapp?.replace(/[^0-9]/g, '') === '123') && !['Draft', 'Void'].includes(row.status)).map(row => ({ ...row, line_total: row.id === 'inv-a' ? (totalsSafe ? 13 : 113) : 0, line_count: row.id === 'inv-a' ? (totalsSafe ? 2 : 3) : 0 })) };
-        }
-        const row = await statement.first();
-        return { results: row == null ? [] : [row] };
-      },
-    }; return statement;
-  }
-}
-
-function b64(value: string | Uint8Array) { const bytes = typeof value === 'string' ? new TextEncoder().encode(value) : value; return btoa(String.fromCharCode(...bytes)); }
-async function token() { const now = Math.floor(Date.now() / 1000); const data = `${b64(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${b64(JSON.stringify({ sub: 'user-a', email: 'member@example.com', name: 'Member', active_account_id: 'acct-a', iat: now, exp: now + 60 }))}`; const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(JWT_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); return `${data}.${b64(new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data))))}`; }
-async function get(id?: string, account = 'acct-a') { return worker.fetch(new Request(`https://test.dev/api/me/orders${id ? `/${id}` : ''}`, { headers: { Authorization: `Bearer ${await token()}`, 'X-Teajia-Account': account } }), { DB: new OrderDb(), JWT_SECRET } as any); }
-
-describe('customer order detail', () => {
-  it('returns owned lines, lifecycle fields, totals, and available contact', async () => {
-    const list = await (await get()).json() as any;
-    const response = await get('inv-a'); expect(response.status).toBe(200);
-    const detail = await response.json() as any;
-    expect(detail).toMatchObject({ id: 'inv-a', invoice_number: 'A-001', status: 'Filled', created_at: '2026-07-01', payment_date: '2026-07-02', fulfilled_at: '2026-07-03T04:05:06Z', currency: 'USD', subtotal_amount_usd: 13, shipping_amount_usd: 3, total_amount_usd: 16, contact: { whatsapp: '+62800', email: 'orders@store.test' } });
-    expect(detail.items).toEqual([
-      { id: 'line-1', product_id: 'product-1', name: 'Oolong', quantity: 2, unit_price_usd: 4, line_total_usd: 8 },
-      { id: 'line-2', product_id: null, name: 'Tea tin', quantity: 1, unit_price_usd: 5, line_total_usd: 5 },
-    ]);
-    expect(detail.total_amount_usd).toBe(list.orders[0].total_amount_usd);
-  });
-
-  it.each(['inv-other-user', 'inv-other-account', 'inv-draft', 'inv-void'])('hides unowned or unavailable invoice %s', async id => { expect((await get(id)).status).toBe(404); });
-
-  it('uses the same normalized-phone ownership predicate and bindings for list and detail', async () => {
-    const db = new OrderDb();
-    const listResponse = await worker.fetch(new Request('https://test.dev/api/me/orders', { headers: { Authorization: `Bearer ${await token()}`, 'X-Teajia-Account': 'acct-a' } }), { DB: db, JWT_SECRET } as any);
-    expect((await listResponse.json() as any).orders.map((order: any) => order.id)).toContain('inv-phone');
-    const detailResponse = await worker.fetch(new Request('https://test.dev/api/me/orders/inv-phone', { headers: { Authorization: `Bearer ${await token()}`, 'X-Teajia-Account': 'acct-a' } }), { DB: db, JWT_SECRET } as any);
-    expect(detailResponse.status).toBe(200);
-    const invoiceQueries = db.statements.filter(statement => statement.sql.includes('from invoices i'));
-    expect(invoiceQueries).toHaveLength(2);
-    expect(invoiceQueries[0].values.slice(1)).toEqual(['user-a', 'acct-a', 'member@example.com', 'member@example.com', 'acct-a', '123', '123']);
-    expect(invoiceQueries[1].values.slice(2)).toEqual(invoiceQueries[0].values.slice(1));
-  });
+import {SqliteD1,seedIdentity,signedToken} from './helpers/sqliteD1';
+const secret='customer-order-detail';const databases:SqliteD1[]=[];
+afterEach(()=>databases.splice(0).forEach(db=>db.close()));
+function seed(){const db=new SqliteD1();databases.push(db);seedIdentity(db,{userId:'buyer',accountId:'buyer-home'});seedIdentity(db,{userId:'seller',accountId:'shop'});seedIdentity(db,{userId:'other',accountId:'other-home'});
+ db.sqlite.exec(`UPDATE accounts SET whatsapp_number='+62800',contact_email='orders@store.test' WHERE id='shop';
+ INSERT INTO customers(id,account_id,name,user_id,email) VALUES('buyer-customer','shop','Buyer','buyer','buyer@test.dev'),('other-customer','shop','Other','other','other@test.dev');
+ INSERT INTO products(id,account_id,type,product_name,cost_amount,cost_currency,quantity_purchased,stock_grams) VALUES('tea','shop','Oolong','Oolong',4,'USD',100,100);
+ INSERT INTO invoices(id,account_id,invoice_number,customer_id,status,display_currency,shipping_cost_usd,fulfilled_at) VALUES('owned','shop','S-1','buyer-customer','Filled','USD',3,'2026-07-03T04:05:06Z'),('draft','shop','S-2','buyer-customer','Draft','USD',0,NULL),('void','shop','S-3','buyer-customer','Void','USD',0,NULL),('unowned','shop','S-4','other-customer','Filled','USD',0,NULL);
+ INSERT INTO invoice_line_items(id,account_id,invoice_id,product_id,quantity,price_at_sale,quantity_unit) VALUES('line-1','shop','owned','tea',2,4,'g');
+ INSERT INTO invoice_line_items(id,account_id,invoice_id,custom_name,quantity,price_at_sale,quantity_unit) VALUES('line-2','shop','owned','Tea tin',1,5,'unit');`);return db;}
+async function get(db:SqliteD1,id?:string,user='buyer'){const token=await signedToken(secret,{sub:user,email:`${user}@test.dev`,name:user,active_account_id:user==='buyer'?'buyer-home':'other-home'});return worker.fetch(new Request(`https://app.test/api/me/orders${id?`/${id}`:''}`,{headers:{Authorization:`Bearer ${token}`}}),{DB:db,JWT_SECRET:secret} as never,{} as never);}
+describe('customer order history across stores',()=>{
+ it('returns only owned lines, actual selling-store contacts and agreed units without seller membership',async()=>{const db=seed();const r=await get(db,'owned');expect(r.status).toBe(200);const detail=await r.json() as any;expect(detail).toMatchObject({id:'owned',account_id:'shop',subtotal_amount_usd:13,shipping_amount_usd:3,total_amount_usd:16,contact:{whatsapp:'+62800',email:'orders@store.test'}});expect(detail.items.map((line:any)=>[line.name,line.quantity,line.quantity_unit,line.line_total_usd])).toEqual([['Oolong',2,'g',8],['Tea tin',1,'unit',5]]);const list=await (await get(db)).json() as any;expect(list.orders.map((row:any)=>row.id).sort()).toEqual(['draft','owned','void']);});
+ it.each(['draft','void'])('keeps the linked %s visible',async id=>{expect((await get(seed(),id)).status).toBe(200);});
+ it('does not disclose another buyer order or lines',async()=>{const db=seed();expect((await get(db,'unowned')).status).toBe(404);expect((await get(db,'owned','other')).status).toBe(404);});
+ it('scopes line totals to the selling account even when a foreign row names the same invoice',async()=>{const db=seed();db.sqlite.exec("INSERT INTO invoice_line_items(id,account_id,invoice_id,custom_name,quantity,price_at_sale) VALUES('foreign-line','other-home','owned','Foreign',1,100)");const list=await (await get(db)).json() as any;expect(list.orders.find((row:any)=>row.id==='owned').total_amount_usd).toBe(16);const detail=await(await get(db,'owned')).json() as any;expect(detail.total_amount_usd).toBe(16);expect(detail.items).toHaveLength(2);});
+ it('keeps legacy phone matching inside a proven account membership',async()=>{const db=seed();db.sqlite.exec("UPDATE users SET phone='+1 (23)' WHERE id='buyer';INSERT INTO invoices(id,account_id,invoice_number,customer_whatsapp,status) VALUES('legacy-home','buyer-home','L-1','123','Pending'),('legacy-other','shop','L-2','123','Pending')");const list=await (await get(db)).json() as any;expect(list.orders.map((row:any)=>row.id)).toContain('legacy-home');expect(list.orders.map((row:any)=>row.id)).not.toContain('legacy-other');expect((await get(db,'legacy-other')).status).toBe(404);});
+ it('requires an authenticated customer session',async()=>{const db=seed();const response=await worker.fetch(new Request('https://app.test/api/me/orders'),{DB:db,JWT_SECRET:secret} as never,{} as never);expect(response.status).toBe(401);});
 });

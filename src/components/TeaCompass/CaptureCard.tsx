@@ -7,6 +7,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Droplets, Loader2, Minus, Plus, Sparkles } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore, entryHasContent } from '../../lib/teaCompassStore';
+import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
+import { ensureCompassEncounterSaved } from '../../lib/teaCompassSync';
+import { useAppStore } from '../../lib/store';
 import { useNotesStore } from '../../lib/notesStore';
 import { TEA_TYPE_COLORS } from '../../designTokens';
 import type { Currency } from '../../admin/types';
@@ -16,6 +19,7 @@ import { buildVarietyDataMap, getTeaVarietyNames, getTeaVarietySuggestions } fro
 import { TEA_TYPES, TEA_FORMS, STORAGE_STYLES, REGION_NAMES, countryForRegion } from '../../wisdom';
 import type { TeaType, TeaForm, TeawareCategory, TeawareMaterial, TeawareEra, YixingClayType, VendorDetails, TeaCompassEntry } from './types';
 import { entryIsSample } from './types';
+import { acquisitionDraftLine, acquisitionUsesUnits } from './acquisitionPricing';
 import { DEFAULT_GRAMS, TEAWARE_CATEGORIES, TEAWARE_MATERIALS, TEAWARE_ERAS, YIXING_CLAY_TYPES, MATERIAL_ORIGIN_DEFAULT, generateTeaKey } from './types';
 import { hasToken } from '../../lib/api';
 import { AutocompleteInput } from './AutocompleteInput';
@@ -36,8 +40,7 @@ import { EncounterContext } from './EncounterContext';
 import { DecisionControl } from './DecisionControl';
 import { CaptureContextChips } from './CaptureContextChips';
 import { CaptureActionFooter } from './CaptureActionFooter';
-import { curateShelfPreview, ledgerLinePrice, sameMoney } from './curatePricing';
-import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
+import { curateShelfPreview, sameMoney } from './curatePricing';
 
 type ParseableField = 'type' | 'form' | 'year' | 'season' | 'storage' | 'region';
 
@@ -178,6 +181,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const getOrCreatePurchaseTransaction = useLedgerStore((s) => s.getOrCreatePurchaseTransaction);
   const addLineItem = useLedgerStore((s) => s.addLineItem);
   const transactions = useLedgerStore((s) => s.transactions);
+  const activeAccountId = useAppStore((state) => state.activeAccountId);
 
   // The note thread (NoteThread) stores notes in the notes store, not on the
   // entry. Subscribe to the count for this entry so the Done button's readiness
@@ -216,9 +220,22 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     if (!entry) return;
     setReceiptPurpose(entryIsSample(entry) ? 'sample' : (entry.category === 'teaware' ? 'personal' : 'working'));
     setReceiptAcquisition(entryIsSample(entry) ? 'free_sample' : 'purchase');
-    setReceiptProposal(null);
+    const saved = transactions.flatMap(tx => tx.items).find(item => item.compassEntryId === entry.id && item.receiptProposal?.status === 'pending')?.receiptProposal;
+    setReceiptProposal(saved ?? null);
+    setJustAddedToLedger(Boolean(saved));
     setReceiptError('');
-  }, [entry?.id, entry?.category, entry?.sampleState]);
+    let current = true;
+    if (activeAccountId && hasToken()) void api.compass.listReceiptProposals({ status: 'pending', compass_entry_id: entry.id }).then(({ proposals }) => {
+      if (!current || useAppStore.getState().activeAccountId !== activeAccountId) return;
+      const pending = proposals[0];
+      if (!pending) return;
+      setReceiptProposal(pending); setJustAddedToLedger(true);
+      setReceiptPurpose(pending.purpose); setReceiptAcquisition(pending.acquisition_kind);
+      setBuyingQty(entry.category !== 'teaware' && acquisitionUsesUnits(entry) && pending.unit === 'g'
+        ? pending.quantity / Number(entry.pricePerUnitGrams || 1) : pending.quantity);
+    }).catch(() => { /* A retained purchase draft remains available during a failed read. */ });
+    return () => { current = false; };
+  }, [entry?.id, activeAccountId]);
   useEffect(() => {
     if (!entry || !openPurchasePicker) {
       consumedPurchaseHandoffRef.current = null;
@@ -226,10 +243,16 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     }
     if (consumedPurchaseHandoffRef.current === entry.id) return;
     consumedPurchaseHandoffRef.current = entry.id;
-    const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
+    const unitBased = acquisitionUsesUnits(entry);
     setBuyingQty(unitBased ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100));
     setShowBuyPicker(true);
   }, [entry, openPurchasePicker]);
+
+  useEffect(() => {
+    if (!receiptProposal && !receiptError) return;
+    const frame = requestAnimationFrame(() => document.getElementById(purchasePickerId)?.scrollIntoView({ block: 'center', behavior: 'smooth' }));
+    return () => cancelAnimationFrame(frame);
+  }, [receiptProposal?.id, receiptError, purchasePickerId]);
 
   // Sync price changes back to any matching draft ledger line items
   useEffect(() => {
@@ -242,15 +265,13 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         // An amount in another money is never written into a line counted in
         // this one: the line keeps what was ordered.
         if (entry.priceAmount != null && !sameMoney(item.currency || tx.currency, entry.priceCurrency)) continue;
-        const blank = entry.priceAmount == null;
-        const unitBased = entry.category === 'teaware' || (['Cake','Brick','Tuo'] as string[]).includes(entry.form || '');
-        const { pricePerUnit: newPrice, priceIsPerGram: newIsPerGram } = ledgerLinePrice(entry.priceAmount, entry.pricePerUnitGrams, unitBased);
-        if (item.pricePerUnit !== newPrice || item.priceIsPerGram !== newIsPerGram || !!item.unpriced !== blank) {
-          updItem(tx.id, item.id, { pricePerUnit: newPrice, priceIsPerGram: newIsPerGram, unpriced: blank ? true : undefined });
+        const quoted = acquisitionDraftLine(entry, item.quantityGrams ?? item.quantityUnits ?? buyingQty);
+        if (item.pricePerUnit !== quoted.pricePerUnit || item.priceIsPerGram !== quoted.priceIsPerGram || !!item.unpriced !== !!quoted.unpriced) {
+          updItem(tx.id, item.id, { pricePerUnit: quoted.pricePerUnit, priceIsPerGram: quoted.priceIsPerGram, unpriced: quoted.unpriced });
         }
       }
     }
-  }, [entry?.priceAmount, entry?.priceCurrency, entry?.pricePerUnitGrams, entry?.form, entry?.category]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [entry?.priceAmount, entry?.priceCurrency, entry?.pricePerUnitGrams, entry?.form, entry?.category, entry?.buyTotal, entry?.buyQuantityGrams, entry?.buyQuantityUnits]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Parser state
   const userTapped = useRef<Set<ParseableField>>(new Set());
@@ -709,7 +730,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   };
 
   const toggleBuyPicker = () => {
-    const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
+    if (receiptProposal?.status === 'pending') {
+      setJustAddedToLedger(false); setShowBuyPicker(true); return;
+    }
+    const unitBased = acquisitionUsesUnits(entry);
     const defaultQty = unitBased ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100);
     if (!showBuyPicker) setBuyingQty(defaultQty);
     const opening = !showBuyPicker;
@@ -917,7 +941,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   // Shared acquisition behavior must be available to both category branches.
   // Teaware is unit-based; compressed tea forms are unit-based as well.
-  const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
+  const unitBased = acquisitionUsesUnits(entry);
   const isInLedger = transactions.some(
     (tx) => tx.status === 'draft' && tx.items.some((item) => item.compassEntryId === entry.id)
   );
@@ -928,48 +952,32 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const buyStep = unitBased ? 1 : 25;
 
   const handleAddToLedger = async () => {
-    const vendorName = entry.vendorName || 'Unknown Vendor';
-    const currency = (entry.priceCurrency || 'NT') as Currency;
-    const txId = getOrCreatePurchaseTransaction(vendorName, currency, entry.vendorId);
-    addLineItem(txId, {
-      name: entry.name || 'Unnamed',
-      chineseName: entry.chineseName,
-      type: entry.type,
-      form: entry.form,
-      year: entry.year,
-      quantityGrams: unitBased ? undefined : buyingQty,
-      quantityUnits: unitBased ? buyingQty : undefined,
-      unitWeightGrams: (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '')
-        ? (DEFAULT_GRAMS[entry.form!] ?? 100)
-        : undefined,
-      ...ledgerLinePrice(entry.priceAmount, entry.pricePerUnitGrams, unitBased),
-      currency,
-      // No price yet is no price: the 0 above is a placeholder, not a figure.
-      ...(entry.priceAmount == null ? { unpriced: true as const } : {}),
-      compassEntryId: entry.id,
-      productId: entry.draftProductId,
-    });
-    setReceiptBusy(true);
-    setReceiptError('');
+    if (receiptBusy) return;
+    setReceiptBusy(true); setReceiptError('');
+    const accountId = activeAccountId;
     try {
-      // A purchase draft has no arrival yet. Confirmation creates its one receipt.
-      const proposal = receiptAcquisition === 'purchase' ? null : await api.compass.proposeReceipt(entry.id, {
-        purpose: receiptPurpose,
-        quantity: buyingQty,
-        unit: unitBased ? 'unit' : 'g',
-        acquisition_kind: receiptAcquisition,
-        idempotency_key: `ledger:${txId}:${entry.id}`,
-        product_name: entry.name || 'Unnamed',
+      const line = acquisitionDraftLine(entry, buyingQty, receiptAcquisition);
+      const vendorName = entry.vendorName || 'Unknown Vendor';
+      const txId = getOrCreatePurchaseTransaction(vendorName, entry.priceCurrency, entry.vendorId);
+      const lineId = addLineItem(txId, line);
+      setJustAddedToLedger(true);
+      await ensureCompassEncounterSaved(entry.id);
+      const changes = {
+        purpose: receiptPurpose, quantity: entry.category !== 'teaware' && unitBased ? buyingQty * Number(line.unitWeightGrams) : buyingQty,
+        unit: entry.category === 'teaware' ? 'unit' as const : 'g' as const,
+        acquisition_kind: receiptAcquisition, product_name: entry.name || 'Unnamed',
         product_type: entry.category === 'teaware' ? 'Teaware' : entry.type,
-      });
-      setReceiptProposal(proposal);
+      };
+      if (!(changes.quantity > 0) || !Number.isFinite(changes.quantity)) throw new Error('Record the weight of each piece before receiving this tea.');
+      const proposal = receiptAcquisition === 'purchase' ? null : receiptProposal?.status === 'pending'
+        ? await api.compass.updateReceiptProposal(receiptProposal.id, changes)
+        : await api.compass.proposeReceipt(entry.id, { ...changes, idempotency_key: `ledger:${txId}:${entry.id}` });
+      if (useAppStore.getState().activeAccountId !== accountId) return;
+      useLedgerStore.getState().updateLineItem(txId, lineId, { receiptProposal: proposal ?? undefined });
+      setReceiptProposal(proposal); setShowBuyPicker(false);
     } catch (error) {
-      setReceiptError(error instanceof Error ? error.message : 'Could not create the inventory receipt proposal.');
-    } finally {
-      setReceiptBusy(false);
-    }
-    setShowBuyPicker(false);
-    setJustAddedToLedger(true);
+      if (useAppStore.getState().activeAccountId === accountId) setReceiptError(error instanceof Error ? error.message : 'Could not save the receipt proposal. Your purchase draft is kept on this device.');
+    } finally { setReceiptBusy(false); }
   };
 
   const purchaseQueryClient = useQueryClient();
@@ -977,11 +985,21 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     if (!receiptProposal) return;
     setReceiptBusy(true);
     setReceiptError('');
+    const accountId = activeAccountId;
     try {
-      if (action === 'accept') await api.compass.acceptReceiptProposal(receiptProposal.id);
-      else await api.compass.rejectReceiptProposal(receiptProposal.id);
+      if (action === 'accept') {
+        const result = await api.compass.acceptReceiptProposal(receiptProposal.id);
+        if (useAppStore.getState().activeAccountId !== accountId) return;
+        if (result.product_id) updateEntry(entry.id, { draftProductId: result.product_id });
+      } else await api.compass.rejectReceiptProposal(receiptProposal.id);
+      if (useAppStore.getState().activeAccountId !== accountId) return;
       void purchaseQueryClient.invalidateQueries({ queryKey: ['library-purchase-history'] });
       void purchaseQueryClient.invalidateQueries({ queryKey: ['library-purchase-receipts'] });
+      for (const tx of useLedgerStore.getState().transactions) {
+        for (const item of tx.items.filter(item => item.receiptProposal?.id === receiptProposal.id)) {
+          useLedgerStore.getState().updateLineItem(tx.id, item.id, { receiptProposal: undefined });
+        }
+      }
       setReceiptProposal(null);
       setJustAddedToLedger(false);
       onSwitchToLedger?.();
@@ -1086,7 +1104,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             disabled={receiptBusy}
             className="curate-action w-full rounded-md cta-solid px-3 font-semibold active:opacity-80"
           >
-            {receiptBusy ? 'Adding…' : 'Add to Ledger'}
+            {receiptBusy ? 'Saving…' : receiptProposal?.status === 'pending' ? 'Update receipt' : 'Add to Ledger'}
           </button>
         </div>
       )}
@@ -1097,6 +1115,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             <Check size={16} />
             Added to Ledger
           </div>
+          {!receiptProposal && receiptAcquisition === 'purchase' && <p className="mt-2 text-ui-12 text-tea-text-sec">Confirm this draft in Ledger. Inventory changes only after you accept its receipt.</p>}
           {receiptProposal && (
             <div className="mt-2 space-y-2 text-ui-12 text-tea-text-sec">
               <p>Review receipt: {receiptProposal.quantity} {receiptProposal.quantity === 1 ? 'unit' : 'units'} · {receiptProposal.purpose} · {receiptProposal.acquisition_kind.replace('_', ' ')}</p>
@@ -1588,6 +1607,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           purchasePickerId={purchasePickerId}
         />
         </section>
+        {receiptError && !justAddedToLedger && <p role="alert" className="text-ui-12 text-tea-text-sec">{receiptError}</p>}
         {renderTeawarePurchaseSection()}
       </div>
       </div>
@@ -2096,7 +2116,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   className="curate-action w-full rounded-md cta-solid px-3 font-semibold active:opacity-80"
                   data-curate-action
                 >
-                  {receiptBusy ? 'Adding…' : 'Add to Ledger'}
+                  {receiptBusy ? 'Saving…' : receiptProposal?.status === 'pending' ? 'Update receipt' : 'Add to Ledger'}
                 </button>
               </div>
             </motion.div>
@@ -2114,7 +2134,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 <Check size={16} />
                 Added to Ledger
               </div>
-              {receiptProposal && (
+              {!receiptProposal && receiptAcquisition === 'purchase' && <p className="mt-2 text-ui-12 text-tea-text-sec">Confirm this draft in Ledger. Inventory changes only after you accept its receipt.</p>}
+          {receiptProposal && (
                 <div className="mt-2 space-y-2 text-ui-12 text-tea-text-sec">
                   <p>Review receipt: {receiptProposal.quantity}{receiptProposal.unit === 'g' ? 'g' : ` ${receiptProposal.quantity === 1 ? 'unit' : 'units'}`} · {receiptProposal.purpose} · {receiptProposal.acquisition_kind.replace('_', ' ')}</p>
                   <p className="text-tea-text-sec">Inventory changes only after you accept this receipt.</p>
@@ -2135,6 +2156,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         </AnimatePresence>
       </section>
 
+      {receiptError && !justAddedToLedger && <p role="alert" className="text-ui-12 text-tea-text-sec">{receiptError}</p>}
       {/* ─── Tasting overlay ─── */}
       <AnimatePresence>
         {tastingOverlayOpen && (

@@ -8,6 +8,7 @@ import {
   FlaskConical, RefreshCw, Pencil, Plus, Loader2, Check, Globe, Receipt, BookOpen,
   Camera, Upload, Crop, Download, MoreHorizontal, Trash2, Wand2, Mic, Square, Store, Package,
 } from 'lucide-react';
+import { refreshCommerceQueries } from '../../lib/refreshCommerce';
 import { api } from '../../lib/api';
 import { SquareCropModal } from '../../components/shared/SquareCropModal';
 import { useAppStore } from '../store';
@@ -57,7 +58,7 @@ export const GhostTextarea = ({
   value, onSave, className = '', placeholder = '', rows = 3, ariaLabel, variant = 'ghost',
 }: {
   value: string;
-  onSave: (val: string) => void;
+  onSave: (val: string) => void | Promise<void>;
   className?: string;
   placeholder?: string;
   rows?: number;
@@ -67,13 +68,19 @@ export const GhostTextarea = ({
   const [localValue, setLocalValue] = useState(value);
   const [justSaved, setJustSaved] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => { setLocalValue(value); }, [value]);
-  const handleBlur = () => {
-    if (localValue !== value) {
-      onSave(localValue);
-      setJustSaved(true);
+  const savingRef = useRef(false);
+  const errorRef = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  useEffect(() => { if (!savingRef.current && !errorRef.current) setLocalValue(value); }, [value]);
+  const handleBlur = async () => {
+    if (savingRef.current || localValue === value) return;
+    savingRef.current = true; setSaving(true); setSaveError(''); errorRef.current = false;
+    try {
+      await onSave(localValue); setJustSaved(true);
       setTimeout(() => setJustSaved(false), 600);
-    }
+    } catch (error) { errorRef.current = true; setSaveError(error instanceof Error ? error.message : 'Save failed. Retry.'); }
+    finally { savingRef.current = false; setSaving(false); }
   };
   useEffect(() => {
     const el = textareaRef.current;
@@ -81,8 +88,10 @@ export const GhostTextarea = ({
   }, [localValue]);
   const base = variant === 'bordered' ? BORDERED_TEXTAREA_BASE : GHOST_TEXTAREA_BASE;
   return (
-    <textarea
+    <span className="block min-w-0 w-full"><textarea
       ref={textareaRef}
+      disabled={saving}
+      aria-invalid={Boolean(saveError)}
       aria-label={ariaLabel}
       value={localValue || ''}
       onChange={(e) => setLocalValue(e.target.value)}
@@ -95,7 +104,7 @@ export const GhostTextarea = ({
       data-1p-ignore
       data-lpignore="true"
       className={`${base} ${justSaved ? '!text-tea-gold' : ''} ${className}`}
-    />
+    />{saving && <span role="status" className="text-ui-10 text-tea-text-sec">Saving…</span>}{saveError && <span role="alert" className="text-ui-11 text-tea-text-sec">{saveError} <button type="button" onClick={() => void handleBlur()} className="tap-target underline">Retry save</button></span>}</span>
   );
 };
 
@@ -109,7 +118,7 @@ export const GhostInput = ({
   value, onSave, type = 'text', align = 'left', className = '', placeholder = '', inputMode, id, ariaLabel, variant = 'ghost', disabled = false,
 }: {
   value: string | number;
-  onSave: (val: any) => void;
+  onSave: (val: any) => void | Promise<void>;
   type?: 'text' | 'number';
   align?: 'left' | 'right';
   className?: string;
@@ -123,25 +132,31 @@ export const GhostInput = ({
   disabled?: boolean;
 }) => {
   const [localValue, setLocalValue] = useState(value);
-  useEffect(() => { setLocalValue(value); }, [value]);
+  const savingRef = useRef(false);
+  const errorRef = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  useEffect(() => { if (!savingRef.current && !errorRef.current) setLocalValue(value); }, [value]);
   const [justSaved, setJustSaved] = useState(false);
-  const handleBlur = () => {
-    if (disabled) return;
-    if (localValue != value) {
-      onSave(localValue);
-      setJustSaved(true);
+  const handleBlur = async () => {
+    if (disabled || savingRef.current || String(localValue ?? '') === String(value ?? '')) return;
+    savingRef.current = true; setSaving(true); setSaveError(''); errorRef.current = false;
+    try {
+      await onSave(localValue); setJustSaved(true);
       setTimeout(() => setJustSaved(false), 600);
-    }
+    } catch (error) { errorRef.current = true; setSaveError(error instanceof Error ? error.message : 'Save failed. Retry.'); }
+    finally { savingRef.current = false; setSaving(false); }
   };
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') e.currentTarget.blur();
   };
   const base = variant === 'bordered' ? BORDERED_INPUT_BASE : GHOST_INPUT_BASE;
   return (
-    <input
+    <span className="block min-w-0 w-full"><input
       id={id}
       aria-label={ariaLabel}
-      disabled={disabled}
+      disabled={disabled || saving}
+      aria-invalid={Boolean(saveError)}
       type={type}
       /* A zero is a value, not an absence. `localValue || ''` blanked it, so a
          freight rate of zero (Adrian saying this tea ships free) looked exactly
@@ -161,7 +176,7 @@ export const GhostInput = ({
       data-1p-ignore
       data-lpignore="true"
       className={`${base} text-${align} ${justSaved ? '!text-tea-gold' : ''} ${className}`}
-    />
+    />{saving && <span role="status" className="text-ui-10 text-tea-text-sec">Saving…</span>}{saveError && <span role="alert" className="text-ui-11 text-tea-text-sec">{saveError} <button type="button" onClick={() => void handleBlur()} className="tap-target underline">Retry save</button></span>}</span>
   );
 };
 
@@ -169,7 +184,7 @@ export const GhostAutocompleteInput = ({
   value, onSave, suggestions, itemData, onAutoFill, className = '', placeholder = '', variant = 'ghost',
 }: {
   value: string;
-  onSave: (val: string) => void;
+  onSave: (val: string) => void | Promise<void>;
   suggestions: string[];
   itemData?: Record<string, any>;
   onAutoFill?: (data: any) => void;
@@ -180,16 +195,18 @@ export const GhostAutocompleteInput = ({
   const [localValue, setLocalValue] = useState(value);
   const localValueRef = useRef(value);
   const [justSaved, setJustSaved] = useState(false);
+  const [saveError,setSaveError]=useState('');
+  const savingRef=useRef(false);
+  const errorRef=useRef(false);
   useEffect(() => {
-    setLocalValue(value);
-    localValueRef.current = value;
+    if (!savingRef.current && !errorRef.current) {setLocalValue(value); localValueRef.current = value;}
   }, [value]);
-  const save = useCallback((val: string) => {
-    if (val !== value) {
-      onSave(val);
-      setJustSaved(true);
-      setTimeout(() => setJustSaved(false), 600);
-    }
+  const save = useCallback(async (val: string) => {
+    if (val === value || savingRef.current) return;
+    savingRef.current=true;errorRef.current=false;setSaveError('');
+    try {await onSave(val);setJustSaved(true);setTimeout(()=>setJustSaved(false),600);}
+    catch(error){errorRef.current=true;setSaveError(error instanceof Error?error.message:'Save failed. Retry.');}
+    finally{savingRef.current=false;}
   }, [value, onSave]);
   const handleChange = (val: string) => { localValueRef.current = val; setLocalValue(val); };
   const handleSelect = (data: any) => { save(localValueRef.current); onAutoFill?.(data); };
@@ -208,6 +225,7 @@ export const GhostAutocompleteInput = ({
         placeholder={placeholder}
         className={`${base} text-left ${justSaved ? '!text-tea-gold' : ''} ${className}`}
       />
+<span role="alert" className="text-ui-11 text-tea-text-sec">{saveError}{saveError && <button type="button" className="tap-target underline" onClick={()=>void save(localValueRef.current)}>Retry save</button>}</span>
     </div>
   );
 };
@@ -217,8 +235,11 @@ const GHOST_SELECT_BASE = 'w-full bg-transparent border-0 border-b-0 hover:borde
 const BORDERED_SELECT_BASE = 'admin-input w-full h-9 py-2 pl-2.5 pr-6 text-ui-14 leading-tight text-left appearance-none cursor-pointer';
 
 export const GhostSelect = ({ value, onSave, options, className = '', ariaLabel, variant = 'ghost' }: {
-  value: string; onSave: (val: string) => void; options: string[]; className?: string; ariaLabel?: string; variant?: FieldVariant;
+  value: string; onSave: (val: string) => void | Promise<void>; options: string[]; className?: string; ariaLabel?: string; variant?: FieldVariant;
 }) => {
+  const [saveError,setSaveError]=useState('');
+  const [saving,setSaving]=useState(false);
+  const change=async(value:string)=>{setSaving(true);setSaveError('');try{await onSave(value)}catch(error){setSaveError(error instanceof Error?error.message:'Save failed. Choose it again to retry.')}finally{setSaving(false)}};
   const base = variant === 'bordered' ? BORDERED_SELECT_BASE : GHOST_SELECT_BASE;
   const chevronPos = variant === 'bordered' ? 'right-2' : 'right-0';
   return (
@@ -226,7 +247,8 @@ export const GhostSelect = ({ value, onSave, options, className = '', ariaLabel,
       <select
         aria-label={ariaLabel}
         value={value}
-        onChange={(e) => onSave(e.target.value)}
+        disabled={saving}
+        onChange={(e) => void change(e.target.value)}
         className={`${base} ${className}`}
       >
         {options.map(opt => (
@@ -234,6 +256,7 @@ export const GhostSelect = ({ value, onSave, options, className = '', ariaLabel,
         ))}
       </select>
       <ChevronDown size={variant === 'bordered' ? 12 : 10} aria-hidden="true" className={`absolute ${chevronPos} top-1/2 -translate-y-1/2 text-tea-text-dim/70 pointer-events-none`} />
+      {saveError && <span role="alert" className="text-ui-11 text-tea-text-sec">{saveError}</span>}
     </div>
   );
 };
@@ -638,7 +661,7 @@ type SlotKey = typeof SLOT_KEYS[number];
 const BAG_SLOT = 3;
 
 export const ImageManager = ({ product, onUpdate }: {
-  product: Product; onUpdate: (field: keyof Product, value: any) => void;
+  product: Product; onUpdate: (field: keyof Product, value: any) => void | Promise<void>;
 }) => {
   const [uploadingSlot, setUploadingSlot] = useState<number | null>(null);
   const [justUploadedSlot, setJustUploadedSlot] = useState<number | null>(null);
@@ -653,15 +676,15 @@ export const ImageManager = ({ product, onUpdate }: {
   while (images.length < 3) images.push('');
   images.push(product.bagPhotoUrl || '');
 
-  const writeSlot = (slotIndex: number, url: string) => {
+  const writeSlot = async (slotIndex: number, url: string) => {
     if (slotIndex === 0) {
-      onUpdate('imageUrl', url);
+      await onUpdate('imageUrl', url);
     } else if (slotIndex === BAG_SLOT) {
-      onUpdate('bagPhotoUrl' as keyof Product, url);
+      await onUpdate('bagPhotoUrl' as keyof Product, url);
     } else {
       const additional = [...(product.additionalImages || [])];
       additional[slotIndex - 1] = url;
-      onUpdate('additionalImages' as keyof Product, additional);
+      await onUpdate('additionalImages' as keyof Product, additional);
     }
   };
 
@@ -669,11 +692,9 @@ export const ImageManager = ({ product, onUpdate }: {
     setUploadingSlot(slotIndex);
     try {
       const url = await api.uploadImage(blob, {
-        productId: product.id,
-        slot: SLOT_KEYS[slotIndex],
-        filename: `${SLOT_KEYS[slotIndex]}.jpg`,
+        filename: `${product.id}-${SLOT_KEYS[slotIndex]}-${crypto.randomUUID()}.jpg`,
       });
-      writeSlot(slotIndex, url);
+      await writeSlot(slotIndex, url);
       setJustUploadedSlot(slotIndex);
       setTimeout(() => setJustUploadedSlot(null), 1200);
     } catch (err: any) {
@@ -730,14 +751,14 @@ export const ImageManager = ({ product, onUpdate }: {
     }
   };
 
-  const handleRemove = (slotIndex: number) => {
+  const handleRemove = async (slotIndex: number) => {
     setOpenMenu(null);
     if (slotIndex === BAG_SLOT) return; // bag photo can be replaced, never removed
-    if (slotIndex === 0) onUpdate('imageUrl', '');
+    if (slotIndex === 0) await onUpdate('imageUrl', '');
     else {
       const additional = [...(product.additionalImages || [])];
       additional.splice(slotIndex - 1, 1);
-      onUpdate('additionalImages' as keyof Product, additional);
+      await onUpdate('additionalImages' as keyof Product, additional);
     }
   };
 
@@ -751,7 +772,7 @@ export const ImageManager = ({ product, onUpdate }: {
     try {
       const res = await api.products.enhanceImage(product.id, SLOT_KEYS[slotIndex]);
       if (res?.url) {
-        writeSlot(slotIndex, res.url);
+        await writeSlot(slotIndex, res.url);
         setJustUploadedSlot(slotIndex);
         setTimeout(() => setJustUploadedSlot(null), 1200);
       }
@@ -823,7 +844,7 @@ export const ImageManager = ({ product, onUpdate }: {
                           {i !== BAG_SLOT && (
                             <>
                               <div className="my-1 border-t border-tea-border" />
-                              <SlotMenuItem icon={Trash2} label="Remove" onClick={() => handleRemove(i)} destructive />
+                              <SlotMenuItem icon={Trash2} label="Remove" onClick={() => void handleRemove(i).catch(error => showToast(`Photo could not be removed: ${error.message}`, 'error'))} destructive />
                             </>
                           )}
                         </div>
@@ -921,6 +942,7 @@ export interface ProductEditPanelProps {
    * If unset, the panel will call the domain-scoped product update endpoint.
    */
   onUpdate?: (id: string, field: keyof Product, value: any) => void | Promise<void>;
+  onSaveField?: (id: string, field: keyof Product, value: any) => Promise<void>;
   /**
    * Optional list of other products, used for:
    *   - prev/next navigation (pass products in desired order)
@@ -963,6 +985,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   rates,
   onClose,
   onUpdate,
+  onSaveField,
   products = [],
   onNavigate,
   filterLabel,
@@ -1069,9 +1092,18 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
     if (onUpdate) { await onUpdate(id, field, value); return; }
     const payload = buildProductUpdatePayload(field, value);
     if (!payload) return;
-    try { await api.products.updateByDomain(id, payload); }
+    try { await api.products.updateByDomain(id, payload); await refreshCommerceQueries(panelQueryClient); }
     catch (err: any) { showToast(`Update failed: ${err.message}`, 'error'); }
   }, [onUpdate, showToast]);
+
+  const persistField = useCallback(async (id:string,field:keyof Product,value:unknown) => {
+    if (onSaveField) return onSaveField(id,field,value);
+    if (onUpdate) return onUpdate(id,field,value);
+    const payload=buildProductUpdatePayload(field,value);
+    if (!payload) throw new Error('This field could not be saved.');
+    await api.products.updateByDomain(id,payload);
+    await refreshCommerceQueries(panelQueryClient);
+  }, [onSaveField,onUpdate,panelQueryClient]);
 
   // Stock spine step 2: flip the owner curation gate (shown_in_shop). Routes
   // through the parent's optimistic handler when present (InventoryView), else
@@ -1141,6 +1173,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   useEffect(() => {
     if (!product) return;
     const handler = (e: KeyboardEvent) => {
+      if (e.isComposing || (e.target instanceof HTMLElement && (e.target.isContentEditable || e.target.closest('input,textarea,select,[contenteditable="true"]')))) return;
       if (e.key === 'Escape') { onClose(); e.preventDefault(); }
       else if (e.key === 'ArrowLeft' && prevProduct && onNavigate) {
         onNavigate(prevProduct); e.preventDefault();
@@ -1211,7 +1244,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   const pricingCalc = useMemo(() => {
     if (!product) return null;
     return calculatePricing(
-      product.costAmount || 0,
+      product.costAmount,
       // The stored rate is in the tea's own cost currency, which is what
       // calculatePricing wants. Nothing recorded means the shop default, and
       // the readout below must show the same freight the shelf is charging.
@@ -1497,7 +1530,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 <GhostAutocompleteInput
                   variant="bordered"
                   value={product.productName}
-                  onSave={(val) => handleUpdate(product.id, 'productName', val)}
+                  onSave={(val) => persistField(product.id, 'productName', val)}
                   suggestions={nameSuggestions}
                   itemData={nameItemData}
                   onAutoFill={(data) => {
@@ -1515,10 +1548,10 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
 
               <FieldGrid cols={2}>
                 <FieldCell label="Given">
-                  <GhostInput variant="bordered" value={product.givenName || ''} onSave={(val) => handleUpdate(product.id, 'givenName', val)} />
+                  <GhostInput variant="bordered" ariaLabel="Given name" value={product.givenName || ''} onSave={(val) => persistField(product.id, 'givenName', val)} />
                 </FieldCell>
                 <FieldCell label="中文">
-                  <GhostInput variant="bordered" value={product.chineseName || ''} onSave={(val) => handleUpdate(product.id, 'chineseName', val)} />
+                  <GhostInput variant="bordered" ariaLabel="Chinese name" value={product.chineseName || ''} onSave={(val) => persistField(product.id, 'chineseName', val)} />
                 </FieldCell>
               </FieldGrid>
 
@@ -1526,19 +1559,19 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 {inventoryCategory === 'teaware' ? (
                   <>
                     <FieldCell label="Category">
-                      <GhostInput variant="bordered" value={product.teawareCategory || ''} onSave={(val) => handleUpdate(product.id, 'teawareCategory', val)} />
+                      <GhostInput variant="bordered" value={product.teawareCategory || ''} onSave={(val) => persistField(product.id, 'teawareCategory', val)} />
                     </FieldCell>
                     <FieldCell label="Material">
-                      <GhostInput variant="bordered" value={product.material || ''} onSave={(val) => handleUpdate(product.id, 'material', val)} />
+                      <GhostInput variant="bordered" value={product.material || ''} onSave={(val) => persistField(product.id, 'material', val)} />
                     </FieldCell>
                   </>
                 ) : (
                   <>
                     <FieldCell label="Type">
-                      <GhostSelect variant="bordered" ariaLabel="Type" value={product.type} onSave={(val) => handleUpdate(product.id, 'type', val)} options={[...TEA_TYPES, 'Misc']} />
+                      <GhostSelect variant="bordered" ariaLabel="Type" value={product.type} onSave={(val) => persistField(product.id, 'type', val)} options={[...TEA_TYPES, 'Misc']} />
                     </FieldCell>
                     <FieldCell label="Form">
-                      <GhostSelect variant="bordered" ariaLabel="Form" value={product.form || ''} onSave={(val) => handleUpdate(product.id, 'form', val)} options={['Loose', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other']} />
+                      <GhostSelect variant="bordered" ariaLabel="Form" value={product.form || ''} onSave={(val) => persistField(product.id, 'form', val)} options={['Loose', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other']} />
                     </FieldCell>
                     {/* Only pressed tea has a piece, and only this tells the
                         shop how heavy it is. Left blank the shop offers no
@@ -1556,7 +1589,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                         <GhostInput
                           variant="bordered"
                           value={product.pieceWeightG != null ? String(product.pieceWeightG) : ''}
-                          onSave={(val) => handleUpdate(product.id, 'pieceWeightG', val)}
+                          onSave={(val) => persistField(product.id, 'pieceWeightG', val)}
                           type="number"
                           className="tabular-nums"
                         />
@@ -1565,7 +1598,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   </>
                 )}
                 <FieldCell label="Year">
-                  <GhostInput variant="bordered" value={product.year || ''} onSave={(val) => { try { const year = enteredYear(val); handleUpdate(product.id, 'year', year); } catch (error) { showToast(error instanceof Error ? error.message : 'Enter a valid year or decade.', 'error'); } }} type="text" className="tabular-nums" />
+                  <GhostInput variant="bordered" value={product.year || ''} onSave={(val) => persistField(product.id, 'year', enteredYear(val))} type="text" className="tabular-nums" />
                 </FieldCell>
               </FieldGrid>
 
@@ -1573,10 +1606,10 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
 
               <FieldGrid cols={2}>
                 <FieldCell label="Country">
-                  <GhostInput variant="bordered" value={product.originCountry || ''} onSave={(val) => handleUpdate(product.id, 'originCountry', val)} />
+                  <GhostInput variant="bordered" value={product.originCountry || ''} onSave={(val) => persistField(product.id, 'originCountry', val)} />
                 </FieldCell>
                 <FieldCell label="Region">
-                  <GhostInput variant="bordered" value={product.originRegion || ''} onSave={(val) => handleUpdate(product.id, 'originRegion', val)} />
+                  <GhostInput variant="bordered" value={product.originRegion || ''} onSave={(val) => persistField(product.id, 'originRegion', val)} />
                 </FieldCell>
               </FieldGrid>
 
@@ -1609,10 +1642,10 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               {inventoryCategory === 'teaware' ? (
                 <FieldGrid cols={2}>
                   <FieldCell label="Cost">
-                    <GhostInput variant="bordered" value={product.costAmount} onSave={(val) => handleUpdate(product.id, 'costAmount', val)} type="number" className="tabular-nums" />
+                    <GhostInput variant="bordered" value={product.costAmount ?? ''} onSave={(val) => persistField(product.id, 'costAmount', val)} type="number" className="tabular-nums" />
                   </FieldCell>
                   <FieldCell label="Retail / $">
-                    <GhostInput variant="bordered" value={product.pricePerGramUSD} onSave={(val) => handleUpdate(product.id, 'pricePerGramUSD', val)} type="number" className="tabular-nums" />
+                    <GhostInput variant="bordered" value={product.pricePerGramUSD} onSave={(val) => persistField(product.id, 'pricePerGramUSD', val)} type="number" className="tabular-nums" />
                   </FieldCell>
                 </FieldGrid>
               ) : (
@@ -1641,12 +1674,12 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                         </select>
                         <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-admin-text-dim/70 pointer-events-none" />
                       </label>
-                      <GhostInput variant="bordered" value={product.costAmount} onSave={(val) => handleUpdate(product.id, 'costAmount', val)} type="number" className="tabular-nums flex-1 min-w-0" />
+                      <GhostInput variant="bordered" value={product.costAmount ?? ''} onSave={(val) => persistField(product.id, 'costAmount', val)} type="number" className="tabular-nums flex-1 min-w-0" />
                     </div>
                   </FieldRowFull>
                   <FieldGrid cols={2}>
                     <FieldCell label="Batch g">
-                      <GhostInput variant="bordered" value={product.quantityPurchased || 0} onSave={(val) => handleUpdate(product.id, 'quantityPurchased', val)} type="number" className="tabular-nums" />
+                      <GhostInput variant="bordered" value={product.quantityPurchased || 0} onSave={(val) => persistField(product.id, 'quantityPurchased', val)} type="number" className="tabular-nums" />
                     </FieldCell>
                     <FieldCell
                       label="Ship $/kg"
@@ -1737,7 +1770,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                                   variant="bordered"
                                   value={product.fixedRetailPriceUSD ?? ''}
                                   placeholder={calc.suggestedRetailUSD.toFixed(2)}
-                                  onSave={(val) => handleUpdate(product.id, 'fixedRetailPriceUSD', val === '' || val === null ? null : Number(val))}
+                                  onSave={(val) => persistField(product.id, 'fixedRetailPriceUSD', val === '' || val === null ? null : Number(val))}
                                   type="number"
                                   align="right"
                                   className={`tabular-nums ${hasOverride ? 'font-medium' : ''}`}
@@ -1773,7 +1806,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                     </button>
                   </FieldCell>
                   <FieldCell label="Capacity ml">
-                    <GhostInput variant="bordered" value={product.capacityMl || ''} onSave={(val) => handleUpdate(product.id, 'capacityMl', val)} type="number" className="tabular-nums" />
+                    <GhostInput variant="bordered" value={product.capacityMl || ''} onSave={(val) => persistField(product.id, 'capacityMl', val)} type="number" className="tabular-nums" />
                   </FieldCell>
                 </FieldGrid>
               ) : (() => {
@@ -1804,7 +1837,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                       </button>
                     </FieldCell>
                     <FieldCell label="Low alert g">
-                      <GhostInput variant="bordered" value={threshold} onSave={(val) => handleUpdate(product.id, 'lowStockThreshold', val)} type="number" className="tabular-nums" />
+                      <GhostInput variant="bordered" value={threshold} onSave={(val) => persistField(product.id, 'lowStockThreshold', val)} type="number" className="tabular-nums" />
                     </FieldCell>
                   </FieldGrid>
                 );
@@ -1818,7 +1851,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
 
             {/* 2. Images: flat, no section header */}
             <div id="tea-section-photos" className="px-3 mb-3 scroll-mt-12">
-              <ImageManager product={product} onUpdate={(field, value) => handleUpdate(product.id, field, value)} />
+              <ImageManager product={product} onUpdate={(field, value) => persistField(product.id, field, value)} />
             </div>
 
             {/* 3. Tasting Profile. Tap to open the editor modal. Card matches the
@@ -1879,21 +1912,21 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                     <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em]">Introduction</span>
                     <span className="text-ui-11 text-admin-text-dim">Personal voice</span>
                   </div>
-                  <GhostTextarea variant="bordered" ariaLabel="Introduction" value={product.description || ''} placeholder="Your personal introduction to this tea..." rows={4} onSave={(val) => handleUpdate(product.id, 'description', val)} className="" />
+                  <GhostTextarea variant="bordered" ariaLabel="Introduction" value={product.description || ''} placeholder="Your personal introduction to this tea..." rows={4} onSave={(val) => persistField(product.id, 'description', val)} className="" />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em]">Terroir</span>
                     <span className="text-ui-11 text-admin-text-dim">Soil, altitude, climate</span>
                   </div>
-                  <GhostTextarea variant="bordered" ariaLabel="Terroir" value={product.terroir || ''} placeholder="Where this tea grew and why it matters..." rows={3} onSave={(val) => handleUpdate(product.id, 'terroir', val)} className="" />
+                  <GhostTextarea variant="bordered" ariaLabel="Terroir" value={product.terroir || ''} placeholder="Where this tea grew and why it matters..." rows={3} onSave={(val) => persistField(product.id, 'terroir', val)} className="" />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em]">Processing</span>
                     <span className="text-ui-11 text-admin-text-dim">Craft & method</span>
                   </div>
-                  <GhostTextarea variant="bordered" ariaLabel="Processing notes" value={product.processingNotes || ''} placeholder="How this tea was made..." rows={3} onSave={(val) => handleUpdate(product.id, 'processingNotes', val)} className="" />
+                  <GhostTextarea variant="bordered" ariaLabel="Processing notes" value={product.processingNotes || ''} placeholder="How this tea was made..." rows={3} onSave={(val) => persistField(product.id, 'processingNotes', val)} className="" />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1.5">

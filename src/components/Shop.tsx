@@ -545,7 +545,7 @@ export const Shop: React.FC<ShopProps> = ({
               product={editingProduct}
               rates={rates}
               onClose={() => { setEditingProduct(null); refetchProducts(); }}
-              onUpdate={async (id, field, value) => {
+              onSaveField={async (id, field, value) => {
                 // Persist FIRST. The panel treats a supplied onUpdate as the
                 // whole save path and does not fall back to its own writer, so
                 // a handler that only touched local state silently discarded

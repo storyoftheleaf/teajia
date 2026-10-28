@@ -29,11 +29,11 @@ export function FreightSheet({ product, onSave, onClose }: FreightSheetProps) {
   const selection = freightSelection(mode, input, product.costCurrency, rates);
   const isTeaware = product.type === 'Teaware';
   const proposedStored = selection.storedRate ?? shopRateInCurrency(shop.perKgUsd, conversion);
-  const preview = !selection.error && proposedStored !== null && conversion !== null && product.quantityPurchased > 0
+  const preview = product.costAmount != null && !selection.error && proposedStored !== null && conversion !== null && product.quantityPurchased > 0
     ? calculatePricing(product.costAmount, proposedStored, product.quantityPurchased, product.costCurrency, rates, isTeaware)
     : null;
   const currentStored = product.shippingRatePerKg ?? shopRateInCurrency(shop.perKgUsd, conversion);
-  const current = currentStored !== null && conversion !== null && product.quantityPurchased > 0
+  const current = product.costAmount != null && currentStored !== null && conversion !== null && product.quantityPurchased > 0
     ? calculatePricing(product.costAmount, currentStored, product.quantityPurchased, product.costCurrency, rates, isTeaware)
     : null;
   const fixed = product.fixedRetailPriceUSD !== null && product.fixedRetailPriceUSD !== undefined;
@@ -67,7 +67,7 @@ export function FreightSheet({ product, onSave, onClose }: FreightSheetProps) {
         <div aria-live="polite" className="rounded-xl border border-tea-border bg-tea-accent-sub p-3 space-y-2">
           <div className="flex flex-wrap items-baseline justify-between gap-2"><span className={`${T.label} text-tea-text-dim`}>Calculated retail / g</span><span className={`${T.h3} text-tea-text`}>{preview ? `${current ? usd(current.suggestedRetailUSD) + ' → ' : ''}${usd(preview.suggestedRetailUSD)}` : '—'}</span></div>
           <p className={`${T.link} text-tea-text-sec`}>(Tea cost + freight) × {SHOP_MARKUP_MULTIPLIER}. {fixed ? `Your fixed retail of ${usd(product.fixedRetailPriceUSD!)}/g stays unchanged.` : 'Saving applies this rate to calculated retail.'}</p>
-          {!preview && <p className={`${T.link} text-tea-text-sec`}>{conversion === null ? `Retail preview needs an exchange rate for ${product.costCurrency}. You can still follow the shop rate.` : product.quantityPurchased <= 0 ? 'Add the purchased quantity to calculate retail.' : 'Enter a valid rate to see its retail effect.'}</p>}
+          {!preview && <p className={`${T.link} text-tea-text-sec`}>{product.costAmount == null ? 'Enter the purchase cost to calculate retail.' : conversion === null ? `Retail preview needs an exchange rate for ${product.costCurrency}. You can still follow the shop rate.` : product.quantityPurchased <= 0 ? 'Add the purchased quantity to calculate retail.' : 'Enter a valid rate to see its retail effect.'}</p>}
         </div>
         {(saveError || selection.error) && <p id="freight-error" role="alert" className={`${T.link} text-tea-text-sec`}>{saveError || selection.error}</p>}
         <button type="button" onClick={save} disabled={saving || Boolean(selection.error)} className={`${T.nav} min-h-11 w-full rounded-md cta-solid px-4 py-3 disabled:opacity-50`}>{saving ? 'Saving…' : 'Save freight'}</button>

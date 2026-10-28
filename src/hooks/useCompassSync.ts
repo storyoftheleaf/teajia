@@ -4,6 +4,7 @@ import { hydrateCompassEntries, syncCompassEntries, compassHasPendingWork } from
 import { AUTH_TOKEN_CHANGED_EVENT, hasToken, isTokenScopedToAccount } from '../lib/api';
 import { useAppStore } from '../lib/store';
 import { selectSampleSyncPending, useSampleStore } from '../samples/sampleStore';
+import { useLedgerStore } from '../lib/ledgerStore';
 import { useSampleCartStore } from '../samples/sampleCartStore';
 import { sampleRepository } from '../samples/sampleRepository';
 
@@ -52,6 +53,7 @@ export function useCompassSync(isAuthenticated: boolean) {
   // Null is intentional: signed-out/unknown account state must expose nothing.
   useEffect(() => {
     useTeaCompassStore.getState().switchAccount(activeAccountId);
+    useLedgerStore.getState().switchAccount(activeAccountId);
     useSampleStore.getState().switchAccount(activeAccountId);
     useSampleCartStore.getState().switchAccount(activeAccountId);
     hasFetchedRef.current = false;

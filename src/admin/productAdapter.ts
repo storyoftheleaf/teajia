@@ -22,7 +22,7 @@ export function mapAdminProduct(p: any): Product {
         originRegion: p.origin_region,
         pricePerGramUSD: Number(p.retail_price_per_gram_usd) || 0,
         costPerGramUSD: Number(p.cost_per_gram_usd) || 0,
-        costAmount: Number(p.cost_amount) || 0,
+        costAmount: p.cost_amount == null ? null : Number(p.cost_amount),
         stockGrams: Number(p.stock_grams) || 0,
         lowStockThreshold: p.low_stock_threshold == null ? 100 : Number(p.low_stock_threshold),
         description: p.description || '',

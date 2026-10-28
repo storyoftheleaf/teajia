@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { refundProgress } from '../lib/orderTrackingDomain';
 import { api, ApiError, hasToken } from '../lib/api';
 import { Icons } from '../components/Icons';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
@@ -43,7 +44,7 @@ export default function OrderDetailPage() {
   const order = query.data;
   const isMissing = query.error instanceof ApiError && query.error.status === 404;
   const journey = normalizeJourney(order?.journey);
-  const offersPayment = showsPaymentActions(journey, order?.payment);
+  const offersPayment = order?.status !== 'Draft' && order?.status !== 'Void' && showsPaymentActions(journey, order?.payment);
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-8 pb-nav-gap-lg animate-[fadeIn_0.5s_ease-out]">
@@ -109,7 +110,7 @@ export default function OrderDetailPage() {
                   <div className="min-w-0">
                     <p className="text-ui-14 text-tea-text break-words">{item.name}</p>
                     <p className="text-ui-12 text-tea-text-sec mt-1">
-                      {item.quantity} × {formatOrderAmount(item.unit_price_usd, order.currency, rates)}
+                      {item.quantity}{item.quantity_unit === 'unit' ? ' pieces' : 'g'} × {formatOrderAmount(item.unit_price_usd, order.currency, rates)}
                     </p>
                   </div>
                   <p className="text-ui-14 text-tea-text font-medium whitespace-nowrap">{formatOrderAmount(item.line_total_usd, order.currency, rates)}</p>
@@ -129,6 +130,7 @@ export default function OrderDetailPage() {
               absence the customer cannot act on. The payment controls sit inside
               the stage rather than beside it, so an order waiting for payment
               carries the way to pay directly under the line that says so. */}
+          <>{refundProgress(order) && <p role="status" className="text-ui-14 text-tea-text">{refundProgress(order)}{order.refund_required && ` · ${formatOrderAmount(order.refund_due_usd || 0, order.currency, rates)} remaining`}</p>}</>
           <OrderJourneyStatus journey={journey}>
             {offersPayment && (
               <div className="space-y-4">

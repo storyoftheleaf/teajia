@@ -72,3 +72,13 @@ describe('sample lifecycle evidence in the Library tasting queue', () => {
     expect(entryNeedsTasting({ ...entry, status: 'in_stock', tasting: { notes: ['orchid'] } })).toBe(false);
   });
 });
+
+describe('sample graduation keeps the quote basis without inventing stock', () => {
+  it('carries the grams a recorded price buys as cost quantity', () => {
+    const entry = { ...createEmptyEntry(), name: 'Sample tea', priceAmount: 100, pricePerUnitGrams: 250, buyQuantityGrams: 500, priceCurrency: 'Yuan' as const, touchedFields: ['priceCurrency'] };
+    const draft = compassEntryToProductDraft(entry);
+    expect(draft).toMatchObject({ cost_amount: 100, quantity_purchased: 250, stock_grams: 0 });
+    const acquired = compassEntryToProductDraft({ ...entry, buyTotal: 200 });
+    expect(acquired).toMatchObject({ cost_amount: 200, quantity_purchased: 500, stock_grams: 0 });
+  });
+});

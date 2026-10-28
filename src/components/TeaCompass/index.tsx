@@ -361,7 +361,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const [captureBuyExpanded, setCaptureBuyExpanded] = useState(false);
   // Done needs a photo OR a name, the promised saveable minimum.
   const captureDoneReady =
-    !!activeEntry && ((activeEntry.name || '').trim().length > 0 || activeEntry.photos.length > 0);
+    !!activeEntry && entryHasDeliberateInput(activeEntry);
 
   const handleNewCapture = useCallback((category?: CompassCategory) => {
     startNewCapture(category || activeCategory);

@@ -11,6 +11,7 @@ import { ThemeProvider } from './context/ThemeContext';
 const LibraryPreviewPage = import.meta.env.DEV ? React.lazy(() => import('./pages/LibraryPreviewPage')) : null;
 import { AUTH_TOKEN_CHANGED_EVENT } from './lib/api';
 import { shouldPersistQueryKey } from './lib/queryPersistence';
+import { COMMERCE_CHANGED_EVENT, refreshCommerceQueries, type CommerceChange } from './lib/refreshCommerce';
 import './styles/tailwind.css';
 import './styles/card-utilities.css';
 
@@ -42,6 +43,10 @@ const persister = createSyncStoragePersister({
 // Token replacement, expiry, account switch, and logout all discard private
 // in-memory results. A late response belongs to its old, detached query.
 window.addEventListener(AUTH_TOKEN_CHANGED_EVENT, () => queryClient.clear());
+window.addEventListener(COMMERCE_CHANGED_EVENT, event => {
+  const change = (event as CustomEvent<CommerceChange>).detail;
+  if (!change?.queriesInvalidated) void refreshCommerceQueries(queryClient, change?.accountId);
+});
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

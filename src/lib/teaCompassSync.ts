@@ -1,4 +1,5 @@
 import { COMPASS_STRUCTURED_CAMEL, COMPASS_STRUCTURED_COLUMNS } from './curateStructuredFields';
+import { canonicalCurrency } from './currency';
 import { useTeaCompassStore } from './teaCompassStore';
 import { api, hasToken, isTokenScopedToAccount, isTransientApiError } from './api';
 import { normalizeCompassEntry, type TeaCompassEntry } from '../components/TeaCompass/types';
@@ -13,6 +14,10 @@ const CAMEL_TO_SNAKE: Record<string, string> = {
   chineseName: 'chinese_name',
   originRegion: 'origin_region',
   originCountry: 'origin_country',
+  clayType: 'clay_type',
+  materialNote: 'material_note',
+  sellPrice: 'sell_price',
+  tastingHistory: 'tasting_history',
   priceAmount: 'price_amount',
   priceCurrency: 'price_currency',
   pricePerUnitGrams: 'price_per_unit_grams',
@@ -51,7 +56,7 @@ const COMPASS_SYNC_COLUMNS = new Set<string>([
   'name', 'given_name', 'chinese_name', 'type', 'form', 'year', 'season', 'storage',
   'origin_country', 'origin_region', 'classification', 'cultivar', 'producer', 'description',
   'tea_key', 'price_amount', 'price_currency', 'price_per_unit_grams',
-  'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
+  'category', 'teaware_category', 'material', 'clay_type', 'material_note', 'sell_price', 'tasting_history', 'capacity_ml', 'quantity', 'era',
   'vendor_id', 'vendor_name', 'shop_name', 'transport_mode', 'linked_customer_id', 'notes',
   'tasting', 'photos', 'audio_clips', 'status', 'buy_quantity_grams', 'buy_quantity_units',
   'buy_total', 'verdict', 'decision', 'sample_state', 'sample_set_id', 'session_id',
@@ -68,12 +73,10 @@ function toSnakeCase(entry: TeaCompassEntry): Record<string, any> {
     // `decision` intentionally passes through unchanged: unlike status and
     // verdict it is an independent sourcing choice with matching API/DB naming.
 
-    // Legacy JSON fields retain their wire format. Structured route quotes stay
-    // arrays for worker validation; the worker encodes them for D1.
+    // Route quotes remain arrays for strict worker validation.
     if (snakeKey === 'route_quotes') {
-      // Routes clear as an empty array in the strict API contract.
       result[snakeKey] = value ?? [];
-    } else if (snakeKey === 'photos' || snakeKey === 'audio_clips' || snakeKey === 'tasting') {
+    } else if (snakeKey === 'photos' || snakeKey === 'audio_clips' || snakeKey === 'tasting' || snakeKey === 'tasting_history') {
       result[snakeKey] = value != null ? JSON.stringify(value) : null;
     } else {
       result[snakeKey] = value ?? null;
@@ -91,7 +94,7 @@ export function toCamelCase(row: Record<string, any>): TeaCompassEntry {
     const camelKey = SNAKE_TO_CAMEL[key] || key;
 
     // Parse JSON strings back to objects/arrays
-    if (key === 'photos' || key === 'audio_clips' || key === 'tasting' || key === 'route_quotes') {
+    if (key === 'photos' || key === 'audio_clips' || key === 'tasting' || key === 'route_quotes' || key === 'tasting_history') {
       try {
         result[camelKey] = typeof value === 'string' ? (value ? JSON.parse(value) : (key === 'tasting' ? undefined : [])) : value ?? (key === 'tasting' ? undefined : []);
       } catch {
@@ -104,7 +107,7 @@ export function toCamelCase(row: Record<string, any>): TeaCompassEntry {
   // Ensure required defaults
   result.synced = true;
   result.syncedGivenName = result.givenName ?? null;
-  result.priceCurrency = result.priceCurrency || 'NT';
+  result.priceCurrency = canonicalCurrency(result.priceCurrency) || 'Yuan';
   result.quantity = result.quantity ?? 1;
   result.notes = result.notes || '';
   result.photos = result.photos || [];
@@ -200,17 +203,25 @@ export async function retryPendingDeletes(accountId?: string): Promise<void> {
 
 // ── Sync unsynced entries to D1 ──
 
-// One sync at a time. Two overlapping pushes could each acknowledge the
-// other's snapshot; the second caller waits for the first instead.
-let syncInFlight: Promise<number> | null = null;
+const syncQueues = new Map<string, Promise<number>>();
 
-export async function syncCompassEntries(accountId?: string): Promise<number> {
-  if (syncInFlight) return syncInFlight;
-  syncInFlight = syncCompassEntriesOnce(accountId).finally(() => { syncInFlight = null; });
-  return syncInFlight;
+/** Serialize writes for an account so a late request cannot overwrite a newer snapshot. */
+export function syncCompassEntries(accountId?: string): Promise<number> {
+  const initial = useTeaCompassStore.getState();
+  const scope = accountId ?? initial.accountScopeId;
+  if (!scope) return Promise.resolve(0);
+  const revision = initial.accountScopeRevision;
+  const previous = syncQueues.get(scope);
+  const next = (previous ? previous.catch(() => 0) : Promise.resolve(0)).then(() => {
+    const current = useTeaCompassStore.getState();
+    return current.accountScopeId === scope && current.accountScopeRevision === revision ? pushCompassEntries(scope) : 0;
+  });
+  syncQueues.set(scope, next);
+  void next.finally(() => { if (syncQueues.get(scope) === next) syncQueues.delete(scope); });
+  return next;
 }
 
-async function syncCompassEntriesOnce(accountId?: string): Promise<number> {
+async function pushCompassEntries(accountId?: string): Promise<number> {
   if (!hasToken()) return 0;
   const initial = useTeaCompassStore.getState();
   const requestedAccountId = accountId ?? initial.accountScopeId;
@@ -236,7 +247,6 @@ async function syncCompassEntriesOnce(accountId?: string): Promise<number> {
   // request is in the air changes updatedAt, and that entry must stay unsynced
   // so the edit goes out next time: marking it synced here is how a note typed
   // during a save used to be shown as saved and then lost to the server copy.
-  const sentVersion = new Map(unsynced.map(entry => [entry.id, entry.updatedAt]));
 
   try {
     const payload = unsynced.map(toSnakeCase);
@@ -244,6 +254,7 @@ async function syncCompassEntriesOnce(accountId?: string): Promise<number> {
     const current = useTeaCompassStore.getState();
     if (current.accountScopeId !== requestedAccountId || current.accountScopeRevision !== requestedRevision) return 0;
     const attemptedIds = new Set(unsynced.map(entry => entry.id));
+    const attemptedEntries = new Map(unsynced.map(entry => [entry.id, entry]));
     const acknowledgedIds = new Set(
       Array.isArray(result.syncedIds)
         ? result.syncedIds.filter(id => attemptedIds.has(id))
@@ -255,7 +266,7 @@ async function syncCompassEntriesOnce(accountId?: string): Promise<number> {
     // state. A protected id collision remains unsynced and retries visibly.
     useTeaCompassStore.setState((state) => ({
       entries: state.accountScopeId === requestedAccountId
-        ? state.entries.map(e => acknowledgedIds.has(e.id) && e.updatedAt === sentVersion.get(e.id) ? { ...e, synced: true, syncedGivenName: e.givenName ?? null } : e)
+        ? state.entries.map(e => acknowledgedIds.has(e.id) && attemptedEntries.get(e.id) === e ? { ...e, synced: true, syncedGivenName: e.givenName ?? null } : e)
         : state.entries,
       syncError: state.accountScopeId === requestedAccountId ? hasUnacknowledged : state.syncError,
     }));
@@ -416,4 +427,18 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
     // Offline or error, local data remains available, but the UI must say so.
     console.warn('[TeaCompass] Hydration failed:', err);
   }
+}
+
+/** Acquisition must refer to an acknowledged encounter, without closing its capture editor. */
+export async function ensureCompassEncounterSaved(entryId: string): Promise<void> {
+  const initial = useTeaCompassStore.getState();
+  const scope = initial.accountScopeId;
+  const revision = initial.accountScopeRevision;
+  if (!scope || !hasToken() || !isTokenScopedToAccount(scope)) throw new Error('Sign in to save this purchase with the shop.');
+  initial.retainEntry(entryId);
+  await syncCompassEntries(scope);
+  const current = useTeaCompassStore.getState();
+  if (current.accountScopeId !== scope || current.accountScopeRevision !== revision) throw new Error('The active shop changed. Open this purchase in its original shop.');
+  const entry = current.entries.find(entry => entry.id === entryId);
+  if (!entry?.synced) throw new Error('Your capture is kept on this device. Retry once its latest changes have saved.');
 }

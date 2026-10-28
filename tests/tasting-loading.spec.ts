@@ -1,0 +1,26 @@
+import {test,expect} from './fixtures';
+import {installCompassHarness,openCompass} from './helpers/compassHarness';
+test('tasting controls stay usable while the wheel download is held',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await installCompassHarness(page);
+ let release!:()=>void;
+ const gate=new Promise<void>(resolve=>{release=resolve});
+ await page.route('**/approvedWheel/TeaWheel.js*',async route=>{await gate;await route.continue()});
+ await openCompass(page);
+ await page.getByRole('button',{name:/tasting profile/i}).click();
+ await expect(page.getByRole('button',{name:'Save tasting',exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Close',exact:true})).toBeVisible();
+ const nav=page.getByRole('navigation',{name:'Tasting sections'});
+ await nav.getByRole('button',{name:'Taste',exact:true}).click();
+ await expect(page.getByRole('status').filter({hasText:'Loading taste wheel'})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Save tasting',exact:true})).toBeEnabled();
+ await nav.getByRole('button',{name:'Effect',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'How do you feel?'})).toBeVisible();
+ await nav.getByRole('button',{name:'Taste',exact:true}).click();
+ await page.screenshot({path:'/tmp/tasting-loading.png'});
+ release();
+ await expect(page.getByRole('button',{name:'Explore Floral',exact:true})).toBeVisible();
+ await expect(page.getByRole('status').filter({hasText:'Loading taste wheel'})).toHaveCount(0);
+ await page.getByRole('button',{name:'Close',exact:true}).click();
+ await expect(nav).toBeHidden();
+});

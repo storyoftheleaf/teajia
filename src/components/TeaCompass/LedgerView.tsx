@@ -1,9 +1,10 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { confirmPurchase, recordPurchase } from '../CurateV2/placeOrder';
 import { useLibraryPurchases } from '../../lib/libraryPurchaseState';
+import { ensureCompassEncounterSaved } from '../../lib/teaCompassSync';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -421,57 +422,49 @@ const TransactionCard: React.FC<{
   const [recordBusy, setRecordBusy] = useState(false);
   const handleConfirm = useCallback(async () => {
     if (recording.current) return;
-    recording.current = true;
-    setRecordBusy(true);
-    confirmTransaction(tx.id);
-    setJustConfirmed(true);
-    setTimeout(() => setJustConfirmed(false), 1500);
-
-    // A confirmed purchase order records acquisition intent only. Inventory is
-    // created or increased later through a reviewed receipt/Inventory action.
-    if (tx.direction === 'purchase') {
-      try {
-        confirmPurchase(tx);
-        await recordPurchase(tx, rates, queryClient);
-        void queryClient.invalidateQueries({ queryKey: ['library-purchase-history'] });
-      } catch {
-        updateTransaction(tx.id, { recordFailed: true });
-      }
-    }
-
-    // Persist sale as invoice to database (fire-and-forget)
-    if (tx.direction === 'sale') {
-      try {
-        const invoiceNumber = `INV-${new Date().getFullYear()}-${tx.id.slice(0, 8).toUpperCase()}`;
-        const lineItems = tx.items
-          .filter(item => item.productId) // Only items linked to inventory products
-          .map(item => ({
-            product_id: item.productId!,
-            quantity: item.priceIsPerGram ? (item.quantityGrams ?? 0) : (item.quantityUnits ?? 1),
-            price_at_sale: item.pricePerUnit,
-          }));
-
-        if (lineItems.length > 0) {
-          await api.invoices.create(
-            {
-              invoice_number: invoiceNumber,
-              customer_name: tx.counterpartyName || 'Unknown',
-              customer_id: tx.counterpartyId || null,
-              display_currency: tx.currency,
-              shipping_cost_usd: 0,
-              status: 'Pending',
-              notes: `Created from ledger transaction ${tx.id}`,
-            },
-            lineItems
-          );
+    recording.current = true; setRecordBusy(true);
+    const accountId = useLedgerStore.getState().accountScopeId;
+    updateTransaction(tx.id, { confirmationPending: true, confirmationError: undefined });
+    try {
+      if (tx.direction === 'purchase') {
+        for (const item of tx.items) {
+          if (item.compassEntryId && useTeaCompassStore.getState().getEntry(item.compassEntryId)) await ensureCompassEncounterSaved(item.compassEntryId);
         }
-      } catch {
-        // Non-critical, sale exists locally in ledger store
+        await recordPurchase(tx, rates, queryClient);
+        if (useLedgerStore.getState().accountScopeId !== accountId) return;
+        confirmPurchase(useLedgerStore.getState().getTransaction(tx.id) || tx);
+        updateTransaction(tx.id, { confirmationPending: false, confirmationError: undefined, recordFailed: false });
+        void queryClient.invalidateQueries({ queryKey: ['library-purchase-history'] });
+      } else {
+        const lineItems = tx.items.filter(item => item.productId).map(item => ({ product_id: item.productId!,
+          quantity: item.priceIsPerGram ? item.quantityGrams ?? 0 : item.quantityUnits ?? 1, price_at_sale: item.pricePerUnit }));
+        if (!lineItems.length) throw new Error('Link these sale items to Stock before confirming.');
+        await api.invoices.create({ invoice_number: `INV-${new Date().getFullYear()}-${tx.id.slice(0, 8).toUpperCase()}`,
+          customer_name: tx.counterpartyName || 'Unknown', customer_id: tx.counterpartyId || null,
+          display_currency: tx.currency, shipping_cost_usd: 0, status: 'Pending', notes: `Created from ledger transaction ${tx.id}` }, lineItems);
+        if (useLedgerStore.getState().accountScopeId !== accountId) return;
+        confirmTransaction(tx.id);
+        updateTransaction(tx.id, { confirmationPending: false, confirmationError: undefined });
       }
-    }
-    recording.current = false;
-    setRecordBusy(false);
+      setJustConfirmed(true); setTimeout(() => setJustConfirmed(false), 1500);
+    } catch (error) {
+      if (useLedgerStore.getState().accountScopeId === accountId) updateTransaction(tx.id, {
+        confirmationPending: true, recordFailed: true,
+        confirmationError: error instanceof Error ? error.message : 'Could not record this order. Your draft is kept for retry.',
+      });
+    } finally { recording.current = false; setRecordBusy(false); }
   }, [tx, confirmTransaction, updateTransaction, rates, queryClient]);
+
+  const retryConfirmationRef = useRef(handleConfirm);
+  retryConfirmationRef.current = handleConfirm;
+  useEffect(() => {
+    const retry = () => {
+      const current = useLedgerStore.getState().getTransaction(tx.id);
+      if (current?.confirmationPending) void retryConfirmationRef.current();
+    };
+    window.addEventListener('online', retry);
+    return () => window.removeEventListener('online', retry);
+  }, [tx.id]);
 
   const handleDelete = useCallback(() => {
     if (window.confirm(`Remove this ${isPurchase ? 'purchase' : 'sale'} order?`)) {
@@ -561,6 +554,7 @@ const TransactionCard: React.FC<{
                 </div>
               )}
 
+              {(tx.confirmationPending || tx.confirmationError) && <p role="status" className="mt-3 text-ui-12 text-tea-text-sec">{tx.confirmationError || 'Recording this order. The draft is kept on this device.'}</p>}
               {/* Actions */}
               <div className="flex items-center gap-2 mt-3">
                 {isDraft && tx.items.length > 0 && (
@@ -584,13 +578,13 @@ const TransactionCard: React.FC<{
                         whileTap={{ scale: 0.98 }}
                         className="py-1.5 px-3 rounded-md cta-solid font-semibold text-xs uppercase tracking-[0.08em] transition-all"
                       >
-                        {isPurchase ? 'Purchase' : 'Sale'}
+                        {recordBusy ? 'Recording…' : tx.confirmationPending ? 'Retry confirmation' : isPurchase ? 'Purchase' : 'Sale'}
                       </motion.button>
                     )}
                   </AnimatePresence>
                 )}
 
-                {isPurchase && tx.recordFailed && <button type="button" disabled={recordBusy} onClick={handleConfirm} className="min-h-11 px-3 text-ui-12 text-tea-gold">{recordBusy ? 'Recording…' : 'Retry recording purchase'}</button>}
+                {isPurchase && tx.recordFailed && !isDraft && <button type="button" disabled={recordBusy} onClick={handleConfirm} className="min-h-11 px-3 text-ui-12 text-tea-gold">{recordBusy ? 'Recording…' : 'Retry recording purchase'}</button>}
                 {/* Print Tags, for purchase transactions with compass-linked items */}
                 {isPurchase && tx.items.some((i) => i.compassEntryId) && (
                   <button
@@ -636,8 +630,9 @@ const TransactionCard: React.FC<{
                       try {
                         await api.purchaseOrders.updateStatus(tx.purchaseOrderId!, 'sent');
                         setMarkedSent(true);
-                      } catch {
-                        // Status update failed silently
+                        updateTransaction(tx.id, { purchaseOrderSent: true, confirmationError: undefined });
+                      } catch (error) {
+                        updateTransaction(tx.id, { confirmationError: error instanceof Error ? error.message : 'Could not mark the order as sent.' });
                       }
                     }}
                     className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-tea-surface text-tea-text text-ui-11 font-medium uppercase tracking-[0.08em] active:bg-tea-elevated transition-colors"

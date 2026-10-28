@@ -181,7 +181,7 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
             initial={reducedMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: reducedMotion ? 0 : 0.16 }}
-            className={`pb-4 pt-3 ${activeSection.id === 'flavor' ? 'px-1.5' : 'px-4'}`}
+            className={`pb-4 pt-3 ${activeSection.id === 'flavor' ? 'px-1.5 tasting-wheel-panel' : 'px-4'}`}
           >
             {renderSectionContent(activeSection.id)}
           </motion.div>
