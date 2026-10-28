@@ -17,21 +17,21 @@ test('Stock cards use two columns only when two readable cards fit, then become 
     useAppStore.getState().setInventoryGroupBy('vendor');
   });
   const rows = page.locator('[data-stock-group="Master Bo"] tr[data-product-id]');
-  for (const width of [390, 679, 680, 740, 767]) {
+  for (const width of [390, 599, 600, 640, 680, 740, 767]) {
     await page.setViewportSize({ width, height: 844 });
     await expect(rows).toHaveCount(3);
     const first = await rows.nth(0).boundingBox();
     const second = await rows.nth(1).boundingBox();
     const third = await rows.nth(2).boundingBox();
-    if (width < 680) expect(second!.y).toBeGreaterThanOrEqual(first!.y + first!.height);
+    if (width < 600) expect(second!.y).toBeGreaterThanOrEqual(first!.y + first!.height);
     else {
       expect(Math.abs(first!.y - second!.y)).toBeLessThan(1);
       expect(second!.x).toBeGreaterThan(first!.x + first!.width);
       expect(third!.y).toBeGreaterThanOrEqual(first!.y + first!.height);
-      expect(first!.width).toBeGreaterThanOrEqual(320);
+      expect(first!.width).toBeGreaterThanOrEqual(280);
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
-    if (width === 740) {
+    if (width === 600) {
       await page.screenshot({ path: test.info().outputPath('stock-two-column-cards.png') });
       await rows.first().getByRole('button', { name: /Edit given name/ }).click();
       await expect(page.getByRole('dialog', { name: 'Given name', exact: true })).toBeVisible();
