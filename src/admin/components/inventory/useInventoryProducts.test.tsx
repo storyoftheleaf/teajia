@@ -66,8 +66,8 @@ describe('independent Stock filters', () => {
 it('combines short and full Puer group names without losing teas or grams', () => {
   const localProducts = [
     tea('ripe-short', { type: 'Shou', stockGrams: 2000 }),
-    tea('ripe-full', { type: 'Shou Puer', stockGrams: 25464 }),
-    tea('raw-short', { type: 'Sheng' }), tea('raw-full', { type: 'Sheng Puer' }),
+    tea('ripe-full', { type: 'Shou Puer' as Product['type'], stockGrams: 25464 }),
+    tea('raw-short', { type: 'Sheng' }), tea('raw-full', { type: 'Sheng Puer' as Product['type'] }),
   ];
   const result = read({ localProducts, inventoryGroupBy: 'type' });
   expect(result.groupedProducts.map(group => group.label).sort()).toEqual(['Sheng Puer', 'Shou Puer']);

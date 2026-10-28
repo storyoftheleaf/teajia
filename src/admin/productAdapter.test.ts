@@ -38,6 +38,6 @@ it('offers and saves the same full Puer labels', () => {
   expect(INVENTORY_TEA_TYPES).not.toContain('Sheng');
   expect(INVENTORY_TEA_TYPES).not.toContain('Shou');
   for (const value of ['Sheng', 'Sheng Puer', 'Shou', 'Shou Puer']) {
-    expect(buildProductUpdatePayload('type', value).type).toBe(mapAdminProduct({ type: value }).type);
+    expect(buildProductUpdatePayload('type', value)?.type).toBe(mapAdminProduct({ type: value }).type);
   }
 });
