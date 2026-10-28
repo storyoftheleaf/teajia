@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { BottomSheet } from '../../../../components/shared/BottomSheet';
 import { TYPOGRAPHY_CLASSES as T } from '../../../../designTokens';
-import { TEA_FORMS, TEA_TYPES, NON_TEA_TYPES, inventoryTeaType } from '../../../../wisdom/vocabulary';
+import { TEA_FORMS, INVENTORY_TEA_TYPES, NON_TEA_TYPES, inventoryTeaType } from '../../../../wisdom/vocabulary';
 import { SHOP_MARKUP_MULTIPLIER } from '../../../../lib/markup';
 import { useRates, useShopFreightDefault } from '../../../hooks/useAdminData';
 import { enteredNumber } from '../../../productUpdatePayload';
@@ -19,7 +19,7 @@ export function FormPricingSheet({ product, onSave, onClose }: { product: Produc
   const rawForm = String(product.form || '');
   const initialForm = rawForm === 'Loose Leaf' ? 'Loose' : rawForm;
   const [type, setType] = useState(inventoryTeaType(product.type) as Product['type']);
-  const types = [...new Set<string>([...TEA_TYPES.map(inventoryTeaType), ...NON_TEA_TYPES, ...(type ? [type] : [])])];
+  const types = [...new Set<string>([...INVENTORY_TEA_TYPES, ...NON_TEA_TYPES, ...(type ? [type] : [])])];
   const [form, setForm] = useState(initialForm);
   const [weight, setWeight] = useState(product.pieceWeightG == null ? '' : String(product.pieceWeightG));
   const [cost, setCost] = useState(product.costAmount == null ? '' : String(product.costAmount));

@@ -1,3 +1,4 @@
+import { inventoryTeaType } from '../../wisdom/vocabulary';
 import { StockHeadingStudy } from './inventory/stock/StockHeadingStudy';
 import type { InventoryFacetFilter } from './inventory/domain';
 import { StockBrowseBar } from './inventory/stock/StockBrowseBar';
@@ -211,7 +212,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // --- STATE ---
   const [searchParams, setSearchParams] = useSearchParams();
   const vendorFilter = searchParams.get('vendor') || '';
-  const teaTypeFilter = searchParams.get('teaType') || '';
+  const teaTypeFilter = inventoryTeaType(searchParams.get('teaType') || '');
   const tastingValue = searchParams.get('tasting') || '';
   const tastingFilter: InventoryFacetFilter | '' = ['Untasted', 'Tasted', 'HasProductTasting', 'NeedsProductTasting'].includes(tastingValue) ? tastingValue as InventoryFacetFilter : '';
   const batchFilter = searchParams.get('batch') || '';
@@ -2419,7 +2420,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               /><div className="heading-study-options-host">{adjustMenu}</div></>;
               return (
                 <StockBrowseBar tea={inventoryCategory === 'tea'} type={teaTypeFilter}
-                  types={[...new Set([...products.filter(product => product.type !== 'Teaware').map(product => product.type), ...(filterType === 'Samples' ? (curateSampleHoldings.data ?? []).map(holding => String(holding.entry.type ?? '')) : [])].filter(Boolean))].sort((a, b) => a.localeCompare(b))}
+                  types={[...new Set([...products.filter(product => product.type !== 'Teaware').map(product => product.type), ...(filterType === 'Samples' ? (curateSampleHoldings.data ?? []).map(holding => String(holding.entry.type ?? '')) : [])].filter(Boolean).map(inventoryTeaType))].sort((a, b) => a.localeCompare(b))}
                   onType={value => setSearchParams(params => withParam(params, 'teaType', value || null), { replace: true })}
                   supplier={vendorFilter} suppliers={[...new Set([...vendorSuggestions.map(supplier => supplier.name), ...(filterType === 'Samples' ? (curateSampleHoldings.data ?? []).map(holding => String(holding.entry.vendor_name ?? '').trim()).filter(Boolean) : []), ...(vendorFilter ? [vendorFilter] : [])])].sort((a, b) => a.localeCompare(b))}
                   onSupplier={value => setSearchParams(params => withParam(params, 'vendor', value || null), { replace: true })}
@@ -2873,7 +2874,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               rowsOnly
               products={processedProducts}
               allProducts={localProducts}
-              matchesHolding={(product, holding) => (!teaTypeFilter || product.type === teaTypeFilter)
+              matchesHolding={(product, holding) => (!teaTypeFilter || inventoryTeaType(product.type) === teaTypeFilter)
                 && (!vendorFilter || product.vendor?.trim().toLowerCase() === vendorFilter.trim().toLowerCase())
                 && (!tastingFilter || inventoryMatchesFacetFilter(product, tastingFilter,
                   effectivePersonalTastingByProductId[product.id] ?? { count: tastingJournal.filter(entry => !entry.archived && entry.compassEntryId === holding.entry.id && (!entry.accountId || entry.accountId === tastingAccountId)).reduce((count, entry) => count + Math.max(1, entry.tastings?.length ?? 0), 0) },
