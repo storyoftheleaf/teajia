@@ -34,7 +34,6 @@ export function StockMobileRecord({product,name,fields,editing,index,onEdit,onUp
  const corePrice=fields.find(f=>f.key==='pricePerGramUSD')||fields.find(f=>f.key==='costPerGramUSD')||fields.find(f=>f.key==='costAmount');
  const stock=fields.find(f=>f.key==='stockGrams'||f.key==='quantityUnits');
  const metrics=[stock,corePrice].filter(Boolean) as StockField[];
- const type=fields.find(f=>f.key==='type');
  const details=fields.filter(f=>!(groupBy==='vendor'&&f.key==='vendor')&&!['productName','type','year','shippingRatePerKg',...metrics.map(m=>m.key)].includes(f.key));
  const houseName=product.givenName?.trim();
  const distinctName=houseName&&houseName!=='Unnamed'&&houseName!==product.productName?.trim();
@@ -44,9 +43,9 @@ export function StockMobileRecord({product,name,fields,editing,index,onEdit,onUp
  const metricLabel=(f:StockField)=>f.key==='stockGrams'?'Stock · g':f.key==='quantityUnits'?'Units':f.key==='pricePerGramUSD'?(product.type==='Teaware'?'Retail / unit':'Retail / g'):f.key==='costPerGramUSD'?'Cost / g':f.label;
  const reference=(value:React.ReactNode,label:string)=><><span className="stock-number">{value}</span><span className="stock-caption" aria-hidden="true">{label}</span></>;
 
- return <article className="stock-record stock-mini-workspace" aria-label={name} data-card-study={studyVariant} data-card-polish={polishVariant} style={finish ? { '--stock-tea-hue': finish.tint, '--stock-tea-label': finish.text, '--stock-strip-l': finish.lightness } as React.CSSProperties : undefined}>
-  <header className="stock-identity"><div className="stock-title-line"><div className="stock-title" id={`cell-${index}-0`}>{editing?<GhostInput id={`ghost-${index}-0`} ariaLabel="Product name" value={name} onSave={onUpdate} className={T.h3}/>:<button type="button" className={`tap-target ${T.h3}`} aria-label={`Open ${name} editor`} onClick={e=>{e.stopPropagation();onEdit()}}>{name}</button>}</div><button type="button" className="tap-target stock-more-action" aria-label={`More details for ${name}`} onClick={open('more')}><MoreHorizontal size={18}/></button></div>
-   <div className="stock-subtitle">{type&&field(type)}<button type="button" className="tap-target stock-inline-edit stock-given-name" aria-label={`Edit given name for ${name}`} onClick={open('givenName')}>{distinctName?houseName:'Unnamed'}</button>{product.type!=='Teaware'&&<button type="button" className="tap-target stock-inline-edit stock-form-edit" aria-label={`Edit form and pricing for ${name}`} onClick={open('form')}>{String(product.form||'').startsWith('Loose')?'Loose leaf':product.form||'Choose form'}{product.pieceWeightG ? ` · ${product.pieceWeightG} g` : ''}</button>}</div>
+ return <article onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} className="stock-record stock-mini-workspace" aria-label={name} data-card-study={studyVariant} data-card-polish={polishVariant} style={finish ? { '--stock-tea-hue': finish.tint, '--stock-tea-label': finish.text, '--stock-strip-l': finish.lightness } as React.CSSProperties : undefined}>
+  <header className="stock-identity"><div className="stock-title-line"><div className="stock-title" id={`cell-${index}-0`}>{editing?<GhostInput id={`ghost-${index}-0`} ariaLabel="Product name" value={name} onSave={onUpdate} className={T.h3}/>:<button type="button" className={`tap-target ${T.h3}`} aria-label={`Edit name for ${name}`} onClick={open('productName')}>{name}</button>}</div><button type="button" className="tap-target stock-more-action" aria-label={`More details for ${name}`} onClick={open('more')}><MoreHorizontal size={18}/></button></div>
+   <div className="stock-subtitle"><button type="button" data-field="type" className="tap-target stock-inline-edit" aria-label={`Edit type for ${name}`} onClick={open('form')}><span>{product.type||'Choose type'}</span></button><button type="button" className="tap-target stock-inline-edit stock-given-name" aria-label={`Edit given name for ${name}`} onClick={open('givenName')}>{distinctName?houseName:'Unnamed'}</button>{<button type="button" className="tap-target stock-inline-edit stock-form-edit" aria-label={`Edit form and pricing for ${name}`} onClick={open('form')}>{String(product.form||'').startsWith('Loose')?'Loose leaf':product.form||'Choose form'}{product.pieceWeightG ? ` · ${product.pieceWeightG} g` : ''}</button>}</div>
   </header>
   <div className="stock-details">{details.map(f=><div key={f.key} className="stock-detail" data-detail={f.key} title={f.label}><span className={`stock-detail-label ${T.label}`} data-kind={f.key}>{f.label}</span>{field(f)}</div>)}</div>
   <div className="stock-workbar">
@@ -72,7 +71,7 @@ export function StockMobileRecord({product,name,fields,editing,index,onEdit,onUp
    {panel==='freight'&&<FreightSheet product={product} onSave={v=>onSaveChange('shippingRatePerKg',v)} onClose={()=>setPanel(null)}/>}
    {panel==='photos'&&<QuickPhotoSheet product={product} onSave={onSaveChange} onClose={()=>setPanel(null)}/>}
    {panel==='more'&&<MiniMoreSheet product={product} journal={journal} place={place} onClose={()=>setPanel(null)} onEdit={leave(onEdit)} onHistory={leave(onHistory)} onJournal={leave(onJournal)} onFreight={()=>setPanel('freight')} freightUsd={freightUsd} onSave={onSaveChange}/>}
-   {(['givenName','year','fixedRetailPriceUSD','costAmount'] as const).includes(panel as MiniField)&&<MiniEditSheet key={panel} product={product} field={panel as MiniField} onSave={onSaveChange} onClose={()=>setPanel(null)}/>}
+   {(['productName','givenName','year','fixedRetailPriceUSD','costAmount'] as const).includes(panel as MiniField)&&<MiniEditSheet key={panel} product={product} field={panel as MiniField} onSave={onSaveChange} onClose={()=>setPanel(null)}/>}
   </div>
  </article>
 }

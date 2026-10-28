@@ -6332,3 +6332,7 @@ body.cart-panel-open .commerce-dock {
 .tasting-return-emblem svg path { stroke:var(--tea-text);stroke-width:11;stroke-linejoin:round; }
 @keyframes tasting-emblem-depart { from { opacity:1;visibility:visible; } to { opacity:0;visibility:hidden; } }
 @media(prefers-reduced-motion:reduce){.tasting-return-emblem{animation:none;display:none;}}
+
+/* The title's whole padded area belongs to its editor, not the parent row. */
+.stock-view .stock-record[data-card-study="2"] .stock-title { padding-block:0; }
+.stock-view .stock-record[data-card-study="2"] .stock-title>button { min-height:44px; padding-block:7.5px; }

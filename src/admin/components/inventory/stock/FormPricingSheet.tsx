@@ -1,14 +1,14 @@
 import { useRef, useState } from 'react';
 import { BottomSheet } from '../../../../components/shared/BottomSheet';
 import { TYPOGRAPHY_CLASSES as T } from '../../../../designTokens';
-import { TEA_FORMS } from '../../../../wisdom/vocabulary';
+import { TEA_FORMS, TEA_TYPES, NON_TEA_TYPES } from '../../../../wisdom/vocabulary';
 import { SHOP_MARKUP_MULTIPLIER } from '../../../../lib/markup';
 import { useRates, useShopFreightDefault } from '../../../hooks/useAdminData';
 import { enteredNumber } from '../../../productUpdatePayload';
 import type { Product } from '../../../types';
 import { formPricingPreview } from './formPricingModel';
 
-export type FormPricingChanges = Partial<Pick<Product, 'form' | 'costAmount' | 'quantityPurchased' | 'soldInWholeUnits'>> & { pieceWeightG?: number | null };
+export type FormPricingChanges = Partial<Pick<Product, 'type' | 'form' | 'costAmount' | 'quantityPurchased' | 'soldInWholeUnits'>> & { pieceWeightG?: number | null };
 export type SaveFormPricing = (changes: FormPricingChanges) => Promise<void>;
 const money = (value: number | null) => value === null ? '\u2014' : `$${value.toFixed(2)}`;
 const formLabel = (value: string) => value === 'Loose' || value === 'Loose Leaf' ? 'Loose leaf' : value;
@@ -18,6 +18,8 @@ export function FormPricingSheet({ product, onSave, onClose }: { product: Produc
   const freight = useShopFreightDefault();
   const rawForm = String(product.form || '');
   const initialForm = rawForm === 'Loose Leaf' ? 'Loose' : rawForm;
+  const [type, setType] = useState(product.type);
+  const types = [...new Set<string>([...TEA_TYPES, ...NON_TEA_TYPES, ...(type ? [type] : [])])];
   const [form, setForm] = useState(initialForm);
   const [weight, setWeight] = useState(product.pieceWeightG == null ? '' : String(product.pieceWeightG));
   const [cost, setCost] = useState(product.costAmount == null ? '' : String(product.costAmount));
@@ -29,7 +31,7 @@ export function FormPricingSheet({ product, onSave, onClose }: { product: Produc
   const pieceWeight = enteredNumber(weight);
   const basisGrams = enteredNumber(purchaseGrams);
   const paid = enteredNumber(cost);
-  const draft = { ...product, form: form as Product['form'], soldInWholeUnits: wholeOnly, pieceWeightG: pieceWeight, costAmount: paid, quantityPurchased: basisGrams };
+  const draft = { ...product, type, form: form as Product['form'], soldInWholeUnits: wholeOnly, pieceWeightG: pieceWeight, costAmount: paid, quantityPurchased: basisGrams };
   const preview = formPricingPreview(draft, rates, freight.perKgUsd);
   async function save() {
     if (savingRef.current) return;
@@ -40,6 +42,7 @@ export function FormPricingSheet({ product, onSave, onClose }: { product: Produc
       if (cost !== (product.costAmount == null ? '' : String(product.costAmount)) && (paid === null || paid < 0)) throw new Error('Enter the purchase cost. Zero means it was free.');
       if (purchaseGrams !== (product.quantityPurchased > 0 ? String(product.quantityPurchased) : '') && (basisGrams === null || basisGrams <= 0)) throw new Error('Enter the grams that the purchase cost covered, greater than zero.');
       const changes: FormPricingChanges = {};
+      if (type !== product.type) changes.type = type;
       if (form !== initialForm) changes.form = form as Product['form'];
       if (pieceWeight !== (product.pieceWeightG ?? null)) changes.pieceWeightG = pieceWeight;
       if (paid !== (product.costAmount ?? null)) changes.costAmount = paid!;
@@ -53,6 +56,7 @@ export function FormPricingSheet({ product, onSave, onClose }: { product: Produc
   }
   return <BottomSheet open large className="stock-form-dialog" title="Form & pricing" description={product.productName} onOpenChange={open => { if (!open && !savingRef.current) onClose(); }}>
     <div className="stock-form-sheet space-y-3 px-2 pb-3 text-tea-text">
+      <fieldset disabled={saving}><legend className={`${T.label} mb-1 text-tea-text-dim`}>Tea type / teaware</legend><div className="stock-form-options">{types.map(value => <button type="button" key={value} aria-pressed={type === value} onClick={() => setType(value as Product['type'])} className={`${T.link} min-h-11 rounded-md border px-3 ${type === value ? 'border-tea-gold bg-tea-surface text-tea-gold' : 'border-tea-border bg-transparent text-tea-text-sec'}`}>{value}</button>)}</div></fieldset>
       <fieldset disabled={saving}><legend className={`${T.label} mb-1 text-tea-text-dim`}>Form</legend><div className="stock-form-options">{forms.map(value => <button type="button" key={value} aria-pressed={form === value} onClick={() => setForm(value)} className={`${T.link} min-h-11 rounded-md border px-3 ${form === value ? 'border-tea-gold bg-tea-surface text-tea-gold' : 'border-tea-border bg-transparent text-tea-text-sec'}`}>{formLabel(value)}</button>)}</div></fieldset>
       <div><label htmlFor="stock-piece-grams" className={`${T.label} block text-tea-text-dim`}>Piece / pack · g</label><input id="stock-piece-grams" aria-label="One piece / pack weighs · g" type="number" min="0" step="any" inputMode="decimal" value={weight} disabled={saving} onChange={event => setWeight(event.target.value)} placeholder="e.g. 357" className="stock-form-input"/></div>
       <fieldset disabled={saving} className="stock-purchase-basis"><legend className={`${T.label} mb-2 text-tea-text-dim`}>Purchase basis</legend><div className="stock-purchase-inputs">
