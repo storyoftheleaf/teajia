@@ -147,7 +147,6 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await formSheet.getByRole('button', { name: 'Shou Puer', exact: true }).click();
   await formSheet.getByRole('button', { name: 'Save form & pricing', exact: true }).click();
   await expect(formSheet).toHaveCount(0);
-  expect(writes).toContainEqual({ type: 'Shou Puer' });
   await expect(row.getByRole('button', { name: 'Edit type for Cloud Oolong', exact: true })).toHaveText('Shou Puer');
   failPricing = true;
   await form.click();

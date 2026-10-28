@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { BottomSheet } from '../../../../components/shared/BottomSheet';
 import { TYPOGRAPHY_CLASSES as T } from '../../../../designTokens';
-import { TEA_FORMS, TEA_TYPES, NON_TEA_TYPES } from '../../../../wisdom/vocabulary';
+import { TEA_FORMS, TEA_TYPES, NON_TEA_TYPES, inventoryTeaType } from '../../../../wisdom/vocabulary';
 import { SHOP_MARKUP_MULTIPLIER } from '../../../../lib/markup';
 import { useRates, useShopFreightDefault } from '../../../hooks/useAdminData';
 import { enteredNumber } from '../../../productUpdatePayload';
@@ -11,7 +11,6 @@ import { formPricingPreview } from './formPricingModel';
 export type FormPricingChanges = Partial<Pick<Product, 'type' | 'form' | 'costAmount' | 'quantityPurchased' | 'soldInWholeUnits'>> & { pieceWeightG?: number | null };
 export type SaveFormPricing = (changes: FormPricingChanges) => Promise<void>;
 const money = (value: number | null) => value === null ? '\u2014' : `$${value.toFixed(2)}`;
-const stockTypeName = (value: string) => value === 'Shou' ? 'Shou Puer' : value === 'Sheng' ? 'Sheng Puer' : value;
 const formLabel = (value: string) => value === 'Loose' || value === 'Loose Leaf' ? 'Loose leaf' : value;
 
 export function FormPricingSheet({ product, onSave, onClose }: { product: Product; onSave: SaveFormPricing; onClose: () => void }) {
@@ -19,8 +18,8 @@ export function FormPricingSheet({ product, onSave, onClose }: { product: Produc
   const freight = useShopFreightDefault();
   const rawForm = String(product.form || '');
   const initialForm = rawForm === 'Loose Leaf' ? 'Loose' : rawForm;
-  const [type, setType] = useState(stockTypeName(product.type) as Product['type']);
-  const types = [...new Set<string>([...TEA_TYPES.map(stockTypeName), ...NON_TEA_TYPES, ...(type ? [type] : [])])];
+  const [type, setType] = useState(inventoryTeaType(product.type) as Product['type']);
+  const types = [...new Set<string>([...TEA_TYPES.map(inventoryTeaType), ...NON_TEA_TYPES, ...(type ? [type] : [])])];
   const [form, setForm] = useState(initialForm);
   const [weight, setWeight] = useState(product.pieceWeightG == null ? '' : String(product.pieceWeightG));
   const [cost, setCost] = useState(product.costAmount == null ? '' : String(product.costAmount));

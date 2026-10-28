@@ -1,3 +1,4 @@
+import { inventoryTeaType } from '../wisdom/vocabulary';
 import { enteredYear } from './enteredYear';
 import type { Product } from './types';
 
@@ -126,7 +127,7 @@ export function buildProductUpdatePayload(field: keyof Product, value: any): Rec
     case 'soldInWholeUnits': return { sold_in_whole_units: value ? 1 : 0 };
     case 'originCountry': return { origin_country: value };
     case 'vendor': return { vendor: value };
-    case 'type': return { type: value };
+    case 'type': return { type: typeof value === 'string' ? inventoryTeaType(value) : value };
     case 'status': return { status: value };
     case 'imageUrl': return { image_url: value };
     case 'processingNotes': return { processing_notes: value };

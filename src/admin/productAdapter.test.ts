@@ -20,3 +20,12 @@ describe('admin product API boundary', () => {
     expect(missing.lowStockThreshold).toBe(100);
   });
 });
+
+it('consolidates legacy Puer names while keeping raw and ripe separate', () => {
+  const types = ['Sheng', 'Sheng Puer', 'Shou', 'Shou Puer', 'Shu'];
+  const products = types.map((type, index) => mapAdminProduct({ id: String(index), type }));
+  expect(products.map(p => p.type)).toEqual(['Sheng Puer', 'Sheng Puer', 'Shou Puer', 'Shou Puer', 'Shou Puer']);
+  expect(new Set(products.map(p => p.type)).size).toBe(2);
+  expect(new Set(products.map(p => p.id)).size).toBe(5);
+  expect(mapAdminProduct({ type: 'Pu-erh' }).type).toBe('Pu-erh');
+});
