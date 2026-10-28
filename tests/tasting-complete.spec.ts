@@ -199,7 +199,9 @@ test('site and tasting bars fold in sequence without moving the center', async (
   expect(settled!.y).toBeCloseTo(firstPosition!.y, 1);
   await page.screenshot({ path: '/tmp/tasting-fold-open.png' });
   await seal.click();
-  // Return opens the site bar directly; there is no preliminary tasting fold.
+  // Tasting fades before the site bar expands; there is no extra fold.
+  await expect(page.locator('[data-center-leaving="true"]')).toHaveCount(1);
+  await expect(page.locator('[data-center-leaving="true"]')).toHaveAttribute('inert', '');
   await expect(tasting).toHaveCount(0);
   await expect(tasting).toBeHidden();
   await expect(site).toHaveClass(/tasting-site-reopen/);

@@ -195,6 +195,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   // first tap instead of asking about work you did in an earlier session.
   const baselineRef = useRef<string>(tastingFingerprint(openedWith));
   const [closePrompt, setClosePrompt] = useState(false);
+  const [leavingFromCenter, setLeavingFromCenter] = useState(false);
   const closePromptRef = useFocusTrap<HTMLDivElement>(closePrompt, { initialFocus: '[data-close-prompt-save]' });
   const [isContinuing, setIsContinuing] = useState(!!existingEntry);
   const navigate = useNavigate();
@@ -374,6 +375,12 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     setClosePrompt(true);
   }, [isDirty, onClose]);
 
+  const handleCenterClose = () => {
+    if (isDirty) { setClosePrompt(true); return; }
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { onClose(); return; }
+    setLeavingFromCenter(true);
+  };
+
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
@@ -539,9 +546,12 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     <div data-tasting-session-overlay className={`fixed inset-0 z-takeover lg:bg-black/75 lg:backdrop-blur-sm lg:flex lg:items-center lg:justify-center${className ? ` ${className}` : ''}`}>
     <motion.div
       initial={false}
-      animate={{ opacity: 1 }}
+      animate={{ opacity: leavingFromCenter ? 0 : 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+      inert={leavingFromCenter}
+      data-center-leaving={leavingFromCenter || undefined}
+      onAnimationComplete={() => { if (leavingFromCenter) onClose(); }}
+      transition={{ duration: leavingFromCenter ? 0.38 : 0.25, ease: 'easeInOut' }}
       className="fixed inset-0 bg-tea-bg flex flex-col lg:relative lg:inset-auto lg:w-[540px] lg:h-[min(94vh,960px)] lg:rounded-xl lg:border lg:border-tea-border lg:overflow-hidden"
       style={{
         paddingLeft: 'env(safe-area-inset-left, 0px)',
@@ -789,7 +799,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
             </div>
 
             <TastingNavigation activeSection={showNote ? null : activeSectionId}
-              onSelect={id => { setActiveSectionId(id); setShowNote(false); }} onClose={handleCloseRequest} />
+              onSelect={id => { setActiveSectionId(id); setShowNote(false); }} onClose={handleCenterClose} />
 
             {/* Bottom bar: a flat word taskbar. One crisp hairline separates it
                 from the content above; no upward shadow haze (that read as smudged
