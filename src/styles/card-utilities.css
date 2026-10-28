@@ -6319,3 +6319,10 @@ body.cart-panel-open .commerce-dock {
 .tasting-loading-state { display:flex; align-items:center; justify-content:center; gap:12px; padding:24px; color:var(--tea-text-sec); font-size:13px; }
 .tasting-wheel-loading { flex-direction:column; width:100%; aspect-ratio:1; border:1px solid var(--tea-border); border-radius:50%; background:radial-gradient(circle,var(--tea-surface),var(--tea-bg) 70%); }
 .tasting-wheel-loading button { min-height:44px; padding:0 16px; border:1px solid var(--tea-border); border-radius:8px; }
+
+/* Carry only the tasting emblem across the handoff while the site bar opens. */
+.tasting-return-emblem { position:absolute;left:50%;top:50%;width:42px;height:42px;transform:translate(-50%,-50%);pointer-events:none;animation:tasting-emblem-depart .55s ease-out both; }
+.tasting-return-emblem svg { display:block;width:42px;height:42px; }
+.tasting-return-emblem svg path { stroke:var(--tea-text);stroke-width:11;stroke-linejoin:round; }
+@keyframes tasting-emblem-depart { from { opacity:1;visibility:visible; } to { opacity:0;visibility:hidden; } }
+@media(prefers-reduced-motion:reduce){.tasting-return-emblem{animation:none;display:none;}}

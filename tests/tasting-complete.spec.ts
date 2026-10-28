@@ -199,15 +199,25 @@ test('site and tasting bars fold in sequence without moving the center', async (
   expect(settled!.y).toBeCloseTo(firstPosition!.y, 1);
   await page.screenshot({ path: '/tmp/tasting-fold-open.png' });
   await seal.click();
-  // Tasting fades before the site bar expands; there is no extra fold.
-  await expect(page.locator('[data-center-leaving="true"]')).toHaveCount(1);
-  await expect(page.locator('[data-center-leaving="true"]')).toHaveAttribute('inert', '');
+  // Return opens the site bar directly; there is no preliminary tasting fold.
   await expect(tasting).toHaveCount(0);
   await expect(tasting).toBeHidden();
   await expect(site).toHaveClass(/tasting-site-reopen/);
+  await expect(site.locator('.tasting-return-emblem')).toHaveCSS('animation-name', 'tasting-emblem-depart');
+  await site.evaluate(el => {
+    for (const animation of el.getAnimations({ subtree: true })) { animation.pause(); animation.currentTime = 220; }
+  });
+  const emblemOpacity = await site.locator('.tasting-return-emblem').evaluate(el => Number(getComputedStyle(el).opacity));
+  expect(emblemOpacity).toBeGreaterThan(0);
+  expect(emblemOpacity).toBeLessThan(1);
+  await page.screenshot({ path: '/tmp/tasting-emblem-fade.png' });
+  await site.evaluate(el => { for (const animation of el.getAnimations({ subtree: true })) animation.play(); });
+
   await expect(site.locator(':scope > div')).toHaveCSS('animation-delay', '0.5s');
   await expect(site.locator(':scope > div')).toHaveCSS('opacity', '1');
   await page.screenshot({ path: '/tmp/tasting-fold-return.png' });
+  await expect(page.locator('[data-center-leaving]')).toHaveCount(0);
+  await expect(site.locator('.tasting-return-emblem')).toHaveCSS('opacity', '0');
   // Past the old 750ms cleanup: the original slide-up must never replay.
   await page.waitForTimeout(850);
   await expect(site).toHaveClass(/tasting-site-reopen/);

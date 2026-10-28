@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { LogoText } from './Logos';
+import { LogoText, LogoEmblem } from './Logos';
 import { Section } from '../types';
 
 import { useLongPress } from '../hooks/useLongPress';
@@ -366,6 +366,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           </button>
 
         </div>
+        {returningFromTasting && <span aria-hidden="true" className="tasting-return-emblem"><LogoEmblem size={42} color="var(--tea-text)" /></span>}
       </nav>
   );
 };
