@@ -6260,6 +6260,12 @@ body.cart-panel-open .commerce-dock {
 .stock-browse-bar>label { display:block; position:relative; min-width:0; }
 .stock-browse-bar>label>span { position:absolute; top:4px; left:0; font-size:10px; line-height:12px; color:var(--tea-text-dim); pointer-events:none; }
 .stock-browse-bar select { display:block; width:100%; min-width:0; min-height:47px; padding:12px 12px 0 0; border:0; border-radius:0; background:transparent; color:var(--tea-text); font-size:12px; text-overflow:ellipsis; }
+/* Keep the closed filter in the site's palette, and let the native picker
+   use a complete system palette, including its group headings. Safari keeps
+   its platform picker; no custom menu or selection behavior is substituted. */
+.stock-browse-bar select { color-scheme: inherit; }
+.stock-browse-bar select option,
+.stock-browse-bar select optgroup { background-color: Canvas; color: CanvasText; }
 .stock-browse-bar select:focus-visible { outline:2px solid var(--tea-gold); outline-offset:-2px; }
 .stock-browse-teaware { grid-template-columns:repeat(2,minmax(0,1fr)); }
 @media(min-width:768px) { .stock-browse-bar { max-width:920px; gap:24px; } .stock-browse-bar select { font-size:14px; } }
