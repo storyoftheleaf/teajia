@@ -37,7 +37,12 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   return (
     <Drawer.Root open={open} onOpenChange={onOpenChange} shouldScaleBackground>
       <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 z-modal bg-black/55 backdrop-blur-sm" />
+        <Drawer.Overlay
+          className="fixed inset-0 z-modal bg-black/55 backdrop-blur-sm"
+          onClick={event => {
+            if (event.target === event.currentTarget) onOpenChange(false);
+          }}
+        />
         <Drawer.Content
           className={`fixed bottom-0 left-0 right-0 z-modal flex flex-col rounded-t-3xl border-t border-tea-border outline-none focus:outline-none${className ? ` ${className}` : ''}`}
           style={{

@@ -121,6 +121,11 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await expect(row.locator('select')).toHaveCount(0);
   await form.click();
   const formSheet = page.getByRole('dialog', { name: 'Form & pricing', exact: true });
+  await formSheet.getByLabel('One piece / pack weighs · g', { exact: true }).click();
+  await expect(formSheet).toBeVisible();
+  await page.locator('[data-vaul-overlay]').click({ position: { x: 8, y: 8 } });
+  await expect(formSheet).toHaveCount(0);
+  await form.click();
   await formSheet.getByRole('button', { name: 'Cake', exact: true }).click();
   await formSheet.getByLabel('One piece / pack weighs · g', { exact: true }).fill('357');
   await formSheet.getByLabel('Purchase cost · USD', { exact: true }).fill('5');
