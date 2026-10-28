@@ -115,6 +115,13 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   }
   await page.setViewportSize({ width: 390, height: 844 });
 
+  await row.getByRole('button', { name: 'More details for Cloud Oolong', exact: true }).click();
+  await page.getByRole('button', { name: 'Delete tea', exact: true }).click();
+  const deleteDialog = page.getByRole('dialog', { name: 'Delete this tea?', exact: true });
+  await expect(deleteDialog).toBeVisible();
+  await expect(deleteDialog.getByRole('button', { name: 'Delete permanently', exact: true })).toBeDisabled();
+  await deleteDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(deleteDialog).toHaveCount(0);
   const nameButton = row.getByRole('button', { name: 'Edit name for Cloud Oolong', exact: true });
   const nameBounds = (await nameButton.boundingBox())!;
   await nameButton.click({ position: { x: nameBounds.width - 4, y: 3 } });
@@ -135,6 +142,7 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await page.locator('[data-vaul-overlay]').click({ position: { x: 8, y: 8 } });
   await expect(formSheet).toHaveCount(0);
   await form.click();
+  await expect(formSheet.locator('details')).toHaveCount(0);
   await formSheet.getByRole('button', { name: 'Red', exact: true }).click();
   await formSheet.getByRole('button', { name: 'Cake', exact: true }).click();
   await formSheet.getByLabel('One piece / pack weighs · g', { exact: true }).fill('357');

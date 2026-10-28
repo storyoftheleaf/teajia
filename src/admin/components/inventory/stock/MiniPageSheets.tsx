@@ -38,7 +38,7 @@ export function MiniEditSheet({ product, field, onSave, onClose }: {product:Prod
   </div></BottomSheet>
 }
 const date=(value?:string|null)=>value?new Date(value).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}):'Not yet verified';
-export function MiniMoreSheet({product,journal,place,onClose,onEdit,onHistory,onJournal,onFreight,freightUsd,onSave}:{product:Product;journal?:CustomerTasting;place:string;onClose:()=>void;onEdit:()=>void;onHistory:()=>void;onJournal:()=>void;onFreight:()=>void;freightUsd:number|null;onSave:SaveField}){
+export function MiniMoreSheet({product,journal,place,onClose,onEdit,onDelete,onHistory,onJournal,onFreight,freightUsd,onSave}:{product:Product;journal?:CustomerTasting;place:string;onClose:()=>void;onEdit:()=>void;onDelete:()=>void;onHistory:()=>void;onJournal:()=>void;onFreight:()=>void;freightUsd:number|null;onSave:SaveField}){
  const activeUser=useAppStore(state=>state.activeUserId);
  const [saving,setSaving]=useState(false),[error,setError]=useState('');
   const savingRef=useRef(false);
@@ -49,6 +49,7 @@ export function MiniMoreSheet({product,journal,place,onClose,onEdit,onHistory,on
  <fieldset disabled={saving}><legend className={`${T.label} mb-2 text-tea-text-dim`}>Purpose</legend><div className="grid grid-cols-3 gap-1">{(['working','sample','personal'] as const).map(v=><button type="button" key={v} aria-pressed={effectivePurpose(product)===v} onClick={()=>{void purpose(v)}} className={`${T.link} min-h-11 rounded-md border border-tea-border px-2 ${effectivePurpose(product)===v?'bg-tea-accent-sub text-tea-text':'text-tea-text-sec'}`}>{v==='working'?'Shop stock':v==='sample'?'Sample':'Personal'}</button>)}</div></fieldset>
  {error&&<p role="alert" className={`${T.link} text-tea-text-sec`}>{error}</p>}
  <div className="grid grid-cols-2 gap-2">{[[`Freight ${product.type==='Teaware'?'included':freightUsd==null?'—':'$'+freightUsd.toFixed(2)+'/kg'}`,onFreight],['Stock history',onHistory],['Personal journal',onJournal],['Full editor',onEdit]].map(([label,action])=><button type="button" key={label as string} disabled={saving} onClick={action as ()=>void} className={`${T.link} min-h-11 rounded-md border border-tea-border bg-tea-surface px-2 text-tea-text`}>{label as string}</button>)}</div>
+ <button type="button" disabled={saving} onClick={onDelete} className={`${T.link} min-h-11 w-full border-t border-tea-border text-left text-tea-text-sec`}>Delete {product.type==='Teaware'?'item':'tea'}</button>
  <p className={`${T.link} text-tea-text-sec`}>The full editor keeps pricing, brewing and tasting profiles, linked writing, shop visibility, collections and sales tools available.</p>
  </div></BottomSheet>
 }

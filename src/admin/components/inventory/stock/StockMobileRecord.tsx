@@ -16,9 +16,9 @@ const phone=window.matchMedia('(max-width:767px)');
 const subscribe=(notify:()=>void)=>{phone.addEventListener('change',notify);return()=>phone.removeEventListener('change',notify)};
 export function useStockPhone(){return useSyncExternalStore(subscribe,()=>phone.matches)}
 type Panel='form'|'freight'|'photos'|'more'|MiniField|null;
-export function StockMobileRecord({product,name,fields,editing,index,onEdit,onUpdate,onSaveChange,onTaste,onJournal,onHistory,freightUsd,onSavePricing,onStockChange}:{
+export function StockMobileRecord({product,name,fields,editing,index,onEdit,onUpdate,onSaveChange,onTaste,onJournal,onHistory,freightUsd,onSavePricing,onStockChange,onDelete}:{
  product:Product;name:string;fields:StockField[];editing:boolean;index:number;onEdit:()=>void;onUpdate:(value:string)=>void;
- onStockChange:(trigger:HTMLElement)=>void;onSavePricing:SaveFormPricing;onSaveChange:SaveField;onTaste:()=>void;onJournal:()=>void;onHistory:()=>void;freightUsd:number|null;
+ onDelete:()=>void;onStockChange:(trigger:HTMLElement)=>void;onSavePricing:SaveFormPricing;onSaveChange:SaveField;onTaste:()=>void;onJournal:()=>void;onHistory:()=>void;freightUsd:number|null;
 }){
  const studyParams = import.meta.env.DEV ? new URLSearchParams(window.location.search) : undefined;
  // Fine metalwork is the normal Stock finish; alternative finishes are local studies.
@@ -70,7 +70,7 @@ export function StockMobileRecord({product,name,fields,editing,index,onEdit,onUp
    {panel==='form'&&<FormPricingSheet product={product} onSave={onSavePricing} onClose={()=>setPanel(null)}/>}
    {panel==='freight'&&<FreightSheet product={product} onSave={v=>onSaveChange('shippingRatePerKg',v)} onClose={()=>setPanel(null)}/>}
    {panel==='photos'&&<QuickPhotoSheet product={product} onSave={onSaveChange} onClose={()=>setPanel(null)}/>}
-   {panel==='more'&&<MiniMoreSheet product={product} journal={journal} place={place} onClose={()=>setPanel(null)} onEdit={leave(onEdit)} onHistory={leave(onHistory)} onJournal={leave(onJournal)} onFreight={()=>setPanel('freight')} freightUsd={freightUsd} onSave={onSaveChange}/>}
+   {panel==='more'&&<MiniMoreSheet onDelete={leave(onDelete)} product={product} journal={journal} place={place} onClose={()=>setPanel(null)} onEdit={leave(onEdit)} onHistory={leave(onHistory)} onJournal={leave(onJournal)} onFreight={()=>setPanel('freight')} freightUsd={freightUsd} onSave={onSaveChange}/>}
    {(['productName','givenName','year','fixedRetailPriceUSD','costAmount'] as const).includes(panel as MiniField)&&<MiniEditSheet key={panel} product={product} field={panel as MiniField} onSave={onSaveChange} onClose={()=>setPanel(null)}/>}
   </div>
  </article>
