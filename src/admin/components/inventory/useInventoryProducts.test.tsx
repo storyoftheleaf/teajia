@@ -62,3 +62,19 @@ describe('independent Stock filters', () => {
     expect(localProducts[1].vendor).toBe('   ');
   });
 });
+
+it('combines short and full Puer group names without losing teas or grams', () => {
+  const localProducts = [
+    tea('ripe-short', { type: 'Shou', stockGrams: 2000 }),
+    tea('ripe-full', { type: 'Shou Puer', stockGrams: 25464 }),
+    tea('raw-short', { type: 'Sheng' }), tea('raw-full', { type: 'Sheng Puer' }),
+  ];
+  const result = read({ localProducts, inventoryGroupBy: 'type' });
+  expect(result.groupedProducts.map(group => group.label).sort()).toEqual(['Sheng Puer', 'Shou Puer']);
+  const ripe = result.groupedProducts.find(group => group.label === 'Shou Puer')!;
+  expect(ripe.items).toHaveLength(2);
+  expect(ripe.totalStock).toBe(27464);
+  for (const teaTypeFilter of ['Shou', 'Shou Puer']) {
+    expect(read({ localProducts, teaTypeFilter }).processedProducts).toHaveLength(2);
+  }
+});
