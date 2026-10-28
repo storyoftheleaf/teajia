@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { transcriptReviewChunks, workingMaterialForTeaRecord, workingMaterialSchema } from '../src/curateWorkingMaterial';
+import { transcriptReviewChunks, transcriptPassages, workingMaterialForTeaRecord, workingMaterialSchema } from '../src/curateWorkingMaterial';
 import { SqliteD1, seedIdentity } from './helpers/sqliteD1';
 
 let db: SqliteD1;
@@ -13,7 +13,12 @@ function source(text: string, id = 'ar-talk', requestId = 'read-one', owner = sc
   return { requestId, sourceId: id, title, hash, text, start: 0, end: text.length, mode: 'full' };
 }
 function provider(makeNotes: (payload: any) => unknown = () => []) {
-  const run = vi.fn().mockImplementation(async (_model, input) => ({ response: JSON.stringify({ notes: makeNotes(JSON.parse(input.messages[1].content)) }) }));
+  const run = vi.fn().mockImplementation(async (_model, input) => {
+    const payload = JSON.parse(input.messages[1].content);
+    const requested = makeNotes(payload) as any[];
+    const notes = requested.map(({ quote, ...item }) => ({ ...item, quoteId: item.quoteId ?? payload.segment.passages.find((passage: any) => passage.text.includes(quote))?.id ?? 'unknown-passage' }));
+    return { response: JSON.stringify({ notes }) };
+  });
   return { run, env: { DB: db as unknown as D1Database, AI: { run } } };
 }
 beforeEach(() => {
@@ -28,9 +33,9 @@ afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); db.close(); });
 
 describe('complete transcript working material', () => {
   it('reviews the full tail, uses canonical tea identity and returns exact citations without writes', async () => {
-    const text = `${'Other conversation. '.repeat(1400)}${claim}`;
+    const text = `${'Other conversation.\n'.repeat(1400)}${claim}`;
     const proof = source(text);
-    const { run, env } = provider(payload => payload.segment.text.includes(claim) ? [note()] : []);
+    const { run, env } = provider(payload => payload.segment.passages.some((passage: any) => passage.text.includes(claim)) ? [note()] : []);
     const before = changes();
     const result = await workingMaterialForTeaRecord(env, scope, { entryId: 'shuixian', name: 'Forged tea', sources: [proof], draftNotes: 'Unreviewed client claim' });
     expect(result.coverage).toEqual({ sources: 1, characters: text.length, chunks: transcriptReviewChunks(text).length, completedChunks: transcriptReviewChunks(text).length });
@@ -43,7 +48,12 @@ describe('complete transcript working material', () => {
       expect(JSON.stringify(payload)).not.toContain('Unreviewed client claim');
     }
     expect(changes()).toBe(before);
-    expect(run).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ response_format: { type: 'json_schema', json_schema: workingMaterialSchema } }));
+    for (const [, request] of run.mock.calls) {
+      const payload = JSON.parse(request.messages[1].content);
+      expect(payload.segment).not.toHaveProperty('text');
+      expect(payload.segment.passages.map((passage: any) => passage.text).join('')).toBe(text.slice(payload.segment.start, payload.segment.end));
+      expect(request.response_format).toEqual({ type: 'json_schema', json_schema: workingMaterialSchema(payload.segment.passages.filter((passage: any) => passage.text.trim()).map((passage: any) => passage.id)) });
+    }
   });
   it('covers every character with bounded overlapping chunks, including surrogate boundaries', () => {
     const text = `${'x'.repeat(11999)}🍵${'y'.repeat(24000)}`;
@@ -58,23 +68,74 @@ describe('complete transcript working material', () => {
     }
     expect(end).toBe(text.length);
   });
-  it('deduplicates the same evidence seen in the overlap', async () => {
-    const text = `${'x'.repeat(11550)}${claim}${'y'.repeat(13000)}`;
+  it('indexes every original UTF-16 character once, including blank lines, CRLF and emoji', () => {
+    const text = `\n${'x'.repeat(3999)}🍵\r\n\nSame words.\nSame words.\n`;
+    const passages = transcriptPassages(text, 47);
+    expect(passages.map(passage => passage.text).join('')).toBe(text);
+    let next = 47;
+    for (const passage of passages) {
+      expect(passage.start).toBe(next);
+      expect(passage.text).toBe(text.slice(passage.start - 47, passage.end - 47));
+      expect(passage.text.length).toBeLessThanOrEqual(4000);
+      expect(passage.text).not.toMatch(/^[\uDC00-\uDFFF]|[\uD800-\uDBFF]$/);
+      next = passage.end;
+    }
+    expect(next).toBe(47 + text.length);
+    expect(new Set(passages.map(passage => passage.id)).size).toBe(passages.length);
+    expect(transcriptPassages(text, 47)).toEqual(passages);
+  });
+  it('maps a selected repeated passage to its own position instead of the first text match', async () => {
+    const text = `${claim}\n\n${claim}\n`;
+    const passages = transcriptPassages(text);
+    const second = passages.filter(passage => passage.text.includes(claim))[1];
     const proof = source(text);
-    const { env } = provider(payload => payload.segment.text.includes(claim) ? [note(), note()] : []);
+    const { env } = provider(() => [{ ...note(), quoteId: second.id }]);
+    const before = changes();
+    const result = await workingMaterialForTeaRecord(env, scope, { entryId: 'shuixian', sources: [proof] });
+    expect(result.notes).toHaveLength(1);
+    expect(result.notes[0]).toMatchObject({ quote: second.text, start: second.start, end: second.end });
+    expect(result.notes[0].start).toBeGreaterThan(text.indexOf(claim));
+    expect(changes()).toBe(before);
+  });
+  it('rejects raw model quotations without a selected passage identity', async () => {
+    const proof = source(claim);
+    const { env, run } = provider();
+    run.mockResolvedValue({ response: JSON.stringify({ notes: [note()] }) });
+    await expect(workingMaterialForTeaRecord(env, scope, { entryId: 'shuixian', sources: [proof] })).rejects.toMatchObject({ code: 'working_material_invalid_response' });
+  });
+  it('keeps the exact selected source text even if a legacy model also supplies invented quote text', async () => {
+    const proof = source(claim); const passage = transcriptPassages(claim)[0];
+    const { env, run } = provider();
+    run.mockResolvedValue({ response: JSON.stringify({ notes: [{ ...note('Invented quotation'), quoteId: passage.id }] }) });
+    const result = await workingMaterialForTeaRecord(env, scope, { entryId: 'shuixian', sources: [proof] });
+    expect(result.notes[0]).toMatchObject({ quote: claim, start: 0, end: claim.length });
+  });
+  it('preserves the original offsets when reviewing an explicitly selected excerpt', async () => {
+    const fullText = `Before.\n${claim}\nAfter.`;
+    const original = source(fullText);
+    const start = fullText.indexOf(claim);
+    const proof = { ...original, start, end: start + claim.length, text: claim, mode: 'excerpt' };
+    const { env } = provider(() => [note()]);
+    const result = await workingMaterialForTeaRecord(env, scope, { entryId: 'shuixian', sources: [proof] });
+    expect(result.notes[0]).toMatchObject({ quote: claim, start, end: start + claim.length });
+  });
+  it('deduplicates the same evidence seen in the overlap', async () => {
+    const text = `${'x\n'.repeat(5775)}${claim}\n${'y'.repeat(13000)}`;
+    const proof = source(text);
+    const { env } = provider(payload => payload.segment.passages.some((passage: any) => passage.text.includes(claim)) ? [note(), note()] : []);
     const result = await workingMaterialForTeaRecord(env, scope, { entryId: 'shuixian', sources: [proof] });
     expect(result.notes).toHaveLength(1);
     expect(result.notes[0].start).toBe(11550);
   });
   it.each(['openai/gpt-oss-20b', 'openai/gpt-oss-120b', 'configured-model'])('keeps the fallback provider compatible with %s without writing evidence', async model => {
     const proof = source(claim);
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify({ notes: [note()] }) } }] }), { status: 200 }));
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify({ notes: [{ ...note(), quoteId: transcriptPassages(claim)[0].id }] }) } }] }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
     const before = changes();
     const result = await workingMaterialForTeaRecord({ DB: db as unknown as D1Database, GROQ_API_KEY: 'test', CURATE_IMPORT_FALLBACK_MODEL: model }, scope, { entryId: 'shuixian', sources: [proof] });
     expect(result.notes[0].quote).toBe(claim);
     const request = JSON.parse(fetchMock.mock.calls[0][1].body);
-    expect(request.response_format).toEqual(model === 'configured-model' ? { type: 'json_object' } : { type: 'json_schema', json_schema: { name: 'tea_working_material', strict: true, schema: workingMaterialSchema } });
+    expect(request.response_format).toEqual(model === 'configured-model' ? { type: 'json_object' } : { type: 'json_schema', json_schema: { name: 'tea_working_material', strict: true, schema: workingMaterialSchema([transcriptPassages(claim)[0].id]) } });
     expect(changes()).toBe(before);
   });
   it('rejects invented quotations instead of silently returning incomplete coverage', async () => {

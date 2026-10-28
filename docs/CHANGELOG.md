@@ -1,3 +1,7 @@
+## 2026-10-28: Attach original passages to full-transcript working notes
+
+The full-transcript model now selects indexed original passages instead of retyping quotations. Each chosen ID resolves to its exact source text and UTF-16 offsets, including repeated identical remarks; unknown IDs fail the review. Lossless passage spans preserve every character/newline and bound long lines without splitting surrogate pairs. Working-material inference allows up to40seconds per call within the existing full-review deadline; other AI calls keep their20second limit.44 focused tests and Worker typecheck pass. Source/account/hash guards and explicit acceptance remain unchanged.
+
 ## 2026-10-28: Require structured AI replies for tea working material and descriptions
 
 The installed tea model could return malformed object keys in generic JSON mode, causing full-transcript reviews and description proposals to fail even after successful inference. Both tasks now provide explicit response schemas, including allowed working-note kinds, attribution/relevance and description source identities. Recognized Groq GPT-OSS models use their supported strict schema format; other configured models keep their existing JSON format. Exact source quotation and scope checks remain unchanged, and proposals still save nothing. Verified against the same installed model with invented description and 12,000-character transcript inputs, plus focused validation tests.
