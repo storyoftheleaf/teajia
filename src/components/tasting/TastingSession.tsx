@@ -536,13 +536,13 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   };
 
   return createPortal(
-    <div data-tasting-session-overlay className={`fixed inset-0 z-takeover lg:bg-black/75 lg:backdrop-blur-sm lg:flex lg:items-center lg:justify-center${className ? ` ${className}` : ''}`}>
+    <div data-tasting-session-overlay className={`fixed inset-0 z-takeover${className ? ` ${className}` : ''}`}>
     <motion.div
       initial={false}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-      className="fixed inset-0 bg-tea-bg flex flex-col lg:relative lg:inset-auto lg:w-[540px] lg:h-[min(94vh,960px)] lg:rounded-xl lg:border lg:border-tea-border lg:overflow-hidden"
+      className="tasting-session-surface fixed inset-0 bg-tea-bg flex flex-col overflow-hidden"
       style={{
         paddingLeft: 'env(safe-area-inset-left, 0px)',
         paddingRight: 'env(safe-area-inset-right, 0px)',

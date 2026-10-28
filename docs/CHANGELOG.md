@@ -1,5 +1,9 @@
 ## 2026-10-28: Attach original passages to full-transcript working notes
 
+## 2026-10-28: Full-screen tasting for desktop and phone
+
+Removed the narrow desktop dialog and backdrop. Tasting now occupies the entire window. Desktop gives the wheel and its observations separate columns, with a wheel sized to the available height; portrait phones keep the full-width wheel and capsule navigation, while landscape phones place observations beside a smaller wheel above the navigation. Save, close, existing selections and recap links keep their behavior.
+
 ## 2026-10-28: The five tastes joins the existing wheel
 
 Moved Sweet, Bitter, Sour / tart, Savory (umami) and Salty into one wheel category named The five tastes. Each taste is a single independent choice, with no aroma half or broad-family recording action. Existing saved values and recap links reopen the category; the separate button row is removed. Other families retain their Taste/Aroma halves.
