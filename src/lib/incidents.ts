@@ -36,7 +36,7 @@ const PATH_IDENTIFIER: RegExp[] = [
  * status and the error code off the end of the signature, which are its last two
  * fields, so a 500 and a 504 on that route became one indistinguishable row.
  *
- * The display side already reads a route this way — `areaFor` in
+ * The display side already reads a route this way: `areaFor` in
  * `incidentWords.ts` strips the id out of the words it writes for the owner. The
  * identity side did not.
  */
