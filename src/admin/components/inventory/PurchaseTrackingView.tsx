@@ -13,6 +13,7 @@ import { LogisticsCreateShipment, LogisticsOrderFields, ManifestButtons, company
 import { LogisticsArrivalGroups } from './LogisticsArrivalGroups';
 import { LogisticsServices } from './LogisticsServices';
 import { LogisticsShipmentCard } from './LogisticsShipmentCard';
+import { purchaseJourneyGroups } from './purchaseJourneyGroups';
 import { dueLabel, remainingOf, TRANSPORT_LABELS } from './incomingGroups';
 
 export type PurchaseTrackingFilter = 'all' | 'attention' | 'coming' | 'to_logistics' | 'at_logistics' | 'to_studio' | 'received' | 'cancelled';
@@ -147,30 +148,21 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
       else setMatch(purchase);
     });
   };
-  if (manualReceipt) return <IncomingReceiptsPanel receiptId={manualReceipt} backLabel="Back to purchases" onClose={() => { setManualReceipt(null); void refresh(); }} />;
-
-  return <section className="purchase-tracking font-sans text-ui-12 text-tea-text bg-tea-bg pb-nav-gap" aria-label="Purchases and deliveries">
-    <header className="purchase-tracking-header">
-      <div><h1 className={T.h2}>Purchases</h1><p className="text-tea-text-sec">Supplier → logistics → studio.</p></div>
-      <div className="purchase-tracking-tools"><button type="button" className="tap-target purchase-tracking-button" disabled={isFetching} onClick={() => { void refetch(); void logisticsQuery.refetch(); }} aria-label="Refresh purchases"><RefreshCw size={14} className={isFetching ? 'animate-spin' : ''}/></button><button type="button" className="tap-target purchase-tracking-button" onClick={() => setNewForm(true)}><Plus size={14}/>Add purchase</button></div>
-    </header>
-    <div className="purchase-tracking-filters">
-      <div role="group" aria-label="Filter purchases" className="purchase-tracking-tabs">{([['all', 'All'], ['attention', 'Needs attention'], ['to_logistics', 'To logistics'], ['at_logistics', 'At logistics'], ['to_studio', 'To studio'], ['received', 'Received']] as const).map(([key, label]) => <button key={key} type="button" className="tap-target" aria-pressed={filter === key} onClick={() => setFilter(key)}>{label}<span className="text-tea-text-dim">{scoped.filter(row => matchesPurchaseTracking(row, key, orderFor(row), logistics)).length}</span></button>)}</div>
-      <label className="purchase-tracking-supplier"><span className="sr-only">Supplier</span><select aria-label="Filter supplier" value={vendor} onChange={event => setVendor(event.target.value)}><option value="all">All suppliers</option>{vendors.map(value => <option key={value} value={value}>{value}</option>)}</select></label>
-      {companies.length > 0 && <label className="purchase-tracking-supplier"><select aria-label="Filter logistics company" value={company} onChange={event => setCompany(event.target.value)}><option value="all">All logistics companies</option>{companies.map(value => <option key={value}>{value}</option>)}</select></label>}
-      {company !== 'all' && logistics && <ManifestButtons manifest={companyManifest(company, scopedOrders, logistics.shipments)}/>}
-    </div>
-    {logisticsQuery.isError && <p role="alert" className="purchase-tracking-notice">Logistics tracking could not be refreshed.<button type="button" className="tap-target purchase-tracking-button" onClick={() => void logisticsQuery.refetch()}>Refresh logistics</button></p>}
-    {logistics && <div className="purchase-tracking-operations" aria-label="Purchase actions">
-      <LogisticsArrivalGroups key={`arrivals:${scopeKey}`} orders={scopedOrders.filter(order => scoped.some(row => row.purchase?.id === order.purchase_id && !['received', 'cancelled', 'attention'].includes(purchaseTrackingStage(row))))} busy={busy} mutate={mutate}/>
-      <LogisticsCreateShipment key={`prepare:${scopeKey}`} data={{ ...logistics, orders: scopedOrders }} busy={busy} mutate={mutate}/>
-      <LogisticsServices key={`services:${accountId}`} services={logistics.services || []} accountId={accountId} busy={busy} mutate={mutate}/>
-    </div>}
-    {error && <p role="alert" className="purchase-tracking-notice">{error}<button type="button" className="tap-target purchase-tracking-button" onClick={() => setError('')}>Dismiss</button></p>}
-    {isError && <p role="alert" className="purchase-tracking-notice">Purchases could not be refreshed.<button type="button" className="tap-target purchase-tracking-button" onClick={() => void refetch()}>Refresh purchases</button></p>}
-    {isPending && <p role="status" className="purchase-tracking-notice"><Loader2 size={16} className="animate-spin"/>Loading purchases…</p>}
-    {!isPending && !isError && !visible.length && !visibleShipments.length && <p className="purchase-tracking-notice">{hasFilters ? 'No purchases match these filters.' : 'No purchases recorded yet.'}{hasFilters && <button type="button" className="tap-target purchase-tracking-button" onClick={clearFilters}>Clear filters</button>}</p>}
-    <div className="purchase-tracking-list">{visibleShipments.map(shipment => <LogisticsShipmentCard key={shipment.id} shipment={shipment} orders={logistics?.orders || []} busy={busy} mutate={mutate} accountId={accountId} openPurchase={id => { setFilter('all'); setOpen(id); }}/ >)}{visible.map(row => {
+  const journeys = purchaseJourneyGroups(visible, visibleShipments, scopedOrders);
+  const otherSections = [
+    { title: 'Needs attention', rows: journeys.other.filter(row => purchaseAttention(row).length > 0) },
+    { title: 'Other deliveries', rows: journeys.other.filter(row => !purchaseAttention(row).length && !['received', 'cancelled'].includes(purchaseTrackingStage(row))) },
+    { title: 'Received', rows: journeys.other.filter(row => !purchaseAttention(row).length && purchaseTrackingStage(row) === 'received') },
+    { title: 'Cancelled', rows: journeys.other.filter(row => !purchaseAttention(row).length && purchaseTrackingStage(row) === 'cancelled') },
+  ];
+  const [linkedPurchase, setLinkedPurchase] = useState<string | null>(null);
+  const openLinkedPurchase = (id: string) => { clearFilters(); setOpen(id); setLinkedPurchase(id); };
+  useEffect(() => {
+    if (!linkedPurchase) return;
+    const record = [...document.querySelectorAll<HTMLElement>('[data-purchase-id]')].find(element => element.dataset.purchaseId === linkedPurchase);
+    if (record) { record.scrollIntoView({ block: 'nearest' }); record.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true }); setLinkedPurchase(null); }
+  }, [linkedPurchase, visible]);
+  const renderPurchase = (row: PurchaseTrackingRow) => {
       const expanded = open === row.id || open === row.purchase?.id || open === row.receipt?.id;
       const attention = purchaseAttention(row);
       const receipt = row.receipt;
@@ -193,7 +185,8 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
           <span className="purchase-tracking-status">{stage === 'coming' && !attention.length ? routeSummary?.label || ({ to_logistics: 'To logistics', at_logistics: 'At logistics', to_studio: 'To studio' } as Record<string,string>)[routeStage] || stageLabel(row) : stageLabel(row)}{expanded ? <ChevronUp size={15}/> : <ChevronDown size={15}/>}</span>
         </button>
         {purchaseError && purchaseError.id === purchase?.id && <p role="alert" className="purchase-tracking-notice">{purchaseError.message} Your entries are kept. Use the same action to try again.</p>}
-        {stage !== 'attention' && <div className="purchase-tracking-summary"><span>{stage === 'received' ? `Received${row.history.length ? ` · ${date(row.history[0].recorded_at)}` : ''}` : stage === 'cancelled' ? 'Cancelled' : routeSummary?.quantities ? routeSummary.quantities : remaining ? `${remaining} coming` : 'No quantity recorded'}</span><span className="text-tea-text-sec">{routeSummary ? routeSummary.tracking : [transport, due?.text, purchase?.tracking_number ? `Tracking ${purchase.tracking_number}` : null].filter(Boolean).join(' · ')}</span></div>}
+        {stage !== 'attention' && items.length > 0 && !expanded && <p className="purchase-tracking-contents text-tea-text-sec">{items.slice(0, 2).map(line => line.product_name).join(' · ')}{items.length > 2 ? ` + ${items.length - 2} more` : ''}</p>}
+        {stage !== 'attention' && <div className="purchase-tracking-summary"><span>{stage === 'received' ? `Received${row.history.length ? ` · ${date(row.history[0].recorded_at)}` : ''}` : stage === 'cancelled' ? 'Cancelled' : routeSummary?.quantities ? routeSummary.quantities : remaining ? `${remaining} coming` : 'No quantity recorded'}</span><span className="text-tea-text-sec">{routeSummary ? routeSummary.tracking.split(' · ').slice(1).join(' · ') : [transport, due?.text, purchase?.tracking_number ? `Tracking ${purchase.tracking_number}` : null].filter(Boolean).join(' · ')}</span></div>}
         {attention.length > 0 && <div className="purchase-tracking-attention"><span>{attention.map(item => item.message).join(' ')}</span>{row.invoice_draft && <Link className="tap-target purchase-tracking-button" to={`/admin/intake?importId=${encodeURIComponent(row.invoice_draft.id)}`}>Review invoice</Link>}{purchase && !receipt && <button type="button" disabled={busy} className="tap-target purchase-tracking-button" onClick={() => void matchPurchase(purchase)}>{legacy ? 'Link stock entry' : 'Match items'}</button>}</div>}
         {expanded && <div className="purchase-tracking-expanded">
           {items.length > 0 ? <div className="purchase-tracking-items">{items.map(line => <div className="purchase-tracking-item" key={line.id}>
@@ -214,7 +207,41 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
           </div>
         </div>}
       </article>;
-    })}</div>
+  };
+  if (manualReceipt) return <IncomingReceiptsPanel receiptId={manualReceipt} backLabel="Back to purchases" onClose={() => { setManualReceipt(null); void refresh(); }} />;
+
+  return <section className="purchase-tracking font-sans text-ui-12 text-tea-text bg-tea-bg pb-nav-gap" aria-label="Purchases and deliveries">
+    <header className="purchase-tracking-header">
+      <div><h1 className={T.h2}>Purchases</h1></div>
+      <div className="purchase-tracking-tools"><button type="button" className="tap-target purchase-tracking-button" disabled={isFetching} onClick={() => { void refetch(); void logisticsQuery.refetch(); }} aria-label="Refresh purchases"><RefreshCw size={14} className={isFetching ? 'animate-spin' : ''}/></button><button type="button" className="tap-target purchase-tracking-button purchase-tracking-add" aria-label="Add purchase" onClick={() => setNewForm(true)}><Plus size={14}/><span>Add purchase</span></button></div>
+      {logistics && <LogisticsServices key={`services:${accountId}`} services={logistics.services || []} accountId={accountId} busy={busy} mutate={mutate}/>}
+    </header>
+    <div className="purchase-tracking-filters">
+      <div role="group" aria-label="Filter purchases" className="purchase-tracking-tabs">{([['all', 'All'], ['attention', 'Needs attention'], ['to_logistics', 'To logistics'], ['at_logistics', 'At logistics'], ['to_studio', 'To studio'], ['received', 'Received']] as const).map(([key, label]) => <button key={key} type="button" className="tap-target" aria-pressed={filter === key} onClick={() => setFilter(key)}>{label}<span className="text-tea-text-dim">{scoped.filter(row => matchesPurchaseTracking(row, key, orderFor(row), logistics)).length}</span></button>)}</div>
+      <label className="purchase-tracking-supplier"><span className="sr-only">Supplier</span><select aria-label="Filter supplier" value={vendor} onChange={event => setVendor(event.target.value)}><option value="all">All suppliers</option>{vendors.map(value => <option key={value} value={value}>{value}</option>)}</select></label>
+      {companies.length > 0 && <label className="purchase-tracking-supplier"><select aria-label="Filter logistics company" value={company} onChange={event => setCompany(event.target.value)}><option value="all">All logistics companies</option>{companies.map(value => <option key={value}>{value}</option>)}</select></label>}
+    </div>
+    {logisticsQuery.isError && <p role="alert" className="purchase-tracking-notice">Logistics tracking could not be refreshed.<button type="button" className="tap-target purchase-tracking-button" onClick={() => void logisticsQuery.refetch()}>Refresh logistics</button></p>}
+    {error && <p role="alert" className="purchase-tracking-notice">{error}<button type="button" className="tap-target purchase-tracking-button" onClick={() => setError('')}>Dismiss</button></p>}
+    {isError && <p role="alert" className="purchase-tracking-notice">Purchases could not be refreshed.<button type="button" className="tap-target purchase-tracking-button" onClick={() => void refetch()}>Refresh purchases</button></p>}
+    {isPending && <p role="status" className="purchase-tracking-notice"><Loader2 size={16} className="animate-spin"/>Loading purchases…</p>}
+    {!isPending && !isError && !visible.length && !visibleShipments.length && <p className="purchase-tracking-notice">{hasFilters ? 'No purchases match these filters.' : 'No purchases recorded yet.'}{hasFilters && <button type="button" className="tap-target purchase-tracking-button" onClick={clearFilters}>Clear filters</button>}</p>}
+    <div className="purchase-tracking-journeys">{journeys.groups.map(group => <section className="purchase-journey" key={group.id} aria-label={`${group.name} purchases and shipments`}>
+      <header className="purchase-journey-heading"><h2 className={T.h3}>{group.name}</h2><ManifestButtons manifest={companyManifest(group.name, group.orders, logistics?.shipments || [])}/></header>
+      <div className={`purchase-journey-columns${group.purchases.length && group.shipments.length ? ' purchase-journey-paired' : ''}`}>
+        {group.purchases.length > 0 && <section className="purchase-journey-leg" aria-label={`Supplier parcels for ${group.name}`}>
+          <h3 className={T.label}>Supplier parcels <span className="text-tea-text-dim">{group.purchases.length}</span></h3>
+          {logistics && <div className="purchase-tracking-operations" aria-label={`Actions for ${group.name}`}>
+            <LogisticsArrivalGroups key={`arrivals:${scopeKey}:${group.id}`} orders={group.orders.filter(order => scoped.some(row => row.purchase?.id === order.purchase_id && !['received', 'cancelled', 'attention'].includes(purchaseTrackingStage(row))))} busy={busy} mutate={mutate}/>
+            <LogisticsCreateShipment key={`prepare:${scopeKey}:${group.id}`} data={{ ...logistics, orders: group.orders }} busy={busy} mutate={mutate}/>
+          </div>}
+          <div className="purchase-tracking-list">{group.purchases.map(renderPurchase)}</div>
+        </section>}
+        {group.shipments.length > 0 && <section className="purchase-journey-leg" aria-label={`Shipments to studio from ${group.name}`}><h3 className={T.label}>Shipments to studio <span className="text-tea-text-dim">{group.shipments.length}</span></h3><div className="purchase-tracking-list">{group.shipments.map(shipment => <LogisticsShipmentCard key={shipment.id} grouped shipment={shipment} orders={logistics?.orders || []} busy={busy} mutate={mutate} accountId={accountId} openPurchase={openLinkedPurchase}/>)}</div></section>}
+      </div>
+    </section>)}
+    {otherSections.filter(section => section.rows.length > 0).map(section => <section key={section.title} className="purchase-tracking-other" aria-label={section.title}><h2 className={T.h3}>{section.title}</h2><div className="purchase-tracking-list">{section.rows.map(renderPurchase)}</div></section>)}
+    </div>
     {scoped.some(row => purchaseTrackingStage(row) === 'cancelled') && <button type="button" className="tap-target purchase-tracking-archive" onClick={() => setFilter(filter === 'cancelled' ? 'all' : 'cancelled')}>{filter === 'cancelled' ? 'Show all purchases' : 'Show cancelled purchases'}</button>}
     {newForm && <NewForm onClose={() => setNewForm(false)} submitting={busy} onSubmit={async input => { await mutate(async () => { await api.purchaseOrders.create(input); setNewForm(false); }); }}/ >}
     {match && <MatchForm po={match} onClose={() => setMatch(null)} onPrepared={() => { setOpen(match.id); setMatch(null); void refresh(); }}/ >}
