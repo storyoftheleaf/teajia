@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm, stat, chmod, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createConnector, main, loadCredentials, saveCredentials, AR_CREATE_ORIGIN, TEAJIA_ORIGIN, BRIDGE_PATH, LIMITS } from './ar-create-teajia-connector.mjs';
+import { createConnector, createConnectorSafety, main, loadCredentials, saveCredentials, AR_CREATE_ORIGIN, TEAJIA_ORIGIN, BRIDGE_PATH, LIMITS } from './ar-create-teajia-connector.mjs';
 
 const hash = 'a'.repeat(64);
 const credentials = { deviceId: 'device-1', token: `ar1_${'b'.repeat(64)}`, pairedAt: '2026-10-21T00:00:00.000Z' };
@@ -23,7 +23,7 @@ function fixture({ sources = [], read = () => ({ ...source('source-1'), text: 'E
     else throw new Error(`Unexpected synthetic URL ${url}`);
     return Response.json(body);
   };
-  return { calls, results, fetchImpl, connector: createConnector({ fetchImpl }) };
+  return { calls, results, fetchImpl, connector: createConnector({ safety: createConnectorSafety({ statePath: null }), fetchImpl }) };
 }
 
 test('search uses real metadata identity, literal text snippets, and explicit outbound fields', async () => {
@@ -99,7 +99,7 @@ test('no credentials means no job poll or source access', async () => {
 
 test('pair prints the exact human approval link and code, never secrets or token', async () => {
   let clock = Date.parse('2026-10-21T00:00:00Z'); let attempts = 0; const printed = []; const requested = [];
-  const connector = createConnector({ now: () => clock, sleep: async ms => { clock += ms; }, fetchImpl: async (url, options) => {
+  const connector = createConnector({ safety: createConnectorSafety({ statePath: null }), now: () => clock, sleep: async ms => { clock += ms; }, fetchImpl: async (url, options) => {
     requested.push({ url, options });
     if (url.endsWith('/pair/start')) return Response.json({ deviceId: 'device-1', deviceSecret: 'secret-never-print', code: 'PAIR-1234', expiresAt: new Date(clock + 10000).toISOString() });
     attempts++;
@@ -119,7 +119,7 @@ test('pending pairing times out with no credential write or local source read', 
   let clock = 0;
   const directory = await mkdtemp(join(tmpdir(), 'teajia-ar-pair-'));
   try {
-    const connector = createConnector({ now: () => clock, sleep: async ms => { clock += ms; }, fetchImpl: async url => url.endsWith('/pair/start') ? Response.json({ deviceId: 'device-1', deviceSecret: 'private', code: 'PAIR-1234', expiresAt: new Date(5000).toISOString() }) : Response.json({ status: 'pending' }) });
+    const connector = createConnector({ safety: createConnectorSafety({ statePath: null }), now: () => clock, sleep: async ms => { clock += ms; }, fetchImpl: async url => url.endsWith('/pair/start') ? Response.json({ deviceId: 'device-1', deviceSecret: 'private', code: 'PAIR-1234', expiresAt: new Date(5000).toISOString() }) : Response.json({ status: 'pending' }) });
     await assert.rejects(() => main(['--pair'], { connector, credentialPath: join(directory, 'connection.json'), print: () => {} }), /Pairing timed out/);
     assert.equal(await loadCredentials(join(directory, 'connection.json')), null);
   } finally { await rm(directory, { recursive: true, force: true }); }
@@ -152,7 +152,7 @@ test('credential reads and replacement reject symlinks', async () => {
 
 test('--once runs exactly one poll and transient failures back off without exposing underlying errors', async () => {
   let polls = 0; const sleeps = []; const notices = []; const controller = new AbortController();
-  const connector = createConnector({ fetchImpl: async () => { polls++; throw new Error('secret-token-in-error'); }, sleep: async ms => { sleeps.push(ms); if (sleeps.length === 3) controller.abort(); } });
+  const connector = createConnector({ safety: createConnectorSafety({ statePath: null }), fetchImpl: async () => { polls++; throw new Error('secret-token-in-error'); }, sleep: async ms => { sleeps.push(ms); if (sleeps.length === 3) controller.abort(); } });
   await connector.run(credentials, { signal: controller.signal, onTransient: message => notices.push(message) });
   assert.deepEqual(sleeps, [2000, 4000, 8000]);
   assert.equal(polls, 3); assert.ok(notices.every(message => !message.includes('secret-token')));
@@ -160,14 +160,14 @@ test('--once runs exactly one poll and transient failures back off without expos
 });
 
 test('redirects and excessive response sizes are rejected without submitting content', async () => {
-  const f = createConnector({ fetchImpl: async () => new Response('x'.repeat(LIMITS.responseBytes + 1)) });
+  const f = createConnector({ safety: createConnectorSafety({ statePath: null }), fetchImpl: async () => new Response('x'.repeat(LIMITS.responseBytes + 1)) });
   await assert.rejects(() => f.search('tea'), /response exceeds/);
 });
 
 
 test('uncertain result delivery retries the same snapshot before another source read', async () => {
   let polls = 0; let reads = 0; let posts = 0; const bodies = [];
-  const connector = createConnector({ fetchImpl: async (url, options) => {
+  const connector = createConnector({ safety: createConnectorSafety({ statePath: null }), fetchImpl: async (url, options) => {
     const path = new URL(url).pathname;
     if (path.endsWith('/connector/poll')) return Response.json({ jobs: polls++ === 0 ? [{ id: 'job-retry', kind: 'read', sourceId: 'source-1' }] : [] });
     if (path.endsWith('/connector/result')) { bodies.push(options.body); if (posts++ === 0) throw new Error('response lost'); return Response.json({ recorded: true }); }
@@ -185,7 +185,7 @@ test('uncertain result delivery retries the same snapshot before another source 
 
 test('pairing retries transient poll failures within its existing approval window', async () => {
   let clock = 0; let polls = 0; const printed = [];
-  const connector = createConnector({ now: () => clock, sleep: async ms => { clock += ms; }, fetchImpl: async url => {
+  const connector = createConnector({ safety: createConnectorSafety({ statePath: null }), now: () => clock, sleep: async ms => { clock += ms; }, fetchImpl: async url => {
     if (url.endsWith('/pair/start')) return Response.json({ deviceId: 'device-1', deviceSecret: 'never-print', code: 'PAIR-5678', expiresAt: new Date(10000).toISOString() });
     if (polls++ === 0) return Response.json({ private: 'must not print' }, { status: 503 });
     return Response.json({ status: 'paired', token: credentials.token });
@@ -197,7 +197,7 @@ test('pairing retries transient poll failures within its existing approval windo
 
 test('revoked pairing credentials stop the runner without requesting local source content', async () => {
   let requests = 0; const sleeps = [];
-  const connector = createConnector({ sleep: async ms => { sleeps.push(ms); }, fetchImpl: async url => { requests++; assert.ok(url.startsWith(TEAJIA_ORIGIN)); return Response.json({}, { status: 401 }); } });
+  const connector = createConnector({ safety: createConnectorSafety({ statePath: null }), sleep: async ms => { sleeps.push(ms); }, fetchImpl: async url => { requests++; assert.ok(url.startsWith(TEAJIA_ORIGIN)); return Response.json({}, { status: 401 }); } });
   await assert.rejects(() => connector.run(credentials), /Service request failed/);
   assert.equal(requests, 1);
   assert.deepEqual(sleeps, []);
@@ -206,7 +206,7 @@ test('revoked pairing credentials stop the runner without requesting local sourc
 
 test('pair status HTTP 429 backs off and recovers in the original approval window', async () => {
   let clock = 0; let starts = 0; let polls = 0; const sleeps = []; const printed = [];
-  const connector = createConnector({ now: () => clock, sleep: async ms => { sleeps.push(ms); clock += ms; }, fetchImpl: async (url, options) => {
+  const connector = createConnector({ safety: createConnectorSafety({ statePath: null }), now: () => clock, sleep: async ms => { sleeps.push(ms); clock += ms; }, fetchImpl: async (url, options) => {
     if (url.endsWith('/pair/start')) { starts++; return Response.json({ deviceId: 'device-1', deviceSecret: 'secret-rate-limit', code: 'PAIR-RATE', expiresAt: new Date(20000).toISOString() }); }
     assert.equal(options.headers.authorization, 'Bearer secret-rate-limit');
     polls++;
@@ -221,4 +221,87 @@ test('pair status HTTP 429 backs off and recovers in the original approval windo
 
  test('bridge uses the canonical production host without credential redirects', () => {
   assert.equal(TEAJIA_ORIGIN, 'https://www.teajia.com');
+});
+
+test('idle polling backs off to 30 seconds and immediately returns to busy cadence', async () => {
+  const sleeps = []; let polls = 0; const controller = new AbortController();
+  const connector = createConnector({ safety: createConnectorSafety({ statePath: null }), fetchImpl: async url => {
+    if (url.endsWith('/connector/result')) return Response.json({ recorded: true });
+    return Response.json({ jobs: ++polls === 6 ? [{ id: 'job', kind: 'unsupported' }] : [] });
+  }, sleep: async ms => { sleeps.push(ms); if (sleeps.length === 8) controller.abort(); } });
+  await connector.run(credentials, { signal: controller.signal });
+  assert.deepEqual(sleeps, [3000, 6000, 12000, 24000, 30000, 250, 3000, 6000]);
+});
+
+test('repeated transient errors stop after six requests instead of retrying forever', async () => {
+  let requests = 0; const sleeps = [];
+  const connector = createConnector({ safety: createConnectorSafety({ statePath: null }), fetchImpl: async () => { requests++; throw new Error('private underlying error'); }, sleep: async ms => { sleeps.push(ms); } });
+  await assert.rejects(() => connector.run(credentials), /paused after repeated failures/);
+  assert.equal(requests, 6);
+  assert.deepEqual(sleeps, [2000, 4000, 8000, 16000, 32000]);
+});
+
+test('quota, budget and other client refusals stop before retrying or reading private sources', async () => {
+  for (const [status, code] of [[429, null], [402, null], [503, 'database_read_budget_exceeded'], [503, 'database_quota_exceeded'], [503, 'cloudflare_budget_paused'], [503, 'shared_allowance_paused'], [503, 'background_budget_exceeded']]) {
+    let requests = 0; const sleeps = [];
+    const connector = createConnector({ safety: createConnectorSafety({ statePath: null }), fetchImpl: async url => { requests++; assert.ok(url.startsWith(TEAJIA_ORIGIN)); return Response.json({ code, private: 'must never expose this' }, { status }); }, sleep: async ms => { sleeps.push(ms); } });
+    await assert.rejects(() => connector.run(credentials), error => /Service request failed/.test(error.message) && !error.message.includes('private'));
+    assert.equal(requests, 1); assert.deepEqual(sleeps, []);
+  }
+});
+
+test('daily poll ceiling survives restarts, charges failed attempts, and resets only on next UTC day', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'ar-safety-day-')); const statePath = join(directory, 'state.json');
+  let clock = Date.parse('2026-10-29T23:59:59Z'); let requests = 0;
+  const newConnector = (fail = false) => createConnector({ safety: createConnectorSafety({ statePath, now: () => clock, dailyPolls: 2 }), fetchImpl: async () => { requests++; if (fail) throw new Error('unavailable'); return Response.json({ jobs: [] }); } });
+  try {
+    await newConnector().run(credentials, { once: true });
+    await assert.rejects(() => newConnector(true).run(credentials, { once: true }), /unavailable/);
+    await assert.rejects(() => newConnector().run(credentials, { once: true }), error => error.code === 'connector_daily_poll_budget' && error.retryAt === Date.parse('2026-10-30T00:00:00Z'));
+    assert.equal(requests, 2);
+    assert.deepEqual(JSON.parse(await readFile(statePath, 'utf8')), { day: '2026-10-29', polls: 2 });
+    assert.equal((await stat(statePath)).mode & 0o777, 0o600);
+    clock += 1000;
+    await newConnector().run(credentials, { once: true });
+    assert.equal(requests, 3);
+    assert.deepEqual(JSON.parse(await readFile(statePath, 'utf8')), { day: '2026-10-30', polls: 1 });
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test('independent connector instances cannot poll concurrently with the same safety store', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'ar-safety-lock-')); const statePath = join(directory, 'state.json');
+  let unblock; const waiting = new Promise(resolve => { unblock = resolve; }); let started;
+  const ready = new Promise(resolve => { started = resolve; }); let secondRequests = 0;
+  const first = createConnector({ safety: createConnectorSafety({ statePath }), fetchImpl: async () => { started(); await waiting; return Response.json({ jobs: [] }); } });
+  const second = createConnector({ safety: createConnectorSafety({ statePath }), fetchImpl: async () => { secondRequests++; return Response.json({ jobs: [] }); } });
+  try {
+    const firstRun = first.run(credentials, { once: true }); await ready;
+    await assert.rejects(() => second.run(credentials, { once: true }), /lock is held/);
+    assert.equal(secondRequests, 0);
+    unblock(); await firstRun;
+    await second.run(credentials, { once: true }); assert.equal(secondRequests, 1);
+  } finally { unblock(); await rm(directory, { recursive: true, force: true }); }
+});
+
+test('corrupt safety state and backwards UTC clock fail closed before any network request', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'ar-safety-invalid-')); const statePath = join(directory, 'state.json');
+  const { writeFile } = await import('node:fs/promises'); let requests = 0;
+  try {
+    for (const value of ['invalid JSON', JSON.stringify({ day: '2026-10-31', polls: 1 }), JSON.stringify({ day: '2026-10-29', polls: -1 })]) {
+      await writeFile(statePath, value);
+      const connector = createConnector({ safety: createConnectorSafety({ statePath, now: () => Date.parse('2026-10-29T12:00:00Z') }), fetchImpl: async () => { requests++; return Response.json({ jobs: [] }); } });
+      await assert.rejects(() => connector.run(credentials, { once: true }), /safety state needs repair/);
+    }
+    assert.equal(requests, 0);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+
+test('shared allowance pause retains only safe resume metadata and refuses retries', async () => {
+  let requests = 0;
+  const connector = createConnector({ safety: createConnectorSafety({ statePath: null }), fetchImpl: async () => {
+    requests++; return Response.json({ code: 'shared_allowance_paused', retryable: false, retry_at: '2026-10-30T00:00:00Z', reason: 'daily_budget', private: 'do not copy' }, { status: 503 });
+  } });
+  await assert.rejects(() => connector.run(credentials), error => error.code === 'shared_allowance_paused' && error.retryAt === Date.parse('2026-10-30T00:00:00Z') && !error.message.includes('do not copy'));
+  assert.equal(requests, 1);
 });
