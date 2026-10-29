@@ -35,23 +35,23 @@ on:
       - '*.md'
       - 'docs/**'
       - 'todo/**'
+      - 'ops/**'
+      - '.claude/**'
   push:
     branches: [main]
-    # Prose never changes what the suite proves; every skipped run is minutes
-    # kept for a run that matters (the account ran out in September 2026).
+    # These paths do not affect the checks in this workflow. The filter applies
+    # to GitHub Actions only; Cloudflare Pages uses its project configuration.
     paths-ignore:
       - '*.md'
       - 'docs/**'
       - 'todo/**'
+      - 'ops/**'
+      - '.claude/**'
 
-# A run on main is never cancelled once it has started. Main takes a push
-# every few minutes and the sharded e2e takes longer than that, so with
-# cancel-in-progress on main each run was cut down by the next push: 51 of
-# the last 100 main runs ended cancelled (measured 2026-09-28), no verdict.
-# Now the running one finishes and GitHub keeps ONE waiting run per group; a
-# newer push replaces the waiting run before it starts, so the latest commit
-# is always tested next and the skipped commits cost no minutes. Pull
-# requests still cancel, because only a PR's newest commit matters.
+# A main run is not cancelled once started; GitHub keeps one pending run per
+# concurrency group and replaces that pending run when a newer push arrives.
+# Pull request runs cancel when superseded because only the newest revision
+# needs a verdict.
 concurrency:
   group: playwright-${{ github.ref }}-${{ github.event_name == 'schedule' && 'nightly' || 'ci' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -72,10 +72,8 @@ env:
 jobs:
   # Skips the suite when a push to main is a PR merge whose tree is byte-for-byte
   # the tree this workflow already passed on the PR head (the case whenever the
-  # PR was up to date with main). Re-running it proved nothing and cost a full
-  # run per merge: in September 2026 that doubling took the account past its
-  # free Actions minutes. A direct push, a merge whose tree differs from the PR
-  # head, or a head with no green run all still run everything.
+  # PR was up to date with main). A direct push, a merge whose tree differs
+  # from the PR head, or a head with no green run all still run everything.
   gate:
     runs-on: ubuntu-latest
     timeout-minutes: 3
@@ -118,6 +116,30 @@ jobs:
           fi
           echo "run=$run" >> "$GITHUB_OUTPUT"
           echo "gate: run=$run ($why)"
+
+  budget:
+    # A lightweight, informational count of GitHub Actions workflow runs.
+    # An optional repo variable enables a run-count threshold; run count is
+    # not billed Actions minutes or Cloudflare Pages build usage.
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    timeout-minutes: 3
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+
+      - name: This month's Actions run volume
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_RUN_COUNT_BUDGET: ${{ vars.CI_RUN_COUNT_BUDGET }}
+        run: npm run ci:run-budget
+
   checks:
     # The lane the outage needed. Nothing here touches a browser: tsc sees
     # every file whether or not a route imports it, the build is the same
@@ -147,6 +169,18 @@ jobs:
 
       - name: Worker types (ratcheted)
         run: npm run lint:worker-types
+
+      # Moved here from check-deployment-config.yml, which used to be a second
+      # workflow run per push to main for two commands that take seconds. Same
+      # two commands, same push, one run. That workflow still answers pull
+      # requests, where it reports on its own without costing a Pages build.
+      - name: Required deployment configuration
+        env:
+          WORKER_ORIGIN: ${{ vars.WORKER_ORIGIN }}
+        run: npm run check:deploy-config
+
+      - name: Deployment configuration tests
+        run: node --test scripts/check-required-deployment-config.test.mjs
 
       - name: Source unit tests
         run: npm run test:src
