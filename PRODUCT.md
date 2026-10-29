@@ -144,3 +144,7 @@ The closest references in spirit are well-printed editorial objects: a serious c
 - Could this be mistaken for a Shopify theme, a SaaS dashboard, or a wellness app? If yes, the aesthetic has drifted.
 - Does the spacing have rhythm, or is everything the same padding? Vary deliberately.
 - Run `npm run lint:colors` before commit (mandatory).
+
+
+### Purchases: physical places, not bookkeeping (2026-10-29)
+Default tracking follows separate supplier parcels coming to the distribution company (OBO in the preview), goods collected there, then combined shipments coming to the studio. Keep each inbound tracking reference separate; show collected quantities together. Main actions are Arrived, Send together, and Receive. Keep purchase evidence, freight rates/bills, packing, exports and edits behind details. Completed shipments belong in collapsed history; missing optional dates and freight values must not dominate the tracking view. The current stored route has one inbound tracking reference per purchase; multiple independent inbound parcels within a single purchase require a parcel model before production can claim that support.

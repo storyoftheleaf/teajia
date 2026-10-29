@@ -6770,3 +6770,55 @@ body.cart-panel-open .commerce-dock {
  .purchase-review-queue .purchase-tracking-attention { padding:8px 10px; }
  .purchase-review-queue .purchase-tracking-identity { display:block; }
 }
+
+/* Parcels stay separate until they reach the shared collection point. */
+.purchase-quiet-details>summary { display:flex; align-items:center; gap:8px; min-height:36px; padding:8px 10px; list-style:none; cursor:pointer; color:var(--tea-text-sec); }
+.purchase-quiet-details>summary::-webkit-details-marker { display:none; }
+.purchase-quiet-details>summary::after { content:''; width:6px; height:6px; margin-left:auto; border:solid currentColor; border-width:0 1px 1px 0; transform:rotate(45deg); }
+.purchase-quiet-details[open]>summary::after { transform:rotate(225deg); }
+.purchase-quiet-details>summary>span { color:var(--tea-text-dim); }
+.purchase-review-queue.purchase-quiet-details { margin-bottom:12px; }
+.purchase-review-queue.purchase-quiet-details[open]>summary { border-bottom:1px solid var(--tea-border); }
+.purchase-places-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; align-items:start; }
+.purchase-place { min-width:0; border:1px solid var(--tea-border); border-radius:5px; background:var(--tea-surface); }
+.purchase-place>header { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:4px 8px; padding:10px; border-bottom:1px solid var(--tea-border); background:var(--tea-elevated); }
+.purchase-place>header h3 { margin:0; }
+.purchase-place>header>span { color:var(--tea-text-dim); }
+.purchase-place-body { min-width:0; }
+.purchase-parcel { padding:10px; }
+.purchase-parcel+.purchase-parcel,.purchase-collected-item+.purchase-collected-item { border-top:1px solid var(--tea-border); }
+.purchase-parcel-heading { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.purchase-place-link { display:inline-flex; align-items:center; gap:6px; min-width:0; text-align:left; color:var(--tea-text); background:none; border:0; font:inherit; cursor:pointer; }
+.purchase-place-link:hover { color:var(--tea-gold); }
+.purchase-place-link:focus-visible { outline:1px solid var(--tea-gold); outline-offset:3px; }
+.purchase-parcel-items { margin:5px 0 0; color:var(--tea-text-sec); overflow-wrap:anywhere; }
+.purchase-parcel-reference { display:flex; flex-wrap:wrap; gap:4px 8px; margin:8px -10px -10px; padding:6px 10px; background:var(--tea-bg); color:var(--tea-text-dim); overflow-wrap:anywhere; }
+.purchase-parcel-reference strong { font-weight:400; color:var(--tea-text-sec); }
+.purchase-collected-item { width:100%; display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:10px; }
+.purchase-collected-item>span { min-width:0; }
+.purchase-collected-item small { display:block; margin-top:3px; color:var(--tea-text-dim); font:inherit; }
+.purchase-collected-item>strong { white-space:nowrap; font-weight:400; font-variant-numeric:tabular-nums; }
+.purchase-place-empty { margin:0; padding:14px 10px; color:var(--tea-text-dim); }
+.purchase-place-footer { padding:6px; border-top:1px solid var(--tea-border); background:var(--tea-bg); }
+.purchase-place-footer>.logistics-create>summary { justify-content:center; }
+.purchase-place-footer>.logistics-create { width:100%; margin:0; }
+.purchase-places .logistics-shipment-compact { border:0; border-radius:0; background:transparent; }
+.purchase-places .logistics-shipment-compact+.logistics-shipment-compact { border-top:1px solid var(--tea-border); }
+.logistics-shipment-compact .logistics-shipment-summary { margin:0; padding:7px 10px; color:var(--tea-text-sec); }
+.logistics-shipment-compact .logistics-shipment-heading { padding:10px 10px 6px; }
+.logistics-shipment-compact .logistics-shipment-heading h2 { font:inherit; color:var(--tea-text); }
+.logistics-shipment-compact>.logistics-card-actions { padding:6px 10px; border:0; background:transparent; }
+.logistics-shipment-details { border-top:1px solid var(--tea-border); }
+.logistics-shipment-details>summary { display:flex; align-items:center; justify-content:space-between; gap:8px; list-style:none; cursor:pointer; min-height:34px; padding:8px 10px; color:var(--tea-text-dim); }
+.logistics-shipment-details>summary::-webkit-details-marker { display:none; }
+.logistics-shipment-details>summary::after { content:''; width:6px; height:6px; border:solid currentColor; border-width:0 1px 1px 0; transform:rotate(45deg); }
+.logistics-shipment-details[open]>summary::after { transform:rotate(225deg); }
+.purchase-place-purchase { margin-top:10px; }
+.purchase-place-purchase>.logistics-actions { justify-content:space-between; padding:8px 0; }
+.purchase-place-history { margin-top:8px; }
+.purchase-places .logistics-form .logistics-fields { grid-template-columns:repeat(auto-fit,minmax(min(180px,100%),1fr)); }
+.purchase-places .logistics-form label { min-width:0; }
+.purchase-places .logistics-form :is(input,select) { max-width:100%; }
+@container purchase-tracking (min-width:850px) {
+ .purchase-places-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
