@@ -1,3 +1,4 @@
+import { guardFetch } from './allowanceGuard.mjs';
 import { LogisticsTrackingError, recordLogisticsTrackingUpdate } from './logisticsTracking';
 import { readLogistics, mutateLogistics, LogisticsError, type LogisticsAction } from './logistics';
 import { readPurchaseTracking } from './purchaseTracking';
@@ -30626,7 +30627,7 @@ const budgetedHandler = {
   scheduled: requestHandler.scheduled,
 };
 
-export default {
+const protectedHandler = {
   async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     // Preflight and object delivery remain independent of the database.
     const path = new URL(request.url).pathname;
@@ -30670,5 +30671,24 @@ export default {
     const guard = guardDatabase(env.DB);
     if (guard.blocked()) { console.error('D1 quota cooldown: scheduled work deferred'); return; }
     await requestHandler.scheduled(event, { ...env, DB: guard.database }, ctx);
+  },
+};
+
+// Production config requires the shared gate. Unit route fixtures without runtime
+// bindings retain their own local budgets; the deployed configuration is tested.
+export default {
+  fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
+    if (!(env as any).SHARED_ALLOWANCE && (env as any).SHARED_ALLOWANCE_REQUIRED !== 'true') return protectedHandler.fetch(request, env, ctx);
+    return guardFetch(request, env, ctx, protectedHandler, { project: 'teajia' });
+  },
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    if (!(env as any).SHARED_ALLOWANCE && (env as any).SHARED_ALLOWANCE_REQUIRED !== 'true') return protectedHandler.scheduled(event, env, ctx);
+    // Schedule admission is lazy: no database work means no reservation.
+    const handler = { async fetch(_request: Request, guarded: Env, guardedCtx: ExecutionContext) {
+      await protectedHandler.scheduled(event, guarded, guardedCtx);
+      return new Response(null, {status:204});
+    }};
+    const response = await guardFetch(new Request('https://scheduled.internal/cron', {method:'POST'}), env, ctx, handler, {project:'teajia', classify:()=>({priority:'background',feature:'scheduled'})});
+    if (!response.ok) console.warn('Scheduled database work paused by shared allowance');
   },
 };

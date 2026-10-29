@@ -28,6 +28,7 @@ custom_domain = true
 #   the code. (Google sign-in itself is unavailable where Google is blocked, so
 #   using the custom API domain here provides no mainland-China benefit.)
 [vars]
+SHARED_ALLOWANCE_REQUIRED = "true"
 OAUTH_REDIRECT_ORIGIN = "https://teajia-api.lightcodes.workers.dev"
 WORDFORGE_ACCOUNT_ID = "acc_teajia_bali"
 
@@ -150,3 +151,9 @@ name = "PUBLIC_PREPARE_ORDER_LIMITER"
 type = "ratelimit"
 namespace_id = "1011"
 simple = { limit = 5, period = 60 }
+
+# Global non-D1 ledger, shared with every active database consumer.
+[[durable_objects.bindings]]
+name = "SHARED_ALLOWANCE"
+class_name = "AllowanceGovernor"
+script_name = "i64os-quota-guard"
