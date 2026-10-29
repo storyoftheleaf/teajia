@@ -3,7 +3,7 @@ import type { TeaType, TeaForm as WisdomTeaForm } from '../wisdom';
 // Non-tea categories (Teaware, Misc) plus the "type not yet set" sentinel are
 // composed on top of the wisdom vocabulary rather than redeclared. See
 // docs/TEA_WISDOM_BASE.md.
-export type ProductType = TeaType | 'Teaware' | 'Misc' | 'MISSING_TYPE';
+export type ProductType = TeaType | 'Sheng Puer' | 'Shou Puer' | 'Teaware' | 'Misc' | 'MISSING_TYPE';
 
 // Admin inventory tracks a few physical forms the shared wisdom vocabulary
 // doesn't (Rolled, Powder, Other), composed on top rather than redeclared.

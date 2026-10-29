@@ -102,6 +102,8 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await viewSheet.getByRole('button', { name: 'Cost', exact: true }).click();
   await viewSheet.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(row.locator('.stock-figures')).toContainText('Cost / g');
+  await expect(row.getByRole('button', { name: 'Source for Cloud Oolong: Cloud Mountain', exact: true })).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath('stock-type-source.png') });
   await page.getByRole('button', { name: 'View options', exact: true }).click();
   await viewSheet.getByLabel('Group by', { exact: true }).selectOption('vendor');
   await viewSheet.getByRole('button', { name: 'Retail', exact: true }).click();
@@ -116,6 +118,17 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await page.setViewportSize({ width: 390, height: 844 });
 
   await row.getByRole('button', { name: 'More details for Cloud Oolong', exact: true }).click();
+  const detailsSheet = page.getByRole('dialog', { name: 'Tea details', exact: true });
+  await detailsSheet.getByRole('button', { name: 'Edit Chinese name', exact: true }).click();
+  await detailsSheet.getByRole('textbox', { name: 'Chinese name', exact: true }).fill('高山茶');
+  await detailsSheet.getByRole('button', { name: 'Save Chinese name', exact: true }).click();
+  await expect(detailsSheet.getByRole('button', { name: 'Edit Chinese name', exact: true })).toHaveText('高山茶');
+  expect(writes).toContainEqual({ chinese_name: '高山茶' });
+  await detailsSheet.getByRole('button', { name: 'Edit Region', exact: true }).click();
+  await detailsSheet.getByRole('textbox', { name: 'Region', exact: true }).fill('Do not save');
+  await detailsSheet.getByRole('button', { name: 'Cancel Region', exact: true }).click();
+  await expect(detailsSheet.getByRole('button', { name: 'Edit Region', exact: true })).toHaveText('Alishan');
+  await page.screenshot({ path: test.info().outputPath('stock-editable-details.png') });
   await page.getByRole('button', { name: 'Delete tea', exact: true }).click();
   const deleteDialog = page.getByRole('dialog', { name: 'Delete this tea?', exact: true });
   await expect(deleteDialog).toBeVisible();
@@ -206,8 +219,12 @@ test('Stock reference cards resize and persist naming and photos, and continue a
     await row.locator('.stock-given-name').hover();
     expect((await row.locator('.stock-record').boundingBox())!.height).toBeLessThan(145);
     const nameBounds = await row.locator('.stock-given-name').boundingBox();
-    const formBounds = await row.locator('.stock-form-edit').boundingBox();
-    expect(nameBounds!.x + nameBounds!.width).toBeLessThanOrEqual(formBounds!.x);
+    const titleBounds = (await row.locator('.stock-title').boundingBox())!;
+    const moreBounds = (await row.locator('.stock-more-action').boundingBox())!;
+    const sourceBounds = (await row.locator('.stock-source-label').boundingBox())!;
+    expect(titleBounds.x + titleBounds.width).toBeLessThanOrEqual(nameBounds!.x);
+    expect(nameBounds!.x + nameBounds!.width).toBeLessThanOrEqual(moreBounds.x);
+    expect(sourceBounds.y).toBeGreaterThanOrEqual(nameBounds!.y + nameBounds!.height);
     await page.screenshot({ path: test.info().outputPath(`stock-slim-references-${width}.png`) });
   }
   await page.setViewportSize({ width: 390, height: 844 });
