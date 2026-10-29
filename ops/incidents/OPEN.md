@@ -34,6 +34,106 @@
   Normalized error: `http_504`
   Evidence: [acc-teajia-bali-server-get-api-curate-ar-create-links-504-http-504-1252cd2b.json](evidence/acc-teajia-bali-server-get-api-curate-ar-create-links-504-http-504-1252cd2b.json)
 
+- [ ] `acc_teajia_bali:server_get_api_curate_ar_create_requests_19e3f416_6bf6_4b7a_97a0_4ca2c1d8ecf5_50` — **high**
+  1 occurrence · first 2026-10-28T17:12:49Z · last 2026-10-28T17:12:49Z
+  Normalized error: `http_504`
+  Evidence: [acc-teajia-bali-server-get-api-curate-ar-create-requests-19e3f416-6bf6-4b7a-97a0-4ca2c1d8ecf5-50-972cb5e3.json](evidence/acc-teajia-bali-server-get-api-curate-ar-create-requests-19e3f416-6bf6-4b7a-97a0-4ca2c1d8ecf5-50-972cb5e3.json)
+
+- [ ] `acc_teajia_bali:server_get_api_curate_ar_create_requests_3504e462_73f9_4200_862f_d55de2fea535_50` — **high**
+  1 occurrence · first 2026-10-29T00:14:17Z · last 2026-10-29T00:14:17Z
+  Normalized error: `http_504`
+  Evidence: [acc-teajia-bali-server-get-api-curate-ar-create-requests-3504e462-73f9-4200-862f-d55de2fea535-50-c8171050.json](evidence/acc-teajia-bali-server-get-api-curate-ar-create-requests-3504e462-73f9-4200-862f-d55de2fea535-50-c8171050.json)
+
+- [ ] `acc_teajia_bali:server_get_api_curate_ar_create_requests_37a08001_39ec_45af_abda_f896ffa81ee3_50` — **high**
+  1 occurrence · first 2026-10-28T17:15:47Z · last 2026-10-28T17:15:47Z
+  Normalized error: `http_504`
+  Evidence: [acc-teajia-bali-server-get-api-curate-ar-create-requests-37a08001-39ec-45af-abda-f896ffa81ee3-50-c32a4e7c.json](evidence/acc-teajia-bali-server-get-api-curate-ar-create-requests-37a08001-39ec-45af-abda-f896ffa81ee3-50-c32a4e7c.json)
+
+- [ ] `acc_teajia_bali:server_get_api_curate_ar_create_requests_3b144349_2d96_41b7_a1e1_5a2d823e1bda_50` — **high**
+  1 occurrence · first 2026-10-28T14:39:17Z · last 2026-10-28T14:39:17Z
+  Normalized error: `http_504`
+  Evidence: [acc-teajia-bali-server-get-api-curate-ar-create-requests-3b144349-2d96-41b7-a1e1-5a2d823e1bda-50-5a978550.json](evidence/acc-teajia-bali-server-get-api-curate-ar-create-requests-3b144349-2d96-41b7-a1e1-5a2d823e1bda-50-5a978550.json)
+
+- [ ] `acc_teajia_bali:server_get_api_curate_ar_create_requests_4787df94_ffe6_45e4_be45_941e4ddf8f8a_50` — **high**
+  1 occurrence · first 2026-10-28T18:14:21Z · last 2026-10-28T18:14:21Z
+  Normalized error: `http_504`
+  Evidence: [acc-teajia-bali-server-get-api-curate-ar-create-requests-4787df94-ffe6-45e4-be45-941e4ddf8f8a-50-ff58f67c.json](evidence/acc-teajia-bali-server-get-api-curate-ar-create-requests-4787df94-ffe6-45e4-be45-941e4ddf8f8a-50-ff58f67c.json)
+
+- [ ] `acc_teajia_bali:server_get_api_curate_ar_create_requests_485dae0e_454b_4c9f_87a2_7366fec1ac7b_50` — **high**
+  1 occurrence · first 2026-10-28T18:12:47Z · last 2026-10-28T18:12:47Z
+  Normalized error: `http_504`
+  Evidence: [acc-teajia-bali-server-get-api-curate-ar-create-requests-485dae0e-454b-4c9f-87a2-7366fec1ac7b-50-a12390f2.json](evidence/acc-teajia-bali-server-get-api-curate-ar-create-requests-485dae0e-454b-4c9f-87a2-7366fec1ac7b-50-a12390f2.json)
+
+- [ ] `acc_teajia_bali:server_get_api_curate_ar_create_requests_522fea88_6aab_4467_a665_7d62e817e367_50` — **high**
+  1 occurrence · first 2026-10-29T00:15:47Z · last 2026-10-29T00:15:47Z
+  Normalized error: `http_504`
+  Evidence: [acc-teajia-bali-server-get-api-curate-ar-create-requests-522fea88-6aab-4467-a665-7d62e817e367-50-ecad665a.json](evidence/acc-teajia-bali-server-get-api-curate-ar-create-requests-522fea88-6aab-4467-a665-7d62e817e367-50-ecad665a.json)
+
+- [ ] `acc_teajia_bali:server_get_api_curate_ar_create_requests_5526cd69_f3d1_4fb0_93d5_ea8702b6458c_50` — **high**
+  1 occurrence · first 2026-10-28T12:42:17Z · last 2026-10-28T12:42:17Z
+  Normalized error: `http_504`
+  Evidence: [acc-teajia-bali-server-get-api-curate-ar-create-requests-5526cd69-f3d1-4fb0-93d5-ea8702b6458c-50-1379022b.json](evidence/acc-teajia-bali-server-get-api-curate-ar-create-requests-5526cd69-f3d1-4fb0-93d5-ea8702b6458c-50-1379022b.json)
+
+- [ ] `acc_teajia_bali:server_get_api_curate_ar_create_requests_68b3da0e_712c_4edc_a750_858152bd2b2d_50` — **high**
+  1 occurrence · first 2026-10-28T18:11:49Z · last 2026-10-28T18:11:49Z
+  Normalized error: `http_504`
+  Evidence: [acc-teajia-bali-server-get-api-curate-ar-create-requests-68b3da0e-712c-4edc-a750-858152bd2b2d-50-f3ae2f62.json](evidence/acc-teajia-bali-server-get-api-curate-ar-create-requests-68b3da0e-712c-4edc-a750-858152bd2b2d-50-f3ae2f62.json)
+
+- [ ] `acc_teajia_bali:server_get_api_curate_ar_create_requests_81045950_c2a5_46dd_ba05_aa45622b6e5e_50` — **high**
+  1 occurrence · first 2026-10-28T12:21:19Z · last 2026-10-28T12:21:19Z
+  Normalized error: `http_504`
+  Evidence: [acc-teajia-bali-server-get-api-curate-ar-create-requests-81045950-c2a5-46dd-ba05-aa45622b6e5e-50-f2c36965.json](evidence/acc-teajia-bali-server-get-api-curate-ar-create-requests-81045950-c2a5-46dd-ba05-aa45622b6e5e-50-f2c36965.json)
+
+- [ ] `acc_teajia_bali:server_get_api_curate_ar_create_requests_a26b8fe8_dc36_4686_9063_96037a28e733_50` — **high**
+  1 occurrence · first 2026-10-28T17:13:47Z · last 2026-10-28T17:13:47Z
+  Normalized error: `http_504`
+  Evidence: [acc-teajia-bali-server-get-api-curate-ar-create-requests-a26b8fe8-dc36-4686-9063-96037a28e733-50-69232f93.json](evidence/acc-teajia-bali-server-get-api-curate-ar-create-requests-a26b8fe8-dc36-4686-9063-96037a28e733-50-69232f93.json)
+
+- [ ] `acc_teajia_bali:server_get_api_curate_ar_create_requests_aa34cb1b_12f4_44cc_a2b9_e3602f7eae90_50` — **high**
+  1 occurrence · first 2026-10-28T14:50:32Z · last 2026-10-28T14:50:32Z
+  Normalized error: `http_504`
+  Evidence: [acc-teajia-bali-server-get-api-curate-ar-create-requests-aa34cb1b-12f4-44cc-a2b9-e3602f7eae90-50-035ef9c0.json](evidence/acc-teajia-bali-server-get-api-curate-ar-create-requests-aa34cb1b-12f4-44cc-a2b9-e3602f7eae90-50-035ef9c0.json)
+
+- [ ] `acc_teajia_bali:server_get_api_curate_ar_create_requests_aee34105_111d_403a_8b53_274d5cb55a29_50` — **high**
+  1 occurrence · first 2026-10-28T16:53:17Z · last 2026-10-28T16:53:17Z
+  Normalized error: `http_504`
+  Evidence: [acc-teajia-bali-server-get-api-curate-ar-create-requests-aee34105-111d-403a-8b53-274d5cb55a29-50-a9dc6e8f.json](evidence/acc-teajia-bali-server-get-api-curate-ar-create-requests-aee34105-111d-403a-8b53-274d5cb55a29-50-a9dc6e8f.json)
+
+- [ ] `acc_teajia_bali:server_get_api_curate_ar_create_requests_b814e9ce_7eed_472d_9663_1f035b6ebaf1_50` — **high**
+  1 occurrence · first 2026-10-29T01:42:19Z · last 2026-10-29T01:42:19Z
+  Normalized error: `http_504`
+  Evidence: [acc-teajia-bali-server-get-api-curate-ar-create-requests-b814e9ce-7eed-472d-9663-1f035b6ebaf1-50-720780c8.json](evidence/acc-teajia-bali-server-get-api-curate-ar-create-requests-b814e9ce-7eed-472d-9663-1f035b6ebaf1-50-720780c8.json)
+
+- [ ] `acc_teajia_bali:server_get_api_curate_ar_create_requests_bca8f0b0_d447_431d_aacd_5c261f445503_50` — **high**
+  1 occurrence · first 2026-10-28T16:33:50Z · last 2026-10-28T16:33:50Z
+  Normalized error: `http_504`
+  Evidence: [acc-teajia-bali-server-get-api-curate-ar-create-requests-bca8f0b0-d447-431d-aacd-5c261f445503-50-9c48f8e7.json](evidence/acc-teajia-bali-server-get-api-curate-ar-create-requests-bca8f0b0-d447-431d-aacd-5c261f445503-50-9c48f8e7.json)
+
+- [ ] `acc_teajia_bali:server_get_api_curate_ar_create_requests_c19c723a_da2c_45f8_954b_8090068a41f5_50` — **high**
+  1 occurrence · first 2026-10-28T16:50:17Z · last 2026-10-28T16:50:17Z
+  Normalized error: `http_504`
+  Evidence: [acc-teajia-bali-server-get-api-curate-ar-create-requests-c19c723a-da2c-45f8-954b-8090068a41f5-50-26b54493.json](evidence/acc-teajia-bali-server-get-api-curate-ar-create-requests-c19c723a-da2c-45f8-954b-8090068a41f5-50-26b54493.json)
+
+- [ ] `acc_teajia_bali:server_get_api_curate_ar_create_requests_c4d7a922_09b0_416a_af3b_03240015ded0_50` — **high**
+  1 occurrence · first 2026-10-29T00:12:49Z · last 2026-10-29T00:12:49Z
+  Normalized error: `http_504`
+  Evidence: [acc-teajia-bali-server-get-api-curate-ar-create-requests-c4d7a922-09b0-416a-af3b-03240015ded0-50-ab46d7b3.json](evidence/acc-teajia-bali-server-get-api-curate-ar-create-requests-c4d7a922-09b0-416a-af3b-03240015ded0-50-ab46d7b3.json)
+
+- [ ] `acc_teajia_bali:server_get_api_curate_ar_create_requests_c68eb77a_745c_419e_9894_734286386cc0_50` — **high**
+  1 occurrence · first 2026-10-28T13:15:47Z · last 2026-10-28T13:15:47Z
+  Normalized error: `http_504`
+  Evidence: [acc-teajia-bali-server-get-api-curate-ar-create-requests-c68eb77a-745c-419e-9894-734286386cc0-50-d2c76c9d.json](evidence/acc-teajia-bali-server-get-api-curate-ar-create-requests-c68eb77a-745c-419e-9894-734286386cc0-50-d2c76c9d.json)
+
+- [ ] `acc_teajia_bali:server_get_api_curate_ar_create_requests_c9fecd6b_5fc0_4cad_af3c_2dea1aefb698_50` — **high**
+  1 occurrence · first 2026-10-28T13:38:50Z · last 2026-10-28T13:38:50Z
+  Normalized error: `http_504`
+  Evidence: [acc-teajia-bali-server-get-api-curate-ar-create-requests-c9fecd6b-5fc0-4cad-af3c-2dea1aefb698-50-0e09e23e.json](evidence/acc-teajia-bali-server-get-api-curate-ar-create-requests-c9fecd6b-5fc0-4cad-af3c-2dea1aefb698-50-0e09e23e.json)
+
+- [ ] `acc_teajia_bali:server_get_api_curate_ar_create_requests_ce844c94_5c52_481f_82f1_8ba7178aa874_50` — **high**
+  1 occurrence · first 2026-10-28T11:51:17Z · last 2026-10-28T11:51:17Z
+  Normalized error: `http_504`
+  Evidence: [acc-teajia-bali-server-get-api-curate-ar-create-requests-ce844c94-5c52-481f-82f1-8ba7178aa874-50-fe7be5e1.json](evidence/acc-teajia-bali-server-get-api-curate-ar-create-requests-ce844c94-5c52-481f-82f1-8ba7178aa874-50-fe7be5e1.json)
+
 - [ ] `acc_teajia_bali:server_get_api_curate_ar_create_status_504_http_504` — **high**
   1 occurrence · first 2026-10-27T08:41:57Z · last 2026-10-27T08:41:57Z
   Normalized error: `http_504`
@@ -64,15 +164,25 @@
   Normalized error: `http_504`
   Evidence: [acc-teajia-bali-server-get-api-purchase-orders-504-http-504-c98593d6.json](evidence/acc-teajia-bali-server-get-api-purchase-orders-504-http-504-c98593d6.json)
 
-- [ ] `acc_teajia_bali:server_post_api_curate_description_proposal_503_http_503` — **high**
-  1 occurrence · first 2026-10-21T15:18:02Z · last 2026-10-21T15:18:02Z
-  Normalized error: `http_503`
-  Evidence: [acc-teajia-bali-server-post-api-curate-description-proposal-503-http-503-48893563.json](evidence/acc-teajia-bali-server-post-api-curate-description-proposal-503-http-503-48893563.json)
+- [ ] `acc_teajia_bali:server_get_api_purchase_orders_tracking_504_http_504` — **high**
+  11 occurrences · first 2026-10-28T13:38:49Z · last 2026-10-29T01:27:15Z
+  Normalized error: `http_504`
+  Evidence: [acc-teajia-bali-server-get-api-purchase-orders-tracking-504-http-504-8cb05f39.json](evidence/acc-teajia-bali-server-get-api-purchase-orders-tracking-504-http-504-8cb05f39.json)
 
-- [ ] `acc_teajia_bali:server_post_api_curate_said_file_502_http_502` — **high**
-  1 occurrence · first 2026-10-21T15:17:47Z · last 2026-10-21T15:17:47Z
+- [ ] `acc_teajia_bali:server_post_api_curate_ar_create_requests_500_http_500` — **high**
+  9 occurrences · first 2026-10-28T11:50:15Z · last 2026-10-29T01:15:15Z
+  Normalized error: `http_500`
+  Evidence: [acc-teajia-bali-server-post-api-curate-ar-create-requests-500-http-500-0a5247e9.json](evidence/acc-teajia-bali-server-post-api-curate-ar-create-requests-500-http-500-0a5247e9.json)
+
+- [ ] `acc_teajia_bali:server_post_api_curate_description_proposal_502_http_502` — **high**
+  2 occurrences · first 2026-10-28T11:48:33Z · last 2026-10-28T11:50:38Z
   Normalized error: `http_502`
-  Evidence: [acc-teajia-bali-server-post-api-curate-said-file-502-http-502-86a22434.json](evidence/acc-teajia-bali-server-post-api-curate-said-file-502-http-502-86a22434.json)
+  Evidence: [acc-teajia-bali-server-post-api-curate-description-proposal-502-http-502-a57d7731.json](evidence/acc-teajia-bali-server-post-api-curate-description-proposal-502-http-502-a57d7731.json)
+
+- [ ] `acc_teajia_bali:server_post_api_curate_working_material_502_http_502` — **high**
+  3 occurrences · first 2026-10-28T11:44:11Z · last 2026-10-28T12:02:45Z
+  Normalized error: `http_502`
+  Evidence: [acc-teajia-bali-server-post-api-curate-working-material-502-http-502-76899402.json](evidence/acc-teajia-bali-server-post-api-curate-working-material-502-http-502-76899402.json)
 
 - [ ] `acc_teajia_bali:network_get_api_compass_incoming_none_timeout` — **medium**
   1 occurrence · first 2026-10-26T05:59:21Z · last 2026-10-26T05:59:21Z
@@ -80,7 +190,7 @@
   Evidence: [acc-teajia-bali-network-get-api-compass-incoming-none-timeout-2e274302.json](evidence/acc-teajia-bali-network-get-api-compass-incoming-none-timeout-2e274302.json)
 
 - [ ] `acc_teajia_bali:network_get_api_compass_incoming_none_transport_failure` — **medium**
-  1 occurrence · first 2026-10-22T13:08:43Z · last 2026-10-22T13:08:43Z
+  2 occurrences · first 2026-10-22T13:08:43Z · last 2026-10-29T01:06:49Z
   Normalized error: `transport_failure`
   Evidence: [acc-teajia-bali-network-get-api-compass-incoming-none-transport-failure-1f082489.json](evidence/acc-teajia-bali-network-get-api-compass-incoming-none-transport-failure-1f082489.json)
 
@@ -103,3 +213,8 @@
   1 occurrence · first 2026-10-27T08:09:12Z · last 2026-10-27T08:09:12Z
   Normalized error: `transport_failure`
   Evidence: [acc-teajia-bali-network-get-api-products-public-none-transport-failure-3412fa7a.json](evidence/acc-teajia-bali-network-get-api-products-public-none-transport-failure-3412fa7a.json)
+
+- [ ] `acc_teajia_bali:network_post_api_curate_ar_create_requests_none_transport_failure` — **medium**
+  1 occurrence · first 2026-10-29T01:06:49Z · last 2026-10-29T01:06:49Z
+  Normalized error: `transport_failure`
+  Evidence: [acc-teajia-bali-network-post-api-curate-ar-create-requests-none-transport-failure-0c9304e2.json](evidence/acc-teajia-bali-network-post-api-curate-ar-create-requests-none-transport-failure-0c9304e2.json)

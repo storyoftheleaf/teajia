@@ -2340,7 +2340,8 @@ input[type="number"]::-webkit-outer-spin-button {
 
 /* Faint tonal band: the quiet card's only differentiation device. */
 /* ==============================   Paper ground and the label plate
-   ==============================
+   =======================}
+
    The reading ground. Barely visible on purpose: on a bright screen you
    notice it, in sun you do not. It reuses the grain the alcove panels
    already carry rather than introducing a second texture system, and it
@@ -3522,7 +3523,8 @@ input[type="number"]::-webkit-outer-spin-button {
 @media (min-width: 1024px) { .pb-nav-verdict { padding-bottom: 2rem; } }
 
 /* ==============================   The commerce bar, docked to the navigation
-   ==============================
+   =======================}
+
    Two rounded bars stacked at the bottom of a phone read as two apps
    arguing over the same corner. Docked, they are one object: the commerce
    bar takes the navigation's own insets and colours, sits flush on its top
@@ -6896,3 +6898,74 @@ body.cart-panel-open .commerce-dock {
 .logistics-report-history { display: grid; gap: .75rem; }
 .logistics-report-history > li { padding: .75rem; background: var(--tea-surface); border: 1px solid var(--tea-border); border-radius: .375rem; }
 .logistics-report-history blockquote { padding-block: .5rem; margin-block: .5rem; border-block: 1px solid var(--tea-border); }
+/* Tasting occupies the window. Desktop gives the wheel and its record their own space. */
+.tasting-session-surface { width:100%; height:100dvh; }
+.tasting-wheel-details { min-width:0; }
+@media(min-width:1024px) {
+  .tasting-session-surface .tasting-session-header { width:100%; max-width:none; margin:0; padding:16px 24px; }
+  .tasting-session-surface .tasting-desktop-workspace .tasting-mobile-content { max-width:none; margin:0; padding:0; }
+  .tasting-session-surface .tasting-scroll > div:not(.tasting-wheel-panel) { max-width:960px; margin-inline:auto; padding-top:24px; }
+  .tasting-session-surface .tasting-wheel-panel { max-width:none; margin:0; min-height:100%; display:flex; align-items:center; justify-content:center; padding:24px 32px; }
+  .tasting-session-surface .approved-taste-wheel.study-phone { display:grid; grid-template-columns:minmax(0,min(68dvh,720px)); align-items:center; justify-content:center; gap:32px; width:100%; max-width:1160px; margin:0 auto; padding:0; }
+  .tasting-session-surface .approved-taste-wheel[data-has-details=true] { grid-template-columns:minmax(0,min(68dvh,720px)) minmax(220px,300px); }
+  .tasting-session-surface .approved-wheel-journey { min-width:0; width:100%; }
+  .tasting-session-surface .tasting-wheel-details { max-height:calc(100dvh - 180px); overflow-y:auto; padding:12px 0; }
+  .tasting-session-surface .tasting-wheel-details :is(.tasting-family-record,.tasting-sense-lists,.tasting-five-tastes-help) { margin-left:0; margin-right:0; }
+}
+@media(min-width:700px) and (max-width:1023px) and (max-height:600px) {
+  .tasting-session-surface .tasting-wheel-panel { justify-content:flex-start!important; }
+  .tasting-session-surface .approved-taste-wheel.study-phone { display:grid; grid-template-columns:minmax(0,min(60dvh,400px)) minmax(180px,260px); align-items:center; justify-content:center; gap:20px; padding-bottom:0; }
+  .tasting-session-surface .approved-taste-wheel[data-has-details=false] { grid-template-columns:minmax(0,min(60dvh,400px)); }
+}
+
+/* In type groups, use the repeated type slot for the tea's source. */
+.stock-view .stock-subtitle>.stock-source-label { max-width:130px; font-size:11px; }
+.stock-view .stock-record .stock-subtitle>.stock-source-label>span { color:var(--tea-text-dim)!important; }
+
+/* Stock identity: original and given names share one compact heading. */
+.stock-view .stock-record[data-card-study="2"] .stock-title-line { gap:6px; min-height:42px; }
+.stock-view .stock-record[data-card-study="2"] .stock-title>button,
+.stock-view .stock-record[data-card-study="2"] .stock-title>input { font-family:'Lora',Georgia,serif!important; font-size:16px!important; line-height:1.3!important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.stock-view .stock-title-line>.stock-given-name { flex:0 1 auto; max-width:35%; min-width:0; min-height:44px; border:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:right; font-size:12px; color:var(--tea-text-dim); }
+.stock-view .stock-record[data-card-study="2"] .stock-more-action { flex-basis:28px; width:28px; justify-content:flex-end; color:var(--tea-text-dim); }
+.stock-view .stock-subtitle>.stock-source-label { grid-column:1; grid-row:1; min-width:0; max-width:none; width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border:0; font-size:11px; }
+.stock-view .stock-subtitle>.stock-source-label>span { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* Save stays quiet until there are edits ready to commit. */
+.tasting-save-control {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-height: 48px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  transition: background-color 180ms ease, border-color 180ms ease;
+}
+.tasting-save-control .tasting-heading-save { padding: 0 10px; min-height: 46px; }
+.tasting-save-control[data-pending=true] {
+  border-color: var(--tea-text);
+  background: var(--tea-text);
+  animation: tasting-save-ready 2.4s ease-in-out infinite;
+}
+.tasting-save-control[data-pending=true] .tasting-heading-save { color: var(--tea-bg); }
+@keyframes tasting-save-ready {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 0 4px var(--tea-accent-sub), 0 0 16px var(--tea-text-dim); }
+}
+@media (min-width: 1024px) {
+  .tasting-save-control { margin-left: auto; }
+  [data-tasting-session-overlay] .tasting-save-control .tasting-heading-save,
+  [data-tasting-session-overlay] .tasting-save-control .tasting-heading-mic { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tasting-save-control[data-pending=true] { animation: none; box-shadow: 0 0 0 2px var(--tea-accent-sub); }
+}
+
+.tasting-impression-control { display:flex; align-items:center; flex:1; min-width:0; min-height:48px; border:1px solid var(--tea-text-dim); border-radius:10px; background:var(--tea-elevated); }
+.tasting-impression-control .tasting-heading-trigger { border:0; background:transparent; min-height:46px; padding:0 7px; gap:5px; }
+.tasting-header-controls .tasting-impression-control .tasting-heading-mic { margin:0; border-left:1px solid var(--tea-border); border-radius:0 9px 9px 0; }
+.tasting-impression-control .tasting-heading-mic[aria-pressed=true] { background:var(--tea-accent-sub); color:var(--tea-text); }
+@media(min-width:1024px) {
+  .tasting-impression-control { flex:0 1 464px; }
+  [data-tasting-session-overlay] .tasting-impression-control .tasting-heading-trigger { flex:1; }
+}

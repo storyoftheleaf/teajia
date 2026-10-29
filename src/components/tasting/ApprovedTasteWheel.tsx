@@ -27,6 +27,7 @@ export function ApprovedTasteWheel({ value, onChange, reveal }: ApprovedTasteWhe
   const familyDetails = families.find(family => family.name === activeFamily);
   const tastes = [...new Set((value.flavor || []).map(tastingWordLabel))];
   const aromas = [...new Set((value.aroma || []).map(tastingWordLabel))];
+  const hasDetails = !!(familyDetails || broad.length || tastes.length || aromas.length || value.basicTastes?.length);
   useEffect(() => {
     if (!host.current) return;
     let cancelled = false;
@@ -73,7 +74,7 @@ export function ApprovedTasteWheel({ value, onChange, reveal }: ApprovedTasteWhe
     if (reveal && loadState === 'ready') showWord(reveal.word, reveal.sense);
   }, [reveal?.word, reveal?.sense, reveal?.stamp, showWord, loadState]);
 
-  return <div className="approved-taste-wheel study-phone" aria-label="Taste and aroma tasting">
+  return <div className="approved-taste-wheel study-phone" data-has-details={hasDetails} aria-label="Taste and aroma tasting">
     <section className="approved-wheel-journey" aria-label="Taste and aroma wheel" aria-busy={loadState === 'loading'}>
       {loadState !== 'ready' && <div className="tasting-wheel-loading tasting-loading-state" role={loadState === 'error' ? 'alert' : 'status'}>
         <span>{loadState === 'error' ? 'The taste wheel could not load.' : 'Loading taste wheel…'}</span>
@@ -81,6 +82,7 @@ export function ApprovedTasteWheel({ value, onChange, reveal }: ApprovedTasteWhe
       </div>}
       <div ref={host} />
     </section>
+    {hasDetails && <div className="tasting-wheel-details">
     {familyDetails && !familyDetails.singleSense && <section className="tasting-family-record" aria-label="Broad flavor observation">
       <div>
         <p className={`${TYPOGRAPHY_CLASSES.accountMeta} text-tea-text-sec`}>{familyDetails.description}</p>
@@ -105,5 +107,6 @@ export function ApprovedTasteWheel({ value, onChange, reveal }: ApprovedTasteWhe
     {!!value.basicTastes?.length && <section className="tasting-sense-lists" aria-label="Selected five tastes"><div className="tasting-sense-row">
       <span className="tasting-sense-label">Five tastes</span><div className="tasting-sense-words">{value.basicTastes.map(taste => <button key={taste} type="button" onClick={() => showWord(`basic:${taste}`, 'taste')} aria-label={`Show ${basicTasteLabel(taste)} on wheel`}>{basicTasteLabel(taste)}</button>)}</div>
     </div></section>}
+    </div>}
   </div>;
 }

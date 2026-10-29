@@ -1,6 +1,6 @@
 # Purchases, logistics services and studio arrivals
 
-Local implementation on 2026-10-29; migrations `0052_logistics_shipments.sql`, `0053_logistics_addresses.sql` and `0054_logistics_tracking.sql` and the matching Worker/frontend release are required. Do not treat this document as live deployment proof.
+Implemented on 2026-10-29; migrations `0052_logistics_shipments.sql`, `0053_logistics_addresses.sql` and `0054_logistics_tracking.sql` and the matching Worker/frontend release are required. Do not treat this document as live deployment proof.
 
 ## The working flow
 

@@ -1,4 +1,12 @@
+## 2026-10-29: Agent-managed logistics, addresses and tracking
+
+Purchases follows separate supplier parcels to each logistics company, goods collected there, and combined boat or air shipments to a saved destination. Agents file pasted messages into the matching records: courier references, company, dates, freight, addresses and sourced status updates. Original messages and report dates remain available; retries do not duplicate updates. Company rates, paid item costs, estimates and bilingual message exports share the compact tracking view. Saved address edits preserve existing delivery addresses until explicitly reassigned. Warehouse arrivals and shipment reports do not add studio inventory; verified studio receipts do. Migrations 0052–0054 add the supporting records.
+
 ## 2026-10-28: Attach original passages to full-transcript working notes
+
+## 2026-10-28: Full-screen tasting for desktop and phone
+
+Removed the narrow desktop dialog and backdrop. Tasting now occupies the entire window. Desktop gives the wheel and its observations separate columns, with a wheel sized to the available height; portrait phones keep the full-width wheel and capsule navigation, while landscape phones place observations beside a smaller wheel above the navigation. Save, close, existing selections and recap links keep their behavior.
 
 ## 2026-10-28: The five tastes joins the existing wheel
 

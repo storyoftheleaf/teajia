@@ -3047,6 +3047,11 @@ CREATE TABLE IF NOT EXISTS curate_ar_jobs (
 );
 CREATE INDEX IF NOT EXISTS idx_curate_ar_queue ON curate_ar_jobs(account_id,status,created_at);
 CREATE INDEX IF NOT EXISTS idx_curate_ar_expiry ON curate_ar_jobs(expires_at);
+CREATE INDEX IF NOT EXISTS idx_curate_ar_unexpired_cleanup
+  ON curate_ar_jobs(expires_at) WHERE status!='expired';
+CREATE INDEX IF NOT EXISTS idx_curate_ar_claim_active
+  ON curate_ar_jobs(account_id,created_by_user_id,created_at,id)
+  WHERE status IN ('pending','claimed');
 CREATE TABLE IF NOT EXISTS curate_ar_links (
   id TEXT PRIMARY KEY,
   account_id TEXT NOT NULL,
