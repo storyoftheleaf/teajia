@@ -1,26 +1,38 @@
 import React, { useState } from 'react';
 import { TrackingTask } from './TrackingTask';
+import { LogisticsMessage } from './LogisticsMessage';
 import { api } from '../../../lib/api';
 import type { LogisticsOrder, LogisticsPurchaseLine, LogisticsService, LogisticsShipment, LogisticsTracking } from '../../../lib/logisticsTypes';
 import { TYPOGRAPHY_CLASSES as T } from '../../../designTokens';
 import { useLogisticsAction, LogisticsActionError } from './useLogisticsAction';
 import { downloadManifest, type LogisticsManifest } from './logisticsManifest';
+import { shipmentPlanningSummary } from './logisticsPlanning';
 
 export type LogisticsMutation = (action: () => Promise<unknown>, onError?: (message: string) => void) => Promise<void>;
 export const logisticsUnit = (unit: string) => unit === 'unit' ? 'pc' : 'g';
 export const logisticsNumber = (value: number) => value.toLocaleString(undefined, { maximumFractionDigits: 4 });
 export function companyManifest(company: string, orders: LogisticsOrder[], shipments: LogisticsShipment[] = []): LogisticsManifest {
   const reserved = (id: string) => shipments.filter(shipment => shipment.state === 'draft').flatMap(shipment => shipment.lines).filter(line => line.receipt_line_id === id).reduce((sum, line) => sum + line.quantity - line.received_quantity, 0);
-  return { title: `${company} contents`, company, items: orders.filter(order => order.logistics_company_name === company).flatMap(order => order.lines.filter(line => line.available_quantity + reserved(line.id) > 0).map(line => { const quantity = line.available_quantity + reserved(line.id); return { supplier: order.vendor_name || '', purchase: order.purchase_id, product: line.product_name, quantity, unit: logisticsUnit(line.unit), paidCost: line.original_cost_amount == null || !line.expected_quantity ? null : line.original_cost_amount * quantity / line.expected_quantity, currency: line.original_cost_currency, imageUrl: line.image_url, sourceUrl: line.source_url, inboundTracking: order.inbound_tracking_number, stage: order.logistics_arrived_at ? 'At logistics' : 'To logistics' }; })) };
+  return { title: `${company} contents`, company, items: orders.filter(order => order.logistics_company_name === company).flatMap(order => order.lines.filter(line => line.available_quantity + reserved(line.id) > 0).map(line => { const quantity = line.available_quantity + reserved(line.id); return { supplier: order.vendor_name || '', purchase: order.purchase_id, product: line.product_name, quantity, unit: logisticsUnit(line.unit), paidCost: line.original_cost_amount == null || !line.expected_quantity ? null : line.original_cost_amount * quantity / line.expected_quantity, currency: line.original_cost_currency, imageUrl: line.image_url, sourceUrl: line.source_url, inboundTracking: order.inbound_tracking_number, inboundCourier: order.inbound_courier, stage: order.logistics_arrived_at ? 'At logistics' : 'To logistics' }; })) };
 }
 export function shipmentManifest(shipment: LogisticsShipment, orders: LogisticsOrder[]): LogisticsManifest {
-  return { title: `${shipment.logistics_company_name} ${shipment.mode === 'sea' ? 'boat' : 'air'} shipment`, company: shipment.logistics_company_name, mode: shipment.mode === 'sea' ? 'Boat' : 'Air', outboundTracking: shipment.tracking_number, items: shipment.lines.map(line => {
+  const planning = shipmentPlanningSummary(shipment);
+  const freightPlanning = planning.freight.source === 'planning';
+  const freight = freightPlanning && planning.freight.basis ? {
+    basis: planning.freight.basis, rate: planning.freight.rate, billed_quantity: planning.freight.quantity,
+    total_amount: planning.freight.amount, currency: planning.freight.currency, confirmed: false,
+  } : shipment.freight || (shipment.service_quote ? {
+    basis: shipment.service_quote.basis, rate: shipment.service_quote.rate, billed_quantity: null,
+    total_amount: null, currency: shipment.service_quote.currency, confirmed: false,
+  } : null);
+  return { title: `${shipment.logistics_company_name} ${shipment.mode === 'sea' ? 'boat' : 'air'} shipment`, company: shipment.logistics_company_name, mode: shipment.mode === 'sea' ? 'Boat' : 'Air', outboundTracking: shipment.tracking_number, eta: shipment.eta, status: shipment.state, freight, freightPlanning, freightTotal: freightPlanning ? planning.freight.amount : shipment.freight_total, items: shipment.lines.map(line => {
     const order = orders.find(item => item.purchase_id === line.purchase_id);
-    return { supplier: order?.vendor_name || '', purchase: line.purchase_id, product: line.product_name, quantity: line.quantity, unit: logisticsUnit(line.unit), paidCost: line.original_cost_amount, currency: line.original_cost_currency, imageUrl: line.image_url, sourceUrl: line.source_url, inboundTracking: order?.inbound_tracking_number, volumeM3: line.volume_m3, volumeEstimated: line.volume_estimated, freight: line.allocated_freight, freightCurrency: shipment.freight?.currency, freightEstimated: shipment.freight_estimated, stage: shipment.state };
+    const plannedLine = planning.lines.find(item => item.id === line.id);
+    return { supplier: order?.vendor_name || '', purchase: line.purchase_id, product: line.product_name, quantity: line.quantity, unit: logisticsUnit(line.unit), paidCost: line.original_cost_amount, currency: line.original_cost_currency, imageUrl: line.image_url, sourceUrl: line.source_url, inboundTracking: order?.inbound_tracking_number, inboundCourier: order?.inbound_courier, weightKg: line.weight_kg, weightEstimated: line.weight_estimated, volumeM3: plannedLine?.volumeM3 ?? line.volume_m3, volumeEstimated: Boolean(plannedLine?.suggestedVolume || line.volume_estimated), freight: line.allocated_freight, freightCurrency: shipment.freight?.currency, freightEstimated: shipment.freight_estimated, stage: shipment.state };
   }) };
 }
 export function ManifestButtons({ manifest }: { manifest: LogisticsManifest }) {
-  return <span className="logistics-actions"><button type="button" className="tap-target purchase-tracking-button" onClick={() => downloadManifest(manifest, 'csv')}>CSV</button><button type="button" className="tap-target purchase-tracking-button" onClick={() => downloadManifest(manifest, 'html')}>Photo list</button></span>;
+  return <span className="logistics-actions"><LogisticsMessage manifest={manifest}/><button type="button" className="tap-target purchase-tracking-button" onClick={() => downloadManifest(manifest, 'csv')}>CSV</button><button type="button" className="tap-target purchase-tracking-button" onClick={() => downloadManifest(manifest, 'html')}>Photo list</button></span>;
 }
 export function LogisticsOrderFields({ order, purchaseId, tracking, services = [], busy, mutate: save }: { services?: LogisticsService[]; order?: LogisticsOrder; purchaseId: string; tracking?: string | null; busy: boolean; mutate: LogisticsMutation }) {
   const { mutate, error } = useLogisticsAction(save);

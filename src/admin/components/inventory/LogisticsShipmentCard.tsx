@@ -8,6 +8,7 @@ import { confirmStudioReceipt, readReceiveIntent, remainingReceiptQuantities, se
 import { useLogisticsAction, LogisticsActionError } from './useLogisticsAction';
 import { referenceUrl } from './logisticsManifest';
 import { TrackingTask } from './TrackingTask';
+import { shipmentPlanningSummary, formatCostTotals, formatPlanningMeasure, formatPlanningNumber, planningItemKind } from './logisticsPlanning';
 const nullableNumber = (value: FormDataEntryValue | null) => String(value ?? '').trim() === '' ? null : Number(value);
 const status = { draft: 'Ready to send', in_transit: 'On the way', partially_received: 'Part received', received: 'In stock', cancelled: 'Cancelled' };
 export function shipmentArrivalDate(value: string | null) {
@@ -30,7 +31,7 @@ function ShipmentLineEditor({ line, shipment, busy, mutate: save }: { line: Logi
   const { mutate, error } = useLogisticsAction(save);
   const [volume, setVolume] = useState(line.volume_m3 == null ? '' : String(line.volume_m3));
   const [estimated, setEstimated] = useState(line.volume_estimated);
-  const [kind, setKind] = useState<PackedItemKind>(line.unit === 'g' ? 'loose_tea' : 'other');
+  const [kind, setKind] = useState<PackedItemKind>(planningItemKind(line));
   const [note, setNote] = useState('');
   return <form aria-label={`Packing and references for ${line.product_name}`} className="logistics-fields" onSubmit={event => {
     event.preventDefault(); const form = new FormData(event.currentTarget);
@@ -110,6 +111,10 @@ function ShipmentDispatch({ shipment, busy, mutate: save }: { shipment: Logistic
 export function LogisticsShipmentCard({ shipment, orders, busy, mutate, accountId, openPurchase, grouped = false }: { grouped?: boolean; shipment: LogisticsShipment; orders: LogisticsOrder[]; busy: boolean; mutate: LogisticsMutation; accountId: string | null; openPurchase: (id: string) => void }) {
   const { mutate: cancel, error: cancelError } = useLogisticsAction(mutate);
   const [editing, setEditing] = useState(false);
+  const { mutate: saveEstimate, error: estimateError } = useLogisticsAction(mutate);
+  const planning = shipmentPlanningSummary(shipment);
+  const freight = planning.freight;
+  const freightUnit = freight.basis === 'm3' ? 'm³' : 'kg';
   const purchases = [...new Set(shipment.lines.map(line => line.purchase_id))];
   const arrivalDate = shipmentArrivalDate(shipment.eta);
   const name = `${shipment.mode === 'sea' ? 'Boat' : 'Air'} shipment`;
@@ -118,15 +123,25 @@ export function LogisticsShipmentCard({ shipment, orders, busy, mutate, accountI
       <div className="logistics-actions"><h2 className={T.h3}>{name}</h2>{shipment.service_quote?.name && <span className="text-tea-text-sec">{shipment.service_quote.name}</span>}<span className="logistics-state" data-state={shipment.state}>{status[shipment.state]}</span></div>
       {!grouped && <span className="text-tea-text-sec">{shipment.logistics_company_name}</span>}
     </div>
-    {(shipment.tracking_number || arrivalDate) && <div className="logistics-shipment-meta text-tea-text-sec">{shipment.tracking_number && <span className="logistics-tracking"><span className="text-tea-text-dim">Tracking</span> <strong>{shipment.tracking_number}</strong>{shipment.outbound_courier ? ` · ${shipment.outbound_courier}` : ''}</span>}{arrivalDate && <span>Expected {arrivalDate}</span>}</div>}
-    <div className="logistics-shipment-contents" aria-label="Shipment contents">{shipment.lines.map(line => <div className="logistics-shipment-content" key={line.id}><button type="button" className="tap-target purchase-place-link" aria-label={`Open purchase for ${line.product_name}`} onClick={() => openPurchase(line.purchase_id)}>{line.product_name}</button><strong>{n(shipment.state === 'received' ? line.received_quantity : Math.max(0, line.quantity - line.received_quantity))} {u(line.unit)}</strong></div>)}</div>
+    <div className="logistics-shipment-route"><span><strong>{shipment.logistics_company_name} → Art studio</strong></span><span>{shipment.tracking_number || 'Outbound tracking not recorded'}{shipment.outbound_courier ? ` · ${shipment.outbound_courier}` : ''}</span><span><span className="text-tea-text-dim">Arrival </span><strong>{arrivalDate || 'Date not recorded'}</strong></span></div>
+    <div className="shipment-overview">
+      <div className="logistics-shipment-contents" aria-label="Shipment contents"><div className="parcel-column-labels"><span>Contents</span><span>Quantity</span><span>Paid</span></div>{shipment.lines.map(line => <div className="parcel-content-row" key={line.id}><button type="button" className="tap-target purchase-place-link" aria-label={`Open purchase for ${line.product_name}`} onClick={() => openPurchase(line.purchase_id)}>{line.product_name}</button><span>{n(line.quantity)} {u(line.unit)}{shipment.state === 'partially_received' && <small className="block text-tea-text-dim">{n(line.received_quantity)} received</small>}</span><span>{line.original_cost_amount == null ? 'Not recorded' : `${n(line.original_cost_amount)} ${line.original_cost_currency || '(currency needed)'}`}</span></div>)}</div>
+      <div className="shipment-costs" aria-label="Shipment costs"><dl><div><dt>Goods paid</dt><dd>{formatCostTotals(planning.goods)}</dd></div><div className="shipment-freight-total"><dt>Shipping {freight.status === 'confirmed' ? 'bill' : 'estimate'}</dt><dd>{freight.amount == null ? 'Not enough information' : `${n(freight.amount)} ${freight.currency}`}</dd></div></dl>
+      <p className="shipment-calculation">{freight.basis === 'fixed' ? 'Fixed freight charge' : freight.rate != null && freight.currency ? `${freight.quantity == null ? 'Quantity needed' : formatPlanningNumber(freight.quantity)} ${freightUnit} × ${n(freight.rate)} ${freight.currency}/${freightUnit}` : 'Set the company’s rate to estimate shipping.'}{freight.source === 'planning' ? ' · estimate only' : freight.quantity != null ? ' · billed quantity' : ''}</p>
+      {freight.issue && <p className="shipment-calculation text-tea-text-dim">{freight.issue}</p>}</div>
+    </div>
+    <div className="shipment-measures"><span><span>Packed volume </span>{formatPlanningMeasure(planning.volume, 'm³')}</span><span><span>Packed weight </span>{formatPlanningMeasure(planning.weight, 'kg')}</span><span className="text-tea-text-dim">{shipment.mode === 'sea' ? 'Volume and weight are separate measurements.' : 'Packed weight includes packaging.'}</span></div>
     <div className="logistics-card-actions">
       {shipment.state === 'draft' && <ShipmentDispatch key={shipment.id} shipment={shipment} busy={busy} mutate={mutate}/>}
       {(shipment.state === 'in_transit' || shipment.state === 'partially_received') && <ShipmentReceive key={`${accountId}:${shipment.id}`} shipment={shipment} orders={orders} busy={busy} mutate={mutate} accountId={accountId}/>}
-      <button type="button" className="tap-target purchase-tracking-button" aria-haspopup="dialog" onClick={() => setEditing(true)}>{shipment.state === 'cancelled' ? 'View record' : 'Edit'}</button>
+      <button type="button" className="tap-target purchase-tracking-button" aria-haspopup="dialog" onClick={() => setEditing(true)}>{shipment.state === 'cancelled' ? 'View record' : 'Edit costs & shipment'}</button>
+      <ManifestButtons manifest={shipmentManifest(shipment, orders)}/>
     </div>
     <TrackingTask open={editing} onClose={() => setEditing(false)} title={`${name}${shipment.tracking_number ? ` · ${shipment.tracking_number}` : ''}`}>
       <div className="logistics-form">
+        <div className="shipment-planning-note"><p>Destination: Art studio. The delivery address is not recorded here; include it in your message to the logistics company.</p><p>{shipment.mode === 'sea' ? 'For a volume-based quote: packed m³ × rate per m³. Weight cannot be converted to volume without knowing the packed size.' : 'For a weight-based quote: packed kg × rate per kg. Include packaging in the weight.'} The company’s final bill can differ from this estimate.</p>
+        {planning.lines.some(line => line.suggestedVolume) && <button type="button" className="tap-target purchase-tracking-button" disabled={busy} onClick={() => void saveEstimate(() => api.logistics.updateShipment(shipment.id, { lines: planning.lines.filter(line => line.suggestedVolume).map(suggestion => { const line = shipment.lines.find(line => line.id === suggestion.id)!; return { id: line.id, weight_kg: line.weight_kg, weight_estimated: line.weight_estimated, volume_m3: suggestion.volumeM3, volume_estimated: true }; }) }))}>Use estimated packing volumes</button>}
+        <LogisticsActionError message={estimateError} recovery="Use estimated packing volumes again to retry."/></div>
         <ManifestButtons manifest={shipmentManifest(shipment, orders)}/>
         <div className="logistics-freight-summary"><span>Freight <strong>{shipment.freight_total == null ? 'not set' : `${n(shipment.freight_total)} ${shipment.freight?.currency || ''}`}</strong>{shipment.freight_total != null && <small className="text-tea-text-dim"> · {shipment.freight?.confirmed ? 'bill confirmed' : 'estimate'}{shipment.freight?.confirmed && shipment.freight_estimated ? ' · estimated split' : ''}</small>}</span></div>
         {shipment.freight_issue && <p className="logistics-shipment-issue">{shipment.freight_issue}</p>}

@@ -6839,3 +6839,43 @@ body.cart-panel-open .commerce-dock {
 .purchase-places .logistics-shipment-content { align-items:center; }
 .purchase-places .logistics-shipment-content>.purchase-place-link { flex:1; justify-content:flex-start; }
 .purchase-tracking-other>h2 { padding:0 10px 8px; }
+
+/* Show the transport decision, contents and money together without disclosures. */
+.company-route-heading { display:flex; align-items:baseline; flex-wrap:wrap; gap:6px 12px; }
+.company-rates { display:flex; flex-wrap:wrap; gap:8px 20px; padding:8px 0; color:var(--tea-text-sec); }
+.company-rates:empty { display:none; }
+.company-rates strong { font-weight:500; color:var(--tea-text); }
+.company-rates small { font:inherit; color:var(--tea-text-dim); margin-left:4px; }
+.parcel-status { margin-bottom:6px; }
+.parcel-column-labels,.parcel-content-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(54px,auto) minmax(76px,auto); gap:6px 10px; align-items:center; }
+.parcel-column-labels { color:var(--tea-text-dim); padding:4px 0; border-bottom:1px solid var(--tea-border); }
+.parcel-content-row+.parcel-content-row { border-top:1px solid var(--tea-border); }
+.parcel-content-row>.purchase-place-link { justify-content:flex-start; line-height:1.4; }
+.parcel-column-labels>span:not(:first-child),.parcel-content-row>span { text-align:right; font-variant-numeric:tabular-nums; }
+.parcel-content-row>span { overflow-wrap:anywhere; }
+.logistics-shipment-route { display:flex; flex-wrap:wrap; align-items:center; gap:6px 18px; padding:8px 10px; background:var(--tea-bg); border-block:1px solid var(--tea-border); color:var(--tea-text-sec); }
+.logistics-shipment-route strong { font-weight:500; color:var(--tea-text); }
+.shipment-overview { display:grid; grid-template-columns:minmax(0,1fr); }
+.shipment-overview .logistics-shipment-contents { padding:4px 10px; }
+.shipment-overview .logistics-shipment-content { display:grid; grid-template-columns:minmax(0,1fr) auto; padding:0; }
+.shipment-overview .logistics-shipment-content+.logistics-shipment-content { border-top:1px solid var(--tea-border); }
+.shipment-costs { background:var(--tea-bg); padding:8px 10px; border-top:1px solid var(--tea-border); }
+.shipment-costs dl { margin:0; }
+.shipment-costs dl>div { display:flex; justify-content:space-between; gap:12px; padding:4px 0; }
+.shipment-costs dt { color:var(--tea-text-dim); }
+.shipment-costs dd { margin:0; text-align:right; font-variant-numeric:tabular-nums; }
+.shipment-costs .shipment-freight-total { border-top:1px solid var(--tea-border); margin-top:4px; padding-top:7px; }
+.shipment-calculation { margin:4px 0; color:var(--tea-text-sec); overflow-wrap:anywhere; }
+.shipment-measures { display:flex; flex-wrap:wrap; gap:4px 18px; border-top:1px solid var(--tea-border); padding:7px 10px; color:var(--tea-text-sec); }
+.shipment-measures span>span { color:var(--tea-text-dim); }
+.logistics-shipment-compact>.logistics-card-actions { border-top:1px solid var(--tea-border); justify-content:flex-start; }
+.logistics-shipment-compact>.logistics-card-actions>.logistics-actions:last-child { margin-left:auto; }
+.shipment-planning-note { padding:8px 10px; border:1px solid var(--tea-border); background:var(--tea-bg); margin-bottom:12px; }
+.shipment-planning-note p { margin:0 0 8px; }
+@container purchase-tracking (min-width:700px) {
+ .purchase-places-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+ .purchase-outbound { grid-column:1 / -1; }
+ .purchase-outbound .shipment-overview { grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); }
+ .purchase-outbound .shipment-costs { border-top:0; border-left:1px solid var(--tea-border); }
+}
+.logistics-message-draft { font-size:13px; line-height:1.6; }

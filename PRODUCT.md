@@ -151,3 +151,6 @@ Default tracking follows separate supplier parcels coming to the distribution co
 
 ### No accordions — permanent owner preference (2026-10-29)
 Never use accordions, details/summary disclosures, expandable cards or inline show/hide sections. Simplify the information itself instead of hiding it. Show operational facts, contents and next actions in compact visible rows. Editing and receiving may use focused task screens with explicit actions; History is a separate view, not a collapsible section. Companies are independent destinations with their own names, parcels, services and shipments; never hardcode a single warehouse name.
+
+### Logistics decisions first (2026-10-29)
+Adrian needs to see supplier parcel status and tracking, goods held by each logistics company, and combined shipments with destination, arrival date, contents and approximate cost. Keep this compact and visible, with no accordions. Show paid goods and freight separately, quoted rates beside each company, and packed weight separately from packed volume. Volume freight is m³ times the quoted rate, never a conversion from kg. Offer an editable Chinese-and-English message that can be copied or saved for the company. Do not imply live carrier tracking or a saved delivery address when those integrations are absent.

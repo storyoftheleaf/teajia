@@ -6,6 +6,8 @@ import { describe, expect, it, vi } from 'vitest';
 import type { LogisticsOrder, LogisticsShipment } from '../../../lib/logisticsTypes';
 import type { PurchaseTrackingRow } from '../../../lib/api';
 import { companyManifest, shipmentManifest } from './LogisticsControls';
+import { shipmentPlanningSummary } from './logisticsPlanning';
+import { manifestMessage } from './logisticsManifest';
 import { LogisticsShipmentCard } from './LogisticsShipmentCard';
 import { matchesPurchaseTracking, logisticsOrderSummary, logisticsPurchaseStage } from './PurchaseTrackingView';
 vi.mock('../../../lib/store', () => ({ useAppStore: (select: (s: unknown) => unknown) => select({ activeAccountId: 'shop' }) }));
@@ -18,6 +20,27 @@ describe('consolidated logistics', () => {
   });
   it('uses the shipment quantity and cost snapshot in its manifest', () => {
     expect(shipmentManifest(shipment, [order]).items[0]).toMatchObject({ quantity: 500, paidCost: 50, freight: 20, freightEstimated: true, inboundTracking: 'SF100' });
+  });
+  it('exports the same planning estimate shown on screen without turning it into a measured bill', () => {
+    const unmeasured: LogisticsShipment = { ...shipment, mode: 'sea', freight_total: null,
+      freight: { basis: 'm3', rate: 1200, billed_quantity: null, total_amount: null, currency: 'CNY', confirmed: false },
+      lines: [{ ...shipment.lines[0], product_name: 'Porcelain cups', unit: 'unit', quantity: 4, volume_m3: null, volume_estimated: false, weight_kg: null, weight_estimated: false, allocated_freight: null }],
+    };
+    const summary = shipmentPlanningSummary(unmeasured);
+    const exported = shipmentManifest(unmeasured, [order]);
+    expect(exported.freightTotal).toBe(summary.freight.amount);
+    expect(exported.freight?.billed_quantity).toBe(summary.freight.quantity);
+    expect(exported.freightPlanning).toBe(true);
+    expect(exported.freight?.confirmed).toBe(false);
+    expect(exported.items[0]).toMatchObject({ volumeM3: summary.lines[0].volumeM3, volumeEstimated: true, weightKg: null });
+    const text = manifestMessage(exported);
+    expect(text).toContain('Planning quantity: 0.002 m³');
+    expect(text).toContain('Freight total: 2.4 Yuan (估算 / estimate)');
+    expect(text).toContain('0.002 m³ (估算 / estimate)');
+    expect(text).not.toContain('Billable quantity:');
+    expect(text).not.toContain('bill confirmed');
+    expect(unmeasured.lines[0].volume_m3).toBeNull();
+    expect(unmeasured.freight_total).toBeNull();
   });
   it('keeps split purchases discoverable at logistics and on the way to studio', () => {
     const row = { purchase: { id: 'p1', status: 'ordered' }, receipt: { state: 'in_transit' }, attention: [] } as unknown as PurchaseTrackingRow;
