@@ -31,7 +31,7 @@ describe('consolidated logistics', () => {
   });
   it('describes split quantities by their current location without borrowing the receipt mode', () => {
     const summary = logisticsOrderSummary(order, { services: [], orders: [order], shipments: [{ ...shipment, state: 'in_transit' }] });
-    expect(summary).toEqual({ label: 'Part sent', quantities: 'At logistics 500 g · To studio 500 g', tracking: 'Forwarder · SF · Inbound SF100' });
+    expect(summary).toEqual({ locations: [{ label: 'At logistics', quantity: '500 g' }, { label: 'To studio', quantity: '500 g' }], label: 'Part sent', quantities: 'At logistics 500 g · To studio 500 g', tracking: 'Forwarder · SF · Inbound SF100' });
   });
   it('keeps packing and final freight editable after receipt, while cancelled manifests stay read-only', () => {
     const render = (state: LogisticsShipment['state']) => renderToStaticMarkup(<LogisticsShipmentCard shipment={{ ...shipment, state }} orders={[order]} busy={false} mutate={async action => { await action(); }} accountId="shop" openPurchase={() => {}}/>);
@@ -43,7 +43,7 @@ describe('consolidated logistics', () => {
   it('shows separate inbound and outbound context, confirmed bill and estimated allocation', () => {
     const html = renderToStaticMarkup(<LogisticsShipmentCard shipment={shipment} orders={[order]} busy={false} mutate={async action => { await action(); }} accountId="shop" openPurchase={() => {}}/>);
     expect(html).toContain('DHL100');
-    expect(html).toContain('Confirmed bill');
+    expect(html).toContain('bill confirmed');
     expect(html).toContain('estimated split');
     expect(html).toContain('0.004');
     expect(html).toContain('Ready to send');

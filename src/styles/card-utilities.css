@@ -6724,3 +6724,49 @@ body.cart-panel-open .commerce-dock {
  .purchase-tracking-header .purchase-tracking-add { width:32px; padding:0; }
  .purchase-tracking-header>.logistics-services>summary { padding-inline:6px; }
 }
+
+/* Human tracking hierarchy: decisions, locations, then secondary records. */
+.purchase-review-queue { margin:0 12px 16px; border:1px solid var(--tea-border); border-radius:5px; background:var(--tea-surface); }
+.purchase-review-queue>header { padding:8px 10px; background:var(--tea-elevated); border-bottom:1px solid var(--tea-border); }
+.purchase-review-queue h2 { margin:0; }
+.purchase-review-queue>header h2>span { margin-left:8px; font-family:inherit; }
+.purchase-review-queue .purchase-tracking-record { border:0; border-radius:0; background:transparent; }
+.purchase-review-queue .purchase-tracking-record+.purchase-tracking-record { border-top:1px solid var(--tea-border); }
+.purchase-review-queue .purchase-tracking-open { padding:8px 10px; }
+.purchase-review-queue .purchase-tracking-open h2 { font:inherit; color:var(--tea-text); }
+.purchase-review-queue .purchase-tracking-status>.logistics-state,.purchase-review-queue .purchase-tracking-summary,.purchase-review-queue .purchase-tracking-contents,.purchase-review-queue .purchase-parcel-tracking { display:none; }
+.purchase-review-queue .purchase-tracking-attention { padding:6px 10px 8px; background:transparent; border:0; }
+.purchase-review-queue .purchase-tracking-meta { margin-top:2px; gap:4px 8px; color:var(--tea-text-dim); }
+.purchase-journey-leg>h3 { margin:0 0 8px; padding:8px; background:var(--tea-elevated); border:1px solid var(--tea-border); border-radius:4px; color:var(--tea-text); }
+.purchase-journey-leg>h3>span { margin-left:auto; }
+.logistics-state { display:inline-flex; align-items:center; padding:3px 6px; border:1px solid var(--tea-border); border-radius:3px; background:var(--tea-bg); color:var(--tea-text-sec); white-space:nowrap; }
+.logistics-state:is([data-state=at_logistics],[data-state=draft],[data-state=attention]) { background:var(--tea-elevated); color:var(--tea-text); }
+.purchase-location-totals { display:flex; flex-wrap:wrap; border-top:1px solid var(--tea-border); background:var(--tea-bg); }
+.purchase-location-totals>div { display:flex; flex:1 1 170px; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:4px 8px; padding:8px 10px; min-width:0; }
+.purchase-location-totals>div+div { border-left:1px solid var(--tea-border); }
+.purchase-location-totals>div>span { color:var(--tea-text-dim); }
+.purchase-location-totals strong { white-space:nowrap; }
+.purchase-parcel-tracking { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px; padding:6px 10px; border-top:1px solid var(--tea-border); color:var(--tea-text-sec); }
+.purchase-parcel-tracking>span { min-width:0; overflow-wrap:anywhere; }
+.purchase-tracking-record { container:purchase-record / inline-size; }
+.purchase-tracking .purchase-tracking-item { display:block; }
+.purchase-tracking .purchase-tracking-quantities { border-left:0; border-top:1px solid var(--tea-border); }
+.purchase-tracking .purchase-tracking-quantities>span { justify-content:space-between; flex-wrap:wrap; }
+.purchase-tracking-quantities strong { white-space:nowrap; }
+.logistics-freight-summary,.logistics-tracking { display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 8px; }
+.logistics-record-arrival { background:var(--tea-elevated); color:var(--tea-text); }
+.logistics-export>summary { list-style:none; }
+.logistics-export>summary::-webkit-details-marker { display:none; }
+.logistics-export>summary::after { content:''; display:block; width:6px; height:6px; margin-left:4px; border:solid currentColor; border-width:0 1px 1px 0; transform:rotate(45deg); }
+.logistics-export[open]>summary::after { transform:rotate(225deg); }
+.logistics-export>.logistics-actions { padding:4px 10px 8px; }
+@container purchase-record (min-width:680px) {
+ .purchase-tracking .purchase-tracking-item { display:grid; grid-template-columns:minmax(240px,38%) minmax(0,1fr); }
+ .purchase-tracking .purchase-tracking-quantities { border-top:0; border-left:1px solid var(--tea-border); }
+}
+@container purchase-tracking (min-width:700px) {
+ .purchase-review-queue .purchase-tracking-record { display:grid; grid-template-columns:minmax(200px,.7fr) minmax(0,1.3fr); align-items:center; }
+ .purchase-review-queue .purchase-tracking-expanded,.purchase-review-queue .purchase-tracking-notice { grid-column:1 / -1; }
+ .purchase-review-queue .purchase-tracking-attention { padding:8px 10px; }
+ .purchase-review-queue .purchase-tracking-identity { display:block; }
+}
