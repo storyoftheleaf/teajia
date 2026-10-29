@@ -1,8 +1,10 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import type { LogisticsShipment } from '../../../lib/logisticsTypes';
 import { LogisticsShipmentCard, shipmentArrivalDate } from './LogisticsShipmentCard';
+vi.mock('./TrackingTask', () => ({ TrackingTask: ({ open, children }: {open:boolean;children:React.ReactNode}) => open ? <div>{children}</div> : null }));
 const shipment: LogisticsShipment = {
   id: 'shipment', logistics_company_id: 'company', logistics_company_name: 'Guangzhou', mode: 'sea', state: 'in_transit',
   outbound_courier: 'Ocean freight', tracking_number: 'BOAT-1028', eta: '2026-11-18', created_at: '2026-10-28', dispatched_at: '2026-10-28',
@@ -11,22 +13,23 @@ const shipment: LogisticsShipment = {
 };
 const render = (state: LogisticsShipment['state'] = 'in_transit') => renderToStaticMarkup(<LogisticsShipmentCard shipment={{ ...shipment, state }} orders={[]} busy={false} mutate={async action => { await action(); }} accountId="shop" openPurchase={() => {}} grouped/>);
 describe('shipment tracking before recording an arrival', () => {
-  it('keeps tracking and receiving visible while secondary details start closed', () => {
+  it('shows actual contents and direct actions without any accordion', () => {
     const html = render();
     expect(html).toContain('data-state="in_transit">On the way');
     expect(html).toContain('Tracking</span> <strong>BOAT-1028');
-    expect(html).toContain('Freight <strong>144 CNY');
-    const overview = html.split('<details class="logistics-shipment-details">')[0];
-    expect(overview).toContain('1 item from 1 purchase');
-    expect(overview).not.toContain('Freight');
-    expect(overview).not.toContain('Golden Tips');
-    expect(html).toContain('<details class="logistics-shipment-details"><summary class="tap-target">Details</summary>');
+    expect(html).toContain('Golden Tips');
+    expect(html).toContain('500 g');
+    expect(html).toContain('Open purchase for Golden Tips');
     expect(html).toContain('Record studio arrival');
+    expect(html).toContain('>Edit</button>');
     expect(html).not.toContain('Confirm received');
-    expect(html).not.toContain('Receive all at studio');
-    expect(html).toContain('<details class="logistics-export"><summary class="tap-target">Export list');
-    expect(html).toContain('CSV');
-    expect(html).toContain('Photo list');
+    expect(html).not.toContain('Freight');
+    expect(html).not.toMatch(/<(details|summary)\b/);
+    const source = readFileSync(new URL('./LogisticsShipmentCard.tsx', import.meta.url), 'utf8');
+    expect(source).not.toMatch(/<(details|summary)\b/);
+    expect(source).toContain('<TrackingTask open={expanded}');
+    expect(source).toContain('<TrackingTask open={editing}');
+    expect(source).toContain('shipmentManifest(shipment, orders)');
   });
   it('distinguishes a ready shipment from a receipt already recorded in stock', () => {
     expect(render('draft')).toContain('data-state="draft">Ready to send');
@@ -36,11 +39,9 @@ describe('shipment tracking before recording an arrival', () => {
   });
   it('does not fill the overview with missing date or freight warnings', () => {
     const html = renderToStaticMarkup(<LogisticsShipmentCard shipment={{ ...shipment, eta: null, tracking_number: null, freight: null, freight_total: null, freight_issue: 'Record the bill total.' }} orders={[]} busy={false} mutate={async action => { await action(); }} accountId="shop" openPurchase={() => {}} grouped/>);
-    const overview = html.split('<details class="logistics-shipment-details">')[0];
-    expect(overview).not.toContain('not set');
-    expect(overview).not.toContain('not recorded');
-    expect(overview).not.toContain('Record the bill');
-    expect(html).toContain('Record the bill total.');
+    expect(html).not.toContain('not set');
+    expect(html).not.toContain('not recorded');
+    expect(html).not.toContain('Record the bill');
   });
   it('formats a calendar arrival date without UTC day shifting and rejects invalid dates', () => {
     expect(shipmentArrivalDate('2026-11-18')).toBe(new Date(2026, 10, 18, 12).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }));

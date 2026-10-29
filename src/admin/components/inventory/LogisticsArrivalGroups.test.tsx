@@ -1,4 +1,7 @@
 import React from 'react';
+import { readFileSync } from 'node:fs';
+// Render task bodies here to inspect their controls independently of portal visibility.
+vi.mock('./TrackingTask', () => ({ TrackingTask: ({ children }: { children: React.ReactNode }) => <section>{children}</section> }));
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import type { LogisticsOrder } from '../../../lib/logisticsTypes';
@@ -6,6 +9,11 @@ import { LogisticsArrivalGroups, logisticsArrivalGroups, markSelectedLogisticsAr
 import { LogisticsCreateShipment, selectReadyQuantities } from './LogisticsControls';
 const order: LogisticsOrder = { purchase_id: 'p1', receipt_id: 'r1', vendor_name: 'Mountain tea', logistics_company_id: 'company', logistics_company_name: 'Forwarder', inbound_courier: 'SF', inbound_tracking_number: 'SF100', logistics_arrived_at: null, lines: [{ id: 'tea', product_id: 'tea', product_name: 'Black tea', unit: 'g', expected_quantity: 1000, received_quantity: 0, cancelled_quantity: 0, available_quantity: 1000, original_cost_amount: 100, original_cost_currency: 'CNY', image_url: null, source_url: null }, { id: 'cups', product_id: 'cups', product_name: 'Cups', unit: 'unit', expected_quantity: 4, received_quantity: 0, cancelled_quantity: 0, available_quantity: 4, original_cost_amount: 80, original_cost_currency: 'CNY', image_url: null, source_url: null }] };
 describe('direct grouped logistics actions', () => {
+  it('uses focused tasks rather than accordions for logistics actions and invoice evidence', () => {
+    for (const file of ['LogisticsControls.tsx','LogisticsArrivalGroups.tsx','LogisticsServices.tsx','PurchaseInvoiceEvidence.tsx']) {
+      expect(readFileSync(new URL(file, import.meta.url), 'utf8')).not.toMatch(/<(details|summary)\b/);
+    }
+  });
   it('offers only managed unarrived purchases with outstanding goods, grouping distinct contacts separately', () => {
     const arrived = { ...order, purchase_id: 'arrived', logistics_arrived_at: '2026-10-28' };
     const unassigned = { ...order, purchase_id: 'unassigned', logistics_company_name: null, logistics_company_id: null };

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { TrackingTask } from './TrackingTask';
 import { useQuery } from '@tanstack/react-query';
 import { FileText } from 'lucide-react';
 import { api, type CurateImportSource } from '../../../lib/api';
@@ -30,8 +31,7 @@ export function PurchaseInvoiceEvidence({ importId, title }: { importId: string;
     queryKey: ['purchase-invoice-evidence', accountId, importId],
     queryFn: () => api.curateImports.get(importId), enabled: open, staleTime: 60_000,
   });
-  return <details className="purchase-tracking-history" onToggle={event => setOpen(event.currentTarget.open)}>
-    <summary className="tap-target"><FileText size={14}/>Invoice</summary>
+  return <><button type="button" className="tap-target purchase-tracking-button" onClick={() => setOpen(true)}><FileText size={14}/>Invoice</button><TrackingTask open={open} onClose={() => setOpen(false)} title={title || "Source invoice"}>
     {open && <div className="purchase-tracking-history-content">
       <p>{data?.batch.title || title || 'Source invoice'}</p>
       {isPending && <p role="status">Loading source…</p>}
@@ -42,5 +42,5 @@ export function PurchaseInvoiceEvidence({ importId, title }: { importId: string;
       </React.Fragment>)}
       {data && !data.sources.some(source => source.r2_object_key || source.pasted_text) && <p className="text-tea-text-sec">No original file or source text was saved with this import.</p>}
     </div>}
-  </details>;
+  </TrackingTask></>;
 }

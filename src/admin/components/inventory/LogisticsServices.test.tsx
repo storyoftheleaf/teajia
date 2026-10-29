@@ -1,12 +1,14 @@
 import React from 'react';
+// Render task bodies here to inspect their controls independently of portal visibility.
+vi.mock('./TrackingTask', () => ({ TrackingTask: ({ children }: { children: React.ReactNode }) => <section>{children}</section> }));
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { LogisticsService } from '../../../lib/logisticsTypes';
 import { LogisticsServices, serviceRateLabel } from './LogisticsServices';
 const service: LogisticsService = { id: 'service', logistics_company_id: 'contact', logistics_company_name: 'Guangzhou', name: 'Airmail', mode: 'air', basis: 'kg', rate: 85, currency: 'CNY', active: true };
 describe('saved logistics services', () => {
-  it('shows a compact company/service/rate row with management collapsed by default', () => {
+  it('shows company services and rates in the dedicated service task', () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const html = renderToStaticMarkup(<QueryClientProvider client={client}><LogisticsServices services={[service, { ...service, id: 'old', name: 'Old service', active: false }]} accountId="shop" busy={false} mutate={async action => { await action(); }}/></QueryClientProvider>);
     expect(html).toContain('Logistics services');

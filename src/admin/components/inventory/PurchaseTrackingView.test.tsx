@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import type { PurchaseTrackingRow } from '../../../lib/api';
 import { matchesPurchaseTracking, PurchaseTrackingView, scopeLogisticsOrders } from './PurchaseTrackingView';
+vi.mock('./TrackingTask', () => ({ TrackingTask: ({ open, children }: {open:boolean;children:React.ReactNode}) => open ? <div>{children}</div> : null }));
 vi.mock('../../../lib/store', () => ({ useAppStore: (select: (s: unknown) => unknown) => select({ activeAccountId: 'shop' }) }));
 const row: PurchaseTrackingRow = {
  id:'purchase', purchase:null, attention:[], source_document:{import_id:'invoice / one',title:'Supplier invoice'},
@@ -66,7 +67,9 @@ describe('purchase tracking workflow',()=>{
   expect(html).toContain('Invoice');
   expect(html).not.toContain('/admin/intake?importId=');
   expect(html).toContain('Arrival history');
-  expect(html).toMatch(/<details class="purchase-tracking-manual"><summary/);
+  expect(html).toContain('Edit purchase');
+  expect(html).not.toContain('<details');
+  expect(html).not.toContain('<summary');
   expect(html).not.toContain('Arriving now');
   expect(html).not.toContain('Set up delivery');
   expect(html).not.toContain('Received by agent');

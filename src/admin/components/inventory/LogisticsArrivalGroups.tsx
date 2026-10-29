@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { TrackingTask } from './TrackingTask';
 import { api } from '../../../lib/api';
 import type { LogisticsOrder } from '../../../lib/logisticsTypes';
 import { useLogisticsAction, LogisticsActionError } from './useLogisticsAction';
@@ -32,11 +33,12 @@ export async function markSelectedLogisticsArrivals(orders: LogisticsOrder[], ma
 export function LogisticsArrivalGroups({ orders, busy, mutate: save }: { orders: LogisticsOrder[]; busy: boolean; mutate: LogisticsMutation }) {
   const { mutate, error } = useLogisticsAction(save);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const groups = logisticsArrivalGroups(orders);
   const eligible = groups.flatMap(group => group.orders);
   const chosen = eligible.filter(order => selected.has(order.purchase_id));
-  return <details className="logistics-create"><summary className="tap-target" aria-label="Check arrivals at logistics">Arrived at logistics? <span className="text-tea-text-dim">{eligible.length}</span></summary><div className="logistics-form">
+  return <><button type="button" className="tap-target purchase-tracking-button" aria-label="Check arrivals at logistics" onClick={() => setOpen(true)}>Mark arrivals <span className="text-tea-text-dim">{eligible.length}</span></button><TrackingTask open={open} onClose={() => setOpen(false)} title="Mark parcels arrived"><div className="logistics-form">
     {groups.length === 0 ? <p className="text-tea-text-sec">No assigned purchases are waiting for an arrival check.</p> : groups.map(group => <div className="logistics-selection" key={group.id}><div className="logistics-actions"><strong>{group.name}</strong><button type="button" className="tap-target purchase-tracking-button" disabled={busy} onClick={() => setSelected(current => { const next = new Set(current); const all = group.orders.every(order => current.has(order.purchase_id)); for (const order of group.orders) { if (all) next.delete(order.purchase_id); else next.add(order.purchase_id); } return next; })}>{group.orders.every(order => selected.has(order.purchase_id)) ? 'Clear selection' : 'Select all'}</button></div>{group.orders.map(order => <label className="logistics-arrival-choice" key={order.purchase_id}><input type="checkbox" aria-label={`Arrived at logistics: ${order.vendor_name || 'Supplier'}, ${order.inbound_tracking_number || order.purchase_id}`} checked={selected.has(order.purchase_id)} disabled={busy} onChange={event => setSelected(current => { const next = new Set(current); if (event.target.checked) next.add(order.purchase_id); else next.delete(order.purchase_id); return next; })}/><span>{order.vendor_name || 'Supplier'}<small className="text-tea-text-dim">{[order.inbound_courier, order.inbound_tracking_number || 'No inbound tracking'].filter(Boolean).join(' · ')}</small></span><span>{arrivalQuantities(order)}</span></label>)}</div>)}
     <div className="logistics-actions"><button type="button" className="tap-target purchase-tracking-button" disabled={busy || !chosen.length} onClick={() => void mutate(async () => {
       const result = await markSelectedLogisticsArrivals(chosen);
@@ -45,5 +47,5 @@ export function LogisticsArrivalGroups({ orders, busy, mutate: save }: { orders:
       if (result.failed.length) throw new Error(`${result.succeeded.length} marked at logistics; ${result.failed.length} could not be confirmed. Retry the remaining selection safely. ${result.failed[0].message}`);
     })}>Mark selected at logistics{chosen.length ? ` (${chosen.length})` : ''}</button><span className="text-tea-text-dim">Check the parcels received by this company. This does not add studio stock.</span></div>{notice && <p role="status" className="text-tea-text-sec">{notice}</p>}
     <LogisticsActionError message={error} recovery="The unconfirmed purchases stay selected. Use Mark selected at logistics again to retry."/>
-  </div></details>;
+  </div></TrackingTask></>;
 }

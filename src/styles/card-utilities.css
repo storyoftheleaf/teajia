@@ -6822,3 +6822,20 @@ body.cart-panel-open .commerce-dock {
 @container purchase-tracking (min-width:850px) {
  .purchase-places-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
 }
+
+/* Tracking is a visible list. Tasks use a focused screen, never a disclosure. */
+.tracking-task-scroll { overflow-y:auto; flex:1; min-height:0; }
+.tracking-task-content { width:100%; max-width:900px; margin:0 auto; padding:16px; }
+.tracking-task .logistics-form { padding:12px 0; }
+.tracking-task .logistics-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr)); gap:12px; }
+.tracking-task .logistics-fields label { display:flex; flex-wrap:wrap; align-items:center; gap:8px; min-width:0; }
+.tracking-task .logistics-fields :is(input,select) { max-width:100%; }
+.tracking-task .purchase-tracking-detail-links { display:grid; grid-template-columns:minmax(0,1fr); gap:16px; }
+.tracking-task .purchase-tracking-detail-links>section { border-top:1px solid var(--tea-border); padding:12px 0; }
+.tracking-task .purchase-tracking-history-content,.tracking-task .purchase-tracking-manual-content { padding:8px 0; }
+.tracking-task .purchase-tracking-open { pointer-events:none; }
+.purchase-place-footer>.logistics-create { margin:0; width:auto; }
+.purchase-tracking-header>.logistics-services { margin:0; }
+.purchase-places .logistics-shipment-content { align-items:center; }
+.purchase-places .logistics-shipment-content>.purchase-place-link { flex:1; justify-content:flex-start; }
+.purchase-tracking-other>h2 { padding:0 10px 8px; }

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { TrackingTask } from './TrackingTask';
 import { useQuery } from '@tanstack/react-query';
 import { api, ApiError } from '../../../lib/api';
 import type { LogisticsService, LogisticsServiceInput } from '../../../lib/logisticsTypes';
@@ -25,7 +26,7 @@ export function LogisticsServices({ services, accountId, busy, mutate: save }: {
   const active = services.filter(service => service.active);
   const edit = services.find(service => service.id === editing);
   const chooseEditor = (service?: LogisticsService) => { setEditing(service?.id || 'new'); setCompanyId(service?.logistics_company_id || ''); setNewCompany(''); };
-  return <details className="logistics-create logistics-services" onToggle={event => setOpen(event.currentTarget.open)}><summary className="tap-target" aria-label="Logistics services">Services <span className="text-tea-text-dim">{active.length}</span></summary><div className="logistics-form">
+  return <><button type="button" className="tap-target purchase-tracking-button" aria-label="Logistics services" onClick={() => setOpen(true)}>Services <span className="text-tea-text-dim">{active.length}</span></button><TrackingTask open={open} onClose={() => setOpen(false)} title="Logistics services"><div className="logistics-form">
     {active.map(service => <div className="logistics-service-row" key={service.id}><span>{service.logistics_company_name}<small className="text-tea-text-sec">{service.name} · {service.mode === 'sea' ? 'Boat' : 'Air'}</small></span><span>{serviceRateLabel(service)}</span><button type="button" className="tap-target purchase-tracking-button" disabled={busy} onClick={() => chooseEditor(service)}>Edit</button></div>)}
     {!active.length && <p className="text-tea-text-sec">Save a company's services and quoted rates here, then choose one when preparing a shipment.</p>}
     {!editing && <button type="button" className="tap-target purchase-tracking-button logistics-add-service" onClick={() => chooseEditor()}>Add service</button>}
@@ -44,5 +45,5 @@ export function LogisticsServices({ services, accountId, busy, mutate: save }: {
       setCreatedCompany({ id: contact.id, name: contact.name || name }); setCompanyId(contact.id); setNewCompany(''); void contactsQuery.refetch();
     })}>Add company</button></>}{contactsQuery.isError && <span className="text-tea-text-sec">Contacts unavailable.<button type="button" className="tap-target underline" onClick={() => void contactsQuery.refetch()}>Retry</button></span>}</div><div className="logistics-fields"><label>Service<input name="serviceName" aria-label="Service name" placeholder="Airmail" required defaultValue={edit?.name || ''}/></label><label>By<select name="mode" aria-label="Service transport" defaultValue={edit?.mode || 'air'}><option value="air">Air</option><option value="sea">Boat</option></select></label><label>Charged by<select name="basis" aria-label="Service rate basis" defaultValue={edit?.basis || 'kg'}><option value="kg">kg</option><option value="m3">m³</option><option value="fixed">Fixed</option></select></label><label>Rate<input name="rate" aria-label="Service rate" type="number" required min="0" step="any" defaultValue={edit?.rate ?? ''}/></label><label>Currency<input name="currency" aria-label="Service rate currency" placeholder="CNY" required defaultValue={edit?.currency || ''}/></label></div><div className="logistics-actions"><button type="submit" className="tap-target purchase-tracking-button" disabled={busy || !contacts.some(contact => contact.id === companyId)}>Save service</button><button type="button" className="tap-target purchase-tracking-button" disabled={busy} onClick={() => setEditing(null)}>Close</button>{edit && <button type="button" className="tap-target purchase-tracking-button" disabled={busy} onClick={() => void mutate(async () => { await api.logistics.archiveService(edit.id); setEditing(null); })}>Archive service</button>}<span className="text-tea-text-dim">Saved rates fill new shipment estimates. Existing quotes and final bills stay as recorded.</span></div></form>}
     <LogisticsActionError message={error} recovery="Your entries are kept. Retry the same company or service action."/>
-  </div></details>;
+  </div></TrackingTask></>;
 }

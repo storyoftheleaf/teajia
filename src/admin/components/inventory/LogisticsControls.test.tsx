@@ -1,4 +1,6 @@
 import React from 'react';
+// Render task bodies here to inspect their controls independently of portal visibility.
+vi.mock('./TrackingTask', () => ({ TrackingTask: ({ children }: { children: React.ReactNode }) => <section>{children}</section> }));
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import type { LogisticsOrder, LogisticsShipment } from '../../../lib/logisticsTypes';
@@ -36,9 +38,9 @@ describe('consolidated logistics', () => {
   it('keeps packing and final freight editable after receipt, while cancelled manifests stay read-only', () => {
     const render = (state: LogisticsShipment['state']) => renderToStaticMarkup(<LogisticsShipmentCard shipment={{ ...shipment, state }} orders={[order]} busy={false} mutate={async action => { await action(); }} accountId="shop" openPurchase={() => {}}/>);
     expect(render('received')).toContain('Packing and references for Black tea');
-    expect(render('received')).toContain('Shipment changes');
+    expect(render('received')).toContain('Packing &amp; item costs');
     expect(render('cancelled')).not.toContain('Packing and references for Black tea');
-    expect(render('cancelled')).not.toContain('Shipment changes');
+    expect(render('cancelled')).not.toContain('Save shipment');
   });
   it('shows separate inbound and outbound context, confirmed bill and estimated allocation', () => {
     const html = renderToStaticMarkup(<LogisticsShipmentCard shipment={shipment} orders={[order]} busy={false} mutate={async action => { await action(); }} accountId="shop" openPurchase={() => {}}/>);
@@ -48,6 +50,6 @@ describe('consolidated logistics', () => {
     expect(html).toContain('0.004');
     expect(html).toContain('Ready to send');
     expect(html).not.toContain('Receive all at studio');
-    expect(html).toContain('<details class="logistics-edit">');
+    expect(html).not.toMatch(/<(details|summary)\b/);
   });
 });
