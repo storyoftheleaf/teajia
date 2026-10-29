@@ -13,9 +13,9 @@
   "observation": "Normalized error: transport_failure",
   "deployment": null,
   "sample": {
-    "browser_online": true
+    "browser_online": false
   },
-  "last_seen": "2026-10-22T13:08:43Z",
-  "occurrence_count": 1,
-  "material_fingerprint": "441bcfec3e975bea"
+  "last_seen": "2026-10-29T01:06:49Z",
+  "occurrence_count": 2,
+  "material_fingerprint": "6cfb86eb59d95394"
 }
