@@ -1,3 +1,4 @@
+import type { LogisticsTrackingSnapshot } from './logisticsTrackingUpdate';
 /** Shared supplier → forwarder → studio tracking. Freight is accounting only. */
 export interface LogisticsFreight {
   basis: 'kg' | 'm3' | 'fixed';
@@ -22,7 +23,24 @@ export interface LogisticsPurchaseLine {
   image_url: string | null;
   source_url: string | null;
 }
+export interface LogisticsAddressInput {
+  label: string;
+  role: 'warehouse' | 'destination';
+  recipient: string;
+  address_lines: string;
+  city?: string | null;
+  region?: string | null;
+  postal_code?: string | null;
+  country_code: string;
+  phone?: string | null;
+  logistics_company_id?: string | null;
+}
+export interface LogisticsAddress extends LogisticsAddressInput { id: string; archived: boolean }
+
 export interface LogisticsOrder {
+  tracking_update?: LogisticsTrackingSnapshot | null;
+  warehouse_address_id?: string | null;
+  warehouse_address?: LogisticsAddress | null;
   purchase_id: string;
   receipt_id: string | null;
   vendor_name: string | null;
@@ -55,6 +73,9 @@ export interface LogisticsShipmentLine {
   allocated_freight: number | null;
 }
 export interface LogisticsShipment {
+  tracking_update?: LogisticsTrackingSnapshot | null;
+  delivery_address_id?: string | null;
+  delivery_address?: LogisticsAddress | null;
   id: string;
   service_id?: string | null;
   service_quote?: LogisticsService | null;
@@ -74,8 +95,9 @@ export interface LogisticsShipment {
   studio_receipts?: Array<{id:string;line_id:string;ledger_id:string;quantity:number;received_at:string;recorded_by:string|null}>;
   lines: LogisticsShipmentLine[];
 }
-export interface LogisticsTracking { orders: LogisticsOrder[]; shipments: LogisticsShipment[]; services: LogisticsService[] }
+export interface LogisticsTracking { orders: LogisticsOrder[]; shipments: LogisticsShipment[]; services: LogisticsService[]; addresses?: LogisticsAddress[] }
 export interface LogisticsOrderInput {
+  warehouse_address_id?: string | null;
   logistics_company_id: string | null;
   logistics_company_name: string;
   inbound_courier?: string | null;
@@ -90,6 +112,7 @@ export interface LogisticsLineInput {
   volume_estimated?: boolean;
 }
 export interface LogisticsShipmentInput {
+  delivery_address_id?: string | null;
   idempotency_key: string;
   service_id?: string | null;
   logistics_company_id: string | null;
@@ -99,6 +122,7 @@ export interface LogisticsShipmentInput {
   freight?: LogisticsFreight | null;
 }
 export interface LogisticsShipmentUpdate {
+  delivery_address_id?: string | null;
   outbound_courier?: string | null;
   tracking_number?: string | null;
   eta?: string | null;

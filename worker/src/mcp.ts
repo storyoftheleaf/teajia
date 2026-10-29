@@ -1,3 +1,4 @@
+import { logisticsTrackingTools } from './mcpTools/logisticsTracking';
 import { logisticsTools } from './mcpTools/logistics';
 // MCP server for Teajia — voice/agent control of this account's inventory.
 //
@@ -7029,6 +7030,7 @@ const TOOL_MODULES: ToolModule[] = [
   orderTrackingTools,
   purchaseArrivalTools,
   logisticsTools,
+  logisticsTrackingTools,
   curateAttachmentTools,
   curateManageModule,
   curateQuoteTools,

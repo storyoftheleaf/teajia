@@ -3271,3 +3271,49 @@ CREATE TRIGGER logistics_protect_company BEFORE UPDATE OF logistics_company_id,l
  WHEN (NEW.logistics_company_id IS NOT OLD.logistics_company_id OR NEW.logistics_company_name!=OLD.logistics_company_name OR NEW.logistics_arrived_at IS NULL)
  AND EXISTS(SELECT 1 FROM logistics_shipment_lines l JOIN logistics_shipments s ON s.id=l.shipment_id AND s.account_id=l.account_id WHERE l.purchase_id=OLD.purchase_id AND l.account_id=OLD.account_id AND s.state!='cancelled')
  BEGIN SELECT RAISE(ABORT,'company cannot change after shipment allocation'); END;
+
+-- Reusable destinations; assigned copies preserve the actual shipment address.
+CREATE TABLE logistics_addresses (
+ id TEXT PRIMARY KEY,
+ account_id TEXT NOT NULL REFERENCES accounts(id),
+ label TEXT NOT NULL,
+ role TEXT NOT NULL CHECK(role IN ('warehouse','destination')),
+ recipient TEXT NOT NULL,
+ address_lines TEXT NOT NULL,
+ city TEXT,
+ region TEXT,
+ postal_code TEXT,
+ country_code TEXT NOT NULL,
+ phone TEXT,
+ logistics_company_id TEXT,
+ archived INTEGER NOT NULL DEFAULT 0 CHECK(archived IN (0,1)),
+ created_at TEXT NOT NULL DEFAULT (datetime('now')),
+ updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX logistics_addresses_account ON logistics_addresses(account_id,archived,role);
+ALTER TABLE purchase_logistics ADD COLUMN warehouse_address_id TEXT;
+ALTER TABLE purchase_logistics ADD COLUMN warehouse_address_json TEXT;
+ALTER TABLE logistics_shipments ADD COLUMN delivery_address_id TEXT;
+ALTER TABLE logistics_shipments ADD COLUMN delivery_address_json TEXT;
+
+-- Reports supplied by a person/agent are observations, never stock receipts.
+CREATE TABLE logistics_tracking_updates (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  account_id TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK(kind IN ('purchase','shipment')),
+  entity_id TEXT NOT NULL,
+  tracking_number TEXT,
+  identity TEXT NOT NULL,
+  status TEXT NOT NULL,
+  location TEXT,
+  description TEXT,
+  reported_at TEXT,
+  recorded_at TEXT NOT NULL,
+  recorded_by TEXT NOT NULL,
+  source TEXT NOT NULL CHECK(source='agent_update'),
+  source_text TEXT NOT NULL,
+  idempotency_key TEXT NOT NULL,
+  request_fingerprint TEXT NOT NULL,
+  UNIQUE(account_id,idempotency_key)
+);
+CREATE INDEX logistics_updates_entity ON logistics_tracking_updates(account_id,kind,entity_id,identity,COALESCE(reported_at,recorded_at) DESC,id DESC);

@@ -1,3 +1,4 @@
+import { LogisticsTrackingError, recordLogisticsTrackingUpdate } from './logisticsTracking';
 import { readLogistics, mutateLogistics, LogisticsError, type LogisticsAction } from './logistics';
 import { readPurchaseTracking } from './purchaseTracking';
 import type { CurateFinalizeMovement } from './curateImports';
@@ -22090,6 +22091,16 @@ const logisticsHandler = (action?: LogisticsAction): Handler => async (request,e
   catch(error){if(error instanceof LogisticsError)return json({error:error.message},error.status);throw error;}
 };
 
+const logisticsTrackingUpdateHandler: Handler = async (request, env) => {
+  const scope = await requireBundle(request, env, 'stock'); if ('error' in scope) return scope.error;
+  try {
+    return json(await recordLogisticsTrackingUpdate(env, scope, await request.json() as any));
+  } catch (error) {
+    if (error instanceof LogisticsTrackingError) return json({ error: error.message }, error.status);
+    throw error;
+  }
+};
+
 const handlePurchaseTracking: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'stock'); if ('error' in ctx) return ctx.error;
   return json(await readPurchaseTracking(env, ctx.accountId));
@@ -29629,6 +29640,10 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/purchase-orders', handleListPurchaseOrders],
   ['GET', '/api/purchase-orders/tracking', handlePurchaseTracking],
   ['GET','/api/logistics',logisticsHandler()],
+  ['POST','/api/logistics/tracking-updates',logisticsTrackingUpdateHandler],
+  ['POST','/api/logistics/addresses',logisticsHandler('address_create')],
+  ['PATCH','/api/logistics/addresses/:id',logisticsHandler('address_update')],
+  ['POST','/api/logistics/addresses/:id/archive',logisticsHandler('address_archive')],
   ['POST','/api/logistics/services',logisticsHandler('service_create')],
   ['PATCH','/api/logistics/services/:id',logisticsHandler('service_update')],
   ['POST','/api/logistics/services/:id/archive',logisticsHandler('service_archive')],

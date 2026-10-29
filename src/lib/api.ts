@@ -1,4 +1,4 @@
-import type { LogisticsTracking, LogisticsService, LogisticsServiceInput, LogisticsOrder, LogisticsOrderInput, LogisticsShipment, LogisticsShipmentInput, LogisticsShipmentUpdate, LogisticsReceiveInput } from './logisticsTypes';
+import type { LogisticsAddress, LogisticsAddressInput, LogisticsTracking, LogisticsService, LogisticsServiceInput, LogisticsOrder, LogisticsOrderInput, LogisticsShipment, LogisticsShipmentInput, LogisticsShipmentUpdate, LogisticsReceiveInput } from './logisticsTypes';
 import type { InventoryReceipt } from '../admin/types';
 import { createServiceAvailabilityGuard, shouldReportServiceIncident } from './serviceAvailability';
 import type { ShippingRoute } from '../components/shared/routeFreight';
@@ -2325,6 +2325,10 @@ export const api = {
   },
 
   logistics: {
+    saveAddress: (input: LogisticsAddressInput, id?: string): Promise<{ address: LogisticsAddress }> =>
+      authedFetch(`${API_URL}/api/logistics/addresses${id ? `/${encodeURIComponent(id)}` : ''}`, { method: id ? 'PATCH' : 'POST', body: JSON.stringify(input) }),
+    archiveAddress: (id: string): Promise<{ address: LogisticsAddress }> =>
+      authedFetch(`${API_URL}/api/logistics/addresses/${encodeURIComponent(id)}/archive`, { method: 'POST', body: '{}' }),
     saveService: (id: string | null, input: LogisticsServiceInput): Promise<{ service: LogisticsService }> =>
       authedFetch(`${API_URL}/api/logistics/services${id ? `/${encodeURIComponent(id)}` : ''}`, { method: id ? 'PATCH' : 'POST', body: JSON.stringify(input) }),
     archiveService: (id: string): Promise<{ service: LogisticsService }> =>

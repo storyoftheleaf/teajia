@@ -6879,3 +6879,20 @@ body.cart-panel-open .commerce-dock {
  .purchase-outbound .shipment-costs { border-top:0; border-left:1px solid var(--tea-border); }
 }
 .logistics-message-draft { font-size:13px; line-height:1.6; }
+
+/* Message-sourced logistics facts stay together in one compact row. */
+.logistics-reported-update {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: .375rem .625rem;
+  padding: .375rem .625rem;
+  border-block: 1px solid var(--tea-border);
+  background: var(--tea-bg);
+  overflow-wrap: anywhere;
+}
+.logistics-reported-update strong { font-weight: 500; }
+.logistics-report-time { white-space: nowrap; }
+.logistics-report-history { display: grid; gap: .75rem; }
+.logistics-report-history > li { padding: .75rem; background: var(--tea-surface); border: 1px solid var(--tea-border); border-radius: .375rem; }
+.logistics-report-history blockquote { padding-block: .5rem; margin-block: .5rem; border-block: 1px solid var(--tea-border); }

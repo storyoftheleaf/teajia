@@ -27,6 +27,26 @@ function fixture(){
  return {db,call,confirm,rpc,rest,hub,shipment,createInput,assignment,failNext:(product:string)=>{failProduct=product},race:(run:()=>Promise<unknown>)=>{beforeBatch=run}};
 }
 describe('supplier → logistics → studio through actual worker REST and MCP',()=>{
+ it('preserves courier and tracking when the agent assigns only an address',async()=>{
+  const f=fixture();await f.rest('PUT','logistics/orders/purchase',f.assignment);
+  const made=await f.confirm('create_logistics_address',{label:'Warehouse',role:'warehouse',recipient:'Receiving',address_lines:'Example Street',country_code:'CN'});
+  const assigned=await f.confirm('set_purchase_logistics',{purchase_id:'purchase',warehouse_address_id:made.address.id});
+  expect(assigned.order).toMatchObject({inbound_courier:'Domestic',inbound_tracking_number:'INBOUND-1',logistics_company_name:'Forwarder',warehouse_address_id:made.address.id});
+ });
+ it('saves addresses and sourced reports through scoped REST, reflected by MCP',async()=>{
+  const f=fixture();
+  const address={label:'Studio',role:'destination',recipient:'Receiving',address_lines:'Example Street',country_code:'ID'};
+  const made=await f.rest('POST','logistics/addresses',address);expect(made.status).toBe(200);
+  const id=made.body.address.id;
+  expect((await f.rest('PATCH',`logistics/addresses/${id}`,{city:'Ubud'})).body.address.city).toBe('Ubud');
+  expect((await f.rest('PATCH',`logistics/addresses/${id}`,{city:'Elsewhere'},'other','other')).status).toBe(404);
+  const update={kind:'purchase',entity_id:'purchase',tracking_number:'SUPPLIER-OLD',status:'Collected',reported_at:null,source_text:'The courier collected this parcel.',idempotency_key:'message-rest'};
+  expect((await f.rest('POST','logistics/tracking-updates',update)).status).toBe(200);
+  expect((await f.call('list_logistics')).orders[0].tracking_update).toMatchObject({status:'Collected',reported_at:null,source_text:update.source_text});
+  expect((await f.rest('POST','logistics/tracking-updates',update,'other','other')).status).toBe(404);
+  expect((await f.rest('POST',`logistics/addresses/${id}/archive`,{})).body.address.archived).toBe(true);
+  expect(f.db.sqlite.prepare('SELECT COUNT(*) n FROM stock_ledger').get()).toEqual({n:0});
+ });
  it('keeps hub arrivals and shipment dispatch out of stock, then splits, retries and completes at studio',async()=>{
   const f=fixture();const s=await f.shipment();
   expect(f.db.sqlite.prepare('SELECT COUNT(*) n FROM stock_ledger').get()).toEqual({n:0});
@@ -76,7 +96,7 @@ describe('supplier → logistics → studio through actual worker REST and MCP',
  });
  it('isolates accounts and Stock permissions, with the same scoped manifest on REST and MCP',async()=>{
   const f=fixture();const s=await f.shipment();expect((await f.rest('GET','logistics')).body).toEqual(await f.call('list_logistics'));
-  expect(await f.call('list_logistics',{},'other')).toEqual({orders:[],shipments:[],services:[]});
+  expect(await f.call('list_logistics',{},'other')).toEqual({orders:[],shipments:[],services:[],addresses:[]});
   expect((await f.rest('PATCH',`logistics/shipments/${s.id}`,{tracking_number:'hijack'},'other','other')).status).toBe(404);
   expect((await f.rest('GET','logistics',undefined,'staff')).status).toBe(403);
   const names=(await f.rpc('tools/list',{},'read')).result.tools.map((x:any)=>x.name);expect(names).toContain('list_logistics');expect(names).not.toContain('receive_logistics_shipment');
