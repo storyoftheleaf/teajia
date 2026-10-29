@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import type { PurchaseTrackingRow } from '../../../lib/api';
-import { matchesPurchaseTracking, PurchaseTrackingView } from './PurchaseTrackingView';
+import { matchesPurchaseTracking, PurchaseTrackingView, scopeLogisticsOrders } from './PurchaseTrackingView';
 vi.mock('../../../lib/store', () => ({ useAppStore: (select: (s: unknown) => unknown) => select({ activeAccountId: 'shop' }) }));
 const row: PurchaseTrackingRow = {
  id:'purchase', purchase:null, attention:[], source_document:{import_id:'invoice / one',title:'Supplier invoice'},
@@ -12,6 +12,20 @@ const row: PurchaseTrackingRow = {
  history:[{id:'arrival',line_id:'line',product_id:'tea one',quantity:500,unit:'g',balance_after:760,recorded_at:'2026-10-27T10:00:00Z',recorded_by:null,note:'First parcel'}],
 };
 describe('purchase tracking workflow',()=>{
+ it('scopes preparation to purchases matching the selected supplier and company',()=>{
+  const data={orders:[{purchase_id:'one'},{purchase_id:'two'}]} as Parameters<typeof scopeLogisticsOrders>[0];
+  expect(scopeLogisticsOrders(data,[{purchase:{id:'two'}} as PurchaseTrackingRow])).toEqual([{purchase_id:'two'}]);
+  expect(scopeLogisticsOrders(data,[])).toEqual([]);
+ });
+ it('explains an empty filtered view and offers to clear filters',()=>{
+  const client=new QueryClient({defaultOptions:{queries:{retry:false,staleTime:Infinity}}});
+  client.setQueryData(['purchase-tracking','shop'],{rows:[row]});
+  const Form=()=>null;
+  const html=renderToStaticMarkup(<MemoryRouter initialEntries={['/?view=received']}><QueryClientProvider client={client}><PurchaseTrackingView NewForm={Form} MatchForm={Form}/></QueryClientProvider></MemoryRouter>);
+  expect(html).toContain('No purchases match these filters.');
+  expect(html).toContain('Clear filters');
+  expect(html).not.toContain('No purchases recorded yet.');
+ });
  it('keeps an ordinary partial shipment in Coming without demanding a decision',()=>{
   expect(matchesPurchaseTracking(row,'coming')).toBe(true);
   expect(matchesPurchaseTracking(row,'attention')).toBe(false);

@@ -6673,3 +6673,17 @@ body.cart-panel-open .commerce-dock {
  .logistics-dispatch label { flex:1 1 180px; }
  .logistics-dispatch input { flex:1 1 170px; }
 }
+
+/* Tracking stays first; operational tools share one quiet, compact row. */
+.purchase-tracking-operations { display:flex; flex-wrap:wrap; align-items:flex-start; gap:4px; margin:0 12px 8px; }
+.purchase-tracking-operations>.logistics-create { margin:0; min-width:0; max-width:100%; }
+.purchase-tracking-operations>.logistics-create:last-child { margin-left:auto; background:var(--tea-bg); }
+.purchase-tracking-operations>.logistics-create[open] { flex:1 0 100%; order:1; }
+.purchase-tracking-operations>.logistics-create>summary { min-height:32px; padding:4px 6px; gap:6px; }
+:is(.logistics-create,.logistics-contents,.logistics-line-details,.logistics-edit)>summary::after,
+.logistics-card-actions details>summary::after { content:''; display:block; flex:0 0 6px; width:6px; height:6px; margin-left:auto; border:solid currentColor; border-width:0 1px 1px 0; transform:rotate(45deg); align-self:center; }
+:is(.logistics-create,.logistics-contents,.logistics-line-details,.logistics-edit)[open]>summary::after,
+.logistics-card-actions details[open]>summary::after { transform:rotate(225deg); }
+:is(.logistics-create,.logistics-contents,.logistics-line-details,.logistics-edit)>summary:hover { background:var(--tea-accent-sub); }
+:is(.logistics-create,.logistics-contents,.logistics-line-details,.logistics-edit)>summary:focus-visible { outline:2px solid var(--tea-gold); outline-offset:-2px; border-radius:4px; }
+.logistics-action-error { flex-basis:100%; margin:0; padding:6px 8px; border:1px solid var(--tea-border); border-radius:4px; background:var(--tea-elevated); color:var(--tea-text-sec); }
