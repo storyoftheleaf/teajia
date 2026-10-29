@@ -2340,7 +2340,8 @@ input[type="number"]::-webkit-outer-spin-button {
 
 /* Faint tonal band: the quiet card's only differentiation device. */
 /* ==============================   Paper ground and the label plate
-   ==============================
+   =======================}
+
    The reading ground. Barely visible on purpose: on a bright screen you
    notice it, in sun you do not. It reuses the grain the alcove panels
    already carry rather than introducing a second texture system, and it
@@ -3522,7 +3523,8 @@ input[type="number"]::-webkit-outer-spin-button {
 @media (min-width: 1024px) { .pb-nav-verdict { padding-bottom: 2rem; } }
 
 /* ==============================   The commerce bar, docked to the navigation
-   ==============================
+   =======================}
+
    Two rounded bars stacked at the bottom of a phone read as two apps
    arguing over the same corner. Docked, they are one object: the commerce
    bar takes the navigation's own insets and colours, sits flush on its top
@@ -6625,3 +6627,42 @@ body.cart-panel-open .commerce-dock {
 .stock-view .stock-record[data-card-study="2"] .stock-more-action { flex-basis:28px; width:28px; justify-content:flex-end; color:var(--tea-text-dim); }
 .stock-view .stock-subtitle>.stock-source-label { grid-column:1; grid-row:1; min-width:0; max-width:none; width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border:0; font-size:11px; }
 .stock-view .stock-subtitle>.stock-source-label>span { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* Save stays quiet until there are edits ready to commit. */
+.tasting-save-control {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-height: 48px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  transition: background-color 180ms ease, border-color 180ms ease;
+}
+.tasting-save-control .tasting-heading-save { padding: 0 10px; min-height: 46px; }
+.tasting-save-control[data-pending=true] {
+  border-color: var(--tea-text);
+  background: var(--tea-text);
+  animation: tasting-save-ready 2.4s ease-in-out infinite;
+}
+.tasting-save-control[data-pending=true] .tasting-heading-save { color: var(--tea-bg); }
+@keyframes tasting-save-ready {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 0 4px var(--tea-accent-sub), 0 0 16px var(--tea-text-dim); }
+}
+@media (min-width: 1024px) {
+  .tasting-save-control { margin-left: auto; }
+  [data-tasting-session-overlay] .tasting-save-control .tasting-heading-save,
+  [data-tasting-session-overlay] .tasting-save-control .tasting-heading-mic { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tasting-save-control[data-pending=true] { animation: none; box-shadow: 0 0 0 2px var(--tea-accent-sub); }
+}
+
+.tasting-impression-control { display:flex; align-items:center; flex:1; min-width:0; min-height:48px; border:1px solid var(--tea-text-dim); border-radius:10px; background:var(--tea-elevated); }
+.tasting-impression-control .tasting-heading-trigger { border:0; background:transparent; min-height:46px; padding:0 7px; gap:5px; }
+.tasting-header-controls .tasting-impression-control .tasting-heading-mic { margin:0; border-left:1px solid var(--tea-border); border-radius:0 9px 9px 0; }
+.tasting-impression-control .tasting-heading-mic[aria-pressed=true] { background:var(--tea-accent-sub); color:var(--tea-text); }
+@media(min-width:1024px) {
+  .tasting-impression-control { flex:0 1 464px; }
+  [data-tasting-session-overlay] .tasting-impression-control .tasting-heading-trigger { flex:1; }
+}

@@ -92,7 +92,8 @@ export function useVoiceCapture({
         } catch (err: unknown) {
           if (!mountedRef.current) return;
           const msg = err instanceof Error ? err.message : '';
-          callbacksRef.current.onError?.(msg || 'Transcription failed.');
+          const status = (err as { status?: number })?.status;
+          callbacksRef.current.onError?.(status === 401 ? 'Sign in to transcribe your voice note.' : status === 403 ? 'Your account does not have access to voice transcription.' : msg || 'Transcription failed.');
         }
         if (mountedRef.current) setState('idle');
       };
