@@ -24,6 +24,11 @@
   Normalized error: `http_504`
   Evidence: [acc-teajia-bali-server-get-api-admin-samples-504-http-504-1f154be2.json](evidence/acc-teajia-bali-server-get-api-admin-samples-504-http-504-1f154be2.json)
 
+- [ ] `acc_teajia_bali:server_get_api_compass_incoming_503_http_503` — **high**
+  8 occurrences · first 2026-10-30T00:40:45Z · last 2026-10-30T08:20:48Z
+  Normalized error: `http_503`
+  Evidence: [acc-teajia-bali-server-get-api-compass-incoming-503-http-503-eb42728d.json](evidence/acc-teajia-bali-server-get-api-compass-incoming-503-http-503-eb42728d.json)
+
 - [ ] `acc_teajia_bali:server_get_api_compass_incoming_504_http_504` — **high**
   1 occurrence · first 2026-10-21T04:23:14Z · last 2026-10-21T04:23:14Z
   Normalized error: `http_504`
@@ -154,6 +159,16 @@
   Normalized error: `http_504`
   Evidence: [acc-teajia-bali-server-get-api-inventory-receipts-504-http-504-93324924.json](evidence/acc-teajia-bali-server-get-api-inventory-receipts-504-http-504-93324924.json)
 
+- [ ] `acc_teajia_bali:server_get_api_logistics_503_http_503` — **high**
+  7 occurrences · first 2026-10-30T00:36:47Z · last 2026-10-30T08:39:17Z
+  Normalized error: `http_503`
+  Evidence: [acc-teajia-bali-server-get-api-logistics-503-http-503-06d700f5.json](evidence/acc-teajia-bali-server-get-api-logistics-503-http-503-06d700f5.json)
+
+- [ ] `acc_teajia_bali:server_get_api_logistics_504_http_504` — **high**
+  2 occurrences · first 2026-10-30T00:57:25Z · last 2026-10-30T06:50:16Z
+  Normalized error: `http_504`
+  Evidence: [acc-teajia-bali-server-get-api-logistics-504-http-504-599389fd.json](evidence/acc-teajia-bali-server-get-api-logistics-504-http-504-599389fd.json)
+
 - [ ] `acc_teajia_bali:server_get_api_products_504_http_504` — **high**
   1 occurrence · first 2026-10-23T10:18:36Z · last 2026-10-23T10:18:36Z
   Normalized error: `http_504`
@@ -163,6 +178,11 @@
   1 occurrence · first 2026-10-27T08:41:56Z · last 2026-10-27T08:41:56Z
   Normalized error: `http_504`
   Evidence: [acc-teajia-bali-server-get-api-purchase-orders-504-http-504-c98593d6.json](evidence/acc-teajia-bali-server-get-api-purchase-orders-504-http-504-c98593d6.json)
+
+- [ ] `acc_teajia_bali:server_get_api_purchase_orders_tracking_503_http_503` — **high**
+  11 occurrences · first 2026-10-30T00:36:47Z · last 2026-10-30T08:20:49Z
+  Normalized error: `http_503`
+  Evidence: [acc-teajia-bali-server-get-api-purchase-orders-tracking-503-http-503-17d2bac8.json](evidence/acc-teajia-bali-server-get-api-purchase-orders-tracking-503-http-503-17d2bac8.json)
 
 - [ ] `acc_teajia_bali:server_get_api_purchase_orders_tracking_504_http_504` — **high**
   11 occurrences · first 2026-10-28T13:38:49Z · last 2026-10-29T01:27:15Z
@@ -183,6 +203,11 @@
   3 occurrences · first 2026-10-28T11:44:11Z · last 2026-10-28T12:02:45Z
   Normalized error: `http_502`
   Evidence: [acc-teajia-bali-server-post-api-curate-working-material-502-http-502-76899402.json](evidence/acc-teajia-bali-server-post-api-curate-working-material-502-http-502-76899402.json)
+
+- [ ] `acc_teajia_bali:network_get_api_accounts_acc_teajia_bali_none_transport_failure` — **medium**
+  1 occurrence · first 2026-10-30T03:51:13Z · last 2026-10-30T03:51:13Z
+  Normalized error: `transport_failure`
+  Evidence: [acc-teajia-bali-network-get-api-accounts-acc-teajia-bali-none-transport-failure-261db6ab.json](evidence/acc-teajia-bali-network-get-api-accounts-acc-teajia-bali-none-transport-failure-261db6ab.json)
 
 - [ ] `acc_teajia_bali:network_get_api_compass_incoming_none_timeout` — **medium**
   1 occurrence · first 2026-10-26T05:59:21Z · last 2026-10-26T05:59:21Z
@@ -213,6 +238,11 @@
   1 occurrence · first 2026-10-27T08:09:12Z · last 2026-10-27T08:09:12Z
   Normalized error: `transport_failure`
   Evidence: [acc-teajia-bali-network-get-api-products-public-none-transport-failure-3412fa7a.json](evidence/acc-teajia-bali-network-get-api-products-public-none-transport-failure-3412fa7a.json)
+
+- [ ] `acc_teajia_bali:network_get_api_purchase_orders_tracking_none_transport_failure` — **medium**
+  1 occurrence · first 2026-10-30T03:51:13Z · last 2026-10-30T03:51:13Z
+  Normalized error: `transport_failure`
+  Evidence: [acc-teajia-bali-network-get-api-purchase-orders-tracking-none-transport-failure-d87b00c3.json](evidence/acc-teajia-bali-network-get-api-purchase-orders-tracking-none-transport-failure-d87b00c3.json)
 
 - [ ] `acc_teajia_bali:network_post_api_curate_ar_create_requests_none_transport_failure` — **medium**
   1 occurrence · first 2026-10-29T01:06:49Z · last 2026-10-29T01:06:49Z
