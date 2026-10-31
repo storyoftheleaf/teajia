@@ -5859,7 +5859,11 @@ body.cart-panel-open .commerce-dock {
 .stock-view [data-testid=inventory-purpose-lenses]{flex-wrap:nowrap;gap:14px}
 .stock-view [data-testid=inventory-scroll]{overflow-x:hidden!important;padding-top:6px}
 .stock-view [data-testid=inventory-scroll]>.relative{padding:0 12px;max-width:none}
-.stock-view [data-testid=inventory-scroll]>.relative>div{background:var(--tea-surface);border:1px solid var(--stock-keyline);border-radius:6px;overflow:hidden}
+/* clip, not hidden: both trim the table to the card's rounded corners, but
+   hidden also makes the card a scroll container, and the sticky column header
+   inside it then pins to the card (which never scrolls) instead of to the
+   ledger, so the column names rode away with the rows. clip clips without that. */
+.stock-view [data-testid=inventory-scroll]>.relative>div{background:var(--tea-surface);border:1px solid var(--stock-keyline);border-radius:6px;overflow:clip}
 /* Card-specific geometry must not override the desktop spreadsheet. */
 @media(max-width:767px){
 .stock-view table.inv-tight{width:100%!important;min-width:0!important;max-width:100%!important}

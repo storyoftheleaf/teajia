@@ -126,7 +126,7 @@ test.describe('Inventory page — scroll regression guard', () => {
       'inventory-stage-needs_preparation',
       'inventory-stage-archived',
     ]);
-    await expect(page.getByTestId('inventory-stage-incoming')).toContainText('1 items');
+    await expect(page.getByTestId('inventory-stage-incoming')).toContainText('1 tea');
     await expect(page.getByTestId('inventory-stage-incoming').locator('tr[data-product-id="test-product-3"]')).toBeVisible();
     await expect(page.getByTestId('inventory-stage-published').locator('tr[data-product-id="test-product-5"]')).toBeVisible();
 
@@ -137,8 +137,7 @@ test.describe('Inventory page — scroll regression guard', () => {
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('inventory-stage-published').locator('tbody')).toHaveCount(0);
 
-    await page.getByTestId('inventory-purpose-row').getByRole('button', { name: 'Flagged' }).click();
-    await page.getByRole('menuitem', { name: 'Needs writing' }).click();
+    await page.getByTestId('inventory-purpose-row').getByRole('combobox', { name: 'Show teas' }).selectOption({ label: 'Needs writing' });
     await expect(page.locator('tr[data-product-id="test-product-4"]')).toBeVisible();
     await expect(page.locator('tr[data-product-id="test-product-2"]')).toHaveCount(0);
   });
@@ -158,20 +157,28 @@ test.describe('Inventory page — scroll regression guard', () => {
     await expect(columns).toBeVisible();
     await expect(page.locator('[data-inventory-header-row]')).toHaveCount(3);
 
-    for (const name of ['Tea', 'Wares', 'Incoming', 'Bali']) {
+    // Row one: the category, search, the shop, and the actions. Incoming lives in
+    // the actions menu and opens Purchases; prices, grouping, sorting and the
+    // shop preview currency live in View options.
+    for (const name of ['Tea', 'Wares', 'Bali']) {
       await expect(primary.getByText(name, { exact: true })).toBeVisible();
     }
+    await expect(primary.getByRole('button', { name: 'View options' })).toBeVisible();
+    // Row two: the four independent browsing choices.
     const operationRow = purpose;
-    if (testInfo.project.name === 'Mobile Chrome') {
-      await expect(operationRow.getByRole('button', { name: /Adjust view/ })).toBeVisible();
-    } else {
-      for (const name of ['Retail', 'Group', 'Sort']) await expect(operationRow.getByText(name, { exact: true })).toBeVisible();
+    for (const name of ['Tea type', 'Supplier', 'Show teas', 'Tasting status']) {
+      await expect(operationRow.getByRole('combobox', { name, exact: true })).toBeVisible();
     }
-    await expect(primary.getByRole('combobox', { name: 'Select currency' })).toBeVisible();
-    await expect(primary.getByRole('combobox', { name: 'Select currency' })).toHaveValue('USD');
-    expect(await primary.getByRole('combobox', { name: 'Select currency' }).locator('option').count()).toBeGreaterThan(1);
-    await primary.getByRole('combobox', { name: 'Select currency' }).selectOption('IDR');
-    await expect(primary.getByRole('combobox', { name: 'Select currency' })).toHaveValue('IDR');
+    await primary.getByRole('button', { name: 'View options' }).click();
+    const viewOptions = page.getByRole('dialog', { name: 'View options' });
+    await viewOptions.getByText('Shop preview currency', { exact: true }).click();
+    const previewCurrency = viewOptions.getByRole('combobox', { name: 'Currency for shop preview' });
+    await expect(previewCurrency).toHaveValue('USD');
+    expect(await previewCurrency.locator('option').count()).toBeGreaterThan(1);
+    await previewCurrency.selectOption('IDR');
+    await expect(previewCurrency).toHaveValue('IDR');
+    await page.keyboard.press('Escape');
+    await expect(viewOptions).toHaveCount(0);
     await expect(primary.getByRole('button', { name: /search/i })).toBeVisible();
     await expect(primary.getByRole('button', { name: /inventory actions/i })).toBeVisible();
 
@@ -223,8 +230,8 @@ test.describe('Inventory page — scroll regression guard', () => {
       await assertRowGeometry(purpose, row2Controls);
     }
 
-    for (const name of ['All', 'Working', 'Samples', 'Personal', 'Flagged']) {
-      await expect(purpose.getByText(name, { exact: true })).toBeVisible();
+    for (const view of ['All', 'Shop stock', 'Samples', 'Personal', 'Needs writing']) {
+      await expect(purpose.getByRole('combobox', { name: 'Show teas' }).locator('option', { hasText: new RegExp(`^${view}$`) })).toHaveCount(1);
     }
 
     await expect(primary.locator('xpath=ancestor::*[@data-testid="inventory-scroll"]')).toHaveCount(0);
@@ -258,29 +265,23 @@ test.describe('Inventory page — scroll regression guard', () => {
       await page.getByRole('button', { name: 'Cost', exact: true }).first().click();
       await page.keyboard.press('Escape');
     } else {
-      await operationRow.getByRole('button', { name: /switch price mode/i }).click();
-      await expect(operationRow.getByText('Cost', { exact: true })).toBeVisible();
-      await operationRow.getByRole('button', { name: 'Group inventory' }).click();
-      const typeGroup = page.getByRole('option', { name: 'Type', exact: true }).first();
-      await expect(typeGroup).toBeVisible();
-      await expect(typeGroup).toHaveAttribute('aria-selected', 'false');
-      await expect(page.getByRole('option', { name: 'None', exact: true }).first()).toHaveAttribute('aria-selected', 'true');
-      await expect(page.getByRole('option', { name: 'None', exact: true }).first().locator('svg')).toHaveCount(1);
-      await page.keyboard.press('Escape');
-      await operationRow.getByRole('button', { name: 'Sort inventory' }).click();
+      // Price mode, grouping, ordering and its direction are one View options sheet.
+      await primary.getByRole('button', { name: 'View options' }).click();
+      const options = page.getByRole('dialog', { name: 'View options' });
+      await options.getByRole('button', { name: 'Cost', exact: true }).click();
+      await expect(options.getByRole('button', { name: 'Cost', exact: true })).toHaveAttribute('aria-pressed', 'true');
+      await expect(options.getByRole('combobox', { name: 'Group by' }).locator('option:checked')).toHaveText('None');
+      const orderBy = options.getByRole('combobox', { name: 'Order by' });
       for (const choice of ['Type', 'Name', 'Stock', 'Price/g', 'Cost', 'Cost/g', 'Year', 'Origin', 'Source']) {
-        await expect(page.getByRole('option', { name: new RegExp(`^${choice}`) }).first()).toBeVisible();
+        await expect(orderBy.locator('option', { hasText: new RegExp(`^${choice.replace('/', '\\/')}$`) })).toHaveCount(1);
       }
-      const nameSort = page.getByRole('option', { name: /^Name/ }).first();
-      await nameSort.click();
-      await operationRow.getByRole('button', { name: 'Sort inventory' }).click();
-      await expect(page.getByRole('option', { name: /^Name/ }).first()).toHaveAttribute('aria-selected', 'true');
-      await expect(page.getByRole('option', { name: /^Name/ }).first().locator('svg')).toHaveCount(1);
-      const directionBefore = await page.getByRole('option', { name: /^Name/ }).first().getAttribute('aria-label');
-      await page.getByRole('option', { name: /^Name/ }).first().click();
-      await operationRow.getByRole('button', { name: 'Sort inventory' }).click();
-      await expect(page.getByRole('option', { name: /^Name/ }).first()).not.toHaveAttribute('aria-label', directionBefore || '');
+      await orderBy.selectOption({ label: 'Name' });
+      await expect(orderBy.locator('option:checked')).toHaveText('Name');
+      await options.getByRole('button', { name: /^Descending/ }).click();
+      await expect(options.getByRole('button', { name: /^Descending/ })).toHaveAttribute('aria-pressed', 'true');
+      await expect(options.getByRole('button', { name: /^Ascending/ })).toHaveAttribute('aria-pressed', 'false');
       await page.keyboard.press('Escape');
+      await expect(options).toHaveCount(0);
     }
     const inventoryActions = primary.getByRole('button', { name: /inventory actions/i });
     await inventoryActions.click();
@@ -357,7 +358,8 @@ test.describe('Inventory page — scroll regression guard', () => {
     test.skip(testInfo.project.name === 'chromium', 'Covered by named desktop and mobile projects');
     await page.goto('/admin/stock?vendor=Mountain%20Source', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1500);
-    await expect(page.getByTestId('inventory-primary-row').getByText(/Mountain Source/)).toBeVisible();
+    // A supplier in the address arrives as the Supplier choice, not a banner.
+    await expect(page.getByTestId('inventory-purpose-row').getByRole('combobox', { name: 'Supplier' })).toHaveValue('Mountain Source');
     await expect(page.locator('[data-testid="inventory-filter-banner"]')).toHaveCount(0);
 
     await page.goto('/admin/stock?batch=batch-1', { waitUntil: 'domcontentloaded' });
@@ -365,19 +367,15 @@ test.describe('Inventory page — scroll regression guard', () => {
     await expect(page.getByTestId('inventory-primary-row').getByRole('button', { name: /Clear the batch filter/ })).toBeVisible();
     await expect(page.locator('[data-testid="inventory-filter-banner"]')).toHaveCount(0);
 
-    const operationRow = page.getByTestId('inventory-purpose-row');
-    if (testInfo.project.name === 'Mobile Chrome') {
-      await operationRow.getByRole('button', { name: /Adjust view/ }).click();
-      await page.getByRole('dialog', { name: 'Adjust' }).getByRole('button', { name: 'Type', exact: true }).first().click();
-      await page.keyboard.press('Escape');
-    } else {
-      await operationRow.getByRole('button', { name: 'Group inventory' }).click();
-      await page.getByRole('option', { name: 'Type', exact: true }).first().click();
-    }
-    await expect(page.getByTestId('inventory-column-row')).toBeVisible();
+    await page.getByTestId('inventory-primary-row').getByRole('button', { name: 'View options' }).click();
+    await page.getByRole('dialog', { name: 'View options' }).getByRole('combobox', { name: 'Group by' }).selectOption({ label: 'Type' });
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('inventory-column-row').first()).toBeVisible();
 
-    await page.getByTestId('inventory-primary-row').getByText('Incoming', { exact: true }).click();
-    await expect(page.getByRole('region', { name: 'Incoming stock' })).toBeVisible();
+    // Incoming is in the actions menu and opens the Purchases tracking view.
+    await page.getByTestId('inventory-primary-row').getByRole('button', { name: 'Open inventory actions' }).click();
+    await page.getByRole('menu').getByRole('button', { name: 'Incoming', exact: true }).click();
+    await expect(page).toHaveURL(/\/admin\/purchase-orders\?view=coming/);
   });
 
   test('three-row inventory header remains available in alternate modes', async ({ page }, testInfo) => {
@@ -403,7 +401,7 @@ test.describe('Inventory page — scroll regression guard', () => {
     await expectHeaderAtTop();
     await expect(primary).toBeVisible();
     await expect(purpose).toBeVisible();
-    await purpose.getByText('All', { exact: true }).click();
+    await purpose.getByRole('combobox', { name: 'Show teas' }).selectOption({ label: 'All' });
     await expect(page.getByTestId('inventory-column-row').first()).toBeVisible();
 
     if (testInfo.project.name === 'Desktop Chrome') {
@@ -500,7 +498,9 @@ test.describe('Inventory page — scroll regression guard', () => {
     const inlineTypes = page.getByTestId('inline-type-selector');
     const inlineTypeCount = await inlineTypes.count();
     expect(inlineTypeCount).toBeGreaterThan(0);
-    await expect(page.getByRole('combobox', { name: 'Tea type' })).toHaveCount(0);
+    // The Tea type browsing choice stays in the header row (it filters, it does
+    // not edit); each row carries its own inline type selector beside the name.
+    await expect(page.getByTestId('inventory-column-row').first().getByTestId('inline-type-selector')).toHaveCount(0);
 
     const firstInlineType = inlineTypes.first();
     await expect(firstInlineType).toHaveValue('');
