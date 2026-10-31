@@ -26,12 +26,16 @@ test('inventory purpose labels fit at tablet and desktop widths', async ({ page 
   await page.route('**/api/batches**', route => route.fulfill({ json: [] }));
   await page.goto('/admin/stock');
 
+  // The purposes are choices in the Show teas select since the 2026-10-27
+  // header, one of four labelled choices in this row; each must fit its box.
   const row = page.getByTestId('inventory-purpose-row');
-  const personal = row.getByRole('button', { name: 'Personal', exact: true });
-  await expect(personal).toBeVisible({ timeout: 15_000 });
+  const personal = row.getByRole('combobox', { name: 'Show teas' });
+  await expect(personal.locator('option', { hasText: /^Personal$/ })).toHaveCount(1, { timeout: 15_000 });
+  await personal.selectOption({ label: 'Personal' });
   for (const width of [768, 1440]) {
     await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
     await expect(personal).toBeVisible();
+    await expect.poll(() => row.evaluate(element => element.scrollWidth - element.clientWidth), { message: `the browsing row fits at ${width}px` }).toBeLessThanOrEqual(0);
     // Measure in the page's own typeface. Before Cormorant arrives the button is
     // sized for the fallback face and, for one frame after the swap, the text is
     // wider than its box; that was measured as a clipped label about one run in
