@@ -66,6 +66,11 @@ test.describe('Sample workflows remain reachable outside the capture method row'
   });
 
   test('opens the exact sample set from a Library batch link without remounting Compass', async ({ page }) => {
+    // The 2026-10-25 Library card dropped the per-tea link to its sample batch;
+    // the Samples workspace is still reached from Curate's header (Sample list).
+    // Whether the card should carry the link again is a design question, recorded
+    // in TODO.md rather than decided by deleting this test.
+    test.skip(true, 'The redesigned Library card has no sample-batch link; see TODO.md');
     await installCompassHarness(page);
     await openCompass(page);
     await page.evaluate(async () => {
@@ -143,10 +148,11 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await page.getByRole('button', { name: 'Close Samples workspace' }).click();
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
     await page.getByRole('button', { name: /To taste/ }).click();
-    // The Library renders more than one card layout, and only the one the
-    // current width uses is on screen; .first() was picking a hidden copy on
-    // the desk.
-    await expect(page.getByText('Requested', { exact: true }).filter({ visible: true }).first()).toBeVisible();
+    // The tea joins the tasting queue; its sample state rides in the card's Choose
+    // title since the 2026-10-25 card (the card itself reads Chosen / Choose).
+    const card = page.getByTestId('library-entry-compass-tea-1').filter({ visible: true });
+    await expect(card).toBeVisible();
+    await expect(card.locator('.library-ribbon-sample')).toHaveAttribute('title', /Sample requested/);
     const setName = await page.evaluate(async () => {
       // @ts-expect-error Vite source modules are available in Playwright.
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
@@ -154,8 +160,12 @@ test.describe('Sample workflows remain reachable outside the capture method row'
       return { setId: linked.sampleSetId, decision: linked.decision, verdict: linked.verdict, status: linked.status };
     });
     expect(setName).toMatchObject({ decision: 'selected', verdict: 'love', status: 'noted' });
-    await page.getByRole('button', { name: /Sample list —/ }).click();
+    // The batch is opened from Curate's own Sample list, the card no longer links it:
+    // Sample list, then its batches, then this batch.
+    await page.getByRole('button', { name: /^Sample list \(/ }).first().click();
     await expect(page.getByRole('dialog', { name: 'Samples workspace' })).toBeVisible();
+    await page.getByRole('button', { name: 'View Sample batches' }).click();
+    await page.getByRole('dialog', { name: 'Samples workspace' }).getByRole('button', { name: /^Sample list — / }).click();
     await expect(page.getByRole('button', { name: 'Batch details' })).toBeVisible();
     const status = page.locator('button[title="Click to change status"]').filter({ visible: true });
     await expect(status).toHaveText('Requested');
@@ -196,9 +206,10 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
     await expect(page.getByRole('button', { name: /To taste/ })).toHaveText(/To taste\s*0/);
     await page.getByRole('button', { name: /To taste/ }).click();
-    await expect(page.getByText('All caught up', { exact: true }).filter({ visible: true }).first()).toBeVisible();
+    await expect(page.getByText('No teas waiting to be tasted.', { exact: true }).filter({ visible: true }).first()).toBeVisible();
+    // Tasted, it has left the queue and stays in All.
     await page.getByRole('button', { name: /^All / }).click();
-    await expect(page.getByText('Tasted', { exact: true }).filter({ visible: true }).first()).toBeVisible();
+    await expect(page.getByTestId('library-entry-compass-tea-1').filter({ visible: true })).toBeVisible();
     await page.screenshot({ path: `/tmp/teajia-curate-sample-${testInfo.project.name.replace(/ /g, '-')}.png`, fullPage: true });
   });
 
