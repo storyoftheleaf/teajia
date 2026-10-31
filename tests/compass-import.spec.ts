@@ -931,13 +931,15 @@ test.describe('Curate Import panel', () => {
     await page.route('**/api/curate/imports?state=incomplete', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ imports }) }));
     await openCompass(page);
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
-    await page.getByRole('button', { name: 'Add to Library' }).filter({ visible: true }).click();
+    // Measured before the sheet opens: an open sheet hides the page behind it
+    // from the accessibility tree, so its buttons cannot be found by role.
+    const search = page.getByPlaceholder('Search Library').filter({ visible: true });
+    const addToLibrary = page.getByRole('button', { name: 'Add to Library', exact: true }).filter({ visible: true });
+    const before = await search.boundingBox();
+    expect(Math.abs(before!.y - (await addToLibrary.boundingBox())!.y)).toBeLessThanOrEqual(1);
+    await addToLibrary.click();
     const visibleImports = page.getByRole('region', { name: 'Unfinished imports' }).filter({ visible: true });
     await expect(visibleImports.getByRole('button', { name: /^Open Batch / })).toHaveCount(25);
-    const search = page.getByPlaceholder('Search Library').filter({ visible: true });
-    const newEntry = page.getByRole('button', { name: 'New entry', exact: true }).filter({ visible: true });
-    const before = await search.boundingBox();
-    expect(Math.abs(before!.y - (await newEntry.boundingBox())!.y)).toBeLessThanOrEqual(1);
     await page.screenshot({ path: `/tmp/curate-library-${test.info().project.name}-imports.png` });
     await page.keyboard.press('Escape');
     await expect(visibleImports).toBeHidden();

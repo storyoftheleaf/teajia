@@ -1,6 +1,6 @@
 import { ArTranscriptHandoff } from './ArTranscriptHandoff';
 import { ArCreatePairing } from './ArTeaSources';
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -657,6 +657,15 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const [tabSearchQuery, setTabSearchQuery] = useState('');
   const mobileSearchInputRef = useRef<HTMLInputElement>(null);
   const desktopSearchInputRef = useRef<HTMLInputElement>(null);
+  // Whichever Library search the layout is showing. Deleting the last unfinished
+  // import lands focus here, and pointing at the phone's box alone left the
+  // laptop with nowhere to go.
+  const visibleSearchInputRef = useMemo(() => ({
+    get current() {
+      return [mobileSearchInputRef.current, desktopSearchInputRef.current]
+        .find(input => !!input && input.getClientRects().length > 0) ?? null;
+    },
+  }), []);
 
   // Per-share preview expand state
   const [expandedShareIds, setExpandedShareIds] = useState<Set<string>>(new Set());
@@ -1756,7 +1765,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         <SheetOption label="New teaware" hint="Capture a piece and its provenance" onSelect={() => { setLibraryAddOpen(false); handleNewCapture('teaware'); }} />
         <SheetOption label="Import files" hint="A list, source documents or photos" onSelect={() => { setLibraryAddOpen(false); beginNewImport(); }} />
         <LibraryImportsSection embedded imports={importAccountId === activeAccountId ? importDetails : []} busyImportId={busyLibraryImportId}
-          errorByImportId={libraryImportErrors} focusRequest={libraryDeleteFocusRequest} fallbackFocusRef={mobileSearchInputRef}
+          errorByImportId={libraryImportErrors} focusRequest={libraryDeleteFocusRequest} fallbackFocusRef={visibleSearchInputRef}
           onOpen={(detail, trigger) => { setLibraryAddOpen(false); openSavedImport(detail, libraryAddTriggerRef.current ?? trigger); }} onDelete={deleteSavedImport} />
       </BottomSheet>
 
