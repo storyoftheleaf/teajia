@@ -70,10 +70,13 @@ test('retrying a failed receipt proposal keeps exactly one local purchase line',
     useTeaCompassStore.setState({ entries: [entry], pendingEntries: [], activeEntryId: entry.id });
   });
   await page.getByRole('button', { name: /Buy/ }).last().click();
+  // A purchase waits in Ledger and proposes its receipt on confirmation (2026-10-28);
+  // a gift has no order to confirm, so adding it proposes the receipt at once.
+  await page.getByLabel('Acquisition').filter({ visible: true }).selectOption('gift');
   await page.getByRole('button', { name: 'Add to Ledger' }).click();
   await expect(page.getByRole('alert')).toContainText('Temporary failure');
   await page.getByRole('button', { name: 'Retry receipt' }).click();
-  await expect(page.getByText('Inventory changes only after you accept this receipt.')).toBeVisible();
+  await expect(page.getByText('Inventory changes only after you accept this receipt.').filter({ visible: true }).first()).toBeVisible();
   expect(attempts).toBe(2);
   expect(await page.evaluate(async () => {
     const { useLedgerStore } = await import('/src/lib/ledgerStore.ts');

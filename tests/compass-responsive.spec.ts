@@ -16,7 +16,7 @@ test.describe('Curate responsive preservation', () => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
     const screenTabs = page.getByRole('tablist', { name: 'Screen' });
-    const newEntry = page.getByRole('button', { name: 'New entry', exact: true }).filter({ visible: true }).first();
+    const newEntry = page.getByRole('button', { name: 'Add to Library', exact: true }).filter({ visible: true }).first();
     await expect(newEntry).toBeVisible();
     const viewportWidth = page.viewportSize()!.width;
     const actions = [
