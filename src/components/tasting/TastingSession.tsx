@@ -17,7 +17,7 @@ import { useNotesStore } from '../../lib/notesStore';
 import { syncNotes } from '../../lib/notesSync';
 import { api, hasToken } from '../../lib/api';
 import { resolveTermLabel, resolveTermIcon } from '../../data/tastingTaxonomy';
-import { YourImpression, appendImpressionTranscript } from './YourImpression';
+import { YourImpression, appendImpressionTranscript, impressionNotes } from './YourImpression';
 import { tastingRecap } from './tastingRecap';
 import { normalizeNotes, notesAsStrings } from '../../lib/noteEntries';
 import { useScrollLock } from '../../hooks/useScrollLock';
@@ -419,7 +419,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
           eventTitle: item.eventTitle,
         };
         const noteUpdates = {
-          personalNote: tastingData.notes?.map(n => typeof n === 'string' ? n : n.text).join('\n') || tastingData.voiceNote?.trim() || undefined,
+          personalNote: impressionNotes(tastingData).map(n => typeof n === 'string' ? n : n.text).join('\n') || tastingData.voiceNote?.trim() || undefined,
           rating: tastingData.quality ?? tastingData.rating,
           verdict: verdict ?? undefined,
           wouldBuy: wouldBuy,

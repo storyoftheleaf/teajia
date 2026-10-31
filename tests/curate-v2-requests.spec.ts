@@ -928,7 +928,8 @@ test.describe('Curate v2 requests (phone)', () => {
     expect(synced(sent).get('ta-1')).toMatchObject({ price_amount: 450, price_currency: 'Yuan', price_per_unit_grams: 357, form: 'Cake' });
     // The full tasting opens on the same answers.
     await sheet.getByRole('button', { name: /Full tasting/ }).click();
-    await expect(page.getByRole('radio', { name: '8' }).first()).toBeChecked();
+    // The full tasting is the shared full-screen tasting; its rating is ten buttons.
+    await expect(page.getByRole('button', { name: 'Rate 8 out of 10', exact: true }).first()).toHaveAttribute('aria-pressed', 'true');
     expect(errors).toEqual([]);
   });
   // ── A tasting uses up some of the sample ─────────────────────────────────────

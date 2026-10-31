@@ -1011,7 +1011,7 @@ test.describe('Curate v2 journeys (phone)', () => {
   const rgb = (c: string) => (c.match(/[\d.]+/g) ?? []).map(Number);
   const isClear = (c: string) => { const v = rgb(c); return v.length === 4 && v[3] === 0; };
 
-  test('Full tasting is dressed for Curate: thin frames, gold when chosen, Cormorant sections, Lora labels; Back from it lands on the tea', async ({ page }) => {
+  test('Full tasting opens dressed for Curate on the tea it came from, and Back lands on that tea', async ({ page }) => {
     await installCompassHarness(page, BUY_DATA);
     await openCurateV2(page, 'today');
     await page.getByTestId('today-section-decide').getByRole('button', { name: /Mengku Laobanzhang/ }).click();
@@ -1020,65 +1020,17 @@ test.describe('Curate v2 journeys (phone)', () => {
     await expect(session).toBeVisible();
     await expect(session).toHaveClass(/curate-v2/);
     await page.waitForTimeout(700); // the panel slides in
-
-    const medium = session.getByRole('radio', { name: 'Medium', exact: true }).first();
-    const light = session.getByRole('radio', { name: 'Light', exact: true });
-    await medium.click();
-    // A choice is a thin frame: no fill, a 1px border, a square-ish corner.
-    const frame = (loc: ReturnType<Page['locator']>) => loc.evaluate((el) => { const cs = getComputedStyle(el); return { bg: cs.backgroundColor, bgImage: cs.backgroundImage, bw: cs.borderTopWidth, radius: parseFloat(cs.borderTopLeftRadius), color: cs.borderTopColor, shadow: cs.boxShadow, font: cs.fontFamily, h: el.getBoundingClientRect().height }; });
-    const off = await frame(light);
-    const on = await frame(medium);
-    for (const f of [off, on]) {
-      expect(isClear(f.bg)).toBe(true);
-      expect(f.bgImage).toBe('none');
-      expect(f.bw).toBe('1px');
-      expect(f.radius).toBeLessThanOrEqual(4);
-      expect(f.shadow).toBe('none');
-      expect(f.font).toContain('Lora');
-      expect(f.h).toBeGreaterThanOrEqual(44);
-    }
-    expect(on.color).not.toBe(off.color); // gold when chosen
-    // A section is the word large (Cormorant), a label is Lora capitals, and nothing is a pill.
-    const heading = session.getByText('Texture', { exact: true });
-    expect(await heading.evaluate((el) => { const cs = getComputedStyle(el); return { f: cs.fontFamily, s: parseFloat(cs.fontSize), t: cs.textTransform, b: cs.borderBottomWidth }; })).toMatchObject({ t: 'none', b: '1px' });
-    expect(await heading.evaluate((el) => getComputedStyle(el).fontFamily)).toContain('Cormorant');
-    expect(await heading.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(22);
-    const label = session.getByText('Duration', { exact: true });
-    expect(await label.evaluate((el) => getComputedStyle(el).fontFamily)).toContain('Lora');
-    expect(await label.evaluate((el) => getComputedStyle(el).textTransform)).toBe('uppercase');
-    const pills = await session.locator('.tasting-scroll button').evaluateAll((els) => els.filter((el) => parseFloat(getComputedStyle(el).borderTopLeftRadius) > 8).length);
-    expect(pills).toBe(0);
-    // The quality scale is two rows of five, each at least 44 wide.
-    await page.getByRole('button', { name: /^Effect/ }).first().click();
-    // The new section slides in (about 0.4s, shared with the journal); measure once it has landed.
-    const settling = session.getByText('Settling', { exact: true });
-    await expect.poll(async () => Math.round((await settling.boundingBox())?.x ?? -1)).toBe(16);
-    const ten = await session.getByRole('radio', { name: '10', exact: true }).evaluate((el) => el.getBoundingClientRect().width);
-    expect(ten).toBeGreaterThanOrEqual(44);
-    // Nothing runs sideways: both columns sit inside 16px gutters, the Clear control is whole, no horizontal scroll.
-    const fit = await page.evaluate(() => {
-      const sc = document.querySelector('[data-tasting-session-overlay] .tasting-scroll') as HTMLElement;
-      const rects = Array.from(sc.querySelectorAll('button')).map((b) => b.getBoundingClientRect()).filter((r) => r.width > 0);
-      const clear = sc.querySelector('button[aria-label^="Clear"]')?.getBoundingClientRect();
-      return {
-        docScroll: document.documentElement.scrollWidth - window.innerWidth,
-        paneScroll: sc.scrollWidth - sc.clientWidth,
-        minLeft: Math.min(...rects.map((r) => r.left)),
-        maxRight: Math.max(...rects.map((r) => r.right)),
-        width: window.innerWidth,
-        clearRight: clear ? clear.right : null,
-      };
-    });
-    expect(fit.docScroll).toBeLessThanOrEqual(0);
-    expect(fit.paneScroll).toBeLessThanOrEqual(0);
-    expect(fit.minLeft).toBeGreaterThanOrEqual(15.5);
-    expect(fit.maxRight).toBeLessThanOrEqual(fit.width - 15.5);
-    if (fit.clearRight != null) expect(fit.clearRight).toBeLessThanOrEqual(fit.width);
+    // The full tasting is the shared full-screen tasting (2026-10-28), covered by
+    // the tasting-*.spec files; here it is enough that it opens on this tea.
+    await expect(session.getByRole('button', { name: 'Open your impression' })).toContainText('Mengku Laobanzhang');
+    await expect(session.getByRole('navigation', { name: 'Tasting sections' })).toBeVisible();
     await shot(page, 'review3-full-tasting');
 
     // Back from the full tasting lands on the tea it came from, with the tab where it was.
     await session.getByRole('button', { name: 'Close' }).first().click();
-    await page.getByRole('button', { name: 'Discard' }).click(); // there were unsaved answers
+    // Discard is asked for only when there are unsaved answers.
+    const discard = page.getByRole('button', { name: 'Discard' });
+    if (await discard.isVisible().catch(() => false)) await discard.click();
     await expect(session).toHaveCount(0);
     await expect(overlay(page)).toHaveAttribute('data-layer', 'face');
     await expect(overlay(page)).toContainText('Mengku Laobanzhang');
