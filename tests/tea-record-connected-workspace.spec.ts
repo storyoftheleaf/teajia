@@ -1,5 +1,6 @@
 import { test, expect, type Page } from './fixtures';
 import { compassCreatedProducts, expectNoUnhandledCompassApi, installCompassHarness } from './helpers/compassHarness';
+import { openRecordSection } from './helpers/teaRecord';
 
 const entryId = 'connected-workspace-tea';
 const sourceId = 'connected-workspace-talk';
@@ -77,6 +78,7 @@ async function openWorkspace(page: Page) {
   await page.goto(`/admin/compass?tab=library&entry=${entryId}`, { waitUntil: 'domcontentloaded' });
   const record = page.getByTestId('library-entry-detail').filter({ visible: true });
   await expect(record).toBeVisible();
+  await openRecordSection(page, 'Source material'); // Build this tea lives on the Notes tab
   await record.getByRole('button', { name: 'Build this tea', exact: true }).click();
   const workspace = page.getByRole('dialog', { name: 'Build this tea', exact: true });
   await expect(workspace).toBeVisible();

@@ -1,5 +1,6 @@
 import { test, expect, type Page } from './fixtures';
 import { compassCreatedProducts, expectNoUnhandledCompassApi, installCompassHarness } from './helpers/compassHarness';
+import { openRecordSection } from './helpers/teaRecord';
 
 const entryId = 'ar-linked-tea';
 const productId = 'ar-linked-inventory';
@@ -13,7 +14,7 @@ const originalDescription = 'A spring tea from Yunnan.';
 const entry = { id: entryId, name: 'Cloud Peak', category: 'tea', type: 'Sheng', form: 'Loose', year: 2024, status: 'noted', notes: originalNotes, description: originalDescription, draft_product_id: productId, photos: '[]', audio_clips: '[]', price_amount: 70, price_currency: 'Yuan', price_per_unit_grams: 100, created_at: '2026-10-01T00:00:00Z', updated_at: '2026-10-01T00:00:00Z' };
 const record = (page: Page) => page.getByTestId('library-entry-detail').filter({ visible: true });
 const assistant = (page: Page) => page.getByRole('dialog', { name: 'Build this tea', exact: true }).getByTestId('tea-record-assistant');
-async function openBuild(page: Page) { await record(page).getByRole('button', { name: 'Build this tea', exact: true }).click(); }
+async function openBuild(page: Page) { await openRecordSection(page, 'Source material'); await record(page).getByRole('button', { name: 'Build this tea', exact: true }).click(); }
 type Link = { id: string; entryId: string; sourceId: string; title: string; hash: string; text: string; start: number; end: number };
 
 async function install(page: Page) {

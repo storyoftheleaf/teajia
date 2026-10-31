@@ -1,5 +1,6 @@
 import { test, expect, type Page } from './fixtures';
 import { installCompassHarness, openCompass, expectNoUnhandledCompassApi } from './helpers/compassHarness';
+import { openRecordSection } from './helpers/teaRecord';
 const entryId = 'description-review-tea';
 const source = { id: entryId, name: 'Description Mountain Tea', category: 'tea', type: 'Sheng', form: 'Loose', year: 2024, status: 'noted', notes: 'I noticed a clean mineral finish in this spring tea.', description: 'Existing description written by Adrian.', photos: '[]', audio_clips: '[]', price_amount: 70, price_currency: 'Yuan', price_per_unit_grams: 100, created_at: '2026-10-01T00:00:00Z', updated_at: '2026-10-01T00:00:00Z' };
 const generated = 'A spring tea with a clean mineral finish.';
@@ -22,8 +23,9 @@ async function openRecord(page: Page) {
   await installCompassHarness(page, { compassEntries: [source] });
   await openCompass(page);
   await page.getByRole('tab', { name: 'Library', exact: true }).click();
-  await page.getByTestId(`library-entry-${entryId}`).filter({ visible: true }).getByRole('button', { name: `More about ${source.name}`, exact: true }).click();
+  await page.getByTestId(`library-entry-${entryId}`).filter({ visible: true }).getByRole('button', { name: `Edit details for ${source.name}`, exact: true }).click();
   await expect(page.getByTestId('library-entry-detail').filter({ visible: true })).toBeVisible();
+  await openRecordSection(page, 'Source material'); // Build this tea lives on the Notes tab
   await page.getByTestId('library-entry-detail').filter({ visible: true }).getByRole('button', { name: 'Build this tea', exact: true }).click();
   return page.getByRole('dialog', { name: 'Build this tea', exact: true }).getByTestId('tea-description-review');
 }
