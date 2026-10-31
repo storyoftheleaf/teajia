@@ -157,11 +157,12 @@ test('the filter leaves a real rail standing, it does not empty every page', asy
     ['/read/porcelain-and-tea', ['/read/ritual', '/read/tasting']],
   ] as const) {
     await page.goto(pagePath, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(600);
-    const links = await readLinksOn(page);
+    // Wait for the rail itself rather than a fixed pause: under load the cards
+    // arrived after 600ms and the page read as offering nothing.
     for (const href of expected) {
-      expect(links, `${pagePath} stopped offering ${href}, which is live`).toContain(href);
+      await expect.poll(() => readLinksOn(page), { message: `${pagePath} stopped offering ${href}, which is live`, timeout: 10_000 }).toContain(href);
     }
+    const links = await readLinksOn(page);
     // And the draft each of them used to advertise is gone.
     expect(links, `${pagePath} still offers /read/history, which is a draft`).not.toContain('/read/history');
   }

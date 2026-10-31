@@ -55,6 +55,7 @@ test('five finishes preserve Stock structure, tighten reference spacing and fit 
   await page.goto('/preview/stock-cards/index.html');
   await page.getByRole('button',{name:'05 Soft glaze',exact:true}).click();
   await expect(page.locator('iframe')).toHaveAttribute('src','/admin/stock?cardStudy=5');
-  await expect(page.frameLocator('iframe').locator('[data-card-study="5"]').first()).toBeVisible();
+  // The frame loads the whole Stock screen; give it the time a full load takes.
+  await expect(page.frameLocator('iframe').locator('[data-card-study="5"]').first()).toBeVisible({ timeout: 20_000 });
   await page.screenshot({path:test.info().outputPath('card-finish-comparison.png')});
 });
