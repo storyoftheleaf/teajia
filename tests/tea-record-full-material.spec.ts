@@ -62,7 +62,7 @@ for (const viewport of ['phone', 'desktop'] as const) {
     expect(proposals[0].draftSources).toHaveLength(2);
     await draft.fill('My reviewed public draft stays here.');
     await workspace.getByRole('checkbox', { name: 'Save this description', exact: true }).check();
-    await page.screenshot({ path: `/private/tmp/tea-full-material-${viewport}.png`, animations: 'disabled' });
+    await page.screenshot({ path: `/tmp/tea-full-material-${viewport}.png`, animations: 'disabled' });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     const header = await workspace.locator('header').boundingBox();
     const footer = await workspace.locator('footer').boundingBox();

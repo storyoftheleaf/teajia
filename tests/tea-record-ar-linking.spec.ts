@@ -82,7 +82,7 @@ async function linkTalk(page: Page, update = false) {
   const result = page.getByRole('button', { name: new RegExp('^Cloud Peak: a conversation with the farmer') });
   await expect(result).toBeVisible();
   const viewport = page.viewportSize()!.width < 900 ? 'phone' : 'desktop';
-  if (!update) await page.screenshot({ path: `/private/tmp/tea-record-ar-search-${viewport}.png`, fullPage: false, animations: 'disabled' });
+  if (!update) await page.screenshot({ path: `/tmp/tea-record-ar-search-${viewport}.png`, fullPage: false, animations: 'disabled' });
   await result.click();
   await expect(page.getByRole('region', { name: 'Review linked passage', exact: true })).toBeVisible();
   await page.getByRole('checkbox', { name: /^Use the full transcript/ }).uncheck();
@@ -90,7 +90,7 @@ async function linkTalk(page: Page, update = false) {
   const linkAction = assistant(page).getByRole('button', { name: 'Review this passage', exact: true });
   await linkAction.scrollIntoViewIfNeeded();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
-  if (!update) await page.screenshot({ path: `/private/tmp/tea-record-ar-passage-${viewport}.png`, fullPage: false, animations: 'disabled' });
+  if (!update) await page.screenshot({ path: `/tmp/tea-record-ar-passage-${viewport}.png`, fullPage: false, animations: 'disabled' });
   if (viewport === 'phone') {
     const buttonBox = await linkAction.boundingBox();
     const nav = await page.locator('nav[aria-label="Main navigation"]').boundingBox();
@@ -152,7 +152,7 @@ for (const viewport of ['phone', 'desktop'] as const) {
     await expect(assistant(page).getByRole('textbox', { name: 'Proposed description', exact: true })).toBeVisible();
     expect((await counts(page)).entries[0].description).toBe(originalDescription);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
-    await page.screenshot({ path: `/private/tmp/tea-record-ar-linking-${viewport}.png`, fullPage: false, animations: 'disabled' });
+    await page.screenshot({ path: `/tmp/tea-record-ar-linking-${viewport}.png`, fullPage: false, animations: 'disabled' });
     await expectNoUnhandledCompassApi(page);
   });
 }

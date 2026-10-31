@@ -49,7 +49,7 @@ test('phone description proposal stays editable and saves only after explicit ac
   await review.getByText('Sources used (1)', { exact: true }).click();
   await expect(review.locator('blockquote')).toContainText(source.notes);
   await text.fill('Reviewed spring tea with a mineral finish.');
-  await page.screenshot({ path: '/private/tmp/tea-record-description-phone-proposal.png', fullPage: true, animations: 'disabled' });
+  await page.screenshot({ path: '/tmp/tea-record-description-phone-proposal.png', fullPage: true, animations: 'disabled' });
   await review.getByRole('checkbox', { name: 'Save this description', exact: true }).check();
   expect((await current(page))?.description).toBe(source.description);
   await page.getByRole('dialog', { name: 'Build this tea', exact: true }).getByRole('button', { name: 'Save accepted changes', exact: true }).click();

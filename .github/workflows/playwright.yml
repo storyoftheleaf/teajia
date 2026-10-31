@@ -228,6 +228,10 @@ jobs:
     # minutes and proves nothing, so a cap the suite actually fits in costs
     # fewer runner minutes than one it overruns. Rebalance or add a shard if
     # a shard nears 35.
+    #
+    # 4 became 6 on 2026-10-31, measured: with every shard green but for one
+    # screenshot path, shard 2 still took 32 of its 35 minutes and shard 4
+    # was cut off at the cap. Six shards put each near 20.
     runs-on: ubuntu-latest
     needs: gate
     if: needs.gate.outputs.run == 'true' && github.event_name != 'schedule' && github.event_name != 'pull_request'
@@ -235,7 +239,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
@@ -253,8 +257,8 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Full browser suite (shard ${{ matrix.shard }}/4)
-        run: npx playwright test --project="Desktop Chrome" --project="Mobile Chrome" --grep-invert "$KNOWN_FAILING_E2E" --shard=${{ matrix.shard }}/4 --reporter=list
+      - name: Full browser suite (shard ${{ matrix.shard }}/6)
+        run: npx playwright test --project="Desktop Chrome" --project="Mobile Chrome" --grep-invert "$KNOWN_FAILING_E2E" --shard=${{ matrix.shard }}/6 --reporter=list
 
   e2e-changed:
     # Pull requests only: the specs this PR changed, against its base branch.

@@ -63,7 +63,7 @@ test.describe('Library workspace handoffs', () => {
       await expect(page.getByRole('tab', { name: 'Library', exact: true })).toHaveAttribute('aria-selected', 'true');
       await expect(row(page)).toBeVisible();
       await noOverflow(page);
-      await page.screenshot({ path: `/private/tmp/library-workspace-${info.project.name.includes('Mobile') ? 'phone393' : 'desktop'}-${theme}.png`, fullPage: true, animations: 'disabled' });
+      await page.screenshot({ path: `/tmp/library-workspace-${info.project.name.includes('Mobile') ? 'phone393' : 'desktop'}-${theme}.png`, fullPage: true, animations: 'disabled' });
     }
     await row(page).getByRole('button', { name: 'Edit details for Cloud Peak', exact: true }).click();
     await expect(record(page)).toBeVisible();
@@ -79,7 +79,7 @@ test.describe('Library workspace handoffs', () => {
     await expect(record(page).getByRole('textbox', { name: 'Add a note', exact: true })).toBeVisible();
     await expect(record(page).getByTestId('tea-record-scroll').getByRole('button', { name: 'Taste', exact: true })).toBeVisible();
     await expect(record(page).getByTestId('tea-record-scroll').getByRole('region', { name: 'Inventory handoff' })).toHaveCount(1);
-    await page.screenshot({ path: `/private/tmp/library-workspace-${info.project.name.includes('Mobile') ? 'phone393' : 'desktop'}-record-top.png`, fullPage: false, animations: 'disabled' });
+    await page.screenshot({ path: `/tmp/library-workspace-${info.project.name.includes('Mobile') ? 'phone393' : 'desktop'}-record-top.png`, fullPage: false, animations: 'disabled' });
     await record(page).getByRole('textbox', { name: 'Add a note', exact: true }).fill('The farmer picked this before the spring rain.');
     await record(page).getByRole('button', { name: 'Add note', exact: true }).click();
     await expect(record(page).getByText('Note added to this tea.', { exact: true })).toBeVisible();
@@ -100,7 +100,7 @@ test.describe('Library workspace handoffs', () => {
     await noOverflow(page);
     await record(page).getByTestId('tea-record-scroll').evaluate(element => { element.scrollTop = element.scrollHeight; });
     await record(page).getByRole('button', { name: 'Create Inventory record', exact: true }).scrollIntoViewIfNeeded();
-    await page.screenshot({ path: `/private/tmp/library-workspace-${info.project.name.includes('Mobile') ? 'phone393' : 'desktop'}-record-footer.png`, fullPage: false, animations: 'disabled' });
+    await page.screenshot({ path: `/tmp/library-workspace-${info.project.name.includes('Mobile') ? 'phone393' : 'desktop'}-record-footer.png`, fullPage: false, animations: 'disabled' });
     expect((await header.boundingBox())!.y).toBeCloseTo(headerBox!.y, 0);
     await expect(record(page).getByRole('textbox', { name: 'Add a note', exact: true })).not.toBeInViewport();
     if (info.project.name.includes('Mobile')) {

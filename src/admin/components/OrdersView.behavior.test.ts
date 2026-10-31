@@ -171,12 +171,12 @@ describe('shipping and payment on one order screen', () => {
     expect(await page.getByText('$40.00 USD', { exact: true }).count()).toBe(1);
     expect(await page.getByRole('button', { name: 'Record payment', exact: true }).count()).toBe(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    await page.screenshot({ path: '/private/tmp/teajia-order-mobile.png', fullPage: true });
+    await page.screenshot({ path: '/tmp/teajia-order-mobile.png', fullPage: true });
     await page.getByRole('heading', { name: 'Payments', exact: true }).scrollIntoViewIfNeeded();
-    await page.screenshot({ path: '/private/tmp/teajia-order-mobile-payments.png', fullPage: true });
+    await page.screenshot({ path: '/tmp/teajia-order-mobile-payments.png', fullPage: true });
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.getByText('Invoice Details', { exact: true }).scrollIntoViewIfNeeded();
-    await page.screenshot({ path: '/private/tmp/teajia-order-desktop.png', fullPage: true });
+    await page.screenshot({ path: '/tmp/teajia-order-desktop.png', fullPage: true });
   });
 
   it('refuses a blank quote and preserves a deliberate zero', async () => {

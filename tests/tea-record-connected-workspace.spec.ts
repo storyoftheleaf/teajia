@@ -134,7 +134,7 @@ for (const viewport of ['phone', 'desktop'] as const) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     const dialogWidth = (await workspace.boundingBox())!.width;
     expect(dialogWidth).toBeLessThanOrEqual(page.viewportSize()!.width);
-    await page.screenshot({ path: `/private/tmp/tea-record-connected-workspace-${viewport}.png`, fullPage: false, animations: 'disabled' });
+    await page.screenshot({ path: `/tmp/tea-record-connected-workspace-${viewport}.png`, fullPage: false, animations: 'disabled' });
 
     await workspace.getByRole('button', { name: 'Save accepted changes', exact: true }).click();
     await expect.poll(async () => (await current(page)).entry?.description).toBe('Reviewed spring tea with a clean mineral finish.');

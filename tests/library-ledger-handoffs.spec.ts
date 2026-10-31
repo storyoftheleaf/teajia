@@ -102,7 +102,7 @@ test('phone Source draft, confirmation and explicit receipt preserve one tea ide
   expect(shop.accepted()).toBe(0);
   const receive = page.getByRole('button', { name: 'Receive 250g', exact: true });
   await expect(receive).toBeVisible();
-  await page.screenshot({ path: '/private/tmp/library-ledger-phone-before-receive.png', fullPage: true, animations: 'disabled' });
+  await page.screenshot({ path: '/tmp/library-ledger-phone-before-receive.png', fullPage: true, animations: 'disabled' });
   await receive.evaluate((button: HTMLButtonElement) => { button.click(); button.click(); });
   await expect.poll(() => shop.accepted()).toBe(1);
   expect(shop.holding.stock_grams).toBe(250);
@@ -111,7 +111,7 @@ test('phone Source draft, confirmation and explicit receipt preserve one tea ide
   expect((await ledgerState(page)).transactions[0].items[0]).toMatchObject({ compassEntryId: entryId, productId, quantityGrams: 250 });
   expect(compassCreatedProducts(page)).toHaveLength(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
-  await page.screenshot({ path: '/private/tmp/library-ledger-phone-received.png', fullPage: true, animations: 'disabled' });
+  await page.screenshot({ path: '/tmp/library-ledger-phone-received.png', fullPage: true, animations: 'disabled' });
   await expectNoUnhandledCompassApi(page);
 });
 
@@ -134,6 +134,6 @@ test('phone Inventory reorder opens a draft linked to the existing product and s
   expect(shop.orders).toHaveLength(0);
   expect(shop.proposals).toHaveLength(0);
   expect(compassCreatedProducts(page)).toHaveLength(0);
-  await page.screenshot({ path: '/private/tmp/library-inventory-reorder-phone.png', fullPage: true, animations: 'disabled' });
+  await page.screenshot({ path: '/tmp/library-inventory-reorder-phone.png', fullPage: true, animations: 'disabled' });
   await expectNoUnhandledCompassApi(page);
 });

@@ -23,7 +23,7 @@ for (const viewport of ['phone', 'desktop'] as const) {
     expect(writes).toHaveLength(0);
     await dialog.getByRole('checkbox', { name: 'Link Aged Shuixian', exact: true }).check();
     await dialog.getByRole('checkbox', { name: 'Link Second tea', exact: true }).check();
-    await page.screenshot({ path: `/private/tmp/ar-transcript-handoff-${viewport}.png`, animations: 'disabled' });
+    await page.screenshot({ path: `/tmp/ar-transcript-handoff-${viewport}.png`, animations: 'disabled' });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     await dialog.getByRole('button', { name: 'Link selected teas', exact: true }).click();
     await expect(dialog.getByText('2 teas linked to this transcript. Tea details and descriptions were kept.', { exact: true })).toBeVisible();
