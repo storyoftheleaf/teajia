@@ -17,4 +17,15 @@ describe('a saved commerce change reaches every dependent view', () => {
     expect(client.getQueryState(['article', 'tea'])?.isInvalidated).toBe(false);
     client.clear();
   });
+
+  it('leaves the full shelf alone when the caller has already reconciled the changed rows', async () => {
+    const client = new QueryClient();
+    const shelf = ['products', 'account', 'user'];
+    const dependent = [['products', 'public'], ['products', 'detail', 'account', 'tea-1'], ['stock_ledger', 'account', 'user'], ['inventory-summary', 'account'], ['orders', 'account']];
+    for (const key of [shelf, ...dependent]) client.setQueryData(key, { saved: true });
+    await refreshCommerceQueries(client, 'account', { shelfRowsReconciled: true });
+    expect(client.getQueryState(shelf)?.isInvalidated).toBe(false);
+    for (const key of dependent) expect(client.getQueryState(key)?.isInvalidated, key.join('/')).toBe(true);
+    client.clear();
+  });
 });

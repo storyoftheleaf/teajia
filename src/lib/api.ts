@@ -1046,6 +1046,12 @@ export interface ApiRequestInit extends RequestInit {
   timeoutMs?: number;
   background?: boolean;
   reportIncident?: boolean;
+  /**
+   * The caller refreshes the dependent commerce queries itself, with the changed
+   * rows already reconciled, so authedFetch does not broadcast a second, full
+   * refresh (which would read the whole shelf again).
+   */
+  callerRefreshesCommerce?: boolean;
 }
 
 type ApiBackgroundOptions = Pick<ApiRequestInit, 'background'>;
@@ -1404,7 +1410,7 @@ async function authenticatedResponse(url: string, init: ApiRequestInit = {}): Pr
 async function authedFetch(url: string, init: ApiRequestInit = {}): Promise<any> {
   const accountId = useAppStore.getState().activeAccountId;
   const result = await handleResponse(await authenticatedResponse(url, init));
-  if (init.method && !['GET', 'HEAD'].includes(init.method.toUpperCase()) &&
+  if (!init.callerRefreshesCommerce && init.method && !['GET', 'HEAD'].includes(init.method.toUpperCase()) &&
       (/\/api\/(products|invoices|invoice-payments|inquiries|accounts|rates|stock|inventory|purchase-orders|logistics|listings|network|collections|rpc|curate\/receipt-proposals)(\/|$)/.test(url)
         || /\/api\/compass\/(sync|entries\/[^/]+(?:\/promote)?)(?:\?|$)/.test(url)
         || /\/api\/curate\/imports\/[^/]+\/finalize(?:\?|$)/.test(url))) {
@@ -1764,7 +1770,7 @@ export const api = {
       unit: 'g' | 'unit'; expected_balance: number; idempotency_key: string;
       quantity?: number; balance?: number; destination_product_id?: string;
       note?: string; batch_id?: string; source_invoice_id?: string; source_invoice_number?: string; source_compass_entry_id?: string;
-    }) => authedFetch(`${API_URL}/api/products/${productId}/movements`, { method: 'POST', body: JSON.stringify(body), retryTimeouts: true }),
+    }, options: Pick<ApiRequestInit, 'callerRefreshesCommerce'> = {}) => authedFetch(`${API_URL}/api/products/${productId}/movements`, { method: 'POST', body: JSON.stringify(body), retryTimeouts: true, ...options }),
   },
   // Working Feature Guide, admin-only internal build tracker.
   featureStatus: {

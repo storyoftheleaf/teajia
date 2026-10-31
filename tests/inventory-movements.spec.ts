@@ -264,9 +264,12 @@ test('normal stock interaction opens explicit movement actions and previews befo
   await page.getByRole('button', { name: 'Record movement' }).click();
   await expect(page.getByText('Cloud · 85g')).toBeVisible();
   await page.getByRole('button', { name: 'Show stock history' }).click();
-  await expect(page.getByText('Broken storage bag')).toBeVisible();
+  // The ledger entry, not the note field it was typed into.
+  await expect(page.getByRole('article').getByText('Broken storage bag')).toBeVisible();
   await expect(page.getByText('operator@test')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'INV-204' })).toBeVisible();
+  // A typed reference with no invoice behind it is shown, not linked: only a
+  // movement carrying a source_invoice_id opens the order it came from.
+  await expect(page.getByRole('article').getByText('INV-204', { exact: true })).toBeVisible();
 });
 
 test('stock adjustment opens as a compact task with optional details and history collapsed', async ({ page }) => {
@@ -334,7 +337,7 @@ test('gift and waste submit exact outward movements and refresh their ledger bal
     expect(movementBodies.at(-1)).toMatchObject({ movement_type: type, quantity: Number(quantity), expected_balance: Number(expected) + Number(quantity) });
     await expect(page.getByText(`Cloud · ${expected}g`)).toBeVisible();
     if (label === 'Gift') await page.getByRole('button', { name: 'Show stock history' }).click();
-    await expect(page.getByText(`${label} detail`)).toBeVisible();
+    await expect(page.getByRole('article').getByText(`${label} detail`)).toBeVisible();
     await expect(page.getByText(`${Number(expected) + Number(quantity)}g → ${expected}g`)).toBeVisible();
   }
 });

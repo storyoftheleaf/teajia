@@ -93,15 +93,13 @@ async function openInventorySearch(page: Page) {
   return field;
 }
 
+/* Every view is one choice in Show teas, grouped as Collection, Tasting, Work
+   to do and Archive. The Working purpose reads Shop stock there. */
+const showTeas = (page: Page) => page.getByRole('combobox', { name: 'Show teas' });
+const VIEW_LABEL: Record<string, string> = { Working: 'Shop stock' };
+
 async function selectView(page: Page, label: string) {
-  const primary = purposeRow(page).getByRole('button', { name: label, exact: true });
-  if (await primary.isVisible().catch(() => false)) {
-    await primary.click();
-    return;
-  }
-  // Everything that is not one of the four purposes lives behind Flagged.
-  await page.getByRole('button', { name: 'Show flagged views' }).click();
-  await page.getByRole('menuitem', { name: label }).click();
+  await showTeas(page).selectOption({ label: VIEW_LABEL[label] ?? label });
 }
 
 test.skip(({ isMobile }) => isMobile, 'Drives the laptop ledger; the phone Stock cards are covered in stock-reference.spec.ts');
@@ -110,11 +108,9 @@ test.beforeEach(async ({ page }) => {
   updateRequests.length = 0;
   await install(page);
   await page.goto('/admin/stock');
-  // The lens row is seeded by an effect after mount, so for a moment it is
-  // empty and 'Working' does not exist yet. Waiting for the row to be complete
-  // rather than for one button in it: at 5s this failed about one run in three.
-  await expect(purposeLenses(page).getByRole('button')).toHaveCount(4, { timeout: 15_000 });
-  await expect(purposeRow(page).getByRole('button', { name: 'Working', exact: true })).toBeVisible();
+  // The views are seeded by an effect after mount, so for a moment Shop stock
+  // is not a choice yet: wait for it rather than for the select alone.
+  await expect(showTeas(page).locator('option', { hasText: /^Shop stock$/ })).toHaveCount(1, { timeout: 15_000 });
 });
 
 async function expectInputValue(page: Page, value: string) {
@@ -122,12 +118,8 @@ async function expectInputValue(page: Page, value: string) {
 }
 
 test('purpose and action views remain separate and preserve legacy mappings', async ({ page }) => {
-  await expect(purposeRow(page).getByRole('button', { name: 'Working', exact: true })).toBeVisible();
-  // A saved view of the operator's own is not a purpose, so it belongs in the
-  // flagged menu rather than in the four-button row.
-  await page.getByRole('button', { name: 'Show flagged views' }).click();
-  await expect(page.getByRole('menuitem', { name: 'My selling list' })).toBeVisible();
-  await page.getByRole('button', { name: 'Hide flagged views' }).click();
+  // A saved view of the operator's own is still a choice beside the purposes.
+  await expect(showTeas(page).locator('option', { hasText: /^My selling list$/ })).toHaveCount(1);
   await selectView(page, 'Working');
   await expect(page.getByText('Ready Hidden Tea')).toBeVisible();
   await expect(page.getByText('Field Sample')).toHaveCount(0);
@@ -155,7 +147,9 @@ test('readiness names omissions and publication remains an independent dual gate
   await page.locator('tr[data-product-id="needs"]').dispatchEvent('click');
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit', exact: true }).click();
   await expect(page.getByText('Missing description, retail price, classification, and stock amount')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Develop in Curate' })).toHaveAttribute('data-compass-entry-id', 'entry-needs');
+  // A tea already linked to its Curate record opens that shared record rather than
+  // starting a new development (Develop in Curate is for unlinked teas only).
+  await expect(page.getByTestId('inventory-open-tea-record')).toHaveAttribute('data-compass-entry-id', 'entry-needs');
   await expect(page.getByText('Publication: Hidden, listing off; location held')).toBeVisible();
   await expect(page.getByText(/\d+%/)).toHaveCount(0);
 });
@@ -176,17 +170,19 @@ test('action views include tasting, reorder, and missing location', async ({ pag
     await selectView(page, view);
     await expect(page.getByText(product)).toBeVisible();
   }
-  await page.getByTestId('inventory-primary-row').getByRole('button', { name: 'Incoming', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Incoming stock' })).toBeVisible();
+  // Incoming is in the actions menu and opens the Purchases tracking view.
+  await page.getByRole('button', { name: 'Open inventory actions' }).click();
+  await page.getByRole('menu').getByRole('button', { name: 'Incoming', exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/purchase-orders\?view=coming/);
 });
 
 test('development handoff opens the exact linked Curate entry', async ({ page }) => {
   await selectView(page, 'Needs development');
   await page.locator('tr[data-product-id="needs"]').dispatchEvent('click');
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit', exact: true }).click();
-  await page.getByRole('button', { name: 'Develop in Curate' }).click();
-  await expect(page).toHaveURL(/\/admin\/compass\?tab=sourcing&entry=entry-needs/);
-  await expectInputValue(page, 'Needs Four Things Encounter');
+  await page.getByTestId('inventory-open-tea-record').click();
+  await expect(page).toHaveURL(/\/admin\/compass\?tab=library&entry=entry-needs/);
+  await expect(page.getByText('Needs Four Things Encounter').filter({ visible: true }).first()).toBeVisible();
 });
 
 test('unlinked development waits for consent then creates exactly one linked draft', async ({ page }) => {
@@ -235,13 +231,17 @@ test('All composes with category, search, sort, grouping, and visible columns', 
 
   if ((page.viewportSize()?.width || 0) >= 768) {
     await page.getByRole('button', { name: /Sort by Product/ }).click();
-    await page.getByRole('button', { name: 'Group inventory' }).click();
-    await page.getByRole('option', { name: 'Type', exact: true }).click();
-    await expect(page.getByRole('button', { name: /Oolong \d+ items/ })).toBeVisible();
-    await page.getByRole('button', { name: 'Show or hide columns' }).click();
-    await page.getByRole('menuitem', { name: 'Year' }).getByRole('checkbox').uncheck();
-    await expect(page.getByRole('columnheader', { name: /Sort by Year/ })).toHaveCount(0);
+    // Grouping and the table's columns are both in View options, which the open
+    // search field takes the place of in the header.
+    if (!(await page.getByRole('button', { name: 'View options' }).isVisible())) await search.press('Escape');
+    await page.getByRole('button', { name: 'View options' }).click();
+    const options = page.getByRole('dialog', { name: 'View options' });
+    await options.getByRole('combobox', { name: 'Group by' }).selectOption({ label: 'Type' });
+    await options.getByText('Table columns', { exact: true }).click();
+    await options.getByRole('checkbox', { name: 'Year', exact: true }).uncheck();
     await page.keyboard.press('Escape');
+    await expect(page.getByRole('button', { name: /^Collapse Oolong/ }).first()).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: /Sort by Year/ })).toHaveCount(0);
   }
 
   await page.getByRole('button', { name: 'Wares' }).click();

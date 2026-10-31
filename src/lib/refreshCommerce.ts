@@ -27,9 +27,27 @@ export function notifyCommerceChanged(accountId?: string | null, queriesInvalida
   }
 }
 
-export async function refreshCommerceQueries(client: QueryClient, accountId?: string | null): Promise<void> {
+/** The admin shell's full shelf, `['products', account, user]` (useProducts). */
+export function isAdminProductList(key: QueryKey): boolean {
+  return key[0] === 'products' && key.length === 3 && key[1] !== 'detail' && key[1] !== 'public';
+}
+
+export interface RefreshCommerceOptions {
+  /**
+   * The caller has already put the changed rows into the shelf (the product
+   * reconciler reads just those teas), so refetching the whole shelf again
+   * only repeats the most expensive read in the admin. Everything else that
+   * depends on the change still refreshes.
+   */
+  shelfRowsReconciled?: boolean;
+}
+
+export async function refreshCommerceQueries(client: QueryClient, accountId?: string | null, options: RefreshCommerceOptions = {}): Promise<void> {
   // Local readiness summaries also subscribe; the bootstrap listener ignores
   // this acknowledged event so a refresh cannot recursively trigger itself.
   notifyCommerceChanged(accountId, true);
-  await client.invalidateQueries({ predicate: query => isCommerceQuery(query.queryKey) });
+  await client.invalidateQueries({
+    predicate: query => isCommerceQuery(query.queryKey)
+      && !(options.shelfRowsReconciled && isAdminProductList(query.queryKey)),
+  });
 }
