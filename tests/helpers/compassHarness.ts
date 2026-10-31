@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test';
+import { fulfillHoldings } from './curateHoldings';
 
 const enc = (s: string) => Buffer.from(s).toString('base64url');
 const memberships = [{ account_id: 'acct-bali', account_name: 'Teajia Bali', role: 'owner', slug: 'teajia-bali' }];
@@ -370,7 +371,7 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
         const samples = h.portions.map((p, i) => ({ id: p.id, name: p.name ?? `Portion ${i + 1}`, grams: p.grams, grams_known: p.grams == null ? 0 : 1, status: p.status ?? 'received', set_id: 'set-1', compass_entry_id: h.entryId }));
         return { entry, stock_grams: 0, sample_grams: samples.length && samples.every((x) => x.grams !== null) ? samples.reduce((sum, x) => sum + Number(x.grams), 0) : null, samples };
       });
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(holdings) });
+      return fulfillHoldings(route, holdings);
     }
     // Curate's correction door: a preview answers with a confirmation token, the confirm with success.
     // The bodies are recorded by the tests' own request listener; this only answers.

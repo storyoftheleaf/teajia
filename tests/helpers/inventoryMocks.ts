@@ -1,7 +1,7 @@
 import type { Page } from '../fixtures';
 
 // The Stock screen's API mocks, shared by inventory-scroll.spec.ts (laptop
-// ledger) and stock-phone.spec.ts (phone list), so both read the same shelf.
+// ledger) and the phone and Samples specs, so all of them read the same shelf.
 
 function makeFakeJWT(payload: object): string {
   const enc = (s: string) => Buffer.from(s).toString('base64url');

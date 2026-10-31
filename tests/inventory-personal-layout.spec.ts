@@ -5,8 +5,8 @@ function token() {
   return `${enc({ alg: 'HS256', typ: 'JWT' })}.${enc({ sub: 'admin', email: 'admin@test', role: 'owner', exp: Math.floor(Date.now() / 1000) + 86400, active_account_id: 'acct', memberships: [{ account_id: 'acct', role: 'owner' }] })}.sig`;
 }
 
-// Below 768px the purpose views live in the phone's one-line view menu
-// (stock-phone.spec.ts), so the labels are measured where they are a row.
+// Below 768px the phone shows Stock cards instead (stock-reference.spec.ts),
+// so the labels are measured where they are a row.
 test('inventory purpose labels fit at tablet and desktop widths', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name === 'Mobile Chrome', 'The phone shows these in a menu, not a row');
   const jwt = token();
