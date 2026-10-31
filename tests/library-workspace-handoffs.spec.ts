@@ -1,5 +1,7 @@
 import { test, expect, type Page } from './fixtures';
 import { compassCreatedProducts, expectNoUnhandledCompassApi, installCompassHarness, openCompass } from './helpers/compassHarness';
+import { closeRecord, openRecordSection } from './helpers/teaRecord';
+import { showTransferred } from './helpers/libraryView';
 
 const entryId = 'workspace-source-record';
 const photo = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="120" height="120"%3E%3Crect width="120" height="120" fill="%23728b63"/%3E%3C/svg%3E';
@@ -15,11 +17,6 @@ const visible = (page: Page, testId: string) => page.getByTestId(testId).filter(
 const row = (page: Page) => visible(page, `library-entry-${entryId}`);
 const record = (page: Page) => visible(page, 'library-entry-detail');
 
-async function openRecordSection(page: Page, name: string) {
-  const section = record(page).locator(`details[data-record-section="${name}"]`);
-  if (!(await section.evaluate(element => (element as HTMLDetailsElement).open))) await section.locator(':scope > summary').click();
-  return section;
-}
 
 async function noOverflow(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
@@ -46,10 +43,19 @@ test.describe('Library workspace handoffs', () => {
 
   test('opens More directly into the same editable record and saves description separately from notes', async ({ page }, info) => {
     await openLibrary(page);
-    await expect(row(page)).toContainText('$0.10/g');
+    // Per gram is a bare number in the display currency (libraryCardAmounts).
+    await expect(row(page).locator('span:text-is("Per gram") + strong')).toHaveText('0.1');
     await expect(row(page)).toContainText('Chosen');
-    await expect(visible(page, 'library-entry-workspace-white')).toContainText('Ordered · 500g ordered');
-    await expect(visible(page, 'library-entry-workspace-oolong')).toContainText('Part received · 40g due');
+    // Ordered teas read as Chosen on their cards; the quantities live in the record's Orders tab.
+    for (const id of ['workspace-white', 'workspace-oolong']) {
+      await expect(visible(page, `library-entry-${id}`).getByRole('button', { name: 'Chosen', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    }
+    await visible(page, 'library-entry-workspace-oolong').getByRole('button', { name: 'Edit details for Mountain Oolong', exact: true }).click();
+    const oolongOrders = await openRecordSection(page, 'Purchasing');
+    await expect(oolongOrders.getByRole('region', { name: 'Purchase facts' })).toContainText(/Ordered\s*100/);
+    await expect(oolongOrders.getByRole('region', { name: 'Purchase facts' })).toContainText(/Received\s*60/);
+    await expect(oolongOrders.getByRole('region', { name: 'Purchase facts' })).toContainText(/Incoming\s*40/);
+    await closeRecord(page);
     await expect(row(page).getByRole('button', { name: /Save|Carry|Pass|Add to/ })).toHaveCount(0);
     for (const theme of ['light', 'dark']) {
       await page.evaluate(value => localStorage.setItem('teajia_theme', value), theme);
@@ -59,13 +65,18 @@ test.describe('Library workspace handoffs', () => {
       await noOverflow(page);
       await page.screenshot({ path: `/private/tmp/library-workspace-${info.project.name.includes('Mobile') ? 'phone393' : 'desktop'}-${theme}.png`, fullPage: true, animations: 'disabled' });
     }
-    await row(page).getByRole('button', { name: 'More about Cloud Peak' }).click();
+    await row(page).getByRole('button', { name: 'Edit details for Cloud Peak', exact: true }).click();
     await expect(record(page)).toBeVisible();
-    const header = record(page).getByTestId('tea-record-header');
+    // From a card the record opens in the Tea details sheet, whose title row is
+    // the record's fixed header; it stays compact and does not scroll away.
+    const header = page.getByRole('dialog', { name: 'Tea details' }).getByRole('heading', { name: 'Tea details' });
+    // Adding a note is the first thing on the Notes tab; the full notes field sits below it.
+    await openRecordSection(page, 'Source material');
+    // Measured once the sheet has finished sliding in.
+    await expect.poll(async () => { const a = await header.boundingBox(); await page.waitForTimeout(150); const b = await header.boundingBox(); return a && b && Math.abs(a.y - b.y) < 0.5; }).toBe(true);
     const headerBox = await header.boundingBox();
     expect(headerBox!.height).toBeLessThanOrEqual(80);
     await expect(record(page).getByRole('textbox', { name: 'Add a note', exact: true })).toBeVisible();
-    await expect(record(page).getByRole('textbox', { name: 'Notes', exact: true })).toBeHidden();
     await expect(record(page).getByTestId('tea-record-scroll').getByRole('button', { name: 'Taste', exact: true })).toBeVisible();
     await expect(record(page).getByTestId('tea-record-scroll').getByRole('region', { name: 'Inventory handoff' })).toHaveCount(1);
     await page.screenshot({ path: `/private/tmp/library-workspace-${info.project.name.includes('Mobile') ? 'phone393' : 'desktop'}-record-top.png`, fullPage: false, animations: 'disabled' });
@@ -94,12 +105,13 @@ test.describe('Library workspace handoffs', () => {
     await expect(record(page).getByRole('textbox', { name: 'Add a note', exact: true })).not.toBeInViewport();
     if (info.project.name.includes('Mobile')) {
       const footerAction = await record(page).getByRole('button', { name: 'Create Inventory record', exact: true }).boundingBox();
-      const bottomNav = await page.getByRole('navigation', { name: 'Main navigation', exact: true }).boundingBox();
+      // The open sheet hides the page from the accessibility tree, so find the bar by its markup.
+      const bottomNav = await page.locator('nav[aria-label="Main navigation"]').filter({ visible: true }).boundingBox();
       expect(footerAction).not.toBeNull();
       expect(bottomNav).not.toBeNull();
       expect(footerAction!.y + footerAction!.height).toBeLessThanOrEqual(bottomNav!.y + 1);
     }
-    await record(page).getByRole('button', { name: 'Close detail panel' }).click();
+    await closeRecord(page);
     await expect(row(page)).toBeVisible();
   });
 
@@ -110,28 +122,34 @@ test.describe('Library workspace handoffs', () => {
     await expect(page.getByRole('button', { name: 'Open Chen unfinished invoice' })).toBeVisible();
     await expect(page.getByRole('button', { name: /Import files/ })).toBeVisible();
     await page.keyboard.press('Escape');
+    // The display currency is one choice in Price display; cards always compare per gram.
+    const perGram = row(page).locator('span:text-is("Per gram") + strong');
+    await expect(perGram).toHaveText('0.1');
     await page.getByRole('button', { name: 'Price display settings' }).filter({ visible: true }).click();
-    await page.getByLabel('Price display currency', { exact: true }).selectOption('Yuan');
-    await page.getByLabel('Price quantity basis', { exact: true }).selectOption('100g');
+    await page.getByRole('dialog', { name: 'Price display' }).getByRole('button', { name: /^CNY/ }).click();
     await page.keyboard.press('Escape');
-    await expect(row(page)).toContainText('CN¥70.00/100g');
+    // 70 Yuan for 100 g is 0.7 a gram in yuan, where it was 0.1 in dollars at 7 to 1.
+    await expect(perGram).toHaveText('0.7');
     await page.goto('/admin/compass?tab=library', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('tab', { name: 'Library', exact: true })).toHaveAttribute('aria-selected', 'true');
-    await expect(row(page)).toContainText('CN¥70.00/100g');
+    await expect(perGram).toHaveText('0.7');
     await noOverflow(page);
   });
 
   test('explicit promotion leaves the active Library and retains its same shared record under Transferred', async ({ page }) => {
     await openLibrary(page);
-    await row(page).getByRole('button', { name: 'More about Cloud Peak' }).click();
+    await row(page).getByRole('button', { name: 'Edit details for Cloud Peak', exact: true }).click();
     await record(page).getByRole('button', { name: 'Create Inventory record', exact: true }).click();
     await expect.poll(() => compassCreatedProducts(page).length).toBe(1);
     await expect.poll(async () => (await sourceState(page))?.draftProductId).toBe(`product-${entryId}`);
-    await record(page).getByRole('button', { name: 'Close detail panel' }).click();
-    await expect(row(page)).toHaveCount(0);
-    await page.getByRole('button', { name: 'Transferred · 1', exact: true }).filter({ visible: true }).click();
+    await closeRecord(page);
+    // A transferred tea stays discoverable in All (BrowseView.scope.test.tsx) and is
+    // also listed on its own under Transferred.
     await expect(row(page)).toBeVisible();
-    await row(page).getByRole('button', { name: 'More about Cloud Peak' }).click();
+    await showTransferred(page, true);
+    await expect(row(page)).toBeVisible();
+    await expect(page.getByText('Silver Needle', { exact: true }).filter({ visible: true })).toHaveCount(0);
+    await row(page).getByRole('button', { name: 'Edit details for Cloud Peak', exact: true }).click();
     await openRecordSection(page, 'Source material');
     await expect(record(page).getByRole('textbox', { name: 'Notes', exact: true })).toHaveValue(sourceEntry.notes);
     await expect(record(page).getByRole('button', { name: /View in Inventory/ })).toBeVisible();
