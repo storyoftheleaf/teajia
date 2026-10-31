@@ -38,6 +38,9 @@ export interface BrowseCardProps {
   rates?: readonly RateRow[];
   purchaseState?: LibraryPurchaseState;
   purchaseStatusUnknown?: string;
+  /** Name of the sample batch this tea was requested in, when it has one. */
+  sampleBatch?: string;
+  onOpenSampleBatch?: (setId: string) => void;
 }
 
 export function formatRelativeDate(dateStr: string): string {
@@ -63,7 +66,7 @@ export function getDateGroup(dateStr: string): string {
   return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, readOnly = false, tastingRecorded, onOpenTasting, onEdit, onSelect, onOpenDetail, isSelected, onAcquire, pricePreference = DEFAULT_LIBRARY_PRICE, rates, purchaseState, purchaseStatusUnknown }) => {
+export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, readOnly = false, tastingRecorded, onOpenTasting, onEdit, onSelect, onOpenDetail, isSelected, onAcquire, pricePreference = DEFAULT_LIBRARY_PRICE, rates, purchaseState, purchaseStatusUnknown, sampleBatch, onOpenSampleBatch }) => {
   const { showToast } = useToast();
   const updateEntry = useTeaCompassStore((state) => state.updateEntry);
   const [typeOpen, setTypeOpen] = useState(false);
@@ -164,6 +167,9 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
           </div>
         </div>
         </div>
+        {sampleBatch && entry.sampleSetId && onOpenSampleBatch && <button type="button" className="tap-target library-sample-batch text-ui-11 text-tea-text-sec" title="Open batch in Samples" onClick={() => onOpenSampleBatch(entry.sampleSetId!)}>
+          Batch · <span className="text-tea-text">{sampleBatch}</span>
+        </button>}
         {purchaseStatusUnknown && <p role="status" className="text-ui-11 text-tea-text-dim py-1">{purchaseStatusUnknown}</p>}
         <div className="library-tea-actions">
           {readOnly || rejected ? <span className="library-ribbon-sample text-ui-11 text-tea-text-sec" title={sampleStatus || undefined}>

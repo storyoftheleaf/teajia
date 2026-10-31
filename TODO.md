@@ -34,7 +34,6 @@ Everything below the ten is in the report's "Later" bucket: false-success delete
 
 ## Untriaged
 
-- [ ] **Library cards lost the link to a tea's sample batch.** _(band: you-required)_ The 2026-10-25 Library card rewrite (BrowseCard) dropped the per-tea "Sample list — <batch>" link; the Samples workspace is still reachable from Curate's header, but not from the tea. Decide whether the card should carry it again; `tests/compass-samples-parity.spec.ts` keeps the test skipped until then.
 
 - [ ] Tea Atlas: let the owner replace or remove a source added from the admin; today a wrong split can only be republished under a new name _(band: agent-runnable)_ _(effort: moderate)_
 - [ ] Tea Atlas: write Obsidian notes for sources added from the admin, so the vault and the web package stay the same shape _(band: agent-runnable)_ _(effort: moderate)_

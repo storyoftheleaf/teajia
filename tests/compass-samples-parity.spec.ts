@@ -66,11 +66,6 @@ test.describe('Sample workflows remain reachable outside the capture method row'
   });
 
   test('opens the exact sample set from a Library batch link without remounting Compass', async ({ page }) => {
-    // The 2026-10-25 Library card dropped the per-tea link to its sample batch;
-    // the Samples workspace is still reached from Curate's header (Sample list).
-    // Whether the card should carry the link again is a design question, recorded
-    // in TODO.md rather than decided by deleting this test.
-    test.skip(true, 'The redesigned Library card has no sample-batch link; see TODO.md');
     await installCompassHarness(page);
     await openCompass(page);
     await page.evaluate(async () => {

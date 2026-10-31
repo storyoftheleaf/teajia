@@ -5708,6 +5708,10 @@ body.cart-panel-open .commerce-dock {
 .library-tea-card .library-ribbon-metric { min-height:48px; padding:2px 3px 4px; }
 .library-tea-card .library-tea-actions { grid-template-columns:1fr 1fr 1.4fr; min-height:36px; padding:0 4px; }
 .library-tea-card .library-tea-actions > button { min-height:36px; font-size:11px; }
+/* A sample's batch: one quiet line above the decision row, opening the batch in Samples. */
+.library-sample-batch { display:flex; align-items:center; gap:4px; width:100%; min-height:32px; padding:0 4px; border-top:1px solid var(--tea-border); background:transparent; text-align:left; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; transition:color 160ms; }
+.library-sample-batch > span { overflow:hidden; text-overflow:ellipsis; }
+.library-sample-batch:hover > span, .library-sample-batch:focus-visible > span { color:var(--tea-gold); }
 
 /* A long source title stays readable while editing; taps never replace it accidentally. */
 .library-tea-card .library-card-title-row:has(.library-title-editor) { align-items:flex-start; padding-block:6px; }
