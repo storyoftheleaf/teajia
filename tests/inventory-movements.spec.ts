@@ -490,7 +490,7 @@ test('an unconfirmed movement survives closing and retries its original request 
   await page.getByRole('button', { name: 'Record movement', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Retry original movement', exact: true })).toBeVisible();
   await expect(page.getByRole('spinbutton', { name: 'Quantity', exact: true })).toBeDisabled();
-  await page.screenshot({path:'outputs/flow-repair-2026-10-28/stock-movement-recovery.png',fullPage:true});
+  await page.screenshot({ path: test.info().outputPath('stock-movement-recovery.png'), fullPage: true });
   await page.getByRole('button', { name: 'Close stock movement', exact: true }).click();
   await page.getByRole('button', { name: 'Change stock for Cloud Oolong', exact: true }).click();
   await expect(page.getByRole('spinbutton', { name: 'Quantity', exact: true })).toHaveValue('5');
