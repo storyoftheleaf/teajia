@@ -1,6 +1,19 @@
 import { test, expect, type Page } from './fixtures';
 import { installCompassHarness, openCompass, expectNoUnhandledCompassApi, compassCreatedProducts } from './helpers/compassHarness';
 
+async function revealCurateHeader(page: Page) {
+  const ledger = page.getByRole('tab', { name: 'Ledger', exact: true });
+  await expect(async () => {
+    await page.mouse.move(200, 400);
+    await page.mouse.wheel(0, -4000);
+    await expect(ledger).toBeInViewport({ ratio: 0.9, timeout: 1000 });
+    expect(await ledger.evaluate(el => {
+      const r = el.getBoundingClientRect();
+      return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+    })).toBe(true);
+  }).toPass({ timeout: 10_000 });
+}
+
 const entryId = 'ledger-source-tea';
 const productId = 'linked-inventory-tea';
 const entry = { id: entryId, name: 'Ledger Mountain Tea', category: 'tea', type: 'Sheng', form: 'Loose', year: 2024, vendor_name: 'Chen Family', vendor_id: 'vendor-chen', status: 'noted', draft_product_id: productId, price_amount: 70, price_currency: 'Yuan', price_per_unit_grams: 100, notes: 'One source identity.', photos: '[]', audio_clips: '[]', created_at: '2026-10-01T00:00:00Z', updated_at: '2026-10-01T00:00:00Z' };
@@ -77,6 +90,9 @@ test('phone Source draft, confirmation and explicit receipt preserve one tea ide
   expect((await ledgerState(page)).account).toBe('acct-bali');
   expect(shop.holding.stock_grams).toBe(0);
   expect(shop.proposals).toHaveLength(0);
+  // Curate's header folds away while the form is scrolled down and returns on a
+  // scroll up, as it would under a thumb; bring it back before choosing Ledger.
+  await revealCurateHeader(page);
   await page.getByRole('tab', { name: 'Ledger', exact: true }).click();
   await page.getByRole('button', { name: 'Purchase', exact: true }).filter({ visible: true }).click();
   await expect.poll(() => shop.orders.length).toBe(1);
