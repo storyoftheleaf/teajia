@@ -104,7 +104,7 @@ async function selectView(page: Page, label: string) {
   await page.getByRole('menuitem', { name: label }).click();
 }
 
-test.skip(({ isMobile }) => isMobile, 'Drives the laptop ledger; the phone's Stock cards are covered in stock-reference.spec.ts');
+test.skip(({ isMobile }) => isMobile, 'Drives the laptop ledger; the phone Stock cards are covered in stock-reference.spec.ts');
 
 test.beforeEach(async ({ page }) => {
   updateRequests.length = 0;

@@ -79,7 +79,7 @@ test.describe('Inventory page — scroll regression guard', () => {
   });
 
   test('lifecycle sections and personal tasting actions stay distinct', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name === 'Mobile Chrome', 'Drives the laptop ledger; the phone's Stock cards are covered in stock-reference.spec.ts');
+    test.skip(testInfo.project.name === 'Mobile Chrome', 'Drives the laptop ledger; the phone Stock cards are covered in stock-reference.spec.ts');
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('inventory-stage-published')).toBeVisible();
 
@@ -108,7 +108,7 @@ test.describe('Inventory page — scroll regression guard', () => {
   });
 
   test('lifecycle sections keep order, counts, replenishment placement, and folded address state', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name === 'Mobile Chrome', 'Drives the laptop ledger; the phone's Stock cards are covered in stock-reference.spec.ts');
+    test.skip(testInfo.project.name === 'Mobile Chrome', 'Drives the laptop ledger; the phone Stock cards are covered in stock-reference.spec.ts');
     const summaryResponse = page.waitForResponse(response => response.url().includes('/api/inventory/summaries'));
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     const summaryPayload = await (await summaryResponse).json();
@@ -144,7 +144,7 @@ test.describe('Inventory page — scroll regression guard', () => {
   });
 
   test('navigation stays anchored while only the ledger scrolls horizontally', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name === 'Mobile Chrome', 'Drives the laptop ledger; the phone's Stock cards are covered in stock-reference.spec.ts');
+    test.skip(testInfo.project.name === 'Mobile Chrome', 'Drives the laptop ledger; the phone Stock cards are covered in stock-reference.spec.ts');
     test.skip(testInfo.project.name === 'chromium', 'Covered by named desktop and mobile projects');
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1500);
@@ -353,7 +353,7 @@ test.describe('Inventory page — scroll regression guard', () => {
   });
 
   test('three-row inventory header keeps vendor and grouped context inline', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name === 'Mobile Chrome', 'Drives the laptop ledger; the phone's Stock cards are covered in stock-reference.spec.ts');
+    test.skip(testInfo.project.name === 'Mobile Chrome', 'Drives the laptop ledger; the phone Stock cards are covered in stock-reference.spec.ts');
     test.skip(testInfo.project.name === 'chromium', 'Covered by named desktop and mobile projects');
     await page.goto('/admin/stock?vendor=Mountain%20Source', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1500);
@@ -381,7 +381,7 @@ test.describe('Inventory page — scroll regression guard', () => {
   });
 
   test('three-row inventory header remains available in alternate modes', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name === 'Mobile Chrome', 'Drives the laptop ledger; the phone's Stock cards are covered in stock-reference.spec.ts');
+    test.skip(testInfo.project.name === 'Mobile Chrome', 'Drives the laptop ledger; the phone Stock cards are covered in stock-reference.spec.ts');
     test.skip(testInfo.project.name === 'chromium', 'Covered by named desktop and mobile projects');
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1500);
@@ -421,7 +421,7 @@ test.describe('Inventory page — scroll regression guard', () => {
   });
 
   test('inventory search suggests sources and category changes clear the query', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name === 'Mobile Chrome', 'Drives the laptop ledger; the phone's Stock cards are covered in stock-reference.spec.ts');
+    test.skip(testInfo.project.name === 'Mobile Chrome', 'Drives the laptop ledger; the phone Stock cards are covered in stock-reference.spec.ts');
     test.skip(testInfo.project.name === 'chromium', 'Covered by named desktop and mobile projects');
     // A phone's Product column is 158px by default and the suggestions open
     // to the right of the corpus words, past its edge. Widened, as an operator
