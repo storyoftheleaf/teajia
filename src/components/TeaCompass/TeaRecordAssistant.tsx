@@ -304,8 +304,8 @@ export function AssistantReview({ entry, onClose, onCommitChange, initialSource 
     </div>
     <footer className="shrink-0 border-t border-tea-border bg-tea-bg px-4 pt-2 pb-nav-gap md:px-6">
       {error && <p role="alert" className="mb-2 text-ui-12 text-tea-text-sec">{error}</p>}
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2"><p role="status" className="text-ui-11 text-tea-text-sec">{selectedCount ? `${selectedCount} accepted · same tea record` : 'Nothing saved. Select what to keep.'}</p>
-        <button type="button" disabled={saving || busy || workingBusy || voiceBusy || !selectedCount} onClick={() => void save()} className="cta-solid min-h-11 rounded-md px-4 text-ui-13 disabled:opacity-50">{saving ? 'Saving…' : 'Save accepted changes'}</button>
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-2"><p role="status" className="min-w-0 truncate text-ui-11 text-tea-text-sec">{selectedCount ? `${selectedCount} accepted · same tea record` : 'Nothing saved. Select what to keep.'}</p>
+        <button type="button" disabled={saving || busy || workingBusy || voiceBusy || !selectedCount} onClick={() => void save()} className="cta-solid min-h-11 shrink-0 whitespace-nowrap rounded-md px-4 text-ui-13 disabled:opacity-50">{saving ? 'Saving…' : 'Save accepted changes'}</button>
       </div>
     </footer>
   </section>;

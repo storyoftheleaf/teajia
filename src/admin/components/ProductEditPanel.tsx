@@ -34,7 +34,7 @@ import { shopRateInCurrency, shippingRateUsdFor } from '../../lib/shippingRate';
 import { isoCurrencyCode, rateToUsd } from '../../lib/currency';
 import { useShopFreightDefault } from '../hooks/useAdminData';
 import { getThemeColor } from '../themeUtils';
-import { TEA_TYPES } from '../../wisdom';
+import { INVENTORY_TEA_TYPES } from '../../wisdom';
 import { effectivePurpose, getEffectivePublication, getTeaReadiness } from './inventory/domain';
 import {
   flattenTastingNotes,
@@ -1568,7 +1568,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 ) : (
                   <>
                     <FieldCell label="Type">
-                      <GhostSelect variant="bordered" ariaLabel="Type" value={product.type} onSave={(val) => persistField(product.id, 'type', val)} options={[...TEA_TYPES, 'Misc']} />
+                      <GhostSelect variant="bordered" ariaLabel="Type" value={product.type} onSave={(val) => persistField(product.id, 'type', val)} options={[...INVENTORY_TEA_TYPES, 'Misc']} />
                     </FieldCell>
                     <FieldCell label="Form">
                       <GhostSelect variant="bordered" ariaLabel="Form" value={product.form || ''} onSave={(val) => persistField(product.id, 'form', val)} options={['Loose', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other']} />

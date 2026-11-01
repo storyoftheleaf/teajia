@@ -1,7 +1,13 @@
 import { expect, test } from './fixtures';
+import { injectAuth, mockInventoryApi } from './helpers/inventoryMocks';
 
 test('five heading studies preserve the actual Stock records and work at phone and desktop widths', async ({ page }) => {
   test.setTimeout(60000);
+  // Signed in with the shared Stock shelf, as the card and polish studies are;
+  // without it /admin/stock is the sign-in page and there is no study to see.
+  await page.route('**/api/**', route => route.fulfill({ json: [] }));
+  await injectAuth(page);
+  await mockInventoryApi(page);
   let original = '';
   for (const example of [1, 2, 3, 4, 5]) {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -22,6 +28,7 @@ test('five heading studies preserve the actual Stock records and work at phone a
   await page.getByRole('button', { name: 'Stock', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Stock ↑', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.goto('/admin/stock?headingStudy=4');
-  await page.getByRole('button', { name: /Supplier.*Stock/ }).click();
+  // Study 4's contained button names the current grouping and order, 'Group · Order ↑'.
+  await page.getByTestId('stock-heading-study').getByRole('button', { name: / · .+[↑↓]$/ }).click();
   await expect(page.getByRole('dialog', { name: 'View options', exact: true })).toBeVisible();
 });

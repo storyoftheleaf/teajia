@@ -33,6 +33,7 @@ beforeEach(() => {
   db.sqlite.exec('CREATE TABLE tea_compass_entries (id TEXT PRIMARY KEY, account_id TEXT NOT NULL)');
   db.sqlite.exec(readFileSync(new URL('../migrations/0045_curate_ar_bridge.sql', import.meta.url), 'utf8'));
   db.sqlite.exec(readFileSync(new URL('../migrations/0046_curate_ar_full_transcripts.sql', import.meta.url), 'utf8'));
+  db.sqlite.exec(readFileSync(new URL('../migrations/0051_curate_ar_poll_read_indexes.sql', import.meta.url), 'utf8'));
   db.sqlite.prepare('INSERT INTO tea_compass_entries (id,account_id) VALUES (?,?)').run('tea-a', scope.accountId);
   db.sqlite.prepare('INSERT INTO tea_compass_entries (id,account_id) VALUES (?,?)').run('tea-b', other.accountId);
 });

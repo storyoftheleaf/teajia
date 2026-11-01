@@ -26,6 +26,8 @@ import type { CurateJourney, CurateVisit } from './types';
 import { useAppStore } from '../../lib/store';
 import { buildEntryPossessionMap } from './libraryPossession';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
+import { useNavigate } from 'react-router-dom';
+import { useSampleStore } from '../../samples/sampleStore';
 
 const SORT_LABELS: Record<BrowseSort, string> = {
   recent: 'Most recent',
@@ -134,6 +136,12 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   const pricePreference = displayPreference ?? localPreference;
   const [showTransferred, setShowTransferred] = useState(false);
   const prefersReducedMotion = useReducedMotion();
+  // A sample's card links back to the batch it was requested in. The URL is
+  // the same one Curate's Sample list uses, so Back closes the workspace.
+  const navigate = useNavigate();
+  const sampleSets = useSampleStore((s) => s.sampleSets);
+  const sampleSetNames = useMemo(() => new Map(sampleSets.map((set) => [set.id, set.name || 'Untitled batch'])), [sampleSets]);
+  const openSampleBatch = (setId: string) => navigate(`/admin/compass?sampleOrder=manage&set=${encodeURIComponent(setId)}`);
   const { entries, browseFilter, setBrowseFilter, browseSort, setBrowseSort, browseLayout, setBrowseLayout, libraryFilters, setLibraryFilters, removeEntry, hydrationStatus } = useTeaCompassStore();
   const [cleanupDismissed, setCleanupDismissed] = useState(false);
   const [sortSheetOpen, setSortSheetOpen] = useState(false);
@@ -324,6 +332,8 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                 tasteQueueActive={opts?.tasteQueueActive}
                 onSelect={onSelectEntry}
                 onOpenDetail={onOpenDetail}
+                sampleBatch={entry.sampleSetId ? sampleSetNames.get(entry.sampleSetId) : undefined}
+                onOpenSampleBatch={openSampleBatch}
                 pricePreference={pricePreference}
                 rates={rates}
                 purchaseStatusUnknown={purchases.isError ? 'Purchase status unavailable' : purchases.isLoading ? 'Checking orders…' : undefined}

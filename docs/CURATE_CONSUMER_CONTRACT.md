@@ -25,6 +25,11 @@ Agents use MCP `/mcp` and the current `tools/list`. Browser consumers use authen
 | Read remaining samples and stock | `curate_stock`; `search_tea` returns `curate_holdings`; `get_tea` accepts `source: "curate"` | `GET /api/curate/holdings` |
 | Create/reuse product identity | `curate_promote_tea` | `POST /api/compass/entries/:id/promote` |
 | Order from the source tea | `curate_order` | `POST /api/curate/order` |
+| Import an invoice into a connected purchase | `intake_start`, `intake_add_source`, `intake_analyze`, `intake_get_draft`, `intake_update_item`, `intake_set_group_vendor`, `intake_add_items`, `intake_finalize` | `/api/curate/imports` and import subroutes; finalize links each vendor receipt to its purchase |
+| Track purchases and deliveries | `list_purchases`, `get_purchase` | `GET /api/purchase-orders/tracking`; same account-scoped read model, including source invoice, unfinished drafts, history and unresolved older records |
+| Record partial/full physical arrival | `record_arrival` | `POST /api/inventory/receipt-lines/:id/receive`; same guarded stock/receipt service |
+| Cancel outstanding quantity | `cancel_delivery_remainder` | `POST /api/inventory/receipt-lines/:id/cancel-remaining`; no stock adjustment |
+| Update delivery details | `update_delivery_tracking` | Receipt update and purchase tracking routes; no stock movement |
 | Review arrivals | `curate_list_arrivals`, `curate_approve_arrival`, `curate_reject_arrival` (pending only; marks rejected, never touches stock) | `/api/curate/receipt-proposals`; creation at `/api/compass/entries/:id/receipt-proposals`, edit and accept/reject by proposal ID |
 | Correct, archive, merge or consume samples | `curate_correct` | `POST /api/curate/correct` |
 | Read history and reverse a selected change | `curate_history`, `curate_undo` with optional `mutation_id` | `GET /api/curate/history`, `POST /api/curate/undo` |
@@ -34,6 +39,25 @@ Agents use MCP `/mcp` and the current `tools/list`. Browser consumers use authen
 Management requires active shop ownership or explicit `curate_manage` on an active staff/admin membership. An MCP scope alone is insufficient. Private reads also require authorization; managers see the selected shop's records without rewriting their original authorship. Agent mutations preview first and confirm the bound change. History is append-only. Selected undo refuses conflicting newer changes or changed physical holdings. External Drive changes use their own operation ledger and explicit restore, not local database undo.
 
 `remove_vendor_contact` is the legacy whole-vendor removal tool, not a contact-person deletion tool. It refuses durable dependencies. Curate vendor soft deletion reports those dependencies and leaves records attached. Use structured vendor profile edits for individual contacts.
+
+## Agent-led purchasing (2026-10-28)
+
+A new `curate_order` creates a purchase, private zero-stock holdings and one
+expected receipt atomically. Invoice finalization links each vendor group's
+receipt to a purchase with a deterministic source key. Neither ordered path
+adds stock. Finalizing an explicitly received invoice and recording a later
+arrival call the same guarded receipt operation. That operation updates stock,
+the ledger, received quantity, receipt state and purchase status. Partial
+arrivals are normal, not an attention warning.
+
+Bulk arrival requests name explicit line quantities and keep one stable request
+key. Partial failure returns the completed lines and an identical retry payload;
+replay preserves exactly-once stock movement per line. Unknown costs remain
+unknown. A new tea uses the invoice total over its purchased grams, while
+teaware uses per-piece cost; receiving into an existing costed holding does not
+silently reprice it. Legacy accepted proposals link to their exact earlier
+movement without adding stock again. Unresolved matches remain visible for
+review and are never guessed from a name.
 
 ## Editorial and private evidence
 

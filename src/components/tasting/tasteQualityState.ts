@@ -1,7 +1,8 @@
 import type { TastingData } from '../../types';
 
 export const BASIC_TASTES = ['Sweet', 'Bitter', 'Sour / tart', 'Umami', 'Salty'] as const;
-export const RETURNING_SWEETNESS = ['None', 'Slight', 'Moderate', 'Strong'] as const;
+export const basicTasteLabel = (taste: typeof BASIC_TASTES[number]): string => taste === 'Umami' ? 'Savory (umami)' : taste;
+export const RETURNING_SWEETNESS = ['Not noticed', 'Subtle', 'Moderate', 'Pronounced'] as const;
 export function toggleBasicTaste(value: TastingData, taste: typeof BASIC_TASTES[number]): TastingData {
   const tastes = value.basicTastes ?? [];
   return { ...value, basicTastes: tastes.includes(taste) ? tastes.filter(t => t !== taste) : [...tastes, taste] };

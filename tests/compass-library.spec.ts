@@ -1,10 +1,8 @@
 import { test, expect, type Page } from './fixtures';
 import { compassRequestCount, expectNoUnhandledCompassApi, installCompassHarness, openCompass } from './helpers/compassHarness';
+import { closeRecord, openRecordSection } from './helpers/teaRecord';
+import { openViewAndSort, showRejected, showTransferred, toggleLibraryPhotos } from './helpers/libraryView';
 
-async function openRecordSection(page: Page, name: string) {
-  const section = page.getByTestId('library-entry-detail').filter({ visible: true }).locator(`details[data-record-section="${name}"]`);
-  if (!(await section.evaluate(element => (element as HTMLDetailsElement).open))) await section.locator(':scope > summary').click();
-}
 
 test.describe('Curate context retrieval', () => {
   test.beforeEach(async ({ page }) => installCompassHarness(page));
@@ -37,9 +35,9 @@ test.describe('Curate context retrieval', () => {
     });
 
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
-    await page.getByRole('button', { name: /^(Open|Expand) Committed context tea details$/ }).click();
+    await page.getByRole('button', { name: 'Edit details for Committed context tea', exact: true }).filter({ visible: true }).click();
     await expect(page.getByTestId('library-entry-detail').filter({ visible: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Close detail panel' }).filter({ visible: true }).click();
+    await closeRecord(page);
     await page.evaluate(async id => {
       // @ts-expect-error Vite source module.
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
@@ -125,7 +123,7 @@ test.describe('Curate server-hydrated sample identity', () => {
     await page.getByTestId('library-controls').filter({ visible: true }).getByRole('button', { name: /^To taste/ }).click();
     await expect(page.getByText('Server Requested', { exact: true }).filter({ visible: true })).toBeVisible();
     await expect(page.getByText('Server Received', { exact: true }).filter({ visible: true })).toBeVisible();
-    await page.getByTestId('library-controls').filter({ visible: true }).getByRole('button', { name: 'Photos', exact: true }).click();
+    await toggleLibraryPhotos(page);
     await expect(page.getByRole('button', { name: 'Server Requested', exact: true }).filter({ visible: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Server Received', exact: true }).filter({ visible: true })).toBeVisible();
     await expect(page.getByText('Sample', { exact: true }).filter({ visible: true })).toHaveCount(2);
@@ -233,7 +231,7 @@ test.describe('Curate Library decisions and retrieval', () => {
       promotions += 1;
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 'inventory-river', alreadyPromoted: false }) });
     });
-    await page.getByRole('button', { name: /^(Open|Expand) River Stone details$/ }).click();
+    await page.getByRole('button', { name: 'Edit details for River Stone', exact: true }).filter({ visible: true }).click();
     const createAction = page.getByRole('button', { name: 'Create Inventory record' });
     // The control is a .pill now rather than a .tap-target. Both carry the
     // 44px floor, so assert the floor itself: which class delivers it is an
@@ -248,7 +246,7 @@ test.describe('Curate Library decisions and retrieval', () => {
       .toBeGreaterThanOrEqual(44);
     expect(promotions).toBe(1);
     await page.getByRole('button', { name: /View in Inventory/ }).click();
-    await expect(page).toHaveURL(/\/admin\/inventory\?panel=inventory-river/);
+    await expect(page).toHaveURL(/\/admin\/stock\?panel=inventory-river/);
   });
 
   test('persists a failed explicit Inventory request and resumes it through sync', async ({ page }) => {
@@ -259,7 +257,7 @@ test.describe('Curate Library decisions and retrieval', () => {
       if (fail) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Offline' }) });
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'inventory-river', alreadyPromoted: true }) });
     });
-    await page.getByRole('button', { name: /^(Open|Expand) River Stone details$/ }).click();
+    await page.getByRole('button', { name: 'Edit details for River Stone', exact: true }).filter({ visible: true }).click();
     await page.getByRole('button', { name: 'Create Inventory record' }).click();
     await expect(page.getByText('Queued until the connection returns', { exact: true })).toBeVisible();
     expect(await page.evaluate(async () => {
@@ -286,7 +284,7 @@ test.describe('Curate Library decisions and retrieval', () => {
     await page.route('**/api/compass/entries/selected/promote', route =>
       route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'Compass entry not found' }) }),
     );
-    await page.getByRole('button', { name: /^(Open|Expand) River Stone details$/ }).click();
+    await page.getByRole('button', { name: 'Edit details for River Stone', exact: true }).filter({ visible: true }).click();
     await page.getByRole('button', { name: 'Create Inventory record' }).click();
     await expect(page.getByText('Could not create Inventory record: Compass entry not found', { exact: true })).toBeVisible();
     expect(await page.evaluate(async () => {
@@ -302,7 +300,7 @@ test.describe('Curate Library decisions and retrieval', () => {
       const [product] = await response.json();
       return { is_public: product.is_public, shown_in_shop: product.shown_in_shop };
     });
-    await page.getByRole('button', { name: /^(Open|Expand) Cloud Peak details$/ }).click();
+    await page.getByRole('button', { name: 'Edit details for Cloud Peak', exact: true }).filter({ visible: true }).click();
     await openRecordSection(page, 'Purchasing');
     await page.getByRole('radio', { name: 'Considering' }).click();
     expect(await page.evaluate(async () => {
@@ -345,8 +343,9 @@ test.describe('Curate Library decisions and retrieval', () => {
         const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
         useTeaCompassStore.getState().setLibraryFilters(next);
       }, filters);
-      const transferred = page.getByRole('button', { name: expected === 'Held Sample' || expected === 'Old Kiln Cup' ? /^Transferred/ : 'Back to active Library' }).filter({ visible: true });
-      if (await transferred.count()) await transferred.click();
+      await showTransferred(page, expected === 'Held Sample' || expected === 'Old Kiln Cup');
+      // The cup was passed on, so it lives in the Rejected view as well as Transferred.
+      await showRejected(page, expected === 'Old Kiln Cup');
       await expect(page.getByText(expected, { exact: true }).filter({ visible: true })).toBeVisible();
       const excluded = expected === 'Old Kiln Cup' ? 'Cloud Peak' : 'Old Kiln Cup';
       await expect(page.getByText(excluded, { exact: true }).filter({ visible: true })).toHaveCount(0);
@@ -373,43 +372,59 @@ test.describe('Curate Library decisions and retrieval', () => {
   });
 
   test('orders by every sort option and switches between List and Photos', async ({ page }) => {
+    // Sorting orders the teas within each supplier, so put the two active teas
+    // under one supplier and read the order there.
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite source import.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      useTeaCompassStore.setState((state: any) => ({ entries: state.entries.map((entry: any) => ['unresolved', 'selected'].includes(entry.id) ? { ...entry, vendorName: 'Shared Supplier', vendorId: null } : entry) }));
+    });
     const cases: Array<[string, string]> = [['Most recent', 'River Stone'], ['Highest score', 'Cloud Peak'], ['Price · low to high', 'River Stone'], ['Name · A–Z', 'Cloud Peak']];
     for (const [label, expectedFirst] of cases) {
-      await page.getByTestId('library-controls').filter({ visible: true }).getByTitle('Sort').click();
-      await page.getByRole('button', { name: label, exact: true }).filter({ visible: true }).last().click();
-      const titles = page.locator('article button[aria-label^="Open"] span').filter({ visible: true });
+      const sheet = await openViewAndSort(page);
+      await sheet.getByRole('button', { name: label, exact: true }).click();
+      const titles = page.getByRole('region', { name: 'Shared Supplier' }).locator('article button[aria-label^="Edit tea name:"]').filter({ visible: true });
       await expect(titles.first()).toHaveText(expectedFirst);
     }
-    const controls = page.getByTestId('library-controls').filter({ visible: true });
-    const photos = controls.getByRole('button', { name: 'Photos', exact: true });
-    await photos.click();
-    await expect(controls.getByRole('button', { name: 'List', exact: true })).toHaveAttribute('aria-pressed', 'true');
-    await controls.getByRole('button', { name: 'List', exact: true }).click();
-    await expect(controls.getByRole('button', { name: 'Photos', exact: true })).toHaveAttribute('aria-pressed', 'false');
+    await toggleLibraryPhotos(page);
+    let sheet = await openViewAndSort(page);
+    await expect(sheet.getByRole('button', { name: 'List', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await sheet.getByRole('button', { name: 'List', exact: true }).click();
+    sheet = await openViewAndSort(page);
+    await expect(sheet.getByRole('button', { name: 'Photos', exact: true })).toHaveAttribute('aria-pressed', 'false');
+    await page.keyboard.press('Escape');
   });
 
-  test('shows only All, To taste, and Selected as primary Library views', async ({ page }) => {
+  test('shows only All, To taste, Chosen, and Rejected as primary Library views', async ({ page }) => {
     const controls = page.getByTestId('library-controls').filter({ visible: true });
-    for (const label of ['All', 'To taste', 'Selected']) await expect(controls.getByRole('button', { name: new RegExp(`^${label}`) })).toBeVisible();
-    for (const legacy of ['Mine', 'Queue', 'Loved', 'Want', 'Pass']) await expect(controls.getByRole('button', { name: new RegExp(`^${legacy}`) })).toHaveCount(0);
-    await controls.getByRole('button', { name: /^Selected/ }).click();
+    for (const label of ['All', 'To taste', 'Chosen', 'Rejected']) await expect(controls.getByRole('button', { name: new RegExp(`^${label}`) })).toBeVisible();
+    for (const legacy of ['Mine', 'Queue', 'Loved', 'Want', 'Pass', 'Selected']) await expect(controls.getByRole('button', { name: new RegExp(`^${legacy}`) })).toHaveCount(0);
+    await controls.getByRole('button', { name: /^Chosen/ }).click();
+    // Chosen is a decision to buy or a tea already ordered or held (libraryEntryChosen),
+    // so River Stone (selected) and Cloud Peak (on its way) both belong; the rejected cup does not.
     await expect(page.getByText('River Stone', { exact: true }).filter({ visible: true })).toBeVisible();
-    await expect(page.getByText('Cloud Peak', { exact: true }).filter({ visible: true })).toHaveCount(0);
+    await expect(page.getByText('Cloud Peak', { exact: true }).filter({ visible: true })).toBeVisible();
+    await expect(page.getByText('Old Kiln Cup', { exact: true }).filter({ visible: true })).toHaveCount(0);
   });
 
   test('keeps dimensional filters, sorting, and List/Photos as separate controls', async ({ page }) => {
-    await page.getByRole('button', { name: /^Transferred/ }).filter({ visible: true }).click();
+    await showTransferred(page, true);
     await page.getByRole('button', { name: 'Filters' }).click();
     for (const label of ['Decision', 'Verdict', 'Possession', 'Journey', 'Vendor', 'Place', 'Date', 'Category', 'Type', 'Origin', 'Year', 'Price', 'Sample state', 'Photos', 'Missing information']) {
       await expect(page.getByLabel(label, { exact: true })).toBeVisible();
     }
     await page.getByLabel('Decision').selectOption('passed_on');
     await page.getByRole('button', { name: 'Apply filters' }).click();
+    // A passed-on tea is shown by the Rejected view, and the filter stays applied there.
+    await showRejected(page, true);
     await expect(page.getByText('Old Kiln Cup', { exact: true }).filter({ visible: true })).toBeVisible();
     await expect(page.getByText('Cloud Peak', { exact: true }).filter({ visible: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: /1 filter/ })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Most recent' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Photos' })).toBeVisible();
+    // Sorting and List/Photos stay their own controls in View & sort, untouched by the filter.
+    const sheet = await openViewAndSort(page);
+    await expect(sheet.getByRole('button', { name: 'Most recent' })).toBeVisible();
+    await expect(sheet.getByRole('button', { name: 'Photos', exact: true })).toBeVisible();
+    await page.keyboard.press('Escape');
   });
 
   test('searches broadly across vendor, origin, notes, and journey/place fragments', async ({ page }) => {
@@ -440,20 +455,23 @@ test.describe('Curate Library decisions and retrieval', () => {
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
       useTeaCompassStore.setState((state: any) => ({ entries: state.entries.map((entry: any) => ({ ...entry, tasting: { quality: 8 }, verdict: undefined, decision: null, status: 'noted' })) }));
     });
-    await page.getByRole('button', { name: /tasted teas.*Review/ }).click();
+    await page.getByRole('button', { name: /^Review \d+ tasted teas$/ }).click();
+    // The review lists teas in its own order, so follow the tea that was actually rated.
     await page.getByRole('button', { name: 'Love' }).first().click();
-    expect(await page.evaluate(async () => {
+    const loved = await page.evaluate(async () => {
       // @ts-expect-error Vite source import.
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
-      const entry = useTeaCompassStore.getState().entries[0];
-      return { verdict: entry.verdict, decision: entry.decision, status: entry.status };
-    })).toEqual({ verdict: 'love', decision: null, status: 'noted' });
+      const entries = useTeaCompassStore.getState().entries.filter((item: any) => item.verdict === 'love');
+      return entries.map((entry: any) => ({ id: entry.id, verdict: entry.verdict, decision: entry.decision, status: entry.status }));
+    });
+    expect(loved).toHaveLength(1);
+    expect(loved[0]).toMatchObject({ verdict: 'love', decision: null, status: 'noted' });
     await page.getByRole('radio', { name: 'Selected' }).first().click();
-    expect(await page.evaluate(async () => {
+    expect(await page.evaluate(async (id) => {
       // @ts-expect-error Vite source import.
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
-      return useTeaCompassStore.getState().entries[0].decision;
-    })).toBe('selected');
+      return useTeaCompassStore.getState().entries.find((item: any) => item.id === id).decision;
+    }, loved[0].id)).toBe('selected');
     await expect(page.getByText(/want list/i)).toHaveCount(0);
   });
 
@@ -481,7 +499,8 @@ test.describe('Curate Library decisions and retrieval', () => {
     await expect(page.getByText('Co-Tasting', { exact: true })).toHaveCount(0);
     expect(await page.locator('[data-testid^="library-entry-"] button button').count()).toBe(0);
 
-    await expect(page.getByTestId('library-entry-unresolved').filter({ visible: true })).toContainText('Sample requested');
+    // A tea on its way counts as chosen, so its card says Chosen rather than its sample state.
+    await expect(page.getByTestId('library-entry-unresolved').filter({ visible: true }).getByRole('button', { name: 'Chosen', exact: true })).toHaveAttribute('aria-pressed', 'true');
 
     let proposals = 0;
     await page.route('**/api/compass/entries/selected/receipt-proposals', async route => {
@@ -489,7 +508,10 @@ test.describe('Curate Library decisions and retrieval', () => {
       const proposed = route.request().postDataJSON();
       await route.fulfill({ json: { id: 'library-proposal', account_id: 'acct-bali', compass_entry_id: 'selected', status: 'pending', created_at: '', updated_at: '', proposed_by_user_id: 'test', ...proposed } });
     });
-    await page.getByTestId('library-entry-selected').filter({ visible: true }).getByRole('button', { name: 'Chosen: River Stone' }).click();
+    // Ordering starts from the tea record's Orders tab since the 2026-10-25 redesign.
+    await page.getByRole('button', { name: 'Edit details for River Stone', exact: true }).filter({ visible: true }).click();
+    const orders = await openRecordSection(page, 'Purchasing');
+    await orders.getByRole('button', { name: 'Order', exact: true }).click();
     await expect(page.getByRole('tab', { name: 'Source', exact: true })).toHaveAttribute('aria-selected', 'true');
     const purpose = page.getByLabel('Inventory purpose').filter({ visible: true });
     await expect(purpose).toHaveValue('working');
@@ -557,13 +579,15 @@ test.describe('Curate Library decisions and retrieval', () => {
   test('desktop detail keeps Share and the complete action set reachable', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name.includes('Mobile'), 'Desktop split-pane contract');
     const selectedRail = page.getByTestId('library-entry-selected').filter({ visible: true });
-    await expect(selectedRail.getByRole('button', { name: 'More about River Stone', exact: true })).toBeVisible();
-    await selectedRail.getByRole('button', { name: /Open River Stone details/ }).click();
-    const detail = page.getByTestId('library-entry-detail');
-    await openRecordSection(page, 'Purchasing');
-    await openRecordSection(page, 'Files & history');
-    for (const name of ['Order', 'Taste', 'Queue', 'Share', 'Delete entry']) await expect(detail.getByRole('button', { name, exact: true })).toBeVisible();
-    await expect(detail.getByRole('button', { name: /Add to Sample list/i })).toBeVisible();
+    await selectedRail.getByRole('button', { name: 'Edit details for River Stone', exact: true }).click();
+    const detail = page.getByTestId('library-entry-detail').filter({ visible: true });
+    // Taste sits in the record's header; Order is on the Orders tab; the rest on Files.
+    await expect(detail.getByRole('button', { name: 'Taste', exact: true })).toBeVisible();
+    const orders = await openRecordSection(page, 'Purchasing');
+    await expect(orders.getByRole('button', { name: 'Order', exact: true })).toBeVisible();
+    const files = await openRecordSection(page, 'Files & history');
+    for (const name of ['Queue', 'Share', 'Delete entry']) await expect(files.getByRole('button', { name, exact: true })).toBeVisible();
+    await expect(files.getByRole('button', { name: /Add to Sample list/i })).toBeVisible();
     await detail.getByRole('button', { name: 'Share', exact: true }).click();
     await expect(page.locator('p').filter({ hasText: /^Share$/ }).filter({ visible: true })).toBeVisible();
   });
@@ -575,7 +599,7 @@ test.describe('Curate Library decisions and retrieval', () => {
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
       useTeaCompassStore.setState((state: any) => ({ entries: state.entries.map((entry: any) => entry.id === 'selected' ? { ...entry, photos: ['data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg"/%3E', 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2 2"/%3E'] } : entry) }));
     });
-    await page.getByTestId('library-entry-selected').filter({ visible: true }).getByRole('button', { name: 'More about River Stone' }).click();
+    await page.getByTestId('library-entry-selected').filter({ visible: true }).getByRole('button', { name: 'Edit details for River Stone', exact: true }).click();
     await openRecordSection(page, 'Source material');
     const trigger = page.getByTestId('library-entry-detail').filter({ visible: true }).getByRole('button', { name: 'Photo actions', exact: true }).first();
     await trigger.click();

@@ -1,5 +1,6 @@
 import { test, expect, type Page } from './fixtures';
 import { compassCreatedProducts, expectNoUnhandledCompassApi, installCompassHarness } from './helpers/compassHarness';
+import { openRecordSection } from './helpers/teaRecord';
 
 const entryId = 'ar-linked-tea';
 const productId = 'ar-linked-inventory';
@@ -13,7 +14,7 @@ const originalDescription = 'A spring tea from Yunnan.';
 const entry = { id: entryId, name: 'Cloud Peak', category: 'tea', type: 'Sheng', form: 'Loose', year: 2024, status: 'noted', notes: originalNotes, description: originalDescription, draft_product_id: productId, photos: '[]', audio_clips: '[]', price_amount: 70, price_currency: 'Yuan', price_per_unit_grams: 100, created_at: '2026-10-01T00:00:00Z', updated_at: '2026-10-01T00:00:00Z' };
 const record = (page: Page) => page.getByTestId('library-entry-detail').filter({ visible: true });
 const assistant = (page: Page) => page.getByRole('dialog', { name: 'Build this tea', exact: true }).getByTestId('tea-record-assistant');
-async function openBuild(page: Page) { await record(page).getByRole('button', { name: 'Build this tea', exact: true }).click(); }
+async function openBuild(page: Page) { await openRecordSection(page, 'Source material'); await record(page).getByRole('button', { name: 'Build this tea', exact: true }).click(); }
 type Link = { id: string; entryId: string; sourceId: string; title: string; hash: string; text: string; start: number; end: number };
 
 async function install(page: Page) {
@@ -81,7 +82,7 @@ async function linkTalk(page: Page, update = false) {
   const result = page.getByRole('button', { name: new RegExp('^Cloud Peak: a conversation with the farmer') });
   await expect(result).toBeVisible();
   const viewport = page.viewportSize()!.width < 900 ? 'phone' : 'desktop';
-  if (!update) await page.screenshot({ path: `/private/tmp/tea-record-ar-search-${viewport}.png`, fullPage: false, animations: 'disabled' });
+  if (!update) await page.screenshot({ path: `/tmp/tea-record-ar-search-${viewport}.png`, fullPage: false, animations: 'disabled' });
   await result.click();
   await expect(page.getByRole('region', { name: 'Review linked passage', exact: true })).toBeVisible();
   await page.getByRole('checkbox', { name: /^Use the full transcript/ }).uncheck();
@@ -89,7 +90,7 @@ async function linkTalk(page: Page, update = false) {
   const linkAction = assistant(page).getByRole('button', { name: 'Review this passage', exact: true });
   await linkAction.scrollIntoViewIfNeeded();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
-  if (!update) await page.screenshot({ path: `/private/tmp/tea-record-ar-passage-${viewport}.png`, fullPage: false, animations: 'disabled' });
+  if (!update) await page.screenshot({ path: `/tmp/tea-record-ar-passage-${viewport}.png`, fullPage: false, animations: 'disabled' });
   if (viewport === 'phone') {
     const buttonBox = await linkAction.boundingBox();
     const nav = await page.locator('nav[aria-label="Main navigation"]').boundingBox();
@@ -151,7 +152,7 @@ for (const viewport of ['phone', 'desktop'] as const) {
     await expect(assistant(page).getByRole('textbox', { name: 'Proposed description', exact: true })).toBeVisible();
     expect((await counts(page)).entries[0].description).toBe(originalDescription);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
-    await page.screenshot({ path: `/private/tmp/tea-record-ar-linking-${viewport}.png`, fullPage: false, animations: 'disabled' });
+    await page.screenshot({ path: `/tmp/tea-record-ar-linking-${viewport}.png`, fullPage: false, animations: 'disabled' });
     await expectNoUnhandledCompassApi(page);
   });
 }

@@ -1,3 +1,5 @@
+import type { LogisticsAddress, LogisticsAddressInput, LogisticsTracking, LogisticsService, LogisticsServiceInput, LogisticsOrder, LogisticsOrderInput, LogisticsShipment, LogisticsShipmentInput, LogisticsShipmentUpdate, LogisticsReceiveInput } from './logisticsTypes';
+import type { InventoryReceipt } from '../admin/types';
 import { createServiceAvailabilityGuard, shouldReportServiceIncident } from './serviceAvailability';
 import type { ShippingRoute } from '../components/shared/routeFreight';
 import type { SupplierFreightBill, SupplierRenamePreview } from '../components/shared/supplierSheetTypes';
@@ -556,12 +558,54 @@ export interface PublicShelf {
   items: PublicShelfItem[];
 }
 
+export interface PurchaseArrivalHistory {
+  id: string;
+  line_id: string;
+  product_id: string;
+  quantity: number;
+  unit: 'g' | 'unit';
+  balance_after: number;
+  recorded_at: string;
+  recorded_by: string | null;
+  note: string | null;
+}
+
+/** The same tracking read model returned to agents and the purchase screen. */
+export interface PurchaseTrackingRow {
+  id: string;
+  invoice_draft?: {
+    id: string;
+    title: string | null;
+    item_count: number;
+    created_at: string;
+    analysis_state: string;
+    review_state: string;
+  } | null;
+  purchase: PurchaseOrder | null;
+  receipt: InventoryReceipt | null;
+  attention: Array<{ code: string; message: string }>;
+  arrival_proposal?: {
+    id: string;
+    vendor_name?: string | null;
+    product_name?: string | null;
+    quantity?: number;
+    unit?: string;
+    status?: string;
+    arrival_state?: string;
+  } | null;
+  history: PurchaseArrivalHistory[];
+  source_document: { import_id: string; title: string | null } | null;
+}
+
 export interface PurchaseOrder {
   id: string;
   account_id: string;
   vendor_name: string;
   vendor_id?: string | null;
   vendor_contact?: string | null;
+  receipt_id?: string | null;
+  po_number?: string | null;
+  create_request_key?: string | null;
   items_json: string; // JSON string of line items
   /** Null when the order could not be converted to dollars (no rate, or a tea with no price yet). */
   total_usd: number | null;
@@ -1002,6 +1046,12 @@ export interface ApiRequestInit extends RequestInit {
   timeoutMs?: number;
   background?: boolean;
   reportIncident?: boolean;
+  /**
+   * The caller refreshes the dependent commerce queries itself, with the changed
+   * rows already reconciled, so authedFetch does not broadcast a second, full
+   * refresh (which would read the whole shelf again).
+   */
+  callerRefreshesCommerce?: boolean;
 }
 
 type ApiBackgroundOptions = Pick<ApiRequestInit, 'background'>;
@@ -1360,8 +1410,8 @@ async function authenticatedResponse(url: string, init: ApiRequestInit = {}): Pr
 async function authedFetch(url: string, init: ApiRequestInit = {}): Promise<any> {
   const accountId = useAppStore.getState().activeAccountId;
   const result = await handleResponse(await authenticatedResponse(url, init));
-  if (init.method && !['GET', 'HEAD'].includes(init.method.toUpperCase()) &&
-      (/\/api\/(products|invoices|invoice-payments|inquiries|accounts|rates|stock|inventory|purchase-orders|listings|network|collections|rpc|curate\/receipt-proposals)(\/|$)/.test(url)
+  if (!init.callerRefreshesCommerce && init.method && !['GET', 'HEAD'].includes(init.method.toUpperCase()) &&
+      (/\/api\/(products|invoices|invoice-payments|inquiries|accounts|rates|stock|inventory|purchase-orders|logistics|listings|network|collections|rpc|curate\/receipt-proposals)(\/|$)/.test(url)
         || /\/api\/compass\/(sync|entries\/[^/]+(?:\/promote)?)(?:\?|$)/.test(url)
         || /\/api\/curate\/imports\/[^/]+\/finalize(?:\?|$)/.test(url))) {
     notifyCommerceChanged(accountId);
@@ -1720,7 +1770,7 @@ export const api = {
       unit: 'g' | 'unit'; expected_balance: number; idempotency_key: string;
       quantity?: number; balance?: number; destination_product_id?: string;
       note?: string; batch_id?: string; source_invoice_id?: string; source_invoice_number?: string; source_compass_entry_id?: string;
-    }) => authedFetch(`${API_URL}/api/products/${productId}/movements`, { method: 'POST', body: JSON.stringify(body), retryTimeouts: true }),
+    }, options: Pick<ApiRequestInit, 'callerRefreshesCommerce'> = {}) => authedFetch(`${API_URL}/api/products/${productId}/movements`, { method: 'POST', body: JSON.stringify(body), retryTimeouts: true, ...options }),
   },
   // Working Feature Guide, admin-only internal build tracker.
   featureStatus: {
@@ -2280,7 +2330,38 @@ export const api = {
       }),
   },
 
+  logistics: {
+    saveAddress: (input: LogisticsAddressInput, id?: string): Promise<{ address: LogisticsAddress }> =>
+      authedFetch(`${API_URL}/api/logistics/addresses${id ? `/${encodeURIComponent(id)}` : ''}`, { method: id ? 'PATCH' : 'POST', body: JSON.stringify(input) }),
+    archiveAddress: (id: string): Promise<{ address: LogisticsAddress }> =>
+      authedFetch(`${API_URL}/api/logistics/addresses/${encodeURIComponent(id)}/archive`, { method: 'POST', body: '{}' }),
+    saveService: (id: string | null, input: LogisticsServiceInput): Promise<{ service: LogisticsService }> =>
+      authedFetch(`${API_URL}/api/logistics/services${id ? `/${encodeURIComponent(id)}` : ''}`, { method: id ? 'PATCH' : 'POST', body: JSON.stringify(input) }),
+    archiveService: (id: string): Promise<{ service: LogisticsService }> =>
+      authedFetch(`${API_URL}/api/logistics/services/${encodeURIComponent(id)}/archive`, { method: 'POST', body: '{}' }),
+    tracking: (): Promise<LogisticsTracking> => authedFetch(`${API_URL}/api/logistics`),
+    saveOrder: (id: string, input: LogisticsOrderInput): Promise<{ order: LogisticsOrder }> =>
+      authedFetch(`${API_URL}/api/logistics/orders/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(input) }),
+    markAtLogistics: (id: string): Promise<{ order: LogisticsOrder }> =>
+      authedFetch(`${API_URL}/api/logistics/orders/${encodeURIComponent(id)}/arrive`, { method: 'POST', body: '{}' }),
+    createShipment: (input: LogisticsShipmentInput): Promise<{ shipment: LogisticsShipment }> =>
+      authedFetch(`${API_URL}/api/logistics/shipments`, { method: 'POST', body: JSON.stringify(input), retryTimeouts: true }),
+    updateShipment: (id: string, input: LogisticsShipmentUpdate): Promise<{ shipment: LogisticsShipment }> =>
+      authedFetch(`${API_URL}/api/logistics/shipments/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(input) }),
+    cancelShipment: (id: string): Promise<{ shipment: LogisticsShipment }> =>
+      authedFetch(`${API_URL}/api/logistics/shipments/${encodeURIComponent(id)}/cancel`, { method: 'POST', body: '{}' }),
+    dispatchShipment: (id: string): Promise<{ shipment: LogisticsShipment }> =>
+      authedFetch(`${API_URL}/api/logistics/shipments/${encodeURIComponent(id)}/dispatch`, { method: 'POST', body: '{}' }),
+    receiveShipment: async (id: string, input: LogisticsReceiveInput): Promise<{ committed: true; recorded: Array<{ line_id: string; [key: string]: unknown }>; shipment: LogisticsShipment }> => {
+      const result = await authedFetch(`${API_URL}/api/logistics/shipments/${encodeURIComponent(id)}/receive`, { method: 'POST', body: JSON.stringify(input), retryTimeouts: true });
+      // HTTP success may contain a partial stock write. Keep the original intent until every line is confirmed.
+      if (result?.committed !== true) throw new Error('The arrival is not fully confirmed. Retry the same verified quantities to finish recording it.');
+      return result;
+    },
+  },
+
   purchaseOrders: {
+    tracking: (): Promise<{ rows: PurchaseTrackingRow[] }> => authedFetch(`${API_URL}/api/purchase-orders/tracking`),
     list: async (): Promise<PurchaseOrder[]> => {
       return authedFetch(`${API_URL}/api/purchase-orders`)
     },

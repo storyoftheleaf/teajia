@@ -1,3 +1,4 @@
+import { inventoryTeaType } from '../wisdom/vocabulary';
 import type { Product } from './types';
 import { storedRatePerKg } from '../lib/shippingRate';
 
@@ -10,7 +11,7 @@ export function normalizeAdminProductTastingSource(value: unknown): Product['tas
 export function mapAdminProduct(p: any): Product {
   return ({
         id: p.id,
-        type: p.type,
+        type: inventoryTeaType(p.type),
         form: p.form || undefined,
         pieceWeightG: p.piece_weight_g == null ? undefined : Number(p.piece_weight_g),
         soldInWholeUnits: !!p.sold_in_whole_units,

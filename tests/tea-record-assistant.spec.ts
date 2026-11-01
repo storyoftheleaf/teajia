@@ -1,5 +1,13 @@
-import { test, expect } from './fixtures';
+import { test, expect, type Locator } from './fixtures';
 import { compassRequestCount, expectNoUnhandledCompassApi, installCompassHarness, openCompass } from './helpers/compassHarness';
+import { openRecordSection } from './helpers/teaRecord';
+
+/** Open the fold-out that holds Find tea details, if it is not open already. */
+async function openFillDetails(assistant: Locator) {
+  const group = assistant.locator('details').filter({ hasText: 'Fill missing record details from notes or a passage' });
+  if (!(await group.evaluate(element => (element as HTMLDetailsElement).open))) await group.locator(':scope > summary').click();
+  await expect(group.getByRole('button', { name: 'Find tea details', exact: true })).toBeVisible();
+}
 
 const teaId = 'assistant-tea';
 const parts = [
@@ -16,10 +24,13 @@ test.describe('Shared record source assistant', () => {
     await installCompassHarness(page, { compassEntries: [{ id: teaId, name: 'Assistant tea', category: 'tea', status: 'noted', notes: 'Spring 2019 from Yiwu; 120 yuan per cake. Vendor says excellent and old trees.', photos: '[]', audio_clips: '[]', price_currency: 'Yuan', created_at: '2026-10-21T00:00:00Z', updated_at: '2026-10-21T00:00:00Z' }], saidParts: parts });
     await openCompass(page);
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
-    await page.getByRole('button', { name: 'More about Assistant tea', exact: true }).click();
+    await page.getByRole('button', { name: 'Edit details for Assistant tea', exact: true }).click();
+    await openRecordSection(page, 'Source material'); // Build this tea lives on the Notes tab
     await page.getByTestId('library-entry-detail').filter({ visible: true }).getByRole('button', { name: 'Build this tea', exact: true }).click();
     const assistant = page.getByRole('dialog', { name: 'Build this tea', exact: true }).getByTestId('tea-record-assistant');
-    await expect(assistant.locator('details').first()).toHaveAttribute('open');
+    // Finding details is one fold-out under Public description since the
+    // working-material redesign; the material to review is open above it.
+    await openFillDetails(assistant);
     await expect(assistant.getByText(/Material to review · 1 source$/)).toBeVisible();
     await expect(assistant.getByText(/^Original material/)).toHaveCount(0);
     await expect(assistant.getByRole('button', { name: 'Apply reviewed details' })).toHaveCount(0);
@@ -57,9 +68,11 @@ test.describe('Shared record source assistant', () => {
     await installCompassHarness(page, { compassEntries: [{ id: teaId, name: 'Assistant tea', category: 'tea', status: 'noted', notes: 'Original source details. '.repeat(210), photos: '[]', audio_clips: '[]', created_at: '2026-10-21T00:00:00Z', updated_at: '2026-10-21T00:00:00Z' }], saidParts: [] });
     await openCompass(page);
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
-    await page.getByRole('button', { name: 'More about Assistant tea', exact: true }).click();
+    await page.getByRole('button', { name: 'Edit details for Assistant tea', exact: true }).click();
+    await openRecordSection(page, 'Source material'); // Build this tea lives on the Notes tab
     await page.getByTestId('library-entry-detail').filter({ visible: true }).getByRole('button', { name: 'Build this tea', exact: true }).click();
     const assistant = page.getByRole('dialog', { name: 'Build this tea', exact: true }).getByTestId('tea-record-assistant');
+    await openFillDetails(assistant);
     await expect(assistant.getByRole('button', { name: 'Find tea details', exact: true })).toBeDisabled();
     await assistant.getByRole('textbox', { name: 'Excerpt to review', exact: true }).fill('Original source details.');
     await assistant.getByRole('button', { name: 'Find tea details', exact: true }).click();

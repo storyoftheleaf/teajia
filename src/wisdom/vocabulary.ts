@@ -80,3 +80,11 @@ export function withExistingValue(vocabulary: readonly string[], current: string
   const value = current.trim();
   return value && !vocabulary.includes(value) ? [...vocabulary, value] : [...vocabulary];
 }
+
+/** Full Puer labels for inventory; preserve unrelated and unresolved types. */
+export function inventoryTeaType(value: string): string {
+  const canonical = normalizeTeaType(value);
+  return canonical === 'Sheng' ? 'Sheng Puer' : canonical === 'Shou' ? 'Shou Puer' : value;
+}
+
+export const INVENTORY_TEA_TYPES = TEA_TYPES.map(inventoryTeaType);

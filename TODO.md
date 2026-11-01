@@ -34,6 +34,7 @@ Everything below the ten is in the report's "Later" bucket: false-success delete
 
 ## Untriaged
 
+
 - [ ] Tea Atlas: let the owner replace or remove a source added from the admin; today a wrong split can only be republished under a new name _(band: agent-runnable)_ _(effort: moderate)_
 - [ ] Tea Atlas: write Obsidian notes for sources added from the admin, so the vault and the web package stay the same shape _(band: agent-runnable)_ _(effort: moderate)_
 - [ ] Tea Atlas: open teajia.com/tea-atlas signed in and check search, an article and its pictures — the signed-in view has not been seen by anyone yet _(band: you-required)_ _(effort: quick)_

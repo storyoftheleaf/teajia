@@ -27,3 +27,9 @@ describe('Tasting selection recap', () => {
     expect(groups[1].words).toEqual([{ id: 'amber', label: 'Amber' }, { id: 'clear', label: 'Clear' }]);
   });
 });
+
+it('recaps broad families without classifying them as taste or aroma', () => {
+  expect(tastingRecap({ flavorFamilies: ['floral'] })).toEqual([
+    { id: 'flavor-families', label: 'Flavor families', words: [{ id: 'family:floral', label: 'Floral' }] },
+  ]);
+});

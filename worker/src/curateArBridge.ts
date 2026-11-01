@@ -167,8 +167,10 @@ export async function handleArBridge(request: Request, env: { DB: D1Database }, 
       if (device.last_seen_at == null || now - device.last_seen_at >= HEARTBEAT_MS) {
         await db.prepare('UPDATE curate_ar_devices SET last_seen_at=? WHERE id=? AND revoked_at IS NULL AND (last_seen_at IS NULL OR last_seen_at<=?)').bind(now, device.id, now - HEARTBEAT_MS).run();
       }
+      // Explicit status IN matches the active-only index; retained completed
+      // results and expired tombstones must cost no work on an idle poll.
       const claimed = await db.prepare(`UPDATE curate_ar_jobs SET status='claimed',claimed_device_id=?,lease_until=?
-        WHERE id=(SELECT id FROM curate_ar_jobs WHERE account_id=? AND created_by_user_id=? AND expires_at>? AND
+        WHERE id=(SELECT id FROM curate_ar_jobs WHERE account_id=? AND created_by_user_id=? AND expires_at>? AND status IN ('pending','claimed') AND
           (status='pending' OR (status='claimed' AND (claimed_device_id=? OR lease_until<=?)))
           ORDER BY created_at,id LIMIT 1)
         AND EXISTS(SELECT 1 FROM curate_ar_devices WHERE id=? AND revoked_at IS NULL)

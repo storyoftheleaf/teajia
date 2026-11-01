@@ -1,5 +1,6 @@
 import { test, expect } from './fixtures';
 import { installCompassHarness, expectNoUnhandledCompassApi } from './helpers/compassHarness';
+import { openRecordSection } from './helpers/teaRecord';
 const entryId = 'full-material-tea';
 const sourceId = 'whole-shop-conversation';
 const title = 'Aged tea shop conversation';
@@ -37,6 +38,7 @@ for (const viewport of ['phone', 'desktop'] as const) {
       return route.fulfill({ json: { description: 'An aged Fenghuang Shuixian oolong, acquired as over thirty years old.', baseDescription: null, citations: [{ sourceId: `staged-ar:${source.requestId}:${sourceId}:${source.start}:${source.end}`, quote }] } });
     });
     await page.goto(`/admin/compass?tab=library&entry=${entryId}`, { waitUntil: 'domcontentloaded' });
+    await openRecordSection(page, 'Source material'); // Build this tea lives on the Notes tab
     await page.getByTestId('library-entry-detail').getByRole('button', { name: 'Build this tea', exact: true }).click();
     const workspace = page.getByRole('dialog', { name: 'Build this tea', exact: true });
     const initialWrites = writes.length;
@@ -60,7 +62,7 @@ for (const viewport of ['phone', 'desktop'] as const) {
     expect(proposals[0].draftSources).toHaveLength(2);
     await draft.fill('My reviewed public draft stays here.');
     await workspace.getByRole('checkbox', { name: 'Save this description', exact: true }).check();
-    await page.screenshot({ path: `/private/tmp/tea-full-material-${viewport}.png`, animations: 'disabled' });
+    await page.screenshot({ path: `/tmp/tea-full-material-${viewport}.png`, animations: 'disabled' });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     const header = await workspace.locator('header').boundingBox();
     const footer = await workspace.locator('footer').boundingBox();

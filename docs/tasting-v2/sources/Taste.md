@@ -2,9 +2,9 @@
 
 A standalone foundation for describing and studying tea.
 
-Status: proposed content specification for a separate build. This document defines the language and its meaning; screen design belongs to a separate brief. It does not authorize changes to Teajia.
+Status: content guidance. The existing Teajia tasting flow now integrates broad flavor families, clearer taste qualities, returning sweetness and the Incense storage distinction. Other proposals below remain guidance for later decisions; this document does not authorize a separate screen or wholesale redesign.
 
-Content revision: 21 October 2026 — all four sections reviewed for beginner clarity; Oily retained as a standard texture.
+Content revision: 28 October 2026 — broad family recording required; taste qualities clarified; streamlined storage concerns; Oily retained.
 
 ## 1. Purpose
 
@@ -69,19 +69,11 @@ These are different answers. Strong is never a synonym for good.
 
 ## 3. How much vocabulary belongs here
 
-Use a small set of understandable groups with enough specific words to describe meaningful differences. Avoid long ladders of near-synonyms and rare references that exist mainly to sound knowledgeable.
+Use clear groups and meaningful distinctions. Define unfamiliar or ambiguous words in one sentence; familiar references such as peach need no explanation. Custom wording remains valid, but a useful record must not depend on typing.
 
-Each flavor family is a valid observation in its own right. “Floral” is enough; someone does not have to identify a flower. Specific notes add precision when the person recognizes them.
+**Beginner test:** choices should differ through a familiar example or short explanation, not elaborate definitions. Keep distinct sensations such as Oily, Smooth, and Coating; avoid competing metaphors. This is a vocabulary rule, not an expandable Basic/Advanced interface.
 
-Common words such as honey and peach do not need definitions. Ambiguous, tactile, interpretive, and traditional terms do. Definitions should normally fit in one sentence.
-
-The option sets below form the initial vocabulary. Custom wording is equally valid. Add a standard term when real use shows a recurring distinction, rather than trying to anticipate every tea.
-
-**Beginner test:** keep choices that describe a useful, understandable difference. Different aspects should answer different questions; choices within an aspect should be distinguishable by a familiar example or a short explanation. A longer definition alone does not justify near-synonyms. Simplification must not erase a distinct sensation: Oily, for example, is not the same as Smooth or Coating. Personal wording adds finer nuance without an expandable Basic/Advanced interface.
-
-Use three levels of description: **section → group → observation**. A specific flavor note refines its family; it is not a fourth required level. “Floral” and “Orchid” may coexist if deliberately recorded, but the family is never automatically added or counted as a second observation. Do not treat more words as a more complete or better tasting.
-
-Observations can be combined unless they answer the same single-choice question. Overall impression, section assessment, body weight, and each optional intensity or duration accept one answer for the moment being described. Different moments can have different answers. Missing detail stays unknown; selecting a word supplies no default intensity, timing, or appraisal.
+Combine observations freely. Overall impression, section assessment, body weight, and each optional scale accept one answer for the moment described. Missing detail stays unknown; no selection supplies an inferred intensity, timing, or appraisal. More words do not make a better tasting.
 
 Shared scales are subjective: **Subtle** is faint, **Moderate** clearly noticeable, and **Pronounced** prominent. For duration, **Brief** fades soon, **Moderate** stays for a while, and **Lingering** remains well afterwards. They are comparisons within a person's experience, not fixed measurements.
 
@@ -91,7 +83,9 @@ Shared scales are subjective: **Subtle** is faint, **Moderate** clearly noticeab
 
 ### Flavor families and notes
 
-These are sensory comparisons, not claims that an ingredient was added.
+These are sensory comparisons, not claims that an ingredient was added. The wheel describes character; taste qualities describe the sip; returning sweetness describes development after swallowing. None substitutes for another.
+
+**Broad recording is required:** record Floral without naming a flower. Opening a family navigates; a separate explicit selection records it. No specific child, sensory channel, intensity, or typing is required. Specific notes add optional precision. Keep selection labels stable and states visible. Broad observations are complete records.
 
 | Family | Plain description | Specific notes |
 |---|---|---|
@@ -103,27 +97,33 @@ These are sensory comparisons, not claims that an ingredient was added.
 | Roast & cocoa | Roasted, smoky, or cocoa-like character. | Roasted, Charcoal, Cocoa, Smoke, Burnt |
 | Vegetal | Resembling green plants, vegetables, or dried grasses. | Fresh grass, Leafy greens, Pea, Green bean, Seaweed, Hay |
 | Herbs & spice | Resembling culinary herbs or spices. | Mint, Dried herbs, Cinnamon, Clove, Ginger, Pepper, Anise |
-| Wood & resin | Resembling wood, resin, or incense. | Dry wood, Cedar, Sandalwood, Pine resin, Camphor, Incense |
+| Wood & resin | Resembling wood or resin. | Dry wood, Cedar, Sandalwood, Pine resin, Camphor |
 | Earth & fungi | Earthy, mushroom-like, or leathery associations. | Mushroom, Leather |
 | Stone & metal | Stone-like or metallic sensory comparisons. | Wet stone, Chalk, Metallic |
 
-Every family can be recorded broadly. Earthy is the broad observation for Earth & fungi, not another child to select alongside it. “Mineral-like” is the plain broad label for Stone & metal; it does not establish mineral content, soil chemistry, or origin. Toasted, Dark chocolate, Forest floor, and Slate remain valid personal descriptions, rather than competing standard choices beside Roasted, Cocoa, Earthy, and Wet stone. Search can connect related language without silently replacing what someone wrote.
+Broad observations use the family names, except **Earthy** for Earth & fungi and **Mineral-like** for Stone & metal. Neither establishes a source or composition. A specific note never automatically adds its parent; group deliberately recorded broad and specific wording without double-counting the same impression.
 
-Keep useful distinctions with short references: **Roasted** resembles browned or toasted food; **Charcoal** resembles a dry charcoal association; **Smoke** resembles fire smoke; **Burnt** resembles scorched food. They may overlap, but are not just degrees of intensity. If a person cannot separate them, the broad Roast & cocoa observation is sufficient. **Chalk** is a chalk-like flavor association here; a powdery or gritty physical sensation belongs in Feel.
+Toasted, Dark chocolate, Forest floor, and Slate remain valid personal refinements of Roasted, Cocoa, Earthy, and Wet stone. Search may connect related language without silently replacing it.
 
-Less familiar references: **Osmanthus** is a small fragrant flower often compared with apricot; **dried longan** is a dried fruit with a sweet, dark fruit association; **camphor** is a sharp, aromatic wood-like association. These comparisons do not claim those substances are present. Anyone unfamiliar with a reference can use its broad family or their own words.
+**Roasted:** browned/toasted food. **Charcoal:** dry charcoal association. **Smoke:** fire smoke. **Burnt:** scorched food. These are characters, not intensity levels; the broad family is enough when uncertain. Chalk names a flavor association; physical powderiness or grit belongs in Feel.
 
-### Basic tastes
+Less familiar references: **Osmanthus:** an apricot-like flower fragrance. **Dried longan:** sweet, dark dried-fruit character. **Camphor:** sharp, aromatic wood-like character. Unfamiliar references can always be described broadly.
 
-| Taste | Meaning |
-|---|---|
-| Sweet | Sugar-like taste in the sip. |
-| Bitter | Bitter taste, whether welcome or unwelcome. |
-| Sour / tart | Acidic or tangy taste. |
-| Umami | A savory, broth-like taste. |
-| Salty | Salt-like taste. |
+### Taste qualities
 
-Savory is a search synonym for Umami, not a competing duplicate. Astringency belongs in Feel because it describes drying or friction rather than a basic taste.
+Keep this a small optional vocabulary, not a test of the five physiological taste categories.
+
+| Priority | Choice | Meaning |
+|---|---|---|
+| Main vocabulary | Sweet | Sweetness in the sip, distinct from a sweet-smelling association. |
+| Main vocabulary | Bitter | Bitter taste, whether welcome or unwelcome. |
+| Main vocabulary | Sour / tart | Acidic or tangy taste; the person decides whether it contributes or detracts. |
+| Main vocabulary | Savory (umami) | A savory, broth-like taste. One choice, not separate Savory and Umami options. |
+| Available, lower priority | Salty | Salt-like taste. Keep selectable without requiring personal text, but do not promote it merely to complete the scientific set. |
+
+**Honey describes a resemblance; Sweet describes sweetness in the sip.** Record both only when both fit. Cream flavor differs from creamy texture. Mouth-watering and astringency belong in Feel.
+
+These choices are optional; unselected never means absent. Avoid default intensity ratings for every taste. Scientific categories do not establish the best beginner interface.
 
 ### Expression
 
@@ -135,22 +135,22 @@ These optional descriptions answer three different questions. They are not a che
 | How much is happening? | Several layers / One main character | Several distinguishable impressions, or one dominant character. Neither is automatically better. |
 | Do the flavors fit together? | Work together / Clash | Whether the elements seem harmonious or conflicting. |
 
-Fragrant and Muted need not compete with a separate intensity scale. Describe how noticeable the aroma is using Subtle / Moderate / Pronounced, or use personal wording if that scale does not fit.
+Use Subtle / Moderate / Pronounced for aroma intensity; Fragrant and Muted need not duplicate that scale.
 
 ### Returning sweetness and aftertaste
 
 | Observation | Meaning |
 |---|---|
-| Returning sweetness · Hui gan | Sweetness appears or becomes clearer after swallowing, sometimes as bitterness fades. |
+| Returning sweetness · Hui gan | Sweetness develops or becomes clearer after swallowing, sometimes as bitterness fades. |
 | Aftertaste | Any taste or aromatic impression that remains after swallowing. Use the existing taste or flavor word and identify it as aftertaste. |
 
 Optional returning-sweetness descriptions: **Not noticed / Subtle / Moderate / Pronounced**.
 
 Optional aftertaste duration: **Brief / Moderate / Lingering**.
 
-“Sweet finish” means Sweet in the aftertaste; it does not need a duplicate standard term. Sweetness simply remaining is different from sweetness returning. Hui gan and Sweet return name the same concept. Neither initial bitterness nor a fixed waiting time is required.
+Keep one returning-sweetness observation, not competing Sweet finish, Sweet return, and Hui gan choices. Sweet with Aftertaste timing can describe sweetness simply remaining; making that distinction is optional. No initial bitterness, timer, or quality inference is required.
 
-“Not noticed” explicitly records an absence in this session. Leaving returning sweetness or aftertaste unrecorded says nothing about whether it occurred.
+“Not noticed” explicitly records an absence in this session. Untouched remains visibly unrecorded, rather than appearing to say None. No mechanism or uniform response across drinkers is assumed.
 
 ### Optional precision
 
@@ -160,9 +160,7 @@ For an individual flavor note:
 - **Intensity:** Subtle / Moderate / Pronounced.
 - **When noticed:** Early / Middle / Late / Aftertaste.
 
-Here Aroma means what someone smells; Taste means the character perceived in the sip, including aromas experienced while drinking. Basic tastes only apply to taste. An unspecified location remains unspecified, rather than becoming Both.
-
-A person can record pronounced orchid aroma and subtle fruit in the taste. Give details to the observation they describe, rather than assigning one intensity to the whole section.
+**Aroma: what you smell. Taste: what you notice while sipping.** Honey or Orchid under Taste means noticed in the sip, not a physiological basic taste. Channel detail is optional; unspecified never becomes Both. Give details to each observation: orchid aroma can be pronounced while fruit in the sip is subtle.
 
 ## 5. Feel
 
@@ -180,26 +178,22 @@ Each group answers a different question. Close metaphors should not compete with
 | Throat comfort | How does the throat feel when swallowing or afterwards? | Comfortable / Irritated / Tight |
 | Other local sensations | Is there another clear physical sensation? | Cooling, Warming, Tingling, Numbing |
 
-**Body is substance; texture is friction and slickness; coating is what remains.** Smooth means little roughness; Rough means noticeable friction or unevenness; Oily means a slick, lubricating feel. These words do not claim actual oil is present. Smooth and Oily can coexist; they are not competing points on one scale. Roughness and oily slickness can also occur together, or at different moments.
+**Body is substance; texture is friction and slickness; coating is what remains.** Smooth means little friction; Rough means unevenness or friction; Oily means slick and lubricating, without claiming actual oil. Smooth and Oily can coexist. Oily does not automatically imply a coating; coating can feel smooth, rough, or drying.
 
-A tea can be Full and Rough, or Light and Smooth. A coating can feel smooth, rough, or drying. Never assume Coating means Oily, Smooth, rich, or pleasant. Oily does not automatically imply a coating remains afterwards.
-
-Drying and increased salivation can coexist. They answer different questions and may occur at different places or moments. Throat comfort also differs from mouth texture: a smooth-feeling sip can still irritate the throat.
-
-Optional detail can identify **Mouth / Throat / Both**, timing, intensity, and persistence (**Brief / Moderate / Lingering**). Do not ask for a second copy of a drying or coating observation just to name its location. The standard choices describe the main impression; personal wording can describe changes or mixed sensations.
+A smooth sip may irritate the throat; drying and salivation can coexist. Optional **Mouth / Throat / Both**, timing, intensity, and persistence distinguish these observations without duplicating them.
 
 ### Keep nuance without making synonyms compete
 
 | Personal wording | How to handle it |
 |---|---|
-| Silky, Velvety, Creamy, Soft | Keep the person's words. Smooth is the broad standard observation when they mean low friction; do not force Creamy or Velvety into Smooth if they mean something else. |
-| Coarse, Gritty | Rough is enough for the broad standard observation. Preserve the finer description without counting it as another independent quality. |
-| Watery | A personal description of insufficient substance. Do not equate it automatically with Light, which can be satisfying. |
-| Puckering, Astringent | Personal refinements of drying/tightening sensations. Astringency is searchable language, not another required choice beside Drying. |
-| Scratchy, Catching, Dry throat | Preserve the wording; Irritated is the broad comfort description when it fits. Dry throat can instead be Drying with Throat as its location. |
-| Opening, Throat opens | Preserve a felt relaxation or spaciousness. Comfortable alone does not imply Opening; the specific experience remains recordable in the person's own words. |
+| Silky, Velvety, Creamy, Soft | Preserve the wording; use Smooth only when low friction is what the person means. |
+| Coarse, Gritty | Refinements of Rough, not additional counted qualities. |
+| Watery | Insufficient substance; not automatically Light, which can be satisfying. |
+| Puckering, Astringent | Refinements of drying/tightening; no duplicate required choices. |
+| Scratchy, Catching, Dry throat | Irritated may fit; Dry throat can be Drying with Throat as its location. |
+| Opening, Throat opens | Felt relaxation/spaciousness; never inferred from Comfortable alone. |
 
-These are descriptions, not automatic translations or medical findings. Tang gan, or liquor feel, is covered by body and texture; it does not need another yes/no judgment. Exclude the ambiguous label Taut.
+These are not automatic translations or medical findings. Tang gan is covered by body/texture; exclude the ambiguous Taut.
 
 ## 6. Energy
 
@@ -245,43 +239,27 @@ Do not infer caffeine dose, tree age, provenance, pesticide cleanliness, therape
 
 ## 7. Storage
 
-**Description:** Sensory character that the person associates with storage, including character they welcome and character they dislike.
+**Question:** Does anything seem stale, damp, or out of place?
 
-This is an interpretive lens. It cannot independently establish age, storage location, humidity, contamination, or safety.
+Keep the tea's own character separate from perceived storage or handling concerns. Earthy, woody, mushroom-like, and camphor-like character belongs in Flavor & aroma, not automatically in Storage. In this product vocabulary, Incense and Paper/cardboard are unwanted notes under Storage, not suggestions for positive tea character.
 
-| Group | Standard observations |
+| Standard choice | Short meaning |
 |---|---|
-| Shared with flavor | Dry wood, Camphor, Incense, Leather, Earthy, Mushroom, Smoke |
-| Other aroma associations | Musty, Paper / cardboard-like, Ferment-like aroma, Fishy, Perfume-like, Plastic-like |
-| An odor I cannot name | Other unfamiliar odor |
-| Explicit absence | No distinct storage character |
+| No issue noticed | Nothing storage-related appears to detract. |
+| Faded / flat | The tea seems tired or lacking life. |
+| Paper / cardboard | An unwanted papery impression. |
+| Musty / damp | A closed, damp-room or damp-fabric impression. |
+| Incense | An unwanted incense-like smell or taste. |
+| Perfume | An unwanted cosmetic or perfumed fragrance. |
+| Plastic | An unwanted plastic-like smell or taste. |
+| Smoke | Smoke that seems out of place, rather than an intended tea character. |
+| Something off, unsure what | A concern the person cannot identify; no typing required. |
 
-The shared words keep their flavor meanings. Storage adds the person's association with storage, not a new copy of the sensation. Smoke does not become a second “Smoky carryover” observation just because the person thinks it was picked up in storage.
+Concerns can be combined. No issue noticed is an explicit answer for the period described, not a default, a safety certificate, or an automatic Strength. It does not accompany a concern about that same period. The section still has one independent assessment.
 
-| Term | Meaning |
-|---|---|
-| Musty | Resembles a closed, stale, damp room or fabric. A sensory comparison, not a mold diagnosis. |
-| Paper / cardboard-like | Resembles paper, old books, or cardboard. Personal wording can specify dry, damp, or another nuance. It need not also be Musty. |
-| Ferment-like aroma | Resembles fermented material; does not establish the process responsible. Sour taste remains Sour / tart under Flavor & aroma and may carry a storage association. |
-| Perfume-like | Resembles perfume; differs from simply recognizing a flower in the aroma. Its source remains unconfirmed. |
-| Plastic-like | Resembles plastic rather than paper/cardboard. It does not establish that packaging caused it. |
-| Other unfamiliar odor | A broad description when an odor seems separate from the tea's character but the person cannot name it. Do not add it automatically alongside a named odor. |
+The only standard optional follow-up is **Across infusions: Clears / Lessens / Persists**. Personal wording remains available, but the normal record should not depend on it. Do not add nested defect lists, a wet/dry/mold scale, or another required intensity judgment.
 
-Optional details:
-
-- **Effect on other character:** Leaves it clear / Partly masks it / Mostly masks it.
-- **Intensity:** Subtle / Moderate / Pronounced.
-- **Across infusions:** Clears / Softens / Persists / Becomes more apparent.
-
-Storage can be a Strength in intentionally matured tea. No distinct storage character does not certify cleanliness.
-
-Cellar-like and Forest floor remain valid personal descriptions. Do not force beginners to distinguish them from Musty and Earthy as parallel standard choices. Cellar-like is not automatically musty or unwelcome. Likewise, Old books and Damp cardboard refine the paper association without becoming obligatory neighboring choices.
-
-Stale or Flat is valid personal wording for reduced character, not another odor. Link it to the relevant flavor/expression observation and a storage association if the person makes one; it does not prove deterioration or a storage cause. A pronounced storage aroma can leave the rest of the tea clear, so intensity and masking remain separate.
-
-Wood, earth, and camphor can also be flavor observations. Use the same underlying sensory meaning, with an explicit storage association when the person makes one. Do not duplicate the note or automatically infer storage character from a flavor selection.
-
-“Wet-stored”, “Hong Kong storage”, exact age, and humidity belong to sourced provenance information, not conclusions generated from sensory words.
+These observations do not establish a storage cause, history, humidity, contamination, or safety. Sour / tart remains a taste quality unless the person explicitly associates an unwanted sour note with storage; the taste alone proves no cause. A smoked tea's intended character stays in Flavor & aroma. Sourced storage facts belong with provenance.
 
 ## 8. Which words help explain a strength or weakness?
 
@@ -289,10 +267,10 @@ Some descriptors usually explain a positive, some usually explain a drawback, an
 
 | Section | Usually helps explain a strength | Usually helps explain a weakness | Context-dependent |
 |---|---|---|---|
-| Flavor & aroma | Distinct, Work together | Hard to distinguish, Clash, Burnt | Flavor families, Several layers / One main character, basic tastes, roast, smoke, aftertaste |
+| Flavor & aroma | Distinct, Work together | Hard to distinguish, Clash, Burnt | Flavor families, Several layers / One main character, taste qualities, roast, smoke, aftertaste |
 | Feel | Smooth, Comfortable | Rough, Irritated, Tight | Body, Oily, coating, drying, warming, cooling, salivation |
 | Energy | Clear-headed, Focused, Uplifted | Foggy, Distracted, Jittery, Stomach discomfort | Calm, Energized, Drowsy, warmth, coolness, tingling |
-| Storage | Leaves other character clear | Mostly masks other character, Plastic-like | Wood, Camphor, Earthy, Musty, Paper / cardboard-like, intensity, persistence |
+| Storage | No fixed positive-note list | Faded / flat, Paper / cardboard, Musty / damp, Incense, Perfume, Plastic, out-of-place Smoke | Whether a concern occurs, changes, or detracts; No issue noticed does not automatically mean Strength |
 
 Relevant positives and drawbacks may both be available while the section keeps one assessment. Do not require an expandable “Add a drawback” or “Add a positive” mechanism.
 
@@ -309,7 +287,7 @@ These are editorial suggestions, never preselected observations or validated pro
 | Known style | Useful starting words |
 |---|---|
 | Pan-fired green | Chestnut, Toasted rice, Green bean, Fresh grass, Floral |
-| Steamed green | Seaweed, Leafy greens, Fresh grass, Umami, Sweet |
+| Steamed green | Seaweed, Leafy greens, Fresh grass, Savory (umami), Sweet |
 | Yellow | Chestnut, Hay, Honey, Sweet, Floral |
 | Young white | Floral, Hay, Honey, Pear, Sweet |
 | Mature white | Date, Dried apricot, Honey, Dried herbs, Dry wood |
@@ -319,7 +297,7 @@ These are editorial suggestions, never preselected observations or validated pro
 | More oxidized / bug-bitten oolong | Honey, Fresh fruit, Raisin, Peach, Floral |
 | Red / black | Malt, Honey, Cocoa, Dried fruit, Brown sugar |
 | Young sheng | Floral, Fresh grass, Apricot, Honey, Bitter |
-| Mature sheng | Dry wood, Camphor, Incense, Dried fruit, Earthy |
+| Mature sheng | Dry wood, Camphor, Dried herbs, Dried fruit, Earthy |
 | Shou | Earthy, Mushroom, Dry wood, Date, Cocoa |
 | Other dark tea | Earthy, Mushroom, Dry wood, Leather, Dried herbs |
 
@@ -377,6 +355,10 @@ This describes the experience. It does not establish contamination or the tea's 
 
 The record can remain useful and unfinished in judgment.
 
+### Broad is enough
+
+**Flavor & aroma:** Floral. No particular flower, Aroma/Taste distinction, or intensity is required. Opening Floral explores it; explicitly recording Floral saves that observation. The person can stop there.
+
 ## 12. Keeping the language useful
 
 - Maintain one meaning per standard term. Synonyms support discovery without becoming duplicate choices; preserve custom wording rather than silently replacing it.
@@ -390,6 +372,7 @@ The organization and option sets are a product proposal informed by sensory rese
 
 - [Taiwan Tea and Beverage Research Station: flavor-wheel overview](https://www.tbrs.gov.tw/en/ws.php?id=4869). Supports understandable sensory references and a common language for professionals and consumers.
 - [Su et al., 2021: Taiwan specialty-tea sensory wheels](https://pmc.ncbi.nlm.nih.gov/articles/PMC8070119/). Supports differentiating aroma, taste, and mouthfeel, with style-specific vocabularies.
+- [Liu and colleagues, 2025: tea sensory-evaluation guidelines](https://doi.org/10.1002/agf2.70001). Distinguishes basic tastes from astringency and notes saltiness is generally not evaluated in tea; scientific completeness does not determine product prominence.
 - [Chong et al., 2019: oral tribology and sweet aftertaste](https://pubmed.ncbi.nlm.nih.gov/31554068/). Research context for sweet aftertaste.
 - [Chong et al., 2022: tea compound–saliva interactions](https://pmc.ncbi.nlm.nih.gov/articles/PMC8828886/). Supports caution about individual differences in responses.
 - [Tea-induced astringency study](https://pubmed.ncbi.nlm.nih.gov/18590751/). Research context for drying and puckering as mouthfeel.

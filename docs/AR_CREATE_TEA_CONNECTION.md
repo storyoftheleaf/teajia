@@ -57,3 +57,21 @@ The tea record’s **Build this tea** workspace keeps AR Create passage selectio
 ## Start while reading in AR Create
 
 The signed-in receiver accepts `?tab=library&arSource=SOURCE_ID`, reviews the full original and links selected existing teas only after confirmation. It displays current links and can explicitly refresh them using the existing expected-hash guard. No connector token or shop JWT is passed through the URL. The original and public description stay intact. The exact cross-project contract is [AR_CREATE_TEA_LINK_CONTRACT.md](AR_CREATE_TEA_LINK_CONTRACT.md).
+
+
+## Background connection safeguards
+
+Only one local connector runner may hold the safety lock. Idle checks back off
+from three seconds to thirty seconds; handling work returns immediately to the
+250 ms busy cadence. This can add up to thirty seconds to pickup after a long
+idle period. Six consecutive transient failures pause the runner. Quota,
+shared-allowance, explicit non-retryable and client refusals stop immediately.
+An uncertain result is still retried byte-for-byte before any new source read.
+
+A private local metadata file counts poll attempts, including failures and
+`--once`, against a 4,000-poll UTC-day ceiling. The count survives restarts.
+Reaching it stops the runner until a later UTC day; restarting on the same day
+does not reset it. A damaged state file or abandoned lock refuses new network
+work until repaired. These local limits supplement the shared server governor;
+they do not grant permission to resume when the account governor is paused or
+its monitor is stale. The installed launcher records pauses for its supervisor.

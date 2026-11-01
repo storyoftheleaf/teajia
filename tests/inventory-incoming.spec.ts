@@ -45,10 +45,21 @@ test('Incoming shows expected separately and supports partial receiving', async 
     await route.fulfill({ json: { received_quantity: received, remaining_quantity: 100-received-cancelled, state: 'partially_received' } });
   });
   await page.route('**/api/inventory/receipt-lines/l1/cancel-remaining', async route => { cancelled = 100-received; await route.fulfill({ json: { cancelled_quantity: cancelled, state: 'received' } }); });
-  await page.goto('/admin/stock?incoming=1');
-  await expect(page.getByRole('heading', { name: 'Incoming stock' })).toBeVisible();
-  await expect(page.getByText('Expected: 100 g · Current on hand: 55 g · Received here: 20 g · Remaining: 80 g')).toBeVisible();
-  await expect(page.getByText('invoice · INV-4')).toBeVisible();
+  // The receiving panel: Ordered, Arrived and Coming per line, with the shelf's
+  // own count under Stock and corrections.
+  const item = page.locator('.purchase-tracking-item').filter({ hasText: 'Spring Oolong' });
+  const expectLine = async ({ ordered, arrived, coming, shelf }: { ordered: number; arrived: number; coming: number; shelf: number }) => {
+    const quantities = item.locator('.purchase-tracking-quantities');
+    await expect(quantities).toContainText(`Ordered ${ordered} g`);
+    await expect(quantities).toContainText(`Arrived ${arrived} g`);
+    await expect(quantities).toContainText(`Coming ${coming} g`);
+    await expect(item).toContainText(`Shelf stock: ${shelf} g`);
+  };
+  // Bare ?incoming=1 now opens Purchases; a specific delivery opens the receiving panel.
+  await page.goto('/admin/stock?incoming=1&receipt=r1');
+  await expect(page.getByRole('heading', { name: 'Receipt details' })).toBeVisible();
+  await expectLine({ ordered: 100, arrived: 20, coming: 80, shelf: 55 });
+  await expect(page.locator('article').filter({ hasText: 'Spring Oolong' })).toContainText('invoice · INV-4');
   await page.getByLabel('Quantity received for Spring Oolong').fill('30');
   await page.getByRole('button', { name: 'Receive', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('requires a separate holding or deliberate purpose conversion');
@@ -62,12 +73,14 @@ test('Incoming shows expected separately and supports partial receiving', async 
   await page.getByRole('button', { name: 'Receive', exact: true }).click();
   await expect.poll(() => receiveKeys).toHaveLength(2);
   expect(receiveKeys[1]).not.toBe(receiveKeys[0]);
-  await expect(page.getByText('Expected: 100 g · Current on hand: 85 g · Received here: 50 g · Remaining: 50 g')).toBeVisible();
+  await expectLine({ ordered: 100, arrived: 50, coming: 50, shelf: 85 });
   expect(listCalls).toBeGreaterThan(1);
+  // Cancelling what is still owed is a correction, folded under the line.
+  await item.getByText('Stock and corrections').click();
   await page.getByRole('button', { name: 'Cancel remaining' }).click();
-  await expect(page.getByText('Expected: 100 g · Current on hand: 85 g · Received here: 50 g · Remaining: 0 g')).toBeVisible();
+  await expectLine({ ordered: 100, arrived: 50, coming: 0, shelf: 85 });
   await page.reload();
-  await expect(page.getByText('Expected: 100 g · Current on hand: 85 g · Received here: 50 g · Remaining: 0 g')).toBeVisible();
+  await expectLine({ ordered: 100, arrived: 50, coming: 0, shelf: 85 });
 });
 
 test('receipt deep link loads closed receipts and shows the exact finalized receipt', async ({ page }) => {

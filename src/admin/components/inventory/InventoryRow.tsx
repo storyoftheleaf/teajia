@@ -168,8 +168,9 @@ function InventoryRowBase(props: InventoryRowProps) {
           : '';
         // Subtitle slot is always rendered (with &nbsp; fallback) so every row
         // has the same height regardless of whether a givenName/form is present.
-        // The house name is typed right here; a tea without one says "name this"
-        // in a thin italic, so it is plain where to tap (Adrian, 2026-10-11).
+        // The house name is typed right here; a tea without one says "Unnamed"
+        // in a thin italic, so it is plain where to tap (Adrian, 2026-10-11;
+        // the word changed from "name this" on 2026-10-27).
         const subtitle = legacyMobileLayout
           ? product.givenName
             ? <>{product.givenName}{product.form && <span className="ml-1 opacity-70">· {product.form}</span>}</>

@@ -16,8 +16,6 @@ export interface InstalledTeaAiEnvironment {
   AI?: { run?: (model: string, input: Record<string, unknown>) => Promise<unknown>; toMarkdown?: unknown };
 }
 export const INSTALLED_TEA_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
-const INSTALLED_TEA_TIMEOUT_MS = 20_000;
-
 /** A spent deadline, kept apart from every other failure because it is the one
  * that must not be retried: the caller has already waited its whole budget. */
 class InstalledTeaTimeoutError extends Error {
@@ -26,12 +24,12 @@ class InstalledTeaTimeoutError extends Error {
 
 type InstalledRun = NonNullable<NonNullable<InstalledTeaAiEnvironment['AI']>['run']>;
 
-async function askInstalledTea(run: InstalledRun, messages: Array<{ role: string; content: string }>, maxTokens: number): Promise<unknown> {
+async function askInstalledTea(run: InstalledRun, messages: Array<{ role: string; content: string }>, maxTokens: number, schema: Record<string, unknown> | undefined, timeoutMs: number): Promise<unknown> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const response = await Promise.race([
-      run(INSTALLED_TEA_MODEL, { messages, stream: false, temperature: 0, max_tokens: maxTokens, response_format: { type: 'json_object' } }),
-      new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new InstalledTeaTimeoutError()), INSTALLED_TEA_TIMEOUT_MS); }),
+      run(INSTALLED_TEA_MODEL, { messages, stream: false, temperature: 0, max_tokens: maxTokens, response_format: schema ? { type: 'json_schema', json_schema: schema } : { type: 'json_object' } }),
+      new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new InstalledTeaTimeoutError()), timeoutMs); }),
     ]);
     if (!response || typeof response !== 'object' || !('response' in response)) throw new Error('The installed tea AI returned an incomplete response.');
     const content = (response as { response: unknown }).response;
@@ -45,16 +43,17 @@ async function askInstalledTea(run: InstalledRun, messages: Array<{ role: string
   } finally { if (timer) clearTimeout(timer); }
 }
 
-export async function installedTeaJson(env: InstalledTeaAiEnvironment, messages: Array<{ role: string; content: string }>, maxTokens: number): Promise<unknown> {
+export async function installedTeaJson(env: InstalledTeaAiEnvironment, messages: Array<{ role: string; content: string }>, maxTokens: number, schema?: Record<string, unknown>, timeoutMs = 20_000): Promise<unknown> {
   const run = env.AI?.run;
   if (typeof run !== 'function') throw new Error('The installed tea AI connection is unavailable.');
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 40_000) throw new Error('Choose a bounded tea AI timeout.');
   try {
-    return await askInstalledTea(run, messages, maxTokens);
+    return await askInstalledTea(run, messages, maxTokens, schema, timeoutMs);
   } catch (error) {
     // One more attempt, because a busy model or one unusable reply is a hiccup
     // and not a failed draft. Exactly one: a second refusal is the model's
     // answer, and the route then says so instead of asking all afternoon.
     if (error instanceof InstalledTeaTimeoutError) throw error;
-    return askInstalledTea(run, messages, maxTokens);
+    return askInstalledTea(run, messages, maxTokens, schema, timeoutMs);
   }
 }

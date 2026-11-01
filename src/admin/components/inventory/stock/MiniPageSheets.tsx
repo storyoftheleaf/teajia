@@ -1,3 +1,4 @@
+import { Check, X, Trash2 } from 'lucide-react';
 import { useAppStore } from '../../../../lib/store';
 import type { CustomerTasting } from '../../../../types';
 import React, { useRef, useState } from 'react';
@@ -37,19 +38,42 @@ export function MiniEditSheet({ product, field, onSave, onClose }: {product:Prod
     <button type="button" disabled={saving} onClick={save} className={`${T.nav} cta-solid min-h-11 rounded-md w-full px-3 py-3 disabled:opacity-50`}>{saving?'Saving…':'Save'}</button>
   </div></BottomSheet>
 }
+
+function DetailTextField({label, value, field, onSave}:{label:string;value?:string;field:keyof Product;onSave:SaveField}) {
+ const [editing,setEditing]=useState(false),[draft,setDraft]=useState(''),[saving,setSaving]=useState(false),[error,setError]=useState('');
+ const pending=useRef(false);
+ async function save(){if(pending.current)return;pending.current=true;setSaving(true);setError('');try{await onSave(field,draft.trim());setEditing(false)}catch(e){setError(e instanceof Error?e.message:'Could not save.')}finally{pending.current=false;setSaving(false)}}
+ return <div className="border-b border-tea-border py-1"><div className="flex items-center justify-between gap-3 min-h-11"><dt className={`${T.label} shrink-0 text-tea-text-dim`}>{label}</dt><dd className="min-w-0 flex-1">
+ {editing?<form className="flex items-center gap-1" onSubmit={event=>{event.preventDefault();void save()}}><input autoFocus aria-label={label} value={draft} disabled={saving} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Escape'&&!saving)setEditing(false)}} className="min-w-0 w-full min-h-11 rounded border border-tea-border bg-tea-surface px-2 text-ui-16 text-tea-text"/><button aria-label={`Save ${label}`} disabled={saving} className="tap-target shrink-0 p-2 text-tea-text" type="submit"><Check size={16}/></button><button aria-label={`Cancel ${label}`} disabled={saving} className="tap-target shrink-0 p-2 text-tea-text-sec" type="button" onClick={()=>setEditing(false)}><X size={16}/></button></form>:<button type="button" aria-label={`Edit ${label}`} onClick={()=>{setDraft(value||'');setError('');setEditing(true)}} className={`${T.link} min-h-11 w-full text-right text-tea-text break-words`}>{value||'Add'}</button>}
+ </dd></div>{error&&<p role="alert" className={`${T.link} text-tea-text-sec`}>{error}</p>}</div>;
+}
+
 const date=(value?:string|null)=>value?new Date(value).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}):'Not yet verified';
-export function MiniMoreSheet({product,journal,place,onClose,onEdit,onDelete,onHistory,onJournal,onFreight,freightUsd,onSave}:{product:Product;journal?:CustomerTasting;place:string;onClose:()=>void;onEdit:()=>void;onDelete:()=>void;onHistory:()=>void;onJournal:()=>void;onFreight:()=>void;freightUsd:number|null;onSave:SaveField}){
+export function MiniMoreSheet({product,journal,place,onClose,onEdit,onDelete,onHistory,onJournal,onFreight,onForm,onTaste,onCount,freightUsd,onSave}:{product:Product;journal?:CustomerTasting;place:string;onClose:()=>void;onEdit:()=>void;onDelete:()=>void;onHistory:()=>void;onJournal:()=>void;onFreight:()=>void;onForm:()=>void;onTaste:()=>void;onCount:(trigger:HTMLElement)=>void;freightUsd:number|null;onSave:SaveField}){
  const activeUser=useAppStore(state=>state.activeUserId);
  const [saving,setSaving]=useState(false),[error,setError]=useState('');
   const savingRef=useRef(false);
  async function purpose(value:string){if(savingRef.current)return;savingRef.current=true;setSaving(true);setError('');try{await onSave('inventoryPurpose',value)}catch(e){setError(e instanceof Error?e.message:'Could not save purpose.')}finally{savingRef.current=false;setSaving(false)}}
- const row=(label:string,value:React.ReactNode)=>value?<div className="flex flex-wrap justify-between gap-2 border-b border-tea-border py-2"><dt className={`${T.label} text-tea-text-dim`}>{label}</dt><dd className={`${T.link} text-tea-text text-right`}>{value}</dd></div>:null;
+ const row=(label:string,value:React.ReactNode,action?:(element:HTMLElement)=>void)=><div className="flex items-center justify-between gap-3 border-b border-tea-border py-1"><dt className={`${T.label} text-tea-text-dim`}>{label}</dt><dd className={`${T.link} min-w-0 text-tea-text text-right`}>{action?<button type="button" disabled={saving} aria-label={`Edit ${label}`} onClick={event=>action(event.currentTarget)} className="min-h-11 text-right">{value||'Add'}</button>:value}</dd></div>;
  return <BottomSheet open onOpenChange={open=>{if(!open&&!savingRef.current)onClose()}} title="Tea details" description={product.productName}><div className="stock-mini-sheet px-2 pb-3 space-y-3">
- <dl>{row('Current shop',place)}{row('Last counted',date(product.stockVerifiedAt||product.stockKnownAt))}{row('Stock confidence',product.recheckStock?'Needs recount':product.stockKnownAt||product.stockVerifiedAt?'Recorded':'Count not verified')}{row('Owner',product.ownerUserId?product.ownerUserId===activeUser?'You':'Member-owned':'Shop-owned')}{row('Last tasted',journal?date(journal.tastings.at(-1)?.createdAt||journal.createdAt):'Not recorded')}{row('Your verdict',journal?.note.verdict)}{row('Your rating',journal?.note.rating!=null?String(journal.note.rating):null)}{row('Chinese name',product.chineseName)}{row('Origin',[product.originRegion,product.originCountry].filter(Boolean).join(' · '))}{row('Source',product.vendor)}{row('Form',product.form)}{row('One piece',product.pieceWeightG?`${product.pieceWeightG} g${product.soldInWholeUnits?' · whole units only':''}`:null)}{row('Incoming',product.inTransit?`${product.inTransitGrams??'—'} g${product.inTransitEta?' · '+date(product.inTransitEta):''}`:null)}{row('Restockable',product.canReorder?'Yes':null)}</dl>
+ <dl>
+ {row('Current shop',place)}
+ {row('Last counted',date(product.stockVerifiedAt||product.stockKnownAt),onCount)}
+ {row('Stock confidence',product.recheckStock?'Needs recount':product.stockKnownAt||product.stockVerifiedAt?'Recorded':'Count not verified',onCount)}
+ {row('Owner',product.ownerUserId?product.ownerUserId===activeUser?'You':'Member-owned':'Shop-owned',onEdit)}
+ {row('Last tasted',journal?date(journal.tastings.at(-1)?.createdAt||journal.createdAt):'Not recorded',onTaste)}
+ {row('Your verdict',journal?.note.verdict,onTaste)}
+ {row('Your rating',journal?.note.rating!=null?String(journal.note.rating):null,onTaste)}
+ {([['Tea name','productName'],['Given name','givenName'],['Chinese name','chineseName'],['Country','originCountry'],['Region','originRegion'],['Source','vendor']] as const).map(([label,field])=><DetailTextField key={field} label={label} value={product[field]||''} field={field} onSave={onSave}/>)}
+ {row('Type',product.type,onForm)}{row('Form',product.form,onForm)}
+ {row('One piece',product.pieceWeightG?`${product.pieceWeightG} g`:null,onForm)}
+ {product.inTransit&&row('Incoming',`${product.inTransitGrams??'—'} g${product.inTransitEta?' · '+date(product.inTransitEta):''}`,onEdit)}
+ {row('Restockable',product.canReorder?'Yes':'No',()=>{if(savingRef.current)return;savingRef.current=true;setSaving(true);setError('');void onSave('canReorder',!product.canReorder).catch(e=>setError(e instanceof Error?e.message:'Could not save.')).finally(()=>{savingRef.current=false;setSaving(false)})})}
+ </dl>
  <fieldset disabled={saving}><legend className={`${T.label} mb-2 text-tea-text-dim`}>Purpose</legend><div className="grid grid-cols-3 gap-1">{(['working','sample','personal'] as const).map(v=><button type="button" key={v} aria-pressed={effectivePurpose(product)===v} onClick={()=>{void purpose(v)}} className={`${T.link} min-h-11 rounded-md border border-tea-border px-2 ${effectivePurpose(product)===v?'bg-tea-accent-sub text-tea-text':'text-tea-text-sec'}`}>{v==='working'?'Shop stock':v==='sample'?'Sample':'Personal'}</button>)}</div></fieldset>
  {error&&<p role="alert" className={`${T.link} text-tea-text-sec`}>{error}</p>}
  <div className="grid grid-cols-2 gap-2">{[[`Freight ${product.type==='Teaware'?'included':freightUsd==null?'—':'$'+freightUsd.toFixed(2)+'/kg'}`,onFreight],['Stock history',onHistory],['Personal journal',onJournal],['Full editor',onEdit]].map(([label,action])=><button type="button" key={label as string} disabled={saving} onClick={action as ()=>void} className={`${T.link} min-h-11 rounded-md border border-tea-border bg-tea-surface px-2 text-tea-text`}>{label as string}</button>)}</div>
- <button type="button" disabled={saving} onClick={onDelete} className={`${T.link} min-h-11 w-full border-t border-tea-border text-left text-tea-text-sec`}>Delete {product.type==='Teaware'?'item':'tea'}</button>
+ <button type="button" disabled={saving} onClick={onDelete} className={`${T.link} flex items-center justify-center gap-2 min-h-11 w-full rounded-md border border-tea-border bg-tea-surface text-tea-text-sec hover:text-tea-text`}><Trash2 size={16} aria-hidden="true"/>Delete {product.type==='Teaware'?'item':'tea'}</button>
  <p className={`${T.link} text-tea-text-sec`}>The full editor keeps pricing, brewing and tasting profiles, linked writing, shop visibility, collections and sales tools available.</p>
  </div></BottomSheet>
 }

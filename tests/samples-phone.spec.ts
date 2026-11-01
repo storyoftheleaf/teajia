@@ -9,6 +9,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { injectAuth, mockInventoryApi } from './helpers/inventoryMocks';
+import { fulfillHoldings } from './helpers/curateHoldings';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SHOTS_DIR = path.join(__dirname, '../test-results/samples-phone');
@@ -19,10 +20,9 @@ async function shot(page: Page, name: string) {
 }
 
 async function openSamples(page: Page) {
-  // Samples is a view of the one Stock list, picked from the same menu as Working or Personal.
+  // Samples is a view of the one Stock list, picked from the same Show teas choice as Working or Personal.
   await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: /Choose which teas to show/ }).click();
-  await page.getByRole('menuitem', { name: 'Samples', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Show teas' }).selectOption({ label: 'Samples' });
 }
 
 const HOLDINGS = [
@@ -44,7 +44,7 @@ test.describe('Samples on the phone', () => {
   test.beforeEach(async ({ page }) => {
     await injectAuth(page);
     await mockInventoryApi(page);
-    await page.route('**/api/curate/holdings**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(HOLDINGS) }));
+    await page.route('**/api/curate/holdings**', route => fulfillHoldings(route, HOLDINGS));
   });
 
   test('looks like Stock: grouped by supplier, each sample shows its quote', async ({ page }) => {
@@ -68,7 +68,7 @@ test.describe('Samples on the phone', () => {
     await openSamples(page);
     await expect(page.getByTestId('sample-decide-row')).toHaveCount(2);
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('button', { name: /Choose which teas to show/ })).toContainText('Samples');
+    await expect(page.getByRole('combobox', { name: 'Show teas' }).locator('option:checked')).toHaveText('Samples');
     await expect(page.getByTestId('sample-decide-row')).toHaveCount(2);
   });
 
@@ -76,15 +76,19 @@ test.describe('Samples on the phone', () => {
     await openSamples(page);
     await expect(page.getByRole('button', { name: 'Samples only' })).toHaveCount(0);
     await expect(page.getByRole('columnheader', { name: /Quote/ })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Showing Samples/ })).toContainText('2');
-    await expect(page.getByRole('button', { name: 'Kind', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Supplier', exact: true })).toBeVisible();
+    await expect(page.getByTestId('sample-decide-row')).toHaveCount(2);
     const list = page.getByTestId('samples-phone');
     await expect(list.getByRole('region', { name: 'Boyuan Tea Shop' })).toBeVisible();
-    await page.getByRole('button', { name: 'Kind', exact: true }).click();
+    // Grouping lives in View options, the same place it lives for the rest of Stock.
+    const groupBy = async (label: string) => {
+      await page.getByRole('button', { name: 'View options' }).click();
+      await page.getByRole('combobox', { name: 'Group by' }).selectOption({ label });
+      await page.keyboard.press('Escape');
+    };
+    await groupBy('Kind');
     await expect(list.getByRole('region', { name: 'Sheng Puer' })).toBeVisible();
     await expect(list.getByRole('region', { name: 'White' })).toBeVisible();
-    await page.getByRole('button', { name: 'Supplier', exact: true }).click();
+    await groupBy('Supplier');
     await shot(page, 'same-page');
   });
 
@@ -172,13 +176,13 @@ test.describe('Samples on the laptop', () => {
     await injectAuth(page);
     await mockInventoryApi(page);
     await page.route('**/api/rates', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ currency: 'USD', rate_to_usd: 1, last_updated: new Date().toISOString() }, { currency: 'Yuan', rate_to_usd: 7.2, last_updated: new Date().toISOString() }]) }));
-    await page.route('**/api/curate/holdings**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(HOLDINGS) }));
+    await page.route('**/api/curate/holdings**', route => fulfillHoldings(route, HOLDINGS));
   });
 
   test('Samples is a view of the one table: every sample is a Stock row with its quote, and the sampling folds out beneath', async ({ page }) => {
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('button', { name: 'Samples only' })).toHaveCount(0);
-    await page.getByRole('button', { name: 'Samples', exact: true }).first().click();
+    await page.getByRole('combobox', { name: 'Show teas' }).selectOption({ label: 'Samples' });
     // One list: no separate "Curate samples" block, and the columns say what a sample holds.
     await expect(page.getByText('Curate samples')).toHaveCount(0);
     await expect(page.getByRole('columnheader', { name: /Quote/ })).toBeVisible();
@@ -199,8 +203,8 @@ test.describe('Samples on the laptop', () => {
     await expect(aged).toContainText('Yunnan');
     // 900 Yuan for 357 g at 7.2 Yuan a dollar is $0.35 a gram.
     await expect(aged).toContainText('0.35');
-    // No house name yet: a thin "name this", typed in place.
-    await expect(aged.getByRole('button', { name: 'House name for 1958 Aged Raw' })).toHaveText('name this');
+    // No house name yet: a thin "Unnamed", typed in place.
+    await expect(aged.getByRole('button', { name: 'House name for 1958 Aged Raw' })).toHaveText('Unnamed');
     await expect(page.getByText(/0 items/i)).toHaveCount(0);
     await shot(page, 'laptop');
     await aged.getByRole('button', { name: 'Open 1958 Aged Raw editor' }).click();
@@ -222,7 +226,7 @@ test.describe('Deciding on a sample, phone', () => {
     const synced: Array<Record<string, unknown>> = [];
     await injectAuth(page);
     await mockInventoryApi(page);
-    await page.route('**/api/curate/holdings**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(HOLDINGS) }));
+    await page.route('**/api/curate/holdings**', route => fulfillHoldings(route, HOLDINGS));
     // A stand-in that remembers what was synced, as the real Curate store does.
     const rows = COMPASS.map(e => ({ ...e })) as Array<Record<string, unknown>>;
     await page.route('**/api/compass/entries**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ entries: rows }) }));

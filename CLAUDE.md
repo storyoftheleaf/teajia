@@ -358,7 +358,7 @@ test imports still lands green today; `tsc -p worker/tsconfig.json` reports
 here. `mobile` and `e2e` cover browser behavior; `e2e` builds first (two
 specs read `dist/` directly) and runs the full suite on the Desktop Chrome and
 Mobile Chrome projects, the two `tests/inventory-scroll.spec.ts` names
-explicitly, sharded four ways (`--shard=N/4`, `fail-fast: false`) because the
+explicitly, sharded six ways (`--shard=N/6`, `fail-fast: false`) because the
 unsharded suite measured 35 minutes of playwright time alone on faster
 hardware than this private repo's 2 vCPU runner tier gets, past the 30-minute
 cap the job used to carry; each shard still applies `KNOWN_FAILING_E2E`.

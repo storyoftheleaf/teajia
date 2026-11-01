@@ -1,8 +1,8 @@
+import { intensityLabel } from './ObservationIntensity';
 import type { TastingData } from '../../types';
 import { resolveTermLabel } from '../../data/tastingTaxonomy';
 import { selectedSensations, type SensationSection, type SensoryTastingData } from './connectedSensationsVocabulary';
 import { tastingWordLabel } from './approvedWheel/observations';
-import { RETURNING_SWEETNESS } from './tasteQualityState';
 import { STORAGE_CHARACTER_WORDS, withStorageCharacter } from './StorageZone';
 
 export interface TastingRecapGroup {
@@ -16,7 +16,7 @@ export function tastingRecap(value: TastingData): TastingRecapGroup[] {
   const data = value as SensoryTastingData;
   function sensations(section: SensationSection) {
     const selected = selectedSensations(value, section);
-    const words = selected.map(({ id, label }) => ({ id, label: value.observationIntensity?.[`sensation:${id}`] ? `${label} · ${value.observationIntensity[`sensation:${id}`]}` : label }));
+    const words = selected.map(({ id, label }) => ({ id, label: value.observationIntensity?.[`sensation:${id}`] ? `${label} · ${intensityLabel(value.observationIntensity[`sensation:${id}`])}` : label }));
     const known = new Set(selected.map(term => term.id));
     const legacy = section === 'body' ? [...(value.body ?? []), ...(value.finish ?? [])] : value.feeling ?? [];
     for (const id of legacy) if (!known.has(id)) { words.push({ id, label: resolveTermLabel(id) }); known.add(id); }
@@ -25,13 +25,14 @@ export function tastingRecap(value: TastingData): TastingRecapGroup[] {
   }
   const character = withStorageCharacter(value, value.storageCharacter).storageCharacter;
   const storage: {id:string;label:string}[] = character === undefined ? [] : [{ id: 'storage-character', label: STORAGE_CHARACTER_WORDS[character] }];
-  storage.push(...(value.storageNotes ?? []).map(id => ({ id, label: value.observationIntensity?.[`storage:${id}`] ? `${id} · ${value.observationIntensity[`storage:${id}`]}` : id })));
+  storage.push(...(value.storageNotes ?? []).map(id => ({ id, label: value.observationIntensity?.[`storage:${id}`] ? `${id} · ${intensityLabel(value.observationIntensity[`storage:${id}`])}` : id })));
   const appearance = (value['liquor-color'] ?? []).map(id => ({ id, label: resolveTermLabel(id) }));
   if (value.clarity) appearance.push({ id: value.clarity, label: resolveTermLabel(value.clarity) });
   const groups: TastingRecapGroup[] = [
     { id: 'body', label: 'Texture', words: sensations('body') },
     { id: 'state', label: 'Effect', words: sensations('state') },
-    { id: 'flavor', label: 'Taste', words: [...(value.flavor ?? []).map(id => ({ id, label: tastingWordLabel(id) })), ...(value.basicTastes ?? []).map(label => ({ id: `basic:${label}`, label })), ...(value.huiGanIntensity !== undefined ? [{ id: 'hui-gan', label: `Returning sweetness · ${RETURNING_SWEETNESS[value.huiGanIntensity] ?? 'Unspecified'}` }] : value.huiGan ? [{ id: 'hui-gan', label: 'Returning sweetness' }] : [])] },
+    { id: 'flavor-families', label: 'Flavor families', words: (value.flavorFamilies ?? []).map(id => ({ id: `family:${id}`, label: tastingWordLabel(id) })) },
+    { id: 'flavor', label: 'Taste', words: [...(value.flavor ?? []).map(id => ({ id, label: tastingWordLabel(id) })), ...(value.basicTastes ?? []).map(label => ({ id: `basic:${label}`, label: label === 'Umami' ? 'Savory (umami)' : label }))] },
     { id: 'aroma', label: 'Aroma', words: (value.aroma ?? []).map(id => ({ id, label: tastingWordLabel(id) })) },
     { id: 'storage', label: 'Storage', words: storage },
     { id: 'appearance', label: 'Appearance', words: appearance },

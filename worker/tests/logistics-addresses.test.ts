@@ -1,0 +1,107 @@
+import { afterEach, describe, expect, it } from 'vitest';
+import { SqliteD1, seedIdentity } from './helpers/sqliteD1';
+import { mutateLogistics, readLogistics, readLogisticsAddresses } from '../src/logistics';
+import { logisticsTools } from '../src/mcpTools/logistics';
+
+const databases: SqliteD1[] = [];
+afterEach(() => databases.splice(0).forEach(db => db.close()));
+function fixture() {
+ const db = new SqliteD1('migrations'); databases.push(db);
+ seedIdentity(db, { userId: 'owner', accountId: 'shop' });
+ seedIdentity(db, { userId: 'other', accountId: 'other' });
+ db.sqlite.exec(`INSERT INTO products(id,account_id,type,product_name,stock_grams) VALUES('tea','shop','Red','Tea',0);
+ INSERT INTO inventory_receipts(id,account_id,state,source_kind,created_by_user_id,idempotency_key,request_fingerprint) VALUES('receipt','shop','in_transit','purchase_order','owner','invoice','{}');
+ INSERT INTO inventory_receipt_lines(id,receipt_id,account_id,product_id,expected_quantity,unit,intended_purpose,source_kind) VALUES('line','receipt','shop','tea',1000,'g','working','purchase_order');
+ INSERT INTO purchase_orders(id,account_id,status,receipt_id,created_at,updated_at) VALUES('purchase','shop','shipped','receipt',datetime('now'),datetime('now'));`);
+ const env = { DB: db as unknown as D1Database };
+ const scope = { accountId: 'shop', userId: 'owner' };
+ const mutate = (action: Parameters<typeof mutateLogistics>[2], id = '', body = {}, preview = false) => mutateLogistics(env, scope, action, id, body, preview);
+ const warehouse = { label: 'Guangzhou warehouse', role: 'warehouse', recipient: 'Receiving desk', address_lines: '12 River Road\nBuilding B', city: 'Guangzhou', country_code: 'cn' };
+ const destination = { label: 'Art studio', role: 'destination', recipient: 'Adrian', address_lines: '8 Studio Road', city: 'Ubud', country_code: 'ID' };
+ const company = { logistics_company_id: null, logistics_company_name: 'Forwarder' };
+ const createInput = { ...company, idempotency_key: 'one', mode: 'sea', lines: [{ receipt_line_id: 'line', quantity: 1000 }] };
+ return { db, env, scope, mutate, warehouse, destination, company, createInput };
+}
+
+describe('saved logistics addresses on the actual migration ledger', () => {
+ it('keeps addresses account scoped and validates required fields and role', async () => {
+  const f = fixture();
+  const { address } = await f.mutate('address_create', '', f.warehouse);
+  expect(address.country_code).toBe('CN');
+  expect(await readLogisticsAddresses(f.env, 'other')).toEqual([]);
+  await expect(mutateLogistics(f.env, { accountId: 'other', userId: 'other' }, 'address_update', address.id, { label: 'No' })).rejects.toMatchObject({ status: 404 });
+  await expect(mutateLogistics(f.env, { accountId: 'other', userId: 'other' }, 'address_archive', address.id, {})).rejects.toMatchObject({ status: 404 });
+  await expect(f.mutate('address_create', '', { ...f.destination, address_lines: '  ' })).rejects.toThrow('Address needs');
+  await expect(f.mutate('address_create', '', { ...f.destination, logistics_company_id: 'unknown' })).rejects.toThrow('Only warehouse');
+  await expect(f.mutate('address_create', '', { ...f.warehouse, logistics_company_id: 'unknown' })).rejects.toMatchObject({ status: 404 });
+  f.db.sqlite.exec("INSERT INTO customers(id,account_id,name,type) VALUES('forwarder','shop','Forwarder','logistics'),('foreign-forwarder','other','Foreign','logistics')");
+  await expect(f.mutate('address_create', '', { ...f.warehouse, logistics_company_id: 'foreign-forwarder' })).rejects.toMatchObject({ status: 404 });
+  const { address: linked } = await f.mutate('address_create', '', { ...f.warehouse, logistics_company_id: 'forwarder' });
+  await expect(f.mutate('order', 'purchase', { ...f.company, warehouse_address_id: linked.id })).rejects.toThrow('different logistics company');
+  const { address: dest } = await f.mutate('address_create', '', f.destination);
+  await expect(f.mutate('order', 'purchase', { ...f.company, warehouse_address_id: dest.id })).rejects.toThrow('warehouse address');
+  const outsider = await mutateLogistics(f.env, { accountId: 'other', userId: 'other' }, 'address_create', '', f.warehouse);
+  await expect(f.mutate('order', 'purchase', { ...f.company, warehouse_address_id: outsider.address.id })).rejects.toMatchObject({ status: 404 });
+ });
+ it('preserves snapshots through saved edits, archival, unrelated updates, dispatch and retries', async () => {
+  const f = fixture();
+  const { address: warehouse } = await f.mutate('address_create', '', f.warehouse);
+  const { address: destination } = await f.mutate('address_create', '', f.destination);
+  await f.mutate('order', 'purchase', { ...f.company, warehouse_address_id: warehouse.id });
+  await f.mutate('address_update', warehouse.id, { address_lines: 'New warehouse' });
+  await f.mutate('order', 'purchase', { ...f.company, inbound_tracking_number: 'YT123' });
+  expect((await readLogistics(f.env, 'shop')).orders[0].warehouse_address?.address_lines).toBe(f.warehouse.address_lines);
+  await f.mutate('arrive', 'purchase');
+  await expect(f.mutate('create', '', { ...f.createInput, delivery_address_id: warehouse.id })).rejects.toThrow('delivery destination');
+  const input = { ...f.createInput, delivery_address_id: destination.id };
+  const { shipment } = await f.mutate('create', '', input);
+  await f.mutate('dispatch', shipment.id);
+  await f.mutate('address_update', destination.id, { address_lines: 'New studio' });
+  await f.mutate('update', shipment.id, { tracking_number: 'SEA123' });
+  expect((await readLogistics(f.env, 'shop')).shipments[0].delivery_address?.address_lines).toBe(f.destination.address_lines);
+  await f.mutate('update', shipment.id, { delivery_address_id: destination.id });
+  expect((await readLogistics(f.env, 'shop')).shipments[0].delivery_address?.address_lines).toBe('New studio');
+  await f.mutate('address_archive', destination.id);
+  expect((await f.mutate('create', '', input)).already_created).toBe(true);
+  await expect(f.mutate('update', shipment.id, { delivery_address_id: destination.id })).rejects.toThrow('archived');
+  expect((await readLogistics(f.env, 'shop')).shipments[0].delivery_address?.address_lines).toBe('New studio');
+  expect(f.db.sqlite.prepare('SELECT COUNT(*) n FROM stock_ledger').get()).toEqual({ n: 0 });
+  await f.mutate('update', shipment.id, { delivery_address_id: null });
+  expect((await readLogistics(f.env, 'shop')).shipments[0].delivery_address).toBeNull();
+ });
+ it('allows an agent to save and assign addresses only through the durable preview token', async () => {
+  const f = fixture();
+  const auth = { accountId: 'shop', userId: 'owner', userEmail: 'owner@test.dev', tokenId: 'agent', creatorTier: 'account_owner' };
+  const call = async (name: string, args = {}) => logisticsTools.handlers[name](f.env, auth, args) as Promise<any>;
+  const preview = await call('create_logistics_address', f.warehouse);
+  expect(preview.confirmation_token).toEqual(expect.any(String));
+  expect(await readLogisticsAddresses(f.env, 'shop')).toEqual([]);
+  const created = await call('create_logistics_address', { confirm: preview.confirmation_token });
+  expect(created.committed).toBe(true);
+  expect((await call('create_logistics_address', { confirm: preview.confirmation_token })).error).toBe('invalid_or_expired_confirmation_token');
+  const assignment = await call('set_purchase_logistics', { purchase_id: 'purchase', ...f.company, warehouse_address_id: created.address.id });
+  expect((await call('set_purchase_logistics', { confirm: assignment.confirmation_token })).order.warehouse_address.address_lines).toBe(f.warehouse.address_lines);
+  const edit = await call('update_logistics_address', { address_id: created.address.id, address_lines: 'Another warehouse' });
+  expect((await call('update_logistics_address', { confirm: edit.confirmation_token })).address.address_lines).toBe('Another warehouse');
+  expect((await readLogistics(f.env, 'shop')).orders[0].warehouse_address?.address_lines).toBe(f.warehouse.address_lines);
+  const correction = await call('set_purchase_logistics', { purchase_id: 'purchase', ...f.company, warehouse_address_id: created.address.id });
+  await f.mutate('address_update', created.address.id, { address_lines: 'Changed before confirmation' });
+  expect((await call('set_purchase_logistics', { confirm: correction.confirmation_token })).error).toContain('changed after preview');
+  const archive = await call('archive_logistics_address', { address_id: created.address.id });
+  expect((await call('archive_logistics_address', { confirm: archive.confirmation_token })).address.archived).toBe(true);
+ });
+ it('previews without writes and rejects changed saved addresses before confirmation', async () => {
+  const f = fixture();
+  await f.mutate('address_create', '', f.destination, true);
+  expect(await readLogisticsAddresses(f.env, 'shop')).toEqual([]);
+  const { address } = await f.mutate('address_create', '', f.warehouse);
+  const body = { ...f.company, warehouse_address_id: address.id };
+  const preview = await f.mutate('order', 'purchase', body, true);
+  await f.mutate('address_update', address.id, { address_lines: 'Changed' });
+  await expect(f.mutate('order', 'purchase', { ...body, _expected_address: preview.warehouse_address })).rejects.toThrow('changed after preview');
+  expect((await readLogistics(f.env, 'shop')).orders[0].warehouse_address).toBeNull();
+  const defs = logisticsTools.defs;
+  expect(defs.find(d => d.name === 'create_logistics_address')?.scope).toBe('stock:write');
+  expect(defs.find(d => d.name === 'list_logistics_addresses')?.scope).toBe('inventory:read');
+ });
+});

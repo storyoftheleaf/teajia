@@ -236,6 +236,15 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     }).catch(() => { /* A retained purchase draft remains available during a failed read. */ });
     return () => { current = false; };
   }, [entry?.id, activeAccountId]);
+  // The defaults also follow what the draft is: switching a capture to Teaware or
+  // marking it a sample changes them, as it did before the purchase-draft read
+  // above narrowed its own dependencies to the tea and the account (2026-10-28).
+  // A purchase draft already saved for this tea keeps the purpose it was saved with.
+  useEffect(() => {
+    if (!entry || receiptProposal) return;
+    setReceiptPurpose(entryIsSample(entry) ? 'sample' : (entry.category === 'teaware' ? 'personal' : 'working'));
+    setReceiptAcquisition(entryIsSample(entry) ? 'free_sample' : 'purchase');
+  }, [entry?.category, entry?.sampleState]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!entry || !openPurchasePicker) {
       consumedPurchaseHandoffRef.current = null;

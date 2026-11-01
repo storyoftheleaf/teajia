@@ -4,9 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import {
   Check, Leaf, Sparkles, Mic, Loader2,
   Heart, ThumbsUp, Minus, ThumbsDown, ShoppingCart,
-  Thermometer, Timer, X, ChevronRight,
+  X, ChevronRight,
 } from 'lucide-react';
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { TastingData, CustomerTasting } from '../../types';
 import { TastingNavigation } from './TastingNavigation';
 import { TastingFlow, ALL_SECTIONS, type SectionId } from './TastingFlow';
@@ -17,13 +17,12 @@ import { useNotesStore } from '../../lib/notesStore';
 import { syncNotes } from '../../lib/notesSync';
 import { api, hasToken } from '../../lib/api';
 import { resolveTermLabel, resolveTermIcon } from '../../data/tastingTaxonomy';
-import { YourImpression, appendImpressionTranscript } from './YourImpression';
+import { YourImpression, appendImpressionTranscript, impressionNotes } from './YourImpression';
 import { tastingRecap } from './tastingRecap';
 import { normalizeNotes, notesAsStrings } from '../../lib/noteEntries';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useVoiceCapture } from '../../hooks/useVoiceCapture';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
-import { SampleIcon } from '../Icons';
 import { useAuth } from '../../hooks/useAuth';
 
 export interface TastingItem {
@@ -62,7 +61,6 @@ const VERDICT_OPTIONS: {
   { id: 'pass',    label: 'Dislike',     icon: ThumbsDown },
 ];
 
-const VESSEL_OPTIONS = ['Gaiwan', 'Yixing', 'Glass', 'Teapot', 'Other'] as const;
 
 interface TastingSessionProps {
   /** Isolated design preview: save through onAfterSave only; no journal or API writes. */
@@ -218,11 +216,6 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
 
-  // Brewing context (admin mode)
-  const [showBrewing, setShowBrewing] = useState(
-    !!(initialData?.brewingVessel || initialData?.brewingTemp || initialData?.brewingTime)
-  );
-
   // Live draft review (admin + teaKey only): Mode 3 async collaborative tasting
   const draftReviewIdRef = useRef<string | null>(null);
   const isCreatingDraftRef = useRef(false);
@@ -345,15 +338,6 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     (tastingData.notes?.length ?? 0) > 0;
   const hasNotes = hasArrayNotes || hasCaptureData;
 
-  // Completeness: all four sections filled + quality score
-  const isComplete =
-    adminMode &&
-    sectionCounts.body > 0 &&
-    sectionCounts.state > 0 &&
-    sectionCounts.flavor > 0 &&
-    sectionCounts.appearance > 0 &&
-    tastingData.quality != null;
-
   // In sourcing mode (showVerdict + !adminMode), verdict is required before saving
   const verdictRequired = showVerdict && !adminMode;
   const changedExisting = baselineRef.current !== tastingFingerprint({}) && tastingFingerprint(tastingData) !== baselineRef.current;
@@ -435,7 +419,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
           eventTitle: item.eventTitle,
         };
         const noteUpdates = {
-          personalNote: tastingData.notes?.map(n => typeof n === 'string' ? n : n.text).join('\n') || tastingData.voiceNote?.trim() || undefined,
+          personalNote: impressionNotes(tastingData).map(n => typeof n === 'string' ? n : n.text).join('\n') || tastingData.voiceNote?.trim() || undefined,
           rating: tastingData.quality ?? tastingData.rating,
           verdict: verdict ?? undefined,
           wouldBuy: wouldBuy,
@@ -527,22 +511,21 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     updateNoteFields({ wouldBuy: next });
   }, [wouldBuy, updateNoteFields, onSave, adminMode, tastingData, verdict]);
 
-  const noteControl = <button type="button" className="tap-target px-3 text-ui-12 text-tea-text" onClick={() => setShowNote(true)}>Your impression</button>;
   const resumeSelection = (section: string, word?: string) => {
-    const target: SectionId = section === 'aroma' ? 'flavor' : section === 'storage' ? 'appearance' : section as SectionId;
+    const target: SectionId = section === 'aroma' || section === 'flavor-families' ? 'flavor' : section === 'storage' ? 'appearance' : section as SectionId;
     setActiveSectionId(target);
     setReveal(word ? { word, sense: section === 'aroma' ? 'aroma' : 'taste', stamp: Date.now() } : undefined);
     setShowNote(false);
   };
 
   return createPortal(
-    <div data-tasting-session-overlay className={`fixed inset-0 z-takeover lg:bg-black/75 lg:backdrop-blur-sm lg:flex lg:items-center lg:justify-center${className ? ` ${className}` : ''}`}>
+    <div data-tasting-session-overlay className={`fixed inset-0 z-takeover${className ? ` ${className}` : ''}`}>
     <motion.div
       initial={false}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-      className="fixed inset-0 bg-tea-bg flex flex-col lg:relative lg:inset-auto lg:w-[540px] lg:h-[min(94vh,960px)] lg:rounded-xl lg:border lg:border-tea-border lg:overflow-hidden"
+      className="tasting-session-surface fixed inset-0 bg-tea-bg flex flex-col overflow-hidden"
       style={{
         paddingLeft: 'env(safe-area-inset-left, 0px)',
         paddingRight: 'env(safe-area-inset-right, 0px)',
@@ -551,17 +534,21 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
       <div className="tasting-session-header">
         <div className="tasting-header-controls">
         <button type="button" className="tasting-heading-close tap-target" onClick={handleCloseRequest} aria-label="Close"><X size={18}/></button>
+        <div className="tasting-impression-control" role="group" aria-label="Tea impression and voice notes">
         <button type="button" className="tasting-heading-trigger" aria-label="Open your impression" onClick={() => { setPhase('tasting'); setShowNote(true); }}>
           <span className="tasting-heading-name">{item.name}</span>
           <span className="tasting-heading-summary">Impression <ChevronRight size={14} aria-hidden="true" /></span>
         </button>
-        {adminMode && <button type="button" className="tasting-heading-mic tap-target" disabled={silentVoice.state === 'transcribing'} aria-label={silentVoice.state === 'recording' ? 'Stop recording' : 'Record into your notes'} aria-pressed={silentVoice.state === 'recording'} onClick={() => { setVoiceError(''); if(silentVoice.state === 'recording') silentVoice.stop(); else void silentVoice.start(); }}>
+        {adminMode && <button type="button" className="tasting-heading-mic tap-target" disabled={silentVoice.state === 'transcribing'} aria-label={silentVoice.state === 'recording' ? 'Stop recording' : 'Record into your notes'} aria-pressed={silentVoice.state === 'recording'} onClick={() => { setVoiceError(''); setPhase('tasting'); setShowNote(true); if(silentVoice.state === 'recording') silentVoice.stop(); else void silentVoice.start(); }}>
           {silentVoice.state === 'transcribing' ? <Loader2 size={18} className="animate-spin"/> : <Mic size={18}/>}
         </button>}
+        </div>
+        <div className="tasting-save-control" role="group" aria-label="Save tasting controls" data-pending={isDirty && canSave && silentVoice.state === 'idle'}>
         <button type="button" className="tasting-heading-save tap-target" aria-label={saveState === 'saving' ? 'Saving tasting' : saveState === 'saved' ? 'Tasting saved' : 'Save tasting'} disabled={saveState === 'saving' || saveState === 'saved' || silentVoice.state !== 'idle'} onClick={() => {
           if (canSave) { setShowSaveGuidance(false); void handleSave(); }
           else { setPhase('tasting'); setShowNote(true); setShowSaveGuidance(true); }
         }}>{saveState === 'saving' ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : null}{saveState === 'saved' ? 'Saved' : saveState === 'saving' ? 'Saving' : saveState === 'error' ? 'Retry' : 'Save'}</button>
+        </div>
         </div>
         {saveState === 'saved' && (guestTasting || onOrderTea || onCreatePO || onWriteDescription) && <div className="tasting-heading-tools"><button type="button" className="tap-target" onClick={() => setPhase('saved')}>Review saved tasting</button></div>}
         {detailsPanel && <div className="tasting-heading-tools">
@@ -570,8 +557,6 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
       </div>
       {showSaveGuidance && !canSave && saveState === 'idle' && <p role="status" className="tasting-save-guidance">{verdictRequired && verdict === null ? 'Choose your impression to save this tasting.' : 'Add a note, rating or tasting observation to save.'}</p>}
       {saveState === 'error' && <p role="alert" className="tasting-save-guidance">Could not save. Your edits are still here. Try Save again.</p>}
-      {voiceError && <p role="alert" className="px-4 text-ui-12 text-tea-text-sec">{voiceError}</p>}
-      {silentVoice.state !== 'idle' && <p role="status" className="px-4 text-ui-12 text-tea-text-sec">{silentVoice.state === 'recording' ? 'Recording into your notes…' : 'Transcribing into your notes…'}</p>}
 
       {/* Details sits OUTSIDE the transition group below. Adding a third branch
           inside a mode="wait" group left the incoming tasting view stuck at
@@ -592,7 +577,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
             initial={false}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex-1 min-h-0 flex flex-col"
+            className="tasting-desktop-workspace flex-1 min-h-0 flex flex-col"
           >
             {/* Continuing banner. The default re-tasting flow edits the
                 existing note in place. The "Start a new tasting" affordance
@@ -663,93 +648,6 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               </div>
             )}
 
-            {/* Brewing context strip: admin mode only */}
-            {adminMode && showNote && (
-              <div className="shrink-0 border-b border-tea-border">
-                <button
-                  type="button"
-                  onClick={() => setShowBrewing(v => !v)}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors"
-                  style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
-                >
-                  <SampleIcon className="w-3 h-3 shrink-0 opacity-50" />
-                  <span className="uppercase tracking-[0.1em]">
-                    {tastingData.brewingVessel || tastingData.brewingTemp || tastingData.brewingTime
-                      ? [tastingData.brewingVessel, tastingData.brewingTemp ? `${tastingData.brewingTemp}°C` : null, tastingData.brewingTime].filter(Boolean).join(' · ')
-                      : 'Add brewing context'}
-                  </span>
-                </button>
-                <AnimatePresence>
-                  {showBrewing && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.18 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="px-4 pb-3 flex flex-wrap gap-3">
-                        {/* Vessel */}
-                        <div className="flex flex-col gap-1">
-                          <span className="text-ui-10 uppercase tracking-[0.1em] text-tea-text-dim" style={{ fontFamily: 'var(--font-display)' }}>Vessel</span>
-                          <div className="flex flex-wrap gap-1">
-                            {VESSEL_OPTIONS.map(v => (
-                              <button
-                                key={v}
-                                type="button"
-                                onClick={() => handleTastingChange({ ...tastingData, brewingVessel: tastingData.brewingVessel === v ? undefined : v })}
-                                className={`text-ui-11 px-2.5 py-1 rounded-full transition-colors ${
-                                  tastingData.brewingVessel === v
-                                    ? 'bg-tea-gold/15 text-tea-gold'
-                                    : 'bg-tea-surface text-tea-text-sec hover:text-tea-text'
-                                }`}
-                                style={{ fontFamily: 'var(--font-body)' }}
-                              >
-                                {v}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        {/* Temp */}
-                        <div className="flex flex-col gap-1">
-                          <span className="text-ui-10 uppercase tracking-[0.1em] text-tea-text-dim" style={{ fontFamily: 'var(--font-display)' }}>
-                            <Thermometer size={10} className="inline mr-0.5" />Temp
-                          </span>
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="number"
-                              min={50}
-                              max={100}
-                              value={tastingData.brewingTemp ?? ''}
-                              onChange={e => handleTastingChange({ ...tastingData, brewingTemp: e.target.value ? Number(e.target.value) : undefined })}
-                              placeholder="95"
-                              className="w-16 px-2 py-1 bg-tea-surface border border-tea-border rounded text-ui-12 text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none focus:border-tea-gold/50"
-                              style={{ fontFamily: 'var(--font-mono)' }}
-                            />
-                            <span className="text-ui-11 text-tea-text-dim">°C</span>
-                          </div>
-                        </div>
-                        {/* Time */}
-                        <div className="flex flex-col gap-1">
-                          <span className="text-ui-10 uppercase tracking-[0.1em] text-tea-text-dim" style={{ fontFamily: 'var(--font-display)' }}>
-                            <Timer size={10} className="inline mr-0.5" />Time
-                          </span>
-                          <input
-                            type="text"
-                            value={tastingData.brewingTime ?? ''}
-                            onChange={e => handleTastingChange({ ...tastingData, brewingTime: e.target.value || undefined })}
-                            placeholder="30s"
-                            className="w-16 px-2 py-1 bg-tea-surface border border-tea-border rounded text-ui-12 text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none focus:border-tea-gold/50"
-                            style={{ fontFamily: 'var(--font-mono)' }}
-                          />
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
-
             {/* Structured sections, or the Notes workspace when the NOTE tab is active */}
             {/* No fade at the foot of the scroller. A 24px transparent-to-ground
                 gradient sat directly above the taskbar's hairline, and on the last
@@ -760,6 +658,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               {!contentReady ? <div role="status" className="tasting-loading-state">Opening tasting…</div> : showNote ? (
                 <div className="h-full overflow-y-auto tasting-scroll pt-3">
                   <YourImpression value={tastingData} onChange={handleTastingChange}
+                    voiceState={silentVoice.state} voiceError={voiceError}
                     verdict={verdict} onVerdict={next => { setVerdict(next); handleTastingChange({...tastingData, impression:next ?? undefined}); }}
                     wouldBuy={wouldBuy} onWouldBuy={next => { setWouldBuy(next); handleTastingChange({...tastingData,wantToPurchase:next}); }}
                     inCollection={tastingData.inCollection ?? favoriteTeas.includes(item.id)}
@@ -787,88 +686,19 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
             <TastingNavigation activeSection={showNote ? null : activeSectionId}
               onSelect={id => { setActiveSectionId(id); setShowNote(false); }} onClose={handleCloseRequest} />
 
-            {/* Bottom bar: a flat word taskbar. One crisp hairline separates it
-                from the content above; no upward shadow haze (that read as smudged
-                shading). Active state is a bronze word + a sliding underline rule,
-                not a filled box, so it speaks the same language as the global nav
-                capsule beneath it without touching that bar. */}
-            <div
-              className="hidden lg:block shrink-0 border-t border-tea-border bg-tea-bg"
-              style={{
-                paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-              }}
-            >
-              {/* Section tabs + mic: the NOTE tab supports tap-to-open and hold-to-record */}
-              <LayoutGroup>
-                <div className="flex">
-                  {ALL_SECTIONS.map((section) => {
-                    const isActive = section.id === activeSectionId && !showNote;
-                    const count = sectionCounts[section.id];
-                    return (
-                      <button
-                        key={section.id}
-                        onClick={() => { setActiveSectionId(section.id); setShowNote(false); }}
-                        className={`relative flex-1 flex items-center justify-center py-3.5 transition-colors duration-200 ${
-                          isActive ? 'text-tea-gold' : 'text-tea-text/45 hover:text-tea-text/75'
-                        }`}
-                        style={{
-                          fontFamily: 'var(--font-display)',
-                          fontSize: '12px',
-                          fontWeight: isActive ? 800 : 300,
-                          letterSpacing: '0.18em',
-                          textTransform: 'uppercase',
-                        }}
-                      >
-                        {/* Active = the word turns bronze + bold. No underline, no
-                            box. The color/weight shift alone marks it, matching how
-                            the global capsule below signals its active item. */}
-                        <span className="relative z-[1] inline-flex items-baseline gap-1">
-                          {section.label}
-                          {/* Count as a quiet bronze superscript after the word. */}
-                          {count > 0 && (
-                            <span
-                              className="tabular-nums"
-                              style={{
-                                fontSize: '9px',
-                                letterSpacing: 0,
-                                color: isActive ? 'var(--tea-gold)' : 'rgb(var(--tea-gold-rgb) / 0.5)',
-                                transform: 'translateY(-2px)',
-                              }}
-                            >
-                              {count}
-                            </span>
-                          )}
-                        </span>
-                      </button>
-                    );
-                  })}
+            <nav className="tasting-desktop-nav hidden lg:flex" aria-label="Desktop tasting sections">
+              {ALL_SECTIONS.map(section => {
+                const active = section.id === activeSectionId && !showNote;
+                const Icon = section.icon;
+                return <button type="button" key={section.id} aria-current={active ? 'page' : undefined}
+                  onClick={() => { setActiveSectionId(section.id); setShowNote(false); }}>
+                  <Icon size={18} /><span>{section.label}</span>
+                  {sectionCounts[section.id] > 0 && <small>{sectionCounts[section.id]}</small>}
+                </button>;
+              })}
+              <button type="button" className="tasting-desktop-impression" aria-current={showNote ? 'page' : undefined} onClick={() => setShowNote(true)}>Your impression</button>
+            </nav>
 
-                  {/* Hairline divider: separates the four senses (rate) from
-                      Note (capture), so Note stops reading as a 5th sense. */}
-                  <div className="w-px my-3 bg-tea-border shrink-0" aria-hidden />
-
-                  {/* Note, the capture cell. Word + inline mic, matching the sense
-                      tabs' weight. Tap to open panel; press-and-hold to silently
-                      capture voice. */}
-                  {noteControl}
-                </div>
-              </LayoutGroup>
-
-              {/* Completeness signal: admin only */}
-              {adminMode && isComplete && (
-                <motion.div
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="px-4 pt-1.5 flex items-center gap-1.5"
-                >
-                  <Check size={11} className="text-tea-gold shrink-0" />
-                  <span className="text-ui-10 text-tea-text-sec" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.08em' }}>
-                    Profile complete
-                  </span>
-                </motion.div>
-              )}
-
-            </div>
           </motion.div>
 
         ) : (
@@ -937,13 +767,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 </div>
               )}
 
-              {/* Brewing context summary */}
-              {(tastingData.brewingVessel || tastingData.brewingTemp || tastingData.brewingTime) && (
-                <div className="mt-2 flex items-center justify-center gap-2 text-ui-11 text-tea-text-dim" style={{ fontFamily: 'var(--font-body)' }}>
-                  <SampleIcon className="w-[11px] h-[11px] opacity-50" />
-                  {[tastingData.brewingVessel, tastingData.brewingTemp ? `${tastingData.brewingTemp}°C` : null, tastingData.brewingTime].filter(Boolean).join(' · ')}
-                </div>
-              )}
+
             </div>
 
             {/*

@@ -45,7 +45,8 @@ async function buyThroughCaptureCard(page: Page, teas: Array<Record<string, unkn
     await page.getByRole('button', { name: /Buy/ }).last().click();
     await page.getByRole('spinbutton').last().fill(amount);
     await page.getByRole('button', { name: 'Add to Ledger' }).click();
-    await expect(page.getByText('Inventory changes only after you accept this receipt.')).toBeVisible();
+    // A purchase draft now says where it goes next: Confirm this draft in Ledger.
+    await expect(page.getByText(/Inventory changes only after you accept (this|its) receipt\./).filter({ visible: true }).first()).toBeVisible();
   }
 }
 

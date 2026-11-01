@@ -1,3 +1,4 @@
+import { inventoryTeaType } from '../../../wisdom/vocabulary';
 import { useEffect, useMemo, useRef } from 'react';
 import Fuse from 'fuse.js';
 import type { Product } from '../../types';
@@ -105,7 +106,7 @@ export function useInventoryProducts({
       );
     }
 
-    if (teaTypeFilter) result = result.filter(product => product.type === teaTypeFilter);
+    if (teaTypeFilter) result = result.filter(product => inventoryTeaType(product.type) === inventoryTeaType(teaTypeFilter));
     if (filterType !== 'Archived' && filterType !== 'All') {
       result = result.filter(p => p.status !== 'Archived');
     }
@@ -156,7 +157,7 @@ export function useInventoryProducts({
     } else if (filterType === 'SoldOut') {
       result = result.filter(p => p.status === 'Sold Out');
     } else if (filterType !== 'All') {
-      result = result.filter(p => p.type === filterType);
+      result = result.filter(p => inventoryTeaType(p.type) === inventoryTeaType(filterType));
     }
 
     if (tastingFilter && shouldApplyInventoryFacetFilter(tastingFilter, summaryStatus)) {
@@ -237,7 +238,7 @@ export function useInventoryProducts({
       // Stock spine step 2: a null owner means the row is owned by the location
       // itself (house stock), not an individual seller, label it as such rather
       // than the generic "Unknown" bucket.
-      const key = inventoryGroupBy === 'ownerUserId'
+      const key = inventoryGroupBy === 'type' ? inventoryTeaType(p.type) || 'Unknown' : inventoryGroupBy === 'ownerUserId'
         ? (p.ownerUserId ? `Seller · ${p.ownerUserId.slice(0, 8)}` : 'House stock')
         : String((p as unknown as Record<string, unknown>)[inventoryGroupBy] ?? '').trim() || 'Unknown';
       if (!groups[key]) groups[key] = { key, label: key, items: [], totalStock: 0, totalRetail: 0, lifecycle: false };

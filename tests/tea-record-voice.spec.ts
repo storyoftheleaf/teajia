@@ -1,5 +1,6 @@
 import { test, expect, type Page } from './fixtures';
 import { installCompassHarness, openCompass, expectNoUnhandledCompassApi } from './helpers/compassHarness';
+import { openRecordSection } from './helpers/teaRecord';
 
 const entryId = 'voice-linked-tea';
 const transcript = 'The spring leaves have a clean mineral finish. Ask Chen about the harvest.';
@@ -70,9 +71,11 @@ test('phone shared tea recording stores one canonical voice note without rewriti
   await page.getByRole('tab', { name: 'Library', exact: true }).click();
   const row = page.getByTestId(`library-entry-${entryId}`).filter({ visible: true });
   await expect(row).toBeVisible();
-  await row.getByRole('button', { name: `More about ${source.name}`, exact: true }).click();
+  await row.getByRole('button', { name: `Edit details for ${source.name}`, exact: true }).click();
   const record = page.getByTestId('library-entry-detail').filter({ visible: true });
   await expect(record).toBeVisible();
+  // Recording a note is on the record's Notes tab.
+  await openRecordSection(page, 'Source material');
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const microphone = record.getByRole('button', { name: 'Record a note', exact: true });
     await microphone.click();
@@ -90,10 +93,10 @@ test('phone shared tea recording stores one canonical voice note without rewriti
   expect(new Set(synchronized.filter(note => note.compass_entry_id === entryId).map(note => note.id)).size).toBe(1);
   expect(extractionCalls).toBe(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
-  await record.getByText('Source material', { exact: true }).click();
+  await openRecordSection(page, 'Source material');
   await expect(record.getByRole('textbox', { name: 'Voice note from You', exact: true })).toHaveValue(transcript);
-  await page.screenshot({ path: '/private/tmp/tea-record-phone-voice-source.png', fullPage: true, animations: 'disabled' });
+  await page.screenshot({ path: test.info().outputPath('tea-record-phone-voice-source.png'), fullPage: true, animations: 'disabled' });
   await record.getByRole('textbox', { name: 'Voice note from You', exact: true }).scrollIntoViewIfNeeded();
-  await page.screenshot({ path: '/private/tmp/tea-record-phone-voice-note.png', fullPage: true, animations: 'disabled' });
+  await page.screenshot({ path: test.info().outputPath('tea-record-phone-voice-note.png'), fullPage: true, animations: 'disabled' });
   await expectNoUnhandledCompassApi(page);
 });

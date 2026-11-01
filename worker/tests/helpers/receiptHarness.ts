@@ -103,10 +103,15 @@ class ReceiptStatement {
     }
     if (sql.startsWith('update inventory_receipt_lines set')) {
       const guardedReceipt = sql.includes('exists (select 1 from products');
-      const idIndex = guardedReceipt ? 2 : this.values.length - 2;
-      const accountIndex = guardedReceipt ? 3 : this.values.length - 1;
+      const guardedCancel = sql.includes('cancelled_quantity=expected_quantity-received_quantity');
+      const idIndex = guardedCancel ? 0 : guardedReceipt ? 2 : this.values.length - 2;
+      const accountIndex = guardedCancel ? 1 : guardedReceipt ? 3 : this.values.length - 1;
       const row = this.db.receiptLines.get(String(this.values[idIndex]));
       if (!row || row.account_id !== this.values[accountIndex]) return { success: true, meta: { changes: 0 } };
+      if (guardedCancel) {
+        if (row.received_quantity !== Number(this.values[2]) || row.cancelled_quantity !== Number(this.values[3])) return {success:true,meta:{changes:0}};
+        row.cancelled_quantity = row.expected_quantity - row.received_quantity;
+      }
       if (sql.includes('received_quantity=received_quantity+?')) { row.received_quantity += Number(this.values[0]); row.intake_batch_id = this.values[1]; }
       else if (sql.includes('cancelled_quantity=cancelled_quantity+?')) row.cancelled_quantity += Number(this.values[0]);
       if (Number(row.received_quantity) < 0 || Number(row.cancelled_quantity) < 0 || Number(row.received_quantity) + Number(row.cancelled_quantity) > Number(row.expected_quantity)) throw new Error('CHECK receipt quantities');

@@ -1,6 +1,9 @@
 import { test, expect } from './fixtures';
 import { installCompassHarness } from './helpers/compassHarness';
 test('metalwork keeps Library edits and actions at phone and desktop widths', async ({page}) => {
+ // It walks the Library at two widths and edits several records: about 26s on a
+ // fast machine, so the default 30s leaves no room on the 2 vCPU CI runner.
+ test.setTimeout(60_000);
  await installCompassHarness(page,{products:[{id:'stock-dark',source_compass_entry_id:'metal-dark',product_name:'Oil-Paper Tea Brick',type:'Dark'}],compassEntries:[
  {id:'metal-dark',category:'tea',name:'Oil-Paper Tea Brick',type:'Dark',year:'1980s',vendor_name:'Huang Wei',vendor_id:'vendor-chen',status:'noted',price_amount:500,price_currency:'Yuan',price_per_unit_grams:500,created_at:new Date().toISOString()},
  {id:'metal-shou',category:'tea',name:'Aged Palace Tea',type:'',vendor_name:'Huang Wei',vendor_id:'vendor-chen',status:'noted',price_amount:380,price_currency:'Yuan',price_per_unit_grams:500,created_at:new Date().toISOString()}

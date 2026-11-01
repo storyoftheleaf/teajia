@@ -71,6 +71,25 @@ Specifically YES:
 - Chinese characters (家佳嘉) as identity, not decoration — sized and spaced with care
 - Lengthy generous spacing on marketing surfaces; precise tighter rhythm in admin / pro tools
 
+### Compact operational interfaces (Adrian, 2026-10-28)
+
+Adrian's explicit standing preference: **minimal, streamlined, sleek and classy, with substantially less vertical space.**
+
+- Group information around the actual task. Use backgrounds, fine borders, restrained buttons and aligned rows to make related facts and actions immediately clear. Minimal does not mean uncontained text or weak boundaries.
+- Aim for roughly half the height of the rejected Purchases/Incoming preview where feasible through better composition: remove repeated facts, unnecessary tiers, oversized controls and accumulated padding. Do not achieve density by shrinking readable text or compromising usable hit targets.
+- Differentiate sections with purposeful surface changes and rules. Avoid both floating, ungrouped values and stacks of nested boxes.
+- Keep buttons proportionate and quiet. Repeated gold Receive buttons, large Save buttons and unnecessary full-width controls overpower this operational interface.
+- Design explicitly for narrow and stretched widths. Do not stretch a phone card into a wide layout with disconnected information and empty space.
+- Existing Stock cards demonstrate quality and restraint; they are not a template to copy literally. Adapt the principles to the workflow.
+- Preserve purposeful functions and direct inline number editing with a small, explicit Save. Compactness must not silently remove capabilities.
+- Evaluate the whole composition, not isolated cosmetic fixes. Check the actual screen at both narrow and wide widths before presenting it.
+
+### Agent-led purchasing and arrivals (Adrian, 2026-10-28)
+
+Invoices and physical arrival reports normally come through an agent. The agent records the supplier, original invoice evidence, Curate/Stock identities, ordered quantities and costs, then updates the same purchase when goods arrive. An invoice alone is not proof of physical arrival. Avoid a separate delivery-setup task when the invoice is already resolved.
+
+The Purchases screen is primarily for tracking and exceptions: what is coming, what was received, and what needs a decision. Opening a purchase reveals its ordered/arrived/coming quantities, arrival history and invoice evidence. Show only real exceptions (ambiguous matches, unresolved facts, overdue deliveries); a normal partial arrival remains Coming. Keep manual receiving, corrections and cancellation available as secondary actions. The agent and screen must read and write the same records; never present a successful stock change while leaving that delivery marked unreceived.
+
 ### Typography (already established, do not redecide)
 - **Display** — Cormorant Garamond (300/400/500). Old-style serif with warmth.
 - **Body** — Lora (300/400 + 400 italic). Calligraphic, optimized for screen reading.
@@ -91,7 +110,7 @@ Banned: pure white, pure black, white borders/glows/spinners, legacy tokens (`te
 
 These five principles override individual taste calls. When a decision is unclear, return to these.
 
-1. **Editorial calm over UI chrome.** Reach for typography, spacing, and dividers before reaching for borders, boxes, and badges. If a piece of UI can be expressed as well-set type, set it as well-set type.
+1. **Editorial calm with clear grouping.** Use typography, compact spacing, purposeful backgrounds and fine borders to distinguish rows, sections and actions. Keep the interface restrained, but never remove boundaries at the expense of organization. Operational screens must follow the compact-interface guidance above.
 
 2. **Bronze is rare.** Aged bronze is the only accent. It earns its presence by being scarce and never shouting. When in doubt: less of it, lower opacity, smaller surface.
 
@@ -125,3 +144,13 @@ The closest references in spirit are well-printed editorial objects: a serious c
 - Could this be mistaken for a Shopify theme, a SaaS dashboard, or a wellness app? If yes, the aesthetic has drifted.
 - Does the spacing have rhythm, or is everything the same padding? Vary deliberately.
 - Run `npm run lint:colors` before commit (mandatory).
+
+
+### Purchases: physical places, not bookkeeping (2026-10-29)
+Default tracking follows separate supplier parcels coming to the distribution company (OBO in the preview), goods collected there, then combined shipments coming to the studio. Keep each inbound tracking reference separate; show collected quantities together. Main actions are Arrived, Send together, and Receive. Keep tracking facts and item contents visible. Use named actions for invoice, freight and packing tasks. Completed shipments belong in the History view; missing optional dates and freight values must not dominate the tracking view. The current stored route has one inbound tracking reference per purchase; multiple independent inbound parcels within a single purchase require a parcel model before production can claim that support.
+
+### No accordions — permanent owner preference (2026-10-29)
+Never use accordions, details/summary disclosures, expandable cards or inline show/hide sections. Simplify the information itself instead of hiding it. Show operational facts, contents and next actions in compact visible rows. Editing and receiving may use focused task screens with explicit actions; History is a separate view, not a collapsible section. Companies are independent destinations with their own names, parcels, services and shipments; never hardcode a single warehouse name.
+
+### Logistics decisions first (2026-10-29)
+Adrian needs to see supplier parcel status and tracking, goods held by each logistics company, and combined shipments with destination, arrival date, contents and approximate cost. Keep this compact and visible, with no accordions. Show paid goods and freight separately, quoted rates beside each company, and packed weight separately from packed volume. Volume freight is m³ times the quoted rate, never a conversion from kg. Offer an editable Chinese-and-English message that can be copied or saved for the company. Do not imply live carrier tracking or a saved delivery address when those integrations are absent.

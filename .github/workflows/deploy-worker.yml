@@ -105,6 +105,9 @@ jobs:
         if: github.event_name == 'workflow_dispatch' && inputs.publish_main_expected != ''
         run: node --test scripts/publish-verified-release.test.mjs scripts/observe-verified-release.test.mjs scripts/check-production-release-lease.test.mjs
 
+      - name: Background connector cost and retry limits
+        run: node --test scripts/ar-create-teajia-connector.test.mjs
+
       - name: Worker tests
         run: npm run test:worker
 

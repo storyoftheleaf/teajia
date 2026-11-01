@@ -14,7 +14,7 @@ test('complete tasting persists impression, independent senses, storage and reca
   await page.getByRole('button', { name: 'Want to purchase this', exact: true }).click();
   await page.getByRole('button', { name: 'Rate 8 out of 10', exact: true }).click();
   await page.getByLabel('Your notes', { exact: true }).fill('Floral, soft and quietly uplifting.');
-  await expect(impression).toContainText('8 / 10');
+  await expect(page.getByRole('button', { name: 'Rate 8 out of 10', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await nav.getByRole('button', { name: 'Texture', exact: true }).click();
   await page.getByRole('button', { name: 'Silky', exact: true }).click();
   await nav.getByRole('button', { name: 'Effect', exact: true }).click();

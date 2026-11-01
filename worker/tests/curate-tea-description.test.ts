@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { prepareTeaDescriptionInput, proposeTeaDescription, validateTeaDescriptionDraft } from '../src/curateTeaDescription';
+import { prepareTeaDescriptionInput, proposeTeaDescription, teaDescriptionSchema, validateTeaDescriptionDraft } from '../src/curateTeaDescription';
 
 const input = { facts: { name: 'Cloud Peak', type: 'Sheng', year: 2024, originRegion: 'Yiwu' }, sources: [{ id: 'voice-1', title: 'Adrian at the table', text: 'I noticed a clean mineral finish. These leaves were harvested in spring.' }] };
 const supported = { paragraphs: [{ text: 'A spring tea with a clean mineral finish.', citations: [{ sourceId: 'voice-1', quote: 'I noticed a clean mineral finish.' }, { sourceId: 'voice-1', quote: 'These leaves were harvested in spring.' }] }] };
@@ -72,6 +72,25 @@ describe('source-grounded tea description drafts', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('upstream secret details', { status })));
     await expect(proposeTeaDescription({ GROQ_API_KEY: 'test' }, input)).rejects.toMatchObject({ status: status === 429 ? 429 : 502 });
     await expect(proposeTeaDescription({ GROQ_API_KEY: 'test' }, input)).rejects.not.toThrow('upstream secret details');
+  });
+  it.each(['openai/gpt-oss-20b', 'openai/gpt-oss-120b'])('constrains %s to the task schema and accepted source IDs', async model => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(supported) } }] }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await proposeTeaDescription({ GROQ_API_KEY: 'test', CURATE_IMPORT_FALLBACK_MODEL: model }, input);
+    const request = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(request.response_format).toEqual({ type: 'json_schema', json_schema: {
+      name: 'tea_description', strict: true, schema: teaDescriptionSchema(['voice-1', 'tea-record']),
+    } });
+    expect(request.max_completion_tokens).toBe(1800);
+    expect(request).not.toHaveProperty('reasoning_effort');
+    const schema = request.response_format.json_schema.schema;
+    expect(schema.required).toEqual(['paragraphs', 'insufficientEvidence']);
+    expect(schema.additionalProperties).toBe(false);
+    const paragraph = schema.properties.paragraphs.items;
+    expect(paragraph.required).toEqual(['text', 'citations']);
+    expect(paragraph.additionalProperties).toBe(false);
+    expect(paragraph.properties.citations.items.required).toEqual(['sourceId', 'quote']);
+    expect(paragraph.properties.citations.items.additionalProperties).toBe(false);
   });
   it('refuses truncated/malformed responses and honest insufficient-evidence output', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ finish_reason: 'length', message: { content: JSON.stringify(supported) } }] }), { status: 200 })));

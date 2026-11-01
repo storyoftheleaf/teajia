@@ -139,7 +139,7 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
       }};
       sessionStorage.setItem(requestScope, JSON.stringify(intent));
       setPending(intent);
-      const result = await api.stockMovements.create(intent.productId, intent.body);
+      const result = await api.stockMovements.create(intent.productId, intent.body, { callerRefreshesCommerce: true });
       sessionStorage.removeItem(requestScope);
       if (scopeRef.current !== requestScope) return;
       setPending(null);
@@ -147,7 +147,9 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
         ? { id: String(result.destination_product_id), afterBalance: Number(result.destination_after_balance) }
         : undefined);
       setCurrentBalance(Number(result.after_balance));
-      await refreshCommerceQueries(queryClient, accountId);
+      // onRecorded has just reconciled this tea (and a transfer's destination) into
+      // the shelf, so the full shelf is not read again; its dependents still are.
+      await refreshCommerceQueries(queryClient, accountId, { shelfRowsReconciled: true });
       setQuantity('');
       setNote('');
       setReference('');

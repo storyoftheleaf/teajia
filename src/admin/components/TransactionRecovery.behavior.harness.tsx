@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { api, ApiError } from '../../lib/api';
@@ -123,4 +124,4 @@ const testApi = {
 
 declare global { interface Window { recoveryTest: typeof testApi } }
 window.recoveryTest = testApi;
-root.render(<QueryClientProvider client={queryClient}><Fixture /></QueryClientProvider>);
+root.render(<MemoryRouter><QueryClientProvider client={queryClient}><Fixture /></QueryClientProvider></MemoryRouter>);

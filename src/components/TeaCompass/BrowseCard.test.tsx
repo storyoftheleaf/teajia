@@ -108,3 +108,15 @@ describe('Library phone row', () => {
     expect(wash(white)).not.toBe(wash(green));
   });
 });
+
+describe('Library card sample batch', () => {
+  it('names the batch a sample came from and links to it', () => {
+    const markup = render({ entry: { ...entry, isSample: true, sampleSetId: 'set-1' }, sampleBatch: 'Spring sourcing', onOpenSampleBatch: () => {} });
+    expect(markup).toContain('library-sample-batch');
+    expect(markup).toContain('Spring sourcing');
+  });
+  it('shows no batch line for a tea outside any batch, or where nobody can open one', () => {
+    expect(render({ sampleBatch: 'Spring sourcing', onOpenSampleBatch: () => {} })).not.toContain('library-sample-batch');
+    expect(render({ entry: { ...entry, sampleSetId: 'set-1' }, sampleBatch: 'Spring sourcing' })).not.toContain('library-sample-batch');
+  });
+});

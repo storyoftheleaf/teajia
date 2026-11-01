@@ -1,5 +1,6 @@
 import { test, expect, type Page } from './fixtures';
 import { expectNoUnhandledCompassApi, installCompassHarness, openCompass } from './helpers/compassHarness';
+import { openRecordSection } from './helpers/teaRecord';
 
 const entryId = 'library-shop-row';
 const photo = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="8" height="8"/%3E';
@@ -25,10 +26,8 @@ async function openLibrary(page: Page) {
   await expect(page.getByTestId(`library-entry-${entryId}`).filter({ visible: true })).toBeVisible();
 }
 
-async function openRecordSection(page: Page, name: string) {
-  const section = page.getByTestId('library-entry-detail').filter({ visible: true }).locator(`details[data-record-section="${name}"]`);
-  if (!(await section.evaluate(element => (element as HTMLDetailsElement).open))) await section.locator(':scope > summary').click();
-}
+
+const perGram = (entry: ReturnType<Page['getByTestId']>) => entry.locator('span:text-is("Per gram") + strong');
 
 test.describe('Library compact row and shared tea record', () => {
   test.beforeEach(async ({ page }) => openLibrary(page));
@@ -37,8 +36,11 @@ test.describe('Library compact row and shared tea record', () => {
   test('shows quote, Taste and More without Save or horizontal overflow', async ({ page }) => {
     const entry = page.getByTestId(`library-entry-${entryId}`).filter({ visible: true });
     await expect(entry).toContainText('Cloud Peak');
-    await expect(entry).toContainText('$2.00/g');
-    for (const name of ['Order: Cloud Peak', 'Taste Cloud Peak', 'More about Cloud Peak']) {
+    // The card's three pricing fields: per gram and quote are bare numbers in the
+    // display currency (libraryCardAmounts), with the quoted weight beside them.
+    await expect(perGram(entry)).toHaveText('2');
+    await expect(entry.getByRole('button', { name: /^Edit quote in / })).toHaveText('20.00');
+    for (const name of ['Taste Cloud Peak', 'Edit details for Cloud Peak', 'Choose', 'Reject']) {
       await expect(entry.getByRole('button', { name, exact: true })).toBeVisible();
     }
     await expect(entry.getByRole('button', { name: /^(Save|Unsave|Want|Edit entry|Delete entry)/ })).toHaveCount(0);
@@ -48,10 +50,11 @@ test.describe('Library compact row and shared tea record', () => {
   });
 
   test('More directly opens the editable record and saves description separately from notes', async ({ page }) => {
-    await page.getByRole('button', { name: 'More about Cloud Peak' }).click();
+    await page.getByRole('button', { name: 'Edit details for Cloud Peak', exact: true }).filter({ visible: true }).click();
     const record = page.getByTestId('library-entry-detail').filter({ visible: true });
+    // The name is edited in place at the head of the record, above the tabs.
+    await expect(page.getByTestId('library-entry-detail').filter({ visible: true }).getByRole('button', { name: 'Tea name', exact: true })).toHaveText('Cloud Peak');
     await openRecordSection(page, 'About this tea');
-    await expect(record.getByLabel('Tea name', { exact: true })).toHaveValue('Cloud Peak');
     await openRecordSection(page, 'Source material');
     await expect(record.getByRole('textbox', { name: 'Notes', exact: true })).toHaveValue('smoky apricot');
     await openRecordSection(page, 'Story & description');
@@ -72,11 +75,10 @@ test.describe('Library compact row and shared tea record', () => {
       return { description: entry.description, notes: entry.notes };
     }, entryId);
     expect(saved).toEqual({ description: 'A clear working description', notes: 'smoky apricot' });
-    await expect(record.getByRole('tab')).toHaveCount(0);
   });
 
   test('keeps Sample list action in the shared record', async ({ page }) => {
-    await page.getByRole('button', { name: 'More about Cloud Peak' }).click();
+    await page.getByRole('button', { name: 'Edit details for Cloud Peak', exact: true }).filter({ visible: true }).click();
     const record = page.getByTestId('library-entry-detail').filter({ visible: true });
     await openRecordSection(page, 'Files & history');
     await record.getByRole('button', { name: 'Add to Sample list', exact: true }).click();
@@ -95,9 +97,10 @@ test.describe('Library compact row and shared tea record', () => {
     const close = page.getByRole('button', { name: 'Close', exact: true }).filter({ visible: true });
     await expect(close).toBeVisible();
     await close.click();
-    await page.getByRole('button', { name: 'More about Cloud Peak' }).click();
+    await page.getByRole('button', { name: 'Edit details for Cloud Peak', exact: true }).filter({ visible: true }).click();
+    // The name is edited in place at the head of the record, above the tabs.
+    await expect(page.getByTestId('library-entry-detail').filter({ visible: true }).getByRole('button', { name: 'Tea name', exact: true })).toHaveText('Cloud Peak');
     await openRecordSection(page, 'About this tea');
-    await expect(page.getByTestId('library-entry-detail').filter({ visible: true }).getByLabel('Tea name', { exact: true })).toHaveValue('Cloud Peak');
   });
 
   test('handles long names, recorded zero and missing quotes without overflow', async ({ page }) => {
@@ -107,19 +110,21 @@ test.describe('Library compact row and shared tea record', () => {
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
       useTeaCompassStore.getState().updateEntry(id, { name: 'A long tea name from a mountain garden that remains readable', priceAmount: 0 });
     }, entryId);
-    await expect(entry).toContainText('$0.00/g');
+    // A recorded zero is a price of zero, not an unknown one.
+    await expect(perGram(entry)).toHaveText('0');
     expect(await entry.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
     await page.evaluate(async id => {
       // @ts-expect-error Vite source module.
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
       useTeaCompassStore.getState().updateEntry(id, { priceAmount: undefined });
     }, entryId);
-    await expect(entry).toContainText('Price not recorded');
+    await expect(perGram(entry)).toHaveText('—');
+    await expect(entry.getByRole('button', { name: /^Edit quote in / })).toHaveText('—');
   });
 
   test('requires confirmation before deleting from the record', async ({ page }) => {
     const entry = page.getByTestId(`library-entry-${entryId}`).filter({ visible: true });
-    await entry.getByRole('button', { name: 'More about Cloud Peak' }).click();
+    await entry.getByRole('button', { name: 'Edit details for Cloud Peak', exact: true }).click();
     const record = page.getByTestId('library-entry-detail').filter({ visible: true });
     await openRecordSection(page, 'Files & history');
     await record.getByRole('button', { name: 'Delete entry', exact: true }).click();

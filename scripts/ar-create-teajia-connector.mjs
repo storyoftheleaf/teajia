@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** Local, read-only AR Create bridge. Only paired Teajia jobs may request source material. */
 import { constants } from 'node:fs';
-import { chmod, lstat, mkdir, open, rename, unlink } from 'node:fs/promises';
+import { chmod, lstat, mkdir, open, readFile, rename, unlink } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -13,7 +13,7 @@ export const AR_CREATE_ORIGIN = 'http://127.0.0.1:8841';
 export const TEAJIA_ORIGIN = 'https://www.teajia.com';
 export const BRIDGE_PATH = '/api/curate/ar-create';
 export const CREDENTIAL_PATH = join(homedir(), '.codex', 'connections', 'teajia-ar-create.json');
-export const LIMITS = Object.freeze({ candidates: 30, reads: 10, results: 30, snippet: 1000, text: 200_000, query: 300, responseBytes: 16 * 1024 * 1024, requestMs: 15_000, pairMs: 10 * 60_000 });
+export const LIMITS = Object.freeze({ candidates: 30, reads: 10, results: 30, snippet: 1000, text: 200_000, query: 300, responseBytes: 16 * 1024 * 1024, requestMs: 15_000, pairMs: 10 * 60_000, dailyPolls: 4000, maxTransientFailures: 6, maxIdleMs: 30_000 });
 
 class ConnectorError extends Error {}
 const safeId = id => typeof id === 'string' && /^[A-Za-z0-9_-]{1,160}$/.test(id);
@@ -22,7 +22,30 @@ const titleOf = source => typeof source.title === 'string' && source.title.trim(
 const metadataOf = source => ({ id: source.id, title: titleOf(source), ...(hashOf(source) ? { hash: hashOf(source) } : {}) });
 
 async function boundedJson(response) {
-  if (!response.ok) { const error = new ConnectorError(`Service request failed (${response.status}).`); error.status = response.status; throw error; }
+  if (!response.ok) {
+    const error = new ConnectorError(`Service request failed (${response.status}).`);
+    error.status = response.status;
+    // Only an allowlisted machine code can affect retry behavior. Never expose
+    // arbitrary upstream bodies, which can contain credentials/private data.
+    const reader = response.body?.getReader();
+    if (reader) {
+      try {
+        const chunks = []; let bytes = 0;
+        while (bytes <= 4096) { const chunk = await reader.read(); if (chunk.done) break; bytes += chunk.value.byteLength; if (bytes <= 4096) chunks.push(chunk.value); }
+        if (bytes <= 4096) {
+          const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+          const code = body.code ?? body.error;
+          if (['database_read_budget_exceeded', 'database_quota_exceeded', 'database_unmetered_operation', 'database_write_reconciliation_required', 'cloudflare_budget_paused', 'shared_allowance_paused', 'background_budget_exceeded'].includes(code)) {
+            error.stopPolling = true; error.code = code;
+            const retryAt = typeof body.retry_at === 'string' ? Date.parse(body.retry_at) : NaN;
+            if (Number.isFinite(retryAt)) error.retryAt = retryAt;
+          }
+          if (body.retryable === false) error.stopPolling = true;
+        }
+      } catch {} finally { await reader.cancel().catch(() => {}); reader.releaseLock(); }
+    }
+    throw error;
+  }
   const reader = response.body?.getReader();
   if (!reader) throw new ConnectorError('Service returned no JSON response.');
   const chunks = []; let bytes = 0;
@@ -40,8 +63,57 @@ async function boundedJson(response) {
   } finally { reader.releaseLock(); }
 }
 
+/** One local poller and a persisted UTC-day ceiling. This supplements, rather
+ * than replaces, the account-wide server-side read budget. A stale/malformed
+ * lock fails closed; it never guesses that another connector may be killed. */
+export function createConnectorSafety({ statePath = join(homedir(), '.codex', 'connections', 'teajia-ar-create-safety.json'), now = Date.now, dailyPolls = LIMITS.dailyPolls } = {}) {
+  if (!Number.isSafeInteger(dailyPolls) || dailyPolls < 1 || dailyPolls > LIMITS.dailyPolls) throw new ConnectorError('Invalid connector daily polling limit.');
+  let memory = null; let active = false;
+  const readState = async () => {
+    if (!statePath) return memory;
+    try {
+      const stat = await lstat(statePath);
+      if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 1024) throw new ConnectorError('Connector safety state needs repair before resuming.');
+      return JSON.parse(await readFile(statePath, 'utf8'));
+    } catch (error) { if (error.code === 'ENOENT') return null; if (error instanceof ConnectorError) throw error; throw new ConnectorError('Connector safety state needs repair before resuming.'); }
+  };
+  return {
+    async acquire() {
+      if (active) throw new ConnectorError('This archive connector is already running.');
+      if (!statePath) { active = true; return async () => { active = false; }; }
+      const directory = dirname(statePath); await mkdir(directory, { recursive: true, mode: 0o700 });
+      if ((await lstat(directory)).isSymbolicLink()) throw new ConnectorError('Connector safety directory must not be a symbolic link.');
+      let file;
+      try {
+        file = await open(statePath + '.lock', constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | constants.O_NOFOLLOW, 0o600);
+        await file.writeFile(JSON.stringify({ pid: process.pid, startedAt: new Date(now()).toISOString() }));
+        await file.close(); file = null; active = true;
+      } catch (error) { if (file) await file.close(); throw new ConnectorError('Archive connector lock is held. Keep one connector running; recover an abandoned lock before resuming.'); }
+      return async () => { await unlink(statePath + '.lock'); active = false; };
+    },
+    async consume() {
+      if (!active) throw new ConnectorError('Connector safety lock is required.');
+      const day = new Date(now()).toISOString().slice(0, 10); let state = await readState();
+      if (state && (!/^\d{4}-\d{2}-\d{2}$/.test(state.day) || !Number.isSafeInteger(state.polls) || state.polls < 0 || state.day > day)) throw new ConnectorError('Connector safety state needs repair before resuming.');
+      if (!state || state.day < day) state = { day, polls: 0 };
+      if (state.polls >= dailyPolls) {
+        const error = new ConnectorError('Archive connector paused at its daily polling limit. Resume after midnight UTC.');
+        error.code = 'connector_daily_poll_budget'; error.retryAt = Date.parse(day + 'T00:00:00Z') + 86400000; throw error;
+      }
+      state.polls++;
+      if (!statePath) { memory = state; return; }
+      const temporary = statePath + '.' + randomUUID() + '.tmp';
+      try {
+        const file = await open(temporary, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | constants.O_NOFOLLOW, 0o600);
+        try { await file.writeFile(JSON.stringify(state)); await file.sync(); } finally { await file.close(); }
+        await rename(temporary, statePath);
+      } finally { await unlink(temporary).catch(() => {}); }
+    },
+  };
+}
+
 /** Network targets are constants. Job data can select an opaque source ID, never a URL or path. */
-export function createConnector({ fetchImpl = fetch, sleep = delay, now = Date.now } = {}) {
+export function createConnector({ fetchImpl = fetch, sleep = delay, now = Date.now, safety = createConnectorSafety({ now }) } = {}) {
   async function request(origin, path, { token, body, signal } = {}) {
     const timeout = AbortSignal.timeout(LIMITS.requestMs);
     const requestSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
@@ -145,11 +217,30 @@ export function createConnector({ fetchImpl = fetch, sleep = delay, now = Date.n
     return { handled: response.jobs.length };
   }
   async function run(credentials, { once = false, signal, onTransient = () => {} } = {}) {
-    let backoff = 2000;
-    while (!signal?.aborted) {
-      try { const result = await pollOnce(credentials, { signal }); if (once) return result; backoff = 2000; await sleep(result.handled ? 250 : 3000, undefined, { signal }); }
-      catch (error) { if (once || signal?.aborted || error.status === 401 || error.status === 403) throw error; onTransient('Connection temporarily unavailable; retrying.'); await sleep(backoff, undefined, { signal }); backoff = Math.min(backoff * 2, 60_000); }
-    }
+    const release = await safety.acquire();
+    let backoff = 2000; let failures = 0; let idleMs = 3000;
+    try {
+      while (!signal?.aborted) {
+        // Charge before every attempt, including failed requests and --once.
+        // Persisting before the network call prevents restarts resetting it.
+        await safety.consume();
+        try {
+          const result = await pollOnce(credentials, { signal });
+          if (once) return result;
+          backoff = 2000; failures = 0;
+          if (result.handled) idleMs = 3000;
+          await sleep(result.handled ? 250 : idleMs, undefined, { signal });
+          if (!result.handled) idleMs = Math.min(idleMs * 2, LIMITS.maxIdleMs);
+        } catch (error) {
+          if (signal?.aborted) return;
+          if (once || error.stopPolling || (error.status >= 400 && error.status < 500)) throw error;
+          if (++failures >= LIMITS.maxTransientFailures) throw new ConnectorError('Connection paused after repeated failures. Check the service before resuming.');
+          onTransient('Connection temporarily unavailable; retrying within its safety limit.');
+          await sleep(backoff, undefined, { signal });
+          backoff = Math.min(backoff * 2, 60_000);
+        }
+      }
+    } finally { await release(); }
   }
   return { pair, search, readSource, pollOnce, run };
 }

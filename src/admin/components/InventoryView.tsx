@@ -1,3 +1,4 @@
+import { inventoryTeaType } from '../../wisdom/vocabulary';
 import { StockHeadingStudy } from './inventory/stock/StockHeadingStudy';
 import type { InventoryFacetFilter } from './inventory/domain';
 import { StockBrowseBar } from './inventory/stock/StockBrowseBar';
@@ -12,7 +13,7 @@ import { COMMERCE_CHANGED_EVENT, refreshCommerceQueries, type CommerceChange } f
 import { mediaUrl } from '../../lib/mediaUrl';
 import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 import { BottomSheet } from '../../components/shared/BottomSheet';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link, Navigate } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Download,
   AlertTriangle, Archive, ArrowUpDown, ArrowUp, ArrowDown, Layers, MoreHorizontal, Check, X as XIcon, Star, Sparkles, RefreshCw, ChevronDown, ChevronRight, MapPin, Search, Leaf, Image as ImageIcon, History, SlidersHorizontal,
@@ -211,7 +212,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // --- STATE ---
   const [searchParams, setSearchParams] = useSearchParams();
   const vendorFilter = searchParams.get('vendor') || '';
-  const teaTypeFilter = searchParams.get('teaType') || '';
+  const teaTypeFilter = inventoryTeaType(searchParams.get('teaType') || '');
   const tastingValue = searchParams.get('tasting') || '';
   const tastingFilter: InventoryFacetFilter | '' = ['Untasted', 'Tasted', 'HasProductTasting', 'NeedsProductTasting'].includes(tastingValue) ? tastingValue as InventoryFacetFilter : '';
   const batchFilter = searchParams.get('batch') || '';
@@ -2156,7 +2157,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   const receiptId = searchParams.get('receipt');
 
-  if (searchParams.get('incoming') === '1' || receiptId) {
+  if (searchParams.get('incoming') === '1' && !receiptId) return <Navigate to="/admin/purchase-orders?view=coming" replace/>;
+  if (receiptId) {
     return <div className="h-full flex flex-col overflow-hidden bg-tea-bg"><IncomingReceiptsPanel receiptId={receiptId} onClose={() => { const next = new URLSearchParams(searchParams); next.delete('incoming'); next.delete('receipt'); setSearchParams(next); }} /></div>;
   }
 
@@ -2235,7 +2237,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   const corpusBtn = (active: boolean) => `tap-target relative font-display text-ui-20 font-medium leading-none px-0.5 ${active ? 'text-tea-gold after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:bg-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`;
   const openIncoming = () => {
-    setSearchParams(params => withParam(params, 'incoming', '1'));
+    navigate('/admin/purchase-orders?view=coming');
     setShowOptions(false);
   };
 
@@ -2419,7 +2421,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               /><div className="heading-study-options-host">{adjustMenu}</div></>;
               return (
                 <StockBrowseBar tea={inventoryCategory === 'tea'} type={teaTypeFilter}
-                  types={[...new Set([...products.filter(product => product.type !== 'Teaware').map(product => product.type), ...(filterType === 'Samples' ? (curateSampleHoldings.data ?? []).map(holding => String(holding.entry.type ?? '')) : [])].filter(Boolean))].sort((a, b) => a.localeCompare(b))}
+                  types={[...new Set([...products.filter(product => product.type !== 'Teaware').map(product => product.type), ...(filterType === 'Samples' ? (curateSampleHoldings.data ?? []).map(holding => String(holding.entry.type ?? '')) : [])].filter(Boolean).map(inventoryTeaType))].sort((a, b) => a.localeCompare(b))}
                   onType={value => setSearchParams(params => withParam(params, 'teaType', value || null), { replace: true })}
                   supplier={vendorFilter} suppliers={[...new Set([...vendorSuggestions.map(supplier => supplier.name), ...(filterType === 'Samples' ? (curateSampleHoldings.data ?? []).map(holding => String(holding.entry.vendor_name ?? '').trim()).filter(Boolean) : []), ...(vendorFilter ? [vendorFilter] : [])])].sort((a, b) => a.localeCompare(b))}
                   onSupplier={value => setSearchParams(params => withParam(params, 'vendor', value || null), { replace: true })}
@@ -2873,7 +2875,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               rowsOnly
               products={processedProducts}
               allProducts={localProducts}
-              matchesHolding={(product, holding) => (!teaTypeFilter || product.type === teaTypeFilter)
+              matchesHolding={(product, holding) => (!teaTypeFilter || inventoryTeaType(product.type) === teaTypeFilter)
                 && (!vendorFilter || product.vendor?.trim().toLowerCase() === vendorFilter.trim().toLowerCase())
                 && (!tastingFilter || inventoryMatchesFacetFilter(product, tastingFilter,
                   effectivePersonalTastingByProductId[product.id] ?? { count: tastingJournal.filter(entry => !entry.archived && entry.compassEntryId === holding.entry.id && (!entry.accountId || entry.accountId === tastingAccountId)).reduce((count, entry) => count + Math.max(1, entry.tastings?.length ?? 0), 0) },

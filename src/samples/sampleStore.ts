@@ -160,9 +160,10 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
               };
           const deletedSampleIds = new Set(current.sampleTombstones ?? []);
           const deletedSetIds = new Set(current.sampleSetTombstones ?? []);
+          const localById = new Map(current.samples.map((sample) => [sample.id, sample]));
           const samplesById = new Map(remoteSamples
             .filter((sample) => !deletedSampleIds.has(sample.id) && !deletedSetIds.has(sample.setId))
-            .map((sample) => [sample.id, sample]));
+            .map((sample) => [sample.id, withLocalOnlySampleFields(sample, localById.get(sample.id))]));
           for (const local of current.samples) {
             if (!local.synced) samplesById.set(local.id, local);
           }
@@ -229,7 +230,7 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
             ? { ...existingCanonical, setId: remote.setId, accountId, synced: false,
                 tastings: Array.from(new Map([...local.tastings, ...existingCanonical.tastings].map((tasting) => [tasting.id, tasting])).values()) }
             : local.updatedAt === expectedUpdatedAt
-              ? { ...remote, tastings: local.tastings, synced: false }
+              ? { ...withLocalOnlySampleFields(remote, local), tastings: local.tastings, synced: false }
               : { ...local, id: remote.id, setId: remote.setId, accountId, synced: false };
           return {
             samples: [...state.samples.filter((sample) => sample.id !== localId && sample.id !== remote.id), canonical],
@@ -523,5 +524,29 @@ function mergeSamplePersistedState(
 const USESAMPLESTORE_KEY = '__teajia_useSampleStore';
 type UseSampleStoreHandle = typeof createdSampleStore;
 const useSampleStoreScope = globalThis as unknown as Record<string, UseSampleStoreHandle | undefined>;
+/**
+ * Fields the server never stores: which physical holding a portion came from,
+ * and the bookkeeping that makes a sample use safe to retry (the pending
+ * movement's idempotency key, quantity and expected balance, and the movement
+ * once it completed). A synced sample used to be replaced wholesale by the
+ * server's copy, which dropped all of them, so a retry after a lost response
+ * minted a new key and could take the same grams off the shelf twice.
+ */
+const LOCAL_ONLY_SAMPLE_FIELDS = [
+  'inventoryHoldingProductId', 'lastHoldingUseAt',
+  'holdingUsePendingIdempotencyKey', 'holdingUsePendingQuantity',
+  'holdingUsePendingExpectedBalance', 'holdingUsePendingProductId',
+  'completedHoldingMovement',
+] as const satisfies ReadonlyArray<keyof TeaSample>;
+
+export function withLocalOnlySampleFields(remote: TeaSample, local: TeaSample | undefined): TeaSample {
+  if (!local) return remote;
+  const kept: Partial<TeaSample> = {};
+  for (const field of LOCAL_ONLY_SAMPLE_FIELDS) {
+    if (local[field] !== undefined && remote[field] === undefined) (kept as Record<string, unknown>)[field] = local[field];
+  }
+  return { ...remote, ...kept };
+}
+
 export const useSampleStore: UseSampleStoreHandle =
   useSampleStoreScope[USESAMPLESTORE_KEY] ?? (useSampleStoreScope[USESAMPLESTORE_KEY] = createdSampleStore);

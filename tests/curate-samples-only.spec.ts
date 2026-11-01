@@ -20,6 +20,7 @@
  */
 import { test, expect, type Page } from './fixtures';
 import { injectAuth, mockInventoryApi } from './helpers/inventoryMocks';
+import { fulfillHoldings } from './helpers/curateHoldings';
 
 const TEA = {
   id: 'sample-tea', account_id: 'acct', user_id: 'owner', name: 'Mountain Oolong', vendor_id: 'vendor', vendor_name: 'Lin',
@@ -35,10 +36,10 @@ async function seed(page: Page, opts: { grams?: number | null; form?: string } =
   const sent: Sent[] = [];
   await injectAuth(page);
   await mockInventoryApi(page);
-  await page.route('**/api/curate/holdings**', route => route.fulfill({ json: [{
+  await page.route('**/api/curate/holdings**', route => fulfillHoldings(route, [{
     entry: tea, stock_grams: 0, sample_grams: grams,
     samples: [{ id: 'portion', name: 'Received portion', grams, status: 'received', set_id: 'set', compass_entry_id: tea.id }],
-  }] }));
+  }]));
   await page.route('**/api/compass/entries**', route => route.fulfill({ json: { entries: [tea] } }));
   await page.route('**/api/curate/correct', async route => {
     const body = route.request().postDataJSON();
@@ -55,11 +56,10 @@ async function seed(page: Page, opts: { grams?: number | null; form?: string } =
   return sent;
 }
 
-/** Samples is a view of the one Stock list, picked from the same menu as Working or Personal. */
+/** Samples is a view of the one Stock list, picked from the same Show teas choice as Working or Personal. */
 async function openSheet(page: Page) {
   await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: /Choose which teas to show/ }).click();
-  await page.getByRole('menuitem', { name: 'Samples', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Show teas' }).selectOption({ label: 'Samples' });
   // The row opens on a tap; Taste opens the tasting sheet.
   await page.getByTestId('samples-phone').getByRole('button', { name: 'Open Mountain Oolong' }).click();
   await page.getByTestId('sample-decide-row').filter({ hasText: 'Mountain Oolong' }).getByRole('button', { name: 'Taste', exact: true }).click();

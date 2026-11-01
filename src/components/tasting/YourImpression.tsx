@@ -4,14 +4,26 @@ import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
 export const IMPRESSION_NOTE_ID = 'personal-impression-draft';
 
+/**
+ * The notes as a list. A quick tasting, and every tasting written before notes
+ * became a list, stores them as one string ("kept words"); reading that string
+ * as a list threw in .filter and took the whole full tasting down. A string is
+ * one legacy note, kept as written.
+ */
+export function impressionNotes(value: TastingData): Array<string | NoteEntry> {
+  const notes = value.notes as unknown;
+  if (Array.isArray(notes)) return notes as Array<string | NoteEntry>;
+  return typeof notes === 'string' && notes.trim() ? [notes] : [];
+}
+
 /** One private draft, leaving legacy and curated notes in their original shape. */
 export function impressionNoteText(value: TastingData): string {
-  const draft = value.notes?.find((note): note is NoteEntry => typeof note !== 'string' && note.id === IMPRESSION_NOTE_ID);
+  const draft = impressionNotes(value).find((note): note is NoteEntry => typeof note !== 'string' && note.id === IMPRESSION_NOTE_ID);
   return draft?.text ?? '';
 }
 
 export function updateImpressionNote(value: TastingData, text: string): TastingData {
-  const notes = value.notes ?? [];
+  const notes = impressionNotes(value);
   const index = notes.findIndex(note => typeof note !== 'string' && note.id === IMPRESSION_NOTE_ID);
   if (index < 0) {
     if (!text) return value;
@@ -44,12 +56,14 @@ export interface YourImpressionProps {
   savingNotes?: boolean;
   notesSaveError?: boolean;
   notesSaveHint?: string;
+  voiceState?: 'idle' | 'recording' | 'transcribing';
+  voiceError?: string;
 }
 
-export function YourImpression({ value, onChange, verdict, onVerdict, wouldBuy, onWouldBuy, inCollection, onCollection, selections, onResume, onSaveNotes, canSaveNotes = false, savingNotes = false, notesSaveError = false, notesSaveHint }: YourImpressionProps) {
+export function YourImpression({ value, onChange, verdict, onVerdict, wouldBuy, onWouldBuy, inCollection, onCollection, selections, onResume, onSaveNotes, canSaveNotes = false, savingNotes = false, notesSaveError = false, notesSaveHint, voiceState = 'idle', voiceError }: YourImpressionProps) {
   const notesId = useId();
   const rating = value.quality;
-  const historical = (value.notes ?? []).filter(note => typeof note === 'string' || note.id !== IMPRESSION_NOTE_ID);
+  const historical = impressionNotes(value).filter(note => typeof note === 'string' || note.id !== IMPRESSION_NOTE_ID);
   const groups = selections.filter(group => group.words.length > 0);
   return <section className="tasting-impression" aria-label="Your impression">
     <div className="tasting-impression-verdicts" role="group" aria-label="Your impression">
@@ -69,6 +83,7 @@ export function YourImpression({ value, onChange, verdict, onVerdict, wouldBuy, 
     <div className="tasting-impression-notes">
       <label htmlFor={notesId} className={TYPOGRAPHY_CLASSES.label}>Your notes</label>
       <textarea id={notesId} className={TYPOGRAPHY_CLASSES.bodyLight} rows={4} value={impressionNoteText(value)} onChange={event => onChange(updateImpressionNote(value, event.target.value))} placeholder="Anything you’d like to add…" />
+      {(voiceError || voiceState !== 'idle') && <p className={TYPOGRAPHY_CLASSES.accountMeta} role={voiceError ? 'alert' : 'status'}>{voiceError || (voiceState === 'recording' ? 'Recording… Tap the microphone to finish.' : 'Adding your words…')}</p>}
       {onSaveNotes && <div className="tasting-notes-save-row">
         <span className={TYPOGRAPHY_CLASSES.accountMeta} role={notesSaveError ? 'alert' : undefined}>{notesSaveError ? 'Could not save. Please try again.' : notesSaveHint}</span>
         <button type="button" className="tap-target tasting-notes-save" onClick={onSaveNotes} disabled={!canSaveNotes || savingNotes}>{savingNotes ? 'Saving…' : notesSaveError ? 'Retry save notes' : 'Save notes'}</button>

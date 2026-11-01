@@ -12,6 +12,7 @@ import { CurateImportFinalizeError, finalizeCurateImport, holdingMatchesFinalize
 import { decodeInventoryReceipt, effectiveInventoryPurpose, inventoryPurposeConflict } from './inventoryDomain';
 import { acquisitionStateSaid, ACQUISITION_STATES, isAcquisitionPurpose, isAcquisitionState, readAcquiredQuantity } from './curateAcquisition';
 import { nameProductColumns } from './productDefaults';
+import { linkImportReceiptPurchase } from './purchaseContinuity';
 
 export interface CurateImportContext {
   accountId: string;
@@ -1153,6 +1154,7 @@ function parsedFinalizeItem(row: Record<string, unknown>) {
     : parsed.acquired === true ? 'received' : null;
   const blockingFields = Array.isArray(parsed.blockingFields) ? parsed.blockingFields.filter(value => typeof value === 'string') as string[] : [];
   if (!disposition) blockingFields.push('disposition');
+  if (parsed.duplicateResolution === 'unresolved') blockingFields.push('duplicateResolution');
   return {
     id: String(row.id), groupId: String(row.vendor_group_id ?? ''), category,
     disposition: disposition as CurateFinalizeData['items'][number]['disposition'],
@@ -1353,8 +1355,10 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
         if (!receiptId) {
           receiptId = crypto.randomUUID();
           const fingerprint = JSON.stringify({ batch_id: params.id, vendor_group_id: group.id, journey_id: journeyId, lines });
-          const statements: D1PreparedStatement[] = [env.DB.prepare(`INSERT INTO inventory_receipts (id, account_id, state, vendor_name, source_kind, source_ref, created_by_user_id, idempotency_key, request_fingerprint) VALUES (?, ?, 'in_transit', ?, 'curate_import', ?, ?, ?, ?)`)
-            .bind(receiptId, ctx.accountId, group.vendorName, journeyId ?? params.id, ctx.userId, key, fingerprint)];
+          const modes = [...new Set(lines.map(line => line.transportMode != null && ['air','sea','land','courier'].includes(line.transportMode) ? line.transportMode : null))];
+          const transportMode = modes.length===1 ? modes[0] : null;
+          const statements: D1PreparedStatement[] = [env.DB.prepare(`INSERT INTO inventory_receipts (id, account_id, state, vendor_name, source_kind, source_ref, created_by_user_id, idempotency_key, request_fingerprint, transport_mode) VALUES (?, ?, 'in_transit', ?, 'curate_import', ?, ?, ?, ?, ?)`)
+            .bind(receiptId, ctx.accountId, group.vendorName, journeyId ?? params.id, ctx.userId, key, fingerprint, transportMode)];
           for (const line of lines) statements.push(env.DB.prepare(`INSERT INTO inventory_receipt_lines (id, receipt_id, account_id, product_id, expected_quantity, unit, intended_purpose, source_kind, source_ref, original_cost_amount, original_cost_currency, original_unit_cost, pack_count, original_cost_amount_exact, original_unit_cost_exact) VALUES (?, ?, ?, ?, ?, ?, ?, 'curate_import', ?, ?, ?, ?, ?, ?, ?)`)
             .bind(crypto.randomUUID(), receiptId, ctx.accountId, line.productId, line.quantity, line.unit, line.purpose, line.itemId, line.originalCostAmount, line.originalCostCurrency, line.originalUnitCost, line.packCount, line.originalCostAmountExact, line.originalUnitCostExact));
           statements.push(env.DB.prepare('INSERT INTO curate_import_receipts (id, account_id, batch_id, vendor_group_id, inventory_receipt_id) VALUES (?, ?, ?, ?, ?)').bind(crypto.randomUUID(), ctx.accountId, params.id, group.id, receiptId));
@@ -1363,8 +1367,9 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
             if (!raced) throw error; receiptId = String(raced.inventory_receipt_id);
           }
         }
+        const purchaseOrderId = await linkImportReceiptPurchase(env, ctx, { receiptId, importId: params.id, groupId: group.id, vendorId: group.vendorId });
         const rows = await env.DB.prepare('SELECT * FROM inventory_receipt_lines WHERE receipt_id = ? AND account_id = ? ORDER BY created_at, id').bind(receiptId, ctx.accountId).all<Record<string, unknown>>();
-        return { id: receiptId, groupId: group.id, lines: rows.results.map(row => {
+        return { id: receiptId, purchase_order_id: purchaseOrderId, groupId: group.id, lines: rows.results.map(row => {
           const input = lines.find(line => line.itemId === row.source_ref);
           if (!input) throw new Error('Inventory receipt line source could not be resolved');
           return {
