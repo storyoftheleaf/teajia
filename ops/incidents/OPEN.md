@@ -9,11 +9,6 @@
   Normalized error: `http_504`
   Evidence: [acc-teajia-bali-server-get-api-accounts-acc-teajia-bali-504-http-504-259e7c5b.json](evidence/acc-teajia-bali-server-get-api-accounts-acc-teajia-bali-504-http-504-259e7c5b.json)
 
-- [ ] `acc_teajia_bali:server_get_api_admin_events_504_http_504` — **high**
-  1 occurrence · first 2026-10-23T10:18:36Z · last 2026-10-23T10:18:36Z
-  Normalized error: `http_504`
-  Evidence: [acc-teajia-bali-server-get-api-admin-events-504-http-504-20cda480.json](evidence/acc-teajia-bali-server-get-api-admin-events-504-http-504-20cda480.json)
-
 - [ ] `acc_teajia_bali:server_get_api_admin_sample_sets_504_http_504` — **high**
   1 occurrence · first 2026-10-23T10:18:37Z · last 2026-10-23T10:18:37Z
   Normalized error: `http_504`
