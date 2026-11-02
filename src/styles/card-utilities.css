@@ -4925,6 +4925,10 @@ body.cart-panel-open .commerce-dock {
 .curate-v2 input:focus-visible,
 .curate-v2 textarea:focus-visible,
 .curate-v2 select:focus-visible { outline: none; box-shadow: none; }
+/* The old Curate's inline editors mounted on a tea's rows (given name, what the
+   quote covers) sit flush right, like every other value on the row. */
+.curate-v2 .library-inline-value > button,
+.curate-v2 .library-inline-value .tap-target { justify-content: flex-end; text-align: right; }
 /* Every figure in Curate reads in Lora, as the shop's prices and Stock's counts do. */
 .curate-v2 .tabular-nums {
   font-family: 'Lora', 'Noto Serif SC', var(--curate-cjk), Georgia, serif;

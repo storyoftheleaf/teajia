@@ -9,6 +9,16 @@ import { quotedUnit, tastingLine, listName, splitStockCode } from './curateV2Mod
 import { CURRENCY_LABELS } from './PricingRow';
 import { removeTeaFromDraftOrders } from './orderBuy';
 import { DEFAULT_GRAMS } from './types';
+import { BottomSheet } from './CurateSheet';
+import { syncCompassEntries } from '../../lib/teaCompassSync';
+// The old Curate's own pieces, mounted rather than copied, so a fix to one is
+// a fix to both Curates.
+import { LibraryGivenName } from '../TeaCompass/LibraryGivenName';
+import { LibraryQuoteWeight } from '../TeaCompass/LibraryQuoteWeight';
+import { libraryInlinePatch } from '../TeaCompass/libraryCardWorkflow';
+import { TeaRecordFields } from '../TeaCompass/TeaRecordFields';
+import { TeaReviewDialog } from '../TeaCompass/TeaReviewDialog';
+import { AssistantReview } from '../TeaCompass/TeaRecordAssistant';
 import type { TeaCompassEntry } from './types';
 
 interface TeaFaceProps {
@@ -137,6 +147,11 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
   const shopFreight = useShopFreightDefault();
   const [noteOpen, setNoteOpen] = useState(false);
   const [saidOpen, setSaidOpen] = useState(false);
+  const [storyOpen, setStoryOpen] = useState(false);
+  const [buildOpen, setBuildOpen] = useState(false);
+  const [building, setBuilding] = useState(false);
+  const accountScopeId = useTeaCompassStore((s) => s.accountScopeId);
+  const accountScopeRevision = useTeaCompassStore((s) => s.accountScopeRevision);
 
   const said = useMemo(() => {
     if (!entry) return [];
@@ -150,6 +165,22 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
   }, [allNotes, entry]);
 
   if (!entry) return null;
+
+  /** Saves and waits for the shop, the way the old Curate's card does, so the
+   * name and weight editors can say "Saved" or offer a retry. A switch of shop
+   * mid-save is ignored rather than written into the other shop. */
+  const savePatch = async (patch: Partial<TeaCompassEntry>) => {
+    if (!accountScopeId) throw new Error('Sign in to save changes.');
+    const before = useTeaCompassStore.getState();
+    if (before.accountScopeId !== accountScopeId || before.accountScopeRevision !== accountScopeRevision) return;
+    updateEntry(entry.id, patch);
+    await syncCompassEntries(accountScopeId);
+    const after = useTeaCompassStore.getState();
+    if (after.accountScopeId !== accountScopeId || after.accountScopeRevision !== accountScopeRevision || !after.getEntry(entry.id)?.synced) {
+      throw new Error('Saved on this device; sync is pending. Retry.');
+    }
+  };
+  const story = entry.description?.trim().split('\n')[0] ?? '';
 
   const isTeaware = entry.category === 'teaware';
   const sym = CURRENCY_LABELS[entry.priceCurrency] ?? '';
@@ -216,6 +247,14 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
         </div>
       )}
 
+      <Row label="Given name" testId="tea-face-given-name">
+        <LibraryGivenName
+          entry={entry}
+          emptyLabel="add"
+          className={entry.givenName?.trim() ? 'font-display text-ui-17 text-tea-text' : 'font-mono text-ui-13 text-tea-text-sec'}
+          onSave={(value) => savePatch({ givenName: value.trim() || null })}
+        />
+      </Row>
       <Row label="Cost" onClick={onEdit} testId="tea-face-cost">
         {entry.priceAmount != null ? (
           <>
@@ -224,6 +263,19 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
           </>
         ) : add}
       </Row>
+      {!isTeaware && (
+        <Row label="Quote is for" testId="tea-face-quote-weight">
+          {weight?.assumed && <span className="font-mono text-ui-12 text-tea-text-sec tabular-nums">{weight.grams} g assumed ·</span>}
+          <LibraryQuoteWeight
+            title={listName(entry.name) || 'this tea'}
+            weight={entry.pricePerUnitGrams}
+            packWeight={entry.packSizeGrams}
+            form={entry.form}
+            onSave={(value, form) => savePatch({ ...libraryInlinePatch(entry, 'pricePerUnitGrams', value), ...(form ? { form } : {}) })}
+          />
+          {!!entry.pricePerUnitGrams && <span className="font-mono text-ui-12 text-tea-text-sec">g</span>}
+        </Row>
+      )}
       {!isTeaware && (
         <Row label="Shelf" testId="tea-face-shelf" onClick={preview ? undefined : onEdit}>
           {preview
@@ -236,6 +288,9 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
       <Row label="From" onClick={onEdit}>{place ? <span className="font-display text-ui-17">{place}</span> : add}</Row>
       <Row label="Vendor" onClick={onEdit}>{entry.vendorName?.trim() ? <span className="font-display text-ui-17">{entry.vendorName}</span> : add}</Row>
       <ChineseRow entry={entry} onEdit={onEdit} />
+      <Row label="Story" onClick={() => setStoryOpen(true)} testId="tea-face-story">
+        {story ? <span className="truncate font-display text-ui-17">{story}</span> : add}
+      </Row>
       {!isTeaware && (
         <Row label="Tasting" onClick={() => onTaste(entry.id)} testId="tea-face-tasting">
           {tasting ? <span className="truncate tabular-nums">{tasting}</span> : add}
@@ -264,6 +319,12 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
         )}
         <button type="button" onClick={() => setNoteOpen((v) => !v)} aria-expanded={noteOpen} className={frame(hasNote)}>
           Note
+        </button>
+      </div>
+
+      <div className="px-4 pt-2">
+        <button type="button" onClick={() => setBuildOpen(true)} className={`${frame(false)} w-full`} data-testid="tea-face-build">
+          Build this tea
         </button>
       </div>
 
@@ -346,6 +407,15 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
           <button type="button" onClick={() => setConfirmingDelete(true)} className="tap-target min-h-11 text-tea-text-sec hover:text-tea-text" aria-label={`Delete ${entry.name || 'this tea'}`}>Delete this tea</button>
         )}
       </div>
+      <BottomSheet open={storyOpen} onOpenChange={setStoryOpen} title="Story" description="Your words, apart from the supplier's." large>
+        <div className="grid gap-4 pb-4">
+          <TeaRecordFields key={`${entry.id}:description`} entry={entry} section="description" onChange={(patch) => updateEntry(entry.id, patch)} />
+          <TeaRecordFields key={`${entry.id}:provenance`} entry={entry} section="provenance" flat onChange={(patch) => updateEntry(entry.id, patch)} />
+        </div>
+      </BottomSheet>
+      <TeaReviewDialog open={buildOpen} onClose={() => { if (!building) setBuildOpen(false); }} title="Build this tea">
+        {buildOpen && <AssistantReview key={`${accountScopeId}:${accountScopeRevision}:${entry.id}`} entry={entry} onClose={() => setBuildOpen(false)} onCommitChange={setBuilding} />}
+      </TeaReviewDialog>
     </article>
   );
 };
