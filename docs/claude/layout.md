@@ -1,4 +1,4 @@
-# Layout: bottom nav, InventoryView height chain, desktop/mobile, buttons, magazine pages
+# Layout: bottom nav, InventoryView height chain, desktop/mobile, buttons
 
 > Moved verbatim from CLAUDE.md on 2026-11-03 so it loads only when needed. The short rules stay in [CLAUDE.md](../../CLAUDE.md).
 
@@ -21,13 +21,13 @@
 ## InventoryView height chain — DO NOT BREAK
 The inventory page (`src/admin/components/InventoryView.tsx`) scrolls via an internal `flex-1 overflow-auto` container, NOT via the document. That container only works if every ancestor passes a definite height down. The chain is:
 
-1. `App.tsx` outer wrapper: `h-screen overflow-hidden flex flex-col lg:flex-row` (when `isAdminRoute`)
-2. `App.tsx` main content area: `flex-1 min-w-0 flex flex-col`
-3. `AdminApp.tsx` AdminContent root (line ~412): `flex flex-col flex-1 min-h-0 h-full`
-4. `AdminApp.tsx` `<main>` (line ~415): `flex-1 relative flex flex-col min-w-0 overflow-hidden`
-5. `AdminApp.tsx` routes wrapper (line ~530): `flex-1 relative min-h-0 overflow-hidden` (for inventory)
-6. `PageTransition` motion.div (line ~94): `h-full`
-7. `InventoryView.tsx` root (line ~2010): `h-full flex flex-col overflow-hidden`
+1. `App.tsx` outer wrapper (the root `div` with `isAdminRoute ? 'h-dvh overflow-hidden' : ...`): `h-dvh overflow-hidden flex flex-col lg:flex-row` on admin routes
+2. `App.tsx` content column (the `div` right after the sidebar, which holds the `<AdminApp>` route): `flex-1 min-w-0 min-h-0 flex flex-col relative`
+3. `AdminApp.tsx` AdminContent root (the `div` that holds the header and `<main>`): `flex flex-col flex-1 min-h-0 h-full`
+4. `AdminApp.tsx` `<main>`: `flex-1 relative flex flex-col min-w-0 overflow-hidden`
+5. `AdminApp.tsx` routes wrapper (the `div` directly inside `<main>`): `flex-1 relative min-h-0`, plus `overflow-hidden` when on inventory, capture or intake
+6. `PageTransition` (a component in `AdminApp.tsx`) `motion.div`: `h-full`
+7. `InventoryView.tsx` root (the `div` with `stock-view`): `h-full flex flex-col overflow-hidden`
 8. Scroll container (`[data-testid="inventory-scroll"]`): `flex-1 overflow-auto`
 
 **If you insert any wrapper into this chain** (a new provider, an `<AnimatePresence>`, a debug div, an auth gate, etc.) it MUST preserve the height contract: a flex item needs `flex-1 min-h-0` (or `h-full`), a non-flex wrapper needs `h-full`. Failing to do so silently collapses the scroll container to 0 — no error, page just stops scrolling on every device.
@@ -66,7 +66,3 @@ These must be consistent across the entire app. Violations must be fixed immedia
 **Footer layout:** `flex justify-between` with Cancel on the left, primary action on the right. Never `justify-end` with Cancel buried next to the confirm button.
 
 **Never put Cancel to the right of the confirm action.** Right side is for commitment (Save, Import, Confirm). Left side is for escape (Cancel, Back).
-
-## Magazine / Journal article pages
-- **No vertical scroll on pages** — each article page in `MagazinePageReader` must use `overflowY: 'hidden'`. Pages are shared to Instagram and must stay fixed-size. Content that doesn't fit belongs on the next sub-page, not behind a scroll.
-- Body text is paginated at `MAX_CHARS_PER_PAGE = 600` chars; Q&A blocks at 1 pair per page. These limits are intentional — magazine feel, not essay. Do not raise them. If a new page type is added, it must include its own length limit or be inherently short.

@@ -14,7 +14,7 @@ The worker exposes an MCP server at `/mcp` for voice/agent control. Tokens are m
 
 ### Tools added after `mcp.ts` got long live in `worker/src/mcpTools/`
 
-Twenty-nine more tools ship as four modules, not as four more edits to a 7,700-line file. A tool used to touch `mcp.ts` in four places (the `PendingMutation` union, `TOOL_DEFS`, the dispatch switch, its handler), which is survivable for one tool and unmergeable for four groups written at once. A module exports a `ToolModule` and `mcp.ts` gains it in one line; `mcpTools/registry.ts` refuses a duplicate tool name, a def with no handler, and a handler with no def, at boot rather than silently.
+More tools ship as modules (see `mcpTools/registry.ts` for the current set), not as more edits to `mcp.ts`. A tool used to touch `mcp.ts` in four places (the `PendingMutation` union, `TOOL_DEFS`, the dispatch switch, its handler), which is survivable for one tool and unmergeable for four groups written at once. A module exports a `ToolModule` and `mcp.ts` gains it in one line; `mcpTools/registry.ts` refuses a duplicate tool name, a def with no handler, and a handler with no def, at boot rather than silently.
 
 - **`transfer.ts`** — `transfer_stock`, `list_transferable_accounts`. Moves stock between shops in one `db.batch()` guarded on `stock_movement_guard`, so it lands on both shelves or neither. It will not create the destination product: a new row needs a cost, a currency and a freight rate, and the source's are what *that* shop paid, so copying them is the four-freight-rates shape. Destination authority is re-derived from `account_members`, never inherited from the token.
 - **`curation.ts`** — collections (`list`/`create`/`add_tea`/`remove_tea`/`publish`/`unpublish`) and images (`set_tea_image`, `add_tea_images`, `remove_tea_image`). An unparseable `additional_images` is an error, not an empty array: every read path in the codebase does `catch { [] }`, which on a write silently replaces the stored photos. An ambiguous product prefix is refused rather than resolved to the first match, because for a photo that means the picture lands on the wrong tea in silence.
@@ -41,7 +41,7 @@ A held write scope implicitly grants its read scope, so pre-`sales:read` tokens 
 - **Claude Code locally** — Infisical, same as every other Teajia secret. Two commands, once:
 
   ```
-  cd "/Users/adrianrasmussen/Documents/Files/2 Areas/Coding/teajia" && infisical secrets set --env=dev --path=/ TEAJIA_MCP_TOKEN=<the token>
+  cd "$(git rev-parse --show-toplevel)" && infisical secrets set --env=dev --path=/ TEAJIA_MCP_TOKEN=<the token>
   ```
 
   ```
@@ -62,6 +62,6 @@ Connected, a session can do the admin work directly instead of describing it: se
 
 **Implementation:** [worker/src/mcp.ts](../../worker/src/mcp.ts) (JSON-RPC handlers, tool defs, OAuth, public server), [src/admin/views/MCPTokensView.tsx](../../src/admin/views/MCPTokensView.tsx) (token management), [src/admin/views/OAuthConsentView.tsx](../../src/admin/views/OAuthConsentView.tsx) (OAuth consent).
 
-**Schema:** [066_mcp_tokens.sql](../../worker/migrations/066_mcp_tokens.sql) (tokens as SHA-256 hash; `last_used_at` bumped on auth), [074_mcp_confirmation_tickets.sql](../../worker/migrations/074_mcp_confirmation_tickets.sql) (durable confirm tickets), [067_oauth.sql](../../worker/migrations/067_oauth.sql) + [082_oauth_authorize_requests.sql](../../worker/migrations/082_oauth_authorize_requests.sql) (OAuth + scoped grants + mobile-safe consent passing).
+**Schema:** `mcp_tokens` in [0000_initial_schema.sql](../../worker/migrations/0000_initial_schema.sql) (tokens as SHA-256 hash; `last_used_at` bumped on auth), `mcp_confirmation_tickets` (same file) (durable confirm tickets), `oauth_clients`, `oauth_codes` and `oauth_authorize_requests` (same file) (OAuth + scoped grants + mobile-safe consent passing).
 
 **AI discoverability:** `public/llms.txt` indexes the public MCP + shop + journal; Organization/WebSite JSON-LD in `index.html`, Product JSON-LD on `ProductPage`, Article JSON-LD on `ArticlePage`.

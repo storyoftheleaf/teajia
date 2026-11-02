@@ -21,10 +21,10 @@ agent can click the thing it just changed.
 
 ## Testing
 ```bash
-npm run test:mobile  # Playwright mobile audit — 26 tests at 390×844 (Mobile Chrome)
+npm run test:mobile  # Playwright mobile audit at 390×844 (Mobile Chrome)
 ```
 Catches: JS crashes (error boundaries), 404 pages, JS console errors, horizontal overflow.
-Requires dev server already running (`npm run dev`). Takes ~90 seconds.
+The Playwright config starts its own server (`npm run dev:test`); stop any running `npm run dev` first. Takes ~90 seconds.
 
 ### What actually runs on a push to main
 
@@ -38,14 +38,13 @@ and neither mobile spec opens the admin route that does. Fixed in `2f1b7ea3`.
 
 `.github/workflows/playwright.yml` is now the gate, on every push and pull
 request to main. Its `checks` job runs `npm run lint` (tsc), `npm run
+lint:worker-types`, `npm run test:src`, `npm run
 lint:colors`, `npm run build` and `npm run test:worker`, which is the class of
 check that would have caught the outage: none of them depend on a route being
 visited. `npm run lint` covers `src` only, not `worker/tsconfig.json`, and
 `wrangler deploy --dry-run` in the deploy workflow builds with esbuild, which
-strips types rather than checking them, so a type error in a worker file no
-test imports still lands green today; `tsc -p worker/tsconfig.json` reports
-35 pre-existing errors, filed as an Untriaged TODO line rather than fixed
-here. `mobile` and `e2e` cover browser behavior; `e2e` builds first (two
+strips types rather than checking them; worker type errors are ratcheted by
+`npm run lint:worker-types` in CI. `mobile` and `e2e` cover browser behavior; `e2e` builds first (two
 specs read `dist/` directly) and runs the full suite on the Desktop Chrome and
 Mobile Chrome projects, the two `tests/inventory-scroll.spec.ts` names
 explicitly, sharded six ways (`--shard=N/6`, `fail-fast: false`) because the
@@ -63,9 +62,9 @@ and `tea-reference-revision-workflow.spec.ts` stay out of CI:
 started under `--mode tea-reference-preview` and a private
 `TEA_REFERENCE_HANDOFF_PATH` file that does not exist in the CI environment.
 
-Six tests fail on main independent of this gate; `e2e` excludes their titles via
+Some tests fail on main independent of this gate; `e2e` excludes the titles in `KNOWN_FAILING_E2E` via
 the workflow-level `KNOWN_FAILING_E2E` regex so they cannot block a merge, and
-the separate `known-failing` job runs the same six with `continue-on-error`
+the separate `known-failing` job runs those with `continue-on-error`
 so they stay visible instead of going quiet. A title is removed from that
 regex in the same commit that fixes the test or the page it exercises, never
 on its own.
@@ -115,7 +114,7 @@ managed one entirely, so you can point the suite at a port you started and
 verified without touching anyone else's:
 
 ```bash
-cd "/Users/adrianrasmussen/Documents/Files/2 Areas/Coding/teajia" && VITE_API_URL=http://localhost:7802 npx vite --port 7802 --strictPort
+cd "$(git rev-parse --show-toplevel)" && VITE_API_URL=http://localhost:7802 npx vite --port 7802 --strictPort
 ```
 
 Kill only what you started. Another session's dev server is another session's
@@ -126,7 +125,7 @@ A build is also a prerequisite for two specs: `china-reachability` and
 `npm run build` first or they fail on a stale or missing `dist`.
 
 ```bash
-cd "/Users/adrianrasmussen/Documents/Files/2 Areas/Coding/teajia" && lsof -ti:7777 | xargs kill 2>/dev/null; npm run build && npm run test:mobile
+cd "$(git rev-parse --show-toplevel)" && lsof -ti:7777 | xargs kill 2>/dev/null; npm run build && npm run test:mobile
 ```
 
 **Run `npm run test:mobile` before pushing any change that touches:**
@@ -134,7 +133,7 @@ cd "/Users/adrianrasmussen/Documents/Files/2 Areas/Coding/teajia" && lsof -ti:77
 - `src/pages/` — any account route page
 - Any routing or navigation change in `src/App.tsx`
 
-**Test files:**
+**Test files (examples, not the full list):**
 - `tests/account-panel-mobile.spec.ts` — AccountPanel + linked routes
 - `tests/inventory-scroll.spec.ts` — InventoryView scroll regression guard (Desktop + Mobile)
 

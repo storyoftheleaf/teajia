@@ -15,7 +15,7 @@ last_reviewed: 2026-11-03
 > **Documentation hub:** start at [docs/INDEX.md](docs/INDEX.md). Architecture in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Current state in [docs/STATE_OF_THE_SITE.md](docs/STATE_OF_THE_SITE.md). What's next in [docs/CONSOLIDATED_DIRECTION.md](docs/CONSOLIDATED_DIRECTION.md) (the single directional list; per-track build queues in [docs/tracks/](docs/tracks/)). What shipped in [docs/CHANGELOG.md](docs/CHANGELOG.md).
 
 ## What this is
-Professional tea infrastructure — sourcing, inventory, education, events, and multi-store management. This is NOT a wellness app, social network, or franchise. Adrian's curation is the engine (139 products). WhatsApp checkout is intentional — every order is a personal conversation. The app works before/after tea sessions, never during (no phone-at-the-table features).
+Professional tea infrastructure — sourcing, inventory, education, events, and multi-store management. This is NOT a wellness app, social network, or franchise. Adrian's curation is the engine. WhatsApp checkout is intentional — every order is a personal conversation. The app works before/after tea sessions, never during (no phone-at-the-table features).
 
 ## Stack & constraints
 - React 19 + Vite 6 + TypeScript + Tailwind v3 (CSS-variable tokens, not Tailwind defaults)
@@ -25,7 +25,7 @@ Professional tea infrastructure — sourcing, inventory, education, events, and 
 - Cloudflare Workers size limit — keep worker bundle lean
 
 ## Entry points
-- `src/main.tsx` — app bootstrap
+- `src/index.tsx` — app bootstrap
 - `src/App.tsx` — public routes + root layout
 - `src/admin/AdminApp.tsx` — admin routes (20+ views, behind JWT auth at `/admin/*`)
 - `worker/src/index.ts` — Cloudflare Worker (D1 queries, auth)
@@ -75,16 +75,18 @@ Errors and stale rates go to `incident_ledger`, shown on `/account/fixes`, never
 The analysis request is built per model in `worker/src/curateAnalysisProvider.ts` (Claude 5 rejects `temperature`). A cake/can/piece needs `pack_size_grams`. Samples are never defaulted to a weight. A pending arrival is rejected, never deleted; an accepted one needs `remove_stock`.
 
 ## InventoryView height chain — DO NOT BREAK
-The inventory page scrolls inside its own container, so every ancestor from `App.tsx` to `InventoryView` must pass a definite height (`flex-1 min-h-0` or `h-full`). Any wrapper you insert must keep that, or scrolling silently dies. The full 8-step chain: [docs/claude/layout.md](docs/claude/layout.md). Guard: `tests/inventory-scroll.spec.ts`.
+The inventory page scrolls inside its own container, so every ancestor from `App.tsx` to `InventoryView` must pass a definite height (`flex-1 min-h-0` or `h-full`). Any wrapper you insert must keep that, or scrolling silently dies. The full chain: [docs/claude/layout.md](docs/claude/layout.md). Guard: `tests/inventory-scroll.spec.ts`.
 
 ## Deploy, migrations, secrets — [docs/claude/deploy-and-secrets.md](docs/claude/deploy-and-secrets.md)
 ```bash
 npm run dev          # port 7777 — points at the LIVE API
 npm run build
 npm run lint         # tsc, src only
+npm run lint:worker-types  # worker type errors, ratcheted in CI
 npm run lint:colors  # before every commit
 # deploy: Cloudflare Pages CI on push to main
 ```
+- `npm run dev` silently does nothing if port 7777 is already taken (the script exits when `lsof` finds a listener), and `npm run sandbox` also uses 7777, so check what holds the port first.
 - `worker/src/index.ts` exports functions/classes only — an exported `const` passes CI and breaks `wrangler dev`.
 - A migration with `UPDATE`/`DELETE`/`INSERT` gets a page shown to Adrian first, as a link, with seeded before/after rows.
 - `wrangler deploy --dry-run` stays above the migration step in `deploy-worker.yml`.
@@ -102,7 +104,7 @@ When Adrian says **"ship"**, push the task's changes to `origin/main` and verify
 
 ## Pay and sign-in — [docs/claude/pay-and-sign-in.md](docs/claude/pay-and-sign-in.md)
 - Bank details open only to the contributor, an approved account or a share link (`decidePayAccess`). Approval is permanent. No "I have a link" step.
-- "Continue with Google" stays on all five auth surfaces, linking to `${API_URL}/api/auth/google?return=<path>`, never a relative path.
+- "Continue with Google" stays on the surfaces that carry it (`SignInPage.tsx`, `SignUpPage.tsx`; grep `auth/google` in `src`), linking to `${API_URL}/api/auth/google?return=<path>`, never a relative path.
 
 ## Voice & agent control (MCP) — [docs/claude/mcp.md](docs/claude/mcp.md)
 `/mcp` (scoped tokens, preview/confirm on every write) and `/mcp/public` (read-only). New tools go in `worker/src/mcpTools/` as a module, not into `mcp.ts`. Confirmation tickets come only from `mcpTools/tickets.ts`. Local sessions get the token via `npm run claude`.
@@ -113,7 +115,6 @@ See `docs/CONSOLIDATED_DIRECTION.md` (single directional list) and `docs/tracks/
 ## Layout and buttons — [docs/claude/layout.md](docs/claude/layout.md)
 - Desktop rail and mobile bottom bar are the same four sections (Read, Craft, Advise, Shop) — keep them in sync. Manage rooms come from `src/components/manageNav.ts` only.
 - Back top-left; Cancel bottom-left; primary action on the right; close X top-right on centred modals, top-left on panels. Never below `text-tea-text-sec`.
-- Magazine pages never scroll vertically; `MAX_CHARS_PER_PAGE = 600` stays.
 
 ## DO NOT build
 Streak trackers, gamification, engagement notifications, algorithmic recommendations, social feeds/likes/followers, auto-replenish subscriptions.

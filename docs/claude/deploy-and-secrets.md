@@ -5,12 +5,15 @@
 ## Deploy
 ```bash
 npm run dev          # dev server port 7777 (exclusively reserved — see project_port_7777 memory)
+npm run lint:worker-types  # worker type errors, ratcheted in CI
 npm run build        # production build → dist/
 npm run lint         # tsc --noEmit
 npm run lint:colors  # MANDATORY pre-commit color check (run before every commit)
 npm run preview      # preview production build
 # deploy via Cloudflare Pages CI on push to main
 ```
+
+`npm run dev` silently does nothing if port 7777 is already taken (the script exits when `lsof` finds a listener), and `npm run sandbox` also uses 7777, so check what holds the port first.
 
 ### The worker entry exports a handler, and no bare constants
 
