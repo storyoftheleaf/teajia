@@ -407,7 +407,7 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
           <button type="button" onClick={() => setConfirmingDelete(true)} className="tap-target min-h-11 text-tea-text-sec hover:text-tea-text" aria-label={`Delete ${entry.name || 'this tea'}`}>Delete this tea</button>
         )}
       </div>
-      <BottomSheet open={storyOpen} onOpenChange={setStoryOpen} title="Story" description="Your working description, kept apart from what the supplier said." large>
+      <BottomSheet open={storyOpen} onOpenChange={setStoryOpen} title="Story" description="Your words, apart from the supplier's." large>
         <div className="grid gap-4 pb-4">
           <TeaRecordFields key={`${entry.id}:description`} entry={entry} section="description" onChange={(patch) => updateEntry(entry.id, patch)} />
           <TeaRecordFields key={`${entry.id}:provenance`} entry={entry} section="provenance" flat onChange={(patch) => updateEntry(entry.id, patch)} />
