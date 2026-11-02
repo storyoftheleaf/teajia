@@ -25,6 +25,10 @@ import { TodayView } from './TodayView';
 import { TableList } from './TableList';
 import { TeaFace } from './TeaFace';
 import { SaidSheet } from './SaidSheet';
+// AR Create's two links (a transcript to link, a pairing code) are read from
+// the address by the old Curate's own sheets, mounted here as they are.
+import { ArTranscriptHandoff } from '../TeaCompass/ArTranscriptHandoff';
+import { ArCreatePairing } from '../TeaCompass/ArTeaSources';
 import { VendorsView } from './VendorsView';
 import { CompareView } from './CompareView';
 import { FastTastingSheet } from './FastTastingSheet';
@@ -1671,6 +1675,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       </AnimatePresence>
 
       <SaidSheet entryId={saidFor} onClose={() => setSaidFor(null)} />
+      <ArCreatePairing />
+      <ArTranscriptHandoff />
       <SampleUseNotice />
       <FastTastingSheet
         entryId={fastTastingId}
