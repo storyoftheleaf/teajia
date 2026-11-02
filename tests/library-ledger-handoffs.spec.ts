@@ -1,18 +1,8 @@
+import { revealCurateTab } from './helpers/curateHeader';
 import { test, expect, type Page } from './fixtures';
 import { installCompassHarness, openCompass, expectNoUnhandledCompassApi, compassCreatedProducts } from './helpers/compassHarness';
 
-async function revealCurateHeader(page: Page) {
-  const ledger = page.getByRole('tab', { name: 'Ledger', exact: true });
-  await expect(async () => {
-    await page.mouse.move(200, 400);
-    await page.mouse.wheel(0, -4000);
-    await expect(ledger).toBeInViewport({ ratio: 0.9, timeout: 1000 });
-    expect(await ledger.evaluate(el => {
-      const r = el.getBoundingClientRect();
-      return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
-    })).toBe(true);
-  }).toPass({ timeout: 10_000 });
-}
+const revealCurateHeader = (page: Page) => revealCurateTab(page, 'Ledger');
 
 const entryId = 'ledger-source-tea';
 const productId = 'linked-inventory-tea';

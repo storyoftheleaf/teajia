@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures';
+import { revealCurateTab } from './helpers/curateHeader';
 import { installCompassHarness, openCompass, expectNoUnhandledCompassApi } from './helpers/compassHarness';
 
 test.describe('Curate acquisition repair', () => {
@@ -42,11 +43,11 @@ test.describe('Curate acquisition repair', () => {
       const tx = useLedgerStore.getState().transactions[0];
       return { account: useLedgerStore.getState().accountScopeId, lines: tx.items.length, pricePerGram: tx.items[0].pricePerUnit, grams: tx.items[0].quantityGrams, proposalId: tx.items[0].receiptProposal.id };
     })).toEqual({ account: 'acct-bali', lines: 1, pricePerGram: 1, grams: 250, proposalId: expect.stringMatching(/^proposal-/) });
-    await page.getByRole('tab', { name: 'Library', exact: true }).click();
+    await (await revealCurateTab(page, 'Library')).click();
     await page.getByRole('button', { name: 'Edit details for Receipt retry tea', exact: true }).filter({ visible: true }).click();
     await expect(page.getByRole('button', { name: 'Want', exact: true })).toHaveCount(0);
     await page.getByRole('dialog', { name: 'Tea details', exact: true }).getByRole('button', { name: 'Close', exact: true }).click();
-    await page.getByRole('tab', { name: 'Source', exact: true }).click();
+    await (await revealCurateTab(page, 'Source')).click();
     await expect(page.getByText('Inventory changes only after you accept this receipt.').filter({ visible: true })).toBeVisible();
     await page.getByRole('button', { name: 'Accept into Inventory', exact: true }).filter({ visible: true }).scrollIntoViewIfNeeded();
     await page.screenshot({ path: info.outputPath('resumed-receipt.png'), fullPage: true });
@@ -80,7 +81,7 @@ test.describe('Curate acquisition repair', () => {
       const id = ledger.getOrCreatePurchaseTransaction('Repair vendor', 'Yuan');
       ledger.addLineItem(id, { name: 'Quoted tea', pricePerUnit: 1, priceIsPerGram: true, quantityGrams: 250, currency: 'Yuan' });
     });
-    await page.getByRole('tab', { name: 'Ledger', exact: true }).click();
+    await (await revealCurateTab(page, 'Ledger')).click();
     await page.getByRole('button', { name: 'Purchase', exact: true }).click();
     await expect(page.getByText('Shop could not confirm. Draft kept.', { exact: true }).filter({ visible: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Retry confirmation', exact: true }).filter({ visible: true })).toBeVisible();
