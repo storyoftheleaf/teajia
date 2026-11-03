@@ -2,6 +2,10 @@
 
 Finished work, moved here from TODO.md. Nothing is deleted; lineage is kept.
 
+## Five Curate teas kept as placeholders (2026-11-03)
+
+- [x] Fulugong (Lidia), Pu-erh (no vendor), Liu (Yingge Puer) and the two unnamed teas from Yee On Tea and Yingge Puer stay under their placeholder names, on Adrian's word: he edits them by hand and may delete them later. No label photos or Chinese names are being sought.
+
 ## Home page photographs (2026-09-28)
 
 - [x] Home page: Adrian's own photographs in place. The opener is the teapots on the old wood, cropped to the pots and cups with a light sepia; Porcelain and Tea shows the gold-mended bowl, centred; Twenty years in tea culture shows his hands pouring, face cropped out. The edit button is tucked tiny into the corner and the caption is gone. Grain was tried three ways and dropped: every version read as a low-quality photo.
