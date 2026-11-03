@@ -27,6 +27,7 @@ class Bucket {
 class Db {
   recording: any = null;
   failCompletionUpdate = false;
+  stored: string[] = [];
   prepare(sql: string) {
     const normalized = sql.replace(/\s+/g, ' ').trim().toLowerCase(); let values: any[] = [];
     const statement = {
@@ -45,6 +46,7 @@ class Db {
         if (this.failCompletionUpdate && normalized.startsWith("update private_recordings set status = 'completed'")) {
           throw new Error('D1 completion write failed');
         }
+        if (normalized.startsWith("update private_recordings set status = 'completed'")) this.stored.push(values[0]);
         if (normalized.startsWith('insert into private_recordings')) this.recording = { id: values[0], account_id: values[1], user_id: values[2], object_key: values[3], mime_type: values[4], size_bytes: values[5], expires_at: values[6] };
         if (normalized.startsWith('delete from private_recordings')) this.recording = null;
         return { success: true, meta: { changes: 1 } };
@@ -85,6 +87,34 @@ describe('private transcription persistence', () => {
     const retried = await worker.fetch(await request(`/api/transcriptions/${failure.recording_id}/retry`), { DB: db, MEDIA_BUCKET: bucket, JWT_SECRET: SECRET, GROQ_API_KEY: 'groq', PROVIDER_LIMITER: { limit: async () => ({ success: true }) } } as any);
     expect(await retried.json()).toMatchObject({ text: 'Recovered transcript', recording_id: failure.recording_id });
     expect(bucket.objects.size).toBe(0);
+  });
+
+  it('primes the speech model with the shared word library and fixes known mishearings, keeping the raw words on the recording', async () => {
+    const db = new Db(); const bucket = new Bucket();
+    const fetch = vi.fn(async () => Response.json({ text: 'We drank tea with luyu and lou yu.' })); vi.stubGlobal('fetch', fetch);
+    const form = new FormData();
+    form.set('file', new File([new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 1, 2])], 'recording.webm', { type: 'audio/webm' }));
+    const response = await worker.fetch(await request('/api/transcribe', 'POST', form), { DB: db, MEDIA_BUCKET: bucket, JWT_SECRET: SECRET, GROQ_API_KEY: 'groq', PROVIDER_LIMITER: { limit: async () => ({ success: true }) } } as any);
+    const sent = (fetch.mock.calls[0] as any)[1].body as FormData;
+    expect(sent.get('prompt')).toContain('Lu Yu');
+    expect(sent.get('prompt')).not.toContain('Siddhi');
+    const body = await response.json() as any;
+    expect(body.text).toContain('Lu Yu');
+    expect(body.text).not.toMatch(/lou yu/i);
+    expect(body.raw_text).toBe('We drank tea with luyu and lou yu.');
+    expect(body.word_fixes.length).toBeGreaterThan(0);
+    expect(db.stored).toEqual([body.raw_text]);
+  });
+
+  it('adds nothing to the response when there was nothing to fix', async () => {
+    const db = new Db(); const bucket = new Bucket();
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ text: 'Nothing odd here.' })));
+    const form = new FormData();
+    form.set('file', new File([new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 1, 2])], 'recording.webm', { type: 'audio/webm' }));
+    const response = await worker.fetch(await request('/api/transcribe', 'POST', form), { DB: db, MEDIA_BUCKET: bucket, JWT_SECRET: SECRET, GROQ_API_KEY: 'groq', PROVIDER_LIMITER: { limit: async () => ({ success: true }) } } as any);
+    const body = await response.json() as any;
+    expect(body).toEqual({ text: 'Nothing odd here.', recording_id: expect.any(String) });
+    expect(db.stored).toEqual(['Nothing odd here.']);
   });
 
   it('denies cross-account access, supports discard, and never serves private audio publicly', async () => {

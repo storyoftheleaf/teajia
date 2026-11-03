@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { hasTeaVoiceProvider, INSTALLED_VOICE_MODEL, transcribeTeaVoice, VOICE_TRANSCRIPTION_TIMEOUT_MS } from '../src/curateVoiceTranscription';
+import { fixTeaVoiceText, hasTeaVoiceProvider, INSTALLED_VOICE_MODEL, teaVoicePrompt, transcribeTeaVoice, VOICE_TRANSCRIPTION_TIMEOUT_MS } from '../src/curateVoiceTranscription';
 
 const audio = new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 255, 0]);
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
@@ -9,7 +9,7 @@ describe('voice transcription uses the installed connection when no Groq key is 
     const run = vi.fn().mockResolvedValue({ text: '  这款水仙，三十多年。  ' });
     const fetch = vi.fn(); vi.stubGlobal('fetch', fetch);
     expect(await transcribeTeaVoice({ AI: { run } }, audio, 'audio/webm')).toBe('这款水仙，三十多年。');
-    expect(run).toHaveBeenCalledWith(INSTALLED_VOICE_MODEL, { audio: btoa(String.fromCharCode(...audio)), task: 'transcribe' });
+    expect(run).toHaveBeenCalledWith(INSTALLED_VOICE_MODEL, { audio: btoa(String.fromCharCode(...audio)), task: 'transcribe', initial_prompt: expect.stringContaining('Lu Yu') });
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -21,6 +21,7 @@ describe('voice transcription uses the installed connection when no Groq key is 
     expect(url).toBe('https://api.groq.com/openai/v1/audio/transcriptions');
     expect(init.headers).toEqual({ Authorization: 'Bearer configured' });
     expect(init.body.get('model')).toBe('whisper-large-v3-turbo');
+    expect(init.body.get('prompt')).toMatch(/^Names and terms in this conversation: .*Lu Yu/);
     const file = init.body.get('file') as File;
     expect([file.type, file.name]).toEqual(['audio/mp4', 'memo.m4a']);
     expect(new Uint8Array(await file.arrayBuffer())).toEqual(audio);
@@ -62,5 +63,29 @@ describe('voice transcription uses the installed connection when no Groq key is 
     await vi.advanceTimersByTimeAsync(VOICE_TRANSCRIPTION_TIMEOUT_MS); await assertion;
     expect(vi.getTimerCount()).toBe(0);
     if (provider === 'groq') expect(fetch.mock.calls[0][1].signal.aborted).toBe(true);
+  });
+});
+
+describe('shared word library priming and fixes', () => {
+  it('builds the prompt from tea terms, places and people only, inside the token budget', () => {
+    const prompt = teaVoicePrompt();
+    expect(prompt.startsWith('Names and terms in this conversation: ')).toBe(true);
+    expect(prompt).toContain('Lu Yu');
+    expect(prompt).not.toMatch(/Siddhi|Gene Keys|Hexagram/);
+    expect(Math.ceil(prompt.length / 3)).toBeLessThanOrEqual(200);
+  });
+
+  it('retries the installed model without the prompt if it refuses one, rather than failing the recording', async () => {
+    const run = vi.fn().mockRejectedValueOnce(new Error('unexpected field')).mockResolvedValueOnce({ text: 'Memo' });
+    expect(await transcribeTeaVoice({ AI: { run } }, audio, 'audio/webm')).toBe('Memo');
+    expect(run).toHaveBeenCalledTimes(2);
+    expect(run.mock.calls[1][1]).toEqual({ audio: btoa(String.fromCharCode(...audio)), task: 'transcribe' });
+  });
+
+  it('fixes known mishearings and leaves other text alone, so the caller can keep the raw words', () => {
+    expect(fixTeaVoiceText('We read about luyu and lou yu.')).toEqual({ text: 'We read about Lu Yu and Lu Yu.', fixes: [{ from: 'lou yu', to: 'Lu Yu', count: 1 }, { from: 'luyu', to: 'Lu Yu', count: 1 }] });
+    // "loo you" is another way to say the name, not a mistake, so it is left as spoken
+    expect(fixTeaVoiceText('We read about loo you.').fixes).toEqual([]);
+    expect(fixTeaVoiceText('Plain sentence.')).toEqual({ text: 'Plain sentence.', fixes: [] });
   });
 });

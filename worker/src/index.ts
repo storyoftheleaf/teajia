@@ -5,7 +5,7 @@ import { readPurchaseTracking } from './purchaseTracking';
 import type { CurateFinalizeMovement } from './curateImports';
 import { suppressVerificationNotifications, LIVE_VERIFICATION_POLICY } from './liveVerificationPolicy';
 import { guardDatabase, databaseUnavailableResponse } from './databaseGuard';
-import { hasTeaVoiceProvider, transcribeTeaVoice, TeaVoiceTranscriptionError } from './curateVoiceTranscription';
+import { fixTeaVoiceText, hasTeaVoiceProvider, transcribeTeaVoice, TeaVoiceTranscriptionError } from './curateVoiceTranscription';
 import { workingMaterialForTeaRecord, WorkingMaterialError } from './curateWorkingMaterial';
 import { handleArBridge, expireArBridgeRequests } from './curateArBridge';
 import { descriptionForTeaRecord } from './curateTeaDescriptionRequest';
@@ -11013,17 +11013,23 @@ const handleTranscribe: Handler = async (request, env) => {
     return json({ error: transcribed.error, code: transcribed.code, recording_id: recordingId, retryable: true }, transcribed.status);
   }
   await env.DB.prepare("UPDATE private_recordings SET status = 'completed', transcript = ?, updated_at = datetime('now') WHERE id = ?")
-    .bind(transcribed.text, recordingId).run();
+    .bind(transcribed.raw ?? transcribed.text, recordingId).run();
   try {
     await env.MEDIA_BUCKET.delete(recordingKey);
   } catch {
     console.error('Completed private recording cleanup failed');
   }
-  return json({ text: transcribed.text, recording_id: recordingId });
+  return json({ text: transcribed.text, recording_id: recordingId, ...(transcribed.raw ? { raw_text: transcribed.raw, word_fixes: transcribed.fixes } : {}) });
 };
 
-async function transcribePrivateRecording(env: Env, file: File): Promise<{ text: string } | { error: string; code: string; status: number }> {
-  try { return { text: await transcribeTeaVoice(env, await file.arrayBuffer(), file.type, file.name) }; }
+/** `raw` is what the speech model returned (kept on the recording row); `text` is the same with known mishearings of the
+ * shared word library fixed, which is what the caller shows and appends to a note. `raw` is only present when they differ. */
+async function transcribePrivateRecording(env: Env, file: File): Promise<{ text: string; raw?: string; fixes?: Array<{ from: string; to: string; count: number }> } | { error: string; code: string; status: number }> {
+  try {
+    const raw = await transcribeTeaVoice(env, await file.arrayBuffer(), file.type, file.name);
+    const fixed = fixTeaVoiceText(raw);
+    return fixed.fixes.length ? { text: fixed.text, raw, fixes: fixed.fixes } : { text: raw };
+  }
   catch (error) {
     if (error instanceof TeaVoiceTranscriptionError) return { error: error.message, code: error.code, status: error.status };
     return { error: 'Transcription failed', code: 'provider_error', status: 502 };
@@ -11051,13 +11057,13 @@ const handleRetryTranscription: Handler = async (request, env, params) => {
     return json({ error: result.error, code: result.code, recording_id: params.id, retryable: true }, result.status);
   }
   await env.DB.prepare("UPDATE private_recordings SET status = 'completed', transcript = ?, last_error_code = NULL, updated_at = datetime('now') WHERE id = ?")
-    .bind(result.text, params.id).run();
+    .bind(result.raw ?? result.text, params.id).run();
   try {
     await env.MEDIA_BUCKET.delete(row.object_key as string);
   } catch {
     console.error('Completed private recording cleanup failed');
   }
-  return json({ text: result.text, recording_id: params.id });
+  return json({ text: result.text, recording_id: params.id, ...(result.raw ? { raw_text: result.raw, word_fixes: result.fixes } : {}) });
 };
 
 const handleDiscardTranscription: Handler = async (request, env, params) => {

@@ -41,6 +41,10 @@ Professional tea infrastructure — sourcing, inventory, education, events, and 
 - **Product strategy** → `docs/VISION.md`, `docs/CONSOLIDATED_DIRECTION.md`
 - **Detail behind every rule below** → `docs/claude/` (one file per area, linked from each section). Open the file when the task touches that area.
 
+## Voice transcription uses AR Create's shared word library
+
+Recordings sent to `/api/transcribe` (and the retry route) are primed and corrected from AR Create's shared word library, so a spelling Adrian confirms once improves every project. The committed copy is `shared/words.snapshot.json` (versioned; refreshed one way by `words-sync` on Adrian's Mac; never read AR Create's data folder). `shared/words.ts` builds the Whisper prompt (people, places and tea terms, inside the token budget) and fixes known mishearings; `shared/teaWords.ts` is Teajia's choice of categories. The raw words stay on the recording row (`private_recordings.transcript`, kept as long as the recording is); the response `text` is the fixed text that goes into the note, with `raw_text` and `word_fixes` added only when something changed. The note itself holds the fixed text only.
+
 ## MANDATORY styling rules
 Read `docs/COLOR_RULES.md` before writing any component styles. Full detail: [docs/claude/layout.md](docs/claude/layout.md).
 - Safe tokens: `tea-text`, `tea-surface`, `tea-bg`, `tea-elevated`, `tea-gold`, `tea-gold-lt`, `tea-border`, `tea-accent-sub`, `tea-text-sec`, `tea-text-dim`. Banned: `tea-ink`, `tea-paper`, `tea-seal`, `tea-charcoal`.
