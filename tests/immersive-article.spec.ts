@@ -1,5 +1,6 @@
 // tests/immersive-article.spec.ts
 import { test, expect } from './fixtures';
+import { fileURLToPath } from 'url';
 import { primaryNav } from './helpers/navigation';
 
 const ARTICLE = {
@@ -32,7 +33,17 @@ const ARTICLE = {
   ],
 };
 
+// The article's photos point at Unsplash. Serve them from a photo in this repo
+// instead, so the test reads the page and not the network: where Unsplash is
+// unreachable each photo logs a failed load, and the clean-console check below
+// fails on the network rather than on the article. The header lets the share
+// poster draw the photo onto its canvas the way a real CDN image would.
+const PHOTO = fileURLToPath(new URL('../public/craft/three-journeys.jpg', import.meta.url));
+
 test.beforeEach(async ({ page }) => {
+  await page.route('https://images.unsplash.com/**', route => route.fulfill({
+    path: PHOTO, contentType: 'image/jpeg', headers: { 'Access-Control-Allow-Origin': '*' },
+  }));
   // Stub both possible API origins for the by-slug fetch.
   await page.route('**/api/**/articles/**', (route) => {
     if (route.request().url().includes(ARTICLE.slug) || route.request().url().includes('by-slug')) {
