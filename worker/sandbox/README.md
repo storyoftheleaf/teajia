@@ -10,7 +10,7 @@ which meant handing verification back to Adrian every time. This is the fix.
 ## Start it
 
 ```bash
-cd "/Users/adrianrasmussen/Documents/Files/2 Areas/Coding/teajia" && npm run sandbox
+cd "$(git rev-parse --show-toplevel)" && npm run sandbox
 ```
 
 That runs two things together: the API on port 8787 with its own local database,
@@ -71,7 +71,7 @@ and anything not on it stays on the server.
 The copy goes stale as the real shop changes. To pull a fresh one:
 
 ```bash
-cd "/Users/adrianrasmussen/Documents/Files/2 Areas/Coding/teajia" && npm run sandbox:refresh
+cd "$(git rev-parse --show-toplevel)" && npm run sandbox:refresh
 ```
 
 Takes a couple of minutes. It throws the local database away, re-reads the live
@@ -92,7 +92,7 @@ zero creators. To see real `/people` and `/people/:slug` pages, seed three
 placeholder creators after building the database:
 
 ```bash
-cd "/Users/adrianrasmussen/Documents/Files/2 Areas/Coding/teajia" && npm run sandbox:seed-creators
+cd "$(git rev-parse --show-toplevel)" && npm run sandbox:seed-creators
 ```
 
 That inserts three fixed-slug fixtures at three fill levels:

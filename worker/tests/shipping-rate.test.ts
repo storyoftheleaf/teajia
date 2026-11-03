@@ -314,6 +314,7 @@ describe('nothing else in the shop decides the rate', () => {
       ['invoice-intake-flow.md', read('../../docs/invoice-intake-flow.md')],
       ['build-plan.md', read('../../docs/build-plan.md')],
       ['CLAUDE.md', read('../../CLAUDE.md')],
+      ['docs/claude/money.md', read('../../docs/claude/money.md')],
     ];
     const rate = /\$?(\d+(?:\.\d+)?)\s*(?:USD\s*|CNY\s*|Yuan\s*)?\/\s*kg/gi;
     const allowed = new Set([FALLBACK_SHIPPING_RATE_PER_KG, 12]);
