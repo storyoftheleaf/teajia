@@ -1,0 +1,19 @@
+{
+  "about": "Written by modules-sync. Each copy below is owned by another project; tests/shared/check-shared-copies.ts fails if a copy is edited here.",
+  "modules": {
+    "media-stub": {
+      "owner": "mandalacodes",
+      "version": "816c8777",
+      "files": {
+        "tests/shared/media-stub.ts": "654d6e0edb055b1f92ded2d2bab98e2a1346a6fd25fd026334dfac857dd45e61"
+      }
+    },
+    "shared-modules-check": {
+      "owner": "mandalacodes",
+      "version": "816c8777",
+      "files": {
+        "tests/shared/check-shared-copies.ts": "197cf683d191f33fb1638f05eb0a74ddbe9f30e54fba6485a171d938d28d620c"
+      }
+    }
+  }
+}
