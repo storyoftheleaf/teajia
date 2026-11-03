@@ -1,4 +1,6 @@
 import type { InstalledTeaAiEnvironment } from './curateInstalledAi';
+import { applyKnownFixes, buildWordsPrompt, type WordFix } from '../../shared/words';
+import { TEA_WORDS_PROFILE } from '../../shared/teaWords';
 
 export interface TeaVoiceEnvironment extends InstalledTeaAiEnvironment {
   GROQ_API_KEY?: string;
@@ -6,6 +8,13 @@ export interface TeaVoiceEnvironment extends InstalledTeaAiEnvironment {
 
 export const INSTALLED_VOICE_MODEL = '@cf/openai/whisper-large-v3-turbo';
 export const VOICE_TRANSCRIPTION_TIMEOUT_MS = 20_000;
+
+/** The vocabulary prompt Whisper gets: tea terms, places and people from the shared word library (AR Create). */
+export function teaVoicePrompt(): string { return buildWordsPrompt(undefined, TEA_WORDS_PROFILE).prompt; }
+
+/** Known mishearings of library words fixed in a transcript. `transcribeTeaVoice` returns the speech model's own words;
+ * the caller keeps those as the raw record and shows the fixed text. */
+export function fixTeaVoiceText(text: string): { text: string; fixes: WordFix[] } { return applyKnownFixes(text); }
 
 export class TeaVoiceTranscriptionError extends Error {
   constructor(message: string, public readonly code: string, public readonly status: number) {
@@ -48,6 +57,8 @@ export async function transcribeTeaVoice(
         const form = new FormData();
         form.append('file', new File([bytes.slice().buffer], fileName, { type: mimeType }), fileName);
         form.append('model', 'whisper-large-v3-turbo');
+        const prompt = teaVoicePrompt();
+        if (prompt) form.append('prompt', prompt);
         const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
           method: 'POST', headers: { Authorization: `Bearer ${env.GROQ_API_KEY}` }, body: form, signal: controller.signal,
         });
@@ -55,7 +66,12 @@ export async function transcribeTeaVoice(
         return response.json();
       }
       // Transcribe in the spoken language; do not translate or supply guessed tea details.
-      return env.AI!.run!(INSTALLED_VOICE_MODEL, { audio: audioBase64(bytes), task: 'transcribe' });
+      const audio = audioBase64(bytes);
+      const prompt = teaVoicePrompt();
+      if (!prompt) return env.AI!.run!(INSTALLED_VOICE_MODEL, { audio, task: 'transcribe' });
+      // The prompt only helps; if the model refuses it, transcribe without rather than fail the recording.
+      try { return await env.AI!.run!(INSTALLED_VOICE_MODEL, { audio, task: 'transcribe', initial_prompt: prompt }); }
+      catch { return env.AI!.run!(INSTALLED_VOICE_MODEL, { audio, task: 'transcribe' }); }
     };
     const result = await Promise.race([
       work(),
