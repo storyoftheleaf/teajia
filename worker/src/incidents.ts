@@ -1,3 +1,5 @@
+import { incidentRouteTemplate } from '../../src/lib/incidents';
+
 export const INCIDENT_CATEGORIES = ['network', 'configuration', 'server', 'auth', 'authorization', 'workflow', 'client'] as const;
 export const INCIDENT_SEVERITIES = ['critical', 'high', 'medium', 'low'] as const;
 export const INCIDENT_STATUSES = ['open', 'acknowledged', 'repairing', 'observing', 'resolved'] as const;
@@ -38,10 +40,26 @@ const ALLOWED_SAMPLE_KEYS = new Set([
 ]);
 const MAX_PAYLOAD_BYTES = 8 * 1024;
 const MAX_STRING_LENGTH = 500;
+/** `incident_ledger.signature` is bounded at 240; a signature may use all of it. */
+const MAX_SIGNATURE_LENGTH = 240;
 
 function slug(value: string, fallback: string): string {
   const normalized = value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
   return normalized.slice(0, 80) || fallback;
+}
+
+/**
+ * A signature is cut at the column's bound, not at eighty characters.
+ *
+ * Eighty is right for an error code and wrong for a signature, because the
+ * status and the error code are its LAST two fields: a route long enough to
+ * reach the cap loses both, and every status on that route then shares one row.
+ * The 2026-10-29 archive-request row is the evidence — its stored signature ends
+ * `..._d55de2fea535_50`, with `4_http_504` cut clean off the end.
+ */
+function signatureSlug(value: string, fallback: string): string {
+  const normalized = value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  return normalized.slice(0, MAX_SIGNATURE_LENGTH) || fallback;
 }
 
 function routeSlug(route: string | null): string {
@@ -84,11 +102,21 @@ export function normalizeIncidentInput(input: IncidentInput): NormalizedIncident
   const method = typeof input.method === 'string' ? input.method.toUpperCase().slice(0, 10) : null;
   const httpStatus = Number.isInteger(input.http_status) ? Number(input.http_status) : null;
   const errorCode = slug(input.error_code || 'unknown', 'unknown');
-  const generated = `${category}:${(method || 'unknown').toLowerCase()}:${routeSlug(route)}:${httpStatus ?? 'none'}:${errorCode}`;
-  const signature = input.signature ? slug(input.signature, generated) : generated;
+  const sign = (routePart: string) => `${category}:${(method || 'unknown').toLowerCase()}:${routePart}:${httpStatus ?? 'none'}:${errorCode}`;
+  const generated = sign(routeSlug(route && incidentRouteTemplate(route)));
+  // A signature a caller WROTE is kept; one it merely DERIVED from the path is
+  // re-derived here, off the route template. `recoverFromChunkError` deliberately
+  // files every page's chunk recovery under one hand-written key, and the cron's
+  // health problems under theirs, so a caller's own key has to survive. But the
+  // browser mints its signature from the raw path, and a browser still running a
+  // cached bundle keeps minting the old per-id shape long after a deploy, so the
+  // server cannot wait for the client to be the one that normalises.
+  const supplied = input.signature ? signatureSlug(input.signature, generated) : null;
+  const derivedFromPath = signatureSlug(sign(routeSlug(route)), generated);
+  const signature = !supplied || supplied === derivedFromPath ? generated : supplied;
 
   return {
-    signature: signature.slice(0, 240), category, severity, route, method, httpStatus, errorCode,
+    signature: signature.slice(0, MAX_SIGNATURE_LENGTH), category, severity, route, method, httpStatus, errorCode,
     // Narrative supplied by a client is untrusted and must never enter an AI
     // repair queue. Persist a server-owned classification sentence only.
     safeMessage: category === 'configuration' ? 'Service configuration failure.'
@@ -214,7 +242,8 @@ export async function recordHealthProblem(db: D1Database, input: HealthProblemIn
  * anything to clear. Returns whether a row actually changed.
  */
 export async function clearHealthProblem(db: D1Database, signature: string, ref: string): Promise<boolean> {
-  const key = `__global__:${slug(signature, signature)}`.slice(0, 240);
+  // The same slug `normalizeIncidentInput` stored it under, or the clear misses.
+  const key = `__global__:${signatureSlug(signature, signature)}`.slice(0, MAX_SIGNATURE_LENGTH);
   const result = await db.prepare(`
     UPDATE incident_ledger
        SET status = 'resolved', resolved_at = datetime('now'), resolution_ref = ?
