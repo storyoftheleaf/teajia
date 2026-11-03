@@ -1,5 +1,7 @@
 # Tasting v2
 
+**Resume here: [Handoff — status, rationale and remaining work](HANDOFF.md).**
+
 Published preview: [/tasting-v2/](/tasting-v2/). This is a separate, local-browser tasting preview; it does not replace the account journal or sync with it. Voice note is a preview control.
 
 - [Selections and descriptions](TEA-TASTING-CONSOLIDATED.md)
