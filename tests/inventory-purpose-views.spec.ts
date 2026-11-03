@@ -330,3 +330,22 @@ test('desktop custom-view delete uses sibling controls with Enter and Space', as
   await page.keyboard.press('Space');
   await expect(personal).toHaveCount(0);
 });
+
+test('editing one tea rereads that tea, never the whole shelf', async ({ page }) => {
+  // Every product edit used to reload all of the shop's teas twice: once from
+  // the write's own change signal and once from the screen's refresh. A write
+  // that names its tea now refreshes just that row.
+  let shelfReads = 0; let teaReads = 0;
+  await page.route('**/api/products', r => { if (r.request().method() === 'GET') shelfReads++; return r.fulfill({ json: products }); });
+  await page.route(/\/api\/products\/sample$/, r => { teaReads++; return r.fulfill({ json: { ...products.find(p => p.id === 'sample'), inventory_purpose: 'working' } }); });
+  await selectView(page, 'Samples');
+  await page.locator('tr[data-product-id="sample"]').dispatchEvent('click', { metaKey: true });
+  await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit', exact: true }).click();
+  // The shelf has already loaded in beforeEach; count only what the edit causes.
+  const before = shelfReads;
+  await page.getByRole('button', { name: 'Working purpose' }).click();
+  await expect.poll(() => updateRequests.find(r => r.url.endsWith('/sample/stock'))?.body).toEqual({ inventory_purpose: 'working' });
+  await expect.poll(() => teaReads).toBeGreaterThan(0);
+  await page.waitForTimeout(1500);
+  expect(shelfReads - before).toBe(0);
+});

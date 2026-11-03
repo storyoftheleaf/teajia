@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, getTokenClaims } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
@@ -8,6 +8,7 @@ import { rateToUsd } from '../../lib/currency';
 import { loadLastKnownRates, saveLastKnownRates } from '../lastKnownRates';
 import { mapAdminProduct } from '../productAdapter';
 import { createProductReconciler } from '../productQueries';
+import { registerShelfReconciler } from '../../lib/refreshCommerce';
 export { normalizeAdminProductTastingSource } from '../productAdapter';
 
 const useAccountQueryScope = () => {
@@ -35,6 +36,8 @@ export const useProducts = (options?: { enabled?: boolean }) => {
     () => (useAppStore.getState().activeAccountId ?? 'no-account') === accountScope
       && (getTokenClaims()?.sub ?? 'anonymous') === userScope,
   ), [client, accountScope, userScope]);
+  // A write that names its teas refreshes just those rows of this shelf.
+  useEffect(() => registerShelfReconciler(['products', accountScope, userScope], reconciler.refresh), [reconciler, accountScope, userScope]);
   return { ...query,
     ensureProducts: () => client.fetchQuery(queryOptions),
     refreshProducts: reconciler.refresh,

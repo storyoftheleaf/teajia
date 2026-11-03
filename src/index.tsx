@@ -45,7 +45,7 @@ const persister = createSyncStoragePersister({
 window.addEventListener(AUTH_TOKEN_CHANGED_EVENT, () => queryClient.clear());
 window.addEventListener(COMMERCE_CHANGED_EVENT, event => {
   const change = (event as CustomEvent<CommerceChange>).detail;
-  if (!change?.queriesInvalidated) void refreshCommerceQueries(queryClient, change?.accountId);
+  if (!change?.queriesInvalidated) void refreshCommerceQueries(queryClient, change?.accountId, { changedProductIds: change?.productIds });
 });
 
 const rootElement = document.getElementById('root');

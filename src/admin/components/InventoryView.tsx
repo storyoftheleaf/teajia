@@ -1330,7 +1330,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       try {
         await api.products.updateShown(id, Boolean(value));
         setLastSavedAt(Date.now());
-        void refreshCommerceQueries(queryClient, tastingAccountId);
+        void refreshCommerceQueries(queryClient, tastingAccountId, { changedProductIds: [id] });
       } catch (err: any) {
         showToast(`Update failed: ${err.message}`, 'error');
         refreshChangedProducts([id]);
@@ -1349,7 +1349,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     try {
       await api.products.updateByDomain(id, dbPayload);
       setLastSavedAt(Date.now());
-      void refreshCommerceQueries(queryClient, tastingAccountId);
+      void refreshCommerceQueries(queryClient, tastingAccountId, { changedProductIds: [id] });
       // Show saved pill feedback for this cell
       const cellId = `${id}-${String(field)}`;
       setRecentlySavedCells(prev => new Set([...prev, cellId]));

@@ -1414,9 +1414,22 @@ async function authedFetch(url: string, init: ApiRequestInit = {}): Promise<any>
       (/\/api\/(products|invoices|invoice-payments|inquiries|accounts|rates|stock|inventory|purchase-orders|logistics|listings|network|collections|rpc|curate\/receipt-proposals)(\/|$)/.test(url)
         || /\/api\/compass\/(sync|entries\/[^/]+(?:\/promote)?)(?:\?|$)/.test(url)
         || /\/api\/curate\/imports\/[^/]+\/finalize(?:\?|$)/.test(url))) {
-    notifyCommerceChanged(accountId);
+    notifyCommerceChanged(accountId, false, singleProductWrite(url, init.method));
   }
   return result;
+}
+
+// A write to one tea's own row, and to nothing else: its edit, its domain
+// updates, its shelf visibility, its removal. Naming it lets the shelf reread
+// that one row rather than every tea in the shop. Anything that can move a
+// second tea (a stock movement can be a transfer; featuring re-orders the
+// shelf) or creates one stays unnamed and rereads the shelf as before.
+const SINGLE_PRODUCT_WRITE = /\/api\/products\/([^/?]+)(?:\/(?:catalog|stock|commercial|publication|shown))?(?:\?|$)/;
+export function singleProductWrite(url: string, method?: string): string[] | undefined {
+  if (!method || !['PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase())) return undefined;
+  const id = SINGLE_PRODUCT_WRITE.exec(url)?.[1];
+  if (!id || id === 'bulk' || id === 'public') return undefined;
+  return [decodeURIComponent(id)];
 }
 
 // A public read that a session may sharpen. With a token in storage it goes

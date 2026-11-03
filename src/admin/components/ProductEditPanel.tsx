@@ -1092,7 +1092,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
     if (onUpdate) { await onUpdate(id, field, value); return; }
     const payload = buildProductUpdatePayload(field, value);
     if (!payload) return;
-    try { await api.products.updateByDomain(id, payload); await refreshCommerceQueries(panelQueryClient); }
+    try { await api.products.updateByDomain(id, payload); await refreshCommerceQueries(panelQueryClient, undefined, { changedProductIds: [id] }); }
     catch (err: any) { showToast(`Update failed: ${err.message}`, 'error'); }
   }, [onUpdate, showToast]);
 
@@ -1102,7 +1102,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
     const payload=buildProductUpdatePayload(field,value);
     if (!payload) throw new Error('This field could not be saved.');
     await api.products.updateByDomain(id,payload);
-    await refreshCommerceQueries(panelQueryClient);
+    await refreshCommerceQueries(panelQueryClient, undefined, { changedProductIds: [id] });
   }, [onSaveField,onUpdate,panelQueryClient]);
 
   // Stock spine step 2: flip the owner curation gate (shown_in_shop). Routes
@@ -1113,7 +1113,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
     if (onUpdate) { await onUpdate(id, 'shownInShop' as keyof Product, next); return; }
     try {
       await api.products.updateShown(id, next);
-      panelQueryClient.invalidateQueries({ queryKey: ['products'] });
+      await refreshCommerceQueries(panelQueryClient, undefined, { changedProductIds: [id] });
     } catch (err: any) { showToast(`Update failed: ${err.message}`, 'error'); }
   }, [onUpdate, showToast, panelQueryClient]);
 
