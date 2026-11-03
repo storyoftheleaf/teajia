@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { sameCurrency } from '../lib/currency';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search } from 'lucide-react';
-import { api } from '../lib/api';
+import { api, hasToken } from '../lib/api';
 import { buildOrderMessage } from '../lib/whatsapp';
 import { resolveContactChannels } from '../lib/contact';
 import { useShopPrice } from '../components/shop/shopPrice';
@@ -11,7 +11,7 @@ import { ReportPaymentAction } from '../components/shared/ReportPaymentAction';
 import { shouldOfferPaymentClaim } from '../components/shared/paymentClaimDomain';
 import { OrderJourneyStatus } from '../components/shared/OrderJourneyStatus';
 import { normalizeJourney, showsPaymentActions } from '../components/shared/orderJourneyDomain';
-import { createAsyncResultGuard, loadTrackingRequest, trackingItemQuantity } from '../lib/orderTrackingDomain';
+import { createAsyncResultGuard, loadTrackingRequest, trackingItemQuantity, orderDisplayItems, refundProgress } from '../lib/orderTrackingDomain';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 
 const inputClass =
@@ -29,6 +29,16 @@ const OrderStatusPage: React.FC = () => {
   // Bumped when the customer reports a payment, so the page picks up the
   // pending-claim count the worker now holds rather than the one it loaded with.
   const [reloadKey, setReloadKey] = useState(0);
+  const [claiming, setClaiming] = useState(false);
+  const [claimError, setClaimError] = useState<string | null>(null);
+  const claimOrder = async () => {
+    if (!trackingToken || claiming) return;
+    if (!hasToken()) { navigate(`/signin?returnTo=${encodeURIComponent(`/order/${trackingToken}`)}`); return; }
+    setClaiming(true); setClaimError(null);
+    try { await api.inquiries.claim(trackingToken); navigate('/account/orders'); }
+    catch (error) { setClaimError(error instanceof Error ? error.message : 'Could not add this order. Try again.'); }
+    finally { setClaiming(false); }
+  };
 
   // Above the loading early return, as every hook in this app must be. The
   // basket that produced this order was quoted in the reader's currency, so the
@@ -77,13 +87,9 @@ const OrderStatusPage: React.FC = () => {
     );
   }
 
-  let items: any[] = [];
-  try {
-    const parsed = inquiry?.items_json ? JSON.parse(inquiry.items_json) : [];
-    items = Array.isArray(parsed) ? parsed : [];
-  } catch {
-    items = [];
-  }
+  const items = orderDisplayItems(inquiry);
+  const showingAgreedItems = inquiry?.order?.status !== 'Draft' && Array.isArray(inquiry?.invoice_items);
+  const refundLabel = refundProgress(inquiry?.order);
   // The stage the worker derived from the order itself, replacing the four
   // fixed words this page used to read off a column Adrian sets by hand in a
   // different place from where he works the order.
@@ -97,7 +103,7 @@ const OrderStatusPage: React.FC = () => {
   // whether there is anything to settle; the stage decides whether settling it
   // is still a thing this order can do at all.
   const offersPayment =
-    inquiry?.order?.status !== 'Draft' &&
+    inquiry?.order?.status !== 'Draft' && inquiry?.order?.status !== 'Void' &&
     showsPaymentActions(journey, inquiry?.payment) &&
     Boolean(inquiry?.payment?.pay_url || shouldOfferPaymentClaim(inquiry?.payment));
   const formatStoredUsd = (amount: number) => {
@@ -110,8 +116,10 @@ const OrderStatusPage: React.FC = () => {
     }).format(safe);
   };
 
-  const orderChat = inquiry && trackingToken ? resolveContactChannels({
+  const orderContact = inquiry && trackingToken ? resolveContactChannels({
     whatsappNumber: inquiry.contact?.whatsapp,
+    email: inquiry.contact?.email,
+    subject: `Order ${inquiry.ref_number}`,
     message: buildOrderMessage({
       type: 'inquiry', ref: inquiry.ref_number,
       invoiceNumber: inquiry.order?.invoice_number || inquiry.invoice_number,
@@ -119,10 +127,11 @@ const OrderStatusPage: React.FC = () => {
       customerLocation: inquiry.order?.shipping_destination || inquiry.shipping_destination,
       items: items.map(item => ({ name: item.name, variant: item.variant, quantity: item.packGrams ?? item.quantityGrams,
         packs: item.packs ?? 1, unit: item.category === 'tea' ? 'g' : ' pcs',
-        price: formatStoredUsd(Number(item.totalPrice)), total: formatStoredUsd(Number(item.totalPrice)) })),
-      subtotal: formatStoredUsd(Number(inquiry.total_estimate_usd)), total: formatStoredUsd(Number(inquiry.total_estimate_usd)),
+        price: formatStoredUsd(Number(item.totalPrice) / (item.packs ?? 1)), total: formatStoredUsd(Number(item.totalPrice)) })),
+      subtotal: formatStoredUsd(items.reduce((sum, item) => sum + Number(item.totalPrice), 0)),
+      total: formatStoredUsd(showingAgreedItems ? Number(inquiry.payment?.total_usd ?? items.reduce((sum, item) => sum + Number(item.totalPrice), 0)) : Number(inquiry.total_estimate_usd)),
     }),
-  }).whatsapp : null;
+  }) : null;
 
   return (
     <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3 pb-nav-gap space-y-6">
@@ -143,6 +152,8 @@ const OrderStatusPage: React.FC = () => {
       </div>
 
       {/* Lookup form */}
+      <details open={!inquiry}>
+      <summary className={inquiry ? 'tap-target cursor-pointer text-ui-13 text-tea-text-sec' : 'hidden'}>Look up another order</summary>
       <form onSubmit={handleLookup} className="bg-tea-surface border border-tea-border rounded-xl p-5 space-y-3">
         <label htmlFor="order-ref" className="block text-ui-12 text-tea-text-sec">
           Private tracking code
@@ -171,6 +182,7 @@ const OrderStatusPage: React.FC = () => {
           </p>
         )}
       </form>
+      </details>
 
       {unavailable && (
         <div role="alert" className="bg-tea-surface border border-tea-border rounded-xl p-5">
@@ -212,6 +224,10 @@ const OrderStatusPage: React.FC = () => {
           </div>
 
           {(inquiry.order?.invoice_number || inquiry.invoice_number) && <p className="text-ui-13 text-tea-text-sec">Invoice {inquiry.order?.invoice_number || inquiry.invoice_number}</p>}
+          <div className="my-3">
+            <button type="button" disabled={claiming} onClick={() => { void claimOrder(); }} className="tap-target text-ui-13 text-tea-text-sec hover:text-tea-text disabled:opacity-50">{claiming ? 'Adding…' : hasToken() ? 'Add to my order history' : 'Sign in to keep this order'}</button>
+            {claimError && <p role="alert" className="text-ui-13 text-tea-text mt-2">{claimError}</p>}
+          </div>
           {(inquiry.order?.shipping_destination || inquiry.shipping_destination) && <p className="text-ui-13 text-tea-text-sec">Delivery: {inquiry.order?.shipping_destination || inquiry.shipping_destination}</p>}
           {(inquiry.order?.tracking_number || inquiry.tracking_number) && <p className="text-ui-13 text-tea-text-sec">Tracking: {inquiry.order?.tracking_number || inquiry.tracking_number}</p>}
 
@@ -234,10 +250,14 @@ const OrderStatusPage: React.FC = () => {
           </div>
 
           {/* Total */}
+          {showingAgreedItems && <details className="my-3 text-ui-12 text-tea-text-sec">
+            <summary className="tap-target cursor-pointer">Original request</summary>
+            {orderDisplayItems({ items_json: inquiry.items_json }).map((item, index) => <p key={index} className="mt-2">{item.name} · {trackingItemQuantity(item)} · {formatStoredUsd(item.totalPrice)}</p>)}
+          </details>}
           <div className="flex justify-between items-baseline pt-3 mt-2 border-t border-tea-border">
-            <span className={`${TYPOGRAPHY_CLASSES.label} text-tea-text`}>Requested tea subtotal estimate</span>
+            <span className={`${TYPOGRAPHY_CLASSES.label} text-tea-text`}>{showingAgreedItems ? 'Agreed items subtotal' : 'Requested tea subtotal estimate'}</span>
             <span className="font-mono text-ui-17 text-tea-text tabular-nums">
-              {formatStoredUsd(Number(inquiry?.total_estimate_usd || 0))}
+              {formatStoredUsd(showingAgreedItems ? items.reduce((sum, item) => sum + item.totalPrice, 0) : Number(inquiry?.total_estimate_usd || 0))}
             </span>
           </div>
 
@@ -251,9 +271,10 @@ const OrderStatusPage: React.FC = () => {
             <div className="flex justify-between gap-4"><dt className="text-tea-text-sec">Balance</dt><dd className="num text-tea-text">{formatStoredUsd(Number(inquiry.payment.outstanding_usd))}</dd></div>
           </dl>}
 
-          {orderChat && <div className="mt-5 space-y-2">
-            <a className="checkout-tracking-link" href={orderChat.href} target="_blank" rel="noopener noreferrer">Discuss this order on WhatsApp</a>
-            <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}>Your order details and invoice link are filled in. Tap Send in WhatsApp so the tea house can reply.</p>
+          {refundLabel && <p role="status" className="mt-4 text-ui-14 text-tea-text">{refundLabel}{Number(inquiry.order?.refund_due_usd) > 0 ? ` · ${formatStoredUsd(Number(inquiry.order.refund_due_usd))} remaining` : ''}</p>}
+          {(orderContact?.whatsapp || orderContact?.email) && <div className="mt-5 flex flex-wrap gap-3">
+            {orderContact.whatsapp && <a className="checkout-tracking-link" href={orderContact.whatsapp.href} target="_blank" rel="noopener noreferrer">Discuss this order on WhatsApp</a>}
+            {orderContact.email && <a className="checkout-tracking-link" href={orderContact.email.href}>Email about this order</a>}
           </div>}
 
           {/* The line that used to sit here promised a WhatsApp conversation

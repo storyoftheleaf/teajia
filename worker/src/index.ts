@@ -1,3 +1,7 @@
+import { capturedHoldingFields, recordedImageKey } from './capturedHolding';
+import { invoiceRefundTotals } from './refundDomain';
+import { preparePurchaseReceipt, updatePurchaseReceiptStatus } from './purchaseContinuity';
+import { authPagePath } from '../../src/lib/authNavigation';
 import {
   mcpFetch, publicMcpFetch, mcpAdminMintToken, mcpAdminListTokens, mcpAdminRevokeToken,
   oauthProtectedResourceMetadata, oauthAuthorizationServerMetadata,
@@ -504,9 +508,9 @@ async function maybeIssueRefreshedToken(
 
 // ── Google OAuth state helpers ──
 // State = hex_timestamp.hex_returnpath.hmac_sig — verifiable without
-// server-side storage. The return path lets a customer who started the flow
-// from the public account panel land back there instead of /admin. The path is
-// inside the signed payload so it can't be tampered with on the round-trip.
+// server-side storage. The shared sign-in page carries the final destination
+// inside its query. Signing the whole path protects that destination on the
+// round-trip without putting an original page fragment beside the OAuth token.
 function toHex(s: string): string {
   return Array.from(new TextEncoder().encode(s)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
@@ -516,7 +520,7 @@ function fromHex(hex: string): string {
   return new TextDecoder().decode(bytes);
 }
 
-async function signOAuthState(secret: string, returnPath = '/admin'): Promise<string> {
+async function signOAuthState(secret: string, returnPath = '/signin'): Promise<string> {
   const ts = Date.now().toString(16);
   const ret = toHex(returnPath);
   const payload = `${ts}.${ret}`;
@@ -546,12 +550,11 @@ async function verifyOAuthState(state: string, secret: string): Promise<string |
   const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
   const expectedSig = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
   if (expectedSig !== givenSig) return null;
-  // Only allow same-origin relative paths; reject anything that could be an
-  // open redirect (must start with a single '/').
+  // Normalize older signed direct-return paths through shared sign-in too;
+  // its destination validator permits only same-origin relative paths.
   let path: string;
   try { path = fromHex(ret); } catch { return null; }
-  if (!path.startsWith('/') || path.startsWith('//')) return '/admin';
-  return path;
+  return googleSignInPath(path);
 }
 
 // ── Multi-account helpers ──
@@ -1093,7 +1096,6 @@ const LISTING_MIRROR_COLUMNS: Record<string, string> = {
   quantity_purchased:    'quantity_purchased',
   source_compass_entry_id:'source_compass_entry_id',
   stock_verified_at:     'stock_verified_at',
-  sold_in_whole_units:   'sold_in_whole_units',
   is_personal:           'is_personal',
   can_reorder:           'can_reorder',
   is_public:             'is_public',
@@ -1571,6 +1573,19 @@ async function edgeCached(request: Request, maxAge: number, build: () => Promise
   return response;
 }
 
+async function invalidatePublicCatalogue(request:Request,env:Env){
+ const cache=(globalThis as {caches?:{default?:Cache}}).caches?.default;if(!cache)return;
+ const token=isAuthed(request);const claims=token?parseToken(token):null;
+ const accountId=request.headers.get('X-Teajia-Account')||claims?.active_account_id;if(!accountId)return;
+ const accountIds=new Set<string>([accountId]);const url=new URL(request.url);
+ const wholesale=url.pathname.match(/^\/api\/wholesale\/orders\/([^/]+)/);
+ if(wholesale){const order=await env.DB.prepare('SELECT supplier_account_id,buyer_account_id FROM wholesale_orders WHERE id=? AND (supplier_account_id=? OR buyer_account_id=?)').bind(wholesale[1],accountId,accountId).first() as any;if(order){accountIds.add(order.supplier_account_id);accountIds.add(order.buyer_account_id);}}
+ if(url.pathname.startsWith('/api/rates')){const accounts=await env.DB.prepare("SELECT id FROM accounts WHERE status='active' LIMIT 1000").all();for(const account of accounts.results as any[])accountIds.add(account.id);}
+ const paths:string[]=[];
+ for(const id of accountIds){const account=await env.DB.prepare('SELECT slug FROM accounts WHERE id=?').bind(id).first() as any;if(account?.slug)paths.push(`/api/s/${encodeURIComponent(account.slug)}/products`);if(id===BALI_ACCOUNT_ID)paths.push('/api/products/public');}
+ await Promise.all(paths.map(path=>cache.delete(new Request(url.origin+path,{method:'GET'}))));
+}
+
 function swrJson(data: unknown, sMaxAge: number, swr: number, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -1669,20 +1684,17 @@ function addPricingFields(product: any, rates: Map<string, number>, shopDefaultP
   // gets two homes.
   const rate = isUnrecordedCurrency(declared) ? 1 : lookupRateToUsd(rates, declared);
   const isTeaware = product.type === 'Teaware';
-  if (!rate || rate <= 0) {
+  if (!rate || rate <= 0 || product.cost_amount == null || !(Number(product.quantity_purchased) > 0)) {
     return {
       ...product,
       stock_grams: Math.round(product.stock_grams || 0),
-      cost_per_gram_usd: 0,
-      retail_price_per_gram_usd: 0,
+      cost_per_gram_usd: null,
+      retail_price_per_gram_usd: product.fixed_retail_price_usd ?? null,
     };
   }
 
-  // For teaware, use quantity_units as the divisor (per-unit pricing)
-  // For tea, use quantity_purchased (per-gram pricing)
-  const qty = isTeaware
-    ? (product.quantity_units || product.quantity_purchased || 0)
-    : (product.quantity_purchased || 0);
+  // The purchase denominator is acquisition evidence, never current availability.
+  const qty = Number(product.quantity_purchased) || 0;
 
   let costPerUnitUSD = 0;
   let retailPricePerUnitUSD = 0;
@@ -1708,7 +1720,7 @@ function addPricingFields(product: any, rates: Map<string, number>, shopDefaultP
     ...product,
     stock_grams: Math.round(product.stock_grams || 0),
     cost_per_gram_usd: Math.round(costPerUnitUSD * 100) / 100,
-    retail_price_per_gram_usd: Math.round(retailPricePerUnitUSD * 100) / 100,
+    retail_price_per_gram_usd: product.fixed_retail_price_usd ?? Math.round(retailPricePerUnitUSD * 100) / 100,
   };
 }
 
@@ -2078,14 +2090,16 @@ const handleGetMe: Handler = async (request, env) => {
 
   // Try to fetch fresh user data from DB
   try {
-    const user = await env.DB.prepare('SELECT id, email, username, name, role, phone, admin_request_status, created_at, can_create_collections, password_hash FROM users WHERE id = ?').bind(claims.sub).first();
+    const user = await env.DB.prepare('SELECT id, email, username, name, role, phone, admin_request_status, created_at, can_create_collections, password_hash, google_id, email_verified_at FROM users WHERE id = ?').bind(claims.sub).first();
     if (user) {
       // Never expose the hash itself — only whether one exists, so the
       // settings UI can offer "Set password" to Google-linked accounts.
-      const { password_hash, ...safe } = user as Record<string, unknown>;
+      const { password_hash, google_id, email_verified_at, ...safe } = user as Record<string, unknown>;
       return json({
         ...safe,
-        has_password: typeof password_hash === 'string' && (password_hash as string).length > 0,
+        has_password: typeof password_hash === 'string' && password_hash.length > 0,
+        google_connected: typeof google_id === 'string' && google_id.length > 0,
+        email_verified: typeof email_verified_at === 'string' && email_verified_at.length > 0,
         ...(refreshedToken ? { refreshed_token: refreshedToken } : {}),
       });
     }
@@ -2540,14 +2554,25 @@ const handleResetPassword: Handler = async (request, env) => {
 };
 
 // ── Google OAuth ──
+// Both current sign-in entries and older direct-return links finish through
+// the same page. The final page (including any fragment) stays query-encoded.
+function googleSignInPath(returnPath: unknown): string {
+  if (typeof returnPath === 'string' && returnPath.startsWith('/') && !/[\\\u0000-\u0020\u007f]/.test(returnPath)) {
+    try {
+      const url = new URL(returnPath, 'https://teajia.com');
+      if (url.origin === 'https://teajia.com' && url.pathname === '/signin') {
+        return authPagePath('signin', url.searchParams.get('returnTo'));
+      }
+    } catch { /* The shared destination validator handles invalid paths. */ }
+  }
+  return authPagePath('signin', returnPath);
+}
+
 const handleGoogleAuth: Handler = async (request, env) => {
   if (!env.GOOGLE_CLIENT_ID) return json({ error: 'Google OAuth not configured' }, 503);
   const url = new URL(request.url);
   const origin = url.origin;
-  // Where to land after sign-in. Defaults to /admin (staff login). The public
-  // account panel passes ?return=/ so customers come back to the site.
-  const rawReturn = url.searchParams.get('return') || '/admin';
-  const returnPath = rawReturn.startsWith('/') && !rawReturn.startsWith('//') ? rawReturn : '/admin';
+  const returnPath = googleSignInPath(url.searchParams.get('return'));
   // Pin the redirect_uri to the Google-registered host. Using the raw inbound
   // `origin` makes requests routed through another host send an unregistered
   // redirect_uri, which Google rejects with `redirect_uri_mismatch`.
@@ -2577,14 +2602,18 @@ const handleGoogleCallback: Handler = async (request, env) => {
   const state = url.searchParams.get('state');
   const errorParam = url.searchParams.get('error');
 
-  if (errorParam) return Response.redirect(`${appOrigin}/admin?oauth_error=${encodeURIComponent(errorParam)}`, 302);
-  if (!code || !state) return Response.redirect(`${appOrigin}/admin?oauth_error=missing_params`, 302);
-  // verifyOAuthState returns the signed return path (or null when invalid).
-  // From here on, errors and success land the user back where they started.
+  const errorRedirect = (path: string, error: string) => {
+    const destination = new URL(path, appOrigin);
+    destination.searchParams.set('oauth_error', error);
+    return Response.redirect(destination.toString(), 302);
+  };
+  if (!state) return errorRedirect('/signin', 'missing_params');
+  // Cancellation is a callback too: only a verified state may carry a return.
   const returnPath = await verifyOAuthState(state, env.JWT_SECRET);
-  if (!returnPath) return Response.redirect(`${appOrigin}/admin?oauth_error=invalid_state`, 302);
-  const sep = returnPath.includes('?') ? '&' : '?';
-  const errRedirect = (e: string) => Response.redirect(`${appOrigin}${returnPath}${sep}oauth_error=${e}`, 302);
+  if (!returnPath) return errorRedirect('/signin', 'invalid_state');
+  const errRedirect = (error: string) => errorRedirect(returnPath, error);
+  if (errorParam) return errRedirect(errorParam);
+  if (!code) return errRedirect('missing_params');
 
   // Must be byte-for-byte identical to the redirect_uri sent in handleGoogleAuth
   // (Google rejects the token exchange otherwise), so resolve it the same way.
@@ -2649,7 +2678,9 @@ const handleGoogleCallback: Handler = async (request, env) => {
     session_version: Number(user.session_version || 0),
   });
 
-  return Response.redirect(`${appOrigin}${returnPath}#oauth_token=${token}`, 302);
+  const destination = new URL(returnPath, appOrigin);
+  destination.hash = new URLSearchParams({ oauth_token: token }).toString();
+  return Response.redirect(destination.toString(), 302);
 };
 
 const handleGetProducts: Handler = async (request, env) => {
@@ -3053,7 +3084,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
   const reservedSlugs = new Set<string>();
   const replayBalances: Array<{ id: string; input: StockMovementInput }> = [];
   const skipped: string[] = [];
-  const results: Array<{ client_row_id: string | null; status: 'inserted' | 'replayed' | 'skipped'; reason?: string }> = [];
+  const results: Array<{ client_row_id: string | null; status: 'inserted' | 'replayed' | 'skipped'; reason?: string; product_id?:string; ledger_id?:string|null }> = [];
 
   for (let rowIndex = 0; rowIndex < products.length; rowIndex += 1) {
     const raw = products[rowIndex];
@@ -3097,7 +3128,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     }) : null;
     if (existingById.has(id)) {
       if (movementInput) replayBalances.push({ id, input: movementInput });
-      else results.push({ client_row_id: clientRowId, status: 'replayed' });
+      else results.push({ client_row_id: clientRowId, status: 'replayed',product_id:id,ledger_id:null });
       continue;
     }
     if (body.stock_known_at === undefined && (body.stock_grams !== undefined || body.quantity_units !== undefined)) {
@@ -3192,13 +3223,14 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
   for (const line of newLines) {
     try {
       await env.DB.batch(line.statements);
-      results.push({ client_row_id: line.clientRowId, status: 'inserted' });
+      const ledger=line.movementInput?await env.DB.prepare('SELECT id FROM stock_ledger WHERE account_id=? AND idempotency_key=?').bind(accountId,line.movementInput.idempotency_key).first() as any:null;
+      results.push({ client_row_id: line.clientRowId, status: 'inserted',product_id:line.id,ledger_id:ledger?.id??null });
     } catch (error) {
       const prior = line.movementInput
         ? await env.DB.prepare('SELECT * FROM stock_ledger WHERE account_id = ? AND idempotency_key = ?').bind(accountId, line.movementInput.idempotency_key).first() as any
         : await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ?').bind(line.id, accountId).first() as any;
       if (prior) {
-        results.push({ client_row_id: line.clientRowId, status: 'replayed' });
+        results.push({ client_row_id: line.clientRowId, status: 'replayed',product_id:line.id,ledger_id:line.movementInput?prior.id:null });
         continue;
       }
       console.error('Atomic inventory import line failed', error);
@@ -3209,7 +3241,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     const result = await applyStockMovement(env, ctx, opening.id, opening.input);
     if (result.status >= 400) return json(result.value, result.status);
     const raw = products.find((row, index) => inventoryImportProductId(accountId, inventoryImportIdempotencyKey(receipt_label || importBatchId, row, index)) === opening.id);
-    results.push({ client_row_id: typeof raw?.client_row_id === 'string' ? raw.client_row_id : null, status: 'replayed' });
+    results.push({ client_row_id: typeof raw?.client_row_id === 'string' ? raw.client_row_id : null, status: 'replayed',product_id:opening.id,ledger_id:(result.value as any).id });
   }
 
   return json({ inserted: results.filter(row => row.status === 'inserted').length, replayed: results.filter(row => row.status === 'replayed').length, movements: newLines.filter(line => line.movementInput).length + replayBalances.length, skipped: results.filter(row => row.status === 'skipped').length, skippedNames: skipped, results });
@@ -3220,13 +3252,13 @@ const PRODUCT_CATALOG_UPDATE_COLUMNS = new Set([
   'origin_region', 'year', 'harvest', 'altitude', 'cultivar', 'processing', 'format',
   'material', 'capacity_ml', 'teaware_category', 'description', 'notes', 'tags', 'moods',
   'tasting_notes', 'brewing_notes', 'tasting', 'tasting_source', 'lore', 'processing_notes',
-  'terroir', 'mood', 'experience', 'image_url', 'additional_images', 'bag_photo_url', 'quantity_units',
+  'terroir', 'mood', 'experience', 'image_url', 'additional_images', 'bag_photo_url',
   'piece_weight_g', 'sold_in_whole_units',
   'tea_key', 'source_compass_entry_id',
 ]);
 
 const PRODUCT_STOCK_UPDATE_COLUMNS = new Set([
-  'stock', 'stock_unit', 'stock_grams', 'low_stock_threshold', 'recheck_stock',
+  'quantity_units', 'stock', 'stock_unit', 'stock_grams', 'low_stock_threshold', 'recheck_stock',
   'stock_verified_at', 'stock_known_at', 'in_transit', 'in_transit_grams', 'in_transit_eta',
   'session_reserve_grams', 'inventory_purpose', 'is_sample', 'is_personal',
 ]);
@@ -3527,13 +3559,14 @@ async function applyProductUpdate(
 
   // Legacy absolute stock editing is preserved, but now travels through the
   // canonical movement primitive as a Recount instead of writing around it.
-  if (body.stock_grams !== undefined) {
+  if (body.stock_grams !== undefined || body.quantity_units !== undefined) {
+    const balanceColumn=body.quantity_units!==undefined?'quantity_units':'stock_grams';
     const current = await env.DB.prepare(
-      'SELECT stock_grams, low_stock_threshold, given_name, product_name, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
+      'SELECT * FROM products WHERE id = ? AND account_id = ?'
     ).bind(params.id, accountId).first();
     if (current) {
-      const oldStock = Number(current.stock_grams) || 0;
-      const newStock = Number(body.stock_grams);
+      const oldStock = Number(current[balanceColumn]) || 0;
+      const newStock = Number(body[balanceColumn]);
       const delta = newStock - oldStock;
       const threshold = Number(current.low_stock_threshold) || 0;
       if (delta !== 0) {
@@ -3562,10 +3595,10 @@ async function applyProductUpdate(
           }
         }
       }
-      const recount = decodeStockMovement({ movement_type: 'recount', balance: newStock, unit: 'g', expected_balance: oldStock, idempotency_key: request.headers.get('Idempotency-Key') || crypto.randomUUID(), note: `Manual: ${oldStock}→${newStock}`, source_compass_entry_id: current.source_compass_entry_id || null });
+      const recount = decodeStockMovement({ movement_type: 'recount', balance: newStock, unit: balanceColumn==='quantity_units'?'unit':'g', expected_balance: oldStock, idempotency_key: request.headers.get('Idempotency-Key') || crypto.randomUUID(), note: `Manual: ${oldStock}→${newStock}`, source_compass_entry_id: current.source_compass_entry_id || null });
       const movement = await applyStockMovement(env, ctx, params.id, recount, { statements: extraStmts.splice(0) });
       if (movement.status >= 400) return json(movement.value, movement.status);
-      delete body.stock_grams;
+      delete body[balanceColumn];
       delete body.stock_known_at;
     } else {
       return json({ error: 'Product not found' }, 404);
@@ -4174,7 +4207,7 @@ const handleGetEligibleSalesProducts: Handler = async (request, env) => {
   try {
     const rows = await env.DB.prepare(
       `SELECT p.id AS product_id,COALESCE(p.given_name,p.product_name) AS product_name,
-        p.owner_user_id AS owner_id,u.name AS owner_name,p.stock_grams AS physical_quantity,
+        p.owner_user_id AS owner_id,u.name AS owner_name,CASE WHEN p.type='Teaware' THEN COALESCE(p.quantity_units,0) ELSE p.stock_grams END AS physical_quantity,CASE WHEN p.type='Teaware' THEN 'unit' ELSE 'g' END AS quantity_unit,
         COALESCE((SELECT SUM(h.held_grams) FROM stock_holds h WHERE h.account_id=p.account_id AND h.product_id=p.id
           AND (h.expires_at IS NULL OR h.expires_at>datetime('now'))),0) AS held_quantity,
         sg.id AS grant_id,sg.price_floor
@@ -4187,9 +4220,9 @@ const handleGetEligibleSalesProducts: Handler = async (request, env) => {
          ORDER BY winner.created_at DESC,winner.id DESC LIMIT 1
        )
        WHERE p.account_id=? AND p.status='Active'
-         AND p.type IN (${TEA_TYPES.map(() => '?').join(',')})
+         AND p.type IN (${[...TEA_TYPES,'Teaware'].map(() => '?').join(',')})
        ORDER BY product_name`
-    ).bind(ctx.userId, ctx.accountId, ...TEA_TYPES).all();
+    ).bind(ctx.userId, ctx.accountId, ...TEA_TYPES,'Teaware').all();
     const eligible = (rows.results as any[]).flatMap(row => {
       const permission = resolveSalePermission({
         actorRole: ctx.role, actorUserId: ctx.userId, stockOwnerUserId: row.owner_id,
@@ -4201,7 +4234,7 @@ const handleGetEligibleSalesProducts: Handler = async (request, env) => {
       return [{
         product_id: row.product_id, product_name: row.product_name,
         owner_id: row.owner_id ?? null, owner_name: row.owner_name ?? null,
-        physical_quantity: physical, held_quantity: held, available_quantity: physical - held,
+        quantity_unit:row.quantity_unit,physical_quantity: physical, held_quantity: held, available_quantity: physical - held,
         price_floor: row.price_floor == null ? null : Number(row.price_floor),
         grant_id: row.grant_id ?? null, permission_reason: permission.reason,
       }];
@@ -5059,21 +5092,21 @@ const handleCreateOrderPaymentClaim: Handler = async (request, env, params) => {
 // POST /api/me/orders/:id/payment-claim — signed in, scoped the way
 // handleGetMyOrders scopes: the same ownership predicate, no wider.
 const handleCreateMyOrderPaymentClaim: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
-  if ('error' in ctx) return ctx.error;
-  const { accountId, userId } = ctx;
+  const ctx=await customerOrderContext(request,env);
+  if(!ctx)return json({error:'Sign in to view your orders'},401);
+  const { accountId:legacyAccountId, userId } = ctx;
   if (!checkRateLimit(`payclaim-user:${userId}`, 12, 600000)) {
     return restError(429, 'Too many payment reports. Try again shortly.', 'rate_limited');
   }
-  const ownership = await loadMyOrderOwnership(env, userId, accountId);
+  const ownership = await loadMyOrderOwnership(env, userId, legacyAccountId);
   const owned = await env.DB.prepare(
-    `SELECT i.id FROM invoices i
-      WHERE i.id = ? AND i.account_id = ? AND i.deleted_at IS NULL
-        AND i.status NOT IN ('Draft', 'Void') AND ${ownership.predicate}
+    `SELECT i.id,i.account_id FROM invoices i
+      WHERE i.id = ? AND i.deleted_at IS NULL
+        AND ${ownership.predicate}
       LIMIT 1`
-  ).bind(params.id, accountId, ...ownership.bindings).first();
+  ).bind(params.id, ...ownership.bindings).first() as any;
   if (!owned) return json({ error: 'Order not found' }, 404);
-  const invoice = await loadLedgerInvoice(env, params.id, accountId);
+  const invoice = await loadLedgerInvoice(env, params.id, String(owned.account_id));
   if (!invoice) return json({ error: 'Order not found' }, 404);
   const body = await request.json().catch(() => ({})) as Record<string, unknown>;
   return createCustomerPaymentClaim(env, invoice, body, {
@@ -5271,7 +5304,7 @@ const handleRejectInvoicePayment: Handler = (request, env, params) =>
 // and mirrors them instead. Where they differ it is written down in
 // todo/plans/order-process-notes.md, never left to be discovered.
 
-export type AttentionKind = 'request' | 'unpriced' | 'claim' | 'unsent';
+export type AttentionKind = 'request' | 'unpriced' | 'claim' | 'unsent' | 'refund';
 
 export interface AttentionItem {
   kind: AttentionKind;
@@ -5438,7 +5471,10 @@ const handleGetAttention: Handler = async (request, env) => {
   ]);
 
   const items: AttentionItem[] = [];
-  const counts = { requests: 0, unpriced: 0, claims: 0, unsent: 0 };
+  const counts = { requests: 0, unpriced: 0, claims: 0, unsent: 0, refunds:0 };
+  const refunds=await env.DB.prepare(`SELECT id,invoice_number,customer_name,cancelled_at,created_at,COUNT(*) OVER() AS total_count FROM invoices WHERE account_id=? AND deleted_at IS NULL AND refund_required=1 ORDER BY COALESCE(cancelled_at,created_at) ASC LIMIT ?`).bind(accountId,ATTENTION_KIND_LIMIT).all();
+  counts.refunds=Number((refunds.results[0] as any)?.total_count||0);
+  for(const row of refunds.results as any[]){const since=toIsoTime(row.cancelled_at||row.created_at)??new Date().toISOString();items.push({kind:'refund',id:row.id,label:`Refund needed for ${attentionPerson(row.customer_name)} on ${attentionOrderRef(row)}`,meta:waitingPhrase(since),waiting_since:since,href:attentionOrderHref(row.invoice_number),reference:row.invoice_number});}
   /** The window function's count survives the LIMIT; the row count would not. */
   const trueCount = (rows: Array<Record<string, any>>) =>
     rows.length === 0 ? 0 : Number(rows[0].total_count || rows.length);
@@ -5556,7 +5592,9 @@ const handleGetInvoices: Handler = async (request, env) => {
     total_usd: Number(row.computed_total || 0),
     shipping_cost_usd: Number(row.shipping_cost_usd || 0),
   })));
-  return json(rows.map(row => ({ ...row, payment: payments.get(row.id as string) ?? null })));
+  const refundRows=await env.DB.prepare('SELECT invoice_id,SUM(amount_usd) AS refunded_usd FROM invoice_refunds WHERE account_id=? GROUP BY invoice_id').bind(accountId).all();
+  const refundMap=new Map((refundRows.results as any[]).map(row=>[row.invoice_id,Number(row.refunded_usd)]));
+  return json(rows.map(row => {const payment=payments.get(row.id as string)??null;const refunded_usd=refundMap.get(row.id)||0;return {...row,payment,refunded_usd,refund_due_usd:row.status==='Void'?Math.max(0,roundUsd(Number(payment?.paid_usd||0)-refunded_usd)):0};}));
 };
 
 // Canonical invoice-number formatter. ONE source of truth shared across
@@ -5617,10 +5655,10 @@ const handleCreateInvoice: Handler = async (request, env) => {
       item.id = lineId;
       return env.DB.prepare(
         `INSERT INTO invoice_line_items
-         (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,stock_owner_user_id,sales_grant_id,owner_share_type,owner_share_value)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?)`
+         (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,stock_owner_user_id,sales_grant_id,owner_share_type,owner_share_value,quantity_unit)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`
       ).bind(lineId, accountId, id, item.product_id, item.custom_name ?? null, item.quantity, item.price_at_sale,
-        item.stock_owner_user_id, item.sales_grant_id, item.owner_share_type, item.owner_share_value);
+        item.stock_owner_user_id, item.sales_grant_id, item.owner_share_type, item.owner_share_value,item.quantity_unit??'g');
     });
 
     const invoiceStmt = env.DB.prepare(
@@ -5686,7 +5724,7 @@ const handleGetInvoiceItems: Handler = async (request, env, params) => {
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
 
   const result = await env.DB.prepare(
-    `SELECT ili.*, p.given_name, p.product_name
+    `SELECT ili.*, p.given_name, p.product_name, COALESCE(ili.quantity_unit,CASE WHEN p.type='Teaware' THEN 'unit' ELSE 'g' END) AS quantity_unit
      FROM invoice_line_items ili
      LEFT JOIN products p ON ili.product_id = p.id
      WHERE ili.invoice_id = ? AND ili.account_id = ?`
@@ -5886,7 +5924,7 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
     const statements: D1PreparedStatement[] = [];
     if (invoice.status === 'Draft' && body.status === 'Pending') {
       const current = await env.DB.prepare(
-        'SELECT id,product_id,custom_name,quantity,price_at_sale FROM invoice_line_items WHERE invoice_id=? AND account_id=?'
+        'SELECT id,product_id,custom_name,quantity,price_at_sale,quantity_unit FROM invoice_line_items WHERE invoice_id=? AND account_id=?'
       ).bind(params.id, accountId).all();
 
       // Sending is where a draft becomes a real ask for money. A line still at
@@ -5914,8 +5952,8 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
         : { actorUserId: ctx.userId, actorRole: ctx.role };
       const authorized = await authorizeInvoiceLines(env, { accountId, ...seller, lines: current.results as any[] });
       for (const line of authorized) statements.push(env.DB.prepare(
-        'UPDATE invoice_line_items SET stock_owner_user_id=?,sales_grant_id=?,owner_share_type=?,owner_share_value=? WHERE id=? AND account_id=?'
-      ).bind(line.stock_owner_user_id, line.sales_grant_id, line.owner_share_type, line.owner_share_value, line.id, accountId));
+        'UPDATE invoice_line_items SET stock_owner_user_id=?,sales_grant_id=?,owner_share_type=?,owner_share_value=?,quantity_unit=? WHERE id=? AND account_id=?'
+      ).bind(line.stock_owner_user_id, line.sales_grant_id, line.owner_share_type, line.owner_share_value,line.quantity_unit??'g', line.id, accountId));
       statements.push(...buildInvoiceReservationStatements(env, {
         accountId, invoiceId: params.id, lines: authorized,
         expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
@@ -6502,10 +6540,22 @@ const handleCancelInvoice: Handler = async (request, env) => {
   ).bind(claim, invoiceId, ctx.accountId).first();
   if (!claimed) return restError(409, 'Order is being changed elsewhere', 'invoice_busy');
   try {
+    const restore: D1PreparedStatement[] = [];
+    if (Number(invoice.inventory_deducted) === 1) {
+      const sold = await env.DB.prepare(`SELECT p.id,CASE WHEN sl.movement_unit='unit' THEN 'Teaware' ELSE 'Tea' END AS type,-SUM(sl.delta) AS quantity FROM stock_ledger sl JOIN products p ON p.id=sl.product_id AND p.account_id=sl.account_id WHERE sl.source_invoice_id=? AND sl.account_id=? AND sl.reason IN ('PAYMENT_CONFIRMED','FULFILLMENT') GROUP BY p.id,sl.movement_unit`).bind(invoiceId,ctx.accountId).all();
+      for (const line of sold.results as any[]) {
+        const column = line.type === 'Teaware' ? 'quantity_units' : 'stock_grams';
+        restore.push(env.DB.prepare(`UPDATE products SET ${column}=COALESCE(${column},0)+?,status=CASE WHEN status='Sold Out' THEN 'Active' ELSE status END,sold_out_at=CASE WHEN status='Sold Out' THEN NULL ELSE sold_out_at END WHERE id=? AND account_id=? AND EXISTS(SELECT 1 FROM invoices WHERE id=? AND account_id=? AND fulfillment_claim_token=? AND inventory_deducted=1)`).bind(line.quantity,line.id,ctx.accountId,invoiceId,ctx.accountId,claim));
+        restore.push(env.DB.prepare(`INSERT INTO stock_ledger(id,account_id,product_id,delta,balance_after,movement_unit,reason,source_invoice_id,user_email,note) SELECT ?,?,?,?,p.${column},?,'CANCELLATION_RETURN',?,?,'Unshipped goods returned on cancellation' FROM products p WHERE p.id=? AND p.account_id=? AND EXISTS(SELECT 1 FROM invoices WHERE id=? AND fulfillment_claim_token=?)`).bind(crypto.randomUUID(),ctx.accountId,line.id,line.quantity,line.type==='Teaware'?'unit':'gram',invoiceId,ctx.email,line.id,ctx.accountId,invoiceId,claim));
+        if (column==='stock_grams') restore.push(env.DB.prepare(`UPDATE product_listings SET stock_grams=COALESCE(stock_grams,0)+?,status=CASE WHEN status IN ('Sold Out','archived') THEN 'active' ELSE status END,sold_out_at=NULL WHERE legacy_product_id=? AND account_id=?`).bind(line.quantity,line.id,ctx.accountId));
+      }
+      restore.push(...buildSettlementReversalStatements(env,{accountId:ctx.accountId,invoiceId}));
+    }
     const results = await env.DB.batch([
+      ...restore,
       env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id=? AND account_id=?').bind(invoiceId, ctx.accountId),
       env.DB.prepare(
-        `UPDATE invoices SET status='Void',cancelled_at=datetime('now'),
+        `UPDATE invoices SET status='Void',cancelled_at=datetime('now'),inventory_deducted=0,
          refund_required=CASE WHEN EXISTS (SELECT 1 FROM invoice_payments
            WHERE invoice_id=invoices.id AND account_id=invoices.account_id AND status='confirmed') THEN 1 ELSE 0 END,
          fulfillment_claim_token=NULL,fulfillment_claimed_at=NULL
@@ -6515,7 +6565,7 @@ const handleCancelInvoice: Handler = async (request, env) => {
         `Order ${invoice.invoice_number} cancelled. Check payment history for refund due.`,
         ctx.email, 'invoice', invoiceId, ctx.accountId),
     ]);
-    if (!Number(results[1]?.meta?.changes || 0)) return restError(409, 'Order changed before cancellation', 'invoice_busy');
+    if (!Number(results[restore.length + 1]?.meta?.changes || 0)) return restError(409, 'Order changed before cancellation', 'invoice_busy');
     const cancelled = await env.DB.prepare('SELECT refund_required,cancelled_at FROM invoices WHERE id=? AND account_id=?')
       .bind(invoiceId, ctx.accountId).first() as { refund_required: number; cancelled_at: string } | null;
     return json({ success: true, refund_required: Boolean(cancelled?.refund_required), cancelled_at: cancelled?.cancelled_at ?? null });
@@ -6527,6 +6577,33 @@ const handleCancelInvoice: Handler = async (request, env) => {
   }
 };
 
+const handleRecordInvoiceRefund:Handler=async(request,env,params)=>{
+ const ctx=await requireBundle(request,env,'sell');if('error' in ctx)return ctx.error;
+ const body=await request.json().catch(()=>({})) as any;
+ const amount=Number(body.amount_usd);const key=String(body.request_id??'').trim();
+ if(!Number.isFinite(amount)||amount<=0||Math.abs(Math.round(amount*100)/100-amount)>0.00000001||!key||key.length>128)return json({error:'A positive refund amount and request_id are required'},400);
+ const prior=await env.DB.prepare('SELECT * FROM invoice_refunds WHERE invoice_id=? AND account_id=? AND request_id=?').bind(params.id,ctx.accountId,key).first() as any;
+ if(prior){if(Number(prior.amount_usd)!==amount||String(prior.reference??'')!==String(body.reference??'')||String(prior.note??'')!==String(body.note??''))return json({error:'Refund request already used with different details'},409);return json({id:prior.id,idempotent:true,...await invoiceRefundTotals(env,ctx.accountId,params.id)});}
+ const lease=await claimInvoiceLinkLease(env,ctx.accountId,params.id);if(!lease)return json({error:'Order not found or being changed'},409);
+ try{
+  if(lease.invoice.status!=='Void')return json({error:'Cancel this unshipped order before recording its refund'},409);
+  const totals=await invoiceRefundTotals(env,ctx.accountId,params.id);if(amount>totals.refund_due_usd+0.001)return json({error:'Refund exceeds confirmed receipts remaining to refund'},409);
+  const id=crypto.randomUUID();await env.DB.batch([
+   env.DB.prepare('INSERT INTO invoice_refunds(id,account_id,invoice_id,amount_usd,request_id,reference,note,recorded_by_user_id) VALUES(?,?,?,?,?,?,?,?)').bind(id,ctx.accountId,params.id,amount,key,body.reference??null,body.note??null,ctx.userId),
+   env.DB.prepare('UPDATE invoices SET refund_required=? WHERE id=? AND account_id=? AND fulfillment_claim_token=?').bind(totals.refund_due_usd-amount>0.01?1:0,params.id,ctx.accountId,lease.claimToken),
+   buildActivityLog(env,'INVOICE_REFUNDED',`Refund of ${amount.toFixed(2)} USD recorded`,ctx.email,'invoice',params.id,ctx.accountId),
+  ]);return json({id,...await invoiceRefundTotals(env,ctx.accountId,params.id)},201);
+ }finally{await releaseInvoiceLinkLease(env,ctx.accountId,params.id,lease.claimToken);}
+};
+
+async function shipmentTeaTrail(env:Env,accountId:string,invoiceId:string):Promise<D1PreparedStatement[]>{
+ const invoice=await env.DB.prepare('SELECT i.invoice_number,i.customer_library_account_id,c.user_id FROM invoices i LEFT JOIN customers c ON c.id=i.customer_id AND c.account_id=i.account_id WHERE i.id=? AND i.account_id=?').bind(invoiceId,accountId).first() as any;
+ if(!invoice?.user_id)return [];
+ const libraryAccount=invoice.customer_library_account_id||accountId;
+ const lines=await env.DB.prepare(`SELECT l.id AS line_id,l.quantity,l.quantity_unit,p.* FROM invoice_line_items l JOIN products p ON p.id=l.product_id AND p.account_id=l.account_id WHERE l.invoice_id=? AND l.account_id=?`).bind(invoiceId,accountId).all();
+ return (lines.results as any[]).map(line=>env.DB.prepare(`INSERT OR IGNORE INTO tea_compass_entries(id,user_id,account_id,name,chinese_name,type,form,year,origin_country,origin_region,category,photos,tea_key,status,source_entry_id,source_invoice_id,source_invoice_line_id,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'available_to_taste',?,?,?,?)`).bind(`purchase_${invoiceId}_${line.line_id}`,invoice.user_id,libraryAccount,line.given_name||line.product_name,line.chinese_name??null,line.type,line.form??null,line.year??null,line.origin_country??null,line.origin_region??null,line.type==='Teaware'?'teaware':'tea',JSON.stringify(line.image_url?[line.image_url]:[]),line.tea_key??null,line.source_compass_entry_id??null,invoiceId,line.line_id,`Purchased on invoice ${invoice.invoice_number}`));
+}
+
 const handleShipInvoice: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
@@ -6537,7 +6614,7 @@ const handleShipInvoice: Handler = async (request, env) => {
     `SELECT id,status,inventory_deducted,fulfilled_at FROM invoices WHERE id=? AND account_id=? AND deleted_at IS NULL`
   ).bind(invoiceId, ctx.accountId).first() as Record<string, any> | null;
   if (!invoice) return restError(404, 'Invoice not found', 'invoice_not_found');
-  if (invoice.status === 'Filled') return json({ success: true, idempotent: true, shipped_at: invoice.fulfilled_at });
+  if (invoice.status === 'Filled'){const trail=await shipmentTeaTrail(env,ctx.accountId,invoiceId);if(trail.length)await env.DB.batch(trail);return json({ success: true, idempotent: true, shipped_at: invoice.fulfilled_at });}
   const priced = await loadLedgerInvoice(env, invoiceId, ctx.accountId);
   const ledger = await loadInvoiceLedgerTotals(env, [invoiceId]);
   if (!priced || (ledger.get(invoiceId)?.paid_usd ?? 0) < priced.total_usd - PAYMENT_EPSILON) {
@@ -6557,7 +6634,7 @@ const handleShipInvoice: Handler = async (request, env) => {
   const tracking = body.tracking_number == null ? null : body.tracking_number.trim();
   if (tracking && tracking.length > 500) return restError(400, 'Tracking number is too long', 'invalid_tracking_number');
   const shippedAt = new Date().toISOString();
-  const changed = await env.DB.prepare(
+  const shipment=env.DB.prepare(
     `UPDATE invoices SET status='Filled',fulfilled_at=?,tracking_number=COALESCE(?,tracking_number)
      WHERE id=? AND account_id=? AND status='Pending' AND inventory_deducted=1
        AND fulfillment_claim_token IS NULL
@@ -6566,7 +6643,9 @@ const handleShipInvoice: Handler = async (request, env) => {
          >= COALESCE((SELECT SUM(quantity*price_at_sale) FROM invoice_line_items
          WHERE invoice_id=invoices.id AND account_id=invoices.account_id),0)
          + COALESCE(shipping_cost_usd,0) - 0.01`
-  ).bind(shippedAt, tracking, invoiceId, ctx.accountId).run();
+  ).bind(shippedAt, tracking, invoiceId, ctx.accountId);
+  const trail=await shipmentTeaTrail(env,ctx.accountId,invoiceId);
+  const [changed]=await env.DB.batch([shipment,...trail]);
   if (!Number(changed.meta?.changes || 0)) return restError(409, 'Order changed before shipping', 'invoice_busy');
   await buildActivityLog(env, 'INVOICE_SHIPPED', `Order ${invoiceId} shipped`, ctx.email, 'invoice', invoiceId, ctx.accountId).run();
   return json({ success: true, shipped_at: shippedAt, tracking_number: tracking });
@@ -6918,13 +6997,13 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
     for (const item of authorized) {
       stmts.push(env.DB.prepare(
         `INSERT INTO invoice_line_items
-         (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,stock_owner_user_id,sales_grant_id,owner_share_type,owner_share_value)
-         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+         (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,stock_owner_user_id,sales_grant_id,owner_share_type,owner_share_value,quantity_unit)
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
          WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = ?
            AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
       ).bind(crypto.randomUUID(), accountId, params.id, item.product_id ?? null, item.custom_name ?? null,
         item.quantity, item.price_at_sale, item.stock_owner_user_id, item.sales_grant_id,
-        item.owner_share_type, item.owner_share_value, params.id, accountId, invoice.status, editClaim));
+        item.owner_share_type, item.owner_share_value,item.quantity_unit??'g', params.id, accountId, invoice.status, editClaim));
     }
     if (invoice.status === 'Pending') stmts.push(...buildInvoiceReservationStatements(env, {
       accountId, invoiceId: params.id, lines: authorized,
@@ -11399,11 +11478,11 @@ const handleEnhanceProductImage: Handler = async (request, env, params) => {
 
   // Fetch the encrypted key + verify product ownership in one round trip.
   const product = await env.DB.prepare(
-    `SELECT p.id, a.openai_api_key_encrypted
+    `SELECT p.id,p.image_url,p.additional_images,p.bag_photo_url, a.openai_api_key_encrypted
      FROM products p
      JOIN accounts a ON a.id = p.account_id
      WHERE p.id = ? AND p.account_id = ?`
-  ).bind(productId, accountId).first() as { id: string; openai_api_key_encrypted: string | null } | null;
+  ).bind(productId, accountId).first() as { id: string;image_url:string|null;additional_images:string|null;bag_photo_url:string|null; openai_api_key_encrypted: string | null } | null;
   if (!product) return json({ error: 'Product not found' }, 404);
   if (!product.openai_api_key_encrypted) {
     return json({ error: 'No OpenAI API key configured for this account' }, 412);
@@ -11416,25 +11495,11 @@ const handleEnhanceProductImage: Handler = async (request, env, params) => {
     return json({ error: 'Could not decrypt OpenAI key (rotated KEY_ENCRYPTION_SECRET?)' }, 500);
   }
 
-  // Load the current image bytes from R2. We try common extensions because
-  // the slot file extension was set at upload time and isn't tracked separately.
-  const candidateExts = ['jpg', 'jpeg', 'png', 'webp'];
-  let sourceBytes: ArrayBuffer | null = null;
-  let sourceKey = '';
-  let sourceMime = 'image/jpeg';
-  for (const ext of candidateExts) {
-    const k = `accounts/${accountId}/products/${productId}/${slot}.${ext}`;
-    const obj = await env.MEDIA_BUCKET.get(k);
-    if (obj) {
-      sourceBytes = await obj.arrayBuffer();
-      sourceKey = k;
-      sourceMime = obj.httpMetadata?.contentType || (ext === 'png' ? 'image/png' : 'image/jpeg');
-      break;
-    }
-  }
-  if (!sourceBytes) {
-    return json({ error: 'No source image at this slot — upload one first' }, 404);
-  }
+  const currentKey=recordedImageKey(product,slot,accountId);
+  const source=currentKey?await env.MEDIA_BUCKET.get(currentKey):null;
+  if(!source)return json({error:'The recorded photo is unavailable. Upload the current photo before enhancing it.'},404);
+  const sourceBytes=await source.arrayBuffer();const sourceMime=source.httpMetadata?.contentType||'image/jpeg';
+  const sourceKey=`accounts/${accountId}/products/${productId}/enhanced-${crypto.randomUUID()}.png`;
 
   // OpenAI images.edit accepts multipart/form-data with `image` and `prompt`.
   const oaForm = new FormData();
@@ -14080,6 +14145,29 @@ const handleGetNewsletterSubscribers: Handler = async (request, env) => {
 
 // ── Cart Inquiries ──────────────────────────────────────────────────────────
 
+async function currentInvoiceItems(env:Env,accountId:string,invoiceId:string){
+ const rows=await env.DB.prepare(`SELECT l.id,l.product_id,COALESCE(l.custom_name,p.given_name,p.product_name,'Item') AS name,l.quantity,COALESCE(l.quantity_unit,CASE WHEN p.type='Teaware' THEN 'unit' ELSE 'g' END) AS quantity_unit,l.price_at_sale AS unit_price_usd,ROUND(l.quantity*l.price_at_sale,2) AS line_total_usd FROM invoice_line_items l LEFT JOIN products p ON p.id=l.product_id AND p.account_id=l.account_id WHERE l.invoice_id=? AND l.account_id=?`).bind(invoiceId,accountId).all();return rows.results;
+}
+async function savedInvoiceContents(env:Env,accountId:string,invoiceId:string){const invoice_items=await currentInvoiceItems(env,accountId,invoiceId);return {invoice_items,total_estimate_usd:roundUsd((invoice_items as any[]).reduce((sum,line)=>sum+Number(line.line_total_usd),0))};}
+const handleClaimInquiry:Handler=async(request,env,params)=>{
+ const user=await optionalAuthenticatedUser(request,env);if(!user)return json({error:'Sign in to keep this order'},401);
+ if(!isValidTrackingToken(params.ref))return json({error:'Order not found'},404);
+ const inquiry=await env.DB.prepare('SELECT account_id,converted_invoice_id FROM inquiries WHERE tracking_token_hash=?').bind(await sha256Hex(params.ref)).first() as any;
+ if(!inquiry?.converted_invoice_id)return json({error:'Order not found'},404);
+ const invoice=await env.DB.prepare('SELECT customer_id,customer_name FROM invoices WHERE id=? AND account_id=?').bind(inquiry.converted_invoice_id,inquiry.account_id).first() as any;
+ if(invoice?.customer_id){const owner=await env.DB.prepare('SELECT user_id FROM customers WHERE id=? AND account_id=?').bind(invoice.customer_id,inquiry.account_id).first() as any;if(owner?.user_id&&owner.user_id!==user.userId)return json({error:'This order is already kept by another customer'},409);}
+ const known=await env.DB.prepare('SELECT id FROM customers WHERE user_id=? AND account_id=? ORDER BY created_at LIMIT 1').bind(user.userId,inquiry.account_id).first() as any;
+ const customerId=known?.id??`web_${inquiry.account_id}_${user.userId}`;
+ const membership=await getActiveAccount(request,env);const libraryAccount='error' in membership?null:membership.accountId;
+ const lease=await claimInvoiceLinkLease(env,inquiry.account_id,inquiry.converted_invoice_id);if(!lease)return json({error:'Order is being updated; retry'},409);
+ try{if(lease.invoice.customer_id&&lease.invoice.customer_id!==invoice.customer_id)return json({error:'Order ownership changed; reload'},409);
+ await env.DB.batch([env.DB.prepare("INSERT OR IGNORE INTO customers(id,account_id,user_id,name,email,source) VALUES(?,?,?,?,?,'claimed_order')").bind(customerId,inquiry.account_id,user.userId,invoice.customer_name||user.name||'Customer',user.email),env.DB.prepare('UPDATE invoices SET customer_id=?,customer_library_account_id=COALESCE(customer_library_account_id,?) WHERE id=? AND account_id=? AND fulfillment_claim_token=?').bind(customerId,libraryAccount,inquiry.converted_invoice_id,inquiry.account_id,lease.claimToken)]);
+ await ensureContactRelationship(env,inquiry.account_id,customerId,'buyer','workflow','invoice',inquiry.converted_invoice_id);
+ if(lease.invoice.status==='Filled'){const trail=await shipmentTeaTrail(env,inquiry.account_id,inquiry.converted_invoice_id);if(trail.length)await env.DB.batch(trail);}
+ return json({success:true,invoice_id:inquiry.converted_invoice_id,account_id:inquiry.account_id});
+ }finally{await releaseInvoiceLinkLease(env,inquiry.account_id,inquiry.converted_invoice_id,lease.claimToken);}
+};
+
 async function pricedRequestLines(env: Env, accountId: string, items: Array<Record<string, any>>) {
   const productIds = catalogProductIds(items);
   const [productRows, rateRows] = await Promise.all([
@@ -14097,7 +14185,7 @@ async function pricedRequestLines(env: Env, accountId: string, items: Array<Reco
   for (const row of (productRows.results ?? []) as Array<Record<string, any>>) {
     const priced = addPricingFields(row, rates, shopDefaultPerKgUsd);
     const currency = String(row.cost_currency || '').trim();
-    if (row.cost_amount == null || (currency && currency.toUpperCase() !== 'UNK' && !lookupRateToUsd(rates, currency))) {
+    if (row.fixed_retail_price_usd == null && (row.cost_amount == null || (currency && currency.toUpperCase() !== 'UNK' && !lookupRateToUsd(rates, currency)))) {
       priced.retail_price_per_gram_usd = null;
     }
     products.set(row.id as string, priced);
@@ -14109,9 +14197,10 @@ async function pricedRequestLines(env: Env, accountId: string, items: Array<Reco
     const product = products.get(String(item.id || ''));
     const name = String(product?.given_name || product?.product_name || item.name || 'Item');
     return {
-      product_id: product && isTeaType(String(product.type || '')) ? String(product.id) : null,
+      product_id: product ? String(product.id) : null,
       custom_name: `${name} (${inquiryPackingLabel({ ...item, category: product?.type === 'Teaware' ? 'ware' : item.category })})`,
       quantity,
+      quantity_unit:product?.type==='Teaware'?'unit':'g',
       price_at_sale: product ? quoteInquiryLine(item, product) / quantity : 0,
     };
   });
@@ -14254,6 +14343,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
         return json({ error: 'Tracking token conflict' }, 409);
       }
       return json({
+        ...(source==='website'&&existing.converted_invoice_id?await savedInvoiceContents(env,accountId,existing.converted_invoice_id):{}),
         id: existing.id,
         ref_number: existing.ref_number,
         invoice_id: existing.converted_invoice_id,
@@ -14279,6 +14369,11 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
         return json({ error: error instanceof Error ? error.message : 'Could not price this request' }, 400);
       }
       const serverSubtotalUsd = roundUsd(lines.reduce((sum, line) => sum + line.quantity * line.price_at_sale, 0));
+      const buyer=await optionalAuthenticatedUser(request,env);
+      const buyerMembership=buyer?await getActiveAccount(request,env):null;
+      const buyerLibrary=buyerMembership&&!('error' in buyerMembership)?buyerMembership.accountId:null;
+      const knownBuyer=buyer?await env.DB.prepare('SELECT id FROM customers WHERE user_id=? AND account_id=? ORDER BY created_at LIMIT 1').bind(buyer.userId,accountId).first() as any:null;
+      const buyerId=buyer?(knownBuyer?.id??`web_${accountId}_${buyer.userId}`):null;
       const requestId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
       const invoiceId = crypto.randomUUID();
       const handoffNote = whatsappHandoff ? 'Customer will start the WhatsApp chat; not yet contacted.' : '';
@@ -14294,18 +14389,19 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
         if (!seq) return json({ error: 'Store not found' }, 404);
         invoiceNumber = formatInvoiceNumber(seq.invoice_prefix, seq.invoice_seq);
         const statements: D1PreparedStatement[] = [
+          ...(buyer&&!knownBuyer?[env.DB.prepare(`INSERT OR IGNORE INTO customers(id,account_id,user_id,name,email,source) VALUES(?,?,?,?,?,'website_order')`).bind(buyerId,accountId,buyer.userId,name,buyer.email)]:[]),
           env.DB.prepare(
             `INSERT INTO invoices
-             (id,account_id,invoice_number,customer_name,customer_whatsapp,display_currency,
+             (id,account_id,invoice_number,customer_name,customer_whatsapp,display_currency,customer_id,customer_library_account_id,
               shipping_cost_usd,shipping_destination,source_inquiry_id,status,inventory_deducted,notes,payment_status)
-             VALUES (?,?,?,?,?,?,0,?,?,'Draft',0,?,'unpaid')`
-          ).bind(invoiceId, accountId, invoiceNumber, name, customerPhone, normalized.value.currency,
+             VALUES (?,?,?,?,?,?,?,?,0,?,?,'Draft',0,?,'unpaid')`
+          ).bind(invoiceId, accountId, invoiceNumber, name, customerPhone, normalized.value.currency,buyerId,buyerLibrary,
             location || null, requestId, `From order request ${normalized.value.refNumber}. ${whatsappHandoff ? handoffNote : `Reply to: ${contact}.`} ${notes ? `Customer note: ${notes}. ` : ''}Review prices and shipping before sending.`),
           ...lines.map(line => env.DB.prepare(
             `INSERT INTO invoice_line_items
-             (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale)
-             VALUES (?,?,?,?,?,?,?)`
-          ).bind(crypto.randomUUID(), accountId, invoiceId, line.product_id, line.custom_name, line.quantity, line.price_at_sale)),
+             (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,quantity_unit)
+             VALUES (?,?,?,?,?,?,?,?)`
+          ).bind(crypto.randomUUID(), accountId, invoiceId, line.product_id, line.custom_name, line.quantity, line.price_at_sale,line.quantity_unit)),
           env.DB.prepare(
             `INSERT INTO inquiries
              (id,account_id,name,email,phone,items,total_usd,currency,message,source,ref_number,
@@ -14336,7 +14432,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
             if (raced.account_id !== accountId || raced.request_fingerprint !== requestFingerprint) {
               return json({ error: 'Tracking token conflict' }, 409);
             }
-            return json({ id: raced.id, ref_number: raced.ref_number,
+            return json({ ...await savedInvoiceContents(env,accountId,raced.converted_invoice_id),id: raced.id, ref_number: raced.ref_number,
               tracking_token: normalized.value.trackingToken, invoice_id: raced.converted_invoice_id,
               invoice_number: raced.invoice_number, source, success: true, idempotent: true }, 200);
           }
@@ -14361,7 +14457,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
           message: requestMessage, reference: normalized.value.refNumber,
           trackingToken: normalized.value.trackingToken,
         }).catch(() => false);
-      return json({ email_sent: emailSent, id: requestId,
+      return json({ ...await savedInvoiceContents(env,accountId,invoiceId),email_sent: emailSent, id: requestId,
         ref_number: normalized.value.refNumber, tracking_token: normalized.value.trackingToken,
         invoice_id: invoiceId, invoice_number: invoiceNumber, source, success: true }, 201);
     }
@@ -14510,7 +14606,8 @@ const handleGetInquiryByRef: Handler = async (_request, env, params) => {
   const tokenHash = await sha256Hex(token);
   const row = await env.DB.prepare(
     `SELECT ref_number, items, status, source, total_usd, currency, created_at, converted_invoice_id,
-            (SELECT whatsapp_number FROM accounts WHERE accounts.id=inquiries.account_id) AS store_whatsapp_number
+            (SELECT whatsapp_number FROM accounts WHERE accounts.id=inquiries.account_id) AS store_whatsapp_number,
+            (SELECT contact_email FROM accounts WHERE accounts.id=inquiries.account_id) AS store_contact_email
      FROM inquiries WHERE tracking_token_hash = ? LIMIT 1`
   ).bind(tokenHash).first() as any;
   if (!row) return json({ error: 'Not found' }, 404);
@@ -14525,6 +14622,7 @@ const handleGetInquiryByRef: Handler = async (_request, env, params) => {
   // The request is already in hand here, so no second query finds it.
   let journeyInvoice: JourneyInvoice | null = null;
   let order: Record<string, unknown> | null = null;
+  let invoiceItems:unknown[]=[];let refundTotals:Record<string,unknown>={};
   if (row.converted_invoice_id) {
     const invoice = await env.DB.prepare(
       `SELECT id, account_id, invoice_number, shipping_cost_usd, shipping_destination,
@@ -14534,6 +14632,8 @@ const handleGetInquiryByRef: Handler = async (_request, env, params) => {
          FROM invoices WHERE id = ? AND deleted_at IS NULL`
     ).bind(row.converted_invoice_id).first() as Record<string, any> | null;
     if (invoice) {
+      invoiceItems=await currentInvoiceItems(env,invoice.account_id,invoice.id);
+      if(invoice.status==='Void')refundTotals=await invoiceRefundTotals(env,invoice.account_id,invoice.id);
       payment = await resolveInvoicePayment(env, {
         id: invoice.id as string,
         account_id: invoice.account_id as string | null,
@@ -14562,7 +14662,7 @@ const handleGetInquiryByRef: Handler = async (_request, env, params) => {
         shipping_destination: invoice.shipping_destination,
         tracking_number: invoice.tracking_number,
         shipped_at: invoice.fulfilled_at, cancelled_at: invoice.cancelled_at,
-        refund_required: Boolean(invoice.refund_required), stock_exception: invoice.stock_exception,
+        refund_required: Boolean(invoice.refund_required),...refundTotals, stock_exception: invoice.stock_exception,
         notification_status: notification?.state ?? null,
       };
     }
@@ -14580,7 +14680,8 @@ const handleGetInquiryByRef: Handler = async (_request, env, params) => {
     };
   }
   return json({ ...redactPublicInquiry(row), payment, journey, order,
-    contact: { whatsapp: row.store_whatsapp_number || null },
+    contact: { whatsapp: row.store_whatsapp_number || null,email:row.store_contact_email||null },
+    invoice_items:invoiceItems,...refundTotals,
     invoice_id: order?.invoice_id ?? null,
     invoice_number: order?.invoice_number ?? null,
     shipping_destination: order?.shipping_destination ?? null,
@@ -14654,11 +14755,11 @@ const handleConvertInquiry: Handler = async (request, env, params) => {
     const missingRate = currency && currency.toUpperCase() !== 'UNK' && !lookupRateToUsd(rates, currency);
     // addPricingFields' browse fallback is zero; an invoice must not turn an
     // unknown cost/rate into a pack charged only for handling.
-    if (row.cost_amount == null || missingRate) priced.retail_price_per_gram_usd = null;
+    if (row.fixed_retail_price_usd==null&&(row.cost_amount == null || missingRate)) priced.retail_price_per_gram_usd = null;
     products.set(row.id as string, priced);
   }
 
-  let lineItems: Array<{ product_id: string | null; custom_name: string | null; quantity: number; price_at_sale: number }>;
+  let lineItems: Array<{ product_id: string | null; custom_name: string | null; quantity: number; price_at_sale: number;quantity_unit:'g'|'unit' }>;
   try {
     lineItems = items.map(item => {
       const packing = inquiryPacking(item);
@@ -14666,11 +14767,11 @@ const handleConvertInquiry: Handler = async (request, env, params) => {
       const quantity = packing.packGrams * packing.packs;
       const product = products.get(String(item.id || ''));
       const name = String(product?.given_name || product?.product_name || item.name || 'Item');
-      const linked = product && isTeaType(String(product.type || ''));
+      const linked = product && (isTeaType(String(product.type || ''))||product.type==='Teaware');
       return {
         product_id: linked ? String(product.id) : null,
         custom_name: `${name} (${inquiryPackingLabel({ ...item, category: product?.type === 'Teaware' ? 'ware' : item.category })})`,
-        quantity,
+        quantity,quantity_unit:product?.type==='Teaware'?'unit':'g',
         price_at_sale: product ? quoteInquiryLine(item, product) / quantity : 0,
       };
     });
@@ -14704,8 +14805,8 @@ const handleConvertInquiry: Handler = async (request, env, params) => {
   ].filter(Boolean).join('\n');
 
   const lineStmts = lineItems.map(line => env.DB.prepare(
-    'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  ).bind(crypto.randomUUID(), accountId, invoiceId, line.product_id, line.custom_name, line.quantity, line.price_at_sale));
+    'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale,quantity_unit) VALUES (?, ?, ?, ?, ?, ?, ?,?)'
+  ).bind(crypto.randomUUID(), accountId, invoiceId, line.product_id, line.custom_name, line.quantity, line.price_at_sale,line.quantity_unit));
 
   // Allocate an invoice number from the account's sequence, retrying on the
   // active-invoice-number unique index collision, the same loop the collection
@@ -15730,7 +15831,7 @@ const handleUpdateCompassEntry: Handler = async (request, env, params) => {
   const body = await request.json() as Record<string, unknown>;
   const decoded = decodeCompassWrite(body, true);
   if ('error' in decoded) return decoded.error;
-  const existingContext = await env.DB.prepare('SELECT journey_id, visit_id FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?').bind(params.id, userId, accountId).first() as Record<string, unknown> | null;
+  const existingContext = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?').bind(params.id, userId, accountId).first() as Record<string, unknown> | null;
   if (!existingContext) return json({ error: 'Compass entry not found' }, 404);
   const contextError = await validateCompassContext(env, accountId, decoded.values, existingContext);
   if (contextError) return contextError;
@@ -15747,21 +15848,7 @@ const handleUpdateCompassEntry: Handler = async (request, env, params) => {
     'SELECT * FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?'
   ).bind(params.id, userId, accountId).first() as Record<string, any> | null;
 
-  // Feature 2: Propagate tasting data to the linked draft product when tasting is updated.
-  // If this compass entry has a promoted product (draft_product_id) and the update includes
-  // tasting data, keep the product's tasting field in sync so compass notes are never lost.
-  if (updated && updated.draft_product_id && decoded.values.tasting !== undefined) {
-    try {
-      const tastingJson = decoded.values.tasting;
-      await env.DB.prepare(
-        `UPDATE products SET tasting = ?, updated_at = datetime('now')
-         WHERE id = ? AND account_id = ?`
-      ).bind(tastingJson, updated.draft_product_id, accountId).run();
-    } catch {
-      // Non-critical — product tasting sync failure must not break the compass update
-    }
-  }
-  // End Feature 2
+  await propagateCapturedTasting(env,accountId,userId,params.id,existingContext,decoded.values);
 
   return json(updated);
 };
@@ -15780,6 +15867,14 @@ const handleDeleteCompassEntry: Handler = async (request, env, params) => {
 
 // Promote a compass entry into a Draft product, scoped to the caller's active account.
 // Idempotent: if the entry already has draft_product_id set, returns the existing product.
+async function capturedRetailUsd(env:Env,entry:Record<string,any>):Promise<number|null>{
+ if(entry.sell_price==null||!Number.isFinite(Number(entry.sell_price))||Number(entry.sell_price)<0)return null;
+ if(Number(entry.sell_price)===0)return 0;
+ const currency=canonicalCurrency(entry.price_currency);if(!currency||currency==='UNK')return null;
+ const rate=currency==='USD'?1:(await env.DB.prepare('SELECT rate_to_usd FROM exchange_rates WHERE currency=?').bind(currency).first() as any)?.rate_to_usd;
+ return Number(rate)>0?Number(entry.sell_price)/Number(rate):null;
+}
+
 const handlePromoteCompassEntry: Handler = async (request, env, params) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
@@ -15898,6 +15993,8 @@ const handlePromoteCompassEntry: Handler = async (request, env, params) => {
     tea_key: entry.tea_key ?? null,
     source_compass_entry_id: entry.id,
   };
+  Object.assign(cols,capturedHoldingFields(entry));
+  const capturedRetail=await capturedRetailUsd(env,entry);if(capturedRetail!=null)cols.fixed_retail_price_usd=capturedRetail;
   // The same canonicalisation every other write door runs, so a compass entry
   // carrying 'cny' or 'hkd' promotes to the shop's own spelling instead of a
   // currency the exchange table has no row for. No-op when the entry's
@@ -15960,10 +16057,11 @@ const handleCreateReceiptProposal: Handler = async (request, env, params) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
   const entry = await env.DB.prepare(
-    'SELECT id, name, type, category, draft_product_id, import_item_id FROM tea_compass_entries WHERE id = ? AND account_id = ? AND user_id = ?'
+    'SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ? AND user_id = ?'
   ).bind(params.id, ctx.accountId, ctx.userId).first() as Record<string, any> | null;
   if (!entry) return json({ error: 'Compass entry not found' }, 404);
   const body = await request.json() as Record<string, unknown>;
+  if(body.unit==='unit'&&entry.category!=='teaware'&&entry.type!=='Teaware'){const grams=Number(body.unit_weight_grams??entry.price_per_unit_grams);if(!(grams>0))return json({error:'Confirm the grams in each piece before receiving this tea'},400);body.quantity=Number(body.quantity)*grams;body.unit='g';}
   let decoded;
   try { decoded = decodeReceiptProposal(body); }
   catch (error) { return json({ error: (error as Error).message }, 400); }
@@ -16022,6 +16120,25 @@ const handleCreateReceiptProposal: Handler = async (request, env, params) => {
   return json(await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(id, ctx.accountId).first(), 201);
 };
 
+const handleListReceiptProposals:Handler=async(request,env)=>{
+ const ctx=await requireAccount(request,env);if('error' in ctx)return ctx.error;
+ const url=new URL(request.url);const status=url.searchParams.get('status')||'pending';const entry=url.searchParams.get('compass_entry_id');
+ if(!['pending','accepted','rejected','all'].includes(status))return json({error:'Invalid receipt status'},400);
+ const rows=await env.DB.prepare(`SELECT * FROM curate_receipt_proposals WHERE account_id=? ${status==='all'?'':'AND status=?'} ${entry?'AND compass_entry_id=?':''} ORDER BY created_at DESC LIMIT 200`).bind(ctx.accountId,...(status==='all'?[]:[status]),...(entry?[entry]:[])).all();return json(rows.results);
+};
+
+const handleSaveIntakeState:Handler=async(request,env,params)=>{
+ const ctx=await requireBundle(request,env,'catalog');if('error' in ctx)return ctx.error;
+ const body=await request.json() as any;const serialized=JSON.stringify(body.state);if(!body.state||typeof body.state!=='object'||serialized.length>1000000)return json({error:'Intake state must be a bounded object'},400);
+ const batch=await env.DB.prepare('SELECT review_state,intake_revision,intake_state FROM curate_import_batches WHERE id=? AND account_id=?').bind(params.id,ctx.accountId).first() as any;if(!batch)return json({error:'Import not found'},404);
+ if(['completed','abandoned'].includes(batch.review_state))return json({error:'Closed imports cannot be edited'},409);
+ if(batch.intake_state===serialized)return json({intake_revision:Number(batch.intake_revision),idempotent:true});
+ const revision=body.expected_revision??batch.intake_revision;
+ const saved=await env.DB.prepare(`UPDATE curate_import_batches SET intake_state=?,intake_revision=intake_revision+1,updated_at=datetime('now') WHERE id=? AND account_id=? AND intake_revision=? AND review_state NOT IN ('completed','abandoned')`).bind(serialized,params.id,ctx.accountId,revision).run();
+ if(!saved.meta?.changes)return json({error:'Intake changed on another device; reload before saving',code:'intake_conflict'},409);
+ return json({intake_revision:Number(revision)+1});
+};
+
 const handleUpdateReceiptProposal: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
@@ -16071,8 +16188,13 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
   try { decoded = decodeReceiptProposal(proposal); }
   catch (error) { return json({ error: (error as Error).message }, 400); }
   const inventory = receiptInventoryValues(decoded);
+  const capture=proposal.compass_entry_id?await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id=? AND account_id=?').bind(proposal.compass_entry_id,ctx.accountId).first() as any:null;
+  const captured=capture?capturedHoldingFields(capture,decoded.quantity):{};
+  const retail=capture?await capturedRetailUsd(env,capture):null;if(retail!=null)captured.fixed_retail_price_usd=retail;
+  if(['free_sample','gift'].includes(decoded.acquisition_kind))Object.assign(captured,{cost_amount:0,cost_currency:null,quantity_purchased:decoded.quantity});
   const existingProduct = proposal.product_id ? await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(proposal.product_id, ctx.accountId).first() as Record<string, any> | null : null;
   if (proposal.product_id && !existingProduct) return json({ error: 'Linked product not found' }, 404);
+  if(existingProduct&&decoded.unit!==(existingProduct.type==='Teaware'?'unit':'g'))return json({error:'Receipt unit does not match the holding'},400);
   const conflict = purposeConflict(existingProduct, decoded.purpose);
   if (conflict) return conflict;
   const productId = existingProduct?.id as string || crypto.randomUUID();
@@ -16081,7 +16203,7 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
   const statements: D1PreparedStatement[] = [];
   if (existingProduct) {
     const amountColumn = decoded.unit === 'g' ? 'stock_grams' : 'quantity_units';
-    statements.push(env.DB.prepare(`UPDATE products SET inventory_purpose = ?, is_sample = ?, is_personal = ?, ${amountColumn} = COALESCE(${amountColumn}, 0) + ?, stock_known_at = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
+    statements.push(env.DB.prepare(`UPDATE products SET inventory_purpose = ?, is_sample = ?, is_personal = ?, ${amountColumn} = COALESCE(${amountColumn}, 0) + ?, stock_known_at = ?,status=CASE WHEN status='Sold Out' THEN 'Active' ELSE status END,sold_out_at=CASE WHEN status='Sold Out' THEN NULL ELSE sold_out_at END, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
       .bind(inventory.inventory_purpose, inventory.is_sample, inventory.is_personal, decoded.quantity, now, productId, ctx.accountId));
     if (decoded.unit === 'g') {
       statements.push(env.DB.prepare(`UPDATE product_listings SET inventory_purpose = ?, is_sample = ?, is_personal = ?, stock_grams = COALESCE(stock_grams, 0) + ?, stock_known_at = ?, updated_at = datetime('now') WHERE legacy_product_id = ? AND account_id = ?`)
@@ -16106,12 +16228,13 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
       VALUES (?, ?, ?, ?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, NULL, NULL, NULL)`)
       .bind(productId, ctx.accountId, type, name, name, slug, inventory.stock_grams ?? 0, inventory.quantity_units,
         inventory.inventory_purpose, inventory.is_sample, inventory.is_personal, now, proposal.compass_entry_id ?? null, ctx.userId));
+    if(Object.keys(captured).length){const fields=Object.keys(captured);statements.push(env.DB.prepare(`UPDATE products SET ${fields.map(field=>`${field}=?`).join(',')} WHERE id=? AND account_id=?`).bind(...fields.map(field=>captured[field]),productId,ctx.accountId));}
     statements.push(...buildProductMirrorInserts(env, productId, ctx.accountId, {
       product_name: name, type, status: 'Draft', stock_grams: inventory.stock_grams ?? 0,
       quantity_units: inventory.quantity_units, inventory_purpose: inventory.inventory_purpose,
       is_sample: inventory.is_sample, is_personal: inventory.is_personal,
       stock_known_at: now, is_public: 0, shown_in_shop: 0,
-      source_compass_entry_id: proposal.compass_entry_id ?? null, owner_user_id: ctx.userId,
+      source_compass_entry_id: proposal.compass_entry_id ?? null, owner_user_id: ctx.userId,...captured,
     }));
   }
   const movementUnit = decoded.unit === 'g' ? 'gram' : 'unit';
@@ -16140,17 +16263,24 @@ const RECEIPT_STATES = new Set(['planned', 'ordered', 'in_transit', 'partially_r
 type MovementContext = { accountId: string; userId: string; email?: string | null };
 type MovementExtras = { statements?: D1PreparedStatement[]; statementFactory?: (guard: string) => D1PreparedStatement[]; inventoryReceiptLineId?: string | null; allowNewBatchId?: boolean };
 
+async function replayStockMovement(env:Env,ctx:MovementContext,row:any,input:StockMovementInput){
+ let destinationBalance:number|null=null;
+ if(input.destination_product_id){const dest=await env.DB.prepare(`SELECT balance_after FROM stock_ledger WHERE account_id=? AND product_id=? AND movement_fingerprint=? AND movement_type='transfer' ORDER BY created_at DESC LIMIT 1`).bind(ctx.accountId,input.destination_product_id,row.movement_fingerprint).first() as any;destinationBalance=dest?Number(dest.balance_after):null;}
+ return {...row,before_balance:Number(row.balance_after)-Number(row.delta),after_balance:Number(row.balance_after),unit:input.unit,destination_product_id:input.destination_product_id??null,destination_after_balance:destinationBalance,already_applied:true};
+}
+
 async function applyStockMovement(env: Env, ctx: MovementContext, productId: string, input: StockMovementInput, extras: MovementExtras = {}) {
   const existing = await env.DB.prepare('SELECT * FROM stock_ledger WHERE account_id = ? AND idempotency_key = ?').bind(ctx.accountId, input.idempotency_key).first() as any;
   const fingerprint = stockMovementFingerprint(input);
   if (existing) {
     const same = existing.product_id === productId && existing.movement_fingerprint === fingerprint;
     return same
-      ? { status: 200, value: { ...existing, before_balance: Number(existing.balance_after) - Number(existing.delta), after_balance: Number(existing.balance_after), already_applied: true } }
+      ? { status: 200, value: await replayStockMovement(env,ctx,existing,input) }
       : { status: 409, value: { error: 'idempotency_key already used for a different stock movement' } };
   }
   const product = await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(productId, ctx.accountId).first() as any;
   if (!product) return { status: 404, value: { error: 'Product not found' } };
+  if ((product.type === 'Teaware' ? 'unit' : 'g') !== input.unit) return { status: 400, value: { error: 'Stock unit does not match this product' } };
   if (input.batch_id && !extras.allowNewBatchId && !await env.DB.prepare('SELECT id FROM batches WHERE id = ? AND account_id = ?').bind(input.batch_id, ctx.accountId).first()) return { status: 404, value: { error: 'Batch not found' } };
   if (input.source_compass_entry_id && !await env.DB.prepare('SELECT id FROM tea_compass_entries WHERE id = ? AND account_id = ?').bind(input.source_compass_entry_id, ctx.accountId).first()) return { status: 404, value: { error: 'Curate entry not found' } };
   if (input.source_invoice_id && !await env.DB.prepare('SELECT id FROM invoices WHERE id = ? AND account_id = ?').bind(input.source_invoice_id, ctx.accountId).first()) return { status: 404, value: { error: 'Invoice not found' } };
@@ -16181,9 +16311,9 @@ async function applyStockMovement(env: Env, ctx: MovementContext, productId: str
           (SELECT COALESCE(${column}, 0) FROM products WHERE id = ? AND account_id = ?) = ? AND
           (SELECT COALESCE(${column}, 0) FROM products WHERE id = ? AND account_id = ?) = ?`)
       .bind(productId, after, destinationAfter, knownAt, movementGuard, ctx.accountId, productId, destination.id, productId, ctx.accountId, current, destination.id, ctx.accountId, destinationBefore)
-    : env.DB.prepare(`UPDATE products SET ${column} = ?, stock_known_at = ?, stock_movement_guard = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND ${column} = ?`).bind(after, knownAt, movementGuard, productId, ctx.accountId, current);
+    : env.DB.prepare(`UPDATE products SET ${column} = ?, stock_known_at = ?, stock_movement_guard = ?, status=CASE WHEN status='Sold Out' AND ${after}>0 THEN 'Active' ELSE status END, sold_out_at=CASE WHEN status='Sold Out' AND ${after}>0 THEN NULL ELSE sold_out_at END, stock_verified_at=CASE WHEN '${input.movement_type}'='recount' THEN datetime('now') ELSE stock_verified_at END,recheck_stock=CASE WHEN '${input.movement_type}'='recount' THEN 0 ELSE recheck_stock END, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND COALESCE(${column}, 0) = ?`).bind(after, knownAt, movementGuard, productId, ctx.accountId, current);
   const statements: D1PreparedStatement[] = [stockUpdate];
-  if (input.unit === 'g') statements.push(env.DB.prepare(`UPDATE product_listings SET stock_grams = ?, stock_known_at = ?, updated_at = datetime('now') WHERE legacy_product_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = legacy_product_id AND account_id = product_listings.account_id AND stock_movement_guard = ?)`).bind(after, knownAt, productId, ctx.accountId, movementGuard));
+  if (input.unit === 'g') statements.push(env.DB.prepare(`UPDATE product_listings SET stock_grams = ?, stock_known_at = ?, status=CASE WHEN status IN ('Sold Out','archived') AND ${after}>0 THEN 'active' ELSE status END,sold_out_at=CASE WHEN ${after}>0 THEN NULL ELSE sold_out_at END, updated_at = datetime('now') WHERE legacy_product_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = legacy_product_id AND account_id = product_listings.account_id AND stock_movement_guard = ?)`).bind(after, knownAt, productId, ctx.accountId, movementGuard));
   statements.push(buildStockMovementLedgerInsert(env, {
     id, productId, delta, balanceAfter: after, unit: input.unit, movementType: input.movement_type,
     idempotencyKey: input.idempotency_key, sourceInvoiceId: input.source_invoice_id,
@@ -16196,18 +16326,20 @@ async function applyStockMovement(env: Env, ctx: MovementContext, productId: str
     if (input.unit === 'g') statements.push(env.DB.prepare(`UPDATE product_listings SET stock_grams = ?, stock_known_at = ?, updated_at = datetime('now') WHERE legacy_product_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = legacy_product_id AND account_id = product_listings.account_id AND stock_movement_guard = ?)`).bind(destinationAfter, knownAt, destination.id, ctx.accountId, movementGuard));
     statements.push(env.DB.prepare(`INSERT INTO stock_ledger (id, product_id, delta, balance_after, movement_unit, reason, movement_type, idempotency_key, user_email, note, batch_id, account_id, source_compass_entry_id, movement_fingerprint) SELECT ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND stock_movement_guard = ?)`).bind(destinationLedgerId, destination.id, input.quantity, destinationAfter, input.unit === 'g' ? 'gram' : 'unit', reason, 'transfer', ctx.email || null, input.note || `Transfer from ${productId}`, input.batch_id, ctx.accountId, input.source_compass_entry_id, fingerprint, destination.id, ctx.accountId, movementGuard));
   }
+  if(after>0&&product.source_compass_entry_id)statements.push(env.DB.prepare(`UPDATE tea_compass_entries SET status='in_stock',updated_at=datetime('now') WHERE id=? AND account_id=? AND status='depleted' AND EXISTS(SELECT 1 FROM products WHERE id=? AND account_id=? AND stock_movement_guard=?)`).bind(product.source_compass_entry_id,ctx.accountId,productId,ctx.accountId,movementGuard));
   statements.push(...(extras.statements || []));
   statements.push(...(extras.statementFactory?.(movementGuard) || []));
   try {
     const results = await env.DB.batch(statements);
     if (Number((results[0] as any)?.meta?.changes || 0) !== (destination ? 2 : 1)) {
       const raced = await env.DB.prepare('SELECT * FROM stock_ledger WHERE account_id = ? AND idempotency_key = ?').bind(ctx.accountId, input.idempotency_key).first() as any;
-      if (raced && raced.product_id === productId && raced.movement_fingerprint === fingerprint) return { status: 200, value: { ...raced, already_applied: true } };
-      return { status: 409, value: { error: 'Stock balance changed' } };
+      if (raced && raced.product_id === productId && raced.movement_fingerprint === fingerprint) return { status: 200, value: await replayStockMovement(env,ctx,raced,input) };
+      const latest=await env.DB.prepare(`SELECT COALESCE(${column},0) AS current_balance FROM products WHERE id=? AND account_id=?`).bind(productId,ctx.accountId).first() as any;
+      return { status: 409, value: { error: 'Stock balance changed',current_balance:Number(latest?.current_balance??current) } };
     }
   } catch (error) {
     const raced = await env.DB.prepare('SELECT * FROM stock_ledger WHERE account_id = ? AND idempotency_key = ?').bind(ctx.accountId, input.idempotency_key).first() as any;
-    if (raced && raced.product_id === productId && raced.movement_fingerprint === fingerprint) return { status: 200, value: { ...raced, already_applied: true } };
+    if (raced && raced.product_id === productId && raced.movement_fingerprint === fingerprint) return { status: 200, value: await replayStockMovement(env,ctx,raced,input) };
     throw error;
   }
   return { status: 201, value: { id, product_id: productId, movement_type: input.movement_type, delta, before_balance: current, after_balance: after, unit: input.unit, destination_product_id: destination?.id || null, destination_after_balance: destination ? destinationAfter : null } };
@@ -16264,6 +16396,7 @@ const handleCreateInventoryReceipt: Handler = async (request, env) => {
   for (const line of lines) {
     const product = await env.DB.prepare('SELECT * FROM products WHERE id=? AND account_id=?').bind(line.product_id, ctx.accountId).first() as Record<string, any> | null;
     if (!product) return json({ error: 'Product not found' }, 404);
+    if(line.unit!==(product.type==='Teaware'?'unit':'g'))return json({error:'Receipt unit does not match this product'},400);
     const conflict = purposeConflict(product, line.intended_purpose);
     if (conflict) return conflict;
   }
@@ -16343,6 +16476,7 @@ const handleReceiveInventoryLine: Handler = async (request, env, params) => {
   try {
     const result = await applyStockMovement(env,ctx,line.product_id,movement,{ statementFactory, inventoryReceiptLineId:line.id, allowNewBatchId:createsBatch });
     if (result.status >= 400) return json(result.value,result.status);
+    await updatePurchaseReceiptStatus(env,ctx.accountId,line.receipt_id);
     const alreadyReceived = result.status===200;
     const persistedLine = await loadReceiptLine(env, line.id, ctx.accountId);
     const persistedReceipt = await env.DB.prepare('SELECT state FROM inventory_receipts WHERE id=? AND account_id=?').bind(line.receipt_id,ctx.accountId).first() as any;
@@ -16405,6 +16539,7 @@ const handleCancelInventoryLine: Handler = async (request, env, params) => {
       THEN CASE WHEN (SELECT COALESCE(SUM(received_quantity),0) FROM inventory_receipt_lines WHERE receipt_id=? AND account_id=?)>0 THEN 'received' ELSE 'cancelled' END
     WHEN (SELECT COALESCE(SUM(received_quantity),0) FROM inventory_receipt_lines WHERE receipt_id=? AND account_id=?)>0 THEN 'partially_received'
     ELSE state END,updated_at=datetime('now') WHERE id=? AND account_id=?`).bind(line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId)]);
+  await updatePurchaseReceiptStatus(env,ctx.accountId,line.receipt_id);
   const persistedReceipt = await env.DB.prepare('SELECT * FROM inventory_receipts WHERE id=? AND account_id=?').bind(line.receipt_id,ctx.accountId).first() as any;
   return json({ cancelled_quantity:Number(line.cancelled_quantity)+remaining,state:persistedReceipt?.state || state });
 };
@@ -16511,6 +16646,27 @@ const handleSyncNoteSessions: Handler = async (request, env) => {
   return json({ synced: stmts.length });
 };
 
+async function propagateCapturedTasting(env:Env,accountId:string,userId:string,entryId:string,previous:Record<string,any>|null,values:Record<string,any>){
+ const entry=await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id=? AND account_id=? AND user_id=?').bind(entryId,accountId,userId).first() as any;
+ if(!entry?.draft_product_id)return;
+ const product=await env.DB.prepare('SELECT * FROM products WHERE id=? AND account_id=?').bind(entry.draft_product_id,accountId).first() as any;if(!product)return;
+ const patch:Record<string,any>={};
+ if(values.tasting!==undefined){let productTasting:Record<string,any>={},newTasting:Record<string,any>={},previousTasting:Record<string,any>={};try{productTasting=JSON.parse(product.tasting||'{}');}catch{}try{newTasting=JSON.parse(entry.tasting||'{}');}catch{}try{previousTasting=JSON.parse(previous?.tasting||'{}');}catch{}
+   const merged={...productTasting};let changed=false;
+   for(const key of new Set([...Object.keys(previousTasting),...Object.keys(newTasting)])){
+    const was=JSON.stringify(previousTasting[key]);const next=JSON.stringify(newTasting[key]);const current=JSON.stringify(productTasting[key]);
+    if(was!==next&&(current===undefined||current===was)){if(next===undefined)delete merged[key];else merged[key]=newTasting[key];changed=true;}
+   }
+   if(changed)patch.tasting=JSON.stringify(merged);
+ }
+ const mapping:Record<string,string>={name:'given_name',chinese_name:'chinese_name',origin_country:'origin_country',origin_region:'origin_region',form:'form',year:'year',description:'description'};
+ for(const [source,target] of Object.entries(mapping))if(values[source]!==undefined&&(product[target]==null||String(product[target])===String(previous?.[source]??'')))patch[target]=entry[source]??null;
+ if(values.name!==undefined&&(product.product_name==null||product.product_name===previous?.name))patch.product_name=entry.name;
+ if(values.photos!==undefined){let before:string[]=[],after:string[]=[];try{before=JSON.parse(previous?.photos||'[]');}catch{}try{after=JSON.parse(entry.photos||'[]');}catch{}if(!product.image_url||product.image_url===before[0]){patch.image_url=after[0]??null;patch.additional_images=JSON.stringify(after.slice(1));}}
+ if(!Object.keys(patch).length)return;
+ const keys=Object.keys(patch);await env.DB.batch([env.DB.prepare(`UPDATE products SET ${keys.map(key=>`${key}=?`).join(',')},updated_at=datetime('now') WHERE id=? AND account_id=?`).bind(...keys.map(key=>patch[key]),product.id,accountId),...buildProductMirrorStmts(env,product.id,patch)]);
+}
+
 const handleSyncCompassEntries: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
@@ -16522,12 +16678,14 @@ const handleSyncCompassEntries: Handler = async (request, env) => {
   }
 
   const stmts: D1PreparedStatement[] = [];
+  const priorEntries=new Map<string,Record<string,any>|null>();
   for (const entry of body.entries) {
     const decoded = decodeCompassWrite(entry, false);
     if ('error' in decoded) return decoded.error;
-    const existingContext = await env.DB.prepare('SELECT journey_id, visit_id FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?').bind(entry.id, userId, accountId).first() as Record<string, unknown> | null;
+    const existingContext = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?').bind(entry.id, userId, accountId).first() as Record<string, unknown> | null;
     const contextError = await validateCompassContext(env, accountId, decoded.values, existingContext);
     if (contextError) return contextError;
+    priorEntries.set(String(entry.id),existingContext);
     if (typeof entry.id !== 'string' || !entry.id) return json({ error: 'Compass entry id required' }, 400);
     const present = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
     const columns = ['id', 'user_id', 'account_id', ...present];
@@ -16553,6 +16711,7 @@ const handleSyncCompassEntries: Handler = async (request, env) => {
     else conflicts.push(id);
   });
 
+  for(const id of syncedIds){const raw=body.entries.find(entry=>entry.id===id)!;const decoded=decodeCompassWrite(raw,false);if(!('error' in decoded))await propagateCapturedTasting(env,accountId,userId,id,priorEntries.get(id)??null,decoded.values);}
   return json({ synced: syncedIds.length, syncedIds, conflicts });
 };
 
@@ -16852,6 +17011,7 @@ const handleCompleteEvent: Handler = async (request, env, params) => {
   const salesCtx = await requireBundle(request, env, 'sell');
   if ('error' in salesCtx) return salesCtx.error;
   let authorizedMenuLines: AuthorizedInvoiceLine[];
+  for(const menu of menuRows.results as any[]){const product=await env.DB.prepare('SELECT type FROM products WHERE id=? AND account_id=?').bind(menu.product_id,accountId).first() as any;if(product?.type==='Teaware')return salesError(new SalesInvariantError(400,'product_not_sale_eligible',{product_id:menu.product_id}));}
   try {
     authorizedMenuLines = await authorizeInvoiceLines(env, {
       accountId,
@@ -16899,8 +17059,8 @@ const handleCompleteEvent: Handler = async (request, env, params) => {
       stmts.push(
         env.DB.prepare(
           `INSERT INTO invoice_line_items
-           (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,stock_owner_user_id,sales_grant_id,owner_share_type,owner_share_value)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?)`
+           (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,stock_owner_user_id,sales_grant_id,owner_share_type,owner_share_value,quantity_unit)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,'g')`
         ).bind(crypto.randomUUID(), accountId, invoiceId, line.product_id, line.custom_name ?? null,
           line.quantity, line.price_at_sale, line.stock_owner_user_id, line.sales_grant_id,
           line.owner_share_type, line.owner_share_value)
@@ -21606,7 +21766,7 @@ async function fetchPublicProductsForAccount(
               COALESCE(tp.experience, p.experience) AS experience,
               p.cost_amount, p.cost_currency, p.quantity_purchased,
               p.shipping_rate_per_kg, p.fixed_retail_price_usd,
-              p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.piece_weight_g,
+              p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.piece_weight_g, p.sold_in_whole_units,
               p.tasting, p.tasting_source,
               p.cultivar,
               (SELECT COUNT(*) > 0 FROM collection_items ci
@@ -21715,33 +21875,31 @@ const handleListPurchaseOrders: Handler = async (request, env) => {
 };
 
 const handleCreatePurchaseOrder: Handler = async (request, env) => {
-  const ctx = await requireBundle(request, env, 'stock');
-  if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
+  const ctx=await requireBundle(request,env,'stock');if('error' in ctx)return ctx.error;
+  const body=await request.json() as any;
+  if(!body.vendor_name?.trim())return json({error:'vendor_name is required'},400);
+  const key=body.idempotency_key??body.request_id??null;
+  if(key!=null&&(typeof key!=='string'||!key.trim()||key.length>200))return json({error:'Invalid idempotency key'},400);
+  const fingerprint=JSON.stringify([body.vendor_name.trim(),body.vendor_id??null,body.items_json??'[]',body.total_usd??0,body.display_currency??'USD']);
+  let prior=key?await env.DB.prepare('SELECT * FROM purchase_orders WHERE account_id=? AND idempotency_key=?').bind(ctx.accountId,key).first() as any:null;
+  if(prior&&prior.request_fingerprint!==fingerprint)return json({error:'Purchase key already used for different details'},409);
+  const id=prior?.id??crypto.randomUUID();
+  if(!prior){
+    const total=Number(body.total_usd??0);if(!Number.isFinite(total)||total<0)return json({error:'Invalid purchase total'},400);
+    try { await env.DB.prepare(`INSERT INTO purchase_orders(id,account_id,vendor_name,vendor_id,vendor_contact,items_json,total_usd,display_currency,status,message_text,notes,created_at,updated_at,idempotency_key,request_fingerprint) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(id,ctx.accountId,body.vendor_name.trim(),body.vendor_id??null,body.vendor_contact??null,body.items_json??'[]',total,body.display_currency??'USD','pending',body.message_text??null,body.notes??null,new Date().toISOString(),new Date().toISOString(),key,fingerprint).run(); }
+    catch(error){if(!key)throw error;prior=await env.DB.prepare('SELECT * FROM purchase_orders WHERE account_id=? AND idempotency_key=?').bind(ctx.accountId,key).first() as any;if(!prior||prior.request_fingerprint!==fingerprint)throw error;return json({id:prior.id,idempotent:true});}
+  }
+  if(body.status==='received'){
+    const prepared=await preparePurchaseReceipt(env,ctx,id);if(prepared.status>=400||!prepared.value.receipt_id)return json({...prepared.value,id},409);
+    const current=await env.DB.prepare('SELECT state FROM inventory_receipts WHERE id=? AND account_id=?').bind(prepared.value.receipt_id,ctx.accountId).first() as any;
+    if(current?.state!=='received')return json({error:'Receive the matched lines before marking this purchase received',id,receipt_id:prepared.value.receipt_id},409);
+  }
+  return json({id,idempotent:!!prior},prior?200:201);
+};
 
-  const body = await request.json() as Record<string, any>;
-  if (!body.vendor_name?.trim()) return json({ error: 'vendor_name is required' }, 400);
-
-  const id = crypto.randomUUID();
-  const cols = ['id', 'account_id', 'vendor_name', 'vendor_id', 'vendor_contact', 'items_json', 'total_usd', 'display_currency', 'status', 'message_text', 'notes', 'created_at', 'updated_at'];
-  await env.DB.prepare(
-    `INSERT INTO purchase_orders (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`
-  ).bind(
-    id, accountId,
-    body.vendor_name?.trim() || null,
-    body.vendor_id || null,
-    body.vendor_contact || null,
-    body.items_json || '[]',
-    body.total_usd || 0,
-    body.display_currency || 'USD',
-    body.status || 'pending',
-    body.message_text || null,
-    body.notes || null,
-    new Date().toISOString(),
-    new Date().toISOString(),
-  ).run();
-
-  return json({ id }, 201);
+const handlePreparePurchaseReceipt:Handler=async(request,env,params)=>{
+ const ctx=await requireBundle(request,env,'stock');if('error' in ctx)return ctx.error;
+ const body=await request.json().catch(()=>({})) as any;const result=await preparePurchaseReceipt(env,ctx,params.id,body.items);return json(result.value,result.status);
 };
 
 const handleUpdatePurchaseOrder: Handler = async (request, env, params) => {
@@ -21750,6 +21908,7 @@ const handleUpdatePurchaseOrder: Handler = async (request, env, params) => {
   const { accountId } = ctx;
 
   const body = await request.json() as { status?: string; notes?: string; message_text?: string };
+  if(body.status==='received'){const row=await env.DB.prepare('SELECT r.state FROM purchase_orders p LEFT JOIN inventory_receipts r ON r.id=p.receipt_id AND r.account_id=p.account_id WHERE p.id=? AND p.account_id=?').bind(params.id,accountId).first() as any;if(row?.state!=='received')return json({error:'Receive the matched purchase receipt first'},409);}
   const allowed = ['status', 'notes', 'message_text'];
   const cols = Object.keys(body).filter(k => allowed.includes(k));
   if (cols.length === 0) return json({ success: true });
@@ -21834,12 +21993,19 @@ const handleGetMyWishlist: Handler = async (request, env) => {
 // Scoped to the active account. Returns a stable shape the UI can render without
 // further lookups (invoice number, status, total, currency, created_at, line count).
 const MY_ORDER_OWNERSHIP_SQL = `(
-  i.customer_id IN (SELECT id FROM customers WHERE user_id = ? AND account_id = ?)
-  OR (? != '' AND i.customer_id IN (
-    SELECT id FROM customers WHERE LOWER(email) = ? AND account_id = ?
-  ))
-  OR (? != '' AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(i.customer_whatsapp, ''), ' ', ''), '-', ''), '(', ''), ')', ''), '+', '') = ?)
+ i.customer_id IN (SELECT id FROM customers WHERE user_id=? AND account_id=i.account_id)
+ OR (i.account_id=? AND ((?!='' AND i.customer_id IN(SELECT id FROM customers WHERE LOWER(email)=? AND account_id=i.account_id))
+ OR (?!='' AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(i.customer_whatsapp,''),' ',''),'-',''),'(',''),')',''),'+','')=?)))
 )`;
+
+async function customerOrderContext(request:Request,env:Env){
+ const user=await optionalAuthenticatedUser(request,env);if(!user)return null;
+ // Legacy email/phone matching remains restricted to a membership this caller proves.
+ // Explicit customer.user_id purchases are readable across stores without seller access.
+ const membership=await getActiveAccount(request,env);
+ const accountId='error' in membership?'':membership.accountId;
+ return {...user,accountId};
+}
 
 function normalizeOrderPhone(value: string | null | undefined): string {
   return (value || '').replace(/[ \-()+]/g, '');
@@ -21851,15 +22017,15 @@ async function loadMyOrderOwnership(env: Env, userId: string, accountId: string)
   ).bind(userId).first() as { email: string | null; phone: string | null } | null;
   const email = (userRow?.email || '').trim().toLowerCase();
   const phone = normalizeOrderPhone(userRow?.phone);
-  return { predicate: MY_ORDER_OWNERSHIP_SQL, bindings: [userId, accountId, email, email, accountId, phone, phone] };
+  return { predicate: MY_ORDER_OWNERSHIP_SQL, bindings: [userId, accountId, email, email, phone, phone] };
 }
 
 const handleGetMyOrders: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
-  if ('error' in ctx) return ctx.error;
-  const { accountId, userId } = ctx;
+  const ctx=await customerOrderContext(request,env);
+  if(!ctx)return json({error:'Sign in to view your orders'},401);
+  const { accountId:legacyAccountId, userId } = ctx;
 
-  const ownership = await loadMyOrderOwnership(env, userId, accountId);
+  const ownership = await loadMyOrderOwnership(env, userId, legacyAccountId);
 
   // Build the WHERE clause: include rows linked via customers.user_id, plus any
   // fallback match on customer_whatsapp == users.phone. customers.email is the
@@ -21867,11 +22033,11 @@ const handleGetMyOrders: Handler = async (request, env) => {
   // to this user all flow through. Empty strings short-circuit to NULL so we
   // don't match invoices with blank customer fields.
   const result = await env.DB.prepare(
-    `SELECT i.id, i.invoice_number, i.status, i.display_currency, i.created_at,
+    `SELECT i.id,i.account_id, i.invoice_number, i.status, i.display_currency, i.created_at,
             COALESCE(t.line_total, 0) as line_total,
             COALESCE(t.line_count, 0) as line_count,
             i.shipping_cost_usd, i.payment_status, i.payment_date, i.fulfilled_at,
-            i.payment_recipient_user_id, i.sold_by_user_id
+            i.payment_recipient_user_id, i.sold_by_user_id,i.refund_required,i.cancelled_at,i.shipping_destination,i.tracking_number
      FROM invoices i
      LEFT JOIN (
        SELECT invoice_id, account_id,
@@ -21880,21 +22046,19 @@ const handleGetMyOrders: Handler = async (request, env) => {
        FROM invoice_line_items
        GROUP BY invoice_id, account_id
      ) t ON t.invoice_id = i.id AND t.account_id = i.account_id
-     WHERE i.account_id = ?
-       AND i.deleted_at IS NULL
-       AND i.status NOT IN ('Draft', 'Void')
+     WHERE i.deleted_at IS NULL
        AND ${ownership.predicate}
      ORDER BY i.created_at DESC
      LIMIT 200`
   ).bind(
-    accountId, ...ownership.bindings
+    ...ownership.bindings
   ).all();
 
   // One payment resolution for the whole page, never one per row.
   const rows = (result.results ?? []) as Record<string, any>[];
   const payments = await resolveInvoicePayments(env, rows.map(row => ({
     id: row.id as string,
-    account_id: accountId,
+    account_id: row.account_id,
     invoice_number: row.invoice_number as string | null,
     status: row.status as string | null,
     payment_status: row.payment_status as string | null,
@@ -21914,8 +22078,10 @@ const handleGetMyOrders: Handler = async (request, env) => {
     fulfilled_at: row.fulfilled_at as string | null,
   })), payments);
 
+  const refunds=rows.length?await env.DB.prepare(`SELECT invoice_id,SUM(amount_usd) AS refunded_usd FROM invoice_refunds WHERE invoice_id IN (${rows.map(()=>'?').join(',')}) GROUP BY invoice_id`).bind(...rows.map(row=>row.id)).all():{results:[]};
+  const refundMap=new Map((refunds.results as any[]).map(row=>[row.invoice_id,Number(row.refunded_usd)]));
   const orders = rows.map(r => ({
-    id: r.id as string,
+    id: r.id as string,account_id:r.account_id,
     invoice_number: r.invoice_number as string,
     status: (r.status as string) || 'Draft',
     total_amount_usd: Number(r.line_total || 0) + Number(r.shipping_cost_usd || 0),
@@ -21924,30 +22090,32 @@ const handleGetMyOrders: Handler = async (request, env) => {
     line_items_count: Number(r.line_count || 0),
     payment: payments.get(r.id as string) ?? null,
     journey: journeys.get(r.id as string) ?? null,
+    refunded_usd:refundMap.get(r.id)||0,refund_due_usd:r.status==='Void'?Math.max(0,roundUsd(Number(payments.get(r.id)?.paid_usd||0)-(refundMap.get(r.id)||0))):0,refund_required:Boolean(r.refund_required),cancelled_at:r.cancelled_at,shipping_destination:r.shipping_destination,tracking_number:r.tracking_number,
   }));
 
   return json({ orders });
 };
 
 const handleGetMyOrderDetail: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
-  if ('error' in ctx) return ctx.error;
-  const { accountId, userId } = ctx;
-  const ownership = await loadMyOrderOwnership(env, userId, accountId);
+  const ctx=await customerOrderContext(request,env);
+  if(!ctx)return json({error:'Sign in to view your orders'},401);
+  const { accountId:legacyAccountId, userId } = ctx;
+  const ownership = await loadMyOrderOwnership(env, userId, legacyAccountId);
   const invoice = await env.DB.prepare(
-    `SELECT i.id, i.invoice_number, i.status, i.created_at, i.payment_date,
+    `SELECT i.id,i.account_id, i.invoice_number, i.status, i.created_at, i.payment_date,
             i.fulfilled_at, i.display_currency, i.shipping_cost_usd, i.payment_status,
-            i.payment_recipient_user_id, i.sold_by_user_id
+            i.payment_recipient_user_id, i.sold_by_user_id,i.refund_required,i.cancelled_at,i.shipping_destination,i.tracking_number
      FROM invoices i
-     WHERE i.id = ? AND i.account_id = ? AND i.deleted_at IS NULL
-       AND i.status NOT IN ('Draft', 'Void') AND ${ownership.predicate}
+     WHERE i.id = ? AND i.deleted_at IS NULL
+       AND ${ownership.predicate}
      LIMIT 1`
-  ).bind(params.id, accountId, ...ownership.bindings).first() as Record<string, any> | null;
+  ).bind(params.id, ...ownership.bindings).first() as Record<string, any> | null;
   if (!invoice) return json({ error: 'Order not found' }, 404);
+  const accountId=String(invoice.account_id);
 
   const lineResult = await env.DB.prepare(
-    `SELECT ili.id, ili.product_id, ili.custom_name, ili.quantity, ili.price_at_sale,
-            p.product_name
+    `SELECT ili.id, ili.product_id, ili.custom_name, ili.quantity, ili.price_at_sale,ili.quantity_unit,
+            p.product_name,p.type
      FROM invoice_line_items ili
      LEFT JOIN products p ON p.id = ili.product_id AND p.account_id = ili.account_id
      WHERE ili.invoice_id = ? AND ili.account_id = ?
@@ -21958,6 +22126,7 @@ const handleGetMyOrderDetail: Handler = async (request, env, params) => {
     product_id: (line.product_id as string | null) ?? null,
     name: (line.custom_name || line.product_name || 'Tea') as string,
     quantity: Number(line.quantity),
+    quantity_unit:line.quantity_unit??(line.type==='Teaware'?'unit':'g'),
     unit_price_usd: Number(line.price_at_sale),
     line_total_usd: Number(line.quantity) * Number(line.price_at_sale),
   }));
@@ -21990,11 +22159,13 @@ const handleGetMyOrderDetail: Handler = async (request, env, params) => {
   }], new Map([[invoice.id as string, payment]]));
 
   return json({
-    id: invoice.id,
+    id: invoice.id,account_id:accountId,
     invoice_number: invoice.invoice_number,
     payment,
     journey: journeys.get(invoice.id as string) ?? null,
     status: invoice.status,
+    cancelled_at:invoice.cancelled_at,shipping_destination:invoice.shipping_destination,tracking_number:invoice.tracking_number,
+    ...(invoice.status==='Void'?await invoiceRefundTotals(env,accountId,params.id):{refund_required:false,refunded_usd:0,refund_due_usd:0}),
     created_at: invoice.created_at,
     payment_date: invoice.payment_date ?? null,
     fulfilled_at: invoice.fulfilled_at ?? null,
@@ -26104,7 +26275,7 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
   const byItemId = new Map<string, any>();
   for (const r of (itemRows.results ?? []) as any[]) byItemId.set(r.id, r);
 
-  const lineItems: Array<{ product_id: string | null; custom_name: string | null; quantity: number; price_at_sale: number; label: string }> = [];
+  const lineItems: Array<{ product_id: string | null; custom_name: string | null; quantity: number; price_at_sale: number; label: string;quantity_unit:'g'|'unit' }> = [];
   for (const pick of picks) {
     const row = pick.item_id ? byItemId.get(pick.item_id) : null;
     if (!row || row.product_status !== 'Active') continue;
@@ -26121,11 +26292,11 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
       catalogUnitPriceUsd: row.fixed_retail_price_usd == null ? null : Number(row.fixed_retail_price_usd),
     });
 
-    const mayRemainLinked = isTeaType(String(row.product_type || ''));
+    const mayRemainLinked = isTeaType(String(row.product_type || ''))||row.product_type==='Teaware';
     lineItems.push({
       product_id: mayRemainLinked ? row.product_id : null,
       custom_name: mayRemainLinked ? null : row.product_name,
-      quantity: derived.quantity,
+      quantity: derived.quantity,quantity_unit:isTeaware?'unit':'g',
       price_at_sale: derived.unitPriceUsd,
       label: `${row.product_name} × ${derived.quantity}${isTeaware ? '' : 'g'}`,
     });
@@ -26147,8 +26318,8 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
 
   const lineStmts = lineItems.map(li =>
     env.DB.prepare(
-      'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    ).bind(crypto.randomUUID(), accountId, invoiceId, li.product_id, li.custom_name, li.quantity, li.price_at_sale)
+      'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale,quantity_unit) VALUES (?, ?, ?, ?, ?, ?, ?,?)'
+    ).bind(crypto.randomUUID(), accountId, invoiceId, li.product_id, li.custom_name, li.quantity, li.price_at_sale,li.quantity_unit)
   );
 
   // Allocate an invoice number from the owning account's sequence, retrying on
@@ -26312,7 +26483,7 @@ const handleNetworkCatalog: Handler = async (request, env) => {
           SELECT 1 FROM product_listings pl
           WHERE pl.account_id  = ?
             AND pl.profile_id  = p.id
-            AND pl.status      = 'active'
+            AND pl.status IN ('active','draft')
         )
       ORDER BY p.created_at DESC
     `).bind(accountId, accountId),
@@ -26468,6 +26639,12 @@ const handleNetworkCatalog: Handler = async (request, env) => {
   return json({ profiles });
 };
 
+function networkProductStatements(env:Env,id:string,accountId:string,profile:Record<string,any>,quantity:number,retail:number|null,owner:string|null,cost?:{amount:number;currency:string}){
+ let photos:string[]=[];try{photos=JSON.parse(profile.canonical_photos||'[]');}catch{}
+ const fields:Record<string,any>=nameProductColumns({id,account_id:accountId,product_name:profile.name||'Network tea',given_name:profile.name||'Network tea',type:profile.type||'Misc',form:profile.form??null,chinese_name:profile.chinese_name??null,year:profile.harvest_year??null,origin_country:profile.origin_country??null,origin_region:profile.origin_region??null,description:profile.description??null,image_url:photos[0]??null,additional_images:JSON.stringify(photos.slice(1)),slug:`network-${id}`,status:'Draft',is_public:0,shown_in_shop:0,stock_grams:quantity,stock_known_at:new Date().toISOString(),quantity_purchased:cost?quantity:null,inventory_purpose:'working',owner_user_id:owner,cost_amount:cost?.amount??null,cost_currency:cost?canonicalCurrency(cost.currency):null,fixed_retail_price_usd:retail});
+ const columns=Object.keys(fields);return [env.DB.prepare(`INSERT INTO products(${columns.join(',')}) VALUES(${columns.map(()=>'?').join(',')})`).bind(...columns.map(column=>fields[column]))];
+}
+
 // POST /api/listings/carry
 // Step 2 of Network Rollout — partner creates a product_listing from a network-visible
 // tea_profile, copying the curator's canonical_photos into listing_photos so the partner
@@ -26509,14 +26686,13 @@ const handleCarryListing: Handler = async (request, env) => {
   }
 
   const priceCurrency = typeof body.initial_price_currency === 'string'
-    ? body.initial_price_currency.trim().toUpperCase()
+    ? canonicalCurrency(body.initial_price_currency)
     : '';
   if (!priceCurrency) return json({ error: 'initial_price_currency is required' }, 400);
 
   // 1. Look up the profile — must exist, be published, and be network-visible
   const profile = await env.DB.prepare(
-    `SELECT id, name, status, network_visible, curated_by_account_id, canonical_photos
-     FROM tea_profiles WHERE id = ?`
+    `SELECT * FROM tea_profiles WHERE id = ?`
   ).bind(profileId).first() as {
     id: string;
     name: string;
@@ -26540,7 +26716,7 @@ const handleCarryListing: Handler = async (request, env) => {
   // 3. Refuse double-carry — friendly 409 rather than letting UNIQUE constraint surface
   const existing = await env.DB.prepare(
     `SELECT id FROM product_listings
-     WHERE account_id = ? AND profile_id = ? AND status = 'active'`
+     WHERE account_id = ? AND profile_id = ?`
   ).bind(accountId, profileId).first();
 
   if (existing) {
@@ -26550,49 +26726,12 @@ const handleCarryListing: Handler = async (request, env) => {
   // 4. Copy canonical_photos verbatim as the listing's starting photos (Decision 4)
   const listingPhotos = profile.canonical_photos ?? '[]';
 
-  // 5. Convert initial_price_amount → USD per-gram for fixed_retail_price_usd
-  //    Fetch only the two rates we need (caller currency + USD is a no-op).
-  let fixedRetailPriceUsd: number = priceAmount; // fallback: store as-is
-  if (priceCurrency !== 'USD') {
-    const rateRow = await env.DB.prepare(
-      'SELECT rate_to_usd FROM exchange_rates WHERE currency = ?'
-    ).bind(priceCurrency).first() as { rate_to_usd: number } | null;
-
-    if (rateRow && isFinite(rateRow.rate_to_usd) && rateRow.rate_to_usd > 0) {
-      // rate_to_usd: 1 unit of currency = rate_to_usd USD
-      fixedRetailPriceUsd = priceAmount / rateRow.rate_to_usd;
-    }
-    // If rate unavailable, fixedRetailPriceUsd stays as priceAmount (acceptable degradation;
-    // listing edit flow can correct after FX data is refreshed).
-  }
-
-  // 6. Insert the product_listing row.
-  //    id uses lower(hex(randomblob(16))) — same DEFAULT the schema uses; generated inline
-  //    in the INSERT rather than via JS crypto to keep id generation in one place (D1).
-  //    is_public = 1: carried teas default to publicly listed; partner can hide later.
-  //    cost_amount, shipping_rate_per_kg and markup_multiplier are named as
-  //    NULL. Carrying somebody else's tea says nothing about what this shop
-  //    paid for it, what freight it bore, or how it should be marked up, and
-  //    the live table answers 0, 0 and 2.5 to a column an INSERT leaves out.
-  //    That is a free tea, shipped free, priced at a multiplier the shop
-  //    stopped using. NULL is how the row says nobody has entered anything.
-  const insertResult = await env.DB.prepare(`
-    INSERT INTO product_listings
-      (id, account_id, profile_id, stock_grams, fixed_retail_price_usd,
-       listing_photos, status, is_public, inventory_purpose, stock_known_at,
-       cost_amount, shipping_rate_per_kg, markup_multiplier)
-    VALUES
-      (lower(hex(randomblob(16))), ?, ?, ?, ?, ?, 'active', 1, 'working', ?,
-       NULL, NULL, NULL)
-    RETURNING id
-  `).bind(accountId, profileId, stockGrams, fixedRetailPriceUsd, listingPhotos, new Date().toISOString()).first() as
-    { id: string } | null;
-
-  if (!insertResult) {
-    return json({ error: 'Failed to create listing' }, 500);
-  }
-
-  const newListingId = insertResult.id;
+  const rateRow=priceCurrency==='USD'?{rate_to_usd:1}:await env.DB.prepare('SELECT rate_to_usd FROM exchange_rates WHERE currency=?').bind(priceCurrency).first() as any;
+  if(!rateRow||!(Number(rateRow.rate_to_usd)>0))return json({error:`No FX rate available for ${priceCurrency}`},400);
+  const fixedRetailPriceUsd=priceAmount/Number(rateRow.rate_to_usd)/100;
+  const newListingId=crypto.randomUUID().replace(/-/g,'');const productId=crypto.randomUUID();
+  const productStatements=networkProductStatements(env,productId,accountId,profile as any,stockGrams,fixedRetailPriceUsd,userId);
+  await env.DB.batch([...productStatements,env.DB.prepare(`INSERT INTO product_listings(id,account_id,profile_id,legacy_product_id,stock_grams,fixed_retail_price_usd,listing_photos,status,is_public,shown_in_shop,inventory_purpose,stock_known_at,cost_amount,shipping_rate_per_kg,markup_multiplier) VALUES(?,?,?,?,?,?,?,'draft',0,0,'working',?,NULL,NULL,NULL)`).bind(newListingId,accountId,profileId,productId,stockGrams,fixedRetailPriceUsd,listingPhotos,new Date().toISOString())]);
 
   // 7. Audit log
   await logPlatformAction(
@@ -26612,7 +26751,7 @@ const handleCarryListing: Handler = async (request, env) => {
   );
 
   // 8. Return 201 — frontend refetches on InventoryView landing
-  return json({ listing_id: newListingId, profile_id: profileId }, 201);
+  return json({ listing_id: newListingId, profile_id: profileId,product_id:productId }, 201);
 };
 
 // GET /api/listings/:id
@@ -26778,7 +26917,7 @@ const handleUpdateListing: Handler = async (request, env) => {
       if (!isFinite(amount) || amount < 0) {
         return json({ error: 'price_amount must be a number >= 0' }, 400);
       }
-      const currency = typeof body.price_currency === 'string' ? body.price_currency.trim().toUpperCase() : '';
+      const currency = typeof body.price_currency === 'string' ? canonicalCurrency(body.price_currency) : '';
       if (!currency) {
         return json({ error: 'price_currency required when price_amount is set' }, 400);
       }
@@ -26841,9 +26980,17 @@ const handleUpdateListing: Handler = async (request, env) => {
   updates.push("updated_at = datetime('now')");
   binds.push(listingId);
 
-  await env.DB.prepare(
-    `UPDATE product_listings SET ${updates.join(', ')} WHERE id = ?`
-  ).bind(...binds).run();
+  const listing=await env.DB.prepare('SELECT legacy_product_id FROM product_listings WHERE id=? AND account_id=?').bind(listingId,accountId).first() as any;
+  if(body.stock_grams!==undefined&&listing?.legacy_product_id){
+    const stockAccess=await requireBundle(request,env,'stock');if('error' in stockAccess)return stockAccess.error;
+    const product=await env.DB.prepare('SELECT stock_grams FROM products WHERE id=? AND account_id=?').bind(listing.legacy_product_id,accountId).first() as any;
+    if(product){const movement=await applyStockMovement(env,stockAccess,listing.legacy_product_id,decodeStockMovement({movement_type:'recount',balance:Number(body.stock_grams),unit:'g',expected_balance:Number(product.stock_grams||0),idempotency_key:request.headers.get('Idempotency-Key')||crypto.randomUUID(),note:'Network listing recount'}));if(movement.status>=400)return json(movement.value,movement.status);}
+  }
+  await env.DB.prepare(`UPDATE product_listings SET ${updates.join(', ')} WHERE id = ?`).bind(...binds).run();
+  if(listing?.legacy_product_id){const current=await env.DB.prepare('SELECT fixed_retail_price_usd,listing_photos,store_note,is_sample FROM product_listings WHERE id=?').bind(listingId).first() as any;
+    let photos:string[]=[];try{photos=JSON.parse(current.listing_photos||'[]');}catch{}
+    await env.DB.prepare(`UPDATE products SET fixed_retail_price_usd=?,image_url=?,additional_images=?,updated_at=datetime('now') WHERE id=? AND account_id=?`).bind(current.fixed_retail_price_usd,photos[0]??null,JSON.stringify(photos.slice(1)),listing.legacy_product_id,accountId).run();
+  }
 
   // Audit only when the change is meaningful (skip for store_note-only blurs;
   // they're noisy). Pricing + stock + sample changes are audited.
@@ -27554,6 +27701,8 @@ const handleTransitionWholesaleOrder: Handler = async (request, env, params) => 
   const isSupplier = order.supplier_account_id === accountId;
   const now = new Date().toISOString();
   const stmts: D1PreparedStatement[] = [];
+  let receiveClaim:string|null=null;
+  const releaseReceive=()=>env.DB.prepare('UPDATE wholesale_orders SET receive_claim_token=NULL,receive_claimed_at=NULL WHERE id=? AND receive_claim_token=?').bind(orderId,receiveClaim).run();
 
   // Validate the transition is legal AND the caller is the right party.
   // Each branch builds the appropriate UPDATE statement.
@@ -27624,20 +27773,24 @@ const handleTransitionWholesaleOrder: Handler = async (request, env, params) => 
   }
   else if (to === 'received') {
     if (!isBuyer) return json({ error: 'Only the buyer can mark received.' }, 403);
+    if(order.status==='received')return json({ok:true,status:'received',idempotent:true});
     if (order.status !== 'shipped') {
       return json({ error: `Cannot receive from ${order.status}.` }, 400);
     }
+    receiveClaim=crypto.randomUUID();
+    const claimed=await env.DB.prepare(`UPDATE wholesale_orders SET receive_claim_token=?,receive_claimed_at=datetime('now') WHERE id=? AND status='shipped' AND (receive_claim_token IS NULL OR receive_claimed_at<datetime('now','-5 minutes')) RETURNING id`).bind(receiveClaim,orderId).first();
+    if(!claimed)return json({error:'This wholesale receipt is being received elsewhere; retry'},409);
     // Side effects fire — see processReceiveSideEffects below. It refuses when
     // the order's money cannot be stated in dollars, and nothing has been
     // written at that point, so the order simply stays shipped.
     const sideEffects = await processReceiveSideEffects(env, order, userId);
-    if ('error' in sideEffects) return sideEffects.error;
+    if ('error' in sideEffects){await releaseReceive();return sideEffects.error;}
     stmts.push(...sideEffects.stmts);
     stmts.push(env.DB.prepare(
       `UPDATE wholesale_orders
-       SET status = 'received', received_at = ?, updated_at = ?
-       WHERE id = ?`
-    ).bind(now, now, orderId));
+       SET status = 'received', received_at = ?, updated_at = ?,receive_claim_token=NULL,receive_claimed_at=NULL
+       WHERE id = ? AND receive_claim_token=?`
+    ).bind(now, now, orderId,receiveClaim));
   }
   else if (to === 'cancelled') {
     // Either party can cancel before ship.
@@ -27654,7 +27807,7 @@ const handleTransitionWholesaleOrder: Handler = async (request, env, params) => 
     ).bind(now, accountId, reason, now, orderId));
   }
 
-  await env.DB.batch(stmts);
+  try{await env.DB.batch(stmts);}catch(error){if(receiveClaim)await releaseReceive();if(/cannot be negative/i.test(String(error)))return json({error:'Supplier stock is insufficient for this receipt'},409);throw error;}
 
   await logPlatformAction(env, `wholesale.${to}`, userId, email,
     'wholesale_order', orderId,
@@ -27691,26 +27844,27 @@ async function processReceiveSideEffects(
     //    via the deterministic listing→product id mapping if it exists).
     stmts.push(env.DB.prepare(
       `UPDATE product_listings
-       SET stock_grams = MAX(0, COALESCE(stock_grams, 0) - ?), updated_at = datetime('now')
+       SET stock_grams = COALESCE(stock_grams, 0) - ?, updated_at = datetime('now')
        WHERE id = ?`
     ).bind(grams, item.supplier_listing_id));
     // Mirror to legacy products: listing id is 'list_<product_id>' (per migration 048
     // deterministic shape), so the product id is the suffix after 'list_'. Carry-created
     // listings (no legacy product) won't match — that's fine, the UPDATE just no-ops.
-    const legacyProductId = (item.supplier_listing_id as string).startsWith('list_')
-      ? (item.supplier_listing_id as string).slice(5)
-      : null;
+    const supplierListing=await env.DB.prepare('SELECT legacy_product_id FROM product_listings WHERE id=? AND account_id=?').bind(item.supplier_listing_id,order.supplier_account_id).first() as any;
+    const legacyProductId=supplierListing?.legacy_product_id??((item.supplier_listing_id as string).startsWith('list_')?(item.supplier_listing_id as string).slice(5):null);
     if (legacyProductId) {
       stmts.push(env.DB.prepare(
-        `UPDATE products SET stock_grams = MAX(0, COALESCE(stock_grams, 0) - ?), updated_at = datetime('now')
+        `UPDATE products SET stock_grams = COALESCE(stock_grams, 0) - ?, updated_at = datetime('now')
          WHERE id = ? AND account_id = ?`
       ).bind(grams, legacyProductId, order.supplier_account_id));
     }
 
+    if(legacyProductId)stmts.push(env.DB.prepare(`INSERT INTO stock_ledger(id,account_id,product_id,delta,balance_after,movement_unit,reason,note) SELECT ?,?,?,?,stock_grams,'gram','WHOLESALE_SALE',? FROM products WHERE id=? AND account_id=?`).bind(crypto.randomUUID(),order.supplier_account_id,legacyProductId,-grams,`Wholesale order ${order.id}`,legacyProductId,order.supplier_account_id));
+
     // 2. Find buyer's listing for this profile, or create one.
     const buyerListing = await env.DB.prepare(
-      `SELECT id FROM product_listings WHERE account_id = ? AND profile_id = ?`
-    ).bind(order.buyer_account_id, item.profile_id).first() as { id: string } | null;
+      `SELECT * FROM product_listings WHERE account_id = ? AND profile_id = ?`
+    ).bind(order.buyer_account_id, item.profile_id).first() as Record<string,any> | null;
 
     let buyerListingId: string;
     if (buyerListing) {
@@ -27741,6 +27895,18 @@ async function processReceiveSideEffects(
          VALUES (?, ?, ?, ?, '[]', 'active', 1, NULL, NULL, NULL)`
       ).bind(buyerListingId, order.buyer_account_id, item.profile_id, grams));
     }
+    // Keep the account-local holding used by normal Stock/Shop attached to the listing.
+    const profile=await env.DB.prepare('SELECT * FROM tea_profiles WHERE id=?').bind(item.profile_id).first() as any;
+    if(!profile)return {error:json({error:'Wholesale tea identity is missing'},409)};
+    const holding=buyerListing?.legacy_product_id?await env.DB.prepare('SELECT id FROM products WHERE id=? AND account_id=?').bind(buyerListing.legacy_product_id,order.buyer_account_id).first() as any:null;
+    const buyerProductId=holding?.id??crypto.randomUUID();
+    if(holding){
+      stmts.push(env.DB.prepare(`UPDATE products SET stock_grams=COALESCE(stock_grams,0)+?,stock_known_at=datetime('now'),status=CASE WHEN status='Sold Out' THEN 'Active' ELSE status END,sold_out_at=CASE WHEN status='Sold Out' THEN NULL ELSE sold_out_at END WHERE id=? AND account_id=?`).bind(grams,buyerProductId,order.buyer_account_id));
+    }else{
+      stmts.push(...networkProductStatements(env,buyerProductId,order.buyer_account_id,profile,Number(buyerListing?.stock_grams||0)+grams,buyerListing?.fixed_retail_price_usd??null,null,!buyerListing||!Number(buyerListing.stock_grams)?{amount:Number(item.line_total),currency:item.unit_price_currency}:undefined));
+      stmts.push(env.DB.prepare('UPDATE product_listings SET legacy_product_id=? WHERE id=? AND account_id=?').bind(buyerProductId,buyerListingId,order.buyer_account_id));
+    }
+    stmts.push(env.DB.prepare(`INSERT INTO stock_ledger(id,account_id,product_id,delta,balance_after,movement_unit,reason,note) SELECT ?,?,?,?,stock_grams,'gram','WHOLESALE_RECEIPT',? FROM products WHERE id=? AND account_id=?`).bind(crypto.randomUUID(),order.buyer_account_id,buyerProductId,grams,`Wholesale order ${order.id}`,buyerProductId,order.buyer_account_id));
     // Link the order item to whichever buyer listing now holds the stock
     stmts.push(env.DB.prepare(
       `UPDATE wholesale_order_items SET buyer_listing_id = ? WHERE id = ?`
@@ -27845,8 +28011,8 @@ async function processReceiveSideEffects(
     for (const line of wholesaleLines) {
       stmts.push(env.DB.prepare(
         `INSERT INTO invoice_line_items
-           (id, account_id, invoice_id, custom_name, quantity, price_at_sale)
-         VALUES (?, ?, ?, ?, ?, ?)`
+           (id, account_id, invoice_id, custom_name, quantity, price_at_sale,quantity_unit)
+         VALUES (?, ?, ?, ?, ?, ?,'g')`
       ).bind(
         crypto.randomUUID(), accountId, invoiceId, line.name, line.grams, line.unitPriceUsd,
       ));
@@ -28731,6 +28897,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/invoices/:id/items', handleGetInvoiceItems],
   ['GET', '/api/invoices/:id/payments', handleGetInvoicePayments],
   ['POST', '/api/invoices/:id/payments', handleRecordInvoicePayment],
+  ['POST','/api/invoices/:id/refunds',handleRecordInvoiceRefund],
   ['POST', '/api/invoice-payments/:id/confirm', handleConfirmInvoicePayment],
   ['POST', '/api/invoice-payments/:id/reject', handleRejectInvoicePayment],
 
@@ -28855,6 +29022,9 @@ const routes: [string, string, Handler][] = [
   // Purchase Orders
   ['GET', '/api/purchase-orders', handleListPurchaseOrders],
   ['POST', '/api/purchase-orders', handleCreatePurchaseOrder],
+  ['GET','/api/curate/receipt-proposals',handleListReceiptProposals],
+  ['PUT','/api/curate/imports/:id/intake-state',handleSaveIntakeState],
+  ['POST','/api/purchase-orders/:id/prepare-receipt',handlePreparePurchaseReceipt],
   ['PUT', '/api/purchase-orders/:id', handleUpdatePurchaseOrder],
 
   // Activity Logs & Stock Ledger
@@ -28984,6 +29154,7 @@ const routes: [string, string, Handler][] = [
 
   // Cart Inquiries
   ['POST', '/api/inquiries', handleCreateInquiry],
+  ['POST','/api/inquiries/:ref/claim',handleClaimInquiry],
   ['GET', '/api/inquiries/:ref', handleGetInquiryByRef],
   ['POST', '/api/orders/:ref/payment-claim', handleCreateOrderPaymentClaim],
   ['POST', '/api/inquiries/:id/convert', handleConvertInquiry],
@@ -29564,6 +29735,7 @@ export default {
 
     try {
       const response = await match.handler(request, env, match.params, ctx);
+      if(response.ok&&['POST','PUT','DELETE'].includes(request.method)&&/^\/api\/(products|inventory|compass|curate|rpc|invoices|invoice-payments|listings|wholesale|accounts|rates)(?:\/|$)/.test(url.pathname)){try{await invalidatePublicCatalogue(request,env);}catch(error){console.error('Catalogue invalidation failed after saved mutation',error);}}
       return cors(response, corsOrigin);
     } catch (err: any) {
       // Log the detail for forensics; never leak err.message (may contain SQL,

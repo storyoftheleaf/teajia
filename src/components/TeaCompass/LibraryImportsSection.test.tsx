@@ -51,6 +51,9 @@ describe('LibraryImportsSection', () => {
     );
 
     expect(html).toContain('aria-label="Imports"');
+    expect(html).toContain('popover="auto"');
+    expect(html).toContain('aria-expanded="false"');
+    expect(html).toContain('Unfinished imports');
     expect(html).toContain('Summer vendor list');
     expect(html).toContain('1/2 reviewed');
     expect(html).toContain('1 needs attention');

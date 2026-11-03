@@ -25,7 +25,7 @@ describe('inventory publication controls', () => {
         canPublish={false}
       />,
     );
-    expect(html).toMatch(/aria-label="Show in shop"[^>]*disabled=""/);
+    expect(html).toMatch(/aria-label="List in shop"[^>]*disabled=""/);
     expect(html).toContain('Arrival status must be ready before publication');
   });
 

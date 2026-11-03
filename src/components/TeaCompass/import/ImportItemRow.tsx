@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useAppStore } from '../../../lib/store';
+import { clearImportCorrection, loadImportCorrection, saveImportCorrection } from './importDraftStorage';
 import { AlertCircle, Check } from 'lucide-react';
 import type { CurateImportCanonicalField, CurateImportDisposition, CurateImportInventoryPurpose, CurateImportItem, CurateImportItemUpdate, CurateImportReviewedField, LookupState } from '../../../lib/api';
 import { CurateActionBand, CurateDisclosure, CurateField } from '../CuratePrimitives';
@@ -68,13 +70,19 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({
   item, blockingFields, busy, open, identityLookup, holdingLookup, onOpen, onClose, onSaved,
   onRetryIdentities, onRetryHoldings, onUpdate,
 }) => {
+  const accountId = useAppStore(state => state.activeAccountId) ?? '';
+  const restoreDraft = () => {
+    const base = draftFromItem(item, identityBlocked, productBlocked);
+    const saved = loadImportCorrection(accountId, item.batch_id, item.id);
+    return { ...base, ...Object.fromEntries(Object.keys(base).filter(key => saved?.[key] !== undefined).map(key => [key, saved![key]])) };
+  };
   const [localOpen, setLocalOpen] = useState(false);
   const expanded = open ?? localOpen;
   const effectiveBlockers = blockingFields ?? effectiveImportBlockingFields(item);
   const normalizedBlockers = effectiveBlockers.map(field => field.replace(/_/g, '').toLocaleLowerCase());
   const identityBlocked = normalizedBlockers.some(field => ['identity', 'duplicateidentity', 'compassentryid', 'proposedcompassentryid'].includes(field));
   const productBlocked = normalizedBlockers.some(field => ['identity', 'productid', 'proposedproductid', 'inventoryholding'].includes(field));
-  const [draft, setDraft] = useState(() => draftFromItem(item, identityBlocked, productBlocked));
+  const [draft, setDraft] = useState(restoreDraft);
   const [derivedFields, setDerivedFields] = useState<Set<string>>(() => derivedFromItem(item, identityBlocked, productBlocked));
   const draftEffectiveBlockers = resolveImportBlockingFields(effectiveBlockers, {
     disposition: draft.disposition || null,
@@ -127,16 +135,30 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({
   useEffect(() => {
     const opening = expanded && (!wasExpanded.current || initializedItemId.current !== item.id);
     if (opening) {
-      setDraft(draftFromItem(item, identityBlocked, productBlocked));
+      const restored = restoreDraft();
+      const saved = loadImportCorrection(accountId, item.batch_id, item.id);
+      setDraft(restored);
       setDerivedFields(derivedFromItem(item, identityBlocked, productBlocked));
       setDetailsExpanded(effectiveBlockers.length === 0);
-      identityResolutionTouched.current = false;
-      holdingResolutionTouched.current = false;
-      editedFields.current = new Set();
+      identityResolutionTouched.current = saved?.__identityTouched === 'yes';
+      holdingResolutionTouched.current = saved?.__holdingTouched === 'yes';
+      editedFields.current = new Set(saved ? Object.keys(saved).filter(key => !key.startsWith('__')) : []);
       initializedItemId.current = item.id;
     }
     wasExpanded.current = expanded;
   }, [effectiveBlockers.length, expanded, identityBlocked, item, productBlocked]);
+
+  useEffect(() => {
+    if (!expanded || !accountId) return;
+    const base = draftFromItem(item, identityBlocked, productBlocked);
+    const changes = Object.fromEntries(Object.entries(draft).filter(([key, value]) => value !== base[key as keyof typeof base]));
+    if (!Object.keys(changes).length && !identityResolutionTouched.current && !holdingResolutionTouched.current) {
+      clearImportCorrection(accountId, item.batch_id, item.id); return;
+    }
+    saveImportCorrection(accountId, item.batch_id, item.id, { ...changes,
+      __identityTouched: identityResolutionTouched.current ? 'yes' : 'no',
+      __holdingTouched: holdingResolutionTouched.current ? 'yes' : 'no' });
+  }, [accountId, draft, expanded, item.batch_id, item.id]);
 
   // Correcting a name should re-derive the identity the same way the capture
   // card does: only blanks, and never a field the operator has already set.
@@ -199,6 +221,7 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({
   };
   const requestOpen = () => onOpen ? onOpen() : setLocalOpen(true);
   const cancel = () => {
+    clearImportCorrection(accountId, item.batch_id, item.id);
     if (onClose) onClose(); else setLocalOpen(false);
     const focusReview = () => reviewRef.current?.focus();
     if (typeof requestAnimationFrame === 'function') requestAnimationFrame(focusReview); else focusReview();
@@ -245,6 +268,7 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({
       if (onSaved) onSaved(item.id); else setLocalOpen(false);
     };
     if (!await onUpdate(updates, () => submitLatestRef.current())) return false;
+    clearImportCorrection(accountId, item.batch_id, item.id);
     completeSave();
     return true;
   };

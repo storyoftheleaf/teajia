@@ -217,6 +217,7 @@ export interface StagedItem {
   imageUrl: string;
   // triage
   isPersonal: boolean;
+  inventoryPurpose?: 'working' | 'sample' | 'personal';
   needsReview: boolean;
   include: boolean;
   // order/logistics slice (kept for the purchase record)
@@ -395,7 +396,7 @@ export function rowToStaged(
 export function isReadyItem(it: StagedItem): boolean {
   const hasName = !!(it.givenName || it.productName);
   const hasType = it.type !== 'Misc';
-  const hasCost = (it.costAmount ?? 0) > 0;
+  const hasCost = it.costAmount != null && Number.isFinite(it.costAmount) && it.costAmount >= 0;
   const hasStock = it.stockGrams > 0 || it.quantityPurchased > 0 || it.quantityUnits > 0;
   return hasName && hasType && hasCost && hasStock && !it.needsReview;
 }
@@ -430,6 +431,7 @@ export function stagedToProduct(it: StagedItem, extraCost = 0): Record<string, a
     image_url: it.imageUrl || null,
     status: 'Draft',
     is_personal: it.isPersonal,
+    inventory_purpose: it.inventoryPurpose || (it.isPersonal ? 'personal' : 'working'),
     // Import is ingestion, never publication. Listing/showing remains a
     // separate deliberate action regardless of operator role or purpose.
     is_public: false,

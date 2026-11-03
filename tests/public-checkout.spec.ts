@@ -19,7 +19,7 @@ async function json(route: Route, body: unknown, status = 200) {
   await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 }
 
-async function prepare(page: Page, options: { canBePaid?: boolean; whatsapp?: boolean; failFirst?: boolean; allowPopup?: boolean; light?: boolean; emptyCart?: boolean; product?: Record<string, unknown> } = {}) {
+async function prepare(page: Page, options: { canBePaid?: boolean; whatsapp?: boolean; failFirst?: boolean; allowPopup?: boolean; light?: boolean; emptyCart?: boolean; product?: Record<string, unknown>; canonicalPrice?: number; emptyCatalogue?: boolean } = {}) {
   const requests: SubmittedRequest[] = [];
   await page.addInitScript(({ item, allowPopup, light, emptyCart }) => {
     // Seed once per test context; a reload must exercise the app's saved state.
@@ -40,13 +40,13 @@ async function prepare(page: Page, options: { canBePaid?: boolean; whatsapp?: bo
       const body = route.request().postDataJSON() as SubmittedRequest;
       requests.push(body);
       if (options.failFirst && requests.length === 1) return json(route, { error: 'Could not save your request. Please retry.' }, 503);
-      return json(route, { success: true, id: 'request-1', invoice_id: 'invoice-1', invoice_number: 'TJB-0001', tracking_token: body.tracking_token, ref_number: body.ref_number, source: body.source, email_sent: false });
+      return json(route, { success: true, id: 'request-1', invoice_id: 'invoice-1', invoice_number: 'TJB-0001', tracking_token: body.tracking_token, ref_number: body.ref_number, source: body.source, email_sent: false, ...(options.canonicalPrice === undefined ? {} : { total_estimate_usd: options.canonicalPrice, invoice_items: [{ id: 'saved-line', product_id: CART_ITEM.id, name: CART_ITEM.name, quantity: 50, quantity_unit: 'g', unit_price_usd: options.canonicalPrice / 50, line_total_usd: options.canonicalPrice }] }) });
     }
     if (pathname === '/api/s/teajia-bali') return json(route, {
       id: 'bali-account', slug: 'teajia-bali', name: 'Teajia Bali', public_enabled: true,
       can_be_paid: options.canBePaid ?? true, whatsapp_number: options.whatsapp === false ? '' : '6281234567890', contact_email: 'shop@example.com',
     });
-    if (pathname === '/api/products/public' || pathname === '/api/s/teajia-bali/products') return json(route, [{ ...PRODUCT, ...options.product }]);
+    if (pathname === '/api/products/public' || pathname === '/api/s/teajia-bali/products') return json(route, options.emptyCatalogue ? [] : [{ ...PRODUCT, ...options.product }]);
     if (pathname === '/api/rates') return json(route, [{ currency: 'USD', rate_to_usd: 1 }, { currency: 'IDR', rate_to_usd: 16000 }, { currency: 'Yuan', rate_to_usd: 7.1 }]);
     if (pathname.includes('/api/auth/')) return json(route, { error: 'Unauthorized' }, 401);
     if (pathname === '/api/network/stores') return json(route, { stores: [] });
@@ -412,4 +412,26 @@ test('reopens the saved invoice conversation from its private status page after 
   expect(message).toContain(`/order/${token}`);
   await page.reload();
   await expect(link).toHaveAttribute('href', first!);
+});
+
+test('saved confirmation uses the server quote instead of a stale basket price', async ({ page }, testInfo) => {
+  await prepare(page, { canonicalPrice: 23 });
+  await beginOrder(page);
+  await page.getByRole('combobox', { name: 'Currency', exact: true }).selectOption('USD');
+  await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
+  await page.getByRole('button', { name: 'Place order request', exact: true }).click();
+  const confirmation = page.getByRole('region', { name: 'Order request confirmation' });
+  await expect(confirmation).toBeVisible();
+  await expect(confirmation).toContainText('$23');
+  await expect(confirmation).not.toContainText('$16');
+  await page.screenshot({ path: testInfo.outputPath('canonical-confirmation.png'), animations: 'disabled' });
+});
+
+test('an empty real catalogue stays empty', async ({ page }) => {
+  await prepare(page, { emptyCart: true, emptyCatalogue: true });
+  await page.goto('/shop', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('button', { name: /^Choose amount for/ })).toHaveCount(0);
+  await expect(page.getByText('Moonlight White', { exact: true })).toHaveCount(0);
+  // Empty data must not swap in the old demonstration shelf.
+  await expect(page.getByText('Wild Tree Dian Hong', { exact: true })).toHaveCount(0);
 });

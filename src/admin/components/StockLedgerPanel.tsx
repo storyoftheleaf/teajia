@@ -34,8 +34,9 @@ export const StockLedgerPanel: React.FC<StockLedgerPanelProps> = ({
   const navigate = useNavigate();
   const [offset, setOffset] = useState(0);
   const limit = 20;
+  React.useEffect(() => setOffset(0), [productId]);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['stock_ledger', productId, limit, offset],
     enabled: !!productId,
     queryFn: () => api.stockLedger.list(productId, limit, offset),
@@ -59,7 +60,7 @@ export const StockLedgerPanel: React.FC<StockLedgerPanelProps> = ({
 
       {isLoading ? (
         <div className="py-6 text-center text-tea-text-sec"><Loader2 className="animate-spin inline" size={16} /></div>
-      ) : entries.length === 0 ? (
+      ) : isError ? (<div role="alert" className="py-4 text-ui-12 text-tea-text-sec">Stock history could not be loaded. <button type="button" onClick={() => void refetch()} className="tap-target underline">Try again</button></div>) : entries.length === 0 ? (
         <div className="py-6 text-center text-tea-text-sec text-xs font-serif italic">No stock movements recorded.</div>
       ) : (
         <>
@@ -89,7 +90,7 @@ export const StockLedgerPanel: React.FC<StockLedgerPanelProps> = ({
                       {entry.batch_label}
                     </span>
                   )}
-                  {reference && (
+                  {reference && entry.source_invoice_id && (
                     <button
                       onClick={() => navigate(`/admin/orders?search=${encodeURIComponent(reference)}`)}
                       className="text-ui-10 text-tea-text-sec hover:text-tea-gold num truncate transition-colors"
@@ -97,6 +98,7 @@ export const StockLedgerPanel: React.FC<StockLedgerPanelProps> = ({
                       {reference}
                     </button>
                   )}
+                  {reference && !entry.source_invoice_id && <span className="text-ui-10 text-tea-text-sec">{reference}</span>}
                   <span className="text-ui-11 text-tea-text-sec ml-auto shrink-0">
                     {new Date(entry.created_at).toLocaleDateString()}
                   </span>

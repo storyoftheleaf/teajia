@@ -3,6 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Droplets, Loader2, Minus, Plus, Sparkles } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore, entryHasContent } from '../../lib/teaCompassStore';
+import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
+import { canonicalCurrency, rateToUsd } from '../../lib/currency';
+import { shopRateInCurrency } from '../../lib/shippingRate';
+import { SHOP_MARKUP_MULTIPLIER } from '../../lib/markup';
+import { ensureCompassEncounterSaved } from '../../lib/teaCompassSync';
+import { useAppStore } from '../../lib/store';
 import { useNotesStore } from '../../lib/notesStore';
 import { TEA_TYPE_COLORS } from '../../designTokens';
 import type { Currency } from '../../admin/types';
@@ -12,6 +18,7 @@ import { buildVarietyDataMap, getTeaVarietyNames, getTeaVarietySuggestions } fro
 import { TEA_TYPES, TEA_FORMS, STORAGE_STYLES, REGION_NAMES, countryForRegion } from '../../wisdom';
 import type { TeaType, TeaForm, TeawareCategory, TeawareMaterial, TeawareEra, YixingClayType, VendorDetails, TeaCompassEntry } from './types';
 import { entryIsSample } from './types';
+import { acquisitionLine, acquisitionPrice, acquisitionUsesUnits } from './acquisitionPricing';
 import { DEFAULT_GRAMS, TEAWARE_CATEGORIES, TEAWARE_MATERIALS, TEAWARE_ERAS, YIXING_CLAY_TYPES, MATERIAL_ORIGIN_DEFAULT, generateTeaKey } from './types';
 import { hasToken } from '../../lib/api';
 import { AutocompleteInput } from './AutocompleteInput';
@@ -91,73 +98,20 @@ function fillOriginCountry(region: string | undefined, currentCountry: string | 
 }
 
 /** Retail price preview: shows cost/g and projected retail/g using 3× formula */
-function RetailPricePreview({
-  costAmount, grams, currency, shippingRatePerKg, onShippingRateChange,
-}: {
-  costAmount: number;
-  grams: number;
-  currency: string;
-  shippingRatePerKg: number;
-  onShippingRateChange: (rate: number) => void;
+function RetailPricePreview({ costAmount, grams, currency, shippingRatePerKg }: {
+  costAmount: number; grams: number; currency: string; shippingRatePerKg: number | null;
 }) {
-  const [editingShipping, setEditingShipping] = useState(false);
-  const [shippingInput, setShippingInput] = useState('');
   const sym = CURRENCY_SYMBOLS[currency] || currency;
-
   const costPerGram = costAmount / grams;
-  const shippingPerGram = shippingRatePerKg / 1000;
-  const retailPerGram = (costPerGram + shippingPerGram) * 3;
-
-  const fmtGram = (v: number) => v < 1 ? v.toFixed(2) : v < 10 ? v.toFixed(1) : Math.round(v).toString();
-
-  return (
-    <div className="curate-support flex flex-wrap items-center gap-2 px-1 text-tea-text-dim">
-      <span className="tabular-nums">{sym}{fmtGram(costPerGram)}/g cost</span>
-      <span className="text-tea-border">→</span>
-      <span className="tabular-nums text-tea-text-sec font-medium">≈ {sym}{fmtGram(retailPerGram)}/g retail</span>
-      <span className="text-tea-border">·</span>
-      {editingShipping ? (
-        <span className="flex items-center gap-1">
-          <span className="text-tea-text-dim">ship</span>
-          <input
-            autoFocus
-            type="number"
-            inputMode="decimal"
-            aria-label="Shipping cost per kilogram"
-            value={shippingInput}
-            onChange={(e) => setShippingInput(e.target.value)}
-            onBlur={() => {
-              const v = parseFloat(shippingInput);
-              // Blur fires on pointer-down, before the intended next button's
-              // click. Defer this parent update so the target is not replaced
-              // between pointer-down and click (notably the adjacent Buy action).
-              window.requestAnimationFrame(() => {
-                onShippingRateChange(isNaN(v) ? 0 : v);
-                setEditingShipping(false);
-              });
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === 'Escape') {
-                const v = parseFloat(shippingInput);
-                onShippingRateChange(isNaN(v) ? 0 : v);
-                setEditingShipping(false);
-              }
-            }}
-            className="curate-primary min-h-11 w-16 bg-transparent text-tea-text px-1 py-0.5 border-0 border-b border-tea-border rounded-none outline-none focus:border-tea-gold tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-          />
-          <span className="text-tea-text-dim">/kg</span>
-        </span>
-      ) : (
-        <button
-          type="button"
-          onClick={() => { setShippingInput(shippingRatePerKg > 0 ? String(shippingRatePerKg) : ''); setEditingShipping(true); }}
-          className="tap-target min-h-11 text-ui-12 text-tea-text-dim hover:text-tea-text-sec transition-colors underline underline-offset-2 decoration-dashed"
-        >
-          {shippingRatePerKg > 0 ? `+${sym}${shippingRatePerKg}/kg ship` : 'add ship cost'}
-        </button>
-      )}
-    </div>
-  );
+  const retailPerGram = shippingRatePerKg == null ? null : (costPerGram + shippingRatePerKg / 1000) * SHOP_MARKUP_MULTIPLIER;
+  const fmtGram = (value: number) => value < 1 ? value.toFixed(2) : value < 10 ? value.toFixed(1) : Math.round(value).toString();
+  return <div className="curate-support flex flex-wrap items-center gap-2 px-1 text-tea-text-dim">
+    <span className="tabular-nums">{sym}{fmtGram(costPerGram)}/g cost</span>
+    {retailPerGram == null
+      ? <span className="text-tea-text-sec">Retail preview needs the current exchange rate</span>
+      : <><span className="text-tea-border">→</span><span className="tabular-nums text-tea-text-sec font-medium">≈ {sym}{fmtGram(retailPerGram)}/g retail</span>
+        <span className="text-tea-text-sec">includes shop freight · {sym}{shippingRatePerKg!.toFixed(2)}/kg</span></>}
+  </div>;
 }
 
 /** Get chip color for a tea type */
@@ -194,8 +148,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const setLastCurrency = useTeaCompassStore((s) => s.setLastCurrency);
   const setLastVendor = useTeaCompassStore((s) => s.setLastVendor);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
-  const shippingRatePerKg = useTeaCompassStore((s) => s.shippingRatePerKg);
-  const setShippingRatePerKg = useTeaCompassStore((s) => s.setShippingRatePerKg);
+  const shopFreight = useShopFreightDefault();
+  const { data: rates = [] } = useRates();
+  const shippingRatePerKg = !entry ? null
+    : canonicalCurrency(entry.priceCurrency) === canonicalCurrency(shopFreight.currency) ? shopFreight.perKg
+      : rateToUsd(rates, shopFreight.currency) == null ? null : shopRateInCurrency(shopFreight.perKgUsd, rateToUsd(rates, entry.priceCurrency));
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
   const lastVendorId = useTeaCompassStore((s) => s.lastVendorId);
   const lastVendorName = useTeaCompassStore((s) => s.lastVendorName);
@@ -205,6 +162,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const getOrCreatePurchaseTransaction = useLedgerStore((s) => s.getOrCreatePurchaseTransaction);
   const addLineItem = useLedgerStore((s) => s.addLineItem);
   const transactions = useLedgerStore((s) => s.transactions);
+  const activeAccountId = useAppStore((state) => state.activeAccountId);
 
   // The note thread (NoteThread) stores notes in the notes store, not on the
   // entry. Subscribe to the count for this entry so the Done button's readiness
@@ -243,9 +201,22 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     if (!entry) return;
     setReceiptPurpose(entryIsSample(entry) ? 'sample' : (entry.category === 'teaware' ? 'personal' : 'working'));
     setReceiptAcquisition(entryIsSample(entry) ? 'free_sample' : 'purchase');
-    setReceiptProposal(null);
+    const saved = transactions.flatMap(tx => tx.items).find(item => item.compassEntryId === entry.id && item.receiptProposal?.status === 'pending')?.receiptProposal;
+    setReceiptProposal(saved ?? null);
+    setJustAddedToLedger(Boolean(saved));
     setReceiptError('');
-  }, [entry?.id, entry?.category, entry?.sampleState]);
+    let current = true;
+    if (activeAccountId && hasToken()) void api.compass.listReceiptProposals({ status: 'pending', compass_entry_id: entry.id }).then(({ proposals }) => {
+      if (!current || useAppStore.getState().activeAccountId !== activeAccountId) return;
+      const pending = proposals[0];
+      if (!pending) return;
+      setReceiptProposal(pending); setJustAddedToLedger(true);
+      setReceiptPurpose(pending.purpose); setReceiptAcquisition(pending.acquisition_kind);
+      setBuyingQty(entry.category !== 'teaware' && acquisitionUsesUnits(entry) && pending.unit === 'g'
+        ? pending.quantity / Number(entry.pricePerUnitGrams || 1) : pending.quantity);
+    }).catch(() => { /* A retained purchase draft remains available during a failed read. */ });
+    return () => { current = false; };
+  }, [entry?.id, activeAccountId]);
   useEffect(() => {
     if (!entry || !openPurchasePicker) {
       consumedPurchaseHandoffRef.current = null;
@@ -253,10 +224,16 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     }
     if (consumedPurchaseHandoffRef.current === entry.id) return;
     consumedPurchaseHandoffRef.current = entry.id;
-    const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
+    const unitBased = acquisitionUsesUnits(entry);
     setBuyingQty(unitBased ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100));
     setShowBuyPicker(true);
   }, [entry, openPurchasePicker]);
+
+  useEffect(() => {
+    if (!receiptProposal && !receiptError) return;
+    const frame = requestAnimationFrame(() => document.getElementById(purchasePickerId)?.scrollIntoView({ block: 'center', behavior: 'smooth' }));
+    return () => cancelAnimationFrame(frame);
+  }, [receiptProposal?.id, receiptError, purchasePickerId]);
 
   // Sync price changes back to any matching draft ledger line items
   useEffect(() => {
@@ -266,15 +243,21 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       if (tx.status !== 'draft') continue;
       for (const item of tx.items) {
         if (item.compassEntryId !== entry.id) continue;
-        const newPrice = entry.priceAmount ?? 0;
-        const unitBased = entry.category === 'teaware' || (['Cake','Brick','Tuo'] as string[]).includes(entry.form || '');
-        const newIsPerGram = !unitBased && !!entry.pricePerUnitGrams;
-        if (item.pricePerUnit !== newPrice || item.priceIsPerGram !== newIsPerGram) {
-          updItem(tx.id, item.id, { pricePerUnit: newPrice, priceIsPerGram: newIsPerGram });
+        let quoted;
+        try { quoted = acquisitionPrice(entry); } catch { continue; }
+        const newPrice = quoted.pricePerUnit;
+        const newIsPerGram = quoted.priceIsPerGram;
+        if (item.pricePerUnit !== newPrice || item.priceIsPerGram !== newIsPerGram || item.currency !== entry.priceCurrency) {
+          if (tx.currency !== entry.priceCurrency) {
+            const ledger = useLedgerStore.getState();
+            const target = ledger.getOrCreatePurchaseTransaction(entry.vendorName || tx.counterpartyName, entry.priceCurrency, entry.vendorId);
+            ledger.removeLineItem(tx.id, item.id);
+            ledger.addLineItem(target, { ...item, ...quoted, currency: entry.priceCurrency });
+          } else updItem(tx.id, item.id, { ...quoted, currency: entry.priceCurrency });
         }
       }
     }
-  }, [entry?.priceAmount, entry?.pricePerUnitGrams, entry?.form, entry?.category]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [entry?.priceAmount, entry?.pricePerUnitGrams, entry?.form, entry?.category, entry?.priceCurrency]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Parser state
   const userTapped = useRef<Set<ParseableField>>(new Set());
@@ -725,7 +708,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   };
 
   const toggleBuyPicker = () => {
-    const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
+    if (receiptProposal?.status === 'pending') {
+      setJustAddedToLedger(false); setShowBuyPicker(true); return;
+    }
+    const unitBased = acquisitionUsesUnits(entry);
     const defaultQty = unitBased ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100);
     if (!showBuyPicker) setBuyingQty(defaultQty);
     const opening = !showBuyPicker;
@@ -940,7 +926,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   // Shared acquisition behavior must be available to both category branches.
   // Teaware is unit-based; compressed tea forms are unit-based as well.
-  const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
+  const unitBased = acquisitionUsesUnits(entry);
   const isInLedger = transactions.some(
     (tx) => tx.status === 'draft' && tx.items.some((item) => item.compassEntryId === entry.id)
   );
@@ -951,54 +937,51 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const buyStep = unitBased ? 1 : 25;
 
   const handleAddToLedger = async () => {
-    const vendorName = entry.vendorName || 'Unknown Vendor';
-    const currency = (entry.priceCurrency || 'NT') as Currency;
-    const txId = getOrCreatePurchaseTransaction(vendorName, currency, entry.vendorId);
-    addLineItem(txId, {
-      name: entry.name || 'Unnamed',
-      chineseName: entry.chineseName,
-      type: entry.type,
-      form: entry.form,
-      year: entry.year,
-      quantityGrams: unitBased ? undefined : buyingQty,
-      quantityUnits: unitBased ? buyingQty : undefined,
-      unitWeightGrams: (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '')
-        ? (DEFAULT_GRAMS[entry.form!] ?? 100)
-        : undefined,
-      pricePerUnit: entry.priceAmount ?? 0,
-      priceIsPerGram: !unitBased && !!entry.pricePerUnitGrams,
-      currency,
-      compassEntryId: entry.id,
-    });
-    setReceiptBusy(true);
-    setReceiptError('');
+    if (receiptBusy) return;
+    setReceiptBusy(true); setReceiptError('');
+    const accountId = activeAccountId;
     try {
-      const proposal = await api.compass.proposeReceipt(entry.id, {
-        purpose: receiptPurpose,
-        quantity: buyingQty,
-        unit: unitBased ? 'unit' : 'g',
-        acquisition_kind: receiptAcquisition,
-        idempotency_key: `ledger:${txId}:${entry.id}`,
-        product_name: entry.name || 'Unnamed',
+      const line = acquisitionLine(entry, buyingQty, receiptAcquisition);
+      const vendorName = entry.vendorName || 'Unknown Vendor';
+      const txId = getOrCreatePurchaseTransaction(vendorName, entry.priceCurrency, entry.vendorId);
+      const lineId = addLineItem(txId, line);
+      setJustAddedToLedger(true);
+      await ensureCompassEncounterSaved(entry.id);
+      const changes = {
+        purpose: receiptPurpose, quantity: entry.category !== 'teaware' && unitBased ? buyingQty * Number(line.unitWeightGrams) : buyingQty,
+        unit: entry.category === 'teaware' ? 'unit' as const : 'g' as const,
+        acquisition_kind: receiptAcquisition, product_name: entry.name || 'Unnamed',
         product_type: entry.category === 'teaware' ? 'Teaware' : entry.type,
-      });
-      setReceiptProposal(proposal);
+      };
+      if (!(changes.quantity > 0) || !Number.isFinite(changes.quantity)) throw new Error('Record the weight of each piece before receiving this tea.');
+      const proposal = receiptProposal?.status === 'pending'
+        ? await api.compass.updateReceiptProposal(receiptProposal.id, changes)
+        : await api.compass.proposeReceipt(entry.id, { ...changes, idempotency_key: `ledger:${txId}:${entry.id}` });
+      if (useAppStore.getState().activeAccountId !== accountId) return;
+      useLedgerStore.getState().updateLineItem(txId, lineId, { receiptProposal: proposal });
+      setReceiptProposal(proposal); setShowBuyPicker(false);
     } catch (error) {
-      setReceiptError(error instanceof Error ? error.message : 'Could not create the inventory receipt proposal.');
-    } finally {
-      setReceiptBusy(false);
-    }
-    setShowBuyPicker(false);
-    setJustAddedToLedger(true);
+      if (useAppStore.getState().activeAccountId === accountId) setReceiptError(error instanceof Error ? error.message : 'Could not save the receipt proposal. Your purchase draft is kept on this device.');
+    } finally { setReceiptBusy(false); }
   };
 
   const reviewReceipt = async (action: 'accept' | 'reject') => {
     if (!receiptProposal) return;
     setReceiptBusy(true);
     setReceiptError('');
+    const accountId = activeAccountId;
     try {
-      if (action === 'accept') await api.compass.acceptReceiptProposal(receiptProposal.id);
-      else await api.compass.rejectReceiptProposal(receiptProposal.id);
+      if (action === 'accept') {
+        const result = await api.compass.acceptReceiptProposal(receiptProposal.id);
+        if (useAppStore.getState().activeAccountId !== accountId) return;
+        if (result.product_id) updateEntry(entry.id, { draftProductId: result.product_id });
+      } else await api.compass.rejectReceiptProposal(receiptProposal.id);
+      if (useAppStore.getState().activeAccountId !== accountId) return;
+      for (const tx of useLedgerStore.getState().transactions) {
+        for (const item of tx.items.filter(item => item.receiptProposal?.id === receiptProposal.id)) {
+          useLedgerStore.getState().updateLineItem(tx.id, item.id, { receiptProposal: undefined });
+        }
+      }
       setReceiptProposal(null);
       setJustAddedToLedger(false);
       onSwitchToLedger?.();
@@ -1103,7 +1086,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             disabled={receiptBusy}
             className="curate-action w-full rounded-md cta-solid px-3 font-semibold active:opacity-80"
           >
-            {receiptBusy ? 'Adding…' : 'Add to Ledger'}
+            {receiptBusy ? 'Saving…' : receiptProposal?.status === 'pending' ? 'Update receipt' : 'Add to Ledger'}
           </button>
         </div>
       )}
@@ -1603,6 +1586,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           purchasePickerId={purchasePickerId}
         />
         </section>
+        {receiptError && !justAddedToLedger && <p role="alert" className="text-ui-12 text-tea-text-sec">{receiptError}</p>}
         {renderTeawarePurchaseSection()}
       </div>
       </div>
@@ -1821,13 +1805,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           />
 
           {/* Retail price preview, only for tea with cost + grams entered */}
-          {entry.category === 'tea' && entry.priceAmount && entry.pricePerUnitGrams && !unitBased && (
+          {entry.category === 'tea' && entry.priceAmount != null && entry.pricePerUnitGrams && !unitBased && (
             <RetailPricePreview
               costAmount={entry.priceAmount}
               grams={entry.pricePerUnitGrams}
               currency={entry.priceCurrency}
               shippingRatePerKg={shippingRatePerKg}
-              onShippingRateChange={setShippingRatePerKg}
             />
           )}
         </div>
@@ -2112,7 +2095,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   className="curate-action w-full rounded-md cta-solid px-3 font-semibold active:opacity-80"
                   data-curate-action
                 >
-                  {receiptBusy ? 'Adding…' : 'Add to Ledger'}
+                  {receiptBusy ? 'Saving…' : receiptProposal?.status === 'pending' ? 'Update receipt' : 'Add to Ledger'}
                 </button>
               </div>
             </motion.div>
@@ -2151,6 +2134,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         </AnimatePresence>
       </section>
 
+      {receiptError && !justAddedToLedger && <p role="alert" className="text-ui-12 text-tea-text-sec">{receiptError}</p>}
       {/* ─── Tasting overlay ─── */}
       <AnimatePresence>
         {tastingOverlayOpen && (

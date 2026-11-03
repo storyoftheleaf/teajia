@@ -66,7 +66,7 @@ test('retrying a failed receipt proposal keeps exactly one local purchase line',
   await page.evaluate(async () => {
     const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
     const { createEmptyEntry } = await import('/src/components/TeaCompass/types.ts');
-    const entry = { ...createEmptyEntry('tea'), id: 'retry-entry', name: 'Retry tea', status: 'noted' };
+    const entry = { ...createEmptyEntry('tea'), id: 'retry-entry', name: 'Retry tea', status: 'noted', priceAmount: 10, pricePerUnitGrams: 100 };
     useTeaCompassStore.setState({ entries: [entry], pendingEntries: [], activeEntryId: entry.id });
   });
   await page.getByRole('button', { name: /Buy/ }).last().click();

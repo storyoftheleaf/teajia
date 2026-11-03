@@ -1,5 +1,5 @@
 import React, { useState, lazy, Suspense, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { MapPin, ChevronDown, Users, BookOpen, Edit3, UserCheck } from 'lucide-react';
 import { api, hasToken } from '../../lib/api';
@@ -126,6 +126,7 @@ function formatEventDate(dateStr: string): { date: string; time: string; day: st
 const EventLanding: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const { data: event, isLoading, isError, error } = useQuery<TeaEvent>({
     queryKey: ['event-public', slug],
@@ -164,6 +165,14 @@ const EventLanding: React.FC = () => {
   const isAdmin = !!platformRole;
 
   const [showRSVP, setShowRSVP] = useState(false);
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('rsvp') !== '1') return;
+    setShowRSVP(true);
+    params.delete('rsvp');
+    const search = params.toString();
+    navigate(`${location.pathname}${search ? `?${search}` : ''}${location.hash}`, { replace: true });
+  }, [location.pathname, location.search, location.hash, navigate]);
   const [showFindRSVP, setShowFindRSVP] = useState(false);
   const [guidelinesExpanded, setGuidelinesExpanded] = useState(false);
   const [loadingTooLong, setLoadingTooLong] = useState(false);

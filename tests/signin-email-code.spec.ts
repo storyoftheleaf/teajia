@@ -74,7 +74,7 @@ test('a code sign-in opened straight from a link lands in the site, and the emai
 
   await page.getByLabel('Verification code').fill('123456');
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).toHaveURL('/');
+  await expect(page).toHaveURL('/account');
 });
 
 test('delivery failure keeps email editable and exposes retry', async ({ page }) => {

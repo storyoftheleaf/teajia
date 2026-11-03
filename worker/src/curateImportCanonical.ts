@@ -294,7 +294,7 @@ export function normalizeCanonicalImportRecord(value: Record<string, unknown>): 
     currency: currency(value.currency ?? value.priceCurrency ?? value.price_currency),
     priceBasis: priceBasis(value.priceBasis ?? value.price_basis),
     lineCostExact: exactDecimal(value.lineCostExact ?? value.line_cost_exact ?? value.lineCost ?? value.buy_total),
-    unitCostExact: exactDecimal(value.unitCostExact ?? value.unit_cost_exact ?? value.unitCost ?? value.price_per_unit_grams),
+    unitCostExact: exactDecimal(value.unitCostExact ?? value.unit_cost_exact ?? value.unitCost),
     totalQuantityGrams,
     totalUnits,
     disposition: itemDisposition,
@@ -318,6 +318,16 @@ function resolvedVendor(record: CanonicalImportRecord): { id: string | null; nam
 
 export function canonicalImportToCompassValues(record: CanonicalImportRecord): Partial<Record<CompassColumn, unknown>> {
   const vendor = resolvedVendor(record);
+  const gramsPerPack = record.packWeight != null && record.weightUnit !== 'count'
+    ? record.packWeight * (record.weightUnit === 'kg' ? 1000 : 1) : null;
+  // Compass stores an amount and the grams that amount buys, never money in a grams column.
+  const quote = record.category === 'teaware' || record.weightUnit === 'count'
+    ? { amount: record.unitCostExact ?? record.priceAmountExact, grams: null }
+    : record.priceBasis === 'per_pack' && gramsPerPack != null && gramsPerPack > 0
+      ? { amount: record.priceAmountExact, grams: gramsPerPack }
+      : record.totalQuantityGrams != null && record.totalQuantityGrams > 0
+        ? { amount: record.lineCostExact ?? record.priceAmountExact, grams: record.totalQuantityGrams }
+        : { amount: record.unitCostExact ?? record.priceAmountExact, grams: record.unitCostExact != null ? 1 : null };
   return present({
     name: record.englishName,
     chinese_name: record.chineseName ?? record.originalName,
@@ -334,9 +344,9 @@ export function canonicalImportToCompassValues(record: CanonicalImportRecord): P
     notes: record.processingNotes ?? record.sourceExcerpt,
     vendor_id: vendor.id,
     vendor_name: vendor.name,
-    price_amount: record.priceAmountExact,
+    price_amount: quote.amount,
     price_currency: record.currency,
-    price_per_unit_grams: record.unitCostExact,
+    price_per_unit_grams: quote.grams,
     buy_quantity_grams: record.totalQuantityGrams,
     buy_quantity_units: record.totalUnits,
     buy_total: record.lineCostExact,

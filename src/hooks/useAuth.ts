@@ -4,7 +4,6 @@ import {
   setToken,
   clearToken,
   hasToken,
-  getTokenClaims,
   hydrateAccountStateFromToken,
   SESSION_EXPIRED_EVENT,
   shouldProactivelyRefreshToken,
@@ -43,6 +42,18 @@ function resetSessionBootstrap() {
   sessionBootstrapPromise = null;
 }
 
+// The single session boundary for password, code, Google, signup and joins.
+function establishSession(token: string) {
+  setToken(token);
+  resetSessionBootstrap();
+  const claims = hydrateAccountStateFromToken();
+  const store = useAppStore.getState();
+  store.setAuthUser(claims ? {
+    email: claims.email, username: claims.username ?? null, name: claims.name, role: claims.role,
+  } : null);
+  store.setIsSessionReady(true);
+}
+
 // Hydrate account scope, platform role, and auth user from local JWT claims once, on module load. This runs
 // before any component mounts, so every `useAuth()` call sees the same
 // initial state, fixes the per-component useState hydration race that
@@ -79,6 +90,8 @@ interface UseAuthReturn {
   redeemJoinCode: (data: { code: string; first_name: string; email: string }) => Promise<{ session_id: string; session_title: string | null; is_new_user: boolean }>;
   logout: () => void;
   checkSession: () => Promise<void>;
+  completeSignIn: (token: string) => void;
+  signInWithCode: (contact: string, code: string) => Promise<void>;
 }
 
 export function useAuth(): UseAuthReturn {
@@ -120,6 +133,18 @@ export function useAuth(): UseAuthReturn {
       // outcome. Sync hooks can now safely fire.
       setIsSessionReady(true);
     }
+  }, []);
+
+  const completeSignIn = useCallback((token: string) => {
+    establishSession(token);
+    setIsSessionReady(false);
+    void checkSession();
+  }, [checkSession]);
+
+  const signInWithCode = useCallback(async (contact: string, code: string) => {
+    const result = await api.verify.confirmCode(contact, code, 'signin');
+    if (!result?.token) throw new Error('Sign in could not be completed. Please request a new code.');
+    establishSession(result.token);
   }, []);
 
   // Check session on mount if we have a token.
@@ -182,13 +207,7 @@ export function useAuth(): UseAuthReturn {
 
   const login = useCallback(async (identifier: string, password: string) => {
     const result = await api.auth.login(identifier, password);
-    setToken(result.token);
-    resetSessionBootstrap();
-    hydrateAccountStateFromToken();
-    const claims = getTokenClaims();
-    if (claims) {
-      setUser({ email: claims.email, username: claims.username ?? null, name: claims.name, role: claims.role });
-    }
+    establishSession(result.token);
   }, []);
 
   const signup = useCallback(async (email: string, password: string, name: string, username?: string | null) => {
@@ -197,27 +216,15 @@ export function useAuth(): UseAuthReturn {
 
   const verifySignup = useCallback(async (pending: PendingSignup, code: string) => {
     const result = await api.auth.verifySignup(pending, code);
-    setToken(result.token);
+    establishSession(result.token);
     clearPendingSignup();
-    resetSessionBootstrap();
-    hydrateAccountStateFromToken();
-    const claims = getTokenClaims();
-    if (claims) {
-      setUser({ email: claims.email, username: claims.username ?? null, name: claims.name, role: claims.role });
-    }
   }, []);
 
   const resendSignup = useCallback(async (pending: PendingSignup) => api.auth.resendSignup(pending), []);
 
   const redeemJoinCode = useCallback(async (data: { code: string; first_name: string; email: string }) => {
     const result = await api.auth.redeemJoinCode(data);
-    setToken(result.token);
-    resetSessionBootstrap();
-    hydrateAccountStateFromToken();
-    const claims = getTokenClaims();
-    if (claims) {
-      setUser({ email: claims.email, username: claims.username ?? null, name: claims.name, role: claims.role });
-    }
+    establishSession(result.token);
     return {
       session_id: result.session_id as string,
       session_title: (result.session_title ?? null) as string | null,
@@ -245,5 +252,7 @@ export function useAuth(): UseAuthReturn {
     redeemJoinCode,
     logout,
     checkSession,
+    completeSignIn,
+    signInWithCode,
   };
 }

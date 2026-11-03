@@ -22,6 +22,7 @@ class SqliteStatement {
   }
 
   run() {
+    if (this.statement.columns().length > 0) return { success: true, results: this.statement.all(...this.values), meta: { changes: 0 } };
     const result = this.statement.run(...this.values);
     return { success: true, meta: { changes: Number(result.changes), last_row_id: Number(result.lastInsertRowid) } };
   }

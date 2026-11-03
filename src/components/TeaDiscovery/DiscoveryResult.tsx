@@ -1,3 +1,4 @@
+import { authPagePath } from '../../lib/authNavigation';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, RotateCcw } from 'lucide-react';
@@ -275,7 +276,7 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
         <p className="mt-7 text-center font-body text-ui-13 leading-relaxed text-tea-text-sec">
           Your profile is saved on this device.{' '}
           <Link
-            to="/signin"
+            to={authPagePath('signin', window.location.pathname + window.location.search + window.location.hash)}
             className="text-tea-text underline decoration-tea-gold/40 underline-offset-2 hover:decoration-tea-gold"
           >
             Sign in to keep it

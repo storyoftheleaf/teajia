@@ -426,9 +426,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         year: initialData.year?.toString() || '',
         originCountry: initialData.originCountry,
         originRegion: initialData.originRegion,
-        stockGrams: initialData.stockGrams.toString(),
+        stockGrams: (initialData.type === 'Teaware' ? initialData.quantityUnits : initialData.stockGrams)?.toString() ?? '',
         quantityPurchased: initialData.quantityPurchased.toString(),
-        costAmount: initialData.costAmount.toString(),
+        costAmount: initialData.costAmount?.toString() ?? '',
         shippingRateUSD: shipUSD == null ? '' : shipUSD.toFixed(2),
         /* Canonicalised, or duplicating one of the teas recorded as 'CNY'
            matched no option in the select and the copy silently came back as
@@ -439,7 +439,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         imageUrl: initialData.imageUrl || '',
         additionalImages: initialData.additionalImages || [],
         status: initialData.status,
-        fixedRetailPriceUSD: initialData.fixedRetailPriceUSD ? initialData.fixedRetailPriceUSD.toString() : '',
+        fixedRetailPriceUSD: initialData.fixedRetailPriceUSD != null ? initialData.fixedRetailPriceUSD.toString() : '',
         isPersonal: initialData.isPersonal || false,
         canReorder: initialData.canReorder || false,
         isPublic: initialData.isPublic === undefined ? true : initialData.isPublic,
@@ -679,8 +679,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             year: formData.year ? parseInt(formData.year) : null,
             origin_country: formData.originCountry,
             origin_region: formData.originRegion,
-            stock_grams: parseInt(formData.stockGrams) || 0,
-            quantity_purchased: parseInt(formData.quantityPurchased) || 0,
+            ...(formData.stockGrams.trim() === '' ? {} : formData.type === 'Teaware' ? {quantity_units:enteredNumber(formData.stockGrams)} : {stock_grams:enteredNumber(formData.stockGrams)}),
+            quantity_purchased: enteredNumber(formData.quantityPurchased) ?? 0,
             /* Not `parseFloat(x) || 0`: that is the conversion that turns a
                blank into a free tea. The field is required above, so this only
                ever carries what was actually typed, 0 included. */
@@ -1022,9 +1022,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   </div>
                 </div>
                 <div>
-                  <label className={labelStyle}>Weight (g)</label>
+                  <label className={labelStyle}>{formData.type === 'Teaware' ? 'Units purchased' : 'Weight (g)'}</label>
                   <input
-                    name="quantityPurchased" type="number" value={formData.quantityPurchased} onChange={handleChange}
+                    name="quantityPurchased" type="number" min="0" step={formData.type === 'Teaware' ? 1 : 'any'} value={formData.quantityPurchased} onChange={handleChange}
                     className={`${inputStyle} tabular-nums text-right`}
                     placeholder="0"
                     inputMode="decimal"
@@ -1118,9 +1118,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
             {/* 5. Stock (current grams) */}
             <div>
-              <label className={labelStyle}>Stock (grams)</label>
+              <label className={labelStyle}>{formData.type === 'Teaware' ? 'Stock (units)' : 'Stock (grams)'}</label>
               <input
-                name="stockGrams" type="number" value={formData.stockGrams} onChange={handleChange}
+                name="stockGrams" type="number" min="0" step={formData.type === 'Teaware' ? 1 : 'any'} value={formData.stockGrams} onChange={handleChange}
                 className={`${inputStyle} tabular-nums text-right`}
                 placeholder="0"
                 inputMode="numeric"

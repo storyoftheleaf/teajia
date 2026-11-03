@@ -95,18 +95,18 @@ export function useInventoryProducts({
       result = result.filter(p => p.type !== 'Teaware');
     }
 
-    if (filterType !== 'Archived' && filterType !== 'All') {
-      result = result.filter(p => p.status !== 'Archived');
-    }
-
     if (searchQuery) {
       result = fuseRef.current.search(searchQuery).map(r => r.item).filter(p =>
         inventoryCategory === 'teaware' ? p.type === 'Teaware' : p.type !== 'Teaware'
       );
     }
 
+    if (filterType !== 'Archived' && filterType !== 'All') {
+      result = result.filter(p => p.status !== 'Archived');
+    }
+
     if (filterType === 'Alerts') {
-      result = result.filter(p => p.status === 'Draft' || p.stockGrams <= p.lowStockThreshold || p.pricePerGramUSD === 0 || p.recheckStock);
+      result = result.filter(p => p.status === 'Draft' || (p.type === 'Teaware' ? (p.quantityUnits ?? 0) : p.stockGrams) <= p.lowStockThreshold || p.pricePerGramUSD === 0 || p.recheckStock);
     } else if (filterType === 'NeedsDevelopment') {
       result = result.filter(p => getTeaReadiness(p).state === 'not_ready');
     } else if (filterType === 'ToTaste') {
@@ -228,8 +228,9 @@ export function useInventoryProducts({
         : String((p as unknown as Record<string, unknown>)[inventoryGroupBy] ?? 'Unknown');
       if (!groups[key]) groups[key] = { key, label: key, items: [], totalStock: 0, totalRetail: 0, lifecycle: false };
       groups[key].items.push(p);
-      groups[key].totalStock += Number(p.stockGrams) || 0;
-      groups[key].totalRetail += (Number(p.fixedRetailPriceUSD ?? p.pricePerGramUSD) || 0) * (Number(p.stockGrams) || 0);
+      const quantity = p.type === 'Teaware' ? Number(p.quantityUnits) || 0 : Number(p.stockGrams) || 0;
+      groups[key].totalStock += quantity;
+      groups[key].totalRetail += (Number(p.fixedRetailPriceUSD ?? p.pricePerGramUSD) || 0) * quantity;
     }
     for (const g of Object.values(groups)) g.totalStock = Math.round(g.totalStock);
     return Object.values(groups);

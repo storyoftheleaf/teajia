@@ -2,9 +2,9 @@
 
 > **GENERATED — do not edit by hand.** Rerun
 > `npx tsx scripts/gen-capabilities-portable.ts`. It reads the code, so it cannot drift.
-> Generated 2026-09-28T08:15:37.154Z.
+> Generated 2026-11-03T00:15:07.895Z.
 
-**At a glance:** 41 commands · 98 pages · migration head `022_member_connections.sql`.
+**At a glance:** 42 commands · 103 pages · migration head `022_member_connections.sql`.
 
 ## Commands (how to use it)
 
@@ -15,18 +15,19 @@
 | `npm run atlas:upload` | `node scripts/atlas-upload.mjs` |
 | `npm run mcp:check` | `infisical run --env=dev --path=/ -- node scripts/check-mcp-token.mjs` |
 | `npm run mcp:call` | `infisical run --env=dev --path=/ -- node scripts/mcp-call.mjs` |
-| `npm run dev:test` | `VITE_API_URL=http://localhost:7777 vite` |
+| `npm run dev:test` | `VITE_API_URL=http://localhost:7777 VITE_SHOP_SHOW_PAUSED_TABS=1 vite` |
 | `npm run sandbox` | `concurrently -n api,site -c magenta,cyan "npm --prefix worker run sandbox" "npm run sandbox:site"` |
 | `npm run sandbox:site` | `VITE_API_URL=http://localhost:8787 vite --port 7777` |
 | `npm run sandbox:offline` | `concurrently -n api,site -c magenta,cyan "npm --prefix worker run sandbox:offline" "npm run sandbox:site"` |
 | `npm run sandbox:refresh` | `npm --prefix worker run sandbox:refresh` |
 | `npm run sandbox:seed-creators` | `npm --prefix worker run sandbox:seed-creators` |
-| `npm run build` | `node scripts/check-required-deployment-config.mjs --if-cloudflare-pages && vite build` |
+| `npm run build` | `node scripts/check-required-deployment-config.mjs --if-cloudflare-pages && node scripts/read-story-people.mjs && vite build` |
 | `npm run check:deploy-config` | `node scripts/check-required-deployment-config.mjs` |
 | `npm run lint:colors` | `bash scripts/lint-colors.sh` |
 | `npm run preview` | `vite preview` |
 | `npm run lint` | `tsc --noEmit` |
-| `npm run test:src` | `vitest run src --exclude='**/*.behavior.test.ts' --exclude='**/.claude/worktrees/**' --exclude='**/.worktrees/**'` |
+| `npm run test:src` | `vitest run src functions --exclude='**/*.behavior.test.ts' --exclude='**/.claude/worktrees/**' --exclude='**/.worktrees/**'` |
+| `npm run share:cards` | `node scripts/share-cards.mjs` |
 | `npm run lint:worker-types` | `node scripts/worker-typecheck-ratchet.mjs` |
 | `npm run audit` | `node scripts/audit.mjs` |
 | `npm run audit:shop-catalogue` | `node scripts/audit-shop-catalogue.mjs` |
@@ -115,6 +116,7 @@
 - `/read/LeafToLiquor`
 - `/read/LegendImmortalsCliff`
 - `/read/PlateRow`
+- `/read/PublishControl`
 - `/read/ReadIndex`
 - `/read/ReadNotFound`
 - `/read/RitualSevenSteeps`
@@ -122,8 +124,12 @@
 - `/read/StoryEditorBar`
 - `/read/TastingVocabularyOfTaste`
 - `/read/TeaHouseQuietHours`
+- `/read/conversation/Byline`
+- `/read/conversation/ConversationArticle`
+- `/read/conversation/RichText`
 - `/read/immersive`
 - `/read/storyEdit`
+- `/renamedPeople`
 - `/wisdom/CultivarIndexPage`
 - `/wisdom/CultivarPage`
 - `/wisdom/EntryResearchSection`

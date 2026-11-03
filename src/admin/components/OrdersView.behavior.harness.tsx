@@ -1,4 +1,6 @@
 import React from 'react';
+import '../../styles/tailwind.css';
+import '../../styles/card-utilities.css';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
@@ -26,13 +28,21 @@ api.invoices.getItems = (invoiceId) => new Promise((resolve, reject) => itemRequ
 // scoping, not money, so the panel gets an empty list rather than reaching the
 // network when the modal opens.
 api.invoices.getPayments = async () => [];
+const refundCalls: Array<Record<string, unknown>> = [];
+api.invoices.recordRefund = async (_id, input) => {
+  refundCalls.push(input);
+  if (refundCalls.length === 1) throw new Error('Connection interrupted after recording');
+  return { success: true, refund_required: false, refunded_usd: input.amount_usd };
+};
 // Accepting a draft. Every call is recorded so a test can read back what was
 // sent, and `refuseUnpricedOnce` makes the next one answer the way the server
 // does when the order still carries a line at no price.
 const acceptCalls: Array<Record<string, any>> = [];
 let unpricedRefusals: string[] | null = null;
+let failNextUpdate = false;
 api.invoices.update = async (_id: string, data: Record<string, any>) => {
   acceptCalls.push(data);
+  if (failNextUpdate) { failNextUpdate = false; throw new Error('Connection interrupted'); }
   if (unpricedRefusals && data.allow_unpriced_lines !== true) {
     throw new ApiError('A line has no price.', 409, {
       error: 'A line has no price.',
@@ -60,7 +70,7 @@ function setAccount(id: string) {
 (window as any).ordersViewTest = {
   mount() {
     orderRequests.length = 0; itemRequests.length = 0; timelineRequests.length = 0;
-    acceptCalls.length = 0; unpricedRefusals = null;
+    acceptCalls.length = 0; unpricedRefusals = null; failNextUpdate = false;
     client.clear(); renderRevision += 1;
     setAccount('account-a'); setToken(tokenFor('account-a'));
     root.render(<QueryClientProvider client={client}><MemoryRouter initialEntries={['/admin/activity']}><ToastProvider><OrdersView key={renderRevision} /></ToastProvider></MemoryRouter></QueryClientProvider>);
@@ -75,4 +85,6 @@ function setAccount(id: string) {
   resolveTimeline(index: number, value: any[]) { timelineRequests[index].resolve({ logs: value }); },
   refuseUnpricedOnce(lines: string[]) { unpricedRefusals = lines; acceptCalls.length = 0; },
   acceptCalls: () => acceptCalls,
+  failNextUpdate() { failNextUpdate = true; },
+  refundCalls: () => refundCalls,
 };

@@ -26,8 +26,11 @@ export const SyncIndicator: React.FC = () => {
     setSyncing(true);
     try {
       await syncCompassEntries();
-      setShowSavedFlash(true);
-      setTimeout(() => setShowSavedFlash(false), 1500);
+      const latest = useTeaCompassStore.getState();
+      if (!latest.syncError && latest.entries.every(entry => entry.synced)) {
+        setShowSavedFlash(true);
+        setTimeout(() => setShowSavedFlash(false), 1500);
+      }
     } finally {
       setSyncing(false);
     }

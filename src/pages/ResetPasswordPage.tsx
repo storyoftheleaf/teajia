@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { authPagePath } from '../lib/authNavigation';
 import { Icons } from '../components/Icons';
 
 const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors placeholder-tea-text-dim";
@@ -80,7 +81,7 @@ const ResetPasswordPage: React.FC = () => {
           </p>
         </div>
         <button
-          onClick={() => navigate('/signin')}
+          onClick={() => navigate(authPagePath('signin', searchParams.get('returnTo')))}
           className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md cta-solid text-xs font-semibold transition-colors"
         >
           Go to Sign In

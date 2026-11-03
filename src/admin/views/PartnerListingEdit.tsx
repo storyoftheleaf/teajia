@@ -9,7 +9,7 @@ import { api } from '../../lib/api';
 import { useAppStore, selectHasBundle } from '../../lib/store';
 import { useShallow } from 'zustand/react/shallow';
 import { useRates } from '../hooks/useAdminData';
-import { rateToUsd } from '../../lib/currency';
+import { canonicalCurrency, rateToUsd } from '../../lib/currency';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { ProfileSuggestableField, ProfileSuggestionFieldDraft } from '../../types';
 
@@ -403,7 +403,9 @@ function useSaveConfirm() {
 
 export const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerCurrency, callerRateToUsd, callerRateResolved }) => {
   // What the price field is actually denominated in.
-  const priceCurrency = callerRateResolved ? callerCurrency : 'USD';
+  const [priceUnit,setPriceUnit]=useState({currency:callerRateResolved?callerCurrency:'USD',rate:callerRateToUsd});
+  const priceCurrency=priceUnit.currency;
+  const savedPriceUsd=useRef(listing.fixed_retail_price_usd);
   const [stockValue, setStockValue] = useState(String(listing.stock_grams ?? ''));
   // The displayed price is in caller currency per 100g, derived from the stored
   // fixed_retail_price_usd (USD per gram). Round to nearest unit so the partner
@@ -432,6 +434,16 @@ export const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, 
   const [busyFields, setBusyFields] = useState<Set<string>>(new Set());
   const [retrySave, setRetrySave] = useState<(() => void) | null>(null);
   const latestRetry = useRef<Record<string, () => void>>({});
+
+  useEffect(()=>{
+    const currency=callerRateResolved?callerCurrency:'USD';
+    const rate=callerRateResolved?callerRateToUsd:1;
+    if (currency===priceUnit.currency && rate===priceUnit.rate) return;
+    // A typed amount keeps its displayed unit until that edit is confirmed.
+    if(priceValue!==lastSaved.current.price || savingFields.current.has('price'))return;
+    const value=savedPriceUsd.current==null?'':String(Math.round(savedPriceUsd.current*100*rate));
+    lastSaved.current.price=value;setPriceValue(value);setPriceUnit({currency,rate});
+  },[callerCurrency,callerRateToUsd,callerRateResolved,priceUnit,priceValue,busyFields]);
 
   const persist = useCallback(async (field: string, patch: {
     stock_grams?: number;
@@ -471,7 +483,7 @@ export const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, 
   const savePrice = () => {
     if (priceValue === lastSaved.current.price) return;
     if (priceValue.trim() === '') {
-      void persist('price', { price_amount: null }, () => { lastSaved.current.price = ''; });
+      void persist('price', { price_amount: null }, () => { lastSaved.current.price = ''; savedPriceUsd.current=null; });
       return;
     }
     const n = Number(priceValue);
@@ -479,7 +491,7 @@ export const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, 
     const value = priceValue;
     // Send the partner's local-currency-per-100g amount; server converts to USD/gram
     // via exchange_rates. Avoids the silent-no-conversion bug from earlier.
-    void persist('price', { price_amount: n, price_currency: priceCurrency }, () => { lastSaved.current.price = value; });
+    void persist('price', { price_amount: n, price_currency: priceCurrency }, () => { lastSaved.current.price = value; savedPriceUsd.current=n/(priceUnit.rate*100); });
   };
 
   const saveSample = (next: boolean) => {
@@ -834,7 +846,7 @@ export const PartnerListingEdit: React.FC = () => {
   // Caller currency: prefer the active account's canonical currency_default
   // (set on the account row by Adrian during account creation), fall back
   // to USD when no account is loaded yet.
-  const callerCurrency = (activeAccount as any)?.currency_default || 'USD';
+  const callerCurrency = canonicalCurrency((activeAccount as any)?.currency_default) || 'USD';
 
   // Rate: units of caller currency per 1 USD. Used to convert the stored
   // fixed_retail_price_usd into the partner's display currency.

@@ -32,7 +32,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   onAcquire,
 }) => {
   const navigate = useNavigate();
-  const getEntry = useTeaCompassStore((s) => s.getEntry);
+  const entry = useTeaCompassStore((s) => s.getEntry(entryId));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const removeEntry = useTeaCompassStore((s) => s.removeEntry);
   const transactions = useLedgerStore((s) => s.transactions);
@@ -40,7 +40,6 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   const [tastingOpen, setTastingOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const entry = getEntry(entryId);
   if (!entry) return null;
 
   const validPhotos = (entry.photos || []).filter(Boolean);
@@ -256,18 +255,18 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
 
         <button type="button" onClick={() => updateEntry(entryId, { status: isWishlisted ? 'noted' : 'want' })}
           className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
-          aria-label={isWishlisted ? 'Remove Want' : 'Want'}>
-          {isWishlisted ? <BookmarkCheck size={14} className="inline mr-1.5 text-tea-gold" /> : <BookmarkPlus size={14} className="inline mr-1.5" />}Want
+          aria-label={isWishlisted ? 'Remove saved tea' : 'Save tea'}>
+          {isWishlisted ? <BookmarkCheck size={14} className="inline mr-1.5 text-tea-gold" /> : <BookmarkPlus size={14} className="inline mr-1.5" />}{isWishlisted ? 'Saved' : 'Save'}
         </button>
 
         <button
           type="button"
           onClick={() => isBought ? handleUnbuy() : onAcquire?.(entry.id)}
-          disabled={acquisitionPending || (!isBought && !onAcquire)}
+          disabled={isIncoming || (!isBought && !onAcquire)}
           className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text disabled:text-tea-text-dim"
-          aria-label={isBought ? 'Remove acquisition' : entry.status === 'depleted' ? 'Reorder' : acquisitionPending ? (isIncoming ? 'Incoming' : 'In ledger') : 'Buy'}>
+          aria-label={isBought ? 'Remove acquisition' : entry.status === 'depleted' ? 'Reorder' : acquisitionPending ? (isIncoming ? 'Incoming' : 'Review purchase') : 'Buy'}>
           {isBought ? <Check size={14} className="inline mr-1.5" /> : <ShoppingBag size={14} className="inline mr-1.5" />}
-          {isBought ? 'In stock' : entry.status === 'depleted' ? 'Reorder' : isIncoming ? 'Incoming' : isInLedger ? 'In ledger' : 'Buy'}
+          {isBought ? 'In stock' : entry.status === 'depleted' ? 'Reorder' : isIncoming ? 'Incoming' : isInLedger ? 'Review purchase' : 'Buy'}
         </button>
 
         <button type="button" onClick={() => setTastingOpen(true)}

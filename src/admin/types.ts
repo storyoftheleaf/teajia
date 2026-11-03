@@ -73,7 +73,7 @@ export interface Product {
   originRegion: string;
   pricePerGramUSD: number; // Retail price (calculated or fixed)
   costPerGramUSD: number; // Private cost calculated per gram
-  costAmount: number; // Raw total batch cost
+  costAmount: number | null; // Raw total batch cost; null means not recorded
   stockGrams: number;
   lowStockThreshold: number;
   recheckStock?: boolean; // Flag to revisit stock count when unknown
@@ -221,6 +221,8 @@ export interface Invoice {
   fulfilled_at?: string | null;
   cancelled_at?: string | null;
   refund_required?: boolean | number;
+  refunded_usd?: number;
+  refund_due_usd?: number;
   stock_exception?: string | null;
   status: 'Draft' | 'Pending' | 'Filled' | 'Void';
   payment_status: 'unpaid' | 'partial' | 'paid';
@@ -242,6 +244,7 @@ export interface InvoiceItem {
   productId?: string;
   customName?: string;
   quantity: number; // Grams or Units
+  quantity_unit?: 'g' | 'unit';
   priceAtSale: number;
 }
 

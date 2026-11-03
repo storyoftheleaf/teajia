@@ -18,6 +18,7 @@ import {
   freightRefusalWords,
   splitByConvertibleFreight,
 } from '../../src/admin/lib/intakeFreight';
+import { prepareIntakeProducts } from '../../src/admin/lib/intakeCommit';
 import { stagedToProduct, type StagedItem } from '../../src/admin/lib/intakeMapping';
 
 const ROOT = join(__dirname, '..', '..');
@@ -120,8 +121,11 @@ describe('a share of the shipping is added, or the line is refused', () => {
        the wiring rather than the arithmetic: the products sent are built from
        the split's own list, and the refusal reaches the toast. */
     const src = readFileSync(join(ROOT, 'src/admin/views/IntakeWorkspace.tsx'), 'utf8');
-    expect(src).toMatch(/splitByConvertibleFreight\(included, shipCur, shareShip, rates\)/);
-    expect(src).toMatch(/priced\.map\(\(\{ it, extra \}\) => stagedToProduct\(it, extra\)\)/);
+    expect(src).toContain('prepareIntakeProducts(included, shipCur, shareShip, rates)');
+    const payload=prepareIntakeProducts([line({id:'convertible',costCurrency:'Yuan',costAmount:1200}),line({id:'refused',costCurrency:'AUD'})], 'Yuan',()=>60,RATES);
+    expect(payload.products).toHaveLength(1);
+    expect(payload.products[0]).toMatchObject({client_row_id:'convertible',cost_amount:1260});
+    expect(payload.unconvertible.get('AUD')).toBe(1);
     expect(src).toMatch(/skipReasons\.add\(freightRefusalWords\(unconvertible\)\)/);
     // The NaN converter is gone, and so is the comment that vouched for it.
     expect(src).not.toMatch(/\?\?\s*NaN/);

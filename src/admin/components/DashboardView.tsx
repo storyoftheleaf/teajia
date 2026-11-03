@@ -18,7 +18,7 @@ interface RevenueData { weekly_revenue: WeeklyRevenue[]; inventory_age_alerts: I
 interface Customer { id: string; name: string; lifetime_usd: number; last_order_at?: string }
 interface RFMData { top10: Customer[]; lapsed: Customer[]; new_this_month: Customer[] }
 const ACTION: Record<AttentionItem['kind'], string> = {
-  request: 'Reply to request', unpriced: 'Set the price', claim: 'Review payment', unsent: 'Prepare to send',
+  request: 'Reply to request', unpriced: 'Set the price', claim: 'Review payment', unsent: 'Prepare to send', refund: 'Review refund',
 };
 const rowClass = 'flex min-h-11 items-center justify-between gap-4 border-b border-tea-border py-3 text-left transition-colors hover:text-tea-gold focus-visible:outline focus-visible:outline-2 focus-visible:outline-tea-gold';
 

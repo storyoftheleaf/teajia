@@ -25,6 +25,9 @@ export interface NoteEntry {
 }
 
 export interface TastingData {
+  /** Personal journal photo attachments, separate from public product images. */
+  photos?: string[];
+
   // Section 1: Sensation (temperature, weight, texture)
   body?: string[];              // temperature + weight + texture terms
 
@@ -1628,12 +1631,16 @@ export interface CustomerOrderDetail {
   created_at: string;
   payment_date: string | null;
   fulfilled_at: string | null;
+  refund_required?: boolean;
+  refunded_usd?: number;
+  refund_due_usd?: number;
   currency: string;
   items: Array<{
     id: string;
     product_id: string | null;
     name: string;
     quantity: number;
+    quantity_unit?: 'g' | 'unit';
     unit_price_usd: number;
     line_total_usd: number;
   }>;

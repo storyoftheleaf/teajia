@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { COMMERCE_CHANGED_EVENT, refreshCommerceQueries, type CommerceChange } from '../../lib/refreshCommerce';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 import { BottomSheet, SheetOption } from '../../components/shared/BottomSheet';
@@ -140,6 +142,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   inventorySummary,
 }) => {
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const showInventoryToast = useCallback((message: string, type: string, options?: InventoryToastOptions) => {
     showToast(message, isInventoryToastType(type) ? type : 'info', options);
   }, [showToast]);
@@ -284,6 +287,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [inventorySummaryStatus, setInventorySummaryStatus] = useState<InventorySummaryStatus>('loading');
   const [inventorySummaryRefreshKey, setInventorySummaryRefreshKey] = useState(0);
   const inventorySummaryAccountRef = useRef<string | null>(null);
+  useEffect(() => {
+    const refresh = (event: Event) => {
+      const changed = (event as CustomEvent<CommerceChange>).detail;
+      if (!changed?.accountId || changed.accountId === tastingAccountId) setInventorySummaryRefreshKey(key => key + 1);
+    };
+    window.addEventListener(COMMERCE_CHANGED_EVENT, refresh);
+    return () => window.removeEventListener(COMMERCE_CHANGED_EVENT, refresh);
+  }, [tastingAccountId]);
   useEffect(() => {
     let cancelled = false;
     const accountChanged = inventorySummaryAccountRef.current !== tastingAccountId;
@@ -752,7 +763,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const BUFFER_ROWS = 5;
   const splitView = !!panelProduct;
   const effectiveRowHeight = ROW_HEIGHT;
-  const mobileHScroll = isMobile && !splitView;
+  const mobileHScroll = false;
 
   const splitViewCols = useMemo(() => {
     const essential = inventoryCategory === 'teaware'
@@ -1056,6 +1067,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // GENERIC UPDATE HANDLER (Optimistic + DB)
   // Restock: create a pre-filled Tea Compass entry from a product and navigate
   const handleRestock = useCallback((product: Product) => {
+    if (product.sourceCompassEntryId) {
+      navigate(`/admin/compass?tab=sourcing&entry=${encodeURIComponent(product.sourceCompassEntryId)}`);
+      setRowDropdownId(null);
+      return;
+    }
     const category = product.type === 'Teaware' ? 'teaware' : 'tea';
     const newId = startNewCapture(category);
     const updates: Record<string, any> = {
@@ -1064,10 +1080,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       type: product.type,
       status: 'want',
       notes: `Restock from inventory: ${product.productName}`,
+      draftProductId: product.id,
     };
     if (product.vendor) updates.vendorName = product.vendor;
     if (product.costCurrency) updates.priceCurrency = product.costCurrency;
-    if (product.costPerGramUSD) updates.pricePerUnitGrams = product.costPerGramUSD;
+    if (product.costAmount != null && product.quantityPurchased > 0) {
+      updates.priceAmount = product.costAmount;
+      updates.pricePerUnitGrams = product.type === 'Teaware' ? undefined : product.quantityPurchased;
+    }
     if (product.originRegion) updates.originRegion = product.originRegion;
     if (product.form) updates.form = product.form;
     if (product.year) updates.year = product.year;
@@ -1106,7 +1126,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         const isTeaware = updated.type === 'Teaware';
         const nextCurrency = String(field === 'costCurrency' ? value : p.costCurrency) || 'USD';
         const calc = calculatePricing(
-          Number(field === 'costAmount' ? value : p.costAmount) || 0,
+          field === 'costAmount' ? enteredNumber(value) : p.costAmount,
           /* `??`, not `||`. The shop rate applies when nobody entered one, and
              that is what NULL means; a typed 0 is Adrian saying this tea ships
              free and has to survive to the preview, or the number he sees while
@@ -1119,7 +1139,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           ratesRef.current,
           isTeaware
         );
-        if (calc.suggestedRetailUSD > 0) {
+        if (calc.suggestedRetailUSD >= 0) {
           updated.pricePerGramUSD = parseFloat(calc.suggestedRetailUSD.toFixed(4));
         }
       }
@@ -1137,6 +1157,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       try {
         await api.products.setFeatured(id, Boolean(value));
         setLastSavedAt(Date.now());
+        void refreshCommerceQueries(queryClient, tastingAccountId);
         onRefresh();
       } catch (err: any) {
         showToast(`Update failed: ${err.message}`, 'error');
@@ -1156,6 +1177,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       try {
         await api.products.updateShown(id, Boolean(value));
         setLastSavedAt(Date.now());
+        void refreshCommerceQueries(queryClient, tastingAccountId);
       } catch (err: any) {
         showToast(`Update failed: ${err.message}`, 'error');
         onRefresh();
@@ -1174,6 +1196,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     try {
       await api.products.updateByDomain(id, dbPayload);
       setLastSavedAt(Date.now());
+      void refreshCommerceQueries(queryClient, tastingAccountId);
       // Show saved pill feedback for this cell
       const cellId = `${id}-${String(field)}`;
       setRecentlySavedCells(prev => new Set([...prev, cellId]));
@@ -2256,7 +2279,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   return (
     <div
-      className="h-full flex flex-col overflow-hidden bg-tea-bg"
+      className="stock-view h-full flex flex-col overflow-hidden bg-tea-bg"
     >
       {/* Inventory options menu shared by the unified header at every width. */}
       <div>
@@ -2727,28 +2750,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               {groupedProducts.map(({ key: groupKey, label: groupLabel, items, totalStock, totalRetail, lifecycle }) => {
                 const isCollapsed = collapsedGroups.has(groupKey);
                 return (
-                  <div key={groupKey} data-testid={lifecycle ? `inventory-stage-${groupKey}` : undefined}>
+                  <div key={groupKey} data-stock-group={groupLabel} data-testid={lifecycle ? `inventory-stage-${groupKey}` : undefined}>
                     <button
                       onClick={() => toggleCollapsedGroup(groupKey)}
                       aria-expanded={!isCollapsed}
                       style={mobileHScroll ? { minWidth: mobileTableMinWidth } : undefined}
-                      className="block w-full bg-tea-bg/60 border-b border-tea-border hover:bg-tea-accent-sub transition-colors text-left"
+                      className="stock-group-toggle block w-full bg-tea-bg/60 border-b border-tea-border hover:bg-tea-accent-sub transition-colors text-left"
                     >
-                      {/* The bar runs the ledger's full width; this inner band
-                          is one ledger-width wide and pinned to the left, so
-                          the stage name and its totals hold their places while
-                          the columns swipe underneath. */}
-                      <span
-                        className={`flex items-center gap-3 px-5 py-2.5 ${mobileHScroll && hScrollClientWidth ? 'sticky left-0' : ''}`}
-                        style={mobileHScroll && hScrollClientWidth ? { width: hScrollClientWidth } : undefined}
-                      >
-                        {isCollapsed ? <ChevronRight size={14} className="shrink-0 text-tea-text-sec" /> : <ChevronDown size={14} className="shrink-0 text-tea-text-sec" />}
-                        <span className="font-display text-ui-15 text-tea-text">{groupLabel}</span>
-                        <span className="label-caps text-tea-text-dim">{items.length} items</span>
-                        <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums ml-auto">{totalStock}{inventoryCategory === 'teaware' ? ' units' : 'g'}</span>
-                        <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums">${fmtNum(totalRetail)}</span>
-                      </span>
-                    </button>
+                      {/* Tea groups retain a clear boundary in cards and tables. */}
+                      <span className="stock-group-head"><span className="stock-group-name"><span>{groupLabel}</span>{isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}</span><span className="stock-group-summary"><span>{items.length} {inventoryCategory === 'teaware' ? 'items' : 'teas'}</span><span>{totalStock}{inventoryCategory === 'teaware' ? ' units' : 'g'}</span><span>${fmtNum(totalRetail)}</span></span></span></button>
                     {!isCollapsed && (
                       <table className="w-full table-fixed border-collapse inv-tight" style={mobileTableStyle}>
                         <colgroup>
@@ -2763,7 +2773,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             const globalIdx = productIndexMap.get(product.id) ?? 0;
                             return (
                               <React.Fragment key={product.id}>
-                                <InventoryRow
+                                <InventoryRow onQuickTaste={() => setPersonalTastingProduct(product)} onQuickJournal={() => navigate(`/account/journal?tea=${encodeURIComponent(product.id)}`)}
                                   product={product}
                                   globalIdx={globalIdx}
                                   isSelected={selectedIds.has(product.id)}
@@ -2784,6 +2794,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   onLongPressSelect={stableLongPressSelect}
                                   onLongPressQuickEdit={stableLongPressQuickEdit}
                                   onProductUpdate={handleProductUpdate}
+                                  onSaveField={(id, field, value) => handleProductUpdate(id, field, value, { throwOnError: true })}
                                   onSelectionAwareUpdate={handleSelectionAwareUpdate}
                                   onOpenPanel={stableOpenPanel}
                                   onToggleDropdown={stableToggleDropdown}
@@ -2854,7 +2865,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         const globalIdx = idx;
                         return (
                           <React.Fragment key={product.id}>
-                            <InventoryRow
+                            <InventoryRow onQuickTaste={() => setPersonalTastingProduct(product)} onQuickJournal={() => navigate(`/account/journal?tea=${encodeURIComponent(product.id)}`)}
                               product={product}
                               globalIdx={globalIdx}
                               isSelected={selectedIds.has(product.id)}
@@ -2875,6 +2886,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               onLongPressSelect={stableLongPressSelect}
                               onLongPressQuickEdit={stableLongPressQuickEdit}
                               onProductUpdate={handleProductUpdate}
+                                  onSaveField={(id, field, value) => handleProductUpdate(id, field, value, { throwOnError: true })}
                               onSelectionAwareUpdate={handleSelectionAwareUpdate}
                               onOpenPanel={stableOpenPanel}
                               onToggleDropdown={stableToggleDropdown}
@@ -3013,6 +3025,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         rates={rates}
         onClose={() => setPanelProduct(null)}
         onUpdate={handleProductUpdate}
+        onSaveField={(id,field,value)=>handleProductUpdate(id,field,value,{throwOnError:true})}
         products={processedProducts}
         onNavigate={(p) => setPanelProduct(p)}
         filterLabel={filterType !== 'All' ? (VIEW_FILTER_LABELS[filterType] || filterType) : undefined}
@@ -3133,7 +3146,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* Floating Stock History Panel (from table click) */}
       {stockHistoryProduct && !panelProduct && (
-        <div className="fixed bottom-4 right-4 z-40 w-96 max-h-[50vh] overflow-y-auto custom-scrollbar shadow-2xl rounded-xl">
+        <div className="fixed bottom-nav-gap right-3 left-3 sm:left-auto z-modal sm:w-96 max-h-[50vh] overflow-y-auto custom-scrollbar shadow-2xl rounded-xl">
           <StockLedgerPanel
             productId={stockHistoryProduct.id}
             productName={stockHistoryProduct.name}

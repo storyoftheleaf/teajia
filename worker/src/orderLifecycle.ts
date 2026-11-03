@@ -47,7 +47,7 @@ export async function deductStockForPaidInvoice(
       return { state: 'not_due' };
     }
     const lineResult = await env.DB.prepare(
-      `SELECT id,product_id,custom_name,quantity,price_at_sale,stock_owner_user_id,
+      `SELECT id,product_id,custom_name,quantity,price_at_sale,quantity_unit,stock_owner_user_id,
               sales_grant_id,owner_share_type,owner_share_value
        FROM invoice_line_items WHERE invoice_id=? AND account_id=?`
     ).bind(invoiceId, accountId).all();
@@ -81,14 +81,14 @@ export async function deductStockForPaidInvoice(
     const products = new Map<string, Record<string, any>>();
     for (const [productId, quantity] of quantities) {
       const product = await env.DB.prepare(
-        `SELECT id,stock_grams,status,source_compass_entry_id FROM products WHERE id=? AND account_id=?`
+        `SELECT id,type,quantity_units,stock_grams,status,source_compass_entry_id FROM products WHERE id=? AND account_id=?`
       ).bind(productId, accountId).first() as Record<string, any> | null;
       const otherHolds = await env.DB.prepare(
         `SELECT COALESCE(SUM(held_grams),0) AS held FROM stock_holds
          WHERE account_id=? AND product_id=? AND invoice_id!=?
            AND (expires_at IS NULL OR expires_at>datetime('now'))`
       ).bind(accountId, productId, invoiceId).first() as { held: number } | null;
-      if (!product || quantity > Number(product.stock_grams || 0) - Number(otherHolds?.held || 0)) {
+      if (!product || quantity > Number((product.type === 'Teaware' ? product.quantity_units : product.stock_grams) || 0) - Number(otherHolds?.held || 0)) {
         await release();
         return { state: 'blocked', reason: `insufficient_stock:${productId}` };
       }
@@ -97,30 +97,31 @@ export async function deductStockForPaidInvoice(
 
     const stmts: D1PreparedStatement[] = [];
     for (const line of authorized) stmts.push(env.DB.prepare(
-      `UPDATE invoice_line_items SET stock_owner_user_id=?,sales_grant_id=?,owner_share_type=?,owner_share_value=?
+      `UPDATE invoice_line_items SET stock_owner_user_id=?,sales_grant_id=?,owner_share_type=?,owner_share_value=?,quantity_unit=?
        WHERE id=? AND account_id=?`
-    ).bind(line.stock_owner_user_id, line.sales_grant_id, line.owner_share_type, line.owner_share_value, line.id, accountId));
+    ).bind(line.stock_owner_user_id, line.sales_grant_id, line.owner_share_type, line.owner_share_value,line.quantity_unit??'g', line.id, accountId));
     for (const [productId, quantity] of quantities) {
       const product = products.get(productId)!;
+      const column = product.type === 'Teaware' ? 'quantity_units' : 'stock_grams';
       stmts.push(env.DB.prepare(
-        `UPDATE products SET stock_grams=CASE WHEN stock_grams - COALESCE((SELECT SUM(held_grams)
+        `UPDATE products SET ${column}=CASE WHEN COALESCE(${column},0) - COALESCE((SELECT SUM(held_grams)
           FROM stock_holds WHERE account_id=? AND product_id=? AND invoice_id!=?
           AND (expires_at IS NULL OR expires_at>datetime('now'))),0) >= ?
-          THEN stock_grams-? ELSE -1 END
+          THEN COALESCE(${column},0)-? ELSE -1 END
          WHERE id=? AND account_id=? AND EXISTS (SELECT 1 FROM invoices WHERE id=? AND account_id=? AND fulfillment_claim_token=?)`
       ).bind(accountId, productId, invoiceId, quantity, quantity, productId, accountId, invoiceId, accountId, token));
-      stmts.push(env.DB.prepare(
+      if (column === 'stock_grams') stmts.push(env.DB.prepare(
         `UPDATE product_listings SET stock_grams=MAX(0,COALESCE(stock_grams,0)-?),updated_at=datetime('now')
          WHERE id=? AND EXISTS (SELECT 1 FROM invoices WHERE id=? AND account_id=? AND fulfillment_claim_token=?)`
       ).bind(quantity, `list_${productId}`, invoiceId, accountId, token));
       stmts.push(env.DB.prepare(
-        `INSERT INTO stock_ledger (id,product_id,delta,balance_after,reason,source_invoice_id,source_invoice_number,user_email,note,account_id)
-         SELECT ?,?,-?,p.stock_grams,'PAYMENT_CONFIRMED',?,?,?,'Reserved for paid order',?
+        `INSERT INTO stock_ledger (id,product_id,delta,balance_after,movement_unit,reason,source_invoice_id,source_invoice_number,user_email,note,account_id)
+         SELECT ?,?,-?,p.${column},'${product.type === 'Teaware' ? 'unit' : 'gram'}','PAYMENT_CONFIRMED',?,?,?,'Reserved for paid order',?
          FROM products p WHERE p.id=? AND p.account_id=?
          AND EXISTS (SELECT 1 FROM invoices WHERE id=? AND account_id=? AND fulfillment_claim_token=?)`
       ).bind(crypto.randomUUID(), productId, quantity, invoiceId, invoice.invoice_number, input.actorEmail, accountId,
         productId, accountId, invoiceId, accountId, token));
-      if (Number(product.stock_grams) - quantity <= 0 && product.status !== 'Sold Out') {
+      if (Number(product[column]) - quantity <= 0 && product.status !== 'Sold Out') {
         stmts.push(env.DB.prepare("UPDATE products SET status='Sold Out',sold_out_at=datetime('now') WHERE id=? AND account_id=?")
           .bind(productId, accountId));
         stmts.push(env.DB.prepare("UPDATE product_listings SET status='Sold Out',updated_at=datetime('now') WHERE id=?")

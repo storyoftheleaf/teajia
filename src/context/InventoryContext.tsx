@@ -4,7 +4,6 @@ import { useSearchParams } from 'react-router-dom';
 import { InventoryItem } from '../types';
 import { usePublicProducts } from '../hooks/usePublicProducts';
 import { publicProductToInventoryItem } from '../lib/adapters';
-import { SAMPLE_PRODUCTS } from '../data/sampleProducts';
 import { useAppStore } from '../lib/store';
 import { useQuery } from '@tanstack/react-query';
 import { fetchStoreProducts } from '../lib/storefrontApi';
@@ -64,9 +63,6 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
     // Default path: map PublicProduct → InventoryItem
     const apiItems = (defaultQuery.data || []).map(publicProductToInventoryItem);
-    if (apiItems.length === 0 && !defaultQuery.isLoading && !defaultQuery.isError) {
-      return SAMPLE_PRODUCTS.map(publicProductToInventoryItem);
-    }
     return apiItems;
   }, [isStoreMode, storeQuery.data, defaultQuery.data, defaultQuery.isLoading, defaultQuery.isError]);
 

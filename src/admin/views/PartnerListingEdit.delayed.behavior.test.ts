@@ -72,4 +72,17 @@ describe('partner listing saves with delayed responses', () => {
     await settle('resolve', 1);
     await expect.poll(() => note.isEnabled()).toBe(true);
   });
+  it('re-denominates untouched prices when a rate arrives and preserves the unit of a typed edit',async()=>{
+    await open();
+    const price=page.getByLabel('Your retail price');
+    await expect.poll(()=>price.inputValue()).toBe('100');
+    await page.evaluate(()=>window.partnerListingTest.currency('Yuan',7,true));
+    await expect.poll(()=>price.inputValue()).toBe('700');
+    await price.fill('650');
+    await page.evaluate(()=>window.partnerListingTest.currency('NT',30,true));
+    expect(await price.inputValue()).toBe('650');
+    await price.blur();
+    await expect.poll(patches).toEqual([{price_amount:650,price_currency:'Yuan'}]);
+  });
+
 });

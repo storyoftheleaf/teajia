@@ -1,3 +1,4 @@
+import { canonicalCurrency } from './currency';
 import { useTeaCompassStore } from './teaCompassStore';
 import { api, hasToken, isTokenScopedToAccount, isTransientApiError } from './api';
 import { normalizeCompassEntry, type TeaCompassEntry } from '../components/TeaCompass/types';
@@ -9,6 +10,11 @@ const BACKGROUND_REQUEST = { background: true } as const;
 const CAMEL_TO_SNAKE: Record<string, string> = {
   chineseName: 'chinese_name',
   originRegion: 'origin_region',
+  originCountry: 'origin_country',
+  clayType: 'clay_type',
+  materialNote: 'material_note',
+  sellPrice: 'sell_price',
+  tastingHistory: 'tasting_history',
   priceAmount: 'price_amount',
   priceCurrency: 'price_currency',
   pricePerUnitGrams: 'price_per_unit_grams',
@@ -49,7 +55,7 @@ function toSnakeCase(entry: TeaCompassEntry): Record<string, any> {
     // verdict it is an independent sourcing choice with matching API/DB naming.
 
     // Serialize arrays/objects to JSON strings for D1
-    if (snakeKey === 'photos' || snakeKey === 'audio_clips' || snakeKey === 'tasting') {
+    if (snakeKey === 'photos' || snakeKey === 'audio_clips' || snakeKey === 'tasting' || snakeKey === 'tasting_history') {
       result[snakeKey] = value != null ? JSON.stringify(value) : null;
     } else {
       result[snakeKey] = value ?? null;
@@ -67,7 +73,7 @@ function toCamelCase(row: Record<string, any>): TeaCompassEntry {
     const camelKey = SNAKE_TO_CAMEL[key] || key;
 
     // Parse JSON strings back to objects/arrays
-    if (key === 'photos' || key === 'audio_clips' || key === 'tasting') {
+    if (key === 'photos' || key === 'audio_clips' || key === 'tasting' || key === 'tasting_history') {
       try {
         result[camelKey] = value ? JSON.parse(value as string) : (key === 'tasting' ? undefined : []);
       } catch {
@@ -79,7 +85,7 @@ function toCamelCase(row: Record<string, any>): TeaCompassEntry {
   }
   // Ensure required defaults
   result.synced = true;
-  result.priceCurrency = result.priceCurrency || 'NT';
+  result.priceCurrency = canonicalCurrency(result.priceCurrency) || 'Yuan';
   result.quantity = result.quantity ?? 1;
   result.notes = result.notes || '';
   result.photos = result.photos || [];
@@ -175,7 +181,25 @@ export async function retryPendingDeletes(accountId?: string): Promise<void> {
 
 // ── Sync unsynced entries to D1 ──
 
-export async function syncCompassEntries(accountId?: string): Promise<number> {
+const syncQueues = new Map<string, Promise<number>>();
+
+/** Serialize writes for an account so a late request cannot overwrite a newer snapshot. */
+export function syncCompassEntries(accountId?: string): Promise<number> {
+  const initial = useTeaCompassStore.getState();
+  const scope = accountId ?? initial.accountScopeId;
+  if (!scope) return Promise.resolve(0);
+  const revision = initial.accountScopeRevision;
+  const previous = syncQueues.get(scope);
+  const next = (previous ? previous.catch(() => 0) : Promise.resolve(0)).then(() => {
+    const current = useTeaCompassStore.getState();
+    return current.accountScopeId === scope && current.accountScopeRevision === revision ? pushCompassEntries(scope) : 0;
+  });
+  syncQueues.set(scope, next);
+  void next.finally(() => { if (syncQueues.get(scope) === next) syncQueues.delete(scope); });
+  return next;
+}
+
+async function pushCompassEntries(accountId?: string): Promise<number> {
   if (!hasToken()) return 0;
   const initial = useTeaCompassStore.getState();
   const requestedAccountId = accountId ?? initial.accountScopeId;
@@ -203,6 +227,7 @@ export async function syncCompassEntries(accountId?: string): Promise<number> {
     const current = useTeaCompassStore.getState();
     if (current.accountScopeId !== requestedAccountId || current.accountScopeRevision !== requestedRevision) return 0;
     const attemptedIds = new Set(unsynced.map(entry => entry.id));
+    const attemptedEntries = new Map(unsynced.map(entry => [entry.id, entry]));
     const acknowledgedIds = new Set(
       Array.isArray(result.syncedIds)
         ? result.syncedIds.filter(id => attemptedIds.has(id))
@@ -214,7 +239,7 @@ export async function syncCompassEntries(accountId?: string): Promise<number> {
     // state. A protected id collision remains unsynced and retries visibly.
     useTeaCompassStore.setState((state) => ({
       entries: state.accountScopeId === requestedAccountId
-        ? state.entries.map(e => acknowledgedIds.has(e.id) ? { ...e, synced: true } : e)
+        ? state.entries.map(e => acknowledgedIds.has(e.id) && attemptedEntries.get(e.id) === e ? { ...e, synced: true } : e)
         : state.entries,
       syncError: state.accountScopeId === requestedAccountId ? hasUnacknowledged : state.syncError,
     }));
@@ -385,4 +410,18 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
     // Offline or error, local data remains available, but the UI must say so.
     console.warn('[TeaCompass] Hydration failed:', err);
   }
+}
+
+/** Acquisition must refer to an acknowledged encounter, without closing its capture editor. */
+export async function ensureCompassEncounterSaved(entryId: string): Promise<void> {
+  const initial = useTeaCompassStore.getState();
+  const scope = initial.accountScopeId;
+  const revision = initial.accountScopeRevision;
+  if (!scope || !hasToken() || !isTokenScopedToAccount(scope)) throw new Error('Sign in to save this purchase with the shop.');
+  initial.retainEntry(entryId);
+  await syncCompassEntries(scope);
+  const current = useTeaCompassStore.getState();
+  if (current.accountScopeId !== scope || current.accountScopeRevision !== revision) throw new Error('The active shop changed. Open this purchase in its original shop.');
+  const entry = current.entries.find(entry => entry.id === entryId);
+  if (!entry?.synced) throw new Error('Your capture is kept on this device. Retry once its latest changes have saved.');
 }

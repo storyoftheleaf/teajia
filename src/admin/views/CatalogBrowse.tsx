@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { canonicalCurrency } from '../../lib/currency';
 import { api } from '../../lib/api';
 import { useAppStore, selectHasBundle } from '../../lib/store';
 import { useShallow } from 'zustand/react/shallow';
@@ -8,12 +9,7 @@ import type { NetworkCatalogProfile } from '../../types';
 
 // ── Carry-from-network catalog browse: Surface 1 per docs/NETWORK_UI_BRIEF.md ──
 //
-// "Carried successfully" notification strategy: localStorage flash message.
-// On carry commit we write { id, name, ts } to localStorage key
-// 'teajia_carried_flash'. InventoryView reads that key on mount, shows a
-// one-time inline message, then clears it. This avoids query-param coupling
-// to InventoryView (which already has many query params) and survives a
-// hard navigate via Link/useNavigate without state loss.
+// Carry returns its account-local holding so the next screen can open it directly.
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -55,7 +51,7 @@ const SkeletonCard: React.FC = () => (
 interface CarryFormProps {
   profile: NetworkCatalogProfile;
   callerCurrency: string;
-  onCarried: (listingId: string, profileName: string) => void;
+  onCarried: (listingId: string, profileName: string, productId?: string) => void;
   onCancel: () => void;
 }
 
@@ -101,7 +97,7 @@ const CarryForm: React.FC<CarryFormProps> = ({ profile, callerCurrency, onCarrie
         initial_price_amount: amount,
         initial_price_currency: defaultCurrency,
       });
-      onCarried(result.listing_id, profile.name);
+      onCarried(result.listing_id, profile.name, (result as {product_id?:string}).product_id);
     } catch (err: any) {
       setError(err?.message || 'Could not carry this tea. Try again.');
     } finally {
@@ -195,7 +191,7 @@ interface DrawerProps {
   profile: NetworkCatalogProfile;
   callerCurrency: string;
   onClose: () => void;
-  onCarried: (listingId: string, profileName: string) => void;
+  onCarried: (listingId: string, profileName: string, productId?: string) => void;
 }
 
 const ProfileDrawer: React.FC<DrawerProps> = ({ profile, callerCurrency, onClose, onCarried }) => {
@@ -203,8 +199,8 @@ const ProfileDrawer: React.FC<DrawerProps> = ({ profile, callerCurrency, onClose
   const [photoIdx, setPhotoIdx] = useState(0);
   const photos = profile.canonical_photos?.filter(Boolean) ?? [];
 
-  const handleCarried = (listingId: string, name: string) => {
-    onCarried(listingId, name);
+  const handleCarried = (listingId: string, name: string, productId?: string) => {
+    onCarried(listingId, name, productId);
     onClose();
   };
 
@@ -491,25 +487,19 @@ export const CatalogBrowse: React.FC<CatalogBrowseProps> = ({ embedded = false }
   const outerClass = embedded
     ? 'px-4 md:px-8 max-w-3xl mx-auto'
     : 'px-4 md:px-8 pt-8 pb-nav-gap max-w-3xl mx-auto';
-  const { memberships, activeAccountId, platformRole } = useAppStore(
+  const { memberships, activeAccountId, platformRole, activeAccount } = useAppStore(
     useShallow(s => ({
       memberships: s.memberships,
       activeAccountId: s.activeAccountId,
       platformRole: s.platformRole,
+      activeAccount:s.activeAccount,
     })),
   );
 
   // Bundle gate: Catalog bundle required
   const hasCatalog = selectHasBundle({ memberships, activeAccountId, platformRole }, 'catalog');
 
-  // Caller's display currency: first non-empty currency in membership or default AUD
-  const callerCurrency = useMemo(() => {
-    const membership = memberships.find(m => m.account_id === activeAccountId);
-    // AccountMembership doesn't carry currency directly; default to AUD as the
-    // brief uses AUD for the Australia example. A future improvement: store
-    // account currency on the membership and read it here.
-    return (membership as any)?.currency || 'AUD';
-  }, [memberships, activeAccountId]);
+  const callerCurrency = canonicalCurrency((activeAccount as {currency_default?:string} | null)?.currency_default) || 'USD';
 
   const [profiles, setProfiles] = useState<NetworkCatalogProfile[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -652,16 +642,8 @@ export const CatalogBrowse: React.FC<CatalogBrowseProps> = ({ embedded = false }
           profile={selectedProfile}
           callerCurrency={callerCurrency}
           onClose={() => setSelectedProfile(null)}
-          onCarried={(listingId, name) => {
-            // Write a localStorage flash message. InventoryView reads
-            // 'teajia_carried_flash' on mount, shows it once, then clears it.
-            try {
-              localStorage.setItem(
-                'teajia_carried_flash',
-                JSON.stringify({ id: listingId, name, ts: Date.now() }),
-              );
-            } catch { /* storage blocked, flash won't show, not fatal */ }
-            navigate('/admin/stock');
+          onCarried={(listingId, name, productId) => {
+            navigate(productId ? `/admin/stock?panel=${encodeURIComponent(productId)}` : `/admin/network/listings/${encodeURIComponent(listingId)}`);
           }}
         />
       )}

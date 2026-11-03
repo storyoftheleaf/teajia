@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { OrderRefund } from './OrderRefund';
+import { refundProgress } from '../../lib/orderTrackingDomain';
 import { api, AUTH_TOKEN_CHANGED_EVENT, isTokenScopedToAccount } from '../../lib/api';
 import type { InvoiceWithItems, Product } from '../types';
 import { openWhatsAppStatus, buildQuickInvoiceDraftParam } from '../../lib/whatsapp';
@@ -18,6 +20,8 @@ import { OrderPayLink, OrderPayRecipientLine, OrderPayCopyButton } from './Order
 import { OrderClaimsFlag, OrderPaymentsPanel } from './OrderPayments';
 import { useAppStore } from '../../lib/store';
 import { SettlementLedger } from './SettlementLedger';
+import { OrderShipping } from './OrderShipping';
+import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 
 const ROW_HEIGHT = 36;
 
@@ -83,7 +87,7 @@ function stockLabel(order: Pick<DbOrder, 'inventory_deducted' | 'status' | 'stoc
 }
 
 function orderStatusLabel(order: DbOrder): string {
-  if (order.status === 'Void' && order.refund_required) return 'Cancelled, refund needed';
+  if (order.status === 'Void') return refundProgress(order) || 'Cancelled';
   if (order.status === 'Draft' && order.source_inquiry_id) return 'Pending request';
   if (canShipNoChargeOrder(order)) return 'No charge, ready to ship';
   if (order.status === 'Pending' && order.payment_status === 'paid' && order.stock_exception) return 'Paid, stock needs attention';
@@ -132,6 +136,7 @@ interface DbOrderItem {
   product_name?: string;
   custom_name?: string | null;
   quantity: number;
+  quantity_unit?: 'g' | 'unit';
   price_at_sale: number;
   product?: Pick<Product, 'givenName' | 'type'>;
 }
@@ -163,7 +168,7 @@ export const OrdersView = () => {
   const [confirmState, setConfirmState] = useState<{
     type: 'ship' | 'no-charge-ship' | 'void' | 'delete' | 'accept-unpriced';
     invoice: DbOrder;
-    stockImpact?: { name: string; current: number; after: number }[];
+    stockImpact?: { name: string; current: number; after: number; unit: string }[];
     /** Lines still at no price, named, when the server refused to send. */
     unpricedLines?: string[];
   } | null>(null);
@@ -276,8 +281,9 @@ export const OrdersView = () => {
   // three numbers live on the invoice rather than on the payments list. Pull the
   // list again and fold the fresh row into the open modal, keeping the line
   // items already loaded into it.
-  const refreshViewedInvoice = async () => {
+  const refreshViewedInvoice = async (requireFresh = false) => {
     const result = await refetch();
+    if (result.isError && requireFresh) throw new Error('Could not refresh order balance');
     setViewingInvoice((prev) => {
       if (!prev) return prev;
       const fresh = (result.data || []).find((order) => order.id === prev.id);
@@ -330,8 +336,9 @@ export const OrdersView = () => {
       }
       const stockImpact = Array.from(quantities, ([productId, line]) => {
         const product = products.find(product => product.id === productId);
-        const current = product?.stockGrams || 0;
-        return { name: line.name, current, after: current - line.quantity };
+        const unit = product?.type === 'Teaware' ? ' pieces' : 'g';
+        const current = Number(product?.type === 'Teaware' ? product.quantityUnits : product?.stockGrams) || 0;
+        return { name: line.name, current, after: current - line.quantity, unit };
       });
       setConfirmState({ type: 'no-charge-ship', invoice, stockImpact });
     } catch {
@@ -665,7 +672,7 @@ export const OrdersView = () => {
                             icon={<Eye size={14} />}
                             title="View Details"
                           />
-                          {!isVoid && (
+                          {!isVoid && !isFilled && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -780,12 +787,12 @@ export const OrdersView = () => {
                       )}
                     </div>
 
-                    <OrderPayLink
+                    {order.status !== 'Void' && order.status !== 'Draft' && <OrderPayLink
                       payment={order.payment}
                       invoiceNumber={order.invoice_number}
                       layout="inline"
                       className="mt-2"
-                    />
+                    />}
 
                     {/* Action gutter */}
                     <div className="flex items-center gap-2 mt-3 pt-3 border-t border-tea-border">
@@ -812,6 +819,7 @@ export const OrdersView = () => {
                         canEdit={order.status === 'Draft' || isPending}
                         canSplit={isPending && order.payment_status === 'unpaid' && !order.inventory_deducted}
                         isVoid={isVoid}
+                        canCancel={order.status !== 'Filled'}
                         onEdit={() => setEditInvoice(order)}
                         onSplit={() => setSplitInvoice(order)}
                         onVoid={() => setConfirmState({ type: 'void', invoice: order })}
@@ -840,64 +848,39 @@ export const OrdersView = () => {
       {/* INVOICE DETAILS MODAL */}
       {viewingInvoice && (
         <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-            <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-lg p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
-                <button onClick={() => { setViewingInvoice(null); setInvoiceTimeline([]); }} className="absolute top-6 right-6 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close">
+            <div role="dialog" aria-modal="true" aria-label="Order details" className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-3xl p-4 md:p-6 pb-nav-gap shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+                <button onClick={() => { setViewingInvoice(null); setInvoiceTimeline([]); }} className="absolute top-4 right-4 tap-target text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close">
                     <X size={24} />
                 </button>
 
-                <div className="mb-8">
-                    <h3 className="text-2xl font-serif text-tea-text mb-1">Invoice Details</h3>
+                <div className="mb-4 pr-8">
+                    <h3 className={`${T.h3} text-tea-text mb-1`}>Invoice Details</h3>
                     <p className="text-tea-text-sec text-sm num">{viewingInvoice.invoice_number}</p>
                 </div>
 
-                <div className="space-y-4 mb-8">
-                    <div className="flex justify-between border-b border-tea-border pb-3">
-                        <span className="text-tea-text-sec">Customer</span>
-                        <button
-                          onClick={() => { setViewingInvoice(null); navigate(`/admin/people?search=${encodeURIComponent(viewingInvoice.customer_name || '')}`); }}
-                          className="text-tea-text font-medium hover:text-tea-gold transition-colors"
-                        >
-                          {viewingInvoice.customer_name}
-                        </button>
-                    </div>
-                    <div className="flex justify-between border-b border-tea-border pb-3">
-                        <span className="text-tea-text-sec">Date</span>
-                        <span className="text-tea-text font-medium">{new Date(viewingInvoice.created_at).toLocaleString()}</span>
-                    </div>
-	                    <div className="flex justify-between border-b border-tea-border pb-3">
-	                        <span className="text-tea-text-sec">Status</span>
-	                        <span className={`font-medium ${viewingInvoice.status === 'Void' ? 'text-tea-text-sec' : viewingInvoice.status === 'Pending' ? 'text-tea-gold' : 'text-tea-text'}`}>{viewingInvoice.refund_required ? 'Cancelled, refund needed' : orderStatusLabel(viewingInvoice)}</span>
-	                    </div>
-	                    <div className="flex justify-between border-b border-tea-border pb-3">
-	                        <span className="text-tea-text-sec">Payment</span>
-	                        <span className={`font-medium ${viewingInvoice.payment_status === 'paid' ? 'text-tea-text' : 'text-tea-gold'}`}>
-	                          {paymentLabel(viewingInvoice)}
-	                        </span>
-	                    </div>
-	                    {viewingInvoice.payment_date && (
-	                      <div className="flex justify-between border-b border-tea-border pb-3">
-	                          <span className="text-tea-text-sec">Paid At</span>
-	                          <span className="text-tea-text font-medium">{new Date(viewingInvoice.payment_date).toLocaleString()}</span>
-	                      </div>
-	                    )}
-	                    {viewingInvoice.shipping_destination && <div className="flex justify-between gap-4 border-b border-tea-border pb-3"><span className="text-tea-text-sec">Delivery</span><span className="text-tea-text text-right">{viewingInvoice.shipping_destination}</span></div>}
-	                    {viewingInvoice.tracking_number && <div className="flex justify-between gap-4 border-b border-tea-border pb-3"><span className="text-tea-text-sec">Tracking</span><span className="text-tea-text text-right break-all">{viewingInvoice.tracking_number}</span></div>}
-	                    <div className="flex justify-between border-b border-tea-border pb-3">
-	                        <span className="text-tea-text-sec">Stock State</span>
-	                        <span className={`font-medium ${viewingInvoice.inventory_deducted ? 'text-tea-text' : 'text-tea-gold'}`}>{stockLabel(viewingInvoice)}</span>
-	                    </div>
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mb-4 text-ui-13">
+                  <button
+                    type="button"
+                    onClick={() => { setViewingInvoice(null); navigate(`/admin/people?search=${encodeURIComponent(viewingInvoice.customer_name || '')}`); }}
+                    className="tap-target min-w-0 break-words text-tea-text font-medium hover:text-tea-gold transition-colors"
+                  >{viewingInvoice.customer_name}</button>
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-tea-text-sec">
+                    <span>{orderStatusLabel(viewingInvoice)}</span>
+                    <span>{paymentLabel(viewingInvoice)}</span>
+                  </div>
                 </div>
 
-                {activeAccountId && <OrderAttribution invoiceId={viewingInvoice.id} accountId={activeAccountId} />}
-
-                <OrderPayLink
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-y border-tea-border py-4 mb-5">
+                  <OrderShipping key={viewingInvoice.id} order={viewingInvoice} onChanged={() => refreshViewedInvoice(true)} />
+                  <div className="min-w-0">
+                {viewingInvoice.status !== 'Void' && viewingInvoice.status !== 'Draft' && <OrderPayLink
                   payment={viewingInvoice.payment}
                   invoiceNumber={viewingInvoice.invoice_number}
                   customerName={viewingInvoice.customer_name}
                   customerWhatsapp={viewingInvoice.customer_whatsapp ?? null}
                   layout="block"
                   className="mb-6"
-                />
+                />}
 
                 {notificationLabel(viewingInvoice) && <p role="status" className="mb-6 rounded-md border border-tea-border bg-tea-surface p-3 text-ui-13 text-tea-text-sec">{notificationLabel(viewingInvoice)}</p>}
 
@@ -907,12 +890,32 @@ export const OrdersView = () => {
                     inside an edit that has not been saved, and a Filled order
                     never opens it at all. */}
                 <OrderPaymentsPanel
+                  readOnly={viewingInvoice.status === 'Void' || viewingInvoice.status === 'Draft'}
                   invoiceId={viewingInvoice.id}
                   invoiceNumber={viewingInvoice.invoice_number}
                   payment={viewingInvoice.payment}
                   onChanged={() => { void refreshViewedInvoice(); }}
-                  className="mb-6"
+                  className="mb-0"
                 />
+                {viewingInvoice.status === 'Void' && (viewingInvoice.refund_required || Number(viewingInvoice.refunded_usd) > 0) && <OrderRefund
+                  key={`${activeAccountId}:${viewingInvoice.id}:${viewingInvoice.refunded_usd || 0}`}
+                  invoiceId={viewingInvoice.id}
+                  refunded={Number(viewingInvoice.refunded_usd) || 0}
+                  due={Number(viewingInvoice.refund_due_usd ?? Math.max(0, Number(viewingInvoice.payment?.paid_usd || 0) - Number(viewingInvoice.refunded_usd || 0)))}
+                  onChanged={() => { void refreshViewedInvoice(); }}
+                />}
+                  </div>
+                </div>
+
+                <details className="mb-4">
+                  <summary className="tap-target cursor-pointer text-ui-13 text-tea-text-sec">Order history and attribution</summary>
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 my-3 text-ui-13 text-tea-text-sec">
+                    <div><dt>Created</dt><dd>{new Date(viewingInvoice.created_at).toLocaleString()}</dd></div>
+                    {viewingInvoice.payment_date && <div><dt>Paid at</dt><dd>{new Date(viewingInvoice.payment_date).toLocaleString()}</dd></div>}
+                    <div><dt>Stock</dt><dd>{stockLabel(viewingInvoice)}</dd></div>
+                  </dl>
+                  {activeAccountId && <OrderAttribution invoiceId={viewingInvoice.id} accountId={activeAccountId} />}
+                </details>
 
                 {viewingInvoice.stock_exception && viewingInvoice.payment_status === 'paid' && <div role="alert" className="mb-6 rounded-md border border-tea-border bg-tea-surface p-4 space-y-2">
                   <p className="text-ui-14 text-tea-text">Payment is recorded, but stock deduction needs attention. Do not ship yet.</p>
@@ -1009,7 +1012,7 @@ export const OrdersView = () => {
                                     )}
                                 </div>
                                 <div className="text-right ml-4 shrink-0">
-                                    <div className="text-tea-text num">{item.quantity}g/u</div>
+                                    <div className="text-tea-text num">{item.quantity}{item.quantity_unit === 'unit' || (!item.quantity_unit && item.product?.type === 'Teaware') ? ' pieces' : 'g'}</div>
                                     <div className="text-tea-text-sec text-xs num">@ {item.price_at_sale} USD</div>
                                 </div>
                               </div>
@@ -1154,7 +1157,7 @@ export const OrdersView = () => {
         description={
           confirmState?.type === 'ship' ? 'This marks the paid order shipped. Stock was deducted when payment was confirmed.'
           : confirmState?.type === 'no-charge-ship' ? 'Review the stock impact below. Shipping this no-charge order deducts stock once and records the shipment.'
-          : confirmState?.type === 'void' ? (confirmState.invoice.payment_status === 'paid' || confirmState.invoice.payment_status === 'partial' ? 'This cancels the order and flags a refund needed. Confirmed payments remain in the record until you handle the refund.' : 'This cancels the unpaid order and releases its stock hold.')
+          : confirmState?.type === 'void' ? (confirmState.invoice.payment_status === 'paid' || confirmState.invoice.payment_status === 'partial' ? 'This cancels the unshipped order, restores deducted stock and records the refund due. Confirmed payments stay in the history.' : 'This cancels the unpaid order and releases its stock hold.')
           : confirmState?.type === 'accept-unpriced'
             ? 'The customer will be asked for nothing for these. Price them first if that is not what you meant.'
           : 'This will soft-delete this voided invoice. It can be recovered later.'
@@ -1185,7 +1188,7 @@ export const OrdersView = () => {
 
         {confirmState?.type === 'no-charge-ship' && confirmState.stockImpact && <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
           <h4 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">Stock impact</h4>
-          <div className="space-y-2">{confirmState.stockImpact.map((item, index) => <div key={index} className="flex justify-between gap-3 text-ui-12"><span className="text-tea-text truncate">{item.name}</span><span className="num text-tea-text-sec shrink-0">{item.current}g → {item.after}g</span></div>)}</div>
+          <div className="space-y-2">{confirmState.stockImpact.map((item, index) => <div key={index} className="flex justify-between gap-3 text-ui-12"><span className="text-tea-text truncate">{item.name}</span><span className="num text-tea-text-sec shrink-0">{item.current}{item.unit} → {item.after}{item.unit}</span></div>)}</div>
           {confirmState.stockImpact.some(item => item.after < 0) && <p className="mt-3 text-ui-12 text-tea-text-sec">Some tea is short. The server will keep the order unshipped until stock is available.</p>}
         </div>}
 
@@ -1233,11 +1236,12 @@ const MobileActions: React.FC<{
   canEdit: boolean;
   canSplit: boolean;
   isVoid: boolean;
+  canCancel: boolean;
   onEdit: () => void;
   onSplit: () => void;
   onVoid: () => void;
   onDelete: () => void;
-}> = ({ canEdit, canSplit, isVoid, onEdit, onSplit, onVoid, onDelete }) => {
+}> = ({ canEdit, canSplit, isVoid, canCancel, onEdit, onSplit, onVoid, onDelete }) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -1263,7 +1267,7 @@ const MobileActions: React.FC<{
                 </button>}
               </>
             )}
-            {!isVoid && (
+            {!isVoid && canCancel && (
               <button onClick={() => { setOpen(false); onVoid(); }} className="w-full text-left px-3 py-2 text-xs hover:bg-tea-elevated/50 flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors">
                 <XCircle size={12} /> Void
               </button>

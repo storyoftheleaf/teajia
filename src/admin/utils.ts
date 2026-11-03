@@ -120,7 +120,7 @@ export const formatCurrency = (amount: number, currency: StoredCurrency, rates: 
 
 
 export const calculatePricing = (
-  costAmount: number,
+  costAmount: number | null,
   shippingRatePerKg: number,
   quantity: number, // grams for tea, units for teaware
   currency: StoredCurrency,
@@ -151,7 +151,7 @@ export const calculatePricing = (
      instead, so the panel showed a dash for a tea the shelf was pricing and
      selling, which is the admin disagreeing with the shop about the same tea. */
   const rateToUSD = isUnrecordedCurrency(currency) ? 1 : rateToUsd(rates, currency);
-  if (!rateToUSD || rateToUSD <= 0) {
+  if (costAmount == null || !rateToUSD || rateToUSD <= 0) {
     return { totalShipping: 0, costPerGramSource: 0, trueCostUSD: 0, suggestedRetailUSD: 0, rateUsed: 0 };
   }
 
@@ -193,7 +193,7 @@ export const productToInventoryItem = (product: Product): InventoryItem => {
     year: product.year ? String(product.year) : '',
     origin: product.originRegion || product.originCountry || '',
     stock_g: isTeaware ? (product.quantityUnits || 0) : product.stockGrams,
-    cost_price: String(product.costAmount),
+    cost_price: product.costAmount == null ? '' : String(product.costAmount),
     cost_currency: undefined,
     // For tea: price_per_gram is per-gram. For teaware: price_50g is per-unit price.
     // Use fixed retail price (locked override) if set, otherwise formula-based retail

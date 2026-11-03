@@ -1,3 +1,4 @@
+import { StockMobileRecord, useStockPhone } from './stock/StockMobileRecord';
 import React, { useLayoutEffect, useRef } from 'react';
 import { Check, Plus } from 'lucide-react';
 import { GhostInput } from '../ProductEditPanel';
@@ -10,6 +11,9 @@ import { stripMatchingYear } from './helpers';
 import { shippingRateUsdFor } from '../../../lib/shippingRate';
 
 export interface InventoryRowProps {
+  onSaveField?: (id: string, field: keyof Product, value: unknown) => Promise<void>;
+  onQuickTaste?: () => void;
+  onQuickJournal?: () => void;
   product: Product;
   globalIdx: number;
   isSelected: boolean;
@@ -41,7 +45,7 @@ export interface InventoryRowProps {
   onLongPressSelect: (productId: string, globalIdx: number) => void;
   /** Mobile long-press (touch only) opens the quick-edit sheet for this product. */
   onLongPressQuickEdit: (productId: string, globalIdx: number) => void;
-  onProductUpdate: (id: string, field: keyof Product, value: any) => void;
+  onProductUpdate: (id: string, field: keyof Product, value: any) => void | Promise<void>;
   onSelectionAwareUpdate: (product: Product, field: keyof Product, value: any) => void;
   onOpenPanel: (product: Product) => void;
   onToggleDropdown: (productId: string | null) => void;
@@ -55,15 +59,17 @@ export interface InventoryRowProps {
 
 // Canonical inventory row, see DesignSystemShowcase § Inventory list (INV_ROWS).
 // Serif numerics for year/grams/price, dot+label for type, gold-tinted active row.
-// Information-first: the row body selects (it has no action cluster). Every row
-// action lives in the unified action rail that appears when rows are selected.
+// The spreadsheet row selects and uses the shared action rail. Phone cards
+// keep photo, tasting and direct field editing beside the tea.
 function InventoryRowBase(props: InventoryRowProps) {
+  const stockPhone = useStockPhone();
   const {
     product, globalIdx, isSelected, focusedCol, isEditMode, visibleCols, splitViewCols,
     splitView, stickyFirstCol, alignLeft, legacyMobileLayout, costRateToUsd, shopFreightPerKgUsd, rowHeight, isPanelOpen, isDropdownOpen,
     onRowClick, onLongPressSelect, onLongPressQuickEdit, onProductUpdate, onSelectionAwareUpdate,
     onOpenPanel, onToggleDropdown, onStockHistory, onStockMovement, onRestock, onDeleteRequest, showToast, onOpenSource,
   } = props;
+  const saveField = props.onSaveField || onProductUpdate;
   void onLongPressSelect; // retained in the prop type; long-press now routes to quick-edit
 
   const globalIdxRef = useRef(globalIdx);
@@ -140,7 +146,8 @@ function InventoryRowBase(props: InventoryRowProps) {
           : '';
         // Subtitle slot is always rendered (with &nbsp; fallback) so every row
         // has the same height regardless of whether a givenName/form is present.
-        const houseName = product.givenName?.trim() || 'Unnamed';
+        const enteredHouseName = product.givenName?.trim();
+        const houseName = enteredHouseName && enteredHouseName !== product.productName?.trim() ? enteredHouseName : 'Unnamed';
         const subtitle = legacyMobileLayout
           ? product.givenName
             ? <>{product.givenName}{product.form && <span className="ml-1 opacity-70">· {product.form}</span>}</>
@@ -156,7 +163,7 @@ function InventoryRowBase(props: InventoryRowProps) {
             <div className="flex flex-col justify-center">
               {isEditMode ? (
                 <div className="flex min-w-0 items-center gap-1">
-                  <GhostInput value={displayName} onSave={(val) => onProductUpdate(product.id, 'productName', val)} className={`min-w-0 flex-1 ${nameWeightCls} ${nameTone}`} ariaLabel="Product name" />
+                  <GhostInput value={displayName} onSave={(val) => saveField(product.id, 'productName', val)} className={`min-w-0 flex-1 ${nameWeightCls} ${nameTone}`} ariaLabel="Product name" />
                   <label className="tap-target inline-flex shrink-0 items-center gap-0.5 text-ui-9 uppercase tracking-[0.06em] text-tea-text-sec hover:text-tea-text" aria-label={`Change type for ${displayName}`}>
                     <Plus size={9} aria-hidden="true" />
                     <select
@@ -211,21 +218,21 @@ function InventoryRowBase(props: InventoryRowProps) {
       case 'year': return (
         <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 align-middle num overflow-hidden ${fr} ${isSold ? 'text-tea-text-dim' : 'text-tea-text-sec'}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Year" value={product.year || ''} onSave={(val) => onProductUpdate(product.id, 'year', val)} type="number" placeholder="YYYY" className="num text-ui-13 text-tea-text-sec" />
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Year" value={product.year ?? ''} onSave={(val) => saveField(product.id, 'year', val)} type="text" placeholder="YYYY or decade" className="num text-ui-13 text-tea-text-sec" />
             : <span>{product.year || '—'}</span>}
         </td>
       );
       case 'form': return (
         <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Leaf form" value={product.form || ''} onSave={(val) => onProductUpdate(product.id, 'form', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Leaf form" value={product.form || ''} onSave={(val) => saveField(product.id, 'form', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
             : <span className="truncate block">{product.form || '—'}</span>}
         </td>
       );
       case 'originRegion': return (
         <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Origin region" value={product.originRegion} onSave={(val) => onProductUpdate(product.id, 'originRegion', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Origin region" value={product.originRegion} onSave={(val) => saveField(product.id, 'originRegion', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
             : <span className="truncate block">{product.originRegion}</span>}
         </td>
       );
@@ -251,8 +258,8 @@ function InventoryRowBase(props: InventoryRowProps) {
       case 'costAmount': return (
         <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Cost amount" value={product.costAmount} onSave={(val) => onProductUpdate(product.id, 'costAmount', val)} type="number" align={numInputAlign} className={`num text-ui-13 ${numTone}`} />
-            : <span>{product.costAmount > 0 ? product.costAmount.toLocaleString() : '—'}</span>}
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Cost amount" value={product.costAmount ?? ''} onSave={(val) => saveField(product.id, 'costAmount', val)} type="number" align={numInputAlign} className={`num text-ui-13 ${numTone}`} />
+            : <span>{product.costAmount == null ? 'Cost needed' : product.costAmount.toLocaleString()}</span>}
         </td>
       );
       case 'costPerGramUSD': return (
@@ -305,7 +312,7 @@ function InventoryRowBase(props: InventoryRowProps) {
         return (
           <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${overrideTone}`}>
             {isEditMode
-              ? <GhostInput id={ghostId(colIndex)} ariaLabel="Retail price per gram (USD)" value={sellingPrice?.toFixed(2)} onSave={(val) => onProductUpdate(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)} type="number" align={numInputAlign} className={`num text-ui-13 ${overrideTone}`} />
+              ? <GhostInput id={ghostId(colIndex)} ariaLabel="Retail price per gram (USD)" value={sellingPrice?.toFixed(2)} onSave={(val) => saveField(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)} type="number" align={numInputAlign} className={`num text-ui-13 ${overrideTone}`} />
               : <span>{sellingPrice != null ? fmtNum(sellingPrice) : '—'}</span>}
           </td>
         );
@@ -313,21 +320,21 @@ function InventoryRowBase(props: InventoryRowProps) {
       case 'material': return (
         <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Material" value={product.material || ''} onSave={(val) => onProductUpdate(product.id, 'material', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Material" value={product.material || ''} onSave={(val) => saveField(product.id, 'material', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
             : <span className="truncate block">{product.material || '—'}</span>}
         </td>
       );
       case 'teawareCategory': return (
         <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Teaware category" value={product.teawareCategory || ''} onSave={(val) => onProductUpdate(product.id, 'teawareCategory', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Teaware category" value={product.teawareCategory || ''} onSave={(val) => saveField(product.id, 'teawareCategory', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
             : <span className="capitalize truncate block">{product.teawareCategory || '—'}</span>}
         </td>
       );
       case 'capacityMl': return (
         <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Capacity (ml)" value={product.capacityMl || ''} onSave={(val) => onProductUpdate(product.id, 'capacityMl', val)} type="number" align={numInputAlign} className={`num text-ui-13 ${numTone}`} />
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Capacity (ml)" value={product.capacityMl || ''} onSave={(val) => saveField(product.id, 'capacityMl', val)} type="number" align={numInputAlign} className={`num text-ui-13 ${numTone}`} />
             : <span>{product.capacityMl ? `${product.capacityMl}ml` : '—'}</span>}
         </td>
       );
@@ -424,16 +431,25 @@ function InventoryRowBase(props: InventoryRowProps) {
         onRowClick(product.id, globalIdxRef.current, e);
       }}
       onKeyDown={(e) => {
-        if (e.key !== 'Enter' && e.key !== ' ') return;
+        if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return;
         e.preventDefault();
         onRowClick(product.id, globalIdxRef.current, e as unknown as React.MouseEvent);
       }}
     >
-      {/* Rows are information-first: the per-row action cluster (star / eye /
-          edit / more) was removed. Selecting a row reveals the unified action
-          rail at the right edge, which is now the single surface for every row
-          action. The Edit pencil moved into that rail (single-select only). */}
-      {(splitView ? splitViewCols : visibleCols).map((col, colIdx) => renderCell(col.key, colIdx))}
+      {/* Phone cards keep direct actions; spreadsheet rows use the shared rail. */}
+      {stockPhone ? <td className="stock-mobile-cell" colSpan={(splitView ? splitViewCols : visibleCols).length}>
+        <StockMobileRecord product={product} name={displayName} index={globalIdx} editing={isEditMode}
+          onEdit={() => onOpenPanel(product)}
+          onSaveChange={async (field, value) => { await (props.onSaveField ? props.onSaveField(product.id, field, value) : onProductUpdate(product.id, field, value)); }}
+          onTaste={() => props.onQuickTaste?.()} onJournal={() => props.onQuickJournal?.()}
+          onHistory={() => onStockHistory(product.id, product.productName)}
+          freightUsd={product.type === 'Teaware' ? 0 : shippingRateUsdFor(product.shippingRatePerKg, costRateToUsd?.(product) ?? null, shopFreightPerKgUsd)}
+          onUpdate={value => onProductUpdate(product.id, 'productName', value)}
+          fields={['type', product.type === 'Teaware' ? 'quantityUnits' : 'stockGrams', 'pricePerGramUSD'].map((key, colIdx) => {
+            const cell = renderCell(key, colIdx) as React.ReactElement<any>;
+            return { key, label: key, content: cell.props.children, className: cell.props.className };
+          })} />
+      </td> : (splitView ? splitViewCols : visibleCols).map((col, colIdx) => React.cloneElement(renderCell(col.key, colIdx), { 'data-stock-column': col.key }))}
     </tr>
   );
 }

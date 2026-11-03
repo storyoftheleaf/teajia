@@ -5,6 +5,11 @@ import {
   Sparkles, Layers, ArrowRight, Inbox, Receipt, Truck, RotateCw,
   MessageCircle,
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAppStore } from '../../lib/store';
+import { refreshCommerceQueries } from '../../lib/refreshCommerce';
+import { confirmedIntakeRows, purchaseRecordsForIntake, prepareIntakeProducts } from '../lib/intakeCommit';
+import { hydrateIntakeItems, intakeStorageKey, loadIntakeSnapshot, readIntakeSnapshot, type IntakeSnapshot } from '../lib/intakeDraft';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Papa from 'papaparse';
 import { api } from '../../lib/api';
@@ -17,10 +22,11 @@ import {
   autoMap, loadRememberedMapping, rememberMapping, rowToStaged,
   stagedToProduct, isReadyItem, extractedToStaged,
 } from '../lib/intakeMapping';
+import { TEA_TYPES } from '../../wisdom';
 import { enteredCostCell } from '../productUpdatePayload';
 import { plainCostWords } from '../../lib/costRefusalWords';
 import { rateToUsd } from '../../lib/currency';
-import { freightRefusalWords, splitByConvertibleFreight } from '../lib/intakeFreight';
+import { freightRefusalWords } from '../lib/intakeFreight';
 import { assertSupportedIntakeFile, readXlsxIntakeFile } from '../lib/xlsxIntake';
 import { IntakeChatSheet, type ChatAnswer } from '../components/IntakeChatSheet';
 
@@ -56,6 +62,20 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const importId = searchParams.get('importId');
+  const queryClient = useQueryClient();
+  const accountId = useAppStore(state => state.activeAccountId);
+  const userId = useAppStore(state => state.activeUserId);
+  const draftKey = intakeStorageKey(accountId, userId, importId);
+  const [draftReady, setDraftReady] = useState(false);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const [draftStatus, setDraftStatus] = useState('Loading draft…');
+  const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
+  const snapshotRef = useRef<IntakeSnapshot | null>(null);
+  const saveQueue = useRef(Promise.resolve());
+  const revisions = useRef(new Map<string,number>());
+  const conflictedScopes = useRef(new Set<string>());
+  const savedScope = useRef(draftKey);
+  savedScope.current = draftKey;
 
   const [sources, setSources] = useState<Source[]>([]);
   const [items, setItems] = useState<StagedItem[]>([]);
@@ -96,25 +116,72 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
     return () => { cancelled = true; };
   }, [importId, setSearchParams]);
 
-  // Hydrate local staging from the server draft the first time we land on an id.
-  // Local edits are the source of truth once staged, so we never overwrite
-  // non-empty staging.
+  const restoreSnapshot = useCallback((snapshot: IntakeSnapshot) => {
+    setSources(snapshot.sources.map(source => source.kind === 'image' && source.status === 'extracting' ? {...source,status:'error',error:'Extraction was interrupted. Add the image again to retry.'} : source)); setItems(snapshot.items); setBatchId(snapshot.batchId);
+    setSavePurchaseRecord(snapshot.savePurchaseRecord); setShippingTotal(snapshot.shippingTotal);
+    setShippingCurrency(snapshot.shippingCurrency); setPendingPurchaseRecords(snapshot.pendingPurchaseRecords);
+    setRowErrors(snapshot.rowErrors || {}); snapshotRef.current = snapshot;
+  }, []);
   useEffect(() => {
-    if (!importId || hydratedForImport.current === importId) return;
-    hydratedForImport.current = importId;
+    if (!importId || hydratedForImport.current === draftKey) return;
+    hydratedForImport.current = draftKey;
+    setDraftReady(false);
     let cancelled = false;
+    const local = loadIntakeSnapshot(draftKey) || loadIntakeSnapshot(intakeStorageKey(accountId, userId, null));
+    setSources([]); setItems([]); setBatchId(null); setPendingPurchaseRecords([]); setRowErrors({}); setShippingTotal(0); setShippingCurrency('');
+    if (local) restoreSnapshot(local);
     (async () => {
       try {
         const detail = await api.curateImports.get(importId);
         if (cancelled) return;
-        hydrateFromDetail(detail);
+        revisions.current.set(draftKey, detail.batch?.intake_revision ?? 0);
+        conflictedScopes.current.delete(draftKey);
+        const remote = readIntakeSnapshot(detail.batch?.intake_state);
+        if (remote && (!local || remote.savedAt > local.savedAt)) restoreSnapshot(remote);
+        else if (!local) hydrateFromDetail(detail);
+        setDraftStatus(local && (!remote || local.savedAt > remote.savedAt) ? 'Saved on this device. Syncing…' : 'Draft ready');
       } catch {
-        /* non-fatal, batch may not exist yet (freshly created) */
-      }
+        if (!cancelled) setDraftStatus(local ? 'Recovered on this device. Server save will retry.' : 'Server draft could not be loaded. Changes stay on this device until saved.');
+      } finally { if (!cancelled) { setLoadedKey(draftKey); setDraftReady(true); } }
     })();
     return () => { cancelled = true; };
-  }, [importId]);
+  }, [importId, draftKey, accountId, userId, restoreSnapshot]);
 
+  const persistSnapshot = useCallback(async (snapshot: IntakeSnapshot) => {
+    const key = draftKey;
+    try { localStorage.setItem(key, JSON.stringify(snapshot)); }
+    catch { setDraftStatus('This device could not save a recovery copy. Keep this page open until server save succeeds.'); }
+    if (!importId) return;
+    setDraftStatus('Saving draft…');
+    const write = saveQueue.current.catch(() => {}).then(async () => {
+      if (conflictedScopes.current.has(key)) throw new Error('Another device changed this draft. Reload to review before saving. Your edits remain on this device.');
+      try {
+        const result = await api.curateImports.saveIntakeState(importId, snapshot, revisions.current.get(key));
+        revisions.current.set(key,result.intake_revision);
+        return result;
+      } catch(error) {
+        if (error && typeof error === 'object' && 'status' in error && error.status === 409) conflictedScopes.current.add(key);
+        throw error;
+      }
+    });
+    saveQueue.current = write.then(() => {});
+    try {
+      await write;
+      if (savedScope.current === key) setDraftStatus('All changes saved');
+    } catch (error) {
+      if (savedScope.current === key) setDraftStatus(`Saved on this device. Server save failed: ${error instanceof Error ? error.message : 'try again'}`);
+      throw error;
+    }
+  }, [draftKey, importId]);
+  useEffect(() => {
+    if (importId && (!draftReady || loadedKey !== draftKey)) return;
+    const snapshot: IntakeSnapshot = {version:1, savedAt:Date.now(),sources,items,batchId,savePurchaseRecord,shippingTotal,shippingCurrency,pendingPurchaseRecords,rowErrors};
+    snapshotRef.current = snapshot;
+    try { localStorage.setItem(draftKey, JSON.stringify(snapshot)); } catch { /* Server persistence still runs. */ }
+    if (!importId) return;
+    const timer = setTimeout(() => { void persistSnapshot(snapshot).catch(() => {}); }, 450);
+    return () => clearTimeout(timer);
+  }, [importId, loadedKey, draftReady, sources, items, batchId, savePurchaseRecord, shippingTotal, shippingCurrency, pendingPurchaseRecords, rowErrors, draftKey, persistSnapshot]);
   // Load the resume list so the user can jump between incomplete drafts across
   // devices / tabs.
   const refreshIncomplete = useCallback(async () => {
@@ -130,7 +197,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
       if (prev.length) return prev;
       const hydrated: Source[] = [];
       for (const s of detail.sources) {
-        if (s.kind === 'photo' || s.kind === 'file') {
+        {
           const meta = (s.metadata || {}) as Record<string, unknown>;
           const name = String(meta.filename || meta.name || s.r2_object_key || s.kind);
           hydrated.push({ id: s.id, kind: 'image', name, status: 'ready' });
@@ -138,29 +205,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
       }
       return hydrated;
     });
-    setItems((prev) => {
-      if (prev.length) return prev;
-      const hydrated: StagedItem[] = [];
-      for (const it of detail.items) {
-        const parsed = (it.parsed_data || {}) as Record<string, unknown>;
-        const name = it.name || String(parsed.englishName || parsed.originalName || 'Unnamed');
-        const sourceId = it.source_id || '';
-        if (!sourceId) continue;
-        hydrated.push({
-          id: it.id, sourceId, givenName: name,
-          chineseName: String(parsed.chineseName || ''), productName: '',
-          type: 'Misc', form: null, year: '',
-          originCountry: '', originRegion: '', vendor: '',
-          // Null, not 0: a resumed import has not been told a price yet, and 0
-          // would say every one of its teas was free.
-          costAmount: null, costCurrency: 'UNK',
-          stockGrams: 0, quantityPurchased: 0, quantityUnits: 0, teawareCategory: '',
-          sizeEstimate: 0, description: '', imageUrl: '',
-          isPersonal: false, needsReview: true, include: true, order: {},
-        });
-      }
-      return hydrated;
-    });
+    setItems(previous => previous.length ? previous : hydrateIntakeItems(detail));
   }, []);
 
   const resumeImport = useCallback((id: string) => {
@@ -183,6 +228,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
 
   const updateItem = useCallback((id: string, patch: Partial<StagedItem>) => {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+    setRowErrors(current => { const next = {...current}; delete next[id]; return next; });
   }, []);
 
   // ── In-flow "Ask about this tea" chat sheet (THEN-T2) ─────────────────────
@@ -309,7 +355,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
 
   const setSourcePersonal = useCallback((src: SheetSource, val: boolean) => {
     setSources((prev) => prev.map((s) => (s.id === src.id && s.kind === 'sheet' ? { ...s, defaultPersonal: val } : s)));
-    setItems((prev) => prev.map((i) => (i.sourceId === src.id ? { ...i, isPersonal: val } : i)));
+    setItems((prev) => prev.map((i) => (i.sourceId === src.id ? { ...i, isPersonal: val, inventoryPurpose:val?'personal':'working' } : i)));
   }, []);
 
   const toggleExpand = useCallback((id: string) => {
@@ -327,7 +373,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
   const included = useMemo(() => items.filter((i) => i.include), [items]);
   const counts = useMemo(() => ({
     total: included.length,
-    forSale: included.filter((i) => !i.isPersonal).length,
+    forSale: included.filter((i) => (i.inventoryPurpose || (i.isPersonal ? 'personal' : 'working')) === 'working').length,
     personal: included.filter((i) => i.isPersonal).length,
     review: included.filter((i) => i.needsReview || !isReadyItem(i)).length,
   }), [included]);
@@ -355,10 +401,13 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
   // ── Commit ───────────────────────────────────────────────────────────────────
   const finishImport = useCallback(async () => {
     onRefresh?.();
+    await refreshCommerceQueries(queryClient, accountId);
     if (importId) await api.curateImports.abandon(importId).catch(() => null);
+    setDraftReady(false);
+    try { localStorage.removeItem(draftKey); localStorage.removeItem(intakeStorageKey(accountId, userId, null)); } catch { /* Server completion is authoritative. */ }
     setSources([]); setItems([]);
     navigate('/admin/capture');
-  }, [onRefresh, importId, navigate]);
+  }, [onRefresh, importId, navigate, queryClient, accountId, userId, draftKey]);
 
   const retryPurchaseRecords = useCallback(async () => {
     if (committing || pendingPurchaseRecords.length === 0) return;
@@ -375,9 +424,9 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
       }
       setPendingPurchaseRecords([]);
       showToast('Purchase records saved. Inventory items were already added.', 'success');
-      await finishImport();
+      if (items.length === 0) await finishImport();
     } finally { setCommitting(false); }
-  }, [committing, pendingPurchaseRecords, showToast, finishImport]);
+  }, [committing, pendingPurchaseRecords, showToast, finishImport, items]);
 
   const commit = useCallback(async () => {
     if (included.length === 0 || committing || pendingPurchaseRecords.length > 0) return;
@@ -398,12 +447,13 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
          line is named by its currency, because that is what the operator has to
          fix: give the shop a rate for it, or say what the tea was really paid
          in. Nothing is refused when there is no shipping to spread. */
-      const { priced, unconvertible } = splitByConvertibleFreight(included, shipCur, shareShip, rates);
+      const { products, priced, unconvertible } = prepareIntakeProducts(included, shipCur, shareShip, rates);
       if (unconvertible.size > 0) {
         skipped += [...unconvertible.values()].reduce((a, b) => a + b, 0);
         skipReasons.add(freightRefusalWords(unconvertible));
       }
-      const products = priced.map(({ it, extra }) => stagedToProduct(it, extra));
+      const confirmed: Array<{item: StagedItem; productId: string; ledgerId?: string}> = [];
+      const errors: Record<string, string> = {};
       if (products.length === 0) {
         // Nothing to send, so nothing is cleared. The staged lines stay on
         // screen with the reason above them, which is the only state from which
@@ -411,9 +461,13 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
         showToast([...skipReasons].join(' ') || 'Nothing to import.', 'error');
         return;
       }
+      // Validate purchase totals before any inventory write. A missing browser rate must leave this draft editable.
+      if (savePurchaseRecord) purchaseRecordsForIntake(priced.map(({it})=>({item:it,productId:it.id})),rates,sourceName,importId || draftKey);
       for (let i = 0; i < products.length; i += chunk) {
-        const res: any = await api.products.bulkCreate(products.slice(i, i + chunk), batchId ?? undefined);
-        inserted += res?.inserted ?? products.slice(i, i + chunk).length;
+        const res: any = await api.products.bulkCreate(products.slice(i, i + chunk), batchId ?? undefined, importId || draftKey);
+        const outcomes = confirmedIntakeRows(priced.slice(i, i + chunk).map(row => row.it), res);
+        confirmed.push(...outcomes.confirmed); Object.assign(errors, outcomes.errors);
+        inserted += outcomes.confirmed.length;
         skipped += res?.skipped ?? 0;
         for (const row of res?.results ?? []) {
           /* In words, not in column names. The server answers the two doors in
@@ -426,56 +480,15 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
           if (row?.status === 'skipped' && row?.reason) skipReasons.add(plainCostWords(String(row.reason)));
         }
       }
-      const purchaseRecords: Array<Parameters<typeof api.purchaseOrders.create>[0]> = [];
-      if (savePurchaseRecord) {
-        // One purchase record per vendor/store, an order sheet routinely spans
-        // many stores, so a single PO per file would lump them together wrongly.
-        /* This one writes a purchase record, so a rate of 1 does not merely
-           display wrong, it records a yuan total as dollars against a vendor.
-           A line whose currency has no rate contributes nothing to the total
-           rather than contributing a made-up figure. */
-        const rateFor = (cur: string) => rateToUsd(rates, cur);
-        const groups = new Map<string, StagedItem[]>();
-        // The lines that were actually sent. A tea refused above was not
-        // bought through this import, so it is not in this import's order.
-        for (const { it } of priced) {
-          const key = it.vendor.trim() || sourceName(it.sourceId).replace(/\.[^.]+$/, '') || 'Unknown vendor';
-          if (!groups.has(key)) groups.set(key, []);
-          groups.get(key)!.push(it);
-        }
-        for (const [vendor, lines] of groups) {
-          // nothing to record if there's neither cost nor logistics
-          if (!lines.some((l) => (l.costAmount ?? 0) > 0 || Object.keys(l.order).length > 0)) continue;
-          const totalUSD = lines.reduce((sum, l) => {
-            const qty = l.quantityPurchased || l.quantityUnits || l.stockGrams || 1;
-            // A line with no recorded price adds nothing to the order total,
-            // which is what not knowing costs. Same for a line whose currency
-            // the shop cannot resolve.
-            const rate = rateFor(l.costCurrency);
-            if (rate === null) return sum;
-            return sum + ((l.costAmount ?? 0) * qty) / rate;
-          }, 0);
-          // dominant non-UNK currency for display
-          const tally: Record<string, number> = {};
-          lines.forEach((l) => { if (l.costCurrency !== 'UNK') tally[l.costCurrency] = (tally[l.costCurrency] || 0) + 1; });
-          const display = Object.entries(tally).sort((a, b) => b[1] - a[1])[0]?.[0] || 'USD';
-          const files = Array.from(new Set(lines.map((l) => sourceName(l.sourceId)))).filter(Boolean).join(', ');
-          purchaseRecords.push({
-            vendor_name: vendor,
-            items_json: JSON.stringify(lines.map((l) => ({
-              product_name: l.givenName || l.productName,
-              quantity: l.quantityPurchased || l.quantityUnits || l.stockGrams,
-              unit_price: l.costAmount,
-              currency: l.costCurrency,
-              ...l.order,
-            }))),
-            total_usd: Math.round(totalUSD * 100) / 100,
-            display_currency: display,
-            status: 'received',
-            notes: `Intake${files ? ` from ${files}` : ''}${batchId ? ` · batch ${batchId}` : ''}`,
-          });
-        }
-      }
+      const successfulIds = new Set(confirmed.map(row => row.item.id));
+      for (const item of included) if (!successfulIds.has(item.id) && !errors[item.id]) errors[item.id] = 'This line could not be added. Check its currency and freight, then retry.';
+      const remainingItems = items.filter(item => !successfulIds.has(item.id));
+      const purchaseRecords = savePurchaseRecord ? purchaseRecordsForIntake(confirmed, rates, sourceName, importId || draftKey) : [];
+      setItems(remainingItems); setRowErrors(errors);
+      // Persist the follow-up queue before its first external write, so reload cannot repeat inventory.
+      const committedSnapshot: IntakeSnapshot = {version:1,savedAt:Date.now(),sources,items:remainingItems,batchId,savePurchaseRecord,shippingTotal,shippingCurrency,pendingPurchaseRecords:purchaseRecords,rowErrors:errors};
+      snapshotRef.current = committedSnapshot; setPendingPurchaseRecords(purchaseRecords);
+      await persistSnapshot(committedSnapshot);
       for (let i = 0; i < purchaseRecords.length; i++) {
         try {
           await api.purchaseOrders.create(purchaseRecords[i]);
@@ -496,15 +509,16 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
         `Added ${inserted} item${inserted !== 1 ? 's' : ''} as drafts${skipNote}`,
         skipped > 0 ? 'error' : 'success',
       );
-      await finishImport();
+      setPendingPurchaseRecords([]);
+      if (remainingItems.length === 0) await finishImport();
     } catch (e: any) {
       showToast(`Import failed: ${e?.message || 'error'}`, 'error');
     } finally {
       setCommitting(false);
     }
-  }, [included, committing, pendingPurchaseRecords.length, batchId, savePurchaseRecord, rates, sourceName, shareShip, shipCur, showToast, onRefresh, finishImport]);
+  }, [included, committing, pendingPurchaseRecords.length, batchId, savePurchaseRecord, rates, sourceName, shareShip, shipCur, showToast, onRefresh, finishImport, items, sources, shippingTotal, shippingCurrency, importId, draftKey, persistSnapshot]);
 
-  const hasContent = sources.length > 0 || pendingPurchaseRecords.length > 0;
+  const hasContent = sources.length > 0 || items.length > 0 || pendingPurchaseRecords.length > 0;
 
   return (
     <div
@@ -627,6 +641,8 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
         </div>
       </div>
 
+      <div className="px-4 py-2 text-ui-12 text-tea-text-sec" role="status">{draftStatus} <button type="button" className="tap-target underline" onClick={() => { if (snapshotRef.current) void persistSnapshot(snapshotRef.current).catch(() => {}); }}>Save now</button></div>
+      {Object.keys(rowErrors).length > 0 && <div role="alert" className="px-4 py-2 text-ui-12 text-tea-text-sec">{items.filter(item => rowErrors[item.id]).map(item => <p key={item.id}>{item.givenName || item.productName}: {rowErrors[item.id]}</p>)}</div>}
       {/* Footer action bar */}
       {hasContent && (
         <div className="flex-shrink-0 glass-panel border-t border-tea-border px-4 md:px-7 pt-3 pb-nav-gap">
@@ -657,7 +673,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
             <button
               type="button"
               onClick={pendingPurchaseRecords.length > 0 ? retryPurchaseRecords : commit}
-              disabled={committing || (pendingPurchaseRecords.length === 0 && counts.total === 0)}
+              disabled={!draftReady || loadedKey !== draftKey || committing || (pendingPurchaseRecords.length === 0 && counts.total === 0)}
               className="ml-auto pill-active text-ui-13 px-5 py-2 inline-flex items-center gap-2 disabled:opacity-50"
             >
               {committing
@@ -797,7 +813,7 @@ const SourceCard: React.FC<{
           <Segmented
             value={src.defaultPersonal ? 'personal' : 'sale'}
             onChange={(v) => onSetPersonal(src, v === 'personal')}
-            options={[{ value: 'sale', label: 'Shop' }, { value: 'personal', label: 'Personal' }]}
+            options={[{ value: 'working', label: 'Shop' },{value:'sample',label:'Sample'}, { value: 'personal', label: 'Personal' }]}
           />
           <button type="button" onClick={onRemove} className="tap-target text-tea-text-sec hover:text-tea-text" aria-label="Remove"><Trash2 size={15} /></button>
         </div>
@@ -1016,9 +1032,9 @@ const ItemsTable: React.FC<{
                   </button>
                   <Segmented
                     size="sm"
-                    value={it.isPersonal ? 'personal' : 'sale'}
-                    onChange={(v) => onUpdate(it.id, { isPersonal: v === 'personal' })}
-                    options={[{ value: 'sale', label: 'Shop' }, { value: 'personal', label: 'Personal' }]}
+                    value={it.inventoryPurpose || (it.isPersonal ? 'personal' : 'working')}
+                    onChange={(v) => onUpdate(it.id, { isPersonal: v === 'personal',inventoryPurpose:v as 'working'|'sample'|'personal' })}
+                    options={[{ value: 'working', label: 'Shop' },{value:'sample',label:'Sample'}, { value: 'personal', label: 'Personal' }]}
                   />
                   <span
                     className={`badge-status ${ready ? 'badge-status-default' : 'badge-status-muted'} w-16 justify-center flex-shrink-0`}
@@ -1027,6 +1043,17 @@ const ItemsTable: React.FC<{
                     {ready ? 'Ready' : 'Review'}
                   </span>
                 </div>
+                <details className="basis-full min-w-0 pt-1">
+                  <summary className="tap-target inline-flex cursor-pointer text-ui-12 text-tea-gold">Edit details</summary>
+                  <div className="grid grid-cols-2 gap-3 pt-3 pb-2">
+                    <label className="text-ui-11 text-tea-text-sec">Total purchase cost<input aria-label={`Total purchase cost for ${it.givenName || it.productName}`} type="number" min="0" step="any" value={it.costAmount ?? ''} onChange={event=>onUpdate(it.id,{costAmount:enteredCostCell(event.target.value)})} className="admin-input mt-1 w-full"/></label>
+                    <label className="text-ui-11 text-tea-text-sec">Cost currency<select value={it.costCurrency} onChange={event=>onUpdate(it.id,{costCurrency:event.target.value})} className="admin-input mt-1 w-full"><option value="UNK">Choose currency</option>{CURRENCIES.map(currency=><option key={currency}>{currency}</option>)}</select></label>
+                    <label className="text-ui-11 text-tea-text-sec">{it.type==='Teaware'?'On hand · units':'On hand · grams'}<input type="number" min="0" step={it.type==='Teaware'?1:'any'} value={it.type==='Teaware'?it.quantityUnits:it.stockGrams} onChange={event=>onUpdate(it.id,it.type==='Teaware'?{quantityUnits:Number(event.target.value)}:{stockGrams:Number(event.target.value)})} className="admin-input mt-1 w-full"/></label>
+                    <label className="text-ui-11 text-tea-text-sec">Quantity covered by cost<input type="number" min="0" step="any" value={it.quantityPurchased} onChange={event=>onUpdate(it.id,{quantityPurchased:Number(event.target.value)})} className="admin-input mt-1 w-full"/></label>
+                    <label className="text-ui-11 text-tea-text-sec">Type<select value={it.type} onChange={event=>onUpdate(it.id,{type:event.target.value})} className="admin-input mt-1 w-full">{[...new Set([...TEA_TYPES,'Teaware','Misc',it.type])].map(type=><option key={type}>{type}</option>)}</select></label>
+                    <label className="text-ui-11 text-tea-text-sec">Vendor<input value={it.vendor} onChange={event=>onUpdate(it.id,{vendor:event.target.value})} className="admin-input mt-1 w-full"/></label>
+                  </div>
+                </details>
               </div>
             );
           })}

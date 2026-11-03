@@ -321,7 +321,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
 
                       {/* Cost */}
                       <td className="px-4 align-middle overflow-hidden text-right">
-                        <span className="num text-xs text-tea-text-sec">{product.costAmount > 0 ? product.costAmount.toLocaleString() : '-'}</span>
+                        <span className="num text-xs text-tea-text-sec">{product.costAmount == null ? 'Cost needed' : product.costAmount.toLocaleString()}</span>
                       </td>
 
                       {/* Retail */}

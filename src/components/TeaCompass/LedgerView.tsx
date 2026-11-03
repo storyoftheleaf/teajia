@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -23,6 +23,9 @@ import type { LedgerTransaction, LedgerLineItem } from '../../lib/ledgerStore';
 import type { Currency } from '../../admin/types';
 import { useAppStore } from '../../lib/store';
 import { api } from '../../lib/api';
+import { useRates } from '../../admin/hooks/useAdminData';
+import { ledgerLineTotal } from './acquisitionPricing';
+import { persistPurchaseConfirmation } from './ledgerPurchase';
 import { compressImage } from '../../lib/imageCompressor';
 
 // ─── Currency helpers ────────────────────────────────────────────────────────
@@ -37,12 +40,7 @@ function fmtPrice(amount: number, currency: Currency): string {
   return `${sym}${amount.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
 }
 
-function lineTotal(item: LedgerLineItem): number {
-  if (item.priceIsPerGram) {
-    return item.pricePerUnit * (item.quantityGrams ?? 0);
-  }
-  return item.pricePerUnit * (item.quantityUnits ?? 1);
-}
+const lineTotal = ledgerLineTotal;
 
 // ─── Line Item Row ──────────────────────────────────────────────────────────
 
@@ -317,6 +315,9 @@ const TransactionCard: React.FC<{
 }> = ({ tx, isExpanded, onToggle, onOpenEntry }) => {
   const removeLineItem = useLedgerStore((s) => s.removeLineItem);
   const confirmTransaction = useLedgerStore((s) => s.confirmTransaction);
+  const updateTransaction = useLedgerStore((s) => s.updateTransaction);
+  const { data: rates = [] } = useRates();
+  const [confirming, setConfirming] = useState(false);
   const removeTransaction = useLedgerStore((s) => s.removeTransaction);
   const [justConfirmed, setJustConfirmed] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -363,36 +364,23 @@ const TransactionCard: React.FC<{
   const [poSaved, setPoSaved] = useState(false);
 
   const handleConfirm = useCallback(async () => {
-    confirmTransaction(tx.id);
-    setJustConfirmed(true);
-    setTimeout(() => setJustConfirmed(false), 1500);
-
-    // A confirmed purchase order records acquisition intent only. Inventory is
-    // created or increased later through a reviewed receipt/Inventory action.
+    if (confirming) return;
+    const accountId = useLedgerStore.getState().accountScopeId;
+    setConfirming(true);
+    updateTransaction(tx.id, { confirmationPending: true, confirmationError: undefined });
     if (tx.direction === 'purchase') {
       try {
-        const totalAmount = tx.items.reduce((sum, item) => sum + lineTotal(item), 0);
-        await api.purchaseOrders.create({
-          po_number: `PO-${tx.id.slice(0, 8).toUpperCase()}`,
-          vendor_name: tx.counterpartyName || 'Unknown',
-          items_json: JSON.stringify(tx.items.map(item => ({
-            name: item.name,
-            chineseName: item.chineseName,
-            type: item.type,
-            form: item.form,
-            year: item.year,
-            quantity: item.priceIsPerGram ? (item.quantityGrams ?? 0) : (item.quantityUnits ?? 1),
-            pricePerUnit: item.pricePerUnit,
-            priceIsPerGram: item.priceIsPerGram,
-          }))),
-          total_usd: totalAmount,
-          display_currency: tx.currency,
-          status: 'confirmed',
+        await persistPurchaseConfirmation(tx, rates, api.purchaseOrders.create, (id) => {
+          if (useLedgerStore.getState().accountScopeId !== accountId) return;
+          updateTransaction(tx.id, { status: 'confirmed', remoteOrderId: id, confirmationPending: false, confirmationError: undefined });
+          setJustConfirmed(true);
         });
-        setPoSaved(true);
-      } catch {
-        // Non-critical: PO exists locally in ledger store
-      }
+      } catch (error) {
+        if (useLedgerStore.getState().accountScopeId === accountId) updateTransaction(tx.id, {
+          confirmationPending: true, confirmationError: error instanceof Error ? error.message : 'Purchase is saved on this device. Retry to confirm it with the shop.',
+        });
+      } finally { setConfirming(false); }
+      return;
     }
 
     // Persist sale as invoice to database (fire-and-forget)
@@ -421,12 +409,28 @@ const TransactionCard: React.FC<{
             lineItems
           );
         }
-        setPoSaved(true);
-      } catch {
-        // Non-critical, sale exists locally in ledger store
-      }
+        if (useLedgerStore.getState().accountScopeId === accountId) {
+          confirmTransaction(tx.id);
+          updateTransaction(tx.id, { confirmationPending: false, confirmationError: undefined });
+          setPoSaved(true);
+        }
+      } catch (error) {
+        if (useLedgerStore.getState().accountScopeId === accountId) updateTransaction(tx.id, { confirmationError: error instanceof Error ? error.message : 'Could not confirm this sale. Retry.' });
+      } finally { setConfirming(false); }
     }
-  }, [tx, confirmTransaction]);
+  }, [tx, confirmTransaction, updateTransaction, rates, confirming]);
+
+  const retryConfirmationRef = useRef(handleConfirm);
+  retryConfirmationRef.current = handleConfirm;
+  useEffect(() => {
+    const retry = () => {
+      const current = useLedgerStore.getState().getTransaction(tx.id);
+      if (current?.confirmationPending && current.status === 'draft') void retryConfirmationRef.current();
+    };
+    if (rates.length) retry();
+    window.addEventListener('online', retry);
+    return () => window.removeEventListener('online', retry);
+  }, [tx.id, rates]);
 
   const handleDelete = useCallback(() => {
     if (window.confirm(`Remove this ${isPurchase ? 'purchase' : 'sale'} order?`)) {
@@ -492,13 +496,13 @@ const TransactionCard: React.FC<{
                 <p className="text-tea-text-sec text-sm font-serif italic py-6 text-center">Nothing here yet.</p>
               ) : (
                 tx.items.map((item) => (
-                  <LineItemRow
+                  <React.Fragment key={item.id}><LineItemRow
                     key={item.id}
                     item={item}
                     txId={tx.id}
                     onRemove={() => removeLineItem(tx.id, item.id)}
                     onOpenEntry={onOpenEntry}
-                  />
+                  />{item.receiptProposal?.status === 'pending' && onOpenEntry && item.compassEntryId && <button type="button" onClick={() => onOpenEntry(item.compassEntryId!)} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text">Review receipt</button>}</React.Fragment>
                 ))
               )}
 
@@ -515,6 +519,7 @@ const TransactionCard: React.FC<{
                 </div>
               )}
 
+              {(tx.confirmationPending || tx.confirmationError) && <p role="status" className="mt-3 text-ui-12 text-tea-text-sec">{tx.confirmationError || 'Confirmation pending. This draft is kept on this device.'}</p>}
               {/* Actions */}
               <div className="flex items-center gap-2 mt-3">
                 {isDraft && tx.items.length > 0 && (
@@ -534,10 +539,11 @@ const TransactionCard: React.FC<{
                         key="confirm-btn"
                         type="button"
                         onClick={handleConfirm}
+                        disabled={confirming}
                         whileTap={{ scale: 0.98 }}
                         className="py-1.5 px-3 rounded-md cta-solid font-semibold text-xs uppercase tracking-[0.08em] transition-all"
                       >
-                        {isPurchase ? 'Purchase' : 'Sale'}
+                        {confirming ? 'Saving…' : tx.confirmationPending ? 'Retry confirmation' : isPurchase ? 'Purchase' : 'Sale'}
                       </motion.button>
                     )}
                   </AnimatePresence>
@@ -582,10 +588,11 @@ const TransactionCard: React.FC<{
                     type="button"
                     onClick={async () => {
                       try {
-                        await api.purchaseOrders.updateStatus(tx.id.slice(0, 8).toUpperCase(), 'sent');
+                        if (!tx.remoteOrderId) throw new Error('Confirm this purchase with the shop first.');
+                        await api.purchaseOrders.updateStatus(tx.remoteOrderId, 'sent');
                         setPoSaved(true);
-                      } catch {
-                        // Status update failed silently
+                      } catch (error) {
+                        updateTransaction(tx.id, { confirmationError: error instanceof Error ? error.message : 'Could not mark this purchase as sent.' });
                       }
                     }}
                     className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-tea-surface text-tea-text text-ui-11 font-medium uppercase tracking-[0.08em] active:bg-tea-elevated transition-colors"

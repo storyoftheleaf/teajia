@@ -13,7 +13,7 @@ let server: ViteDevServer; let browser: Browser; let page: Page; let origin: str
 
 beforeAll(async () => {
   server = await createServer({
-    root: process.cwd(), logLevel: 'silent', server: { host: '127.0.0.1', port: 0, strictPort: false },
+    root: process.cwd(), cacheDir:`/tmp/teajia-intake-test-${process.pid}`, logLevel: 'silent', server: { host: '127.0.0.1', port: 0, strictPort: false },
     plugins: [{
       name: 'intake-workspace-test-page',
       configureServer(vite) {
@@ -61,6 +61,8 @@ describe('IntakeWorkspace cost refusal in plain words', () => {
     await expect.poll(() => page.getByText(
       'What did this cost? Enter the price, or 0 if it was a gift.', { exact: false },
     ).count(), { message: 'the operator-facing plain-words sentence never reached the toast' }).toBeGreaterThan(0);
+    expect(await page.getByRole('button', {name:/Add 1 to inventory/}).count()).toBe(1);
+    expect(await page.evaluate(() => (window as any).intakeWorkspaceTest.abandonCalls())).toBe(0);
     expect(await page.getByText('(missing: amount)').count(),
       'the raw server marker leaked onto the screen instead of the plain-words sentence').toBe(0);
   });
@@ -85,4 +87,47 @@ describe('IntakeWorkspace cost refusal in plain words', () => {
     expect(await page.evaluate(() => (window as any).intakeWorkspaceTest.bulkCalls())).toBe(1);
     await expect.poll(() => page.evaluate(() => (window as any).intakeWorkspaceTest.abandonCalls())).toBe(1);
   });
+  it('restores spreadsheet fields and shipping metadata after remounting the saved draft', async()=>{
+    await open();
+    await page.setInputFiles('input[type="file"]',{name:'costs.csv',mimeType:'text/csv',buffer:Buffer.from('Product Name,Type,Cost Amount,Cost Currency,Vendor,Quantity Purchased,Stock\nSaved Tea,Oolong,40,USD,Lin,100,100\n')});
+    await page.getByPlaceholder('Unnamed item').fill('Corrected Tea');
+    await page.getByPlaceholder('Total',{exact:true}).fill('12');
+    await page.getByRole('button',{name:'Save now'}).click();
+    await expect.poll(()=>page.evaluate(()=>(window as any).intakeWorkspaceTest.savedDraft()?.items?.[0]?.givenName)).toBe('Corrected Tea');
+    await page.evaluate(()=>(window as any).intakeWorkspaceTest.mount(false));
+    await expect.poll(()=>page.getByPlaceholder('Unnamed item').inputValue()).toBe('Corrected Tea');
+    expect(await page.getByPlaceholder('Total',{exact:true}).inputValue()).toBe('12');
+    const saved=await page.evaluate(()=>(window as any).intakeWorkspaceTest.savedDraft());
+    expect(saved.items[0]).toMatchObject({costAmount:40,costCurrency:'USD',vendor:'Lin',quantityPurchased:100});
+  });
+  it('restores pending purchase follow-ups without re-adding inventory', async()=>{
+    await open();
+    await page.evaluate(()=>(window as any).intakeWorkspaceTest.failPurchase());
+    await page.setInputFiles('input[type="file"]',{name:'costs.csv',mimeType:'text/csv',buffer:Buffer.from('Product Name,Type,Cost Amount,Cost Currency,Vendor,Quantity Purchased,Stock\nSaved Tea,Oolong,40,USD,Lin,100,100\n')});
+    await page.getByRole('button',{name:/Add 1 to inventory/}).click();
+    await page.getByRole('button',{name:/Retry 1 purchase record/}).waitFor();
+    await page.evaluate(()=>(window as any).intakeWorkspaceTest.mount(false));
+    await page.getByRole('button',{name:/Retry 1 purchase record/}).click();
+    await expect.poll(()=>page.evaluate(()=>(window as any).intakeWorkspaceTest.purchaseCalls().length)).toBe(1);
+    expect(await page.evaluate(()=>(window as any).intakeWorkspaceTest.bulkCalls())).toBe(0);
+    const purchase=await page.evaluate(()=>(window as any).intakeWorkspaceTest.purchaseCalls()[0]);
+    expect(purchase.total_usd).toBe(40);
+    expect(JSON.parse(purchase.items_json)[0]).toMatchObject({product_id:'product-0',quantity:100,unit:'g',total_cost:40,source_movement_id:'ledger-0'});
+  });
+
+  it('keeps caret navigation inside an edited product and retains a failed field for retry',async()=>{
+    await open();
+    await page.evaluate(()=>(window as any).intakeWorkspaceTest.mountEditor());
+    const field=page.getByRole('textbox',{name:'Given name',exact:true});
+    await field.fill('Clear Sky');await field.press('ArrowLeft');
+    expect(await field.inputValue()).toBe('Clear Sky');
+    await page.evaluate(()=>(window as any).intakeWorkspaceTest.failSave());
+    await field.press('Tab');
+    await page.getByRole('button',{name:'Retry save',exact:true}).waitFor();
+    expect(await field.inputValue()).toBe('Clear Sky');
+    await page.getByRole('button',{name:'Retry save',exact:true}).click();
+    await expect.poll(()=>page.getByRole('button',{name:'Retry save',exact:true}).count()).toBe(0);
+    expect(await field.inputValue()).toBe('Clear Sky');
+  });
+
 });

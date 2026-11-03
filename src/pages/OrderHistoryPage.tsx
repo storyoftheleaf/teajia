@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { refundProgress } from '../lib/orderTrackingDomain';
 import { api, hasToken } from '../lib/api';
 import { Icons } from '../components/Icons';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
@@ -53,7 +54,7 @@ export default function OrderHistoryPage() {
       <header className="mb-8">
         <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mb-2`}>Order History</h1>
         <p className="text-ui-14 text-tea-text-sec">
-          Every order starts a conversation, check WhatsApp for live updates.
+          Follow your requests, payments, deliveries and refunds here.
         </p>
       </header>
 
@@ -76,7 +77,7 @@ export default function OrderHistoryPage() {
           <Icons.Clock className="w-8 h-8 text-tea-gold/40 mx-auto mb-3" />
           <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text mb-1`}>No orders yet</p>
           <p className="text-ui-13 text-tea-text-sec max-w-xs mx-auto">
-            When you place an order, it will appear here. Every order is confirmed over WhatsApp.
+            Orders placed while signed in appear here. For an earlier guest order, use its private tracking link.
           </p>
         </div>
       )}
@@ -87,7 +88,7 @@ export default function OrderHistoryPage() {
             // Same derived stage the detail page reads, so a customer moving
             // between the two never sees the order described two ways.
             const journey = normalizeJourney(order.journey);
-            const offersPayment = showsPaymentActions(journey, order.payment);
+            const offersPayment = order.status !== 'Draft' && order.status !== 'Void' && showsPaymentActions(journey, order.payment);
             return (
             <li key={order.id}>
               <button
@@ -103,6 +104,7 @@ export default function OrderHistoryPage() {
                         filing. The row shows the customer's stage instead, and
                         shows nothing at all when there is no stage to show. */}
                     <OrderJourneyStatus journey={journey} variant="inline" />
+                    {refundProgress(order) && <span className="text-ui-12 text-tea-text-sec">{refundProgress(order)}</span>}
                   </div>
                   <p className="text-ui-12 text-tea-text-sec mt-1">
                     {formatDate(order.created_at)}

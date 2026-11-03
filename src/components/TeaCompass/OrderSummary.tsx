@@ -4,6 +4,7 @@ import { X, Check, Minus, Plus } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import type { TeaCompassEntry, TeaForm } from './types';
+import { acquisitionLine } from './acquisitionPricing';
 import { GRAM_PRESETS, DEFAULT_GRAMS } from './types';
 import type { Currency } from '../../admin/types';
 
@@ -276,6 +277,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
   });
 
   const [confirmed, setConfirmed] = useState(false);
+  const [quoteError, setQuoteError] = useState('');
 
   // Re-init quantities when overlay opens
   React.useEffect(() => {
@@ -315,13 +317,16 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
   const addLineItem = useLedgerStore((s) => s.addLineItem);
 
   const handleConfirm = useCallback(async () => {
+    try { for (const entry of buyingEntries) acquisitionLine(entry, quantities[entry.id] ?? 1); }
+    catch (error) { setQuoteError(error instanceof Error ? error.message : 'Review the purchase quote.'); return; }
+    setQuoteError('');
     // First, update all entries to 'in_stock' status with quantities
     const updatedEntries: TeaCompassEntry[] = [];
     for (const entry of buyingEntries) {
       const qty = quantities[entry.id] ?? 1;
       const total = getLinePrice(entry, qty);
       const updates: Partial<TeaCompassEntry> = {
-        status: 'in_stock' as const,
+        status: 'buying' as const,
         buyTotal: total,
       };
       if (entry.category === 'teaware' || isUnitBased(entry.form)) {
@@ -343,20 +348,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
     for (const entry of updatedEntries) {
       const qty = quantities[entry.id] ?? 1;
       const unitBased = entry.category === 'teaware' || isUnitBased(entry.form);
-      addLineItem(txId, {
-        name: entry.name,
-        chineseName: entry.chineseName,
-        type: entry.category === 'teaware' ? 'Teaware' : (entry.type || undefined),
-        form: entry.form,
-        year: entry.year,
-        quantityGrams: unitBased ? undefined : qty,
-        quantityUnits: unitBased ? qty : undefined,
-        unitWeightGrams: unitBased && entry.form ? getDefaultGrams(entry.form) : undefined,
-        pricePerUnit: entry.priceAmount ?? 0,
-        priceIsPerGram: !unitBased && !!entry.pricePerUnitGrams,
-        currency,
-        compassEntryId: entry.id,
-      });
+      addLineItem(txId, acquisitionLine(entry, qty));
     }
 
     setConfirmed(true);
@@ -442,6 +434,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
               </span>
             </div>
 
+            {quoteError && <p role="alert" className="text-ui-12 text-tea-text-sec">{quoteError}</p>}
             {/* Confirm button */}
             <AnimatePresence mode="wait">
               {confirmed ? (

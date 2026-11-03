@@ -192,7 +192,7 @@ export function decodeInventoryImportRow(
 }
 
 export function inventoryImportIdempotencyKey(receiptLabel: string, row: Record<string, unknown>, rowIndex: number): string {
-  const canonical = JSON.stringify({ receiptLabel: receiptLabel.trim(), rowIndex, row: Object.keys(row).sort().map(key => [key, row[key]]) });
+  const canonical = JSON.stringify({ receiptLabel: receiptLabel.trim(), rowIndex:typeof row.client_row_id==='string'?row.client_row_id:rowIndex, row: Object.keys(row).sort().map(key => [key, row[key]]) });
   return `inventory-import:${stableImportHash(canonical)}`;
 }
 

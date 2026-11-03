@@ -159,6 +159,10 @@ describe('publication', () => {
     )).toBe(true);
   });
 
+  it('keeps drafts hidden even when both switches are on', () => {
+    expect(getEffectivePublication(product({status:'Draft',isPublic:true,shownInShop:true})).state).toBe('hidden');
+  });
+
   it('requires both existing publication gates', () => {
     expect(getEffectivePublication(product({ isPublic: true, shownInShop: true }))).toEqual({
       state: 'published', operatorGate: true, locationGate: true,

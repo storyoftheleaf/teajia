@@ -113,7 +113,7 @@ describe('canonical Curate import record', () => {
       vendor_name: 'Huang Wei',
       price_amount: '380',
       price_currency: 'CNY',
-      price_per_unit_grams: '0.76',
+      price_per_unit_grams: 500,
       buy_quantity_grams: 500,
       buy_total: '380',
     });
@@ -243,7 +243,7 @@ describe('canonical Curate import record', () => {
       chinese_name: '正名',
       origin_country: 'China',
       price_amount: '12.5',
-      price_per_unit_grams: '0.125',
+      price_per_unit_grams: 100,
       buy_quantity_grams: 100,
       buy_total: '12.5',
       vendor_id: 'canonical-vendor',

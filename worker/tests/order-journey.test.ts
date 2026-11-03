@@ -335,7 +335,7 @@ describe('what needs the tea master', () => {
     expect(response.status).toBe(200);
     const body = await response.json() as any;
 
-    expect(body.counts).toEqual({ requests: 1, unpriced: 1, claims: 1, unsent: 1 });
+    expect(body.counts).toEqual({ requests: 1, unpriced: 1, claims: 1, unsent: 1,refunds:0 });
 
     // Oldest first, and the kinds interleave rather than clustering.
     expect(body.items.map((item: any) => item.kind))
@@ -410,7 +410,7 @@ describe('what needs the tea master', () => {
     expect(response.status).toBe(200);
     const body = await response.json() as any;
     expect(body.items).toEqual([]);
-    expect(body.counts).toEqual({ requests: 0, unpriced: 0, claims: 0, unsent: 0 });
+    expect(body.counts).toEqual({ requests: 0, unpriced: 0, claims: 0, unsent: 0,refunds:0 });
   });
 
   it('refuses a caller with no account rather than answering that all is clear', async () => {

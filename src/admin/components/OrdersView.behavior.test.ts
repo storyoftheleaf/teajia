@@ -6,11 +6,11 @@ let server: ViteDevServer; let browser: Browser; let page: Page; let origin: str
 const order = (account: string, invoice: string, customer: string) => ({
   id: `${account}-invoice`, invoice_number: invoice, customer_name: customer, customer_id: null,
   status: 'Pending', payment_status: 'unpaid', payment_method: null, inventory_deducted: false,
-  computed_total: 27.5, shipping_cost_usd: 0, display_currency: 'USD', created_at: '2026-08-10T08:00:00Z', notes: null,
+  computed_total: 27.5, shipping_cost_usd: 0, payment: { recipient_slug: 'adrian', recipient_name: 'Adrian', pay_url: null, has_methods: false, total_usd: 27.5, paid_usd: 0, outstanding_usd: 27.5, claims_pending: 0 }, display_currency: 'USD', created_at: '2026-08-10T08:00:00Z', notes: null,
 });
 
 beforeAll(async () => {
-  server = await createServer({ root: process.cwd(), logLevel: 'silent', server: { host: '127.0.0.1', port: 0 }, plugins: [{
+  server = await createServer({ root: process.cwd(), cacheDir: '/tmp/teajia-orders-flow/node_modules/.vite', logLevel: 'silent', server: { host: '127.0.0.1', port: 17779, strictPort: false, watch: { usePolling: false, ignored: ['**/outputs/**', '**/.claude/**', '**/.worktrees/**'] } }, plugins: [{
     name: 'orders-view-test-page', configureServer(vite) { vite.middlewares.use('/__orders-view-test', async (_req, res) => {
       res.setHeader('Content-Type', 'text/html');
       res.end(await vite.transformIndexHtml('/__orders-view-test', '<div id="root"></div><script type="module" src="/src/admin/components/OrdersView.behavior.harness.tsx"></script>'));
@@ -20,9 +20,9 @@ beforeAll(async () => {
   origin = `http://127.0.0.1:${address.port}`; browser = await chromium.launch({ headless: true });
 }, 30_000);
 afterAll(async () => { await browser?.close(); await server?.close(); }, 30_000);
-afterEach(async () => { await page?.close(); });
+afterEach(async ({ task }) => { if (task.result?.state === 'fail' && page) console.error('Failed screen:', (await page.locator('body').innerText()).slice(0, 2400)); await page?.close(); });
 async function open() {
-  page = await browser.newPage({ viewport: { width: 390, height: 844 } }); await page.goto(`${origin}/__orders-view-test`);
+  page = await browser.newPage({ viewport: { width: 390, height: 844 } }); page.on('pageerror', error => console.error('Browser error:', error.message)); await page.route('**/api/**', route => route.fulfill({status:200,contentType:'application/json',body:route.request().url().endsWith('/attribution') ? JSON.stringify({items:[],settlement_visibility:'full',payment_recipient_kind:'none'}) : '[]'})); await page.goto(`${origin}/__orders-view-test`);
   await page.waitForFunction(() => Boolean((window as any).ordersViewTest)); await page.evaluate(() => (window as any).ordersViewTest.mount());
 }
 
@@ -139,5 +139,112 @@ describe('accepting a draft that still has a line with no price', () => {
 
     await expect.poll(() => page.evaluate(() => (window as any).ordersViewTest.acceptCalls().length)).toBe(1);
     expect(await page.getByText('Send INV-A with nothing charged?').count()).toBe(0);
+  });
+});
+
+
+describe('shipping and payment on one order screen', () => {
+  async function openDetail(status = 'Pending') {
+    await open();
+    await expect.poll(() => page.evaluate(() => (window as any).ordersViewTest.orderAccounts())).toEqual(['account-a']);
+    await page.evaluate(value => (window as any).ordersViewTest.resolveOrders(0, [value]), { ...order('account-a', 'INV-A', 'Account A buyer'), status });
+    await page.getByRole('button', { name: 'INV-A' }).click();
+    await expect.poll(() => page.evaluate(() => (window as any).ordersViewTest.itemAccounts())).toEqual(['account-a']);
+    await page.evaluate(() => (window as any).ordersViewTest.resolveItems(0, [{ id: 'line-a', custom_name: 'Oolong', quantity: 50, price_at_sale: 0.55 }]));
+    await expect.poll(() => page.getByText('Invoice Details', { exact: true }).count()).toBe(1);
+  }
+
+  it('saves shipping without closing payment management and refreshes the order', async () => {
+    await openDetail();
+    await page.getByLabel('Shipping quote (USD)').fill('12.50');
+    await page.getByLabel('Delivery destination').fill('Ubud, Bali');
+    await page.getByLabel('Tracking number (optional)').fill('EMS123');
+    await page.getByRole('button', { name: 'Save shipping', exact: true }).click();
+    await expect.poll(() => page.evaluate(() => (window as any).ordersViewTest.acceptCalls())).toEqual([
+      { shipping_cost_usd: 12.5, shipping_destination: 'Ubud, Bali', tracking_number: 'EMS123' },
+    ]);
+    await expect.poll(() => page.evaluate(() => (window as any).ordersViewTest.orderAccounts().length)).toBe(2);
+    await page.evaluate(value => (window as any).ordersViewTest.resolveOrders(1, [value]), { ...order('account-a', 'INV-A', 'Account A buyer'), shipping_cost_usd: 12.5, shipping_destination: 'Ubud, Bali', tracking_number: 'EMS123', payment: { recipient_slug: 'adrian', recipient_name: 'Adrian', pay_url: null, has_methods: false, total_usd: 40, paid_usd: 0, outstanding_usd: 40, claims_pending: 0 } });
+    await expect.poll(() => page.getByRole('status').allTextContents()).toContain('Shipping saved.');
+    expect(await page.getByText('Invoice Details', { exact: true }).count()).toBe(1);
+    expect(await page.getByRole('heading', { name: 'Payments', exact: true }).count()).toBe(1);
+    expect(await page.getByText('$40.00 USD', { exact: true }).count()).toBe(1);
+    expect(await page.getByRole('button', { name: 'Record payment', exact: true }).count()).toBe(1);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: '/private/tmp/teajia-order-mobile.png', fullPage: true });
+    await page.getByRole('heading', { name: 'Payments', exact: true }).scrollIntoViewIfNeeded();
+    await page.screenshot({ path: '/private/tmp/teajia-order-mobile-payments.png', fullPage: true });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.getByText('Invoice Details', { exact: true }).scrollIntoViewIfNeeded();
+    await page.screenshot({ path: '/private/tmp/teajia-order-desktop.png', fullPage: true });
+  });
+
+  it('refuses a blank quote and preserves a deliberate zero', async () => {
+    await openDetail();
+    expect(await page.getByLabel('Shipping quote (USD)').count()).toBe(1);
+    await page.getByLabel('Shipping quote (USD)').fill('');
+    await page.getByRole('button', { name: 'Save shipping', exact: true }).click();
+    await expect.poll(() => page.getByRole('alert').allTextContents()).toContain('Enter a shipping quote. Use 0 only for pickup or free delivery.');
+    expect(await page.evaluate(() => (window as any).ordersViewTest.acceptCalls())).toEqual([]);
+    await page.getByLabel('Shipping quote (USD)').fill('-2');
+    await page.getByRole('button', { name: 'Save shipping', exact: true }).click();
+    await expect.poll(() => page.getByRole('alert').allTextContents()).toContain('Shipping must be a valid amount of 0 or more.');
+    expect(await page.evaluate(() => (window as any).ordersViewTest.acceptCalls())).toEqual([]);
+    await page.getByLabel('Shipping quote (USD)').fill('0');
+    await page.getByRole('button', { name: 'Save shipping', exact: true }).click();
+    await expect.poll(() => page.evaluate(() => (window as any).ordersViewTest.acceptCalls())).toEqual([
+      { shipping_cost_usd: 0, shipping_destination: null, tracking_number: null },
+    ]);
+  });
+
+  it('keeps a failed quote editable for retry', async () => {
+    await openDetail();
+    await page.evaluate(() => (window as any).ordersViewTest.failNextUpdate());
+    await page.getByLabel('Shipping quote (USD)').fill('9');
+    await page.getByRole('button', { name: 'Save shipping', exact: true }).click();
+    await expect.poll(() => page.getByRole('alert').allTextContents()).toContain('Connection interrupted');
+    expect(await page.getByLabel('Shipping quote (USD)').inputValue()).toBe('9');
+    expect(await page.getByRole('button', { name: 'Save shipping', exact: true }).isEnabled()).toBe(true);
+  });
+
+  it('allows tracking corrections after shipment without changing the shipping balance', async () => {
+    await openDetail('Filled');
+    expect(await page.getByLabel('Shipping quote (USD)').isDisabled()).toBe(true);
+    await page.getByLabel('Tracking number (optional)').fill('CORRECTED123');
+    await page.getByRole('button', { name: 'Save shipping', exact: true }).click();
+    await expect.poll(() => page.evaluate(() => (window as any).ordersViewTest.acceptCalls())).toEqual([
+      { shipping_destination: null, tracking_number: 'CORRECTED123' },
+    ]);
+  });
+});
+
+describe('cancelled order refund recovery', () => {
+  it('keeps the exact refund request after a lost response and reopening the order', async () => {
+    await open();
+    const cancelled = { ...order('account-a', 'INV-REFUND', 'Refund buyer'), status: 'Void', payment_status: 'paid', refund_required: true, refunded_usd: 0, refund_due_usd: 27.5,
+      payment: { total_usd: 27.5, paid_usd: 27.5, outstanding_usd: 0, claims_pending: 0, pay_url: null } };
+    const show = async () => {
+      await expect.poll(() => page.evaluate(() => (window as any).ordersViewTest.orderAccounts().length)).toBe(1);
+      await page.evaluate(value => (window as any).ordersViewTest.resolveOrders(0, [value]), cancelled);
+      await page.getByRole('button', { name: 'INV-REFUND', exact: true }).click();
+      await expect.poll(() => page.evaluate(() => (window as any).ordersViewTest.itemAccounts().length)).toBe(1);
+      await page.evaluate(() => (window as any).ordersViewTest.resolveItems(0, [{ id: 'cup-line', custom_name: 'Cup', quantity: 1, quantity_unit: 'unit', price_at_sale: 27.5 }]));
+    };
+    await show();
+    await page.getByRole('button', { name: 'Record refund sent', exact: true }).click();
+    await expect.poll(() => page.getByText('Connection interrupted after recording').count()).toBe(1);
+    const first = await page.evaluate(() => (window as any).ordersViewTest.refundCalls()[0]);
+    expect(first.amount_usd).toBe(27.5);
+    expect(await page.getByLabel('Refund amount USD').isDisabled()).toBe(true);
+    expect(await page.getByText('1 pieces', { exact: true }).count()).toBe(1);
+    await page.evaluate(() => (window as any).ordersViewTest.mount());
+    await show();
+    expect(await page.getByLabel('Refund amount USD').isDisabled()).toBe(true);
+    await page.screenshot({ path: 'outputs/flow-repair-2026-10-28/refund-mobile.png', fullPage: true });
+    await page.getByRole('button', { name: 'Retry refund record', exact: true }).click();
+    await expect.poll(() => page.evaluate(() => (window as any).ordersViewTest.refundCalls().length)).toBe(2);
+    expect(await page.evaluate(() => (window as any).ordersViewTest.refundCalls()[1])).toEqual(first);
+    expect(await page.evaluate(() => localStorage.getItem('teajia_refund_retry:account-a:account-a-invoice'))).toBeNull();
+    expect(await page.getByRole('button', { name: 'Record payment', exact: true }).count()).toBe(0);
   });
 });

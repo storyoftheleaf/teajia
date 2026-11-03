@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Currency } from '../admin/types';
+import { useAppStore } from './store';
+import type { CurateReceiptProposal } from '../types';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -26,6 +28,7 @@ export interface LedgerLineItem {
   compassEntryId?: string;   // If added from Tea Compass
   productId?: string;        // If added from inventory (for sales)
 
+  receiptProposal?: CurateReceiptProposal;
   addedAt: string;
 }
 
@@ -45,6 +48,9 @@ export interface LedgerTransaction {
 
   // State
   status: 'draft' | 'confirmed';
+  confirmationPending?: boolean;
+  confirmationError?: string;
+  remoteOrderId?: string;
   currency: Currency;
 
   createdAt: string;
@@ -55,6 +61,10 @@ export interface LedgerTransaction {
 
 interface LedgerState {
   transactions: LedgerTransaction[];
+  accountScopeId: string | null;
+  transactionsByAccount: Record<string, LedgerTransaction[]>;
+  activeIdsByAccount: Record<string, string | null>;
+  switchAccount: (accountId: string | null) => void;
 
   // Active transaction being built
   activeTransactionId: string | null;
@@ -64,7 +74,7 @@ interface LedgerState {
   addLineItem: (transactionId: string, item: Omit<LedgerLineItem, 'id' | 'addedAt'>) => string;
   updateLineItem: (transactionId: string, itemId: string, updates: Partial<LedgerLineItem>) => void;
   removeLineItem: (transactionId: string, itemId: string) => void;
-  updateTransaction: (transactionId: string, updates: Partial<Pick<LedgerTransaction, 'counterpartyName' | 'counterpartyId' | 'currency' | 'status'>>) => void;
+  updateTransaction: (transactionId: string, updates: Partial<Pick<LedgerTransaction, 'counterpartyName' | 'counterpartyId' | 'currency' | 'status' | 'confirmationPending' | 'confirmationError' | 'remoteOrderId'>>) => void;
   addPhoto: (transactionId: string, url: string) => void;
   removePhoto: (transactionId: string, index: number) => void;
   removeTransaction: (transactionId: string) => void;
@@ -79,11 +89,36 @@ interface LedgerState {
   getOrCreatePurchaseTransaction: (vendorName: string, currency: Currency, vendorId?: string) => string;
 }
 
+function activeLedgerAccount(): string | null {
+  const current = useAppStore.getState().activeAccountId;
+  if (current) return current;
+  try {
+    const token = localStorage.getItem('teajia_token') ?? sessionStorage.getItem('teajia_token');
+    const payload = token?.split('.')[1];
+    return payload ? JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))).active_account_id ?? null : null;
+  } catch { return null; }
+}
+
 const createdLedgerStore = create<LedgerState>()(
   persist(
     (set, get) => ({
       transactions: [],
+      accountScopeId: activeLedgerAccount(),
+      transactionsByAccount: {},
+      activeIdsByAccount: {},
       activeTransactionId: null,
+      switchAccount: (accountId) => set(state => {
+        if (state.accountScopeId === accountId) return state;
+        const transactionsByAccount = { ...state.transactionsByAccount };
+        const activeIdsByAccount = { ...state.activeIdsByAccount };
+        if (state.accountScopeId) {
+          transactionsByAccount[state.accountScopeId] = state.transactions;
+          activeIdsByAccount[state.accountScopeId] = state.activeTransactionId;
+        }
+        return { accountScopeId: accountId, transactionsByAccount, activeIdsByAccount,
+          transactions: accountId ? transactionsByAccount[accountId] ?? [] : [],
+          activeTransactionId: accountId ? activeIdsByAccount[accountId] ?? null : null };
+      }),
 
       createTransaction: (direction, counterpartyName, currency, counterpartyId) => {
         const id = crypto.randomUUID();
@@ -232,7 +267,8 @@ const createdLedgerStore = create<LedgerState>()(
           (tx) =>
             tx.status === 'draft' &&
             tx.direction === 'purchase' &&
-            tx.counterpartyName === vendorName
+            tx.currency === currency &&
+            (vendorId ? tx.counterpartyId === vendorId : !tx.counterpartyId && tx.counterpartyName === vendorName)
         );
         if (existing) {
           set({ activeTransactionId: existing.id });
@@ -245,9 +281,29 @@ const createdLedgerStore = create<LedgerState>()(
     {
       name: 'teajia-ledger',
       partialize: (state) => ({
+        accountScopeId: state.accountScopeId,
         transactions: state.transactions,
         activeTransactionId: state.activeTransactionId,
+        transactionsByAccount: state.accountScopeId
+          ? { ...state.transactionsByAccount, [state.accountScopeId]: state.transactions } : state.transactionsByAccount,
+        activeIdsByAccount: state.accountScopeId
+          ? { ...state.activeIdsByAccount, [state.accountScopeId]: state.activeTransactionId } : state.activeIdsByAccount,
       }),
+      version: 1,
+      migrate: (value) => {
+        const legacy = value as Partial<LedgerState>;
+        const scope = legacy.accountScopeId ?? activeLedgerAccount();
+        return { ...legacy, accountScopeId: scope, transactions: legacy.transactions ?? [], activeTransactionId: legacy.activeTransactionId ?? null,
+          transactionsByAccount: { ...legacy.transactionsByAccount, [scope ?? '__legacy_unscoped__']: legacy.transactions ?? [] },
+          activeIdsByAccount: { ...legacy.activeIdsByAccount, [scope ?? '__legacy_unscoped__']: legacy.activeTransactionId ?? null } };
+      },
+      merge: (persisted, current) => {
+        const saved = persisted as Partial<LedgerState>;
+        const scope = activeLedgerAccount();
+        return { ...current, ...saved, accountScopeId: scope,
+          transactions: scope ? saved.transactionsByAccount?.[scope] ?? (saved.accountScopeId === scope ? saved.transactions ?? [] : []) : [],
+          activeTransactionId: scope ? saved.activeIdsByAccount?.[scope] ?? null : null };
+      },
     }
   )
 );

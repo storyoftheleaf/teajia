@@ -77,3 +77,16 @@ describe('Curate import draft storage', () => {
     }
   });
 });
+
+describe('correction drafts', () => {
+  it('keeps unsaved corrections scoped to their account and import item', async () => {
+    const { saveImportCorrection, loadImportCorrection, clearImportCorrection } = await import('./importDraftStorage');
+    const storage = new MemoryStorage();
+    saveImportCorrection('a', 'batch', 'line', { english_name: 'Corrected name', price_amount: '0' }, storage);
+    expect(loadImportCorrection('a', 'batch', 'line', storage)).toEqual({ english_name: 'Corrected name', price_amount: '0' });
+    expect(loadImportCorrection('b', 'batch', 'line', storage)).toBeNull();
+    expect(loadImportCorrection('a', 'batch', 'other', storage)).toBeNull();
+    clearImportCorrection('a', 'batch', 'line', storage);
+    expect(loadImportCorrection('a', 'batch', 'line', storage)).toBeNull();
+  });
+});
