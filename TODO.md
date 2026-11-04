@@ -208,6 +208,12 @@ anybody about it.
   Measured 2026-09-05: all 133 public products carry an empty tasting record, and none names a source. What shows today is the old free-text tag list falling back into the taste line. Everything downstream of a tasting is therefore invisible in production: the feel line, the shop's starred note, the potential-profile qualifier. The structured tasting can be written from the admin panel or spoken through the agent tools; what is missing is the sitting-down and doing it, tea by tea.
 
 
+## Future
+
+- [ ] **Complete the outstanding purchase records.** _(band: you-required)_ Confirm the receiving companies and missing weights from the real purchase evidence before entering the remaining purchases; the logistics screen is already built, and absent shipment facts must stay unset. _(effort: moderate)_
+- [ ] **Finish the requested price coverage.** _(band: agent-runnable)_ Check the purchase export and current Library, Ledger and logistics screens against the existing purchase evidence, show every known amount with its currency and quantity unit, and keep unknown amounts distinct from zero. _(effort: moderate)_
+- [ ] **Close the warehouse reconciliation.** _(band: you-required)_ Confirm physical collection of the outstanding old-address parcels against the consolidator response before marking the shipment complete; a carrier delivery scan alone is not warehouse receipt. _(effort: quick)_
+
 ## Historical queue
 
 The pre-consolidation root queue is preserved at [docs/_archive/session-artifacts-2026-07/ROOT_TODO.md](docs/_archive/session-artifacts-2026-07/ROOT_TODO.md). Its valid work was reconciled into the July tracks; it is not an active checklist.
