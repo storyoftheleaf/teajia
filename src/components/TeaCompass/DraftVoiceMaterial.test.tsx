@@ -7,7 +7,7 @@ import { createEmptyEntry } from './types';
 import { DraftVoiceMaterial, voiceDraftContext, voiceDraftScopeMatches } from './DraftVoiceMaterial';
 
 const recorder = vi.hoisted(() => ({ captures: [] as Array<{ onTranscript: (text: string, context: string) => boolean | void; context: string; userId: string }>, state: 'idle', errorMessage: null as string | null, pendingRecording: null as unknown }));
-vi.mock('./useVoiceRecorder', () => ({ useVoiceRecorder: (onTranscript: (text: string, context: string) => boolean | void, context: string, userId: string) => {
+vi.mock('../../hooks/useVoiceRecorder', () => ({ useVoiceRecorder: (onTranscript: (text: string, context: string) => boolean | void, context: string, userId: string) => {
   recorder.captures.push({ onTranscript, context, userId });
   return { state: recorder.state, errorMessage: recorder.errorMessage, pendingRecording: recorder.pendingRecording, handlePress: vi.fn(), retryPending: vi.fn(), discardPending: vi.fn() };
 } }));

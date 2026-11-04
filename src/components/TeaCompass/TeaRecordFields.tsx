@@ -3,7 +3,7 @@ import { Mic } from 'lucide-react';
 import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 import { useAppStore } from '../../lib/store';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
-import { useVoiceRecorder } from './useVoiceRecorder';
+import { useVoiceRecorder } from '../../hooks/useVoiceRecorder';
 import { useNotesStore } from '../../lib/notesStore';
 import { syncNotes } from '../../lib/notesSync';
 import { mediaUrl } from '../../lib/mediaUrl';

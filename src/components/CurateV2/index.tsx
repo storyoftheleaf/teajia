@@ -20,7 +20,7 @@ import { BrowseView } from './BrowseView';
 import { LedgerView, OrderScreen } from './LedgerView';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import { addTeaToDraftOrder } from './orderBuy';
-import { useVoiceRecorder } from './useVoiceRecorder';
+import { useVoiceRecorder } from '../../hooks/useVoiceRecorder';
 import { TodayView } from './TodayView';
 import { TableList } from './TableList';
 import { TeaFace } from './TeaFace';

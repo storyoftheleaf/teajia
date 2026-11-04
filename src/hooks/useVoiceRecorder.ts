@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api } from '../../lib/api';
-import { useAppStore } from '../../lib/store';
+import { api } from '../lib/api';
+import { useAppStore } from '../lib/store';
 import {
   createResilientPendingTranscriptionRepository,
   createIndexedDbPendingTranscriptionRepository,
@@ -8,17 +8,110 @@ import {
   firstPendingTranscription,
   type PendingTranscription,
   type PendingTranscriptionResult,
-} from '../../lib/pendingTranscriptions';
+} from '../lib/pendingTranscriptions';
+import { chooseRecorderMimeType } from '../../shared/voice/microphone';
+import { createAudioDraftStore, type AudioDraft, type AudioDraftStore } from '../../shared/voice/audio-drafts';
 
 export type RecorderState = 'idle' | 'recording' | 'transcribing' | 'error';
 
+/* Teajia's transcription has always received webm first, so it keeps its own
+   order; the choosing is the shared microphone module. */
+const TEAJIA_MIME_TYPES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/wav'];
+
 function getSupportedMimeType(): string {
   if (typeof MediaRecorder === 'undefined') return 'audio/mp4';
-  if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) return 'audio/webm;codecs=opus';
-  if (MediaRecorder.isTypeSupported('audio/webm')) return 'audio/webm';
-  if (MediaRecorder.isTypeSupported('audio/mp4')) return 'audio/mp4';
-  if (MediaRecorder.isTypeSupported('audio/wav')) return 'audio/wav';
-  return 'audio/mp4';
+  return chooseRecorderMimeType((type) => MediaRecorder.isTypeSupported(type), TEAJIA_MIME_TYPES) ?? 'audio/mp4';
+}
+
+/* Every chunk of a recording is also saved on the device as it arrives (the
+   shared audio-drafts module), so a tab closed or a phone that dies mid-note
+   leaves the audio behind. Memory stays the main path; the draft is the
+   backup, removed once the recording is safely in the transcription queue. */
+export interface VoiceNoteDraft extends AudioDraft {
+  userId: string;
+  contextKey: string;
+  startedAt: string;
+}
+
+const DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+const MIN_RECORDING_BYTES = 100;
+
+const voiceDrafts = createAudioDraftStore<VoiceNoteDraft>({ database: 'teajia-voice-drafts', version: 1, label: 'Voice note' });
+
+type CaptureRecording = (blob: Blob, contextKey: string, userId: string) => Promise<PendingTranscriptionResult>;
+type DraftStore = Pick<AudioDraftStore<VoiceNoteDraft>, 'listDrafts' | 'listChunks' | 'discard'>;
+
+/* A recording in progress is held: in this page by the set, and across tabs
+   by a Web Lock where the browser has them. Handing over only takes a draft
+   nobody holds, so an unfinished recording is never sent half-way, and two
+   recorders never send the same interrupted one twice. */
+const heldDrafts = new Set<string>();
+const draftLock = (id: string) => `teajia-voice-draft:${id}`;
+
+function holdDraft(id: string): () => void {
+  heldDrafts.add(id);
+  let released = false;
+  let unlock: () => void = () => undefined;
+  if (typeof navigator !== 'undefined' && navigator.locks) {
+    void navigator.locks.request(draftLock(id), () => (released
+      ? Promise.resolve()
+      : new Promise<void>((resolve) => { unlock = resolve; }))).catch(() => undefined);
+  }
+  return () => { released = true; heldDrafts.delete(id); unlock(); };
+}
+
+async function withFreeDraft(id: string, run: () => Promise<void>): Promise<void> {
+  if (heldDrafts.has(id)) return;
+  if (typeof navigator !== 'undefined' && navigator.locks) {
+    await navigator.locks.request(draftLock(id), { ifAvailable: true }, async (lock) => {
+      if (lock && !heldDrafts.has(id)) await run();
+    });
+    return;
+  }
+  await run();
+}
+
+/**
+ * Hands each interrupted recording for this person and entry to the
+ * transcription queue, then removes its draft. A draft is removed only after
+ * the queue has it, so a failure leaves it for the next try. Drafts older than
+ * the queue keeps recordings, or with no usable audio, are removed.
+ */
+export async function recoverInterruptedRecordings(
+  store: DraftStore,
+  userId: string,
+  contextKey: string,
+  capture: CaptureRecording,
+  options: { now?: number } = {},
+): Promise<PendingTranscriptionResult[]> {
+  const now = options.now ?? Date.now();
+  const results: PendingTranscriptionResult[] = [];
+  for (const draft of await store.listDrafts()) {
+    if (heldDrafts.has(draft.id)) continue;
+    const expired = now - Date.parse(draft.startedAt) > DRAFT_MAX_AGE_MS;
+    if (!expired && (draft.userId !== userId || draft.contextKey !== contextKey)) continue;
+    await withFreeDraft(draft.id, async () => {
+      heldDrafts.add(draft.id);
+      try {
+        if (!expired) {
+          const chunks = await store.listChunks(draft.id);
+          const blob = new Blob(chunks.map((chunk) => chunk.blob), { type: draft.mimeType });
+          if (blob.size >= MIN_RECORDING_BYTES) results.push(await capture(blob, draft.contextKey, draft.userId));
+        }
+        await store.discard(draft.id);
+      } finally {
+        heldDrafts.delete(draft.id);
+      }
+    });
+  }
+  return results;
+}
+
+/** Removes every interrupted recording belonging to someone who signed out. */
+export async function discardDraftsForUser(store: DraftStore, userId: string): Promise<void> {
+  for (const draft of await store.listDrafts()) {
+    if (draft.userId === userId) await store.discard(draft.id);
+  }
 }
 
 const pendingRepository = createResilientPendingTranscriptionRepository(
@@ -36,6 +129,7 @@ useAppStore.subscribe((store) => {
   const nextUserId = store.activeUserId;
   if (previousUserId && previousUserId !== nextUserId) {
     void pendingService.purgeUser(previousUserId);
+    void discardDraftsForUser(voiceDrafts, previousUserId).catch(() => undefined);
   }
   previousUserId = nextUserId;
 });
@@ -112,7 +206,19 @@ export function useVoiceRecorder(
   }, []);
 
   useEffect(() => {
-    void showNextPending(contextKey, userId);
+    let live = true;
+    void (async () => {
+      try {
+        await recoverInterruptedRecordings(
+          voiceDrafts,
+          userId,
+          contextKey,
+          (blob, key, owner) => pendingService.capture(blob, key, owner),
+        );
+      } catch { /* Device storage unavailable: nothing was saved there to recover. */ }
+      if (live) await showNextPending(contextKey, userId);
+    })();
+    return () => { live = false; };
   }, [contextKey, showNextPending, userId]);
 
   const applyResult = useCallback(async (result: PendingTranscriptionResult) => {
@@ -150,8 +256,31 @@ export function useVoiceRecorder(
       mediaRecorderRef.current = recorder;
       chunksRef.current = [];
 
+      /* The device copy is best effort: if storage is unavailable the
+         recording carries on in memory exactly as before. */
+      const draftId = crypto.randomUUID();
+      const startedAt = performance.now();
+      let draftWrites: Promise<boolean> = voiceDrafts
+        .begin({ id: draftId, mimeType, byteSize: 0, durationMs: 0, userId, contextKey, startedAt: new Date().toISOString() })
+        .then(() => true, () => false);
+      const releaseDraft = holdDraft(draftId);
+      let chunkIndex = 0;
+
       recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+          const index = chunkIndex++;
+          const data = e.data;
+          draftWrites = draftWrites.then((saving) => saving
+            ? voiceDrafts.append(draftId, index, data, performance.now() - startedAt).then(() => true, () => false)
+            : false);
+        }
+      };
+      const discardDraft = () => {
+        void draftWrites
+          .then((saving) => (saving ? voiceDrafts.discard(draftId) : undefined))
+          .catch(() => undefined)
+          .finally(releaseDraft);
       };
 
       recorder.onstop = async () => {
@@ -159,11 +288,15 @@ export function useVoiceRecorder(
         streamRef.current = null;
         const blob = new Blob(chunksRef.current, { type: mimeType });
         chunksRef.current = [];
-        if (blob.size < 100) { setState('idle'); return; }
+        if (blob.size < MIN_RECORDING_BYTES) { discardDraft(); setState('idle'); return; }
         setState('transcribing');
         try {
-          await applyResult(await pendingService.capture(blob, contextKey, userId));
+          const result = await pendingService.capture(blob, contextKey, userId);
+          discardDraft();
+          await applyResult(result);
         } catch (err: unknown) {
+          /* The device copy stays: the next visit to this entry hands it over. */
+          void draftWrites.finally(releaseDraft);
           if (mountedRef.current) {
             const msg = err instanceof Error ? err.message : 'Recording storage unavailable.';
             setErrorMessage(`${msg} Keep this page open and try again.`);
