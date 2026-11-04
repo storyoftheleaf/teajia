@@ -94,6 +94,7 @@ test.describe('Curate v2 requests (phone)', () => {
     const all = [...synced(sent).values()];
     const by = (name: string) => all.find((e) => e.name === name)!;
     expect(by('Yiwu Gushu')).toMatchObject({ price_amount: 1200, price_currency: 'Yuan', form: 'Cake', year: 2019 });
+    expect(by('Yiwu Gushu').price_per_unit_grams ?? null).toBeNull();
     // A price typed without a sign is in the table's money; a sign says its own.
     expect(by('Jingmai Mao Cha')).toMatchObject({ price_amount: 90, price_currency: 'Yuan', price_per_unit_grams: 100 });
     expect(by('Bulang')).toMatchObject({ price_amount: 800, price_currency: 'NT', price_per_unit_grams: 500 });
@@ -215,7 +216,7 @@ test.describe('Curate v2 requests (phone)', () => {
   test('a tea bought at the table arrives with its cost: the order names its grams, total and money, a receipt waits per tea, and the shelf product carries what was paid', async ({ page }) => {
     await installCompassHarness(page, {
       customers: VENDORS, rates: RATES,
-      compassEntries: [entry({ id: 'cost-1', name: 'Mengku Laobanzhang', year: 2018, form: 'Cake', price_amount: 450, price_currency: 'Yuan', tasting: tasted })],
+      compassEntries: [entry({ id: 'cost-1', name: 'Mengku Laobanzhang', year: 2018, form: 'Cake', price_amount: 450, price_currency: 'Yuan', price_per_unit_grams: 357, tasting: tasted })],
     });
     const sent = record(page);
     await openCurateV2(page, 'today');
@@ -1167,9 +1168,11 @@ test.describe('Curate v2 requests (phone)', () => {
     await order.getByRole('button', { name: "The shop's order with Chen Family" }).click();
     await expect(order).toContainText('Mengku Laobanzhang');
     await expect(order).toContainText('2 cakes');
+    await expect(order).toContainText('¥1,200 / cake');
     await expect(order).toContainText('¥2,400');
     await expect(order).toContainText('Jingmai Mao Cha');
     await expect(order).toContainText('200 g');
+    await expect(order).toContainText('¥4.50 / g');
     await expect(order).toContainText('¥900');
     await expect(order.getByTestId('shop-order-total')).toHaveText('¥3,300');
     await expect(order.getByTestId('shop-order-usd')).toHaveText('$464.79');

@@ -384,7 +384,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       if (result.form) {
         if (!entry.form && !userTapped.current.has('form')) {
           updates.form = result.form;
-          updates.pricePerUnitGrams = DEFAULT_GRAMS[result.form];
           tokens.form = result.form;
         } else if (entry.form === result.form) {
           tokens.form = result.form;
@@ -500,10 +499,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       }
       if (data.form && !entry.form && !userTapped.current.has('form')) {
         updates.form = data.form;
-        if (!entry.pricePerUnitGrams) {
-          const formKey = data.form as keyof typeof DEFAULT_GRAMS;
-          if (DEFAULT_GRAMS[formKey]) updates.pricePerUnitGrams = DEFAULT_GRAMS[formKey];
-        }
         summaryParts.push(data.form);
       }
       if (data.year && !entry.year && !userTapped.current.has('year')) {
@@ -742,10 +737,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const handleFormSelect = (form: TeaForm) => {
     userTapped.current.add('form');
     const updates: Record<string, unknown> = { form };
-    // Auto-fill default grams when form changes
-    if (!entry.pricePerUnitGrams || entry.pricePerUnitGrams === DEFAULT_GRAMS[entry.form || 'Loose']) {
-      updates.pricePerUnitGrams = DEFAULT_GRAMS[form];
-    }
+    // A form describes a shape; it does not establish this tea's weight.
     update(updates);
   };
 
@@ -842,9 +834,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     if (type && !entry.type) updates.type = type;
     if (form && !entry.form) {
       updates.form = form;
-      if (!entry.pricePerUnitGrams && DEFAULT_GRAMS[form as keyof typeof DEFAULT_GRAMS]) {
-        updates.pricePerUnitGrams = DEFAULT_GRAMS[form as keyof typeof DEFAULT_GRAMS];
-      }
     }
     if (year && !entry.year) updates.year = year;
     if (region && !entry.originRegion) updates.originRegion = region;

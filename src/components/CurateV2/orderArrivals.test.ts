@@ -25,6 +25,12 @@ describe('what a confirmed order tells the shop about each tea', () => {
     expect(orderArrivalLines({ items: [line({ type: 'Teaware' })] })).toEqual([]);
   });
 
+  it('does not turn a cake with no stated piece weight into grams or stock', () => {
+    const unweighed = line({ unitWeightGrams: undefined });
+    expect(orderArrivalLines({ items: [unweighed] })).toEqual([]);
+    expect(arrivalFields(unweighed)).toEqual({ compass_entry_id: 'e1' });
+  });
+
   it('the purchase order line names the tea; it gains grams and a total only when the shop can use them', () => {
     expect(arrivalFields(line({}))).toEqual({ compass_entry_id: 'e1', unitWeightGrams: 357, quantity_grams: 357, line_total: 450 });
     expect(arrivalFields(line({ unitWeightGrams: undefined }))).toEqual({ compass_entry_id: 'e1' });

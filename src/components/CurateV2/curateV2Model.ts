@@ -11,7 +11,7 @@
 import type { TastingData } from '../../types';
 import { currencyInText, isUnrecordedCurrency, rateToUsd } from '../../lib/currency';
 import type { Currency, ExchangeRate } from '../../admin/types';
-import { DEFAULT_GRAMS, type TeaCompassEntry } from './types';
+import type { TeaCompassEntry } from './types';
 
 // ── Today ────────────────────────────────────────────────────────────────
 
@@ -126,17 +126,14 @@ export const TODAY_ACTION_LABEL: Record<TodayAction, string> = {
 const PIECE_FORMS = ['Cake', 'Brick', 'Tuo'];
 
 /**
- * What one piece weighs: the weight written on the tea, else the form's usual
- * (a cake 357 g). Null for anything that is not a pressed piece. The shelf
- * price, Compare and an order's freight all read this one answer; Compare and
- * the order used to take the form's usual weight and ignore a 200 g cake that
- * had been entered as 200, so the same tea had one weight on its own screen and
- * another in the comparison and on the order.
+ * What one piece weighs, only when someone recorded its weight. A form's usual
+ * weight is not purchase evidence and must not become stock on arrival.
  */
-export function pieceWeightGrams(entry: Pick<TeaCompassEntry, 'form' | 'pricePerUnitGrams'>): number | null {
+export function pieceWeightGrams(entry: Pick<TeaCompassEntry, 'form' | 'pricePerUnitGrams' | 'packSizeGrams'>): number | null {
   if (!entry.form || !PIECE_FORMS.includes(entry.form)) return null;
+  if (entry.packSizeGrams && entry.packSizeGrams > 0) return entry.packSizeGrams;
   if (entry.pricePerUnitGrams && entry.pricePerUnitGrams > 0) return entry.pricePerUnitGrams;
-  return DEFAULT_GRAMS[entry.form] ?? null;
+  return null;
 }
 
 /**
@@ -147,7 +144,7 @@ export function pieceWeightGrams(entry: Pick<TeaCompassEntry, 'form' | 'pricePer
  * a plain `price / grams` ranked NT$ and yuan teas by their bare numbers.
  */
 export function costPerGramUsd(
-  entry: Pick<TeaCompassEntry, 'category' | 'priceAmount' | 'priceCurrency' | 'form' | 'pricePerUnitGrams'>,
+  entry: Pick<TeaCompassEntry, 'category' | 'priceAmount' | 'priceCurrency' | 'form' | 'pricePerUnitGrams' | 'packSizeGrams'>,
   rates: readonly ExchangeRate[] | null | undefined,
 ): number {
   if (entry.category === 'teaware' || entry.priceAmount == null) return Number.POSITIVE_INFINITY;

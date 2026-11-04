@@ -163,7 +163,7 @@ describe('Buy puts a tea on its vendor\'s draft order', () => {
     addTeaToDraftOrder(b);
     const items = useLedgerStore.getState().transactions.find((t) => t.id === tx)!.items;
     expect(items[0].unitWeightGrams).toBe(200);
-    expect(items[1].unitWeightGrams).toBe(357);
+    expect(items[1].unitWeightGrams).toBeUndefined();
   });
 });
 

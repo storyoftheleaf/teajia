@@ -180,9 +180,10 @@ describe('what a piece weighs, and what a gram cost', () => {
     { currency: 'Yuan', rateToUSD: 7 },
     { currency: 'NT', rateToUSD: 30 },
   ];
-  it('a cake weighs what was written on it, else its usual 357 g', () => {
-    expect(pieceWeightGrams({ form: 'Cake' })).toBe(357);
+  it('a cake weighs only what was written on it', () => {
+    expect(pieceWeightGrams({ form: 'Cake' })).toBeNull();
     expect(pieceWeightGrams({ form: 'Cake', pricePerUnitGrams: 200 })).toBe(200);
+    expect(pieceWeightGrams({ form: 'Cake', packSizeGrams: 180 })).toBe(180);
     expect(pieceWeightGrams({ form: 'Loose', pricePerUnitGrams: 100 })).toBeNull();
   });
   it('ranks teas bought in different money by their dollars, not their bare numbers', () => {

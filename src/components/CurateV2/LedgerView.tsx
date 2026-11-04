@@ -709,6 +709,7 @@ const ShopLine: React.FC<{ item: LedgerLineItem; onOpenEntry?: (entryId: string)
   const qty = perPiece ? (item.quantityUnits ?? 1) : (item.quantityGrams ?? 0);
   const piece = String(item.form || 'piece').toLowerCase();
   const qtyWords = perPiece ? `${qty} ${qty === 1 ? piece : `${piece}s`}` : `${qty.toLocaleString()} g`;
+  const quoteWords = item.unpriced ? null : `${fmtPrice(item.pricePerUnit, item.currency)} / ${perPiece ? piece : 'g'}`;
   const kind = [item.year, item.type && item.type !== 'Teaware' ? item.type.toUpperCase() : item.type, item.type !== 'Teaware' ? item.form : undefined].filter((x) => x !== undefined && x !== '');
   const nameClass = 'min-w-0 break-words text-left font-display text-ui-17 leading-tight text-tea-text';
   return (
@@ -722,7 +723,7 @@ const ShopLine: React.FC<{ item: LedgerLineItem; onOpenEntry?: (entryId: string)
           : <span className="shrink-0 text-ui-14 font-medium text-tea-text tabular-nums">{fmtPrice(lineTotal(item), item.currency)}</span>}
       </div>
       <p className="mt-1 font-mono text-ui-12 tracking-[0.02em] text-tea-text-sec tabular-nums">
-        {kind.length > 0 && <>{kind.join(' · ')} · </>}{qtyWords}
+        {kind.length > 0 && <>{kind.join(' · ')} · </>}{qtyWords}{quoteWords && <> · {quoteWords}</>}
       </p>
     </div>
   );
