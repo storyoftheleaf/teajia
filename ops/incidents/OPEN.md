@@ -169,11 +169,6 @@
   Normalized error: `transport_failure`
   Evidence: [acc-teajia-bali-network-get-api-accounts-acc-teajia-bali-none-transport-failure-261db6ab.json](evidence/acc-teajia-bali-network-get-api-accounts-acc-teajia-bali-none-transport-failure-261db6ab.json)
 
-- [ ] `acc_teajia_bali:network_get_api_compass_incoming_none_timeout` — **medium**
-  1 occurrence · first 2026-10-26T05:59:21Z · last 2026-10-26T05:59:21Z
-  Normalized error: `timeout`
-  Evidence: [acc-teajia-bali-network-get-api-compass-incoming-none-timeout-2e274302.json](evidence/acc-teajia-bali-network-get-api-compass-incoming-none-timeout-2e274302.json)
-
 - [ ] `acc_teajia_bali:network_get_api_compass_incoming_none_transport_failure` — **medium**
   2 occurrences · first 2026-10-22T13:08:43Z · last 2026-10-29T01:06:49Z
   Normalized error: `transport_failure`
