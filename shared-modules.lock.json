@@ -14,6 +14,20 @@
       "files": {
         "tests/shared/check-shared-copies.ts": "197cf683d191f33fb1638f05eb0a74ddbe9f30e54fba6485a171d938d28d620c"
       }
+    },
+    "voice-audio-drafts": {
+      "owner": "mandalacodes",
+      "version": "d4192283",
+      "files": {
+        "shared/voice/audio-drafts.ts": "a64a8b67813a0aa4a80aef0fa0ae06704c1837a3583688f619371550082bd4f8"
+      }
+    },
+    "voice-microphone": {
+      "owner": "mandalacodes",
+      "version": "d4192283",
+      "files": {
+        "shared/voice/microphone.ts": "4cdaa8488cec56bf23d37f6c82111b35646f0546485d86ced879c05443fcd98e"
+      }
     }
   }
 }

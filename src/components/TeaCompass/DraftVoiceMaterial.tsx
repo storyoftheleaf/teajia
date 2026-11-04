@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Mic } from 'lucide-react';
 import { useAppStore } from '../../lib/store';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
-import { useVoiceRecorder } from './useVoiceRecorder';
+import { useVoiceRecorder } from '../../hooks/useVoiceRecorder';
 
 interface DraftVoiceMaterialProps {
   entryId: string;
