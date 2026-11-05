@@ -212,15 +212,22 @@ export function createSampleRepository(options: {
       const snapshot = store.getState();
       const remoteSetsById = new Map(initialSets.sets.map((set) => [set.id, set]));
       const remoteSamplesById = new Map(initialSamples.samples.map((sample) => [sample.id, sample]));
+      let wroteRemote = false;
 
       for (const id of snapshot.sampleTombstones) {
         if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
-        if (remoteSamplesById.has(id)) await remote.samples.remove(id, BACKGROUND_REQUEST);
+        if (remoteSamplesById.has(id)) {
+          await remote.samples.remove(id, BACKGROUND_REQUEST);
+          wroteRemote = true;
+        }
         remoteSamplesById.delete(id);
       }
       for (const id of snapshot.sampleSetTombstones) {
         if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
-        if (remoteSetsById.has(id)) await remote.sampleSets.remove(id, BACKGROUND_REQUEST);
+        if (remoteSetsById.has(id)) {
+          await remote.sampleSets.remove(id, BACKGROUND_REQUEST);
+          wroteRemote = true;
+        }
         remoteSetsById.delete(id);
         for (const [sampleId, sample] of remoteSamplesById) {
           if (sample.set_id === id) remoteSamplesById.delete(sampleId);
@@ -237,6 +244,7 @@ export function createSampleRepository(options: {
         const row = persisted && remoteSetsById.has(sampleSet.id)
           ? await remote.sampleSets.update(sampleSet.id, sampleSetUpdatesToApi(sampleSet), BACKGROUND_REQUEST)
           : await remote.sampleSets.create(sampleSetToApi(sampleSet), BACKGROUND_REQUEST);
+        wroteRemote = true;
         remoteSetsById.set(row.id, row);
       }
       const canonicalIds = new Map<string, string>();
@@ -250,6 +258,7 @@ export function createSampleRepository(options: {
         const row = persisted && remoteSamplesById.has(sample.id)
           ? await remote.samples.update(sample.id, sampleUpdatesToApi(sample), BACKGROUND_REQUEST)
           : await remote.samples.create(sampleToApi(sample), BACKGROUND_REQUEST);
+        wroteRemote = true;
         if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
         canonicalIds.set(sample.id, row.id);
         if (row.id !== sample.id) remoteSamplesById.delete(sample.id);
@@ -276,15 +285,18 @@ export function createSampleRepository(options: {
             personalNote: tasting.personalNote,
             tasterName: tasting.tasterName,
           }, BACKGROUND_REQUEST);
+          wroteRemote = true;
           remoteTastingIds.add(created.id);
           remoteSample.tastings = [...(remoteSample.tastings ?? []), created];
         }
       }
 
-      const [finalSets, finalSamples] = await Promise.all([
+      // The initial lists already are the authoritative result of a read-only
+      // sync. Reread only after writes that may change identities or relations.
+      const [finalSets, finalSamples] = wroteRemote ? await Promise.all([
         remote.sampleSets.list(BACKGROUND_REQUEST),
         remote.samples.list(undefined, BACKGROUND_REQUEST),
-      ]);
+      ]) : [initialSets, initialSamples];
       if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
       const samples = finalSamples.samples.map(sampleFromApi);
       const sampleSets = finalSets.sets.map((set) => sampleSetFromApi(set, samples));
