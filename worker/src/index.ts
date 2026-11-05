@@ -6458,13 +6458,9 @@ const handleMcpMintToken: Handler = async (request, env) => {
   // Derive creator_tier from account context (isPlatform covers platform_owner + platform_admin).
   const creatorTier = ctx.isPlatform ? 'platform_owner' as const : 'account_owner' as const;
 
-  // Parse requested scopes from body (validated in mcpAdminMintToken).
-  let requestedScopes: string[] | undefined;
-  if (Array.isArray(body.scopes)) {
-    requestedScopes = (body.scopes as unknown[]).filter((s): s is string => typeof s === 'string');
-  }
-
-  const minted = await mcpAdminMintToken(env, ctx.accountId, ctx.userId, ctx.email, label, requestedScopes as any, creatorTier);
+  // Preserve explicit empty/invalid choices so they cannot become omitted defaults.
+  const minted = await mcpAdminMintToken(env, ctx.accountId, ctx.userId, ctx.email, label, body.scopes, creatorTier);
+  if (!minted) return json({ error: 'invalid_scopes' }, 400);
   await buildActivityLog(env, 'MCP_TOKEN_MINTED', `MCP token minted: ${label} (scopes: ${minted.scopes.join(', ')})`, ctx.email, 'mcp_token', minted.id, ctx.accountId).run();
   return json({ id: minted.id, token: minted.token, prefix: minted.prefix, scopes: minted.scopes }, 201);
 };
