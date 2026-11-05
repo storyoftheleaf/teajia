@@ -71,6 +71,26 @@ describe('sample repository', () => {
     expect(remote.samples.update).not.toHaveBeenCalled();
   });
 
+  it('boot preserves delete intent when a pending row appears after hydration', async () => {
+    let reads = 0;
+    let removed = false;
+    const remote = {
+      sampleSets: { list: vi.fn(async () => ({ sets: [remoteSet] })), create: vi.fn(), update: vi.fn(), remove: vi.fn() },
+      samples: {
+        list: vi.fn(async () => ({ samples: ++reads === 1 || removed ? [] : [remoteSample] })),
+        create: vi.fn(), update: vi.fn(), remove: vi.fn(async () => { removed = true; return { success: true as const }; }),
+      },
+    };
+    useSampleStore.getState().switchAccount('acct-a');
+    useSampleStore.setState({ sampleTombstones: [remoteSample.id] });
+    expect(await createSampleRepository({ remote, isReady: () => true }).boot('acct-a')).toEqual({ status: 'synced' });
+    expect(remote.samples.remove).toHaveBeenCalledExactlyOnceWith(remoteSample.id, expect.anything());
+    expect(remote.samples.list).toHaveBeenCalledTimes(3);
+    expect(remote.sampleSets.list).toHaveBeenCalledTimes(3);
+    expect(removed).toBe(true);
+    expect(useSampleStore.getState().sampleTombstones).toEqual([]);
+  });
+
   it('rereads after adding a missing tasting even when its sample is already synced', async () => {
     const tasting = { id: 'new-tasting', sample_id: remoteSample.id, account_id: 'acct-a', taster_id: 'admin', tasting: {}, verdict: 'neutral', would_buy: false, created_at: 'now' };
     let written = false;
@@ -301,8 +321,8 @@ describe('sample repository', () => {
     useSampleStore.getState().addSample({ ...createEmptySample('local-set'), id: 'local-sample', name: 'Local sample' });
 
     expect(await repository[operation]('acct-a')).toEqual({ status: 'synced' });
-    expect(remote.sampleSets.list).toHaveBeenCalledTimes(2);
-    expect(remote.samples.list).toHaveBeenCalledTimes(2);
+    expect(remote.sampleSets.list).toHaveBeenCalledTimes(operation === 'boot' ? 3 : 2);
+    expect(remote.samples.list).toHaveBeenCalledTimes(operation === 'boot' ? 3 : 2);
     expect(calls.slice(0, 2)).toEqual(['create-set:local-set', 'create-sample:local-sample']);
     expect(useSampleStore.getState().getSampleSet('local-set')).toMatchObject({ accountId: 'acct-a', synced: true });
     expect(useSampleStore.getState().getSample('local-sample')).toMatchObject({ accountId: 'acct-a', synced: true });

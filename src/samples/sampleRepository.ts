@@ -9,7 +9,7 @@ import {
   type SampleSetApiWrite,
 } from '../lib/api';
 import type { TeaForm, TeaType, VendorDetails } from '../components/TeaCompass/types';
-import { useSampleStore } from './sampleStore';
+import { selectSampleSyncPending, useSampleStore } from './sampleStore';
 import type { SampleSet, SampleSetPurpose, SampleStatus, SampleTasting, TeaSample } from './types';
 import type { TastingData } from '../types';
 
@@ -207,6 +207,15 @@ export function createSampleRepository(options: {
     const snapshot = store.getState();
     const remoteSetsById = new Map(initialSets.sets.map((set) => [set.id, set]));
     const remoteSamplesById = new Map(initialSamples.samples.map((sample) => [sample.id, sample]));
+    if (hydrateFirst) {
+      const hasMissingTastings = snapshot.samples.some((sample) => {
+        const remoteTastingIds = new Set((remoteSamplesById.get(sample.id)?.tastings ?? []).map((tasting) => tasting.id));
+        return sample.tastings.some((tasting) => !remoteTastingIds.has(tasting.id));
+      });
+      // Reuse is read-only. Pending work retains the former hydrate→fresh-sync
+      // boundary; no write may be authorized from the hydration snapshot.
+      if (selectSampleSyncPending(snapshot) || hasMissingTastings) return syncAccount(accountId, false);
+    }
     let wroteRemote = false;
 
     for (const id of snapshot.sampleTombstones) {
