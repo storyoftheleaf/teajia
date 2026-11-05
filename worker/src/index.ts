@@ -90,6 +90,7 @@ import {
   canonicalCurrency,
   type AuthorizedInvoiceLine,
 } from './teaMasterSales';
+import { isoCurrencyCode } from '../../src/lib/currency';
 import { buildEventArticleDraft } from './eventArticleDraft';
 import { decodeWordforgeDraft, isWordforgeManagedArticle, upsertWordforgeDraft, WordforgeDraftError, WORDFORGE_DRAFT_MAX_BYTES } from './wordforgeArticleDraft';
 import {
@@ -20598,17 +20599,21 @@ async function sendOrderRequestEmails(env: Env, input: {
   // A consult with nothing in it is a conversation, not an order.
   if (input.source === 'consult' && lines.length === 0) return false;
 
+  const currencyKey = canonicalCurrency(input.currency);
+  const currency = currencyKey ? isoCurrencyCode(currencyKey) : 'USD';
   const [account, rateRow] = await Promise.all([
     env.DB.prepare('SELECT name, contact_email FROM accounts WHERE id = ?')
       .bind(input.accountId).first() as Promise<{ name?: string | null; contact_email?: string | null } | null>,
     env.DB.prepare('SELECT rate_to_usd FROM exchange_rates WHERE currency = ?')
-      .bind(input.currency).first() as Promise<{ rate_to_usd?: number | null } | null>,
+      .bind(currencyKey).first() as Promise<{ rate_to_usd?: number | null } | null>,
   ]);
 
   const storeName = account?.name || 'Teajia';
-  const currency = input.currency || 'USD';
-  // Stored amounts are USD; exchange_rates holds units per USD.
-  const rate = currency === 'USD' ? 1 : Number(rateRow?.rate_to_usd || 0) || 1;
+  // Stored amounts are USD; exchange_rates holds units per USD. A missing or
+  // unusable conversion leaves the original dollars labelled as dollars.
+  const recordedRate = Number(rateRow?.rate_to_usd);
+  const rate = currency !== 'USD' && isSupportedPaymentCurrency(currency)
+    && Number.isFinite(recordedRate) && recordedRate > 0 ? recordedRate : 1;
   const displayCurrency = currency === 'USD' || rate !== 1 ? currency : 'USD';
   const origin = appOrigin(env);
   const contactIsEmail = input.contact.includes('@');
@@ -24715,7 +24720,8 @@ async function resolveLocalPaymentAmount(
   amountUsd: string | null,
   displayCurrency: string | null,
 ): Promise<PaymentLocalAmount | null> {
-  const currency = String(displayCurrency || '').trim().toUpperCase();
+  const currencyKey = canonicalCurrency(displayCurrency);
+  const currency = currencyKey ? isoCurrencyCode(currencyKey) : '';
   if (!currency || currency === 'USD') return null;
   if (!isSupportedPaymentCurrency(currency)) return null;
   const usd = Number(amountUsd);
@@ -24723,7 +24729,7 @@ async function resolveLocalPaymentAmount(
 
   const row = await env.DB.prepare(
     'SELECT rate_to_usd, last_updated FROM exchange_rates WHERE currency = ?'
-  ).bind(currency).first() as { rate_to_usd?: number | null; last_updated?: string | null } | null;
+  ).bind(currencyKey).first() as { rate_to_usd?: number | null; last_updated?: string | null } | null;
   const rate = Number(row?.rate_to_usd);
   // exchange_rates holds units of the currency per one USD, refreshed daily by
   // the existing cron. A rate of 1 on a non-USD currency is a placeholder row,
