@@ -151,6 +151,9 @@ jobs:
       - name: Source unit tests
         run: npm run test:src
 
+      - name: Read build confidentiality
+        run: npm run test:read-delivery
+
       - name: Color rules
         run: npm run lint:colors
 

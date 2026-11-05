@@ -57,6 +57,7 @@ async function readLinksOn(page: Page): Promise<string[]> {
 }
 
 async function injectOwnerAuth(page: Page) {
+  await page.route('**/api/read/session', route => route.fulfill({ json: { editor: true } }));
   await page.addInitScript((token) => {
     localStorage.setItem('teajia_token', token);
   }, OWNER_TOKEN);
@@ -166,4 +167,10 @@ test('the filter leaves a real rail standing, it does not empty every page', asy
     // And the draft each of them used to advertise is gone.
     expect(links, `${pagePath} still offers /read/history, which is a draft`).not.toContain('/read/history');
   }
+});
+
+test('browser-written owner claims cannot unlock a draft without a server grant', async ({ page }) => {
+  await page.addInitScript(token => localStorage.setItem('teajia_token', token), OWNER_TOKEN);
+  await page.goto('/read/rock-remembers');
+  await expect(page).toHaveTitle('Not found · Teajia');
 });

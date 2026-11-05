@@ -1,4 +1,5 @@
 import { guardFetch } from './allowanceGuard.mjs';
+import { isCuratedReadPath, isReadPathPublic } from '../../src/pages/read/articleLive';
 import { LogisticsTrackingError, recordLogisticsTrackingUpdate } from './logisticsTracking';
 import { readLogistics, mutateLogistics, LogisticsError, type LogisticsAction } from './logistics';
 import { readPurchaseTracking } from './purchaseTracking';
@@ -532,7 +533,7 @@ async function verifyOAuthState(state: string, secret: string): Promise<string |
 }
 
 // ── Multi-account helpers ──
-async function loadMemberships(env: Env, userId: string): Promise<AccountMembership[]> {
+async function loadMemberships(env: Env, userId: string, strict = false): Promise<AccountMembership[]> {
   try {
     const { results } = await env.DB.prepare(
       `SELECT am.account_id, am.role, am.permissions, a.slug, a.name, a.kind, a.is_platform_owner
@@ -555,7 +556,8 @@ async function loadMemberships(env: Env, userId: string): Promise<AccountMembers
         ...(r.is_platform_owner ? { is_platform_account: true } : {}),
       };
     });
-  } catch {
+  } catch (error) {
+    if (strict) throw error;
     return [];
   }
 }
@@ -1592,7 +1594,10 @@ function cors(response: Response, origin: string | null): Response {
   if (origin) headers.set('Access-Control-Allow-Origin', origin);
   headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Teajia-Account');
-  headers.set('Vary', 'Origin');
+  const vary = headers.get('Vary');
+  if (!vary?.split(',').some(value => value.trim().toLowerCase() === 'origin')) {
+    headers.set('Vary', vary ? `${vary}, Origin` : 'Origin');
+  }
   return new Response(response.body, { status: response.status, headers });
 }
 
@@ -11429,10 +11434,15 @@ const handleDeleteStoryPhoto: Handler = async (request, env, params) => {
 const handleGetStoryContent: Handler = async (request, env, params) => {
   const url = new URL(request.url);
   const wantDraft = url.searchParams.get('state') === 'draft';
-  // Draft is owner-only; published is public.
-  if (wantDraft) {
-    const authErr = await requireAdmin(request, env);
-    if (authErr) return authErr;
+  // A saved "published" edit is not publication of the Read story itself.
+  // The same state that protects its compiled page protects these words.
+  const readPath = `/read/${params.slug}`;
+  const curated = isCuratedReadPath(readPath);
+  if (curated || wantDraft) {
+    const refusal = wantDraft
+      ? await requireReadEditor(request, env)
+      : await readDeliveryRefusal(request, env, readPath);
+    if (refusal) return readDeliveryResponse(refusal);
   }
   const state = wantDraft ? 'draft' : 'published';
   const row = await env.DB.prepare(
@@ -11440,13 +11450,13 @@ const handleGetStoryContent: Handler = async (request, env, params) => {
   ).bind(BALI_ACCOUNT_ID, params.slug, state).first() as { content?: string } | null;
   let content: any = {};
   if (row?.content) { try { content = JSON.parse(row.content); } catch { content = {}; } }
-  return json(content);
+  return curated || wantDraft ? readDeliveryResponse(json(content)) : json(content);
 };
 
 // PUT /api/story-content/:slug/draft — save the owner's in-progress edits.
 const handleSaveStoryDraft: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const authErr = await requireReadEditor(request, env);
+  if (authErr) return readDeliveryResponse(authErr);
   const body = await request.json().catch(() => null) as { content?: any } | null;
   if (!body || typeof body.content !== 'object') return json({ error: 'content required' }, 400);
   await env.DB.prepare(
@@ -11460,8 +11470,8 @@ const handleSaveStoryDraft: Handler = async (request, env, params) => {
 
 // POST /api/story-content/:slug/publish — promote draft -> published + snapshot.
 const handlePublishStory: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const authErr = await requireReadEditor(request, env);
+  if (authErr) return readDeliveryResponse(authErr);
   const draft = await env.DB.prepare(
     `SELECT content FROM story_content WHERE account_id = ? AND story_slug = ? AND state = 'draft'`
   ).bind(BALI_ACCOUNT_ID, params.slug).first() as { content?: string } | null;
@@ -11493,19 +11503,19 @@ const handlePublishStory: Handler = async (request, env, params) => {
 
 // GET /api/story-content/:slug/versions — list snapshots (owner only).
 const handleListStoryVersions: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const authErr = await requireReadEditor(request, env);
+  if (authErr) return readDeliveryResponse(authErr);
   const rows = await env.DB.prepare(
     `SELECT id, label, created_at FROM story_content_versions
      WHERE account_id = ? AND story_slug = ? ORDER BY created_at DESC LIMIT 20`
   ).bind(BALI_ACCOUNT_ID, params.slug).all();
-  return json(rows.results);
+  return readDeliveryResponse(json(rows.results));
 };
 
 // POST /api/story-content/:slug/restore/:versionId — roll a snapshot into draft.
 const handleRestoreStoryVersion: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const authErr = await requireReadEditor(request, env);
+  if (authErr) return readDeliveryResponse(authErr);
   const v = await env.DB.prepare(
     `SELECT content FROM story_content_versions WHERE id = ? AND account_id = ? AND story_slug = ?`
   ).bind(params.versionId, BALI_ACCOUNT_ID, params.slug).first() as { content?: string } | null;
@@ -11516,7 +11526,7 @@ const handleRestoreStoryVersion: Handler = async (request, env, params) => {
      ON CONFLICT(account_id, story_slug, state) DO UPDATE SET
        content = excluded.content, updated_at = datetime('now')`
   ).bind(crypto.randomUUID(), BALI_ACCOUNT_ID, params.slug, v.content).run();
-  return json({ ok: true, content: JSON.parse(v.content) });
+  return readDeliveryResponse(json({ ok: true, content: JSON.parse(v.content) }));
 };
 
 // ── POST /api/products/:id/enhance-image ──
@@ -29090,6 +29100,74 @@ async function readPublishStates(env: Env) {
   return publishStatesFromRows((results ?? []) as { path: unknown; state: unknown }[]);
 }
 
+// These answers must never enter a shared cache, including a refusal or a
+// public story that can be taken down on the next press of Unpublish.
+function readDeliveryResponse(response: Response, cookie?: string): Response {
+  const headers = new Headers(response.headers);
+  headers.set('Cache-Control', 'private, no-store');
+  headers.set('Vary', 'Cookie, Authorization');
+  if (cookie) headers.set('Set-Cookie', cookie);
+  return new Response(response.body, { status: response.status, headers });
+}
+
+async function requireReadEditor(request: Request, env: Env, token = isAuthed(request)): Promise<Response | null> {
+  if (!token) return restError(401, 'Sign in to read drafts', 'auth_no_token');
+  const sessionError = await validateSessionToken(token, env);
+  if (sessionError) return sessionError;
+  const claims = parseToken(token);
+  if (!claims) return restError(401, 'Unauthorized', 'auth_invalid');
+  const platformRole = await resolveDbPlatformRole(env, claims.sub);
+  if (platformRole === 'db_error') return restError(503, 'Authentication dependency unavailable', 'auth_dependency_unavailable');
+  try {
+    const memberships = await loadMemberships(env, claims.sub, true);
+    return mayEditReadMagazine({ platformRole, memberships })
+      ? null : restError(404, 'Not found', 'read_not_found');
+  } catch {
+    return restError(503, 'Authentication dependency unavailable', 'auth_dependency_unavailable');
+  }
+}
+
+function readAssetToken(request: Request): string | null {
+  // The cookie is a credential only for compiled Read module delivery. It is
+  // never accepted by generic auth or any editorial/administrative write.
+  if (request.headers.has('Authorization')) return isAuthed(request);
+  const matches = (request.headers.get('Cookie') || '').split(';')
+    .map(part => part.trim()).filter(part => part.startsWith('__Host-teajia-read='));
+  return matches.length === 1 ? matches[0].slice('__Host-teajia-read='.length) || null : null;
+}
+
+async function readDeliveryRefusal(request: Request, env: Env, path: string, token = isAuthed(request)): Promise<Response | null> {
+  if (!isCuratedReadPath(path)) return restError(404, 'Not found', 'read_not_found');
+  try {
+    if (isReadPathPublic(path, await readPublishStates(env))) return null;
+  } catch {
+    return restError(503, 'Read publish state unavailable', 'read_publish_unavailable');
+  }
+  if (!token) return restError(404, 'Not found', 'read_not_found');
+  return requireReadEditor(request, env, token);
+}
+
+// Pages asks this on every compiled article-module request. There is no map
+// fallback on failure: yesterday's publication answer can expose today's draft.
+const handleReadAccess: Handler = async (request, env) => {
+  const path = new URL(request.url).searchParams.get('path') || '';
+  const refusal = await readDeliveryRefusal(request, env, path, readAssetToken(request));
+  return readDeliveryResponse(refusal || new Response(null, { status: 204 }));
+};
+
+// Establish same-origin module credentials without putting a token in an
+// import URL. Every module read still checks its signature, expiry, current
+// session version and current DB membership; the cookie grants no write access.
+const handleReadSession: Handler = async (request, env) => {
+  const token = isAuthed(request);
+  const attributes = '; Secure; HttpOnly; SameSite=Strict; Path=/';
+  if (!token) return readDeliveryResponse(json({ editor: false }), `__Host-teajia-read=; Max-Age=0${attributes}`);
+  const refusal = await requireReadEditor(request, env, token);
+  if (refusal) return readDeliveryResponse(refusal, `__Host-teajia-read=; Max-Age=0${attributes}`);
+  const remaining = Math.max(1, Math.floor((parseToken(token!)!.exp || 0) - Date.now() / 1000));
+  return readDeliveryResponse(json({ editor: true }), `__Host-teajia-read=${token}; Max-Age=${remaining}${attributes}`);
+};
+
 // GET /api/public/read/publish-state
 // Every visitor's browser and the edge's crawler meta read this. Short-lived
 // cache, so a press reaches a stranger within seconds rather than at the next
@@ -30070,6 +30148,8 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/public/people/:slug/pay-access', handleGetPayAccess],
   ['POST', '/api/public/people/:slug/pay-access/request', handleRequestPayAccess],
   ['GET', '/api/public/read/publish-state', handleGetReadPublishState],
+  ['GET', '/api/read/access', handleReadAccess],
+  ['POST', '/api/read/session', handleReadSession],
   ['POST', '/api/read/publish-state', handleSetReadPublishState],
   ['GET', '/api/me/pay-access', handleListMyPayAccess],
   ['POST', '/api/me/pay-access/share-link', handleMintMyPayShareLink],

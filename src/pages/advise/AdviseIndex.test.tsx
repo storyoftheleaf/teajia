@@ -28,6 +28,14 @@ import { adviseTestimonials } from '../../data/adviseTestimonials';
 // exercised end to end by tests/inquiry-delivery.spec.ts.
 vi.mock('../../components/advise/InquiryForm', () => ({ InquiryForm: () => null }));
 
+// Layout-only fixtures model the verified hook. Real JWT/session decisions
+// are covered by readOwner/readEditorState and Worker delivery tests.
+const verified = vi.hoisted(() => ({ editor: false }));
+vi.mock('../read/publishGate', async importOriginal => ({
+  ...await importOriginal<typeof import('../read/publishGate')>(),
+  useIsReadOwner: () => verified.editor,
+}));
+
 const store = vi.hoisted(() => {
   const map = new Map<string, string>();
   const storage = {
@@ -46,10 +54,12 @@ const store = vi.hoisted(() => {
 const TEAJIA_OWNER = { sub: 'u', memberships: [{ account_id: 'acc_teajia_bali', account_kind: 'platform', role: 'owner' }] };
 
 function signInAsOwner() {
+  verified.editor = true;
   const body = Buffer.from(JSON.stringify(TEAJIA_OWNER), 'utf8').toString('base64url');
   store.set('teajia_token', `header.${body}.signature`);
 }
 function signOut() {
+  verified.editor = false;
   store.delete('teajia_token');
 }
 

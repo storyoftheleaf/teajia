@@ -1453,6 +1453,19 @@ export async function atlasResponse(path: string): Promise<Response> {
   return authenticatedResponse(`${API_URL}/api/atlas/${path}`);
 }
 
+// Confirm editor access on the server and establish the HttpOnly cookie used
+// by native ES-module requests, which cannot attach a Bearer header. Always
+// same-origin: a cookie from a separate API hostname cannot authorize Pages.
+export async function readEditorSessionRequest(): Promise<boolean> {
+  const url = `${window.location.origin}/api/read/session`;
+  const response = getToken()
+    ? await authenticatedResponse(url, { method: 'POST' })
+    : await fetchWithTimeout(url, { method: 'POST' });
+  if (!response.ok) return false;
+  const body = await response.json();
+  return body?.editor === true;
+}
+
 // Publish or unpublish a Read story from the story itself (migration 0030).
 // Teajia's own editors only; the worker refuses everyone else.
 export async function setReadPublishStateRequest(path: string, state: 'live' | 'draft'): Promise<unknown> {
@@ -4844,8 +4857,7 @@ export const api = {
       if (state === 'draft') {
         return authedFetch(`${API_URL}/api/story-content/${encodeURIComponent(slug)}?state=draft`);
       }
-      const res = await fetchWithTimeout(`${API_URL}/api/story-content/${encodeURIComponent(slug)}`);
-      return handleResponse(res);
+      return optionallyAuthedFetch(`${API_URL}/api/story-content/${encodeURIComponent(slug)}`);
     },
     saveDraft: async (slug: string, content: any): Promise<{ ok: true }> => {
       return authedFetch(`${API_URL}/api/story-content/${encodeURIComponent(slug)}/draft`, {

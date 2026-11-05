@@ -47,6 +47,7 @@ async function mockPublishApi(page: Page, initial: Record<string, 'live' | 'draf
 }
 
 async function signIn(page: Page, token: string) {
+  await page.route('**/api/read/session', route => route.fulfill({ json: { editor: token === OWNER_TOKEN } }));
   await page.addInitScript((t) => localStorage.setItem('teajia_token', t), token);
 }
 
