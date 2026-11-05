@@ -2462,11 +2462,30 @@ async function commitUpdateTeaPricing(env: Env, m: Extract<PendingMutation, { ki
         .bind(...profileVals, `prof_${m.productId}`)
     );
   }
-  // Keep the listing in sync when status changes (mirrors the void/restock path).
-  if (m.status !== null) {
+  // Mirror the same commercial fields as the REST product edit, using the
+  // confirmed column/value bag so omitted fields stay untouched and explicit
+  // zeros or NULL clears retain their meaning. A listing id need not have the
+  // migration's list_<product> spelling; its account + legacy product are the
+  // link, and another shop's offer must never move with this one.
+  const listingColumns = new Set([
+    'cost_amount', 'cost_currency', 'cost_currency_source',
+    'fixed_retail_price_usd', 'quantity_purchased', 'shipping_rate_per_kg',
+    'stock_verified_at', 'status',
+  ]);
+  const listingSets: string[] = [];
+  const listingVals: any[] = [];
+  cols.forEach((column, index) => {
+    if (!listingColumns.has(column)) return;
+    listingSets.push(`${column} = ?`);
+    const value = vals[index];
+    listingVals.push(column === 'status'
+      ? value === 'Archived' ? 'archived' : value === 'Draft' ? 'draft' : 'active'
+      : value);
+  });
+  if (listingSets.length > 0) {
     stmts.push(
-      env.DB.prepare("UPDATE product_listings SET status = ?, updated_at = datetime('now') WHERE id = ?")
-        .bind(m.status, `list_${m.productId}`)
+      env.DB.prepare(`UPDATE product_listings SET ${listingSets.join(', ')}, updated_at = datetime('now') WHERE legacy_product_id = ? AND account_id = ?`)
+        .bind(...listingVals, m.productId, m.accountId)
     );
   }
   stmts.push(
