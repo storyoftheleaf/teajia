@@ -621,16 +621,16 @@ async function issueConfirmationToken(env: Env, mutation: PendingMutation, token
 async function consumeConfirmationToken(env: Env, token: string, tokenId: string | null): Promise<PendingMutation | null> {
   const tokenHash = await sha256Hex(token);
   const now = Date.now();
+  // Match the issuing token before consuming: a rejected sibling-token claim
+  // must leave the issuer's ticket usable. NULL retains legacy compatibility.
+  // Expiry and single use remain guarded by this same atomic claim.
   const row = await env.DB.prepare(
     `UPDATE mcp_confirmation_tickets SET consumed_at = ?
        WHERE token_hash = ? AND consumed_at IS NULL AND expires_at > ?
-     RETURNING payload_json, token_id`
-  ).bind(now, tokenHash, now).first() as { payload_json: string; token_id: string | null } | null;
+         AND (token_id IS NULL OR token_id = ?)
+     RETURNING payload_json`
+  ).bind(now, tokenHash, now, tokenId).first() as { payload_json: string } | null;
   if (!row) return null;
-  // Bind the ticket to its issuing token. NULL token_id is tolerated for
-  // backward-compat with any in-flight legacy tickets created before this
-  // column existed. A mismatch means a different token is trying to confirm.
-  if (row.token_id != null && row.token_id !== tokenId) return null;
   try { return JSON.parse(row.payload_json) as PendingMutation; } catch { return null; }
 }
 
