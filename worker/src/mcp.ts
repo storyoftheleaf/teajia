@@ -7324,8 +7324,11 @@ async function mcpFetchInner(request: Request, env: Env): Promise<Response> {
 
 export async function mcpAdminMintToken(
   env: Env, accountId: string, userId: string, userEmail: string, label: string,
-  requestedScopes?: McpScope[], creatorTier?: McpCreatorTier,
-): Promise<{ id: string; token: string; prefix: string; scopes: McpScope[] }> {
+  requestedScopes?: unknown, creatorTier?: McpCreatorTier,
+): Promise<{ id: string; token: string; prefix: string; scopes: McpScope[] } | null> {
+  const tier: McpCreatorTier = creatorTier ?? 'account_owner';
+  const scopes = sanitizeScopesForTier(requestedScopes, tier);
+  if (scopes.length === 0) return null;
   // Generate 32 bytes → 43-char base64url. That's 256 bits of entropy and
   // unambiguous when Adrian copies it.
   const bytes = crypto.getRandomValues(new Uint8Array(32));
@@ -7334,21 +7337,6 @@ export async function mcpAdminMintToken(
   const hash = await sha256Hex(plaintext);
   const prefix = plaintext.slice(0, 14); // "tjmcp_xxxxxxxx" — enough to distinguish, can't reconstruct
   const id = crypto.randomUUID();
-
-  // Validate scopes: only allow owner-tier scopes if the creator is owner-tier.
-  const tier: McpCreatorTier = creatorTier ?? 'account_owner';
-  let scopes: McpScope[];
-  if (requestedScopes && requestedScopes.length > 0) {
-    // Filter to valid scopes; strip owner-tier scopes if creator is not owner-tier.
-    scopes = requestedScopes.filter((s): s is McpScope => {
-      if (!MCP_SCOPES.includes(s as McpScope)) return false;
-      if (OWNER_TIER_SCOPES.has(s as McpScope) && !OWNER_TIERS.has(tier)) return false;
-      return true;
-    });
-    if (scopes.length === 0) scopes = DEFAULT_MCP_SCOPES;
-  } else {
-    scopes = DEFAULT_MCP_SCOPES;
-  }
 
   // Expire one year out. expires_at is unix seconds; enforced in authenticateMcp.
   const expiresAt = Math.floor(Date.now() / 1000) + 365 * 24 * 3600;
@@ -7740,17 +7728,18 @@ export async function oauthAuthorizeRequestInfo(request: Request, env: Env, requ
 }
 
 // Filter a requested scope list to those valid for the approving user's tier.
-// Owner-tier scopes are stripped for non-owner tiers. Empty result falls back
-// to the safe default set. Applied at both decision and token mint (defense in
-// depth), mirroring mcpAdminMintToken.
+// Owner-tier scopes are stripped for non-owner tiers. Only omitted selections
+// retain legacy defaults; an explicit unusable choice must never widen consent.
+// Applied at decision and both token mint paths (defense in depth).
 function sanitizeScopesForTier(requested: unknown, tier: McpCreatorTier): McpScope[] {
-  if (!Array.isArray(requested)) return DEFAULT_MCP_SCOPES;
+  if (requested === undefined) return DEFAULT_MCP_SCOPES;
+  if (!Array.isArray(requested)) return [];
   const filtered = requested.filter((s): s is McpScope => {
     if (!MCP_SCOPES.includes(s as McpScope)) return false;
     if (OWNER_TIER_SCOPES.has(s as McpScope) && !OWNER_TIERS.has(tier)) return false;
     return true;
   });
-  return filtered.length > 0 ? Array.from(new Set(filtered)) : DEFAULT_MCP_SCOPES;
+  return Array.from(new Set(filtered));
 }
 
 // POST /oauth/authorize/decision — called by the consent page after the user
@@ -7814,6 +7803,9 @@ export async function oauthAuthorizeDecision(request: Request, env: Env): Promis
   // Scopes the user granted on the consent screen, filtered to the approver's
   // tier. Persisted on the code so token mint honours the selection.
   const grantedScopes = sanitizeScopesForTier(requestedScopes, approval.creatorTier);
+  if (grantedScopes.length === 0) {
+    return corsJson({ error: 'invalid_scope', error_description: 'Select at least one permitted scope' }, 400);
+  }
 
   // Mint a fresh single-use auth code (5 min TTL).
   const code = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
@@ -7898,6 +7890,21 @@ export async function oauthToken(request: Request, env: Env): Promise<Response> 
     return corsJson({ error: 'invalid_grant', error_description: 'PKCE verification failed' }, 400);
   }
 
+  // Honour the scopes + tier the user granted at consent. Re-filter by tier as
+  // defense in depth in case the code row was tampered with. Older codes minted
+  // before migration 082 have neither column → retain their existing default.
+  const grantTier: McpCreatorTier =
+    (['platform_owner', 'account_owner', 'staff', 'viewer'] as McpCreatorTier[]).includes(codeRow.creator_tier as McpCreatorTier)
+      ? (codeRow.creator_tier as McpCreatorTier)
+      : 'account_owner';
+  let grantScopes: McpScope[] = DEFAULT_MCP_SCOPES;
+  if (codeRow.scopes != null) {
+    try { grantScopes = sanitizeScopesForTier(JSON.parse(codeRow.scopes as string), grantTier); } catch { grantScopes = []; }
+  }
+  if (grantScopes.length === 0) {
+    return corsJson({ error: 'invalid_grant', error_description: 'Authorization has no permitted scopes' }, 400);
+  }
+
   const markUsed = await env.DB.prepare("UPDATE oauth_codes SET used_at = datetime('now') WHERE code = ? AND used_at IS NULL")
     .bind(code).run() as any;
   if (typeof markUsed?.meta?.changes === 'number' && markUsed.meta.changes === 0) {
@@ -7917,18 +7924,6 @@ export async function oauthToken(request: Request, env: Env): Promise<Response> 
   const clientRow = await env.DB.prepare('SELECT client_name FROM oauth_clients WHERE id = ?')
     .bind(client_id).first() as { client_name: string } | null;
   const label = `OAuth: ${clientRow?.client_name || 'Unknown'}`;
-
-  // Honour the scopes + tier the user granted at consent. Re-filter by tier as
-  // defense in depth in case the code row was tampered with. Older codes minted
-  // before migration 082 have neither column → fall back to the safe default.
-  const grantTier: McpCreatorTier =
-    (['platform_owner', 'account_owner', 'staff', 'viewer'] as McpCreatorTier[]).includes(codeRow.creator_tier as McpCreatorTier)
-      ? (codeRow.creator_tier as McpCreatorTier)
-      : 'account_owner';
-  let grantScopes: McpScope[] = DEFAULT_MCP_SCOPES;
-  if (codeRow.scopes) {
-    try { grantScopes = sanitizeScopesForTier(JSON.parse(codeRow.scopes as string), grantTier); } catch { /* keep default */ }
-  }
 
   // Expire one year out. expires_at is unix seconds; enforced in authenticateMcp.
   const tokenExpiresAt = Math.floor(Date.now() / 1000) + 365 * 24 * 3600;
