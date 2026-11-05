@@ -101,7 +101,7 @@ function InventoryRowBase(props: InventoryRowProps) {
   // Non-stock numbers (retail, cost) never carry the low-stock tint, low stock
   // has nothing to do with price, so tinting it there was pure noise.
   const numTone = isSold ? 'text-tea-text-dim' : 'text-tea-text';
-  // The stock number is the only place the low-stock signal lives. `tea-gold-lt`
+  // The stock quantity and its Low label share a quiet warning tone. `tea-gold-lt`
   // is a softer bronze than the old `tea-readgold`, so the warning reads as a
   // quiet flag rather than the brightest thing in the row.
   const stockTone = isLow ? 'text-tea-gold-lt' : isSold ? 'text-tea-text-dim' : 'text-tea-text';
@@ -285,7 +285,7 @@ function InventoryRowBase(props: InventoryRowProps) {
           );
         }
         return (
-          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${stockTone}`}>
+          <td key={colKey} id={cellId(colIndex)} style={{ paddingTop: 0, paddingBottom: 0 }} className={`px-2 py-0 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${stockTone}`}>
             {/* Stock is the gram quantity, editable inline, type a new value
                 directly in the cell. The history clock and recount-flag icons
                 were removed: stock history opens from the column-header link,
@@ -293,11 +293,12 @@ function InventoryRowBase(props: InventoryRowProps) {
                 The number now gets the full column width so it never clips. */}
             <button
               type="button"
-              aria-label={`Change stock for ${product.productName || product.givenName}`}
+              aria-label={`Change stock for ${product.productName || product.givenName}${isLow ? ", low stock" : ""}`}
               onClick={(event) => { event.stopPropagation(); onStockMovement(product, event.currentTarget); }}
-              className={`inline-block w-fit max-w-full ${numCellAlign} num text-ui-13 hover:text-tea-gold transition-colors ${stockTone}`}
+              className={`tap-target flex-col justify-center w-full max-w-full ${alignLeft ? 'items-start' : 'items-end'} ${numCellAlign} num text-ui-13 hover:text-tea-gold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded transition-colors ${stockTone}`}
             >
-              {isOut ? 0 : Math.round(product.stockGrams)}
+              <span>{isOut ? 0 : Math.round(product.stockGrams)}</span>
+              {isLow && <span className="font-sans text-ui-10 leading-tight">Low</span>}
             </button>
           </td>
         );
@@ -392,8 +393,8 @@ function InventoryRowBase(props: InventoryRowProps) {
         </td>
       );
       case 'quantityUnits': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}>
-          <button type="button" aria-label={`Change stock for ${product.productName || product.givenName}`} onClick={(event) => { event.stopPropagation(); onStockMovement(product, event.currentTarget); }} className={`inline-block w-fit max-w-full ${numCellAlign} num text-ui-13 hover:text-tea-gold transition-colors ${numTone}`}>
+        <td key={colKey} id={cellId(colIndex)} style={{ paddingTop: 0, paddingBottom: 0 }} className={`px-2 py-0 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}>
+          <button type="button" aria-label={`Change stock for ${product.productName || product.givenName}`} onClick={(event) => { event.stopPropagation(); onStockMovement(product, event.currentTarget); }} className={`tap-target w-full max-w-full ${alignLeft ? 'justify-start' : 'justify-end'} ${numCellAlign} num text-ui-13 hover:text-tea-gold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded transition-colors ${numTone}`}>
             {product.quantityUnits ?? 0}
           </button>
         </td>
@@ -428,15 +429,15 @@ function InventoryRowBase(props: InventoryRowProps) {
         );
       }
       case 'vendor': return (
-        <td key={colKey} className="px-3 py-1 text-ui-13 align-middle overflow-hidden">
+        <td key={colKey} style={{ paddingTop: 0, paddingBottom: 0 }} className="px-3 py-0 text-ui-13 align-middle overflow-hidden">
           {product.vendor
             ? <button
                 type="button"
                 onClick={(event) => { event.stopPropagation(); onOpenSource(product); }}
                 aria-label={`Open supplier ${product.vendor}`}
-                className="inline-block w-fit max-w-full text-left text-tea-text-sec hover:text-tea-gold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded transition-colors truncate"
+                className="tap-target w-full max-w-full justify-start text-left text-tea-text-sec hover:text-tea-gold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded transition-colors truncate"
               >
-                {product.vendor}
+                <span className="truncate">{product.vendor}</span>
               </button>
             : <span className="text-tea-text-dim">—</span>}
         </td>
