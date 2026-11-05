@@ -17,7 +17,7 @@ import { useSearchParams, useNavigate, Link, Navigate } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Download,
   AlertTriangle, Archive, ArrowUpDown, ArrowUp, ArrowDown, Layers, MoreHorizontal, Check, X as XIcon, Star, Sparkles, RefreshCw, ChevronDown, ChevronRight, MapPin, Search, Leaf, Image as ImageIcon, History, SlidersHorizontal,
-  Pencil, BookOpen, ChevronsUp, ChevronsDown,
+  Pencil, BookOpen, ChevronsUp, ChevronsDown, Trash2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Papa from 'papaparse';
@@ -2217,6 +2217,21 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const stockViews = (savedViews.length > 0 ? savedViews : activeDefaultViews).filter(view => inventoryCategory === 'teaware' ? view.id.includes('teaware') : !view.id.includes('teaware'));
   const stockViewLabel = (view: typeof stockViews[number]) => view.filterType === 'All' ? (inventoryCategory === 'tea' ? 'All teas' : 'All teaware') : view.filterType === 'Working' ? 'Shop stock' : view.name || VIEW_FILTER_LABELS[view.filterType] || view.filterType;
   const selectStockView = (view: typeof stockViews[number]) => { setGlossaryMode(false); setActiveView(view.id); setFilterType(view.filterType); };
+  const customStockView = stockViews.find(view => view.id === activeViewId
+    && ![...DEFAULT_TEA_VIEWS, ...DEFAULT_TEAWARE_VIEWS].some(defaultView => defaultView.id === view.id));
+  const removeCustomStockView = () => {
+    if (!customStockView) return;
+    deleteView(customStockView.id);
+    selectStockView(activeDefaultViews[0]);
+    setShowOptions(false);
+  };
+  const deleteStockViewAction = customStockView && (
+    <button type="button" onClick={removeCustomStockView}
+      aria-label={`Delete ${customStockView.name} view`}
+      className={isMobile ? `${actionRow} text-tea-text hover:bg-tea-surface` : 'tap-target px-3 py-2 text-left text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2'}>
+      <Trash2 size={isMobile ? 18 : 15} aria-hidden="true" />Delete saved view
+    </button>
+  );
   const currentSort = inventorySortConfig[0] || { key: 'productName' as keyof Product, direction: 'asc' as const };
   const adjustMenu = <>
     <button type="button" onClick={() => setShowAdjust(true)} aria-haspopup="dialog" aria-expanded={showAdjust} className="tap-target inline-flex shrink-0 items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text" aria-label="View options"><SlidersHorizontal size={15} aria-hidden="true" />View options</button>
@@ -2452,6 +2467,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 tabIndex={-1}
                 ref={(el) => el?.focus()}
               >
+                  {deleteStockViewAction}
                   <button type="button" onClick={openIncoming} className="px-3 py-2 text-left text-ui-12 text-tea-text-sec hover:bg-tea-bg flex items-center gap-2"><Layers size={15} aria-hidden="true" />Incoming</button>
                   <button type="button" onClick={() => { setShowOptions(false); navigate('/account/journal'); }} className="px-3 py-2 text-left text-ui-12 text-tea-text-sec hover:bg-tea-bg flex items-center gap-2"><BookOpen size={15} aria-hidden="true" />Tasting library</button>
                   {!isEditMode && (
@@ -2501,6 +2517,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             {isMobile && (
               <BottomSheet open={showOptions} onOpenChange={setShowOptions} title="Inventory actions">
                 <div className="px-1">
+                  {deleteStockViewAction}
                   <button type="button" onClick={openIncoming} className={`${actionRow} text-tea-text hover:bg-tea-surface`}><Layers size={18} aria-hidden="true" />Incoming</button>
                   <button type="button" onClick={() => { setShowOptions(false); navigate('/account/journal'); }} className={`${actionRow} text-tea-text hover:bg-tea-surface`}><BookOpen size={18} aria-hidden="true" />Tasting library</button>
                   <button onClick={() => { onAddClick(); setShowOptions(false); }} className={`${actionRow} text-tea-text hover:bg-tea-gold/[0.06]`}><Plus size={18} className="shrink-0 text-tea-gold" /> Add tea</button>
