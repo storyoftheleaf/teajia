@@ -184,6 +184,141 @@ export function createSampleRepository(options: {
     && store.getState().accountScopeId === accountId
   );
 
+  // Both entry points read fresh data. Only boot shares that one operation's
+  // authoritative lists between hydration and sync; no later call can reuse it.
+  async function syncAccount(accountId: string, hydrateFirst: boolean): Promise<{ status: 'not-ready' | 'synced' | 'stale' }> {
+    const requestGeneration = ++operationGeneration;
+    if (!isReady(accountId)) return { status: 'not-ready' };
+    const [initialSets, initialSamples] = await Promise.all([
+      remote.sampleSets.list(BACKGROUND_REQUEST),
+      remote.samples.list(undefined, BACKGROUND_REQUEST),
+    ]);
+    if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
+
+    if (hydrateFirst) {
+      const samples = initialSamples.samples.map(sampleFromApi);
+      const sampleSets = initialSets.sets.map((set) => sampleSetFromApi(set, samples));
+      // Reconcile before the write snapshot, just as the former hydrate→sync
+      // chain did, while retaining this operation's generation and read pair.
+      if (!store.getState().reconcileRemote(accountId, samples, sampleSets)
+        || !canApply(requestGeneration, accountId)) return { status: 'stale' };
+    }
+
+    const snapshot = store.getState();
+    const remoteSetsById = new Map(initialSets.sets.map((set) => [set.id, set]));
+    const remoteSamplesById = new Map(initialSamples.samples.map((sample) => [sample.id, sample]));
+    let wroteRemote = false;
+
+    for (const id of snapshot.sampleTombstones) {
+      if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
+      if (remoteSamplesById.has(id)) {
+        await remote.samples.remove(id, BACKGROUND_REQUEST);
+        wroteRemote = true;
+      }
+      remoteSamplesById.delete(id);
+    }
+    for (const id of snapshot.sampleSetTombstones) {
+      if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
+      if (remoteSetsById.has(id)) {
+        await remote.sampleSets.remove(id, BACKGROUND_REQUEST);
+        wroteRemote = true;
+      }
+      remoteSetsById.delete(id);
+      for (const [sampleId, sample] of remoteSamplesById) {
+        if (sample.set_id === id) remoteSamplesById.delete(sampleId);
+      }
+    }
+
+    // Sets are the parent record for every sample. Persist all set outbox
+    // entries before attempting any sample create/update.
+    for (const sampleSet of snapshot.sampleSets.filter((item) => item.synced !== true)) {
+      if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
+      const members = snapshot.samples.filter((sample) => sample.setId === sampleSet.id);
+      if (!remoteSetsById.has(sampleSet.id) && members.length > 0 && members.every((sample) => sample.compassEntryId)) continue;
+      const persisted = sampleSet.accountId === accountId || remoteSetsById.has(sampleSet.id);
+      const row = persisted && remoteSetsById.has(sampleSet.id)
+        ? await remote.sampleSets.update(sampleSet.id, sampleSetUpdatesToApi(sampleSet), BACKGROUND_REQUEST)
+        : await remote.sampleSets.create(sampleSetToApi(sampleSet), BACKGROUND_REQUEST);
+      wroteRemote = true;
+      remoteSetsById.set(row.id, row);
+    }
+    const canonicalIds = new Map<string, string>();
+    for (const sample of snapshot.samples.filter((item) => !item.synced)) {
+      if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
+      if (!sample.compassEntryId && !remoteSetsById.has(sample.setId)) {
+        throw new Error(`Cannot sync sample ${sample.id}: set ${sample.setId} is not persisted`);
+      }
+      const persisted = sample.accountId === accountId || remoteSamplesById.has(sample.id);
+      const previous = remoteSamplesById.get(sample.id);
+      const row = persisted && remoteSamplesById.has(sample.id)
+        ? await remote.samples.update(sample.id, sampleUpdatesToApi(sample), BACKGROUND_REQUEST)
+        : await remote.samples.create(sampleToApi(sample), BACKGROUND_REQUEST);
+      wroteRemote = true;
+      if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
+      canonicalIds.set(sample.id, row.id);
+      if (row.id !== sample.id) remoteSamplesById.delete(sample.id);
+      store.getState().adoptRemoteSample(accountId, sample.id, sampleFromApi(row), sample.updatedAt);
+      remoteSamplesById.set(row.id, {
+        ...row,
+        tastings: row.tastings ?? previous?.tastings ?? [],
+      });
+    }
+    for (const sample of snapshot.samples) {
+      const canonicalId = canonicalIds.get(sample.id) ?? sample.id;
+      const remoteSample = remoteSamplesById.get(canonicalId);
+      if (!remoteSample) continue;
+      const remoteTastingIds = new Set((remoteSample.tastings ?? []).map((tasting) => tasting.id));
+      for (const tasting of sample.tastings.filter((item) => !remoteTastingIds.has(item.id))) {
+        if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
+        if (!remote.samples.addTasting) throw new Error('Sample tasting persistence is unavailable');
+        const created = await remote.samples.addTasting(canonicalId, {
+          id: tasting.id,
+          tasting: tasting.tasting,
+          rating: tasting.rating,
+          verdict: tasting.verdict,
+          wouldBuy: tasting.wouldBuy,
+          personalNote: tasting.personalNote,
+          tasterName: tasting.tasterName,
+        }, BACKGROUND_REQUEST);
+        wroteRemote = true;
+        remoteTastingIds.add(created.id);
+        remoteSample.tastings = [...(remoteSample.tastings ?? []), created];
+      }
+    }
+
+    // The initial lists already are the authoritative result of a read-only
+    // sync. Reread only after writes that may change identities or relations.
+    const [finalSets, finalSamples] = wroteRemote ? await Promise.all([
+      remote.sampleSets.list(BACKGROUND_REQUEST),
+      remote.samples.list(undefined, BACKGROUND_REQUEST),
+    ]) : [initialSets, initialSamples];
+    if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
+    const samples = finalSamples.samples.map(sampleFromApi);
+    const sampleSets = finalSets.sets.map((set) => sampleSetFromApi(set, samples));
+    const current = store.getState();
+    const committedSampleIds = snapshot.samples.filter((sample) => (
+      !sample.synced
+      && current.samples.find((candidate) => candidate.id === (canonicalIds.get(sample.id) ?? sample.id))?.updatedAt === (remoteSamplesById.get(canonicalIds.get(sample.id) ?? sample.id)?.updated_at ?? sample.updatedAt)
+    )).map((sample) => canonicalIds.get(sample.id) ?? sample.id);
+    const committedSetIds = snapshot.sampleSets.filter((sampleSet) => (
+      sampleSet.synced !== true
+      && current.sampleSets.find((candidate) => candidate.id === sampleSet.id)?.updatedAt === sampleSet.updatedAt
+    )).map((sampleSet) => sampleSet.id);
+    if (!store.getState().markRemoteCommitted(
+      accountId,
+      committedSampleIds,
+      committedSetIds,
+    )) return { status: 'stale' };
+    if (!store.getState().clearRemoteTombstones(
+      accountId,
+      snapshot.sampleTombstones,
+      snapshot.sampleSetTombstones,
+    )) return { status: 'stale' };
+    const active = store.getState().reconcileRemote(accountId, samples, sampleSets);
+    if (active && options.remote === undefined) await hydrateCompassEntries(accountId).catch(() => {});
+    return { status: active ? 'synced' : 'stale' };
+  }
+
   return {
     async hydrate(accountId: string): Promise<{ status: 'not-ready' | 'hydrated' | 'stale' }> {
       const requestGeneration = ++operationGeneration;
@@ -201,127 +336,10 @@ export function createSampleRepository(options: {
       return { status: active ? 'hydrated' : 'stale' };
     },
     async sync(accountId: string): Promise<{ status: 'not-ready' | 'synced' | 'stale' }> {
-      const requestGeneration = ++operationGeneration;
-      if (!isReady(accountId)) return { status: 'not-ready' };
-      const [initialSets, initialSamples] = await Promise.all([
-        remote.sampleSets.list(BACKGROUND_REQUEST),
-        remote.samples.list(undefined, BACKGROUND_REQUEST),
-      ]);
-      if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
-
-      const snapshot = store.getState();
-      const remoteSetsById = new Map(initialSets.sets.map((set) => [set.id, set]));
-      const remoteSamplesById = new Map(initialSamples.samples.map((sample) => [sample.id, sample]));
-      let wroteRemote = false;
-
-      for (const id of snapshot.sampleTombstones) {
-        if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
-        if (remoteSamplesById.has(id)) {
-          await remote.samples.remove(id, BACKGROUND_REQUEST);
-          wroteRemote = true;
-        }
-        remoteSamplesById.delete(id);
-      }
-      for (const id of snapshot.sampleSetTombstones) {
-        if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
-        if (remoteSetsById.has(id)) {
-          await remote.sampleSets.remove(id, BACKGROUND_REQUEST);
-          wroteRemote = true;
-        }
-        remoteSetsById.delete(id);
-        for (const [sampleId, sample] of remoteSamplesById) {
-          if (sample.set_id === id) remoteSamplesById.delete(sampleId);
-        }
-      }
-
-      // Sets are the parent record for every sample. Persist all set outbox
-      // entries before attempting any sample create/update.
-      for (const sampleSet of snapshot.sampleSets.filter((item) => item.synced !== true)) {
-        if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
-        const members = snapshot.samples.filter((sample) => sample.setId === sampleSet.id);
-        if (!remoteSetsById.has(sampleSet.id) && members.length > 0 && members.every((sample) => sample.compassEntryId)) continue;
-        const persisted = sampleSet.accountId === accountId || remoteSetsById.has(sampleSet.id);
-        const row = persisted && remoteSetsById.has(sampleSet.id)
-          ? await remote.sampleSets.update(sampleSet.id, sampleSetUpdatesToApi(sampleSet), BACKGROUND_REQUEST)
-          : await remote.sampleSets.create(sampleSetToApi(sampleSet), BACKGROUND_REQUEST);
-        wroteRemote = true;
-        remoteSetsById.set(row.id, row);
-      }
-      const canonicalIds = new Map<string, string>();
-      for (const sample of snapshot.samples.filter((item) => !item.synced)) {
-        if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
-        if (!sample.compassEntryId && !remoteSetsById.has(sample.setId)) {
-          throw new Error(`Cannot sync sample ${sample.id}: set ${sample.setId} is not persisted`);
-        }
-        const persisted = sample.accountId === accountId || remoteSamplesById.has(sample.id);
-        const previous = remoteSamplesById.get(sample.id);
-        const row = persisted && remoteSamplesById.has(sample.id)
-          ? await remote.samples.update(sample.id, sampleUpdatesToApi(sample), BACKGROUND_REQUEST)
-          : await remote.samples.create(sampleToApi(sample), BACKGROUND_REQUEST);
-        wroteRemote = true;
-        if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
-        canonicalIds.set(sample.id, row.id);
-        if (row.id !== sample.id) remoteSamplesById.delete(sample.id);
-        store.getState().adoptRemoteSample(accountId, sample.id, sampleFromApi(row), sample.updatedAt);
-        remoteSamplesById.set(row.id, {
-          ...row,
-          tastings: row.tastings ?? previous?.tastings ?? [],
-        });
-      }
-      for (const sample of snapshot.samples) {
-        const canonicalId = canonicalIds.get(sample.id) ?? sample.id;
-        const remoteSample = remoteSamplesById.get(canonicalId);
-        if (!remoteSample) continue;
-        const remoteTastingIds = new Set((remoteSample.tastings ?? []).map((tasting) => tasting.id));
-        for (const tasting of sample.tastings.filter((item) => !remoteTastingIds.has(item.id))) {
-          if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
-          if (!remote.samples.addTasting) throw new Error('Sample tasting persistence is unavailable');
-          const created = await remote.samples.addTasting(canonicalId, {
-            id: tasting.id,
-            tasting: tasting.tasting,
-            rating: tasting.rating,
-            verdict: tasting.verdict,
-            wouldBuy: tasting.wouldBuy,
-            personalNote: tasting.personalNote,
-            tasterName: tasting.tasterName,
-          }, BACKGROUND_REQUEST);
-          wroteRemote = true;
-          remoteTastingIds.add(created.id);
-          remoteSample.tastings = [...(remoteSample.tastings ?? []), created];
-        }
-      }
-
-      // The initial lists already are the authoritative result of a read-only
-      // sync. Reread only after writes that may change identities or relations.
-      const [finalSets, finalSamples] = wroteRemote ? await Promise.all([
-        remote.sampleSets.list(BACKGROUND_REQUEST),
-        remote.samples.list(undefined, BACKGROUND_REQUEST),
-      ]) : [initialSets, initialSamples];
-      if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
-      const samples = finalSamples.samples.map(sampleFromApi);
-      const sampleSets = finalSets.sets.map((set) => sampleSetFromApi(set, samples));
-      const current = store.getState();
-      const committedSampleIds = snapshot.samples.filter((sample) => (
-        !sample.synced
-        && current.samples.find((candidate) => candidate.id === (canonicalIds.get(sample.id) ?? sample.id))?.updatedAt === (remoteSamplesById.get(canonicalIds.get(sample.id) ?? sample.id)?.updated_at ?? sample.updatedAt)
-      )).map((sample) => canonicalIds.get(sample.id) ?? sample.id);
-      const committedSetIds = snapshot.sampleSets.filter((sampleSet) => (
-        sampleSet.synced !== true
-        && current.sampleSets.find((candidate) => candidate.id === sampleSet.id)?.updatedAt === sampleSet.updatedAt
-      )).map((sampleSet) => sampleSet.id);
-      if (!store.getState().markRemoteCommitted(
-        accountId,
-        committedSampleIds,
-        committedSetIds,
-      )) return { status: 'stale' };
-      if (!store.getState().clearRemoteTombstones(
-        accountId,
-        snapshot.sampleTombstones,
-        snapshot.sampleSetTombstones,
-      )) return { status: 'stale' };
-      const active = store.getState().reconcileRemote(accountId, samples, sampleSets);
-      if (active && options.remote === undefined) await hydrateCompassEntries(accountId).catch(() => {});
-      return { status: active ? 'synced' : 'stale' };
+      return syncAccount(accountId, false);
+    },
+    async boot(accountId: string): Promise<{ status: 'not-ready' | 'synced' | 'stale' }> {
+      return syncAccount(accountId, true);
     },
     async createSet(sampleSet: SampleSet): Promise<SyncedSampleSet> {
       return sampleSetFromApi(await remote.sampleSets.create(sampleSetToApi(sampleSet)), []);
