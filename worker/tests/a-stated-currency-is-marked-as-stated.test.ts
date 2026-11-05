@@ -98,6 +98,7 @@ async function callTool(db: SqliteD1, name: string, args: Record<string, unknown
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } }),
   }), { DB: new AsyncD1(db) as any } as any);
   const rpc = await response.json() as any;
+  if (rpc.error) throw new Error(rpc.error.message);
   return JSON.parse(rpc.result.content[0].text);
 }
 
@@ -329,5 +330,157 @@ describe('the guard against the next door', () => {
          itself is how one constant becomes several that drift. */
       expect(source, `${file} types the provenance value by hand`).not.toMatch(/'stated'/);
     }
+  });
+});
+
+// update_tea_pricing must carry the confirmed commercial values across the
+// same product/listing boundary as the REST edit, not only stamp the product.
+describe('confirmed MCP pricing keeps the account listing current', () => {
+  async function fixture() {
+    const db = database();
+    await mintMcpToken(db, ['stock:write']);
+    seedIdentity(db, { userId: 'other-owner', accountId: 'other-account' });
+    db.sqlite.prepare(`INSERT INTO products
+      (id, account_id, product_name, type, cost_amount, cost_currency, cost_currency_source,
+       fixed_retail_price_usd, quantity_purchased, shipping_rate_per_kg, stock_verified_at,
+       stock_grams, vendor, markup_multiplier, status, description)
+      VALUES ('priced-tea', ?, 'Priced Tea', 'Oolong', 480, 'HKD', NULL,
+        0.8, 1000, 40, '2026-01-01', 900, 'Chosen Vendor', NULL, 'Active', 'Original description')`).run(ACCOUNT);
+    db.sqlite.prepare(`INSERT INTO tea_profiles
+      (id, slug, originated_by_account_id, curated_by_account_id, name, description)
+      VALUES ('prof_priced-tea', 'priced-tea', ?, ?, 'Priced Tea', 'Original description')`).run(ACCOUNT, ACCOUNT);
+    db.sqlite.prepare(`INSERT INTO product_listings
+      (id, account_id, profile_id, legacy_product_id, cost_amount, cost_currency, cost_currency_source,
+       fixed_retail_price_usd, quantity_purchased, shipping_rate_per_kg, stock_verified_at,
+       stock_grams, vendor, markup_multiplier, status, store_note)
+      VALUES ('list_priced-tea', ?, 'prof_priced-tea', 'priced-tea', 480, 'HKD', NULL,
+        0.8, 1000, 40, '2026-01-01', 900, 'Chosen Vendor', NULL, 'active', 'Keep this note')`).run(ACCOUNT);
+    const product = () => db.sqlite.prepare("SELECT * FROM products WHERE id = 'priced-tea'").get() as any;
+    const listing = () => db.sqlite.prepare("SELECT * FROM product_listings WHERE account_id = ? AND legacy_product_id = 'priced-tea'").get(ACCOUNT) as any;
+    const call = (args: Record<string, unknown>) => callTool(db, 'update_tea_pricing', { product_id: 'priced-tea', ...args });
+    const commit = async (args: Record<string, unknown>) => {
+      const preview = await call(args);
+      expect(preview.confirmation_token).toBeTruthy();
+      const done = await call({ ...args, confirm: preview.confirmation_token });
+      expect(done.committed).toBe(true);
+      return preview;
+    };
+    return { db, product, listing, call, commit };
+  }
+
+  it('previews without commercial writes, then mirrors only the confirmed fields atomically', async () => {
+    const { db, product, listing, call } = await fixture();
+    const beforeProduct = product();
+    const beforeListing = listing();
+    const args = { cost_amount: 720, cost_currency: 'cny', retail_price_usd: 0.6,
+      quantity_purchased: 2000, shipping_rate_per_kg: 85, stock_verified: true, description: 'New description' };
+    const preview = await call(args);
+    expect(preview.preview.changes.cost_currency.new).toBe('Yuan');
+    expect(product()).toEqual(beforeProduct);
+    expect(listing()).toEqual(beforeListing);
+    // Confirmation commits the values in the durable ticket, even if repeated
+    // arguments differ. It must never use an unpreviewed amount from this call.
+    expect(await call({ ...args, cost_amount: 999, confirm: preview.confirmation_token })).toMatchObject({ committed: true });
+    const expected = { cost_amount: 720, cost_currency: 'Yuan', cost_currency_source: 'stated',
+      fixed_retail_price_usd: 0.6, quantity_purchased: 2000, shipping_rate_per_kg: 85 };
+    expect(product()).toEqual({ ...beforeProduct, ...expected, description: 'New description',
+      stock_verified_at: product().stock_verified_at, updated_at: product().updated_at });
+    expect(listing()).toMatchObject({ ...beforeListing, ...expected,
+      stock_verified_at: product().stock_verified_at, updated_at: listing().updated_at });
+    expect(listing().stock_verified_at).toBeTruthy();
+    expect(db.sqlite.prepare("SELECT description FROM tea_profiles WHERE id='prof_priced-tea'").get())
+      .toEqual({ description: 'New description' });
+    expect(db.sqlite.prepare("SELECT COUNT(*) AS n FROM activity_logs WHERE action='PRICING_UPDATED_MCP'").get()).toEqual({ n: 1 });
+  });
+
+  it('keeps deliberate zeros as zeros on both rows', async () => {
+    const { product, listing, commit } = await fixture();
+    await commit({ cost_amount: 0, retail_price_usd: 0, quantity_purchased: 0, shipping_rate_per_kg: 0 });
+    const expected = { cost_amount: 0, fixed_retail_price_usd: 0, quantity_purchased: 0, shipping_rate_per_kg: 0,
+      cost_currency: 'HKD', cost_currency_source: null };
+    expect(product()).toMatchObject(expected);
+    expect(listing()).toMatchObject(expected);
+  });
+
+  it('carries an explicit freight clear and verification clear as NULL', async () => {
+    const { product, listing, commit } = await fixture();
+    await commit({ stock_verified: false, clear_fields: ['shipping_rate_per_kg'] });
+    expect(product()).toMatchObject({ shipping_rate_per_kg: null, stock_verified_at: null });
+    expect(listing()).toMatchObject({ shipping_rate_per_kg: null, stock_verified_at: null });
+  });
+
+  it('leaves omitted commercial values and their NULLs unchanged on a content edit', async () => {
+    const { db, listing, commit } = await fixture();
+    db.sqlite.exec("UPDATE product_listings SET cost_amount=NULL, fixed_retail_price_usd=NULL, shipping_rate_per_kg=NULL, quantity_purchased=NULL, stock_verified_at=NULL");
+    const before = listing();
+    await commit({ description: 'Content only' });
+    expect(listing()).toEqual(before);
+  });
+
+  it('finds the listing by product and account rather than its id spelling', async () => {
+    const { db, listing, commit } = await fixture();
+    db.sqlite.exec("UPDATE product_listings SET id='imported-listing'");
+    // Same legacy product and profile in another shop is a separate commercial
+    // offer, even when its id happens to have the old migration spelling.
+    db.sqlite.prepare(`INSERT INTO product_listings
+      (id, account_id, profile_id, legacy_product_id, cost_amount, cost_currency, status)
+      VALUES ('list_priced-tea', 'other-account', 'prof_priced-tea', 'priced-tea', 99, 'USD', 'active')`).run();
+    const foreignBefore = db.sqlite.prepare("SELECT * FROM product_listings WHERE account_id='other-account'").get();
+    await commit({ cost_amount: 700, cost_currency: 'Yuan', status: 'Archived' });
+    expect(listing()).toMatchObject({ id: 'imported-listing', cost_amount: 700, cost_currency: 'Yuan', status: 'archived' });
+    expect(db.sqlite.prepare("SELECT * FROM product_listings WHERE account_id='other-account'").get()).toEqual(foreignBefore);
+  });
+
+  it.each([['Draft', 'draft'], ['Active', 'active'], ['Archived', 'archived']])('mirrors %s using the existing listing status vocabulary', async (status, listingStatus) => {
+    const { product, listing, commit } = await fixture();
+    await commit({ status });
+    expect(product().status).toBe(status);
+    expect(listing().status).toBe(listingStatus);
+  });
+
+  it('refuses a confirmation from a different token and keeps valid confirmations single use', async () => {
+    const { db, product, listing, call } = await fixture();
+    const args = { cost_amount: 700, cost_currency: 'Yuan' };
+    const preview = await call(args);
+    const beforeProduct = product(); const beforeListing = listing();
+    db.sqlite.exec("UPDATE mcp_tokens SET id='different-token'");
+    expect(await call({ ...args, confirm: preview.confirmation_token })).toMatchObject({ error: 'invalid_or_expired_confirmation_token' });
+    expect(product()).toEqual(beforeProduct); expect(listing()).toEqual(beforeListing);
+    db.sqlite.exec("UPDATE mcp_tokens SET id='tok-stated'");
+    const fresh = await call(args);
+    expect(await call({ ...args, confirm: fresh.confirmation_token })).toMatchObject({ committed: true });
+    expect(await call({ ...args, confirm: fresh.confirmation_token })).toMatchObject({ error: 'invalid_or_expired_confirmation_token' });
+  });
+
+  it('rolls back the product and audit if the listing write fails', async () => {
+    const { db, product, listing, call } = await fixture();
+    const args = { cost_amount: 700, cost_currency: 'Yuan', description: 'New content' };
+    const preview = await call(args);
+    const beforeProduct = product(); const beforeListing = listing();
+    db.sqlite.exec("CREATE TRIGGER reject_listing_update BEFORE UPDATE ON product_listings BEGIN SELECT RAISE(ABORT, 'listing write blocked'); END");
+    await expect(call({ ...args, confirm: preview.confirmation_token })).rejects.toThrow('listing write blocked');
+    expect(product()).toEqual(beforeProduct); expect(listing()).toEqual(beforeListing);
+    expect(db.sqlite.prepare("SELECT description FROM tea_profiles WHERE id='prof_priced-tea'").get())
+      .toEqual({ description: 'Original description' });
+    expect(db.sqlite.prepare("SELECT COUNT(*) AS n FROM activity_logs WHERE action='PRICING_UPDATED_MCP'").get()).toEqual({ n: 0 });
+  });
+
+  it('will not apply a pricing ticket to a different product', async () => {
+    const { db, product, listing, call } = await fixture();
+    db.sqlite.prepare("INSERT INTO products (id, account_id, product_name, type) VALUES ('another-tea', ?, 'Another Tea', 'Oolong')").run(ACCOUNT);
+    const args = { cost_amount: 700, cost_currency: 'Yuan' };
+    const preview = await call(args);
+    const beforeProduct = product(); const beforeListing = listing();
+    expect(await call({ ...args, product_id: 'another-tea', confirm: preview.confirmation_token }))
+      .toMatchObject({ error: 'invalid_or_expired_confirmation_token' });
+    expect(product()).toEqual(beforeProduct); expect(listing()).toEqual(beforeListing);
+  });
+
+  it('does not preview another account product', async () => {
+    const { db, listing, call } = await fixture();
+    db.sqlite.exec("UPDATE products SET account_id='other-account' WHERE id='priced-tea'");
+    const before = listing();
+    expect(await call({ cost_amount: 700, cost_currency: 'Yuan' })).toEqual({ error: 'not_found' });
+    expect(listing()).toEqual(before);
   });
 });

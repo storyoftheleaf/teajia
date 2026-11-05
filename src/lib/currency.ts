@@ -93,7 +93,8 @@ export function knownCurrency(cur: string | null | undefined): string | null {
   if (!cur) return null;
   const trimmed = String(cur).trim();
   if (!trimmed) return null;
-  return CANONICAL_BY_LOWER[trimmed.toLowerCase()] ?? null;
+  const key = trimmed.toLowerCase();
+  return Object.prototype.hasOwnProperty.call(CANONICAL_BY_LOWER, key) ? CANONICAL_BY_LOWER[key] : null;
 }
 
 /**
@@ -115,7 +116,7 @@ export function canonicalCurrency(cur: string | null | undefined): string | null
   if (!cur) return null;
   const trimmed = String(cur).trim();
   if (!trimmed) return null;
-  return CANONICAL_BY_LOWER[trimmed.toLowerCase()] ?? trimmed.toUpperCase();
+  return knownCurrency(trimmed) ?? trimmed.toUpperCase();
 }
 
 /**
@@ -236,5 +237,7 @@ export function rateToUsd(
   const exact = usable(rates.find((r) => r.currency === canonical));
   if (exact !== null) return exact;
   const lc = canonical.toLowerCase();
-  return usable(rates.find((r) => String(r.currency).toLowerCase() === lc));
+  const caseInsensitive = usable(rates.find((r) => String(r.currency).toLowerCase() === lc));
+  if (caseInsensitive !== null) return caseInsensitive;
+  return usable(rates.find((r) => canonicalCurrency(r.currency) === canonical));
 }
