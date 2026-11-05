@@ -6157,6 +6157,7 @@ body.cart-panel-open .commerce-dock {
   .stock-view .stock-record[data-card-study="2"] .stock-more-action:focus-visible { outline:1px solid var(--tea-gold); outline-offset:-3px; }
   .stock-view .stock-record[data-card-study="2"] .stock-subtitle { position:relative; isolation:isolate; min-height:38px; background:transparent; }
   .stock-view .stock-record[data-card-study="2"] .stock-subtitle .stock-inline-edit { min-height:38px; }
+  .stock-view .stock-record[data-card-study="2"] .stock-subtitle .stock-source-label { min-height:44px; }
   .stock-view .stock-record[data-card-study="2"] .stock-subtitle::before {
     content:"";
     position:absolute;
