@@ -1,3 +1,4 @@
+import { retailValueFor } from '../../lib/inventoryMetrics';
 import type { InventoryPurpose, Product } from '../../types';
 
 export type TeaReadinessMissing =
@@ -36,7 +37,7 @@ export function legacyPurposeConflict(product: PurposeFields): boolean {
 
 function hasPositiveRetail(product: Pick<Product, 'fixedRetailPriceUSD' | 'pricePerGramUSD'>): boolean {
   const effectiveRetail = product.fixedRetailPriceUSD ?? product.pricePerGramUSD;
-  return Number.isFinite(effectiveRetail) && effectiveRetail > 0;
+  return effectiveRetail !== null && Number.isFinite(effectiveRetail) && effectiveRetail > 0;
 }
 
 export function getTeaReadiness(product: Product): TeaReadiness {
@@ -335,7 +336,7 @@ export type InventoryLifecycleGroup = {
   label: string;
   items: Product[];
   totalStock: number;
-  totalRetail: number;
+  totalRetail: number | null;
 };
 
 export function groupInventoryByLifecycle(
@@ -354,9 +355,9 @@ export function groupInventoryByLifecycle(
       label: INVENTORY_STAGE_LABELS[stage],
       items,
       totalStock: Math.round(items.reduce((sum, product) => sum + onHandQuantity(product), 0)),
-      totalRetail: items.reduce((sum, product) => {
-        const retail = Number(product.fixedRetailPriceUSD ?? product.pricePerGramUSD) || 0;
-        return sum + retail * onHandQuantity(product);
+      totalRetail: items.reduce<number | null>((sum, product) => {
+        const value = retailValueFor(product);
+        return sum === null || value === null ? null : sum + value;
       }, 0),
     };
   });

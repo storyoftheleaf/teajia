@@ -760,7 +760,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         const p = curateHoldingAsProduct(h, compassEntries.find((e) => e.id === h.entry.id) ?? null);
         // rateToUsd is units of that money per dollar, so dollars = amount / rate.
         const perUsd = p.costCurrency ? rateToUsd(rates, String(p.costCurrency)) : null;
-        if (perUsd && p.costAmount != null && p.quantityPurchased) p.costPerGramUSD = p.costAmount / perUsd / p.quantityPurchased;
+        if (p.costPerGramUSD !== null && perUsd && p.costAmount != null && p.quantityPurchased) p.costPerGramUSD = p.costAmount / perUsd / p.quantityPurchased;
         return p;
       });
     let rejected = 0;
@@ -1278,21 +1278,23 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       if (needsRetailCalc) {
         const isTeaware = updated.type === 'Teaware';
         const nextCurrency = String(field === 'costCurrency' ? value : p.costCurrency) || 'USD';
+        const freight = isTeaware ? 0
+          : (field === 'shippingRatePerKg' ? enteredNumber(value) : p.shippingRatePerKg)
+            ?? shopRateInCurrency(shopFreightRef.current, rateToUsd(ratesRef.current, nextCurrency));
+        if (freight === null) return updated;
         const calc = calculatePricing(
           field === 'costAmount' ? enteredNumber(value) : p.costAmount,
           /* `??`, not `||`. The shop rate applies when nobody entered one, and
              that is what NULL means; a typed 0 is Adrian saying this tea ships
              free and has to survive to the preview, or the number he sees while
              editing is not the number he just entered. */
-          (field === 'shippingRatePerKg' ? enteredNumber(value) : p.shippingRatePerKg)
-            ?? shopRateInCurrency(shopFreightRef.current, rateToUsd(ratesRef.current, nextCurrency))
-            ?? 0,
+          freight,
           Number(field === 'quantityPurchased' ? value : p.quantityPurchased) || 0,
           nextCurrency,
           ratesRef.current,
           isTeaware
         );
-        if (calc.suggestedRetailUSD >= 0) {
+        if (calc.rateUsed > 0 && calc.suggestedRetailUSD >= 0) {
           updated.pricePerGramUSD = parseFloat(calc.suggestedRetailUSD.toFixed(4));
         }
       }
@@ -2984,7 +2986,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="stock-group-head stock-group-menu-head">
                       <button type="button" className="stock-group-main-toggle" aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${groupLabel}`} aria-expanded={!isCollapsed} onClick={() => toggleCollapsedGroup(groupKey)}>
                         <span className="stock-group-name">{groupLabel}</span>
-                        <span className="stock-group-summary"><span>{items.length} {inventoryCategory === 'teaware' ? 'items' : items.length === 1 ? 'tea' : 'teas'}</span><span>{totalStock}{inventoryCategory === 'teaware' ? ' units' : 'g'}</span><span>${fmtNum(totalRetail)}</span></span>
+                        <span className="stock-group-summary"><span>{items.length} {inventoryCategory === 'teaware' ? 'items' : items.length === 1 ? 'tea' : 'teas'}</span><span>{totalStock}{inventoryCategory === 'teaware' ? ' units' : 'g'}</span><span>{totalRetail === null ? '—' : `$${fmtNum(totalRetail)}`}</span></span>
                       </button>
                       <div className="stock-group-actions">
                         {inventoryGroupBy === 'vendor' ? <AnchoredMenu align="right" width={180} trigger={props => <button {...props} type="button" className="tap-target" aria-label={`Supplier actions for ${groupLabel}`}><ChevronDown size={16} aria-hidden="true"/></button>}>

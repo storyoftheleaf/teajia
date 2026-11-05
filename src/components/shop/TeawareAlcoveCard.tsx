@@ -108,10 +108,11 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({
 
   const maxStock = Math.max(1, Math.floor(item.stock_g || 1));
   const stockStatus = getWareStockStatus(Math.floor(item.stock_g || 0));
-  const isSoldOut = stockStatus.level === 'out';
+
 
   // price_50g is per-unit price for teaware (legacy field name)
-  const unitPrice = parseFloat(item.price_50g || '0');
+  const unitPrice = parseFloat(item.price_50g ?? '');
+  const isSoldOut = stockStatus.level === 'out' || !Number.isFinite(unitPrice);
   // Numeric total (base currency), passed to onAddToCart. Display strings
   // are formatted separately; never parse a formatted string back to a number.
   const numericTotal = Math.ceil(unitPrice * quantity);

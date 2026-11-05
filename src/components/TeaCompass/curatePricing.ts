@@ -40,7 +40,7 @@ export function curateShelfPreview(input: {
   grams: number;
   currency: string;
   rates: readonly ExchangeRate[] | null | undefined;
-  shopFreightPerKgUsd: number;
+  shopFreightPerKgUsd: number | null;
 }): CurateShelfPreview | null {
   const { costAmount, grams, currency, rates, shopFreightPerKgUsd } = input;
   if (typeof costAmount !== 'number' || !(costAmount >= 0) || !(grams > 0) || !rates) return null;

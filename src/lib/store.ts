@@ -338,6 +338,8 @@ const createdAppStore = create<AppState>()(
 
       addToCart: (product, quantity) =>
         set((state) => {
+          const price = product.fixedRetailPriceUSD ?? product.pricePerGramUSD;
+          if (price === null || !Number.isFinite(price)) return state;
           const existingItem = state.cart.find((item) => item.productId === product.id);
           if (existingItem) {
             return {
@@ -354,7 +356,7 @@ const createdAppStore = create<AppState>()(
               {
                 productId: product.id,
                 quantity,
-                priceAtSale: product.pricePerGramUSD,
+                priceAtSale: price,
                 product: { ...product },
               },
             ],

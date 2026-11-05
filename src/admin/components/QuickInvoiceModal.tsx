@@ -8,6 +8,7 @@ import { isTeaType } from '../../wisdom/vocabulary';
 import { Currency, InvoiceDisplayItem, Product, ContactChannel, ContactEntry } from '../types';
 import { useRates } from '../hooks/useAdminData';
 import { formatCurrency } from '../utils';
+import { enteredNumber } from '../productUpdatePayload';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
 interface QuickLineItem {
@@ -16,7 +17,7 @@ interface QuickLineItem {
   productId?: string;
   quantity: number;
   unit: 'g' | 'pcs';
-  price: number;
+  price: number | null;
 }
 
 interface SavedInvoice {
@@ -43,7 +44,7 @@ export interface EligibleQuickInvoiceSuggestion {
   productId: string;
   name: string;
   unit: 'g' | 'pcs';
-  price: number;
+  price: number | null;
   product: Product;
   eligibility: EligibleSalesProduct;
 }
@@ -58,15 +59,24 @@ export function buildEligibleQuickInvoiceSuggestions(
     if (!product || product.status !== 'Active' || (!isTeaType(product.type) && product.type !== 'Teaware')) return [];
     const physicalUnit = product.type === 'Teaware' ? 'unit' : 'g';
     if ((eligibility.quantity_unit ?? 'g') !== physicalUnit || !Number.isFinite(eligibility.available_quantity) || eligibility.available_quantity < 0) return [];
+    const price = product.fixedRetailPriceUSD ?? product.pricePerGramUSD;
     return [{
       productId: product.id,
       name: product.givenName || product.productName || eligibility.product_name,
       unit: (physicalUnit === 'unit' ? 'pcs' : 'g') as 'pcs' | 'g',
-      price: Math.max(product.fixedRetailPriceUSD ?? product.pricePerGramUSD ?? 0, eligibility.price_floor ?? 0),
+      price: price === null || !Number.isFinite(price) ? null : Math.max(price, eligibility.price_floor ?? 0),
       product,
       eligibility,
     }];
   });
+}
+
+export const quickInvoicePrefillPrice = (price: number | undefined, product?: Product): number | null =>
+  price ?? product?.fixedRetailPriceUSD ?? product?.pricePerGramUSD ?? null;
+
+function requiredInvoicePrice(price: number | null): number {
+  if (price === null || !Number.isFinite(price)) throw new Error('Every item needs a valid price.');
+  return price;
 }
 
 const compactNumber = (value: number) => Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
@@ -97,7 +107,7 @@ export function validateQuickInvoiceLinkedItems(
     if (item.unit && item.unit !== (pieces?'pcs':'g')) return `${item.name} is counted in ${pieces?'pieces':'grams'}. Keep its linked stock unit unchanged.`;
     if (!Number.isFinite(item.quantity) || item.quantity <= 0) return `${item.name} needs a positive quantity.`;
     if (pieces && !Number.isInteger(item.quantity)) return `${item.name} needs a whole number of pieces.`;
-    if (!Number.isFinite(item.price) || item.price < 0) return `${item.name} needs a valid price.`;
+    if (item.price === null || !Number.isFinite(item.price) || item.price < 0) return `${item.name} needs a valid price.`;
     if (row.price_floor != null && item.price < row.price_floor) {
       return `${item.name} must be priced at $${row.price_floor.toFixed(2)}/${pieces?'piece':'g'} or above.`;
     }
@@ -177,7 +187,7 @@ function buildInvoiceCreatePayload(input: {
       custom_name: item.productId ? null : (item.name.trim() || 'Item'),
       quantity: item.quantity,
       quantity_unit: item.unit === 'pcs' ? 'unit' as const : 'g' as const,
-      price_at_sale: item.price,
+      price_at_sale: requiredInvoicePrice(item.price),
     })),
   };
 }
@@ -290,7 +300,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
             productId: item.productId,
             quantity: item.quantity ?? (isTeaware ? 1 : 10),
             unit: product ? (isTeaware ? 'pcs' : 'g') : item.unit ?? 'g',
-            price: item.price ?? product?.fixedRetailPriceUSD ?? product?.pricePerGramUSD ?? 0,
+            price: quickInvoicePrefillPrice(item.price, product),
           };
         }));
       } else {
@@ -400,8 +410,8 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
 
   if (!isOpen) return null;
 
-  const subtotal = lineItems.reduce((s, i) => s + i.quantity * i.price, 0);
-  const total = subtotal + shipping;
+  const subtotal = lineItems.reduce<number | null>((sum, item) => sum === null || item.price === null ? null : sum + item.quantity * item.price, 0);
+  const total = subtotal === null ? null : subtotal + shipping;
 
   const updateItem = (localId: string, patch: Partial<QuickLineItem>) => {
     setSalesValidationError(null);
@@ -503,7 +513,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
       showToast('All items need a name', 'error');
       return;
     }
-    if (!retry && lineItems.some(item=>!Number.isFinite(item.quantity)||item.quantity<=0||!Number.isFinite(item.price)||item.price<0)) {
+    if (!retry && lineItems.some(item=>!Number.isFinite(item.quantity)||item.quantity<=0||item.price===null||!Number.isFinite(item.price)||item.price<0)) {
       showToast('Enter a positive quantity and a valid price for each item.', 'error'); return;
     }
     const linkedValidation = retry ? null : validateQuickInvoiceLinkedItems(lineItems, scopedEligibilityStatus, verifiedEligibleProducts);
@@ -549,7 +559,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
       customName: li.productId ? undefined : (li.name.trim() || 'Item'),
       quantity: li.quantity,
       unit: li.unit,
-      priceAtSale: li.price,
+      priceAtSale: requiredInvoicePrice(li.price),
       product: li.productId ? products.find(p => p.id === li.productId) : undefined,
     }));
     const saved: SavedInvoice = {
@@ -908,7 +918,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                                     <span className="block truncate font-serif text-tea-text">{p.name}</span>
                                     <span className="mt-0.5 block text-ui-10 text-tea-text-dim">{quickInvoiceStockLabel(p.eligibility)}</span>
                                   </span>
-                                  <span className="shrink-0 tabular-nums text-tea-text-sec">${p.price.toFixed(2)}/{p.unit === 'pcs' ? 'piece' : 'g'}</span>
+                                  <span className="shrink-0 tabular-nums text-tea-text-sec">{p.price === null ? '—' : `$${p.price.toFixed(2)}`}/{p.unit === 'pcs' ? 'piece' : 'g'}</span>
                                 </button>
                               ))}
                             </div>
@@ -953,8 +963,8 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                             <input
                               type="number" min={0} step={0.01}
                               aria-label={item.unit === 'pcs' ? 'Price per piece (USD)' : 'Price per gram (USD)'}
-                              value={item.price}
-                              onChange={e => updateItem(item.localId, { price: Number(e.target.value) || 0 })}
+                              value={item.price ?? ''}
+                              onChange={e => updateItem(item.localId, { price: enteredNumber(e.target.value) })}
                               className="w-full bg-tea-surface border border-tea-border rounded-xl pl-5 pr-2 py-1 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors num"
                               placeholder="0.00"
                             />
@@ -965,7 +975,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                       {/* Right: line total + remove */}
                       <div className="flex flex-col items-end gap-2 shrink-0 pt-0.5">
                         <span className="text-sm text-tea-text tabular-nums">
-                          {formatCurrency(item.quantity * item.price, 'USD', rates)}
+                          {formatCurrency(item.price === null ? null : item.quantity * item.price, 'USD', rates)}
                         </span>
                         <button
                           onClick={() => removeItem(item.localId)}
@@ -1036,7 +1046,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
               </span>
               <span className="text-xs text-tea-text-sec ml-1.5">{currency}</span>
               {currency !== 'USD' && (
-                <p className="text-ui-10 text-tea-text-dim tabular-nums mt-1">${total.toFixed(2)} USD</p>
+                <p className="text-ui-10 text-tea-text-dim tabular-nums mt-1">{total === null ? '—' : `$${total.toFixed(2)} USD`}</p>
               )}
             </div>
           </div>

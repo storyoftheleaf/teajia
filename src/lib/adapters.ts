@@ -6,6 +6,8 @@ import type { PublicProduct, InventoryItem } from '../types';
  */
 export function publicProductToInventoryItem(p: PublicProduct): InventoryItem {
   const isTea = p.type !== 'Teaware' && p.type !== 'Misc';
+  const retail = p.fixedRetailPriceUSD ?? p.pricePerGramUSD;
+  const price = retail == null ? undefined : String(retail);
   return {
     id: p.id,
     slug: p.slug,
@@ -20,10 +22,10 @@ export function publicProductToInventoryItem(p: PublicProduct): InventoryItem {
     variant: p.productName,
     stock_g: p.stockGrams,
     cost_price: '0',
-    price_per_gram: isTea ? String(p.pricePerGramUSD) : undefined,
-    price_50g: !isTea ? String(p.fixedRetailPriceUSD ?? p.pricePerGramUSD) : undefined,
+    price_per_gram: isTea ? price : undefined,
+    price_50g: !isTea ? price : undefined,
     // For teaware/misc, pricePerUnit is the same value as price_50g but with clearer semantics
-    pricePerUnit: !isTea ? String(p.fixedRetailPriceUSD ?? p.pricePerGramUSD) : undefined,
+    pricePerUnit: !isTea ? price : undefined,
     description: p.description,
     tags: p.tastingNotes,
     image: p.imageUrl,

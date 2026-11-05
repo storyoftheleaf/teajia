@@ -1,3 +1,4 @@
+import { retailValueFor } from '../../lib/inventoryMetrics';
 import { inventoryTeaType } from '../../../wisdom/vocabulary';
 import { useEffect, useMemo, useRef } from 'react';
 import Fuse from 'fuse.js';
@@ -245,7 +246,8 @@ export function useInventoryProducts({
       groups[key].items.push(p);
       const quantity = p.type === 'Teaware' ? Number(p.quantityUnits) || 0 : Number(p.stockGrams) || 0;
       groups[key].totalStock += quantity;
-      groups[key].totalRetail += (Number(p.fixedRetailPriceUSD ?? p.pricePerGramUSD) || 0) * quantity;
+      const retail = retailValueFor(p);
+      groups[key].totalRetail = groups[key].totalRetail === null || retail === null ? null : groups[key].totalRetail + retail;
     }
     for (const g of Object.values(groups)) g.totalStock = Math.round(g.totalStock);
     return Object.values(groups);

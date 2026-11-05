@@ -41,3 +41,12 @@ it('offers and saves the same full Puer labels', () => {
     expect(buildProductUpdatePayload('type', value)?.type).toBe(mapAdminProduct({ type: value }).type);
   }
 });
+
+it('preserves unavailable derived prices separately from genuine zero', () => {
+  const unknown = mapAdminProduct({ retail_price_per_gram_usd: null, cost_per_gram_usd: null });
+  const free = mapAdminProduct({ retail_price_per_gram_usd: 0, cost_per_gram_usd: 0 });
+  expect(unknown.pricePerGramUSD).toBeNull();
+  expect(unknown.costPerGramUSD).toBeNull();
+  expect(free.pricePerGramUSD).toBe(0);
+  expect(free.costPerGramUSD).toBe(0);
+});

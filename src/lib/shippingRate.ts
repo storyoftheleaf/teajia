@@ -52,17 +52,17 @@ export interface ShopFreightDefault {
   perKg: number;
   /** The currency it is quoted in, as an exchange-table key. */
   currency: string;
-  /** The same rate in USD, at today's rate. */
-  perKgUsd: number;
+  /** The same rate in USD, or null when its exchange rate is unavailable. */
+  perKgUsd: number | null;
 }
 
 /** The fallback, resolved against live rates. Used when an account has none. */
-export function fallbackShopFreightDefault(fallbackRateToUsd: number): ShopFreightDefault {
-  const rate = fallbackRateToUsd > 0 ? fallbackRateToUsd : 1;
+export function fallbackShopFreightDefault(fallbackRateToUsd: number | null | undefined): ShopFreightDefault {
+  const rate = validConversion(fallbackRateToUsd);
   return {
     perKg: FALLBACK_SHIPPING_RATE_PER_KG,
     currency: FALLBACK_SHIPPING_RATE_CURRENCY,
-    perKgUsd: FALLBACK_SHIPPING_RATE_PER_KG / rate,
+    perKgUsd: rate === null ? null : FALLBACK_SHIPPING_RATE_PER_KG / rate,
   };
 }
 
@@ -70,9 +70,9 @@ export function fallbackShopFreightDefault(fallbackRateToUsd: number): ShopFreig
  * Read an account's freight default, falling back when it has none.
  *
  * `rateToUsd` looks up a currency in the live rate table. A currency it does
- * not carry falls back to the fallback currency's rate rather than to 1,
- * because treating 85 yuan as 85 dollars would multiply freight sevenfold and
- * the markup would triple that.
+ * not carry leaves the USD amount unknown. Neither 1 nor another currency's
+ * rate can convert the recorded quote honestly. The fallback amount/currency
+ * still applies when the account has never set a quote.
  */
 export function shopFreightDefaultFrom(
   account: { default_shipping_rate_per_kg?: number | null; default_shipping_rate_currency?: string | null } | null | undefined,
@@ -84,9 +84,8 @@ export function shopFreightDefaultFrom(
   const currency = (set && account?.default_shipping_rate_currency)
     ? String(account.default_shipping_rate_currency)
     : FALLBACK_SHIPPING_RATE_CURRENCY;
-  const looked = rateToUsd(currency);
-  const rate = looked && looked > 0 ? looked : (rateToUsd(FALLBACK_SHIPPING_RATE_CURRENCY) || 1);
-  return { perKg, currency, perKgUsd: perKg / rate };
+  const rate = validConversion(rateToUsd(currency));
+  return { perKg, currency, perKgUsd: perKg === 0 ? 0 : rate === null ? null : perKg / rate };
 }
 
 /**
@@ -96,9 +95,11 @@ export function shopFreightDefaultFrom(
  * to give: multiplying by 1 would hand back a dollar number wearing a yuan
  * label, and the caller would store it.
  */
-export function shopRateInCurrency(shopDefaultPerKgUsd: number, rateToUsd: number | null): number | null {
-  if (rateToUsd === null || !(rateToUsd > 0)) return null;
-  return shopDefaultPerKgUsd * rateToUsd;
+export function shopRateInCurrency(shopDefaultPerKgUsd: number | null, rateToUsd: number | null): number | null {
+  if (shopDefaultPerKgUsd === null || !Number.isFinite(shopDefaultPerKgUsd)) return null;
+  if (shopDefaultPerKgUsd === 0) return 0;
+  const rate = validConversion(rateToUsd);
+  return rate === null ? null : shopDefaultPerKgUsd * rate;
 }
 
 /**
@@ -117,11 +118,17 @@ export function shopRateInCurrency(shopDefaultPerKgUsd: number, rateToUsd: numbe
 export function shippingRateUsdFor(
   storedRatePerKg: number | null | undefined,
   rateToUsd: number | null,
-  shopDefaultPerKgUsd: number,
+  shopDefaultPerKgUsd: number | null,
 ): number | null {
   if (storedRatePerKg === null || storedRatePerKg === undefined) return shopDefaultPerKgUsd;
   const stored = Number(storedRatePerKg);
   if (!Number.isFinite(stored)) return shopDefaultPerKgUsd;
-  if (rateToUsd === null || !(rateToUsd > 0)) return null;
-  return stored / rateToUsd;
+  if (stored === 0) return 0;
+  const rate = validConversion(rateToUsd);
+  return rate === null ? null : stored / rate;
+}
+
+/** A remembered positive reading is usable; a missing or invalid rate is not. */
+function validConversion(rate: number | null | undefined): number | null {
+  return typeof rate === 'number' && Number.isFinite(rate) && rate > 0 ? rate : null;
 }

@@ -42,7 +42,7 @@ export function curateShelfPreview(input: {
   grams: number;
   currency: string;
   rates: readonly ExchangeRate[] | null | undefined;
-  shopFreightPerKgUsd: number;
+  shopFreightPerKgUsd: number | null;
   /** Teaware is priced per piece with its freight already inside that price,
    *  so it carries none. The shop's own pricing reads it the same way. */
   isTeaware?: boolean;
@@ -52,7 +52,7 @@ export function curateShelfPreview(input: {
   // priced as a free one, at its freight alone. Only a real number is a price.
   if (typeof costAmount !== 'number' || !(costAmount >= 0) || !(grams > 0) || !rates) return null;
   const rate = isUnrecordedCurrency(currency) ? 1 : rateToUsd(rates, currency);
-  const shopFreightPerKgSource = shopRateInCurrency(shopFreightPerKgUsd, rate);
+  const shopFreightPerKgSource = isTeaware ? 0 : shopRateInCurrency(shopFreightPerKgUsd, rate);
   if (shopFreightPerKgSource === null) return null;
   const freightPerKgSource = isTeaware ? 0 : shopFreightPerKgSource;
   const priced = calculatePricing(costAmount, freightPerKgSource, grams, currency, [...rates], isTeaware);
@@ -181,14 +181,15 @@ export function ledgerItemGrams(item: LedgerLineItem): number {
 export function orderLanded(
   tx: Pick<LedgerTransaction, 'items' | 'currency'>,
   rates: readonly ExchangeRate[] | null | undefined,
-  shopFreightPerKgUsd: number,
+  shopFreightPerKgUsd: number | null,
 ): OrderLanded | null {
   // Two moneys on one order have no single landed figure.
   const money = orderMoney(tx);
   if (money.mixed) return null;
   const perUsd = isUnrecordedCurrency(money.currency) ? 1 : rateToUsd(rates, money.currency);
   if (!perUsd) return null;
-  const freightPerKg = shopRateInCurrency(shopFreightPerKgUsd, perUsd);
+  const freightPerKg = tx.items.every(item => item.type === 'Teaware')
+    ? 0 : shopRateInCurrency(shopFreightPerKgUsd, perUsd);
   if (freightPerKg === null) return null;
   let subtotal = 0;
   let grams = 0;

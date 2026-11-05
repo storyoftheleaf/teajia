@@ -37,6 +37,7 @@ describe('Quick Invoice sales eligibility', () => {
     );
 
     expect(suggestions.map(suggestion => suggestion.productId)).toEqual(['private']);
+    expect(suggestions[0].price).toBe(0.4);
     expect(quickInvoiceStockLabel(suggestions[0].eligibility)).toBe('Mei Lin · 12g available · floor $0.30/g');
   });
 
@@ -108,4 +109,33 @@ describe('Quick Invoice sales eligibility', () => {
     expect(validateQuickInvoiceLinkedItems(linked, 'error', [])).toBe('Sales inventory could not be verified. Retry before saving linked stock.');
     expect(validateQuickInvoiceLinkedItems(custom, 'error', [])).toBeNull();
   });
+});
+
+it('keeps an eligible unpriced product selectable without inventing a quote', () => {
+  const unknown = { ...product('unknown', 'Unknown'), pricePerGramUSD: null };
+  const zero = { ...product('zero', 'Zero'), pricePerGramUSD: 0 };
+  const suggestions = buildEligibleQuickInvoiceSuggestions([unknown, zero], [eligible('unknown'), eligible('zero')]);
+  expect(suggestions.map(suggestion => [suggestion.productId, suggestion.price])).toEqual([['unknown', null], ['zero', 0]]);
+});
+
+it('keeps an unavailable prefill blank and accepts explicitly entered zero',async()=>{
+ const {quickInvoicePrefillPrice}=await import('./QuickInvoiceModal');
+ const unknown={...product('unknown','Unknown'),pricePerGramUSD:null};
+ expect(quickInvoicePrefillPrice(undefined,unknown)).toBeNull();
+ expect(quickInvoicePrefillPrice(0,unknown)).toBe(0);
+ expect(quickInvoicePrefillPrice(undefined,{...unknown,fixedRetailPriceUSD:0})).toBe(0);
+ expect(validateQuickInvoiceLinkedItems([{name:'Unknown',productId:'unknown',quantity:1,price:null}], 'ready',[eligible('unknown')])).toContain('valid price');
+ expect(validateQuickInvoiceLinkedItems([{name:'Zero',productId:'unknown',quantity:1,price:0}], 'ready',[eligible('unknown')])).toBeNull();
+});
+
+it('retains unpriced SKU eligibility while requiring a manual price and its floor', () => {
+  const unknown = { ...product('unknown', 'Unknown'), pricePerGramUSD: null };
+  const suggestions = buildEligibleQuickInvoiceSuggestions([unknown], [eligible('unknown', { price_floor: 0.3 })]);
+  expect(suggestions[0].price).toBeNull();
+  const verified = suggestions.map(suggestion => suggestion.eligibility);
+  const line = { name: 'Unknown', productId: 'unknown', quantity: 1, price: null };
+  expect(validateQuickInvoiceLinkedItems([line], 'ready', verified)).toContain('valid price');
+  expect(validateQuickInvoiceLinkedItems([{ ...line, price: 0.2 }], 'ready', verified)).toContain('or above');
+  expect(validateQuickInvoiceLinkedItems([{ ...line, price: 0.4 }], 'ready', verified)).toBeNull();
+  expect(validateQuickInvoiceLinkedItems([{ ...line, price: 0 }], 'ready', [eligible('unknown')])).toBeNull();
 });

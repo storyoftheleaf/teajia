@@ -43,7 +43,7 @@ export interface InventoryRowProps {
    */
   costRateToUsd?: (product: Product) => number | null;
   /** The shop's freight rate in USD/kg, for teas that have not entered one. */
-  shopFreightPerKgUsd: number;
+  shopFreightPerKgUsd: number | null;
   rowHeight: number;
   isPanelOpen: boolean;
   isDropdownOpen: boolean;
@@ -312,7 +312,7 @@ function InventoryRowBase(props: InventoryRowProps) {
       );
       case 'costPerGramUSD': return (
         <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}>
-          <span>{product.costPerGramUSD > 0 ? fmtNum(product.costPerGramUSD) : '—'}</span>
+          <span>{product.costPerGramUSD !== null ? fmtNum(product.costPerGramUSD) : '—'}</span>
         </td>
       );
       /* Freight, shown in USD per kilo like the label says. A tea with
@@ -340,7 +340,9 @@ function InventoryRowBase(props: InventoryRowProps) {
             title={product.type === 'Teaware'
               ? 'Teaware ships inside its per-piece price'
               : shipUsd === null
-                ? `Pinned to this tea in ${product.costCurrency}, and the shop has no rate for that, so it cannot be shown in dollars.`
+                ? pinned
+                  ? `Pinned to this tea in ${product.costCurrency}, and the shop has no rate for that, so it cannot be shown in dollars.`
+                  : 'Following the shop rate; its exchange rate is unavailable, so it cannot be shown in dollars.'
                 : pinned
                   ? 'Pinned to this tea. Clear it in the edit panel to follow the shop rate.'
                   : 'Following the shop rate'}
@@ -356,7 +358,7 @@ function InventoryRowBase(props: InventoryRowProps) {
         // A sample has no shelf price yet; what matters is what a gram costs.
         if (sampling) return (
           <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} text-tea-gold-lt`}>
-            <span>{product.costPerGramUSD > 0 ? fmtNum(product.costPerGramUSD) : '—'}</span>
+            <span>{product.costPerGramUSD !== null ? fmtNum(product.costPerGramUSD) : '—'}</span>
           </td>
         );
         const sellingPrice = product.fixedRetailPriceUSD ?? product.pricePerGramUSD;
@@ -366,7 +368,7 @@ function InventoryRowBase(props: InventoryRowProps) {
         return (
           <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${overrideTone}`}>
             {isEditMode
-              ? <GhostInput id={ghostId(colIndex)} ariaLabel="Retail price per gram (USD)" value={sellingPrice?.toFixed(2)} onSave={(val) => saveField(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)} type="number" align={numInputAlign} className={`num text-ui-13 ${overrideTone}`} />
+              ? <GhostInput id={ghostId(colIndex)} ariaLabel="Retail price per gram (USD)" value={sellingPrice?.toFixed(2) ?? ''} onSave={(val) => saveField(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)} type="number" align={numInputAlign} className={`num text-ui-13 ${overrideTone}`} />
               : <span>{sellingPrice != null ? fmtNum(sellingPrice) : '—'}</span>}
           </td>
         );

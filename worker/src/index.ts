@@ -1652,14 +1652,14 @@ function lookupRateToUsd(rates: Map<string, number>, rawCurrency: string | null 
  * kept serving the old number after Adrian changed it in Store Settings would
  * be the same class of bug this whole area exists to stop.
  */
-async function shopFreightPerKgUsd(env: Env, accountId: string, rates: Map<string, number>): Promise<number> {
+async function shopFreightPerKgUsd(env: Env, accountId: string, rates: Map<string, number>): Promise<number | null> {
   const account = await env.DB.prepare(
     'SELECT default_shipping_rate_per_kg, default_shipping_rate_currency FROM accounts WHERE id = ?'
   ).bind(accountId).first() as { default_shipping_rate_per_kg?: number | null; default_shipping_rate_currency?: string | null } | null;
   return resolveShopFreightDefault(account, c => lookupRateToUsd(rates, c)).perKgUsd;
 }
 
-function addPricingFields(product: any, rates: Map<string, number>, shopDefaultPerKgUsd: number): any {
+function addPricingFields(product: any, rates: Map<string, number>, shopDefaultPerKgUsd: number | null): any {
   /* A named cost currency with no rate is not a rate of 1. Reading a 380 yuan
      cost as 380 dollars is a seven-fold error that the x3 then triples, and it
      arrives looking like an expensive tea rather than like a fault. Nothing to
@@ -1677,7 +1677,13 @@ function addPricingFields(product: any, rates: Map<string, number>, shopDefaultP
   // gets two homes.
   const rate = isUnrecordedCurrency(declared) ? 1 : lookupRateToUsd(rates, declared);
   const isTeaware = product.type === 'Teaware';
-  if (!rate || rate <= 0 || product.cost_amount == null || !(Number(product.quantity_purchased) > 0)) {
+  const freight = shippingPerGramUsd({
+    storedRatePerKg: product.shipping_rate_per_kg,
+    rateToUsd: rate,
+    isTeaware,
+    shopDefaultPerKgUsd,
+  });
+  if (!rate || !Number.isFinite(rate) || rate <= 0 || freight === null || product.cost_amount == null || !(Number(product.quantity_purchased) > 0)) {
     return {
       ...product,
       stock_grams: Math.round(product.stock_grams || 0),
@@ -1697,12 +1703,7 @@ function addPricingFields(product: any, rates: Map<string, number>, shopDefaultP
     /* Freight belongs in the basis the markup multiplies, and the rate itself
        is decided in one place. See worker/src/shippingRate.ts for both, and
        for why a NULL rate is not the same as a rate of zero. */
-    costPerUnitUSD = costPerUnit / rate + shippingPerGramUsd({
-      storedRatePerKg: product.shipping_rate_per_kg,
-      rateToUsd: rate,
-      isTeaware,
-      shopDefaultPerKgUsd,
-    });
+    costPerUnitUSD = costPerUnit / rate + freight;
   }
 
   if (qty > 0) {

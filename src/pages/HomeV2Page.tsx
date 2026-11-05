@@ -126,7 +126,7 @@ const HomeV2Page: React.FC = () => {
   // The same quote the shop row and the product page read for 50 g, handling
   // fee and whole-unit rounding included. Multiplying the price per gram by 50
   // here printed $83 on the homepage for a tea the shop sold at $85.
-  const teaQuote = tea
+  const teaQuote = tea && tea.pricePerGramUSD !== null
     ? quoteForDisplay(tea.pricePerGramUSD, 50, {
         form: tea.form,
         pieceWeightG: tea.pieceWeightG,

@@ -799,7 +799,7 @@ export interface PublicProduct {
   year?: number;
   originCountry: string;
   originRegion: string;
-  pricePerGramUSD: number;
+  pricePerGramUSD: number | null;
   fixedRetailPriceUSD?: number | null;
   stockGrams: number;
   description: string;

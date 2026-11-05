@@ -39,3 +39,27 @@ describe('storefront product tasting provenance', () => {
     expect(normalizeProduct({ id: 'legacy-common', tasting_source: 'common' }).tastingSource).toBe('common');
   });
 });
+
+it('preserves unavailable retail separately from a deliberate zero', () => {
+  expect(normalizeProduct({ retail_price_per_gram_usd: null }).pricePerGramUSD).toBeNull();
+  expect(normalizeProduct({ retail_price_per_gram_usd: 0 }).pricePerGramUSD).toBe(0);
+});
+
+it('refuses a quote for an unavailable DTO price without refusing a genuine zero',async()=>{
+  const {publicProductToInventoryItem}=await import('./adapters');
+  const {teaPurchaseQuote}=await import('./shopPurchase');
+  const dto={id:'synthetic',type:'Green',stock_grams:100,retail_price_per_gram_usd:null};
+  const unknown=publicProductToInventoryItem(normalizeProduct(dto));
+  const free=publicProductToInventoryItem(normalizeProduct({...dto,retail_price_per_gram_usd:0}));
+  expect(unknown.price_per_gram).toBeUndefined();
+  expect(teaPurchaseQuote(unknown)).toBeNull();
+  expect(free.price_per_gram).toBe('0');
+  expect(teaPurchaseQuote(free)).not.toBeNull();
+});
+it('quotes independently fixed retail without requiring calculated cost or retail',async()=>{
+ const {publicProductToInventoryItem}=await import('./adapters');
+ const {teaPurchaseQuote}=await import('./shopPurchase');
+ const fixed=publicProductToInventoryItem(normalizeProduct({id:'fixed',type:'Green',stock_grams:100,retail_price_per_gram_usd:null,cost_per_gram_usd:null,fixed_retail_price_usd:0.75}));
+ expect(fixed.price_per_gram).toBe('0.75');
+ expect(teaPurchaseQuote(fixed)).not.toBeNull();
+});

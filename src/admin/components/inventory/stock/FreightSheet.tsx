@@ -14,7 +14,7 @@ export interface FreightSheetProps {
   onSave: (storedRate: number | null) => Promise<void>;
   onClose: () => void;
 }
-const usd = (value: number) => `$${value.toFixed(2)}`;
+const usd = (value: number | null) => value === null ? '—' : `$${value.toFixed(2)}`;
 
 export function FreightSheet({ product, onSave, onClose }: FreightSheetProps) {
   const { data: rates = [] } = useRates();

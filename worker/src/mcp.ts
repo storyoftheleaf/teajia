@@ -2336,12 +2336,15 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
           'SELECT default_shipping_rate_per_kg, default_shipping_rate_currency FROM accounts WHERE id = ?'
         ).bind(auth.accountId).first() as { default_shipping_rate_per_kg?: number | null; default_shipping_rate_currency?: string | null } | null;
         const shopFreight = resolveShopFreightDefault(account, currency => rates.get(currency));
-        costUsd = (newCostAmount / newQuantity) / rateToUsd + shippingPerGramUsd({
+        const freight = shippingPerGramUsd({
           storedRatePerKg: newShippingRatePerKg,
           rateToUsd,
           isTeaware: product.type === 'Teaware',
           shopDefaultPerKgUsd: shopFreight.perKgUsd,
         });
+        if (freight !== null && Number.isFinite(rateToUsd) && rateToUsd > 0) {
+          costUsd = (newCostAmount / newQuantity) / rateToUsd + freight;
+        }
       }
     }
 
