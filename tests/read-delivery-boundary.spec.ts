@@ -70,7 +70,17 @@ test.beforeAll(async () => {
   browser = await chromium.launch({ headless: true });
 });
 
-test.afterAll(async () => { await browser?.close(); await new Promise<void>(resolve => server?.close(() => resolve())); db?.close(); });
+test.afterAll(async () => {
+  await browser?.close();
+  if (server) {
+    const closed = new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+    // Browser cancellation can leave active keep-alive sockets in this local
+    // harness. Close only this test server's connections after its browser ends.
+    server.closeAllConnections();
+    await closed;
+  }
+  db?.close();
+});
 
 async function open(token?: string) {
   const context = await browser.newContext();
@@ -97,8 +107,12 @@ test.describe('production Read delivery', () => {
     const response = await fetch(origin + modulePath);
     expect(response.status).toBe(404);
     expect(await response.text()).toBe('');
-    expect((await fetch(origin + modulePath + '.map')).status).toBe(404);
-    expect((await fetch(origin + modulePath.replace('/read-assets/', '/assets/'))).status).toBe(404);
+    for (const assetPath of [modulePath + '.map', modulePath.replace('/read-assets/', '/assets/')]) {
+      const missing = await fetch(origin + assetPath);
+      expect(missing.status).toBe(404);
+      // Consume Node fetch responses before tearing down this HTTP server.
+      await missing.arrayBuffer();
+    }
     const forged = `header.${Buffer.from(JSON.stringify({ sub: 'editor', platform_role: 'platform_owner', exp: 9999999999 })).toString('base64url')}.forged`;
     for (const token of [undefined, forged]) {
       const { context, page } = await open(token);
