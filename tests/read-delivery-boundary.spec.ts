@@ -109,7 +109,7 @@ test.describe('production Read delivery', () => {
     }
   });
 
-  test('renders live templates and lets a real editor preview a draft without a static draft asset', async () => {
+  test('renders live templates and lets a real editor preview a draft without a static draft asset', async ({}, testInfo) => {
     for (const [href, token] of [['/read/ritual', undefined], ['/read/porcelain-and-tea', undefined], ['/read/history', ownerToken]] as const) {
       const { context, page } = await open(token);
       const errors: string[] = [];
@@ -119,7 +119,7 @@ test.describe('production Read delivery', () => {
       await expect.poll(() => page.locator('h1').count()).toBeGreaterThan(0);
       expect(await page.title()).not.toContain('Not found');
       expect(errors).toEqual([]);
-      if (href === '/read/porcelain-and-tea') await page.screenshot({ path: '/private/tmp/teajia-read-public-template.png', fullPage: false });
+      if (href === '/read/porcelain-and-tea') await page.screenshot({ path: testInfo.outputPath('teajia-read-public-template.png'), fullPage: false });
       if (token) {
         const cookie = (await context.cookies()).find(cookie => cookie.name === '__Host-teajia-read');
         expect(cookie?.httpOnly).toBe(true);

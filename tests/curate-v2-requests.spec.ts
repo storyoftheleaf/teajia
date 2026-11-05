@@ -255,7 +255,7 @@ test.describe('Curate v2 requests (phone)', () => {
   test('Confirm: a receipt the shop did not take is said, and trying again adds it to the SAME order instead of recording a second one', async ({ page }) => {
     await installCompassHarness(page, {
       customers: VENDORS, rates: RATES,
-      compassEntries: [entry({ id: 'retry-1', name: 'Mengku Laobanzhang', year: 2018, form: 'Cake', price_amount: 450, price_currency: 'Yuan', tasting: tasted })],
+      compassEntries: [entry({ id: 'retry-1', name: 'Mengku Laobanzhang', year: 2018, form: 'Cake', price_amount: 450, price_currency: 'Yuan', price_per_unit_grams: 357, tasting: tasted })],
       failRequests: [{ match: 'POST /api/compass/entries/retry-1/receipt-proposals', times: 1 }],
     });
     const sent = record(page);
