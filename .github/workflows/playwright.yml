@@ -27,7 +27,7 @@ name: Playwright
 
 on:
   schedule:
-    # Nightly slot for the two advisory lanes (known-failing, recovery).
+    # Nightly slot for the advisory recovery lane.
     - cron: '30 2 * * *'
   workflow_dispatch:
   pull_request:
@@ -55,19 +55,6 @@ on:
 concurrency:
   group: playwright-${{ github.ref }}-${{ github.event_name == 'schedule' && 'nightly' || 'ci' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
-env:
-  # Debt list, dated 2026-09-09. The first run of the full suite (this same
-  # workflow's first version) surfaced six tests that fail deterministically
-  # on main, independent of any change here: they were simply never run in
-  # CI before this file existed. `e2e` excludes them with --grep-invert so a
-  # real regression is not buried in known noise; `known-failing` runs the
-  # same six with --grep and continue-on-error so they stay visible on every
-  # run instead of going quiet. The fix is to repair the test or the page it
-  # exercises, then delete that test's title from this regex in the same
-  # commit. Titles, not file:line, because a line number drifts and a title
-  # does not.
-  KNOWN_FAILING_E2E: "a private section note appears publicly only after edited promotion"
 
 jobs:
   # Skips the suite when a push to main is a PR merge whose tree is byte-for-byte
@@ -200,10 +187,6 @@ jobs:
     # in this environment. They run by hand via test:tea-reference-browser
     # and test:tea-reference-revision-browser.
     #
-    # Excludes the six titles in KNOWN_FAILING_E2E (see the workflow-level
-    # env comment above): everything else in every spec here still runs and
-    # blocks the merge, including the rest of inventory-scroll.spec.ts.
-    #
     # Sharded four ways. Measured 2026-09-09 under the same CI settings this
     # job uses (playwright.config.ts forces workers to 1 and retries to 2
     # when CI is set): the playwright command alone took 35.0 minutes on an
@@ -216,8 +199,7 @@ jobs:
     # plus npm ci, chromium install and the build (roughly 3 to 5 minutes
     # combined on this tier) rounds to about 22 minutes; 25 leaves margin
     # for CI variance without approaching the old unsharded runtime. Each
-    # shard still applies KNOWN_FAILING_E2E, since --shard partitions the
-    # already-filtered test list. workers is left at the config's own
+    # shard partitions the full test list. workers is left at the config's own
     # default (1 in CI): each matrix shard is its own runner with its own
     # webServer process (playwright.config.ts starts one dev server per
     # job), so there is no server shared between shards for a raised
@@ -261,13 +243,13 @@ jobs:
         run: npm run build
 
       - name: Full browser suite (shard ${{ matrix.shard }}/6)
-        run: npx playwright test --project="Desktop Chrome" --project="Mobile Chrome" --grep-invert "$KNOWN_FAILING_E2E" --shard=${{ matrix.shard }}/6 --reporter=list
+        run: npx playwright test --project="Desktop Chrome" --project="Mobile Chrome" --shard=${{ matrix.shard }}/6 --reporter=list
 
   e2e-changed-shard:
     # Pull requests only: the specs this PR changed, against its base branch.
     # A PR that changes no spec (or no file a spec imports) runs none here and
     # passes; `checks` and `mobile` above still ran in full. Same projects,
-    # same KNOWN_FAILING_E2E exclusion and the same build as `e2e`, so a spec
+    # same build as `e2e`, so a spec
     # that passes here passes there. Full history is fetched because
     # --only-changed diffs against the base ref. A shared fixture can select
     # every spec, so split the same selection across six blocking jobs as on
@@ -300,7 +282,7 @@ jobs:
         run: npm run build
 
       - name: Browser specs this PR changed
-        run: npx playwright test --project="Desktop Chrome" --project="Mobile Chrome" --grep-invert "$KNOWN_FAILING_E2E" --only-changed="origin/${{ github.base_ref }}" --pass-with-no-tests --shard=${{ matrix.shard }}/6 --reporter=list
+        run: npx playwright test --project="Desktop Chrome" --project="Mobile Chrome" --only-changed="origin/${{ github.base_ref }}" --pass-with-no-tests --shard=${{ matrix.shard }}/6 --reporter=list
 
   e2e-changed:
     # Keep one stable required check while every shard contributes a verdict.
@@ -313,35 +295,6 @@ jobs:
         env:
           SHARDS_RESULT: ${{ needs.e2e-changed-shard.result }}
         run: test "$SHARDS_RESULT" = success
-
-  known-failing:
-    # The same six tests named in KNOWN_FAILING_E2E, on their own, with
-    # continue-on-error so this job never blocks a merge but still shows a
-    # visible pass or fail on every run. Watch this job: the day it turns
-    # green is the day someone can delete a title from the regex above.
-    runs-on: ubuntu-latest
-    needs: gate
-    # Nightly and by hand only: this lane never blocks a merge, so running it
-    # on every push spent minutes (8 a run) proving nothing new.
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    timeout-minutes: 15
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: '22'
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-
-      - name: Known-failing suite
-        run: npx playwright test --project="Desktop Chrome" --project="Mobile Chrome" --grep "$KNOWN_FAILING_E2E" --reporter=list
 
   china-scan:
     # node:test only, no browser, no server: safe and cheap to run on every
