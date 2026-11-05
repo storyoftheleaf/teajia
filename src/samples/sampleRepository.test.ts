@@ -27,6 +27,53 @@ describe('sample repository', () => {
     });
   });
 
+  it('reads each remote list once for a clean sync and still refreshes on the next sync', async () => {
+    let name = 'First server name';
+    const remote = {
+      sampleSets: { list: vi.fn(async () => ({ sets: [remoteSet] })), create: vi.fn(), update: vi.fn(), remove: vi.fn() },
+      samples: { list: vi.fn(async () => ({ samples: [{ ...remoteSample, name }] })), create: vi.fn(), update: vi.fn(), remove: vi.fn() },
+    };
+    useSampleStore.getState().switchAccount('acct-a');
+    const repository = createSampleRepository({ remote, isReady: () => true });
+    expect(await repository.sync('acct-a')).toEqual({ status: 'synced' });
+    expect(remote.sampleSets.list).toHaveBeenCalledTimes(1);
+    expect(remote.samples.list).toHaveBeenCalledTimes(1);
+    expect(useSampleStore.getState().getSample(remoteSample.id)?.name).toBe(name);
+
+    name = 'Changed by another session';
+    expect(await repository.sync('acct-a')).toEqual({ status: 'synced' });
+    expect(remote.sampleSets.list).toHaveBeenCalledTimes(2);
+    expect(remote.samples.list).toHaveBeenCalledTimes(2);
+    expect(useSampleStore.getState().getSample(remoteSample.id)?.name).toBe(name);
+    expect(remote.samples.create).not.toHaveBeenCalled();
+    expect(remote.samples.update).not.toHaveBeenCalled();
+  });
+
+  it('rereads after adding a missing tasting even when its sample is already synced', async () => {
+    const tasting = { id: 'new-tasting', sample_id: remoteSample.id, account_id: 'acct-a', taster_id: 'admin', tasting: {}, verdict: 'neutral', would_buy: false, created_at: 'now' };
+    let written = false;
+    const remote = {
+      sampleSets: { list: vi.fn(async () => ({ sets: [remoteSet] })), create: vi.fn(), update: vi.fn(), remove: vi.fn() },
+      samples: {
+        list: vi.fn(async () => ({ samples: [{ ...remoteSample, tastings: written ? [tasting] : [] }] })),
+        create: vi.fn(), update: vi.fn(), remove: vi.fn(),
+        addTasting: vi.fn(async () => { written = true; return tasting; }),
+      },
+    };
+    useSampleStore.getState().switchAccount('acct-a');
+    const repository = createSampleRepository({ remote, isReady: () => true });
+    await repository.hydrate('acct-a');
+    const sample = useSampleStore.getState().getSample(remoteSample.id)!;
+    useSampleStore.setState({ samples: [{ ...sample, tastings: [{ id: tasting.id, tasterId: 'admin', tasting: {}, verdict: 'neutral', wouldBuy: false, createdAt: 'now' }] }] });
+    remote.samples.list.mockClear();
+    remote.sampleSets.list.mockClear();
+    expect(await repository.sync('acct-a')).toEqual({ status: 'synced' });
+    expect(remote.samples.addTasting).toHaveBeenCalledTimes(1);
+    expect(remote.samples.list).toHaveBeenCalledTimes(2);
+    expect(remote.sampleSets.list).toHaveBeenCalledTimes(2);
+    expect(useSampleStore.getState().getSample(remoteSample.id)?.tastings.map(item => item.id)).toEqual([tasting.id]);
+  });
+
   it('adapts D1 snake_case rows into synced client models', () => {
     const sample = sampleFromApi({ ...remoteSample, status: 'requested', created_by: 'customer' });
     const set = sampleSetFromApi(remoteSet, [sample]);
