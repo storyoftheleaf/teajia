@@ -86,7 +86,9 @@ export async function issueTicket<T extends TicketPayload>(
  * looks like.
  *
  * `kind` and `account_id` are in the WHERE, not checked afterwards, because
- * consuming is destructive and this table holds every tool's tickets.
+ * consuming is destructive and this table holds every tool's tickets. The
+ * issuing token is matched there too, so a sibling cannot spend the preview.
+ * NULL token_id retains compatibility with tickets that predate that column.
  */
 export async function consumeTicket<T extends TicketPayload, K extends T['kind']>(
   env: ToolEnv, token: string, kind: K, auth: ToolAuth,
@@ -96,15 +98,11 @@ export async function consumeTicket<T extends TicketPayload, K extends T['kind']
     `UPDATE mcp_confirmation_tickets SET consumed_at = ?
        WHERE token_hash = ? AND kind = ? AND account_id = ?
          AND consumed_at IS NULL AND expires_at > ?
-     RETURNING payload_json, token_id`
-  ).bind(now, await sha256Hex(token), kind, auth.accountId, now)
-    .first<{ payload_json: string; token_id: string | null }>();
+         AND (token_id IS NULL OR token_id = ?)
+     RETURNING payload_json`
+  ).bind(now, await sha256Hex(token), kind, auth.accountId, now, auth.tokenId)
+    .first<{ payload_json: string }>();
   if (!row) return null;
-  /* The ticket belongs to the token that asked for it, so a sibling token in
-     the same shop cannot commit a mutation it never previewed. A NULL token_id
-     is tolerated only because mcp.ts tolerates it for tickets that predate the
-     column; nothing issued here ever writes one. */
-  if (row.token_id != null && row.token_id !== auth.tokenId) return null;
   let payload: T;
   try { payload = JSON.parse(row.payload_json) as T; } catch { return null; }
   /* Re-read both from the payload rather than trusting the row we matched on:

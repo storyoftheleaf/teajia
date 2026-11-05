@@ -447,9 +447,9 @@ describe('confirmed MCP pricing keeps the account listing current', () => {
     expect(await call({ ...args, confirm: preview.confirmation_token })).toMatchObject({ error: 'invalid_or_expired_confirmation_token' });
     expect(product()).toEqual(beforeProduct); expect(listing()).toEqual(beforeListing);
     db.sqlite.exec("UPDATE mcp_tokens SET id='tok-stated'");
-    const fresh = await call(args);
-    expect(await call({ ...args, confirm: fresh.confirmation_token })).toMatchObject({ committed: true });
-    expect(await call({ ...args, confirm: fresh.confirmation_token })).toMatchObject({ error: 'invalid_or_expired_confirmation_token' });
+    // A refused claim must preserve the original issuer's preview.
+    expect(await call({ ...args, confirm: preview.confirmation_token })).toMatchObject({ committed: true });
+    expect(await call({ ...args, confirm: preview.confirmation_token })).toMatchObject({ error: 'invalid_or_expired_confirmation_token' });
   });
 
   it('rolls back the product and audit if the listing write fails', async () => {
