@@ -2248,7 +2248,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       columns={isMobile ? undefined : activeColumnDefs.map(col => ({ key: col.key, label: col.label, checked: inventoryColumns.includes(col.key), disabled: 'alwaysVisible' in col && col.alwaysVisible }))}
       onColumnChange={toggleInventoryColumn}
-      previewCurrency={{ value: currency, options: rates.map(rate => rate.currency), onChange: value => setCurrency(value as typeof currency) }}
+      previewCurrency={{ value: currency, options: rates.map(rate => rate.currency).concat(rates.some(rate => rate.currency === currency) ? [] : [currency]), onChange: value => setCurrency(value as typeof currency) }}
     />
   </>;
 
