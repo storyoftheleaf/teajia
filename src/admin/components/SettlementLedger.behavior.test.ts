@@ -39,7 +39,7 @@ describe('SettlementLedger behavior', () => {
     await expect.poll(() => page.getByText('Spring Alishan', { exact: true }).count()).toBe(1);
     await page.getByRole('button', { name: 'Mark paid' }).click();
     await expect.poll(() => page.getByRole('dialog').textContent()).toContain('Confirm settlement payment');
-    expect(await page.evaluate(() => document.activeElement?.textContent?.trim())).toBe('Cancel');
+    await expect.poll(() => page.evaluate(() => document.activeElement?.textContent?.trim())).toBe('Cancel');
     await page.keyboard.press('Shift+Tab');
     expect(await page.evaluate(() => document.activeElement?.textContent?.trim())).toBe('Confirm paid');
     await page.keyboard.press('Tab');

@@ -18,12 +18,20 @@ beforeAll(async () => {
   }] });
   await server.listen(); const address = server.httpServer!.address(); if (!address || typeof address === 'string') throw new Error('Missing test port');
   origin = `http://127.0.0.1:${address.port}`; browser = await chromium.launch({ headless: true });
+  // Compile the static fixture graph in the existing setup budget. This separate
+  // page never mounts OrdersView or shares account state with an actual test.
+  await loadFixture();
+  await page.close();
 }, 30_000);
 afterAll(async () => { await browser?.close(); await server?.close(); }, 30_000);
 afterEach(async ({ task }) => { if (task.result?.state === 'fail' && page) console.error('Failed screen:', (await page.locator('body').innerText()).slice(0, 2400)); await page?.close(); });
-async function open() {
+async function loadFixture() {
   page = await browser.newPage({ viewport: { width: 390, height: 844 } }); page.on('pageerror', error => console.error('Browser error:', error.message)); await page.route('**/api/**', route => route.fulfill({status:200,contentType:'application/json',body:route.request().url().endsWith('/attribution') ? JSON.stringify({items:[],settlement_visibility:'full',payment_recipient_kind:'none'}) : '[]'})); await page.goto(`${origin}/__orders-view-test`);
-  await page.waitForFunction(() => Boolean((window as any).ordersViewTest)); await page.evaluate(() => (window as any).ordersViewTest.mount());
+  await page.waitForFunction(() => Boolean((window as any).ordersViewTest));
+}
+async function open() {
+  await loadFixture();
+  await page.evaluate(() => (window as any).ordersViewTest.mount());
 }
 
 describe('OrdersView account request behavior', () => {
