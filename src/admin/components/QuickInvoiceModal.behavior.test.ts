@@ -42,8 +42,10 @@ afterEach(async () => { await page?.close(); });
 
 async function open(options: Record<string, unknown> = {}) {
   page = await browser.newPage();
-  await page.route('**/*', route => new URL(route.request().url()).origin === origin ? route.continue() : route.abort());
+  await page.route('**/*', route => new URL(route.request().url()).origin === origin ? route.fallback() : route.abort());
   await page.route('**/version.json?probe=1',route=>route.fulfill({json:{build:'test'}}));
+  // Synthetic session refresh is unavailable; retain the harness's account token.
+  await page.route('**/api/auth/refresh', route => route.fulfill({ status: 503, json: { error: 'synthetic_refresh_unavailable' } }));
   await page.route('**/api/incidents',route=>route.fulfill({json:{id:'test-incident'}}));
   await page.goto(`${origin}/__quick-invoice-test`);
   await page.waitForFunction(() => Boolean((window as any).quickInvoiceTest));

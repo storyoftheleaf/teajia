@@ -172,6 +172,9 @@ jobs:
       - name: Mobile regression suite
         run: npm run test:mobile
 
+      - name: Admin component browser journeys
+        run: npm run test:admin-behavior
+
   e2e:
     # Every spec the default config can run. Two projects, not three:
     # inventory-scroll.spec.ts names "Desktop Chrome" and "Mobile Chrome"

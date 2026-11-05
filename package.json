@@ -21,6 +21,7 @@
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "test:read-delivery": "node --test scripts/read-delivery-plugin.test.mjs",
+    "test:admin-behavior": "vitest run --config vitest.admin-behavior.config.ts",
     "test:src": "vitest run src functions --exclude='**/*.behavior.test.ts' --exclude='**/.claude/worktrees/**' --exclude='**/.worktrees/**'",
     "share:cards": "node scripts/share-cards.mjs",
     "lint:worker-types": "node --test scripts/worker-typecheck-ratchet.test.mjs && node scripts/worker-typecheck-ratchet.mjs",
