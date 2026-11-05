@@ -92,7 +92,7 @@ CREATE INDEX IF NOT EXISTS idx_tea_reviews_product ON tea_reviews(product_id);
 
 -- 1. Products Table (scoped by account_id)
 CREATE TABLE IF NOT EXISTS products (
-    account_id TEXT NOT NULL,
+    account_id TEXT, -- Nullable in migration 0000; this reference must describe the ledger
     tea_key TEXT,                                 -- Shared fingerprint across accounts
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     type TEXT NOT NULL,
@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS products (
     given_name TEXT,
     chinese_name TEXT,
     product_name TEXT NOT NULL,
-    year TEXT,
+    year INTEGER,
     origin_country TEXT,
     origin_region TEXT,
     description TEXT,
@@ -159,7 +159,7 @@ CREATE TABLE IF NOT EXISTS products (
     vouched_by TEXT,
     slug TEXT,                                  -- Public web address. See 132_product_slugs.sql
     created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now')),  -- Tracks admin edits for smart export
+    updated_at TEXT,  -- Tracks admin edits for smart export; no default in migration 0000
     last_synced_at TEXT                         -- Last time markdown sync touched this row
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
@@ -2673,7 +2673,7 @@ ALTER TABLE platform_audit_log ADD COLUMN account_id TEXT;
 ALTER TABLE platform_audit_log ADD COLUMN actor_account_id TEXT;
 ALTER TABLE products ADD COLUMN liquor_color TEXT;
 ALTER TABLE products ADD COLUMN wholesale_price REAL;
-ALTER TABLE products ADD COLUMN catalog_visible INTEGER;
+ALTER TABLE products ADD COLUMN catalog_visible INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE products ADD COLUMN imported_from_product_id TEXT;
 ALTER TABLE products ADD COLUMN imported_via_publication_id TEXT;
 ALTER TABLE products ADD COLUMN piece_weight_g INTEGER;
