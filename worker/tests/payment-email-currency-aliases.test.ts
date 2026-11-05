@@ -100,6 +100,58 @@ describe('payment display aliases use the recorded shop rate', () => {
   });
 });
 
+describe('invoice links carry display aliases through to the private pay route', () => {
+  async function invoiceLink(db: SqliteD1, currency: string) {
+    const tracking = 'invoicecurrencytrackingtoken000001';
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(tracking));
+    const hash = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+    db.sqlite.prepare(`INSERT INTO invoices
+      (id, account_id, invoice_number, customer_name, display_currency, shipping_cost_usd, status, payment_status, payment_recipient_user_id)
+      VALUES ('alias-invoice', 'shop', 'TJ-ALIAS', 'Guest', ?, 5, 'Pending', 'unpaid', 'owner')`).run(currency);
+    db.sqlite.exec(`INSERT INTO invoice_line_items (id, account_id, invoice_id, custom_name, quantity, price_at_sale)
+      VALUES ('alias-line', 'shop', 'alias-invoice', 'Red tea', 30, 1)`);
+    db.sqlite.prepare(`INSERT INTO inquiries
+      (id, account_id, name, email, items, total_usd, currency, status, ref_number, tracking_token_hash, converted_invoice_id)
+      VALUES ('alias-inquiry', 'shop', 'Guest', 'guest@example.com', '[]', 35, ?, 'replied', 'TJ-ALIAS', ?, 'alias-invoice')`).run(currency, hash);
+    const response = await worker.fetch(new Request(`https://worker.test/api/inquiries/${tracking}`),
+      { DB: db, JWT_SECRET: 'test' } as never);
+    expect(response.status).toBe(200);
+    return new URL((await response.json() as any).payment.pay_url);
+  }
+
+  for (const family of families) for (const alias of family.aliases) {
+    it(`keeps ${alias} on the generated invoice link as ${family.iso}`, async () => {
+      const db = seed();
+      const url = await invoiceLink(db, alias);
+      expect(url.searchParams.get('amount')).toBe('35.00');
+      expect(url.searchParams.get('currency')).toBe('USD');
+      expect(url.searchParams.get('display')).toBe(family.iso);
+      expect(url.searchParams.get('t')).toMatch(/^[0-9a-f]{32}$/);
+      const response = await worker.fetch(new Request(`https://worker.test/api/public/people/recipient/payment-methods${url.search}`),
+        { DB: db, JWT_SECRET: 'test' } as never);
+      expect(response.status).toBe(200);
+      expect((await response.json() as any).context).toMatchObject({
+        amount: '35.00', currency: 'USD',
+        local: { currency: family.iso, amount: family.amount, rate: family.rate, as_of: '2026-08-30T06:00:00Z' },
+      });
+    });
+  }
+  for (const currency of ['USD', 'us$', 'ZZZ', 'UNK', 'constructor', '__proto__']) {
+    it(`keeps ${currency} without a converted display on the invoice link`, async () => {
+      const db = seed();
+      const url = await invoiceLink(db, currency);
+      expect(url.searchParams.get('amount')).toBe('35.00');
+      expect(url.searchParams.get('currency')).toBe('USD');
+      expect(url.searchParams.get('display')).toBeNull();
+      expect(url.searchParams.get('t')).toMatch(/^[0-9a-f]{32}$/);
+      const response = await worker.fetch(new Request(`https://worker.test/api/public/people/recipient/payment-methods${url.search}`),
+        { DB: db, JWT_SECRET: 'test' } as never);
+      expect(response.status).toBe(200);
+      expect((await response.json() as any).context.local).toBeNull();
+    });
+  }
+});
+
 describe('order email currency aliases', () => {
   for (const family of families) for (const alias of family.aliases) {
     it(`formats ${alias} as the same local total in both emails`, async () => {

@@ -4368,7 +4368,7 @@ function buildPayUrl(
     // in Rupiah knows roughly what to expect to leave their account. Dropped
     // when it is USD (nothing to convert) or outside the set the pay page will
     // accept, so a link never lands on that page's error state.
-    const display = String(displayCurrency || '').trim().toUpperCase();
+    const display = isoCurrencyCode(displayCurrency);
     if (display && display !== 'USD' && isSupportedPaymentCurrency(display)) {
       url.searchParams.set('display', display);
     }
