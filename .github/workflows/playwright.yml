@@ -263,17 +263,23 @@ jobs:
       - name: Full browser suite (shard ${{ matrix.shard }}/6)
         run: npx playwright test --project="Desktop Chrome" --project="Mobile Chrome" --grep-invert "$KNOWN_FAILING_E2E" --shard=${{ matrix.shard }}/6 --reporter=list
 
-  e2e-changed:
+  e2e-changed-shard:
     # Pull requests only: the specs this PR changed, against its base branch.
     # A PR that changes no spec (or no file a spec imports) runs none here and
     # passes; `checks` and `mobile` above still ran in full. Same projects,
     # same KNOWN_FAILING_E2E exclusion and the same build as `e2e`, so a spec
     # that passes here passes there. Full history is fetched because
-    # --only-changed diffs against the base ref.
+    # --only-changed diffs against the base ref. A shared fixture can select
+    # every spec, so split the same selection across six blocking jobs as on
+    # main rather than timing out one serial PR runner.
     runs-on: ubuntu-latest
     needs: gate
     if: needs.gate.outputs.run == 'true' && github.event_name == 'pull_request'
-    timeout-minutes: 25
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -294,7 +300,19 @@ jobs:
         run: npm run build
 
       - name: Browser specs this PR changed
-        run: npx playwright test --project="Desktop Chrome" --project="Mobile Chrome" --grep-invert "$KNOWN_FAILING_E2E" --only-changed="origin/${{ github.base_ref }}" --pass-with-no-tests --reporter=list
+        run: npx playwright test --project="Desktop Chrome" --project="Mobile Chrome" --grep-invert "$KNOWN_FAILING_E2E" --only-changed="origin/${{ github.base_ref }}" --pass-with-no-tests --shard=${{ matrix.shard }}/6 --reporter=list
+
+  e2e-changed:
+    # Keep one stable required check while every shard contributes a verdict.
+    runs-on: ubuntu-latest
+    needs: [gate, e2e-changed-shard]
+    if: always() && needs.gate.outputs.run == 'true' && github.event_name == 'pull_request'
+    timeout-minutes: 3
+    steps:
+      - name: Require every changed-spec shard
+        env:
+          SHARDS_RESULT: ${{ needs.e2e-changed-shard.result }}
+        run: test "$SHARDS_RESULT" = success
 
   known-failing:
     # The same six tests named in KNOWN_FAILING_E2E, on their own, with
