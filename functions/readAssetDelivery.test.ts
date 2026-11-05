@@ -6,7 +6,7 @@ const asset = { paths: ['/read/history'], code: `export default '${marker}';` };
 const req = (headers?: HeadersInit, method = 'GET') => new Request('https://site.test/read-assets/story.js', { headers, method });
 
 describe('private Read module delivery', () => {
-  it.each([401, 403, 404, 500, 503])('withholds bytes when the verified Worker answers %s', async status => {
+  it.each([301, 302, 303, 307, 308, 401, 403, 404, 500, 503])('withholds bytes when the verified Worker answers %s', async status => {
     const response = await serveReadAsset(req(), 'https://worker.test', asset, vi.fn().mockResolvedValue(new Response(null, { status })));
     expect(response.status).toBe(status >= 500 ? 503 : 404);
     expect(await response.text()).not.toContain(marker);
@@ -21,6 +21,9 @@ describe('private Read module delivery', () => {
     expect(response.headers.get('cache-control')).toBe('private, no-store');
     const call = fetcher.mock.calls[0];
     expect(new URL(call[0]).searchParams.get('path')).toBe('/read/history');
+    // Workers supports manual/follow only; manual also prevents a redirect
+    // from forwarding editor credentials to another origin.
+    expect(call[1].redirect).toBe('manual');
     expect(new Headers(call[1].headers).get('cookie')).toBe('__Host-teajia-read=real.session.signature');
   });
   it('never substitutes the public map when the authority is unavailable', async () => {

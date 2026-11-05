@@ -32,7 +32,7 @@ export async function serveReadAsset(
       const url = new URL('/api/read/access', origin);
       url.searchParams.set('path', path);
       const decision = await fetcher(url.toString(), {
-        headers: authHeaders, redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(4000),
+        headers: authHeaders, redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(4000),
       });
       if (decision.status !== 204) return refuse(decision.status >= 500 ? 503 : 404);
     }
