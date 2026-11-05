@@ -49,6 +49,28 @@ describe('sample repository', () => {
     expect(remote.samples.update).not.toHaveBeenCalled();
   });
 
+  it('boots with one authoritative pair and reads fresh data on a later standalone sync', async () => {
+    let name = 'Boot server name';
+    const remote = {
+      sampleSets: { list: vi.fn(async () => ({ sets: [remoteSet] })), create: vi.fn(), update: vi.fn(), remove: vi.fn() },
+      samples: { list: vi.fn(async () => ({ samples: [{ ...remoteSample, name }] })), create: vi.fn(), update: vi.fn(), remove: vi.fn() },
+    };
+    useSampleStore.getState().switchAccount('acct-a');
+    const repository = createSampleRepository({ remote, isReady: () => true });
+    expect(await repository.boot('acct-a')).toEqual({ status: 'synced' });
+    expect(remote.sampleSets.list).toHaveBeenCalledTimes(1);
+    expect(remote.samples.list).toHaveBeenCalledTimes(1);
+    expect(useSampleStore.getState().getSample(remoteSample.id)?.name).toBe(name);
+    name = 'Changed after boot';
+    expect(await repository.sync('acct-a')).toEqual({ status: 'synced' });
+    expect(remote.sampleSets.list).toHaveBeenCalledTimes(2);
+    expect(remote.samples.list).toHaveBeenCalledTimes(2);
+    expect(useSampleStore.getState().getSample(remoteSample.id)?.name).toBe(name);
+    expect(remote.sampleSets.create).not.toHaveBeenCalled();
+    expect(remote.samples.create).not.toHaveBeenCalled();
+    expect(remote.samples.update).not.toHaveBeenCalled();
+  });
+
   it('rereads after adding a missing tasting even when its sample is already synced', async () => {
     const tasting = { id: 'new-tasting', sample_id: remoteSample.id, account_id: 'acct-a', taster_id: 'admin', tasting: {}, verdict: 'neutral', would_buy: false, created_at: 'now' };
     let written = false;
@@ -133,7 +155,7 @@ describe('sample repository', () => {
     expect(useSampleStore.getState().samples[0]).toMatchObject({ id: 'canonical', notes: 'Unsaved owner note', updatedAt: 'local-time', synced: false });
   });
 
-  it('adopts reused sample identity and sends pending tastings to the canonical row', async () => {
+  it.each(['sync', 'boot'] as const)('%s adopts reused sample identity and sends pending tastings to the canonical row', async (operation) => {
     useSampleStore.getState().switchAccount('acct-a');
     const set = { ...createEmptySampleSet(), id: 'draft-set' };
     const sample = { ...createEmptySample(set.id), id: 'draft-sample', compassEntryId: 'compass-1',
@@ -145,14 +167,14 @@ describe('sample repository', () => {
       sampleSets: { list: vi.fn().mockResolvedValue({ sets: [remoteSet] }), create: vi.fn().mockResolvedValue({ ...remoteSet, id: 'draft-set' }), update: vi.fn(), remove: vi.fn() },
       samples: { list: vi.fn().mockResolvedValue({ samples: [remoteSample] }), create: vi.fn().mockResolvedValue(remoteSample), update: vi.fn(), remove: vi.fn(), addTasting: vi.fn().mockResolvedValue(tastingRow) },
     };
-    await createSampleRepository({ remote, isReady: () => true }).sync('acct-a');
+    await createSampleRepository({ remote, isReady: () => true })[operation]('acct-a');
     expect(remote.sampleSets.create).not.toHaveBeenCalled();
     expect(remote.samples.addTasting).toHaveBeenCalledWith('server-sample', expect.objectContaining({ id: 'taste-1' }), expect.anything());
     expect(useSampleStore.getState().samples.map((item) => item.id)).toEqual(['server-sample']);
     expect(useSampleStore.getState().samples[0].setId).toBe('server-set');
   });
 
-  it('hydrates only when account and token are ready, without applying a stale response', async () => {
+  it.each(['hydrate', 'boot'] as const)('%s waits for account/token readiness and rejects a stale account response', async (operation) => {
     let release!: () => void;
     const gate = new Promise<void>((resolve) => { release = resolve; });
     const remote = {
@@ -163,11 +185,11 @@ describe('sample repository', () => {
     const repository = createSampleRepository({ remote, isReady: (accountId) => ready && accountId === 'acct-a' });
     useSampleStore.getState().switchAccount('acct-a');
 
-    expect(await repository.hydrate('acct-a')).toEqual({ status: 'not-ready' });
+    expect(await repository[operation]('acct-a')).toEqual({ status: 'not-ready' });
     expect(remote.samples.list).not.toHaveBeenCalled();
 
     ready = true;
-    const hydration = repository.hydrate('acct-a');
+    const hydration = repository[operation]('acct-a');
     useSampleStore.getState().switchAccount('acct-b');
     release();
     expect(await hydration).toEqual({ status: 'stale' });
@@ -176,7 +198,7 @@ describe('sample repository', () => {
     expect(useSampleStore.getState().samples).toEqual([]);
   });
 
-  it('discards responses after token readiness changes or a newer hydrate starts', async () => {
+  it.each(['hydrate', 'boot'] as const)('%s discards responses after token readiness changes or a newer operation starts', async (operation) => {
     const releases: Array<() => void> = [];
     const responses = [
       { sets: [{ ...remoteSet, name: 'Older' }] },
@@ -202,15 +224,15 @@ describe('sample repository', () => {
     const repository = createSampleRepository({ remote, isReady: () => ready });
     useSampleStore.getState().switchAccount('acct-a');
 
-    const older = repository.hydrate('acct-a');
-    const newer = repository.hydrate('acct-a');
+    const older = repository[operation]('acct-a');
+    const newer = repository[operation]('acct-a');
     releases[1]();
-    expect(await newer).toEqual({ status: 'hydrated' });
+    expect(await newer).toEqual({ status: operation === 'hydrate' ? 'hydrated' : 'synced' });
     releases[0]();
     expect(await older).toEqual({ status: 'stale' });
     expect(useSampleStore.getState().getSampleSet('server-set')?.name).toBe('Newer');
 
-    const tokenRevoked = repository.hydrate('acct-a');
+    const tokenRevoked = repository[operation]('acct-a');
     ready = false;
     releases[2]();
     expect(await tokenRevoked).toEqual({ status: 'stale' });
@@ -233,10 +255,13 @@ describe('sample repository', () => {
     expect(await repository.hydrate('acct-a')).toEqual({ status: 'hydrated' });
     expect(useSampleStore.getState().samples.map((sample) => sample.id).sort()).toEqual(['local-only', 'server-sample']);
     expect(useSampleStore.getState().getSample('server-sample')?.name).toBe('Local edit');
+    expect(remote.sampleSets.create).not.toHaveBeenCalled();
+    expect(remote.samples.create).not.toHaveBeenCalled();
+    expect(remote.samples.update).not.toHaveBeenCalled();
     expect(useSampleStore.getState().sampleSets.map((set) => set.id).sort()).toEqual(['local-set', 'server-set']);
   });
 
-  it('syncs existing store mutations durably in dependency order and prevents delete resurrection', async () => {
+  it.each(['sync', 'boot'] as const)('%s persists store mutations in dependency order and prevents delete resurrection', async (operation) => {
     const calls: string[] = [];
     const sets = new Map<string, typeof remoteSet>();
     const samples = new Map<string, typeof remoteSample>();
@@ -275,19 +300,21 @@ describe('sample repository', () => {
     useSampleStore.getState().addSampleSet({ ...createEmptySampleSet(), id: 'local-set', name: 'Local set' });
     useSampleStore.getState().addSample({ ...createEmptySample('local-set'), id: 'local-sample', name: 'Local sample' });
 
-    expect(await repository.sync('acct-a')).toEqual({ status: 'synced' });
+    expect(await repository[operation]('acct-a')).toEqual({ status: 'synced' });
+    expect(remote.sampleSets.list).toHaveBeenCalledTimes(2);
+    expect(remote.samples.list).toHaveBeenCalledTimes(2);
     expect(calls.slice(0, 2)).toEqual(['create-set:local-set', 'create-sample:local-sample']);
     expect(useSampleStore.getState().getSampleSet('local-set')).toMatchObject({ accountId: 'acct-a', synced: true });
     expect(useSampleStore.getState().getSample('local-sample')).toMatchObject({ accountId: 'acct-a', synced: true });
 
     useSampleStore.getState().archiveSampleSet('local-set');
-    expect(await repository.sync('acct-a')).toEqual({ status: 'synced' });
+    expect(await repository[operation]('acct-a')).toEqual({ status: 'synced' });
     expect(sets.get('local-set')?.archived).toBe(true);
     expect(useSampleStore.getState().getSampleSet('local-set')?.archived).toBe(true);
 
     useSampleStore.getState().updateSampleSet('local-set', { name: 'Edited set' });
     useSampleStore.getState().updateSample('local-sample', { grams: 12 });
-    expect(await repository.sync('acct-a')).toEqual({ status: 'synced' });
+    expect(await repository[operation]('acct-a')).toEqual({ status: 'synced' });
     expect(calls).toContain('update-set:local-set');
     expect(calls).toContain('update-sample:local-sample');
 
@@ -295,7 +322,7 @@ describe('sample repository', () => {
     expect(useSampleStore.getState().sampleTombstones).toContain('local-sample');
     expect(await repository.hydrate('acct-a')).toEqual({ status: 'hydrated' });
     expect(useSampleStore.getState().getSample('local-sample')).toBeUndefined();
-    expect(await repository.sync('acct-a')).toEqual({ status: 'synced' });
+    expect(await repository[operation]('acct-a')).toEqual({ status: 'synced' });
     expect(calls).toContain('remove-sample:local-sample');
     expect(useSampleStore.getState().sampleTombstones).toEqual([]);
     expect(await repository.hydrate('acct-a')).toEqual({ status: 'hydrated' });
@@ -305,12 +332,12 @@ describe('sample repository', () => {
     expect(useSampleStore.getState().sampleSetTombstones).toContain('local-set');
     expect(await repository.hydrate('acct-a')).toEqual({ status: 'hydrated' });
     expect(useSampleStore.getState().getSampleSet('local-set')).toBeUndefined();
-    expect(await repository.sync('acct-a')).toEqual({ status: 'synced' });
+    expect(await repository[operation]('acct-a')).toEqual({ status: 'synced' });
     expect(calls).toContain('remove-set:local-set');
     expect(useSampleStore.getState().sampleSetTombstones).toEqual([]);
   });
 
-  it('retains offline work for retry and never acknowledges the wrong account', async () => {
+  it.each(['sync', 'boot'] as const)('%s retains offline work for retry and never acknowledges the wrong account', async (operation) => {
     let fail = true;
     let release!: () => void;
     let gated = false;
@@ -330,13 +357,13 @@ describe('sample repository', () => {
     useSampleStore.getState().switchAccount('acct-a');
     useSampleStore.getState().addSampleSet({ ...createEmptySampleSet(), id: 'retry-set' });
 
-    await expect(repository.sync('acct-a')).rejects.toThrow('offline');
+    await expect(repository[operation]('acct-a')).rejects.toThrow('offline');
     expect(useSampleStore.getState().getSampleSet('retry-set')?.synced).toBe(false);
-    expect(await repository.sync('acct-a')).toEqual({ status: 'synced' });
+    expect(await repository[operation]('acct-a')).toEqual({ status: 'synced' });
 
     useSampleStore.getState().addSampleSet({ ...createEmptySampleSet(), id: 'switch-set' });
     gated = true;
-    const pending = repository.sync('acct-a');
+    const pending = repository[operation]('acct-a');
     await vi.waitFor(() => expect(release).toBeTypeOf('function'));
     useSampleStore.getState().switchAccount('acct-b');
     release();
@@ -346,7 +373,7 @@ describe('sample repository', () => {
     expect(useSampleStore.getState().getSampleSet('switch-set')?.synced).toBe(false);
   });
 
-  it('uploads tasting outbox records idempotently and preserves them through rehydrate', async () => {
+  it.each(['sync', 'boot'] as const)('%s uploads tasting outbox records idempotently and preserves them through rehydrate', async (operation) => {
     const serverSample: any = { ...remoteSample, tastings: [] };
     let tastingCalls = 0;
     let simulateLostResponse = true;
@@ -376,8 +403,8 @@ describe('sample repository', () => {
       verdict: 'love', wouldBuy: true, personalNote: 'Long finish', createdAt: '2026-03-04',
     });
 
-    await expect(repository.sync('acct-a')).rejects.toThrow('response lost');
-    expect(await repository.sync('acct-a')).toEqual({ status: 'synced' });
+    await expect(repository[operation]('acct-a')).rejects.toThrow('response lost');
+    expect(await repository[operation]('acct-a')).toEqual({ status: 'synced' });
     expect(tastingCalls).toBe(1);
     expect(await repository.hydrate('acct-a')).toEqual({ status: 'hydrated' });
     expect(useSampleStore.getState().getSample('server-sample')?.tastings).toEqual([

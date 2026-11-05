@@ -74,10 +74,7 @@ export function useCompassSync(isAuthenticated: boolean) {
       hydrateCompassEntries(activeAccountId)
         .then(() => syncCompassEntries(activeAccountId))
         .catch(() => {});
-      sampleRepository.hydrate(activeAccountId)
-        .then((result) => {
-          if (result.status === 'hydrated') return sampleRepository.sync(activeAccountId);
-        })
+      sampleRepository.boot(activeAccountId)
         .catch(() => {});
     }
   }, [activeAccountId, isAuthenticated, tokenRevision]);
