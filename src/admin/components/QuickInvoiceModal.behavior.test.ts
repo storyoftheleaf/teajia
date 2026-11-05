@@ -35,12 +35,15 @@ beforeAll(async () => {
   if (!address || typeof address === 'string') throw new Error('Vite test server did not expose a port');
   origin = `http://127.0.0.1:${address.port}`;
   browser = await chromium.launch({ headless: true });
+  // Resolve static modules in the existing setup budget; no business component mounts.
+  await loadFixture();
+  await page.close();
 }, 30_000);
 
 afterAll(async () => { await browser?.close(); await server?.close(); });
 afterEach(async () => { await page?.close(); });
 
-async function open(options: Record<string, unknown> = {}) {
+async function loadFixture() {
   page = await browser.newPage();
   await page.route('**/*', route => new URL(route.request().url()).origin === origin ? route.fallback() : route.abort());
   await page.route('**/version.json?probe=1',route=>route.fulfill({json:{build:'test'}}));
@@ -49,6 +52,9 @@ async function open(options: Record<string, unknown> = {}) {
   await page.route('**/api/incidents',route=>route.fulfill({json:{id:'test-incident'}}));
   await page.goto(`${origin}/__quick-invoice-test`);
   await page.waitForFunction(() => Boolean((window as any).quickInvoiceTest));
+}
+async function open(options: Record<string, unknown> = {}) {
+  await loadFixture();
   await page.evaluate(value => (window as any).quickInvoiceTest.mount(value), options);
   await expect.poll(() => page.evaluate(() => (window as any).quickInvoiceTest.requestAccounts())).toEqual([options.accountId || 'account-a']);
 }
