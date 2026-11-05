@@ -53,6 +53,14 @@ vi.mock('playwright', async original => {
     const newPage = browser.newPage.bind(browser);
     browser.newPage = async options => {
       const page = await newPage({ ...options, serviceWorkers: 'block' });
+      // Observe attempts independently of routing: a later fixture may abort an
+      // off-origin request before this guard's own route handler receives it.
+      page.on('request', request => {
+        const url = new URL(request.url());
+        if (['http:', 'https:'].includes(url.protocol) && !ownedOrigins.has(url.origin)) {
+          blocked.push(`${url.origin}${url.pathname}`);
+        }
+      });
       // Later test-specific routes supply the existing synthetic fixtures.
       await page.route('**/*', route => {
         const url = new URL(route.request().url());
