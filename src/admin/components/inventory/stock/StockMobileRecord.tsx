@@ -16,8 +16,8 @@ const phone=window.matchMedia('(max-width:767px)');
 const subscribe=(notify:()=>void)=>{phone.addEventListener('change',notify);return()=>phone.removeEventListener('change',notify)};
 export function useStockPhone(){return useSyncExternalStore(subscribe,()=>phone.matches)}
 type Panel='form'|'freight'|'photos'|'more'|MiniField|null;
-export function StockMobileRecord({product,name,fields,editing,index,onEdit,onUpdate,onSaveChange,onTaste,onJournal,onHistory,freightUsd,onSavePricing,onStockChange,onDelete}:{
- product:Product;name:string;fields:StockField[];editing:boolean;index:number;onEdit:()=>void;onUpdate:(value:string)=>void;
+export function StockMobileRecord({product,name,lowStock,fields,editing,index,onEdit,onUpdate,onSaveChange,onTaste,onJournal,onHistory,freightUsd,onSavePricing,onStockChange,onDelete}:{
+ product:Product;name:string;lowStock:boolean;fields:StockField[];editing:boolean;index:number;onEdit:()=>void;onUpdate:(value:string)=>void;
  onDelete:()=>void;onStockChange:(trigger:HTMLElement)=>void;onSavePricing:SaveFormPricing;onSaveChange:SaveField;onTaste:()=>void;onJournal:()=>void;onHistory:()=>void;freightUsd:number|null;
 }){
  const studyParams = import.meta.env.DEV ? new URLSearchParams(window.location.search) : undefined;
@@ -66,7 +66,7 @@ export function StockMobileRecord({product,name,fields,editing,index,onEdit,onUp
      <dd>{f.key==='pricePerGramUSD'
       ?<button type="button" className="tap-target stock-retail-edit" aria-label={`Edit retail price for ${name}`} onClick={open('fixedRetailPriceUSD')}>{reference(product.fixedRetailPriceUSD != null || product.pricePerGramUSD != null ? fmtNum(product.fixedRetailPriceUSD ?? product.pricePerGramUSD) : '\u2014',metricLabel(f))}</button>
       :f.key==='stockGrams'||f.key==='quantityUnits'
-       ?<button type="button" className="tap-target stock-quantity-edit" aria-label={`Change stock for ${name}`} onClick={event=>{event.stopPropagation();onStockChange(event.currentTarget)}}>{reference(Math.round(f.key==='quantityUnits'?(product.quantityUnits??0):(product.stockGrams??0)),metricLabel(f))}</button>
+       ?<button type="button" className="tap-target stock-quantity-edit" aria-label={`Change stock for ${name}${lowStock && f.key==='stockGrams' ? ', low stock' : ''}`} onClick={event=>{event.stopPropagation();onStockChange(event.currentTarget)}}>{reference(Math.round(f.key==='quantityUnits'?(product.quantityUnits??0):(product.stockGrams??0)),lowStock && f.key==='stockGrams' ? 'Low · g' : metricLabel(f))}</button>
        :<>{field(f)}<span className="stock-caption" aria-hidden="true">{metricLabel(f)}</span></>}
      </dd>
     </div>)}

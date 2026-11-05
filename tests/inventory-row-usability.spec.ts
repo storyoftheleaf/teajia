@@ -6,7 +6,7 @@ for (const width of [375, 390, 1280]) {
     await injectAuth(page);
     await mockInventoryApi(page);
     // Keep the low, empty, and healthy-stock cases on the actual screen.
-    await page.route('**/api/products', route => route.fulfill({ json: [MOCK_PRODUCTS[1], MOCK_PRODUCTS[2], MOCK_PRODUCTS[6]] }));
+    await page.route('**/api/products', route => route.fulfill({ json: [MOCK_PRODUCTS[1], MOCK_PRODUCTS[2], MOCK_PRODUCTS[6], { ...MOCK_PRODUCTS[4], stock_grams: null }] }));
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/admin/stock');
     const row = page.locator('tr[data-product-id="test-product-2"]');
@@ -24,6 +24,14 @@ for (const width of [375, 390, 1280]) {
       })).toBe(true);
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+    if (width < 768) {
+      expect((await row.locator(".stock-record").boundingBox())!.height).toBe(134);
+      await expect(stock.locator(".stock-caption")).toHaveText("Low · g");
+      await expect(stock).toHaveAccessibleName("Change stock for Oolong Test Tea 02, low stock");
+      for (const id of [3, 5, 7]) {
+        await expect(page.locator(`tr[data-product-id="test-product-${id}"] .stock-quantity-edit`)).not.toContainText("Low");
+      }
+    }
     if (width >= 768) {
       expect((await row.boundingBox())!.height).toBeLessThanOrEqual(46);
       await expect(stock).toContainText('47');
