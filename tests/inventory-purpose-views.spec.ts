@@ -35,7 +35,9 @@ async function install(page: Page) {
   const jwt = token();
   await page.route('**/api/**', route => route.fulfill({ status: 501, json: { error: `Unhandled test API route: ${route.request().method()} ${new URL(route.request().url()).pathname}` } }));
   await page.addInitScript(value => {
+    if (localStorage.getItem('saved-view-test-seeded')) return;
     localStorage.clear();
+    localStorage.setItem('saved-view-test-seeded', '1');
     localStorage.setItem('teajia_token', value);
     localStorage.setItem('teajia-storage', JSON.stringify({ version: 2, state: {
       savedViews: [
@@ -102,7 +104,9 @@ async function selectView(page: Page, label: string) {
   await showTeas(page).selectOption({ label: VIEW_LABEL[label] ?? label });
 }
 
-test.skip(({ isMobile }) => isMobile, 'Drives the laptop ledger; the phone Stock cards are covered in stock-reference.spec.ts');
+test.beforeEach(async ({ isMobile }, testInfo) => {
+  test.skip(isMobile && !testInfo.title.includes('custom-view'), 'Drives the laptop ledger; phone Stock cards have separate coverage');
+});
 
 test.beforeEach(async ({ page }) => {
   updateRequests.length = 0;
@@ -291,44 +295,46 @@ test('mobile labels and separates Purpose from Needs attention for Tea and Wares
   await expect(page.getByText('Field Gaiwan')).toHaveCount(0);
 });
 
-/*
- * These two describe a per-view delete control that sat beside each saved view
- * in the old rail. The redesigned rail has no delete affordance at all: a
- * custom view can be created and never removed. That is a real gap, recorded
- * in TODO.md rather than dropped quietly here, but it is a design decision
- * rather than a broken test, so these wait until the rail grows one back.
- */
-test('mobile custom-view delete is a separate keyboard-operable control', async ({ page }) => {
-  test.skip(true, 'The redesigned view rail has no delete control; see TODO.md');
-  test.skip((page.viewportSize()?.width || 0) >= 768, 'Mobile interaction semantics');
-  await page.getByRole('button', { name: 'Show needs attention views' }).click();
-  const custom = page.getByRole('button', { name: 'Show Selling view' });
-  const remove = page.getByRole('button', { name: 'Delete My selling list view' });
-  await expect(custom).toBeVisible();
-  await expect(remove).toBeVisible();
-  await expect(custom.locator('button')).toHaveCount(0);
-  await remove.focus();
+test('custom-view deletion is keyboard-operable, protects defaults and persists', async ({ page }, testInfo) => {
+  const productWrites: string[] = [];
+  page.on('request', request => {
+    if (new URL(request.url()).pathname.startsWith('/api/products') && request.method() !== 'GET') productWrites.push(request.method());
+  });
+  await selectView(page, 'My selling list');
+  await page.getByRole('button', { name: 'Open inventory actions' }).click();
+  await page.screenshot({ path: testInfo.outputPath('saved-view-actions.png'), animations: 'disabled' });
+  const removeSelling = page.getByRole('button', { name: 'Delete My selling list view', exact: true });
+  await expect(removeSelling).toBeVisible();
+  const deleteBounds = await removeSelling.boundingBox();
+  expect(deleteBounds?.height).toBeGreaterThanOrEqual(44);
+  await expect(removeSelling.locator('button')).toHaveCount(0);
+  await removeSelling.focus();
   await page.keyboard.press('Enter');
-  await expect(custom).toHaveCount(0);
-});
+  await expect(showTeas(page).locator('option', { hasText: /^My selling list$/ })).toHaveCount(0);
+  await expect(showTeas(page)).toHaveValue('default-all');
+  await expect(page.getByText('Ready Hidden Tea', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Delete .* view$/ })).toHaveCount(0);
 
-test('desktop custom-view delete uses sibling controls with Enter and Space', async ({ page }) => {
-  test.skip(true, 'The redesigned view rail has no delete control; see TODO.md');
-  test.skip((page.viewportSize()?.width || 0) < 768, 'Desktop interaction semantics');
-  const selling = page.getByRole('button', { name: 'Show Selling view' }).filter({ hasText: 'My selling list' });
-  const deleteSelling = page.getByRole('button', { name: 'Delete My selling list view' });
-  await expect(selling.locator('button')).toHaveCount(0);
-  await expect(deleteSelling).toHaveClass(/tap-target/);
-  await deleteSelling.focus();
-  await page.keyboard.press('Enter');
-  await expect(selling).toHaveCount(0);
-
-  const personal = page.getByRole('button', { name: 'Show LegacyPersonalList view' });
-  const deletePersonal = page.getByRole('button', { name: 'Delete My personal list view' });
-  await expect(personal.locator('button')).toHaveCount(0);
-  await deletePersonal.focus();
+  await selectView(page, 'My personal list');
+  const removePersonal = page.getByRole('button', { name: 'Delete My personal list view', exact: true });
+  await page.getByRole('button', { name: 'Open inventory actions' }).click();
+  await removePersonal.focus();
   await page.keyboard.press('Space');
-  await expect(personal).toHaveCount(0);
+  await expect(showTeas(page)).toHaveValue('default-all');
+  await page.reload();
+  await expect(showTeas(page)).toHaveValue('default-all');
+  await expect(showTeas(page).locator('option', { hasText: /^My (selling|personal) list$/ })).toHaveCount(0);
+  for (const label of ['Shop stock', 'Samples', 'Personal']) {
+    await selectView(page, label);
+    await page.getByRole('button', { name: 'Open inventory actions' }).click();
+    await expect(page.getByRole('button', { name: /^Delete .* view$/ })).toHaveCount(0);
+    await page.keyboard.press('Escape');
+  }
+  expect(productWrites).toEqual([]);
+  expect(updateRequests).toEqual([]);
+  const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-storage') || '{}').state.savedViews);
+  expect(persisted.some((view: { id: string }) => view.id.startsWith('custom-'))).toBe(false);
+  expect(persisted.some((view: { id: string }) => view.id === 'default-all')).toBe(true);
 });
 
 test('editing one tea rereads that tea, never the whole shelf', async ({ page }) => {
