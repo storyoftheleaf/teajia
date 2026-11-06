@@ -17266,7 +17266,7 @@ const handleCreateNextEvent: Handler = async (request, env, params) => {
 
   const newId = crypto.randomUUID();
 
-  await env.DB.prepare(
+  const createEvent = env.DB.prepare(
     `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
        timezone, status, session_flow, playlist_url, event_format, location_id,
@@ -17301,26 +17301,24 @@ const handleCreateNextEvent: Handler = async (request, env, params) => {
     source.mood_hints || null,
     source.briefing_cards || null,
     source.requires_approval !== undefined ? source.requires_approval : 1
-  ).run();
+  );
 
   // Clone tea menu (same as F38/duplicate pattern)
   const menu = await env.DB.prepare(
     'SELECT * FROM event_tea_menu WHERE event_id = ? AND account_id = ?'
   ).bind(params.id, accountId).all();
 
-  if (menu.results.length > 0) {
-    const menuStmts = (menu.results as any[]).map(m =>
-      env.DB.prepare(
-        `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order, brewing_temp, brewing_time, vessel_type)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(
-        crypto.randomUUID(), accountId, newId,
-        m.product_id, m.custom_name, m.custom_description, null, m.brew_order,
-        m.brewing_temp ?? null, m.brewing_time ?? null, m.vessel_type ?? null
-      )
-    );
-    await env.DB.batch(menuStmts);
-  }
+  const menuStmts = (menu.results as any[]).map(m =>
+    env.DB.prepare(
+      `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      crypto.randomUUID(), accountId, newId,
+      m.product_id, m.custom_name, m.custom_description, null, m.brew_order
+    )
+  );
+  // A failed menu copy must not leave an orphan draft or consume the slug.
+  await env.DB.batch([createEvent, ...menuStmts]);
 
   return json({ id: newId, slug: body.slug }, 201);
 };
