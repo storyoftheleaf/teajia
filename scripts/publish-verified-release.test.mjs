@@ -66,6 +66,7 @@ function fixture(t, options = {}) {
     if (path === '/version.json') {
       if (options.accessProtected && new URL(url).host === 'abc.teajiafinal.pages.dev') {
         assert.equal(init.method, 'HEAD');
+        if (options.dnsFailure) throw new TypeError('DNS unavailable');
         return new Response(null, { status: 302, headers: { location: `${options.wrongLogin ? 'https://attacker.example' : 'https://soft-band-fe5b.cloudflareaccess.com'}/cdn-cgi/access/login/abc.teajiafinal.pages.dev?secret=never-persist` } });
       }
       return Response.json({ buildId: 42 });
@@ -86,7 +87,7 @@ function fixture(t, options = {}) {
     if (args[0] === 'push') { mutations.push(args); main = candidate; return ''; }
     throw new Error(`unexpected git ${args}`);
   };
-  return { env, dependencies: { fetch, git, now: () => clock, sleep: async ms => { main = candidate; clock += options.assetAlwaysMissing ? 20 * 60_000 : ms; } }, mutations, gitReads, workerUrls, workerReads: () => workerReads, immutableReads: () => immutableReads, projectReads: () => projectReads, state: () => JSON.parse(readFileSync(env.RELEASE_STATE_PATH, 'utf8')) };
+  return { env, dependencies: { fetch, git, now: () => clock, sleep: async ms => { main = candidate; clock += options.assetAlwaysMissing || options.dnsFailure ? 20 * 60_000 : ms; } }, mutations, gitReads, workerUrls, workerReads: () => workerReads, immutableReads: () => immutableReads, projectReads: () => projectReads, state: () => JSON.parse(readFileSync(env.RELEASE_STATE_PATH, 'utf8')) };
 }
 test('never advances main for a different live worker', async t => {
   const f = fixture(t, { workerRevision: 'c'.repeat(40) });
@@ -161,6 +162,12 @@ test('protected immutable host refuses incorrect deployment metadata or login or
     assert.equal(f.state().state, 'failed');
     assert.equal(f.immutableReads(), 0);
   }
+});
+test('protected immutable host DNS failure cannot become a release proof', async t => {
+  const f = fixture(t, { accessProtected: true, dnsFailure: true, main: 'a'.repeat(40) });
+  await assert.rejects(run(f.env, false, f.dependencies), /Immutable deployment proof timed out/);
+  assert.equal(f.state().state, 'failed');
+  assert.equal(f.immutableReads(), 0);
 });
 test('resumes observation without publishing main again', async t => {
   const f = fixture(t, { main: 'a'.repeat(40) });
