@@ -444,6 +444,8 @@ const createdTeaCompassStore = create<TeaCompassState>()(
       removeEntry: (id) => {
         // Drop it from local state immediately so the UI responds at once...
         const accountId = get().accountScopeId;
+        const userId = get().userScopeId;
+        const personKey = compassPersonKey(accountId, userId);
         const accountRevision = get().accountScopeRevision;
         const existed = get().entries.some((e) => e.id === id);
         set((state) => ({
@@ -463,23 +465,25 @@ const createdTeaCompassStore = create<TeaCompassState>()(
         // per-card delete look broken. Fired unconditionally for any committed
         // entry: a row that never reached D1 just no-ops the DELETE (the
         // worker's WHERE clause matches nothing), which is harmless.
-        if (existed && hasToken() && isTokenScopedToAccount(accountId)) {
+        if (existed && accountId && userId && personKey && hasToken() && isTokenScopedToAccount(accountId, userId)) {
           // A row that never reached D1 no-ops the DELETE harmlessly (WHERE matches
           // nothing → 200). A thrown error means we genuinely couldn't reach the
           // server, so flag it: otherwise the row silently reappears on next
           // hydrate and the delete looks like it "didn't take".
-          void api.compass.remove(id)
+          void api.compass.remove(id, { expectedAuth: { accountId, userId } })
             .then(() => set((s) => {
-              if (s.accountScopeId === accountId && s.accountScopeRevision === accountRevision) {
-                return { syncError: false, deletedIds: s.deletedIds.filter((d) => d !== id) };
-              }
-              if (!accountId) return s;
-              return {
-                deletedIdsByAccount: {
-                  ...s.deletedIdsByAccount,
-                  [accountId]: (s.deletedIdsByAccount[accountId] ?? []).filter((d) => d !== id),
-                },
+              const deletedIdsByAccount = {
+                ...s.deletedIdsByAccount,
+                [personKey]: (s.deletedIdsByAccount[personKey] ?? []).filter((d) => d !== id),
               };
+              if (s.accountScopeId === accountId && s.userScopeId === userId) {
+                return {
+                  deletedIdsByAccount,
+                  deletedIds: s.deletedIds.filter((d) => d !== id),
+                  ...(s.accountScopeRevision === accountRevision ? { syncError: false } : {}),
+                };
+              }
+              return { deletedIdsByAccount };
             }))
             .catch(() => {
               const current = get();

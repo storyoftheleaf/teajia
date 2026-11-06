@@ -1285,7 +1285,7 @@ export function isTransientApiError(error: unknown): boolean {
   return /timed out|couldn.t reach the server|network|offline|failed to fetch/i.test(error.message);
 }
 
-async function handleResponse(res: Response) {
+async function handleResponse(res: Response, requestToken?: string | null) {
   const incidentContext = responseIncidentContext.get(res) ?? {
     route: routeFromUrl(res.url || '/unknown'),
     method: 'GET',
@@ -1328,7 +1328,7 @@ async function handleResponse(res: Response) {
   // Adopt any sliding-refresh token the server stapled onto the response
   // (currently /api/auth/me does this). Keeps the client JWT fresh without
   // an extra round-trip.
-  if (data && typeof data === 'object' && typeof data.refreshed_token === 'string') {
+  if (requestToken && getToken() === requestToken && data && typeof data === 'object' && typeof data.refreshed_token === 'string') {
     try {
       setToken(data.refreshed_token);
       hydrateAccountStateFromToken();
@@ -1425,7 +1425,8 @@ async function authenticatedResponse(url: string, init: ApiRequestInit = {}): Pr
 
 async function authedFetch(url: string, init: ApiRequestInit = {}): Promise<any> {
   const accountId = useAppStore.getState().activeAccountId;
-  const result = await handleResponse(await authenticatedResponse(url, init));
+  const requestToken = getToken();
+  const result = await handleResponse(await authenticatedResponse(url, init), requestToken);
   if (!init.callerRefreshesCommerce && init.method && !['GET', 'HEAD'].includes(init.method.toUpperCase()) &&
       (/\/api\/(products|invoices|invoice-payments|inquiries|accounts|rates|stock|inventory|purchase-orders|logistics|listings|network|collections|rpc|curate\/receipt-proposals)(\/|$)/.test(url)
         || /\/api\/compass\/(sync|entries\/[^/]+(?:\/promote)?)(?:\?|$)/.test(url)

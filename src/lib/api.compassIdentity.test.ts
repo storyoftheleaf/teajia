@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api, clearToken, setToken } from './api';
+import { useAppStore } from './store';
+import { compassPersonKey, useTeaCompassStore } from './teaCompassStore';
+import { createEmptyEntry } from '../components/TeaCompass/types';
 
 function storage(): Storage {
   const values = new Map<string, string>();
@@ -77,5 +80,89 @@ describe('private outbox transport identity', () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect((fetchMock.mock.calls[2][1] as RequestInit).body).toBe(JSON.stringify({ entries: [{ id: 'a-offline' }] }));
     expect(new Headers((fetchMock.mock.calls[2][1] as RequestInit).headers).get('Authorization')).toBe(`Bearer ${renewed}`);
+  });
+
+  it('ignores A late sliding token and keeps B local drafts active', async () => {
+    useAppStore.setState({ activeAccountId: 'acct-a', activeUserId: 'user-a' });
+    useTeaCompassStore.getState().switchAccount('acct-a', 'user-a');
+    useTeaCompassStore.getState().startNewCapture('tea');
+    const aDraftId = useTeaCompassStore.getState().activeEntryId;
+    useTeaCompassStore.getState().updateEntry(aDraftId!, { name: 'A private draft' });
+    expect(useTeaCompassStore.getState().pendingEntries.map(entry => entry.id)).toContain(aDraftId);
+    let finishMe!: (response: Response) => void;
+    const fetchMock = vi.fn().mockReturnValueOnce(new Promise(resolve => { finishMe = resolve; }));
+    vi.stubGlobal('fetch', fetchMock);
+    const pending = api.auth.me();
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    clearToken();
+    useAppStore.getState().clearAccountState();
+    expect(useTeaCompassStore.getState().draftsByAccount[compassPersonKey('acct-a', 'user-a')!].pendingEntries.map(entry => entry.id)).toContain(aDraftId);
+    const bToken = tokenFor('user-b');
+    setToken(bToken);
+    useAppStore.setState({ activeAccountId: 'acct-a', activeUserId: 'user-b' });
+    expect(useTeaCompassStore.getState().activeEntryId).toBeNull();
+    finishMe(new Response(JSON.stringify({ id: 'user-a', refreshed_token: tokenFor('user-a', 'slid') }), { status: 200 }));
+    await pending;
+    expect(localStorage.getItem('teajia_token')).toBe(bToken);
+    expect(useAppStore.getState().activeUserId).toBe('user-b');
+    expect(useTeaCompassStore.getState().activeEntryId).toBeNull();
+    expect(useTeaCompassStore.getState().draftsByAccount[compassPersonKey('acct-a', 'user-a')!].pendingEntries.map(entry => entry.id)).toContain(aDraftId);
+  });
+
+  it('adopts a sliding token while the initiating person is still signed in', async () => {
+    useAppStore.setState({ activeAccountId: 'acct-a', activeUserId: 'user-a' });
+    const slid = tokenFor('user-a', 'slid');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: 'user-a', refreshed_token: slid }), { status: 200 })));
+    await api.auth.me();
+    expect(localStorage.getItem('teajia_token')).toBe(slid);
+    expect(useAppStore.getState().activeUserId).toBe('user-a');
+  });
+
+  it('stops immediate A delete retry after B signs in and preserves A tombstone', async () => {
+    useAppStore.setState({ activeAccountId: 'acct-a', activeUserId: 'user-a' });
+    useTeaCompassStore.getState().switchAccount('acct-a', 'user-a');
+    useTeaCompassStore.setState({ entries: [{ ...createEmptyEntry('tea'), id: 'a-saved', synced: true }], deletedIds: [] });
+    let finishDelete!: (response: Response) => void;
+    const fetchMock = vi.fn().mockReturnValueOnce(new Promise(resolve => { finishDelete = resolve; }));
+    vi.stubGlobal('fetch', fetchMock);
+    useTeaCompassStore.getState().removeEntry('a-saved');
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    setToken(tokenFor('user-b'));
+    useAppStore.setState({ activeAccountId: 'acct-a', activeUserId: 'user-b' });
+    finishDelete(new Response(JSON.stringify({ error: 'expired' }), { status: 401 }));
+    await vi.waitFor(() => expect(useTeaCompassStore.getState().deletedIdsByAccount[compassPersonKey('acct-a', 'user-a')!]).toContain('a-saved'));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(useTeaCompassStore.getState().deletedIds).toEqual([]);
+  });
+
+  it('stops immediate A delete timeout retry after B takes the device', async () => {
+    vi.useFakeTimers();
+    useAppStore.setState({ activeAccountId: 'acct-a', activeUserId: 'user-a' });
+    useTeaCompassStore.getState().switchAccount('acct-a', 'user-a');
+    useTeaCompassStore.setState({ entries: [{ ...createEmptyEntry('tea'), id: 'a-timeout-delete', synced: true }], deletedIds: [] });
+    const fetchMock = vi.fn().mockRejectedValueOnce(new TypeError('offline'));
+    vi.stubGlobal('fetch', fetchMock);
+    useTeaCompassStore.getState().removeEntry('a-timeout-delete');
+    await Promise.resolve();
+    setToken(tokenFor('user-b'));
+    useAppStore.setState({ activeAccountId: 'acct-a', activeUserId: 'user-b' });
+    await vi.runAllTimersAsync();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(useTeaCompassStore.getState().deletedIdsByAccount[compassPersonKey('acct-a', 'user-a')!]).toContain('a-timeout-delete');
+  });
+
+  it('clears only A person tombstone when A immediate delete succeeds after switching to B', async () => {
+    useAppStore.setState({ activeAccountId: 'acct-a', activeUserId: 'user-a' });
+    useTeaCompassStore.getState().switchAccount('acct-a', 'user-a');
+    useTeaCompassStore.setState({ entries: [{ ...createEmptyEntry('tea'), id: 'a-saved', synced: true }], deletedIds: [] });
+    let finishDelete!: (response: Response) => void;
+    vi.stubGlobal('fetch', vi.fn().mockReturnValueOnce(new Promise(resolve => { finishDelete = resolve; })));
+    useTeaCompassStore.getState().removeEntry('a-saved');
+    setToken(tokenFor('user-b'));
+    useAppStore.setState({ activeAccountId: 'acct-a', activeUserId: 'user-b' });
+    useTeaCompassStore.setState({ deletedIds: ['b-only'] });
+    finishDelete(new Response(JSON.stringify({ success: true }), { status: 200 }));
+    await vi.waitFor(() => expect(useTeaCompassStore.getState().deletedIdsByAccount[compassPersonKey('acct-a', 'user-a')!]).not.toContain('a-saved'));
+    expect(useTeaCompassStore.getState().deletedIds).toEqual(['b-only']);
   });
 });

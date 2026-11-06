@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
-import { isTokenScopedToAccount } from '../../lib/api';
+import { getTokenClaims, isTokenScopedToAccount } from '../../lib/api';
 import { useNotesStore } from '../../lib/notesStore';
 import { useAppStore } from '../../lib/store';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
@@ -69,6 +69,14 @@ export function collectLegacyLocalRecovery(accountId: string, storage: Storage) 
   return { format: 'teajia-legacy-local-recovery-v1', accountId, ownership: 'unknown', parts };
 }
 
+export function canRecoverLegacyLocalWork(accountId: string, userId: string): boolean {
+  const current = useAppStore.getState();
+  const claims = getTokenClaims();
+  return current.activeAccountId === accountId && current.activeUserId === userId &&
+    current.platformRole === 'platform_owner' && claims?.platform_role === 'platform_owner' &&
+    isTokenScopedToAccount(accountId, userId);
+}
+
 /** Explicit owner-only export. It does not load legacy records into any account or send them to the API. */
 export function LegacyLocalRecovery() {
   const accountId = useAppStore(s => s.activeAccountId);
@@ -83,14 +91,14 @@ export function LegacyLocalRecovery() {
   const notesLegacy = useNotesStore(s => [s.notesByPerson, s.sessionsByPerson].some(map =>
     Object.entries(map).some(([key, values]) => (key === UNOWNED || key === `__facade_copy__:${UNOWNED}`) && values.some(value => value.accountId === accountId))));
   const [open, setOpen] = useState(false);
-  if (!accountId || !userId || !isPlatformOwner || !isTokenScopedToAccount(accountId, userId)) return null;
+  if (!accountId || !userId || !isPlatformOwner || !canRecoverLegacyLocalWork(accountId, userId)) return null;
   let storage: Storage;
   try { storage = localStorage; } catch { return null; }
   const hasLegacy = compassLegacy || notesLegacy || legacyBrowserKeys(storage, accountId).length > 0;
   if (!hasLegacy) return null;
 
   const download = () => {
-    if (!isTokenScopedToAccount(accountId, userId)) return;
+    if (!canRecoverLegacyLocalWork(accountId, userId)) return;
     const recovery = collectLegacyLocalRecovery(accountId, storage);
     const blob = new Blob([JSON.stringify(recovery, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);

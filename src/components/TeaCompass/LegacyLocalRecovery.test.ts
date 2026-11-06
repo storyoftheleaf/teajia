@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest';
-import { collectLegacyLocalRecovery } from './LegacyLocalRecovery';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { canRecoverLegacyLocalWork, collectLegacyLocalRecovery } from './LegacyLocalRecovery';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useNotesStore } from '../../lib/notesStore';
+import { useAppStore } from '../../lib/store';
+import { clearToken, setToken } from '../../lib/api';
 import { createEmptyEntry } from './types';
 
 function memoryStorage(values: Record<string, string>): Storage {
@@ -14,6 +16,24 @@ function memoryStorage(values: Record<string, string>): Storage {
 }
 
 describe('restricted Curate local recovery', () => {
+  afterEach(() => { clearToken(); vi.unstubAllGlobals(); });
+  it('checks current owner role and actor again at download time', () => {
+    const storage = memoryStorage({});
+    vi.stubGlobal('localStorage', storage);
+    vi.stubGlobal('sessionStorage', memoryStorage({}));
+    vi.stubGlobal('window', { dispatchEvent: vi.fn() });
+    const jwt = (userId: string, platformRole: string) => `h.${btoa(JSON.stringify({ sub: userId, active_account_id: 'acct-a', platform_role: platformRole }))}.s`;
+    useAppStore.setState({ activeAccountId: 'acct-a', activeUserId: 'user-a', platformRole: 'platform_owner' });
+    setToken(jwt('user-a', 'platform_owner'));
+    expect(canRecoverLegacyLocalWork('acct-a', 'user-a')).toBe(true);
+    useAppStore.setState({ platformRole: null });
+    expect(canRecoverLegacyLocalWork('acct-a', 'user-a')).toBe(false);
+    useAppStore.setState({ platformRole: 'platform_owner' });
+    setToken(jwt('user-a', 'platform_admin'));
+    expect(canRecoverLegacyLocalWork('acct-a', 'user-a')).toBe(false);
+    setToken(jwt('user-b', 'platform_owner'));
+    expect(canRecoverLegacyLocalWork('acct-a', 'user-a')).toBe(false);
+  });
   it('exports only unidentified local fragments with their source and leaves bytes untouched', () => {
     const oldDraft = { ...createEmptyEntry('tea'), id: 'old-draft', draftAccountId: 'acct-a', name: 'Old draft' };
     const privateB = { ...createEmptyEntry('tea'), id: 'b-private', name: 'B private' };
