@@ -13,6 +13,8 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useAppStore } from './store';
+import { preserveLegacyLocalBytes } from './preserveLegacyLocalBytes';
 
 export type NoteSourceType = 'manual' | 'voice' | 'tasting' | 'vendor';
 export type NoteVisibility = 'private' | 'network' | 'public';
@@ -59,6 +61,11 @@ export interface NoteSession {
 interface NotesState {
   notes: Note[];
   sessions: NoteSession[];
+  personScopeKey: string | null;
+  scopeRevision: number;
+  notesByPerson: Record<string, Note[]>;
+  sessionsByPerson: Record<string, NoteSession[]>;
+  switchPerson: (accountId: string | null, userId: string | null) => void;
 
   // Actions
   addNote: (note: Omit<Note, 'id' | 'createdAt' | 'synced'>) => Note;
@@ -79,11 +86,69 @@ interface NotesState {
   migrateCompassNotes: (compassEntryId: string, teaKey: string) => void;
 }
 
+export function notesPersonKey(accountId: string | null, userId: string | null): string | null {
+  return accountId && userId ? `person:${encodeURIComponent(accountId)}:${encodeURIComponent(userId)}` : null;
+}
+
+const LEGACY_NOTES_KEY = '__legacy_unscoped__';
+
+preserveLegacyLocalBytes('teajia-notes', 'teajia-notes-legacy-recovery', 1);
+
+export function mergeNotesPersistedState(stored: unknown, current: NotesState): NotesState {
+  const persisted = (stored ?? {}) as Partial<NotesState>;
+  const key = notesPersonKey(useAppStore.getState().activeAccountId, useAppStore.getState().activeUserId);
+  const notesByPerson = { ...(persisted.notesByPerson ?? {}) };
+  const sessionsByPerson = { ...(persisted.sessionsByPerson ?? {}) };
+  const sourceKey = persisted.personScopeKey ?? LEGACY_NOTES_KEY;
+  const archive = <T>(buckets: Record<string, T[]>, values: T[] | undefined) => {
+    if (!values?.length) return;
+    if (!buckets[sourceKey]) buckets[sourceKey] = values;
+    else if (JSON.stringify(buckets[sourceKey]) !== JSON.stringify(values)) {
+      buckets[`__facade_copy__:${sourceKey}`] = values;
+    }
+  };
+  archive(notesByPerson, persisted.notes);
+  archive(sessionsByPerson, persisted.sessions);
+  return {
+    ...current,
+    notes: key ? notesByPerson[key] ?? [] : [],
+    sessions: key ? sessionsByPerson[key] ?? [] : [],
+    personScopeKey: key,
+    notesByPerson, sessionsByPerson,
+  };
+}
+
 export const useNotesStore = create<NotesState>()(
   persist(
     (set, get) => ({
       notes: [],
       sessions: [],
+      personScopeKey: notesPersonKey(useAppStore.getState().activeAccountId, useAppStore.getState().activeUserId),
+      scopeRevision: 0,
+      notesByPerson: {},
+      sessionsByPerson: {},
+      switchPerson: (accountId, userId) => set(state => {
+        const nextKey = notesPersonKey(accountId, userId);
+        if (nextKey === state.personScopeKey) return state;
+        const notesByPerson = { ...state.notesByPerson };
+        const sessionsByPerson = { ...state.sessionsByPerson };
+        if (state.personScopeKey) {
+          notesByPerson[state.personScopeKey] = state.notes;
+          sessionsByPerson[state.personScopeKey] = state.sessions;
+        } else {
+          // Pre-identity local notes have no trustworthy owner. Keep them for
+          // restricted recovery without showing or uploading them as this user.
+          if (state.notes.length) notesByPerson[LEGACY_NOTES_KEY] ??= state.notes;
+          if (state.sessions.length) sessionsByPerson[LEGACY_NOTES_KEY] ??= state.sessions;
+        }
+        return {
+          notes: nextKey ? notesByPerson[nextKey] ?? [] : [],
+          sessions: nextKey ? sessionsByPerson[nextKey] ?? [] : [],
+          personScopeKey: nextKey,
+          scopeRevision: state.scopeRevision + 1,
+          notesByPerson, sessionsByPerson,
+        };
+      }),
 
       addNote: (partial) => {
         const note: Note = {
@@ -164,6 +229,22 @@ export const useNotesStore = create<NotesState>()(
     }),
     {
       name: 'teajia-notes',
+      version: 1,
+      migrate: state => state,
+      partialize: state => {
+        const notesByPerson = { ...state.notesByPerson };
+        const sessionsByPerson = { ...state.sessionsByPerson };
+        if (state.personScopeKey) {
+          notesByPerson[state.personScopeKey] = state.notes;
+          sessionsByPerson[state.personScopeKey] = state.sessions;
+        }
+        return {
+          notes: state.notes, sessions: state.sessions,
+          personScopeKey: state.personScopeKey,
+          notesByPerson, sessionsByPerson,
+        };
+      },
+      merge: mergeNotesPersistedState,
       // Purge fully synced soft-deletes on rehydration to keep storage lean
       onRehydrateStorage: () => (state) => {
         if (!state) return;
@@ -172,3 +253,9 @@ export const useNotesStore = create<NotesState>()(
     }
   )
 );
+
+useAppStore.subscribe((state, previous) => {
+  if (state.activeUserId !== previous.activeUserId || state.activeAccountId !== previous.activeAccountId) {
+    useNotesStore.getState().switchPerson(state.activeAccountId, state.activeUserId);
+  }
+});

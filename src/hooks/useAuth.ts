@@ -10,6 +10,7 @@ import {
   isTokenExpired,
   ensureTokenRefreshed,
   clearPendingSignup,
+  getTokenClaims,
   type PendingSignup,
 } from '../lib/api';
 import { useAppStore, type AuthUser } from '../lib/store';
@@ -40,6 +41,16 @@ function getSessionBootstrap(): Promise<SessionResponse> {
 
 function resetSessionBootstrap() {
   sessionBootstrapPromise = null;
+}
+
+function sessionActor() {
+  const claims = getTokenClaims();
+  return claims ? { userId: claims.sub, accountId: claims.active_account_id ?? null } : null;
+}
+
+function isSameSessionActor(actor: ReturnType<typeof sessionActor>): boolean {
+  const current = sessionActor();
+  return !!actor && !!current && current.userId === actor.userId && current.accountId === actor.accountId;
 }
 
 // The single session boundary for password, code, Google, signup and joins.
@@ -109,10 +120,13 @@ export function useAuth(): UseAuthReturn {
       setIsSessionReady(true);
       return;
     }
+    const actor = sessionActor();
     try {
       setIsLoading(true);
       const data = await api.auth.me();
-      setUser({ email: data.email, username: data.username ?? null, name: data.name, role: data.role, phone: data.phone ?? null, canCreateCollections: Boolean(data.can_create_collections) });
+      if (isSameSessionActor(actor)) {
+        setUser({ email: data.email, username: data.username ?? null, name: data.name, role: data.role, phone: data.phone ?? null, canCreateCollections: Boolean(data.can_create_collections) });
+      }
     } catch (err: any) {
       // Only clear the session when the server explicitly rejected the token.
       // Transient issues (offline, CORS hiccup, timeout, 5xx) used to boot
@@ -121,7 +135,7 @@ export function useAuth(): UseAuthReturn {
       // event is what actually triggers clearing, centrally.
       const msg = typeof err?.message === 'string' ? err.message : '';
       const explicitAuthFailure = /\b(401|unauthorized|invalid token|expired)\b/i.test(msg);
-      if (explicitAuthFailure) {
+      if (explicitAuthFailure && isSameSessionActor(actor)) {
         clearToken();
         setUser(null);
       }
@@ -131,7 +145,7 @@ export function useAuth(): UseAuthReturn {
       setIsLoading(false);
       // Always mark session as ready once the check completes, regardless of
       // outcome. Sync hooks can now safely fire.
-      setIsSessionReady(true);
+      if (isSameSessionActor(actor)) setIsSessionReady(true);
     }
   }, []);
 
@@ -154,23 +168,24 @@ export function useAuth(): UseAuthReturn {
   // first so we never hit the server with a soon-to-expire token.
   useEffect(() => {
     if (!hasToken()) return;
+    const actor = sessionActor();
     let cancelled = false;
     (async () => {
       try {
         setIsLoading(true);
         const data = await getSessionBootstrap();
-        if (!cancelled) {
+        if (!cancelled && isSameSessionActor(actor)) {
           setUser({ email: data.email, username: data.username ?? null, name: data.name, role: data.role, phone: data.phone ?? null, canCreateCollections: Boolean(data.can_create_collections) });
         }
       } catch (err: any) {
         const msg = typeof err?.message === 'string' ? err.message : '';
-        if (/\b(401|unauthorized|invalid token|expired)\b/i.test(msg)) {
+        if (isSameSessionActor(actor) && /\b(401|unauthorized|invalid token|expired)\b/i.test(msg)) {
           clearToken();
           setUser(null);
         }
       } finally {
         if (!cancelled) setIsLoading(false);
-        setIsSessionReady(true);
+        if (!cancelled && isSameSessionActor(actor)) setIsSessionReady(true);
       }
     })();
     return () => { cancelled = true; };

@@ -313,9 +313,12 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
   const micIconSize = larger ? 20 : 14;
   const micBtnExtra = larger ? 'tasting-voice-btn-large' : '';
   const { addNote, notes: allNotes } = useNotesStore();
-  const { activeAccountId, activeAccount } = useAppStore();
+  const { activeAccountId, activeUserId, activeAccount } = useAppStore();
 
-  const [draft, setDraft] = useState('');
+  const scopeKey = `${activeUserId ?? 'guest'}:${activeAccountId ?? 'guest'}`;
+  const [scopedDraft, setScopedDraft] = useState({ scopeKey, text: '' });
+  const draft = scopedDraft.scopeKey === scopeKey ? scopedDraft.text : '';
+  const setDraft = (text: string) => setScopedDraft({ scopeKey, text });
   const [recState, setRecState] = useState<RecState>('idle');
   const [error, setError] = useState<string | null>(null);
   const [showTyping, setShowTyping] = useState(false);
@@ -344,7 +347,8 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
   }, [draft, compact, larger]);
 
   // Current author info from store
-  const authorId = activeAccountId ?? 'guest';
+  const authorId = activeUserId ?? 'guest';
+  const accountId = activeAccountId ?? 'guest';
   const authorName = activeAccount?.name ?? 'You';
 
   // Notes for this anchor: OR logic so compassEntryId notes + teaKey notes merge into one thread
@@ -370,7 +374,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
     const trimmed = text.trim();
     if (!trimmed) return;
     addNote({
-      accountId: authorId,
+      accountId,
       teaKey,
       compassEntryId,
       text: trimmed,
@@ -380,7 +384,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
       visibility: defaultVisibility,
     });
     syncNotes().catch(() => {});
-  }, [addNote, authorId, authorName, teaKey, compassEntryId, defaultVisibility]);
+  }, [addNote, accountId, authorId, authorName, teaKey, compassEntryId, defaultVisibility]);
 
   const submitDraft = useCallback(() => {
     writeNote(draft, 'manual');
@@ -466,7 +470,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
           <AnimatePresence initial={false}>
             {notes.map(note => (
               <NoteCard
-                key={note.id}
+                key={`${scopeKey}:${note.id}`}
                 note={note}
                 showAuthor={multipleAuthors}
                 currentAuthorId={authorId}

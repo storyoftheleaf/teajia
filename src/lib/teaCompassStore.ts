@@ -6,16 +6,18 @@ import type { Currency } from '../admin/types';
 import { api, hasToken, isTokenScopedToAccount } from './api';
 import { useNotesStore } from './notesStore';
 import { useAppStore } from './store';
+import { preserveLegacyLocalBytes } from './preserveLegacyLocalBytes';
 
 interface TeaCompassState {
   // Committed entries (persisted to localStorage + server)
   entries: TeaCompassEntry[];
   accountScopeId: string | null;
+  userScopeId: string | null;
   accountScopeRevision: number;
   entriesByAccount: Record<string, TeaCompassEntry[]>;
   deletedIdsByAccount: Record<string, string[]>;
   pendingPromotionsByAccount: Record<string, string[]>;
-  switchAccount: (accountId: string | null) => void;
+  switchAccount: (accountId: string | null, userId?: string | null) => void;
   // Pending entries, created but not yet committed (NOT persisted, lost on refresh)
   pendingEntries: TeaCompassEntry[];
 
@@ -24,6 +26,7 @@ interface TeaCompassState {
   sessionEntryIds: string[]; // IDs of entries created in current session
   draftAccountScopeId: string | null;
   draftsByAccount: Record<string, Required<PersistedCompassDrafts>>;
+  workspaceByPerson: Record<string, CompassWorkspaceSnapshot>;
   switchDraftAccount: (accountId: string | null) => void;
 
   // Vendor persistence
@@ -207,6 +210,29 @@ interface PersistedCompassDrafts {
   sessionEntryIds?: string[];
 }
 
+interface CompassWorkspaceSnapshot {
+  lastVendorId: string | null;
+  lastVendorName: string | null;
+  lastCurrency: Currency;
+  currentSessionId: string | null;
+  lastCaptureAt: number | null;
+}
+
+function snapshotCompassWorkspace(state: CompassWorkspaceSnapshot): CompassWorkspaceSnapshot {
+  return {
+    lastVendorId: state.lastVendorId,
+    lastVendorName: state.lastVendorName,
+    lastCurrency: state.lastCurrency,
+    currentSessionId: state.currentSessionId,
+    lastCaptureAt: state.lastCaptureAt,
+  };
+}
+
+const EMPTY_COMPASS_WORKSPACE: CompassWorkspaceSnapshot = {
+  lastVendorId: null, lastVendorName: null, lastCurrency: 'Yuan',
+  currentSessionId: null, lastCaptureAt: null,
+};
+
 function activeAccountScope(): string | null {
   const fromAppStore = useAppStore.getState().activeAccountId;
   if (fromAppStore) return fromAppStore;
@@ -221,6 +247,15 @@ function activeAccountScope(): string | null {
   } catch {
     return null;
   }
+}
+
+function activeUserScope(): string | null {
+  return useAppStore.getState().activeUserId;
+}
+
+/** Versioned key: old account-only keys remain quarantined in the same maps. */
+export function compassPersonKey(accountId: string | null, userId: string | null): string | null {
+  return accountId && userId ? `person:${encodeURIComponent(accountId)}:${encodeURIComponent(userId)}` : null;
 }
 
 export function restoreCompassDraftsForAccount(
@@ -258,11 +293,14 @@ function snapshotCompassDrafts(state: PersistedCompassDrafts): Required<Persiste
 const SESSION_GAP_MS = 6 * 60 * 60 * 1000; // 6 hours
 const UNSCOPED_LEGACY_ACCOUNT = '__legacy_unscoped__';
 
+preserveLegacyLocalBytes('teajia-compass', 'teajia-compass-legacy-recovery', 9);
+
 const createdTeaCompassStore = create<TeaCompassState>()(
   persist(
     (set, get) => ({
       entries: [],
       accountScopeId: activeAccountScope(),
+      userScopeId: activeUserScope(),
       accountScopeRevision: 0,
       entriesByAccount: {},
       deletedIdsByAccount: {},
@@ -272,6 +310,7 @@ const createdTeaCompassStore = create<TeaCompassState>()(
       sessionEntryIds: [],
       draftAccountScopeId: activeAccountScope(),
       draftsByAccount: {},
+      workspaceByPerson: {},
       lastVendorId: null,
       lastVendorName: null,
       // Adrian's 2026-09-07 rule: everything is bought and air-freighted from
@@ -298,50 +337,53 @@ const createdTeaCompassStore = create<TeaCompassState>()(
       setSyncError: (failed) => set({ syncError: failed }),
       setHydrationStatus: (hydrationStatus) => set({ hydrationStatus }),
 
-      switchAccount: (accountId) => set((state) => {
-        if (state.accountScopeId === accountId && state.draftAccountScopeId === accountId) return state;
+      switchAccount: (accountId, userId = activeUserScope()) => set((state) => {
+        const targetKey = compassPersonKey(accountId, userId);
+        const previousKey = compassPersonKey(state.accountScopeId, state.userScopeId);
+        if (state.accountScopeId === accountId && state.userScopeId === userId && state.draftAccountScopeId === accountId) return state;
         const entriesByAccount = { ...state.entriesByAccount };
         const deletedIdsByAccount = { ...state.deletedIdsByAccount };
         const pendingPromotionsByAccount = { ...state.pendingPromotionsByAccount };
-        if (state.accountScopeId) {
-          entriesByAccount[state.accountScopeId] = state.entries;
-          deletedIdsByAccount[state.accountScopeId] = state.deletedIds;
-          pendingPromotionsByAccount[state.accountScopeId] = state.pendingPromotions;
-        } else if (
-          accountId &&
-          (state.entries.length > 0 || state.deletedIds.length > 0 || state.pendingPromotions.length > 0 ||
-            entriesByAccount[UNSCOPED_LEGACY_ACCOUNT] !== undefined) &&
-          !entriesByAccount[accountId]
-        ) {
-          // Conservative legacy migration: unscoped data belongs to the first
-          // known account only. Never copy it to every account.
-          entriesByAccount[accountId] = entriesByAccount[UNSCOPED_LEGACY_ACCOUNT] ?? state.entries;
-          deletedIdsByAccount[accountId] = deletedIdsByAccount[UNSCOPED_LEGACY_ACCOUNT] ?? state.deletedIds;
-          pendingPromotionsByAccount[accountId] = pendingPromotionsByAccount[UNSCOPED_LEGACY_ACCOUNT] ?? state.pendingPromotions;
-          delete entriesByAccount[UNSCOPED_LEGACY_ACCOUNT];
-          delete deletedIdsByAccount[UNSCOPED_LEGACY_ACCOUNT];
-          delete pendingPromotionsByAccount[UNSCOPED_LEGACY_ACCOUNT];
+        if (previousKey) {
+          entriesByAccount[previousKey] = state.entries;
+          deletedIdsByAccount[previousKey] = state.deletedIds;
+          pendingPromotionsByAccount[previousKey] = state.pendingPromotions;
+        } else if (state.entries.length || state.deletedIds.length || state.pendingPromotions.length) {
+          // Old facades have no trustworthy author. Retain them without assigning one.
+          const legacyKey = state.accountScopeId ?? UNSCOPED_LEGACY_ACCOUNT;
+          entriesByAccount[legacyKey] ??= state.entries;
+          deletedIdsByAccount[legacyKey] ??= state.deletedIds;
+          pendingPromotionsByAccount[legacyKey] ??= state.pendingPromotions;
         }
 
         const draftsByAccount = { ...state.draftsByAccount };
         if (state.draftAccountScopeId) {
-          draftsByAccount[state.draftAccountScopeId] = snapshotCompassDrafts(state);
+          const oldDraftKey = previousKey ?? state.draftAccountScopeId;
+          if (previousKey) draftsByAccount[oldDraftKey] = snapshotCompassDrafts(state);
+          else draftsByAccount[oldDraftKey] ??= snapshotCompassDrafts(state);
         }
-        const target = accountId
-          ? restoreCompassDraftsForAccount(draftsByAccount[accountId] ?? {}, accountId)
+        const target = targetKey
+          ? restoreCompassDraftsForAccount(draftsByAccount[targetKey] ?? {}, accountId)
           : { pendingEntries: [], activeEntryId: null, sessionEntryIds: [] };
+        const workspaceByPerson = { ...state.workspaceByPerson };
+        const oldWorkspaceKey = previousKey ?? state.accountScopeId ?? UNSCOPED_LEGACY_ACCOUNT;
+        if (previousKey) workspaceByPerson[oldWorkspaceKey] = snapshotCompassWorkspace(state);
+        else workspaceByPerson[oldWorkspaceKey] ??= snapshotCompassWorkspace(state);
         return {
           ...target,
-          entries: accountId ? entriesByAccount[accountId] ?? [] : [],
-          deletedIds: accountId ? deletedIdsByAccount[accountId] ?? [] : [],
-          pendingPromotions: accountId ? pendingPromotionsByAccount[accountId] ?? [] : [],
+          ...(targetKey ? workspaceByPerson[targetKey] ?? EMPTY_COMPASS_WORKSPACE : EMPTY_COMPASS_WORKSPACE),
+          entries: targetKey ? entriesByAccount[targetKey] ?? [] : [],
+          deletedIds: targetKey ? deletedIdsByAccount[targetKey] ?? [] : [],
+          pendingPromotions: targetKey ? pendingPromotionsByAccount[targetKey] ?? [] : [],
           entriesByAccount,
           deletedIdsByAccount,
           pendingPromotionsByAccount,
           accountScopeId: accountId,
+          userScopeId: userId ?? null,
           accountScopeRevision: state.accountScopeRevision + 1,
           hydrationStatus: 'idle',
           draftsByAccount,
+          workspaceByPerson,
           draftAccountScopeId: accountId,
         };
       }),
@@ -402,6 +444,8 @@ const createdTeaCompassStore = create<TeaCompassState>()(
       removeEntry: (id) => {
         // Drop it from local state immediately so the UI responds at once...
         const accountId = get().accountScopeId;
+        const userId = get().userScopeId;
+        const personKey = compassPersonKey(accountId, userId);
         const accountRevision = get().accountScopeRevision;
         const existed = get().entries.some((e) => e.id === id);
         set((state) => ({
@@ -421,23 +465,25 @@ const createdTeaCompassStore = create<TeaCompassState>()(
         // per-card delete look broken. Fired unconditionally for any committed
         // entry: a row that never reached D1 just no-ops the DELETE (the
         // worker's WHERE clause matches nothing), which is harmless.
-        if (existed && hasToken() && isTokenScopedToAccount(accountId)) {
+        if (existed && accountId && userId && personKey && hasToken() && isTokenScopedToAccount(accountId, userId)) {
           // A row that never reached D1 no-ops the DELETE harmlessly (WHERE matches
           // nothing → 200). A thrown error means we genuinely couldn't reach the
           // server, so flag it: otherwise the row silently reappears on next
           // hydrate and the delete looks like it "didn't take".
-          void api.compass.remove(id)
+          void api.compass.remove(id, { expectedAuth: { accountId, userId } })
             .then(() => set((s) => {
-              if (s.accountScopeId === accountId && s.accountScopeRevision === accountRevision) {
-                return { syncError: false, deletedIds: s.deletedIds.filter((d) => d !== id) };
-              }
-              if (!accountId) return s;
-              return {
-                deletedIdsByAccount: {
-                  ...s.deletedIdsByAccount,
-                  [accountId]: (s.deletedIdsByAccount[accountId] ?? []).filter((d) => d !== id),
-                },
+              const deletedIdsByAccount = {
+                ...s.deletedIdsByAccount,
+                [personKey]: (s.deletedIdsByAccount[personKey] ?? []).filter((d) => d !== id),
               };
+              if (s.accountScopeId === accountId && s.userScopeId === userId) {
+                return {
+                  deletedIdsByAccount,
+                  deletedIds: s.deletedIds.filter((d) => d !== id),
+                  ...(s.accountScopeRevision === accountRevision ? { syncError: false } : {}),
+                };
+              }
+              return { deletedIdsByAccount };
             }))
             .catch(() => {
               const current = get();
@@ -467,7 +513,8 @@ const createdTeaCompassStore = create<TeaCompassState>()(
         });
         entry.draftAccountId = state.draftAccountScopeId ?? activeAccountScope() ?? 'guest';
         entry.sessionId = sessionId;
-        const context = state.encounterContextByAccount[entry.draftAccountId];
+        const contextKey = compassPersonKey(state.draftAccountScopeId, state.userScopeId);
+        const context = contextKey ? state.encounterContextByAccount[contextKey] : undefined;
         entry.journeyId = context?.journeyId ?? null;
         entry.visitId = context?.visitId ?? null;
         // Add to pendingEntries (NOT entries), won't appear in Library until committed
@@ -568,7 +615,8 @@ const createdTeaCompassStore = create<TeaCompassState>()(
       setLastCurrency: (currency) => set({ lastCurrency: currency }),
 
       setEncounterContext: (entryId, journeyId, visitId) => set((state) => {
-        const scope = state.draftAccountScopeId ?? activeAccountScope() ?? 'guest';
+        const scope = compassPersonKey(state.draftAccountScopeId, state.userScopeId);
+        if (!scope) return state;
         const update = { journeyId, visitId };
         const apply = (entry: TeaCompassEntry) => entry.id === entryId
           ? { ...entry, ...update, touchedFields: Array.from(new Set([...(entry.touchedFields ?? []), 'journeyId', 'visitId'])), updatedAt: new Date().toISOString(), synced: false }
@@ -617,21 +665,25 @@ const createdTeaCompassStore = create<TeaCompassState>()(
     {
       name: 'teajia-compass',
       partialize: (state) => {
+        const personKey = compassPersonKey(state.accountScopeId, state.userScopeId);
+        const workspaceByPerson = { ...state.workspaceByPerson };
+        if (personKey) workspaceByPerson[personKey] = snapshotCompassWorkspace(state);
         const entriesByAccount = { ...state.entriesByAccount };
         const deletedIdsByAccount = { ...state.deletedIdsByAccount };
         const pendingPromotionsByAccount = { ...state.pendingPromotionsByAccount };
-        if (state.accountScopeId) {
-          entriesByAccount[state.accountScopeId] = state.entries;
-          deletedIdsByAccount[state.accountScopeId] = state.deletedIds;
-          pendingPromotionsByAccount[state.accountScopeId] = state.pendingPromotions;
+        if (personKey) {
+          entriesByAccount[personKey] = state.entries;
+          deletedIdsByAccount[personKey] = state.deletedIds;
+          pendingPromotionsByAccount[personKey] = state.pendingPromotions;
         }
         const draftsByAccount = { ...state.draftsByAccount };
-        if (state.draftAccountScopeId) {
-          draftsByAccount[state.draftAccountScopeId] = snapshotCompassDrafts(state);
+        if (personKey && state.draftAccountScopeId === state.accountScopeId) {
+          draftsByAccount[personKey] = snapshotCompassDrafts(state);
         }
         return {
           entries: state.entries,
           accountScopeId: state.accountScopeId,
+          userScopeId: state.userScopeId,
           entriesByAccount,
           deletedIdsByAccount,
           pendingPromotionsByAccount,
@@ -654,9 +706,10 @@ const createdTeaCompassStore = create<TeaCompassState>()(
           sessionEntryIds: state.sessionEntryIds,
           draftAccountScopeId: state.draftAccountScopeId,
           draftsByAccount,
+          workspaceByPerson,
         };
       },
-      version: 8,
+      version: 9,
       migrate: migrateCompassPersistedState,
       merge: mergeCompassPersistedState,
     }
@@ -669,43 +722,72 @@ export function mergeCompassPersistedState(
 ): TeaCompassState {
   const persisted = (persistedState ?? {}) as Partial<TeaCompassState>;
   const scope = activeAccountScope();
-  const draftBuckets = persisted.draftsByAccount ?? {};
-  const drafts = restoreCompassDraftsForAccount(draftBuckets[scope ?? ''] ?? persisted, scope);
+  const userId = activeUserScope();
+  const personKey = compassPersonKey(scope, userId);
+  const workspaceByPerson = { ...(persisted.workspaceByPerson ?? {}) };
+  const originalKey = compassPersonKey(persisted.accountScopeId ?? null, persisted.userScopeId ?? null)
+    ?? persisted.accountScopeId ?? UNSCOPED_LEGACY_ACCOUNT;
+  if (!workspaceByPerson[originalKey] && ('lastVendorId' in persisted || 'currentSessionId' in persisted)) {
+    workspaceByPerson[originalKey] = snapshotCompassWorkspace({ ...EMPTY_COMPASS_WORKSPACE, ...persisted });
+  }
+  const draftBuckets = { ...(persisted.draftsByAccount ?? {}) };
+  if ((persisted.pendingEntries?.length ?? 0) > 0) {
+    const facadeDrafts: Required<PersistedCompassDrafts> = {
+      pendingEntries: persisted.pendingEntries ?? [],
+      activeEntryId: persisted.activeEntryId ?? null,
+      sessionEntryIds: persisted.sessionEntryIds ?? [],
+    };
+    const facadeKey = compassPersonKey(persisted.accountScopeId ?? null, persisted.userScopeId ?? null)
+      ?? persisted.draftAccountScopeId ?? persisted.accountScopeId ?? UNSCOPED_LEGACY_ACCOUNT;
+    if (facadeKey) {
+      if (!draftBuckets[facadeKey]) draftBuckets[facadeKey] = facadeDrafts;
+      else if (JSON.stringify(draftBuckets[facadeKey]) !== JSON.stringify(facadeDrafts)) {
+        draftBuckets[`__legacy_facade__:${facadeKey}`] = facadeDrafts;
+      }
+    }
+  }
+  const drafts = restoreCompassDraftsForAccount(personKey ? draftBuckets[personKey] ?? {} : {}, scope);
   const entryBuckets = { ...(persisted.entriesByAccount ?? {}) };
   const deletedBuckets = { ...(persisted.deletedIdsByAccount ?? {}) };
   const promotionBuckets = { ...(persisted.pendingPromotionsByAccount ?? {}) };
   const facadeEntries = (persisted.entries ?? currentState.entries).map(normalizeCompassEntry);
-  const facadeIsUnscoped = persisted.accountScopeId == null && Object.keys(entryBuckets).length === 0;
-  if (facadeIsUnscoped && (facadeEntries.length > 0 || (persisted.deletedIds?.length ?? 0) > 0 || (persisted.pendingPromotions?.length ?? 0) > 0)) {
-    entryBuckets[UNSCOPED_LEGACY_ACCOUNT] = facadeEntries;
-    deletedBuckets[UNSCOPED_LEGACY_ACCOUNT] = persisted.deletedIds ?? [];
-    promotionBuckets[UNSCOPED_LEGACY_ACCOUNT] = persisted.pendingPromotions ?? [];
+  if (!persisted.userScopeId) {
+    const legacyKey = persisted.accountScopeId ?? UNSCOPED_LEGACY_ACCOUNT;
+    // A v8 facade can be newer than its bucket (or have no bucket). Preserve
+    // both versions under legacy keys; neither is evidence of an author.
+    const archive = <T>(buckets: Record<string, T[]>, values: T[] | undefined) => {
+      if (!values?.length) return;
+      if (!buckets[legacyKey]) buckets[legacyKey] = values;
+      else if (JSON.stringify(buckets[legacyKey]) !== JSON.stringify(values)) {
+        buckets[`__legacy_facade__:${legacyKey}`] = values;
+      }
+    };
+    archive(entryBuckets, persisted.entries);
+    archive(deletedBuckets, persisted.deletedIds);
+    archive(promotionBuckets, persisted.pendingPromotions);
   }
-  if (scope && !entryBuckets[scope] && entryBuckets[UNSCOPED_LEGACY_ACCOUNT]) {
-    entryBuckets[scope] = entryBuckets[UNSCOPED_LEGACY_ACCOUNT];
-    deletedBuckets[scope] = deletedBuckets[UNSCOPED_LEGACY_ACCOUNT] ?? [];
-    promotionBuckets[scope] = promotionBuckets[UNSCOPED_LEGACY_ACCOUNT] ?? [];
-    delete entryBuckets[UNSCOPED_LEGACY_ACCOUNT];
-    delete deletedBuckets[UNSCOPED_LEGACY_ACCOUNT];
-    delete promotionBuckets[UNSCOPED_LEGACY_ACCOUNT];
-  }
-  const facadeMatchesScope = !!scope && persisted.accountScopeId === scope;
+  // Account-only persisted keys and facades predate author identity. Keep their
+  // bytes in the legacy maps, never load them as the current person's work.
+  const facadeMatchesScope = !!personKey && persisted.accountScopeId === scope && persisted.userScopeId === userId;
   return {
     ...currentState, ...persisted, ...drafts,
-    entries: scope
-      ? (entryBuckets[scope] ?? (facadeMatchesScope ? facadeEntries : [])).map(normalizeCompassEntry)
+    ...(personKey ? workspaceByPerson[personKey] ?? EMPTY_COMPASS_WORKSPACE : EMPTY_COMPASS_WORKSPACE),
+    entries: personKey
+      ? (entryBuckets[personKey] ?? (facadeMatchesScope ? facadeEntries : [])).map(normalizeCompassEntry)
       : [],
-    deletedIds: scope
-      ? deletedBuckets[scope] ?? (facadeMatchesScope ? persisted.deletedIds : deletedBuckets[UNSCOPED_LEGACY_ACCOUNT]) ?? []
+    deletedIds: personKey
+      ? deletedBuckets[personKey] ?? (facadeMatchesScope ? persisted.deletedIds : []) ?? []
       : [],
-    pendingPromotions: scope
-      ? promotionBuckets[scope] ?? (facadeMatchesScope ? persisted.pendingPromotions : promotionBuckets[UNSCOPED_LEGACY_ACCOUNT]) ?? []
+    pendingPromotions: personKey
+      ? promotionBuckets[personKey] ?? (facadeMatchesScope ? persisted.pendingPromotions : []) ?? []
       : [],
     entriesByAccount: entryBuckets,
     deletedIdsByAccount: deletedBuckets,
     pendingPromotionsByAccount: promotionBuckets,
     accountScopeId: scope,
+    userScopeId: userId,
     draftsByAccount: draftBuckets,
+    workspaceByPerson,
     draftAccountScopeId: scope,
   } as TeaCompassState;
 }
@@ -713,16 +795,15 @@ export function mergeCompassPersistedState(
 export function migrateCompassPersistedState(persistedState: unknown, version: number): unknown {
         if (!persistedState || typeof persistedState !== 'object') return persistedState;
         const previous = persistedState as Partial<TeaCompassState> & { browseFilter?: string };
-        const activeScope = activeAccountScope();
-        const scope = previous.draftAccountScopeId ?? activeScope;
+        const scope = previous.draftAccountScopeId ?? previous.accountScopeId ?? UNSCOPED_LEGACY_ACCOUNT;
         if (version < 1) {
           previous.pendingEntries = (previous.pendingEntries ?? []).map((entry) => ({
             ...entry,
             touchedFields: entry.touchedFields,
-            draftAccountId: entry.draftAccountId ?? scope ?? undefined,
+            draftAccountId: entry.draftAccountId ?? scope,
           }));
         }
-        if (version < 2 && scope) {
+        if (version < 2) {
           previous.draftsByAccount = {
             ...(previous.draftsByAccount ?? {}),
             [scope]: snapshotCompassDrafts(previous),
@@ -749,11 +830,11 @@ export function migrateCompassPersistedState(persistedState: unknown, version: n
         if (version < 7 && (previous.libraryFilters?.possession as string | undefined) === 'stock') {
           previous.libraryFilters = { ...previous.libraryFilters, possession: 'working' };
         }
-        const entryScope = activeScope ?? previous.accountScopeId ?? previous.draftAccountScopeId;
-        if (version < 8 && entryScope) {
+        const entryScope = previous.accountScopeId ?? previous.draftAccountScopeId ?? UNSCOPED_LEGACY_ACCOUNT;
+        if (version < 8) {
           previous.entriesByAccount = {
             ...(previous.entriesByAccount ?? {}),
-            [entryScope]: (previous.entries ?? []).map(normalizeCompassEntry),
+            [entryScope]: previous.entries ?? [],
           };
           previous.deletedIdsByAccount = {
             ...(previous.deletedIdsByAccount ?? {}),
@@ -763,8 +844,10 @@ export function migrateCompassPersistedState(persistedState: unknown, version: n
             ...(previous.pendingPromotionsByAccount ?? {}),
             [entryScope]: previous.pendingPromotions ?? [],
           };
-          previous.accountScopeId = entryScope;
+          previous.accountScopeId = entryScope === UNSCOPED_LEGACY_ACCOUNT ? null : entryScope;
         }
+        // Version 9 intentionally leaves all old account-only buckets in place.
+        // No migration can infer who authored a local-only capture.
         return previous;
 }
 
@@ -787,3 +870,16 @@ type TeaCompassStoreHandle = typeof createdTeaCompassStore;
 const globalScope = globalThis as unknown as Record<string, TeaCompassStoreHandle | undefined>;
 export const useTeaCompassStore: TeaCompassStoreHandle =
   globalScope[TEA_COMPASS_STORE_KEY] ?? (globalScope[TEA_COMPASS_STORE_KEY] = createdTeaCompassStore);
+
+// Auth identity changes must clear the facade synchronously, before React can
+// render another person's local work during the effect/hydration interval.
+const COMPASS_AUTH_SUBSCRIPTION_KEY = '__teajia_compassAuthSubscription';
+const subscriptionScope = globalThis as unknown as Record<string, boolean | undefined>;
+if (!subscriptionScope[COMPASS_AUTH_SUBSCRIPTION_KEY]) {
+  subscriptionScope[COMPASS_AUTH_SUBSCRIPTION_KEY] = true;
+  useAppStore.subscribe((state, previous) => {
+    if (state.activeUserId !== previous.activeUserId || state.activeAccountId !== previous.activeAccountId) {
+      useTeaCompassStore.getState().switchAccount(state.activeAccountId, state.activeUserId);
+    }
+  });
+}
