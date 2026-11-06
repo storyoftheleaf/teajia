@@ -30,6 +30,7 @@ on:
       - 'scripts/build-release-artifact*'
       - 'vite.config.ts'
       - 'scripts/observe-verified-release*'
+      - 'scripts/check-worker-push*'
   # Lets you trigger a deploy manually from any branch (Actions tab → Run workflow).
   # Useful when a fix has landed on a feature branch and you want it live
   # before the branch is merged to main.
@@ -66,6 +67,26 @@ jobs:
         with:
           node-version: '22'
 
+      # A coordinated dispatch may already have published this exact SHA before
+      # its main push triggers this workflow. Only skip when Cloudflare and both
+      # public origins agree on the same active version and revision.
+      - name: Check automatic push against live Worker
+        id: push_guard
+        if: github.event_name == 'push'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WORKER_PUSH_GUARD_PATH: ${{ runner.temp }}/worker-push-guard.json
+        run: node scripts/check-worker-push.mjs
+
+      - name: Save automatic push decision
+        if: always() && github.event_name == 'push'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: worker-push-guard
+          path: ${{ runner.temp }}/worker-push-guard.json
+          if-no-files-found: error
+
       - name: Persist coordinated release candidate
         if: github.event_name == 'workflow_dispatch' && inputs.publish_main_expected != ''
         env:
@@ -93,12 +114,14 @@ jobs:
         run: node scripts/publish-verified-release.mjs --preflight
 
       - name: Install worker dependencies
+        if: github.event_name != 'push' || steps.push_guard.outputs.action == 'deploy'
         working-directory: worker
         run: npm ci
 
       # vitest lives in the root package.json (npm run test:worker runs
       # worker/tests). A failing auth/fulfillment test blocks the deploy.
       - name: Install root dependencies
+        if: github.event_name != 'push' || steps.push_guard.outputs.action == 'deploy'
         run: npm ci
 
       - name: Build exact public Pages artifact
@@ -122,16 +145,19 @@ jobs:
           if-no-files-found: error
 
       - name: Worker proof observer tests
-        run: node --test scripts/verify-worker-release.test.mjs
+        if: github.event_name != 'push' || steps.push_guard.outputs.action == 'deploy'
+        run: node --test scripts/verify-worker-release.test.mjs scripts/check-worker-push.test.mjs
 
       - name: Coordinated publication observer tests
         if: github.event_name == 'workflow_dispatch' && inputs.publish_main_expected != ''
         run: node --test scripts/publish-verified-release.test.mjs scripts/observe-verified-release.test.mjs scripts/check-production-release-lease.test.mjs
 
       - name: Background connector cost and retry limits
+        if: github.event_name != 'push' || steps.push_guard.outputs.action == 'deploy'
         run: node --test scripts/ar-create-teajia-connector.test.mjs
 
       - name: Worker tests
+        if: github.event_name != 'push' || steps.push_guard.outputs.action == 'deploy'
         run: npm run test:worker
 
       # Build the worker before touching the database.
@@ -148,6 +174,7 @@ jobs:
       # the migration step deliberately: a bundle that cannot build must stop
       # the run before the database moves.
       - name: Build worker (dry run)
+        if: github.event_name != 'push' || steps.push_guard.outputs.action == 'deploy'
         working-directory: worker
         run: npx wrangler deploy --dry-run --outdir=/tmp/worker-build
 
@@ -161,6 +188,7 @@ jobs:
       # deploy reported success). Tracker was reconciled 2026-06-01; from here a
       # failed migration fails the deploy loudly so drift can't recur.
       - name: Apply D1 migrations
+        if: github.event_name != 'push' || steps.push_guard.outputs.action == 'deploy'
         uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -171,6 +199,7 @@ jobs:
       # --var adds the revision binding to the existing config bindings; it
       # does not replace [vars] or stored secrets. Wrangler is lockfile-pinned.
       - name: Deploy to Cloudflare Workers
+        if: github.event_name != 'push' || steps.push_guard.outputs.action == 'deploy'
         working-directory: worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -181,6 +210,7 @@ jobs:
           npx wrangler deploy --var "RELEASE_GIT_SHA:$CANDIDATE_SHA" | tee "$RUNNER_TEMP/worker-deploy.log"
 
       - name: Prove exact Worker revision and runtime version
+        if: github.event_name != 'push' || steps.push_guard.outputs.action == 'deploy'
         env:
           CANDIDATE_SHA: ${{ github.sha }}
           WORKER_DEPLOY_LOG: ${{ runner.temp }}/worker-deploy.log
@@ -188,7 +218,7 @@ jobs:
         run: node scripts/verify-worker-release.mjs
 
       - name: Save Worker proof
-        if: always()
+        if: always() && (github.event_name != 'push' || steps.push_guard.outputs.action == 'deploy')
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: worker-release-proof
