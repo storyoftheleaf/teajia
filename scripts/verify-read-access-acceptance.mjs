@@ -65,12 +65,17 @@ async function canonicalVersion(pinned, fetcher) {
 }
 
 async function canonicalPublicGraph(pinned, artifact, fetcher) {
-  const files = [APEX, WWW].flatMap(origin => Object.entries(artifact.files).map(([path, expected]) => ({ origin, path, expected })));
+  const files = Object.entries(artifact.files);
   for (let offset = 0; offset < files.length; offset += 6) {
-    await Promise.all(files.slice(offset, offset + 6).map(async ({ origin, path, expected }) => {
-      const url = path === '/index.html' ? `${origin}/?proof=${pinned.candidate}`
-        : path === '/version.json' ? `${origin}/version.json?proof=${pinned.candidate}` : origin + path;
-      const response = await fetcher(url, { method: 'GET', redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(10000) });
+    await Promise.all(files.slice(offset, offset + 6).map(async ([path, expected]) => {
+      const suffix = path === '/index.html' ? `/?proof=${pinned.candidate}`
+        : path === '/version.json' ? `/version.json?proof=${pinned.candidate}` : path;
+      const apex = await fetcher(APEX + suffix, { method: 'GET', redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(10000) });
+      if (![301, 308].includes(apex.status) || apex.headers.get('location') !== WWW + suffix) {
+        throw new Error('Canonical apex artifact redirect differs from exact www path');
+      }
+      await apex.body?.cancel();
+      const response = await fetcher(WWW + suffix, { method: 'GET', redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(10000) });
       exact(response.status, 200, 'Canonical public artifact');
       const bytes = Buffer.from(await response.arrayBuffer());
       exact(createHash('sha256').update(bytes).digest('hex'), expected, 'Canonical public artifact bytes');

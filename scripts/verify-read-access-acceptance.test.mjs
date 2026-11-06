@@ -24,12 +24,22 @@ function fake(options = {}) {
   let stateReads = 0;
   const calls = [];
   const fetcher = async (url, init) => {
-    calls.push({ url, method: init.method });
+    calls.push({ url, method: init.method, redirect: init.redirect });
     if (options.protected && url.startsWith(deployURL) && init.method === 'HEAD') {
       return new Response(null, { status: 302, headers: { Location: `${options.badLogin ? 'https://attacker.example' : 'https://soft-band-fe5b.cloudflareaccess.com'}/cdn-cgi/access/login/abc123.teajiafinal.pages.dev?opaque=never-persist` } });
     }
+    if (options.protected && url.startsWith('https://teajia.com/') && init.method === 'GET') {
+      const suffix = url.slice('https://teajia.com'.length);
+      const target = (options.wrongApexOrigin ? 'https://attacker.example' : 'https://www.teajia.com') +
+        (options.wrongApexPath ? '/wrong' : suffix);
+      return new Response(null, { status: options.wrongApexStatus ? 302 : options.permanentApexRedirect ? 308 : 301,
+        headers: { Location: target } });
+    }
+    if (options.wwwRedirect && url.startsWith('https://www.teajia.com/') && init.method === 'GET' && url.includes('?proof=')) {
+      return new Response(null, { status: 302, headers: { Location: url } });
+    }
     if (url.endsWith('/assets/index-fixture.js')) return new Response(options.wrongEntry ? 'wrong bytes' : entry);
-    if (url.includes('/?proof=')) return new Response(options.wrongCanonicalHtml && url.startsWith('https://teajia.com') ? 'wrong html' : '<root>');
+    if (url.includes('/?proof=')) return new Response(options.wrongCanonicalHtml ? 'wrong html' : '<root>');
     if (url.includes('/version.json')) return new Response(options.wrongBuild ? '{}' : version);
     if (url.endsWith('/api/public/read/publish-state')) return Response.json({ states: ++stateReads === 2 && options.changedState ? { '/read/draft': 'live' } : {} });
     if (url.endsWith('/api/release')) return Response.json({ revision: options.wrongRevision ? 'b'.repeat(40) : candidate, versionId });
@@ -108,9 +118,17 @@ test('reaccepts the same direct-proven release after Access activation using cur
   assert.equal(proof.checks.filter(x => x.kind === 'access-protected').length, 2);
   assert.equal(f.calls.filter(x => x.url.includes('/read-assets/')).every(x => x.method === 'HEAD'), true);
   assert.equal(f.calls.filter(x => x.url.includes('/?proof=')).length, 2);
+  assert.equal(f.calls.filter(x => x.url.startsWith('https://teajia.com/') && x.method === 'GET').every(x => x.redirect === 'manual'), true);
+  assert.equal(f.calls.filter(x => x.url.startsWith('https://www.teajia.com/') && x.method === 'GET').every(x => x.redirect === 'error'), true);
   assert.deepEqual(activatedState.result.proofMethod, undefined);
+  const permanent = await verifyReadAcceptance({ state: activatedState, metadata, artifact, fetcher: fake({ protected: true, permanentApexRedirect: true }).fetcher, project: async () => project, loginOrigin });
+  assert.equal(permanent.proofMethod, 'canonical-bytes-and-cloudflare-deployment');
   await assert.rejects(verifyReadAcceptance({ state: activatedState, metadata, artifact, fetcher: fake({ protected: true, badLogin: true }).fetcher, project: async () => project, loginOrigin }), /Access boundary missing/);
   await assert.rejects(verifyReadAcceptance({ state: activatedState, metadata, artifact, fetcher: fake({ protected: true, wrongCanonicalHtml: true }).fetcher, project: async () => project, loginOrigin }), /Canonical public artifact bytes mismatch/);
+  for (const fault of [{ wrongApexOrigin: true }, { wrongApexPath: true }, { wrongApexStatus: true }]) {
+    await assert.rejects(verifyReadAcceptance({ state: activatedState, metadata, artifact, fetcher: fake({ protected: true, ...fault }).fetcher, project: async () => project, loginOrigin }), /Canonical apex artifact redirect differs/);
+  }
+  await assert.rejects(verifyReadAcceptance({ state: activatedState, metadata, artifact, fetcher: fake({ protected: true, wwwRedirect: true }).fetcher, project: async () => project, loginOrigin }), /Canonical public artifact mismatch/);
   await assert.rejects(verifyReadAcceptance({ state: activatedState, metadata, artifact, fetcher: fake({ protected: true }).fetcher,
     project: async () => ({ ...project, canonical_deployment: { ...project.canonical_deployment, deployment_trigger: { metadata: { commit_hash: 'x' } } } }), loginOrigin }), /exact production candidate/);
 });
