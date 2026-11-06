@@ -28,6 +28,7 @@ const MIN_AUTO_SYNC_GAP_MS = 15_000;
  */
 export function useCompassSync(isAuthenticated: boolean) {
   const activeAccountId = useAppStore((s) => s.activeAccountId);
+  const activeUserId = useAppStore((s) => s.activeUserId);
   const entries = useTeaCompassStore((s) => s.entries);
   // Watch the local-edit counter, never a derived "is anything pending" flag:
   // a finished sync rewrites the store, and any flicker in a derived flag
@@ -52,19 +53,19 @@ export function useCompassSync(isAuthenticated: boolean) {
   // Keep every local Curate surface on the same explicit account facade.
   // Null is intentional: signed-out/unknown account state must expose nothing.
   useEffect(() => {
-    useTeaCompassStore.getState().switchAccount(activeAccountId);
+    useTeaCompassStore.getState().switchAccount(activeAccountId, activeUserId);
     useLedgerStore.getState().switchAccount(activeAccountId);
     useSampleStore.getState().switchAccount(activeAccountId);
     useSampleCartStore.getState().switchAccount(activeAccountId);
     hasFetchedRef.current = false;
-  }, [activeAccountId]);
+  }, [activeAccountId, activeUserId]);
 
   // Hydrate from server on login / first mount when authenticated
   useEffect(() => {
     const justLoggedIn = isAuthenticated && !prevAuthRef.current;
     prevAuthRef.current = isAuthenticated;
 
-    if (!isAuthenticated || !activeAccountId || !isTokenScopedToAccount(activeAccountId)) {
+    if (!isAuthenticated || !activeAccountId || !activeUserId || !isTokenScopedToAccount(activeAccountId, activeUserId)) {
       hasFetchedRef.current = false;
       return;
     }
@@ -77,11 +78,11 @@ export function useCompassSync(isAuthenticated: boolean) {
       sampleRepository.boot(activeAccountId)
         .catch(() => {});
     }
-  }, [activeAccountId, isAuthenticated, tokenRevision]);
+  }, [activeAccountId, activeUserId, isAuthenticated, tokenRevision]);
 
   // Debounced push of unsynced entries after entries change
   useEffect(() => {
-    if (!isAuthenticated || !activeAccountId || !hasToken() || !isTokenScopedToAccount(activeAccountId)) return;
+    if (!isAuthenticated || !activeAccountId || !activeUserId || !hasToken() || !isTokenScopedToAccount(activeAccountId, activeUserId)) return;
     if (!hasFetchedRef.current) return;
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -92,7 +93,7 @@ export function useCompassSync(isAuthenticated: boolean) {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [activeAccountId, entries, isAuthenticated]);
+  }, [activeAccountId, activeUserId, entries, isAuthenticated]);
 
   // Existing Samples UI writes only to the store. This durable outbox bridge
   // observes those unchanged actions and persists them after the same quiet
@@ -115,11 +116,11 @@ export function useCompassSync(isAuthenticated: boolean) {
     return () => {
       if (sampleDebounceRef.current) clearTimeout(sampleDebounceRef.current);
     };
-  }, [activeAccountId, isAuthenticated, outboxRevision]);
+  }, [activeAccountId, activeUserId, isAuthenticated, outboxRevision]);
 
   // Retry sync when the browser transitions back online
   useEffect(() => {
-    if (!isAuthenticated || !activeAccountId) return;
+    if (!isAuthenticated || !activeAccountId || !activeUserId) return;
 
     const handleOnline = () => {
       if (hasToken()) {
@@ -129,7 +130,7 @@ export function useCompassSync(isAuthenticated: boolean) {
     };
     window.addEventListener('online', handleOnline);
     return () => window.removeEventListener('online', handleOnline);
-  }, [activeAccountId, isAuthenticated]);
+  }, [activeAccountId, activeUserId, isAuthenticated]);
 
   // Retry heartbeat, the 'online' event never fires on a GFW-style connection
   // that stays "up" but times out, so a failed save/delete used to sit pending
@@ -138,7 +139,7 @@ export function useCompassSync(isAuthenticated: boolean) {
   // when the tab regains focus (phone unlocked between tastings at a fair).
   // No-ops entirely when everything is synced.
   useEffect(() => {
-    if (!isAuthenticated || !activeAccountId) return;
+    if (!isAuthenticated || !activeAccountId || !activeUserId) return;
 
     const retryIfPending = () => {
       if (hasToken() && compassHasPendingWork(activeAccountId)) {
@@ -161,5 +162,5 @@ export function useCompassSync(isAuthenticated: boolean) {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisible);
     };
-  }, [activeAccountId, isAuthenticated]);
+  }, [activeAccountId, activeUserId, isAuthenticated]);
 }

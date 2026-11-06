@@ -4,12 +4,14 @@ import { BottomSheet } from './CurateSheet';
 import { api } from '../../lib/api';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useNotesStore } from '../../lib/notesStore';
+import { useAppStore } from '../../lib/store';
 import { SAID_LABEL, applySaidParts, type SaidPart } from './saidFiling';
 import { plainFailure } from './plainFailure';
 
 interface Filing { parts: SaidPart[]; keep: boolean[]; applied: boolean }
 
-const storeKey = (entryId: string, recKey: string) => `curate-said:${entryId}:${recKey}`;
+const storeKey = (accountId: string, userId: string, entryId: string, recKey: string) =>
+  `curate-said:person:${encodeURIComponent(accountId)}:${encodeURIComponent(userId)}:${encodeURIComponent(entryId)}:${encodeURIComponent(recKey)}`;
 const readFiling = (key: string): Filing | null => {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) as Filing : null; } catch { return null; }
 };
@@ -24,6 +26,8 @@ export const SaidSheet: React.FC<{ entryId: string | null; onClose: () => void }
   const entry = useTeaCompassStore((s) => entryId ? s.pendingEntries.find((e) => e.id === entryId) ?? s.entries.find((e) => e.id === entryId) : undefined);
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const notes = useNotesStore((s) => s.notes);
+  const accountId = useAppStore((s) => s.activeAccountId);
+  const userId = useAppStore((s) => s.activeUserId);
   const [filings, setFilings] = useState<Record<string, Filing | null>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -43,13 +47,16 @@ export const SaidSheet: React.FC<{ entryId: string | null; onClose: () => void }
 
   // Kept per tea AND recording: this sheet stays mounted from one tea to the next,
   // and two teas can hold a recording with the same key (a duplicated tea copies its clips).
-  const filingFor = (key: string) => filings[storeKey(entryId, key)] ?? readFiling(storeKey(entryId, key));
-  const save = (key: string, f: Filing) => { writeFiling(storeKey(entryId, key), f); setFilings((prev) => ({ ...prev, [storeKey(entryId, key)]: f })); };
+  const filingKey = (key: string) => accountId && userId ? storeKey(accountId, userId, entryId, key) : null;
+  const filingFor = (key: string) => { const id = filingKey(key); return id ? filings[id] ?? readFiling(id) : null; };
+  const save = (key: string, f: Filing) => { const id = filingKey(key); if (!id) return; writeFiling(id, f); setFilings((prev) => ({ ...prev, [id]: f })); };
 
   const file = async (key: string, text: string) => {
+    if (!accountId || !userId) return;
     setBusy(key); setError(null);
     try {
       const res = await api.compass.fileSaid({ text, tea_name: entry.name || undefined });
+      if (useAppStore.getState().activeAccountId !== accountId || useAppStore.getState().activeUserId !== userId) return;
       save(key, { parts: res.parts, keep: res.parts.map(() => true), applied: false });
     } catch (e) {
       setError(plainFailure(e, 'Filing'));
@@ -57,6 +64,7 @@ export const SaidSheet: React.FC<{ entryId: string | null; onClose: () => void }
   };
 
   const apply = async (key: string) => {
+    if (!accountId || !userId || useAppStore.getState().activeAccountId !== accountId || useAppStore.getState().activeUserId !== userId) return;
     const f = filingFor(key);
     if (!f) return;
     const chosen = f.parts.filter((_, i) => f.keep[i]);
@@ -66,6 +74,7 @@ export const SaidSheet: React.FC<{ entryId: string | null; onClose: () => void }
     // just those, so trying again cannot add the ones that did arrive a second time.
     const sent = new Set<string>();
     for (const text of todos) {
+      if (useAppStore.getState().activeAccountId !== accountId || useAppStore.getState().activeUserId !== userId) return;
       try { await api.compass.addTodo({ text, tea_id: entry.id }); sent.add(text); } catch { /* said below */ }
     }
     if (sent.size < todos.length) {

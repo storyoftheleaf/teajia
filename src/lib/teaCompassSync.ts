@@ -4,7 +4,9 @@ import { useTeaCompassStore } from './teaCompassStore';
 import { api, hasToken, isTokenScopedToAccount, isTransientApiError } from './api';
 import { normalizeCompassEntry, type TeaCompassEntry } from '../components/TeaCompass/types';
 
-const BACKGROUND_REQUEST = { background: true } as const;
+const scopedRequest = (accountId: string, userId: string) => ({
+  background: true as const, expectedAuth: { accountId, userId },
+});
 
 // ── Case conversion helpers ──
 
@@ -130,7 +132,7 @@ export function toCamelCase(row: Record<string, any>): TeaCompassEntry {
  *  heartbeat in useCompassSync. */
 export function compassHasPendingWork(accountId?: string | null): boolean {
   const s = useTeaCompassStore.getState();
-  if (!accountId || s.accountScopeId !== accountId) return false;
+  if (!accountId || !s.userScopeId || s.accountScopeId !== accountId || !isTokenScopedToAccount(accountId, s.userScopeId)) return false;
   return s.deletedIds.length > 0
     || s.pendingPromotions.length > 0
     || s.entries.some(e => !e.synced);
@@ -141,8 +143,8 @@ export function compassHasPendingWork(accountId?: string | null): boolean {
  *  idempotent server-side (returns the existing draft), so retries are safe. */
 async function retryPendingPromotions(accountId: string): Promise<void> {
   if (!hasToken()) return;
-  if (!isTokenScopedToAccount(accountId)) return;
   const store = useTeaCompassStore.getState();
+  if (!store.userScopeId || !isTokenScopedToAccount(accountId, store.userScopeId)) return;
   const accountRevision = store.accountScopeRevision;
   if (store.accountScopeId !== accountId) return;
   for (const id of store.pendingPromotions) {
@@ -154,7 +156,7 @@ async function retryPendingPromotions(accountId: string): Promise<void> {
       continue;
     }
     try {
-      const { id: productId } = await api.compass.promote(id, BACKGROUND_REQUEST);
+      const { id: productId } = await api.compass.promote(id, scopedRequest(accountId, store.userScopeId!));
       const current = useTeaCompassStore.getState();
       if (current.accountScopeId !== accountId || current.accountScopeRevision !== accountRevision) return;
       useTeaCompassStore.getState().updateEntry(id, { draftProductId: productId, synced: false });
@@ -182,13 +184,13 @@ export async function retryPendingDeletes(accountId?: string): Promise<void> {
   const requestedAccountId = accountId ?? initial.accountScopeId;
   const requestedRevision = initial.accountScopeRevision;
   if (!requestedAccountId || initial.accountScopeId !== requestedAccountId) return;
-  if (!isTokenScopedToAccount(requestedAccountId)) return;
+  if (!initial.userScopeId || !isTokenScopedToAccount(requestedAccountId, initial.userScopeId)) return;
   const { deletedIds } = initial;
   for (const id of deletedIds) {
     const current = useTeaCompassStore.getState();
     if (current.accountScopeId !== requestedAccountId || current.accountScopeRevision !== requestedRevision) return;
     try {
-      await api.compass.remove(id, BACKGROUND_REQUEST);
+      await api.compass.remove(id, scopedRequest(requestedAccountId, initial.userScopeId!));
       useTeaCompassStore.setState(s => s.accountScopeId === requestedAccountId && s.accountScopeRevision === requestedRevision
         ? { deletedIds: s.deletedIds.filter(d => d !== id), syncError: false }
         : s);
@@ -227,7 +229,7 @@ async function pushCompassEntries(accountId?: string): Promise<number> {
   const requestedAccountId = accountId ?? initial.accountScopeId;
   const requestedRevision = initial.accountScopeRevision;
   if (!requestedAccountId || initial.accountScopeId !== requestedAccountId) return 0;
-  if (!isTokenScopedToAccount(requestedAccountId)) return 0;
+  if (!initial.userScopeId || !isTokenScopedToAccount(requestedAccountId, initial.userScopeId)) return 0;
 
   // Deletes ride every sync cycle, not just hydrate, a failed delete must
   // not wait for the next app reload to retry.
@@ -250,7 +252,7 @@ async function pushCompassEntries(accountId?: string): Promise<number> {
 
   try {
     const payload = unsynced.map(toSnakeCase);
-    const result = await api.compass.sync(payload, BACKGROUND_REQUEST);
+    const result = await api.compass.sync(payload, scopedRequest(requestedAccountId, store.userScopeId!));
     const current = useTeaCompassStore.getState();
     if (current.accountScopeId !== requestedAccountId || current.accountScopeRevision !== requestedRevision) return 0;
     const attemptedIds = new Set(unsynced.map(entry => entry.id));
@@ -308,13 +310,13 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
   const requestedAccountId = accountId ?? initial.accountScopeId;
   const requestedRevision = initial.accountScopeRevision;
   if (!requestedAccountId || initial.accountScopeId !== requestedAccountId) return;
-  if (!isTokenScopedToAccount(requestedAccountId)) return;
+  if (!initial.userScopeId || !isTokenScopedToAccount(requestedAccountId, initial.userScopeId)) return;
 
   useTeaCompassStore.getState().setHydrationStatus('loading');
 
   try {
     const listRequestedAt = Date.now();
-    const data = await api.compass.list(undefined, BACKGROUND_REQUEST);
+    const data = await api.compass.list(undefined, scopedRequest(requestedAccountId, initial.userScopeId!));
     const current = useTeaCompassStore.getState();
     if (current.accountScopeId !== requestedAccountId || current.accountScopeRevision !== requestedRevision) return;
     const rawServerIds = new Set<string>((data.entries || []).map((r: any) => r.id));
@@ -410,7 +412,7 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
       for (const id of store.deletedIds.filter(id => rawServerIds.has(id))) {
         const current = useTeaCompassStore.getState();
         if (current.accountScopeId !== requestedAccountId || current.accountScopeRevision !== requestedRevision) return;
-        api.compass.remove(id, BACKGROUND_REQUEST)
+        api.compass.remove(id, scopedRequest(requestedAccountId, initial.userScopeId!))
           .then(() => useTeaCompassStore.setState(s => ({
             deletedIds: s.accountScopeId === requestedAccountId && s.accountScopeRevision === requestedRevision
               ? s.deletedIds.filter(d => d !== id)
@@ -434,7 +436,7 @@ export async function ensureCompassEncounterSaved(entryId: string): Promise<void
   const initial = useTeaCompassStore.getState();
   const scope = initial.accountScopeId;
   const revision = initial.accountScopeRevision;
-  if (!scope || !hasToken() || !isTokenScopedToAccount(scope)) throw new Error('Sign in to save this purchase with the shop.');
+  if (!scope || !initial.userScopeId || !hasToken() || !isTokenScopedToAccount(scope, initial.userScopeId)) throw new Error('Sign in to save this purchase with the shop.');
   initial.retainEntry(entryId);
   await syncCompassEntries(scope);
   const current = useTeaCompassStore.getState();

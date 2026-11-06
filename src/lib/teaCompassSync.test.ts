@@ -1,15 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { syncMock, listMock, samplesListMock, tokenAccount } = vi.hoisted(() => ({
+const { syncMock, listMock, samplesListMock, tokenAccount, tokenUser } = vi.hoisted(() => ({
   syncMock: vi.fn(),
   listMock: vi.fn(),
   samplesListMock: vi.fn(),
   tokenAccount: { current: 'acct-a' as string | null },
+  tokenUser: { current: 'user-a' as string | null },
 }));
 
 vi.mock('./api', () => ({
   hasToken: () => true,
-  isTokenScopedToAccount: (accountId: string) => tokenAccount.current === accountId,
+  isTokenScopedToAccount: (accountId: string, userId?: string | null) => tokenAccount.current === accountId && (userId === undefined || tokenUser.current === userId),
   api: {
     compass: {
       sync: syncMock,
@@ -27,6 +28,8 @@ const workerCodecPath = '../../worker/src/compassCodec.ts';
 const { COMPASS_COLUMNS, decodeCompassWrite } = await import(workerCodecPath);
 import { createEmptyEntry } from '../components/TeaCompass/types';
 import { useTeaCompassStore } from './teaCompassStore';
+import { compassPersonKey } from './teaCompassStore';
+import { useAppStore } from './store';
 import { hydrateCompassEntries, syncCompassEntries } from './teaCompassSync';
 
 function entry(id: string) {
@@ -35,20 +38,60 @@ function entry(id: string) {
 
 describe('Compass sync acknowledgements', () => {
   beforeEach(() => {
+    useAppStore.setState({ activeUserId: 'user-a', activeAccountId: 'acct-a' });
     syncMock.mockReset();
     listMock.mockReset();
     listMock.mockResolvedValue({ entries: [] });
     samplesListMock.mockReset();
     samplesListMock.mockResolvedValue({ samples: [] });
     tokenAccount.current = 'acct-a';
+    tokenUser.current = 'user-a';
     useTeaCompassStore.setState({
       entries: [],
       entriesByAccount: {},
       accountScopeId: 'acct-a',
+      userScopeId: 'user-a',
       deletedIds: [],
       pendingPromotions: [],
       syncError: false,
     });
+  });
+
+  it('keeps A drafts and offline saves private when B signs into the same shop, then restores A', async () => {
+    const store = useTeaCompassStore.getState();
+    store.switchAccount('acct-a', 'user-a');
+    const draftId = store.startNewCapture();
+    store.updateEntry(draftId, { name: 'A unfinished' });
+    store.addEntry(entry('a-offline'));
+
+    store.switchAccount(null, null);
+    expect(useTeaCompassStore.getState().entries).toEqual([]);
+    tokenUser.current = 'user-b';
+    store.switchAccount('acct-a', 'user-b');
+    expect(useTeaCompassStore.getState().pendingEntries).toEqual([]);
+    expect(useTeaCompassStore.getState().entries).toEqual([]);
+    listMock.mockResolvedValue({ entries: [{ ...entry('shared-saved'), photos: '[]', audio_clips: '[]' }] });
+    await hydrateCompassEntries('acct-a');
+    expect(useTeaCompassStore.getState().entries.map(e => e.id)).toEqual(['shared-saved']);
+    await syncCompassEntries('acct-a');
+    expect(syncMock).not.toHaveBeenCalled();
+    useTeaCompassStore.getState().updateEntry('shared-saved', { name: 'B authorized edit' });
+    syncMock.mockResolvedValue({ syncedIds: ['shared-saved'] });
+    await syncCompassEntries('acct-a');
+    expect(syncMock.mock.calls[0][0][0].id).toBe('shared-saved');
+
+    store.switchAccount(null, null);
+    tokenUser.current = 'user-a';
+    store.switchAccount('acct-a', 'user-a');
+    expect(useTeaCompassStore.getState().pendingEntries.map(e => e.id)).toEqual([draftId]);
+    expect(useTeaCompassStore.getState().entries.map(e => e.id)).toContain('a-offline');
+  });
+
+  it('refuses A queued sync after token changes to B before the facade effect', async () => {
+    useTeaCompassStore.setState({ entries: [entry('a-offline')] });
+    tokenUser.current = 'user-b';
+    await syncCompassEntries('acct-a');
+    expect(syncMock).not.toHaveBeenCalled();
   });
 
   it('normalizes nullable server names before entries reach the Compass store', async () => {
@@ -308,7 +351,7 @@ describe('Compass sync acknowledgements', () => {
 
     await hydrateCompassEntries('acct-a');
 
-    expect(listMock).toHaveBeenCalledWith(undefined, { background: true });
+    expect(listMock).toHaveBeenCalledWith(undefined, { background: true, expectedAuth: { accountId: 'acct-a', userId: 'user-a' } });
     expect(samplesListMock).not.toHaveBeenCalled();
 
     syncMock.mockResolvedValue({ synced: 1, syncedIds: ['pending'] });
@@ -318,7 +361,7 @@ describe('Compass sync acknowledgements', () => {
 
     expect(syncMock).toHaveBeenCalledWith(
       [expect.objectContaining({ id: 'pending' })],
-      { background: true },
+      { background: true, expectedAuth: { accountId: 'acct-a', userId: 'user-a' } },
     );
   });
 
@@ -337,7 +380,7 @@ describe('Compass sync acknowledgements', () => {
         id: 'unlinked', sample_set_id: null, sample_state: null,
         decision: 'selected', verdict: 'love', status: 'noted',
       })],
-      { background: true },
+      { background: true, expectedAuth: { accountId: 'acct-a', userId: 'user-a' } },
     );
     expect(syncMock.mock.calls[0][0][0]).not.toHaveProperty('isSample');
   });
@@ -356,7 +399,7 @@ describe('Compass sync acknowledgements', () => {
     useTeaCompassStore.setState({
       accountScopeId: 'acct-a',
       entries: [entry('a-unsynced')],
-      entriesByAccount: { 'acct-b': [entry('b-only')] },
+      entriesByAccount: { [compassPersonKey('acct-b', 'user-a')!]: [entry('b-only')] },
     });
 
     useTeaCompassStore.getState().switchAccount('acct-b');

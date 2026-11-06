@@ -1,3 +1,5 @@
+import { useAppStore } from '../../../lib/store';
+
 export interface ImportDraftAttachmentDescriptor {
   id: string;
   name: string;
@@ -5,18 +7,23 @@ export interface ImportDraftAttachmentDescriptor {
   type: string;
   kind: 'photo' | 'file';
 }
-
 export interface ImportDraftSnapshot {
   text: string;
   journeyId: string | null;
   attachments: ImportDraftAttachmentDescriptor[];
 }
 
-const VERSION = 1;
+const VERSION = 2;
 const PREFIX = 'teajia-curate-import-draft:';
 
 export function importDraftStorageKey(accountId: string) {
-  return `${PREFIX}${accountId}`;
+  const userId = useAppStore.getState().activeUserId ?? '';
+  return `${PREFIX}person:${encodeURIComponent(accountId)}:${encodeURIComponent(userId)}`;
+}
+
+function ownsActiveImport(accountId: string): boolean {
+  const state = useAppStore.getState();
+  return !!state.activeUserId && state.activeAccountId === accountId;
 }
 
 function validDescriptor(value: unknown): value is ImportDraftAttachmentDescriptor {
@@ -27,13 +34,13 @@ function validDescriptor(value: unknown): value is ImportDraftAttachmentDescript
 }
 
 export function saveImportDraft(accountId: string, draft: ImportDraftSnapshot, storage?: Storage) {
-  if (!accountId) return;
+  if (!accountId || !ownsActiveImport(accountId)) return;
   try { (storage ?? localStorage).setItem(importDraftStorageKey(accountId), JSON.stringify({ version: VERSION, ...draft })); }
   catch { /* Capture remains usable when browser storage is unavailable or full. */ }
 }
 
 export function loadImportDraft(accountId: string, storage?: Storage): ImportDraftSnapshot | null {
-  if (!accountId) return null;
+  if (!accountId || !ownsActiveImport(accountId)) return null;
   try {
     const value = JSON.parse((storage ?? localStorage).getItem(importDraftStorageKey(accountId)) || 'null') as Record<string, unknown> | null;
     if (!value || value.version !== VERSION || typeof value.text !== 'string'
@@ -44,7 +51,7 @@ export function loadImportDraft(accountId: string, storage?: Storage): ImportDra
 }
 
 export function clearImportDraft(accountId: string, storage?: Storage) {
-  if (!accountId) return;
+  if (!accountId || !ownsActiveImport(accountId)) return;
   try { (storage ?? localStorage).removeItem(importDraftStorageKey(accountId)); }
   catch { /* Clearing an in-memory draft must not depend on browser storage. */ }
 }

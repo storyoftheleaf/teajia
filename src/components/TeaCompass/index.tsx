@@ -9,6 +9,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompassStore';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { syncNotes } from '../../lib/notesSync';
+import { LegacyLocalRecovery } from './LegacyLocalRecovery';
 import { useNotesStore } from '../../lib/notesStore';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
@@ -110,7 +111,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   });
 
   const { activeUserId, activeAccountId, activeAccount } = useAppStore();
-  const switchDraftAccount = useTeaCompassStore((s) => s.switchDraftAccount);
   const { addNote } = useNotesStore();
 
   const addSampleTasting = useSampleStore((s) => s.addTasting);
@@ -129,12 +129,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // Account changes always swap the isolated draft bucket. Only Source owns
   // capture-shell creation; opening Library or Ledger must remain read-only.
   useEffect(() => {
-    switchDraftAccount(activeAccountId);
+    useTeaCompassStore.getState().switchAccount(activeAccountId, activeUserId);
     useLedgerStore.getState().switchAccount(activeAccountId);
-    if (mode === 'sourcing' && activeAccountId && !initialDevelopmentProduct && !useTeaCompassStore.getState().activeEntryId) {
+    if (mode === 'sourcing' && activeAccountId && activeUserId && !initialDevelopmentProduct && !useTeaCompassStore.getState().activeEntryId) {
       startNewCapture('tea');
     }
-  }, [activeAccountId, initialDevelopmentProduct, mode, startNewCapture, switchDraftAccount]);
+  }, [activeAccountId, activeUserId, initialDevelopmentProduct, mode, startNewCapture]);
 
   // Incoming pending shares (not yet accepted into compass)
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -237,7 +237,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     setBusyLibraryImportId(null); setLibraryImportErrors({}); setLibraryDeleteFocusRequest(null);
     importTriggerRef.current = null;
     setImportPointerId(activeAccountId ? localStorage.getItem(`teajia-curate-import:${activeAccountId}`) : null);
-  }, [activeAccountId]);
+  }, [activeAccountId, activeUserId]);
   const { data: pointedImport } = useQuery({
     queryKey: ['curate-import', importPointerId, activeAccountId],
     queryFn: () => api.curateImports.get(importPointerId!),
@@ -621,7 +621,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         teaKey: entry?.teaKey,
         text,
         sourceType: 'voice',
-        authorId: activeAccountId ?? 'guest',
+        authorId: activeUserId ?? 'guest',
         authorName: activeAccount?.name ?? 'You',
         visibility: 'private',
       });
@@ -1209,6 +1209,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       })}
                     </div>
                   )}
+                  <div className="flex justify-end"><LegacyLocalRecovery /></div>
                   <BrowseView
                     displayPreference={libraryDisplayPreference}
                     onEditEntry={handleEditEntry}
@@ -1572,6 +1573,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         })}
                       </div>
                     )}
+                    <div className="flex justify-end"><LegacyLocalRecovery /></div>
                     <BrowseView
                     displayPreference={libraryDisplayPreference}
                       onEditEntry={handleEditEntry}

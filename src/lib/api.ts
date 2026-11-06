@@ -961,6 +961,7 @@ async function refreshTokenNow(): Promise<RefreshResult> {
       },
       signal: controller.signal,
     });
+    if (getToken() !== token) return 'network_error';
     // 5xx = server temporarily unavailable (cold start, DB blip, deployment).
     // Do NOT log the user out for a transient infrastructure error, keep the
     // existing token and let the next API call retry.
@@ -968,6 +969,9 @@ async function refreshTokenNow(): Promise<RefreshResult> {
     if (!res.ok) return 'rejected'; // 4xx = token genuinely invalid/expired
     const data = await res.json().catch(() => null);
     if (data?.token && typeof data.token === 'string') {
+      // A different person may have signed in while this refresh was in flight.
+      // Never install the old session's new token over that person's session.
+      if (getToken() !== token) return 'network_error';
       setToken(data.token);
       // Refresh the Zustand store so memberships stay aligned with the JWT.
       try { hydrateAccountStateFromToken(); } catch { /* ignore */ }
@@ -1046,6 +1050,8 @@ export interface ApiRequestInit extends RequestInit {
   timeoutMs?: number;
   background?: boolean;
   reportIncident?: boolean;
+  /** Stops an offline retry or 401 refresh from sending a person's queued body under another session. */
+  expectedAuth?: { accountId: string; userId: string };
   /**
    * The caller refreshes the dependent commerce queries itself, with the changed
    * rows already reconciled, so authedFetch does not broadcast a second, full
@@ -1054,7 +1060,7 @@ export interface ApiRequestInit extends RequestInit {
   callerRefreshesCommerce?: boolean;
 }
 
-type ApiBackgroundOptions = Pick<ApiRequestInit, 'background'>;
+type ApiBackgroundOptions = Pick<ApiRequestInit, 'background' | 'expectedAuth'>;
 export type NetworkErrorKind = 'offline' | 'unstable' | 'slow';
 
 /** Resolve once the browser reports it's back online, or after `maxMs` elapses. */
@@ -1099,6 +1105,7 @@ export async function fetchWithTimeout(url: string, options: ApiRequestInit = {}
     reportIncident = true,
     retryTimeouts: retryTimeoutOption,
     timeoutMs,
+    expectedAuth,
     ...requestInit
   } = options;
   const method = (requestInit.method || 'GET').toUpperCase();
@@ -1114,6 +1121,9 @@ export async function fetchWithTimeout(url: string, options: ApiRequestInit = {}
   let timeoutRetries = 0;
   let lastErr: any;
   for (let attempt = 0; attempt <= NETWORK_RETRY_BACKOFF_MS.length; attempt++) {
+    if (expectedAuth && !isTokenScopedToAccount(expectedAuth.accountId, expectedAuth.userId)) {
+      throw new Error('The signed-in person changed before this request could be sent.');
+    }
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), attemptTimeoutMs);
     try {
@@ -1376,8 +1386,14 @@ async function authenticatedResponse(url: string, init: ApiRequestInit = {}): Pr
     // bug, not an expired session. Refreshing would be pointless and could
     // falsely fire SESSION_EXPIRED.
     if (reason !== 'auth_no_token') {
+      if (init.expectedAuth && !isTokenScopedToAccount(init.expectedAuth.accountId, init.expectedAuth.userId)) {
+        throw new Error('The signed-in person changed before this request could be retried.');
+      }
       const refreshResult = await ensureTokenRefreshed();
       if (refreshResult === 'refreshed') {
+        if (init.expectedAuth && !isTokenScopedToAccount(init.expectedAuth.accountId, init.expectedAuth.userId)) {
+          throw new Error('The signed-in person changed before this request could be retried.');
+        }
         // New token stored, retry ONCE with fresh auth headers.
         // The second call goes straight to handleResponse; there is no further
         // retry (the retry itself throws on 401, which surfaces SESSION_EXPIRED
@@ -1571,8 +1587,10 @@ export function getTokenClaims(): TokenClaims | null {
 
 /** Remote account-scoped work is safe only after the JWT refreshed to the
  * same account as the optimistic UI selection. */
-export function isTokenScopedToAccount(accountId: string | null): boolean {
-  return !!accountId && getTokenClaims()?.active_account_id === accountId;
+export function isTokenScopedToAccount(accountId: string | null, userId?: string | null): boolean {
+  const claims = getTokenClaims();
+  return !!accountId && claims?.active_account_id === accountId &&
+    (userId === undefined || (!!userId && claims.sub === userId));
 }
 
 /**

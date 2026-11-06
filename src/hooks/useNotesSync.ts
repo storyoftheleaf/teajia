@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useNotesStore } from '../lib/notesStore';
 import { hydrateNotes, syncNotes } from '../lib/notesSync';
 import { hasToken } from '../lib/api';
+import { useAppStore } from '../lib/store';
 
 /**
  * Syncs the unified notes thread (notes + sessions) between the local
@@ -22,33 +23,39 @@ import { hasToken } from '../lib/api';
  * across navigation, matching the other three sync hooks.
  */
 export function useNotesSync(isAuthenticated: boolean) {
+  const activeAccountId = useAppStore(s => s.activeAccountId);
+  const activeUserId = useAppStore(s => s.activeUserId);
   const notes = useNotesStore((s) => s.notes);
   const sessions = useNotesStore((s) => s.sessions);
   const hasFetchedRef = useRef(false);
   const prevAuthRef = useRef(isAuthenticated);
+  const lastScopeRef = useRef<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Hydrate from server on login / first mount when authenticated
   useEffect(() => {
     const justLoggedIn = isAuthenticated && !prevAuthRef.current;
     prevAuthRef.current = isAuthenticated;
+    const scope = activeAccountId && activeUserId ? `${activeAccountId}\0${activeUserId}` : null;
+    const identityChanged = lastScopeRef.current !== scope;
+    lastScopeRef.current = scope;
 
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !scope) {
       hasFetchedRef.current = false;
       return;
     }
 
-    if (!hasFetchedRef.current || justLoggedIn) {
+    if (!hasFetchedRef.current || justLoggedIn || identityChanged) {
       hasFetchedRef.current = true;
       hydrateNotes()
         .then(() => syncNotes())
         .catch(() => {});
     }
-  }, [isAuthenticated]);
+  }, [activeAccountId, activeUserId, isAuthenticated]);
 
   // Debounced push of unsynced notes / sessions after they change
   useEffect(() => {
-    if (!isAuthenticated || !hasToken()) return;
+    if (!isAuthenticated || !activeAccountId || !activeUserId || !hasToken()) return;
     if (!hasFetchedRef.current) return;
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -59,16 +66,16 @@ export function useNotesSync(isAuthenticated: boolean) {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [notes, sessions, isAuthenticated]);
+  }, [activeAccountId, activeUserId, notes, sessions, isAuthenticated]);
 
   // Retry sync when the browser transitions back online
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !activeAccountId || !activeUserId) return;
 
     const handleOnline = () => {
       if (hasToken()) syncNotes().catch(() => {});
     };
     window.addEventListener('online', handleOnline);
     return () => window.removeEventListener('online', handleOnline);
-  }, [isAuthenticated]);
+  }, [activeAccountId, activeUserId, isAuthenticated]);
 }

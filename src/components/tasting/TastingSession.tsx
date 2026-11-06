@@ -171,7 +171,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   item, onClose, onSave, onAfterSave, adminMode = false, initialData, showVerdict = false, onOrderTea, onCreatePO, onWriteDescription, writeDraftReview = false,
   detailsPanel, startOnDetails = false, startOnNotes = false, className, previewOnly = false,
 }) => {
-  const { addTasting, updateTasting, upsertTastingByProductId, activeAccountId, activeAccount, tastingJournal, favoriteTeas, toggleFavoriteTea } = useAppStore();
+  const { addTasting, updateTasting, upsertTastingByProductId, activeAccountId, activeUserId, activeAccount, tastingJournal, favoriteTeas, toggleFavoriteTea } = useAppStore();
   const { addNote } = useNotesStore();
   const isGuest = !hasToken();
 
@@ -441,7 +441,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
             compassEntryId: item.compassEntryId,
             tastingId: entryId,
             tastingData,
-            authorId: activeAccountId ?? 'guest',
+            authorId: activeUserId ?? 'guest',
             authorName: activeAccount?.name ?? 'You',
             accountId: activeAccountId ?? 'guest',
           });
@@ -461,7 +461,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     setSaveState(tastingFingerprint(latestData.current) === baselineRef.current ? 'saved' : 'idle');
     if (onWriteDescription) setDescriptionDraft(generateDescription(tastingData));
     return true;
-  }, [previewOnly, item, tastingData, verdict, wouldBuy, addTasting, onSave, onAfterSave, adminMode, activeAccountId, activeAccount, canSave, onClose, onCreatePO, onWriteDescription, phase]);
+  }, [previewOnly, item, tastingData, verdict, wouldBuy, addTasting, onSave, onAfterSave, adminMode, activeAccountId, activeUserId, activeAccount, canSave, onClose, onCreatePO, onWriteDescription, phase]);
 
   // The prompt's Save is a way OUT, so a successful write closes rather than
   // landing on the confirmation screen the person was already trying to leave.
