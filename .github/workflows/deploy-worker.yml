@@ -207,6 +207,7 @@ jobs:
           RELEASE_STATE_PATH: ${{ runner.temp }}/release-state.json
           WORKER_PROOF_PATH: ${{ runner.temp }}/worker-release-proof.json
           PAGES_ARTIFACT_PATH: ${{ runner.temp }}/pages-release-artifact.json
+          TEAJIA_ACCESS_LOGIN_ORIGIN: ${{ vars.TEAJIA_ACCESS_LOGIN_ORIGIN }}
         run: node scripts/publish-verified-release.mjs
 
       - name: Record coordinated release failure

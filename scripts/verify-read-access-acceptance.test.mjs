@@ -82,12 +82,13 @@ test('protected immutable Read host keeps public 404/200 and exact Access bounda
     deployment_trigger: { metadata: { commit_hash: candidate } },
   } };
   const f = fake({ protected: true });
-  const proof = await verifyReadAcceptance({ state: protectedState, metadata, artifact, fetcher: f.fetcher, project: async () => project });
+  const loginOrigin = 'https://soft-band-fe5b.cloudflareaccess.com';
+  const proof = await verifyReadAcceptance({ state: protectedState, metadata, artifact, fetcher: f.fetcher, project: async () => project, loginOrigin });
   assert.equal(proof.proofMethod, 'canonical-bytes-and-cloudflare-deployment');
   assert.equal(proof.checks.filter(x => x.kind === 'access-protected').length, 2);
   assert.ok(f.calls.filter(x => x.url.startsWith(deployURL)).every(x => x.method === 'HEAD'));
   assert.equal(JSON.stringify(proof).includes('never-persist'), false);
-  await assert.rejects(verifyReadAcceptance({ state: protectedState, metadata, artifact, fetcher: fake({ protected: true, badLogin: true }).fetcher, project: async () => project }), /Access boundary missing/);
+  await assert.rejects(verifyReadAcceptance({ state: protectedState, metadata, artifact, fetcher: fake({ protected: true, badLogin: true }).fetcher, project: async () => project, loginOrigin }), /Access boundary missing/);
   await assert.rejects(verifyReadAcceptance({ state: protectedState, metadata, artifact, fetcher: fake({ protected: true }).fetcher,
-    project: async () => ({ ...project, canonical_deployment: { ...project.canonical_deployment, deployment_trigger: { metadata: { commit_hash: 'x' } } } }) }), /exact production candidate/);
+    project: async () => ({ ...project, canonical_deployment: { ...project.canonical_deployment, deployment_trigger: { metadata: { commit_hash: 'x' } } } }), loginOrigin }), /exact production candidate/);
 });

@@ -1,8 +1,8 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
-import { canonicalDeployment, recognizedAccessRedirect, sameDeployment } from './pages-access-proof.mjs';
-import { projectMetadata } from './observe-frontend-release.mjs';
+import { canonicalDeployment, projectMetadata, recognizedAccessRedirect, sameDeployment } from './pages-access-proof.mjs';
+import { loadPinnedPagesArtifact } from './pinned-pages-artifact.mjs';
 
 const API = 'https://api.teajia.com';
 const WORKERS = 'https://teajia-api.lightcodes.workers.dev';
@@ -91,7 +91,7 @@ async function head(fetcher, url, expected, label, javascript = false) {
   return policy(response, expected, label, javascript);
 }
 
-export async function verifyReadAcceptance({ state, metadata, artifact, fetcher = fetch, project = projectMetadata }) {
+export async function verifyReadAcceptance({ state, metadata, artifact, fetcher = fetch, project = projectMetadata, loginOrigin = process.env.TEAJIA_ACCESS_LOGIN_ORIGIN }) {
   const pinned = release(state);
   exact(metadata?.candidate, pinned.candidate, 'Asset metadata candidate');
   if (artifact?.revision !== pinned.candidate || artifact?.runId !== state.runId || artifact?.runAttempt !== state.runAttempt ||
@@ -110,7 +110,7 @@ export async function verifyReadAcceptance({ state, metadata, artifact, fetcher 
   let deploymentBefore;
   if (pinned.protectedHost) {
     const probe = await fetcher(`${pinned.deployURL}/version.json`, { method: 'HEAD', redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(10000) });
-    if (!recognizedAccessRedirect(probe, pinned.deployURL)) throw new Error('Immutable Pages Access boundary missing');
+    if (!recognizedAccessRedirect(probe, pinned.deployURL, loginOrigin)) throw new Error('Immutable Pages Access boundary missing');
     await probe.body?.cancel();
     deploymentBefore = canonicalDeployment(await project(), pinned.candidate, pinned.deployURL, pinned.deploymentId);
   }
@@ -129,7 +129,7 @@ export async function verifyReadAcceptance({ state, metadata, artifact, fetcher 
   if (pinned.protectedHost) {
     for (const asset of [privateAsset.asset, publicAsset.asset]) {
       const response = await fetcher(pinned.deployURL + asset, { method: 'HEAD', redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(10000) });
-      if (!recognizedAccessRedirect(response, pinned.deployURL)) throw new Error('Immutable Read asset Access boundary missing');
+      if (!recognizedAccessRedirect(response, pinned.deployURL, loginOrigin)) throw new Error('Immutable Read asset Access boundary missing');
       await response.body?.cancel();
       checks.push({ host: pinned.deployURL, kind: 'access-protected', asset, status: 302 });
     }
@@ -150,8 +150,10 @@ export async function verifyReadAcceptance({ state, metadata, artifact, fetcher 
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const [statePath, metadataPath, artifactPath, outputPath] = process.argv.slice(2);
-  if (!statePath || !metadataPath || !artifactPath || !outputPath) throw new Error('Usage: node verify.mjs OBSERVER_STATE METADATA PAGES_ARTIFACT OUTPUT');
-  const proof = await verifyReadAcceptance({ state: JSON.parse(readFileSync(statePath, 'utf8')), metadata: JSON.parse(readFileSync(metadataPath, 'utf8')), artifact: JSON.parse(readFileSync(artifactPath, 'utf8')) });
-  writeFileSync(outputPath, `${JSON.stringify(proof, null, 2)}\n`, { mode: 0o600 });
+  const [statePath, metadataPath, outputPath] = process.argv.slice(2);
+  if (!statePath || !metadataPath || !outputPath) throw new Error('Usage: node verify-read-access-acceptance.mjs OBSERVER_STATE METADATA OUTPUT');
+  const state = JSON.parse(readFileSync(statePath, 'utf8'));
+  const { artifact, provenance } = loadPinnedPagesArtifact(state);
+  const proof = await verifyReadAcceptance({ state, metadata: JSON.parse(readFileSync(metadataPath, 'utf8')), artifact });
+  writeFileSync(outputPath, `${JSON.stringify({ ...proof, pagesArtifactProvenance: provenance }, null, 2)}\n`, { mode: 0o600 });
 }

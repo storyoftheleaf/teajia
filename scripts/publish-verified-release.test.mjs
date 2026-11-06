@@ -30,7 +30,7 @@ function fixture(t, options = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'teajia-release-test-'));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   const candidate = 'a'.repeat(40), expected = 'b'.repeat(40);
-  const env = { CANDIDATE_SHA: candidate, EXPECTED_MAIN_SHA: expected, RELEASE_STATE_PATH: join(dir, 'state.json'), WORKER_PROOF_PATH: join(dir, 'worker.json'), PAGES_ARTIFACT_PATH: join(dir, 'pages.json'), CLOUDFLARE_ACCOUNT_ID: 'test', GITHUB_RUN_ID: '123', GITHUB_RUN_ATTEMPT: '1' };
+  const env = { CANDIDATE_SHA: candidate, EXPECTED_MAIN_SHA: expected, RELEASE_STATE_PATH: join(dir, 'state.json'), WORKER_PROOF_PATH: join(dir, 'worker.json'), PAGES_ARTIFACT_PATH: join(dir, 'pages.json'), CLOUDFLARE_ACCOUNT_ID: 'test', GITHUB_RUN_ID: '123', GITHUB_RUN_ATTEMPT: '1', TEAJIA_ACCESS_LOGIN_ORIGIN: 'https://soft-band-fe5b.cloudflareaccess.com' };
   writeFileSync(env.WORKER_PROOF_PATH, JSON.stringify({ status: 'worker_verified', revision: candidate, versionId: 'v1' }));
   const digest = value => createHash('sha256').update(value).digest('hex');
   writeFileSync(env.PAGES_ARTIFACT_PATH, JSON.stringify({ revision: options.wrongArtifactSource ? expected : candidate, tree: 'c'.repeat(40), runId: 123, runAttempt: 1, buildId: 42, files: {

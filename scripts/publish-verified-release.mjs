@@ -176,7 +176,7 @@ export async function run(env = process.env, initialize = false, dependencies = 
         const probe = await fetch(`${origin}/version.json?proof=${candidate}`, {
           method: 'HEAD', redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(30_000),
         });
-        protectedImmutable = recognizedAccessRedirect(probe, origin);
+        protectedImmutable = recognizedAccessRedirect(probe, origin, env.TEAJIA_ACCESS_LOGIN_ORIGIN);
         await probe.body?.cancel();
         if (!protectedImmutable && probe.status !== 200) {
           const error = new Error(`Immutable Pages auth probe refused HTTP ${probe.status}`);
