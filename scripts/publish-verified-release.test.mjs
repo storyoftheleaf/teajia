@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { validateRelease, productionDeployment, assetPaths, proofMatches } from './publish-verified-release.mjs';
 test('requires immutable full revisions', () => {
   assert.throws(() => validateRelease('main', 'a'.repeat(40)));
@@ -29,8 +30,13 @@ function fixture(t, options = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'teajia-release-test-'));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   const candidate = 'a'.repeat(40), expected = 'b'.repeat(40);
-  const env = { CANDIDATE_SHA: candidate, EXPECTED_MAIN_SHA: expected, RELEASE_STATE_PATH: join(dir, 'state.json'), WORKER_PROOF_PATH: join(dir, 'worker.json'), CLOUDFLARE_ACCOUNT_ID: 'test' };
+  const env = { CANDIDATE_SHA: candidate, EXPECTED_MAIN_SHA: expected, RELEASE_STATE_PATH: join(dir, 'state.json'), WORKER_PROOF_PATH: join(dir, 'worker.json'), PAGES_ARTIFACT_PATH: join(dir, 'pages.json'), CLOUDFLARE_ACCOUNT_ID: 'test', GITHUB_RUN_ID: '123', GITHUB_RUN_ATTEMPT: '1' };
   writeFileSync(env.WORKER_PROOF_PATH, JSON.stringify({ status: 'worker_verified', revision: candidate, versionId: 'v1' }));
+  const digest = value => createHash('sha256').update(value).digest('hex');
+  writeFileSync(env.PAGES_ARTIFACT_PATH, JSON.stringify({ revision: options.wrongArtifactSource ? expected : candidate, tree: 'c'.repeat(40), runId: 123, runAttempt: 1, buildId: 42, files: {
+    '/index.html': digest('<script src="/assets/app.js"></script>'),
+    '/version.json': digest(JSON.stringify({ buildId: 42 })), '/assets/app.js': digest('app bytes'),
+  } }));
   let main = options.main || expected;
   let clock = 0;
   let immutableReads = 0;
@@ -38,11 +44,18 @@ function fixture(t, options = {}) {
   const workerUrls = [];
   const gitReads = [];
   const mutations = [];
-  const fetch = async url => {
+  let projectReads = 0;
+  const fetch = async (url, init = {}) => {
     const path = new URL(url).pathname;
     if (path.endsWith('/deployments')) assert.equal(new URL(url).searchParams.get('per_page'), '20');
     if (path.endsWith('/deployments')) return Response.json({ success: true, result: [{ id: 'd1', environment: 'production', deployment_trigger: { metadata: { commit_hash: candidate } }, latest_stage: { status: 'success' }, url: 'https://abc.teajiafinal.pages.dev' }] });
-    if (path.includes('/pages/projects/')) return Response.json({ success: true, result: { production_branch: 'main', domains: ['teajia.com'] } });
+    if (path.includes('/pages/projects/')) {
+      projectReads++;
+      return Response.json({ success: true, result: { name: 'teajiafinal', production_branch: 'main', domains: ['teajia.com', 'www.teajia.com'], canonical_deployment: {
+        id: options.wrongDeployment ? 'other' : 'd1', environment: 'production', url: 'https://abc.teajiafinal.pages.dev',
+        latest_stage: { name: 'deploy', status: 'success' }, deployment_trigger: { metadata: { commit_hash: candidate } },
+      } } });
+    }
     if (path === '/api/release') {
       workerReads++; workerUrls.push(url);
       const response = options.workerResponses?.[Math.min(workerReads - 1, options.workerResponses.length - 1)];
@@ -50,8 +63,14 @@ function fixture(t, options = {}) {
       if (typeof response === 'number') return new Response('', { status: response });
       return Response.json(response ?? { revision: options.workerRevision || candidate, versionId: 'v1' });
     }
-    if (path === '/version.json') return Response.json({ buildId: 42 });
-    if (path === '/') return new Response('<script src="/assets/app.js"></script>');
+    if (path === '/version.json') {
+      if (options.accessProtected && new URL(url).host === 'abc.teajiafinal.pages.dev') {
+        assert.equal(init.method, 'HEAD');
+        return new Response(null, { status: 302, headers: { location: `${options.wrongLogin ? 'https://attacker.example' : 'https://soft-band-fe5b.cloudflareaccess.com'}/cdn-cgi/access/login/abc.teajiafinal.pages.dev?secret=never-persist` } });
+      }
+      return Response.json({ buildId: 42 });
+    }
+    if (path === '/') return new Response(options.wrongPublicBytes && new URL(url).host === 'teajia.com' ? '<script src="/assets/other.js"></script>' : '<script src="/assets/app.js"></script>');
     if (new URL(url).host === 'abc.teajiafinal.pages.dev' && path === '/assets/app.js') {
       immutableReads++;
       if (options.assetAlwaysMissing || (options.assetInitiallyMissing && immutableReads === 1)) return new Response('', { status: 404 });
@@ -62,11 +81,12 @@ function fixture(t, options = {}) {
   const git = (...args) => {
     gitReads.push(args);
     if (args[0] === 'ls-remote') return `${main}\trefs/heads/main`;
+    if (args[0] === 'rev-parse') return 'c'.repeat(40);
     if (args[0] === 'merge-base') { if (options.nonAncestor) throw new Error('Expected main is not an ancestor'); return ''; }
     if (args[0] === 'push') { mutations.push(args); main = candidate; return ''; }
     throw new Error(`unexpected git ${args}`);
   };
-  return { env, dependencies: { fetch, git, now: () => clock, sleep: async ms => { main = candidate; clock += options.assetAlwaysMissing ? 20 * 60_000 : ms; } }, mutations, gitReads, workerUrls, workerReads: () => workerReads, immutableReads: () => immutableReads, state: () => JSON.parse(readFileSync(env.RELEASE_STATE_PATH, 'utf8')) };
+  return { env, dependencies: { fetch, git, now: () => clock, sleep: async ms => { main = candidate; clock += options.assetAlwaysMissing ? 20 * 60_000 : ms; } }, mutations, gitReads, workerUrls, workerReads: () => workerReads, immutableReads: () => immutableReads, projectReads: () => projectReads, state: () => JSON.parse(readFileSync(env.RELEASE_STATE_PATH, 'utf8')) };
 }
 test('never advances main for a different live worker', async t => {
   const f = fixture(t, { workerRevision: 'c'.repeat(40) });
@@ -123,6 +143,24 @@ test('waits for external publisher and persists independent immutable/live proof
   assert.equal(f.mutations.length, 0);
   assert.equal(f.state().state, 'live'); assert.equal(f.state().buildId, 42);
   assert.ok(f.state().proof.hashes['/assets/app.js']);
+});
+test('protected immutable host uses exact Cloudflare deployment and both public byte graphs', async t => {
+  const f = fixture(t, { accessProtected: true });
+  await run(f.env, false, f.dependencies);
+  assert.equal(f.state().state, 'live');
+  assert.equal(f.state().proofMethod, 'canonical-bytes-and-cloudflare-deployment');
+  assert.equal(f.state().cloudflareDeployment.id, 'd1');
+  assert.equal(f.immutableReads(), 0);
+  assert.ok(f.projectReads() >= 3);
+  assert.equal(JSON.stringify(f.state()).includes('never-persist'), false);
+});
+test('protected immutable host refuses incorrect deployment metadata or login origin', async t => {
+  for (const option of ['wrongDeployment', 'wrongLogin', 'wrongPublicBytes', 'wrongArtifactSource']) {
+    const f = fixture(t, { accessProtected: true, [option]: true });
+    await assert.rejects(run(f.env, false, f.dependencies));
+    assert.equal(f.state().state, 'failed');
+    assert.equal(f.immutableReads(), 0);
+  }
 });
 test('resumes observation without publishing main again', async t => {
   const f = fixture(t, { main: 'a'.repeat(40) });

@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { canonicalDeployment, recognizedAccessRedirect, sameDeployment } from './pages-access-proof.mjs';
 
 const sha = value => /^[a-f0-9]{40}$/.test(value || '');
 export function validateRelease(candidate, expected) {
@@ -86,7 +87,7 @@ export async function run(env = process.env, initialize = false, dependencies = 
     } while (now() < workerDeadline);
     throw new Error('Live Worker does not match the candidate and recorded runtime version after bounded propagation reads; resume observation without redeploying');
   };
-  const artifact = async origin => {
+  const artifact = async (origin, expectedArtifact) => {
     const versionBytes = Buffer.from(await (await read(`${origin}/version.json?proof=${candidate}`)).arrayBuffer());
     const version = JSON.parse(versionBytes.toString());
     if (!version.buildId) throw new Error('Missing Pages build ID');
@@ -94,8 +95,13 @@ export async function run(env = process.env, initialize = false, dependencies = 
     const assets = assetPaths(html);
     if (!assets.some(p => p.endsWith('.js'))) throw new Error('No built JavaScript asset in deployed HTML');
     const hashes = { '/version.json': hash(versionBytes), '/': hash(html) };
-    for (const path of assets) {
+    for (const path of Object.keys(expectedArtifact.files).filter(p => p !== '/index.html' && p !== '/version.json')) {
       hashes[path] = hash(Buffer.from(await (await read(`${origin}${path}`)).arrayBuffer()));
+    }
+    if (assets.some(path => !Object.hasOwn(hashes, path))) throw new Error('Public entry references an asset absent from exact artifact');
+    if (version.buildId !== expectedArtifact.buildId ||
+      Object.entries(hashes).some(([path, actual]) => actual !== expectedArtifact.files[path === '/' ? '/index.html' : path])) {
+      throw new Error('Public Pages bytes differ from exact candidate CI artifact');
     }
     return { buildId: version.buildId, hashes };
   };
@@ -119,6 +125,22 @@ export async function run(env = process.env, initialize = false, dependencies = 
     }
     const workerProof = await worker(deployed.versionId, true);
     persist('worker_verified', { worker: workerProof });
+    if (!env.PAGES_ARTIFACT_PATH) throw new Error('Exact Pages CI artifact path is required');
+    const artifactBytes = readFileSync(env.PAGES_ARTIFACT_PATH);
+    const expectedArtifact = JSON.parse(artifactBytes);
+    const candidateTree = git('rev-parse', `${candidate}^{tree}`);
+    if (expectedArtifact.revision !== candidate || expectedArtifact.tree !== candidateTree ||
+      expectedArtifact.runId !== Number(env.GITHUB_RUN_ID) || expectedArtifact.runAttempt !== Number(env.GITHUB_RUN_ATTEMPT) ||
+      !expectedArtifact.buildId ||
+      !expectedArtifact.files || typeof expectedArtifact.files !== 'object' ||
+      !/^[a-f0-9]{64}$/.test(expectedArtifact.files['/index.html'] ?? '') ||
+      !/^[a-f0-9]{64}$/.test(expectedArtifact.files['/version.json'] ?? '') ||
+      Object.entries(expectedArtifact.files).some(([path, value]) =>
+        !/^\/(?:index\.html|version\.json|assets\/[A-Za-z0-9_./-]+\.(?:js|css))$/.test(path) || !/^[a-f0-9]{64}$/.test(value))) {
+      throw new Error('Exact Pages CI artifact is invalid or belongs to another revision');
+    }
+    persist('candidate_artifact_verified', { pagesArtifactSha256: hash(artifactBytes), pagesArtifactRunId: expectedArtifact.runId,
+      pagesArtifactRunAttempt: expectedArtifact.runAttempt, sourceTree: expectedArtifact.tree });
     let main = git('ls-remote', 'origin', 'refs/heads/main').split(/\s/)[0];
     if (main !== candidate && main !== expected) throw new Error('Main changed; integrate it into a new candidate before publishing');
     if (main !== candidate) {
@@ -146,9 +168,27 @@ export async function run(env = process.env, initialize = false, dependencies = 
     // Pages can report success before every immutable asset reaches the edge.
     // Rebuild the entire proof on each read-only attempt; no missing hash is accepted.
     let immutable;
+    let protectedImmutable = false;
+    let canonicalBefore;
     let immutableError;
     while (now() < deadline) {
-      try { immutable = await artifact(origin); break; }
+      try {
+        const probe = await fetch(`${origin}/version.json?proof=${candidate}`, {
+          method: 'HEAD', redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(30_000),
+        });
+        protectedImmutable = recognizedAccessRedirect(probe, origin);
+        await probe.body?.cancel();
+        if (!protectedImmutable && probe.status !== 200) {
+          const error = new Error(`Immutable Pages auth probe refused HTTP ${probe.status}`);
+          error.retryable = probe.status === 404 || probe.status === 429 || probe.status >= 500;
+          throw error;
+        }
+        if (protectedImmutable) {
+          canonicalBefore = canonicalDeployment(await cf(''), candidate, origin, deployment.id);
+          immutable = await artifact('https://teajia.com', expectedArtifact);
+        } else immutable = await artifact(origin, expectedArtifact);
+        break;
+      }
       catch (error) {
         if (!error.retryable && !(error instanceof TypeError) && error.name !== 'TimeoutError' && error.name !== 'AbortError') throw error;
         immutableError = error;
@@ -156,16 +196,22 @@ export async function run(env = process.env, initialize = false, dependencies = 
       await sleep(15_000);
     }
     if (!immutable) throw new Error(`Immutable deployment proof timed out: ${immutableError?.message ?? 'release deadline reached'}; resume observation without redeploying`);
-    persist('live_pending', { proof: immutable });
+    persist('live_pending', { proof: immutable, proofMethod: protectedImmutable ? 'canonical-bytes-and-cloudflare-deployment' : 'direct-immutable-bytes',
+      ...(canonicalBefore ? { cloudflareDeployment: canonicalBefore } : {}) });
     let live;
     while (now() < deadline) {
       try {
-        live = await artifact('https://teajia.com');
+        live = await artifact('https://teajia.com', expectedArtifact);
         if (proofMatches(immutable, live)) break;
       } catch { /* Bounded read-only retries allow normal edge propagation. */ }
       await sleep(15_000);
     }
     if (!proofMatches(immutable, live)) throw new Error('Production bytes differ from the candidate deployment; resume observation');
+    if (protectedImmutable) {
+      const www = await artifact('https://www.teajia.com', expectedArtifact);
+      if (!proofMatches(immutable, www)) throw new Error('Public www bytes differ from the candidate deployment');
+      sameDeployment(canonicalBefore, canonicalDeployment(await cf(''), candidate, origin, deployment.id));
+    }
     const finalWorker = await worker(workerProof.versionId);
     if (finalWorker.versionId !== workerProof.versionId) throw new Error('Worker version changed during publication; inspect competing release');
     persist('live', { buildId: immutable.buildId, liveUrl: 'https://teajia.com', completedAt: new Date().toISOString() });

@@ -26,6 +26,9 @@ on:
       - '.github/workflows/deploy-worker.yml'
       - 'scripts/verify-worker-release*'
       - 'scripts/publish-verified-release*'
+      - 'scripts/pages-access-proof*'
+      - 'scripts/build-release-artifact*'
+      - 'vite.config.ts'
       - 'scripts/observe-verified-release*'
   # Lets you trigger a deploy manually from any branch (Actions tab → Run workflow).
   # Useful when a fix has landed on a feature branch and you want it live
@@ -97,6 +100,26 @@ jobs:
       # worker/tests). A failing auth/fulfillment test blocks the deploy.
       - name: Install root dependencies
         run: npm ci
+
+      - name: Build exact public Pages artifact
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_main_expected != ''
+        env:
+          CF_PAGES: '1'
+          CF_PAGES_BRANCH: main
+          CF_PAGES_COMMIT_SHA: ${{ github.sha }}
+          VITE_API_URL: https://teajia-api.lightcodes.workers.dev
+          WORKER_ORIGIN: ${{ vars.WORKER_ORIGIN }}
+        run: |
+          npm run build
+          node scripts/build-release-artifact.mjs dist "$GITHUB_SHA" "$RUNNER_TEMP/pages-release-artifact.json"
+
+      - name: Save exact public Pages artifact
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_main_expected != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pages-release-artifact
+          path: ${{ runner.temp }}/pages-release-artifact.json
+          if-no-files-found: error
 
       - name: Worker proof observer tests
         run: node --test scripts/verify-worker-release.test.mjs
@@ -183,6 +206,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           RELEASE_STATE_PATH: ${{ runner.temp }}/release-state.json
           WORKER_PROOF_PATH: ${{ runner.temp }}/worker-release-proof.json
+          PAGES_ARTIFACT_PATH: ${{ runner.temp }}/pages-release-artifact.json
         run: node scripts/publish-verified-release.mjs
 
       - name: Record coordinated release failure

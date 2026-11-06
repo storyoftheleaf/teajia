@@ -37,7 +37,14 @@ export function teaReferenceProductionLeakGuard({
 }
 
 export default defineConfig(({ command, mode }) => {
-  const BUILD_ID = Date.now().toString(36);
+  const releaseRevision = process.env.CF_PAGES_COMMIT_SHA || process.env.GITHUB_SHA || '';
+  // The Pages Git build and the independent CI build must produce byte-identical
+  // public artifacts for the same immutable source revision. Twelve hex digits
+  // give a 48-bit release marker; BigInt avoids Number precision loss before
+  // base36 conversion. The client compares this marker for equality only.
+  const BUILD_ID = /^[a-f0-9]{40}$/i.test(releaseRevision)
+    ? BigInt(`0x${releaseRevision.slice(0, 12)}`).toString(36)
+    : Date.now().toString(36);
   // Every dev server forwards /api to the real API, and the browser calls its
   // own origin. The worker's CORS list names only port 7777, so a preview on
   // any other port that called the API directly had every request refused and
