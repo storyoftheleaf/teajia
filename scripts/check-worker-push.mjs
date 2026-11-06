@@ -1,5 +1,6 @@
 /** Read-only guard for an automatic main push after a coordinated release. */
 import { appendFileSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
 const origins = ['https://api.teajia.com', 'https://teajia-api.lightcodes.workers.dev'];
@@ -20,12 +21,25 @@ export function decidePush({ candidate, deployment, live }) {
         entry.versionId !== versionId || entry.revision !== live[0].revision)) {
     throw new Error('Worker origins disagree with the active Cloudflare deployment');
   }
-  return { action: live[0].revision === candidate ? 'skip' : 'deploy',
+  return { action: live[0].revision === candidate ? 'skip' : 'check_ancestry',
     candidate, currentRevision: live[0].revision, versionId,
     deploymentId: deployment.id, endpoints: live, checkedAt: new Date().toISOString() };
 }
 
-export async function checkPush({ candidate, accountId, token, fetcher = fetch }) {
+export function assertGitAncestry(currentRevision, candidate, runGit = spawnSync) {
+  if (!sha.test(currentRevision) || !sha.test(candidate)) throw new Error('Exact Git revisions required');
+  const options = { encoding: 'utf8' };
+  const head = runGit('git', ['rev-parse', 'HEAD'], options);
+  if (head.error || head.status !== 0 || head.stdout?.trim() !== candidate) {
+    throw new Error('Push candidate is not the checked-out HEAD');
+  }
+  const ancestry = runGit('git', ['merge-base', '--is-ancestor', currentRevision, candidate], options);
+  if (ancestry.error || ancestry.status !== 0) {
+    throw new Error('Live Worker revision is unknown, newer, or not an ancestor of the push candidate');
+  }
+}
+
+export async function checkPush({ candidate, accountId, token, fetcher = fetch, checkAncestry = assertGitAncestry }) {
   if (!accountId || !token) throw new Error('Cloudflare credentials required for push guard');
   const getJson = async (url, headers) => {
     const response = await fetcher(url, { headers, cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(10000) });
@@ -36,6 +50,7 @@ export async function checkPush({ candidate, accountId, token, fetcher = fetch }
   const cloudflare = await getJson(url, { Authorization: `Bearer ${token}` });
   if (cloudflare.success !== true || !Array.isArray(cloudflare.result?.deployments) ||
       cloudflare.result.deployments.length !== 1) throw new Error('Cloudflare deployment read was incomplete');
+  const deployment = cloudflare.result.deployments[0];
   const live = [];
   for (const origin of origins) {
     const endpoint = new URL('/api/release', origin);
@@ -43,7 +58,12 @@ export async function checkPush({ candidate, accountId, token, fetcher = fetch }
     const value = await getJson(endpoint);
     live.push({ origin, revision: value.revision, versionId: value.versionId });
   }
-  return decidePush({ candidate, deployment: cloudflare.result.deployments[0], live });
+  const decision = decidePush({ candidate, deployment, live });
+  if (decision.action === 'check_ancestry') {
+    checkAncestry(decision.currentRevision, candidate);
+    decision.action = 'deploy';
+  }
+  return decision;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
