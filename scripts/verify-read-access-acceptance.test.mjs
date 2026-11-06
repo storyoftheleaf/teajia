@@ -29,7 +29,8 @@ function fake(options = {}) {
       return new Response(null, { status: 302, headers: { Location: `${options.badLogin ? 'https://attacker.example' : 'https://soft-band-fe5b.cloudflareaccess.com'}/cdn-cgi/access/login/abc123.teajiafinal.pages.dev?opaque=never-persist` } });
     }
     if (url.endsWith('/assets/index-fixture.js')) return new Response(options.wrongEntry ? 'wrong bytes' : entry);
-    if (url.endsWith('/version.json')) return new Response(options.wrongBuild ? '{}' : version);
+    if (url.includes('/?proof=')) return new Response(options.wrongCanonicalHtml && url.startsWith('https://teajia.com') ? 'wrong html' : '<root>');
+    if (url.includes('/version.json')) return new Response(options.wrongBuild ? '{}' : version);
     if (url.endsWith('/api/public/read/publish-state')) return Response.json({ states: ++stateReads === 2 && options.changedState ? { '/read/draft': 'live' } : {} });
     if (url.endsWith('/api/release')) return Response.json({ revision: options.wrongRevision ? 'b'.repeat(40) : candidate, versionId });
     if (url === `https://teajia.com${privateAsset}`) return new Response(null, { status: 301, headers: { Location: `https://www.teajia.com${privateAsset}` } });
@@ -91,4 +92,31 @@ test('protected immutable Read host keeps public 404/200 and exact Access bounda
   await assert.rejects(verifyReadAcceptance({ state: protectedState, metadata, artifact, fetcher: fake({ protected: true, badLogin: true }).fetcher, project: async () => project, loginOrigin }), /Access boundary missing/);
   await assert.rejects(verifyReadAcceptance({ state: protectedState, metadata, artifact, fetcher: fake({ protected: true }).fetcher,
     project: async () => ({ ...project, canonical_deployment: { ...project.canonical_deployment, deployment_trigger: { metadata: { commit_hash: 'x' } } } }), loginOrigin }), /exact production candidate/);
+});
+
+test('reaccepts the same direct-proven release after Access activation using current redirect and full public graph', async () => {
+  const activatedState = structuredClone(state);
+  activatedState.result.deploymentId = 'deployment-id';
+  const project = { name: 'teajiafinal', production_branch: 'main', domains: ['teajia.com', 'www.teajia.com'], canonical_deployment: {
+    id: 'deployment-id', url: deployURL, environment: 'production', latest_stage: { name: 'deploy', status: 'success' },
+    deployment_trigger: { metadata: { commit_hash: candidate } },
+  } };
+  const loginOrigin = 'https://soft-band-fe5b.cloudflareaccess.com';
+  const f = fake({ protected: true });
+  const proof = await verifyReadAcceptance({ state: activatedState, metadata, artifact, fetcher: f.fetcher, project: async () => project, loginOrigin });
+  assert.equal(proof.proofMethod, 'canonical-bytes-and-cloudflare-deployment');
+  assert.equal(proof.checks.filter(x => x.kind === 'access-protected').length, 2);
+  assert.equal(f.calls.filter(x => x.url.includes('/read-assets/')).every(x => x.method === 'HEAD'), true);
+  assert.equal(f.calls.filter(x => x.url.includes('/?proof=')).length, 2);
+  assert.deepEqual(activatedState.result.proofMethod, undefined);
+  await assert.rejects(verifyReadAcceptance({ state: activatedState, metadata, artifact, fetcher: fake({ protected: true, badLogin: true }).fetcher, project: async () => project, loginOrigin }), /Access boundary missing/);
+  await assert.rejects(verifyReadAcceptance({ state: activatedState, metadata, artifact, fetcher: fake({ protected: true, wrongCanonicalHtml: true }).fetcher, project: async () => project, loginOrigin }), /Canonical public artifact bytes mismatch/);
+  await assert.rejects(verifyReadAcceptance({ state: activatedState, metadata, artifact, fetcher: fake({ protected: true }).fetcher,
+    project: async () => ({ ...project, canonical_deployment: { ...project.canonical_deployment, deployment_trigger: { metadata: { commit_hash: 'x' } } } }), loginOrigin }), /exact production candidate/);
+});
+
+test('rejects loss of protection for a previously protected immutable release', async () => {
+  const protectedState = structuredClone(state);
+  protectedState.result.proofMethod = 'canonical-bytes-and-cloudflare-deployment';
+  await assert.rejects(verifyReadAcceptance({ state: protectedState, metadata, artifact, fetcher: fake().fetcher }), /Access boundary missing or changed/);
 });

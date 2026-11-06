@@ -64,6 +64,20 @@ async function canonicalVersion(pinned, fetcher) {
   exact(JSON.parse(bytes.toString()).buildId, pinned.buildId, 'Canonical build ID');
 }
 
+async function canonicalPublicGraph(pinned, artifact, fetcher) {
+  const files = [APEX, WWW].flatMap(origin => Object.entries(artifact.files).map(([path, expected]) => ({ origin, path, expected })));
+  for (let offset = 0; offset < files.length; offset += 6) {
+    await Promise.all(files.slice(offset, offset + 6).map(async ({ origin, path, expected }) => {
+      const url = path === '/index.html' ? `${origin}/?proof=${pinned.candidate}`
+        : path === '/version.json' ? `${origin}/version.json?proof=${pinned.candidate}` : origin + path;
+      const response = await fetcher(url, { method: 'GET', redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(10000) });
+      exact(response.status, 200, 'Canonical public artifact');
+      const bytes = Buffer.from(await response.arrayBuffer());
+      exact(createHash('sha256').update(bytes).digest('hex'), expected, 'Canonical public artifact bytes');
+    }));
+  }
+}
+
 async function json(fetcher, url) {
   const response = await fetcher(url, { method: 'GET', redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(10000) });
   if (response.status !== 200) throw new Error('Release metadata unavailable');
@@ -107,14 +121,17 @@ export async function verifyReadAcceptance({ state, metadata, artifact, fetcher 
     throw new Error('Asset metadata missing or invalid');
   }
   await canonicalVersion(pinned, fetcher);
+  const probe = await fetcher(`${pinned.deployURL}/version.json`, { method: 'HEAD', redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(10000) });
+  const protectedNow = recognizedAccessRedirect(probe, pinned.deployURL, loginOrigin);
+  await probe.body?.cancel();
+  if (!protectedNow && (probe.status !== 200 || pinned.protectedHost)) throw new Error('Immutable Pages Access boundary missing or changed');
+  const current = { ...pinned, protectedHost: protectedNow };
   let deploymentBefore;
-  if (pinned.protectedHost) {
-    const probe = await fetcher(`${pinned.deployURL}/version.json`, { method: 'HEAD', redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(10000) });
-    if (!recognizedAccessRedirect(probe, pinned.deployURL, loginOrigin)) throw new Error('Immutable Pages Access boundary missing');
-    await probe.body?.cancel();
+  if (protectedNow) {
     deploymentBefore = canonicalDeployment(await project(), pinned.candidate, pinned.deployURL, pinned.deploymentId);
+    await canonicalPublicGraph(pinned, artifact, fetcher);
   }
-  const assets = await deployedAssets(pinned, metadata, fetcher);
+  const assets = await deployedAssets(current, metadata, fetcher);
   const before = statesOf(await json(fetcher, `${API}/api/public/read/publish-state`));
   const overrides = Object.fromEntries(JSON.parse(before));
   const live = path => overrides[path] ? overrides[path] === 'live' : metadata.defaults[path] === true;
@@ -122,11 +139,11 @@ export async function verifyReadAcceptance({ state, metadata, artifact, fetcher 
   const publicAsset = assets.find(row => row.paths?.some(path => live(path)));
   if (!privateAsset || !publicAsset || privateAsset.asset === publicAsset.asset) throw new Error('Private/public Read asset witnesses unavailable');
   const checks = [];
-  for (const origin of pinned.protectedHost ? [WWW] : [pinned.deployURL, WWW]) {
+  for (const origin of protectedNow ? [WWW] : [pinned.deployURL, WWW]) {
     checks.push({ host: origin, kind: 'private', asset: privateAsset.asset, ...await head(fetcher, origin + privateAsset.asset, 404, 'Private Read asset') });
     checks.push({ host: origin, kind: 'public', asset: publicAsset.asset, ...await head(fetcher, origin + publicAsset.asset, 200, 'Public Read asset', true) });
   }
-  if (pinned.protectedHost) {
+  if (protectedNow) {
     for (const asset of [privateAsset.asset, publicAsset.asset]) {
       const response = await fetcher(pinned.deployURL + asset, { method: 'HEAD', redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(10000) });
       if (!recognizedAccessRedirect(response, pinned.deployURL, loginOrigin)) throw new Error('Immutable Read asset Access boundary missing');
@@ -146,7 +163,7 @@ export async function verifyReadAcceptance({ state, metadata, artifact, fetcher 
   exact(statesOf(await json(fetcher, `${API}/api/public/read/publish-state`)), before, 'Publication states');
   await canonicalVersion(pinned, fetcher);
   if (deploymentBefore) sameDeployment(deploymentBefore, canonicalDeployment(await project(), pinned.candidate, pinned.deployURL, pinned.deploymentId));
-  return { candidate: pinned.candidate, buildId: pinned.buildId, deployURL: pinned.deployURL, proofMethod: pinned.protectedHost ? 'canonical-bytes-and-cloudflare-deployment' : 'direct-immutable-bytes', workerVersion: pinned.versionId, privateAsset: privateAsset.asset, privateOwners: privateAsset.paths, publicAsset: publicAsset.asset, publicOwners: publicAsset.paths, checks, workerOrigins: [API, WORKERS], publicationStatesUnchanged: true, verifiedAt: new Date().toISOString() };
+  return { candidate: pinned.candidate, buildId: pinned.buildId, deployURL: pinned.deployURL, proofMethod: protectedNow ? 'canonical-bytes-and-cloudflare-deployment' : 'direct-immutable-bytes', workerVersion: pinned.versionId, privateAsset: privateAsset.asset, privateOwners: privateAsset.paths, publicAsset: publicAsset.asset, publicOwners: publicAsset.paths, checks, workerOrigins: [API, WORKERS], publicationStatesUnchanged: true, verifiedAt: new Date().toISOString() };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
