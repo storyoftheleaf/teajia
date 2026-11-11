@@ -68,6 +68,16 @@ Numbering follows the doc. **Landed** means on branch `claude/zen-ptolemy-xwqdha
 | 29 | Old Receive buttons dead-end on forwarder-managed purchases | Open, visible |
 | 30 | Landed cost hidden by a currency spelling | Landed |
 
+Found by the link guard on 2026-11-11 and still open (each is allow-listed in `src/admin/guards/adminLinkReaders.test.ts`, which fails the day a reader exists so the list can only shrink):
+
+| # | Link that nothing reads | Written at |
+| --- | --- | --- |
+| 31 | `/admin/events?search=` lands on the full Sessions list (the fallback when an order has no session id) | `src/admin/components/OrdersView.tsx` |
+| 32 | `/admin/catalog?search=` lands on the whole catalogue for a non-platform account | `src/admin/components/SoldItemsView.tsx` |
+| 33 | `/admin/compass?fromSample=` is read by neither Curate | `src/pages/SamplePage.tsx` |
+
+Guards now in `src/admin/guards/` (wave 2): every admin link with a query has a reader; ceilings that may fall but not rise (raw buttons, browser dialogs, `z-50`, inline styles, `Number(x) || 0`, files over 1,500 lines); no new files in `TeaCompass/` or `CurateV2/`; every Manage room resolves to one real screen.
+
 Also landed, unnumbered: Curate's supplier link (`/admin/people/<id>`), an order's session link (`/admin/events/<id>`).
 
 ## Checks, and what fails before any change
