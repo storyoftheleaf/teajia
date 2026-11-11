@@ -9,6 +9,7 @@ import { getThemeTextColor } from '../../themeUtils';
 import { TYPE_OPTIONS } from './config';
 import type { ColDef } from './types';
 import { distinctGivenName, stripMatchingYear } from './helpers';
+import { isOutOfStock } from './domain';
 import { shippingRateUsdFor } from '../../../lib/shippingRate';
 import { isSampleRow, joinItemCode, linkedEntryId, sampleQuote, splitItemCode } from './sampleRows';
 import { useTeaCompassStore } from '../../../lib/teaCompassStore';
@@ -94,8 +95,9 @@ function InventoryRowBase(props: InventoryRowProps) {
   // is confined to the STOCK NUMBER alone (`stockTone`) so it informs without
   // shouting; every other numeric column stays neutral. This keeps the list calm
   // and reserves the loudest treatment for the SELECTED row, not a warning.
-  const isOut = (product.stockGrams ?? 0) <= 0;
-  const isLow = !isOut && product.stockGrams <= product.lowStockThreshold;
+  const isOut = isOutOfStock(product);
+  // The low-stock threshold is in grams, so it has no meaning for teaware's units.
+  const isLow = !isOut && product.type !== 'Teaware' && product.stockGrams <= product.lowStockThreshold;
   const isSold = product.status === 'Archived' || isOut;
   const nameTone = isSold ? 'text-tea-text-sec' : 'text-tea-text';
   // Non-stock numbers (retail, cost) never carry the low-stock tint, low stock

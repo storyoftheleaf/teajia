@@ -231,10 +231,15 @@ function legacyIncomingSummary(product: Product): IncomingInventorySummary {
   };
 }
 
-function onHandQuantity(product: Product): number {
+export function onHandQuantity(product: Product): number {
   return product.type === 'Teaware'
     ? Number(product.quantityUnits) || 0
     : Number(product.stockGrams) || 0;
+}
+
+/** Nothing on the shelf: units for teaware, grams for tea. */
+export function isOutOfStock(product: Product): boolean {
+  return onHandQuantity(product) <= 0;
 }
 
 /**
