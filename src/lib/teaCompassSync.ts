@@ -1,69 +1,15 @@
-import { COMPASS_STRUCTURED_CAMEL, COMPASS_STRUCTURED_COLUMNS } from './curateStructuredFields';
 import { canonicalCurrency } from './currency';
 import { useTeaCompassStore } from './teaCompassStore';
 import { api, hasToken, isTokenScopedToAccount, isTransientApiError } from './api';
 import { normalizeCompassEntry, type TeaCompassEntry } from '../components/TeaCompass/types';
+import { CAMEL_TO_SNAKE, COMPASS_SYNC_COLUMNS, SNAKE_TO_CAMEL, changeHint, editsAfterAcknowledgement, syncValue } from './compassFieldEdits';
 
 const scopedRequest = (accountId: string, userId: string) => ({
   background: true as const, expectedAuth: { accountId, userId },
 });
 
 // ── Case conversion helpers ──
-
-const CAMEL_TO_SNAKE: Record<string, string> = {
-  ...Object.fromEntries(Object.entries(COMPASS_STRUCTURED_CAMEL).map(([snake, camel]) => [camel, snake])),
-  givenName: 'given_name',
-  chineseName: 'chinese_name',
-  originRegion: 'origin_region',
-  originCountry: 'origin_country',
-  clayType: 'clay_type',
-  materialNote: 'material_note',
-  sellPrice: 'sell_price',
-  tastingHistory: 'tasting_history',
-  priceAmount: 'price_amount',
-  priceCurrency: 'price_currency',
-  pricePerUnitGrams: 'price_per_unit_grams',
-  teawareCategory: 'teaware_category',
-  capacityMl: 'capacity_ml',
-  vendorId: 'vendor_id',
-  vendorName: 'vendor_name',
-  shopName: 'shop_name',
-  transportMode: 'transport_mode',
-  linkedCustomerId: 'linked_customer_id',
-  audioClips: 'audio_clips',
-  buyQuantityGrams: 'buy_quantity_grams',
-  buyQuantityUnits: 'buy_quantity_units',
-  buyTotal: 'buy_total',
-  draftProductId: 'draft_product_id',
-  sourceEntryId: 'source_entry_id',
-  sessionId: 'session_id',
-  journeyId: 'journey_id',
-  visitId: 'visit_id',
-  sampleState: 'sample_state',
-  sampleSetId: 'sample_set_id',
-  teaKey: 'tea_key',
-  createdAt: 'created_at',
-  updatedAt: 'updated_at',
-};
-
-const SNAKE_TO_CAMEL: Record<string, string> = Object.fromEntries(
-  Object.entries(CAMEL_TO_SNAKE).map(([k, v]) => [v, k])
-);
-
-// Only writable Compass columns cross the sync boundary. Hydrated rows retain
-// provenance/lifecycle metadata for reading, and local state keeps its own fields.
-// The strict worker codec remains the authority; the sync test pins this list to it.
-const COMPASS_SYNC_COLUMNS = new Set<string>([
-  'id', ...COMPASS_STRUCTURED_COLUMNS,
-  'name', 'given_name', 'chinese_name', 'type', 'form', 'year', 'season', 'storage',
-  'origin_country', 'origin_region', 'classification', 'cultivar', 'producer', 'description',
-  'tea_key', 'price_amount', 'price_currency', 'price_per_unit_grams',
-  'category', 'teaware_category', 'material', 'clay_type', 'material_note', 'sell_price', 'tasting_history', 'capacity_ml', 'quantity', 'era',
-  'vendor_id', 'vendor_name', 'shop_name', 'transport_mode', 'linked_customer_id', 'notes',
-  'tasting', 'photos', 'audio_clips', 'status', 'buy_quantity_grams', 'buy_quantity_units',
-  'buy_total', 'verdict', 'decision', 'sample_state', 'sample_set_id', 'session_id',
-  'journey_id', 'visit_id', 'draft_product_id', 'source_entry_id', 'created_at', 'updated_at',
-]);
+// The column map lives in compassFieldEdits.ts, which the store also reads.
 
 function toSnakeCase(entry: TeaCompassEntry): Record<string, any> {
   const result: Record<string, any> = {};
@@ -74,15 +20,7 @@ function toSnakeCase(entry: TeaCompassEntry): Record<string, any> {
 
     // `decision` intentionally passes through unchanged: unlike status and
     // verdict it is an independent sourcing choice with matching API/DB naming.
-
-    // Route quotes remain arrays for strict worker validation.
-    if (snakeKey === 'route_quotes') {
-      result[snakeKey] = value ?? [];
-    } else if (snakeKey === 'photos' || snakeKey === 'audio_clips' || snakeKey === 'tasting' || snakeKey === 'tasting_history') {
-      result[snakeKey] = value != null ? JSON.stringify(value) : null;
-    } else {
-      result[snakeKey] = value ?? null;
-    }
+    result[snakeKey] = syncValue(snakeKey, value);
   }
   return result;
 }
@@ -252,7 +190,16 @@ async function pushCompassEntries(accountId?: string): Promise<number> {
 
   try {
     const payload = unsynced.map(toSnakeCase);
-    const result = await api.compass.sync(payload, scopedRequest(requestedAccountId, store.userScopeId!));
+    // Which fields each tea changed here, so the server writes only those.
+    // Entries with no record of their edits are sent whole, as before.
+    const changes = Object.fromEntries(unsynced.flatMap(entry => {
+      const hint = changeHint(entry);
+      return hint ? [[entry.id, hint]] : [];
+    }));
+    const request = scopedRequest(requestedAccountId, store.userScopeId!);
+    const result = Object.keys(changes).length
+      ? await api.compass.sync(payload, request, changes)
+      : await api.compass.sync(payload, request);
     const current = useTeaCompassStore.getState();
     if (current.accountScopeId !== requestedAccountId || current.accountScopeRevision !== requestedRevision) return 0;
     const attemptedIds = new Set(unsynced.map(entry => entry.id));
@@ -268,7 +215,14 @@ async function pushCompassEntries(accountId?: string): Promise<number> {
     // state. A protected id collision remains unsynced and retries visibly.
     useTeaCompassStore.setState((state) => ({
       entries: state.accountScopeId === requestedAccountId
-        ? state.entries.map(e => acknowledgedIds.has(e.id) && attemptedEntries.get(e.id) === e ? { ...e, synced: true, syncedGivenName: e.givenName ?? null } : e)
+        ? state.entries.map(e => {
+          if (!acknowledgedIds.has(e.id)) return e;
+          const sent = attemptedEntries.get(e.id)!;
+          if (sent === e) return { ...e, synced: true, syncedGivenName: e.givenName ?? null, unsyncedEdits: undefined };
+          // Edited again while the save was in the air: it stays unsent, but
+          // only for what the server does not have yet.
+          return { ...e, unsyncedEdits: editsAfterAcknowledgement(sent, e) };
+        })
         : state.entries,
       syncError: state.accountScopeId === requestedAccountId ? hasUnacknowledged : state.syncError,
     }));

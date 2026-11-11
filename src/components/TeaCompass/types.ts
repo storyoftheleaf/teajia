@@ -94,6 +94,10 @@ export interface TeaCompassEntry {
 
   /** Client-only record of fields explicitly entered or confirmed by the operator. */
   touchedFields?: string[];
+  /** Client-only: fields changed since the server last acknowledged a save
+   * (`src/lib/compassFieldEdits.ts`). Undefined on an unsent entry means the
+   * whole record is sent, as before. */
+  unsyncedEdits?: import('../../lib/compassFieldEdits').UnsyncedEdits;
   /** Client-only scope for resumable, uncommitted capture drafts. */
   draftAccountId?: string;
 

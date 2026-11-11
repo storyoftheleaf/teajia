@@ -3145,13 +3145,18 @@ export const api = {
         retryTimeouts: true,
       });
     },
-    sync: async (entries: CompassWrite[], options: ApiBackgroundOptions = {}): Promise<CompassSyncResult> => {
+    sync: async (
+      entries: CompassWrite[],
+      options: ApiBackgroundOptions = {},
+      changes: Record<string, { fields: string[]; base: Record<string, unknown>; edited_at: Record<string, string> }> = {},
+    ): Promise<CompassSyncResult> => {
       // Worker uses an ownership-scoped upsert keyed by entry id, idempotent
-      // without replacing server-owned or omitted fields.
+      // without replacing server-owned or omitted fields. `changes` names the
+      // fields each existing tea changed, so only those are written.
       return authedFetch(`${API_URL}/api/compass/sync`, {
         ...options,
         method: 'POST',
-        body: JSON.stringify({ entries }),
+        body: JSON.stringify(Object.keys(changes).length ? { entries, changes } : { entries }),
         retryTimeouts: true,
       });
     },

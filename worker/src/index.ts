@@ -33,6 +33,7 @@ import {
 import { prepareCompassSampleWrite, prepareSampleLifecycleSync, compassStateForSample } from './curateSampleBridge';
 import { receiptProductDetails } from './curateReceiptProduct';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
+import { compassFieldPatch, readCompassFieldHints } from './compassFieldPatch';
 import { shippingPerGramUsd, resolveShopFreightDefault } from './shippingRate';
 import { deductStockForPaidInvoice } from './orderLifecycle';
 import { internationalWhatsAppNumber } from '../../src/lib/whatsappContact';
@@ -16794,15 +16795,21 @@ const handleSyncCompassEntries: Handler = async (request, env, _params, execCtx)
   const { accountId, userId } = ctx;
 
   const manager = await canManageCurate(env, accountId, userId);
-  const body = await request.json() as { entries: Record<string, any>[] };
+  const body = await request.json() as { entries: Record<string, any>[]; changes?: unknown };
   if (!Array.isArray(body.entries)) {
     return json({ error: 'entries array required' }, 400);
   }
+  // Which fields each device changed (compassFieldPatch.ts). Absent from older
+  // bundles, which keep today's whole-record write.
+  const hints = readCompassFieldHints(body.changes);
+  if ('error' in hints) return json({ error: hints.error }, 400);
 
   const stmts: D1PreparedStatement[] = [];
   const entryStatementIndexes: number[] = [];
   const seen = new Set<string>();
   const priorEntries=new Map<string,Record<string,any>|null>();
+  const writtenValues = new Map<string, Partial<Record<CompassColumn, unknown>>>();
+  const keptServer: Record<string, string[]> = {};
   for (const entry of body.entries) {
     if (typeof entry.id !== 'string' || !entry.id || seen.has(entry.id)) return json({ error: 'Unique Compass entry ids required' }, 400);
     seen.add(entry.id);
@@ -16813,6 +16820,15 @@ const handleSyncCompassEntries: Handler = async (request, env, _params, execCtx)
     if (owner && (owner.account_id !== accountId || (!manager && owner.user_id !== userId) || owner.deleted_at || owner.archived_at || owner.merged_into_id)) {
       entryStatementIndexes[entryStatementIndexes.length - 1] = -1; continue;
     }
+    const hint = owner ? hints.get(entry.id) : undefined;
+    if (hint) {
+      const patch = compassFieldPatch(decoded.values, hint, owner!, new Date().toISOString());
+      decoded.values = patch.values;
+      if (patch.keptServer.length) keptServer[entry.id] = patch.keptServer;
+      // Nothing of this device's is left to write: acknowledged, unchanged.
+      if (Object.keys(decoded.values).length === 0) { entryStatementIndexes[entryStatementIndexes.length - 1] = -2; continue; }
+    }
+    writtenValues.set(String(entry.id), decoded.values);
     const contextError = await validateCompassContext(env, accountId, decoded.values, owner);
     if (contextError) return contextError;
     await keepServerDraftProductLink(env, accountId, entry.id, decoded.values, owner, ctx.bundles.includes('catalog'));
@@ -16839,22 +16855,25 @@ const handleSyncCompassEntries: Handler = async (request, env, _params, execCtx)
   const results = stmts.length > 0 ? await env.DB.batch(stmts) : [];
   const syncedIds: string[] = [];
   const conflicts: string[] = [];
+  const written: string[] = [];
   entryStatementIndexes.forEach((statementIndex, index) => {
     const result = results[statementIndex];
     const id = String(body.entries[index].id);
-    if (Number(result?.meta?.changes ?? 0) > 0) syncedIds.push(id);
+    if (statementIndex === -2) syncedIds.push(id);
+    else if (Number(result?.meta?.changes ?? 0) > 0) { syncedIds.push(id); written.push(id); }
     else conflicts.push(id);
   });
 
   // A tea that arrived with photos gets them copied to the shop's Drive, after
   // the response: Drive is slow and is never allowed to fail a save.
-  const withPhotos = body.entries
-    .filter((entry) => syncedIds.includes(String(entry.id)) && entry.photos != null && String(typeof entry.photos === 'string' ? entry.photos : JSON.stringify(entry.photos)) !== '[]')
-    .map((entry) => String(entry.id));
+  const withPhotos = written.filter((id) => {
+    const photos = writtenValues.get(id)?.photos;
+    return photos != null && String(photos) !== '[]';
+  });
   if (withPhotos.length && execCtx) execCtx.waitUntil(savePhotosToDriveQuietly(env, driveSeal(env), accountId, withPhotos));
 
-  for(const id of syncedIds){const raw=body.entries.find(entry=>entry.id===id)!;const decoded=decodeCompassWrite(raw,manager);if(!('error' in decoded))await propagateCapturedTasting(env,accountId,String(priorEntries.get(id)?.user_id??userId),id,priorEntries.get(id)??null,decoded.values);}
-  return json({ synced: syncedIds.length, syncedIds, conflicts });
+  for(const id of written)await propagateCapturedTasting(env,accountId,String(priorEntries.get(id)?.user_id??userId),id,priorEntries.get(id)??null,writtenValues.get(id)??{});
+  return json({ synced: syncedIds.length, syncedIds, conflicts, ...(Object.keys(keptServer).length ? { kept_server: keptServer } : {}) });
 };
 
 // ── Event System V2 Handlers ──

@@ -7,6 +7,7 @@ import { api, hasToken, isTokenScopedToAccount } from './api';
 import { useNotesStore } from './notesStore';
 import { useAppStore } from './store';
 import { preserveLegacyLocalBytes } from './preserveLegacyLocalBytes';
+import { editsAfterUpdate } from './compassFieldEdits';
 
 interface TeaCompassState {
   // Committed entries (persisted to localStorage + server)
@@ -415,6 +416,7 @@ const createdTeaCompassStore = create<TeaCompassState>()(
       updateEntry: (id, updates) =>
         set((state) => {
           const inPending = state.pendingEntries.some((e) => e.id === id);
+          const now = new Date().toISOString();
           if (inPending) {
             return {
               pendingEntries: state.pendingEntries.map((e) =>
@@ -422,7 +424,8 @@ const createdTeaCompassStore = create<TeaCompassState>()(
                   ...e,
                   ...updates,
                   touchedFields: touchedFieldsAfterUpdate(e, updates),
-                  updatedAt: new Date().toISOString(),
+                  unsyncedEdits: editsAfterUpdate(e, updates, now),
+                  updatedAt: now,
                   synced: false,
                 } : e
               ),
@@ -434,7 +437,8 @@ const createdTeaCompassStore = create<TeaCompassState>()(
                 ...e,
                 ...updates,
                 touchedFields: touchedFieldsAfterUpdate(e, updates),
-                updatedAt: new Date().toISOString(),
+                unsyncedEdits: editsAfterUpdate(e, updates, now),
+                updatedAt: now,
                 synced: false,
               } : e
             ),
@@ -618,8 +622,9 @@ const createdTeaCompassStore = create<TeaCompassState>()(
         const scope = compassPersonKey(state.draftAccountScopeId, state.userScopeId);
         if (!scope) return state;
         const update = { journeyId, visitId };
+        const now = new Date().toISOString();
         const apply = (entry: TeaCompassEntry) => entry.id === entryId
-          ? { ...entry, ...update, touchedFields: Array.from(new Set([...(entry.touchedFields ?? []), 'journeyId', 'visitId'])), updatedAt: new Date().toISOString(), synced: false }
+          ? { ...entry, ...update, touchedFields: Array.from(new Set([...(entry.touchedFields ?? []), 'journeyId', 'visitId'])), unsyncedEdits: editsAfterUpdate(entry, update, now), updatedAt: now, synced: false }
           : entry;
         return {
           pendingEntries: state.pendingEntries.map(apply),
@@ -628,15 +633,17 @@ const createdTeaCompassStore = create<TeaCompassState>()(
         };
       }),
       clearJourneyReferences: (journeyId) => set((state) => {
+        const now = new Date().toISOString();
         const clear = (entry: TeaCompassEntry) => entry.journeyId === journeyId
-          ? { ...entry, journeyId: null, synced: false, updatedAt: new Date().toISOString() }
+          ? { ...entry, journeyId: null, unsyncedEdits: editsAfterUpdate(entry, { journeyId: null }, now), synced: false, updatedAt: now }
           : entry;
         const contexts = Object.fromEntries(Object.entries(state.encounterContextByAccount).map(([account, context]) => [account, context.journeyId === journeyId ? { ...context, journeyId: null } : context]));
         return { entries: state.entries.map(clear), pendingEntries: state.pendingEntries.map(clear), encounterContextByAccount: contexts };
       }),
       clearVisitReferences: (visitId) => set((state) => {
+        const now = new Date().toISOString();
         const clear = (entry: TeaCompassEntry) => entry.visitId === visitId
-          ? { ...entry, visitId: null, synced: false, updatedAt: new Date().toISOString() }
+          ? { ...entry, visitId: null, unsyncedEdits: editsAfterUpdate(entry, { visitId: null }, now), synced: false, updatedAt: now }
           : entry;
         const contexts = Object.fromEntries(Object.entries(state.encounterContextByAccount).map(([account, context]) => [account, context.visitId === visitId ? { ...context, visitId: null } : context]));
         return { entries: state.entries.map(clear), pendingEntries: state.pendingEntries.map(clear), encounterContextByAccount: contexts };
