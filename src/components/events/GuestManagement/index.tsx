@@ -130,7 +130,7 @@ const GuestManagement: React.FC = () => {
 
   const { attendee, event, briefingCards } = data;
   const eventPast = isPast(event.eventDate);
-  const isCompleted = event.status === 'closed' || eventPast;
+  const isCompleted = eventPast;
   const status = attendee.status;
 
   // Initialize local notes/guest state from attendee data on first load
