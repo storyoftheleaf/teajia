@@ -15870,6 +15870,24 @@ function decodeCompassWrite(body: Record<string, unknown>, rejectUnknown: boolea
   } catch (error) { return { error: json({ error: (error as Error).message }, 400) }; }
 }
 
+// draft_product_id is the server's link from a Curate tea to its holding, and
+// the given-name triggers rename whatever product it names. Browsers still send
+// it on every sync (often null, often stale), so it is not refused: a client
+// write keeps the stored link unless it sends that same link, or a product of
+// this account that was made from this entry. Server doors set it directly.
+async function keepServerDraftProductLink(env: Env, accountId: string, entryId: string, values: Partial<Record<CompassColumn, unknown>>, existing?: Record<string, unknown> | null) {
+  if (values.draft_product_id === undefined) return;
+  const stored = (existing?.draft_product_id as string | null | undefined) ?? null;
+  const incoming = values.draft_product_id;
+  if (incoming === stored) return;
+  if (typeof incoming === 'string' && incoming) {
+    const own = await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ? AND source_compass_entry_id = ?')
+      .bind(incoming, accountId, entryId).first();
+    if (own) return;
+  }
+  values.draft_product_id = stored;
+}
+
 async function validateCompassContext(env: Env, accountId: string, values: Partial<Record<CompassColumn, unknown>>, existing?: Record<string, unknown> | null): Promise<Response | null> {
   try { await validateCompassQuoteLink(env.DB, accountId, { ...existing, ...values }); }
   catch (error) { return json({ error: (error as Error).message }, 400); }
@@ -15940,6 +15958,7 @@ const handleCreateCompassEntry: Handler = async (request, env) => {
   if (contextError) return contextError;
   const id = typeof body.id === 'string' && body.id ? body.id : crypto.randomUUID();
   if (await env.DB.prepare('SELECT id FROM tea_compass_entries WHERE id = ?').bind(id).first()) return json({ error: 'Compass entry id already exists; use update or sync' }, 409);
+  await keepServerDraftProductLink(env, accountId, id, decoded.values, null);
   const entry = { ...(manager ? { price_amount: null, price_currency: null, price_per_unit_grams: null } : {}), ...decoded.values, id, user_id: userId, account_id: accountId };
   try {
     if (manager) {
@@ -15970,6 +15989,7 @@ const handleUpdateCompassEntry: Handler = async (request, env, params, execCtx) 
   if (!existingContext) return json({ error: 'Compass entry not found' }, 404);
   const contextError = await validateCompassContext(env, accountId, decoded.values, existingContext);
   if (contextError) return contextError;
+  await keepServerDraftProductLink(env, accountId, params.id, decoded.values, existingContext);
   const cols = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
@@ -16771,6 +16791,7 @@ const handleSyncCompassEntries: Handler = async (request, env, _params, execCtx)
     }
     const contextError = await validateCompassContext(env, accountId, decoded.values, owner);
     if (contextError) return contextError;
+    await keepServerDraftProductLink(env, accountId, entry.id, decoded.values, owner);
     priorEntries.set(String(entry.id),owner);
     const entryOwner = owner?.user_id ?? userId;
     const now = new Date().toISOString();
