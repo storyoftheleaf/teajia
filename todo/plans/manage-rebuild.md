@@ -40,7 +40,7 @@ Numbering follows the doc. **Landed** means on branch `claude/zen-ptolemy-xwqdha
 | 1 | Public order request must respect the three publication gates | Landed |
 | 2 | Client could repoint `draft_product_id` and rename any product | Landed (`keepServerDraftProductLink`; catalogue editors may give a first link to a product no Curate tea was made into, which is "Develop in Curate") |
 | 3 | Promote and receipt proposal lacked a capability gate | Landed (promote: `catalog`; proposal: `stock` or `catalog`) |
-| 4 | Stale browser overwrites newer work (whole-record sync, no version) | **Open, invisible.** Design first (wave 2), then build |
+| 4 | Stale browser overwrites newer work (whole-record sync, no version) | Landed (`worker/src/compassFieldPatch.ts`, `src/lib/compassFieldEdits.ts`: the browser says which fields it changed and the server writes only those; old bundles behave as before; "later" on a true same-field conflict is the device's clock against the row's `updated_at`) |
 | 5 | Arrival acceptance crashed on the unique index | Landed |
 | 6 | "Published N items" can be untrue (sets one gate of three) | Open, visible: needs approval |
 | 7 | Shift-select in Stock picked hidden rows | Landed |
@@ -52,7 +52,7 @@ Numbering follows the doc. **Landed** means on branch `claude/zen-ptolemy-xwqdha
 | 13 | Sample graduation copies quote into cost and notes into public description | Open, needs design |
 | 14 | Teaware read as sold out (grams instead of units) | Landed |
 | 15 | Untyped tea becomes "Misc" and is treated as teaware | Open, needs decision |
-| 16 | Merging two Curate teas leaves the product on the loser | Open, invisible; must respect `curate_undo` |
+| 16 | Merging two Curate teas leaves the product on the loser | Landed (`worker/src/curateMergeLink.ts`; when both teas have a product nothing moves and the preview says so, which needs a person to resolve in Stock) |
 | 17 | Product delete left dangling Curate links | Landed |
 | 18 | Every save blocked publishing | Landed |
 | 19 | `/admin/orders` and other redirects dropped the query | Landed (`src/admin/carryQuery.ts`, all 22 redirects) |
@@ -144,7 +144,7 @@ Navigation labels, tab labels and routes change only with his explicit yes (CLAU
 | Wave | What | Needs Adrian? |
 | --- | --- | --- |
 | 1 | 17 invisible fixes | Done |
-| 2 | Picture archive of every screen as it is (incl. the tasting flow). Tasting line-by-line pass (list only). Design for the stale-browser sync fix (item 4) and merge re-point (16). Drift ratchets (lint). | No |
+| 2 | Picture archive of every screen as it is (incl. the tasting flow). Tasting line-by-line pass (done). Stale-browser sync fix (done) and merge re-point (done). Drift guards (done). Five invisible tasting fixes (done). | No |
 | 3 | The 13 open fixes that are visible or change behaviour (every open row above except 4 and 16), each as before and after pictures | Approval of each |
 | 4 | Server bridge (server-owned link everywhere, one product-creation path, field patches with version, one publish command with readiness, order trackable at placement, freight estimate saved, bill shares stored) in parallel with the kit, page shell, tea card and record panel, with Settings and People as reference rooms built as new versions | Answers to the questions; approval of reference rooms |
 | 5 | New Curate and new Stock, as new versions beside the old, in parallel | Parity with "Nothing lost"; visual approval |
