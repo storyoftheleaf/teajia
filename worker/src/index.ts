@@ -14259,13 +14259,18 @@ const handleClaimInquiry:Handler=async(request,env,params)=>{
  }finally{await releaseInvoiceLinkLease(env,inquiry.account_id,inquiry.converted_invoice_id,lease.claimToken);}
 };
 
+// A visitor can only ask for a tea the public catalogue would show them. A
+// Draft, held or sold-out tea answers exactly as an unknown id does. Only the
+// unauthenticated request path reads this; staff doors price any tea they own.
+const PUBLIC_REQUEST_PRODUCT = "p.is_public = 1 AND p.shown_in_shop = 1 AND p.status = 'Active'";
+
 async function pricedRequestLines(env: Env, accountId: string, items: Array<Record<string, any>>) {
   const productIds = catalogProductIds(items);
   const [productRows, rateRows] = await Promise.all([
     productIds.length ? env.DB.prepare(
       `SELECT p.*, COALESCE(tp.form, p.form) AS form
          FROM products p LEFT JOIN tea_profiles tp ON tp.id='prof_' || p.id
-        WHERE p.account_id=? AND p.id IN (${productIds.map(() => '?').join(',')})`
+        WHERE p.account_id=? AND ${PUBLIC_REQUEST_PRODUCT} AND p.id IN (${productIds.map(() => '?').join(',')})`
     ).bind(accountId, ...productIds).all() : Promise.resolve({ results: [] }),
     env.DB.prepare('SELECT currency,rate_to_usd FROM exchange_rates').all(),
   ]);
@@ -14560,7 +14565,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
     if (productIds.length > 0) {
       const placeholders = productIds.map(() => '?').join(', ');
       const availableProducts = await env.DB.prepare(
-        `SELECT id FROM products WHERE account_id = ? AND id IN (${placeholders})`
+        `SELECT p.id FROM products p WHERE p.account_id = ? AND ${PUBLIC_REQUEST_PRODUCT} AND p.id IN (${placeholders})`
       ).bind(accountId, ...productIds).all();
       if (availableProducts.results.length !== productIds.length) {
         return json({ error: 'Store or items not found' }, 404);
