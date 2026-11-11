@@ -146,7 +146,7 @@ Navigation labels, tab labels and routes change only with his explicit yes (CLAU
 | Wave | What | Needs Adrian? |
 | --- | --- | --- |
 | 1 | 17 invisible fixes | Done |
-| 2 | Picture archive of every screen as it is (incl. the tasting flow). Tasting line-by-line pass (done). Stale-browser sync fix (done) and merge re-point (done). Drift guards (done). Five invisible tasting fixes (done). | No |
+| 2 | Picture archive of every screen as it is, incl. the tasting flow (done: https://claude.ai/artifact/SMFTKV9A6sWnd3GmEfWUKx). Tasting line-by-line pass (done). Stale-browser sync fix (done) and merge re-point (done). Drift guards (done). Eight invisible tasting fixes (done). | No |
 | 3 | The 13 open fixes that are visible or change behaviour (every open row above except 4 and 16), each as before and after pictures | Approval of each |
 | 4 | Server bridge (server-owned link everywhere, one product-creation path, field patches with version, one publish command with readiness, order trackable at placement, freight estimate saved, bill shares stored) in parallel with the kit, page shell, tea card and record panel, with Settings and People as reference rooms built as new versions | Answers to the questions; approval of reference rooms |
 | 5 | New Curate and new Stock, as new versions beside the old, in parallel | Parity with "Nothing lost"; visual approval |
@@ -166,3 +166,9 @@ Navigation labels, tab labels and routes change only with his explicit yes (CLAU
 ## Screenshots
 
 Taken with Playwright against `npm run dev:test` using the repo's fixtures: `tests/helpers/compassHarness.ts` (`installCompassHarness`, options `customers`, `compassEntries`, `products`, `rates`) for Curate, `tests/helpers/inventoryMocks.ts` (`injectAuth`, `mockInventoryApi`) for Stock and the other rooms, with a catch-all `**/api/**` route registered first. Use `deviceScaleFactor: 2`, 390x844 and 1440x950. The first load after a cold start shows the loader; load once and discard before capturing. These are sample teas, not his data.
+
+**The picture archive.** `scripts/manage-archive/` takes every Manage screen at both sizes and builds the gallery page (its README has the commands; the full run is about an hour, one spec can be run alone). The published archive of the screens as they stood at `936bf53` is **Teajia Manage Archive**: https://claude.ai/artifact/SMFTKV9A6sWnd3GmEfWUKx (351 pictures, 177 screens, 12 rooms). It is the reference for "what it looked like before"; a before and after picture for wave 3 onward should reuse the same script and fixtures so the two are comparable.
+
+Known gaps in the archive (not reached with the sample data): Purchases Arrived and Services; on the phone, Stock's Edit table, Add new tea, Glossary menu item and selection bar; the menu on each Sales order card; adding a tea and tapping a row in Curate v2 on the laptop; a guest's own tasting screens, `/s/:sampleId`, `/t/:token` and the public event pages; the Tea Masters editor, the add-person form, later tabs in a Stock tea's panel. Samples and the journal show empty.
+
+Seen while capturing, not yet checked as defects: `/admin/compass/v2?tab=vendors` opens Today (the Vendors tab has no link); on the phone, "Edit details" and "Add information" on an old Curate tea open the same sheet; the tasting header cuts long tea names on the phone; on the phone, selecting Stock rows opens the name editor and no selection bar.
