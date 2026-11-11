@@ -9,6 +9,7 @@ import { LibraryCurrencyPicker } from './LibraryCurrencyPicker';
 import { sharedStockRecordId } from '../../lib/sharedTeaRecord';
 import { BrowseCard } from './BrowseCard';
 import { TastingSession } from '../tasting/TastingSession';
+import { saveCurateTasting } from '../../lib/curateTastingSave';
 import { LibrarySupplierActions } from './LibrarySupplierActions';
 import { librarySupplierGroups, libraryEntryChosen, libraryEntryRejected } from './librarySupplierGroups';
 import { useRates, useCustomers } from '../../admin/hooks/useAdminData';
@@ -734,7 +735,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         item={{ id: activeTasting.id, name: activeTasting.name, type: activeTasting.type, image: activeTasting.photos?.[0], sourceType: 'compass', compassEntryId: activeTasting.id }}
         initialData={activeTasting.tasting ?? activeTasting.tastingHistory?.at(-1)?.data}
         onClose={() => setActiveTastingId(null)}
-        onAfterSave={(data, verdict) => useTeaCompassStore.getState().updateEntry(activeTasting.id, { tasting: data, ...(verdict ? { verdict } : {}) })}
+        onAfterSave={(data, verdict) => saveCurateTasting(activeTasting.id, data, verdict, { history: 'none' })}
       />}
       {/* Batch tasting review, full-screen triage of untriaged tastings */}
       {reviewOpen && (

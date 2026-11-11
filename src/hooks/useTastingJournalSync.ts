@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useAppStore } from '../lib/store';
-import { hydrateTastingJournal, syncTastingJournal } from '../lib/tastingJournalSync';
+import { hydrateTastingJournal, retryPendingJournalSync, syncTastingJournal } from '../lib/tastingJournalSync';
 import { hasToken } from '../lib/api';
 
 /**
@@ -8,6 +8,8 @@ import { hasToken } from '../lib/api';
  *
  * - On login: pulls server entries and merges with local (local unsynced wins).
  * - When journal changes while authenticated: debounces 2s then pushes unsynced entries.
+ * - A push that failed is tried again when the browser comes back online and
+ *   when the tab regains focus.
  * - Unauthenticated users keep localStorage only.
  */
 export function useTastingJournalSync(isAuthenticated: boolean) {
@@ -46,4 +48,20 @@ export function useTastingJournalSync(isAuthenticated: boolean) {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [tastingJournal, isAuthenticated]);
+
+  // Retry a failed push on reconnect and on focus. Guests have no listener,
+  // and the retry itself also refuses without a token.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const retry = () => { retryPendingJournalSync().catch(() => {}); };
+    const onVisible = () => { if (document.visibilityState === 'visible') retry(); };
+    window.addEventListener('online', retry);
+    window.addEventListener('focus', retry);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('online', retry);
+      window.removeEventListener('focus', retry);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [isAuthenticated]);
 }

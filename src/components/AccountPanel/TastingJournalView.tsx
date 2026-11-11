@@ -8,6 +8,7 @@ import { entryEvent } from '../../lib/tastingAccessors';
 import { TastingSession, type TastingItem } from '../tasting/TastingSession';
 import type { CustomerTasting } from '../../types';
 import { ListShell } from './primitives';
+import { journalEntryCurateTeaIdHere, saveCurateTasting } from '../../lib/curateTastingSave';
 
 interface TastingJournalViewProps {
   onBack: () => void;
@@ -244,12 +245,18 @@ const EntryDetail: React.FC<{
       {/* Actions footer */}
       <div className="mt-8 pt-4 border-t border-tea-border flex items-center gap-5 text-ui-13">
         <button
-          onClick={() => setTastingItem({
-            id: entry.productId,
-            name: entry.productName,
-            type: entry.productType,
-            image: entry.productImage,
-          })}
+          onClick={() => {
+            // A Curate tea's journal entry carries the tea's id into the tasting,
+            // so the save updates the tea as every Curate door does.
+            const compassEntryId = journalEntryCurateTeaIdHere(entry);
+            setTastingItem({
+              id: entry.productId,
+              name: entry.productName,
+              type: entry.productType,
+              image: entry.productImage,
+              ...(compassEntryId ? { compassEntryId } : {}),
+            });
+          }}
           className="text-tea-text-sec hover:text-tea-text transition-colors"
         >
           Open tasting
@@ -276,6 +283,9 @@ const EntryDetail: React.FC<{
           <TastingSession
             item={tastingItem}
             onClose={() => setTastingItem(null)}
+            onAfterSave={(data, verdict) => {
+              if (tastingItem.compassEntryId) saveCurateTasting(tastingItem.compassEntryId, data, verdict, { history: 'none' });
+            }}
           />
         )}
       </AnimatePresence>

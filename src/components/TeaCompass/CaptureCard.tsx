@@ -30,6 +30,7 @@ import { NoteThread } from '../shared/NoteThread';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
 import { TastingSession } from '../tasting/TastingSession';
+import { saveCurateTasting } from '../../lib/curateTastingSave';
 import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
 import { parseTeaInput } from './InputParser';
 import { PhotoCapture } from './PhotoCapture';
@@ -819,9 +820,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             }}
             initialData={entry.tasting ?? entry.tastingHistory?.at(-1)?.data}
             onClose={() => setTastingOverlayOpen(false)}
-            onAfterSave={(data: TastingData) => {
+            onAfterSave={(data: TastingData, verdict) => {
               setLocalTasting(data);
-              updateEntry(entryId, { tasting: data });
+              saveCurateTasting(entryId, data, verdict, { history: 'none' });
             }}
           />
         )}
@@ -2181,9 +2182,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             }}
             initialData={entry.tasting ?? entry.tastingHistory?.at(-1)?.data}
             onClose={closeTastingOverlay}
-            onAfterSave={(data: TastingData) => {
+            onAfterSave={(data: TastingData, verdict) => {
               setLocalTasting(data);
-              update({ tasting: data });
+              saveCurateTasting(entryId, data, verdict, { history: 'none' });
             }}
           />
         )}

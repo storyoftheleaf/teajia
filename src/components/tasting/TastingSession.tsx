@@ -27,6 +27,7 @@ import { useScrollLock } from '../../hooks/useScrollLock';
 import { useVoiceCapture } from '../../hooks/useVoiceCapture';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useAuth } from '../../hooks/useAuth';
+import { discardReviewDraft, emptyReviewDraft, startReviewDraft, submitReviewDraft, type ReviewDraft } from './reviewDraft';
 
 export interface TastingItem {
   id: string;
@@ -220,8 +221,9 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
 
   // Live draft review (admin + teaKey only): Mode 3 async collaborative tasting
-  const draftReviewIdRef = useRef<string | null>(null);
-  const isCreatingDraftRef = useRef(false);
+  const draftReviewRef = useRef<ReviewDraft>(emptyReviewDraft());
+  // What the last successful store of this tasting held (see handleSave).
+  const storedSaveKeyRef = useRef<string | null>(null);
   const draftDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedStateRef = useRef(saveState);
   useEffect(() => { savedStateRef.current = saveState; }, [saveState]);
@@ -286,8 +288,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   // Cleanup draft on unmount if session was abandoned (not saved)
   useEffect(() => {
     return () => {
-      if (draftReviewIdRef.current && savedStateRef.current !== 'saved') {
-        api.teaReviews.remove(draftReviewIdRef.current).catch(() => {});
+      if (savedStateRef.current !== 'saved') {
+        discardReviewDraft(draftReviewRef.current, id => api.teaReviews.remove(id));
       }
       if (draftDebounceRef.current) clearTimeout(draftDebounceRef.current);
     };
@@ -298,26 +300,22 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     setTastingData(data);
     if (previewOnly || (!adminMode && !writeDraftReview) || !item.teaKey) return;
 
-    if (!draftReviewIdRef.current && !isCreatingDraftRef.current) {
-      isCreatingDraftRef.current = true;
-      api.teaReviews.create({
-        tea_key: item.teaKey,
+    const draft = draftReviewRef.current;
+    const teaKey = item.teaKey;
+    if (!draft.id && !draft.creating) {
+      startReviewDraft(draft, () => api.teaReviews.create({
+        tea_key: teaKey,
         source_sample_id: item.sourceSampleId,
         tasting: data as Record<string, unknown>,
         voice_notes: notesAsStrings(data),
         status: 'draft',
         visibility: 'network',
-      }).then((review: any) => {
-        draftReviewIdRef.current = review.id;
-        isCreatingDraftRef.current = false;
-      }).catch(() => {
-        isCreatingDraftRef.current = false;
-      });
-    } else if (draftReviewIdRef.current) {
+      }));
+    } else if (draft.id) {
       if (draftDebounceRef.current) clearTimeout(draftDebounceRef.current);
       draftDebounceRef.current = setTimeout(() => {
-        if (draftReviewIdRef.current) {
-          api.teaReviews.update(draftReviewIdRef.current, {
+        if (draft.id) {
+          api.teaReviews.update(draft.id, {
             tasting: data as Record<string, unknown>,
             voice_notes: notesAsStrings(data),
           }).catch(() => {});
@@ -384,80 +382,88 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     setSaveState('saving');
 
     try {
-      // Submit draft review if one was created during this session
-      if (draftReviewIdRef.current) {
-        if (draftDebounceRef.current) clearTimeout(draftDebounceRef.current);
-        api.teaReviews.update(draftReviewIdRef.current, {
-          tasting: tastingData as Record<string, unknown>,
-          voice_notes: notesAsStrings(tastingData),
-          status: 'submitted',
-        }).catch(() => {});
-        draftReviewIdRef.current = null; // prevent cleanup on unmount from deleting it
-      }
-
-      // Admin saves go to the product record. The personal journal write below
-      // also runs for admins, because the admin is also a customer of their
-      // own platform: tasting a tea should appear in the journal regardless of
-      // whether the tasting also updated the product profile.
-      if (adminMode && onSave) {
-        await onSave(tastingData, verdict ?? undefined, wouldBuy);
-      }
-      const journaled = hasJournalItemId(item.id);
-      if (journaled && tastingData.inCollection != null && favoriteTeas.includes(item.id) !== tastingData.inCollection) {
-        toggleFavoriteTea(item.id);
-      }
-
-      {
-        // Customer flow (also runs for admin): upsert by productId. If an
-        // entry exists for this tea, edits the note in place. If this is a
-        // fresh-tasting flow (item carries a freshReason), appends a new
-        // TastingRecord instead.
-        const recordId = crypto.randomUUID();
-        const record = {
-          id: recordId,
-          createdAt: new Date().toISOString(),
-          tasting: tastingData,
-          reason: isFreshTasting ? freshReason.trim() : undefined,
-          sourceType: item.sourceType,
-          eventId: item.eventId,
-          eventTitle: item.eventTitle,
-        };
-        const noteUpdates = {
-          personalNote: tastingNoteText(tastingData) || tastingData.voiceNote?.trim() || undefined,
-          rating: tastingData.quality ?? tastingData.rating,
-          verdict: verdict ?? undefined,
-          wouldBuy: wouldBuy,
-        };
-        // A tasting with no real item id (a product still being created) has no
-        // journal entry to join, so it is handed to the caller only.
-        const entryId = journaled ? upsertTastingByProductId(
-          item.id,
-          item.name,
-          item.type || '',
-          item.image,
-          record,
-          noteUpdates,
-          activeAccountId ?? undefined,
-        ) : null;
-        if (entryId) setSavedEntryId(entryId);
-        // Inject tasting artifact into the shared note thread
-        if (entryId && (item.compassEntryId || item.teaKey)) {
-          injectTastingNote({
-            teaKey: item.teaKey,
-            compassEntryId: item.compassEntryId,
-            tastingId: entryId,
-            tastingData,
-            authorId: activeUserId ?? 'guest',
-            authorName: activeAccount?.name ?? 'You',
-            accountId: activeAccountId ?? 'guest',
-          });
+      if (draftDebounceRef.current) clearTimeout(draftDebounceRef.current);
+      // The tasting itself is stored first, and once per distinct save: a
+      // Retry after only the review submit failed must not write the journal
+      // a second time (a fresh tasting would be appended twice).
+      const saveKey = JSON.stringify([tastingData, verdict ?? null, wouldBuy ?? null, freshReason.trim()]);
+      if (storedSaveKeyRef.current !== saveKey) {
+        // Admin saves go to the product record. The personal journal write below
+        // also runs for admins, because the admin is also a customer of their
+        // own platform: tasting a tea should appear in the journal regardless of
+        // whether the tasting also updated the product profile.
+        if (adminMode && onSave) {
+          await onSave(tastingData, verdict ?? undefined, wouldBuy);
         }
-        // Domain side effect (e.g. update compass store entry, sample store)
-        // Pass verdict + wouldBuy so sourcing callers (SamplePage) can persist them
-        onAfterSave?.(tastingData, verdict ?? undefined, wouldBuy);
-        // Fire-and-forget sync to server
-        if (journaled) syncTastingJournal().catch(() => {});
+        const journaled = hasJournalItemId(item.id);
+        if (journaled && tastingData.inCollection != null && favoriteTeas.includes(item.id) !== tastingData.inCollection) {
+          toggleFavoriteTea(item.id);
+        }
+
+        {
+          // Customer flow (also runs for admin): upsert by productId. If an
+          // entry exists for this tea, edits the note in place. If this is a
+          // fresh-tasting flow (item carries a freshReason), appends a new
+          // TastingRecord instead.
+          const recordId = crypto.randomUUID();
+          const record = {
+            id: recordId,
+            createdAt: new Date().toISOString(),
+            tasting: tastingData,
+            reason: isFreshTasting ? freshReason.trim() : undefined,
+            sourceType: item.sourceType,
+            eventId: item.eventId,
+            eventTitle: item.eventTitle,
+          };
+          const noteUpdates = {
+            personalNote: tastingNoteText(tastingData) || tastingData.voiceNote?.trim() || undefined,
+            rating: tastingData.quality ?? tastingData.rating,
+            verdict: verdict ?? undefined,
+            wouldBuy: wouldBuy,
+          };
+          // A tasting with no real item id (a product still being created) has no
+          // journal entry to join, so it is handed to the caller only.
+          const entryId = journaled ? upsertTastingByProductId(
+            item.id,
+            item.name,
+            item.type || '',
+            item.image,
+            record,
+            noteUpdates,
+            activeAccountId ?? undefined,
+          ) : null;
+          if (entryId) setSavedEntryId(entryId);
+          // Inject tasting artifact into the shared note thread
+          if (entryId && (item.compassEntryId || item.teaKey)) {
+            injectTastingNote({
+              teaKey: item.teaKey,
+              compassEntryId: item.compassEntryId,
+              tastingId: entryId,
+              tastingData,
+              authorId: activeUserId ?? 'guest',
+              authorName: activeAccount?.name ?? 'You',
+              accountId: activeAccountId ?? 'guest',
+            });
+          }
+          // Domain side effect (e.g. update compass store entry, sample store)
+          // Pass verdict + wouldBuy so sourcing callers (SamplePage) can persist them
+          onAfterSave?.(tastingData, verdict ?? undefined, wouldBuy);
+          // Fire-and-forget sync to server
+          if (journaled) syncTastingJournal().catch(() => {});
+        }
+        storedSaveKeyRef.current = saveKey;
       }
+
+      // Last, submit the draft review if one was created during this session,
+      // waiting for its create if that is still in flight. It comes after the
+      // tasting is stored so a failed submit can never cost the tasting. A
+      // failed submit throws into the catch below, the same error line and
+      // Retry as any failed save, and keeps the draft so Retry submits it.
+      await submitReviewDraft(draftReviewRef.current, id => api.teaReviews.update(id, {
+        tasting: tastingData as Record<string, unknown>,
+        voice_notes: notesAsStrings(tastingData),
+        status: 'submitted',
+      }));
     } catch {
       setSaveState('error');
       return false;
@@ -630,7 +636,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                       <button
                         type="button"
                         disabled={freshReason.trim().length < 10}
-                        onClick={() => { const fresh = freshTastingState(); setTastingData(fresh.tastingData); setVerdict(fresh.verdict); setWouldBuy(fresh.wouldBuy); setIsContinuing(false); }}
+                        onClick={() => { const fresh = freshTastingState(); storedSaveKeyRef.current = null; setTastingData(fresh.tastingData); setVerdict(fresh.verdict); setWouldBuy(fresh.wouldBuy); setIsContinuing(false); }}
                         className="text-ui-11 text-tea-gold hover:text-tea-gold-lt disabled:text-tea-text-dim disabled:cursor-not-allowed transition-colors"
                         style={{ fontFamily: 'var(--font-body)' }}
                       >

@@ -26,6 +26,7 @@ import { useLedgerStore } from '../../lib/ledgerStore';
 import { useLibraryPurchases, purchaseStateLabel } from '../../lib/libraryPurchaseState';
 import { LibraryReceiptActions } from './LibraryReceiptActions';
 import { TastingSession } from '../tasting/TastingSession';
+import { curateTastingUpdate } from '../../lib/curateTastingSave';
 import type { TastingData } from '../../types';
 import type { CompassVerdict } from './types';
 
@@ -253,6 +254,6 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
       </section>
     </div>
     <BottomSheet open={moreFieldsOpen} onOpenChange={setMoreFieldsOpen} title="Tea details & sourcing"><StructuredTeaFields flat entry={entry} onChange={patch => updateEntry(entry.id, patch)} /></BottomSheet>
-    {tastingOpen && <TastingSession initialData={entry.tasting ?? entry.tastingHistory?.at(-1)?.data} item={{ id: entry.id, name: entry.name, type: entry.type, image: validPhotos[0], sourceType: 'compass', compassEntryId: entry.id }} onClose={() => setTastingOpen(false)} onAfterSave={(data: TastingData, verdict?: CompassVerdict) => updateEntry(entry.id, { tasting: data, ...(verdict ? { verdict } : {}) })} />}
+    {tastingOpen && <TastingSession initialData={entry.tasting ?? entry.tastingHistory?.at(-1)?.data} item={{ id: entry.id, name: entry.name, type: entry.type, image: validPhotos[0], sourceType: 'compass', compassEntryId: entry.id }} onClose={() => setTastingOpen(false)} onAfterSave={(data: TastingData, verdict?: CompassVerdict) => updateEntry(entry.id, curateTastingUpdate(useTeaCompassStore.getState().getEntry(entry.id) ?? entry, data, verdict, { history: 'none' }))} />}
   </div>;
 };

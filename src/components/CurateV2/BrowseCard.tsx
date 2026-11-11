@@ -21,6 +21,7 @@ import { TastingSession } from '../tasting/TastingSession';
 import type { TastingData } from '../../types';
 import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
 import { tastingToOpenWith } from '../tasting/tastingOpenData';
+import { saveCurateTasting } from '../../lib/curateTastingSave';
 import { compressImage } from '../../lib/imageCompressor';
 import type { TeaCompassEntry } from './types';
 import { LIQUOR_COLORS } from '../../data/tastingTaxonomy';
@@ -696,20 +697,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             onClose={() => { setTastingOpen(false); void useSampleUse.getState().finish(entry.id); }}
             onAfterSave={(data: TastingData, sessionVerdict?: CompassVerdict) => {
               useSampleUse.getState().markAnswered(entry.id);
-              const existingHistory = entry.tastingHistory || [];
-              const today = new Date().toDateString();
-              const lastEntry = existingHistory[existingHistory.length - 1];
-              const lastWasToday = lastEntry && new Date(lastEntry.date).toDateString() === today;
-              const history = lastWasToday
-                ? [...existingHistory.slice(0, -1), { data, date: new Date().toISOString() }]
-                : [...existingHistory, { data, date: new Date().toISOString() }];
-              updateEntry(entry.id, {
-                tasting: data,
-                tastingHistory: history,
-                // Only overwrite verdict if the session captured one, otherwise
-                // leave it for later triage in the batch review.
-                ...(sessionVerdict ? { verdict: sessionVerdict } : {}),
-              });
+              saveCurateTasting(entry.id, data, sessionVerdict, { history: 'same-day' });
             }}
           />
         )}

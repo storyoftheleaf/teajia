@@ -15,6 +15,7 @@ import { LibraryGivenName } from './LibraryGivenName';
 import { LibraryInlineValue } from './LibraryInlineValue';
 import { libraryCardAmounts, libraryChosen, libraryIdentity, libraryInlinePatch, type LibraryInlineField } from './libraryCardWorkflow';
 import { TastingSession } from '../tasting/TastingSession';
+import { saveCurateTasting } from '../../lib/curateTastingSave';
 import type { TastingData } from '../../types';
 import type { CompassVerdict, TeaCompassEntry } from './types';
 import { entryHasBeenTasted } from './types';
@@ -229,12 +230,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
             initialData={entry.tasting ?? entry.tastingHistory?.at(-1)?.data}
             onClose={() => setTastingOpen(false)}
             onAfterSave={(data: TastingData, sessionVerdict?: CompassVerdict) => {
-              updateEntry(entry.id, {
-                tasting: data,
-                // Only overwrite verdict if the session captured one, otherwise
-                // leave it for later triage in the batch review.
-                ...(sessionVerdict ? { verdict: sessionVerdict } : {}),
-              });
+              saveCurateTasting(entry.id, data, sessionVerdict, { history: 'none' });
             }}
           />
         )}

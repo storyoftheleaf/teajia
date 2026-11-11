@@ -41,6 +41,15 @@ None of the six can be entered, changed or removed in the live flow today.
 
 **Landed on the working branch 2026-11-11 (invisible, tests only):** T1, T4, T5, T8, T9, T10, T15, T16. T10 needed the server too: a repeated tasting id now updates the row for the same author, and a guest proves authorship with an edit key computed under a key derived from the worker's secret, never the secret itself (see `worker/src/sampleTastingRepeat.ts` for why).
 
+**Second batch, same day:** T6, T7 (the retry only, no new wording), T12, T22, T24, and T23/T40 in part.
+- T6: another tab's journal is joined into this tab (`src/lib/tastingJournalTabs.ts`); after joining, the other tab's stored cart and settings are put back so this tab's older copy does not replace them.
+- T7: a waiting journal push is retried when the browser comes back online and when the tab regains focus (`src/lib/tastingJournalRetry.ts`). Also fixed on the way: an entry edited while a push was in flight was marked as sent; it now stays waiting.
+- T12: the admin review draft is submitted only after its create has finished, and a failed submit shows the existing "Could not save" line with Retry. The tasting itself is stored first, so a failed review submit cannot cost the tasting, and Retry does not write the journal a second time.
+- T22, T24, T23/T40: every Curate door and the account journal now save through `src/lib/curateTastingSave.ts`. The chosen impression reaches the tea's verdict from every door; taking the impression back clears it. A journal entry reopened from the account panel updates its Curate tea. The v2 tea form now opens a tea that has only history with that history (same fix as T1).
+- **T23 is not finished: the history rule is still per door** (v2 card and v2 tea form replace today's record, v2 detail panel always appends, old Curate and the journal write no history). Neither rule keeps everything the other keeps, so it waits for Adrian (question 8 below). After his answer it is one word per door in the `history:` option.
+- Known edge, left as is: taking back an impression clears the tea's verdict even when that verdict was given in triage and not in this tasting.
+- Noticed, not touched: after a save, a further edit in the same opening starts a second review draft.
+
 Kind: **I** invisible, **S** small visible, **R** real change.
 
 ### 1. Anything entered that can be lost
@@ -121,6 +130,8 @@ The dismiss handler (T2), back and refresh (T3), the 100 cap (T4), `tastingJourn
 5. **Gold borders at rest.** CLAUDE.md says gold only on focus, hover or active; `docs/COLOR_RULES.md` line 102 allows a faint gold border. Which rule?
 6. **Admin tastings in the personal journal.** Every admin profile edit also writes the personal journal. Keep, or only for personal tastings?
 7. **Tea type hint.** The tea's type was meant to suggest likely flavour families (never preselect) and is ignored. Wanted, or drop it?
+
+8. **How should a tea's tasting history count a day?** Today it depends on which screen you taste from: two screens keep one record per day (a second tasting the same day replaces the first), one adds a record on every Save, and the older screens keep no history. Recommended: one record each time you open the tasting and save, however many times you press Save inside it, so two real tastings in a day are both kept and nothing is duplicated.
 
 ## Leave exactly alone
 

@@ -146,7 +146,7 @@ Navigation labels, tab labels and routes change only with his explicit yes (CLAU
 | Wave | What | Needs Adrian? |
 | --- | --- | --- |
 | 1 | 17 invisible fixes | Done |
-| 2 | Picture archive of every screen as it is, incl. the tasting flow (done: https://claude.ai/artifact/SMFTKV9A6sWnd3GmEfWUKx). Tasting line-by-line pass (done). Stale-browser sync fix (done) and merge re-point (done). Drift guards (done). Eight invisible tasting fixes (done). | No |
+| 2 | Picture archive of every screen as it is, incl. the tasting flow (done: https://claude.ai/artifact/SMFTKV9A6sWnd3GmEfWUKx). Tasting line-by-line pass (done). Stale-browser sync fix (done) and merge re-point (done). Drift guards (done). Eight invisible tasting fixes (done), then a second batch (T6, T7, T12, T22, T24, T23/T40 in part; see `todo/plans/tasting-tighten.md`). | No |
 | 3 | The 13 open fixes that are visible or change behaviour (every open row above except 4 and 16), each as before and after pictures | Approval of each |
 | 4 | Server bridge (server-owned link everywhere, one product-creation path, field patches with version, one publish command with readiness, order trackable at placement, freight estimate saved, bill shares stored) in parallel with the kit, page shell, tea card and record panel, with Settings and People as reference rooms built as new versions | Answers to the questions; approval of reference rooms |
 | 5 | New Curate and new Stock, as new versions beside the old, in parallel | Parity with "Nothing lost"; visual approval |

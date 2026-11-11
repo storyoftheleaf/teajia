@@ -36,6 +36,8 @@ import { DecisionControl } from './DecisionControl';
 import { CaptureContextChips } from './CaptureContextChips';
 import { CaptureActionFooter } from './CaptureActionFooter';
 import { useSampleUse } from './sampleUse';
+import { saveCurateTasting } from '../../lib/curateTastingSave';
+import { tastingToOpenWith } from '../tasting/tastingOpenData';
 import { curateShelfPreview } from './curatePricing';
 import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
 
@@ -1775,19 +1777,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               compassEntryId: entry.id,
               teaKey: entry.teaKey,
             }}
-            initialData={entry.tasting ?? undefined}
+            initialData={tastingToOpenWith(entry)}
             onClose={closeTastingOverlay}
-            onAfterSave={(data: TastingData) => {
+            onAfterSave={(data: TastingData, verdict) => {
               useSampleUse.getState().markAnswered(entry.id);
               setLocalTasting(data);
-              const existingHistory = entry.tastingHistory || [];
-              const today = new Date().toDateString();
-              const lastEntry = existingHistory[existingHistory.length - 1];
-              const lastWasToday = lastEntry && new Date(lastEntry.date).toDateString() === today;
-              const history = lastWasToday
-                ? [...existingHistory.slice(0, -1), { data, date: new Date().toISOString() }]
-                : [...existingHistory, { data, date: new Date().toISOString() }];
-              update({ tasting: data, tastingHistory: history });
+              saveCurateTasting(entryId, data, verdict, { history: 'same-day' });
             }}
           />
         )}

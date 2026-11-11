@@ -6,6 +6,7 @@ import type { TeaDiscoveryProfile } from '../components/TeaDiscovery/types';
 import { canAddToStoreCart } from './publicCartDomain';
 import { minimumOrderGrams, quoteGrams } from './teaPricing';
 import { capTastingJournal } from './tastingJournalCap';
+import { listenForOtherTabJournal } from './tastingJournalTabs';
 
 /**
  * What one cart line costs.
@@ -326,6 +327,9 @@ const scopedStateReset = () => ({
   upcomingEventsCount: 0,
   cartLastAddedAt: null,
 });
+
+/** The localStorage key the store persists under. */
+const APP_STORAGE_KEY = 'teajia-storage';
 
 const createdAppStore = create<AppState>()(
   persist(
@@ -752,7 +756,7 @@ const createdAppStore = create<AppState>()(
       setProductOverlayOpen: (open) => set({ productOverlayOpen: open }),
     }),
     {
-      name: 'teajia-storage',
+      name: APP_STORAGE_KEY,
       merge: (persisted, current) => {
         const saved = persisted as Partial<AppState> | undefined;
         return { ...current, ...saved, hasCurrencyPreference: !!saved?.currency };
@@ -906,3 +910,15 @@ type UseAppStoreHandle = typeof createdAppStore;
 const useAppStoreScope = globalThis as unknown as Record<string, UseAppStoreHandle | undefined>;
 export const useAppStore: UseAppStoreHandle =
   useAppStoreScope[USEAPPSTORE_KEY] ?? (useAppStoreScope[USEAPPSTORE_KEY] = createdAppStore);
+
+/**
+ * Another tab writing the stored journal is joined into this tab's journal
+ * (only the journal), so neither tab erases the other's tastings on its next
+ * write. Once per page, like the store itself.
+ */
+const TAB_JOURNAL_LISTENER_KEY = '__teajia_tabJournalListener';
+const tabJournalScope = globalThis as unknown as Record<string, boolean | undefined>;
+if (!tabJournalScope[TAB_JOURNAL_LISTENER_KEY]) {
+  tabJournalScope[TAB_JOURNAL_LISTENER_KEY] = true;
+  listenForOtherTabJournal(useAppStore, APP_STORAGE_KEY);
+}
