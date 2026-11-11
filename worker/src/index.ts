@@ -16040,8 +16040,11 @@ const handleDeleteCompassEntry: Handler = async (request, env, params) => {
 // Idempotent: if the entry already has draft_product_id set, returns the existing product.
 
 
+// Promotion creates a product, so it carries the product-create gate (catalog),
+// as do the receipt proposal's own edit and reject routes below. The entry
+// list/create/update/delete stay open to members: private notes are theirs.
 const handlePromoteCompassEntry: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
 
@@ -16082,7 +16085,7 @@ function purposeConflict(product: Record<string, any> | null, intendedPurpose: s
 }
 
 const handleCreateReceiptProposal: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const manager = await canManageCurate(env, ctx.accountId, ctx.userId);
   const entry = await env.DB.prepare(
