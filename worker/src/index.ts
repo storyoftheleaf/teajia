@@ -15882,15 +15882,23 @@ function decodeCompassWrite(body: Record<string, unknown>, rejectUnknown: boolea
 // it on every sync (often null, often stale), so it is not refused: a client
 // write keeps the stored link unless it sends that same link, or a product of
 // this account that was made from this entry. Server doors set it directly.
-async function keepServerDraftProductLink(env: Env, accountId: string, entryId: string, values: Partial<Record<CompassColumn, unknown>>, existing?: Record<string, unknown> | null) {
+//
+// One more case is allowed: someone who may already edit the catalogue gives a
+// tea that has no link yet its first one, to a product of this account that no
+// Curate tea was made into. That is "Develop in Curate" from Stock, which
+// starts a Curate record for a tea already on the shelf. It grants nothing new,
+// because that person can rename the product anyway, and it cannot replace a
+// stored link, so a stale browser still changes nothing.
+async function keepServerDraftProductLink(env: Env, accountId: string, entryId: string, values: Partial<Record<CompassColumn, unknown>>, existing: Record<string, unknown> | null | undefined, mayEditCatalog: boolean) {
   if (values.draft_product_id === undefined) return;
   const stored = (existing?.draft_product_id as string | null | undefined) ?? null;
   const incoming = values.draft_product_id;
   if (incoming === stored) return;
   if (typeof incoming === 'string' && incoming) {
-    const own = await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ? AND source_compass_entry_id = ?')
-      .bind(incoming, accountId, entryId).first();
-    if (own) return;
+    const product = await env.DB.prepare('SELECT source_compass_entry_id FROM products WHERE id = ? AND account_id = ?')
+      .bind(incoming, accountId).first<{ source_compass_entry_id: string | null }>();
+    if (product && product.source_compass_entry_id === entryId) return;
+    if (product && mayEditCatalog && stored === null && product.source_compass_entry_id == null) return;
   }
   values.draft_product_id = stored;
 }
@@ -15965,7 +15973,7 @@ const handleCreateCompassEntry: Handler = async (request, env) => {
   if (contextError) return contextError;
   const id = typeof body.id === 'string' && body.id ? body.id : crypto.randomUUID();
   if (await env.DB.prepare('SELECT id FROM tea_compass_entries WHERE id = ?').bind(id).first()) return json({ error: 'Compass entry id already exists; use update or sync' }, 409);
-  await keepServerDraftProductLink(env, accountId, id, decoded.values, null);
+  await keepServerDraftProductLink(env, accountId, id, decoded.values, null, ctx.bundles.includes('catalog'));
   const entry = { ...(manager ? { price_amount: null, price_currency: null, price_per_unit_grams: null } : {}), ...decoded.values, id, user_id: userId, account_id: accountId };
   try {
     if (manager) {
@@ -15996,7 +16004,7 @@ const handleUpdateCompassEntry: Handler = async (request, env, params, execCtx) 
   if (!existingContext) return json({ error: 'Compass entry not found' }, 404);
   const contextError = await validateCompassContext(env, accountId, decoded.values, existingContext);
   if (contextError) return contextError;
-  await keepServerDraftProductLink(env, accountId, params.id, decoded.values, existingContext);
+  await keepServerDraftProductLink(env, accountId, params.id, decoded.values, existingContext, ctx.bundles.includes('catalog'));
   const cols = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
@@ -16092,8 +16100,14 @@ function purposeConflict(product: Record<string, any> | null, intendedPurpose: s
 }
 
 const handleCreateReceiptProposal: Handler = async (request, env, params) => {
-  const ctx = await requireBundle(request, env, 'catalog');
+  // Proposing an arrival belongs to whoever places the shop's orders (stock) or
+  // keeps its catalogue (catalog). Placing a purchase order already needs
+  // stock, and it proposes one arrival per tea, so stock alone must be enough.
+  const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
+  if (!ctx.bundles.includes('stock') && !ctx.bundles.includes('catalog')) {
+    return restError(403, 'Proposing an arrival needs the stock or catalog permission', 'insufficient_bundle', { required_bundle: 'stock' });
+  }
   const manager = await canManageCurate(env, ctx.accountId, ctx.userId);
   const entry = await env.DB.prepare(
     'SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ? AND (user_id = ? OR ? = 1) AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL'
@@ -16801,7 +16815,7 @@ const handleSyncCompassEntries: Handler = async (request, env, _params, execCtx)
     }
     const contextError = await validateCompassContext(env, accountId, decoded.values, owner);
     if (contextError) return contextError;
-    await keepServerDraftProductLink(env, accountId, entry.id, decoded.values, owner);
+    await keepServerDraftProductLink(env, accountId, entry.id, decoded.values, owner, ctx.bundles.includes('catalog'));
     priorEntries.set(String(entry.id),owner);
     const entryOwner = owner?.user_id ?? userId;
     const now = new Date().toISOString();

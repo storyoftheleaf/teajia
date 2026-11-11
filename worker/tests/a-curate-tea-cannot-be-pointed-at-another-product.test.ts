@@ -88,4 +88,20 @@ describe('a Curate tea cannot be pointed at another product by a client', () => 
     expect(response.status).toBe(200);
     expect(link(db, 'mine')).toBe('holding');
   });
+
+  it('lets someone who may edit the catalogue start a Curate record for a tea already on the shelf', async () => {
+    const db = seed();
+    // "Develop in Curate" from Stock: a new entry, first link, to a product no Curate tea was made into.
+    const response = await call(db, 'owner', 'POST', '/api/compass/sync', { entries: [{ id: 'developed', name: 'Shop tea', draft_product_id: 'victim' }] });
+    expect(response.status).toBe(200);
+    expect(link(db, 'developed')).toBe('victim');
+  });
+
+  it('does not let that first link take a product another Curate tea was made into', async () => {
+    const db = seed();
+    db.sqlite.exec("UPDATE products SET source_compass_entry_id = 'linked' WHERE id = 'holding'");
+    const response = await call(db, 'owner', 'POST', '/api/compass/sync', { entries: [{ id: 'developed', name: 'Mine', draft_product_id: 'holding' }] });
+    expect(response.status).toBe(200);
+    expect(link(db, 'developed')).toBeNull();
+  });
 });

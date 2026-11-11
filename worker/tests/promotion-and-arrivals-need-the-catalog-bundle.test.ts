@@ -20,9 +20,11 @@ function seed() {
   seedIdentity(db, { userId: 'owner', accountId: ACCOUNT, role: 'owner' });
   seedIdentity(db, { userId: 'gatherer', accountId: ACCOUNT, role: 'staff', bundles: ['gather'] });
   seedIdentity(db, { userId: 'cataloguer', accountId: ACCOUNT, role: 'staff', bundles: ['catalog'] });
+  seedIdentity(db, { userId: 'buyer', accountId: ACCOUNT, role: 'staff', bundles: ['stock'] });
   db.sqlite.exec(`INSERT INTO tea_compass_entries (id, account_id, user_id, name, type, photos) VALUES
     ('gatherer-tea', '${ACCOUNT}', 'gatherer', 'Gathered', 'Oolong', '[]'),
-    ('cataloguer-tea', '${ACCOUNT}', 'cataloguer', 'Catalogued', 'Oolong', '[]')`);
+    ('cataloguer-tea', '${ACCOUNT}', 'cataloguer', 'Catalogued', 'Oolong', '[]'),
+    ('buyer-tea', '${ACCOUNT}', 'buyer', 'Bought', 'Oolong', '[]')`);
   return db;
 }
 
@@ -51,6 +53,14 @@ describe('promotion and arrival proposals need the catalog bundle', () => {
     const response = await call(db, 'gatherer', 'POST', '/api/compass/entries/gatherer-tea/receipt-proposals', arrival);
     expect(response.status).toBe(403);
     expect(count(db, 'curate_receipt_proposals')).toBe(0);
+  });
+
+  it('a member who places orders (stock) can propose an arrival, but not make a product', async () => {
+    const db = seed();
+    // Placing a purchase order needs stock and proposes one arrival per tea.
+    expect((await call(db, 'buyer', 'POST', '/api/compass/entries/buyer-tea/receipt-proposals', arrival)).status).toBe(201);
+    expect((await call(db, 'buyer', 'POST', '/api/compass/entries/buyer-tea/promote')).status).toBe(403);
+    expect(count(db, 'products')).toBe(0);
   });
 
   it('a member with catalog can still do both on their own tea', async () => {
