@@ -678,7 +678,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
             >
               <Link size={10} className="shrink-0" />
               <a
-                href={`/admin/people?customer=${linkedCustomerId}`}
+                href={`/admin/people/${linkedCustomerId}`}
                 className="tap-target min-h-11 flex flex-1 items-center truncate hover:text-tea-text-sec transition-colors"
                 target="_blank"
                 rel="noopener noreferrer"
