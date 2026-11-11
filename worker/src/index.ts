@@ -34,6 +34,7 @@ import { prepareCompassSampleWrite, prepareSampleLifecycleSync, compassStateForS
 import { receiptProductDetails } from './curateReceiptProduct';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { compassFieldPatch, readCompassFieldHints } from './compassFieldPatch';
+import { receiptHoldingTeaId } from './curateMergeLink';
 import { shippingPerGramUsd, resolveShopFreightDefault } from './shippingRate';
 import { deductStockForPaidInvoice } from './orderLifecycle';
 import { internationalWhatsAppNumber } from '../../src/lib/whatsappContact';
@@ -16233,6 +16234,9 @@ async function acceptCurateReceipt(env: Env, ctx: { accountId: string; userId: s
     return json({ proposal, product_id: proposal.product_id, ledger_id: proposal.ledger_id, alreadyAccepted: true });
   }
   if (proposal.status !== 'pending') return json({ error: 'Rejected receipt cannot be accepted' }, 409);
+  // The tea whose product receives this: the arrival's own, or, once that tea
+  // was merged away and its product moved, the survivor (curateMergeLink.ts).
+  const holdingTeaId = proposal.compass_entry_id ? await receiptHoldingTeaId(env.DB, ctx.accountId, String(proposal.compass_entry_id)) : null;
   let decoded;
   try { decoded = decodeReceiptProposal(proposal); }
   catch (error) { return json({ error: (error as Error).message }, 400); }
@@ -16241,7 +16245,7 @@ async function acceptCurateReceipt(env: Env, ctx: { accountId: string; userId: s
   if (linkedOrderId) {
     const order = await env.DB.prepare('SELECT receipt_id FROM purchase_orders WHERE id=? AND account_id=?').bind(linkedOrderId,ctx.accountId).first() as any;
     if(order?.receipt_id){
-      const matches = await env.DB.prepare(`SELECT l.* FROM inventory_receipt_lines l JOIN products p ON p.id=l.product_id AND p.account_id=l.account_id WHERE l.receipt_id=? AND l.account_id=? AND (l.product_id=? OR p.source_compass_entry_id=?)`).bind(order.receipt_id,ctx.accountId,proposal.product_id??'',proposal.compass_entry_id??'').all<any>();
+      const matches = await env.DB.prepare(`SELECT l.* FROM inventory_receipt_lines l JOIN products p ON p.id=l.product_id AND p.account_id=l.account_id WHERE l.receipt_id=? AND l.account_id=? AND (l.product_id=? OR p.source_compass_entry_id=?)`).bind(order.receipt_id,ctx.accountId,proposal.product_id??'',holdingTeaId??'').all<any>();
       if(matches.results.length!==1)return json({error:'Match the legacy arrival to its purchase item before receiving'},409);
       const target=matches.results[0];
       if(Number(target.expected_quantity)!==decoded.quantity||target.unit!==decoded.unit)return json({error:'Purchase quantities changed. Record explicit arrival quantities on the delivery.'},409);
@@ -16270,8 +16274,8 @@ async function acceptCurateReceipt(env: Env, ctx: { accountId: string; userId: s
   // than duplicated, and every guard below runs against it.
   const existingProduct = proposal.product_id
     ? await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(proposal.product_id, ctx.accountId).first() as Record<string, any> | null
-    : proposal.compass_entry_id
-      ? await env.DB.prepare('SELECT * FROM products WHERE account_id = ? AND source_compass_entry_id = ?').bind(ctx.accountId, proposal.compass_entry_id).first() as Record<string, any> | null
+    : holdingTeaId
+      ? await env.DB.prepare('SELECT * FROM products WHERE account_id = ? AND source_compass_entry_id = ?').bind(ctx.accountId, holdingTeaId).first() as Record<string, any> | null
       : null;
   if (proposal.product_id && !existingProduct) return json({ error: 'Linked product not found' }, 404);
   if(existingProduct&&decoded.unit!==(existingProduct.type==='Teaware'?'unit':'g'))return json({error:'Receipt unit does not match the holding'},400);
@@ -16284,11 +16288,11 @@ async function acceptCurateReceipt(env: Env, ctx: { accountId: string; userId: s
   if (existingProduct) {
     // Promotion may have created an empty, unpriced draft before the order.
     // Its first receipt can supply a batch cost; never reprice stocked holdings.
-    if (receiptDetails.cost_amount != null && proposal.compass_entry_id && decoded.unit === 'g') {
+    if (receiptDetails.cost_amount != null && holdingTeaId && decoded.unit === 'g') {
       statements.push(env.DB.prepare(`UPDATE products SET cost_amount = ?, cost_currency = ?, cost_currency_source = ?, quantity_purchased = ?
         WHERE id = ? AND account_id = ? AND source_compass_entry_id = ?
           AND cost_amount IS NULL AND quantity_purchased IS NULL AND COALESCE(stock_grams, 0) = 0`)
-        .bind(receiptDetails.cost_amount, receiptDetails.cost_currency, receiptDetails.cost_currency_source ?? null, receiptDetails.quantity_purchased, productId, ctx.accountId, proposal.compass_entry_id));
+        .bind(receiptDetails.cost_amount, receiptDetails.cost_currency, receiptDetails.cost_currency_source ?? null, receiptDetails.quantity_purchased, productId, ctx.accountId, holdingTeaId));
       // The listing COPIES the product row's mark rather than re-deriving it.
       statements.push(env.DB.prepare(`UPDATE product_listings SET
         cost_amount = (SELECT cost_amount FROM products WHERE id = ? AND account_id = ?),
@@ -16314,7 +16318,7 @@ async function acceptCurateReceipt(env: Env, ctx: { accountId: string; userId: s
       status: 'Draft', stock_grams: inventory.stock_grams ?? 0, quantity_units: inventory.quantity_units,
       inventory_purpose: inventory.inventory_purpose, is_sample: inventory.is_sample, is_personal: inventory.is_personal,
       stock_known_at: now, is_public: 0, shown_in_shop: 0,
-      source_compass_entry_id: proposal.compass_entry_id ?? null, owner_user_id: ctx.userId,
+      source_compass_entry_id: holdingTeaId, owner_user_id: ctx.userId,
       ...receiptDetails,
     });
     const columnNames = Object.keys(columns);
@@ -16330,7 +16334,7 @@ async function acceptCurateReceipt(env: Env, ctx: { accountId: string; userId: s
     (id, product_id, delta, balance_after, movement_unit, reason, user_email, note, batch_id, account_id, receipt_proposal_id)
     VALUES (?, ?, ?, ${balanceExpression}, ?, 'PURCHASE_RECEIPT', ?, ?, ?, ?, ?)`)
     .bind(ledgerId, productId, decoded.quantity, ...(existingProduct ? [productId, ctx.accountId] : [decoded.quantity]), movementUnit, ctx.email ?? null, `Curate ${decoded.acquisition_kind}`, proposal.batch_id ?? null, ctx.accountId, proposal.id));
-  if (proposal.compass_entry_id) statements.push(env.DB.prepare("UPDATE tea_compass_entries SET draft_product_id = ?, status = 'in_stock', updated_at = datetime('now') WHERE id = ? AND account_id = ?").bind(productId, proposal.compass_entry_id, ctx.accountId));
+  if (holdingTeaId) statements.push(env.DB.prepare("UPDATE tea_compass_entries SET draft_product_id = ?, status = 'in_stock', updated_at = datetime('now') WHERE id = ? AND account_id = ?").bind(productId, holdingTeaId, ctx.accountId));
   if (proposal.compass_entry_id) statements.push(env.DB.prepare("UPDATE tea_samples SET product_id = ?, updated_at = datetime('now') WHERE compass_entry_id = ? AND account_id = ?")
     .bind(productId, proposal.compass_entry_id, ctx.accountId));
   statements.push(env.DB.prepare(`UPDATE curate_receipt_proposals SET status = 'accepted', product_id = ?, ledger_id = ?, reviewed_by_user_id = ?, reviewed_at = ?, updated_at = ? WHERE id = ? AND account_id = ? AND status = 'pending'`)

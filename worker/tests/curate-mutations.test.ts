@@ -13,7 +13,8 @@ function setup() {
  CREATE TABLE notes(id TEXT PRIMARY KEY,account_id TEXT,compass_entry_id TEXT,text TEXT,source_type TEXT,author_id TEXT,author_name TEXT,deleted INTEGER);
  CREATE TABLE tea_samples(id TEXT PRIMARY KEY,account_id TEXT,compass_entry_id TEXT,source_id TEXT,grams REAL,status TEXT);
  CREATE TABLE tea_sample_tastings(id TEXT PRIMARY KEY,account_id TEXT,sample_id TEXT,tasting TEXT);
- CREATE TABLE products(id TEXT PRIMARY KEY,account_id TEXT,quantity REAL);
+ CREATE TABLE products(id TEXT PRIMARY KEY,account_id TEXT,quantity REAL,source_compass_entry_id TEXT);
+ CREATE TABLE curate_receipt_proposals(id TEXT PRIMARY KEY,account_id TEXT,compass_entry_id TEXT,status TEXT,updated_at TEXT);
  CREATE TABLE inventory_receipt_lines(id TEXT PRIMARY KEY,account_id TEXT,product_id TEXT,received_quantity REAL);
  CREATE TABLE stock_ledger(id TEXT PRIMARY KEY,account_id TEXT,product_id TEXT,quantity REAL);
  CREATE TABLE curate_attachments(id TEXT PRIMARY KEY,account_id TEXT,entity_id TEXT,entity_type TEXT);
@@ -28,7 +29,7 @@ function setup() {
  INSERT INTO tea_samples VALUES('sample','a','tea','vendor',25,'untasted');
  INSERT INTO tea_samples VALUES('sample2','a','target','vendor2',10,'tasted');
  INSERT INTO tea_sample_tastings VALUES('tasting','a','sample2','{"quality":7}');
- INSERT INTO products VALUES('product','a',100);
+ INSERT INTO products(id,account_id,quantity) VALUES('product','a',100);
  INSERT INTO notes VALUES('said','a','tea','said original','transcript','other','Other writer',0);
  INSERT INTO curate_todos VALUES('todo','a','Ask vendor',NULL);`);
  db.exec(readFileSync('worker/migrations/0037_curate_history.sql','utf8'));
