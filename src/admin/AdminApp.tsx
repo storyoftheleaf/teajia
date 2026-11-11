@@ -23,6 +23,7 @@ import { Product } from './types';
 import { authPagePath } from '../lib/authNavigation';
 import { adminShellNeedsProducts } from './productQueries';
 import { adminAuthReturnTo } from './authNavigation';
+import { carryQuery } from './carryQuery';
 
 import { useProducts, useRates } from './hooks/useAdminData';
 import { eventsListQueryOptions } from './hooks/useEventData';
@@ -732,16 +733,5 @@ const AdminApp = ({ onAccountClick, onSearchClick, onCartClick }: AdminAppProps)
     </ToastProvider>
   </ErrorBoundary>
 );
-
-/** Legacy redirects keep the incoming query. The target's own params win. */
-function carryQuery(target: string, incoming: string): string {
-  const [path, own = ''] = target.split('?');
-  const merged = new URLSearchParams(own);
-  new URLSearchParams(incoming).forEach((value, key) => {
-    if (!merged.has(key)) merged.append(key, value);
-  });
-  const query = merged.toString();
-  return query ? `${path}?${query}` : path;
-}
 
 export default AdminApp;
