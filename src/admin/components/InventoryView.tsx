@@ -1,6 +1,7 @@
 import { inventoryTeaType } from '../../wisdom/vocabulary';
 import { StockHeadingStudy } from './inventory/stock/StockHeadingStudy';
 import type { InventoryFacetFilter } from './inventory/domain';
+import { renderedRowIds, shiftRangeIds } from './inventory/selectionRange';
 import { StockBrowseBar } from './inventory/stock/StockBrowseBar';
 import { StockViewOptions } from './inventory/stock/StockViewOptions';
 import { UnknownSupplierSheet } from './inventory/stock/UnknownSupplierSheet';
@@ -1102,6 +1103,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const panelProductRef = useRef(panelProduct);
   useLayoutEffect(() => { selectedIdsRef.current = selectedIds; }, [selectedIds]);
   useLayoutEffect(() => { processedProductsRef.current = processedProducts; }, [processedProducts]);
+  const groupedProductsRef = useRef(groupedProducts);
+  const collapsedGroupsRef = useRef(collapsedGroups);
+  useLayoutEffect(() => { groupedProductsRef.current = groupedProducts; collapsedGroupsRef.current = collapsedGroups; }, [groupedProducts, collapsedGroups]);
   useLayoutEffect(() => { shopFreightRef.current = shopFreight.perKgUsd; }, [shopFreight.perKgUsd]);
   useLayoutEffect(() => { productIndexMapRef.current = productIndexMap; }, [productIndexMap]);
   useLayoutEffect(() => { ratesRef.current = rates; }, [rates]);
@@ -1849,10 +1853,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // --- FEATURE 7: BULK EDIT HANDLERS ---
   const toggleSelectId = (id: string, idx: number, shiftKey = false) => {
     if (shiftKey && lastSelectedIdxRef.current !== null) {
-      const start = Math.min(lastSelectedIdxRef.current, idx);
-      const end = Math.max(lastSelectedIdxRef.current, idx);
-      const rangeIds = processedProducts.slice(start, end + 1).map(p => p.id);
-      const adding = !selectedIds.has(id);
+      // Memoised rows can hold an older copy of this function, so read the
+      // latest lists from refs, and walk the order the rows are drawn in.
+      const anchorId = processedProductsRef.current[lastSelectedIdxRef.current]?.id ?? null;
+      const rendered = renderedRowIds(groupedProductsRef.current, collapsedGroupsRef.current, processedProductsRef.current);
+      const rangeIds = shiftRangeIds(rendered, anchorId, id);
+      const adding = !selectedIdsRef.current.has(id);
       setSelectedIds(prev => {
         const next = new Set(prev);
         rangeIds.forEach(rid => adding ? next.add(rid) : next.delete(rid));
