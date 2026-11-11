@@ -123,6 +123,21 @@ export function inventorySummaryStatusMessage(status: InventorySummaryStatus): s
   return null;
 }
 
+/**
+ * Status to show when a summaries fetch starts. Only a fetch with nothing
+ * usable cached (first load, or a different account) reads as 'loading'; a
+ * refetch behind a good cache keeps the status it had, so a save does not block
+ * publishing or flash the banner.
+ */
+export function summaryStatusOnRefetch(
+  current: InventorySummaryStatus,
+  hasCachedRows: boolean,
+  accountChanged: boolean,
+): InventorySummaryStatus {
+  if (accountChanged || !hasCachedRows) return 'loading';
+  return current === 'loading' ? 'ready' : current;
+}
+
 export function shouldApplyInventoryFacetFilter(filter: InventoryFacetFilter, status: InventorySummaryStatus): boolean {
   if (status === 'ready' || status === 'stale') return true;
   return !['Tasted', 'Untasted', 'HasWriting', 'NeedsWriting', 'HasProductTasting', 'NeedsProductTasting'].includes(filter);

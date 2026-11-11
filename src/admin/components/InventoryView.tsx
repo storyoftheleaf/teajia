@@ -2,6 +2,7 @@ import { inventoryTeaType } from '../../wisdom/vocabulary';
 import { StockHeadingStudy } from './inventory/stock/StockHeadingStudy';
 import type { InventoryFacetFilter } from './inventory/domain';
 import { renderedRowIds, shiftRangeIds } from './inventory/selectionRange';
+import { summaryStatusOnRefetch } from './inventory/domain';
 import { StockBrowseBar } from './inventory/stock/StockBrowseBar';
 import { StockViewOptions } from './inventory/stock/StockViewOptions';
 import { UnknownSupplierSheet } from './inventory/stock/UnknownSupplierSheet';
@@ -317,6 +318,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [inventorySummaryStatus, setInventorySummaryStatus] = useState<InventorySummaryStatus>('loading');
   const [inventorySummaryRefreshKey, setInventorySummaryRefreshKey] = useState(0);
   const inventorySummaryAccountRef = useRef<string | null>(null);
+  const inventorySummaryRowsRef = useRef(inventorySummaryRows);
+  inventorySummaryRowsRef.current = inventorySummaryRows;
   useEffect(() => {
     const refresh = (event: Event) => {
       const changed = (event as CustomEvent<CommerceChange>).detail;
@@ -329,8 +332,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     let cancelled = false;
     const accountChanged = inventorySummaryAccountRef.current !== tastingAccountId;
     inventorySummaryAccountRef.current = tastingAccountId;
-    if (accountChanged) setInventorySummaryRows([]);
-    setInventorySummaryStatus('loading');
+    if (accountChanged) { setInventorySummaryRows([]); inventorySummaryRowsRef.current = []; }
+    setInventorySummaryStatus(current => summaryStatusOnRefetch(current, inventorySummaryRowsRef.current.length > 0, accountChanged));
     api.inventorySummaries.list()
       .then(result => {
         if (cancelled) return;
