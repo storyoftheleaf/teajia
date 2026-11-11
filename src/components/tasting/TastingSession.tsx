@@ -17,7 +17,10 @@ import { useNotesStore } from '../../lib/notesStore';
 import { syncNotes } from '../../lib/notesSync';
 import { api, hasToken } from '../../lib/api';
 import { resolveTermLabel, resolveTermIcon } from '../../data/tastingTaxonomy';
-import { YourImpression, appendImpressionTranscript, impressionNotes } from './YourImpression';
+import { YourImpression, appendImpressionTranscript } from './YourImpression';
+import { tastingNoteText } from './tastingNoteText';
+import { freshTastingState } from './freshTasting';
+import { hasJournalItemId } from './journalItemId';
 import { tastingRecap } from './tastingRecap';
 import { normalizeNotes, notesAsStrings } from '../../lib/noteEntries';
 import { useScrollLock } from '../../hooks/useScrollLock';
@@ -399,7 +402,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
       if (adminMode && onSave) {
         await onSave(tastingData, verdict ?? undefined, wouldBuy);
       }
-      if (tastingData.inCollection != null && favoriteTeas.includes(item.id) !== tastingData.inCollection) {
+      const journaled = hasJournalItemId(item.id);
+      if (journaled && tastingData.inCollection != null && favoriteTeas.includes(item.id) !== tastingData.inCollection) {
         toggleFavoriteTea(item.id);
       }
 
@@ -419,12 +423,14 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
           eventTitle: item.eventTitle,
         };
         const noteUpdates = {
-          personalNote: impressionNotes(tastingData).map(n => typeof n === 'string' ? n : n.text).join('\n') || tastingData.voiceNote?.trim() || undefined,
+          personalNote: tastingNoteText(tastingData) || tastingData.voiceNote?.trim() || undefined,
           rating: tastingData.quality ?? tastingData.rating,
           verdict: verdict ?? undefined,
           wouldBuy: wouldBuy,
         };
-        const entryId = upsertTastingByProductId(
+        // A tasting with no real item id (a product still being created) has no
+        // journal entry to join, so it is handed to the caller only.
+        const entryId = journaled ? upsertTastingByProductId(
           item.id,
           item.name,
           item.type || '',
@@ -432,10 +438,10 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
           record,
           noteUpdates,
           activeAccountId ?? undefined,
-        );
-        setSavedEntryId(entryId);
+        ) : null;
+        if (entryId) setSavedEntryId(entryId);
         // Inject tasting artifact into the shared note thread
-        if (item.compassEntryId || item.teaKey) {
+        if (entryId && (item.compassEntryId || item.teaKey)) {
           injectTastingNote({
             teaKey: item.teaKey,
             compassEntryId: item.compassEntryId,
@@ -450,7 +456,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
         // Pass verdict + wouldBuy so sourcing callers (SamplePage) can persist them
         onAfterSave?.(tastingData, verdict ?? undefined, wouldBuy);
         // Fire-and-forget sync to server
-        syncTastingJournal().catch(() => {});
+        if (journaled) syncTastingJournal().catch(() => {});
       }
     } catch {
       setSaveState('error');
@@ -624,7 +630,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                       <button
                         type="button"
                         disabled={freshReason.trim().length < 10}
-                        onClick={() => { setTastingData({}); setIsContinuing(false); }}
+                        onClick={() => { const fresh = freshTastingState(); setTastingData(fresh.tastingData); setVerdict(fresh.verdict); setWouldBuy(fresh.wouldBuy); setIsContinuing(false); }}
                         className="text-ui-11 text-tea-gold hover:text-tea-gold-lt disabled:text-tea-text-dim disabled:cursor-not-allowed transition-colors"
                         style={{ fontFamily: 'var(--font-body)' }}
                       >

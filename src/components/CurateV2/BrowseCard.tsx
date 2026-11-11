@@ -20,6 +20,7 @@ import { useSampleUse } from './sampleUse';
 import { TastingSession } from '../tasting/TastingSession';
 import type { TastingData } from '../../types';
 import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
+import { tastingToOpenWith } from '../tasting/tastingOpenData';
 import { compressImage } from '../../lib/imageCompressor';
 import type { TeaCompassEntry } from './types';
 import { LIQUOR_COLORS } from '../../data/tastingTaxonomy';
@@ -691,6 +692,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               sourceType: 'compass',
               compassEntryId: entry.id,
             }}
+            initialData={tastingToOpenWith(entry)}
             onClose={() => { setTastingOpen(false); void useSampleUse.getState().finish(entry.id); }}
             onAfterSave={(data: TastingData, sessionVerdict?: CompassVerdict) => {
               useSampleUse.getState().markAnswered(entry.id);

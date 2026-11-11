@@ -15,6 +15,7 @@ import type { TeaSample, SampleTasting, TastingVerdict, SampleStatus } from '../
 import { VERDICT_CONFIG, SAMPLE_STATUS_CONFIG } from '../samples/types';
 import type { TastingData } from '../types';
 import { TastingSession } from '../components/tasting/TastingSession';
+import { tastingNoteText } from '../components/tasting/tastingNoteText';
 import { TastingProfileStrip } from '../components/tasting/TastingProfileStrip';
 import { SampleOrderModal } from '../components/samples/SampleOrderModal';
 import { QuickInvoiceModal } from '../admin/components/QuickInvoiceModal';
@@ -125,7 +126,7 @@ const SamplePage: React.FC = () => {
       rating: tastingData.quality ?? tastingData.rating,
       verdict: verdict ?? 'neutral',
       wouldBuy: wouldBuy ?? false,
-      personalNote: tastingData.notes?.join('\n') || tastingData.voiceNote?.trim() || undefined,
+      personalNote: tastingNoteText(tastingData) || tastingData.voiceNote?.trim() || undefined,
       createdAt: new Date().toISOString(),
     };
 
