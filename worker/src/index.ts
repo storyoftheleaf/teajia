@@ -3780,8 +3780,15 @@ const handleDeleteProduct: Handler = async (request, env, params) => {
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
-  await env.DB.prepare('DELETE FROM products WHERE id = ? AND account_id = ?')
-    .bind(params.id, accountId).run();
+  // No Curate tea is left pointing at a product that is gone. The unlink runs
+  // first, while the product still proves it belongs to this account.
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE tea_compass_entries SET draft_product_id = NULL, updated_at = datetime('now')
+      WHERE draft_product_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ?)`)
+      .bind(params.id, accountId, params.id, accountId),
+    env.DB.prepare('DELETE FROM products WHERE id = ? AND account_id = ?')
+      .bind(params.id, accountId),
+  ]);
 
   await auditPlatformActingWrite(env, ctx, 'product.deleted', 'product', params.id, {});
 
