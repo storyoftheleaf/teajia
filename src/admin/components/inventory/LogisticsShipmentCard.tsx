@@ -7,6 +7,7 @@ import { LogisticsMutation, ManifestButtons, logisticsNumber as n, logisticsUnit
 import { confirmStudioReceipt, readReceiveIntent, remainingReceiptQuantities, selectedReceiptLines } from './logisticsReceipt';
 import { useLogisticsAction, LogisticsActionError } from './useLogisticsAction';
 import { referenceUrl } from './logisticsManifest';
+import { landedCost } from './landedCost';
 import { TrackingTask } from './TrackingTask';
 import { AddressPicker, logisticsAddressText } from './LogisticsAddresses';
 import { LogisticsTrackingUpdate } from './LogisticsTrackingUpdate';
@@ -157,7 +158,7 @@ export function LogisticsShipmentCard({ shipment, orders, addresses = [], busy, 
           {shipment.lines.filter(line => line.purchase_id === id).map(line => <div className="logistics-line" key={line.id}>
             <div className="logistics-line-summary">
               {referenceUrl(line.image_url) && <img src={referenceUrl(line.image_url)!} alt={`Reference for ${line.product_name}`} loading="lazy" referrerPolicy="no-referrer"/>}
-              <span>{line.product_name}<small className="text-tea-text-dim">{line.original_cost_amount == null ? 'Paid cost not recorded' : `${n(line.original_cost_amount)} ${line.original_cost_currency || ''}`}{line.allocated_freight != null ? ` · Freight ${n(line.allocated_freight)} ${shipment.freight?.currency || ''}${shipment.freight_estimated ? ' estimate' : ''}` : ''}{line.original_cost_amount != null && line.allocated_freight != null && line.original_cost_currency === shipment.freight?.currency ? ` · Landed ${n(line.original_cost_amount + line.allocated_freight)} ${line.original_cost_currency}` : ''}</small></span>
+              <span>{line.product_name}<small className="text-tea-text-dim">{line.original_cost_amount == null ? 'Paid cost not recorded' : `${n(line.original_cost_amount)} ${line.original_cost_currency || ''}`}{line.allocated_freight != null ? ` · Freight ${n(line.allocated_freight)} ${shipment.freight?.currency || ''}${shipment.freight_estimated ? ' estimate' : ''}` : ''}{landedCost(line.original_cost_amount, line.original_cost_currency, line.allocated_freight, shipment.freight?.currency) != null ? ` · Landed ${n(landedCost(line.original_cost_amount, line.original_cost_currency, line.allocated_freight, shipment.freight?.currency)!)} ${line.original_cost_currency}` : ''}</small></span>
               <span>{n(line.quantity)} {u(line.unit)}{line.received_quantity > 0 && <small className="text-tea-text-dim">{n(line.received_quantity)} received</small>}</span>
               <span className="text-tea-text-sec">{line.volume_m3 == null ? 'Volume not set' : `${n(line.volume_m3)} m³${line.volume_estimated ? ' est.' : ''}`}</span>
             </div>
