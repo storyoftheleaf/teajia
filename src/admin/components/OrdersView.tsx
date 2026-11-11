@@ -639,7 +639,7 @@ export const OrdersView = () => {
                           )}
                           {order.source_event_title && (
                             <button
-                              onClick={() => navigate(`/admin/events?search=${encodeURIComponent(order.source_event_title ?? '')}`)}
+                              onClick={() => navigate(order.source_event_id ? `/admin/events/${encodeURIComponent(order.source_event_id)}` : `/admin/events?search=${encodeURIComponent(order.source_event_title ?? '')}`)}
                               className="text-tea-text-dim hover:text-tea-text-sec transition-colors cursor-pointer shrink-0"
                               title={`Attributed to: ${order.source_event_title}`}
                             ><Leaf size={10} /></button>
@@ -745,7 +745,7 @@ export const OrdersView = () => {
                           >{order.invoice_number}</button>
                           {order.source_event_title && (
                             <button
-                              onClick={() => navigate(`/admin/events?search=${encodeURIComponent(order.source_event_title ?? '')}`)}
+                              onClick={() => navigate(order.source_event_id ? `/admin/events/${encodeURIComponent(order.source_event_id)}` : `/admin/events?search=${encodeURIComponent(order.source_event_title ?? '')}`)}
                               className="text-tea-text-dim hover:text-tea-text-sec transition-colors"
                               title={`Attributed to: ${order.source_event_title}`}
                             ><Leaf size={11} /></button>
@@ -928,7 +928,7 @@ export const OrdersView = () => {
                   <div className="bg-tea-surface border border-tea-border rounded-xl p-4 mb-6">
                     <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec mb-2">Source Event</h4>
                     <button
-                      onClick={() => { setViewingInvoice(null); navigate(`/admin/events?search=${encodeURIComponent(viewingInvoice.source_event_title ?? '')}`); }}
+                      onClick={() => { setViewingInvoice(null); navigate(viewingInvoice.source_event_id ? `/admin/events/${encodeURIComponent(viewingInvoice.source_event_id)}` : `/admin/events?search=${encodeURIComponent(viewingInvoice.source_event_title ?? '')}`); }}
                       className="text-sm text-tea-text hover:text-tea-gold transition-colors"
                     >
                       {viewingInvoice.source_event_title}
