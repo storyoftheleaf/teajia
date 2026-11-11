@@ -3857,9 +3857,16 @@ const handleGetCatalog: Handler = async (request, env) => {
 // ── Product Events (cross-link: which events featured this product) ──
 // Public endpoint: auth is optional. Authenticated users see their account's
 // events; unauthenticated users (public shop) fall back to the Bali account.
+// A visitor only sees sessions they could open: the public event page's own
+// conditions (active, on a live public store), listed publicly rather than
+// unlisted, since this is a list and an unlisted event lives by its link.
 const handleGetProductEvents: Handler = async (request, env, params) => {
   const ctx = await requireAccount(request, env);
-  const accountId = 'error' in ctx ? BALI_ACCOUNT_ID : ctx.accountId;
+  const anonymous = 'error' in ctx;
+  const accountId = anonymous ? BALI_ACCOUNT_ID : ctx.accountId;
+  const visitorOnly = anonymous
+    ? ` AND e.status = 'active' AND ${PUBLIC_EVENT_STORE} AND ${PUBLIC_EVENT_HOST}`
+    : '';
 
   const result = await env.DB.prepare(
     `SELECT e.id, e.slug, e.title, e.subtitle, e.event_date, e.event_end_date,
@@ -3867,7 +3874,8 @@ const handleGetProductEvents: Handler = async (request, env, params) => {
             etm.custom_name, etm.brew_order
      FROM event_tea_menu etm
      JOIN events e ON e.id = etm.event_id
-     WHERE etm.product_id = ? AND e.account_id = ?
+     JOIN accounts a ON a.id = e.account_id
+     WHERE etm.product_id = ? AND e.account_id = ?${visitorOnly}
      ORDER BY e.event_date DESC`
   ).bind(params.id, accountId).all();
 
