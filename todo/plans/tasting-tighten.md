@@ -39,7 +39,7 @@ None of the six can be entered, changed or removed in the live flow today.
 
 ## Tightening list
 
-**Landed on the working branch 2026-11-11 (invisible, tests only):** T1, T8, T9, T15, T16. **Held:** T10 was fixed on the client only, then left out, because the server keeps the first save when a tasting id repeats (`handleAddSampleTasting` in `worker/src/index.ts`), so a second save's edits would be lost on reload; it lands together with a server change that updates the row by id.
+**Landed on the working branch 2026-11-11 (invisible, tests only):** T1, T4, T5, T8, T9, T10, T15, T16. T10 needed the server too: a repeated tasting id now updates the row for the same author, and a guest proves authorship with an edit key computed under a key derived from the worker's secret, never the secret itself (see `worker/src/sampleTastingRepeat.ts` for why).
 
 Kind: **I** invisible, **S** small visible, **R** real change.
 

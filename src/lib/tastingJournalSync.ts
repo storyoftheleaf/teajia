@@ -1,6 +1,7 @@
 import { useAppStore } from './store';
 import { api, hasToken } from './api';
 import type { CustomerTasting, TastingRecord, TastingData } from '../types';
+import { mergeJournalSides } from './tastingJournalMerge';
 
 const BACKGROUND_REQUEST = { background: true } as const;
 
@@ -95,20 +96,14 @@ function fromApiRow(row: Record<string, any>): CustomerTasting {
 }
 
 /**
- * Merge two CustomerTasting entries that target the same productId. Used both
- * by the client during hydration (server vs local conflict on productId) and
- * conceptually by the server-side dedupe migration. Tastings are merged by id,
- * note is taken from whichever side has the most recent updatedAt.
+ * Merge two CustomerTasting entries that target the same productId, during
+ * hydration (local vs server). The note and sittings follow the shared rule in
+ * `tastingJournalMerge.ts`, which the worker also applies on push: sittings
+ * united by id, and the side whose note was edited later keeps its note and
+ * its copy of a shared sitting (local wins a tie).
  */
 function mergeEntries(a: CustomerTasting, b: CustomerTasting): CustomerTasting {
-  const tastingsById = new Map<string, TastingRecord>();
-  for (const t of [...a.tastings, ...b.tastings]) tastingsById.set(t.id, t);
-  const tastings = [...tastingsById.values()].sort(
-    (x, y) => new Date(x.createdAt).getTime() - new Date(y.createdAt).getTime()
-  );
-  const note = new Date(a.note.updatedAt).getTime() >= new Date(b.note.updatedAt).getTime()
-    ? a.note
-    : b.note;
+  const { note, tastings } = mergeJournalSides<CustomerTasting['note'], TastingRecord>(a, b);
   // Prefer the older id and createdAt to keep stable references.
   const olderCreated = new Date(a.createdAt).getTime() <= new Date(b.createdAt).getTime() ? a : b;
   return {

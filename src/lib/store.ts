@@ -5,6 +5,7 @@ import { Account, AccountMembership, CartItem as PublicCartItem, CustomerTasting
 import type { TeaDiscoveryProfile } from '../components/TeaDiscovery/types';
 import { canAddToStoreCart } from './publicCartDomain';
 import { minimumOrderGrams, quoteGrams } from './teaPricing';
+import { capTastingJournal } from './tastingJournalCap';
 
 /**
  * What one cart line costs.
@@ -543,7 +544,7 @@ const createdAppStore = create<AppState>()(
       tastingJournal: [],
       addTasting: (tasting) =>
         set((state) => ({
-          tastingJournal: [tasting, ...state.tastingJournal].slice(0, 100),
+          tastingJournal: capTastingJournal([tasting, ...state.tastingJournal]),
         })),
       removeTasting: (id) =>
         set((state) => ({
@@ -627,7 +628,7 @@ const createdAppStore = create<AppState>()(
             synced: false,
           };
           return {
-            tastingJournal: [newEntry, ...state.tastingJournal].slice(0, 100),
+            tastingJournal: capTastingJournal([newEntry, ...state.tastingJournal]),
           };
         });
         return entryId;

@@ -78,6 +78,8 @@ Found by the link guard on 2026-11-11 and still open (each is allow-listed in `s
 
 Guards now in `src/admin/guards/` (wave 2): every admin link with a query has a reader; ceilings that may fall but not rise (raw buttons, browser dialogs, `z-50`, inline styles, `Number(x) || 0`, files over 1,500 lines); no new files in `TeaCompass/` or `CurateV2/`; every Manage room resolves to one real screen.
 
+Found in review on 2026-11-11, not yet changed: `verifyToken` in `worker/src/index.ts` checks a sign-in token's signature and expiry but never its header, so any other value signed under `JWT_SECRET` with caller-chosen text could pass as a token. Nothing in the worker does that today (the one attempt was caught and replaced with a derived key), but the header should be checked and no other feature should sign under `JWT_SECRET` directly.
+
 Also landed, unnumbered: Curate's supplier link (`/admin/people/<id>`), an order's session link (`/admin/events/<id>`).
 
 ## Checks, and what fails before any change

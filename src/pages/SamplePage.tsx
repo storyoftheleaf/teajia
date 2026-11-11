@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -15,6 +15,7 @@ import type { TeaSample, SampleTasting, TastingVerdict, SampleStatus } from '../
 import { VERDICT_CONFIG, SAMPLE_STATUS_CONFIG } from '../samples/types';
 import type { TastingData } from '../types';
 import { TastingSession } from '../components/tasting/TastingSession';
+import { upsertTastingById } from '../lib/sampleTastings';
 import { tastingNoteText } from '../components/tasting/tastingNoteText';
 import { TastingProfileStrip } from '../components/tasting/TastingProfileStrip';
 import { SampleOrderModal } from '../components/samples/SampleOrderModal';
@@ -109,6 +110,18 @@ const SamplePage: React.FC = () => {
     }
   }, [sample?.id]);
 
+  // One tasting id for the life of one opening of the tasting, so saving again
+  // updates it. The worker hands a guest an edit key with the first save; the
+  // second save sends it back to prove it is the same taster. Both are
+  // forgotten on every way out (close, Escape), so the next opening is new.
+  const tastingIdRef = useRef<string | null>(null);
+  const editKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (showTasting) return;
+    tastingIdRef.current = null;
+    editKeyRef.current = null;
+  }, [showTasting]);
+
   // Called by TastingSession, first on "Save to Journal", then optionally with verdict
   const handleTastingSave = useCallback(async (
     tastingData: TastingData,
@@ -119,7 +132,7 @@ const SamplePage: React.FC = () => {
     const accountId = useSampleStore.getState().accountScopeId;
 
     const tasting: SampleTasting = {
-      id: crypto.randomUUID(),
+      id: tastingIdRef.current ?? (tastingIdRef.current = crypto.randomUUID()),
       tasterId: isAdmin ? 'admin' : 'guest',
       tasterName: isAdmin ? 'Adrian' : undefined,
       tasting: tastingData,
@@ -131,10 +144,12 @@ const SamplePage: React.FC = () => {
     };
 
     // Write to sample store (sourcing record)
-    addTastingToStore(sample.id, tasting);
+    const stored = useSampleStore.getState().getSample(sample.id)?.tastings;
+    if (stored?.some(t => t.id === tasting.id)) updateSample(sample.id, { tastings: upsertTastingById(stored, tasting) });
+    else addTastingToStore(sample.id, tasting);
     // Sync to server
     try {
-      await api.samples.addTasting(sample.id, {
+      const write = {
         id: tasting.id,
         tasting: tastingData,
         rating: tasting.rating,
@@ -142,7 +157,10 @@ const SamplePage: React.FC = () => {
         wouldBuy: wouldBuy ?? false,
         personalNote: tasting.personalNote,
         tasterName: tasting.tasterName,
-      });
+        ...(editKeyRef.current ? { edit_key: editKeyRef.current } : {}),
+      };
+      const saved: { id?: string; edit_key?: unknown } = await api.samples.addTasting(sample.id, write);
+      if (saved?.id === tastingIdRef.current && typeof saved.edit_key === 'string') editKeyRef.current = saved.edit_key;
       if (accountId && useSampleStore.getState().accountScopeId === accountId) void hydrateCompassEntries(accountId).catch(() => {});
     } catch {
       console.warn('Sample tasting failed to sync, saved locally');
@@ -150,10 +168,10 @@ const SamplePage: React.FC = () => {
 
     setSample((prev) => prev ? {
       ...prev,
-      tastings: [...(prev.tastings || []), tasting],
+      tastings: upsertTastingById(prev.tastings, tasting),
       status: ['requested', 'received', 'untasted'].includes(prev.status) ? 'tasted' : prev.status,
     } : prev);
-  }, [sample, isAdmin, addTastingToStore]);
+  }, [sample, isAdmin, addTastingToStore, updateSample]);
 
   const handleStatusChange = useCallback((newStatus: SampleStatus) => {
     if (!sample) return;

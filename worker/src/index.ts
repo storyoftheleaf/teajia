@@ -168,6 +168,8 @@ import { RouteRefusal, listRoutes, removeRoute, saveRoute } from './shippingRout
 import { handleLibraryPreview, LIBRARY_PREVIEW_ORIGIN } from './libraryPreview';
 import { withD1ReadBudget, resolveD1Budget, settleD1Budget } from './d1Budget';
 import { budgetRefusal } from './d1BudgetResponse';
+import { mergePushedJournal, storedJournalsFor } from './tastingJournalPush';
+import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasting } from './sampleTastingRepeat';
 interface Env extends WorkerReleaseEnv {
   DB: D1Database;
   WHATSAPP_ORDER_ACCOUNT_ID?: string;
@@ -18152,48 +18154,63 @@ const handleAddSampleTasting: Handler = async (request, env, params) => {
 
   const body = await request.json() as Record<string, any>;
   const requestedId = typeof body.id === 'string' && body.id ? body.id : null;
-  if (requestedId) {
-    const existing = await env.DB.prepare(
-      'SELECT sample_id FROM tea_sample_tastings WHERE id = ?'
-    ).bind(requestedId).first() as { sample_id?: string } | null;
-    if (existing?.sample_id && existing.sample_id !== params.id) {
-      return json({ error: 'Tasting id belongs to another sample' }, 409);
-    }
-    if (existing?.sample_id === params.id) {
-      const prior = await env.DB.prepare('SELECT * FROM tea_sample_tastings WHERE id = ?').bind(requestedId).first();
-      return json(parseTastingRow(prior as Record<string, any>), 200);
-    }
-  }
   const id = requestedId || crypto.randomUUID();
 
   let tasterId = 'guest_' + crypto.randomUUID().slice(0, 8);
   let tasterName = body.tasterName || 'Guest';
+  let requesterEmail: string | null = null;
   const token = isAuthed(request);
   if (token) {
     const valid = await verifyToken(token, env.JWT_SECRET);
     if (valid) {
       const claims = parseToken(token);
-      if (claims?.email) tasterId = claims.email;
+      if (claims?.email) tasterId = requesterEmail = claims.email;
       if (claims?.name) tasterName = claims.name;
     }
   }
 
-  const lifecycle = await prepareSampleLifecycleSync(env.DB, accountId, { sampleId: params.id, status: 'tasted', hasTasting: true });
-  await env.DB.batch([env.DB.prepare(
-    `INSERT OR IGNORE INTO tea_sample_tastings (id, account_id, sample_id, taster_id, taster_name, tasting, rating, verdict, would_buy, personal_note)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(
-    id,
-    accountId,
-    params.id,
-    tasterId,
-    tasterName,
-    JSON.stringify(body.tasting || {}),
-    body.rating ?? null,
-    body.verdict || 'neutral',
-    body.wouldBuy ? 1 : 0,
-    body.personalNote || null,
-  ), ...lifecycle]);
+  const write = {
+    tasting: JSON.stringify(body.tasting || {}),
+    rating: body.rating ?? null,
+    verdict: body.verdict || 'neutral',
+    would_buy: body.wouldBuy ? 1 : 0,
+    personal_note: body.personalNote || null,
+  };
+  // The same id again is a second Save in one opening: update it, never add a second tasting.
+  const prior = requestedId
+    ? await env.DB.prepare('SELECT * FROM tea_sample_tastings WHERE id = ?').bind(requestedId).first() as StoredSampleTasting | null
+    : null;
+  let repeated = false;
+  if (prior) {
+    const repeat = await decideSampleTastingRepeat(prior, {
+      sampleId: params.id, accountId, requesterEmail, editKey: body.edit_key, secret: env.JWT_SECRET, write,
+    });
+    if (repeat.kind === 'refuse') return json({ error: repeat.error }, 409);
+    if (repeat.kind === 'unchanged') return json(parseTastingRow(prior as unknown as Record<string, any>), 200);
+    repeated = true;
+    tasterId = prior.taster_id;
+    await env.DB.prepare(
+      `UPDATE tea_sample_tastings SET tasting = ?, rating = ?, verdict = ?, would_buy = ?, personal_note = ?
+       WHERE id = ? AND sample_id = ? AND taster_id = ?`
+    ).bind(write.tasting, write.rating, write.verdict, write.would_buy, write.personal_note, id, params.id, prior.taster_id).run();
+  } else {
+    const lifecycle = await prepareSampleLifecycleSync(env.DB, accountId, { sampleId: params.id, status: 'tasted', hasTasting: true });
+    await env.DB.batch([env.DB.prepare(
+      `INSERT OR IGNORE INTO tea_sample_tastings (id, account_id, sample_id, taster_id, taster_name, tasting, rating, verdict, would_buy, personal_note)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      id,
+      accountId,
+      params.id,
+      tasterId,
+      tasterName,
+      write.tasting,
+      write.rating,
+      write.verdict,
+      write.would_buy,
+      write.personal_note,
+    ), ...lifecycle]);
+  }
 
   // ── Feature 3: Auto-tag customer from sample verdict ─────────────────────
   const verdict = body.verdict || 'neutral';
@@ -18260,7 +18277,9 @@ const handleAddSampleTasting: Handler = async (request, env, params) => {
   // ── End Feature 3 ──────────────────────────────────────────────────────────
 
   const created = await env.DB.prepare('SELECT * FROM tea_sample_tastings WHERE id = ?').bind(id).first();
-  return json(parseTastingRow(created as Record<string, any>), 201);
+  // The key goes only to the author of the row just written, never with someone else's row.
+  const editKey = (created as Record<string, any> | null)?.taster_id === tasterId ? await sampleTastingEditKey(env.JWT_SECRET, id) : undefined;
+  return json({ ...parseTastingRow(created as Record<string, any>), edit_key: editKey }, repeated ? 200 : 201);
 };
 
 // ── Compass Sharing ─────────────────────────────────────────────────────────
@@ -19002,6 +19021,10 @@ const handleAddTastingEntry: Handler = async (request, env) => {
   }
 
   const id = body.id || crypto.randomUUID();
+  const joined = mergePushedJournal((await storedJournalsFor(env.DB, email, [String(body.product_id)])).get(String(body.product_id)), {
+    note: typeof body.note === 'string' ? body.note : JSON.stringify(body.note || {}),
+    tastings: typeof body.tastings === 'string' ? body.tastings : JSON.stringify(body.tastings || []),
+  });
 
   await env.DB.prepare(`
     INSERT INTO customer_tasting_journal
@@ -19023,8 +19046,8 @@ const handleAddTastingEntry: Handler = async (request, env) => {
     body.product_name || null,
     body.product_type || null,
     body.product_image || null,
-    typeof body.note === 'string' ? body.note : JSON.stringify(body.note || {}),
-    typeof body.tastings === 'string' ? body.tastings : JSON.stringify(body.tastings || []),
+    joined.note,
+    joined.tastings,
     body.compass_entry_id || null,
     body.archived ? 1 : 0,
     body.created_at || new Date().toISOString()
@@ -19059,9 +19082,16 @@ const handleSyncTastingJournal: Handler = async (request, env) => {
   if (!Array.isArray(entries)) return json({ error: 'entries must be an array' }, 400);
 
   const valid = entries.filter((e: any) => e.product_id && e.product_id !== 'quick-note');
+  // Join each pushed copy with the stored one rather than replacing it.
+  const storedJournals = await storedJournalsFor(env.DB, email, valid.map((e: any) => String(e.product_id)));
 
-  const stmts = valid.map((e: any) =>
-    env.DB.prepare(`
+  const stmts = valid.map((e: any) => {
+    const joined = mergePushedJournal(storedJournals.get(String(e.product_id)), {
+      note: typeof e.note === 'string' ? e.note : JSON.stringify(e.note || {}),
+      tastings: typeof e.tastings === 'string' ? e.tastings : JSON.stringify(e.tastings || []),
+    });
+    storedJournals.set(String(e.product_id), joined);
+    return env.DB.prepare(`
       INSERT INTO customer_tasting_journal
         (id, account_id, user_id, product_id, product_name, product_type, product_image, note, tastings, compass_entry_id, archived, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -19081,13 +19111,13 @@ const handleSyncTastingJournal: Handler = async (request, env) => {
       e.product_name || null,
       e.product_type || null,
       e.product_image || null,
-      typeof e.note === 'string' ? e.note : JSON.stringify(e.note || {}),
-      typeof e.tastings === 'string' ? e.tastings : JSON.stringify(e.tastings || []),
+      joined.note,
+      joined.tastings,
       e.compass_entry_id || null,
       e.archived ? 1 : 0,
       e.created_at || new Date().toISOString()
-    )
-  );
+    );
+  });
 
   if (stmts.length > 0) await env.DB.batch(stmts);
   return json({ synced: stmts.length });
