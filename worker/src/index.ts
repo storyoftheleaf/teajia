@@ -16220,7 +16220,14 @@ async function acceptCurateReceipt(env: Env, ctx: { accountId: string; userId: s
     const retail=await capturedRetailUsd(env,capture);if(retail!=null)receiptDetails.fixed_retail_price_usd=retail;
   }
   if(['free_sample','gift'].includes(decoded.acquisition_kind))Object.assign(receiptDetails,{cost_amount:0,cost_currency:null,quantity_purchased:decoded.quantity});
-  const existingProduct = proposal.product_id ? await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(proposal.product_id, ctx.accountId).first() as Record<string, any> | null : null;
+  // With no product named, the Curate tea's own holding (unique per account by
+  // source_compass_entry_id) is the product, so it is received into rather
+  // than duplicated, and every guard below runs against it.
+  const existingProduct = proposal.product_id
+    ? await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(proposal.product_id, ctx.accountId).first() as Record<string, any> | null
+    : proposal.compass_entry_id
+      ? await env.DB.prepare('SELECT * FROM products WHERE account_id = ? AND source_compass_entry_id = ?').bind(ctx.accountId, proposal.compass_entry_id).first() as Record<string, any> | null
+      : null;
   if (proposal.product_id && !existingProduct) return json({ error: 'Linked product not found' }, 404);
   if(existingProduct&&decoded.unit!==(existingProduct.type==='Teaware'?'unit':'g'))return json({error:'Receipt unit does not match the holding'},400);
   const conflict = purposeConflict(existingProduct, decoded.purpose);
