@@ -7089,3 +7089,39 @@ body.cart-panel-open .commerce-dock {
 [data-form-layout='flow'] .curate-flow-record:empty { display: none; }
 /* Teaware's piece counter keeps its hairline but drops its darker fill. */
 [data-form-layout='flow'] .curate-flow-purchase [aria-label^='Quantity:'] { background: transparent; }
+
+/* The Buy / Sample panel: one more card. Its word (Buy or Sample) is the first
+   quiet text of the quantity row; rows parted by hairlines; steppers and gram
+   chips are slim outlines (34px drawn inside a 44px touch area); the two
+   selects are cells of one row, each reading its own value. */
+[data-form-layout='flow'] .curate-flow-buy > div:empty { display: none; }
+[data-form-layout='flow'] .curate-flow-buy > div.justify-end { padding-inline: 10px; border-bottom: 1px solid var(--tea-border); }
+[data-form-layout='flow'] .curate-flow-buy .text-tea-text-dim { color: var(--tea-text-sec); }
+[data-form-layout='flow'] .curate-flow-buy-body > * { padding-inline: 10px; }
+[data-form-layout='flow'] .curate-flow-buy-body > * + * { border-top: 1px solid var(--tea-border); }
+[data-form-layout='flow'] .curate-flow-buy-body > :first-child { min-height: 44px; flex-wrap: wrap; column-gap: 12px; padding-block: 2px; }
+[data-form-layout='flow'] .curate-flow-buy-word { color: var(--tea-text-sec); padding-right: 4px; }
+[data-form-layout='flow'] .curate-flow-buy :is(button[aria-label$='buying quantity'], button[aria-pressed]) {
+  position: relative; isolation: isolate; background: transparent; border-radius: 0; color: var(--tea-text-sec);
+}
+[data-form-layout='flow'] .curate-flow-buy button[aria-label$='buying quantity']::before,
+[data-form-layout='flow'] .curate-flow-buy button[aria-pressed]::before {
+  content: ''; position: absolute; inset: 5px 2px; z-index: -1; border: 1px solid var(--tea-border); border-radius: 6px; pointer-events: none;
+}
+[data-form-layout='flow'] .curate-flow-buy-body > .flex-wrap { gap: 4px; padding-block: 2px; }
+[data-form-layout='flow'] .curate-flow-buy button[aria-pressed] { padding-inline: 10px; }
+[data-form-layout='flow'] .curate-flow-buy button[aria-pressed='true'] { color: var(--tea-text); font-weight: 600; }
+[data-form-layout='flow'] .curate-flow-buy button[aria-pressed='true']::before { background: var(--tea-accent-sub); box-shadow: inset 0 -2px 0 var(--tea-gold); }
+@media (hover: hover) {
+  [data-form-layout='flow'] .curate-flow-buy :is(button[aria-label$='buying quantity'], button[aria-pressed]):hover::before { border-color: var(--tea-gold); }
+}
+[data-form-layout='flow'] .curate-flow-buy-body > .curate-flow-cells { border-bottom: 1px solid var(--tea-border); }
+[data-form-layout='flow'] .curate-flow-buy .curate-flow-cells > label { display: flex; flex: 1 1 0; min-width: 0; }
+[data-form-layout='flow'] .curate-flow-buy select.curate-flow-input { cursor: pointer; }
+[data-form-layout='flow'] .curate-flow-buy select.curate-flow-input:focus-visible { outline: none; box-shadow: inset 0 -1px 0 var(--tea-gold); }
+/* The confirm keeps its gold; 34px drawn inside its 44px touch area. */
+[data-form-layout='flow'] .curate-flow-buy-body > button.cta-solid {
+  width: calc(100% - 20px); margin: 3px 10px; padding-inline: 12px; border: 5px solid transparent; border-radius: 11px; background-clip: padding-box;
+  color: var(--tea-bg); /* the cta-solid pair; .curate-action's grey would otherwise win */
+}
+[data-form-layout='flow'] .curate-flow-buy-done { padding: 8px 10px; }

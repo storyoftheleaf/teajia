@@ -240,6 +240,7 @@ test('source form, phone', async ({ page }) => {
   await state('tea-filled-photos', async () => { await fillTea(page); await addPhotos(page, 2); });
   if (FLOW) {
     await asSeen('tea-filled-sample', async () => { await fillTea(page); await pressSample(page); });
+    await asSeen('teaware-filled-buy', async () => { await teawareTab(page); await fillTeaware(page); await pressBuy(page); });
     await state('tea-filled-oolong', async () => { await fillTea(page); await chooseType(page, 'Oolong'); });
     await fresh(page, SOURCE);
     await fillTea(page);
@@ -311,4 +312,7 @@ test('source form, laptop', async ({ page }) => {
   writeRows('tea-filled', LAPTOP.n, await measure(page));
   await writeMarkup(page, 'tea-filled', LAPTOP.n);
   await snap(page, LAPTOP, { room: ROOM, state: 'tea-filled-screen', route: SOURCE, note: 'tea-filled, laptop' });
+  await pressBuy(page);
+  await page.mouse.move(1, 1);
+  await snap(page, LAPTOP, { room: ROOM, state: 'tea-filled-buy-screen', route: SOURCE, note: 'tea-filled, Buy pressed, laptop' });
 });

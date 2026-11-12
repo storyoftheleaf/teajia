@@ -241,6 +241,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   // its own word as the placeholder (no caption above it). See the 'flow'
   // rules in card-utilities.css.
   const flowCell = 'curate-flow-cell relative flex min-w-0 items-center gap-1 text-left';
+  // 'flow': the Buy / Sample panel is one more card, its word inline in its first row.
+  const flowBuyCard = 'library-tea-card curate-flow-card curate-flow-buy !overflow-visible';
+  const flowBuyWord = () => flowLayout ? <span className="curate-flow-buy-word curate-support">{buyMode === 'sample' ? 'Sample' : 'Buy'}</span> : null;
   const flowValue = (set: boolean) => `curate-flow-value min-w-0 truncate ${set ? 'text-tea-text' : 'text-tea-text-dim'}`;
   // In 'flow' the Scan button sits at the end of the name row: this is the
   // element it is drawn into (PhotoCapture keeps owning the scanner).
@@ -1082,9 +1085,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const renderTeawarePurchaseSection = () => (
     <section
       id={purchasePickerId}
-      className={`${showBuyPicker || justAddedToLedger || isInLedger ? 'curate-section' : 'hidden'} space-y-2`}
+      className={flowLayout ? (showBuyPicker || justAddedToLedger || isInLedger ? flowBuyCard : 'hidden') : `${showBuyPicker || justAddedToLedger || isInLedger ? 'curate-section' : 'hidden'} space-y-2`}
     >
-      <QuietEyebrow label="Buy" />
+      {!flowLayout && <QuietEyebrow label="Buy" />}
       {isInLedger && (
         <div className="flex justify-end">
           <button
@@ -1099,9 +1102,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       )}
 
       {showBuyPicker && !justAddedToLedger && (
-        <div className="space-y-2 rounded-md bg-tea-accent-sub px-3 py-2.5">
+        <div className={flowLayout ? 'curate-flow-buy-body' : 'space-y-2 rounded-md bg-tea-accent-sub px-3 py-2.5'}>
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
+              {flowBuyWord()}
               <button
                 type="button"
                 onClick={() => setBuyingQty(Math.max(1, buyingQty - 1))}
@@ -1136,14 +1140,14 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             ) : null}
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className={flowLayout ? 'curate-flow-cells' : 'grid grid-cols-2 gap-2'}>
             <label className="curate-support text-tea-text-sec">
-              <span className="mb-1 block">Inventory purpose</span>
+              {!flowLayout && <span className="mb-1 block">Inventory purpose</span>}
               <select
                 aria-label="Inventory purpose"
                 value={receiptPurpose}
                 onChange={(event) => setReceiptPurpose(event.target.value as InventoryPurposeValue)}
-                className="curate-field w-full px-2"
+                className={flowLayout ? 'curate-flow-input w-full' : 'curate-field w-full px-2'}
               >
                 <option value="working">Working</option>
                 <option value="sample">Sample</option>
@@ -1151,12 +1155,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               </select>
             </label>
             <label className="curate-support text-tea-text-sec">
-              <span className="mb-1 block">Acquisition</span>
+              {!flowLayout && <span className="mb-1 block">Acquisition</span>}
               <select
                 aria-label="Acquisition"
                 value={receiptAcquisition}
                 onChange={(event) => setReceiptAcquisition(event.target.value as ReceiptAcquisitionKind)}
-                className="curate-field w-full px-2"
+                className={flowLayout ? 'curate-flow-input w-full' : 'curate-field w-full px-2'}
               >
                 <option value="purchase">Purchase</option>
                 <option value="free_sample">Free sample</option>
@@ -1179,7 +1183,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       )}
 
       {justAddedToLedger && (
-        <div className="curate-support rounded-md bg-tea-accent-sub p-3">
+        <div className={flowLayout ? 'curate-flow-buy-done curate-support' : 'curate-support rounded-md bg-tea-accent-sub p-3'}>
           <div className="flex items-center gap-2 font-medium text-tea-gold">
             <Check size={16} />
             Added to Ledger
@@ -1917,8 +1921,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     </>
   );
   const teaBuySection = (
-      <section id={purchasePickerId} className={`${showBuyPicker || justAddedToLedger || isInLedger ? 'curate-section' : 'hidden'} space-y-2`}>
-        <QuietEyebrow label={flowLayout && buyMode === 'sample' ? 'Sample' : 'Buy'} />
+      <section id={purchasePickerId} className={flowLayout ? (showBuyPicker || justAddedToLedger || isInLedger ? flowBuyCard : 'hidden') : `${showBuyPicker || justAddedToLedger || isInLedger ? 'curate-section' : 'hidden'} space-y-2`}>
+        {!flowLayout && <QuietEyebrow label="Buy" />}
         <div className="flex flex-wrap items-center justify-end gap-2">
         {/* Ledger link */}
         {isInLedger && (
@@ -1943,9 +1947,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="rounded-xl bg-tea-gold/[0.07] px-3 py-2.5 space-y-2">
+              <div className={flowLayout ? 'curate-flow-buy-body' : 'rounded-xl bg-tea-gold/[0.07] px-3 py-2.5 space-y-2'}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
+                    {flowBuyWord()}
                     <button
                       type="button"
                       onClick={() => setBuyingQty(Math.max(buyStep, buyingQty - buyStep))}
@@ -1995,6 +2000,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                         key={g}
                         type="button"
                         onClick={() => setBuyingQty(g)}
+                        {...(flowLayout ? { 'aria-pressed': buyingQty === g } : {})}
                         className={`curate-support tap-target min-h-11 rounded px-2 tabular-nums transition-colors ${
                           buyingQty === g ? 'bg-tea-accent-sub text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'
                         }`}
@@ -2006,14 +2012,14 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className={flowLayout ? 'curate-flow-cells' : 'grid grid-cols-2 gap-2'}>
                   <label className="curate-support text-tea-text-sec">
-                    <span className="mb-1 block">Inventory purpose</span>
+                    {!flowLayout && <span className="mb-1 block">Inventory purpose</span>}
                     <select
                       aria-label="Inventory purpose"
                       value={receiptPurpose}
                       onChange={(event) => setReceiptPurpose(event.target.value as InventoryPurposeValue)}
-                      className="curate-field w-full px-2"
+                      className={flowLayout ? 'curate-flow-input w-full' : 'curate-field w-full px-2'}
                     >
                       <option value="working">Working</option>
                       <option value="sample">Sample</option>
@@ -2021,12 +2027,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                     </select>
                   </label>
                   <label className="curate-support text-tea-text-sec">
-                    <span className="mb-1 block">Acquisition</span>
+                    {!flowLayout && <span className="mb-1 block">Acquisition</span>}
                     <select
                       aria-label="Acquisition"
                       value={receiptAcquisition}
                       onChange={(event) => setReceiptAcquisition(event.target.value as ReceiptAcquisitionKind)}
-                      className="curate-field w-full px-2"
+                      className={flowLayout ? 'curate-flow-input w-full' : 'curate-field w-full px-2'}
                     >
                       <option value="purchase">Purchase</option>
                       <option value="free_sample">Free sample</option>
@@ -2056,7 +2062,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="curate-support rounded-md bg-tea-gold/15 p-3"
+              className={flowLayout ? 'curate-flow-buy-done curate-support' : 'curate-support rounded-md bg-tea-gold/15 p-3'}
             >
               <div className="flex items-center gap-2 text-tea-gold font-medium">
                 <Check size={16} />
