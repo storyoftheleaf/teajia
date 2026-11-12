@@ -256,6 +256,30 @@ test('source form, phone', async ({ page }) => {
       ]);
       await addTasting(page);
     });
+    // The same, with a tasting of many words and a brewing line, so the one
+    // quiet line of words has to cut with an ellipsis.
+    await state('tea-filled-notes-tasted-many', async () => {
+      await fillTea(page);
+      await addNotes(page, [
+        'The seller says this came from the 2019 spring picking on the north slope.',
+        'Roasted twice, the second time lighter. Rests well for a year.',
+        'He offered a 50 g sample for free if we come back next week.',
+      ]);
+      await addTasting(page);
+      await page.evaluate(async () => {
+        // @ts-expect-error Vite serves source modules to the browser in the dev server.
+        const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+        const store = useTeaCompassStore.getState();
+        const entry = store.getEntry(store.activeEntryId!);
+        store.updateEntry(store.activeEntryId!, { tasting: {
+          ...(entry?.tasting ?? {}),
+          flavor: ['honey', 'orchid', 'roasted-nut', 'cocoa', 'stone-fruit'],
+          finish: ['long'],
+          brewingVessel: 'Gaiwan', brewingTemp: 95, brewingTime: '10s',
+        } });
+      });
+      await page.waitForTimeout(600);
+    });
   }
 });
 

@@ -7125,3 +7125,22 @@ body.cart-panel-open .commerce-dock {
   color: var(--tea-bg); /* the cta-solid pair; .curate-action's grey would otherwise win */
 }
 [data-form-layout='flow'] .curate-flow-buy-done { padding: 8px 10px; }
+
+/* Tasting words as one quiet line (TastingProfileStrip variant 'line'): plain
+   words parted by middle dots, cut with an ellipsis when they do not fit. Each
+   word still removes itself on tap, its touch area 44px tall (a button is
+   always an inline block, so the height is set on it, not by padding). */
+.tasting-words-line {
+  min-width: 0; min-height: 44px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  font-family: var(--font-sans); font-size: 12px; line-height: 44px; color: var(--tea-text-sec);
+}
+.tasting-words-line > button {
+  display: inline-block; height: 44px; padding: 0; vertical-align: top; border: 0; background: transparent; color: inherit; font: inherit; line-height: 44px;
+}
+.tasting-words-line > button + button::before { content: '\00B7'; padding-inline: 6px; color: var(--tea-text-sec); }
+.tasting-words-line > button:focus-visible { outline: 1px solid var(--tea-gold); outline-offset: -12px; }
+@media (hover: hover) { .tasting-words-line > button:hover { color: var(--tea-text); } }
+[data-form-layout='flow'] .curate-flow-taste-line:empty { display: none; }
+[data-form-layout='flow'] .curate-flow-taste-line .text-tea-text-dim,
+[data-form-layout='flow'] .curate-flow-taste-line .text-tea-border { color: var(--tea-text-sec); }
+[data-form-layout='flow'] .curate-flow-taste-line > .curate-support { padding-bottom: 10px; }

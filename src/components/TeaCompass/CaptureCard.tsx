@@ -1847,7 +1847,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       </div>
     </div>
   ) : null;
-  const brewingAndWords = hasTasting && entry.tasting ? (
+  const brewingLine = hasTasting && entry.tasting ? (
     <>
           {/* Brewing metadata */}
           {(entry.tasting.brewingVessel || entry.tasting.brewingTemp || entry.tasting.brewingTime) && (
@@ -1857,6 +1857,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               {entry.tasting.brewingTime && <><span className="text-tea-border">·</span><span>{entry.tasting.brewingTime}</span></>}
             </div>
           )}
+    </>
+  ) : null;
+  const brewingAndWords = hasTasting && entry.tasting ? (
+    <>
+          {brewingLine}
           {/* Tag cloud */}
           <TastingProfileStrip
             value={entry.tasting}
@@ -1886,8 +1891,14 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           )}
     </>
   );
-  // 'flow': the brewing line and the tasting words stay with the saved notes.
-  const tastingRest = hasTasting && entry.tasting ? brewingAndWords : null;
+  // 'flow': the tasting words as one quiet line under the quality row (same
+  // taps as the cloud: a word removes itself), the brewing line under them.
+  const tastingLine = hasTasting && entry.tasting ? (
+    <div className="curate-flow-taste-line">
+      <TastingProfileStrip value={entry.tasting} onRemove={handleTastingStripRemove} variant="line" />
+      {brewingLine}
+    </div>
+  ) : null;
   const teaActionFooter = (primaryLast: boolean) => (
       <CaptureActionFooter
         primaryLast={primaryLast}
@@ -2127,7 +2138,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         backToLibrary={backToLibrary} supplierHeader={supplierHeader} vendorStrip={vendorStripBlock} nameInput={teaNameInput}
         band={<>{originField}{typeButton}{yearField}</>}
         purchase={teaPurchaseInner} sheets={typeSheet} afterIdentity={<>{duplicateNudge}{extractionConfirmation}</>}
-        photo={photoCapture} taste={tasteButton(true)} quality={qualityRow} composer={noteThread('composer')} list={noteThread('list')} intent={intentBar} tasting={tastingRest}
+        photo={photoCapture} taste={tasteButton(true)} quality={qualityRow && <>{qualityRow}{tastingLine}</>} composer={noteThread('composer')} list={noteThread('list')} intent={intentBar}
         details={<>{teaDetailsWith(<div className="flex">{chineseNameField}</div>, true)}{storageSection}</>}
         recordTools={recordTools} decision={decisionControl} actions={teaActionFooter(true)} buyPanel={teaBuySection}
         outside={<>{teaReceiptError}{tastingOverlay}</>}

@@ -12,10 +12,11 @@ import { mediaUrl } from '../../lib/mediaUrl';
  *
  *   tea card      name (first photo at its left, Scan at its right);
  *                 the band; the price
- *   capture card  Photo and Taste, the photos, the quality (once tasted),
+ *   capture card  Photo and Taste, the photos, the quality and the tasting
+ *                 words (once tasted),
  *                 the note box
  *   decide card   status, then Buy, Sample, Done; the Buy panel under it
- *   growing card  saved notes and the tasting words: everything that grows
+ *   growing card  the saved notes: everything that grows
  *                 sits below the decision, so it never pushes it down
  *   details       Tea details & sourcing, then Storage
  *
@@ -47,7 +48,7 @@ export interface CaptureFlowLayoutProps {
   afterIdentity?: React.ReactNode;
   photo: React.ReactNode;
   taste?: React.ReactNode;
-  /** The 1 to 10 quality row, once a tasting exists. */
+  /** The 1 to 10 quality row and the tasting words, once a tasting exists. */
   quality?: React.ReactNode;
   /** The note box with its microphone, and the saved notes. */
   composer: React.ReactNode;
@@ -130,7 +131,7 @@ export function CaptureFlowLayout(props: CaptureFlowLayoutProps) {
 
           {props.buyPanel}
 
-          {/* Everything that grows: the saved notes and the tasting words. */}
+          {/* Everything that grows: the saved notes. */}
           <article className={`${CARD} curate-flow-record empty:hidden`} style={cardStyle} data-testid="curate-cluster-record" data-zone="record">
             {props.list}
             {props.tasting}
