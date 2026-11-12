@@ -217,6 +217,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
       </BottomSheet>
       {viewerOpen && <PhotoCapture variant="viewer" photos={validPhotos} onViewerClose={() => setViewerOpen(false)}
         onPhotoTaken={url => { const current = useTeaCompassStore.getState().getEntry(entry.id) || entry; void savePatch({ photos: [...current.photos, url] }).catch(error => showToast(String(error.message), 'error')); }}
+        onPhotoReplaced={(oldUrl, newUrl) => { const current = useTeaCompassStore.getState().getEntry(entry.id) || entry; void savePatch({ photos: current.photos.map(url => url === oldUrl ? newUrl : url) }).catch(error => showToast(String(error.message), 'error')); }}
         onExtracted={data => { const current = useTeaCompassStore.getState().getEntry(entry.id) || entry; void savePatch({ ...(!current.originRegion && data.region ? { originRegion: data.region } : {}), ...(!current.year && data.year ? { year: data.year } : {}) }).catch(error => showToast(String(error.message), 'error')); }} />}
       <BottomSheet open={photosOpen} onOpenChange={setPhotosOpen} title="Tea photos" description={title}>
         {readOnly ? <p className="text-ui-12 text-tea-text-sec">Open the tea details to view source material.</p> : <PhotoCapture photos={validPhotos}
