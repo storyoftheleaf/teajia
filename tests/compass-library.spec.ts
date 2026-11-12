@@ -528,9 +528,9 @@ test.describe('Curate Library decisions and retrieval', () => {
     await expect(purpose).toBeHidden();
     await sourceBuy.click();
     await expect(purpose).toBeVisible();
-    const purchasePanel = purpose.locator('xpath=ancestor::div[contains(@class,"rounded-xl")][1]');
-    await purchasePanel.locator('input[type="number"]').fill('25');
-    await purchasePanel.getByRole('button', { name: 'Add to Ledger' }).evaluate((button: HTMLButtonElement) => { button.click(); button.click(); });
+    // Found by what the controls are called, not by the panel's wrapper, so a restyle cannot hide them from this check.
+    await page.getByLabel('Purchase quantity').filter({ visible: true }).fill('25');
+    await page.getByRole('button', { name: 'Add to Ledger' }).filter({ visible: true }).evaluate((button: HTMLButtonElement) => { button.click(); button.click(); });
     await expect(page.getByText('Added to Ledger', { exact: true })).toBeVisible();
     expect(proposals).toBe(0);
     expect(compassRequestCount(page, 'POST /api/products')).toBe(0);
