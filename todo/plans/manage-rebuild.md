@@ -2,6 +2,48 @@
 
 > Written 2026-11-11 by the manager session so any later session can continue without the original conversation. The full report, with screenshots, diagrams and the owner's questions, is the doc **Teajia Manage: audit and rebuild plan**: https://claude.ai/artifact/YBTipCxwkRVTbKPiahXcrr. Read that doc before starting a wave. This file is the working state: what is decided, what landed, what is next, and how workers are run.
 
+## Start here (state when the first session closed, 2026-11-12)
+
+**Read this section first. Everything below it is the fuller record.**
+
+### What is live
+
+`origin/main` carries all of this work. Nothing is waiting on a side branch except what "Not yet live" lists.
+
+- Wave 1 and 2 fixes: access gates, the stale-browser sync (field-level), merging two Curate teas, redirects and dead links, 14 tasting fixes, drift guards in `src/admin/guards/`.
+- **Curate's Source form, reorganised** (`src/components/curate/`, `src/components/TeaCompass/CaptureCard.tsx`): where, the tea, cost, capture, decision; small cards in the Library's language; Sample opens the Buy panel as a sample; photos stay visible; the header rows and microphone stay in place. The earlier form is kept at `/admin/compass?form=classic`.
+- The Library card shows a tea's first photo where the camera was, count inside it, and a viewer with Add on tap.
+- No database migrations were added by any of this.
+
+### Decisions he made that override the older plan below
+
+- **The current Curate is the base. Curate v2 (`/admin/compass/v2`) is the base for nothing.** Waves 4 and 5 below still say "new Curate": read that as "keep refining the current one". Standing instruction 13 has his words.
+- **The Library and its tea card are not to be redesigned.** Additions he asked for (the photo) are fine; flattening is not.
+- Sample means "acquire a small sample" (inside Buy). Tasting is separate.
+- Visible changes are shown to him as before and after pictures first. He judges by eye and corrects in rounds; expect three or four rounds per screen.
+
+### Still open, in the order I would take them
+
+1. **His unanswered questions.** Tasting questions 1 to 8 (`todo/plans/tasting-tighten.md`, "Questions for Adrian") and plan questions 5 to 13 (below, "Questions waiting for Adrian"; question 4 is withdrawn). He was given all of them in plain words on 2026-11-12 and has not answered yet. Most later work depends on them.
+2. **Source form, next refinement.** A long vendor name still truncates early; in the photo viewer the site's bottom bar shows over the backdrop; the origin, type and year cells could be lighter; after a tasting the decision sits 73 px lower. On a laptop the form works but was only lightly reviewed. Nothing has been tried with his real data.
+3. **The visible fix-first items** (table below): 6, 8, 9, 10, 11, 12, 13, 15, 21, 23, 24, 27, 29, and the three dead links 31 to 33. Each needs a before and after picture and his yes. Items 10 and 12 touch money: read `docs/claude/money.md` first.
+4. **Buying, freight and logistics** (his words: "not fully connected... put some energy into that"). An order placed in the browser has no receipt lines until matched by hand; freight is the 85 yuan shop rate plus bills he will hand over. See the doc section of that name. Not started.
+5. **Stock, Sales, Sessions and the shared kit** (waves 4 to 7 below). Not started. Stock would be a new version beside the old, per standing instruction 3.
+6. **Remaining invisible tasting items**: T2, T3, T14, T21, T28, T37 to T39, and T23's history rule (waits on tasting question 8).
+7. **`verifyToken` does not check the token header** (`worker/src/index.ts`). Safe today; harden it.
+
+### Housekeeping left behind
+
+- Local worktrees under `.claude/worktrees/` and their `worktree-agent-*` branches are all merged or superseded and can be removed.
+- The picture harness is `scripts/manage-archive/` (README inside). `form-tighten.spec.ts` there pictures and measures every state of the Source form; reuse it for before and after pictures.
+- Browser tests: `tests/curate-flow-form.spec.ts` holds the new form; the older Curate specs hold the classic form through `openCompass(page, 'classic')`. In a cold container the first browser test after the dev server starts needs about 30 s; use a 90 s timeout.
+- One server test, `curate-holdings-read-budget`, fails in the cloud container with the same number on old and new code and passes in CI. 23 others need the `sqlite3` CLI.
+- Pages for him: the archive of every screen before the rebuild (https://claude.ai/artifact/SMFTKV9A6sWnd3GmEfWUKx), the Source form today beside new (https://claude.ai/artifact/NzdEue2vEfj9H7gajQiJB1), and the audit report (https://claude.ai/artifact/YBTipCxwkRVTbKPiahXcrr).
+
+### Starting a fresh session
+
+Branch from `origin/main`. Read `CLAUDE.md`, this section, standing instructions 1 to 13 below, and `todo/plans/tasting-tighten.md`. Ask him for the answers in item 1 before building anything visible.
+
 ## The goal, in Adrian's words
 
 Simpler, better-looking screens across Manage (Curate, Library, Stock, Purchases, Sales, People, Sessions, Publish, Today) that are finished and interconnected, **without losing any function**. "Ideally we are staying functional even if we are making things less complicated."
