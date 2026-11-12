@@ -115,11 +115,13 @@ function fillOriginCountry(region: string | undefined, currentCountry: string | 
  *  so the figure at the vendor's table is the figure the shelf will charge.
  *  Shelf price in USD, the admin's display unit, like every other admin price. */
 function RetailPricePreview({
-  costAmount, grams, currency,
+  costAmount, grams, currency, oneLine = false,
 }: {
   costAmount: number;
   grams: number;
   currency: string;
+  /** 'flow': one line, the shelf price the emphasised part, the same numbers. */
+  oneLine?: boolean;
 }) {
   const { data: rates } = useRates();
   const shopFreight = useShopFreightDefault();
@@ -135,6 +137,16 @@ function RetailPricePreview({
       <div className="curate-support px-1 text-tea-text-dim" data-testid="curate-shelf-preview">
         No exchange rate for {sym} yet, so the shelf price can't be worked out.
       </div>
+    );
+  }
+
+  if (oneLine) {
+    return (
+      <p className="curate-flow-cost curate-support text-tea-text-sec" data-testid="curate-shelf-preview">
+        <span className="whitespace-nowrap tabular-nums">{sym}{fmtGram(preview.costPerGramSource)}/g</span>{' '}
+        <span className="whitespace-nowrap"><span aria-hidden>→</span> <span className="tabular-nums font-medium text-tea-text">≈ ${preview.retailPerGramUsd.toFixed(2)}/g on the shelf</span></span>{' '}
+        <span className="whitespace-nowrap"><span aria-hidden>·</span> <span className="tabular-nums">{sym}{fmtGram(preview.freightPerKgSource)}/kg freight</span></span>
+      </p>
     );
   }
 
@@ -225,6 +237,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const [receiptProposal, setReceiptProposal] = useState<CurateReceiptProposal | null>(null);
   const [receiptError, setReceiptError] = useState('');
   const flowLayout = (layout ?? layoutFromAddress()) === 'flow';
+  // 'flow' only: a field or picker in a band sits straight on the card, with
+  // its own word as the placeholder (no caption above it). See the 'flow'
+  // rules in card-utilities.css.
+  const flowCell = 'curate-flow-cell relative flex min-w-0 items-center gap-1 text-left';
+  const flowValue = (set: boolean) => `curate-flow-value min-w-0 truncate ${set ? 'text-tea-text' : 'text-tea-text-dim'}`;
   // In 'flow' the Scan button sits at the end of the name row: this is the
   // element it is drawn into (PhotoCapture keeps owning the scanner).
   const [scanSlot, setScanSlot] = useState<HTMLElement | null>(null);
@@ -1304,15 +1321,21 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             <button
               type="button"
               onClick={() => setCategoryPopoverOpen(true)}
-              className="curate-field curate-field-with-label relative flex min-w-0 items-center justify-between px-2 text-left"
+              className={flowLayout ? `${flowCell} flex-1` : 'curate-field curate-field-with-label relative flex min-w-0 items-center justify-between px-2 text-left'}
               aria-label={`Category: ${entry.teawareCategory || 'Choose'}`}
               aria-haspopup="dialog"
               aria-expanded={categoryPopoverOpen}
               aria-controls={categorySheetId}
             >
+              {flowLayout ? (
+                <span className={flowValue(!!entry.teawareCategory)}>{entry.teawareCategory || 'Category'}</span>
+              ) : (
+                <>
               <span className="curate-floating-label">Category</span>
               <span className="curate-support min-w-0 truncate pt-1 font-medium text-tea-text">{entry.teawareCategory || 'Choose'}</span>
-              <ChevronDown size={12} className="mt-1 shrink-0" />
+                </>
+              )}
+              <ChevronDown size={12} className={flowLayout ? 'shrink-0 text-tea-text-sec' : 'mt-1 shrink-0'} />
             </button>
     );
     const teawareMaterialButton = (
@@ -1321,16 +1344,22 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 onClick={() => {
                   setMaterialPopoverOpen(true);
                 }}
-                className="curate-field curate-field-with-label relative flex min-w-0 items-center justify-between px-2 text-left"
+                className={flowLayout ? `${flowCell} flex-1` : 'curate-field curate-field-with-label relative flex min-w-0 items-center justify-between px-2 text-left'}
                 aria-label={`Material: ${materialDisplayLabel}`}
                 aria-haspopup="dialog"
                 aria-expanded={materialPopoverOpen || claySheetOpen}
                 aria-controls={materialSheetId}
                 data-curate-action
               >
+                {flowLayout ? (
+                  <span className={flowValue(!!entry.material)}>{materialDisplayLabel}</span>
+                ) : (
+                  <>
                 <span className="curate-floating-label">Material</span>
                 <span className="curate-support min-w-0 truncate pt-1 font-medium text-tea-text">{materialDisplayLabel}</span>
-                <ChevronDown size={12} className="mt-1 shrink-0" />
+                  </>
+                )}
+                <ChevronDown size={12} className={flowLayout ? 'shrink-0 text-tea-text-sec' : 'mt-1 shrink-0'} />
               </button>
     );
     const teawareClassificationRow = (
@@ -1341,14 +1370,15 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           </div>
     );
     const teawareOriginField = (
-            <div className="relative min-w-0 flex-1">
-              <span className="curate-floating-label">Origin</span>
+            <div className={flowLayout ? 'curate-flow-cell relative min-w-0 flex-1' : 'relative min-w-0 flex-1'}>
+              {!flowLayout && <span className="curate-floating-label">Origin</span>}
               <AutocompleteInput
                 value={entry.originRegion || ''}
                 onChange={(val) => update({ originRegion: val || undefined })}
                 suggestions={availableRegions}
                 placeholder="Origin"
-                className={`curate-field-with-label w-full ${tallFieldClass}`}
+                className={flowLayout ? 'curate-flow-input w-full' : `curate-field-with-label w-full ${tallFieldClass}`}
+                {...(flowLayout ? { ariaLabel: 'Origin' } : {})}
               />
             </div>
     );
@@ -1356,34 +1386,40 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             <button
               type="button"
               onClick={() => setEraSheetOpen(true)}
-              className="curate-field curate-field-with-label relative flex w-20 shrink-0 items-center justify-between px-2 text-left tabular-nums"
+              className={flowLayout ? `${flowCell} shrink-0 justify-end tabular-nums` : 'curate-field curate-field-with-label relative flex w-20 shrink-0 items-center justify-between px-2 text-left tabular-nums'}
               aria-label={`Era: ${entry.era || 'Choose'}`}
               aria-haspopup="dialog"
               aria-expanded={eraSheetOpen}
               aria-controls={eraSheetId}
               data-curate-action
             >
+              {flowLayout ? (
+                <span className={flowValue(!!entry.era)}>{entry.era || 'Era'}</span>
+              ) : (
+                <>
               <span className="curate-floating-label">Era</span>
               <span className="curate-support min-w-0 truncate pt-1 font-medium text-tea-text">{entry.era || 'Choose'}</span>
-              <ChevronDown size={12} className="mt-1 shrink-0" />
+                </>
+              )}
+              <ChevronDown size={12} className={flowLayout ? 'shrink-0 text-tea-text-sec' : 'mt-1 shrink-0'} />
             </button>
     );
     const teawareCapacityField = (
       <>
             {supportsCapacity && (
-              <div className="relative w-20 shrink-0">
-                <span className="curate-floating-label">Capacity</span>
+              <div className={flowLayout ? 'curate-flow-cell relative w-28 shrink-0' : 'relative w-20 shrink-0'}>
+                {!flowLayout && <span className="curate-floating-label">Capacity</span>}
                 <input
                   type="number"
                   inputMode="numeric"
                   aria-label="Capacity (ml)"
                   value={entry.capacityMl ?? ''}
                   onChange={(event) => update({ capacityMl: event.target.value === '' ? undefined : Number(event.target.value) })}
-                  placeholder="ml"
-                  className={`curate-field-with-label w-full pl-2 pr-6 text-center tabular-nums ${fieldClass}`}
+                  placeholder={flowLayout ? 'Capacity' : 'ml'}
+                  className={flowLayout ? 'curate-flow-input w-full pr-6 text-right tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none' : `curate-field-with-label w-full pl-2 pr-6 text-center tabular-nums ${fieldClass}`}
                 />
                 {entry.capacityMl != null && (
-                  <span className="curate-support pointer-events-none absolute bottom-1.5 right-2 text-tea-text-dim">ml</span>
+                  <span className={flowLayout ? 'curate-support pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-sec' : 'curate-support pointer-events-none absolute bottom-1.5 right-2 text-tea-text-dim'}>ml</span>
                 )}
               </div>
             )}
@@ -1411,7 +1447,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     );
     const teawarePurchaseInner = (
       <>
-        <QuietEyebrow label="Purchase" className="!mb-1 lg:!mb-1.5" />
+        {!flowLayout && <QuietEyebrow label="Purchase" className="!mb-1 lg:!mb-1.5" />}
         <PricingRow
           priceAmount={entry.priceAmount}
           priceCurrency={entry.priceCurrency || 'NT'}
@@ -1453,12 +1489,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           contextTestId="curate-teaware-context-band" bandTestId="curate-teaware-classification-row"
           typeName="" firstPhoto={(entry.photos || []).filter(Boolean)[0]} setScanSlot={setScanSlot} setStripSlot={setStripSlot}
           supplierHeader={supplierHeader} vendorStrip={vendorStripBlock} nameInput={teawareNameInput}
-          band={<>
-            <div className="flex min-w-0 flex-1 [&>button]:w-full">{teawareCategoryButton}</div>
-            <div className="flex min-w-0 flex-1 [&>button]:w-full">{teawareMaterialButton}</div>
-            {teawareEraButton}
-          </>}
-          purchaseLead={<div className="flex items-end gap-2 pb-1" data-testid="curate-teaware-provenance-row">{teawareOriginField}{teawareCapacityField}</div>}
+          band={<>{teawareCategoryButton}{teawareMaterialButton}{teawareEraButton}</>}
+          subBand={<>{teawareOriginField}{teawareCapacityField}</>} subBandTestId="curate-teaware-provenance-row"
           purchase={teawarePurchaseInner} sheets={teawareSheets}
           photo={photoCapture} composer={noteThread('composer')} list={noteThread('list')} intent={intentBar} recordTools={recordTools}
           decision={decisionControl} actions={teawareActionFooter(true)} buyPanel={<>{teawareReceiptError}{renderTeawarePurchaseSection()}</>}
@@ -1551,8 +1583,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         />
   );
   const originField = (
-          <div className="relative min-w-0 flex-1">
-            <span className="curate-floating-label">Origin</span>
+          <div className={flowLayout ? 'curate-flow-cell relative min-w-0 flex-1' : 'relative min-w-0 flex-1'}>
+            {!flowLayout && <span className="curate-floating-label">Origin</span>}
             <AutocompleteInput
               value={entry.originRegion || ''}
               onChange={(val) => {
@@ -1562,26 +1594,28 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 update(updates);
               }}
               suggestions={availableRegions}
-              placeholder="e.g. Yiwu"
-              className={`curate-field-with-label w-full ${fieldClass}`}
+              placeholder={flowLayout ? 'Origin' : 'e.g. Yiwu'}
+              className={flowLayout ? 'curate-flow-input w-full' : `curate-field-with-label w-full ${fieldClass}`}
+              {...(flowLayout ? { ariaLabel: 'Origin' } : {})}
             />
           </div>
   );
   const yearField = (
-          <div className="relative w-20 shrink-0">
-            <span className="curate-floating-label">Year</span>
+          <div className={flowLayout ? 'curate-flow-cell relative w-[4.5rem] shrink-0' : 'relative w-20 shrink-0'}>
+            {!flowLayout && <span className="curate-floating-label">Year</span>}
             <input
               data-testid="curate-year-control"
               type="number"
               inputMode="numeric"
-              placeholder="2019"
+              {...(flowLayout ? { 'aria-label': 'Year' } : {})}
+              placeholder={flowLayout ? 'Year' : '2019'}
               value={entry.year ?? ''}
               onChange={(e) => {
                 userTapped.current.add('year');
                 const val = e.target.value;
                 update({ year: val === '' ? undefined : Number(val) });
               }}
-              className={`curate-field-with-label w-full tabular-nums text-center ${fieldClass} [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
+              className={flowLayout ? 'curate-flow-input w-full text-right tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none' : `curate-field-with-label w-full tabular-nums text-center ${fieldClass} [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
               style={{ MozAppearance: 'textfield' } as React.CSSProperties}
             />
           </div>
@@ -1621,14 +1655,20 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           <button
             type="button"
             onClick={() => setTypePopoverOpen(true)}
-            className="curate-field curate-field-with-label relative flex w-20 shrink-0 items-center justify-between px-2 text-left"
+            className={flowLayout ? `${flowCell} shrink-0` : 'curate-field curate-field-with-label relative flex w-20 shrink-0 items-center justify-between px-2 text-left'}
             style={entry.type ? { color: getTypeChipStyle(entry.type).text } : undefined}
             aria-label="Tea type"
             data-testid="curate-type-control"
           >
+            {flowLayout ? (
+              <span className={`curate-flow-value min-w-0 truncate ${entry.type ? 'text-current' : 'text-tea-text-dim'}`}>{entry.type || 'Type'}</span>
+            ) : (
+              <>
             <span className="curate-floating-label">Type</span>
             <span className="curate-support min-w-0 truncate pt-1 font-medium text-current">{entry.type || 'Choose'}</span>
-            <ChevronDown size={12} className="mt-1 shrink-0" />
+              </>
+            )}
+            <ChevronDown size={12} className={flowLayout ? 'shrink-0 text-tea-text-sec' : 'mt-1 shrink-0'} />
           </button>
   );
   const chineseTypeRow = (
@@ -1674,7 +1714,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   );
   const teaPurchaseInner = (
     <>
-        <QuietEyebrow label="Purchase" className="!mb-1 lg:!mb-1.5" />
+        {!flowLayout && <QuietEyebrow label="Purchase" className="!mb-1 lg:!mb-1.5" />}
         <div className="space-y-1 lg:space-y-2">
           <PricingRow
             priceAmount={entry.priceAmount}
@@ -1696,6 +1736,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               costAmount={entry.priceAmount}
               grams={entry.pricePerUnitGrams}
               currency={entry.priceCurrency}
+              {...(flowLayout ? { oneLine: true } : {})}
             />
           )}
         </div>
@@ -1765,21 +1806,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             {tasteButton(false)}
           </div>
   );
-  const tastingDetails = (
-    <>
-          {hasTasting && entry.tasting && (
-            <>
-          {/* Quality 1–10, same segment toggle as TastingSession */}
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="curate-support text-tea-text-sec" style={{ letterSpacing: '0.04em' }}>Quality</span>
-              <span className="curate-support text-tea-gold tabular-nums font-medium">
-                {entry.tasting.quality != null ? `${entry.tasting.quality}/10` : '/10'}
-              </span>
-            </div>
-            <div className="tasting-segment-toggle" role="radiogroup" aria-label="Quality rating">
-              {[1,2,3,4,5,6,7,8,9,10].map((v, i) => {
-                const isSelected = entry.tasting!.quality === v;
+  // The ten quality buttons, one set for both layouts ('flow' styles them in
+  // card-utilities.css; 'classic' keeps its segment toggle look).
+  const qualityButtons = (flow: boolean) => [1,2,3,4,5,6,7,8,9,10].map((v, i) => {
+                const isSelected = entry.tasting?.quality === v;
                 return (
                   <button
                     key={v}
@@ -1787,11 +1817,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                     onClick={() => handleQualityChange(v)}
                     role="radio"
                     aria-checked={isSelected}
-                    className={`curate-support tabular-nums flex-1 py-2.5 font-medium transition-all duration-150 min-h-[44px] relative z-[1] ${
+                    className={flow ? 'curate-support tabular-nums' : `curate-support tabular-nums flex-1 py-2.5 font-medium transition-all duration-150 min-h-[44px] relative z-[1] ${
                       isSelected ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
                     }${i < 9 ? ' weight-seg-div' : ''}`}
                     data-curate-action
-                    style={{
+                    style={flow ? undefined : {
                       background: isSelected
                         ? 'radial-gradient(ellipse 120% 120% at 50% 50%, rgb(var(--tea-gold-rgb) / 0.14) 0%, rgb(var(--tea-gold-rgb) / 0.04) 70%)'
                         : 'transparent',
@@ -1800,9 +1830,21 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                     {v}
                   </button>
                 );
-              })}
-            </div>
-          </div>
+  });
+  // 'flow': the quality scale as one slim row in the capture card, under
+  // Photo and Taste (and the photos). Shown, and written, as in 'classic'.
+  const qualityRow = hasTasting && entry.tasting ? (
+    <div className="curate-flow-quality" data-testid="curate-quality-row">
+      <span className="curate-support shrink-0 whitespace-nowrap text-tea-text-sec">
+        Quality <span className="tabular-nums font-medium text-tea-text">{entry.tasting.quality != null ? `${entry.tasting.quality}/10` : '/10'}</span>
+      </span>
+      <div className="curate-flow-quality-scale" role="radiogroup" aria-label="Quality rating">
+        {qualityButtons(true)}
+      </div>
+    </div>
+  ) : null;
+  const brewingAndWords = hasTasting && entry.tasting ? (
+    <>
           {/* Brewing metadata */}
           {(entry.tasting.brewingVessel || entry.tasting.brewingTemp || entry.tasting.brewingTime) && (
             <div className="curate-support flex items-center gap-2 flex-wrap text-tea-text-dim">
@@ -1817,10 +1859,31 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             onRemove={handleTastingStripRemove}
             variant="cloud"
           />
+    </>
+  ) : null;
+  const tastingDetails = (
+    <>
+          {hasTasting && entry.tasting && (
+            <>
+          {/* Quality 1–10, same segment toggle as TastingSession */}
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="curate-support text-tea-text-sec" style={{ letterSpacing: '0.04em' }}>Quality</span>
+              <span className="curate-support text-tea-gold tabular-nums font-medium">
+                {entry.tasting.quality != null ? `${entry.tasting.quality}/10` : '/10'}
+              </span>
+            </div>
+            <div className="tasting-segment-toggle" role="radiogroup" aria-label="Quality rating">
+              {qualityButtons(false)}
+            </div>
+          </div>
+          {brewingAndWords}
             </>
           )}
     </>
   );
+  // 'flow': the brewing line and the tasting words stay with the saved notes.
+  const tastingRest = hasTasting && entry.tasting ? brewingAndWords : null;
   const teaActionFooter = (primaryLast: boolean) => (
       <CaptureActionFooter
         primaryLast={primaryLast}
@@ -2058,7 +2121,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         backToLibrary={backToLibrary} supplierHeader={supplierHeader} vendorStrip={vendorStripBlock} nameInput={teaNameInput}
         band={<>{originField}{typeButton}{yearField}</>}
         purchase={teaPurchaseInner} sheets={typeSheet} afterIdentity={<>{duplicateNudge}{extractionConfirmation}</>}
-        photo={photoCapture} taste={tasteButton(true)} composer={noteThread('composer')} list={noteThread('list')} intent={intentBar} tasting={tastingDetails}
+        photo={photoCapture} taste={tasteButton(true)} quality={qualityRow} composer={noteThread('composer')} list={noteThread('list')} intent={intentBar} tasting={tastingRest}
         details={<>{teaDetailsWith(<div className="flex">{chineseNameField}</div>, true)}{storageSection}</>}
         recordTools={recordTools} decision={decisionControl} actions={teaActionFooter(true)} buyPanel={teaBuySection}
         outside={<>{teaReceiptError}{tastingOverlay}</>}

@@ -12,14 +12,18 @@ import { mediaUrl } from '../../lib/mediaUrl';
  *
  *   tea card      name (first photo at its left, Scan at its right);
  *                 the band; the price
- *   capture card  Photo and Taste, the photos, the note box
+ *   capture card  Photo and Taste, the photos, the quality (once tasted),
+ *                 the note box
  *   decide card   status, then Buy, Sample, Done; the Buy panel under it
- *   growing card  saved notes and the tasting summary: everything that grows
+ *   growing card  saved notes and the tasting words: everything that grows
  *                 sits below the decision, so it never pushes it down
  *   details       Tea details & sourcing, then Storage
  *
- * Every control is the form's own element, passed in: this file only places
- * them. Slim controls and labels are styled once for the whole form in
+ * A card is one quiet surface with one hairline border. Inside it, rows run
+ * edge to edge and are parted by hairlines only (curate-flow-row); fields sit
+ * straight on the card with their own word as the placeholder. The only tinted
+ * row is the band, in the tea type's colour. Every control is the form's own
+ * element, passed in: this file only places them. The look is set once in
  * card-utilities.css under [data-form-layout='flow'].
  */
 export interface CaptureFlowLayoutProps {
@@ -35,12 +39,16 @@ export interface CaptureFlowLayoutProps {
   vendorStrip: React.ReactNode;
   nameInput: React.ReactNode;
   band: React.ReactNode;
-  purchaseLead?: React.ReactNode;
+  /** A second row of fields under the band (teaware: origin and capacity). */
+  subBand?: React.ReactNode;
+  subBandTestId?: string;
   purchase: React.ReactNode;
   sheets: React.ReactNode;
   afterIdentity?: React.ReactNode;
   photo: React.ReactNode;
   taste?: React.ReactNode;
+  /** The 1 to 10 quality row, once a tasting exists. */
+  quality?: React.ReactNode;
   /** The note box with its microphone, and the saved notes. */
   composer: React.ReactNode;
   list: React.ReactNode;
@@ -55,9 +63,8 @@ export interface CaptureFlowLayoutProps {
 }
 
 // The Library card clips its corners; the form's suggestion lists must not be clipped.
-const CARD = 'library-tea-card !overflow-visible';
-// One inside padding for every card body, matching the Library card's 10px rows.
-const BODY = 'space-y-2 px-2.5 py-2';
+const CARD = 'library-tea-card curate-flow-card !overflow-visible';
+const ROW = 'curate-flow-row';
 
 export function CaptureFlowLayout(props: CaptureFlowLayoutProps) {
   const finish = getStockTypeFinish(props.typeName);
@@ -74,22 +81,25 @@ export function CaptureFlowLayout(props: CaptureFlowLayoutProps) {
       <section className="library-supplier-group" data-testid={props.contextTestId} data-zone="context">
         {props.supplierHeader}
         {props.vendorStrip}
-        <div data-testid="curate-primary-workflow" className="grid gap-2">
+        <div data-testid="curate-primary-workflow" className="grid gap-1.5">
           <article className={CARD} style={cardStyle} data-testid="curate-cluster-identity" data-zone="identity">
-            {/* The name field draws no underline of its own: the band below draws the line. */}
-            <div className="library-card-title-row [&_input]:!border-b-transparent [&_input:focus]:!border-b-tea-gold">
+            <div className="library-card-title-row curate-flow-name">
               {props.firstPhoto && (
                 <img src={mediaUrl(props.firstPhoto)} alt="" className="h-9 w-9 shrink-0 rounded-md border border-tea-border object-cover" data-testid="curate-name-photo" />
               )}
               <div className="min-w-0 flex-1">{props.nameInput}</div>
               <div ref={props.setScanSlot} className="-mr-1.5 flex shrink-0 items-center" data-testid="curate-scan-slot" />
             </div>
-            <div className="library-card-subrow !gap-2 !px-2.5 !py-1" data-testid={props.bandTestId}>
+            <div className="library-card-subrow curate-flow-band" data-testid={props.bandTestId}>
               {props.band}
             </div>
-            <div className={BODY} data-testid="curate-cluster-buying" data-zone="purchase">
-              {props.purchaseLead}
-              <div className="space-y-1">{props.purchase}</div>
+            {props.subBand && (
+              <div className={`${ROW} curate-flow-cells`} data-testid={props.subBandTestId}>
+                {props.subBand}
+              </div>
+            )}
+            <div className={`${ROW} curate-flow-purchase`} data-testid="curate-cluster-buying" data-zone="purchase">
+              {props.purchase}
             </div>
             {props.sheets}
           </article>
@@ -97,19 +107,16 @@ export function CaptureFlowLayout(props: CaptureFlowLayoutProps) {
           {props.afterIdentity}
 
           <article className={CARD} style={cardStyle} data-testid="curate-cluster-capture" data-zone="capture">
-            <div className={BODY}>
-              {props.taste ? (
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="min-w-0">{props.photo}</div>
-                  {props.taste}
-                </div>
-              ) : <div className="min-w-0">{props.photo}</div>}
-              <div ref={props.setStripSlot} className="empty:hidden" />
-              <div className="space-y-1" data-testid="curate-notes-band" data-zone="notes">
-                {props.composer}
-                <div className="curate-intent-inline empty:hidden">
-                  {props.intent}
-                </div>
+            <div className={`${ROW} curate-flow-buttons grid gap-2 ${props.taste ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              <div className="min-w-0">{props.photo}</div>
+              {props.taste}
+            </div>
+            <div ref={props.setStripSlot} className={`${ROW} curate-flow-strip empty:hidden`} />
+            {props.quality && <div className={ROW}>{props.quality}</div>}
+            <div className={`${ROW} curate-flow-notes`} data-testid="curate-notes-band" data-zone="notes">
+              {props.composer}
+              <div className="curate-intent-inline empty:hidden">
+                {props.intent}
               </div>
             </div>
           </article>
@@ -117,21 +124,19 @@ export function CaptureFlowLayout(props: CaptureFlowLayoutProps) {
           {props.recordTools}
 
           <article className={CARD} style={cardStyle} data-testid="curate-cluster-decide" data-zone="decide">
-            <div className={BODY}>
-              {props.decision}
-              {props.actions}
-            </div>
+            <div className={`${ROW} curate-flow-buttons`}>{props.decision}</div>
+            <div className={`${ROW} curate-flow-buttons`}>{props.actions}</div>
           </article>
 
           {props.buyPanel}
 
-          {/* Everything that grows: the saved notes and the tasting summary. */}
-          <article className={`${CARD} space-y-2 !px-2.5 !py-2 empty:hidden`} style={cardStyle} data-testid="curate-cluster-record" data-zone="record">
+          {/* Everything that grows: the saved notes and the tasting words. */}
+          <article className={`${CARD} curate-flow-record empty:hidden`} style={cardStyle} data-testid="curate-cluster-record" data-zone="record">
             {props.list}
             {props.tasting}
           </article>
 
-          {props.details && <div className="px-2.5">{props.details}</div>}
+          {props.details && <div className="curate-flow-details">{props.details}</div>}
         </div>
       </section>
 

@@ -101,6 +101,7 @@ async function measure(page: Page, toTop = true) {
     rows.nameRow = box(name?.closest('.library-card-title-row'));
     rows.originTypeYear = box(firstVisible('[data-testid=curate-origin-type-year-row]', form));
     rows.photoStrip = box(firstVisible('[data-testid=curate-photo-strip]', form));
+    rows.qualityRow = box(firstVisible('[data-testid=curate-quality-row]', form));
     rows.headerMic = box(firstVisible('[data-testid=curate-header-mic]'));
     rows.bottomBar = box(firstVisible('[data-testid=bottom-tab-bar]'));
     return rows;
@@ -163,7 +164,8 @@ async function scrollHalf(page: Page) {
 
 async function fillTea(page: Page) {
   await page.getByPlaceholder('Tea name').filter({ visible: true }).fill('Dahongpao Reserve');
-  await page.getByPlaceholder('e.g. Yiwu').filter({ visible: true }).fill('Wuyi');
+  // 'flow' shows the field's own word as its placeholder.
+  await page.getByPlaceholder(FLOW ? 'Origin' : 'e.g. Yiwu', { exact: true }).filter({ visible: true }).fill('Wuyi');
   await page.getByTestId('curate-year-control').filter({ visible: true }).fill('2019').catch(() => {});
   await page.getByPlaceholder('Price').filter({ visible: true }).first().fill('420').catch(() => {});
   await page.getByPlaceholder('Grams').filter({ visible: true }).first().fill('250').catch(() => {});
@@ -213,6 +215,8 @@ test('source form, phone', async ({ page }) => {
   const state = async (name: string, step?: () => Promise<unknown>) => {
     await fresh(page, SOURCE);
     if (step) await step();
+    // A finger leaves no hover behind; the test pointer would.
+    await page.mouse.move(1, 1);
     writeRows(name, PHONE.n, await measure(page));
     await writeMarkup(page, name, PHONE.n);
     await snap(page, PHONE, { room: ROOM, state: `${name}-screen`, route: SOURCE, note: `${name}, as seen` });
@@ -222,6 +226,7 @@ test('source form, phone', async ({ page }) => {
   const asSeen = async (name: string, step: () => Promise<unknown>) => {
     await fresh(page, SOURCE);
     await step();
+    await page.mouse.move(1, 1);
     await snap(page, PHONE, { room: ROOM, state: `${name}-screen`, route: SOURCE, note: `${name}, as seen` });
     writeRows(name, PHONE.n, await measure(page));
   };

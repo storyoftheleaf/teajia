@@ -6984,24 +6984,108 @@ body.cart-panel-open .commerce-dock {
 }
 
 /* ==============================   Source form, 'flow' layout (curate/CaptureFlowLayout.tsx).
-   One slim control for every button inside the cards: 34px of visible chrome,
-   6px corners, one hairline, the surface fill, 12px text; the 44px touch area
-   stays on the button around it (curate-compact-target). Done keeps cta-solid,
-   the one gold control. One small-label style for every label in the cards.
-   Scoped to [data-form-layout='flow'] so the classic form is untouched.
+   Drawn the Library card's way (2026-11-12, "connected, cohesive"): a card is
+   one quiet surface with one hairline border; inside it, rows run edge to edge
+   and are parted by hairlines only, with the same 10px inner edge in every
+   card. Fields carry no box: the text sits on the card, the field's own word
+   is its placeholder. The band is the one tinted row (the tea type's colour).
+   Buttons are quiet outlines on the card's surface: 34px of visible chrome,
+   6px corners, one hairline, inside a 44px touch area (curate-compact-target).
+   Done keeps cta-solid, the one gold control. Gold borders only on focus and
+   hover. Scoped to [data-form-layout='flow'] so the classic form is untouched.
    ============================================ */
-[data-form-layout='flow'] .curate-compact-chrome { height: 34px; min-height: 34px; max-height: 34px; border-radius: 6px; }
-[data-form-layout='flow'] .curate-compact-chrome.bg-tea-bg { background: var(--tea-surface); }
+[data-form-layout='flow'] .curate-flow-card { border-color: var(--tea-border); }
+[data-form-layout='flow'] .curate-flow-row { padding-inline: 10px; border-top: 1px solid var(--tea-border); }
+[data-form-layout='flow'] .curate-flow-band + .curate-flow-row,
+[data-form-layout='flow'] .curate-flow-row:first-child { border-top: 0; }
+
+/* The name row: the name straight on the card, gold underline only while typing. */
+[data-form-layout='flow'] .curate-flow-name { min-height: 44px; }
+[data-form-layout='flow'] .curate-flow-name input { padding-left: 0; border-bottom-color: transparent; }
+[data-form-layout='flow'] .curate-flow-name input:focus { border-bottom-color: var(--tea-gold); }
+
+/* The band and the row of fields under it: cells on the card, thin vertical hairlines between. */
+[data-form-layout='flow'] .curate-flow-card .curate-flow-band { min-height: 44px; padding: 0 10px; gap: 0; align-items: stretch; }
+[data-form-layout='flow'] :is(.curate-flow-band, .curate-flow-cells) { display: flex; min-width: 0; }
+[data-form-layout='flow'] :is(.curate-flow-band, .curate-flow-cells) > * { min-height: 44px; }
+[data-form-layout='flow'] :is(.curate-flow-band, .curate-flow-cells) > * + * { padding-left: 10px; border-left: 1px solid var(--tea-border); }
+[data-form-layout='flow'] :is(.curate-flow-band, .curate-flow-cells) > :not(:last-child) { padding-right: 10px; }
+[data-form-layout='flow'] .curate-flow-cell { color: var(--tea-text); font-family: var(--font-sans); font-size: 16px; line-height: 1.45; background: transparent; }
+[data-form-layout='flow'] .curate-flow-value { font-size: 16px; }
+[data-form-layout='flow'] .curate-flow-input {
+  min-height: 44px; padding: 0; border: 0; border-radius: 0; background: transparent;
+  color: var(--tea-text); font-family: var(--font-sans); font-size: 16px; line-height: 1.45;
+}
+[data-form-layout='flow'] .curate-flow-input::placeholder { color: var(--tea-text-dim); }
+[data-form-layout='flow'] .curate-flow-card .curate-flow-input:focus,
+[data-form-layout='flow'] .curate-flow-card .curate-flow-input:focus-visible { outline: none; box-shadow: inset 0 -1px 0 var(--tea-gold); }
+[data-form-layout='flow'] .curate-flow-card button.curate-flow-cell:focus-visible { outline: none; box-shadow: inset 0 -1px 0 var(--tea-gold); }
+
+/* The price row is as it was; the currency's text starts on the card's inner edge. */
+[data-form-layout='flow'] .curate-flow-purchase { padding-block: 2px 8px; }
+[data-form-layout='flow'] .curate-flow-purchase select[aria-label='Currency'] { padding-left: 0; }
+[data-form-layout='flow'] .curate-flow-cost { margin: 0; }
+[data-form-layout='flow'] .curate-flow-cost [aria-hidden] { color: var(--tea-text-sec); }
+
+/* Rows of buttons: quiet outlines on the card's own surface. */
+[data-form-layout='flow'] .curate-flow-buttons { padding-block: 2px; }
+[data-form-layout='flow'] .curate-flow-card .curate-compact-chrome { height: 34px; min-height: 34px; max-height: 34px; border-radius: 6px; }
+[data-form-layout='flow'] .curate-flow-card .curate-compact-chrome:not(.cta-solid) { border: 1px solid var(--tea-border); background: transparent; }
+@media (hover: hover) {
+  [data-form-layout='flow'] .curate-flow-card button:hover > .curate-compact-chrome:not(.cta-solid) { border-color: var(--tea-gold); color: var(--tea-text); }
+}
 [data-form-layout='flow'] .curate-decision-control { gap: 8px; overflow: visible; border: 0; border-radius: 0; background: transparent; }
 [data-form-layout='flow'] .curate-decision-option + .curate-decision-option { border-left: 0; }
 [data-form-layout='flow'] .curate-decision-option [data-selected-surface] { display: none; }
-[data-form-layout='flow'] .curate-decision-option .curate-compact-chrome { border: 1px solid var(--tea-border); background: var(--tea-surface); }
-[data-form-layout='flow'] .curate-decision-option[aria-checked='true'] .curate-compact-chrome { background: var(--tea-accent-sub); }
+[data-form-layout='flow'] .curate-flow-card .curate-decision-option[aria-checked='true'] .curate-compact-chrome { background: var(--tea-accent-sub); color: var(--tea-text); font-weight: 600; }
+/* On a laptop the actions live in the page's own bar, so their row goes. */
+@media (min-width: 1024px) {
+  [data-form-layout='flow'] .curate-flow-buttons:has(> [data-testid='capture-action-footer'].lg\:hidden) { display: none; }
+}
+
+/* The photos under Photo and Taste. */
+[data-form-layout='flow'] .curate-flow-strip { padding-block: 8px; }
+
+/* Quality 1 to 10: one slim row, the label inline at the left. The strip shows
+   30px; each number keeps a 44px touch height. */
+[data-form-layout='flow'] .curate-flow-quality { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+[data-form-layout='flow'] .curate-flow-quality-scale {
+  flex: 1; min-width: 0; height: 30px; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr));
+  align-items: center; border: 1px solid var(--tea-border); border-radius: 6px;
+}
+[data-form-layout='flow'] .curate-flow-quality-scale > button {
+  position: relative; min-width: 0; height: 44px; margin-block: -7px; padding: 0; border: 0; background: transparent;
+  color: var(--tea-text-sec); font-variant-numeric: tabular-nums;
+}
+[data-form-layout='flow'] .curate-flow-quality-scale > button + button::before {
+  content: ''; position: absolute; top: 7px; bottom: 7px; left: 0; border-left: 1px solid var(--tea-border); pointer-events: none;
+}
+[data-form-layout='flow'] .curate-flow-quality-scale > button[aria-checked='true'] { color: var(--tea-text); font-weight: 600; }
+[data-form-layout='flow'] .curate-flow-quality-scale > button[aria-checked='true']::after {
+  content: ''; position: absolute; inset: 7px 0; background: var(--tea-accent-sub); box-shadow: inset 0 -2px 0 var(--tea-gold); pointer-events: none;
+}
+[data-form-layout='flow'] .curate-flow-quality-scale > button:focus-visible { outline: 1px solid var(--tea-gold); outline-offset: -8px; }
+@media (hover: hover) {
+  [data-form-layout='flow'] .curate-flow-quality-scale > button:hover { color: var(--tea-text); }
+}
+
+/* The note box: its text on the card, the microphone at the right; gold underline only while typing. */
+[data-form-layout='flow'] .curate-flow-notes .tasting-voice-field { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+[data-form-layout='flow'] .curate-flow-notes .tasting-voice-field:focus-within { box-shadow: inset 0 -1px 0 var(--tea-gold); }
+[data-form-layout='flow'] .curate-flow-notes .tasting-voice-field textarea { padding-left: 0; }
+[data-form-layout='flow'] .curate-flow-notes .tasting-voice-btn { margin-right: -10px; color: var(--tea-text-sec); }
+
+/* The growing card: saved notes, then the tasting words and brewing line. */
+[data-form-layout='flow'] .curate-flow-record { display: grid; gap: 8px; padding: 8px 10px; }
+[data-form-layout='flow'] .curate-flow-details { padding-inline: 11px; }
+
 [data-form-layout='flow'] .curate-section-title,
 [data-form-layout='flow'] [data-testid='structured-tea-fields'] > summary {
   margin-bottom: 0; color: var(--tea-text-sec); font-family: var(--font-sans);
   font-size: 11px; font-weight: 500; line-height: 1.2; letter-spacing: 1.2px; text-transform: uppercase;
 }
-[data-form-layout='flow'] [data-testid='curate-shelf-preview'] .text-tea-border { color: var(--tea-text-sec); }
 [data-form-layout='flow'] .library-supplier-header { padding: 0 2px 2px 11px; }
 [data-form-layout='flow'] .library-supplier-heading { min-height: 44px; padding-block: 0; }
+[data-form-layout='flow'] .curate-flow-record:empty { display: none; }
+/* Teaware's piece counter keeps its hairline but drops its darker fill. */
+[data-form-layout='flow'] .curate-flow-purchase [aria-label^='Quantity:'] { background: transparent; }
