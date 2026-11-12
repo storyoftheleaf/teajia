@@ -84,7 +84,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
   );
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1 lg:space-y-2">
       {/* Top row.
           - grams mode: [Currency + Price] [Grams · g] [Form ▾].
             All three flex-1 / equal sizes so the row reads as one

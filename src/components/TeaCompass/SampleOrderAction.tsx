@@ -14,10 +14,12 @@ interface SampleOrderActionProps {
   onManagingChange: (managing: boolean) => void;
   onCaptureTea: () => void;
   onBrowseLibrary: () => void;
+  /** Replaces the label's classes (the 'flow' header proposal restyles it). */
+  chromeClassName?: string;
 }
 
 export const SampleOrderAction: React.FC<SampleOrderActionProps> = ({
-  open, managing, initialSetId, onOpenChange, onRequestCloseRoute, onManagingChange, onCaptureTea, onBrowseLibrary,
+  open, managing, initialSetId, onOpenChange, onRequestCloseRoute, onManagingChange, onCaptureTea, onBrowseLibrary, chromeClassName,
 }) => {
   const count = useSampleCartStore((state) => state.items.length);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -77,7 +79,7 @@ export const SampleOrderAction: React.FC<SampleOrderActionProps> = ({
         {/* Styled as the fourth screen beside Source, Library and Ledger
             (2026-09-29, todo/plans/archive/manage-regroup.md): it opens the samples
             workspace, and reads as a peer rather than a separate button. */}
-        <span className="curate-compact-chrome w-full whitespace-nowrap border-b border-transparent text-ui-12 font-medium lg:px-3" data-curate-compact-chrome>
+        <span className={chromeClassName ?? 'curate-compact-chrome w-full whitespace-nowrap border-b border-transparent text-ui-12 font-medium lg:px-3'} data-curate-compact-chrome>
           <span>Samples</span>
           <span className="tabular-nums text-tea-text-dim">({count})</span>
         </span>

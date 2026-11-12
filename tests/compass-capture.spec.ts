@@ -1,3 +1,5 @@
+// These checks hold the classic Source form to its contract, so they open it
+// with `?form=classic`. The default form is the 'flow' one (src/components/curate/).
 /** Curate preservation contract: field capture stays one tap away and non-linear. */
 import { test, expect } from './fixtures';
 import { expectNoUnhandledCompassApi, installCompassHarness, openCompass } from './helpers/compassHarness';
@@ -7,7 +9,7 @@ test.describe('Curate field capture preservation', () => {
   test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));
 
   test('opens directly to Source and Tea with price visible', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     await expect(page.getByRole('tab', { name: 'Tea', exact: true })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByPlaceholder('Tea name').filter({ visible: true })).toBeVisible();
     await expect(page.getByPlaceholder('Price').filter({ visible: true })).toBeVisible();
@@ -15,7 +17,7 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('keeps the complete sourcing spine visible with labelled evidence actions', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
 
     await expect(page.getByRole('heading', { name: 'Tea', exact: true }).filter({ visible: true })).toHaveCount(0);
     for (const section of ['Purchase', 'Taste']) {
@@ -34,7 +36,7 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('uses one compact readable type scale and full touch targets in Source', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
 
     const workingInputs = page.locator('[data-curate-source] input:not([type="file"]), [data-curate-source] select, [data-curate-source] textarea').filter({ visible: true });
     for (const input of await workingInputs.all()) {
@@ -81,7 +83,7 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('keeps conditional vendor contact actions on the same type and touch scale', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     await page.getByRole('button', { name: 'Vendor', exact: true }).click();
     const vendorPicker = page.getByPlaceholder('Select vendor...');
     await vendorPicker.click();
@@ -125,7 +127,7 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('keeps detected Intent actions readable, reachable, and named', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     await page.evaluate(async () => {
       // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
@@ -148,7 +150,7 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('keeps a populated tasting profile on the support and touch scale', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     await page.evaluate(async () => {
       // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
@@ -173,7 +175,7 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('shows the shelf price from the shop freight and keeps Buy quantity on the working scale', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     await page.evaluate(async () => {
       // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
@@ -195,7 +197,7 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('keeps the duplicate warning readable and fully actionable', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     await page.evaluate(async () => {
       // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
@@ -223,7 +225,7 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('keeps the label scanner readable, closable, and touch-safe', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     await page.evaluate(() => {
       Object.defineProperty(navigator, 'mediaDevices', {
         configurable: true,
@@ -253,7 +255,7 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('keeps existing-photo lightbox navigation named and touch-safe', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     await page.evaluate(async () => {
       // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
@@ -287,7 +289,7 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('creates exactly one blank shell on signed-in mount and an empty account switch', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     const draftState = () => page.evaluate(async () => {
       // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
@@ -337,14 +339,14 @@ test.describe('Curate field capture preservation', () => {
   }
 
   test('switches to Teaware in one action', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     await page.getByRole('tab', { name: 'Teaware', exact: true }).click();
     await expect(page.getByRole('tab', { name: 'Teaware', exact: true })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByPlaceholder('Teaware name', { exact: true }).filter({ visible: true })).toBeVisible();
   });
 
   test('teaware capture has no legacy Want control', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     await page.getByRole('tab', { name: 'Teaware', exact: true }).click();
 
     await expect(page.getByRole('button', { name: 'Want', exact: true })).toHaveCount(0);
@@ -352,7 +354,7 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('keeps Teaware selected when a teaware draft is restored after refresh', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     await page.getByRole('tab', { name: 'Teaware', exact: true }).click();
     await page.getByPlaceholder('Teaware name', { exact: true }).filter({ visible: true }).fill('Field gaiwan');
 
@@ -363,7 +365,7 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('keeps Teaware selected when returning to an account with a teaware draft', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     await page.getByRole('tab', { name: 'Teaware', exact: true }).click();
     await page.getByPlaceholder('Teaware name', { exact: true }).filter({ visible: true }).fill('Account gaiwan');
     await page.evaluate(async () => {
@@ -383,7 +385,7 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('switches between named entries in the current session', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     const name = page.getByPlaceholder('Tea name').filter({ visible: true });
     await name.fill('First field tea');
     const directNewEntry = page.getByRole('button', { name: /^(New Entry|Start a new entry)$/ }).filter({ visible: true });
@@ -400,7 +402,7 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('preserves a partial tea entry when switching capture type', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     const name = page.getByPlaceholder('Tea name').filter({ visible: true });
     await name.fill('Field fragment tea');
     await page.getByRole('tab', { name: 'Teaware', exact: true }).click();
@@ -409,7 +411,7 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('restores a price-only pending fragment after refresh without accumulating blank shells', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     await page.getByPlaceholder('Price').filter({ visible: true }).fill('480');
     const originalId = await page.evaluate(async () => {
       // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
@@ -434,7 +436,7 @@ test.describe('Curate field capture preservation', () => {
       promotions += 1;
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 'unexpected-product' }) });
     });
-    await openCompass(page);
+    await openCompass(page, 'classic');
     await page.getByPlaceholder('Tea name').filter({ visible: true }).fill('Encounter only');
     await expect(page.getByRole('button', { name: /Done/ }).first()).toBeVisible();
     await expect(page.locator('[data-testid="save-mode-personal"], [data-testid="save-mode-inventory"]')).toHaveCount(0);
@@ -460,7 +462,7 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('capture action footer has three equal actions in Buy Done Sample order', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     const footer = page.getByTestId('capture-action-footer').filter({ visible: true });
     const buttons = footer.getByRole('button');
 
@@ -478,7 +480,7 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('Sample opens the current tea tasting without changing sourcing or possession', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     await page.getByPlaceholder('Tea name').filter({ visible: true }).fill('Decision-safe sample');
     await page.getByRole('radio', { name: 'Considering' }).click();
     await page.getByTestId('capture-action-footer').filter({ visible: true })
@@ -495,7 +497,7 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('tasting overlay saves from impression, clears the global nav, and protects unsaved work', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     await page.getByPlaceholder('Tea name').filter({ visible: true }).fill('Protected tasting');
     await page.getByRole('button', { name: /tasting profile/i }).click();
 
@@ -542,7 +544,7 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('authenticated capture keeps Share reachable outside the action footer', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     await page.getByPlaceholder('Tea name').filter({ visible: true }).fill('Shareable tea');
     const share = page.getByRole('button', { name: 'Share', exact: true }).filter({ visible: true });
 
@@ -553,7 +555,7 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('Buy reports and controls its purchase picker disclosure state', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     const buy = page.getByTestId('capture-action-footer').filter({ visible: true })
       .getByRole('button', { name: 'Buy', exact: true });
 
@@ -566,7 +568,7 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('Teaware Buy opens the existing unit-based acquisition flow', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     await page.getByRole('tab', { name: 'Teaware', exact: true }).click();
     const buy = page.getByTestId('capture-action-footer').filter({ visible: true })
       .getByRole('button', { name: 'Buy', exact: true });
@@ -582,7 +584,7 @@ test.describe('Curate field capture preservation', () => {
 
   test('desktop Done also creates exactly one active replacement draft', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'Desktop Chrome', 'desktop action bar only');
-    await openCompass(page);
+    await openCompass(page, 'classic');
     await page.getByPlaceholder('Tea name').filter({ visible: true }).fill('Desktop encounter');
     await page.getByTestId('compass-done-desktop').click();
     await expect.poll(async () => page.evaluate(async () => {
@@ -605,7 +607,7 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('Done resumes an existing partial entry instead of creating a blank replacement', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     const name = page.getByPlaceholder('Tea name').filter({ visible: true });
     await name.fill('Earlier fragment');
     const earlierId = await page.evaluate(async () => {
@@ -630,13 +632,13 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('begins immediately with no Journey or Visit setup gate', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     await expect(page.getByPlaceholder('Tea name').filter({ visible: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Add journey or visit context' })).toBeVisible();
   });
 
   test('inherits recent context, can clear it, and leaves the six-hour session unchanged', async ({ page }) => {
-    await openCompass(page);
+    await openCompass(page, 'classic');
     await page.getByRole('button', { name: 'Add journey or visit context' }).click();
     await page.getByRole('button', { name: /Taiwan, Spring 2026/ }).click();
     await page.getByRole('button', { name: 'Chen Family Taipei' }).click();

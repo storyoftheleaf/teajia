@@ -33,7 +33,18 @@ describe('Library phone row', () => {
     expect(markup).toContain('Chosen');
     expect(markup).not.toContain('Internal notes');
     expect(markup).not.toContain('Long story');
-    expect(markup).not.toContain('<img');
+    // The tea's photo shows only where the camera stood, as the photo control itself.
+    expect(markup.match(/<img/g)).toHaveLength(1);
+    expect(markup).toMatch(/aria-label="Photos for Silver Needle"[^>]*><span[^>]*><img/);
+  });
+  it('keeps the camera and no photo on the classic form (?form=classic)', () => {
+    vi.stubGlobal('window', { location: { search: '?tab=library&form=classic' } });
+    try {
+      const markup = render({ entry: { ...entry, photos: ['https://example.com/bag.jpg'] } });
+      expect(markup).not.toContain('<img');
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
   it('retains Taste and chosen state without showing order quantities', () => {
     const markup = render({ entry: { ...entry, tastingHistory: [{ data: { rating: 9 }, date: '2026-10-20' }], tasting: { rating: 9 } }, purchaseState: { status: 'ordered', quantities: [{ unit: 'g', draft: 0, ordered: 500, received: null, due: null }] } });

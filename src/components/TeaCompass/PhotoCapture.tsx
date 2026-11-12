@@ -34,6 +34,14 @@ interface PhotoCaptureProps {
    *  card: tap anywhere to open the camera before a photo exists; after a
    *  photo, it fills the tile with scan/add actions overlaid bottom-right. */
   variant?: 'strip' | 'hero';
+  /** Strip variant only ('flow' form). When given, the Scan button is drawn
+   *  into this element (a slot elsewhere in the form), the photo control
+   *  becomes one full-width Photo button carrying the count, and the photos
+   *  are drawn as thumbnails into `stripTarget`. One component instance, so the
+   *  scanner, the file picker, the photo menu and the "Label read" tick stay
+   *  shared. A target that is still `null` (mounting) draws nothing yet. */
+  scanTarget?: HTMLElement | null;
+  stripTarget?: HTMLElement | null;
 }
 
 interface PendingPreview {
@@ -107,7 +115,10 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   onRemovePhoto,
   size = 'default',
   variant = 'strip',
+  scanTarget,
+  stripTarget,
 }) => {
+  const split = scanTarget !== undefined;
   const isLg = size === 'lg';
   // Uniform tiles so thumbnails and the scan / camera actions read as one tidy
   // horizontal row (44×44 meets the WCAG 2.5.5 tap floor without extra padding).
@@ -763,6 +774,64 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   const heroExtraCount =
     validPhotos.length + pendingPreviews.length - (heroPending || heroValidUrl ? 1 : 0);
 
+  // Photo thumbnails, each opening the photo menu (view, edit, delete), with
+  // uploads in flight beside them. The hero leaves out the photo it shows big.
+  const renderThumbs = (skipUrl: string | null, skipPending: PendingPreview | null) => (
+    <>
+          {validPhotos.map((url, i) =>
+            url === skipUrl ? null : (
+              <button
+                key={url}
+                type="button"
+                onClick={(event) => {
+                  lightboxTriggerRef.current = event.currentTarget;
+                  setMenuPhotoIndex(i);
+                }}
+                className={`w-[60px] h-[60px] relative shrink-0 block rounded-md overflow-hidden border border-tea-border focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60 transition-shadow ${
+                  menuPhotoIndex === i ? 'ring-2 ring-tea-gold/60' : ''
+                }`}
+                aria-haspopup="menu"
+                aria-expanded={menuPhotoIndex === i}
+                aria-label="Photo actions"
+                title="Tap for options"
+              >
+                <img
+                  src={mediaUrl(url)}
+                  alt={`Photo ${i + 1}`}
+                  className="w-full h-full object-cover pointer-events-none"
+                />
+              </button>
+            )
+          )}
+          {pendingPreviews.map((preview, i) =>
+            preview === skipPending ? null : (
+              <div key={preview.localUrl} className="relative shrink-0">
+                <img
+                  src={preview.localUrl}
+                  alt={`Uploading ${i + 1}`}
+                  className={`w-[60px] h-[60px] rounded-md object-cover ${preview.uploading ? 'opacity-60' : 'opacity-40'}`}
+                />
+                {preview.uploading && (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-md">
+                    <div className="w-4 h-4 border border-tea-border border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+                {preview.failed && (
+                  <button
+                    type="button"
+                    onClick={() => setPendingPreviews((prev) => prev.filter((p) => p.localUrl !== preview.localUrl))}
+                    className="absolute inset-0 flex items-center justify-center rounded-md text-tea-error"
+                    aria-label="Upload failed"
+                  >
+                    <X size={10} />
+                  </button>
+                )}
+              </div>
+            )
+          )}
+    </>
+  );
+
   const heroArea = (
     <div className="w-full">
       <div className="relative w-full aspect-[4/3] overflow-hidden rounded-xl bg-tea-elevated">
@@ -857,57 +926,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
       {/* Earlier shots + uploads in flight, as small thumbs under the hero. */}
       {heroExtraCount > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
-          {validPhotos.map((url, i) =>
-            url === heroValidUrl ? null : (
-              <button
-                key={url}
-                type="button"
-                onClick={(event) => {
-                  lightboxTriggerRef.current = event.currentTarget;
-                  setMenuPhotoIndex(i);
-                }}
-                className={`w-[60px] h-[60px] relative shrink-0 block rounded-md overflow-hidden border border-tea-border focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60 transition-shadow ${
-                  menuPhotoIndex === i ? 'ring-2 ring-tea-gold/60' : ''
-                }`}
-                aria-haspopup="menu"
-                aria-expanded={menuPhotoIndex === i}
-                aria-label="Photo actions"
-                title="Tap for options"
-              >
-                <img
-                  src={mediaUrl(url)}
-                  alt={`Photo ${i + 1}`}
-                  className="w-full h-full object-cover pointer-events-none"
-                />
-              </button>
-            )
-          )}
-          {pendingPreviews.map((preview, i) =>
-            preview === heroPending ? null : (
-              <div key={preview.localUrl} className="relative shrink-0">
-                <img
-                  src={preview.localUrl}
-                  alt={`Uploading ${i + 1}`}
-                  className={`w-[60px] h-[60px] rounded-md object-cover ${preview.uploading ? 'opacity-60' : 'opacity-40'}`}
-                />
-                {preview.uploading && (
-                  <div className="absolute inset-0 flex items-center justify-center rounded-md">
-                    <div className="w-4 h-4 border border-tea-border border-t-transparent rounded-full animate-spin" />
-                  </div>
-                )}
-                {preview.failed && (
-                  <button
-                    type="button"
-                    onClick={() => setPendingPreviews((prev) => prev.filter((p) => p.localUrl !== preview.localUrl))}
-                    className="absolute inset-0 flex items-center justify-center rounded-md text-tea-error"
-                    aria-label="Upload failed"
-                  >
-                    <X size={10} />
-                  </button>
-                )}
-              </div>
-            )
-          )}
+          {renderThumbs(heroValidUrl, heroPending)}
         </div>
       )}
 
@@ -915,15 +934,9 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     </div>
   );
 
-  // ── Inline row ─────────────────────────────────────────────────────────────
-  // Wrapped in a recessed tray so the thumbnails + scan/camera actions read as
-  // one contained unit instead of loose buttons floating on the page.
-  const stripRow = (
-    <>
-      <div className={`flex w-full min-w-0 items-center ${stripGap}`}>
-        <div className={`flex min-w-0 flex-1 flex-row justify-end ${btnGap}`}>
-          {/* Sparkles = AI label scanner. Quiet at rest (gold-scarcity):
-              gold only lights up on the just-scanned success tick. */}
+  // Sparkles = AI label scanner. Quiet at rest (gold-scarcity):
+  // gold only lights up on the just-scanned success tick.
+  const scanButton = (
           <button
             type="button"
             onClick={openScanner}
@@ -942,13 +955,43 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               data-curate-compact-chrome
             >
               {justExtracted ? <Check size={btnIcon} /> : <Sparkles size={btnIcon} strokeWidth={1.5} />}
-              <span>{justExtracted ? 'Label read' : 'Scan'}</span>
+              <span className={split ? 'sr-only' : undefined}>{justExtracted ? 'Label read' : 'Scan'}</span>
             </span>
           </button>
-        </div>
+  );
 
-        {/* A permanent two-cell landmark: it never changes size, so adding a
-            photo does not make the context row jump or relocate its actions. */}
+  // "Add photo". In split mode ('flow') it is the one full-width Photo button,
+  // carrying the count once photos exist.
+  const photoCount = validPhotos.length + pendingPreviews.filter((p) => !p.failed).length;
+  const addPhotoLabel = split && photoCount > 0 ? 'Add another photo' : 'Add photo';
+  const addPhotoButton = (fill: boolean) => (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className={fill ? 'curate-action curate-compact-target w-full min-w-0' : 'curate-action h-11 w-[88px] gap-1.5 text-tea-text-sec hover:text-tea-text'}
+              aria-label={addPhotoLabel}
+              title={addPhotoLabel}
+              data-curate-action
+              {...(fill ? { 'data-testid': 'curate-photo-slot' } : {})}
+            >
+              {fill ? (
+                <span className="curate-compact-chrome w-full border border-tea-border bg-tea-surface text-tea-text-sec hover:text-tea-text" data-curate-compact-chrome>
+                  <Camera size={btnIcon} strokeWidth={1.5} />
+                  <span>Photo</span>
+                  {photoCount > 0 && <span className="tabular-nums text-tea-text">{photoCount}</span>}
+                </span>
+              ) : (
+                <>
+                  <Camera size={btnIcon} strokeWidth={1.5} />
+                  <span>Photo</span>
+                </>
+              )}
+            </button>
+  );
+
+  // A permanent two-cell landmark: it never changes size, so adding a
+  // photo does not make the context row jump or relocate its actions.
+  const photoSlot = (
         <div className="flex h-11 w-[88px] shrink-0 overflow-hidden rounded-md border border-tea-border bg-tea-surface" data-testid="curate-photo-slot">
           {validPhotos[0] ? (
             <button
@@ -986,19 +1029,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                 </div>
               )}
             </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="curate-action h-11 w-[88px] gap-1.5 text-tea-text-sec hover:text-tea-text"
-              aria-label="Add photo"
-              title="Add photo"
-              data-curate-action
-            >
-              <Camera size={btnIcon} strokeWidth={1.5} />
-              <span>Photo</span>
-            </button>
-          )}
+          ) : addPhotoButton(false)}
 
           {(validPhotos[0] || pendingPreviews[0]) && (
             <button
@@ -1013,6 +1044,27 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             </button>
           )}
         </div>
+  );
+
+  const photoButton = addPhotoButton(true);
+
+  // ── Inline row ─────────────────────────────────────────────────────────────
+  const stripRow = split ? (
+    <>
+      {scanTarget ? createPortal(scanButton, scanTarget) : null}
+      {photoButton}
+      {scanErrorLine}
+      {stripTarget && (validPhotos.length > 0 || pendingPreviews.length > 0)
+        ? createPortal(<div className="flex flex-wrap gap-2" data-testid="curate-photo-strip">{renderThumbs(null, null)}</div>, stripTarget)
+        : null}
+    </>
+  ) : (
+    <>
+      <div className={`flex w-full min-w-0 items-center ${stripGap}`}>
+        <div className={`flex min-w-0 flex-1 flex-row justify-end ${btnGap}`}>
+          {scanButton}
+        </div>
+        {photoSlot}
       </div>
       {scanErrorLine}
     </>

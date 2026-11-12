@@ -480,8 +480,10 @@ export async function expectNoUnhandledCompassApi(page: Page) {
   expect(unhandledByPage.get(page) ?? [], 'Compass test made unhandled API requests').toEqual([]);
 }
 
-export async function openCompass(page: Page) {
-  await page.goto('/admin/compass', { waitUntil: 'domcontentloaded' });
+/** Opens Curate on Source. `form: 'classic'` opens the earlier Source form
+ *  (`?form=classic`); without it the default 'flow' form opens. */
+export async function openCompass(page: Page, form?: 'classic') {
+  await page.goto(form ? `/admin/compass?form=${form}` : '/admin/compass', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('tab', { name: 'Source', exact: true })).toHaveAttribute('aria-selected', 'true', { timeout: 15_000 });
 }
 

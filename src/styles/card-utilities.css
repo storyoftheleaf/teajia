@@ -6982,3 +6982,26 @@ body.cart-panel-open .commerce-dock {
   .tasting-impression-control { flex:0 1 464px; }
   [data-tasting-session-overlay] .tasting-impression-control .tasting-heading-trigger { flex:1; }
 }
+
+/* ==============================   Source form, 'flow' layout (curate/CaptureFlowLayout.tsx).
+   One slim control for every button inside the cards: 34px of visible chrome,
+   6px corners, one hairline, the surface fill, 12px text; the 44px touch area
+   stays on the button around it (curate-compact-target). Done keeps cta-solid,
+   the one gold control. One small-label style for every label in the cards.
+   Scoped to [data-form-layout='flow'] so the classic form is untouched.
+   ============================================ */
+[data-form-layout='flow'] .curate-compact-chrome { height: 34px; min-height: 34px; max-height: 34px; border-radius: 6px; }
+[data-form-layout='flow'] .curate-compact-chrome.bg-tea-bg { background: var(--tea-surface); }
+[data-form-layout='flow'] .curate-decision-control { gap: 8px; overflow: visible; border: 0; border-radius: 0; background: transparent; }
+[data-form-layout='flow'] .curate-decision-option + .curate-decision-option { border-left: 0; }
+[data-form-layout='flow'] .curate-decision-option [data-selected-surface] { display: none; }
+[data-form-layout='flow'] .curate-decision-option .curate-compact-chrome { border: 1px solid var(--tea-border); background: var(--tea-surface); }
+[data-form-layout='flow'] .curate-decision-option[aria-checked='true'] .curate-compact-chrome { background: var(--tea-accent-sub); }
+[data-form-layout='flow'] .curate-section-title,
+[data-form-layout='flow'] [data-testid='structured-tea-fields'] > summary {
+  margin-bottom: 0; color: var(--tea-text-sec); font-family: var(--font-sans);
+  font-size: 11px; font-weight: 500; line-height: 1.2; letter-spacing: 1.2px; text-transform: uppercase;
+}
+[data-form-layout='flow'] [data-testid='curate-shelf-preview'] .text-tea-border { color: var(--tea-text-sec); }
+[data-form-layout='flow'] .library-supplier-header { padding: 0 2px 2px 11px; }
+[data-form-layout='flow'] .library-supplier-heading { min-height: 44px; padding-block: 0; }

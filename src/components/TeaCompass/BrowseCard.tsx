@@ -10,6 +10,8 @@ import { TEA_TYPES } from '../../wisdom';
 import { BottomSheet } from '../shared/BottomSheet';
 import { TeaCupIcon } from '../shared/TeaCupIcon';
 import { PhotoCapture } from './PhotoCapture';
+import { layoutFromAddress } from '../curate/captureFormLayout';
+import { mediaUrl } from '../../lib/mediaUrl';
 import { LibraryQuoteWeight } from './LibraryQuoteWeight';
 import { LibraryGivenName } from './LibraryGivenName';
 import { LibraryInlineValue } from './LibraryInlineValue';
@@ -81,6 +83,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
   const [actionBusy, setActionBusy] = useState(false);
   const validPhotos = (entry.photos || []).filter(Boolean);
   const finish = getStockTypeFinish(entry.type || '');
+  const showPhotoThumb = validPhotos.length > 0 && layoutFromAddress() === 'flow';
   const identity = libraryIdentity(entry);
   const title = identity.name || entry.chineseName || 'Name this tea';
   const openDetail = () => (onOpenDetail || onSelect || onEdit)(entry.id);
@@ -150,7 +153,18 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
         </div>
         <div className="library-workbar">
           <div className="library-quick-actions">
-            <button type="button" className="tap-target" aria-label={`Photos for ${title}`} title="Take photo or open photo library" onClick={() => setPhotosOpen(true)}><Camera size={17} /></button>
+            <button type="button" className="tap-target" aria-label={`Photos for ${title}`} title="Take photo or open photo library" onClick={() => setPhotosOpen(true)}>
+              {/* The tea's own photo stands where the camera is (not with
+                  `?form=classic`): same footprint, same action, a count past one. */}
+              {showPhotoThumb ? (
+                <span className="flex flex-col items-center gap-0.5">
+                  <img src={mediaUrl(validPhotos[0])} alt="" className="h-7 w-7 rounded-md border border-tea-border object-cover" />
+                  {validPhotos.length > 1 && (
+                    <span className="text-ui-10 tabular-nums leading-none text-tea-text-sec">{validPhotos.length}</span>
+                  )}
+                </span>
+              ) : <Camera size={17} />}
+            </button>
           {entry.category !== 'teaware' && <button type="button" onClick={() => readOnly ? openDetail() : onOpenTasting ? onOpenTasting(entry.id) : setTastingOpen(true)} className={`tap-target library-tea-primary text-ui-12 ${tasted ? 'is-tasted' : ''}`} aria-label={`Taste ${title}`} title={readOnly ? 'View tasting status (read-only)' : tasted ? 'Edit tasting' : 'Begin tasting'}><TeaCupIcon /><span className="sr-only">Taste</span></button>}
           </div>
         <div className="library-ribbon-prices" aria-label={`Prices in ${amounts.currency}`}>

@@ -1,3 +1,7 @@
+## 2026-11-12: Curate's Source form follows the sitting
+
+The form the owner uses standing in a shop is reorganised into small cards in the Library's language and ordered as a sitting goes: where, the tea, its cost, capture, then the decision. With a price typed, everything through Buy, Sample, Done fits one phone screen. Photos stay visible on the form and on the tea's Library card. Sample now opens the Buy panel set to a sample; tasting has its own Taste button. Buy's panel opens under the button it was tapped from. The header rows and the microphone stay in place while scrolling. The earlier form is kept at `/admin/compass?form=classic`.
+
 ## 2026-11-05: Read confidentiality candidate (not deployed)
 
 Curated Read article code and exclusive story data are removed from public static assets and source maps. Pages delivers each module only after the Worker checks current publication or a signed, current editor session against database permissions. A forged browser token cannot open drafts. Saved text on unpublished curated stories obeys the same decision; failed publication/auth dependencies withhold content. Existing layouts and publication choices remain. Synthetic build/API tests and production-artifact browser checks cover anonymous direct assets, forgery, legitimate editor preview, unpublishing and demotion. Candidate evidence and remaining release limits: [editorial confidentiality](audits/2026-11-05-editorial-confidentiality.md).

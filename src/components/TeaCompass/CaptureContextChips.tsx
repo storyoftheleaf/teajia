@@ -24,6 +24,10 @@ interface CaptureContextChipsProps {
   batchMode?: boolean;
   onToggleBatchMode?: () => void;
   onShare?: () => void;
+  /** 'row' (default): one line of chips. 'supplier': the Library's supplier
+   *  header, the vendor as the heading and Run plus `secondLine` under it. */
+  variant?: 'row' | 'supplier';
+  secondLine?: React.ReactNode;
 }
 
 export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
@@ -34,6 +38,8 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
   batchMode,
   onToggleBatchMode,
   onShare,
+  variant = 'row',
+  secondLine,
 }) => {
   const [runSheetOpen, setRunSheetOpen] = React.useState(false);
 
@@ -79,8 +85,7 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
     setRunSheetOpen(false);
   };
 
-  return (
-    <div className="flex items-center gap-1.5">
+  const runChip = (
       <button
         type="button"
         onClick={() => setRunSheetOpen(true)}
@@ -92,23 +97,39 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
         <span className="truncate">{runLabel}</span>
         <ChevronDown size={12} className="shrink-0 text-tea-text-dim" />
       </button>
+  );
 
-      <span className="shrink-0 text-tea-text-dim" aria-hidden>·</span>
-
+  // The vendor chip, or (supplier header) the vendor as the heading: one control.
+  const vendorButton = (asHeading: boolean) => (
       <button
         type="button"
         onClick={onToggleVendor}
         aria-expanded={vendorOpen}
-        className={`curate-support pill-quiet min-w-0 ${vendorOpen ? 'pill-quiet-on' : ''}`}
+        className={asHeading ? 'library-supplier-heading w-full' : `curate-support pill-quiet min-w-0 ${vendorOpen ? 'pill-quiet-on' : ''}`}
         data-curate-action
       >
-        <span className="truncate">{vendorName || 'Vendor'}</span>
-        <ChevronDown
-          size={12}
-          className={`shrink-0 text-tea-text-dim transition-transform ${vendorOpen ? 'rotate-180' : ''}`}
-        />
+        {asHeading ? (
+          <span className="flex min-w-0 items-center gap-2">
+            <span className={`library-supplier-name !flex-initial truncate ${vendorName ? '' : 'text-tea-text-sec'}`}>{vendorName || 'Vendor'}</span>
+            <ChevronDown
+              size={14}
+              className={`shrink-0 text-tea-text-dim transition-transform ${vendorOpen ? 'rotate-180' : ''}`}
+            />
+          </span>
+        ) : (
+          <>
+            <span className="truncate">{vendorName || 'Vendor'}</span>
+            <ChevronDown
+              size={12}
+              className={`shrink-0 text-tea-text-dim transition-transform ${vendorOpen ? 'rotate-180' : ''}`}
+            />
+          </>
+        )}
       </button>
+  );
 
+  const shareButton = (
+    <>
       {onShare && (
         <button
           type="button"
@@ -120,7 +141,10 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
           <Share2 size={13} aria-hidden="true" />
         </button>
       )}
+    </>
+  );
 
+  const newEntryButton = (
       <span className="ml-auto shrink-0 md:hidden">
         <button
           type="button"
@@ -132,11 +156,16 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
           <Plus size={14} aria-hidden="true" />
         </button>
       </span>
+  );
 
+  const syncIndicator = (
       <div className="shrink-0 pl-1 md:ml-auto">
         <SyncIndicator />
       </div>
+  );
 
+  const runSheet = (
+    <>
       {/* Run sheet: this sitting's drafts plus the session controls that
           used to live in the strip above the card. */}
       <BottomSheet
@@ -209,6 +238,47 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
           </button>
         </div>
       </BottomSheet>
+    </>
+  );
+
+  if (variant === 'supplier') {
+    // The same controls, laid out like a Library supplier header: the vendor
+    // is the heading, Run and the second line sit quieter beneath it.
+    return (
+      <div className="library-supplier-header" data-testid="curate-supplier-header">
+        <div className="min-w-0 flex-1">
+          {vendorButton(true)}
+          <div className="flex min-w-0 items-center gap-1.5">
+            {runChip}
+            <span className="shrink-0 text-tea-text-dim" aria-hidden>·</span>
+            <div className="min-w-0 flex-1">{secondLine}</div>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center self-start">
+          {shareButton}
+          {newEntryButton}
+          {syncIndicator}
+        </div>
+        {runSheet}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {runChip}
+
+      <span className="shrink-0 text-tea-text-dim" aria-hidden>·</span>
+
+      {vendorButton(false)}
+
+      {shareButton}
+
+      {newEntryButton}
+
+      {syncIndicator}
+
+      {runSheet}
     </div>
   );
 };

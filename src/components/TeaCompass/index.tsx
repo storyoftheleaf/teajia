@@ -22,6 +22,7 @@ import { entryIsSample } from './types';
 import { CompassIcon } from './CompassIcon';
 import { SessionStack } from './SessionStack';
 import { CaptureCard, type CaptureCardActions } from './CaptureCard';
+import { layoutFromAddress } from '../curate/captureFormLayout';
 import { LibraryCurrencyPicker } from './LibraryCurrencyPicker';
 import { readLibraryPricePreference } from './libraryPriceDisplay';
 import { BrowseView } from './BrowseView';
@@ -724,6 +725,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // logo slot via useBottomBarMic; that broke the home affordance, so
   // voice capture lives contextually here in the panel instead.
   const showInlineMic = mode === 'sourcing' && isPlatformPrivileged;
+  // The 'flow' form (the default; `?form=classic` shows the earlier one): the two
+  // header rows stay where they are while the page scrolls, mark the active
+  // word one way (gold, hairline underline, no boxes), and read as title and
+  // subtitle by size and brightness. The microphone is an icon in the second
+  // row. Labels, order, targets and what a recording does are unchanged.
+  const flowForm = layoutFromAddress() === 'flow';
 
   // Library, desktop, nothing selected → the list fills the whole pane as a
   // grid (no narrow rail beside an empty detail panel). Selecting an entry
@@ -746,7 +753,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           scroll-up. Resets to revealed when the user is at the top. */}
       <div
         className={`shrink-0 overflow-hidden bg-tea-bg transition-[max-height,opacity] duration-200 ease-out lg:!max-h-none lg:!opacity-100 ${
-          headerCollapsed ? 'max-h-0 opacity-0' : 'max-h-[112px] opacity-100'
+          headerCollapsed && !flowForm ? 'max-h-0 opacity-0' : 'max-h-[112px] opacity-100'
         }`}
         style={{ position: 'relative', zIndex: 5 }}
       >
@@ -781,7 +788,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   data-curate-compact-target
                 >
                   <span
-                    className={`curate-compact-chrome w-full border-b text-ui-12 font-medium transition-colors lg:px-3 ${
+                    className={flowForm ? `curate-compact-chrome w-full border-b text-ui-13 font-medium transition-colors lg:px-3 ${
+                      active ? 'border-tea-gold text-tea-gold' : 'border-transparent text-tea-text-sec hover:text-tea-text'
+                    }` : `curate-compact-chrome w-full border-b text-ui-12 font-medium transition-colors lg:px-3 ${
                       active ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-transparent text-tea-text-sec hover:text-tea-text'
                     }`}
                     data-curate-compact-chrome
@@ -810,6 +819,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 setSampleOrderManaging(false);
                 handleSwitchMode('library');
               }}
+              chromeClassName={flowForm ? 'curate-compact-chrome w-full whitespace-nowrap border-b border-transparent text-ui-13 font-medium lg:px-3' : undefined}
             />
           </div>
 
@@ -866,7 +876,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     data-curate-compact-target
                   >
                     <span
-                      className={`curate-compact-chrome border-b px-2 text-ui-12 font-medium transition-colors ${
+                      className={flowForm ? `curate-compact-chrome border-b px-2 text-ui-12 transition-colors ${
+                        active ? 'border-tea-gold text-tea-gold' : 'border-transparent text-tea-text-dim hover:text-tea-text-sec'
+                      }` : `curate-compact-chrome border-b px-2 text-ui-12 font-medium transition-colors ${
                         active ? 'border-tea-gold text-tea-text' : 'border-transparent text-tea-text-sec hover:text-tea-text'
                       }`}
                       data-curate-compact-chrome
@@ -892,7 +904,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   : voiceState === 'transcribing' ? 'Transcribing…'
                   : 'Record voice note'
                 }
-                className={`tap-target relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md transition-colors ${
+                className={flowForm ? 'tap-target group relative inline-flex h-11 w-11 shrink-0 items-center justify-center' : `tap-target relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md transition-colors ${
                   voiceState === 'recording'
                     ? 'border border-tea-gold/60 bg-tea-gold/10 text-tea-gold'
                     : voiceState === 'error'
@@ -902,7 +914,28 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub'
                 }`}
               >
-                {voiceState === 'recording' ? (
+                {flowForm ? (
+                  <span
+                    className={`inline-flex items-center justify-center transition-colors ${
+                      voiceState === 'recording'
+                        ? 'rounded-full border border-tea-gold/60 bg-tea-gold/10 px-2.5 py-1 text-tea-gold'
+                        : voiceState === 'error'
+                          ? 'text-tea-error'
+                          : voiceState === 'transcribing'
+                            ? 'text-tea-text-dim cursor-wait'
+                            : 'text-tea-text group-hover:text-tea-gold'
+                    }`}
+                    data-testid="curate-header-mic"
+                  >
+                    {voiceState === 'recording' ? (
+                      <Square size={14} fill="currentColor" strokeWidth={0} />
+                    ) : voiceState === 'transcribing' ? (
+                      <Loader2 size={18} className="animate-spin" strokeWidth={1.75} />
+                    ) : (
+                      <Mic size={18} strokeWidth={1.75} />
+                    )}
+                  </span>
+                ) : voiceState === 'recording' ? (
                   <Square size={12} fill="currentColor" strokeWidth={0} />
                 ) : voiceState === 'transcribing' ? (
                   <Loader2 size={14} className="animate-spin" strokeWidth={1.75} />
@@ -1684,7 +1717,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                             className="mx-auto mt-2 w-full max-w-3xl border-t border-tea-border bg-tea-surface px-3 py-2"
                             onBuy={() => captureCardActionsRef.current?.toggleBuy()}
                             onDone={handleDoneClick}
-                            onSample={() => captureCardActionsRef.current?.openTasting()}
+                            onSample={() => flowForm ? captureCardActionsRef.current?.openSample() : captureCardActionsRef.current?.openTasting()}
+                            primaryLast={flowForm}
                             doneEnabled={!!activeEntryId && captureDoneReady}
                             doneTestId="compass-done-desktop"
                             buyExpanded={captureBuyExpanded}
