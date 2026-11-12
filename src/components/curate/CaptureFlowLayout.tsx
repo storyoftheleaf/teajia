@@ -56,6 +56,8 @@ export interface CaptureFlowLayoutProps {
   intent: React.ReactNode;
   tasting?: React.ReactNode;
   details?: React.ReactNode;
+  /** Share: at the right end of the details row, or of the name row when there is none. */
+  share?: React.ReactNode;
   recordTools: React.ReactNode;
   decision: React.ReactNode;
   actions: React.ReactNode;
@@ -90,6 +92,7 @@ export function CaptureFlowLayout(props: CaptureFlowLayoutProps) {
               )}
               <div className="min-w-0 flex-1">{props.nameInput}</div>
               <div ref={props.setScanSlot} className="-mr-1.5 flex shrink-0 items-center" data-testid="curate-scan-slot" />
+              {!props.details && props.share}
             </div>
             <div className="library-card-subrow curate-flow-band" data-testid={props.bandTestId}>
               {props.band}
@@ -137,7 +140,12 @@ export function CaptureFlowLayout(props: CaptureFlowLayoutProps) {
             {props.tasting}
           </article>
 
-          {props.details && <div className="curate-flow-details">{props.details}</div>}
+          {props.details && (
+            <div className="curate-flow-details" data-testid="curate-details-row">
+              <div className="min-w-0 flex-1">{props.details}</div>
+              {props.share}
+            </div>
+          )}
         </div>
       </section>
 

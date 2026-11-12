@@ -76,6 +76,8 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
   const [typeBusy, setTypeBusy] = useState(false);
   const [typeError, setTypeError] = useState('');
   const [photosOpen, setPhotosOpen] = useState(false);
+  // 'flow': a tea with a photo opens the photo viewer (with Add) instead of the sheet.
+  const [viewerOpen, setViewerOpen] = useState(false);
   const [tastingOpen, setTastingOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
@@ -153,14 +155,14 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
         </div>
         <div className="library-workbar">
           <div className="library-quick-actions">
-            <button type="button" className="tap-target" aria-label={`Photos for ${title}`} title="Take photo or open photo library" onClick={() => setPhotosOpen(true)}>
+            <button type="button" className="tap-target" aria-label={`Photos for ${title}`} title={showPhotoThumb && !readOnly ? 'View photos or add another' : 'Take photo or open photo library'} onClick={() => (showPhotoThumb && !readOnly ? setViewerOpen(true) : setPhotosOpen(true))}>
               {/* The tea's own photo stands where the camera is (not with
-                  `?form=classic`): same footprint, same action, a count past one. */}
+                  `?form=classic`): same footprint, the count inside it past one. */}
               {showPhotoThumb ? (
-                <span className="flex flex-col items-center gap-0.5">
-                  <img src={mediaUrl(validPhotos[0])} alt="" className="h-7 w-7 rounded-md border border-tea-border object-cover" />
+                <span className="relative block h-8 w-8" data-testid="library-photo-thumb">
+                  <img src={mediaUrl(validPhotos[0])} alt="" className="h-8 w-8 rounded-md border border-tea-border object-cover" />
                   {validPhotos.length > 1 && (
-                    <span className="text-ui-10 tabular-nums leading-none text-tea-text-sec">{validPhotos.length}</span>
+                    <span className="absolute bottom-0.5 right-0.5 rounded-md bg-tea-bg px-1 text-ui-10 tabular-nums leading-tight text-tea-text">{validPhotos.length}</span>
                   )}
                 </span>
               ) : <Camera size={17} />}
@@ -213,6 +215,9 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
         {typeBusy && <p role="status" className="text-ui-12 text-tea-text-sec">Saving…</p>}
         {typeError && <p role="alert" className="text-ui-12 text-tea-text-sec">{typeError}</p>}
       </BottomSheet>
+      {viewerOpen && <PhotoCapture variant="viewer" photos={validPhotos} onViewerClose={() => setViewerOpen(false)}
+        onPhotoTaken={url => { const current = useTeaCompassStore.getState().getEntry(entry.id) || entry; void savePatch({ photos: [...current.photos, url] }).catch(error => showToast(String(error.message), 'error')); }}
+        onExtracted={data => { const current = useTeaCompassStore.getState().getEntry(entry.id) || entry; void savePatch({ ...(!current.originRegion && data.region ? { originRegion: data.region } : {}), ...(!current.year && data.year ? { year: data.year } : {}) }).catch(error => showToast(String(error.message), 'error')); }} />}
       <BottomSheet open={photosOpen} onOpenChange={setPhotosOpen} title="Tea photos" description={title}>
         {readOnly ? <p className="text-ui-12 text-tea-text-sec">Open the tea details to view source material.</p> : <PhotoCapture photos={validPhotos}
           onPhotoTaken={url => { const current = useTeaCompassStore.getState().getEntry(entry.id) || entry; void savePatch({ photos: [...current.photos, url] }).catch(error => showToast(String(error.message), 'error')); }}

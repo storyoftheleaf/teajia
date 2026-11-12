@@ -69,6 +69,44 @@ test.describe('Curate Source form, default layout', () => {
     await expect(page.getByLabel('Inventory purpose').filter({ visible: true })).toHaveValue('sample');
   });
 
+  test('the where header is one row, and Share sits on the details row', async ({ page }) => {
+    await openCompass(page);
+    const header = page.getByTestId('curate-supplier-header').filter({ visible: true }).first();
+    const parts = [
+      header.getByRole('button', { name: /^Vendor/ }),
+      header.getByRole('button', { name: /run/i }),
+      header.getByRole('button', { name: /journey or visit/i }),
+      header.getByRole('button', { name: 'Start a new entry', exact: true }),
+    ];
+    const middles: number[] = [];
+    for (const part of parts) {
+      const box = (await part.first().boundingBox())!;
+      expect(box.height).toBeGreaterThanOrEqual(44);
+      middles.push(box.y + box.height / 2);
+    }
+    expect(Math.max(...middles) - Math.min(...middles)).toBeLessThanOrEqual(4);
+    await expect(header.getByRole('button', { name: 'Share', exact: true })).toHaveCount(0);
+    const share = page.getByTestId('curate-details-row').filter({ visible: true }).getByRole('button', { name: 'Share', exact: true });
+    await expect(share).toBeVisible();
+  });
+
+  test('a Library photo opens the photo viewer, with a control to add another', async ({ page }) => {
+    const now = new Date().toISOString();
+    await page.route('https://img.test/**', (route) => route.fulfill({ status: 200, contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="#8a6d4b"/></svg>' }));
+    await installCompassHarness(page, { compassEntries: [{
+      id: 'photo-tea', category: 'tea', status: 'noted', name: 'Yiwu Gushu Spring', type: 'Sheng', year: '2021', vendor_name: 'Huang Wei',
+      notes: '', photos: JSON.stringify(['https://img.test/one.svg', 'https://img.test/two.svg']), audio_clips: '[]', created_at: now, updated_at: now,
+    }] });
+    await page.goto('/admin/compass?tab=library', { waitUntil: 'domcontentloaded' });
+    const card = page.getByTestId('library-entry-photo-tea').filter({ visible: true }).first();
+    await expect(card.getByTestId('library-photo-thumb')).toContainText('2', { timeout: 15_000 });
+    await card.getByRole('button', { name: /^Photos for/ }).click();
+    const viewer = page.getByRole('dialog', { name: 'Photo viewer' });
+    await expect(viewer).toBeVisible();
+    await expect(viewer.getByRole('button', { name: 'Add another photo' })).toBeVisible();
+    await expect(viewer.getByRole('button', { name: 'Next photo' })).toBeVisible();
+  });
+
   test('the earlier form is still there at its own address', async ({ page }) => {
     await openCompass(page, 'classic');
     await expect(page.getByRole('button', { name: 'Add tasting profile', exact: true })).toBeVisible();

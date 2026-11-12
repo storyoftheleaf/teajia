@@ -24,8 +24,10 @@ interface CaptureContextChipsProps {
   batchMode?: boolean;
   onToggleBatchMode?: () => void;
   onShare?: () => void;
-  /** 'row' (default): one line of chips. 'supplier': the Library's supplier
-   *  header, the vendor as the heading and Run plus `secondLine` under it. */
+  /** 'row' (default): one line of chips. 'supplier' (the 'flow' form): one
+   *  line, the vendor as the heading holding Run and `secondLine` beside it,
+   *  the plus at the end. Share is not drawn there: the form puts
+   *  CaptureShareButton elsewhere. */
   variant?: 'row' | 'supplier';
   secondLine?: React.ReactNode;
 }
@@ -128,21 +130,7 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
       </button>
   );
 
-  const shareButton = (
-    <>
-      {onShare && (
-        <button
-          type="button"
-          onClick={onShare}
-          aria-label="Share"
-          className="curate-support pill-quiet shrink-0"
-          data-curate-action
-        >
-          <Share2 size={13} aria-hidden="true" />
-        </button>
-      )}
-    </>
-  );
+  const shareButton = <CaptureShareButton onShare={onShare} />;
 
   const newEntryButton = (
       <span className="ml-auto shrink-0 md:hidden">
@@ -245,20 +233,14 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
     // The same controls, laid out like a Library supplier header: the vendor
     // is the heading, Run and the second line sit quieter beneath it.
     return (
-      <div className="library-supplier-header" data-testid="curate-supplier-header">
-        <div className="min-w-0 flex-1">
-          {vendorButton(true)}
-          <div className="flex min-w-0 items-center gap-1.5">
-            {runChip}
-            <span className="shrink-0 text-tea-text-dim" aria-hidden>·</span>
-            <div className="min-w-0 flex-1">{secondLine}</div>
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center self-start">
-          {shareButton}
-          {newEntryButton}
-          {syncIndicator}
-        </div>
+      <div className="library-supplier-header curate-flow-where" data-testid="curate-supplier-header">
+        {vendorButton(true)}
+        <span className="curate-flow-where-dot" aria-hidden>·</span>
+        {runChip}
+        <span className="curate-flow-where-dot" aria-hidden>·</span>
+        <div className="curate-flow-where-visit">{secondLine}</div>
+        {newEntryButton}
+        {syncIndicator}
         {runSheet}
       </div>
     );
@@ -284,3 +266,20 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
 };
 
 export default CaptureContextChips;
+
+/** Share, one control: in the chip row ('classic'), or wherever the 'flow' form places it. */
+export const CaptureShareButton: React.FC<{ onShare?: () => void }> = ({ onShare }) => (
+    <>
+      {onShare && (
+        <button
+          type="button"
+          onClick={onShare}
+          aria-label="Share"
+          className="curate-support pill-quiet shrink-0"
+          data-curate-action
+        >
+          <Share2 size={13} aria-hidden="true" />
+        </button>
+      )}
+    </>
+);

@@ -42,7 +42,7 @@ import { DuplicateNudge } from './DuplicateNudge';
 import { IntentBar } from './IntentBar';
 import { EncounterContext } from './EncounterContext';
 import { DecisionControl } from './DecisionControl';
-import { CaptureContextChips } from './CaptureContextChips';
+import { CaptureContextChips, CaptureShareButton } from './CaptureContextChips';
 import { CaptureActionFooter } from './CaptureActionFooter';
 import { curateShelfPreview, sameMoney } from './curatePricing';
 import { layoutFromAddress, type CaptureFormLayout } from '../curate/captureFormLayout';
@@ -143,9 +143,8 @@ function RetailPricePreview({
   if (oneLine) {
     return (
       <p className="curate-flow-cost curate-support text-tea-text-sec" data-testid="curate-shelf-preview">
-        <span className="whitespace-nowrap tabular-nums">{sym}{fmtGram(preview.costPerGramSource)}/g</span>{' '}
-        <span className="whitespace-nowrap"><span aria-hidden>→</span> <span className="tabular-nums font-medium text-tea-text">≈ ${preview.retailPerGramUsd.toFixed(2)}/g on the shelf</span></span>{' '}
-        <span className="whitespace-nowrap"><span aria-hidden>·</span> <span className="tabular-nums">{sym}{fmtGram(preview.freightPerKgSource)}/kg freight</span></span>
+        <span className="tabular-nums">{sym}{fmtGram(preview.costPerGramSource)}/g · freight {sym}{fmtGram(preview.freightPerKgSource)}/kg</span>
+        <span className="tabular-nums font-medium text-tea-text">≈ ${preview.retailPerGramUsd.toFixed(2)}/g on the shelf</span>
       </p>
     );
   }
@@ -1492,7 +1491,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         <CaptureFlowLayout
           contextTestId="curate-teaware-context-band" bandTestId="curate-teaware-classification-row"
           typeName="" firstPhoto={(entry.photos || []).filter(Boolean)[0]} setScanSlot={setScanSlot} setStripSlot={setStripSlot}
-          supplierHeader={supplierHeader} vendorStrip={vendorStripBlock} nameInput={teawareNameInput}
+          supplierHeader={supplierHeader} vendorStrip={vendorStripBlock} nameInput={teawareNameInput} share={<CaptureShareButton onShare={onShare} />}
           band={<>{teawareCategoryButton}{teawareMaterialButton}{teawareEraButton}</>}
           subBand={<>{teawareOriginField}{teawareCapacityField}</>} subBandTestId="curate-teaware-provenance-row"
           purchase={teawarePurchaseInner} sheets={teawareSheets}
@@ -2140,7 +2139,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         purchase={teaPurchaseInner} sheets={typeSheet} afterIdentity={<>{duplicateNudge}{extractionConfirmation}</>}
         photo={photoCapture} taste={tasteButton(true)} quality={qualityRow && <>{qualityRow}{tastingLine}</>} composer={noteThread('composer')} list={noteThread('list')} intent={intentBar}
         details={<>{teaDetailsWith(<div className="flex">{chineseNameField}</div>, true)}{storageSection}</>}
-        recordTools={recordTools} decision={decisionControl} actions={teaActionFooter(true)} buyPanel={teaBuySection}
+        recordTools={recordTools} decision={decisionControl} actions={teaActionFooter(true)} buyPanel={teaBuySection} share={<CaptureShareButton onShare={onShare} />}
         outside={<>{teaReceiptError}{tastingOverlay}</>}
       />
     );

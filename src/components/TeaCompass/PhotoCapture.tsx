@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { createPortal } from 'react-dom';
-import { Camera, Check, ChevronLeft, ChevronRight, Edit3, ImagePlus, Maximize2, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
+import { Camera, Check, ChevronLeft, ChevronRight, Edit3, ImagePlus, Maximize2, Plus, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { SquareCropModal } from '../shared/SquareCropModal';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
+import { Button } from '../shared/Button';
 
 export interface ExtractedTeaData {
   name?: string;
@@ -33,7 +34,10 @@ interface PhotoCaptureProps {
   /** 'hero' renders the full-width 4:3 camera tile that leads the capture
    *  card: tap anywhere to open the camera before a photo exists; after a
    *  photo, it fills the tile with scan/add actions overlaid bottom-right. */
-  variant?: 'strip' | 'hero';
+  variant?: 'strip' | 'hero' | 'viewer';
+  /** 'viewer' only (the Library card's photo): the photo viewer opens on mount
+   *  and this is called when it closes. Nothing else is drawn. */
+  onViewerClose?: () => void;
   /** Strip variant only ('flow' form). When given, the Scan button is drawn
    *  into this element (a slot elsewhere in the form), the photo control
    *  becomes one full-width Photo button carrying the count, and the photos
@@ -117,8 +121,13 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   variant = 'strip',
   scanTarget,
   stripTarget,
+  onViewerClose,
 }) => {
   const split = scanTarget !== undefined;
+  // The viewer carries its own controls (add a photo; edit and delete where the
+  // form can remove one) in the 'flow' form and in the Library's viewer.
+  const viewerOnly = variant === 'viewer';
+  const viewerTools = split || viewerOnly;
   const isLg = size === 'lg';
   // Uniform tiles so thumbnails and the scan / camera actions read as one tidy
   // horizontal row (44×44 meets the WCAG 2.5.5 tap floor without extra padding).
@@ -160,8 +169,9 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
 
   const closeLightbox = useCallback(() => {
     setLightboxIndex(null);
+    onViewerClose?.();
     window.requestAnimationFrame(() => lightboxTriggerRef.current?.focus());
-  }, []);
+  }, [onViewerClose]);
 
   const lightboxOpen = lightboxIndex !== null;
   useEffect(() => {
@@ -230,6 +240,21 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     ...validPhotos,
     ...pendingPreviews.filter((p) => !p.failed).map((p) => p.localUrl),
   ];
+  // 'viewer': open on the first photo; a photo added from the viewer is shown at once.
+  useEffect(() => { if (viewerOnly) setLightboxIndex(0); }, [viewerOnly]);
+  const photoTotal = allPhotos.length;
+  const shownTotal = useRef(photoTotal);
+  useEffect(() => {
+    if (photoTotal > shownTotal.current) setLightboxIndex((i) => (i === null ? i : photoTotal - 1));
+    shownTotal.current = photoTotal;
+  }, [photoTotal]);
+  // The viewer makes the page inert; lift that for the moment the file picker opens.
+  const pickFromViewer = () => {
+    const root = document.getElementById('root');
+    if (root) root.inert = false;
+    fileInputRef.current?.click();
+    if (root) root.inert = true;
+  };
 
   const stopStream = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -251,7 +276,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   useEffect(() => {
     if (lightboxIndex === null) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setLightboxIndex(null);
+      if (e.key === 'Escape') { setLightboxIndex(null); if (viewerOnly) onViewerClose?.(); }
       if (e.key === 'ArrowRight') setLightboxIndex((i) => i !== null ? Math.min(i + 1, allPhotos.length - 1) : null);
       if (e.key === 'ArrowLeft') setLightboxIndex((i) => i !== null ? Math.max(i - 1, 0) : null);
     };
@@ -695,6 +720,23 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           >
             <X size={18} />
           </button>
+          {viewerTools && (
+            <div className="absolute left-4 top-4 flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()} data-testid="photo-viewer-tools">
+              <Button type="button" variant="secondary" size="sm" icon={<Plus size={16} />} aria-label="Add another photo" onClick={pickFromViewer}>Add</Button>
+              {onRemovePhoto && validPhotos.includes(allPhotos[lightboxIndex]) && (
+                <>
+                  <Button type="button" variant="secondary" size="sm" icon={<Edit3 size={15} />} aria-label="Edit photo"
+                    onClick={() => { const url = allPhotos[lightboxIndex]; closeLightbox(); setEditingPhotoUrl(url); }} />
+                  <Button type="button" variant="secondary" size="sm" icon={<Trash2 size={15} />} aria-label="Delete photo"
+                    onClick={() => {
+                      const url = allPhotos[lightboxIndex];
+                      if (photos) onRemovePhoto(photos.indexOf(url));
+                      if (allPhotos.length <= 1) closeLightbox(); else setLightboxIndex(Math.max(0, lightboxIndex - 1));
+                    }} />
+                </>
+              )}
+            </div>
+          )}
           {lightboxIndex > 0 && (
             <button
               type="button"
@@ -726,7 +768,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             </button>
           )}
           {allPhotos.length > 1 && (
-            <div className="absolute bottom-4 flex max-w-[90vw] flex-wrap justify-center">
+            <div className={`absolute ${viewerTools ? 'bottom-nav-gap' : 'bottom-4'} flex max-w-[90vw] flex-wrap justify-center`}>
               {allPhotos.map((_, i) => (
                 <button
                   key={i}
@@ -785,15 +827,15 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                 type="button"
                 onClick={(event) => {
                   lightboxTriggerRef.current = event.currentTarget;
-                  setMenuPhotoIndex(i);
+                  if (split) setLightboxIndex(i); else setMenuPhotoIndex(i);
                 }}
                 className={`w-[60px] h-[60px] relative shrink-0 block rounded-md overflow-hidden border border-tea-border focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60 transition-shadow ${
                   menuPhotoIndex === i ? 'ring-2 ring-tea-gold/60' : ''
                 }`}
-                aria-haspopup="menu"
+                aria-haspopup={split ? 'dialog' : 'menu'}
                 aria-expanded={menuPhotoIndex === i}
-                aria-label="Photo actions"
-                title="Tap for options"
+                aria-label={split ? `View photo ${i + 1}` : 'Photo actions'}
+                title={split ? 'View, add, edit or delete' : 'Tap for options'}
               >
                 <img
                   src={mediaUrl(url)}
@@ -1080,7 +1122,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         className="hidden"
       />
 
-      {variant === 'hero' ? heroArea : stripRow}
+      {viewerOnly ? null : variant === 'hero' ? heroArea : stripRow}
 
       {/* Action menu: a bottom sheet so it never clips at the viewport edge
           and gives big thumb-friendly rows. Renders once outside the

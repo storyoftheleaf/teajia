@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { test } from '../../tests/fixtures';
-import type { Page } from '@playwright/test';
+import { chromium, type Page } from '@playwright/test';
 import { installCompassHarness } from '../../tests/helpers/compassHarness';
 import { ENTRIES, VENDORS, PRODUCTS, RATES } from './data';
 import { fresh, warm, snap, OUT } from './lib';
@@ -241,7 +241,30 @@ test('source form, phone', async ({ page }) => {
   if (FLOW) {
     await asSeen('tea-filled-sample', async () => { await fillTea(page); await pressSample(page); });
     await asSeen('teaware-filled-buy', async () => { await teawareTab(page); await fillTeaware(page); await pressBuy(page); });
-    await state('tea-filled-oolong', async () => { await fillTea(page); await chooseType(page, 'Oolong'); });
+    await state('tea-filled-oolong', async () => {
+      await fillTea(page);
+      await chooseType(page, 'Oolong');
+      // A long vendor name, to see the where header truncate on its one line.
+      await page.evaluate(async () => {
+        // @ts-expect-error Vite serves source modules to the browser in the dev server.
+        const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+        const store = useTeaCompassStore.getState();
+        store.updateEntry(store.activeEntryId!, { vendorName: 'Wuyishan Huang Family Rock Tea House' });
+      });
+      await page.waitForTimeout(500);
+    });
+    await state('tea-filled-nt', async () => {
+      await fillTea(page);
+      await page.getByLabel('Currency').filter({ visible: true }).first().selectOption('NT');
+      await page.getByPlaceholder('Price').filter({ visible: true }).first().fill('4200');
+      await page.locator('body').click({ position: { x: 5, y: 5 } }).catch(() => {});
+      await page.waitForTimeout(500);
+    });
+    await asSeen('tea-filled-photos-viewer', async () => {
+      await fillTea(page);
+      await addPhotos(page, 2);
+      await click(page, page.getByRole('button', { name: 'View photo 1' }), 900);
+    });
     await fresh(page, SOURCE);
     await fillTea(page);
     await scrollHalf(page);
@@ -283,18 +306,50 @@ test('source form, phone', async ({ page }) => {
   }
 });
 
-// The header microphone while it records (a fake microphone stands in).
-test('source form, phone, microphone recording', async ({ browser }) => {
+// A real recording from Chromium's fake microphone, from the header
+// microphone and from the note box's own, with the transcription mocked.
+const HEADER_SAID = 'The seller says the second steeping is the sweetest.';
+const BOX_SAID = 'Rested a year in Taipei before this tasting.';
+test('source form, phone, microphone recording', async () => {
   test.skip(!FLOW, 'flow only');
-  const context = await browser.newContext({ viewport: { width: PHONE.w, height: PHONE.h }, deviceScaleFactor: 2, permissions: ['microphone'] });
+  const browser = await chromium.launch({
+    executablePath: process.env.PW_CHROMIUM ?? '/opt/pw-browsers/chromium',
+    args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'],
+  });
+  const context = await browser.newContext({ baseURL: 'http://localhost:7777', viewport: { width: PHONE.w, height: PHONE.h }, deviceScaleFactor: 2, permissions: ['microphone'] });
   const page = await context.newPage();
   await installCompassHarness(page, { customers: VENDORS, compassEntries: ENTRIES, products: PRODUCTS, rates: RATES });
+  const said = [HEADER_SAID, BOX_SAID];
+  const transcribeCalls: string[] = [];
+  await page.route('**/api/transcribe', async (route) => {
+    const text = said[Math.min(transcribeCalls.length, said.length - 1)];
+    transcribeCalls.push(text);
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ text, recording_id: `rec-${transcribeCalls.length}` }) });
+  });
+  // After a transcription lands, the recorder lets the server drop its copy.
+  await page.route('**/api/transcriptions/**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }));
   await warm(page, SOURCE);
   await fresh(page, SOURCE);
   await fillTea(page);
-  await click(page, page.getByRole('button', { name: 'Record voice note' }), 1500);
+  await click(page, page.getByRole('button', { name: 'Record voice note' }), 2500);
+  await page.mouse.move(1, 1);
   await snap(page, PHONE, { room: ROOM, state: 'mic-recording-screen', route: SOURCE, note: 'the header microphone while recording' });
+  await click(page, page.getByRole('button', { name: 'Stop recording' }), 2500);
+  await page.mouse.move(1, 1);
+  const record = page.getByTestId('curate-cluster-record').filter({ visible: true });
+  const headerLanded = await record.getByText(HEADER_SAID).count().catch(() => 0);
+  await record.scrollIntoViewIfNeeded().catch(() => {});
+  await snap(page, PHONE, { room: ROOM, state: 'mic-note-screen', route: SOURCE, note: 'the note made by the header microphone' });
+  // The note box's own microphone.
+  await click(page, page.getByTestId('curate-notes-band').getByRole('button', { name: 'Tap to record a note' }), 2500);
+  await click(page, page.getByTestId('curate-notes-band').getByRole('button', { name: 'Stop recording' }), 2500);
+  await page.mouse.move(1, 1);
+  const boxLanded = await record.getByText(BOX_SAID).count().catch(() => 0);
+  await record.scrollIntoViewIfNeeded().catch(() => {});
+  await snap(page, PHONE, { room: ROOM, state: 'mic-note-box-screen', route: SOURCE, note: 'the note made by the note box microphone' });
+  writeRows('mic', PHONE.n, { transcribeCalls, headerLanded, boxLanded });
   await context.close();
+  await browser.close();
 });
 
 // The Library with photos on two teas (seeded on the fixtures: the photo
@@ -314,6 +369,10 @@ test('library with photos, phone', async ({ page }) => {
   await page.evaluate(() => document.querySelector('[data-testid=library-entry-e1]')?.closest('section')?.scrollIntoView({ block: 'start' }));
   await page.waitForTimeout(600);
   await snap(page, PHONE, { room: ROOM, state: 'library-photos-screen', route: LIBRARY, note: 'Library, two teas with photos' });
+  const cardHeights = await page.evaluate(() => ['e1', 'e2', 'e3'].map((id) => document.querySelector(`[data-testid=library-entry-${id}]`)?.getBoundingClientRect().height));
+  await click(page, page.getByTestId('library-entry-e3').getByRole('button', { name: /^Photos for/ }), 900);
+  await snap(page, PHONE, { room: ROOM, state: 'library-photos-viewer-screen', route: LIBRARY, note: 'the photo viewer from a Library card' });
+  writeRows('library-card-heights', PHONE.n, cardHeights);
   writeRows('library-photos', PHONE.n, await page.evaluate(() => {
     const out: Record<string, unknown> = {};
     for (const id of ['e1', 'e3']) {
