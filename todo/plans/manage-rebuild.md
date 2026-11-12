@@ -20,6 +20,11 @@ Simpler, better-looking screens across Manage (Curate, Library, Stock, Purchases
 10. **Sandbox:** he cannot refresh the sandbox database on request right now. Until he can, workers prove changes with tests only, and nobody has clicked through with real data.
 11. **Work runs as a manager with scoped sub-threads on right-sized models** (see "How the work runs").
 12. Never use em dashes in anything written for him.
+13. **Curate is an in-person capture tool, and the current Curate is the base (2026-11-12).** He stands in a shop with the tea seller: opens Curate, writes down what the tea is and what it costs, records the seller talking, photographs the brew and the soup, notes his impression, marks buy or sample, and says where he is sitting. The current Source form and Library card do this well and he finds them easy to read. Curate v2 (`/admin/compass/v2`) flattened that away and is NOT the base for anything; it stays where it is, untouched, as a reference only. The earlier plan question "One Curate as a new version shaped like the sketch" is withdrawn. Rules for any change to Curate:
+    - The current Curate keeps its tabs, its form and its card, in the same places. Improvements are made to it, as a new version beside it so the present one is recoverable.
+    - Nothing that takes one tap today may take two. Everything on the card stays on the card: name, Choose, Reject, photo, Taste, price per gram, quote, weight, Add information.
+    - No screen gets taller. Mobile first: measure before and after on a 390 by 844 phone and show him both pictures with the heights.
+    - Measured today on that phone: the Library spends 226 px on search and filters before the first supplier, a card is 160 px, and 3 cards fit. The Source form is about 930 px with a price typed, so the Buy / Done / Sample row lands behind the floating bar and the Notes box with its microphone is below the screen; 238 px sit above the tea's name.
 
 ## What the audit found (five root causes)
 
@@ -137,7 +142,7 @@ Kept as they are: search (add given name), shelf-price line, display-currency pi
 
 ## Questions waiting for Adrian (in the doc, with context and a dropdown each)
 
-4 One Curate as a new version shaped like the sketch. 5 An address for every record. 6 One word per thing (Supplier; Request then Order; Sent; Chosen/Rejected; "Orders" for Curate's buying tab; shop states Private, Ready, In the shop, Held, Sold out). 7 Drafts becomes a view inside Stock. 8 Stock shows his name first. 9 Readiness blocks publishing (name, type, price, counted stock). 10 Sold out always behaves the same. 11 Tastings attach to a session; PILLAR's "no live tasting mode" reworded. 12 Placing an order creates each tea's private Stock draft. 13 May an agent change the 85 yuan shop rate from a bill without asking (recommendation: no, show old, new and how many prices move, apply on his yes).
+4 WITHDRAWN 2026-11-12 (see standing instruction 13): one Curate shaped like the sketch. 5 An address for every record. 6 One word per thing (Supplier; Request then Order; Sent; Chosen/Rejected; "Orders" for Curate's buying tab; shop states Private, Ready, In the shop, Held, Sold out). 7 Drafts becomes a view inside Stock. 8 Stock shows his name first. 9 Readiness blocks publishing (name, type, price, counted stock). 10 Sold out always behaves the same. 11 Tastings attach to a session; PILLAR's "no live tasting mode" reworded. 12 Placing an order creates each tea's private Stock draft. 13 May an agent change the 85 yuan shop rate from a bill without asking (recommendation: no, show old, new and how many prices move, apply on his yes).
 
 Navigation labels, tab labels and routes change only with his explicit yes (CLAUDE.md).
 
