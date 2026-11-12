@@ -38,7 +38,7 @@ A plain picture is the screen as it is seen (phone 390x844, laptop 1440x950). A 
 
 ## The gallery page
 
-`build-gallery.cjs` turns the output folder into one page, grouped by room, phone beside laptop:
+`build-gallery.cjs` turns the output folder into one page. Curate exists in two versions, so it comes first as pairs, current on the left and v2 on the right (the `COMPARE` list in the script names which screens pair up). Every other room is shown phone beside laptop:
 
 ```bash
 node scripts/manage-archive/build-gallery.cjs "$ARCHIVE_OUT" out/manage-archive.html out/files.json [notes.json]

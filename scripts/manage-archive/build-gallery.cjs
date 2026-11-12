@@ -72,18 +72,75 @@ const words = s => String(s).replace(/^\d+-/, '').replace(/-/g, ' ').replace(/^.
     r.states = states;
   }
   const total = present.length;
-  const figure = (s, label) => {
-    if (!s) return '';
+  const figure = (s, label, cmp) => {
+    if (!s) return cmp ? `<div class="noshot">${cmp.side === 'new' ? 'v2' : 'Current'}: not pictured at this size</div>` : '';
     const long = s.w && (s.size === 'phone' ? s.h / s.w > 2.4 : s.h / s.w > 0.82);
-    return `<button class="shot ${s.size}${long ? ' long' : ''}" type="button" data-full="${esc(s.pub)}" data-cap="${esc(label)}" data-size="${s.size}">`
-      + `<img src="${esc(s.pub)}" ${s.w ? `width="${s.w}" height="${s.h}" ` : ''}loading="lazy" decoding="async" alt="${esc(label)}, ${s.size}">`
-      + `<span class="tag">${s.size === 'phone' ? 'Phone' : 'Laptop'}</span>${long ? '<span class="more">Whole page, open to scroll</span>' : ''}</button>`;
+    const version = cmp ? (cmp.side === 'new' ? 'v2' : 'Current') : '';
+    const attrs = cmp ? ` id="${cmp.id}"${cmp.other ? ` data-other="${cmp.other}" data-side="${cmp.side}"` : ''}` : '';
+    const tag = cmp ? `<span class="tag ${cmp.side === 'new' ? 'v2' : 'cur'}">${version}</span>` : `<span class="tag">${s.size === 'phone' ? 'Phone' : 'Laptop'}</span>`;
+    return `<button class="shot ${s.size}${long ? ' long' : ''}" type="button"${attrs} data-full="${esc(s.pub)}" data-cap="${esc(label)}" data-size="${s.size}">`
+      + `<img src="${esc(s.pub)}" ${s.w ? `width="${s.w}" height="${s.h}" ` : ''}loading="lazy" decoding="async" alt="${esc(label)}${version ? ', ' + version : ''}, ${s.size}">`
+      + `${tag}${long ? '<span class="more">Whole page, open to scroll</span>' : ''}</button>`;
   };
-  const sections = rooms.map(r => `
-<section class="room" id="${esc(r.id)}">
-  <header class="room-head"><h2>${esc(r.name)}</h2><p class="count">${r.states.length} screens</p></header>
+
+  // Curate exists in two versions. The screens that do the same job are shown
+  // as pairs, current on the left and v2 on the right, and leave their rooms.
+  const COMPARE = [
+    ['Where Curate opens', 'source-tea-empty', 'today', 'Current opens on the Source form, ready to write a tea down. v2 opens on Today, a list of what is waiting for you.'],
+    ['Your teas', 'library', 'teas', 'Current groups teas under each supplier, every tea a card with its own buttons. v2 is one flat list, a line per tea.'],
+    ['What you can do without opening a tea', 'library-tea-card-quick-actions', 'tea-row-tapped', 'Current: photo, Taste, price per gram, quote, weight, Choose, Reject and Add information are on the card. v2: tapping the line opens the tea, and the actions are inside.'],
+    ['A tea opened', 'library-tea-opened', 'tea-opened', 'Current: a Tea details sheet with Tea, Notes, Orders and Files tabs. v2: one page of rows, then Taste, Talk, Note, Build this tea, Pass, Sample and Buy.'],
+    ['Adding a tea', 'source-tea-filled', 'add-tea', 'Current: the full Source form with price, grams and the slider. v2: type a name into the list, the rest is filled in on the tea.'],
+    ['Filters', 'library-filters-open', 'filters', 'The same filter sheet in both.'],
+    ['Search', 'library-search', 'search', ''],
+    ['Suppliers', 'library-supplier-collapsed', 'vendors', 'Current: suppliers are the headings of the Library, with a pencil to edit. v2: a Vendors tab of their own.'],
+    ['One supplier', 'library-edit-supplier', 'vendor-opened', 'Current: a sheet with contact details, freight and routes. v2: a page with contact rows and that supplier\'s teas underneath.'],
+    ['Buying', 'ledger', 'orders', 'Current: the Ledger tab. v2: the Orders tab.'],
+    ['An order', 'ledger-purchase-order-builder', 'order-opened', 'Current shows the purchase order builder. v2 shows an order opened in place.'],
+    ['Samples and tables', 'samples', 'table', 'Current: Sample batches. v2: a Table you start for a supplier.'],
+    ['Starting one', 'samples-new-batch', 'table-start', ''],
+  ];
+  const roomOf = id => rooms.find(r => r.id === id);
+  const stateOf = (roomId, state) => (roomOf(roomId)?.states ?? []).find(x => x.state === state);
+  const paired = new Set();
+  const compareRows = COMPARE.map(([title, oldState, newState, note], n) => {
+    const o = stateOf('curate-old', oldState), v = stateOf('curate-new', newState);
+    if (!o && !v) return '';
+    if (o) paired.add('curate-old|' + oldState);
+    if (v) paired.add('curate-new|' + newState);
+    const label = `Curate: ${title}`;
+    const row = size => {
+      const a = o && o[size], b = v && v[size];
+      if (!a && !b) return '';
+      const both = a && b;
+      const ida = `c${n}-${size}-old`, idb = `c${n}-${size}-new`;
+      return `<div class="cmp-row ${size}">`
+        + figure(a, label, { id: ida, side: 'old', other: both ? idb : '' })
+        + figure(b, label, { id: idb, side: 'new', other: both ? ida : '' })
+        + `</div>`;
+    };
+    return `    <article class="state">
+      <div class="state-head"><h3>${esc(title)}</h3>${note ? `<p>${esc(note)}</p>` : ''}</div>
+      <div class="cmp-body">${row('phone')}${row('laptop')}</div>
+    </article>`;
+  }).filter(Boolean);
+  const compareSection = compareRows.length ? `
+<section class="room" id="curate-compared">
+  <header class="room-head"><h2>Curate, current beside v2</h2><p class="count">${compareRows.length} pairs</p></header>
+  <p class="lead">The same job in each version: current Curate on the left, v2 on the right. Tap a pair to see it large.</p>
   <div class="states">
-${r.states.map(st => {
+${compareRows.join('\n')}
+  </div>
+</section>` : '';
+  const RENAMED = { 'curate-old': 'Curate (current), other screens', 'curate-new': 'Curate (v2), other screens' };
+  const shownRooms = rooms
+    .map(r => ({ ...r, name: paired.size && RENAMED[r.id] ? RENAMED[r.id] : r.name, shown: r.states.filter(x => !paired.has(r.id + '|' + x.state)) }))
+    .filter(r => r.shown.length);
+  const sections = compareSection + shownRooms.map(r => `
+<section class="room" id="${esc(r.id)}">
+  <header class="room-head"><h2>${esc(r.name)}</h2><p class="count">${r.shown.length} screens</p></header>
+  <div class="states">
+${r.shown.map(st => {
     const title = words(st.state);
     const label = `${r.name}: ${title}`;
     return `    <article class="state">
@@ -152,6 +209,29 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .shot img { display: block; width: 100%; height: auto; }
 .shot.phone { max-width: 260px; }
 .tag { position: absolute; left: 8px; top: 8px; font: 600 10.5px/1 var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg); background: color-mix(in srgb, var(--bg) 82%, transparent); padding: 5px 7px; border-radius: 5px; }
+.room > .lead { margin: 14px 0 0; font-size: 14px; }
+.cmp-body { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.cmp-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.cmp-row.phone { max-width: 600px; }
+.cmp-row .shot { max-height: 720px; }
+.cmp-row .shot.phone { max-width: none; }
+.tag.v2 { background: var(--gold); color: var(--bg); }
+.noshot { min-height: 120px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 16px; border: 1px dashed var(--line); border-radius: 10px; color: var(--fg-dim); font-size: 13px; }
+body[data-show="phone"] .cmp-row.laptop, body[data-show="laptop"] .cmp-row.phone { display: none; }
+.view-scroll.pair { display: flex; justify-content: center; align-items: flex-start; gap: 16px; }
+.view-scroll.pair img { flex: 1 1 0; min-width: 0; max-width: calc(50% - 8px); }
+.view-scroll.pair img.phone { max-width: min(calc(50% - 8px), 430px); }
+#view-side { margin-left: 0; }
+#view-side button { background: none; border-color: transparent; }
+#view-side button[aria-pressed="true"] { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+@media (min-width: 901px) { #view-side { display: none; } }
+@media (max-width: 900px) {
+  .cmp-row.laptop { grid-template-columns: minmax(0, 1fr); }
+  .view-scroll.pair { display: block; }
+  .view-scroll.pair img, .view-scroll.pair img.phone { max-width: 100%; }
+  .view-scroll.pair img.phone { max-width: min(100%, 430px); }
+  .view-scroll.pair[data-side="old"] #view-img2, .view-scroll.pair[data-side="new"] #view-img { display: none; }
+}
 .gaps { max-width: 70ch; margin: 20px 0 0; padding-left: 20px; color: var(--fg-sec); display: flex; flex-direction: column; gap: 8px; }
 .shot.long::after { content: ""; position: absolute; inset: auto 0 0; height: 90px; background: linear-gradient(to bottom, transparent, var(--bg)); pointer-events: none; }
 .more { position: absolute; left: 0; right: 0; bottom: 10px; z-index: 1; text-align: center; font: 500 12px/1 var(--body); color: var(--fg-sec); }
@@ -184,7 +264,7 @@ dialog.view::backdrop { background: rgba(0, 0, 0, 0.6); }
 
 <div class="wrap">
   <h1>Manage, as it stood in November 2026</h1>
-  <p class="lead">Every Manage screen before the rebuild, on a phone and on a laptop, so anything you liked can be found again and pointed to. The teas, suppliers and orders shown are sample data used for testing. They are not your shop's records.</p>
+  <p class="lead">Every Manage screen before the rebuild, so anything you liked can be found again and pointed to. Curate exists in two versions, so it comes first with the current one beside v2, screen for screen. Every other room has one version, shown on a phone beside a laptop. The teas, suppliers and orders shown are sample data used for testing. They are not your shop's records.</p>
   <ul class="facts">
     <li><b>${rooms.reduce((n, r) => n + r.states.length, 0)}</b> screens</li>
     <li><b>${total}</b> pictures</li>
@@ -194,7 +274,8 @@ dialog.view::backdrop { background: rgba(0, 0, 0, 0.6); }
   </ul>
 </div>
 <nav class="rail" aria-label="Rooms"><div class="rail-in">
-  ${rooms.map(r => `<a href="#${esc(r.id)}">${esc(r.name)}</a>`).join('\n  ')}
+  ${compareSection ? '<a href="#curate-compared">Curate compared</a>' : ''}
+  ${shownRooms.map(r => `<a href="#${esc(r.id)}">${esc(r.name.replace(', other screens', ' rest'))}</a>`).join('\n  ')}
   <div class="seg" role="group" aria-label="Which size to show">
     <button type="button" id="show-both" data-show="both" aria-pressed="true">Both</button>
     <button type="button" id="show-phone" data-show="phone" aria-pressed="false">Phone</button>
@@ -213,18 +294,22 @@ ${(notes.notPictured || []).length ? `<section class="room" id="not-pictured">
   <div class="view-in">
     <div class="view-bar">
       <p id="view-cap"></p>
+      <div class="seg" id="view-side" role="group" aria-label="Which version to show" hidden>
+        <button type="button" data-side="old" aria-pressed="true">Current</button>
+        <button type="button" data-side="new" aria-pressed="false">v2</button>
+      </div>
       <button type="button" id="view-prev">Previous</button>
       <button type="button" id="view-next">Next</button>
       <button type="button" id="view-close">Close</button>
     </div>
-    <div class="view-scroll"><img id="view-img" alt=""></div>
+    <div class="view-scroll" id="view-scroll"><img id="view-img" alt=""><img id="view-img2" alt="" hidden></div>
   </div>
 </dialog>
 
 <script>
 (function () {
   var body = document.body;
-  var segs = Array.prototype.slice.call(document.querySelectorAll('.seg button'));
+  var segs = Array.prototype.slice.call(document.querySelectorAll('.rail .seg button'));
   function show(which) {
     body.dataset.show = which;
     segs.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.show === which)); });
@@ -251,24 +336,49 @@ ${(notes.notPictured || []).length ? `<section class="room" id="not-pictured">
   var img = document.getElementById('view-img');
   var cap = document.getElementById('view-cap');
   var current = -1;
+  var img2 = document.getElementById('view-img2');
+  var scroller = document.getElementById('view-scroll');
+  var sideSeg = document.getElementById('view-side');
+  var sideButtons = Array.prototype.slice.call(sideSeg.querySelectorAll('button'));
+  // A pair is one stop: its v2 picture is reached through its current one.
   function visible() {
-    return Array.prototype.slice.call(document.querySelectorAll('.shot')).filter(function (s) { return s.offsetParent !== null; });
+    return Array.prototype.slice.call(document.querySelectorAll('.shot')).filter(function (s) { return s.offsetParent !== null && s.dataset.side !== 'new'; });
   }
-  function open(list, i) {
+  function setSide(which) {
+    scroller.dataset.side = which;
+    sideButtons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.side === which)); });
+  }
+  sideButtons.forEach(function (b) { b.addEventListener('click', function () { setSide(b.dataset.side); scroller.scrollTop = 0; }); });
+  function open(list, i, side) {
     var s = list[i]; if (!s) return;
     current = i;
+    var other = s.dataset.other ? document.getElementById(s.dataset.other) : null;
+    var size = s.dataset.size === 'phone' ? 'phone' : 'laptop';
     img.className = s.dataset.size;
     img.src = s.dataset.full;
-    img.alt = s.dataset.cap;
-    cap.textContent = s.dataset.cap + ' (' + (s.dataset.size === 'phone' ? 'phone' : 'laptop') + ')';
+    img.alt = s.dataset.cap + (other ? ', current' : '');
+    if (other) {
+      img2.className = other.dataset.size;
+      img2.src = other.dataset.full;
+      img2.alt = other.dataset.cap + ', v2';
+    } else {
+      img2.removeAttribute('src');
+    }
+    img2.hidden = !other;
+    sideSeg.hidden = !other;
+    scroller.classList.toggle('pair', !!other);
+    setSide(side === 'new' && other ? 'new' : 'old');
+    cap.textContent = s.dataset.cap + (other ? ', current and v2 (' + size + ')' : ' (' + size + ')');
     if (!dlg.open) dlg.showModal();
-    dlg.querySelector('.view-scroll').scrollTop = 0;
+    scroller.scrollTop = 0;
   }
   function step(d) { var list = visible(); open(list, (current + d + list.length) % list.length); }
   document.addEventListener('click', function (e) {
     var s = e.target.closest ? e.target.closest('.shot') : null;
     if (!s) return;
-    var list = visible(); open(list, list.indexOf(s));
+    var list = visible();
+    if (s.dataset.side === 'new') { open(list, list.indexOf(document.getElementById(s.dataset.other)), 'new'); return; }
+    open(list, list.indexOf(s));
   });
   document.getElementById('view-prev').addEventListener('click', function () { step(-1); });
   document.getElementById('view-next').addEventListener('click', function () { step(1); });
