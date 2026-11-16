@@ -8,7 +8,6 @@
  * photographs go wider on both sides.
  */
 .tj-conv {
-  font-variant-numeric: oldstyle-nums;
   --conv-col: 592px;
   --conv-wide: 1040px;
   --conv-gutter: 24px;

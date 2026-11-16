@@ -17,9 +17,8 @@ import type { Currency } from '../../admin/types';
  * the cart and the admin bar already read, so a reader who switches here meets
  * the same currency in the basket and on the next tea they open.
  *
- * A native select, deliberately. It is the one control a phone renders as its
- * own wheel, it needs no open state, and the shop's own listbox would be a
- * second thing to build for a nine-item list.
+ * The native select provides keyboard and touch behavior. Where the browser
+ * supports styling its picker, the options open clear of the amount rows.
  */
 export const ShopCurrencyPicker: React.FC<{ className?: string }> = ({ className }) => {
   const currency = useAppStore(s => s.currency);
@@ -35,7 +34,7 @@ export const ShopCurrencyPicker: React.FC<{ className?: string }> = ({ className
        select itself is a transparent 44px pad laid over it, because the tap
        floor is 44 and a 44px-tall select would set the height of the whole
        heading row it sits in. */
-    <span className={`relative inline-flex shrink-0 items-center border border-tea-border px-1.5 py-[3px] transition-colors hover:border-tea-gold/40 ${className ?? ''}`}>
+    <span className={`relative inline-flex shrink-0 items-center border border-tea-border px-1.5 py-[3px] transition-colors hover:border-tea-gold/40 focus-within:border-tea-gold ${className ?? ''}`}>
       <span className="pointer-events-none font-sans text-ui-10 uppercase tracking-[0.14em] text-tea-text-sec">
         {currency}
       </span>
@@ -45,8 +44,13 @@ export const ShopCurrencyPicker: React.FC<{ className?: string }> = ({ className
       <select
         value={currency}
         onChange={e => setCurrency(e.target.value as Currency)}
+        onKeyDown={event => {
+          if (event.key === 'Escape' && CSS.supports('selector(:open)') && event.currentTarget.matches(':open')) {
+            event.stopPropagation();
+          }
+        }}
         aria-label="Currency for every price on this page"
-        className="absolute left-1/2 top-1/2 h-[44px] min-w-[44px] -translate-x-1/2 -translate-y-1/2 cursor-pointer appearance-none border-0 bg-transparent p-0 text-ui-10 opacity-0 outline-none"
+        className="shop-currency-select absolute left-1/2 top-1/2 h-[44px] min-w-[44px] -translate-x-1/2 -translate-y-1/2 cursor-pointer appearance-none border-0 bg-transparent p-0 text-ui-10 opacity-0 outline-none"
         style={{ width: '100%' }}
       >
         {codes.map(code => (

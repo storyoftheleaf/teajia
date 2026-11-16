@@ -158,6 +158,7 @@ export function AmountCellList({
 }) {
   const isRail = variant === 'rail';
   const isDocked = variant === 'docked';
+  const priceType = `font-sans tabular-nums lining-nums ${isRail ? 'text-ui-12' : 'text-ui-13'}`;
   return (
     <div
       id={id}
@@ -261,9 +262,7 @@ export function AmountCellList({
           {cell.rate && (
             <span className={`shrink-0 text-left ${isRail ? 'w-[62px]' : 'w-[68px]'}`}>
               <span
-                className={`block whitespace-nowrap font-sans tabular-nums ${
-                  isRail ? 'text-ui-12' : 'text-ui-13'
-                } ${cell.active ? 'text-tea-gold-lt' : 'text-tea-text-dim'}`}
+                className={`block whitespace-nowrap ${priceType} ${cell.active ? 'text-tea-gold-lt' : 'text-tea-text-dim'}`}
               >
                 {cell.rate.value}
               </span>
@@ -274,7 +273,7 @@ export function AmountCellList({
           )}
           <span
             data-testid={`amount-total-${cell.key}`}
-            className={`shrink-0 whitespace-nowrap text-left font-display tabular-nums ${isRail ? 'w-[58px] text-ui-14' : 'w-[64px] text-ui-15'} ${cell.active ? 'text-tea-gold-lt' : 'text-tea-text-sec'}`}
+            className={`shrink-0 whitespace-nowrap text-left ${priceType} ${isRail ? 'w-[58px]' : 'w-[64px]'} ${cell.active ? 'text-tea-gold-lt' : 'text-tea-text-sec'}`}
           >
             {cell.sub || '\u203A'}
           </span>

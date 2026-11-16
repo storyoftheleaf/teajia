@@ -262,6 +262,7 @@ html, body {
 
 body {
   font-family: var(--font-sans);
+  font-variant-numeric: lining-nums;
   font-weight: 400;
   /* Every number sits on one baseline. Cormorant and Lora default to old-style
      figures, where the 7 and 2 in "7572" drop below the line; Adrian never

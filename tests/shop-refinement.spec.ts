@@ -57,7 +57,9 @@ const PRODUCTS = [
   },
 ];
 
-async function mockPublicShop(page: Page, products = PRODUCTS) {
+async function mockPublicShop(page: Page, products = PRODUCTS, rates = [
+  { currency: 'USD', rate_to_usd: 1, last_updated: new Date().toISOString() },
+]) {
   await page.route('**/api/**', async route => {
     const url = route.request().url();
     if (url.includes('/api/media/')) return route.fallback();
@@ -70,7 +72,7 @@ async function mockPublicShop(page: Page, products = PRODUCTS) {
       return;
     }
     const body = url.includes('/api/network/stores') ? { stores: [] }
-      : url.includes('/api/rates') ? [{ currency: 'USD', rate_to_usd: 1, last_updated: new Date().toISOString() }]
+      : url.includes('/api/rates') ? rates
         : [];
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
   });
@@ -88,6 +90,7 @@ test('loads stored product photos in the gallery and enlarged viewer', async ({ 
   await page.route('https://media.teajia.co/gallery/**', route => route.fulfill({ status: 404 }));
 
   const photos = [
+    { id: 'tea-1', name: 'Moonlight White', label: 'View Moonlight White image 1 larger', path: '/api/media/gallery/moonlight.jpg' },
     { id: 'tea-1', name: 'Moonlight White', label: 'View Moonlight White image 2 larger', path: '/api/media/gallery/moonlight-side.jpg?v=2' },
     { id: 'ware-1', name: 'Field Gaiwan', label: 'View Field Gaiwan larger', path: '/api/media/gallery/gaiwan.jpg' },
   ];
@@ -95,11 +98,35 @@ test('loads stored product photos in the gallery and enlarged viewer', async ({ 
     await page.goto(`/shop/product/${photo.id}`);
     const thumbnail = page.getByRole('button', { name: photo.label });
     const source = new URL(photo.path, page.url()).href;
-    await expect(thumbnail.getByRole('img')).toHaveJSProperty('src', source);
+    const image = thumbnail.getByRole('img');
+    await thumbnail.scrollIntoViewIfNeeded();
+    await expect(image).toHaveJSProperty('currentSrc', source);
+    await expect.poll(() => image.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
     await thumbnail.click();
     const enlarged = page.getByRole('dialog', { name: `Image of ${photo.name}` }).getByRole('img');
     await expect(enlarged).toHaveJSProperty('src', source);
     await expect.poll(() => enlarged.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  }
+});
+
+test('shows the product price with lining figures in IDR', async ({ page }) => {
+  const updatedAt = new Date().toISOString();
+  await mockPublicShop(page, PRODUCTS, [
+    { currency: 'USD', rate_to_usd: 1, last_updated: updatedAt },
+    { currency: 'IDR', rate_to_usd: 16000, last_updated: updatedAt },
+  ]);
+  await page.addInitScript(() => {
+    localStorage.setItem('teajia-storage', JSON.stringify({ version: 6, state: { currency: 'IDR' } }));
+  });
+
+  await page.goto('/shop/product/tea-1');
+  const dockTotal = page.locator('.alcove-dock-cta-total').first();
+  await expect(dockTotal).toHaveText(/IDR\s+\d+k/);
+  await page.getByRole('button', { name: /Change amount, currently/ }).click();
+  for (const total of [dockTotal, page.getByTestId('amount-total-50')]) {
+    await expect(total).toHaveCSS('font-variant-numeric', /lining-nums/);
+    await expect(total).toHaveCSS('font-family', /Plus Jakarta Sans/);
+    await expect(total).toHaveCSS('font-size', '13px');
   }
 });
 
