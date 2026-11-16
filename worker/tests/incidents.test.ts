@@ -49,6 +49,11 @@ describe('incident normalization', () => {
 
     expect(first.signature).toBe('server:get:api-curate-ar-create-requests-id:504:http_504');
     expect(second.signature).toBe(first.signature);
+    const modernReport = { ...asBrowserReports(second.route!), signature: first.signature };
+    expect(normalizeIncidentInput(modernReport).signature).toBe(first.signature);
+    expect(normalizeIncidentInput({ ...modernReport, signature: undefined }).signature).toBe(first.signature);
+    expect(normalizeIncidentInput(asBrowserReports('/api/products/public')).signature)
+      .toBe('server_get_api_products_public_504_http_504');
     // The status and the error code are the last two fields, so they are the two
     // the old eighty-character cap ate: the live row ends `..._d55de2fea535_50`.
     expect(first.signature).toContain(':504:http_504');

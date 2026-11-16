@@ -1,4 +1,4 @@
-import { incidentRouteTemplate } from '../../src/lib/incidents';
+import { incidentRouteSlug, incidentRouteTemplate } from '../../src/lib/incidentRoute';
 
 export const INCIDENT_CATEGORIES = ['network', 'configuration', 'server', 'auth', 'authorization', 'workflow', 'client'] as const;
 export const INCIDENT_SEVERITIES = ['critical', 'high', 'medium', 'low'] as const;
@@ -98,22 +98,22 @@ export function normalizeIncidentInput(input: IncidentInput): NormalizedIncident
 
   const category = input.category as IncidentCategory;
   const severity = input.severity as IncidentSeverity;
-  const route = typeof input.route === 'string' ? input.route.split('?')[0].slice(0, 240) : null;
+  const reportedRoute = typeof input.route === 'string' ? input.route.split('?')[0] : null;
+  const route = reportedRoute?.slice(0, 240) ?? null;
   const method = typeof input.method === 'string' ? input.method.toUpperCase().slice(0, 10) : null;
   const httpStatus = Number.isInteger(input.http_status) ? Number(input.http_status) : null;
   const errorCode = slug(input.error_code || 'unknown', 'unknown');
   const sign = (routePart: string) => `${category}:${(method || 'unknown').toLowerCase()}:${routePart}:${httpStatus ?? 'none'}:${errorCode}`;
-  const generated = sign(routeSlug(route && incidentRouteTemplate(route)));
-  // A signature a caller WROTE is kept; one it merely DERIVED from the path is
-  // re-derived here, off the route template. `recoverFromChunkError` deliberately
-  // files every page's chunk recovery under one hand-written key, and the cron's
-  // health problems under theirs, so a caller's own key has to survive. But the
-  // browser mints its signature from the raw path, and a browser still running a
-  // cached bundle keeps minting the old per-id shape long after a deploy, so the
-  // server cannot wait for the client to be the one that normalises.
+  const templatedRoute = reportedRoute ? incidentRouteTemplate(reportedRoute) : route;
+  const generated = sign(routeSlug(templatedRoute));
   const supplied = input.signature ? signatureSlug(input.signature, generated) : null;
-  const derivedFromPath = signatureSlug(sign(routeSlug(route)), generated);
-  const signature = !supplied || supplied === derivedFromPath ? generated : supplied;
+  // Both cached raw-path reports and templated browser reports use the same
+  // server-generated key for dynamic routes. Keep custom and static keys stable.
+  const isDynamicReport = reportedRoute && templatedRoute && reportedRoute !== templatedRoute;
+  const matchesBrowser = (path: string) => supplied === signatureSlug(sign(incidentRouteSlug(path)), generated);
+  const signature = isDynamicReport && (matchesBrowser(reportedRoute) || matchesBrowser(templatedRoute))
+    ? generated
+    : supplied ?? generated;
 
   return {
     signature: signature.slice(0, MAX_SIGNATURE_LENGTH), category, severity, route, method, httpStatus, errorCode,
