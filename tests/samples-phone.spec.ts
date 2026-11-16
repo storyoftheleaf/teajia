@@ -366,7 +366,15 @@ test.describe('Deciding on a sample, phone', () => {
     await expect(page.getByRole('status', { name: 'Orders placed' })).toContainText('Boyuan Tea Shop');
     expect(created).toHaveLength(1);
     const items = JSON.parse(String(created[0].items_json)) as Array<Record<string, unknown>>;
-    expect(items[0]).toMatchObject({ name: '1958 Aged Raw', quantity: 7, shipBy: 'boat' });
+    // Buying displays seven cakes; Purchase Tracking receives their weight and cost.
+    expect(items[0]).toMatchObject({
+      name: '1958 Aged Raw',
+      quantity: 7 * 357,
+      unit: 'g',
+      quantity_grams: 7 * 357,
+      line_total: 6300,
+      shipBy: 'boat',
+    });
     // One order per supplier per route: an all-boat basket is one boat order.
     expect(created[0].ship_mode).toBe('sea');
     expect(receipts).toHaveLength(1);

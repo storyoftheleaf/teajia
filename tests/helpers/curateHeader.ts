@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 
-// On a phone Curate's header (the Source / Library / Ledger tabs) slides away
+// On a phone Curate's header (the Source / Library / Orders tabs) slides away
 // as the page scrolls down and returns on the way back up. A person scrolls up
 // to reach it; a test that clicks a tab without doing the same lands its tap
 // on whatever content has slid over the tab. Scroll up until the named tab is

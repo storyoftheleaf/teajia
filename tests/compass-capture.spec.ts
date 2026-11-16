@@ -324,7 +324,7 @@ test.describe('Curate field capture preservation', () => {
 
   for (const destination of [
     { query: 'library', tab: 'Library' },
-    { query: 'buying', tab: 'Ledger' },
+    { query: 'buying', tab: 'Orders' },
   ]) {
     test(`opens ${destination.tab} without creating a capture shell`, async ({ page }) => {
       await page.goto(`/admin/compass?tab=${destination.query}`, { waitUntil: 'domcontentloaded' });
