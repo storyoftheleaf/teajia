@@ -1,11 +1,39 @@
 import { expect, test } from './fixtures';
 
-test('Purchases receives through the linked receipt before showing Received',async({page})=>{
+test('Purchases retries a partial arrival against the same Stock holding before completing the receipt', async ({ page }) => {
   test.setTimeout(90_000);
   const encode=(value:object)=>Buffer.from(JSON.stringify(value)).toString('base64url');
   const token=`${encode({alg:'HS256',typ:'JWT'})}.${encode({sub:'admin',email:'operator@test',role:'owner',active_account_id:'acct',memberships:[{account_id:'acct',role:'owner'}],exp:Math.floor(Date.now()/1000)+86400})}.sig`;
-  let received=0;let poStatus='ordered';let increments=0;
-  const requests:Array<Record<string,unknown>>=[];
+  const ordered = 100;
+  let received = 0;
+  let increments = 0;
+  const requests: Array<{ quantity: number; idempotency_key: string }> = [];
+  const movements = new Map<string, number>();
+  const purchaseRow = () => ({
+    id: 'purchase',
+    vendor_name: 'Lin',
+    status: received === ordered ? 'received' : 'ordered',
+    items_json: JSON.stringify([{ product_id: 'tea', product_name: 'Cloud Oolong', quantity: ordered, unit: 'g' }]),
+    created_at: '2026-10-28',
+    receipt_id: 'receipt',
+  });
+  const receiptRow = () => ({
+    id: 'receipt',
+    state: received === ordered ? 'received' : received > 0 ? 'partially_received' : 'ordered',
+    vendor_name: 'Lin',
+    source_kind: 'purchase_order',
+    lines: [{
+      id: 'line',
+      product_id: 'tea',
+      product_name: 'Cloud Oolong',
+      expected_quantity: ordered,
+      received_quantity: received,
+      cancelled_quantity: 0,
+      current_on_hand: received,
+      unit: 'g',
+      intended_purpose: 'working',
+    }],
+  });
   await page.addInitScript(jwt=>{localStorage.clear();localStorage.setItem('teajia_token',jwt);localStorage.setItem('teajia-storage',JSON.stringify({version:2,state:{activeAccountId:'acct',activeUserId:'admin',memberships:[{account_id:'acct',account_name:'Test',role:'owner'}]}}));},token);
   await page.route('**/api/**',async route=>{
     const path=new URL(route.request().url()).pathname;
@@ -13,15 +41,28 @@ test('Purchases receives through the linked receipt before showing Received',asy
     if(path==='/api/auth/refresh')return route.fulfill({json:{token}});
     // Purchases reads one tracking row per purchase, its linked receipt included,
     // beside the logistics companies (2026-10-29).
-    const purchaseRow=()=>({id:'purchase',vendor_name:'Lin',status:poStatus,items_json:JSON.stringify([{product_id:'tea',product_name:'Cloud Oolong',quantity:100,unit:'g'}]),created_at:'2026-10-28',receipt_id:'receipt'});
-    const receiptRow=()=>({id:'receipt',state:poStatus==='received'?'received':'ordered',vendor_name:'Lin',source_kind:'purchase_order',lines:[{id:'line',product_id:'tea',product_name:'Cloud Oolong',expected_quantity:100,received_quantity:received,cancelled_quantity:0,current_on_hand:received,unit:'g',intended_purpose:'working'}]});
     if(path==='/api/purchase-orders/tracking')return route.fulfill({json:{rows:[{id:'purchase',purchase:purchaseRow(),receipt:receiptRow(),attention:[],history:[],source_document:null}]}});
     if(path==='/api/logistics')return route.fulfill({json:{orders:[],shipments:[],services:[],addresses:[]}});
     if(path==='/api/purchase-orders')return route.fulfill({json:[purchaseRow()]});
-    if(path==='/api/inventory/receipts')return route.fulfill({json:[{id:'receipt',state:poStatus==='received'?'received':'ordered',vendor_name:'Lin',source_kind:'purchase_order',lines:[{id:'line',product_id:'tea',product_name:'Cloud Oolong',expected_quantity:100,received_quantity:received,cancelled_quantity:0,current_on_hand:received,unit:'g',intended_purpose:'working'}]}]});
+    if(path==='/api/inventory/receipts')return route.fulfill({json:[receiptRow()]});
     if(path==='/api/inventory/receipt-lines/line/receive'){
-      requests.push(route.request().postDataJSON());received=100;poStatus='received';
-      return route.fulfill({json:{received_quantity:100,remaining_quantity:0,state:'received',ledger_id:'movement'}});
+      const request = route.request().postDataJSON() as (typeof requests)[number];
+      requests.push(request);
+      const alreadyReceived = movements.has(request.idempotency_key);
+      if (!alreadyReceived) {
+        movements.set(request.idempotency_key, request.quantity);
+        received += request.quantity;
+      }
+      // The upstream commits the first write but the gateway loses its response.
+      if (requests.length === 1) {
+        return route.fulfill({ status: 502, json: { error: 'No response from receiving service' } });
+      }
+      return route.fulfill({ json: {
+        received_quantity: received,
+        remaining_quantity: ordered - received,
+        state: receiptRow().state,
+        already_received: alreadyReceived,
+      } });
     }
     if(path==='/api/rpc/increment-stock'){increments++;return route.fulfill({status:500,json:{error:'Legacy increment must not run'}})}
     return route.fulfill({json:[]});
@@ -41,13 +82,41 @@ test('Purchases receives through the linked receipt before showing Received',asy
   // Opening the purchase only shows it; nothing is received until Receive.
   await purchase.getByRole('button', { name: 'Record arrival / manage delivery', exact: true }).click();
   const line=page.locator('.purchase-tracking-item').filter({hasText:'Cloud Oolong'});
+  const quantities = line.locator('.purchase-tracking-quantities');
+  const arrival = line.getByLabel('Quantity received for Cloud Oolong');
+  const receive = line.getByRole('button', { name: 'Receive', exact: true });
   await expect(line).toContainText('Shelf stock: 0 g');
-  expect(poStatus).toBe('ordered');
-  await page.getByRole('button',{name:'Receive',exact:true}).click();
-  await expect(line.locator('.purchase-tracking-quantities')).toContainText('Arrived 100 g');
+  await expect(line.getByRole('link', { name: 'Stock', exact: true })).toHaveAttribute('href', '/admin/stock?panel=tea');
+  expect(requests).toHaveLength(0);
+  await arrival.fill('40');
+  await receive.click();
+  await expect(page.getByRole('alert')).toContainText('Could not confirm whether stock was received');
+  await expect(arrival).toBeDisabled();
+  await expect(receive).toBeDisabled();
+  expect(received).toBe(40);
+  await page.getByRole('button', { name: 'Retry Receive', exact: true }).click();
+  await expect(quantities).toContainText('Arrived 40 g');
+  await expect(quantities).toContainText('Coming 60 g');
+  await expect(line).toContainText('Shelf stock: 40 g');
+  expect(requests).toHaveLength(2);
+  expect(requests[0]).toMatchObject({ quantity: 40, idempotency_key: expect.any(String) });
+  expect(requests[1]).toEqual(requests[0]);
+  expect([...movements.values()]).toEqual([40]);
+  expect(purchaseRow().status).toBe('ordered');
+  await page.getByRole('button', { name: 'Back to purchases', exact: true }).click();
+  await expect(purchase.getByRole('heading', { name: 'Cloud Oolong' })).toBeVisible();
+  await expect(purchase.getByRole('heading', { name: 'Lin', exact: true })).toBeVisible();
+  await expect(purchase.getByText('Part arrived', { exact: true })).toBeVisible();
+  await expect(purchase.getByLabel('Studio receipt quantities')).toContainText(/Coming\s*60 g/);
+  await expect(purchase.getByRole('link', { name: 'Open Stock for Cloud Oolong' })).toHaveAttribute('href', '/admin/stock?panel=tea');
+  await purchase.getByRole('button', { name: 'Record arrival / manage delivery', exact: true }).click();
+  await expect(arrival).toHaveValue('60');
+  await receive.click();
+  await expect(quantities).toContainText('Arrived 100 g');
   await page.getByRole('button',{name:'Back to purchases',exact:true}).click();
   await expect(page.getByText(/^Received/).first()).toBeVisible();
-  expect(requests).toHaveLength(1);expect(requests[0]).toMatchObject({quantity:100,idempotency_key:expect.any(String)});
+  expect(requests).toHaveLength(3);
+  expect([...movements.values()]).toEqual([40, 60]);
   expect(increments).toBe(0);
 });
 
