@@ -8,11 +8,9 @@
  * component through the real hook and reads the markup, which is what a visitor
  * actually receives.
  *
- * Storage is stubbed rather than mocked out. `useIsReadOwner` reads the stored
- * JWT's claims, and stubbing the two Storage globals with a plain map is the
- * smallest thing that lets the real hook run unchanged: a mock of the hook
- * would test the mock. `vi.hoisted` puts the stubs in place before the module
- * graph loads, since an ES import runs before any statement in this file.
+ * Storage is stubbed to prove that browser-written membership claims cannot
+ * reveal cards before server verification. The production browser test covers
+ * real editor access through the Worker.
  *
  * JOBC-2, prime-time audit 2026-09.
  */
@@ -88,15 +86,15 @@ describe('MoreFooter', () => {
     expect(html).toContain('read-share-end');
   });
 
-  it('shows the Teajia owner every card, marked Draft', () => {
+  it('withholds draft cards from unverified owner claims', () => {
     signIn({
       sub: 'u1',
       memberships: [{ account_id: 'acc_teajia_bali', role: 'owner', account_kind: 'platform', is_platform_account: true }],
     });
     const html = render(RAIL);
-    expect(html).toContain('Ten Thousand Mornings');
-    expect(html).toContain('The Rock Remembers');
-    expect(html).toContain('Draft');
+    expect(html).not.toContain('Ten Thousand Mornings');
+    expect(html).not.toContain('The Rock Remembers');
+    expect(html).not.toContain('Draft');
   });
 
   it('treats a curator who owns their own shop as a visitor', () => {

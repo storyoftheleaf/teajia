@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { useNotesStore } from './notesStore';
 import {
   entryHasDeliberateInput,
+  compassPersonKey,
   restoreCompassDraftsForAccount,
   migrateCompassPersistedState,
   mergeCompassPersistedState,
@@ -9,6 +10,8 @@ import {
 } from './teaCompassStore';
 import { useAppStore } from './store';
 import { createEmptyEntry, type TeaCompassEntry } from '../components/TeaCompass/types';
+
+beforeEach(() => useAppStore.setState({ activeUserId: 'user-a', activeAccountId: null }));
 
 const deliberateFragments: Array<[string, Partial<TeaCompassEntry>]> = [
   ['cost price', { priceAmount: 480 }],
@@ -176,8 +179,9 @@ describe('account-scoped Curate draft restoration', () => {
   it('isolates and restores pending, active, and session drafts across A to B to A', () => {
     useTeaCompassStore.setState({
       pendingEntries: [], activeEntryId: null, sessionEntryIds: [],
-      draftAccountScopeId: 'acct-a', draftsByAccount: {},
+      accountScopeId: null, userScopeId: null, draftAccountScopeId: null, draftsByAccount: {},
     });
+    useTeaCompassStore.getState().switchAccount('acct-a');
     const a = useTeaCompassStore.getState().startNewCapture('tea');
     useTeaCompassStore.getState().updateEntry(a, { priceAmount: 120 });
 
@@ -208,6 +212,7 @@ describe('account-scoped committed Curate entries', () => {
       entries: [],
       entriesByAccount: {},
       accountScopeId: null,
+      userScopeId: null,
       pendingEntries: [],
       activeEntryId: null,
       sessionEntryIds: [],
@@ -246,16 +251,16 @@ describe('account-scoped committed Curate entries', () => {
     expect(useTeaCompassStore.getState().pendingEntries).toEqual([]);
   });
 
-  it('moves legacy unbucketed entries into the first known account without duplicating them', () => {
+  it('quarantines legacy unbucketed entries without guessing an author', () => {
     const legacy = { ...createEmptyEntry('tea'), id: 'legacy', name: 'Legacy tea' };
     useTeaCompassStore.setState({ entries: [legacy], entriesByAccount: {}, accountScopeId: null });
 
     useTeaCompassStore.getState().switchAccount('acct-first');
-    expect(useTeaCompassStore.getState().entries.map((item) => item.id)).toEqual(['legacy']);
+    expect(useTeaCompassStore.getState().entries).toEqual([]);
 
     useTeaCompassStore.getState().switchAccount('acct-second');
     expect(useTeaCompassStore.getState().entries).toEqual([]);
-    expect(useTeaCompassStore.getState().entriesByAccount['acct-first']?.map((item) => item.id)).toEqual(['legacy']);
+    expect(useTeaCompassStore.getState().entriesByAccount['__legacy_unscoped__']?.map((item) => item.id)).toEqual(['legacy']);
     expect(useTeaCompassStore.getState().entriesByAccount['acct-second']).toBeUndefined();
   });
 
@@ -287,10 +292,87 @@ describe('account-scoped committed Curate entries', () => {
       draftAccountScopeId: 'acct-old-draft',
     }, 7) as ReturnType<typeof useTeaCompassStore.getState>;
 
-    expect(migrated.entriesByAccount).toEqual({ 'acct-active': [legacy] });
-    expect(migrated.deletedIdsByAccount).toEqual({ 'acct-active': ['deleted-v7'] });
-    expect(migrated.pendingPromotionsByAccount).toEqual({ 'acct-active': ['promote-v7'] });
-    expect(migrated.entriesByAccount['acct-old-draft']).toBeUndefined();
+    expect(migrated.entriesByAccount).toEqual({ 'acct-old-draft': [legacy] });
+    expect(migrated.deletedIdsByAccount).toEqual({ 'acct-old-draft': ['deleted-v7'] });
+    expect(migrated.pendingPromotionsByAccount).toEqual({ 'acct-old-draft': ['promote-v7'] });
+    expect(migrated.entriesByAccount['acct-active']).toBeUndefined();
+  });
+
+  it('keeps v8 account-only facade, bucket, and unfinished capture for restricted recovery across reloads', () => {
+    useAppStore.setState({ activeAccountId: 'acct-a', activeUserId: 'user-b' });
+    const bucket = { ...createEmptyEntry('tea'), id: 'old-bucket', name: 'Older local save', synced: false };
+    const facade = { ...createEmptyEntry('tea'), id: 'old-facade', name: 'Newer local save', synced: false };
+    const draft = { ...createEmptyEntry('tea'), id: 'old-draft', draftAccountId: 'acct-a', name: 'Unfinished' };
+    const old = {
+      accountScopeId: 'acct-a', draftAccountScopeId: 'acct-a',
+      entries: [facade], entriesByAccount: { 'acct-a': [bucket] },
+      deletedIds: ['old-delete'], pendingPromotions: ['old-promotion'],
+      pendingEntries: [draft], activeEntryId: 'old-draft', sessionEntryIds: ['old-draft'],
+    };
+    const merged = mergeCompassPersistedState(old, useTeaCompassStore.getState());
+    expect(merged.entries).toEqual([]);
+    expect(merged.pendingEntries).toEqual([]);
+    expect(merged.deletedIds).toEqual([]);
+    expect(merged.entriesByAccount['acct-a']).toEqual([bucket]);
+    expect(merged.entriesByAccount['__legacy_facade__:acct-a']).toEqual([facade]);
+    expect(merged.draftsByAccount['acct-a'].pendingEntries).toEqual([draft]);
+
+    const persisted = JSON.parse(JSON.stringify(merged)) as typeof old;
+    const reloaded = mergeCompassPersistedState(persisted, useTeaCompassStore.getState());
+    expect(reloaded.entries).toEqual([]);
+    expect(reloaded.pendingEntries).toEqual([]);
+    expect(reloaded.entriesByAccount['acct-a']).toEqual([bucket]);
+    expect(reloaded.entriesByAccount['__legacy_facade__:acct-a']).toEqual([facade]);
+    expect(reloaded.draftsByAccount['acct-a'].pendingEntries).toEqual([draft]);
+    expect(reloaded.entriesByAccount[compassPersonKey('acct-a', 'user-b')!]).toBeUndefined();
+  });
+
+  it('reloads only the author bucket after same-account identity changes', () => {
+    useTeaCompassStore.setState({
+      accountScopeId: null, userScopeId: null, draftAccountScopeId: null,
+      entries: [], pendingEntries: [], entriesByAccount: {}, draftsByAccount: {},
+    });
+    useTeaCompassStore.getState().switchAccount('acct-a', 'user-a');
+    const id = useTeaCompassStore.getState().startNewCapture('tea');
+    useTeaCompassStore.getState().updateEntry(id, { name: 'A private draft' });
+    useTeaCompassStore.getState().addEntry({ ...createEmptyEntry('tea'), id: 'a-offline', name: 'A offline', synced: false });
+    const persisted = JSON.parse(JSON.stringify(useTeaCompassStore.getState()));
+    useAppStore.setState({ activeAccountId: 'acct-a', activeUserId: 'user-b' });
+    const b = mergeCompassPersistedState(persisted, useTeaCompassStore.getState());
+    expect(b.entries).toEqual([]);
+    expect(b.pendingEntries).toEqual([]);
+    useAppStore.setState({ activeAccountId: 'acct-a', activeUserId: 'user-a' });
+    const a = mergeCompassPersistedState(persisted, useTeaCompassStore.getState());
+    expect(a.entries.map(e => e.id)).toEqual(['a-offline']);
+    expect(a.pendingEntries.map(e => e.id)).toEqual([id]);
+  });
+
+  it('keeps capture vendor, run, and encounter defaults with A rather than B', () => {
+    useTeaCompassStore.setState({
+      accountScopeId: null, userScopeId: null, draftAccountScopeId: null,
+      entries: [], pendingEntries: [], entriesByAccount: {}, draftsByAccount: {},
+      workspaceByPerson: {}, encounterContextByAccount: {},
+    });
+    useTeaCompassStore.getState().switchAccount('acct-a', 'user-a');
+    const a = useTeaCompassStore.getState().startNewCapture('tea');
+    useTeaCompassStore.getState().updateEntry(a, { name: 'A tea' });
+    useTeaCompassStore.getState().setLastVendor('vendor-a', 'A supplier');
+    useTeaCompassStore.getState().setEncounterContext(a, 'journey-a', 'visit-a');
+    const aRun = useTeaCompassStore.getState().currentSessionId;
+
+    useTeaCompassStore.getState().switchAccount('acct-a', 'user-b');
+    expect(useTeaCompassStore.getState()).toMatchObject({
+      pendingEntries: [], lastVendorId: null, lastVendorName: null,
+      currentSessionId: null, lastCaptureAt: null,
+    });
+    const b = useTeaCompassStore.getState().startNewCapture('tea');
+    expect(useTeaCompassStore.getState().getEntry(b)).toMatchObject({ vendorId: undefined, journeyId: null, visitId: null });
+
+    useTeaCompassStore.getState().switchAccount('acct-a', 'user-a');
+    expect(useTeaCompassStore.getState()).toMatchObject({
+      lastVendorId: 'vendor-a', lastVendorName: 'A supplier', currentSessionId: aRun,
+    });
+    expect(useTeaCompassStore.getState().pendingEntries.map(e => e.id)).toEqual([a]);
   });
 
   it('does not restore account A facade data when reloading under account B', () => {

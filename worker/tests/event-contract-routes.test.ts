@@ -1022,6 +1022,25 @@ describe('Events Release 1 persisted route contracts', () => {
     }
   });
 
+  it('returns the reservation event identity and lifecycle for the notes screen', async () => {
+    const db = seedEventContractDb();
+    try {
+      seedPostSessionGuest(db);
+      const response = await worker.fetch(
+        new Request('https://worker.test/api/rsvp/guest-token'),
+        { DB: db } as any,
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({
+        event: { id: 'event-a', lifecycle_status: 'completed' },
+        attendee: { attended: 1, status: 'confirmed' },
+      });
+    } finally {
+      db.close();
+    }
+  });
+
   it('rejects tasting notes until the event lifecycle is completed', async () => {
     const db = seedEventContractDb();
     try {

@@ -58,7 +58,7 @@ export function estimateOrderFreight(
   tx: Pick<LedgerTransaction, 'items' | 'currency'>,
   routes: readonly ShippingRoute[],
   rates: readonly ExchangeRate[] | null | undefined,
-  shopFreightPerKgUsd: number,
+  shopFreightPerKgUsd: number | null,
 ): OrderFreight {
   const orderPerUsd = perUsd(rates, tx.currency);
   const grams: Record<RouteMode, number> = { air: 0, sea: 0 };

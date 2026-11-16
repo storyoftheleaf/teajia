@@ -35,17 +35,26 @@ beforeAll(async () => {
   if (!address || typeof address === 'string') throw new Error('Vite test server did not expose a port');
   origin = `http://127.0.0.1:${address.port}`;
   browser = await chromium.launch({ headless: true });
+  // Resolve static modules in the existing setup budget; no business component mounts.
+  await loadFixture();
+  await page.close();
 }, 30_000);
 
 afterAll(async () => { await browser?.close(); await server?.close(); });
 afterEach(async () => { await page?.close(); });
 
-async function open(options: Record<string, unknown> = {}) {
+async function loadFixture() {
   page = await browser.newPage();
+  await page.route('**/*', route => new URL(route.request().url()).origin === origin ? route.fallback() : route.abort());
   await page.route('**/version.json?probe=1',route=>route.fulfill({json:{build:'test'}}));
+  // Synthetic session refresh is unavailable; retain the harness's account token.
+  await page.route('**/api/auth/refresh', route => route.fulfill({ status: 503, json: { error: 'synthetic_refresh_unavailable' } }));
   await page.route('**/api/incidents',route=>route.fulfill({json:{id:'test-incident'}}));
   await page.goto(`${origin}/__quick-invoice-test`);
   await page.waitForFunction(() => Boolean((window as any).quickInvoiceTest));
+}
+async function open(options: Record<string, unknown> = {}) {
+  await loadFixture();
   await page.evaluate(value => (window as any).quickInvoiceTest.mount(value), options);
   await expect.poll(() => page.evaluate(() => (window as any).quickInvoiceTest.requestAccounts())).toEqual([options.accountId || 'account-a']);
 }
@@ -153,6 +162,49 @@ describe('QuickInvoiceModal linked sales behavior', () => {
     await saveDraft().click();
     await expect.poll(() => textOf(page.getByRole('alert'))).toContain('no longer eligible');
     expect(await page.evaluate(() => (window as any).quickInvoiceTest.invoiceCalls().length)).toBe(0);
+  });
+
+  it('keeps an unpriced SKU selectable and linked while requiring its manual price and floor', async () => {
+    await open({ unpricedProductIds: ['tea-a'], prefill: { customerName: 'Synthetic Buyer' } });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.evaluate(row => (window as any).quickInvoiceTest.resolveRequest(0, [row]), eligible('tea-a', { price_floor: 0.3 }));
+    await itemName().fill('Account A Tea');
+    const suggestion = page.getByRole('button').filter({ has: page.getByText('Account A Tea', { exact: true }) });
+    await expect.poll(() => suggestion.textContent()).toContain('\u2014/g');
+    mkdirSync('outputs/quick-invoice-eligibility', { recursive: true });
+    await page.screenshot({ path: 'outputs/quick-invoice-eligibility/unpriced-picker.png', animations: 'disabled' });
+    await suggestion.click();
+    const price = page.getByRole('spinbutton', { name: 'Price per gram (USD)', exact: true });
+    expect(await price.inputValue()).toBe('');
+    expect(await page.getByText(/Unavailable for linked stock/).count()).toBe(0);
+    await saveDraft().click();
+    expect(await page.evaluate(() => (window as any).quickInvoiceTest.invoiceCalls().length)).toBe(0);
+    await price.fill('0.2');
+    await saveDraft().click();
+    await expect.poll(() => textOf(page.getByRole('alert'))).toContain('$0.30/g or above');
+    expect(await page.evaluate(() => (window as any).quickInvoiceTest.invoiceCalls().length)).toBe(0);
+    await price.fill('0.4');
+    await page.screenshot({ path: 'outputs/quick-invoice-eligibility/manual-linked-price.png', animations: 'disabled' });
+    await saveDraft().click();
+    await expect.poll(() => page.evaluate(() => (window as any).quickInvoiceTest.invoiceCalls().length)).toBe(1);
+    expect(await page.evaluate(() => (window as any).quickInvoiceTest.invoiceCalls()[0].items)).toEqual([
+      expect.objectContaining({ product_id: 'tea-a', price_at_sale: 0.4 }),
+    ]);
+  });
+
+  it('keeps an unpriced linked prefill blank and accepts explicit zero where no floor applies', async () => {
+    await open({ unpricedProductIds: ['tea-a'], prefill: { customerName: 'Synthetic Buyer', items: [{ name: 'Account A Tea', productId: 'tea-a', quantity: 5 }] } });
+    await page.evaluate(row => (window as any).quickInvoiceTest.resolveRequest(0, [row]), eligible('tea-a'));
+    const price = page.getByRole('spinbutton', { name: 'Price per gram (USD)', exact: true });
+    expect(await price.inputValue()).toBe('');
+    await saveDraft().click();
+    expect(await page.evaluate(() => (window as any).quickInvoiceTest.invoiceCalls().length)).toBe(0);
+    await price.fill('0');
+    await saveDraft().click();
+    await expect.poll(() => page.evaluate(() => (window as any).quickInvoiceTest.invoiceCalls().length)).toBe(1);
+    expect(await page.evaluate(() => (window as any).quickInvoiceTest.invoiceCalls()[0].items)).toEqual([
+      expect.objectContaining({ product_id: 'tea-a', quantity: 5, price_at_sale: 0 }),
+    ]);
   });
 
   it('blocks below-floor linked invoices', async () => {

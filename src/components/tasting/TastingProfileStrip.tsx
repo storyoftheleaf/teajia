@@ -20,7 +20,10 @@ interface TastingProfileStripProps {
   value?: TastingData;
   tasting?: TastingData;
   onRemove?: (categoryId: TastingCategoryId, termId: string) => void;
-  variant?: string | 'cloud';
+  /** 'cloud': the tag cloud. 'line': the same words with the same taps, as one
+   *  quiet line of plain words parted by middle dots, cut with an ellipsis when
+   *  it does not fit (the Source form's 'flow' capture card). */
+  variant?: string | 'cloud' | 'line';
   /**
    * Interaction mode for individual term chips.
    * - 'remove' (default): clicking fires onRemove, for editing contexts.
@@ -139,30 +142,13 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
   if (totalTerms === 0) return null;
 
   // ── Cloud variant: unified note cloud with dot-coded categories ──────────
-  if (variant === 'cloud') {
+  if (variant === 'cloud' || variant === 'line') {
+    const line = variant === 'line';
     const nonColorGroups = groupedTerms.filter(g => g.categoryId !== 'liquor-color');
     const colorGroup = groupedTerms.find(g => g.categoryId === 'liquor-color');
     const activeCats = groupedTerms.filter(g => g.terms.length > 0 && g.categoryId !== 'liquor-color');
-
-    return (
-      <div className="space-y-2">
-        {/* Legend row: non-color categories only */}
-        {activeCats.length > 1 && (
-          <div className="flex flex-wrap gap-x-3 gap-y-1">
-            {activeCats.map(group => {
-              const LegendIcon = CATEGORY_HEADER_ICONS[group.categoryId];
-              return (
-                <span key={group.categoryId} className={`${LABEL} inline-flex items-center gap-1 text-tea-text-dim`}>
-                  {LegendIcon && <LegendIcon size={9} className="shrink-0" />}
-                  {CATEGORY_LABELS[group.categoryId] ?? group.categoryId}
-                </span>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Tag cloud: all non-color terms */}
-        <div className="flex flex-wrap gap-1.5">
+    const wordButtons = (
+      <>
           {nonColorGroups.map(group =>
             group.terms.map(termId => {
               const TagIcon = CATEGORY_HEADER_ICONS[group.categoryId];
@@ -172,13 +158,13 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
                   key={`${group.categoryId}-${termId}`}
                   type="button"
                   onClick={() => onRemove?.(group.categoryId as TastingCategoryId, termId)}
-                  className="tag curate-tasting-tag tap-target group"
+                  className={line ? undefined : 'tag curate-tasting-tag tap-target group'}
                   aria-label={onRemove ? `Remove ${label}` : label}
-                  style={{ gap: '6px' }}
+                  style={line ? undefined : { gap: '6px' }}
                 >
-                  {TagIcon && <TagIcon size={9} className="shrink-0" />}
+                  {!line && TagIcon && <TagIcon size={9} className="shrink-0" />}
                   {label}
-                  {onRemove && <X size={8} className="shrink-0 opacity-0 group-hover:opacity-50 transition-opacity" />}
+                  {!line && onRemove && <X size={8} className="shrink-0 opacity-0 group-hover:opacity-50 transition-opacity" />}
                 </button>
               );
             })
@@ -199,22 +185,46 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
                 type="button"
                 title={label}
                 onClick={() => onRemove?.('liquor-color', termId)}
-                className="tap-target group inline-flex min-h-11 items-center gap-1.5 px-2 py-1 rounded-full text-ui-12 text-tea-text-dim hover:text-tea-text transition-colors"
+                className={line ? undefined : 'tap-target group inline-flex min-h-11 items-center gap-1.5 px-2 py-1 rounded-full text-ui-12 text-tea-text-dim hover:text-tea-text transition-colors'}
                 aria-label={onRemove ? `Remove ${label}` : label}
                 // No border. A visible outline on a badge is banned everywhere
                 // else in the app, and the swatch dot inside already carries a
                 // ring in the same hue, so the outline was drawing the colour
                 // twice on one pill.
-                style={hex ? { background: `${hex}22` } : undefined}
+                style={hex && !line ? { background: `${hex}22` } : undefined}
               >
-                {hex && (
+                {hex && !line && (
                   <span className="shrink-0 rounded-full" style={{ width: 10, height: 10, background: hex, display: 'inline-block', boxShadow: `0 0 0 1px ${hex}80` }} />
                 )}
                 {label}
-                {onRemove && <X size={8} className="shrink-0 opacity-0 group-hover:opacity-50 transition-opacity" />}
+                {!line && onRemove && <X size={8} className="shrink-0 opacity-0 group-hover:opacity-50 transition-opacity" />}
               </button>
             );
           })}
+      </>
+    );
+    if (line) return <div className="tasting-words-line">{wordButtons}</div>;
+
+    return (
+      <div className="space-y-2">
+        {/* Legend row: non-color categories only */}
+        {activeCats.length > 1 && (
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
+            {activeCats.map(group => {
+              const LegendIcon = CATEGORY_HEADER_ICONS[group.categoryId];
+              return (
+                <span key={group.categoryId} className={`${LABEL} inline-flex items-center gap-1 text-tea-text-dim`}>
+                  {LegendIcon && <LegendIcon size={9} className="shrink-0" />}
+                  {CATEGORY_LABELS[group.categoryId] ?? group.categoryId}
+                </span>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Tag cloud: all non-color terms */}
+        <div className="flex flex-wrap gap-1.5">
+          {wordButtons}
         </div>
       </div>
     );

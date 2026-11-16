@@ -620,7 +620,7 @@ export const ProductStoryView: React.FC = () => {
               <div>
                 <p className="label-caps text-tea-text-dim mb-1">Price/g</p>
                 <p className="font-serif text-ui-26 text-tea-text num">
-                  ${product.pricePerGramUSD.toFixed(3)}
+                  {product.pricePerGramUSD === null ? '—' : `$${product.pricePerGramUSD.toFixed(3)}`}
                 </p>
               </div>
               <div>

@@ -27,6 +27,14 @@ describe('purchase tracking workflow',()=>{
   expect(html).toContain('Clear filters');
   expect(html).not.toContain('No purchases recorded yet.');
  });
+ it('opens an exact linked purchase even when the history filter excludes it',()=>{
+  const client=new QueryClient({defaultOptions:{queries:{retry:false,staleTime:Infinity}}});
+  client.setQueryData(['purchase-tracking','shop'],{rows:[row]});
+  const Form=()=>null;
+  const html=renderToStaticMarkup(<MemoryRouter initialEntries={['/?view=received&purchaseId=purchase']}><QueryClientProvider client={client}><PurchaseTrackingView NewForm={Form} MatchForm={Form}/></QueryClientProvider></MemoryRouter>);
+  expect(html).toContain('Golden Tips');
+  expect(html).toContain('Arrival history');
+ });
  it('keeps an ordinary partial shipment in Coming without demanding a decision',()=>{
   expect(matchesPurchaseTracking(row,'coming')).toBe(true);
   expect(matchesPurchaseTracking(row,'attention')).toBe(false);
@@ -46,7 +54,7 @@ describe('purchase tracking workflow',()=>{
   const Form=()=>null;
   const html=renderToStaticMarkup(<MemoryRouter><QueryClientProvider client={client}><PurchaseTrackingView NewForm={Form} MatchForm={Form}/></QueryClientProvider></MemoryRouter>);
   expect(html).toContain('Autumn invoice');
-  expect(html).toContain('3 items');
+  expect(html).toMatch(/>Items<\/span><strong[^>]*>3<\/strong>/);
   expect(html).toContain('Review invoice');
   expect(html).toContain('/admin/intake?importId=invoice%20%2F%20one');
   expect(html).not.toContain('Supplier not recorded');
@@ -67,7 +75,8 @@ describe('purchase tracking workflow',()=>{
   expect(html).toContain('Invoice');
   expect(html).not.toContain('/admin/intake?importId=');
   expect(html).toContain('Arrival history');
-  expect(html).toContain('Edit purchase');
+  expect(html).toContain('Record arrival / manage delivery');
+  expect(html).not.toContain('Edit purchase');
   expect(html).not.toContain('<details');
   expect(html).not.toContain('<summary');
   expect(html).not.toContain('Arriving now');

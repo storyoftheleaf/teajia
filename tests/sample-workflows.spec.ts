@@ -99,11 +99,13 @@ test.describe('sample portions and physical holdings stay distinct', () => {
     await page.getByRole('button', { name: 'Confirm 10g sample use' }).click();
     await expect.poll(() => requests.length).toBe(2);
     expect(requests[1].idempotency_key).toBe(requests[0].idempotency_key);
-    const completed = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-samples') || '{}').state.samples[0]);
-    expect(completed).toMatchObject({
+    // Request arrival precedes response handling and the persisted completion.
+    // Wait for the durable state before checking/reopening the completed use.
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('teajia-samples') || '{}').state.samples[0])).toMatchObject({
       inventoryHoldingProductId: 'holding-1',
       completedHoldingMovement: { id: 'movement-1', idempotencyKey: requests[0].idempotency_key, quantity: 10, afterBalance: 32 },
     });
+    const completed = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-samples') || '{}').state.samples[0]);
     expect(completed.holdingUsePendingIdempotencyKey).toBeUndefined();
     expect(appliedKeys.size).toBe(1);
     await page.reload({ waitUntil: 'domcontentloaded' });

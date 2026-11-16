@@ -40,7 +40,12 @@ const newRoute = (): RouteDraft => ({ id: crypto.randomUUID(), mode: '', label: 
 
 /** Shared by both Curate editors and private detail panels. Quotes record
  * evidence only; nothing here changes retail pricing, freight or inventory. */
-export function StructuredTeaFields({ entry, onChange, routeOnly = false, flat = false }: { entry: StructuredTeaEntry; onChange: (patch: Partial<StructuredTeaEntry>) => void; routeOnly?: boolean; flat?: boolean }) {
+/** `tightTop` (the Source form on a phone): the space above the heading moves inside
+ * its 44px tap row, so the row is no taller and the label sits in its middle.
+ * `leading` is drawn first inside the open disclosure (the Source form's 'flow'
+ * order puts the Chinese name there). `bare` drops the rule above it, for a
+ * disclosure that sits between cards rather than inside one. */
+export function StructuredTeaFields({ entry, onChange, routeOnly = false, flat = false, tightTop = false, leading, bare = false }: { entry: StructuredTeaEntry; onChange: (patch: Partial<StructuredTeaEntry>) => void; routeOnly?: boolean; flat?: boolean; tightTop?: boolean; leading?: React.ReactNode; bare?: boolean }) {
   const Group = flat ? 'section' : 'details';
   const Heading = flat ? 'h3' : 'summary';
   const [draft, setDraft] = useState<RouteDraft | null>(null);
@@ -81,9 +86,10 @@ export function StructuredTeaFields({ entry, onChange, routeOnly = false, flat =
       <option value="">Choose</option>{options.map(([value, text]) => <option key={value} value={value}>{text}</option>)}
     </select>
   </label>;
-  return <Group className="border-t border-tea-border pt-3" data-testid="structured-tea-fields">
-    <Heading className={`${TYPOGRAPHY_CLASSES.label} ${flat ? 'mb-2' : 'cursor-pointer min-h-11'} text-tea-text-sec`}>{routeOnly ? 'Route price quotes' : 'Tea details & sourcing'}</Heading>
+  return <Group className={bare ? '' : `border-t border-tea-border ${tightTop ? 'lg:pt-3' : 'pt-3'}`} data-testid="structured-tea-fields">
+    <Heading className={`${TYPOGRAPHY_CLASSES.label} ${flat ? 'mb-2' : 'cursor-pointer min-h-11'} ${bare ? 'pt-3.5' : tightTop ? 'pt-3.5 lg:pt-0' : ''} text-tea-text-sec`}>{routeOnly ? 'Route price quotes' : 'Tea details & sourcing'}</Heading>
     <div className="space-y-4 pb-3">
+      {leading}
       {!routeOnly && <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Quoted age" value={entry.ageQuoted} onCommit={value => onChange({ ageQuoted: value as string | null })} />
         <Field label="Grade" value={entry.grade} onCommit={value => onChange({ grade: value as string | null })} />

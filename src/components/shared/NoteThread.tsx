@@ -292,6 +292,12 @@ interface NoteThreadProps {
    *  on the capture card so the notes field matches the form's sans system
    *  (elsewhere, e.g. tasting sessions, notes stay in the prose serif). */
   sans?: boolean;
+  /** Which half to draw. 'all' (default) is the saved notes above the writing
+   *  box. The Source form's flow order draws them in two places from the same
+   *  store: 'composer' (the box with its microphone, near the top) and 'list'
+   *  (the saved notes, lower down, so a growing list never pushes the form's
+   *  decision down). Only the composer writes or syncs notes. */
+  part?: 'all' | 'composer' | 'list';
 }
 
 type RecState = 'idle' | 'recording' | 'transcribing';
@@ -305,6 +311,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
   hideTastingArtifacts = false,
   larger = false,
   sans = false,
+  part = 'all',
 }) => {
   const noteFont = sans ? 'var(--font-sans)' : 'var(--font-body)';
   const textareaRows = larger ? 3 : compact ? 1 : 2;
@@ -313,9 +320,12 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
   const micIconSize = larger ? 20 : 14;
   const micBtnExtra = larger ? 'tasting-voice-btn-large' : '';
   const { addNote, notes: allNotes } = useNotesStore();
-  const { activeAccountId, activeAccount } = useAppStore();
+  const { activeAccountId, activeUserId, activeAccount } = useAppStore();
 
-  const [draft, setDraft] = useState('');
+  const scopeKey = `${activeUserId ?? 'guest'}:${activeAccountId ?? 'guest'}`;
+  const [scopedDraft, setScopedDraft] = useState({ scopeKey, text: '' });
+  const draft = scopedDraft.scopeKey === scopeKey ? scopedDraft.text : '';
+  const setDraft = (text: string) => setScopedDraft({ scopeKey, text });
   const [recState, setRecState] = useState<RecState>('idle');
   const [error, setError] = useState<string | null>(null);
   const [showTyping, setShowTyping] = useState(false);
@@ -344,7 +354,8 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
   }, [draft, compact, larger]);
 
   // Current author info from store
-  const authorId = activeAccountId ?? 'guest';
+  const authorId = activeUserId ?? 'guest';
+  const accountId = activeAccountId ?? 'guest';
   const authorName = activeAccount?.name ?? 'You';
 
   // Notes for this anchor: OR logic so compassEntryId notes + teaKey notes merge into one thread
@@ -370,7 +381,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
     const trimmed = text.trim();
     if (!trimmed) return;
     addNote({
-      accountId: authorId,
+      accountId,
       teaKey,
       compassEntryId,
       text: trimmed,
@@ -380,7 +391,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
       visibility: defaultVisibility,
     });
     syncNotes().catch(() => {});
-  }, [addNote, authorId, authorName, teaKey, compassEntryId, defaultVisibility]);
+  }, [addNote, accountId, authorId, authorName, teaKey, compassEntryId, defaultVisibility]);
 
   const submitDraft = useCallback(() => {
     writeNote(draft, 'manual');
@@ -456,17 +467,18 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
   }, [recState, startRecording, stopRecording]);
 
   if (!teaKey && !compassEntryId) return null;
+  if (part === 'list' && notes.length === 0) return null;
 
   return (
     <div className={`flex flex-col gap-3 ${compact ? '' : 'py-1'}`}>
 
       {/* ── Thread ── */}
-      {notes.length > 0 && (
+      {part !== 'composer' && notes.length > 0 && (
         <div className="flex flex-col gap-3">
           <AnimatePresence initial={false}>
             {notes.map(note => (
               <NoteCard
-                key={note.id}
+                key={`${scopeKey}:${note.id}`}
                 note={note}
                 showAuthor={multipleAuthors}
                 currentAuthorId={authorId}
@@ -478,6 +490,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
       )}
 
       {/* ── Input row, textarea always visible, mic on the right ── */}
+      {part !== 'list' && <>
       <div className="tasting-voice-field">
         {recState === 'idle' || recState === 'transcribing' ? (
           <textarea
@@ -538,6 +551,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
       {error && (
         <p className="text-ui-11 text-tea-error" style={{ fontFamily: noteFont }}>{error}</p>
       )}
+      </>}
     </div>
   );
 };

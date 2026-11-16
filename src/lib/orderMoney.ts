@@ -1,3 +1,5 @@
+import { canonicalCurrency, isoCurrencyCode, rateToUsd } from './currency';
+
 export interface OrderExchangeRate {
   currency: string;
   rateToUSD: number;
@@ -19,22 +21,24 @@ export function convertOrderAmount(
     throw new RangeError('Order amount must be a finite nonnegative USD value');
   }
 
-  const currency = requestedCurrency?.trim().toUpperCase() || 'USD';
-  if (currency === 'USD') {
+  const key = canonicalCurrency(requestedCurrency) || 'USD';
+  const currency = isoCurrencyCode(key);
+  if (key === 'USD') {
     return { amount: amountUsd, currency: 'USD', rate: 1, converted: true };
   }
 
-  const rate = rates.find(candidate => candidate.currency.toUpperCase() === currency)?.rateToUSD;
-  if (!/^[A-Z]{3}$/.test(currency) || !Number.isFinite(rate) || (rate ?? 0) <= 0) {
+  const rate = rateToUsd(rates, key);
+  // A display fallback such as UNK → USD must not relabel converted money.
+  if (key !== canonicalCurrency(currency) || rate === null) {
     return { amount: amountUsd, currency: 'USD', rate: 1, converted: false };
   }
 
-  const amount = amountUsd * rate!;
+  const amount = amountUsd * rate;
   if (!Number.isFinite(amount)) {
     return { amount: amountUsd, currency: 'USD', rate: 1, converted: false };
   }
 
-  return { amount, currency, rate: rate!, converted: true };
+  return { amount, currency, rate, converted: true };
 }
 
 export function formatOrderAmount(

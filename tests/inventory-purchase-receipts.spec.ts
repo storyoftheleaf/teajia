@@ -27,8 +27,19 @@ test('Purchases receives through the linked receipt before showing Received',asy
     return route.fulfill({json:[]});
   });
   await page.goto('/admin/purchase-orders?purchaseId=purchase');
+  const purchase = page.getByRole('dialog', { name: 'Purchase', exact: true });
+  await expect(purchase.getByRole('heading', { name: 'Cloud Oolong' })).toBeVisible();
+  await expect(purchase.getByLabel('Logistics company', { exact: true })).toHaveCount(0);
+  await purchase.getByRole('button', { name: 'Edit purchase', exact: true }).click();
+  const editor = page.getByRole('dialog', { name: 'Edit purchase', exact: true });
+  await expect(editor.getByLabel('Logistics company', { exact: true })).toBeVisible();
+  await editor.getByRole('button', { name: 'Done', exact: true }).click();
+  await purchase.getByRole('button', { name: 'Arrival history', exact: true }).click();
+  const history = page.getByRole('dialog', { name: 'Arrival history', exact: true });
+  await expect(history.getByText('No arrivals recorded yet.')).toBeVisible();
+  await history.getByRole('button', { name: 'Done', exact: true }).click();
   // Opening the purchase only shows it; nothing is received until Receive.
-  await page.getByRole('button',{name:'Record arrival / manage delivery',exact:true}).click();
+  await purchase.getByRole('button', { name: 'Record arrival / manage delivery', exact: true }).click();
   const line=page.locator('.purchase-tracking-item').filter({hasText:'Cloud Oolong'});
   await expect(line).toContainText('Shelf stock: 0 g');
   expect(poStatus).toBe('ordered');
@@ -83,6 +94,6 @@ test('legacy intake review links the original stock movement without receiving i
   await expect(continueButton).toBeEnabled();
   await page.screenshot({path:test.info().outputPath('legacy-purchase-matcher.png')});
   await continueButton.click();
-  await expect(page.getByLabel('Studio receipt quantities').first()).toContainText('Received 100 g');
+  await expect(page.getByLabel('Studio receipt quantities').first().locator('.library-ribbon-metric').filter({hasText:'Received'})).toContainText('100 g');
   expect(linked).toBe(true);expect(preparations).toHaveLength(1);expect(receives).toBe(0);
 });

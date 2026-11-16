@@ -27,7 +27,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
 
   const currentQty = Number(quantity);
   const sellingPrice = product.fixedRetailPriceUSD ?? product.pricePerGramUSD;
-  const totalUSD = currentQty * sellingPrice;
+  const totalUSD = sellingPrice === null ? null : currentQty * sellingPrice;
 
   const teaPresets = [
     { label: '25g', value: 25 },
@@ -81,7 +81,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
               autoFocus
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && Number(quantity) > 0) onConfirm(Number(quantity)); }}
+              onKeyDown={(e) => { if (e.key === 'Enter' && Number(quantity) > 0 && sellingPrice !== null) onConfirm(Number(quantity)); }}
               inputMode="numeric"
               onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
               className="w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors"
@@ -121,8 +121,8 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
             Cancel
           </button>
           <button
-            onClick={() => { if (Number(quantity) > 0) onConfirm(Number(quantity)); }}
-            disabled={!quantity || Number(quantity) <= 0}
+            onClick={() => { if (Number(quantity) > 0 && sellingPrice !== null) onConfirm(Number(quantity)); }}
+            disabled={sellingPrice === null || !quantity || Number(quantity) <= 0}
             className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
           >
             Add Item

@@ -44,8 +44,8 @@ export interface ShopFreightDefault {
   perKg: number;
   /** The currency it is quoted in, as an `exchange_rates` key. */
   currency: string;
-  /** The same rate in USD, at today's rate. Everything downstream uses this. */
-  perKgUsd: number;
+  /** The quote converted to USD, or null while its conversion is unavailable. */
+  perKgUsd: number | null;
 }
 
 /**
@@ -53,13 +53,12 @@ export interface ShopFreightDefault {
  *
  * `rateToUsd` looks a currency up in the exchange table; pass a function that
  * has already applied `canonicalCurrency`, since the table keys CNY as 'Yuan'.
- * A currency the table does not carry falls back to the rate for the fallback
- * currency rather than to 1, because treating 85 yuan as 85 dollars would
- * multiply freight sevenfold and the markup would triple that.
+ * An unavailable conversion stays unknown. Neither 1 nor another currency's
+ * rate can translate this quote; the pricing caller must decline instead.
  */
 export function resolveShopFreightDefault(
   account: { default_shipping_rate_per_kg?: number | null; default_shipping_rate_currency?: string | null } | null | undefined,
-  rateToUsd: (currency: string) => number | undefined,
+  rateToUsd: (currency: string) => number | null | undefined,
 ): ShopFreightDefault {
   const stored = account?.default_shipping_rate_per_kg;
   const set = stored !== null && stored !== undefined && Number.isFinite(Number(stored));
@@ -67,9 +66,10 @@ export function resolveShopFreightDefault(
   const currency = (set && account?.default_shipping_rate_currency)
     ? String(account.default_shipping_rate_currency)
     : FALLBACK_SHIPPING_RATE_CURRENCY;
-  const looked = rateToUsd(currency);
-  const rate = looked && looked > 0 ? looked : (rateToUsd(FALLBACK_SHIPPING_RATE_CURRENCY) || 1);
-  return { perKg, currency, perKgUsd: perKg / rate };
+  if (perKg === 0) return { perKg, currency, perKgUsd: 0 };
+  const rate = rateToUsd(currency);
+  const perKgUsd = typeof rate === 'number' && Number.isFinite(rate) && rate > 0 ? perKg / rate : null;
+  return { perKg, currency, perKgUsd };
 }
 
 /**
@@ -88,14 +88,17 @@ export function resolveShopFreightDefault(
  */
 export function shippingPerGramUsd(opts: {
   storedRatePerKg: number | null | undefined;
-  rateToUsd: number;
+  rateToUsd: number | null | undefined;
   isTeaware: boolean;
-  shopDefaultPerKgUsd: number;
-}): number {
+  shopDefaultPerKgUsd: number | null;
+}): number | null {
   if (opts.isTeaware) return 0;
-  const rate = opts.rateToUsd || 1;
   const stored = opts.storedRatePerKg;
   const entered = stored !== null && stored !== undefined && Number.isFinite(Number(stored));
-  const perKgUsd = entered ? Number(stored) / rate : opts.shopDefaultPerKgUsd;
-  return perKgUsd / 1000;
+  if (entered) {
+    if (Number(stored) === 0) return 0;
+    const rate = opts.rateToUsd;
+    return typeof rate === 'number' && Number.isFinite(rate) && rate > 0 ? Number(stored) / rate / 1000 : null;
+  }
+  return opts.shopDefaultPerKgUsd === null ? null : opts.shopDefaultPerKgUsd / 1000;
 }

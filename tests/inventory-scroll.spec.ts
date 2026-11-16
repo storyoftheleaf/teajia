@@ -40,6 +40,49 @@ test.describe('Inventory page — scroll regression guard', () => {
     await mockInventoryApi(page);
   });
 
+  test('preview currency retains its selected value with empty, delayed and restored rates', async ({ page }) => {
+    await page.route('**/*', route => ['127.0.0.1', 'localhost'].includes(new URL(route.request().url()).hostname) ? route.fallback() : route.abort());
+    let delayRates = false;
+    let releaseRates: (() => void) | undefined;
+    await page.route('**/api/rates', async route => {
+      if (delayRates) {
+        await new Promise<void>(resolve => { releaseRates = resolve; });
+        await route.fulfill({ json: [{ currency: 'USD', rate_to_usd: 1 }, { currency: 'Yuan', rate_to_usd: 7 }] });
+      } else await route.fulfill({ json: [] });
+    });
+    const openCurrency = async () => {
+      await page.getByTestId('inventory-primary-row').getByRole('button', { name: 'View options' }).click();
+      const dialog = page.getByRole('dialog', { name: 'View options' });
+      await dialog.getByText('Shop preview currency', { exact: true }).click();
+      return dialog.getByRole('combobox', { name: 'Currency for shop preview' });
+    };
+    await page.goto('/admin/stock');
+    let currency = await openCurrency();
+    await expect(currency).toHaveValue('USD');
+    await expect(currency.locator('option')).toHaveText(['USD']);
+    await page.getByRole('dialog', { name: 'View options' }).getByRole('button', { name: 'Close', exact: true }).click();
+    // IDR is already supported and selected; a delayed or narrower rate table
+    // must not silently change this preference or manufacture its conversion.
+    await page.evaluate(() => {
+      const stored = JSON.parse(localStorage.getItem('teajia-storage') || '{}');
+      stored.state = { ...stored.state, currency: 'IDR' };
+      localStorage.setItem('teajia-storage', JSON.stringify(stored));
+    });
+    delayRates = true;
+    await page.reload();
+    await expect.poll(() => Boolean(releaseRates)).toBe(true);
+    currency = await openCurrency();
+    await expect(currency).toHaveValue('IDR');
+    await expect(currency.locator('option')).toHaveText(['IDR']);
+    releaseRates!();
+    await expect(currency.locator('option')).toHaveText(['USD', 'Yuan', 'IDR']);
+    await expect(currency).toHaveValue('IDR');
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-storage')!).state.currency)).toBe('IDR');
+    await currency.selectOption('Yuan');
+    await expect(currency).toHaveValue('Yuan');
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-storage')!).state.currency)).toBe('Yuan');
+  });
+
   test('scroll container has height and is scrollable', async ({ page }, testInfo) => {
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1500);

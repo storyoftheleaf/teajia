@@ -30,15 +30,21 @@ beforeAll(async () => {
   if (!address || typeof address === 'string') throw new Error('Vite test server did not expose a port');
   origin = `http://127.0.0.1:${address.port}`;
   browser = await chromium.launch({ headless: true });
+  // Resolve static modules in the existing setup budget; no business component mounts.
+  await loadFixture();
+  await page.close();
 }, 30_000);
 
 afterAll(async () => { await browser?.close(); await server?.close(); });
 afterEach(async () => { await page?.close(); });
 
-async function open() {
+async function loadFixture() {
   page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await page.goto(`${origin}/__order-attribution-test`);
   await page.waitForFunction(() => Boolean((window as any).orderAttributionTest));
+}
+async function open() {
+  await loadFixture();
   await page.evaluate(() => (window as any).orderAttributionTest.mount());
 }
 

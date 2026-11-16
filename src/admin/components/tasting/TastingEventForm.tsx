@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
+import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
 import { api } from '../../../lib/api';
 import { TeaPicker } from './TeaPicker';
 
@@ -32,22 +33,25 @@ export function TastingEventForm() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <header className="px-6 py-4 border-b border-tea-border grid grid-cols-[1fr_auto_1fr] items-center">
+      <header className="px-4 py-2 border-b border-tea-border flex items-center gap-2">
         <button
           type="button"
           onClick={() => navigate('/admin/tasting-events')}
-          className="text-tea-text-sec hover:text-tea-text flex items-center gap-1 tap-target justify-self-start"
+          className="grid h-11 w-11 place-items-center text-tea-text-sec hover:text-tea-text"
+          aria-label="Back to events"
         >
           <ChevronLeft className="w-4 h-4" aria-hidden="true" />
-          <span className="text-ui-13">Tasting events</span>
         </button>
-        <h1 className="font-display font-normal text-ui-20 text-tea-text">New tasting event</h1>
-        <div />
+        <h1 className={TYPOGRAPHY_CLASSES.h2}>Events</h1>
       </header>
 
       <form onSubmit={create} className="flex-1 min-h-0 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-auto px-6 py-6">
           <div className="max-w-xl mx-auto space-y-8">
+            <div className="space-y-1">
+              <h2 className={TYPOGRAPHY_CLASSES.h3}>Taste together</h2>
+              <p className={TYPOGRAPHY_CLASSES.bodyLight}>Share a join code with guests. They can rate each tea as you serve it, and you can see their ratings live.</p>
+            </div>
             <label className="block">
               <span className="block text-ui-11 uppercase tracking-[0.14em] text-tea-text-sec mb-2">
                 Title (optional)
@@ -95,7 +99,7 @@ export function TastingEventForm() {
             disabled={submitting || picked.length === 0}
             className="tap-target rounded-full cta-solid px-6 py-2 text-ui-13 tracking-wide disabled:opacity-40"
           >
-            {submitting ? 'Creating…' : 'Create event'}
+            {submitting ? 'Creating…' : 'Create group tasting'}
           </button>
         </footer>
       </form>

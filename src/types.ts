@@ -16,7 +16,7 @@ export interface NoteEntry {
   /** If true, the note has been curated and should render publicly. */
   starred?: boolean;
   /** Which section of the session the note was captured in. */
-  section?: 'flavor' | 'feeling' | 'body' | 'finish' | 'general';
+  section?: 'flavor' | 'aroma' | 'feeling' | 'body' | 'finish' | 'general';
   /** ISO timestamp of when the note was first captured. */
   capturedAt?: string;
   /** When the note was promoted from a community source, its attribution. */
@@ -43,6 +43,8 @@ export interface TastingData {
   feeling?: string[];           // qi / mood / effect terms
   clarity?: 'clear' | 'bright' | 'hazy' | 'cloudy';
   quality?: number;             // 1-10 overall verdict
+  aromaRating?: number;         // legacy post-session aroma rating
+  finishRating?: number;        // legacy post-session finish rating
 
   // Section 4: Flavor (families + specific terms)
   flavorFamilies?: string[];    // broad resemblance; taste/aroma channel not specified
@@ -105,6 +107,9 @@ export interface TastingRecord {
   eventId?: string;
   eventSlug?: string;
   eventTitle?: string;
+  sessionFavorite?: boolean;
+  /** Optional post-session note explicitly shared with the host from quick tasting. */
+  sessionSharedNote?: string;
   tasterName?: string;
 }
 
@@ -799,7 +804,7 @@ export interface PublicProduct {
   year?: number;
   originCountry: string;
   originRegion: string;
-  pricePerGramUSD: number;
+  pricePerGramUSD: number | null;
   fixedRetailPriceUSD?: number | null;
   stockGrams: number;
   description: string;

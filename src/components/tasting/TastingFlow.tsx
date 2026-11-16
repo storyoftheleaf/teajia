@@ -44,8 +44,6 @@ interface TastingFlowProps {
   onCountsChange?: (counts: Record<SectionId, number>) => void;
   /** Hides advanced terms for first-time users */
   simplified?: boolean;
-  /** Tea type used to highlight likely flavor families */
-  teaType?: string;
   reveal?: { word: string; group?: string; sense?: 'taste' | 'aroma'; stamp: number };
 }
 
@@ -137,6 +135,8 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
   }, [activeSectionId, reveal?.word, reveal?.stamp]);
 
   /* ─── Section content renderer ─── */
+
+  useEffect(() => { if (contentRef.current) contentRef.current.scrollTop = 0; }, [activeSectionId]);
 
   function renderSectionContent(sectionId: SectionId) {
     switch (sectionId) {

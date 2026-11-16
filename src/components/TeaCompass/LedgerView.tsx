@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { isoCurrencyCode } from '../../lib/currency';
 import { mediaUrl } from '../../lib/mediaUrl';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { confirmPurchase, recordPurchase } from '../CurateV2/placeOrder';
 import { useLibraryPurchases } from '../../lib/libraryPurchaseState';
@@ -18,6 +19,9 @@ import {
   ShoppingBag,
   Share2,
   Camera,
+  MoreHorizontal,
+  BookOpen,
+  Package,
   X,
   ChevronLeft,
   ChevronRight,
@@ -26,11 +30,16 @@ import {
 import { useLedgerStore } from '../../lib/ledgerStore';
 import type { LedgerTransaction, LedgerLineItem } from '../../lib/ledgerStore';
 import type { Currency } from '../../admin/types';
-import { useAppStore } from '../../lib/store';
+import { selectHasBundle, useAppStore } from '../../lib/store';
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { useRates } from '../../admin/hooks/useAdminData';
+import { usePurchaseLogistics } from '../../admin/hooks/usePurchaseLogistics';
+import type { LogisticsShipment } from '../../lib/logisticsTypes';
+import { purchaseArrivalTiming } from '../../lib/purchaseArrivalTiming';
 import { orderMoney } from './curatePricing';
+import { TeaCard, TeaCardMeta, TeaCardMetric, TeaCardTitle } from '../tea/TeaCard';
+import { BottomSheet, SheetOption } from '../shared/BottomSheet';
 
 // ─── Currency helpers ────────────────────────────────────────────────────────
 
@@ -38,8 +47,8 @@ const CURRENCY_SYMBOLS: Record<Currency, string> = {
   USD: '$', NT: 'NT$', Yuan: 'CN¥', IDR: 'Rp', JPY: 'JP¥', MYR: 'RM', HKD: 'HK$', AUD: 'A$', UNK: '',
 };
 
-function fmtPrice(amount: number, currency: Currency): string {
-  const sym = CURRENCY_SYMBOLS[currency] || '';
+function fmtPrice(amount: number, currency: Currency, showSymbol = true): string {
+  const sym = showSymbol ? CURRENCY_SYMBOLS[currency] || '' : '';
   const decimals = ['NT', 'IDR', 'JPY'].includes(currency) ? 0 : 2;
   return `${sym}${amount.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
 }
@@ -59,7 +68,9 @@ const LineItemRow: React.FC<{
   onRemove: () => void;
   onOpenEntry?: (entryId: string) => void;
   readOnly?: boolean;
-}> = ({ item, txId, onRemove, onOpenEntry, readOnly }) => {
+  purchase?: boolean;
+  shipments?: readonly LogisticsShipment[];
+}> = ({ item, txId, onRemove, onOpenEntry, readOnly, purchase, shipments = [] }) => {
   const navigate = useNavigate();
   const updateLineItem = useLedgerStore((s) => s.updateLineItem);
   const total = lineTotal(item);
@@ -74,17 +85,32 @@ const LineItemRow: React.FC<{
     && receipt.compass_entry_id === item.compassEntryId
     && (receipt.idempotency_key === `order:${tx?.purchaseOrderId}:${item.compassEntryId}`
       || receipt.idempotency_key === `ledger:${txId}:${item.compassEntryId}`)) : undefined;
+  const linkedReceipt = readOnly && tx?.purchaseOrderReceiptId
+    ? purchases.receipts.find(receipt => receipt.id === tx.purchaseOrderReceiptId && receipt.state !== 'cancelled')
+    : undefined;
+  const incomingLine = item.productId ? linkedReceipt?.lines.find(line => item.purchaseReceiptLineId
+    ? line.id === item.purchaseReceiptLineId : line.product_id === item.productId) : undefined;
+  const incomingQuantity = incomingLine ? Math.max(0, incomingLine.expected_quantity - incomingLine.received_quantity - incomingLine.cancelled_quantity) : 0;
+  const quantityToReceive = pendingReceipt?.quantity ?? incomingQuantity;
+  const unitToReceive = pendingReceipt?.unit ?? incomingLine?.unit;
   const receive = async () => {
-    if (!pendingReceipt || receivingRef.current) return;
+    if (!quantityToReceive || (!pendingReceipt && !incomingLine) || receivingRef.current) return;
     receivingRef.current = true;
     setReceiving(true);
     setReceiveError('');
     const accountId = useAppStore.getState().activeAccountId;
     try {
-      const result = await api.compass.acceptReceiptProposal(pendingReceipt.id);
+      let productId: string;
+      if (pendingReceipt) {
+        productId = (await api.compass.acceptReceiptProposal(pendingReceipt.id)).product_id;
+      } else {
+        const line = incomingLine!;
+        await api.inventoryReceipts.receive(line.id, quantityToReceive, `ledger-arrival:${line.id}:${line.received_quantity}:${quantityToReceive}`);
+        productId = line.product_id;
+      }
       if (accountId !== useAppStore.getState().activeAccountId) return;
-      if (item.compassEntryId) useTeaCompassStore.getState().updateEntry(item.compassEntryId, { status: 'in_stock', draftProductId: result.product_id });
-      useLedgerStore.getState().updateLineItem(txId, item.id, { productId: result.product_id });
+      if (item.compassEntryId) useTeaCompassStore.getState().updateEntry(item.compassEntryId, { status: 'in_stock', draftProductId: productId });
+      useLedgerStore.getState().updateLineItem(txId, item.id, { productId });
       void queryClient.invalidateQueries({ queryKey: ['library-purchase-history'] });
       void queryClient.invalidateQueries({ queryKey: ['library-purchase-receipts'] });
       void queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -114,6 +140,72 @@ const LineItemRow: React.FC<{
 
   const currentQty = isUnitBased ? (item.quantityUnits ?? 1) : (item.quantityGrams ?? 100);
 
+  if (purchase) {
+    const name = item.name || 'Unnamed';
+    const libraryId = item.compassEntryId;
+    const stockHref = item.productId ? `/admin/stock?panel=${encodeURIComponent(item.productId)}` : undefined;
+    const openTea = libraryId && onOpenEntry ? () => onOpenEntry(libraryId) : undefined;
+    const entryLinks = readOnly && (openTea || stockHref) && <div className="library-quick-actions tea-order-record-links">
+      {openTea && <button type="button" className="tap-target" aria-label={`Open ${name} in Library`} onClick={openTea}><BookOpen size={16} aria-hidden="true" /></button>}
+      {stockHref && <Link className="tap-target" aria-label={`Open ${name} in Stock`} to={stockHref}><Package size={16} aria-hidden="true" /></Link>}
+    </div>;
+    const purchaseQty = incomingLine?.expected_quantity ?? (isUnitBased ? item.quantityUnits : item.quantityGrams);
+    const unitLabel = incomingLine?.unit === 'g' || (!incomingLine && !isUnitBased) ? 'g' : 'pcs';
+    const arrivalTiming = readOnly && quantityToReceive > 0 ? purchaseArrivalTiming(shipments, {
+      orderId: tx?.purchaseOrderId,
+      receiptLineId: incomingLine?.id ?? item.purchaseReceiptLineId,
+      remaining: quantityToReceive,
+      receiptEta: linkedReceipt?.eta,
+    }) : undefined;
+    return (
+      <TeaCard
+        testId={`curate-order-line-${item.id}`}
+        className="tea-order-line"
+        teaType={item.type}
+        title={<TeaCardTitle>
+          {!readOnly && openTea ? <button type="button" className="tap-target min-h-11 text-left hover:text-tea-gold" onClick={openTea}>{name}</button>
+            : !readOnly && stockHref ? <Link className="tap-target min-h-11 hover:text-tea-gold" to={stockHref}>{name}</Link> : name}
+        </TeaCardTitle>}
+        meta={(item.form || item.type || item.year) && <TeaCardMeta primary={item.form} type={item.type} trailing={item.year} />}
+        metricsLeading={entryLinks}
+        metricsLabel={`Order details for ${name}`}
+        metrics={<>
+          <TeaCardMetric label={readOnly ? 'Ordered' : 'Quantity'}>
+            {readOnly
+              ? purchaseQty == null ? 'Unknown' : `${purchaseQty.toLocaleString()} ${unitLabel}`
+              : <div className="flex min-h-11 min-w-0 items-center justify-center gap-1">
+                <button type="button" aria-label={`Decrease quantity for ${name}`} className="tap-target flex size-7 shrink-0 items-center justify-center text-tea-text-sec" onClick={() => handleQtyChange(currentQty - (isUnitBased ? 1 : 25))}><Minus size={12} /></button>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  aria-label={`Quantity for ${name}`}
+                  min={1}
+                  value={currentQty}
+                  onChange={e => handleQtyChange(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="num w-14 min-w-0 rounded-md border border-tea-border bg-tea-bg px-1 py-1 text-center outline-none focus-visible:border-tea-gold [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  style={{ MozAppearance: 'textfield' }}
+                />
+                <span className="text-ui-11 text-tea-text-sec">{unitLabel}</span>
+                <button type="button" aria-label={`Increase quantity for ${name}`} className="tap-target flex size-7 shrink-0 items-center justify-center text-tea-text-sec" onClick={() => handleQtyChange(currentQty + (isUnitBased ? 1 : 25))}><Plus size={12} /></button>
+              </div>}
+          </TeaCardMetric>
+          {readOnly && incomingLine && <TeaCardMetric label="Received">{`${incomingLine.received_quantity.toLocaleString()} ${unitLabel}`}</TeaCardMetric>}
+          <TeaCardMetric label={`Total · ${isoCurrencyCode(item.currency)}`}>{item.unpriced ? '—' : fmtPrice(total, item.currency, false)}</TeaCardMetric>
+        </>}
+        actions={<>
+          <div className="min-w-0 flex-1 py-1.5 text-ui-11 text-tea-text-sec">
+            <p>{!readOnly ? 'Draft' : !incomingLine && receiptText ? receiptText : quantityToReceive > 0 ? 'Awaiting arrival' : incomingLine && incomingLine.received_quantity > 0 ? 'Received' : 'Ordered'}</p>
+            {arrivalTiming && <p className="mt-0.5 text-tea-text-dim">{arrivalTiming}</p>}
+          </div>
+          {!readOnly && <button type="button" onClick={onRemove} className="tap-target" aria-label={`Remove ${name}`}>Remove item</button>}
+          {readOnly && quantityToReceive > 0 && <button type="button" disabled={receiving} onClick={() => void receive()} className="tap-target text-tea-text font-medium disabled:opacity-50">{receiving ? 'Recording arrival…' : `Receive ${quantityToReceive.toLocaleString()}${unitToReceive === 'g' ? 'g' : ' pieces'}`}</button>}
+        </>}
+      >
+        {receiveError && <p role="alert" className="py-1 text-ui-12 text-tea-text-sec">{receiveError}</p>}
+      </TeaCard>
+    );
+  }
+
   return (
     <div className="py-2.5 border-b border-tea-border last:border-b-0">
       <div className="flex flex-wrap items-center gap-2">
@@ -139,7 +231,7 @@ const LineItemRow: React.FC<{
             </p>
           )}
           {readOnly && receiptText && <p className="mt-1 text-ui-11 text-tea-text-sec">{receiptText}</p>}
-          {pendingReceipt && <button type="button" disabled={receiving} onClick={() => void receive()} className="mt-1 min-h-11 text-left text-ui-12 text-tea-gold disabled:opacity-50">{receiving ? 'Recording arrival…' : `Receive ${pendingReceipt.quantity.toLocaleString()}${pendingReceipt.unit === 'g' ? 'g' : ' pieces'}`}</button>}
+          {quantityToReceive > 0 && <button type="button" disabled={receiving} onClick={() => void receive()} className="mt-1 min-h-11 text-left text-ui-12 text-tea-gold disabled:opacity-50">{receiving ? 'Recording arrival…' : `Receive ${quantityToReceive.toLocaleString()}${unitToReceive === 'g' ? 'g' : ' pieces'}`}</button>}
           {receiveError && <p role="alert" className="mt-1 text-ui-12 text-tea-text-sec">{receiveError}</p>}
           {(item.type || item.form || item.year) && (
             <p className="text-tea-text-dim text-ui-10 num mt-0.5">
@@ -199,7 +291,7 @@ const LineItemRow: React.FC<{
 
 // ─── Photo Gallery (inline within transaction card) ─────────────────────────
 
-const TransactionPhotos: React.FC<{ txId: string; photos: string[] }> = ({ txId, photos }) => {
+const TransactionPhotos: React.FC<{ txId: string; photos: string[]; inOrderActions?: boolean }> = ({ txId, photos, inOrderActions }) => {
   const addPhoto = useLedgerStore((s) => s.addPhoto);
   const removePhoto = useLedgerStore((s) => s.removePhoto);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -241,9 +333,9 @@ const TransactionPhotos: React.FC<{ txId: string; photos: string[] }> = ({ txId,
         {...(photos.length === 0 ? { capture: 'environment' } : {})}
       />
 
-      <div className="pt-2">
+      <div className={inOrderActions ? undefined : 'pt-2'}>
         {photos.length > 0 ? (
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          <div className={inOrderActions ? 'flex flex-wrap gap-2 px-3 py-2' : 'flex gap-2 overflow-x-auto pb-1 scrollbar-hide'}>
             {photos.map((url, i) => (
               <div key={i} className="relative shrink-0">
                 <img
@@ -278,17 +370,14 @@ const TransactionPhotos: React.FC<{ txId: string; photos: string[] }> = ({ txId,
               </span>
             </button>
           </div>
+        ) : inOrderActions ? (
+          <SheetOption label={uploading ? 'Uploading…' : 'Add photo'} leading={<Camera size={17} aria-hidden="true" />} onSelect={handleCapture} />
         ) : (
-          <button
-            type="button"
-            onClick={handleCapture}
-            disabled={uploading}
-            className={`flex items-center gap-1.5 py-2 px-3 rounded-xl bg-tea-surface text-tea-text-dim text-ui-11 transition-colors active:text-tea-text-sec ${
-              uploading ? 'animate-pulse' : ''
-            }`}
+          <button type="button" onClick={handleCapture} disabled={uploading}
+            className="tap-target gap-1.5 rounded-xl bg-tea-surface px-3 text-ui-11 text-tea-text-sec"
           >
-            <Camera size={14} />
-            {uploading ? 'Uploading...' : 'Add photo'}
+            <Camera size={14} aria-hidden="true" />
+            {uploading ? 'Uploading…' : 'Add photo'}
           </button>
         )}
       </div>
@@ -365,7 +454,8 @@ const TransactionCard: React.FC<{
   isExpanded: boolean;
   onToggle: () => void;
   onOpenEntry?: (entryId: string) => void;
-}> = ({ tx, isExpanded, onToggle, onOpenEntry }) => {
+  shipments?: readonly LogisticsShipment[];
+}> = ({ tx, isExpanded, onToggle, onOpenEntry, shipments }) => {
   const removeLineItem = useLedgerStore((s) => s.removeLineItem);
   const confirmTransaction = useLedgerStore((s) => s.confirmTransaction);
   const updateTransaction = useLedgerStore((s) => s.updateTransaction);
@@ -374,6 +464,7 @@ const TransactionCard: React.FC<{
   const [justConfirmed, setJustConfirmed] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [showTagSheet, setShowTagSheet] = useState(false);
+  const [showPurchaseActions, setShowPurchaseActions] = useState(false);
 
   const handleSharePdf = useCallback(async () => {
     setPdfLoading(true);
@@ -411,11 +502,11 @@ const TransactionCard: React.FC<{
 
   const isPurchase = tx.direction === 'purchase';
   const isDraft = tx.status === 'draft';
-  const DirectionIcon = isPurchase ? ArrowDownLeft : ArrowUpRight;
-  const directionLabel = isPurchase ? 'Purchasing from' : 'Selling to';
+  const purchaseAction = 'tap-target inline-flex min-h-11 items-center gap-1 px-2 text-ui-12 text-tea-text-sec hover:text-tea-text';
 
   // Only the vendor having been told counts as sent, not the order being recorded.
   const [markedSent, setMarkedSent] = useState(false);
+  const purchaseSent = markedSent || tx.purchaseOrderSent;
 
   const queryClient = useQueryClient();
   const recording = useRef(false);
@@ -467,30 +558,40 @@ const TransactionCard: React.FC<{
   }, [tx.id]);
 
   const handleDelete = useCallback(() => {
-    if (window.confirm(`Remove this ${isPurchase ? 'purchase' : 'sale'} order?`)) {
+    const prompt = isPurchase && !isDraft && tx.purchaseOrderId
+      ? 'Remove this order from this device? The recorded purchase stays in Purchase Tracking.'
+      : `Remove this ${isPurchase ? 'purchase' : 'sale'} order?`;
+    if (window.confirm(prompt)) {
       removeTransaction(tx.id);
     }
-  }, [tx.id, isPurchase, removeTransaction]);
+  }, [tx.id, tx.purchaseOrderId, isPurchase, isDraft, removeTransaction]);
 
   return (
-    <div className="bg-tea-surface rounded-xl overflow-hidden transition-colors">
-      {/* Header, always visible */}
-      <button
+    <div className={isPurchase ? 'library-supplier-group tea-order-group' : 'bg-tea-surface rounded-xl overflow-hidden transition-colors'}>
+      {isPurchase ? <header className="tea-order-header">
+        <div className="min-w-0 flex flex-wrap items-center justify-between gap-x-2">
+          <h2 className="library-supplier-name min-w-0 break-words">{tx.counterpartyName || 'Unnamed supplier'}</h2>
+          {!isDraft && tx.purchaseOrderId
+            ? <Link className="tap-target shrink-0 min-h-11 gap-1 text-ui-12 text-tea-text-sec hover:text-tea-text" to={`/admin/purchase-orders?purchaseId=${encodeURIComponent(tx.purchaseOrderId)}`}>View purchase <ArrowUpRight size={12} aria-hidden="true" /></Link>
+            : <span className="text-ui-12 text-tea-text-sec">{isDraft ? 'Draft' : 'Confirmed'}</span>}
+        </div>
+        <div className="tea-order-summary text-ui-12 text-tea-text-sec">
+          <span>{!isDraft && tx.purchaseOrderId ? (purchaseSent ? 'Sent' : 'Confirmed') + ' · ' : ''}{tx.items.length} {tx.items.length === 1 ? 'item' : 'items'}</span>
+          {tx.items.length > 0 && <span className="text-tea-text font-medium tabular-nums" aria-label="Grand total">{totalText}</span>}
+        </div>
+      </header> : <button
         type="button"
         onClick={onToggle}
         aria-expanded={isExpanded}
         className={`w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-tea-elevated active:bg-tea-surface transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none ${isExpanded ? 'bg-tea-elevated/30' : ''}`}
       >
-        <DirectionIcon
-          size={16}
-          className={isPurchase ? 'text-tea-gold shrink-0' : 'text-tea-gold-lt shrink-0'}
-        />
+        <ArrowUpRight size={16} className="text-tea-gold-lt shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-tea-text text-sm font-serif truncate">
             {tx.counterpartyName || 'Unnamed'}
           </p>
           <p className="text-tea-text-sec text-ui-11 uppercase tracking-[0.08em]">
-            {directionLabel} · {tx.items.length} {tx.items.length === 1 ? 'item' : 'items'}
+            Selling to · {tx.items.length} {tx.items.length === 1 ? 'item' : 'items'}
             {(tx.photos?.length ?? 0) > 0 && ` · ${tx.photos.length} photo${tx.photos.length === 1 ? '' : 's'}`}
           </p>
         </div>
@@ -512,11 +613,11 @@ const TransactionCard: React.FC<{
         >
           <ChevronDown size={14} />
         </motion.span>
-      </button>
+      </button>}
 
       {/* Expanded body */}
       <AnimatePresence initial={false}>
-        {isExpanded && (
+        {(isPurchase || isExpanded) && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
@@ -524,7 +625,7 @@ const TransactionCard: React.FC<{
             transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
             className="overflow-hidden"
           >
-            <div className="px-3 pb-3 border-t border-tea-border">
+            <div className={isPurchase ? 'space-y-2 min-w-0' : 'px-3 pb-3 border-t border-tea-border'}>
               {/* Line items */}
               {tx.items.length === 0 ? (
                 <p className="text-tea-text-sec text-sm font-serif italic py-6 text-center">Nothing here yet.</p>
@@ -535,6 +636,8 @@ const TransactionCard: React.FC<{
                     item={item}
                     txId={tx.id}
                     readOnly={!isDraft}
+                    purchase={isPurchase}
+                    shipments={shipments}
                     onRemove={() => removeLineItem(tx.id, item.id)}
                     onOpenEntry={onOpenEntry}
                   />
@@ -542,13 +645,13 @@ const TransactionCard: React.FC<{
               )}
 
               {/* Photos */}
-              <TransactionPhotos txId={tx.id} photos={tx.photos || []} />
+              {!isPurchase && <TransactionPhotos txId={tx.id} photos={tx.photos || []} />}
 
               {/* Grand total */}
-              {tx.items.length > 0 && (
-                <div className="flex items-baseline justify-between pt-3 border-t border-tea-border" aria-label="Grand total">
+              {!isPurchase && tx.items.length > 0 && (
+                <div className="flex flex-wrap items-center gap-x-3 pt-3 border-t border-tea-border" aria-label="Grand total">
                   <span className="text-tea-text-sec text-ui-11 uppercase tracking-[0.15em]">Total</span>
-                  <span className="text-tea-text text-sm font-serif num">
+                  <span className="ml-auto text-tea-text text-sm font-serif num">
                     {totalText}
                   </span>
                 </div>
@@ -556,7 +659,10 @@ const TransactionCard: React.FC<{
 
               {(tx.confirmationPending || tx.confirmationError) && <p role="status" className="mt-3 text-ui-12 text-tea-text-sec">{tx.confirmationError || 'Recording this order. The draft is kept on this device.'}</p>}
               {/* Actions */}
-              <div className="flex items-center gap-2 mt-3">
+              <div className={isPurchase ? 'tea-order-tools' : 'flex flex-wrap items-center gap-2 mt-3'}>
+                {isPurchase && <button type="button" onClick={() => setShowPurchaseActions(true)} className={purchaseAction} aria-haspopup="dialog" aria-label="More order actions">
+                  <MoreHorizontal size={17} aria-hidden="true" /> More
+                </button>}
                 {isDraft && tx.items.length > 0 && (
                   <AnimatePresence mode="wait">
                     {justConfirmed ? (
@@ -585,45 +691,21 @@ const TransactionCard: React.FC<{
                 )}
 
                 {isPurchase && tx.recordFailed && !isDraft && <button type="button" disabled={recordBusy} onClick={handleConfirm} className="min-h-11 px-3 text-ui-12 text-tea-gold">{recordBusy ? 'Recording…' : 'Retry recording purchase'}</button>}
-                {/* Print Tags, for purchase transactions with compass-linked items */}
-                {isPurchase && tx.items.some((i) => i.compassEntryId) && (
-                  <button
-                    type="button"
-                    onClick={() => setShowTagSheet(true)}
-                    className="pill flex items-center gap-1"
-                    aria-label="Print tea tags"
-                  >
-                    <Tag size={12} />
-                    Tags
+                {!isPurchase && <>
+                  <button type="button" onClick={handleSharePdf} disabled={pdfLoading || tx.items.length === 0}
+                    className="pill flex items-center gap-1 disabled:opacity-30" aria-label="Share as PDF">
+                    <Share2 size={12} aria-hidden="true" className={pdfLoading ? 'animate-pulse' : ''} /> PDF
                   </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={handleSharePdf}
-                  disabled={pdfLoading || tx.items.length === 0}
-                  className="pill flex items-center gap-1 disabled:opacity-30"
-                  aria-label="Share as PDF"
-                >
-                  <Share2 size={12} className={pdfLoading ? 'animate-pulse' : ''} />
-                  PDF
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  className="pill flex items-center gap-1"
-                  aria-label="Delete transaction"
-                >
-                  <Trash2 size={12} />
-                  Delete
-                </button>
+                  <button type="button" onClick={handleDelete} className="pill flex items-center gap-1" aria-label="Delete transaction">
+                    <Trash2 size={12} aria-hidden="true" /> Delete
+                  </button>
+                </>}
 
                 {/* Only an order the shop recorded can be marked: the PUT names it
                     by the id the shop gave it. (This used to send the first
                     eight letters of the local id, which names no order, so
                     "Sent" changed nothing anywhere.) */}
-                {isPurchase && !isDraft && tx.purchaseOrderId && (
+                {isPurchase && !isDraft && tx.purchaseOrderId && !purchaseSent && (
                   <button
                     type="button"
                     onClick={async () => {
@@ -635,9 +717,9 @@ const TransactionCard: React.FC<{
                         updateTransaction(tx.id, { confirmationError: error instanceof Error ? error.message : 'Could not mark the order as sent.' });
                       }
                     }}
-                    className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-tea-surface text-tea-text text-ui-11 font-medium uppercase tracking-[0.08em] active:bg-tea-elevated transition-colors"
+                    className={`${purchaseAction} ml-auto font-medium text-tea-text`}
                   >
-                    <Check size={14} /> {markedSent ? 'Sent' : 'Mark as Sent'}
+                    <Check size={14} aria-hidden="true" /> Mark as Sent
                   </button>
                 )}
               </div>
@@ -645,6 +727,24 @@ const TransactionCard: React.FC<{
           </motion.div>
         )}
       </AnimatePresence>
+
+      <BottomSheet open={showPurchaseActions} onOpenChange={setShowPurchaseActions} title="Order actions">
+        {showPurchaseActions && <>
+          <TransactionPhotos txId={tx.id} photos={tx.photos || []} inOrderActions />
+          {tx.items.some(item => item.compassEntryId) && <SheetOption label="Print tea tags" leading={<Tag size={17} aria-hidden="true" />} onSelect={() => {
+            setShowPurchaseActions(false);
+            setShowTagSheet(true);
+          }} />}
+          {tx.items.length > 0 && <SheetOption label="Share as PDF" leading={<Share2 size={17} aria-hidden="true" />} onSelect={() => {
+            setShowPurchaseActions(false);
+            if (!pdfLoading) void handleSharePdf();
+          }} />}
+          <SheetOption label={isDraft ? 'Delete draft' : 'Remove local order'} leading={<Trash2 size={17} aria-hidden="true" />} onSelect={() => {
+            setShowPurchaseActions(false);
+            handleDelete();
+          }} />
+        </>}
+      </BottomSheet>
 
       {/* Tag sheet overlay */}
       {showTagSheet && (
@@ -704,6 +804,11 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
     return list.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }, [transactions, filter, searchQuery]);
 
+  const canReadStock = useAppStore(state => selectHasBundle(state, 'stock'));
+  const { data: logistics } = usePurchaseLogistics(canReadStock && filtered.some(
+    transaction => transaction.direction === 'purchase' && transaction.status === 'confirmed' && !!transaction.purchaseOrderId,
+  ));
+
   const filterOptions: { value: LedgerFilter; label: string; count: number }[] = [
     { value: 'all', label: 'All', count: counts.all },
     { value: 'draft', label: 'Drafts', count: counts.draft },
@@ -752,7 +857,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
     <div className="space-y-5 pb-8 animate-[fadeIn_0.3s_ease-out]">
       {/* Filter row */}
       <div className="flex items-center">
-        <div className="flex gap-1.5 overflow-x-auto -mx-4 px-4 pb-1 scrollbar-hide">
+        <div className="flex flex-wrap gap-1.5 pb-1">
           {filterOptions.map((opt) => (
             <button
               key={opt.value}
@@ -787,6 +892,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
                   return next;
                 })}
                 onOpenEntry={onOpenEntry}
+                shipments={logistics?.shipments}
               />
             </motion.div>
           ))}
@@ -794,7 +900,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
       </div>
 
       {/* Quick create buttons */}
-      <div className="flex flex-col gap-2 pt-4 border-t border-tea-border">
+      <div className="flex flex-col gap-2 pt-4 border-t border-tea-border lg:hidden">
         <div className="flex gap-2">
           <button
             onClick={() => {

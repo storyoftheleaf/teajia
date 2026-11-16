@@ -3958,6 +3958,15 @@ body:has(.commerce-dock) .bottom-nav-bar {
   box-shadow: 0 14px 26px -10px rgb(0 0 0 / 0.5);
 }
 
+/* The supplier sheet supplies its own surface behind the floating navigation. */
+body:has([data-supplier-order-sheet]) [data-bottom-nav-fade] {
+  visibility: hidden;
+}
+
+body:has([data-supplier-order-sheet]) .bottom-nav-bar {
+  box-shadow: none;
+}
+
 body:has(.commerce-dock) [data-testid='bottom-tab-bar'] {
   /* The bottom stays exactly the pill it always was. 9999px only reads as a
      pill because all four corners compete for the same 52px and the browser
@@ -4146,6 +4155,9 @@ body:has(.commerce-dock) [data-testid='bottom-tab-bar'] {
   align-items: center;
   padding-top: 0.25rem;
 }
+
+/* The photo viewer already makes the underlying app inert. Keep the nav out of the image. */
+body:has([data-photo-viewer]) .bottom-nav-bar { visibility: hidden; }
 
 /* Let the actual site bar fold above the takeover, then remove it from
    visibility and hit testing while the tasting navigation unfolds. */
@@ -5181,13 +5193,13 @@ body.cart-panel-open .commerce-dock {
    only here: the overlay and the sheet are portalled to the body, so Curate
    hands each its own `curate-v2` class (TastingSession and BottomSheet take a
    `className`). Nothing below applies without that class. Choices are thin
-   frames that turn gold when chosen; a section is a large word over a gold
+   frames that turn gold when chosen; a section is a large word over a
    hairline; small labels are Lora capitals; no tinted tiles, no pills, no icons.
    `!important` is on exactly the properties the zones set inline. */
 .curate-v2[data-tasting-session-overlay] > .bg-tea-bg { border-radius: 3px !important; }
 .curate-v2 .tasting-scroll p.italic { font-size: 13px; color: var(--tea-text-sec); }
 .curate-v2 .tasting-scroll .divider-warm { display: none; }
-/* A section: the word large, a gold hairline under it. */
+/* A section: the word large, a regular hairline under it. */
 .curate-v2 .tasting-scroll .uppercase.text-ui-12,
 .curate-v2 .tasting-scroll :not(button *)[style*='font-display'].text-ui-13,
 .curate-v2 .tasting-scroll :not(button *)[style*='font-display'].border-b {
@@ -5200,7 +5212,7 @@ body.cart-panel-open .commerce-dock {
   color: var(--tea-text);
   padding: 22px 0 8px;
   margin-bottom: 8px;
-  border-bottom: 1px solid rgb(var(--tea-gold-rgb) / 0.2);
+  border-bottom: 1px solid var(--tea-border);
 }
 .curate-v2 .tasting-scroll .uppercase.text-ui-12 { padding-top: 14px; margin-bottom: 4px; }
 /* A heading that shares a line with its figure (Quality 8/10, Liquor color): the
@@ -5210,7 +5222,7 @@ body.cart-panel-open .commerce-dock {
   align-items: baseline;
   padding: 22px 0 8px;
   margin-bottom: 8px;
-  border-bottom: 1px solid rgb(var(--tea-gold-rgb) / 0.2);
+  border-bottom: 1px solid var(--tea-border);
 }
 .curate-v2 .tasting-scroll button[aria-label^='Clear'] { min-height: 44px; min-width: 44px; justify-content: center; color: var(--tea-text-sec); }
 /* A small label: Lora capitals. */
@@ -5658,7 +5670,7 @@ body.cart-panel-open .commerce-dock {
 .library-card-grid { gap:8px; }
 .library-tea-card {
   padding:0; border-radius:4px; box-shadow:none;
-  border-color:color-mix(in srgb,var(--library-accent) 30%,var(--tea-border));
+  border-color:color-mix(in srgb,var(--library-accent, var(--tea-gold)) 30%,var(--tea-border));
   background:linear-gradient(180deg,var(--tea-bg),color-mix(in srgb,var(--tea-elevated) 8%,var(--tea-bg)));
 }
 .library-tea-card .library-card-title-row { padding:0 10px; }
@@ -5670,7 +5682,7 @@ body.cart-panel-open .commerce-dock {
     oklch(from var(--library-metal-hue) calc(var(--library-metal-l) + .025) calc(c * .35) h),
     oklch(from var(--library-metal-hue) calc(var(--library-metal-l) + .003) calc(c * .35) h) 20%,
     oklch(from var(--library-metal-hue) calc(var(--library-metal-l) - .02) calc(c * .35) h));
-  border-top:1px solid color-mix(in srgb,var(--library-accent) 42%,var(--tea-bg));
+  border-top:1px solid color-mix(in srgb,var(--library-accent, var(--tea-gold)) 42%,var(--tea-bg));
   border-bottom:1px solid var(--tea-border);
 }
 .library-tea-card .library-given-name > button, .library-tea-card .library-card-year > button { align-items:center; font-size:12px; height:34px; min-height:34px; }
@@ -5805,7 +5817,6 @@ body.cart-panel-open .commerce-dock {
 .tasting-impression-notes textarea { display: block; width: 100%; min-height: 116px; resize: vertical; padding: 12px; border: 1px solid var(--tea-border); border-radius: 4px; background: var(--tea-surface); color: var(--tea-text); }
 .tasting-impression-notes textarea::placeholder { color: var(--tea-text-dim); }
 .tasting-impression-history { margin-top: 12px; color: var(--tea-text-sec); }
-.tasting-impression-history summary { cursor: pointer; min-height: 44px; display: list-item; align-content: center; }
 .tasting-impression-history p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0; }
 .tasting-impression-recap { margin-top: 12px; border-top: 1px solid var(--tea-border); padding-top: 8px; }
 .tasting-impression-recap > h3 { margin: 0 0 4px; color: var(--tea-text-dim); }
@@ -6157,6 +6168,7 @@ body.cart-panel-open .commerce-dock {
   .stock-view .stock-record[data-card-study="2"] .stock-more-action:focus-visible { outline:1px solid var(--tea-gold); outline-offset:-3px; }
   .stock-view .stock-record[data-card-study="2"] .stock-subtitle { position:relative; isolation:isolate; min-height:38px; background:transparent; }
   .stock-view .stock-record[data-card-study="2"] .stock-subtitle .stock-inline-edit { min-height:38px; }
+  .stock-view .stock-record[data-card-study="2"] .stock-subtitle .stock-source-label { min-height:44px; }
   .stock-view .stock-record[data-card-study="2"] .stock-subtitle::before {
     content:"";
     position:absolute;
@@ -6331,7 +6343,7 @@ body.cart-panel-open .commerce-dock {
 }
 /* Tasting has a visible save action and a distinct impression entry. */
 .tasting-header-controls { display:flex; align-items:center; gap:4px; }
-.tasting-heading-trigger { flex:1; min-width:0; width:auto; min-height:48px; padding:0 10px; border:1px solid var(--tea-text-dim); border-radius:10px; background:var(--tea-elevated); box-shadow:none; flex-direction:row; gap:7px; text-align:left; align-items:center; justify-content:center; }
+.tasting-heading-trigger { flex:1; min-width:0; width:auto; min-height:48px; padding:0 10px; border:1px solid var(--tea-border); border-radius:10px; background:var(--tea-elevated); box-shadow:none; flex-direction:row; gap:7px; text-align:left; align-items:center; justify-content:center; }
 .tasting-heading-trigger:hover { border-color:var(--tea-gold); }
 .tasting-heading-summary { display:flex; flex-shrink:0; align-items:center; gap:5px; max-width:100%; font-size:11px; white-space:nowrap; }
 .tasting-heading-summary svg { flex-shrink:0; color:var(--tea-text-sec); }
@@ -6973,7 +6985,8 @@ body.cart-panel-open .commerce-dock {
   .tasting-save-control[data-pending=true] { animation: none; box-shadow: 0 0 0 2px var(--tea-accent-sub); }
 }
 
-.tasting-impression-control { display:flex; align-items:center; flex:1; min-width:0; min-height:48px; border:1px solid var(--tea-text-dim); border-radius:10px; background:var(--tea-elevated); }
+.tasting-impression-control { display:flex; align-items:center; flex:1; min-width:0; min-height:48px; border:1px solid var(--tea-border); border-radius:10px; background:var(--tea-elevated); }
+.tasting-impression-control:has(.tasting-heading-trigger:is(:hover, :focus-visible)) { border-color:var(--tea-gold); }
 .tasting-impression-control .tasting-heading-trigger { border:0; background:transparent; min-height:46px; padding:0 7px; gap:5px; }
 .tasting-header-controls .tasting-impression-control .tasting-heading-mic { margin:0; border-left:1px solid var(--tea-border); border-radius:0 9px 9px 0; }
 .tasting-impression-control .tasting-heading-mic[aria-pressed=true] { background:var(--tea-accent-sub); color:var(--tea-text); }
@@ -6981,3 +6994,340 @@ body.cart-panel-open .commerce-dock {
   .tasting-impression-control { flex:0 1 464px; }
   [data-tasting-session-overlay] .tasting-impression-control .tasting-heading-trigger { flex:1; }
 }
+
+/* ==============================   Source form, 'flow' layout (curate/CaptureFlowLayout.tsx).
+   Drawn the Library card's way (2026-11-12, "connected, cohesive"): a card is
+   one quiet surface with one hairline border; inside it, rows run edge to edge
+   and are parted by hairlines only, with the same 10px inner edge in every
+   card. Fields carry no box: the text sits on the card, the field's own word
+   is its placeholder. The band is the one tinted row (the tea type's colour).
+   Buttons are quiet outlines on the card's surface: 34px of visible chrome,
+   6px corners, one hairline, inside a 44px touch area (curate-compact-target).
+   Done keeps cta-solid, the one gold control. Gold borders only on focus and
+   hover. Scoped to [data-form-layout='flow'] so the classic form is untouched.
+   ============================================ */
+[data-form-layout='flow'] .curate-flow-card { border-color: var(--tea-border); }
+[data-form-layout='flow'] .curate-flow-row { padding-inline: 10px; border-top: 1px solid var(--tea-border); }
+[data-form-layout='flow'] .curate-flow-band + .curate-flow-row,
+[data-form-layout='flow'] .curate-flow-row:first-child { border-top: 0; }
+
+/* The name row: the name straight on the card, gold underline only while typing. */
+[data-form-layout='flow'] .curate-flow-name { min-height: 44px; }
+[data-form-layout='flow'] .curate-flow-name input { padding-left: 0; border-bottom-color: transparent; }
+[data-form-layout='flow'] .curate-flow-name input:focus { border-bottom-color: var(--tea-gold); }
+
+/* Keep the type tint on the Source band and give the three fields room to breathe. */
+[data-form-layout='flow'] .curate-flow-card .curate-flow-band {
+  min-height: 44px; padding: 0 10px; gap: 0; align-items: stretch;
+  background: color-mix(in srgb, var(--library-accent) 10%, var(--tea-surface));
+  border-top-color: var(--tea-border);
+}
+[data-form-layout='flow'] :is(.curate-flow-band, .curate-flow-cells) { display: flex; min-width: 0; }
+[data-form-layout='flow'] :is(.curate-flow-band, .curate-flow-cells) > * { min-height: 44px; }
+[data-form-layout='flow'] :is(.curate-flow-band, .curate-flow-cells) > * + * { padding-left: 10px; }
+[data-form-layout='flow'] .curate-flow-cells > * + * { border-left: 1px solid var(--tea-border); }
+[data-form-layout='flow'] :is(.curate-flow-band, .curate-flow-cells) > :not(:last-child) { padding-right: 10px; }
+[data-form-layout='flow'] .curate-flow-cell { color: var(--tea-text); font-family: var(--font-sans); font-size: 16px; line-height: 1.45; background: transparent; }
+[data-form-layout='flow'] .curate-flow-value { font-size: 16px; }
+[data-form-layout='flow'] .curate-flow-input {
+  min-height: 44px; padding: 0; border: 0; border-radius: 0; background: transparent;
+  color: var(--tea-text); font-family: var(--font-sans); font-size: 16px; line-height: 1.45;
+}
+[data-form-layout='flow'] .curate-flow-input::placeholder { color: var(--tea-text-dim); }
+[data-form-layout='flow'] .curate-flow-card .curate-flow-input:focus,
+[data-form-layout='flow'] .curate-flow-card .curate-flow-input:focus-visible { outline: none; box-shadow: inset 0 -1px 0 var(--tea-gold); }
+[data-form-layout='flow'] .curate-flow-card button.curate-flow-cell:focus-visible { outline: none; box-shadow: inset 0 -1px 0 var(--tea-gold); }
+
+/* The price row is as it was; the currency's text starts on the card's inner edge. */
+[data-form-layout='flow'] .curate-flow-purchase { padding-block: 2px 8px; }
+[data-form-layout='flow'] .curate-flow-purchase select[aria-label='Currency'] { padding-left: 0; }
+/* The price row shows focus with its own gold underline; no box on top of it. */
+[data-form-layout='flow'] .curate-flow-card .curate-flow-purchase :is(input, select):focus-visible { outline: none; }
+/* The cost under the slider: its own full-width row, what goes in on the left,
+   the shelf price on the right; the result drops under the inputs, still on
+   the right, when a long currency does not fit. */
+[data-form-layout='flow'] .curate-flow-purchase [data-testid='curate-shelf-preview'] {
+  display: flex; flex-wrap: wrap; justify-content: space-between; column-gap: 12px; row-gap: 2px;
+  margin: 8px -10px -8px; padding: 10px; border-top: 1px solid var(--tea-border); color: var(--tea-text-sec);
+}
+[data-form-layout='flow'] .curate-flow-cost > :last-child { margin-left: auto; text-align: right; }
+
+/* Rows of buttons: quiet outlines on the card's own surface. */
+[data-form-layout='flow'] .curate-flow-card .curate-compact-chrome { height: 34px; min-height: 34px; max-height: 34px; border-radius: 6px; }
+[data-form-layout='flow'] .curate-flow-card .curate-compact-chrome:not(.cta-solid) { border: 1px solid var(--tea-border); background: transparent; }
+@media (hover: hover) {
+  [data-form-layout='flow'] .curate-flow-card button:hover > .curate-compact-chrome:not(.cta-solid) { border-color: var(--tea-gold); color: var(--tea-text); }
+}
+[data-form-layout='flow'] .curate-decision-control { gap: 8px; overflow: visible; border: 0; border-radius: 0; background: transparent; }
+[data-form-layout='flow'] .curate-decision-option + .curate-decision-option { border-left: 0; }
+[data-form-layout='flow'] .curate-decision-option [data-selected-surface] { display: none; }
+[data-form-layout='flow'] .curate-flow-card .curate-decision-option[aria-checked='true'] .curate-compact-chrome { background: var(--tea-accent-sub); color: var(--tea-text); font-weight: 600; }
+/* On a laptop the actions live in the page's own bar, so their row goes. */
+@media (min-width: 1024px) {
+  [data-form-layout='flow'] .curate-flow-buttons:has(> [data-testid='capture-action-footer'].lg\:hidden) { display: none; }
+}
+
+/* The photos under Photo and Taste. */
+[data-form-layout='flow'] .curate-flow-strip { padding-block: 8px; }
+
+/* Quality 1 to 10: one slim row, the label inline at the left. The strip shows
+   30px; each number keeps a 44px touch height. */
+[data-form-layout='flow'] .curate-flow-quality { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+[data-form-layout='flow'] .curate-flow-quality-scale {
+  flex: 1; min-width: 0; height: 30px; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr));
+  align-items: center; border: 1px solid var(--tea-border); border-radius: 6px;
+}
+[data-form-layout='flow'] .curate-flow-quality-scale > button {
+  position: relative; min-width: 0; height: 44px; margin-block: -7px; padding: 0; border: 0; background: transparent;
+  color: var(--tea-text-sec); font-variant-numeric: tabular-nums;
+}
+[data-form-layout='flow'] .curate-flow-quality-scale > button + button::before {
+  content: ''; position: absolute; top: 7px; bottom: 7px; left: 0; border-left: 1px solid var(--tea-border); pointer-events: none;
+}
+[data-form-layout='flow'] .curate-flow-quality-scale > button[aria-checked='true'] { color: var(--tea-text); font-weight: 600; }
+[data-form-layout='flow'] .curate-flow-quality-scale > button[aria-checked='true']::after {
+  content: ''; position: absolute; inset: 7px 0; background: var(--tea-accent-sub); box-shadow: inset 0 -2px 0 var(--tea-gold); pointer-events: none;
+}
+[data-form-layout='flow'] .curate-flow-quality-scale > button:focus-visible { outline: 1px solid var(--tea-gold); outline-offset: -8px; }
+@media (hover: hover) {
+  [data-form-layout='flow'] .curate-flow-quality-scale > button:hover { color: var(--tea-text); }
+}
+
+/* The note box: its text on the card, the microphone at the right; gold underline only while typing. */
+[data-form-layout='flow'] .curate-flow-notes .tasting-voice-field { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+[data-form-layout='flow'] .curate-flow-notes .tasting-voice-field:focus-within { box-shadow: inset 0 -1px 0 var(--tea-gold); }
+[data-form-layout='flow'] .curate-flow-notes .tasting-voice-field textarea { padding-left: 0; }
+[data-form-layout='flow'] .curate-flow-notes { padding-right: 0; }
+[data-form-layout='flow'] .curate-flow-notes .tasting-voice-btn { color: var(--tea-text-sec); }
+
+/* The growing card: tasting summary followed by saved notes. */
+[data-form-layout='flow'] .curate-flow-record { display: grid; gap: 8px; padding: 8px 10px; }
+[data-form-layout='flow'] .curate-flow-record:has(> .curate-flow-tasting-summary:only-child) { padding-block: 0 4px; }
+[data-form-layout='flow'] .curate-flow-details { display: flex; align-items: flex-start; padding-inline: 11px 0; }
+
+[data-form-layout='flow'] .curate-section-title,
+[data-form-layout='flow'] [data-testid='structured-tea-fields'] > summary {
+  margin-bottom: 0; color: var(--tea-text-sec); font-family: var(--font-sans);
+  font-size: 11px; font-weight: 500; line-height: 1.2; letter-spacing: 1.2px; text-transform: uppercase;
+}
+[data-form-layout='flow'] .library-supplier-header { padding: 0 2px 2px 11px; }
+[data-form-layout='flow'] .library-supplier-heading { min-height: 44px; padding-block: 0; }
+/* The where header, one line: the vendor holds Run and Journey / visit, the plus at the end. */
+[data-form-layout='flow'] .curate-flow-where { gap: 4px; min-width: 0; padding-bottom: 0; }
+[data-form-layout='flow'] .curate-flow-where > .library-supplier-heading { display: flex; flex: 1 1 auto; width: auto; min-width: 0; }
+[data-form-layout='flow'] .curate-flow-where .library-supplier-name { font: 500 0.875rem/1.15 var(--font-sans); }
+[data-form-layout='flow'] .curate-flow-where > .pill-quiet { flex: none; padding-inline: 2px; }
+[data-form-layout='flow'] .curate-flow-where-visit { flex: 0 1 88px; min-width: 64px; }
+[data-form-layout='flow'] .curate-flow-where-visit button { gap: 4px; }
+[data-form-layout='flow'] .curate-flow-where-visit button > span {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; line-height: 1.2;
+}
+[data-form-layout='flow'] .curate-flow-where-visit button > svg:last-child { display: none; }
+@media (max-width: 479px) {
+  [data-form-layout='flow'] .curate-flow-where > .library-supplier-heading svg { display: none; }
+}
+[data-form-layout='flow'] .curate-flow-record:empty { display: none; }
+/* Teaware's piece counter keeps its hairline but drops its darker fill. */
+[data-form-layout='flow'] .curate-flow-purchase [aria-label^='Quantity:'] { background: transparent; }
+
+/* The Buy / Sample panel: one more card. Its word (Buy or Sample) is the first
+   quiet text of the quantity row; rows parted by hairlines; steppers and gram
+   chips are slim outlines (34px drawn inside a 44px touch area); the two
+   selects are cells of one row, each reading its own value. */
+[data-form-layout='flow'] .curate-flow-buy > div:empty { display: none; }
+[data-form-layout='flow'] .curate-flow-buy > div.justify-end { padding-inline: 10px; border-bottom: 1px solid var(--tea-border); }
+[data-form-layout='flow'] .curate-flow-buy .text-tea-text-dim { color: var(--tea-text-sec); }
+[data-form-layout='flow'] .curate-flow-buy-body > * { padding-inline: 10px; }
+[data-form-layout='flow'] .curate-flow-buy-body > * + * { border-top: 1px solid var(--tea-border); }
+[data-form-layout='flow'] .curate-flow-buy-body > :first-child { min-height: 44px; flex-wrap: wrap; column-gap: 12px; padding-block: 2px; }
+[data-form-layout='flow'] .curate-flow-buy-word { color: var(--tea-text-sec); padding-right: 4px; }
+[data-form-layout='flow'] .curate-flow-buy :is(button[aria-label$='buying quantity'], button[aria-pressed]) {
+  position: relative; isolation: isolate; background: transparent; border-radius: 0; color: var(--tea-text-sec);
+}
+[data-form-layout='flow'] .curate-flow-buy button[aria-label$='buying quantity']::before,
+[data-form-layout='flow'] .curate-flow-buy button[aria-pressed]::before {
+  content: ''; position: absolute; inset: 5px 2px; z-index: -1; border: 1px solid var(--tea-border); border-radius: 6px; pointer-events: none;
+}
+[data-form-layout='flow'] .curate-flow-buy-body > .flex-wrap { gap: 4px; padding-block: 2px; }
+[data-form-layout='flow'] .curate-flow-buy button[aria-pressed] { padding-inline: 10px; }
+[data-form-layout='flow'] .curate-flow-buy button[aria-pressed='true'] { color: var(--tea-text); font-weight: 600; }
+[data-form-layout='flow'] .curate-flow-buy button[aria-pressed='true']::before { background: var(--tea-accent-sub); box-shadow: inset 0 -2px 0 var(--tea-gold); }
+@media (hover: hover) {
+  [data-form-layout='flow'] .curate-flow-buy :is(button[aria-label$='buying quantity'], button[aria-pressed]):hover::before { border-color: var(--tea-gold); }
+}
+[data-form-layout='flow'] .curate-flow-buy-body > .curate-flow-cells { border-bottom: 1px solid var(--tea-border); }
+[data-form-layout='flow'] .curate-flow-buy .curate-flow-cells > label { display: flex; flex: 1 1 0; min-width: 0; }
+[data-form-layout='flow'] .curate-flow-buy .curate-flow-cells > label { position: relative; }
+/* The selects drop the browser's own arrow (and the indent it brings) so their
+   text starts on the card's edge; a drawn chevron takes its place. */
+[data-form-layout='flow'] .curate-flow-buy select.curate-flow-input { cursor: pointer; -webkit-appearance: none; appearance: none; padding-right: 20px; }
+[data-form-layout='flow'] .curate-flow-buy .curate-flow-cells > label::after {
+  content: ''; position: absolute; top: 50%; right: 4px; width: 7px; height: 7px; pointer-events: none;
+  border-right: 1.5px solid var(--tea-text-sec); border-bottom: 1.5px solid var(--tea-text-sec); transform: translateY(-70%) rotate(45deg);
+}
+[data-form-layout='flow'] .curate-flow-buy .curate-flow-cells > label:not(:last-child)::after { right: 14px; }
+[data-form-layout='flow'] .curate-flow-buy select.curate-flow-input:focus-visible { outline: none; box-shadow: inset 0 -1px 0 var(--tea-gold); }
+/* The confirm keeps its gold; 34px drawn inside its 44px touch area. */
+[data-form-layout='flow'] .curate-flow-buy-body > button.cta-solid {
+  width: calc(100% - 20px); margin: 3px 10px; padding-inline: 12px; border: 5px solid transparent; border-radius: 11px; background-clip: padding-box;
+  color: var(--tea-bg); /* the cta-solid pair; .curate-action's grey would otherwise win */
+}
+[data-form-layout='flow'] .curate-flow-buy-done { padding: 8px 10px; }
+
+/* Tasting words as one quiet line (TastingProfileStrip variant 'line'): plain
+   words parted by middle dots, cut with an ellipsis when they do not fit. Each
+   word still removes itself on tap, its touch area 44px tall (a button is
+   always an inline block, so the height is set on it, not by padding). The
+   line takes 28px of the layout: its 44px box reaches 8px into the empty edge
+   of the rows above and below, and wins taps there (it is positioned). */
+.tasting-words-line {
+  position: relative; min-width: 0; height: 44px; margin-block: -8px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  font-family: var(--font-sans); font-size: 12px; line-height: 44px; color: var(--tea-text-sec);
+}
+.tasting-words-line > button {
+  display: inline-block; height: 44px; padding: 0; vertical-align: top; border: 0; background: transparent; color: inherit; font: inherit; line-height: 44px;
+}
+.tasting-words-line > button + button::before { content: '\00B7'; padding-inline: 6px; color: var(--tea-text-sec); }
+.tasting-words-line > button:focus-visible { outline: 1px solid var(--tea-gold); outline-offset: -12px; }
+@media (hover: hover) { .tasting-words-line > button:hover { color: var(--tea-text); } }
+[data-form-layout='flow'] .curate-flow-taste-line:empty { display: none; }
+[data-form-layout='flow'] .curate-flow-taste-line .text-tea-text-dim,
+[data-form-layout='flow'] .curate-flow-taste-line .text-tea-border { color: var(--tea-text-sec); }
+[data-form-layout='flow'] .curate-flow-taste-line > .curate-support { padding-bottom: 10px; }
+
+/* The Library tea card also carries purchase data and controls. */
+.library-card-title-row > .tea-card-title {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding-block: 5px;
+  overflow-wrap: anywhere;
+}
+.library-tea-card .library-card-subrow:has(.library-card-meta-primary) {
+  min-height: 34px;
+}
+.library-ribbon-prices.tea-card-metrics {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 64px), 1fr));
+}
+.library-workbar .tea-card-metrics {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+.tea-card-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin: 0 4px;
+  border-top: 1px solid var(--tea-border);
+}
+.tea-card-action-row > :is(a, button) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.tea-panel-metrics {
+  border-block: 1px solid var(--tea-border);
+}
+.tea-panel-metrics .tea-card-metrics {
+  margin-inline: 0;
+  border: 0;
+  background: transparent;
+}
+
+.tasting-impression.tasting-session-quick { padding:0; }
+.tasting-session-quick > h2 { margin:0 0 10px; font-size:21px; }
+.tasting-session-quick .tasting-impression-rating { padding:8px 0; }
+.tasting-session-quick .tasting-impression-numbers { margin-top:4px; }
+.tasting-session-quick .tasting-impression-notes { margin-top:4px; }
+.tasting-session-quick .tasting-impression-notes label { margin-bottom:5px; }
+.tasting-session-quick .tasting-impression-notes textarea { min-height:74px; }
+.tasting-quick-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:12px; }
+.tasting-quick-actions button { min-height:44px; padding:6px; border:1px solid var(--tea-border); border-radius:8px; font-size:13px; }
+.tasting-quick-actions button:disabled { opacity:.45; }
+.tea-card-control-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) min(32%, 6.5rem);
+  align-items: center;
+  gap: 8px;
+}
+.tea-card-control-row > * {
+  min-width: 0;
+}
+.tea-card-control {
+  box-sizing: border-box;
+  width: 100%;
+  height: 44px;
+  min-width: 0;
+}
+
+/* Curate orders use a Library supplier group around its tea cards. */
+.library-supplier-group.tea-order-group {
+  min-width: 0;
+  padding: 6px;
+}
+.tea-order-header {
+  padding-inline: 4px;
+  margin-bottom: 6px;
+}
+.tea-order-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding-block: 0 8px;
+}
+.tea-order-line .library-tea-actions,
+.tea-order-line .tea-card-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 8px;
+  min-height: 44px;
+  padding: 0 10px;
+  margin: 0;
+}
+.tea-order-line .library-tea-actions > span {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  white-space: normal;
+}
+.tea-order-line .library-tea-actions > button {
+  min-height: 44px;
+  margin-left: auto;
+}
+.tea-order-line .tea-card-action-row > button {
+  margin-left: auto;
+  font-size: 12px;
+}
+.tea-order-record-links {
+  min-width: 0;
+  justify-content: center;
+}
+.tea-order-record-links > :is(a,button) {
+  min-width: 36px;
+  width: 38px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tea-order-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  border-top: 1px solid var(--tea-border);
+}
+
+
+.tasting-session-tools { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 8px; }
+.tasting-session-tools button { flex:1; min-height:44px; padding:4px 8px; border:1px solid var(--tea-border); border-radius:8px; background:var(--tea-surface); color:var(--tea-text); font-size:13px; }
+.tasting-session-tools button[aria-pressed="true"] { background:var(--tea-elevated); font-weight:600; }
+.tasting-session-tools button:disabled { opacity:.45; }

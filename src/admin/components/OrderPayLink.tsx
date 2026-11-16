@@ -1,8 +1,7 @@
 import React from 'react';
 import { Link2, Check } from 'lucide-react';
 import type { InvoicePayment } from '../types';
-import { countWord } from '../../components/people/profileFormat';
-import { GOLD_TEXT_ROW, GOLD_TEXT_STYLE } from '../../components/people/immersive';
+import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 import { useToast } from './Toast';
 
 /**
@@ -23,16 +22,6 @@ import { useToast } from './Toast';
  * mobile card is not; modals use the block. All of them share this file's copy
  * text and this file's clipboard handler.
  */
-
-/** Where a tea master publishes their transfer details. */
-const METHODS_LOCATION = 'their own profile page, under Payment methods';
-
-/** "three teas", "one tea"; nothing when the count is unknown or zero. */
-function teaCountPhrase(payment: InvoicePayment): string | null {
-  const n = Number(payment.tea_line_count);
-  if (!Number.isFinite(n) || n <= 0) return null;
-  return n === 1 ? 'one tea' : `${countWord(n)} teas`;
-}
 
 function recipientOf(payment: InvoicePayment): string | null {
   return payment.recipient_name?.trim() || null;
@@ -121,8 +110,6 @@ export function payLinkWhatsAppHref(payUrl: string, invoiceNumber?: string | nul
 
 interface OrderPayLinkProps {
   payment?: InvoicePayment | null;
-  /** The customer's name, so the block's one sentence can say who the invoice is for. */
-  customerName?: string | null;
   /** Used in the copied-confirmation toast, so the operator knows which order it was. */
   invoiceNumber?: string;
   /** The customer's WhatsApp number, when the order carries one, so Share opens their chat. */
@@ -130,7 +117,7 @@ interface OrderPayLinkProps {
   /**
    * `inline` is the dense card form: the recipient line plus a small labelled
    * copy control. `block` is the detail form used in modals, where there is
-   * room for the URL and the full explanation.
+   * room for both share actions.
    */
   layout?: 'inline' | 'block';
   className?: string;
@@ -139,7 +126,6 @@ interface OrderPayLinkProps {
 export const OrderPayLink: React.FC<OrderPayLinkProps> = ({
   payment,
   invoiceNumber,
-  customerName,
   customerWhatsapp,
   layout = 'inline',
   className = '',
@@ -170,47 +156,34 @@ export const OrderPayLink: React.FC<OrderPayLinkProps> = ({
   }
 
   return (
-    /* Canvas version 26: no caps head. The title, then one sentence naming the
-       invoice, the customer and what is owed, then the link and its two actions. */
-    <div className={`bg-tea-surface border border-tea-border rounded-xl p-4 ${className}`}>
-      <p className="font-display text-[24px] leading-[1.08] text-tea-text">Share pay link</p>
-      <p className="mt-1.5 font-body text-ui-13 italic leading-[1.45] text-tea-text-sec">
-        {payUrl
-          ? `${invoiceNumber ? `Invoice ${invoiceNumber}` : 'This invoice'}${customerName?.trim() ? ` for ${customerName.trim()}` : ''}${teaCountPhrase(payment) ? `, ${teaCountPhrase(payment)}` : ''}${payment.outstanding_usd > 0 ? `, $${payment.outstanding_usd.toFixed(2)} owed` : ''}. Whoever opens it sees every method ${recipient ? `${recipient} has` : 'this store has'} published, with this invoice's amount filled in.`
-          : recipient
-            ? `Paid to ${recipient}. The customer lands on their transfer details.`
-            : "The customer lands on this store's transfer details."}
-      </p>
+    <section aria-label="Share payment link" className={`bg-tea-surface border border-tea-border rounded-md p-3 ${className}`}>
+      <h4 className={`${T.h3} text-tea-text`}>Share payment link</h4>
       {payUrl ? (
         <>
-          <p className="text-ui-11 text-tea-text-sec break-all mt-3">{payUrl}</p>
-          {/* Pay is private: this link carries a share token, so whoever opens
-              it lands on the transfer details with this order's balance filled
-              in, and no gate. Send it on WhatsApp or copy it; nothing else. */}
-          {/* Canvas version 27: the two actions are rows of plain text in the
-              reading gold with a hairline under each, stacked one per row. */}
-          <div className="mt-3">
+          <p className="mt-1 text-ui-13 text-tea-text-sec">
+            Pay to {recipient || 'this store'}{payment.outstanding_usd > 0 ? ` · $${payment.outstanding_usd.toFixed(2)} due` : ''}
+          </p>
+          <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3">
             <a
               href={payLinkWhatsAppHref(payUrl, invoiceNumber, customerWhatsapp)}
               target="_blank"
               rel="noopener noreferrer"
-              className={`${GOLD_TEXT_ROW}`}
-              style={GOLD_TEXT_STYLE}
+              className="inline-flex min-h-11 items-center text-ui-13 text-tea-text hover:text-tea-gold"
               data-testid="pay-link-whatsapp"
             >
               Send on WhatsApp
             </a>
-            <button type="button" onClick={copy} className={`${GOLD_TEXT_ROW}`} style={GOLD_TEXT_STYLE}>
-              {copied ? 'Copied' : 'Copy pay link'}
+            <button type="button" onClick={copy} className="inline-flex min-h-11 items-center gap-1.5 text-ui-13 text-tea-text hover:text-tea-gold">
+              {copied ? <Check size={14} aria-hidden="true" /> : <Link2 size={14} aria-hidden="true" />}
+              {copied ? 'Copied' : 'Copy link'}
             </button>
           </div>
         </>
       ) : (
-        <p className="text-ui-11 text-tea-text-sec leading-[1.5] mt-2">
-          No pay link yet. {recipient || 'This recipient'} has not published transfer details.
-          They are added on {METHODS_LOCATION}.
+        <p className="mt-1 text-ui-13 text-tea-text-sec">
+          Add payment methods on {recipient ? `${recipient}’s profile` : 'the recipient’s profile'} to share a link.
         </p>
       )}
-    </div>
+    </section>
   );
 };

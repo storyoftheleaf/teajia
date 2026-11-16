@@ -4,7 +4,7 @@
  * What this pins: the stored states are read once and override the map in
  * both directions; any failure to read them settles to the map, so a bad
  * minute never hides a live story; a visitor's route waits while the read is
- * in flight instead of flashing the wrong page; the owner never waits; and a
+ * in flight instead of flashing the wrong page; unverified owner claims never bypass that wait; and a
  * press updates every reader at once.
  *
  * The real store and the real gate hook run here. Only `fetch` and the one
@@ -103,9 +103,9 @@ describe('the route while the read is in flight', () => {
     expect(access('/read/history')).toBe('pending');
   });
 
-  it('never holds Teajia\'s owner', () => {
+  it('holds unverified owner claims on the loader', () => {
     signInAsTeajiaOwner();
-    expect(access('/read/history')).toBe('true');
+    expect(access('/read/history')).toBe('pending');
   });
 });
 

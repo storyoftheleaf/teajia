@@ -72,8 +72,8 @@ export interface Product {
   year?: number;
   originCountry: string;
   originRegion: string;
-  pricePerGramUSD: number; // Retail price (calculated or fixed)
-  costPerGramUSD: number; // Private cost calculated per gram
+  pricePerGramUSD: number | null; // Retail price (calculated or fixed)
+  costPerGramUSD: number | null; // Private cost calculated per gram
   costAmount: number | null; // Raw total batch cost; null means not recorded
   stockGrams: number;
   lowStockThreshold: number;

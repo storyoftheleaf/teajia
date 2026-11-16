@@ -24,6 +24,12 @@ interface CaptureContextChipsProps {
   batchMode?: boolean;
   onToggleBatchMode?: () => void;
   onShare?: () => void;
+  /** 'row' (default): one line of chips. 'supplier' (the 'flow' form): one
+   *  line, the vendor as the heading holding Run and `secondLine` beside it,
+   *  the plus at the end. Share is not drawn there: the form puts
+   *  CaptureShareButton elsewhere. */
+  variant?: 'row' | 'supplier';
+  secondLine?: React.ReactNode;
 }
 
 export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
@@ -34,6 +40,8 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
   batchMode,
   onToggleBatchMode,
   onShare,
+  variant = 'row',
+  secondLine,
 }) => {
   const [runSheetOpen, setRunSheetOpen] = React.useState(false);
 
@@ -79,8 +87,7 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
     setRunSheetOpen(false);
   };
 
-  return (
-    <div className="flex items-center gap-1.5">
+  const runChip = (
       <button
         type="button"
         onClick={() => setRunSheetOpen(true)}
@@ -92,35 +99,41 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
         <span className="truncate">{runLabel}</span>
         <ChevronDown size={12} className="shrink-0 text-tea-text-dim" />
       </button>
+  );
 
-      <span className="shrink-0 text-tea-text-dim" aria-hidden>·</span>
-
+  // The vendor chip, or (supplier header) the vendor as the heading: one control.
+  const vendorButton = (asHeading: boolean) => (
       <button
         type="button"
         onClick={onToggleVendor}
         aria-expanded={vendorOpen}
-        className={`curate-support pill-quiet min-w-0 ${vendorOpen ? 'pill-quiet-on' : ''}`}
+        title={asHeading ? vendorName : undefined}
+        className={asHeading ? 'library-supplier-heading w-full' : `curate-support pill-quiet min-w-0 ${vendorOpen ? 'pill-quiet-on' : ''}`}
         data-curate-action
       >
-        <span className="truncate">{vendorName || 'Vendor'}</span>
-        <ChevronDown
-          size={12}
-          className={`shrink-0 text-tea-text-dim transition-transform ${vendorOpen ? 'rotate-180' : ''}`}
-        />
+        {asHeading ? (
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span className={`library-supplier-name !flex-initial line-clamp-2 ${vendorName ? '' : 'text-tea-text-sec'}`}>{vendorName || 'Vendor'}</span>
+            <ChevronDown
+              size={14}
+              className={`shrink-0 text-tea-text-dim transition-transform ${vendorOpen ? 'rotate-180' : ''}`}
+            />
+          </span>
+        ) : (
+          <>
+            <span className="truncate">{vendorName || 'Vendor'}</span>
+            <ChevronDown
+              size={12}
+              className={`shrink-0 text-tea-text-dim transition-transform ${vendorOpen ? 'rotate-180' : ''}`}
+            />
+          </>
+        )}
       </button>
+  );
 
-      {onShare && (
-        <button
-          type="button"
-          onClick={onShare}
-          aria-label="Share"
-          className="curate-support pill-quiet shrink-0"
-          data-curate-action
-        >
-          <Share2 size={13} aria-hidden="true" />
-        </button>
-      )}
+  const shareButton = <CaptureShareButton onShare={onShare} />;
 
+  const newEntryButton = (
       <span className="ml-auto shrink-0 md:hidden">
         <button
           type="button"
@@ -132,11 +145,16 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
           <Plus size={14} aria-hidden="true" />
         </button>
       </span>
+  );
 
+  const syncIndicator = (
       <div className="shrink-0 pl-1 md:ml-auto">
         <SyncIndicator />
       </div>
+  );
 
+  const runSheet = (
+    <>
       {/* Run sheet: this sitting's drafts plus the session controls that
           used to live in the strip above the card. */}
       <BottomSheet
@@ -209,8 +227,57 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
           </button>
         </div>
       </BottomSheet>
+    </>
+  );
+
+  if (variant === 'supplier') {
+    // Let the vendor wrap within the row so the other controls stay beside it.
+    return (
+      <div className="library-supplier-header curate-flow-where" data-testid="curate-supplier-header">
+        {vendorButton(true)}
+        {runChip}
+        <div className="curate-flow-where-visit">{secondLine}</div>
+        {newEntryButton}
+        {syncIndicator}
+        {runSheet}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {runChip}
+
+      <span className="shrink-0 text-tea-text-dim" aria-hidden>·</span>
+
+      {vendorButton(false)}
+
+      {shareButton}
+
+      {newEntryButton}
+
+      {syncIndicator}
+
+      {runSheet}
     </div>
   );
 };
 
 export default CaptureContextChips;
+
+/** Share, one control: in the chip row ('classic'), or wherever the 'flow' form places it. */
+export const CaptureShareButton: React.FC<{ onShare?: () => void }> = ({ onShare }) => (
+    <>
+      {onShare && (
+        <button
+          type="button"
+          onClick={onShare}
+          aria-label="Share"
+          className="curate-support pill-quiet shrink-0"
+          data-curate-action
+        >
+          <Share2 size={13} aria-hidden="true" />
+        </button>
+      )}
+    </>
+);

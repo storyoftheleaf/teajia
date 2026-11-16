@@ -66,6 +66,57 @@ test('complete tasting persists impression, independent senses, storage and reca
   await expectNoUnhandledCompassApi(page);
 });
 
+test('two Curate openings create two history records and both Save controls update the open record', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installCompassHarness(page);
+  await openCompass(page);
+  await page.getByPlaceholder('Tea name').filter({ visible: true }).fill('Peach oolong');
+  const openTasting = page.getByTestId('curate-taste-button').filter({ visible: true });
+  const notes = page.getByRole('textbox', { name: 'Your notes', exact: true });
+  const headerSave = page.getByRole('button', { name: 'Save tasting', exact: true });
+  const saved = page.getByRole('button', { name: 'Tasting saved', exact: true });
+  const history = () => page.evaluate(async () => {
+    // @ts-expect-error Vite exposes the local fixture store.
+    const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+    const state = useTeaCompassStore.getState();
+    return state.getEntry(state.activeEntryId)?.tastingHistory ?? [];
+  });
+
+  await openTasting.click();
+  await notes.fill('Peach on the first sip.');
+  await headerSave.click();
+  await expect(saved).toBeVisible();
+  const firstRecord = (await history())[0];
+  expect(firstRecord.id).toBeTruthy();
+
+  await notes.fill('Peach and light honey.');
+  await page.getByRole('button', { name: 'Save notes', exact: true }).click();
+  await expect(saved).toBeVisible();
+  expect(await history()).toMatchObject([{
+    id: firstRecord.id,
+    date: firstRecord.date,
+    data: { notes: [{ text: 'Peach and light honey.' }] },
+  }]);
+
+  const nav = page.getByRole('navigation', { name: 'Tasting sections' });
+  await nav.getByRole('button', { name: 'Leave tasting', exact: true }).click();
+  await expect(nav).toBeHidden();
+  await openTasting.click();
+  await notes.fill('More honey in the second tasting.');
+  await headerSave.click();
+  await expect(saved).toBeVisible();
+
+  const records = await history();
+  expect(records).toHaveLength(2);
+  expect(records[0].id).toBe(firstRecord.id);
+  expect(records[1].id).not.toBe(firstRecord.id);
+  expect(records.map(record => record.data.notes[0].text)).toEqual([
+    'Peach and light honey.',
+    'More honey in the second tasting.',
+  ]);
+  await expectNoUnhandledCompassApi(page);
+});
+
 test('clearing the sole saved impression can be saved and stays cleared on reopen', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await installCompassHarness(page);
@@ -274,4 +325,42 @@ test('reduced motion skips the restored bar sequence', async ({ page }) => {
   await nav.getByRole('button', { name: 'Leave tasting' }).click();
   await expect(nav).toBeHidden();
   await expect(page.getByTestId('bottom-tab-bar')).toHaveCSS('animation-name', 'none');
+});
+
+test('editing a stock tasting profile saves the product without writing to the personal journal', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const product = {
+    id: 'edit-profile', product_name: 'Peach oolong', type: 'Oolong', status: 'Active',
+    cost_currency: 'USD', cost_amount: 10, stock_grams: 100, is_public: 0, shown_in_shop: 0,
+  };
+  await installCompassHarness(page, { products: [product] });
+  await page.route('**/api/products/edit-profile', route => route.fulfill({ json: product }));
+  let productTasting: unknown;
+  let journalWrites = 0;
+  await page.route('**/api/products/edit-profile/catalog', async route => {
+    const data = route.request().postDataJSON();
+    if (data.tasting) productTasting = data.tasting;
+    return route.fulfill({ json: { success: true } });
+  });
+  await page.route('**/api/tasting-journal/sync', async route => {
+    journalWrites += 1;
+    return route.fulfill({ json: { syncedIds: [] } });
+  });
+  await page.route('**/api/inventory/summaries', route => route.fulfill({ json: { products: [] } }));
+
+  await page.goto('/admin/stock?panel=edit-profile');
+  await page.getByRole('button', { name: 'Add tasting profile', exact: true }).click();
+  await page.getByRole('button', { name: 'Rate 7 out of 10', exact: true }).click();
+  await page.getByRole('button', { name: 'Save tasting', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Tasting saved', exact: true })).toBeVisible();
+
+  expect(productTasting).toMatchObject({ quality: 7 });
+  const personalJournal = await page.evaluate(async () => {
+    // @ts-expect-error Vite exposes the local fixture store.
+    const { useAppStore } = await import('/src/lib/store.ts');
+    return useAppStore.getState().tastingJournal;
+  });
+  expect(personalJournal).toEqual([]);
+  expect(journalWrites).toBe(0);
+  await expectNoUnhandledCompassApi(page);
 });

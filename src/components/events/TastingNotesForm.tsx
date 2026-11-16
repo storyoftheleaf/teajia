@@ -1,321 +1,234 @@
-import React, { useState, useEffect } from 'react';
-import { Send, Leaf, ChevronLeft, ChevronRight } from 'lucide-react';
-import { TeaLeafIcon } from '../Icons';
+import { useEffect, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { useSubmitTastingNotes } from '../../hooks/useEventPolling';
 import { useAppStore } from '../../lib/store';
+import { matchesEventTastingEntry } from '../../lib/tastingAccessors';
+import { syncTastingJournal } from '../../lib/tastingJournalSync';
 import type { TeaMenuItem } from '../../types/events';
-import type { CustomerTasting } from '../../types';
+import type { TastingData, TastingRecord } from '../../types';
+import { TastingSession } from '../tasting/TastingSession';
+import { ImpressionControls, ImpressionNoteField } from '../tasting/YourImpression';
+import { tastingNoteText } from '../tasting/tastingNoteText';
 
 interface TastingNotesFormProps {
   teaMenu: TeaMenuItem[];
   token: string;
-  className?: string;
-  /** Event ID to cross-link tastings into the personal journal */
   eventId?: string;
-  /** URL slug for the event, used for journal navigation */
   eventSlug?: string;
-  /** Event title shown as context in the journal */
   eventTitle?: string;
-  /** Called when the user dismisses the thank-you screen */
-  onClose?: () => void;
+  onClose: () => void;
 }
 
-interface NoteState {
-  rating: number;
-  impression: string;
+interface TastingDraft {
+  tasting: TastingData;
+  sharedNote: string;
   isFavorite: boolean;
 }
 
-const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, className = '', eventId, eventSlug, eventTitle, onClose }) => {
+type SavedDraft = Partial<TastingDraft> & { rating?: number; impression?: string };
+
+function restoreDraft(draft: SavedDraft | undefined, record: TastingRecord | undefined): TastingDraft {
+  let tasting = draft?.tasting ?? record?.tasting ?? {};
+  let sharedNote = draft?.sharedNote ?? record?.sessionSharedNote ?? draft?.impression;
+  // Older quick tastings stored their shared note as a single plain string.
+  if (sharedNote == null && Array.isArray(tasting.notes) && tasting.notes.length === 1 && typeof tasting.notes[0] === 'string') {
+    sharedNote = tasting.notes[0];
+    tasting = { ...tasting, notes: undefined };
+  }
+  if (draft?.rating) tasting = { ...tasting, rating: draft.rating };
+  return { tasting, sharedNote: sharedNote ?? '', isFavorite: draft?.isFavorite ?? record?.sessionFavorite ?? false };
+}
+
+function hasImpression({ tasting, sharedNote, isFavorite }: TastingDraft) {
+  return tasting.rating != null || tasting.quality != null || tasting.impression != null ||
+    tasting.wantToPurchase === true || tasting.inCollection != null || Boolean(sharedNote.trim()) || isFavorite;
+}
+
+const TastingNotesForm = ({ teaMenu, token, eventId, eventSlug, eventTitle, onClose }: TastingNotesFormProps) => {
   const sortedMenu = [...teaMenu].sort((a, b) => (a.brewOrder ?? 0) - (b.brewOrder ?? 0));
-  const { addTasting } = useAppStore();
+  const legacyDraftKey = `tasting-draft-${token}-no-event`;
+  const draftKey = eventId ? `tasting-draft-${token}-${eventId}` : legacyDraftKey;
+  const submitMutation = useSubmitTastingNotes(token);
+  const browsingJournal = useAppStore(state => state.tastingJournal);
+  const activeAccountId = useAppStore(state => state.activeAccountId);
+  const favoriteTeas = useAppStore(state => state.favoriteTeas);
+  const upsertTasting = useAppStore(state => state.upsertTastingByProductId);
 
-  const DRAFT_KEY = `tasting-draft-${token}-${eventId || 'no-event'}`;
+  const recordId = (item: TeaMenuItem) => `event-tasting:${eventId ?? item.eventId}:${item.id}`;
+  const savedRecord = (item: TeaMenuItem) => {
+    const productId = item.productId || item.id;
+    const sameTea = browsingJournal.filter(entry => matchesEventTastingEntry(entry, productId, activeAccountId));
+    const records = sameTea.flatMap(entry => entry.tastings);
+    const current = records.find(tasting => tasting.id === recordId(item));
+    if (current) return current;
+    // Old post-session notes had random IDs. Reuse the saved record when
+    // there is one unambiguous menu entry for this tea in the event.
+    const sameMenuTea = sortedMenu.filter(tea => (tea.productId || tea.id) === productId);
+    if (sameMenuTea.length !== 1) return undefined;
+    return records.find(tasting => tasting.sourceType === 'event' && tasting.eventId === (eventId ?? item.eventId));
+  };
 
-  const [notes, setNotes] = useState<Record<string, NoteState>>(() => {
-    // Hydrate from localStorage draft if available
+  const [draftOverrides, setDraftOverrides] = useState<Record<string, SavedDraft>>(() => {
+    let saved: Record<string, SavedDraft> = {};
     try {
-      const raw = localStorage.getItem(DRAFT_KEY);
-      if (raw) return JSON.parse(raw) as Record<string, NoteState>;
-    } catch { /* ignore */ }
-    const initial: Record<string, NoteState> = {};
-    sortedMenu.forEach((item) => {
-      initial[item.id] = { rating: 0, impression: '', isFavorite: false };
-    });
-    return initial;
+      const raw = localStorage.getItem(draftKey) ?? localStorage.getItem(legacyDraftKey);
+      if (raw) saved = JSON.parse(raw) ?? {};
+    } catch { /* local storage may be unavailable */ }
+    return saved;
   });
 
   const [currentStep, setCurrentStep] = useState(0);
+  const [fullTasting, setFullTasting] = useState<TastingRecord | null>(null);
   const [submitted, setSubmitted] = useState(false);
-  const submitMutation = useSubmitTastingNotes(token);
+  const [hasEdits, setHasEdits] = useState(false);
 
-  // Persist draft to localStorage on every change
   useEffect(() => {
-    if (submitted) return;
-    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(notes)); } catch { /* ignore */ }
-  }, [notes, submitted, DRAFT_KEY]);
+    if (submitted || !hasEdits) return;
+    try { localStorage.setItem(draftKey, JSON.stringify(draftOverrides)); } catch { /* local storage may be unavailable */ }
+  }, [draftOverrides, submitted, draftKey, hasEdits]);
 
   const currentItem = sortedMenu[currentStep];
+  if (!currentItem) return null;
 
-  const updateNote = (itemId: string, field: keyof NoteState, value: NoteState[keyof NoteState]) => {
-    setNotes((prev) => {
-      const updated = { ...prev };
+  const drafts = Object.fromEntries(sortedMenu.map(item => [item.id, restoreDraft(draftOverrides[item.id], savedRecord(item))]));
+  const currentDraft = drafts[currentItem.id];
+  const saveableTeas = sortedMenu.filter(item => hasImpression(drafts[item.id]) ||
+    (draftOverrides[item.id] != null && savedRecord(item) != null));
+  const productId = currentItem.productId || currentItem.id;
+  const inCollection = !!currentItem.productId && (currentDraft.tasting.inCollection ?? favoriteTeas.includes(productId));
+  const name = currentItem.customName || currentItem.productName || 'Unknown tea';
+  const recordFor = (item: TeaMenuItem, tasting: TastingData): TastingRecord => ({
+    id: savedRecord(item)?.id ?? recordId(item),
+    createdAt: savedRecord(item)?.createdAt ?? new Date().toISOString(),
+    tasting,
+    sourceType: 'event',
+    eventId: eventId ?? item.eventId,
+    eventSlug,
+    eventTitle,
+    sessionFavorite: drafts[item.id].isFavorite,
+    sessionSharedNote: drafts[item.id].sharedNote,
+  });
 
-      if (field === 'isFavorite' && value === true) {
-        // Only one favorite allowed
-        Object.keys(updated).forEach((key) => {
-          updated[key] = { ...updated[key], isFavorite: false };
-        });
-      }
-
-      updated[itemId] = { ...updated[itemId], [field]: value };
-      return updated;
-    });
+  const updateDraft = (changes: Partial<TastingDraft>) => {
+    setHasEdits(true);
+    setDraftOverrides(previous => ({ ...previous, [currentItem.id]: { ...currentDraft, ...changes } }));
   };
 
-  const handleSubmit = () => {
-    const tastingNotes = sortedMenu
-      .filter((item) => notes[item.id].rating > 0)
-      .map((item) => ({
-        teaMenuId: item.id,
-        rating: notes[item.id].rating,
-        impression: notes[item.id].impression || undefined,
-        isFavorite: notes[item.id].isFavorite,
-      }));
+  const handleSave = async () => {
+    try {
+      // The recap gets the host note and any legacy shared rating or favorite.
+      // Impression controls, the 1–10 rating and wheel notes stay in the journal.
+      const shared = saveableTeas.flatMap(item => {
+        const draft = drafts[item.id];
+        const impression = draft.sharedNote.trim();
+        const legacyRating = draft.tasting.rating;
+        const rating = legacyRating != null && legacyRating >= 1 && legacyRating <= 5 ? legacyRating : undefined;
+        const saved = savedRecord(item);
+        const previouslyShared = saved?.sessionFavorite || Boolean(saved && restoreDraft(undefined, saved).sharedNote.trim());
+        return impression || draft.isFavorite || rating || previouslyShared
+          ? [{ teaMenuId: item.id, rating, impression: impression || undefined, isFavorite: draft.isFavorite }]
+          : [];
+      });
+      if (shared.length > 0) await submitMutation.mutateAsync(shared);
 
-    if (tastingNotes.length === 0) return;
-
-    submitMutation.mutate(tastingNotes, {
-      onSuccess: () => {
-        // Cross-link: also write each rated tea into the personal tasting journal
-        if (eventId) {
-          sortedMenu
-            .filter((item) => notes[item.id].rating > 0)
-            .forEach((item) => {
-              const note = notes[item.id];
-              const productId = item.productId || item.id;
-              const recordId = crypto.randomUUID();
-              const now = new Date().toISOString();
-              const tastingPayload = {
-                rating: note.rating,
-                notes: note.impression ? [note.impression] : undefined,
-              };
-              const journalEntry: CustomerTasting = {
-                id: crypto.randomUUID(),
-                productId,
-                productName: item.customName || item.productName || 'Unknown Tea',
-                productType: item.productType || '',
-                productImage: item.productImageUrl || undefined,
-                note: {
-                  tasting: tastingPayload,
-                  personalNote: note.impression || undefined,
-                  rating: note.rating,
-                  updatedAt: now,
-                },
-                tastings: [{
-                  id: recordId,
-                  createdAt: now,
-                  tasting: tastingPayload,
-                  sourceType: 'event',
-                  eventId,
-                  eventSlug,
-                  eventTitle,
-                }],
-                createdAt: now,
-              };
-              addTasting(journalEntry);
-            });
+      for (const item of saveableTeas) {
+        const { tasting, sharedNote } = drafts[item.id];
+        const collection = useAppStore.getState();
+        if (item.productId && tasting.inCollection != null && collection.favoriteTeas.includes(item.productId) !== tasting.inCollection) {
+          collection.toggleFavoriteTea(item.productId);
         }
-        // Clear draft after successful submit
-        try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
-        setSubmitted(true);
-      },
-    });
+        upsertTasting(item.productId || item.id, item.customName || item.productName || 'Unknown tea',
+          item.productType || '', item.productImageUrl || undefined, recordFor(item, tasting), {
+            personalNote: tastingNoteText(tasting).trim() || sharedNote.trim() || undefined,
+            rating: tasting.quality ?? tasting.rating,
+            verdict: tasting.impression,
+            wouldBuy: tasting.wantToPurchase,
+          }, activeAccountId ?? undefined);
+      }
+      void syncTastingJournal();
+      try {
+        localStorage.removeItem(draftKey);
+        localStorage.removeItem(legacyDraftKey);
+      } catch { /* local storage may be unavailable */ }
+      setSubmitted(true);
+    } catch { /* mutation error shown beside the save controls */ }
   };
 
-  const isLastStep = currentStep === sortedMenu.length - 1;
-  const hasAnyRating = Object.values(notes).some((n) => n.rating > 0);
-  const currentNote = notes[currentItem?.id] ?? { rating: 0, impression: '', isFavorite: false };
+  if (fullTasting) {
+    return (
+      <TastingSession
+        item={{
+          id: productId,
+          name,
+          type: currentItem.productType || undefined,
+          image: currentItem.productImageUrl || undefined,
+          sourceType: 'event',
+          eventTitle,
+          journalRecord: fullTasting,
+          collectionUnavailable: !currentItem.productId,
+        }}
+        startOnWheel
+        onClose={() => setFullTasting(null)}
+        onAfterSave={tasting => updateDraft({ tasting })}
+      />
+    );
+  }
 
   if (submitted) {
     return (
-      <div className={`text-center py-12 animate-[fadeIn_0.5s_ease-out] ${className}`}>
-        <div className="w-14 h-14 rounded-full bg-tea-gold/10 flex items-center justify-center mx-auto mb-4">
-          <TeaLeafIcon className="w-7 h-7 text-tea-gold" filled />
-        </div>
-        <h3 className="text-xl text-tea-text mb-2 font-display">Thank You</h3>
-        <p className="text-sm text-tea-text-sec max-w-xs mx-auto mb-8">
-          Your impressions have been shared. They help us curate even better sessions.
-        </p>
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
-          >
-            Done
-          </button>
-        )}
+      <div className="text-center py-8">
+        <h2 className={TYPOGRAPHY_CLASSES.h2}>Tasting saved</h2>
+        <button type="button" onClick={onClose} className="tap-target cta-solid mt-5 rounded-md px-5">Done</button>
       </div>
     );
   }
 
-  if (!currentItem) return null;
-
   return (
-    <div className={`${className}`}>
-      <h3 className="text-xl text-tea-text mb-2 font-display">Share Your Impressions</h3>
-      <p className="text-ui-12 text-tea-text-sec uppercase tracking-[0.2em] mb-6" style={{ fontFamily: 'var(--font-body)' }}>
-        Rate the teas you tasted today
+    <section className="tasting-impression tasting-session-quick" aria-label="Post-session tasting">
+      {sortedMenu.length > 1 && (
+        <div className="flex items-center justify-between">
+          <button type="button" aria-label="Previous tea" disabled={currentStep === 0}
+            className="grid h-11 w-11 place-items-center disabled:invisible" onClick={() => setCurrentStep(step => step - 1)}>
+            <ChevronLeft size={18} aria-hidden="true" />
+          </button>
+          <span className={TYPOGRAPHY_CLASSES.accountMeta}>Tea {currentStep + 1} of {sortedMenu.length}</span>
+          <button type="button" aria-label="Next tea" disabled={currentStep === sortedMenu.length - 1}
+            className="grid h-11 w-11 place-items-center disabled:invisible" onClick={() => setCurrentStep(step => step + 1)}>
+            <ChevronRight size={18} aria-hidden="true" />
+          </button>
+        </div>
+      )}
+      <p className={TYPOGRAPHY_CLASSES.accountMeta}>
+        Quick tasting{currentItem.productType ? ` · ${currentItem.productType}` : ''}
       </p>
-
-      {/* Step progress */}
-      <div className="flex items-center gap-2 mb-6">
-        <div className="flex gap-1.5">
-          {sortedMenu.map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => setCurrentStep(i)}
-              className={`tap-target transition-all duration-200 rounded-full ${
-                i === currentStep
-                  ? 'w-5 h-2 bg-tea-gold'
-                  : notes[sortedMenu[i].id]?.rating > 0
-                    ? 'w-2 h-2 bg-tea-gold/40'
-                    : 'w-2 h-2 bg-tea-border'
-              }`}
-              aria-current={i === currentStep ? 'step' : undefined}
-              aria-label={`Go to tea ${i + 1}`}
-            />
-          ))}
-        </div>
-        <span className="text-ui-11 text-tea-text-dim ml-1" style={{ fontFamily: 'var(--font-mono)' }}>
-          {currentStep + 1} / {sortedMenu.length}
-        </span>
-      </div>
-
-      {/* Current tea card */}
-      <div className="p-5 bg-tea-surface border border-tea-border rounded-md mb-4">
-        {/* Tea info */}
-        <div className="mb-4">
-          <div className="flex items-center gap-2 mb-1">
-            {currentItem.productType && (
-              <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-gold">
-                {currentItem.productType}
-              </span>
-            )}
-          </div>
-          <h4 className="text-ui-16 text-tea-text font-display">
-            {currentItem.customName || currentItem.productName}
-          </h4>
-          {currentItem.customDescription && (
-            <p className="text-ui-12 text-tea-text-sec mt-1 line-clamp-2">{currentItem.customDescription}</p>
-          )}
-        </div>
-
-        {/* Rating: 5 tea leaves */}
-        <div className="mb-4">
-          <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2 font-display">
-            Rating
-          </p>
-          <div className="flex gap-2" role="radiogroup" aria-label="Rating">
-            {[1, 2, 3, 4, 5].map((level) => (
-              <button
-                key={level}
-                type="button"
-                role="radio"
-                aria-checked={currentNote.rating === level}
-                onClick={() => updateNote(currentItem.id, 'rating', currentNote.rating === level ? 0 : level)}
-                className="flex-1 min-h-[44px] flex items-center justify-center transition-all duration-200"
-                aria-label={`Rate ${level} out of 5`}
-              >
-                <Leaf
-                  size={26}
-                  className={`transition-colors duration-200 ${
-                    level <= currentNote.rating
-                      ? 'text-tea-gold fill-tea-gold'
-                      : 'text-tea-text-dim'
-                  }`}
-                />
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Impression */}
-        <div className="mb-3">
-          <input
-            type="text"
-            value={currentNote.impression}
-            onChange={(e) => updateNote(currentItem.id, 'impression', e.target.value)}
-            placeholder="One-line impression..."
-            aria-label="Your impression"
-            className="w-full px-3 py-2.5 min-h-[44px] bg-tea-bg border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-dim focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
-            style={{ fontFamily: 'var(--font-body)' }}
-          />
-        </div>
-
-        {/* Favorite toggle */}
-        <button
-          type="button"
-          aria-pressed={currentNote.isFavorite}
-          onClick={() => updateNote(currentItem.id, 'isFavorite', !currentNote.isFavorite)}
-          className={`inline-flex items-center gap-2 min-h-[44px] px-3 py-1.5 rounded-full text-ui-12 transition-all duration-200 ${
-            currentNote.isFavorite
-              ? 'bg-tea-gold/10 text-tea-text'
-              : 'bg-tea-elevated/50 text-tea-text-sec hover:bg-tea-elevated'
-          }`}
-        >
-          <Leaf size={14} className={currentNote.isFavorite ? 'fill-tea-gold' : ''} />
-          This was my favorite
+      <h2 className={TYPOGRAPHY_CLASSES.h2}>{name}</h2>
+      {currentItem.customDescription && <p className={TYPOGRAPHY_CLASSES.bodyLight}>{currentItem.customDescription}</p>}
+      <fieldset className="min-w-0" disabled={submitMutation.isPending}>
+        <ImpressionControls value={currentDraft.tasting} ratingLabel="Overall"
+          onChange={tasting => updateDraft({ tasting })}
+          verdict={currentDraft.tasting.impression ?? null}
+          onVerdict={verdict => updateDraft({ tasting: { ...currentDraft.tasting, impression: verdict ?? undefined } })}
+          wouldBuy={currentDraft.tasting.wantToPurchase ?? false}
+          onWouldBuy={wantToPurchase => updateDraft({ tasting: { ...currentDraft.tasting, wantToPurchase } })}
+          inCollection={inCollection} collectionUnavailable={!currentItem.productId}
+          onCollection={() => updateDraft({ tasting: { ...currentDraft.tasting, inCollection: !inCollection } })} />
+        <ImpressionNoteField label="Note to share with host (optional)" rows={2}
+          value={currentDraft.sharedNote} onChange={sharedNote => updateDraft({ sharedNote })} />
+      </fieldset>
+      <div className="tasting-quick-actions">
+        <button type="button" className="cta-solid" onClick={() => void handleSave()}
+          disabled={saveableTeas.length === 0 || submitMutation.isPending}>
+          {submitMutation.isPending ? 'Saving…' : 'Save tasting'}
+        </button>
+        <button type="button" onClick={() => setFullTasting(recordFor(currentItem, currentDraft.tasting))} disabled={submitMutation.isPending}>
+          Taste wheel
         </button>
       </div>
-
-      {/* Navigation */}
-      <div className="flex gap-3">
-        {currentStep > 0 && (
-          <button
-            type="button"
-            onClick={() => setCurrentStep(s => s - 1)}
-            className="flex items-center gap-1.5 px-4 py-3 border border-tea-border rounded-md text-sm text-tea-text-sec hover:text-tea-text transition-colors"
-          >
-            <ChevronLeft size={16} />
-            Back
-          </button>
-        )}
-
-        {!isLastStep ? (
-          <button
-            type="button"
-            onClick={() => setCurrentStep(s => s + 1)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-tea-surface border border-tea-border rounded-md text-sm text-tea-text hover:bg-tea-elevated transition-colors"
-          >
-            Next tea
-            <ChevronRight size={16} />
-          </button>
-        ) : (
-          <button
-            onClick={handleSubmit}
-            disabled={!hasAnyRating || submitMutation.isPending}
-            className="flex-1 py-3 cta-solid text-ui-12 uppercase tracking-[0.25em] font-semibold rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
-          >
-            {submitMutation.isPending ? (
-              <span className="inline-block w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />
-            ) : (
-              <>
-                <Send className="w-4 h-4" />
-                Share My Impressions
-              </>
-            )}
-          </button>
-        )}
-      </div>
-
-      {submitMutation.isError && (
-        <p className="text-sm text-tea-error text-center mt-3">
-          {submitMutation.error?.message || 'Failed to submit. Please try again.'}
-        </p>
-      )}
-    </div>
+      {submitMutation.isError && <p role="alert" className="mt-3 text-sm text-tea-error">{submitMutation.error.message}</p>}
+      <button type="button" onClick={onClose} disabled={submitMutation.isPending}
+        className="tap-target mt-1 w-full text-xs font-semibold">Skip</button>
+    </section>
   );
 };
 

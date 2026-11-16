@@ -90,6 +90,10 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     const requestKey = `${route.request().method()} ${path}`;
     const counts = requestCounts.get(page)!;
     counts.set(requestKey, (counts.get(requestKey) ?? 0) + 1);
+    // The fake Compass login is not a verified Read editor session. Match the
+    // shared browser fixture instead of treating this unrelated check as an
+    // unhandled Compass API request.
+    if (requestKey === 'POST /api/read/session') return route.fulfill({ json: { editor: false } });
     if (requestKey === 'GET /api/curate/ar-create/status') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ connected: false }) });
     if (requestKey === 'GET /api/curate/ar-create/links') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ links: [] }) });
     if (options?.contextFailOnce && requestKey === 'POST /api/curate/journeys' && counts.get(requestKey) === 1) {
@@ -401,6 +405,7 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       // A photo read for a label: nothing on it to fill in.
       'POST /api/extract-from-image': {},
       // Confirming an order records the purchase order.
+      'GET /api/logistics': { orders: [], shipments: [], services: [], addresses: [] },
       'GET /api/products/public': [], 'GET /api/user/favorites': { favorites: [] },
       'PUT /api/user/favorites': { ok: true },
       'GET /api/tasting-journal': { entries: [] }, 'GET /api/tea-discovery': { profile: null },
@@ -476,8 +481,10 @@ export async function expectNoUnhandledCompassApi(page: Page) {
   expect(unhandledByPage.get(page) ?? [], 'Compass test made unhandled API requests').toEqual([]);
 }
 
-export async function openCompass(page: Page) {
-  await page.goto('/admin/compass', { waitUntil: 'domcontentloaded' });
+/** Opens Curate on Source. `form: 'classic'` opens the earlier Source form
+ *  (`?form=classic`); without it the default 'flow' form opens. */
+export async function openCompass(page: Page, form?: 'classic') {
+  await page.goto(form ? `/admin/compass?form=${form}` : '/admin/compass', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('tab', { name: 'Source', exact: true })).toHaveAttribute('aria-selected', 'true', { timeout: 15_000 });
 }
 

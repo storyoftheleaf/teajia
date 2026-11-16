@@ -2,13 +2,14 @@ import { ArTranscriptHandoff } from './ArTranscriptHandoff';
 import { ArCreatePairing } from './ArTeaSources';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Check, ChevronDown, ChevronUp, FlaskConical, Loader2, Mic, Plus, Search, Square, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompassStore';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { syncNotes } from '../../lib/notesSync';
+import { LegacyLocalRecovery } from './LegacyLocalRecovery';
 import { useNotesStore } from '../../lib/notesStore';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
@@ -21,6 +22,7 @@ import { entryIsSample } from './types';
 import { CompassIcon } from './CompassIcon';
 import { SessionStack } from './SessionStack';
 import { CaptureCard, type CaptureCardActions } from './CaptureCard';
+import { layoutFromAddress } from '../curate/captureFormLayout';
 import { LibraryCurrencyPicker } from './LibraryCurrencyPicker';
 import { readLibraryPricePreference } from './libraryPriceDisplay';
 import { BrowseView } from './BrowseView';
@@ -110,13 +112,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   });
 
   const { activeUserId, activeAccountId, activeAccount } = useAppStore();
-  const switchDraftAccount = useTeaCompassStore((s) => s.switchDraftAccount);
   const { addNote } = useNotesStore();
 
   const addSampleTasting = useSampleStore((s) => s.addTasting);
   const samplesList = useSampleStore((s) => s.samples);
 
   const navigate = useNavigate();
+  const [, setRecordParams] = useSearchParams();
   const queryClient = useQueryClient();
 
 
@@ -129,12 +131,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // Account changes always swap the isolated draft bucket. Only Source owns
   // capture-shell creation; opening Library or Ledger must remain read-only.
   useEffect(() => {
-    switchDraftAccount(activeAccountId);
+    useTeaCompassStore.getState().switchAccount(activeAccountId, activeUserId);
     useLedgerStore.getState().switchAccount(activeAccountId);
-    if (mode === 'sourcing' && activeAccountId && !initialDevelopmentProduct && !useTeaCompassStore.getState().activeEntryId) {
+    if (mode === 'sourcing' && activeAccountId && activeUserId && !initialDevelopmentProduct && !useTeaCompassStore.getState().activeEntryId) {
       startNewCapture('tea');
     }
-  }, [activeAccountId, initialDevelopmentProduct, mode, startNewCapture, switchDraftAccount]);
+  }, [activeAccountId, activeUserId, initialDevelopmentProduct, mode, startNewCapture]);
 
   // Incoming pending shares (not yet accepted into compass)
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -237,7 +239,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     setBusyLibraryImportId(null); setLibraryImportErrors({}); setLibraryDeleteFocusRequest(null);
     importTriggerRef.current = null;
     setImportPointerId(activeAccountId ? localStorage.getItem(`teajia-curate-import:${activeAccountId}`) : null);
-  }, [activeAccountId]);
+  }, [activeAccountId, activeUserId]);
   const { data: pointedImport } = useQuery({
     queryKey: ['curate-import', importPointerId, activeAccountId],
     queryFn: () => api.curateImports.get(importPointerId!),
@@ -621,7 +623,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         teaKey: entry?.teaKey,
         text,
         sourceType: 'voice',
-        authorId: activeAccountId ?? 'guest',
+        authorId: activeUserId ?? 'guest',
         authorName: activeAccount?.name ?? 'You',
         visibility: 'private',
       });
@@ -672,6 +674,19 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   // Desktop tasting: which entry is shown in the right detail panel
   const [tastingSelectedEntryId, setTastingSelectedEntryId] = useState<string | null>(null);
+  const selectLibraryRecord = useCallback((id: string | null) => {
+    setTastingSelectedEntryId(id);
+    setRecordParams(current => {
+      const params = new URLSearchParams(current);
+      if (id) {
+        params.set('tab', 'library');
+        params.set('entry', id);
+      } else {
+        params.delete('entry');
+      }
+      return params;
+    }, { replace: !id });
+  }, [setRecordParams]);
   const [pendingLibraryAcquisitionId, setPendingLibraryAcquisitionId] = useState<string | null>(null);
   const initialRecordRequest = useRef('');
   useEffect(() => {
@@ -684,17 +699,19 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   }, [activeAccountId, getEntry, initialEntryExists, initialEntryId, initialMode, setActiveEntry]);
   // Mode changes clear the old selection first; apply route selection afterwards.
   useEffect(() => {
-    if (mode === 'library' && initialMode === 'library' && initialEntryId && initialEntryExists) setTastingSelectedEntryId(initialEntryId);
+    if (mode !== 'library') return;
+    if (initialMode === 'library' && initialEntryId && initialEntryExists) setTastingSelectedEntryId(initialEntryId);
+    else if (!initialEntryId) setTastingSelectedEntryId(null);
   }, [initialEntryExists, initialEntryId, initialMode, mode]);
 
 
   const openLibraryAcquisition = useCallback((id: string) => {
     setActiveEntry(id);
     setFromLibrary(true);
-    setTastingSelectedEntryId(null);
+    selectLibraryRecord(null);
     setPendingLibraryAcquisitionId(id);
     setMode('sourcing');
-  }, [setActiveEntry, setFromLibrary]);
+  }, [selectLibraryRecord, setActiveEntry, setFromLibrary]);
 
   useEffect(() => {
     if (mode !== 'sourcing') setPendingLibraryAcquisitionId(null);
@@ -715,7 +732,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const tabs: { id: CompassMode; label: string; badge?: number }[] = [
     { id: 'sourcing', label: 'Source' },
     { id: 'library', label: 'Library', badge: pendingIncomingCount > 0 ? pendingIncomingCount : undefined },
-    { id: 'buying', label: 'Ledger' },
+    { id: 'buying', label: 'Orders' },
   ];
   const currentTab = tabs.find((t) => t.id === mode);
 
@@ -724,6 +741,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // logo slot via useBottomBarMic; that broke the home affordance, so
   // voice capture lives contextually here in the panel instead.
   const showInlineMic = mode === 'sourcing' && isPlatformPrivileged;
+  // The 'flow' form (the default; `?form=classic` shows the earlier one): the two
+  // header rows stay where they are while the page scrolls, mark the active
+  // word one way (gold, hairline underline, no boxes), and read as title and
+  // subtitle by size and brightness. The microphone is an icon in the second
+  // row. Labels, order, targets and what a recording does are unchanged.
+  const flowForm = layoutFromAddress() === 'flow';
 
   // Library, desktop, nothing selected → the list fills the whole pane as a
   // grid (no narrow rail beside an empty detail panel). Selecting an entry
@@ -746,7 +769,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           scroll-up. Resets to revealed when the user is at the top. */}
       <div
         className={`shrink-0 overflow-hidden bg-tea-bg transition-[max-height,opacity] duration-200 ease-out lg:!max-h-none lg:!opacity-100 ${
-          headerCollapsed ? 'max-h-0 opacity-0' : 'max-h-[112px] opacity-100'
+          headerCollapsed && !flowForm ? 'max-h-0 opacity-0' : 'max-h-[112px] opacity-100'
         }`}
         style={{ position: 'relative', zIndex: 5 }}
       >
@@ -781,7 +804,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   data-curate-compact-target
                 >
                   <span
-                    className={`curate-compact-chrome w-full border-b text-ui-12 font-medium transition-colors lg:px-3 ${
+                    className={flowForm ? `curate-compact-chrome w-full border-b text-ui-13 font-medium transition-colors lg:px-3 ${
+                      active ? 'border-tea-gold text-tea-gold' : 'border-transparent text-tea-text-sec hover:text-tea-text'
+                    }` : `curate-compact-chrome w-full border-b text-ui-12 font-medium transition-colors lg:px-3 ${
                       active ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-transparent text-tea-text-sec hover:text-tea-text'
                     }`}
                     data-curate-compact-chrome
@@ -810,6 +835,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 setSampleOrderManaging(false);
                 handleSwitchMode('library');
               }}
+              chromeClassName={flowForm ? 'curate-compact-chrome w-full whitespace-nowrap border-b border-transparent text-ui-13 font-medium lg:px-3' : undefined}
             />
           </div>
 
@@ -866,7 +892,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     data-curate-compact-target
                   >
                     <span
-                      className={`curate-compact-chrome border-b px-2 text-ui-12 font-medium transition-colors ${
+                      className={flowForm ? `curate-compact-chrome border-b px-2 text-ui-12 transition-colors ${
+                        active ? 'border-tea-gold text-tea-gold' : 'border-transparent text-tea-text-dim hover:text-tea-text-sec'
+                      }` : `curate-compact-chrome border-b px-2 text-ui-12 font-medium transition-colors ${
                         active ? 'border-tea-gold text-tea-text' : 'border-transparent text-tea-text-sec hover:text-tea-text'
                       }`}
                       data-curate-compact-chrome
@@ -892,7 +920,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   : voiceState === 'transcribing' ? 'Transcribing…'
                   : 'Record voice note'
                 }
-                className={`tap-target relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md transition-colors ${
+                className={flowForm ? 'tap-target group relative inline-flex h-11 w-11 shrink-0 items-center justify-center' : `tap-target relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md transition-colors ${
                   voiceState === 'recording'
                     ? 'border border-tea-gold/60 bg-tea-gold/10 text-tea-gold'
                     : voiceState === 'error'
@@ -902,7 +930,28 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub'
                 }`}
               >
-                {voiceState === 'recording' ? (
+                {flowForm ? (
+                  <span
+                    className={`inline-flex items-center justify-center transition-colors ${
+                      voiceState === 'recording'
+                        ? 'rounded-full border border-tea-gold/60 bg-tea-gold/10 px-2.5 py-1 text-tea-gold'
+                        : voiceState === 'error'
+                          ? 'text-tea-error'
+                          : voiceState === 'transcribing'
+                            ? 'text-tea-text-dim cursor-wait'
+                            : 'text-tea-text group-hover:text-tea-gold'
+                    }`}
+                    data-testid="curate-header-mic"
+                  >
+                    {voiceState === 'recording' ? (
+                      <Square size={14} fill="currentColor" strokeWidth={0} />
+                    ) : voiceState === 'transcribing' ? (
+                      <Loader2 size={18} className="animate-spin" strokeWidth={1.75} />
+                    ) : (
+                      <Mic size={18} strokeWidth={1.75} />
+                    )}
+                  </span>
+                ) : voiceState === 'recording' ? (
                   <Square size={12} fill="currentColor" strokeWidth={0} />
                 ) : voiceState === 'transcribing' ? (
                   <Loader2 size={14} className="animate-spin" strokeWidth={1.75} />
@@ -1209,13 +1258,14 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       })}
                     </div>
                   )}
+                  <div className="flex justify-end"><LegacyLocalRecovery /></div>
                   <BrowseView
                     displayPreference={libraryDisplayPreference}
                     onEditEntry={handleEditEntry}
                     onNewCapture={handleNewCapture}
                     externalSearchQuery={tabSearchQuery}
                     onAcquireEntry={openLibraryAcquisition}
-                    onOpenDetail={setTastingSelectedEntryId}
+                    onOpenDetail={selectLibraryRecord}
                   />
                 </motion.div>
               ) : (
@@ -1280,7 +1330,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               expands to fill the whole pane as a grid (libraryGrid). ── */}
           <div
             className={`flex flex-col overflow-hidden ${
-              libraryGrid
+              libraryGrid || mode === 'buying'
                 ? 'flex-1 min-w-0'
                 : 'w-[264px] shrink-0 border-r border-tea-border'
             }`}
@@ -1572,16 +1622,17 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         })}
                       </div>
                     )}
+                    <div className="flex justify-end"><LegacyLocalRecovery /></div>
                     <BrowseView
                     displayPreference={libraryDisplayPreference}
                       onEditEntry={handleEditEntry}
                       onNewCapture={handleNewCapture}
                       externalSearchQuery={tabSearchQuery}
-                      onSelectEntry={(id) => setTastingSelectedEntryId(id)}
+                      onSelectEntry={selectLibraryRecord}
                       selectedEntryId={tastingSelectedEntryId}
                       gridMode={libraryGrid}
                       onAcquireEntry={openLibraryAcquisition}
-                      onOpenDetail={setTastingSelectedEntryId}
+                      onOpenDetail={selectLibraryRecord}
                     />
                   </motion.div>
                 )}
@@ -1628,7 +1679,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
           {/* ── RIGHT COLUMN (flex-1), hidden in Library grid mode, where the
               left column owns the full width until an entry is selected. ── */}
-          <div className={`flex-col flex-1 min-w-0 overflow-hidden ${libraryGrid ? 'hidden' : 'flex'}`}>
+          <div className={`flex-col min-w-0 overflow-hidden ${libraryGrid ? 'hidden' : 'flex'} ${mode === 'buying' ? 'w-[min(34%,360px)] shrink-0 border-l border-tea-border' : 'flex-1'}`}>
 
             {/* Right column scrollable content */}
             <div
@@ -1682,7 +1733,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                             className="mx-auto mt-2 w-full max-w-3xl border-t border-tea-border bg-tea-surface px-3 py-2"
                             onBuy={() => captureCardActionsRef.current?.toggleBuy()}
                             onDone={handleDoneClick}
-                            onSample={() => captureCardActionsRef.current?.openTasting()}
+                            onSample={() => flowForm ? captureCardActionsRef.current?.openSample() : captureCardActionsRef.current?.openTasting()}
+                            primaryLast={flowForm}
                             doneEnabled={!!activeEntryId && captureDoneReady}
                             doneTestId="compass-done-desktop"
                             buyExpanded={captureBuyExpanded}
@@ -1755,8 +1807,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       <ArCreatePairing />
       <ArTranscriptHandoff />
 
-      <BottomSheet open={mode === 'library' && !!tastingSelectedEntryId} onOpenChange={open => { if (!open) setTastingSelectedEntryId(null); }} title="Tea details" large className="library-details-sheet">
-        {tastingSelectedEntryId && <CompassEntryDetailPanel embedded entryId={tastingSelectedEntryId} onClose={() => setTastingSelectedEntryId(null)} onAcquire={openLibraryAcquisition}
+      <BottomSheet open={mode === 'library' && !!tastingSelectedEntryId} onOpenChange={open => { if (!open) selectLibraryRecord(null); }} title="Tea details" large className="library-details-sheet">
+        {tastingSelectedEntryId && <CompassEntryDetailPanel embedded entryId={tastingSelectedEntryId} onClose={() => selectLibraryRecord(null)} onAcquire={openLibraryAcquisition}
           onOpenInventory={(productId) => navigate(`/admin/stock?panel=${encodeURIComponent(productId)}`)}
           onShare={hasToken() ? (id) => { setActiveEntry(id); setShareModalOpen(true); } : undefined} />}
       </BottomSheet>

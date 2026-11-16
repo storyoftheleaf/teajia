@@ -65,3 +65,13 @@ Connected, a session can do the admin work directly instead of describing it: se
 **Schema:** `mcp_tokens` in [0000_initial_schema.sql](../../worker/migrations/0000_initial_schema.sql) (tokens as SHA-256 hash; `last_used_at` bumped on auth), `mcp_confirmation_tickets` (same file) (durable confirm tickets), `oauth_clients`, `oauth_codes` and `oauth_authorize_requests` (same file) (OAuth + scoped grants + mobile-safe consent passing).
 
 **AI discoverability:** `public/llms.txt` indexes the public MCP + shop + journal; Organization/WebSite JSON-LD in `index.html`, Product JSON-LD on `ProductPage`, Article JSON-LD on `ArticlePage`.
+
+### Explicit scope consent
+
+Tokens minted without a scope selection retain the existing legacy default set.
+An explicit selection is different: empty, malformed or fully filtered choices
+are refused instead of replaced by defaults. OAuth decisions return
+`invalid_scope`; unusable stored grants return `invalid_grant` before consuming
+the authorization code. The admin mint route returns `invalid_scopes` without a
+token or mint audit entry. Valid selections remain limited to their accepted
+scopes; existing owner-only approval and live-authority checks still apply.

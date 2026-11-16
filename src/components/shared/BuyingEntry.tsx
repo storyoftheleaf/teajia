@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import { useShopOrders } from '../CurateV2/shopOrders';
 import { CartPanel } from './CartPanel';
+import { IN_PROCESS_STATUSES } from './inProcessStatus';
 
-// Order statuses that are on their way; InProcess.tsx lists the same three.
-const ON_ITS_WAY = ['confirmed', 'sent', 'shipped'];
+// Order statuses that are on their way; the same list InProcess.tsx shows.
+const ON_ITS_WAY = IN_PROCESS_STATUSES;
 
 /** The doors to buying, shown only while there is something there:
  *  "Buying · 3 teas from 2 suppliers" and "In process · 2 orders". Owner screens only. */

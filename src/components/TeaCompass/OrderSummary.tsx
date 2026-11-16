@@ -8,31 +8,11 @@ import { acquisitionDraftLine } from './acquisitionPricing';
 import { GRAM_PRESETS, DEFAULT_GRAMS } from './types';
 import type { Currency } from '../../admin/types';
 import { ledgerLinePrice } from './curatePricing';
+import { formatSourceMoney as formatCurrency, groupRecordedMoney } from '../../lib/sourceMoneyDisplay';
 
 interface OrderSummaryProps {
   open: boolean;
   onClose: () => void;
-}
-
-// ─── Currency display ────────────────────────────────────────────────────
-
-const CURRENCY_SYMBOLS: Record<Currency, string> = {
-  USD: '$',
-  NT: 'NT$',
-  Yuan: 'CN¥',
-  IDR: 'Rp',
-  JPY: 'JP¥',
-  MYR: 'RM',
-  HKD: 'HK$',
-  AUD: 'A$',
-  UNK: '',
-};
-
-function formatCurrency(amount: number, currency: Currency): string {
-  const sym = CURRENCY_SYMBOLS[currency] || '';
-  // No decimals for NT, IDR, JPY
-  const decimals = ['NT', 'IDR', 'JPY'].includes(currency) ? 0 : 2;
-  return `${sym}${amount.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
@@ -64,6 +44,13 @@ function getLinePrice(entry: TeaCompassEntry, qty: number): number {
   return entry.priceAmount ?? 0;
 }
 
+/** Display refuses a missing quote; confirmation retains its existing unpriced-draft handling. */
+function displayLinePrice(entry: TeaCompassEntry, qty: number): number | null {
+  if (entry.priceAmount == null || !Number.isFinite(entry.priceAmount) || entry.priceAmount < 0) return null;
+  const total = getLinePrice(entry, qty);
+  return Number.isFinite(total) && total >= 0 ? total : null;
+}
+
 // ─── Line item component ────────────────────────────────────────────────
 
 interface LineItemProps {
@@ -75,7 +62,7 @@ interface LineItemProps {
 const TeaLineItem: React.FC<LineItemProps> = ({ entry, quantity, onQuantityChange }) => {
   const unitBased = isUnitBased(entry.form);
   const gramEquiv = unitBased ? getDefaultGrams(entry.form) * quantity : undefined;
-  const lineTotal = getLinePrice(entry, quantity);
+  const lineTotal = displayLinePrice(entry, quantity);
   const presets = !unitBased && entry.form ? GRAM_PRESETS[entry.form] : null;
 
   return (
@@ -143,12 +130,12 @@ const TeaLineItem: React.FC<LineItemProps> = ({ entry, quantity, onQuantityChang
         </div>
 
         {/* Line total */}
-        {entry.priceAmount != null && entry.priceAmount > 0 && (
+        {(
           <div className="text-right tabular-nums">
             <p className="text-sm text-tea-text-sec">
-              {unitBased
+              {entry.priceAmount != null && unitBased
                 ? <>{quantity} <span className="text-tea-text-dim">×</span> {formatCurrency(entry.priceAmount, entry.priceCurrency)}</>
-                : entry.pricePerUnitGrams
+                : entry.priceAmount != null && entry.pricePerUnitGrams
                   ? <>{quantity}g <span className="text-tea-text-dim">×</span> {formatCurrency(entry.priceAmount / entry.pricePerUnitGrams, entry.priceCurrency)}/g</>
                   : null
               }
@@ -187,7 +174,7 @@ const TeaLineItem: React.FC<LineItemProps> = ({ entry, quantity, onQuantityChang
 };
 
 const TeawareLineItem: React.FC<LineItemProps> = ({ entry, quantity, onQuantityChange }) => {
-  const lineTotal = (entry.priceAmount ?? 0) * quantity;
+  const lineTotal = displayLinePrice(entry, quantity);
 
   return (
     <div className="py-5 border-b border-tea-border last:border-b-0">
@@ -238,7 +225,7 @@ const TeawareLineItem: React.FC<LineItemProps> = ({ entry, quantity, onQuantityC
         </div>
 
         {/* Line total */}
-        {entry.priceAmount != null && entry.priceAmount > 0 && (
+        {(
           <div className="text-right tabular-nums">
             {quantity > 1 && (
               <p className="text-sm text-tea-text-sec">
@@ -302,13 +289,10 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
     setQuantities((prev) => ({ ...prev, [id]: qty }));
   }, []);
 
-  // Grand total
-  const grandTotal = useMemo(() => {
-    return buyingEntries.reduce((sum, e) => {
-      const qty = quantities[e.id] ?? 1;
-      return sum + getLinePrice(e, qty);
-    }, 0);
-  }, [buyingEntries, quantities]);
+  // Totals stay in each recorded money; no FX or implicit common currency.
+  const displayTotals = useMemo(() => groupRecordedMoney(buyingEntries.map(e => ({
+    amount: displayLinePrice(e, quantities[e.id] ?? 1), currency: e.priceCurrency,
+  }))), [buyingEntries, quantities]);
 
   // Common currency (all items should share one)
   const currency = buyingEntries[0]?.priceCurrency ?? 'NT';
@@ -428,8 +412,8 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
             {/* Total */}
             <div className="flex items-baseline justify-between mt-6 pt-6 border-t border-tea-border mb-5">
               <span className="text-lg text-tea-text-sec">Total</span>
-              <span className="text-3xl font-medium text-tea-gold tabular-nums tracking-tight">
-                {formatCurrency(grandTotal, currency)}
+              <span aria-label="Totals by recorded currency" className={`min-w-0 text-right font-medium text-tea-gold tabular-nums tracking-tight ${displayTotals.length > 1 || displayTotals[0]?.currency === 'UNK' ? 'text-base leading-snug' : 'text-3xl'}`}>
+                {displayTotals.length ? displayTotals.map(total => <span key={total.currency} className="block">{formatCurrency(total.amount, total.currency)}</span>) : '–'}
               </span>
             </div>
 

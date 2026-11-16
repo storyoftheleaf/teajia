@@ -1,6 +1,8 @@
 import { inventoryTeaType } from '../../wisdom/vocabulary';
 import { StockHeadingStudy } from './inventory/stock/StockHeadingStudy';
 import type { InventoryFacetFilter } from './inventory/domain';
+import { renderedRowIds, shiftRangeIds } from './inventory/selectionRange';
+import { summaryStatusOnRefetch } from './inventory/domain';
 import { StockBrowseBar } from './inventory/stock/StockBrowseBar';
 import { StockViewOptions } from './inventory/stock/StockViewOptions';
 import { UnknownSupplierSheet } from './inventory/stock/UnknownSupplierSheet';
@@ -17,7 +19,7 @@ import { useSearchParams, useNavigate, Link, Navigate } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Download,
   AlertTriangle, Archive, ArrowUpDown, ArrowUp, ArrowDown, Layers, MoreHorizontal, Check, X as XIcon, Star, Sparkles, RefreshCw, ChevronDown, ChevronRight, MapPin, Search, Leaf, Image as ImageIcon, History, SlidersHorizontal,
-  Pencil, BookOpen, ChevronsUp, ChevronsDown,
+  Pencil, BookOpen, ChevronsUp, ChevronsDown, Trash2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Papa from 'papaparse';
@@ -91,7 +93,7 @@ import { StockMovementPanel } from './inventory/StockMovementPanel';
 import { InventorySourcePanel } from './inventory/InventorySourcePanel';
 import { SupplierSheet } from '../../components/shared/SupplierSheet';
 import { TastingSession } from '../../components/tasting/TastingSession';
-import { adaptInventorySummaryRows, inventoryMatchesFacetFilter, buildPersonalJournalHref, getPersonalTastingAction, inventorySummaryStatusMessage, isInventoryPublicationGateChangeAllowed, isInventorySelectionPublishable } from './inventory/domain';
+import { adaptInventorySummaryRows, inventoryMatchesFacetFilter, buildPersonalJournalHref, getPersonalTastingAction, inventorySummaryStatusMessage, inventoryPublicationRequirements, isInventoryPublicationGateChangeAllowed, isInventorySelectionPublishable } from './inventory/domain';
 import type { IncomingInventorySummary, InventorySummaryRow, InventorySummaryStatus, InventoryWritingSummary, PersonalTastingSummary } from './inventory/domain';
 
 interface InventoryViewProps {
@@ -111,6 +113,7 @@ interface InventoryViewProps {
   onSearchQueryChange?: (query: string) => void;
   onCategoryChange?: (category: 'tea' | 'teaware') => void;
   activeAccountName?: string;
+  canReviewDrafts?: boolean;
   /** Options menu controlled from parent top bar */
   externalShowOptions?: boolean;
   onOptionsToggle?: (open: boolean) => void;
@@ -158,7 +161,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   products, isLoading, isError, error, onImportClick, onAddClick, onRefresh, onProductsChanged, onProductDeleted,
   externalCategory = 'tea', externalSearchQuery = '',
   externalShowOptions, onOptionsToggle, onSearchQueryChange, onCategoryChange,
-  activeAccountName = '',
+  activeAccountName = '', canReviewDrafts = false,
   inventorySummary,
 }) => {
   const { showToast } = useToast();
@@ -217,6 +220,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const tastingFilter: InventoryFacetFilter | '' = ['Untasted', 'Tasted', 'HasProductTasting', 'NeedsProductTasting'].includes(tastingValue) ? tastingValue as InventoryFacetFilter : '';
   const batchFilter = searchParams.get('batch') || '';
   const panelParam = searchParams.get('panel') || '';
+  const draftMode = canReviewDrafts && searchParams.get('view') === 'drafts';
+  const requestedTriage = searchParams.get('triage');
+  const draftTriage = draftMode && (requestedTriage === 'ready' || requestedTriage === 'review') ? requestedTriage : '';
   // A wisdom entry as a filter, in the same shape as vendor and batch: the
   // address names it, the list narrows to it, one chip clears it. Wisdom's
   // blast radius writes this link so "sixty products resolve through this
@@ -261,8 +267,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   }, [searchQuery, vendorSuggestions]);
   // The remembered view decides the filter on arrival. Starting at 'All' while
   // the menu kept saying "Samples" showed every tea under a Samples heading.
-  const [filterType, setFilterType] = useState<string>(() =>
+  const [selectedFilterType, setFilterType] = useState<string>(() =>
     [...savedViews, ...DEFAULT_TEA_VIEWS, ...DEFAULT_TEAWARE_VIEWS].find(view => view.id === activeViewId)?.filterType ?? 'All');
+  const filterType = draftMode ? 'Drafts' : selectedFilterType;
   const [showOptionsInternal, setShowOptionsInternal] = useState(false);
   const showOptions = externalShowOptions ?? showOptionsInternal;
   const setShowOptions = (v: boolean) => { setShowOptionsInternal(v); onOptionsToggle?.(v); };
@@ -316,6 +323,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [inventorySummaryStatus, setInventorySummaryStatus] = useState<InventorySummaryStatus>('loading');
   const [inventorySummaryRefreshKey, setInventorySummaryRefreshKey] = useState(0);
   const inventorySummaryAccountRef = useRef<string | null>(null);
+  const inventorySummaryRowsRef = useRef(inventorySummaryRows);
+  inventorySummaryRowsRef.current = inventorySummaryRows;
   useEffect(() => {
     const refresh = (event: Event) => {
       const changed = (event as CustomEvent<CommerceChange>).detail;
@@ -328,8 +337,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     let cancelled = false;
     const accountChanged = inventorySummaryAccountRef.current !== tastingAccountId;
     inventorySummaryAccountRef.current = tastingAccountId;
-    if (accountChanged) setInventorySummaryRows([]);
-    setInventorySummaryStatus('loading');
+    if (accountChanged) { setInventorySummaryRows([]); inventorySummaryRowsRef.current = []; }
+    setInventorySummaryStatus(current => summaryStatusOnRefetch(current, inventorySummaryRowsRef.current.length > 0, accountChanged));
     api.inventorySummaries.list()
       .then(result => {
         if (cancelled) return;
@@ -760,7 +769,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         const p = curateHoldingAsProduct(h, compassEntries.find((e) => e.id === h.entry.id) ?? null);
         // rateToUsd is units of that money per dollar, so dollars = amount / rate.
         const perUsd = p.costCurrency ? rateToUsd(rates, String(p.costCurrency)) : null;
-        if (perUsd && p.costAmount != null && p.quantityPurchased) p.costPerGramUSD = p.costAmount / perUsd / p.quantityPurchased;
+        if (p.costPerGramUSD !== null && perUsd && p.costAmount != null && p.quantityPurchased) p.costPerGramUSD = p.costAmount / perUsd / p.quantityPurchased;
         return p;
       });
     let rejected = 0;
@@ -787,6 +796,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     inventoryCategory,
     searchQuery,
     filterType,
+    draftTriage,
     teaTypeFilter: inventoryCategory === 'tea' ? teaTypeFilter : '',
     tastingFilter: inventoryCategory === 'tea' ? tastingFilter : '',
     inventorySortConfig,
@@ -1102,6 +1112,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const panelProductRef = useRef(panelProduct);
   useLayoutEffect(() => { selectedIdsRef.current = selectedIds; }, [selectedIds]);
   useLayoutEffect(() => { processedProductsRef.current = processedProducts; }, [processedProducts]);
+  const groupedProductsRef = useRef(groupedProducts);
+  const collapsedGroupsRef = useRef(collapsedGroups);
+  useLayoutEffect(() => { groupedProductsRef.current = groupedProducts; collapsedGroupsRef.current = collapsedGroups; }, [groupedProducts, collapsedGroups]);
   useLayoutEffect(() => { shopFreightRef.current = shopFreight.perKgUsd; }, [shopFreight.perKgUsd]);
   useLayoutEffect(() => { productIndexMapRef.current = productIndexMap; }, [productIndexMap]);
   useLayoutEffect(() => { ratesRef.current = rates; }, [rates]);
@@ -1278,21 +1291,23 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       if (needsRetailCalc) {
         const isTeaware = updated.type === 'Teaware';
         const nextCurrency = String(field === 'costCurrency' ? value : p.costCurrency) || 'USD';
+        const freight = isTeaware ? 0
+          : (field === 'shippingRatePerKg' ? enteredNumber(value) : p.shippingRatePerKg)
+            ?? shopRateInCurrency(shopFreightRef.current, rateToUsd(ratesRef.current, nextCurrency));
+        if (freight === null) return updated;
         const calc = calculatePricing(
           field === 'costAmount' ? enteredNumber(value) : p.costAmount,
           /* `??`, not `||`. The shop rate applies when nobody entered one, and
              that is what NULL means; a typed 0 is Adrian saying this tea ships
              free and has to survive to the preview, or the number he sees while
              editing is not the number he just entered. */
-          (field === 'shippingRatePerKg' ? enteredNumber(value) : p.shippingRatePerKg)
-            ?? shopRateInCurrency(shopFreightRef.current, rateToUsd(ratesRef.current, nextCurrency))
-            ?? 0,
+          freight,
           Number(field === 'quantityPurchased' ? value : p.quantityPurchased) || 0,
           nextCurrency,
           ratesRef.current,
           isTeaware
         );
-        if (calc.suggestedRetailUSD >= 0) {
+        if (calc.rateUsed > 0 && calc.suggestedRetailUSD >= 0) {
           updated.pricePerGramUSD = parseFloat(calc.suggestedRetailUSD.toFixed(4));
         }
       }
@@ -1847,10 +1862,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // --- FEATURE 7: BULK EDIT HANDLERS ---
   const toggleSelectId = (id: string, idx: number, shiftKey = false) => {
     if (shiftKey && lastSelectedIdxRef.current !== null) {
-      const start = Math.min(lastSelectedIdxRef.current, idx);
-      const end = Math.max(lastSelectedIdxRef.current, idx);
-      const rangeIds = processedProducts.slice(start, end + 1).map(p => p.id);
-      const adding = !selectedIds.has(id);
+      // Memoised rows can hold an older copy of this function, so read the
+      // latest lists from refs, and walk the order the rows are drawn in.
+      const anchorId = processedProductsRef.current[lastSelectedIdxRef.current]?.id ?? null;
+      const rendered = renderedRowIds(groupedProductsRef.current, collapsedGroupsRef.current, processedProductsRef.current);
+      const rangeIds = shiftRangeIds(rendered, anchorId, id);
+      const adding = !selectedIdsRef.current.has(id);
       setSelectedIds(prev => {
         const next = new Set(prev);
         rangeIds.forEach(rid => adding ? next.add(rid) : next.delete(rid));
@@ -2214,9 +2231,36 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Big, thumb-reachable action row for the mobile bottom sheets.
   const actionRow = 'w-full flex items-center gap-3 px-3 py-3.5 rounded-xl text-left text-base transition-colors disabled:opacity-50';
 
-  const stockViews = (savedViews.length > 0 ? savedViews : activeDefaultViews).filter(view => inventoryCategory === 'teaware' ? view.id.includes('teaware') : !view.id.includes('teaware'));
+  const categoryViews = (savedViews.length > 0 ? savedViews : activeDefaultViews).filter(view => inventoryCategory === 'teaware' ? view.id.includes('teaware') : !view.id.includes('teaware'));
+  const draftsView = { ...activeDefaultViews[0], id: 'stock-drafts', name: 'Drafts', filterType: 'Drafts' };
+  const stockViews = canReviewDrafts ? [categoryViews[0] ?? activeDefaultViews[0], draftsView, ...categoryViews.slice(1)] : categoryViews;
+  const selectedStockViewId = draftMode ? draftsView.id : activeViewId;
+  const categoryDrafts = draftMode ? localProducts.filter(product => product.status === 'Draft' && (product.type === 'Teaware') === (inventoryCategory === 'teaware')) : [];
+  const readyDraftCount = categoryDrafts.filter(product => inventoryPublicationRequirements(product).length === 0).length;
   const stockViewLabel = (view: typeof stockViews[number]) => view.filterType === 'All' ? (inventoryCategory === 'tea' ? 'All teas' : 'All teaware') : view.filterType === 'Working' ? 'Shop stock' : view.name || VIEW_FILTER_LABELS[view.filterType] || view.filterType;
-  const selectStockView = (view: typeof stockViews[number]) => { setGlossaryMode(false); setActiveView(view.id); setFilterType(view.filterType); };
+  const selectStockView = (view: typeof stockViews[number]) => {
+    setGlossaryMode(false);
+    setSearchParams(current => withParam(withParam(current, 'view', view.id === draftsView.id ? 'drafts' : null), 'triage', null));
+    if (view.id !== draftsView.id) {
+      setActiveView(view.id);
+      setFilterType(view.filterType);
+    }
+  };
+  const customStockView = stockViews.find(view => view.id === activeViewId
+    && ![...DEFAULT_TEA_VIEWS, ...DEFAULT_TEAWARE_VIEWS].some(defaultView => defaultView.id === view.id));
+  const removeCustomStockView = () => {
+    if (!customStockView) return;
+    deleteView(customStockView.id);
+    selectStockView(activeDefaultViews[0]);
+    setShowOptions(false);
+  };
+  const deleteStockViewAction = customStockView && (
+    <button type="button" onClick={removeCustomStockView}
+      aria-label={`Delete ${customStockView.name} view`}
+      className={isMobile ? `${actionRow} text-tea-text hover:bg-tea-surface` : 'tap-target px-3 py-2 text-left text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2'}>
+      <Trash2 size={isMobile ? 18 : 15} aria-hidden="true" />Delete saved view
+    </button>
+  );
   const currentSort = inventorySortConfig[0] || { key: 'productName' as keyof Product, direction: 'asc' as const };
   const adjustMenu = <>
     <button type="button" onClick={() => setShowAdjust(true)} aria-haspopup="dialog" aria-expanded={showAdjust} className="tap-target inline-flex shrink-0 items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text" aria-label="View options"><SlidersHorizontal size={15} aria-hidden="true" />View options</button>
@@ -2231,7 +2275,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       columns={isMobile ? undefined : activeColumnDefs.map(col => ({ key: col.key, label: col.label, checked: inventoryColumns.includes(col.key), disabled: 'alwaysVisible' in col && col.alwaysVisible }))}
       onColumnChange={toggleInventoryColumn}
-      previewCurrency={{ value: currency, options: rates.map(rate => rate.currency), onChange: value => setCurrency(value as typeof currency) }}
+      previewCurrency={{ value: currency, options: rates.map(rate => rate.currency).concat(rates.some(rate => rate.currency === currency) ? [] : [currency]), onChange: value => setCurrency(value as typeof currency) }}
     />
   </>;
 
@@ -2405,14 +2449,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             {(() => {
               const allViews = stockViews;
               const selectView = selectStockView;
-              const current = allViews.find(view => view.id === activeViewId);
+              const current = allViews.find(view => view.id === selectedStockViewId);
               const viewLabel = stockViewLabel;
               const groupLabel = phoneList ? PHONE_GROUP_LABELS[phoneGroupBy] : GROUPBY_OPTIONS.find(option => option.value === (inventoryGroupBy || ''))?.label;
               const sortLabel = SORT_OPTIONS.find(([key]) => key === currentSort.key)?.[1] || 'Name';
               const headingStudy = import.meta.env.DEV ? Number(searchParams.get('headingStudy')) : 0;
               if (headingStudy >= 1 && headingStudy <= 5) return <><StockHeadingStudy
                 variant={headingStudy} views={allViews.map(view => ({ value: view.id, label: viewLabel(view) }))}
-                view={activeViewId || ''} onView={id => { const view = allViews.find(v => v.id === id); if (view) { setActiveView(view.id); setFilterType(view.filterType); } }}
+                view={selectedStockViewId || ''} onView={id => { const view = allViews.find(v => v.id === id); if (view) selectView(view); }}
                 groups={GROUPBY_OPTIONS} group={inventoryGroupBy || ''} onGroup={value => setInventoryGroupBy(value || null)}
                 orders={SORT_OPTIONS} order={currentSort.key} direction={currentSort.direction}
                 onOrder={key => setInventorySortConfig([{ key: key as keyof Product, direction: currentSort.direction }])}
@@ -2452,6 +2496,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 tabIndex={-1}
                 ref={(el) => el?.focus()}
               >
+                  {deleteStockViewAction}
                   <button type="button" onClick={openIncoming} className="px-3 py-2 text-left text-ui-12 text-tea-text-sec hover:bg-tea-bg flex items-center gap-2"><Layers size={15} aria-hidden="true" />Incoming</button>
                   <button type="button" onClick={() => { setShowOptions(false); navigate('/account/journal'); }} className="px-3 py-2 text-left text-ui-12 text-tea-text-sec hover:bg-tea-bg flex items-center gap-2"><BookOpen size={15} aria-hidden="true" />Tasting library</button>
                   {!isEditMode && (
@@ -2501,6 +2546,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             {isMobile && (
               <BottomSheet open={showOptions} onOpenChange={setShowOptions} title="Inventory actions">
                 <div className="px-1">
+                  {deleteStockViewAction}
                   <button type="button" onClick={openIncoming} className={`${actionRow} text-tea-text hover:bg-tea-surface`}><Layers size={18} aria-hidden="true" />Incoming</button>
                   <button type="button" onClick={() => { setShowOptions(false); navigate('/account/journal'); }} className={`${actionRow} text-tea-text hover:bg-tea-surface`}><BookOpen size={18} aria-hidden="true" />Tasting library</button>
                   <button onClick={() => { onAddClick(); setShowOptions(false); }} className={`${actionRow} text-tea-text hover:bg-tea-gold/[0.06]`}><Plus size={18} className="shrink-0 text-tea-gold" /> Add tea</button>
@@ -2542,6 +2588,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         {unifiedHeaderRows}
       </div>
 
+      {draftMode && (
+        <div role="group" aria-label="Draft review" className="flex shrink-0 flex-wrap items-center gap-x-3 border-b border-tea-border px-4">
+          {([
+            ['', 'All drafts', categoryDrafts.length],
+            ['review', 'To review', categoryDrafts.length - readyDraftCount],
+            ['ready', 'Ready', readyDraftCount],
+          ] as const).map(([value, label, count]) => (
+            <button type="button" key={label} aria-pressed={draftTriage === value}
+              onClick={() => setSearchParams(current => withParam(current, 'triage', value || null), { replace: true })}
+              className={`min-h-11 text-ui-12 ${draftTriage === value ? 'font-semibold text-tea-text' : 'text-tea-text-sec hover:text-tea-text'}`}
+            >{label} <span className="text-tea-text-dim">{count}</span></button>
+          ))}
+        </div>
+      )}
       {inventorySummaryStatus !== 'ready' && (
         <div data-testid="inventory-summary-status" role={inventorySummaryStatus === 'error' ? 'alert' : 'status'} className="shrink-0 border-b border-tea-border bg-tea-surface px-4 py-2 text-ui-11 text-tea-text-sec">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2">
@@ -2967,7 +3027,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="stock-group-head stock-group-menu-head">
                       <button type="button" className="stock-group-main-toggle" aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${groupLabel}`} aria-expanded={!isCollapsed} onClick={() => toggleCollapsedGroup(groupKey)}>
                         <span className="stock-group-name">{groupLabel}</span>
-                        <span className="stock-group-summary"><span>{items.length} {inventoryCategory === 'teaware' ? 'items' : items.length === 1 ? 'tea' : 'teas'}</span><span>{totalStock}{inventoryCategory === 'teaware' ? ' units' : 'g'}</span><span>${fmtNum(totalRetail)}</span></span>
+                        <span className="stock-group-summary"><span>{items.length} {inventoryCategory === 'teaware' ? 'items' : items.length === 1 ? 'tea' : 'teas'}</span><span>{totalStock}{inventoryCategory === 'teaware' ? ' units' : 'g'}</span><span>{totalRetail === null ? '—' : `$${fmtNum(totalRetail)}`}</span></span>
                       </button>
                       <div className="stock-group-actions">
                         {inventoryGroupBy === 'vendor' ? <AnchoredMenu align="right" width={180} trigger={props => <button {...props} type="button" className="tap-target" aria-label={`Supplier actions for ${groupLabel}`}><ChevronDown size={16} aria-hidden="true"/></button>}>
@@ -3088,7 +3148,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         const globalIdx = idx;
                         return (
                           <React.Fragment key={product.id}>
-                            <InventoryRow priceMode={priceMode} onSavePricing={handleFormPricingUpdate} onQuickTaste={() => setPersonalTastingProduct(product)} onQuickJournal={() => navigate(`/account/journal?tea=${encodeURIComponent(product.id)}`)}
+                            <InventoryRow priceMode={priceMode} draftIdentity={draftMode} canEditDraftName={canReviewDrafts} onSavePricing={handleFormPricingUpdate} onQuickTaste={() => setPersonalTastingProduct(product)} onQuickJournal={() => navigate(`/account/journal?tea=${encodeURIComponent(product.id)}`)}
                               product={product}
                               globalIdx={globalIdx}
                               isSelected={selectedIds.has(product.id)}

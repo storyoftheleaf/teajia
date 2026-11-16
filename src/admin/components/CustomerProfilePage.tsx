@@ -308,6 +308,14 @@ const SampleOfferModal: React.FC<{
 };
 
 // ── Main profile page ──────────────────────────────────────────────────────
+/** The server sends computed_total; total is kept as a fallback. A zero is shown. */
+function orderAmount(order: { computed_total?: unknown; total?: unknown }): number | null {
+  for (const v of [order.computed_total, order.total]) {
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+  }
+  return null;
+}
+
 export const CustomerProfilePage: React.FC = () => {
   const { customerId } = useParams<{ customerId: string }>();
   const navigate = useNavigate();
@@ -671,9 +679,9 @@ export const CustomerProfilePage: React.FC = () => {
                           carries no payment object. */}
                       <OrderPayRecipientLine payment={order.payment} className="text-ui-10 mt-0.5" />
                     </div>
-                    {order.total != null && (
+                    {orderAmount(order) != null && (
                       <span className="font-mono text-ui-13 text-tea-text tabular-nums">
-                        ${Number(order.total).toFixed(2)}
+                        ${orderAmount(order)!.toFixed(2)}
                       </span>
                     )}
                     <StatusPill

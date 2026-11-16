@@ -1,6 +1,8 @@
 import { useAppStore } from './store';
 import { api, hasToken } from './api';
 import type { CustomerTasting, TastingRecord, TastingData } from '../types';
+import { mergeJournalEntries } from './tastingJournalTabs';
+import { createJournalRetry } from './tastingJournalRetry';
 
 const BACKGROUND_REQUEST = { background: true } as const;
 
@@ -95,33 +97,13 @@ function fromApiRow(row: Record<string, any>): CustomerTasting {
 }
 
 /**
- * Merge two CustomerTasting entries that target the same productId. Used both
- * by the client during hydration (server vs local conflict on productId) and
- * conceptually by the server-side dedupe migration. Tastings are merged by id,
- * note is taken from whichever side has the most recent updatedAt.
+ * Merge two CustomerTasting entries that target the same productId, during
+ * hydration (local vs server). The note and sittings follow the shared rule in
+ * `tastingJournalMerge.ts`, which the worker also applies on push: sittings
+ * united by id, and the side whose note was edited later keeps its note and
+ * its copy of a shared sitting (local wins a tie).
  */
-function mergeEntries(a: CustomerTasting, b: CustomerTasting): CustomerTasting {
-  const tastingsById = new Map<string, TastingRecord>();
-  for (const t of [...a.tastings, ...b.tastings]) tastingsById.set(t.id, t);
-  const tastings = [...tastingsById.values()].sort(
-    (x, y) => new Date(x.createdAt).getTime() - new Date(y.createdAt).getTime()
-  );
-  const note = new Date(a.note.updatedAt).getTime() >= new Date(b.note.updatedAt).getTime()
-    ? a.note
-    : b.note;
-  // Prefer the older id and createdAt to keep stable references.
-  const olderCreated = new Date(a.createdAt).getTime() <= new Date(b.createdAt).getTime() ? a : b;
-  return {
-    ...olderCreated,
-    productName: a.productName || b.productName,
-    productType: a.productType || b.productType,
-    productImage: a.productImage ?? b.productImage,
-    note,
-    tastings,
-    archived: a.archived && b.archived,
-    synced: a.synced && b.synced,
-  };
-}
+const mergeEntries = mergeJournalEntries;
 
 /**
  * Syncs unsynced tasting journal entries to D1. Quick-note sentinel rows
@@ -143,11 +125,14 @@ export async function syncTastingJournal(): Promise<number> {
 
   try {
     const payload = unsynced.map(toApiPayload);
+    // What was sent, so an entry edited while the request was in flight is
+    // not marked as sent: it stays waiting and goes up on the next push.
+    const sent = new Map(unsynced.map(u => [u.id, JSON.stringify(u)]));
     await api.tastingJournal.sync(payload, BACKGROUND_REQUEST);
 
     useAppStore.setState(state => ({
       tastingJournal: state.tastingJournal.map(e =>
-        unsynced.some(u => u.id === e.id) ? { ...e, synced: true } : e
+        sent.get(e.id) === JSON.stringify(e) ? { ...e, synced: true } : e
       ),
     }));
 
@@ -157,6 +142,19 @@ export async function syncTastingJournal(): Promise<number> {
     return 0;
   }
 }
+
+/**
+ * Pushes waiting journal entries again, for when the browser comes back
+ * online or the tab regains focus. Guests never reach the server, nothing is
+ * sent when nothing is waiting, and two retries never run at once.
+ */
+export const retryPendingJournalSync = createJournalRetry({
+  isSignedIn: hasToken,
+  hasPending: () => useAppStore.getState().tastingJournal.some(
+    e => !e.synced && !!e.productId && e.productId !== 'quick-note',
+  ),
+  push: syncTastingJournal,
+});
 
 /**
  * Hydrates the tasting journal from D1. Conflict key is (productId), not (id),

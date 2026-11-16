@@ -24,11 +24,12 @@ import { isUnrecordedCurrency, isoCurrencyCode, rateToUsd } from '../lib/currenc
  *     NT$18      tens, where the cents are noise
  *     IDR 9.2k   thousands, abbreviated with one decimal
  */
-export const formatCurrency = (amount: number, currency: StoredCurrency, rates: ExchangeRate[], opts?: { rate?: boolean }) => {
+export const formatCurrency = (amount: number | null, currency: StoredCurrency, rates: ExchangeRate[], opts?: { rate?: boolean }) => {
   // Never silently multiply by 1 for a currency we have no rate for. If the
   // live table is missing it, fall back to showing the USD amount so the number
   // stays honest instead of mis-labelled. A stored 'CNY' is the 'Yuan' row, so
   // the lookup canonicalises rather than matching the string exactly.
+  if (amount === null || !Number.isFinite(amount)) return '—';
   const rate = rateToUsd(rates, currency);
   const value = rate ? amount * rate : amount;
 
@@ -181,6 +182,8 @@ export const calculatePricing = (
 /** Convert an admin Product to the public InventoryItem shape for AlcoveCard */
 export const productToInventoryItem = (product: Product): InventoryItem => {
   const isTeaware = product.type === 'Teaware';
+  const retail = product.fixedRetailPriceUSD ?? product.pricePerGramUSD;
+  const price = retail === null ? undefined : String(retail);
   return {
     id: product.id,
     category: isTeaware ? 'ware' : 'tea',
@@ -197,9 +200,9 @@ export const productToInventoryItem = (product: Product): InventoryItem => {
     cost_currency: undefined,
     // For tea: price_per_gram is per-gram. For teaware: price_50g is per-unit price.
     // Use fixed retail price (locked override) if set, otherwise formula-based retail
-    price_per_gram: isTeaware ? undefined : String(product.fixedRetailPriceUSD ?? product.pricePerGramUSD),
-    price_50g: isTeaware ? String(product.fixedRetailPriceUSD ?? product.pricePerGramUSD) : undefined,
-    pricePerUnit: isTeaware ? String(product.fixedRetailPriceUSD ?? product.pricePerGramUSD) : undefined, // Semantic alias for teaware per-unit price
+    price_per_gram: isTeaware ? undefined : price,
+    price_50g: isTeaware ? price : undefined,
+    pricePerUnit: isTeaware ? price : undefined, // Semantic alias for teaware per-unit price
     description: product.description,
     tags: product.tastingNotes || [],
     image: product.imageUrl,

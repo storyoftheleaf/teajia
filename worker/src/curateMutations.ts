@@ -9,6 +9,7 @@ import { readCompassStructuredPatch, COMPASS_STRUCTURED_COLUMNS } from '../../sr
 import { refreshedCurrencyName } from './exchangeRateFeed';
 import { validateCompassQuoteLink } from './curateQuotes';
 import { issueTicket, consumeTicket, previewEnvelope, INVALID_TICKET } from './mcpTools/tickets';
+import { teaMergeProductLink } from './curateMergeLink';
 
 export type CurateEntity = 'tea' | 'vendor' | 'note' | 'todo' | 'sample' | 'transcript' | 'attachment';
 export type CurateRecordedEntity = CurateEntity | 'vendor_profile' | 'quote' | 'quote_line' | 'attachment' | 'asset' | 'sample_set' | 'arrival' | 'product' | 'product_listing';
@@ -108,8 +109,12 @@ export async function captureCurateSampleGuards(db:D1Database,accountId:string,s
  return guards;
 }
 /** Original guards are persisted, so undo refuses receipts/stock/sample use
- * since the original confirmation, not merely since the undo preview. */
-async function physicalGuards(env:ToolEnv, account:string, entity:CurateEntity,id:string):Promise<CurateGuard[]> {
+ * since the original confirmation, not merely since the undo preview.
+ * `recordedProductId` is a product this same change rewrites as a recorded
+ * entity (a merge moving its link): its row is guarded by that record, so its
+ * snapshot here guards the confirmation only and is not kept for undo, which
+ * would otherwise always find it changed. Its receipts and stock stay guarded. */
+async function physicalGuards(env:ToolEnv, account:string, entity:CurateEntity,id:string,recordedProductId:string|null=null):Promise<CurateGuard[]> {
  if(entity!=='tea'&&entity!=='vendor') return [];
  const column=entity==='tea'?'compass_entry_id':'source_id';
  const where=`account_id = ? AND ${column} = ?`;
@@ -119,7 +124,7 @@ async function physicalGuards(env:ToolEnv, account:string, entity:CurateEntity,i
   const entry=await env.DB.prepare('SELECT draft_product_id FROM tea_compass_entries WHERE account_id = ? AND id = ?').bind(account,id).first<Row>();
   if(entry?.draft_product_id) {
    const product=entry.draft_product_id;
-   guards.push(...await snapshotQuery(env,'products','account_id = ? AND id = ?',[account,product]));
+   guards.push(...(await snapshotQuery(env,'products','account_id = ? AND id = ?',[account,product])).map(guard=>product===recordedProductId?{...guard,confirmationOnly:true}:guard));
    guards.push(...await snapshotQuery(env,'inventory_receipt_lines','account_id = ? AND product_id = ?',[account,product]));
    guards.push(...await snapshotQuery(env,'stock_ledger','account_id = ? AND product_id = ?',[account,product]));
   }
@@ -215,6 +220,8 @@ export async function previewCurateMutation(env:ToolEnv,auth:ToolAuth,command:Cu
  const after={...before}; const changes:Change[]=[]; let guards:CurateGuard[]=[];
  const previewDetails:Record<string,unknown>={};
  const now=new Date().toISOString();
+ // A tea merge orders its own changes (curateMergeLink.ts); the merged-away tea goes last.
+ let sourceLast=false; let recordedProductId:string|null=null;
  if(command.entity==='vendor' && (command.action==='delete'||command.action==='archive')) {
   const dependencies=await readVendorDependencies(env.DB,auth.accountId,command.id);
   previewDetails.vendor_removal={mode:'soft',dependencies,linked_records_remain_attached:true,
@@ -289,7 +296,11 @@ export async function previewCurateMutation(env:ToolEnv,auth:ToolAuth,command:Cu
    if(command.entity==='vendor') {
     const merged=await vendorMergeChanges(env,auth,before,target,now,agent.slice(0,100));
     changes.push({entity:'vendor',id:target.id,before:target,after:merged.target},...merged.changes);guards.push(...merged.guards);
-   } else changes.push({entity:command.entity,id:command.target_id,before:target,after:target});
+   } else {
+    const link=await teaMergeProductLink(env.DB,auth.accountId,before,target,now);
+    changes.push(...link.changes);guards.push(...link.guards);Object.assign(after,link.source);
+    previewDetails.product_link=link.details;recordedProductId=link.movedProductId;sourceLast=true;
+   }
    guards.push(...await physicalGuards(env,auth.accountId,command.entity,command.target_id));
    after.merged_into_id=target.id; after.archived_at=now; break;
   }
@@ -311,8 +322,9 @@ export async function previewCurateMutation(env:ToolEnv,auth:ToolAuth,command:Cu
  }
  if(command.action!=='taste_sample' && JSON.stringify(before)===JSON.stringify(after)) throw new Error('Nothing to change');
  if(Object.hasOwn(after,'updated_at')) after.updated_at=now;
- changes.unshift({entity:command.entity,id:command.id,before,after});
- guards.push(...await physicalGuards(env,auth.accountId,command.entity,command.id));
+ if(sourceLast) changes.push({entity:command.entity,id:command.id,before,after});
+ else changes.unshift({entity:command.entity,id:command.id,before,after});
+ guards.push(...await physicalGuards(env,auth.accountId,command.entity,command.id,recordedProductId));
  return issuePreview(env,auth,{kind:'curate:manage',accountId:auth.accountId,userId:auth.userId,commandType:`${command.entity}:${command.action}`,agent:agent.slice(0,100),changes,guards,undoOf:null,previewDetails});
 }
 async function issuePreview(env:ToolEnv,auth:ToolAuth,ticket:CurateMutationTicket) {
@@ -456,7 +468,9 @@ export async function previewCurateUndo(env:ToolEnv,auth:ToolAuth,agent='an agen
  const alreadyUndone=await env.DB.prepare('SELECT id FROM curate_mutations WHERE account_id = ? AND undo_of = ? LIMIT 1').bind(auth.accountId,last.id).first();
  if(alreadyUndone) throw new Error('This confirmed change has already been undone');
  if(String(last.command_type).endsWith(':with_side_effects')) throw new Error('This change also filed sample or transcript records. Correct those records explicitly; undo cannot discard their history.');
- const records=await env.DB.prepare('SELECT * FROM curate_mutation_records WHERE mutation_id = ? AND account_id = ?').bind(last.id,auth.accountId).all<Row>();
+ // In the order they were written, not key order: a merge that moves a product
+ // link relies on it so the given-name triggers (0048) find names in place.
+ const records=await env.DB.prepare('SELECT * FROM curate_mutation_records WHERE mutation_id = ? AND account_id = ? ORDER BY rowid').bind(last.id,auth.accountId).all<Row>();
  const changes:Change[]=[]; const guards:CurateGuard[]=JSON.parse(last.guards_json||'[]');
  let promotionProductToRemove:Row|undefined;
  for(const r of records.results??[]) {

@@ -139,7 +139,7 @@ export const CommandPalette = ({ onAddProduct, externalOpen, onOpenChange }: { o
                       <Command.Item
                         key={`product-${p.id}`}
                         value={`product ${p.givenName} ${p.productName}`}
-                        onSelect={() => runCommand(() => navigate(`/admin/stock?search=${encodeURIComponent(p.givenName || p.productName)}`))}
+                        onSelect={() => runCommand(() => navigate(`/admin/stock?panel=${encodeURIComponent(p.id)}`))}
                         className="flex items-center gap-3 px-3 py-3.5 rounded-xl hover:bg-tea-elevated cursor-pointer text-tea-text aria-selected:bg-tea-elevated aria-selected:text-tea-text transition-colors"
                       >
                         <span className="flex items-center gap-2 w-full">

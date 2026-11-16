@@ -202,7 +202,6 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
               <OrderPayLink
                 payment={invoice?.payment}
                 invoiceNumber={invoice?.invoice_number}
-                customerName={invoice?.customer_name}
                 layout="block"
               />
 

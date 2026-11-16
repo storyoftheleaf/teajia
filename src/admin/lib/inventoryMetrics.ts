@@ -36,7 +36,7 @@ export interface ValuedProduct {
   quantityPurchased: number;
   stockGrams: number;
   quantityUnits?: number;
-  pricePerGramUSD: number;
+  pricePerGramUSD: number | null;
   fixedRetailPriceUSD?: number | null;
   originRegion?: string | null;
   type?: string | null;
@@ -44,13 +44,13 @@ export interface ValuedProduct {
 
 export interface NamedValue {
   name: string;
-  value: number;
+  value: number | null;
 }
 
 export interface InventoryMetrics {
   totalCostUSD: number;
-  totalRetailUSD: number;
-  potentialProfit: number;
+  totalRetailUSD: number | null;
+  potentialProfit: number | null;
   currencyExposure: NamedValue[];
   regionValue: NamedValue[];
   typeValue: NamedValue[];
@@ -58,18 +58,18 @@ export interface InventoryMetrics {
   costlessCurrencies: Map<string, number>;
 }
 
-const ranked = (totals: Record<string, number>): NamedValue[] =>
-  Object.entries(totals).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+const ranked = (totals: Record<string, number | null>): NamedValue[] =>
+  Object.entries(totals).map(([name, value]) => ({ name, value })).sort((a, b) => a.value === null ? (b.value === null ? 0 : 1) : b.value === null ? -1 : b.value - a.value);
 
 export function inventoryMetrics(
   products: readonly ValuedProduct[],
   rates: readonly RateRow[] | null | undefined,
 ): InventoryMetrics {
   let totalCostUSD = 0;
-  let totalRetailUSD = 0;
+  let totalRetailUSD: number | null = 0;
   const currencyExposure: Record<string, number> = {};
-  const regionValue: Record<string, number> = {};
-  const typeValue: Record<string, number> = {};
+  const regionValue: Record<string, number | null> = {};
+  const typeValue: Record<string, number | null> = {};
   const costlessCurrencies = new Map<string, number>();
 
   for (const p of products) {
@@ -77,14 +77,14 @@ export function inventoryMetrics(
     if (p.status === 'Archived') continue;
 
     const onHand = p.type === 'Teaware' ? (p.quantityUnits ?? 0) : p.stockGrams;
-    const itemTotalRetailUSD = (p.fixedRetailPriceUSD ?? p.pricePerGramUSD) * onHand;
-    totalRetailUSD += itemTotalRetailUSD;
+    const itemTotalRetailUSD = retailValueFor(p);
+    totalRetailUSD = totalRetailUSD === null || itemTotalRetailUSD === null ? null : totalRetailUSD + itemTotalRetailUSD;
 
     const region = p.originRegion || 'Unknown';
-    regionValue[region] = (regionValue[region] || 0) + itemTotalRetailUSD;
+    regionValue[region] = regionValue[region] === null || itemTotalRetailUSD === null ? null : (regionValue[region] ?? 0) + itemTotalRetailUSD;
 
     const type = p.type || 'Misc';
-    typeValue[type] = (typeValue[type] || 0) + itemTotalRetailUSD;
+    typeValue[type] = typeValue[type] === null || itemTotalRetailUSD === null ? null : (typeValue[type] ?? 0) + itemTotalRetailUSD;
 
     const rate = isUnrecordedCurrency(p.costCurrency) ? 1 : rateToUsd(rates, p.costCurrency);
     if (rate === null || p.costAmount == null) {
@@ -108,10 +108,18 @@ export function inventoryMetrics(
   return {
     totalCostUSD,
     totalRetailUSD,
-    potentialProfit: totalRetailUSD - totalCostUSD,
+    potentialProfit: totalRetailUSD === null ? null : totalRetailUSD - totalCostUSD,
     currencyExposure: ranked(currencyExposure),
     regionValue: ranked(regionValue).slice(0, 8), // Top 8 regions
     typeValue: Object.entries(typeValue).map(([name, value]) => ({ name, value })),
     costlessCurrencies,
   };
+}
+
+/** Positive stock without a known price has no complete retail valuation. */
+export function retailValueFor(p: Pick<ValuedProduct, 'type' | 'quantityUnits' | 'stockGrams' | 'pricePerGramUSD' | 'fixedRetailPriceUSD'>): number | null {
+  const quantity = p.type === 'Teaware' ? (p.quantityUnits ?? 0) : p.stockGrams;
+  if (quantity === 0) return 0;
+  const price = p.fixedRetailPriceUSD ?? p.pricePerGramUSD;
+  return price === null || !Number.isFinite(price) ? null : price * quantity;
 }

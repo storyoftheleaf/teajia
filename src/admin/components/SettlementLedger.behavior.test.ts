@@ -20,12 +20,18 @@ beforeAll(async () => {
   await server.listen();
   const address = server.httpServer!.address(); if (!address || typeof address === 'string') throw new Error('Missing test port');
   origin = `http://127.0.0.1:${address.port}`; browser = await chromium.launch({ headless: true });
+  // Load the static fixture graph within the existing setup budget, without mounting it.
+  await loadFixture();
+  await page.close();
 }, 30_000);
 afterAll(async () => { await browser?.close(); await server?.close(); }, 30_000);
 afterEach(async () => { await page?.close(); });
-async function open(role: 'owner' | 'staff' = 'owner') {
+async function loadFixture() {
   page = await browser.newPage({ viewport: { width: 390, height: 844 } }); await page.goto(`${origin}/__settlement-ledger-test`);
   await page.waitForFunction(() => Boolean((window as any).settlementLedgerTest));
+}
+async function open(role: 'owner' | 'staff' = 'owner') {
+  await loadFixture();
   await page.evaluate(value => (window as any).settlementLedgerTest.mount(value), role);
 }
 
@@ -39,7 +45,7 @@ describe('SettlementLedger behavior', () => {
     await expect.poll(() => page.getByText('Spring Alishan', { exact: true }).count()).toBe(1);
     await page.getByRole('button', { name: 'Mark paid' }).click();
     await expect.poll(() => page.getByRole('dialog').textContent()).toContain('Confirm settlement payment');
-    expect(await page.evaluate(() => document.activeElement?.textContent?.trim())).toBe('Cancel');
+    await expect.poll(() => page.evaluate(() => document.activeElement?.textContent?.trim())).toBe('Cancel');
     await page.keyboard.press('Shift+Tab');
     expect(await page.evaluate(() => document.activeElement?.textContent?.trim())).toBe('Confirm paid');
     await page.keyboard.press('Tab');

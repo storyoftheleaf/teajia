@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 // Read-only proof for one Git-triggered Pages release; never deploys or pushes.
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync, renameSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
-import { assetPaths, proofMatches } from './publish-verified-release.mjs';
-import { DEFAULT_LEASE_PATH, releaseProductionLease } from './check-production-release-lease.mjs';
+import { assetPaths } from './publish-verified-release.mjs';
+import { canonicalDeployment, projectMetadata, recognizedAccessRedirect, sameDeployment } from './pages-access-proof.mjs';
 
 export function deploymentUrl(checks, revision) {
   const check = checks.find(c => c.name === 'Cloudflare Pages' && c.head_sha === revision);
@@ -19,7 +18,7 @@ const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 function read(url) {
   return execFileSync('/usr/bin/curl', ['--disable', '--silent', '--show-error', '--fail', '--proto', '=https', '--max-time', '25', '--max-filesize', '16000000', '--header', 'Cache-Control: no-cache', url], { timeout: 30000, maxBuffer: 16_000_000, stdio: ['ignore', 'pipe', 'pipe'] });
 }
-function artifact(origin, revision) {
+function artifact(origin, revision, exact) {
   const version = read(`${origin}/version.json?proof=${revision}`);
   const buildId = JSON.parse(version).buildId;
   if (!buildId) throw new Error('No build number in deployed artifact');
@@ -27,42 +26,33 @@ function artifact(origin, revision) {
   const paths = assetPaths(html.toString());
   if (!paths.some(path => path.endsWith('.js'))) throw new Error('No entry script in deployed artifact');
   const hashes = { '/': digest(html), '/version.json': digest(version) };
-  for (const path of paths) hashes[path] = digest(read(`${origin}${path}`));
+  for (const path of Object.keys(exact.files).filter(p => p !== '/index.html' && p !== '/version.json')) hashes[path] = digest(read(`${origin}${path}`));
+  if (paths.some(path => !Object.hasOwn(hashes, path)) || buildId !== exact.buildId ||
+    Object.entries(hashes).some(([path, value]) => value !== exact.files[path === '/' ? '/index.html' : path])) {
+    throw new Error('Pages bytes differ from exact candidate CI artifact');
+  }
   return { buildId, hashes };
 }
-export async function observe(path) {
-  const state = JSON.parse(readFileSync(path, 'utf8'));
-  if (!/^[a-f0-9]{40}$/.test(state.revision)) throw new Error('Full candidate revision required');
-  const persist = extra => {
-    Object.assign(state, extra, { updatedAt: new Date().toISOString() });
-    writeFileSync(`${path}.tmp`, JSON.stringify(state, null, 2) + '\n', { mode: 0o600 });
-    renameSync(`${path}.tmp`, path);
-  };
-  persist({ pid: process.pid, state: 'observing' });
-  while (Date.now() < state.deadline) {
-    try {
-      const body = JSON.parse(execFileSync('gh', ['api', `repos/storyoftheleaf/teajia/commits/${state.revision}/check-runs`], { encoding: 'utf8', timeout: 30000, maxBuffer: 2_000_000, stdio: ['ignore', 'pipe', 'pipe'] }));
-      const url = deploymentUrl(body.check_runs, state.revision);
-      if (url) {
-        const direct = artifact(url, state.revision);
-        const production = artifact('https://www.teajia.com', state.revision);
-        persist({ deploymentUrl: url, buildId: direct.buildId, direct, production });
-        if (proofMatches(direct, production)) { persist({ state: 'live', verifiedAt: new Date().toISOString() }); break; }
-      }
-    } catch (error) {
-      // Keep diagnostics bounded and exclude response bodies/credentials.
-      const message = error.message?.startsWith('Pages check finished:') ? error.message : 'Deployment proof not yet available';
-      persist({ lastError: message });
-      if (message.startsWith('Pages check finished:')) { persist({ state: 'failed' }); break; }
-    }
-    await new Promise(resolve => setTimeout(resolve, 45000));
-  }
-  if (state.state === 'observing') persist({ state: 'needs_attention', lastError: 'Bounded proof window ended; resume observation without redeploying' });
-  await releaseProductionLease(DEFAULT_LEASE_PATH, state.revision, state.runUrl);
-  if (process.platform === 'darwin' && !state.notified) {
-    const message = state.state === 'live' ? `Taste changes are verified live, build ${state.buildId}.` : 'Taste publication needs attention. Check the saved release status.';
-    try { execFileSync('/usr/bin/osascript', ['-e', `display notification ${JSON.stringify(message)} with title "Teajia release"`], { stdio: 'ignore' }); } catch { /* State is the durable result. */ }
-    persist({ notified: true });
-  }
+export async function candidateArtifact(origin, revision, exact, dependencies = {}) {
+  const fetcher = dependencies.fetcher || fetch;
+  const project = dependencies.project || projectMetadata;
+  const getArtifact = dependencies.artifact || artifact;
+  const probe = await fetcher(`${origin}/version.json?proof=${revision}`, {
+    method: 'HEAD', redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(20000),
+  });
+  const protectedHost = recognizedAccessRedirect(probe, origin, dependencies.loginOrigin ?? process.env.TEAJIA_ACCESS_LOGIN_ORIGIN);
+  await probe.body?.cancel();
+  if (!protectedHost && probe.status !== 200) throw new Error(`Immutable auth probe HTTP ${probe.status}`);
+  if (!protectedHost) return { direct: getArtifact(origin, revision, exact), protectedHost: false };
+  const first = await project();
+  const identity = canonicalDeployment(first, revision, origin, first.canonical_deployment?.id);
+  const direct = getArtifact('https://www.teajia.com', revision, exact);
+  sameDeployment(identity, canonicalDeployment(await project(), revision, origin, first.canonical_deployment.id));
+  return { direct, protectedHost: true, cloudflareDeployment: identity };
 }
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await observe(process.argv[2]);
+// Retired for coordinated releases: this standalone path had no authenticated
+// same-run artifact handoff. The CI publisher plus pinned Read verifier own proof.
+export async function observe() {
+  throw new Error('Legacy frontend observer retired; use the coordinated release observer and pinned Read verifier');
+}
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await observe();

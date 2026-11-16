@@ -231,7 +231,8 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
     );
   }
 
-  const pricePerGram = parseFloat(item.price_per_gram || '0');
+  const pricePerGram = parseFloat(item.price_per_gram ?? '');
+  const priceKnown = Number.isFinite(pricePerGram) && pricePerGram >= 0;
   const isSoldOut = (item.stock_g ?? 0) <= 0;
   const introduction = item.description || '';
   const mainStory = item.lore || '';
@@ -305,7 +306,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   const quotedTotal = (gramsOffered: number) =>
     quoteGrams(pricePerGram, gramsOffered, { wholePieceGrams: wholePiece?.grams }).totalUsd;
   const availability = isSoldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock';
-  const quantityOffers = presets.map(gramsOffered => ({
+  const quantityOffers = (priceKnown ? presets : []).map(gramsOffered => ({
     '@type': 'Offer',
     '@id': `${productUrl}#offer-${gramsOffered}g`,
     price: offerPrice(quotedTotal(gramsOffered)),
@@ -319,7 +320,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   }));
   // Sold out or stocked under the smallest preset, there is no quantity to
   // quote, so the page states a price for one gram rather than for nothing.
-  const smallestOfferPrice = offerPrice(quotedTotal(presets[0] ?? 1));
+  const smallestOfferPrice = priceKnown ? offerPrice(quotedTotal(presets[0] ?? 1)) : undefined;
 
   // JSON-LD structured data for SEO. A graph, not a single node: the product,
   // and the plant it is made from, addressed so the plant can be followed.
@@ -428,7 +429,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
         <meta property="og:type" content="product" />
         {/* The smallest quantity the page will actually sell, in the currency
             the page is priced in. */}
-        <meta property="product:price:amount" content={smallestOfferPrice} />
+        {smallestOfferPrice !== undefined && <meta property="product:price:amount" content={smallestOfferPrice} />}
         <meta property="product:price:currency" content={offerCurrency} />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>

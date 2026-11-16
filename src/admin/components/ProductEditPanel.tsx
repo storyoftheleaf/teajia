@@ -1243,14 +1243,16 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   // Memoize pricing calc, only recompute when relevant fields change
   const pricingCalc = useMemo(() => {
     if (!product) return null;
+    const freight = product.type === 'Teaware' ? 0
+      : product.shippingRatePerKg ?? shopRateInCurrency(shopFreight.perKgUsd, costRateToUsd);
+    if (freight === null) return null;
     return calculatePricing(
       product.costAmount,
       // The stored rate is in the tea's own cost currency, which is what
       // calculatePricing wants. Nothing recorded means the shop default, and
       // the readout below must show the same freight the shelf is charging.
-      // Null there means no rate for this tea's currency, and calculatePricing
-      // then declines on the same grounds, so the zero never reaches a figure.
-      product.shippingRatePerKg ?? shopRateInCurrency(shopFreight.perKgUsd, costRateToUsd) ?? 0,
+      // Missing shop or tea FX is refused above rather than priced as free.
+      freight,
       product.quantityPurchased || 0,
       product.costCurrency || 'UNK',
       rates,
@@ -1263,6 +1265,8 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
     product?.costCurrency,
     product?.type,
     rates,
+    shopFreight.perKgUsd,
+    costRateToUsd,
   ]);
 
   // Memoize tasting flatten, only recompute when product.tasting changes
@@ -1645,7 +1649,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                     <GhostInput variant="bordered" value={product.costAmount ?? ''} onSave={(val) => persistField(product.id, 'costAmount', val)} type="number" className="tabular-nums" />
                   </FieldCell>
                   <FieldCell label="Retail / $">
-                    <GhostInput variant="bordered" value={product.pricePerGramUSD} onSave={(val) => persistField(product.id, 'pricePerGramUSD', val)} type="number" className="tabular-nums" />
+                    <GhostInput variant="bordered" value={product.pricePerGramUSD ?? ''} onSave={(val) => persistField(product.id, 'pricePerGramUSD', val)} type="number" className="tabular-nums" />
                   </FieldCell>
                 </FieldGrid>
               ) : (

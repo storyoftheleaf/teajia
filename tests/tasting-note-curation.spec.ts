@@ -1,5 +1,7 @@
 import { expect, test, type Page } from './fixtures';
 
+test.use({ serviceWorkers: 'block' });
+
 const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
 const token = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({
   sub: 'curator-1', email: 'curator@test.dev', role: 'owner', platform_role: 'platform_owner',
@@ -32,6 +34,13 @@ async function setup(page: Page, { failStar = false }: { failStar?: boolean } = 
       }],
     } }));
   }, { jwt: token });
+
+  // This fixture must never read a real catalog or send its fake identity off-host.
+  await page.route('**/*', route => {
+    const hostname = new URL(route.request().url()).hostname;
+    return ['localhost', '127.0.0.1', '[::1]'].includes(hostname)
+      ? route.fallback() : route.abort('blockedbyclient');
+  });
 
   await page.route('**/api/**', async route => {
     const request = route.request();
@@ -84,13 +93,13 @@ async function setup(page: Page, { failStar = false }: { failStar?: boolean } = 
   return () => requestOrder;
 }
 
-test('a private section note appears publicly only after edited promotion', async ({ page }) => {
+test('a private section note appears publicly only after edited promotion', async ({ page }, testInfo) => {
   const requestOrder = await setup(page);
 
   await page.goto('/shop/product/product-1');
   await expect(page.locator('h1', { hasText: 'Spring Sencha' })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText('Apricot over warm stone')).toHaveCount(0);
-  await expect(page.getByText(/A\. · Spring table/)).toHaveCount(0);
+  await expect(page.locator('figcaption').filter({ hasText: 'A.' })).toHaveCount(0);
 
   await page.goto('/account/journal');
   await page.locator('button.w-full.text-left').filter({ hasText: 'Spring Sencha' }).click();
@@ -103,18 +112,43 @@ test('a private section note appears publicly only after edited promotion', asyn
   await page.getByRole('button', { name: 'Star this note for private review' }).click();
   await expect(page.getByRole('button', { name: 'Remove private review star' })).toBeVisible();
 
+  // Saving and starring are private; neither action publishes a product quote.
+  await page.goto('/shop/product/product-1');
+  await expect(page.locator('h1', { hasText: 'Spring Sencha' })).toBeVisible();
+  await expect(page.getByText('Long mineral finish')).toHaveCount(0);
+  await expect(page.getByText('Apricot over warm stone')).toHaveCount(0);
+  await expect(page.locator('figcaption').filter({ hasText: 'A.' })).toHaveCount(0);
+
   await page.evaluate(async () => {
     await fetch('/api/admin/tasting-note-candidates/candidate-1', {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ edited_text: 'Apricot over warm stone', attribution_name: 'A.', attribution_detail: 'Spring table' }),
     });
+  });
+
+  // Editing the public draft still does not publish it; promotion is separate.
+  await page.reload();
+  await expect(page.locator('h1', { hasText: 'Spring Sencha' })).toBeVisible();
+  await expect(page.getByText('Long mineral finish')).toHaveCount(0);
+  await expect(page.getByText('Apricot over warm stone')).toHaveCount(0);
+  await expect(page.locator('figcaption').filter({ hasText: 'A.' })).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath('private-before-promotion.png') });
+  await page.evaluate(async () => {
     await fetch('/api/admin/tasting-note-candidates/candidate-1/promote', { method: 'POST' });
   });
 
   await page.goto('/shop/product/product-1');
   await expect(page.locator('h1', { hasText: 'Spring Sencha' })).toBeVisible();
-  await expect(page.getByText('Apricot over warm stone')).toBeVisible();
-  await expect(page.getByText('A. · Spring table')).toBeVisible();
+  const publishedNote = page.locator('figure').filter({
+    has: page.locator('blockquote').filter({ hasText: 'Apricot over warm stone' }),
+  });
+  await expect(publishedNote.locator('blockquote')).toBeVisible();
+  await expect(publishedNote.locator('figcaption')).toHaveText('A., Spring table');
+  await expect(page.getByText('Long mineral finish')).toHaveCount(0);
+  // Center the quote above the phone's fixed cart and navigation bars.
+  await publishedNote.evaluate(element => element.scrollIntoView({ block: 'center', behavior: 'instant' }));
+  await expect(publishedNote).toBeInViewport({ ratio: 1 });
+  await page.screenshot({ path: testInfo.outputPath('edited-note-after-promotion.png') });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
 });
 

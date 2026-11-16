@@ -31,6 +31,8 @@ interface AutocompleteInputProps {
   itemData?: Record<string, any>;
   /** Shown as browseable hints when focused but nothing is typed yet (e.g. first 6 varieties for selected type) */
   hintSuggestions?: string[];
+  /** Accessible name, for a field whose placeholder is its only visible label. */
+  ariaLabel?: string;
 }
 
 export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
@@ -42,6 +44,7 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
   onSelect,
   itemData,
   hintSuggestions,
+  ariaLabel,
 }) => {
   const [focused, setFocused] = useState(false);
   const [dismissedVersion, setDismissedVersion] = useState(0);
@@ -191,6 +194,7 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
+        aria-label={ariaLabel}
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="off"

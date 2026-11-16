@@ -7,6 +7,8 @@ import { TYPOGRAPHY_CLASSES as T } from '../../../../designTokens';
 import { enteredYear } from '../../../enteredYear';
 import { enteredNumber } from '../../../productUpdatePayload';
 import { effectivePurpose } from '../domain';
+import { distinctGivenName } from '../helpers';
+import { splitItemCode } from '../sampleRows';
 import type { Product } from '../../../types';
 
 export type SaveField = (field: keyof Product, value: unknown) => Promise<void>;
@@ -15,7 +17,9 @@ const labels: Record<MiniField,string> = { productName:'Tea name',givenName:'Giv
 export function MiniEditSheet({ product, field, onSave, onClose }: {product:Product;field:MiniField;onSave:SaveField;onClose:()=>void}) {
   const original=product[field];
   const label=field==='fixedRetailPriceUSD'&&product.type==='Teaware'?'Retail · USD per piece':labels[field];
-  const [value,setValue]=useState(original == null || original==='Unnamed' || (field==='givenName' && String(original).trim()===product.productName?.trim()) ? '' : String(original));
+  const [value,setValue]=useState(field==='givenName'
+    ? distinctGivenName(splitItemCode(product.productName).name, product.givenName, product.year)
+    : original == null || original==='Unnamed' ? '' : String(original));
   const [saving,setSaving]=useState(false),[error,setError]=useState('');
   const savingRef=useRef(false);
   const numeric=field==='fixedRetailPriceUSD'||field==='costAmount';

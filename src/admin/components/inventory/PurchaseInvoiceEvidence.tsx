@@ -31,7 +31,7 @@ export function PurchaseInvoiceEvidence({ importId, title }: { importId: string;
     queryKey: ['purchase-invoice-evidence', accountId, importId],
     queryFn: () => api.curateImports.get(importId), enabled: open, staleTime: 60_000,
   });
-  return <><button type="button" className="tap-target purchase-tracking-button" onClick={() => setOpen(true)}><FileText size={14}/>Invoice</button><TrackingTask open={open} onClose={() => setOpen(false)} title={title || "Source invoice"}>
+  return <><button type="button" className="tap-target" aria-label="Invoice" onClick={() => setOpen(true)}><FileText size={17} aria-hidden="true" /></button><TrackingTask open={open} onClose={() => setOpen(false)} title={title || "Source invoice"}>
     {open && <div className="purchase-tracking-history-content">
       <p>{data?.batch.title || title || 'Source invoice'}</p>
       {isPending && <p role="status">Loading source…</p>}

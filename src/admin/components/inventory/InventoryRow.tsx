@@ -8,7 +8,8 @@ import { fmtNum } from '../../../utils/formatNumber';
 import { getThemeTextColor } from '../../themeUtils';
 import { TYPE_OPTIONS } from './config';
 import type { ColDef } from './types';
-import { distinctGivenName, stripMatchingYear } from './helpers';
+import { DRAFT_NAME_ACTION, distinctGivenName, draftDisplayNames, stripMatchingYear } from './helpers';
+import { isOutOfStock } from './domain';
 import { shippingRateUsdFor } from '../../../lib/shippingRate';
 import { isSampleRow, joinItemCode, linkedEntryId, sampleQuote, splitItemCode } from './sampleRows';
 import { useTeaCompassStore } from '../../../lib/teaCompassStore';
@@ -43,7 +44,7 @@ export interface InventoryRowProps {
    */
   costRateToUsd?: (product: Product) => number | null;
   /** The shop's freight rate in USD/kg, for teas that have not entered one. */
-  shopFreightPerKgUsd: number;
+  shopFreightPerKgUsd: number | null;
   rowHeight: number;
   isPanelOpen: boolean;
   isDropdownOpen: boolean;
@@ -63,6 +64,8 @@ export interface InventoryRowProps {
   onOpenSource: (product: Product) => void;
   /** A sample row whose sampling is folded out beneath it. */
   sampleOpen?: boolean;
+  draftIdentity?: boolean;
+  canEditDraftName?: boolean;
 }
 
 // Canonical inventory row, see DesignSystemShowcase § Inventory list (INV_ROWS).
@@ -94,14 +97,15 @@ function InventoryRowBase(props: InventoryRowProps) {
   // is confined to the STOCK NUMBER alone (`stockTone`) so it informs without
   // shouting; every other numeric column stays neutral. This keeps the list calm
   // and reserves the loudest treatment for the SELECTED row, not a warning.
-  const isOut = (product.stockGrams ?? 0) <= 0;
-  const isLow = !isOut && product.stockGrams <= product.lowStockThreshold;
+  const isOut = isOutOfStock(product);
+  // The low-stock threshold is in grams, so it has no meaning for teaware's units.
+  const isLow = !isOut && product.type !== 'Teaware' && product.stockGrams <= product.lowStockThreshold;
   const isSold = product.status === 'Archived' || isOut;
   const nameTone = isSold ? 'text-tea-text-sec' : 'text-tea-text';
   // Non-stock numbers (retail, cost) never carry the low-stock tint, low stock
   // has nothing to do with price, so tinting it there was pure noise.
   const numTone = isSold ? 'text-tea-text-dim' : 'text-tea-text';
-  // The stock number is the only place the low-stock signal lives. `tea-gold-lt`
+  // The stock quantity and its Low label share a quiet warning tone. `tea-gold-lt`
   // is a softer bronze than the old `tea-readgold`, so the warning reads as a
   // quiet flag rather than the brightest thing in the row.
   const stockTone = isLow ? 'text-tea-gold-lt' : isSold ? 'text-tea-text-dim' : 'text-tea-text';
@@ -121,6 +125,8 @@ function InventoryRowBase(props: InventoryRowProps) {
   // name and kept when the name is edited, never as the start of the name.
   const coded = splitItemCode(product.productName);
   const displayName = stripMatchingYear(coded.name, product.year);
+  const { draftIdentity = false, canEditDraftName = false } = props;
+  const draftNames = draftIdentity ? draftDisplayNames(coded.name, product.givenName, product.year) : null;
   const yearHasColumn = (splitView ? splitViewCols : visibleCols).some(column => column.key === 'year');
   /** A typed number, or null when the field was emptied: never zero for "nobody said". */
   const typed = (text: string): number | null => (text.trim() === '' ? null : Number(text.trim()));
@@ -168,10 +174,16 @@ function InventoryRowBase(props: InventoryRowProps) {
           : '';
         // Subtitle slot is always rendered (with &nbsp; fallback) so every row
         // has the same height regardless of whether a givenName/form is present.
-        // The house name is typed right here; a tea without one says "Unnamed"
-        // in a thin italic, so it is plain where to tap (Adrian, 2026-10-11;
-        // the word changed from "name this" on 2026-10-27).
-        const subtitle = legacyMobileLayout
+        const subtitle = draftNames ? (
+          <span className="flex min-w-0 items-baseline gap-1.5">
+            {!yearHasColumn && product.year && <span data-stock-inline-year className="num opacity-80">{product.year}</span>}
+            {canEditDraftName ? <HouseNameField value={draftNames.chosen} emptyLabel={DRAFT_NAME_ACTION}
+              aria={`${draftNames.chosen ? 'Edit chosen name' : DRAFT_NAME_ACTION} (${draftNames.primary})`}
+              onSave={value => onProductUpdate(product.id, 'givenName', value)} className="text-ui-11" />
+              : draftNames.chosen && <span className="truncate" title={draftNames.chosen}>{draftNames.chosen}</span>}
+            <ItemCode code={coded.code} />
+          </span>
+        ) : legacyMobileLayout
           ? product.givenName
             ? <>{product.givenName}{product.form && <span className="ml-1 opacity-70">· {product.form}</span>}</>
             : product.form || ' '
@@ -219,7 +231,7 @@ function InventoryRowBase(props: InventoryRowProps) {
                   aria-label={`Open ${displayName} editor`}
                   className={`${nameWeightCls} ${nameTone} self-start w-fit max-w-full text-left hover:text-tea-gold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded transition-colors`}
                 >
-                  {displayName}
+                  {draftNames?.primary ?? displayName}
                 </button>
               )}
               <span className="font-sans text-ui-11 text-tea-text-dim mt-0 leading-tight truncate block" style={{ letterSpacing: '0.02em' }}>
@@ -285,7 +297,7 @@ function InventoryRowBase(props: InventoryRowProps) {
           );
         }
         return (
-          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${stockTone}`}>
+          <td key={colKey} id={cellId(colIndex)} style={{ paddingTop: 0, paddingBottom: 0 }} className={`px-2 py-0 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${stockTone}`}>
             {/* Stock is the gram quantity, editable inline, type a new value
                 directly in the cell. The history clock and recount-flag icons
                 were removed: stock history opens from the column-header link,
@@ -293,11 +305,12 @@ function InventoryRowBase(props: InventoryRowProps) {
                 The number now gets the full column width so it never clips. */}
             <button
               type="button"
-              aria-label={`Change stock for ${product.productName || product.givenName}`}
+              aria-label={`Change stock for ${product.productName || product.givenName}${isLow ? ", low stock" : ""}`}
               onClick={(event) => { event.stopPropagation(); onStockMovement(product, event.currentTarget); }}
-              className={`inline-block w-fit max-w-full ${numCellAlign} num text-ui-13 hover:text-tea-gold transition-colors ${stockTone}`}
+              className={`tap-target flex-col justify-center w-full max-w-full ${alignLeft ? 'items-start' : 'items-end'} ${numCellAlign} num text-ui-13 hover:text-tea-gold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded transition-colors ${stockTone}`}
             >
-              {isOut ? 0 : Math.round(product.stockGrams)}
+              <span>{isOut ? 0 : Math.round(product.stockGrams)}</span>
+              {isLow && <span className="font-sans text-ui-10 leading-tight">Low</span>}
             </button>
           </td>
         );
@@ -311,7 +324,7 @@ function InventoryRowBase(props: InventoryRowProps) {
       );
       case 'costPerGramUSD': return (
         <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}>
-          <span>{product.costPerGramUSD > 0 ? fmtNum(product.costPerGramUSD) : '—'}</span>
+          <span>{product.costPerGramUSD !== null ? fmtNum(product.costPerGramUSD) : '—'}</span>
         </td>
       );
       /* Freight, shown in USD per kilo like the label says. A tea with
@@ -339,7 +352,9 @@ function InventoryRowBase(props: InventoryRowProps) {
             title={product.type === 'Teaware'
               ? 'Teaware ships inside its per-piece price'
               : shipUsd === null
-                ? `Pinned to this tea in ${product.costCurrency}, and the shop has no rate for that, so it cannot be shown in dollars.`
+                ? pinned
+                  ? `Pinned to this tea in ${product.costCurrency}, and the shop has no rate for that, so it cannot be shown in dollars.`
+                  : 'Following the shop rate; its exchange rate is unavailable, so it cannot be shown in dollars.'
                 : pinned
                   ? 'Pinned to this tea. Clear it in the edit panel to follow the shop rate.'
                   : 'Following the shop rate'}
@@ -355,7 +370,7 @@ function InventoryRowBase(props: InventoryRowProps) {
         // A sample has no shelf price yet; what matters is what a gram costs.
         if (sampling) return (
           <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} text-tea-gold-lt`}>
-            <span>{product.costPerGramUSD > 0 ? fmtNum(product.costPerGramUSD) : '—'}</span>
+            <span>{product.costPerGramUSD !== null ? fmtNum(product.costPerGramUSD) : '—'}</span>
           </td>
         );
         const sellingPrice = product.fixedRetailPriceUSD ?? product.pricePerGramUSD;
@@ -365,7 +380,7 @@ function InventoryRowBase(props: InventoryRowProps) {
         return (
           <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${overrideTone}`}>
             {isEditMode
-              ? <GhostInput id={ghostId(colIndex)} ariaLabel="Retail price per gram (USD)" value={sellingPrice?.toFixed(2)} onSave={(val) => saveField(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)} type="number" align={numInputAlign} className={`num text-ui-13 ${overrideTone}`} />
+              ? <GhostInput id={ghostId(colIndex)} ariaLabel="Retail price per gram (USD)" value={sellingPrice?.toFixed(2) ?? ''} onSave={(val) => saveField(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)} type="number" align={numInputAlign} className={`num text-ui-13 ${overrideTone}`} />
               : <span>{sellingPrice != null ? fmtNum(sellingPrice) : '—'}</span>}
           </td>
         );
@@ -392,8 +407,8 @@ function InventoryRowBase(props: InventoryRowProps) {
         </td>
       );
       case 'quantityUnits': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}>
-          <button type="button" aria-label={`Change stock for ${product.productName || product.givenName}`} onClick={(event) => { event.stopPropagation(); onStockMovement(product, event.currentTarget); }} className={`inline-block w-fit max-w-full ${numCellAlign} num text-ui-13 hover:text-tea-gold transition-colors ${numTone}`}>
+        <td key={colKey} id={cellId(colIndex)} style={{ paddingTop: 0, paddingBottom: 0 }} className={`px-2 py-0 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}>
+          <button type="button" aria-label={`Change stock for ${product.productName || product.givenName}`} onClick={(event) => { event.stopPropagation(); onStockMovement(product, event.currentTarget); }} className={`tap-target w-full max-w-full ${alignLeft ? 'justify-start' : 'justify-end'} ${numCellAlign} num text-ui-13 hover:text-tea-gold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded transition-colors ${numTone}`}>
             {product.quantityUnits ?? 0}
           </button>
         </td>
@@ -428,15 +443,15 @@ function InventoryRowBase(props: InventoryRowProps) {
         );
       }
       case 'vendor': return (
-        <td key={colKey} className="px-3 py-1 text-ui-13 align-middle overflow-hidden">
+        <td key={colKey} style={{ paddingTop: 0, paddingBottom: 0 }} className="px-3 py-0 text-ui-13 align-middle overflow-hidden">
           {product.vendor
             ? <button
                 type="button"
                 onClick={(event) => { event.stopPropagation(); onOpenSource(product); }}
                 aria-label={`Open supplier ${product.vendor}`}
-                className="inline-block w-fit max-w-full text-left text-tea-text-sec hover:text-tea-gold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded transition-colors truncate"
+                className="tap-target w-full max-w-full justify-start text-left text-tea-text-sec hover:text-tea-gold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded transition-colors truncate"
               >
-                {product.vendor}
+                <span className="truncate">{product.vendor}</span>
               </button>
             : <span className="text-tea-text-dim">—</span>}
         </td>
@@ -493,7 +508,7 @@ function InventoryRowBase(props: InventoryRowProps) {
     >
       {/* Phone cards keep direct actions; spreadsheet rows use the shared rail. */}
       {stockPhone ? <td className="stock-mobile-cell" colSpan={(splitView ? splitViewCols : visibleCols).length}>
-        <StockMobileRecord onDelete={() => onDeleteRequest(product)} onStockChange={trigger => onStockMovement(product, trigger)} product={product} name={displayName} index={globalIdx} editing={isEditMode}
+        <StockMobileRecord lowStock={isLow} onDelete={() => onDeleteRequest(product)} onStockChange={trigger => onStockMovement(product, trigger)} product={product} name={displayName} index={globalIdx} editing={isEditMode} draftIdentity={draftIdentity} canEditDraftName={canEditDraftName}
           onEdit={() => onOpenPanel(product)}
           onSavePricing={changes => props.onSavePricing(product.id, changes)}
           onSaveChange={async (field, value) => { await (props.onSaveField ? props.onSaveField(product.id, field, value) : onProductUpdate(product.id, field, value)); }}
@@ -513,6 +528,8 @@ function InventoryRowBase(props: InventoryRowProps) {
 export const InventoryRow = React.memo(InventoryRowBase, (prev, next) =>
   prev.product === next.product &&
   prev.priceMode === next.priceMode &&
+  prev.draftIdentity === next.draftIdentity &&
+  prev.canEditDraftName === next.canEditDraftName &&
   prev.globalIdx === next.globalIdx &&
   prev.isSelected === next.isSelected &&
   prev.focusedCol === next.focusedCol &&

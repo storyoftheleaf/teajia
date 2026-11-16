@@ -86,21 +86,42 @@ function database() {
   return db;
 }
 
-async function createOrder(db: SqliteD1, extra: Record<string, unknown>) {
+async function postOrder(db: SqliteD1, extra: Record<string, unknown>) {
   const token = await signedToken(SECRET, {
     sub: OWNER, email: `${OWNER}@test.dev`, name: OWNER, active_account_id: ACCOUNT, platform_role: null,
   });
-  const response = await worker.fetch(new Request('https://worker.test/api/purchase-orders', {
+  return worker.fetch(new Request('https://worker.test/api/purchase-orders', {
     method: 'POST',
     headers: new Headers({ Authorization: `Bearer ${token}`, 'X-Teajia-Account': ACCOUNT, 'Content-Type': 'application/json' }),
     body: JSON.stringify({ vendor_name: 'Wang Laoshi', items_json: '[]', display_currency: 'Yuan', status: 'confirmed', ...extra }),
   }), { DB: db as any, JWT_SECRET: SECRET } as any);
+}
+
+async function createOrder(db: SqliteD1, extra: Record<string, unknown>) {
+  const response = await postOrder(db, extra);
   expect(response.status).toBe(201);
   const { id } = await response.json() as { id: string };
   return (db.sqlite.prepare('SELECT total_usd FROM purchase_orders WHERE id = ?').get(id) as { total_usd: number | null }).total_usd;
 }
 
 describe('creating a purchase order', () => {
+  it('links an expected delivery on the first confirmation and reuses it on replay', async () => {
+    const db = database();
+    const details = {
+      idempotency_key: 'browser-purchase',
+      items_json: JSON.stringify([{ product_name: 'Spring oolong', quantity: 750, unit: 'g' }]),
+    };
+    const created = await postOrder(db, details);
+    expect(created.status).toBe(201);
+    const order = await created.json() as { id: string; receipt_id: string };
+    expect(order.receipt_id).toBe(`po_${order.id}`);
+    const replay = await postOrder(db, details);
+    expect(replay.status).toBe(200);
+    expect(await replay.json()).toMatchObject({ id: order.id, receipt_id: order.receipt_id, idempotent: true });
+    expect(db.sqlite.prepare('SELECT expected_quantity, received_quantity FROM inventory_receipt_lines').all())
+      .toEqual([{ expected_quantity: 750, received_quantity: 0 }]);
+  });
+
   it('stores an absent total as unknown, not as $0', async () => {
     expect(await createOrder(database(), {})).toBeNull();
   });

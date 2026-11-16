@@ -17,6 +17,15 @@ export function withObservationIntensity(value: TastingData, key: string, level:
   return { ...value, observationIntensity };
 }
 
+/** Escape closes the open slider and stops there. Left to bubble, it also reaches the
+ *  tasting's own Escape handler and closes the whole tasting. */
+export function closeIntensityOnEscape(event: { key: string; stopPropagation: () => void }, close: () => void): boolean {
+  if (event.key !== 'Escape') return false;
+  event.stopPropagation();
+  close();
+  return true;
+}
+
 export function ObservationIntensity({ label, intensity, onChange }: {
   label: string;
   intensity?: ObservationLevel;
@@ -33,7 +42,7 @@ export function ObservationIntensity({ label, intensity, onChange }: {
       if (!host.current?.contains(event.target as Node)) setOpen(false);
     };
     const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') { setOpen(false); trigger.current?.focus(); }
+      if (closeIntensityOnEscape(event, () => setOpen(false))) trigger.current?.focus();
     };
     document.addEventListener('pointerdown', outside);
     document.addEventListener('keydown', escape);

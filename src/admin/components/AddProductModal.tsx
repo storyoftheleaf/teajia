@@ -310,7 +310,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
      yuan, so its dollar value is a repeating figure and a form field is not the
      place to show fourteen decimal places of it. */
   const shopFreight = useShopFreightDefault();
-  const shopFreightUsdText = String(Math.round(shopFreight.perKgUsd * 100) / 100);
+  const shopFreightUsdText = shopFreight.perKgUsd === null ? '—' : String(Math.round(shopFreight.perKgUsd * 100) / 100);
 
   const [formData, setFormData] = useState({
     type: 'Dark',
@@ -535,13 +535,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
        missing its postage. */
     const shippingEntered = enteredNumber(formData.shippingRateUSD);
     const shippingUsd = shippingEntered == null ? shopFreight.perKgUsd : shippingEntered;
-    // No rate means calculatePricing declines below, so this zero never reaches
-    // a figure the operator reads.
-    const shippingSourcePerKg = shippingUsd * (currentRate ?? 0);
+    const shippingSourcePerKg = shippingUsd === null ? null : shippingUsd * (currentRate ?? 0);
+    const missingFreight = formData.type !== 'Teaware' && shippingSourcePerKg === null;
 
     return calculatePricing(
-        parseFloat(formData.costAmount) || 0,
-        shippingSourcePerKg,
+        missingFreight ? null : parseFloat(formData.costAmount) || 0,
+        shippingSourcePerKg ?? 0,
         parseFloat(formData.quantityPurchased) || 0,
         formData.costCurrency,
         rates,
@@ -594,6 +593,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const [showDraftBanner, setShowDraftBanner] = useState(false);
   const [nameError, setNameError] = useState(false);
   const [costError, setCostError] = useState(false);
+  const [shippingError, setShippingError] = useState(false);
+  useEffect(() => { if (!isOpen || currentRate !== null) setShippingError(false); }, [isOpen, currentRate]);
   const [autoFillSource, setAutoFillSource] = useState<string | null>(null);
   const autoFillSnapshotRef = useRef<typeof formData | null>(null);
 
@@ -653,6 +654,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
       document.getElementById('product-cost-input')?.focus();
       return;
     }
+    const shippingUsdEntered = enteredNumber(formData.shippingRateUSD);
+    if (shippingUsdEntered !== null && shippingUsdEntered !== 0 && currentRate === null) {
+      setShippingError(true);
+      document.getElementById('product-shipping-input')?.focus();
+      return;
+    }
     setLoading(true);
 
     try {
@@ -661,14 +668,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
            every tea added here shipped at whatever was typed or free, and there
            was no way to say "just use the shop's". Same rule the edit panel was
            given on 2026-09-06; this form was missed. */
-        /* And NULL again when there is no rate to convert the entered dollars
-           into the tea's own currency, because the column is stored in that
-           currency. Multiplying by 1 would pin the tea to a number nobody
-           chose, in a unit nobody meant. Following the shop rate is the honest
-           answer to "we cannot convert this". */
-        const shippingUsdEntered = enteredNumber(formData.shippingRateUSD);
-        const shippingSourceToSave = shippingUsdEntered == null || currentRate === null
-          ? null
+        /* A nonzero entered rate needs a conversion and was refused above
+           if it is missing. Never silently turn that intent into inheritance. */
+        const shippingSourceToSave = shippingUsdEntered === 0 ? 0
+          : shippingUsdEntered == null || currentRate === null ? null
           : shippingUsdEntered * currentRate;
 
         const payload = {
@@ -784,7 +787,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         role="dialog"
         aria-modal="true"
         aria-label={initialData ? 'Edit product' : 'Add new product'}
-        className="fixed inset-0 sidebar-inset z-priority flex items-stretch bg-tea-bg/90 backdrop-blur-md animate-in fade-in duration-200"
+        className="fixed inset-0 sidebar-inset z-modal flex items-stretch bg-tea-bg/90 backdrop-blur-md animate-in fade-in duration-200"
         onClick={handleClose}
     >
       <div
@@ -1035,7 +1038,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 <div>
                   <label className={labelStyle}>Shipping (USD per kg)</label>
                   <input
-                    name="shippingRateUSD" type="number" step="0.01" value={formData.shippingRateUSD} onChange={handleChange}
+                    id="product-shipping-input" name="shippingRateUSD" type="number" step="0.01" value={formData.shippingRateUSD}
+                    onChange={event => { handleChange(event); setShippingError(false); }}
+                    aria-invalid={shippingError || undefined}
+                    aria-describedby={shippingError ? 'product-shipping-error' : undefined}
                     className={`${inputStyle} tabular-nums text-right`}
                     // The shop's live rate, as a PLACEHOLDER rather than a
                     // value: leaving it alone follows the shop, so a
@@ -1047,6 +1053,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     inputMode="decimal"
                     onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
                   />
+                  {shippingError && <p id="product-shipping-error" role="alert" className="mt-1 text-ui-12 text-tea-text-sec">An exchange rate for {formData.costCurrency} is needed to save this shipping rate.</p>}
                 </div>
               </div>
 
@@ -1055,13 +1062,13 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 <div>
                   <div className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-0.5">True cost</div>
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-3xl font-serif text-tea-gold tabular-nums">${calc.trueCostUSD.toFixed(3)}</span>
+                    <span className="text-3xl font-serif text-tea-gold tabular-nums">{calc.rateUsed > 0 ? `$${calc.trueCostUSD.toFixed(3)}` : '—'}</span>
                     <span className="text-xs text-tea-text-sec font-serif italic">per gram</span>
                   </div>
                 </div>
                 <div className="text-right text-ui-10 text-tea-text-sec space-y-0.5">
-                  <div><span className="tabular-nums">{calc.costPerGramSource.toFixed(3)}</span> <span className="uppercase tracking-[0.15em]">{formData.costCurrency}</span>/g source</div>
-                  <div>FX <span className="tabular-nums">{calc.rateUsed}</span></div>
+                  <div><span className="tabular-nums">{calc.rateUsed > 0 ? calc.costPerGramSource.toFixed(3) : '—'}</span> <span className="uppercase tracking-[0.15em]">{formData.costCurrency}</span>/g source</div>
+                  <div>FX <span className="tabular-nums">{calc.rateUsed > 0 ? calc.rateUsed : '—'}</span></div>
                 </div>
               </div>
 
@@ -1079,7 +1086,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     disabled={calc.suggestedRetailUSD <= 0}
                     className="text-ui-10 uppercase tracking-[0.15em] text-tea-gold/80 hover:text-tea-gold disabled:opacity-40 disabled:cursor-default transition-colors"
                   >
-                    Use 3× <span className="tabular-nums">${calc.suggestedRetailUSD.toFixed(2)}</span>
+                    Use 3× <span className="tabular-nums">{calc.rateUsed > 0 ? `$${calc.suggestedRetailUSD.toFixed(2)}` : '—'}</span>
                   </button>
                 </div>
                 <div className="flex items-baseline gap-1.5 border-b border-tea-border focus-within:border-tea-accent-sub transition-colors">
@@ -1606,7 +1613,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         )}
 
         {/* STICKY FOOTER */}
-        <div className="px-6 py-3.5 border-t border-tea-border flex justify-between gap-3 bg-tea-bg/50 backdrop-blur-sm shrink-0">
+        <div className="px-6 pt-3.5 pb-nav-gap border-t border-tea-border flex justify-between gap-3 bg-tea-bg/50 backdrop-blur-sm shrink-0">
             <button type="button" onClick={handleClose} className="px-4 py-2.5 text-sm text-tea-text-sec hover:text-tea-text transition-colors">
                 Cancel
             </button>

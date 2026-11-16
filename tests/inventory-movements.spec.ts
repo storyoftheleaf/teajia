@@ -189,20 +189,32 @@ test('opening the product editor keeps the stock row typography and density unch
   await expect.poll(readMetrics).toEqual(before);
 });
 
-test('only the rendered stock number opens the compact stock adjustment', async ({ page }) => {
+test('the usable stock button opens adjustment while cell padding selects the row', async ({ page }) => {
   const row = page.locator('tr[data-product-id="tea-1"]');
   const stockLink = row.getByRole('button', { name: 'Change stock for Cloud Oolong' });
   const stockCell = stockLink.locator('xpath=..');
   const [linkBox, cellBox] = await Promise.all([stockLink.boundingBox(), stockCell.boundingBox()]);
-  const renderedTextWidth = await stockLink.evaluate((button) => {
+  const geometry = await stockLink.evaluate((button) => {
     const range = document.createRange();
     range.selectNodeContents(button);
-    return range.getBoundingClientRect().width;
+    const ink = range.getBoundingClientRect();
+    const cellStyle = getComputedStyle(button.parentElement!);
+    return { inkLeft: ink.left, inkRight: ink.right, inkWidth: ink.width,
+      paddingLeft: parseFloat(cellStyle.paddingLeft), paddingRight: parseFloat(cellStyle.paddingRight) };
   });
 
   expect(linkBox).not.toBeNull();
   expect(cellBox).not.toBeNull();
-  expect(linkBox!.width).toBeLessThanOrEqual(renderedTextWidth + 2);
+  // Visible numbers and usable hit targets have different bounds. Keep the
+  // existing 44px target inside the cell content, leaving padding for row selection.
+  await expect(stockLink).toHaveText('100');
+  expect(linkBox!.width).toBeGreaterThanOrEqual(44);
+  expect(linkBox!.height).toBeGreaterThanOrEqual(44);
+  expect(geometry.inkWidth).toBeGreaterThan(0);
+  expect(geometry.inkLeft).toBeGreaterThanOrEqual(linkBox!.x);
+  expect(geometry.inkRight).toBeLessThanOrEqual(linkBox!.x + linkBox!.width);
+  expect(linkBox!.x).toBeGreaterThanOrEqual(cellBox!.x + geometry.paddingLeft - 1);
+  expect(linkBox!.x + linkBox!.width).toBeLessThanOrEqual(cellBox!.x + cellBox!.width - geometry.paddingRight + 1);
 
   await stockCell.click({ position: { x: 4, y: cellBox!.height / 2 } });
   await expect(page.getByRole('dialog', { name: 'Change stock: Cloud Oolong' })).toHaveCount(0);

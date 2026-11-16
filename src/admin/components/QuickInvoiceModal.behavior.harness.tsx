@@ -84,7 +84,7 @@ const tokenForAccount = (accountId: string) => {
 };
 
 const testApi = {
-  mount(options: { accountId?: string; prefill?: Record<string, unknown> } = {}) {
+  mount(options: { accountId?: string; prefill?: Record<string, unknown>; unpricedProductIds?: string[] } = {}) {
     requests.length = 0;
     invoiceCalls.length = 0;
     loseInvoiceResponse = false;
@@ -98,7 +98,7 @@ const testApi = {
           isOpen
           onClose={() => {}}
           onSuccess={() => {}}
-          products={products}
+          products={products.map(product => options.unpricedProductIds?.includes(product.id) ? { ...product, pricePerGramUSD: null, fixedRetailPriceUSD: null } : product)}
           prefill={options.prefill as any}
           showToast={(message, type) => toasts.push({ message, type })}
         />

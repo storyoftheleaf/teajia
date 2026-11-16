@@ -100,7 +100,9 @@ export const useRates = () => {
     // more often than the table changes, and a session open across the daily
     // boundary should still pick the new rate up, so: one hour of cache on a
     // number that moves once a day.
-    staleTime: 1000 * 60 * 60,
+    // A persisted successful [] is not a usable rate reading. Refetch it on
+    // mount too; initialDataUpdatedAt only covers the separate memory fallback.
+    staleTime: query => Array.isArray(query.state.data) && query.state.data.length === 0 ? 0 : 1000 * 60 * 60,
     initialData: () => {
       const remembered = loadLastKnownRates();
       // An empty initial value is considered fresh for staleTime too, which

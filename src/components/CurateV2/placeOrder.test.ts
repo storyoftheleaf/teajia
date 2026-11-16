@@ -29,6 +29,24 @@ describe('recording a purchase preserves linked arrival intent', () => {
     expect(propose.mock.calls.map(call => call[1].idempotency_key)).toEqual(['order:po:tea', 'order:po:tea']);
     expect(accept).not.toHaveBeenCalled();
   });
+  it('uses the receipt and draft returned by the placement instead of proposing a second arrival', async () => {
+    const ledger = useLedgerStore.getState();
+    const id = ledger.createTransaction('purchase', 'Supplier', 'Yuan');
+    const itemId = ledger.addLineItem(id, { ...item, productId: undefined });
+    const create = vi.spyOn(api.purchaseOrders, 'create').mockResolvedValue({
+      id: 'po', receipt_id: 'receipt',
+      lines: [{ product_id: 'stock-draft', compass_entry_id: 'tea', client_line_id: itemId, receipt_line_id: 'line' }],
+    });
+    const propose = vi.spyOn(api.compass, 'proposeReceipt');
+    await recordPurchase(ledger.getTransaction(id)!, [], new QueryClient());
+    expect(ledger.getTransaction(id)).toMatchObject({
+      purchaseOrderId: 'po', purchaseOrderReceiptId: 'receipt',
+      items: [{ productId: 'stock-draft', purchaseReceiptLineId: 'line' }],
+    });
+    await recordPurchase(ledger.getTransaction(id)!, [], new QueryClient());
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(propose).not.toHaveBeenCalled();
+  });
   it('stops when the active account changes while the order is being recorded', async () => {
     vi.spyOn(api.purchaseOrders, 'create').mockImplementation(async () => {
       useAppStore.setState({ activeAccountId: 'other' });

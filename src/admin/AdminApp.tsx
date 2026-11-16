@@ -23,6 +23,7 @@ import { Product } from './types';
 import { authPagePath } from '../lib/authNavigation';
 import { adminShellNeedsProducts } from './productQueries';
 import { adminAuthReturnTo } from './authNavigation';
+import { carryQuery } from './carryQuery';
 
 import { useProducts, useRates } from './hooks/useAdminData';
 import { eventsListQueryOptions } from './hooks/useEventData';
@@ -147,7 +148,7 @@ const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const developName = params.get('developName');
   const developType = params.get('developType');
   const initialMode: CompassMode | undefined =
-    tab === 'buying' ? 'buying' : tab === 'ledger' ? 'buying' :
+    tab === 'buying' || tab === 'ledger' || tab === 'orders' ? 'buying' :
     tab === 'sourcing' ? 'sourcing' : tab === 'capture' ? 'sourcing' :
     tab === 'samples' ? 'sourcing' :
     // 'tasting' kept as a back-compat alias for the old query param.
@@ -351,6 +352,12 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   const [inventoryCategory, setInventoryCategory] = useState<'tea' | 'teaware'>('tea');
   const [inventorySearchQuery, setInventorySearchQuery] = useState('');
   const isOnInventory = location.pathname.includes('/admin/stock') || location.pathname.includes('/admin/inventory');
+  // A link such as /admin/stock?search=<name> seeds the Stock search box.
+  useEffect(() => {
+    if (!location.pathname.includes('/admin/stock')) return;
+    const seeded = new URLSearchParams(location.search).get('search');
+    if (seeded) setInventorySearchQuery(seeded);
+  }, [location.pathname, location.search]);
   const isOnCapture = location.pathname.includes('/admin/capture');
   const isOnIntake = location.pathname.includes('/admin/intake');
   const isOnHome = location.pathname === '/admin/' || location.pathname === '/admin/compass';
@@ -507,7 +514,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
         <div className={`flex-1 relative min-h-0 ${isOnInventory || isOnCapture || isOnIntake ? 'overflow-hidden' : 'overflow-y-auto pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0'}`}>
           <Routes>
               <Route path="/" element={null} />
-              <Route path="home" element={<Navigate to="../compass" replace />} />
+              <Route path="home" element={<Navigate to={carryQuery("../compass", location.search)} replace />} />
 
               {/* Member tools, all authenticated members */}
               <Route path="compass" element={
@@ -524,7 +531,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                   </PageTransition>
                 </ProtectedRoute>
               } />
-              <Route path="curate/v2" element={<Navigate to={`/admin/compass/v2${location.search}`} replace />} />
+              <Route path="curate/v2" element={<Navigate to={carryQuery("/admin/compass/v2", location.search)} replace />} />
               <Route path="compass-playbook" element={
                 <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={!isLoggedIn}>
                   <PageTransition>
@@ -562,22 +569,23 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="tasting-events/:sessionId" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={!isLoggedIn}><PageTransition><TastingControlRoom /></PageTransition></ProtectedRoute>} />
               <Route path="tasting-events/:sessionId/live" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={!isLoggedIn}><PageTransition><TastingControlRoom /></PageTransition></ProtectedRoute>} />
               <Route path="venues" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={!isLoggedIn}><PageTransition><VenueManager /></PageTransition></ProtectedRoute>} />
-              <Route path="samples" element={<Navigate to={`/admin/compass?sampleOrder=manage${location.search ? `&${location.search.slice(1)}` : ''}`} replace />} />
+              <Route path="samples" element={<Navigate to={carryQuery("/admin/compass?sampleOrder=manage", location.search)} replace />} />
 
               {/* Operations: staff, admin, owner */}
               <Route path="activity" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={!isLoggedIn}><PageTransition><ActivityView products={products} /></PageTransition></ProtectedRoute>} />
-              <Route path="activity-logs" element={<Navigate to="/admin/activity?tab=log" replace />} />
+              <Route path="activity-logs" element={<Navigate to={carryQuery("/admin/activity?tab=log", location.search)} replace />} />
               <Route path="people" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={!isLoggedIn}><PageTransition><PeopleView userRole={userRole || 'user'} /></PageTransition></ProtectedRoute>} />
               <Route path="people/:customerId" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={!isLoggedIn}><PageTransition><CustomerProfilePage /></PageTransition></ProtectedRoute>} />
               {/* Tags are one tab of People; the standalone page was a second door to the same screen. */}
-              <Route path="contact-tags" element={<Navigate to="/admin/people?tab=tags" replace />} />
+              <Route path="contact-tags" element={<Navigate to={carryQuery("/admin/people?tab=tags", location.search)} replace />} />
 
               {/* Management: admin, owner. Canonical route is /admin/stock;
                   /admin/inventory redirects to it (query string preserved for ?panel= deep links). */}
               <Route path="stock" element={
-                <ProtectedRoute hasAccess={canManageInventory} isLoggingIn={!isLoggedIn}>
+                <ProtectedRoute hasAccess={new URLSearchParams(location.search).get('view') === 'drafts' ? hasCatalogBundle : canManageInventory} isLoggingIn={!isLoggedIn}>
                   <PageTransition>
                     <InventoryView
+                      canReviewDrafts={hasCatalogBundle}
                       products={products}
                       isLoading={loading}
                       isError={productsError}
@@ -598,7 +606,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                   </PageTransition>
                 </ProtectedRoute>
               } />
-              <Route path="inventory" element={<Navigate to={`/admin/stock${location.search}`} replace />} />
+              <Route path="inventory" element={<Navigate to={carryQuery("/admin/stock", location.search)} replace />} />
               <Route path="intake" element={<ProtectedRoute hasAccess={canManageInventory} isLoggingIn={!isLoggedIn}><PageTransition><IntakeWorkspace onRefresh={refetchProducts} rates={rates} /></PageTransition></ProtectedRoute>} />
               <Route path="dashboard" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={!isLoggedIn}><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
               <Route path="vendors/:vendorId" element={<ProtectedRoute hasAccess={canManageInventory} isLoggingIn={!isLoggedIn}><PageTransition><VendorProfileView /></PageTransition></ProtectedRoute>} />
@@ -607,16 +615,16 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                   since 2026-09-29; both were People tabs. Same gates as before. */}
               <Route path="purchase-orders" element={<ProtectedRoute hasAccess={isOwnerTier || hasStockBundle} isLoggingIn={!isLoggedIn}><PageTransition><PurchaseOrdersPage /></PageTransition></ProtectedRoute>} />
               <Route path="audit" element={<ProtectedRoute hasAccess={isOwnerTier || hasMembersBundle} isLoggingIn={!isLoggedIn}><PageTransition><PeopleAuditView /></PageTransition></ProtectedRoute>} />
-              <Route path="team" element={<Navigate to="/admin/access" replace />} />
+              <Route path="team" element={<Navigate to={carryQuery("/admin/access", location.search)} replace />} />
               {/* The Manage list calls this room Members, so /admin/members is a
                   natural address to type. The page lives at /admin/access. */}
-              <Route path="members" element={<Navigate to="/admin/access" replace />} />
+              <Route path="members" element={<Navigate to={carryQuery("/admin/access", location.search)} replace />} />
               {/* The admin copy of the launch playbook was retired: it repeated the
                   Launch Center step for step, but kept its ticks in the browser, so
                   it could tell someone they were done when they were not. The public
                   page it shared a component with is untouched. Anyone holding the old
                   link lands on the checklist that reads live data instead. */}
-              <Route path="launch-playbook" element={<Navigate to="/admin/account-settings" replace />} />
+              <Route path="launch-playbook" element={<Navigate to={carryQuery("/admin/account-settings", location.search)} replace />} />
               <Route path="access" element={<ProtectedRoute hasAccess={hasMembersBundle} isLoggingIn={!isLoggedIn}><PageTransition><AccessView /></PageTransition></ProtectedRoute>} />
               <Route path="access/platform" element={<ProtectedRoute hasAccess={!!platformRole} isLoggingIn={!isLoggedIn}><PageTransition><PlatformAccessView /></PageTransition></ProtectedRoute>} />
               <Route path="currency" element={<ProtectedRoute hasAccess={!!platformRole} isLoggingIn={!isLoggedIn}><PageTransition><CurrencyRatesView /></PageTransition></ProtectedRoute>} />
@@ -628,10 +636,10 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               {/* Network hub, single page with tabbed surfaces */}
               <Route path="network" element={<ProtectedRoute hasAccess={canUseNetwork} isLoggingIn={!isLoggedIn}><PageTransition><NetworkLanding /></PageTransition></ProtectedRoute>} />
               {/* Legacy destination routes redirect into the hub with their tab */}
-              <Route path="network/catalog" element={<Navigate to="/admin/network?tab=catalog" replace />} />
-              <Route path="network/suggestions" element={<Navigate to="/admin/network?tab=suggestions" replace />} />
-              <Route path="network/wholesale" element={<Navigate to="/admin/network?tab=wholesale" replace />} />
-              <Route path="network/adoptions" element={<Navigate to="/admin/network?tab=adoptions" replace />} />
+              <Route path="network/catalog" element={<Navigate to={carryQuery("/admin/network?tab=catalog", location.search)} replace />} />
+              <Route path="network/suggestions" element={<Navigate to={carryQuery("/admin/network?tab=suggestions", location.search)} replace />} />
+              <Route path="network/wholesale" element={<Navigate to={carryQuery("/admin/network?tab=wholesale", location.search)} replace />} />
+              <Route path="network/adoptions" element={<Navigate to={carryQuery("/admin/network?tab=adoptions", location.search)} replace />} />
               {/* Deep sub-pages keep their own URLs */}
               <Route path="network/listings/:listingId" element={<ProtectedRoute hasAccess={canUseNetwork} isLoggingIn={!isLoggedIn}><PageTransition><PartnerListingEdit /></PageTransition></ProtectedRoute>} />
               <Route path="network/wholesale/new" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={!isLoggedIn}><PageTransition><WholesaleOrderDraft /></PageTransition></ProtectedRoute>} />
@@ -650,26 +658,26 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               {/* Legacy routes, redirect to new unified views */}
               <Route path="catalog" element={
                 activeMembership?.is_platform_account
-                  ? <Navigate to="/admin/stock" replace />
+                  ? <Navigate to={carryQuery("/admin/stock", location.search)} replace />
                   : <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={!isLoggedIn}><PageTransition><CatalogView /></PageTransition></ProtectedRoute>
               } />
-              <Route path="teaware" element={<Navigate to="/admin/stock" replace />} />
-              <Route path="personal" element={<Navigate to="/admin/stock" replace />} />
-              <Route path="customers" element={<Navigate to="/admin/people" replace />} />
-              <Route path="sources" element={<Navigate to="/admin/people" replace />} />
-              <Route path="orders" element={<Navigate to="/admin/activity?tab=orders" replace />} />
-              <Route path="records" element={<Navigate to="/admin/activity?tab=log" replace />} />
+              <Route path="teaware" element={<Navigate to={carryQuery("/admin/stock", location.search)} replace />} />
+              <Route path="personal" element={<Navigate to={carryQuery("/admin/stock", location.search)} replace />} />
+              <Route path="customers" element={<Navigate to={carryQuery("/admin/people", location.search)} replace />} />
+              <Route path="sources" element={<Navigate to={carryQuery("/admin/people", location.search)} replace />} />
+              <Route path="orders" element={<Navigate to={carryQuery("/admin/activity?tab=orders", location.search)} replace />} />
+              <Route path="records" element={<Navigate to={carryQuery("/admin/activity?tab=log", location.search)} replace />} />
               {/* The only control in the app labelled Settings used to land on
                   Contacts, which answers a different question entirely. It goes
                   to the shop's own settings now, which is what the word means
                   here. */}
-              <Route path="settings" element={<Navigate to="/admin/account-settings" replace />} />
+              <Route path="settings" element={<Navigate to={carryQuery("/admin/account-settings", location.search)} replace />} />
 
               {/* Absolute on purpose. Under React Router 7 a relative target inside a
                   splat route resolves against the whole unmatched path, so "home"
                   from /admin/members went to /admin/members/home, which matched
                   this route again and grew /home/home/home forever. */}
-              <Route path="*" element={<Navigate to="/admin/compass" replace />} />
+              <Route path="*" element={<Navigate to={carryQuery("/admin/compass", location.search)} replace />} />
           </Routes>
         </div>
 

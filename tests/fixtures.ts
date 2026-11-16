@@ -32,6 +32,11 @@ export const test = base.extend({
        about publishing registers its own page.route, which wins over this. */
     await context.route(/\/api\/public\/read\/publish-state$/, (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ states: {} }) }));
+    // A reader starts without a verified editor grant. Layout specs that
+    // model an editor override this response; real JWT authorization is proved
+    // in read-delivery-boundary.spec.ts against the seeded Worker.
+    await context.route(/\/api\/read\/session$/, route =>
+      route.fulfill({ json: { editor: false }, headers: CORS }));
     await use(context);
   },
 });

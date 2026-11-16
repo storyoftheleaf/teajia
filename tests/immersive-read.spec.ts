@@ -67,11 +67,12 @@ async function checkPage(page: Page, name: string) {
 for (const r of ROUTES) {
   test(`immersive ${r.name}`, async ({ page }) => {
     if (r.draft) {
+      await page.route('**/api/read/session', route => route.fulfill({ json: { editor: true } }));
       await page.addInitScript((token) => {
         localStorage.setItem('teajia_token', token);
       }, OWNER_TOKEN);
     }
-    await page.goto(`http://localhost:7777${r.path}`, { waitUntil: 'domcontentloaded' });
+    await page.goto(r.path, { waitUntil: 'domcontentloaded' });
     // Auto-retrying, the way read-publish-gate.spec.ts checks a page loaded:
     // the lazy article chunk is not necessarily in by the time navigation
     // settles, so this polls for the article's own title instead of racing a
@@ -97,7 +98,7 @@ test('leaf-to-liquor all five direction routes', async ({ page }) => {
   for (const label of ['Manuscript', 'Gallery', 'Folio', 'Thread', 'Reverie']) {
     errors.length = 0;
     const template = label.toLowerCase();
-    await page.goto(`http://localhost:7777/read/leaf-to-liquor/${template}`, { waitUntil: 'networkidle' });
+    await page.goto(`/read/leaf-to-liquor/${template}`, { waitUntil: 'networkidle' });
     await expect(page).toHaveURL(new RegExp(`/read/leaf-to-liquor/${template}$`));
     await expect(page.getByText(`From Leaf to Liquor · ${label}`, { exact: true })).toBeVisible();
     await page.waitForTimeout(600);

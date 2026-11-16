@@ -565,7 +565,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
           data-state={added ? 'added' : isSoldOut ? 'sold-out' : 'default'}
         >
           {isSoldOut ? (
-            <span className="alcove-order-verb">Sold Out</span>
+            <span className="alcove-order-verb">{Number.isFinite(pricePerGram) ? 'Sold Out' : 'Unavailable'}</span>
           ) : added ? (
             <span className="alcove-order-verb">Added ✓</span>
           ) : (

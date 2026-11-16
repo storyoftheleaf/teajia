@@ -1,3 +1,5 @@
+// These checks hold the classic Source form to its contract, so they open it
+// with `?form=classic`. The default form is the 'flow' one (src/components/curate/).
 import { test, expect, type Page } from './fixtures';
 import {
   expectNoUnhandledCompassApi,
@@ -17,7 +19,7 @@ async function openTeawareCanvas(page: Page) {
 test.describe('Curate compact sourcing canvas', () => {
   test.beforeEach(async ({ page }) => {
     await installCompassHarness(page);
-    await openCompass(page);
+    await openCompass(page, 'classic');
   });
 
   test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));

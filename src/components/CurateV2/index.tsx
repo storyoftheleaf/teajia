@@ -8,6 +8,7 @@ import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompas
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { syncNotes } from '../../lib/notesSync';
 import { useNotesStore } from '../../lib/notesStore';
+import { LegacyLocalRecovery } from '../TeaCompass/LegacyLocalRecovery';
 import { useAppStore } from '../../lib/store';
 import { useSampleStore } from '../../samples/sampleStore';
 import type { SampleTasting } from '../../samples/types';
@@ -217,7 +218,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // capture-shell creation; opening Library or Ledger must remain read-only.
   useEffect(() => {
     switchDraftAccount(activeAccountId);
-  }, [activeAccountId, switchDraftAccount]);
+  }, [activeAccountId, activeUserId, switchDraftAccount]);
 
   // Incoming pending shares (not yet accepted into compass)
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -313,7 +314,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     setBusyLibraryImportId(null); setLibraryImportErrors({}); setLibraryDeleteFocusRequest(null);
     importTriggerRef.current = null;
     setImportPointerId(activeAccountId ? localStorage.getItem(`teajia-curate-import:${activeAccountId}`) : null);
-  }, [activeAccountId]);
+  }, [activeAccountId, activeUserId]);
   const { data: pointedImport } = useQuery({
     queryKey: ['curate-import', importPointerId, activeAccountId],
     queryFn: () => api.curateImports.get(importPointerId!),
@@ -705,7 +706,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         teaKey: entry?.teaKey,
         text,
         sourceType: 'voice',
-        authorId: activeAccountId ?? 'guest',
+        authorId: activeUserId ?? 'guest',
         authorName: activeAccount?.name ?? 'You',
         visibility: 'private',
       });
@@ -1210,6 +1211,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     onOpen={openSavedImport}
                     onDelete={deleteSavedImport}
                   />
+                  <div className="flex justify-end"><LegacyLocalRecovery /></div>
                   <BrowseView
                     onEditEntry={handleEditEntry}
                     onNewCapture={handleNewCapture}
@@ -1466,6 +1468,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       onOpen={openSavedImport}
                       onDelete={deleteSavedImport}
                     />
+                    <div className="flex justify-end"><LegacyLocalRecovery /></div>
                     <BrowseView
                       onEditEntry={handleEditEntry}
                       onNewCapture={handleNewCapture}

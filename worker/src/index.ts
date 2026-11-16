@@ -1,4 +1,5 @@
 import { guardFetch } from './allowanceGuard.mjs';
+import { isCuratedReadPath, isReadPathPublic } from '../../src/pages/read/articleLive';
 import { LogisticsTrackingError, recordLogisticsTrackingUpdate } from './logisticsTracking';
 import { readLogistics, mutateLogistics, LogisticsError, type LogisticsAction } from './logistics';
 import { readPurchaseTracking } from './purchaseTracking';
@@ -14,7 +15,7 @@ import { promoteCompassEntry, CompassPromotionError } from './curatePromotion';
 import { applySupplierRename, cleanSupplierName, listSupplierFreight, previewSupplierRename, SupplierRenameRefusal } from './supplierRename';
 import { capturedHoldingFields, recordedImageKey, capturedRetailUsd } from './capturedHolding';
 import { invoiceRefundTotals } from './refundDomain';
-import { preparePurchaseReceipt, updatePurchaseReceiptStatus } from './purchaseContinuity';
+import { PLACED_PURCHASE_STATUSES, placePurchaseReceipt, preparePurchaseReceipt, updatePurchaseReceiptStatus } from './purchaseContinuity';
 import { authPagePath } from '../../src/lib/authNavigation';
 import {
   mcpFetch, publicMcpFetch, mcpAdminMintToken, mcpAdminListTokens, mcpAdminRevokeToken,
@@ -32,6 +33,8 @@ import {
 import { prepareCompassSampleWrite, prepareSampleLifecycleSync, compassStateForSample } from './curateSampleBridge';
 import { receiptProductDetails } from './curateReceiptProduct';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
+import { compassFieldPatch, readCompassFieldHints } from './compassFieldPatch';
+import { receiptHoldingTeaId } from './curateMergeLink';
 import { shippingPerGramUsd, resolveShopFreightDefault } from './shippingRate';
 import { deductStockForPaidInvoice } from './orderLifecycle';
 import { internationalWhatsAppNumber } from '../../src/lib/whatsappContact';
@@ -90,6 +93,7 @@ import {
   canonicalCurrency,
   type AuthorizedInvoiceLine,
 } from './teaMasterSales';
+import { isoCurrencyCode } from '../../src/lib/currency';
 import { buildEventArticleDraft } from './eventArticleDraft';
 import { decodeWordforgeDraft, isWordforgeManagedArticle, upsertWordforgeDraft, WordforgeDraftError, WORDFORGE_DRAFT_MAX_BYTES } from './wordforgeArticleDraft';
 import {
@@ -164,6 +168,8 @@ import { RouteRefusal, listRoutes, removeRoute, saveRoute } from './shippingRout
 import { handleLibraryPreview, LIBRARY_PREVIEW_ORIGIN } from './libraryPreview';
 import { withD1ReadBudget, resolveD1Budget, settleD1Budget } from './d1Budget';
 import { budgetRefusal } from './d1BudgetResponse';
+import { mergePushedJournal, storedJournalsFor } from './tastingJournalPush';
+import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasting } from './sampleTastingRepeat';
 interface Env extends WorkerReleaseEnv {
   DB: D1Database;
   WHATSAPP_ORDER_ACCOUNT_ID?: string;
@@ -532,7 +538,7 @@ async function verifyOAuthState(state: string, secret: string): Promise<string |
 }
 
 // ── Multi-account helpers ──
-async function loadMemberships(env: Env, userId: string): Promise<AccountMembership[]> {
+async function loadMemberships(env: Env, userId: string, strict = false): Promise<AccountMembership[]> {
   try {
     const { results } = await env.DB.prepare(
       `SELECT am.account_id, am.role, am.permissions, a.slug, a.name, a.kind, a.is_platform_owner
@@ -555,7 +561,8 @@ async function loadMemberships(env: Env, userId: string): Promise<AccountMembers
         ...(r.is_platform_owner ? { is_platform_account: true } : {}),
       };
     });
-  } catch {
+  } catch (error) {
+    if (strict) throw error;
     return [];
   }
 }
@@ -1592,7 +1599,10 @@ function cors(response: Response, origin: string | null): Response {
   if (origin) headers.set('Access-Control-Allow-Origin', origin);
   headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Teajia-Account');
-  headers.set('Vary', 'Origin');
+  const vary = headers.get('Vary');
+  if (!vary?.split(',').some(value => value.trim().toLowerCase() === 'origin')) {
+    headers.set('Vary', vary ? `${vary}, Origin` : 'Origin');
+  }
   return new Response(response.body, { status: response.status, headers });
 }
 
@@ -1646,14 +1656,14 @@ function lookupRateToUsd(rates: Map<string, number>, rawCurrency: string | null 
  * kept serving the old number after Adrian changed it in Store Settings would
  * be the same class of bug this whole area exists to stop.
  */
-async function shopFreightPerKgUsd(env: Env, accountId: string, rates: Map<string, number>): Promise<number> {
+async function shopFreightPerKgUsd(env: Env, accountId: string, rates: Map<string, number>): Promise<number | null> {
   const account = await env.DB.prepare(
     'SELECT default_shipping_rate_per_kg, default_shipping_rate_currency FROM accounts WHERE id = ?'
   ).bind(accountId).first() as { default_shipping_rate_per_kg?: number | null; default_shipping_rate_currency?: string | null } | null;
   return resolveShopFreightDefault(account, c => lookupRateToUsd(rates, c)).perKgUsd;
 }
 
-function addPricingFields(product: any, rates: Map<string, number>, shopDefaultPerKgUsd: number): any {
+function addPricingFields(product: any, rates: Map<string, number>, shopDefaultPerKgUsd: number | null): any {
   /* A named cost currency with no rate is not a rate of 1. Reading a 380 yuan
      cost as 380 dollars is a seven-fold error that the x3 then triples, and it
      arrives looking like an expensive tea rather than like a fault. Nothing to
@@ -1671,7 +1681,13 @@ function addPricingFields(product: any, rates: Map<string, number>, shopDefaultP
   // gets two homes.
   const rate = isUnrecordedCurrency(declared) ? 1 : lookupRateToUsd(rates, declared);
   const isTeaware = product.type === 'Teaware';
-  if (!rate || rate <= 0 || product.cost_amount == null || !(Number(product.quantity_purchased) > 0)) {
+  const freight = shippingPerGramUsd({
+    storedRatePerKg: product.shipping_rate_per_kg,
+    rateToUsd: rate,
+    isTeaware,
+    shopDefaultPerKgUsd,
+  });
+  if (!rate || !Number.isFinite(rate) || rate <= 0 || freight === null || product.cost_amount == null || !(Number(product.quantity_purchased) > 0)) {
     return {
       ...product,
       stock_grams: Math.round(product.stock_grams || 0),
@@ -1691,12 +1707,7 @@ function addPricingFields(product: any, rates: Map<string, number>, shopDefaultP
     /* Freight belongs in the basis the markup multiplies, and the rate itself
        is decided in one place. See worker/src/shippingRate.ts for both, and
        for why a NULL rate is not the same as a rate of zero. */
-    costPerUnitUSD = costPerUnit / rate + shippingPerGramUsd({
-      storedRatePerKg: product.shipping_rate_per_kg,
-      rateToUsd: rate,
-      isTeaware,
-      shopDefaultPerKgUsd,
-    });
+    costPerUnitUSD = costPerUnit / rate + freight;
   }
 
   if (qty > 0) {
@@ -3773,8 +3784,15 @@ const handleDeleteProduct: Handler = async (request, env, params) => {
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
-  await env.DB.prepare('DELETE FROM products WHERE id = ? AND account_id = ?')
-    .bind(params.id, accountId).run();
+  // No Curate tea is left pointing at a product that is gone. The unlink runs
+  // first, while the product still proves it belongs to this account.
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE tea_compass_entries SET draft_product_id = NULL, updated_at = datetime('now')
+      WHERE draft_product_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ?)`)
+      .bind(params.id, accountId, params.id, accountId),
+    env.DB.prepare('DELETE FROM products WHERE id = ? AND account_id = ?')
+      .bind(params.id, accountId),
+  ]);
 
   await auditPlatformActingWrite(env, ctx, 'product.deleted', 'product', params.id, {});
 
@@ -3850,9 +3868,16 @@ const handleGetCatalog: Handler = async (request, env) => {
 // ── Product Events (cross-link: which events featured this product) ──
 // Public endpoint: auth is optional. Authenticated users see their account's
 // events; unauthenticated users (public shop) fall back to the Bali account.
+// A visitor only sees sessions they could open: the public event page's own
+// conditions (active, on a live public store), listed publicly rather than
+// unlisted, since this is a list and an unlisted event lives by its link.
 const handleGetProductEvents: Handler = async (request, env, params) => {
   const ctx = await requireAccount(request, env);
-  const accountId = 'error' in ctx ? BALI_ACCOUNT_ID : ctx.accountId;
+  const anonymous = 'error' in ctx;
+  const accountId = anonymous ? BALI_ACCOUNT_ID : ctx.accountId;
+  const visitorOnly = anonymous
+    ? ` AND e.status = 'active' AND ${PUBLIC_EVENT_STORE} AND ${PUBLIC_EVENT_HOST}`
+    : '';
 
   const result = await env.DB.prepare(
     `SELECT e.id, e.slug, e.title, e.subtitle, e.event_date, e.event_end_date,
@@ -3860,7 +3885,8 @@ const handleGetProductEvents: Handler = async (request, env, params) => {
             etm.custom_name, etm.brew_order
      FROM event_tea_menu etm
      JOIN events e ON e.id = etm.event_id
-     WHERE etm.product_id = ? AND e.account_id = ?
+     JOIN accounts a ON a.id = e.account_id
+     WHERE etm.product_id = ? AND e.account_id = ?${visitorOnly}
      ORDER BY e.event_date DESC`
   ).bind(params.id, accountId).all();
 
@@ -4367,7 +4393,7 @@ function buildPayUrl(
     // in Rupiah knows roughly what to expect to leave their account. Dropped
     // when it is USD (nothing to convert) or outside the set the pay page will
     // accept, so a link never lands on that page's error state.
-    const display = String(displayCurrency || '').trim().toUpperCase();
+    const display = isoCurrencyCode(displayCurrency);
     if (display && display !== 'USD' && isSupportedPaymentCurrency(display)) {
       url.searchParams.set('display', display);
     }
@@ -6452,13 +6478,9 @@ const handleMcpMintToken: Handler = async (request, env) => {
   // Derive creator_tier from account context (isPlatform covers platform_owner + platform_admin).
   const creatorTier = ctx.isPlatform ? 'platform_owner' as const : 'account_owner' as const;
 
-  // Parse requested scopes from body (validated in mcpAdminMintToken).
-  let requestedScopes: string[] | undefined;
-  if (Array.isArray(body.scopes)) {
-    requestedScopes = (body.scopes as unknown[]).filter((s): s is string => typeof s === 'string');
-  }
-
-  const minted = await mcpAdminMintToken(env, ctx.accountId, ctx.userId, ctx.email, label, requestedScopes as any, creatorTier);
+  // Preserve explicit empty/invalid choices so they cannot become omitted defaults.
+  const minted = await mcpAdminMintToken(env, ctx.accountId, ctx.userId, ctx.email, label, body.scopes, creatorTier);
+  if (!minted) return json({ error: 'invalid_scopes' }, 400);
   await buildActivityLog(env, 'MCP_TOKEN_MINTED', `MCP token minted: ${label} (scopes: ${minted.scopes.join(', ')})`, ctx.email, 'mcp_token', minted.id, ctx.accountId).run();
   return json({ id: minted.id, token: minted.token, prefix: minted.prefix, scopes: minted.scopes }, 201);
 };
@@ -11429,10 +11451,15 @@ const handleDeleteStoryPhoto: Handler = async (request, env, params) => {
 const handleGetStoryContent: Handler = async (request, env, params) => {
   const url = new URL(request.url);
   const wantDraft = url.searchParams.get('state') === 'draft';
-  // Draft is owner-only; published is public.
-  if (wantDraft) {
-    const authErr = await requireAdmin(request, env);
-    if (authErr) return authErr;
+  // A saved "published" edit is not publication of the Read story itself.
+  // The same state that protects its compiled page protects these words.
+  const readPath = `/read/${params.slug}`;
+  const curated = isCuratedReadPath(readPath);
+  if (curated || wantDraft) {
+    const refusal = wantDraft
+      ? await requireReadEditor(request, env)
+      : await readDeliveryRefusal(request, env, readPath);
+    if (refusal) return readDeliveryResponse(refusal);
   }
   const state = wantDraft ? 'draft' : 'published';
   const row = await env.DB.prepare(
@@ -11440,13 +11467,13 @@ const handleGetStoryContent: Handler = async (request, env, params) => {
   ).bind(BALI_ACCOUNT_ID, params.slug, state).first() as { content?: string } | null;
   let content: any = {};
   if (row?.content) { try { content = JSON.parse(row.content); } catch { content = {}; } }
-  return json(content);
+  return curated || wantDraft ? readDeliveryResponse(json(content)) : json(content);
 };
 
 // PUT /api/story-content/:slug/draft — save the owner's in-progress edits.
 const handleSaveStoryDraft: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const authErr = await requireReadEditor(request, env);
+  if (authErr) return readDeliveryResponse(authErr);
   const body = await request.json().catch(() => null) as { content?: any } | null;
   if (!body || typeof body.content !== 'object') return json({ error: 'content required' }, 400);
   await env.DB.prepare(
@@ -11460,8 +11487,8 @@ const handleSaveStoryDraft: Handler = async (request, env, params) => {
 
 // POST /api/story-content/:slug/publish — promote draft -> published + snapshot.
 const handlePublishStory: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const authErr = await requireReadEditor(request, env);
+  if (authErr) return readDeliveryResponse(authErr);
   const draft = await env.DB.prepare(
     `SELECT content FROM story_content WHERE account_id = ? AND story_slug = ? AND state = 'draft'`
   ).bind(BALI_ACCOUNT_ID, params.slug).first() as { content?: string } | null;
@@ -11493,19 +11520,19 @@ const handlePublishStory: Handler = async (request, env, params) => {
 
 // GET /api/story-content/:slug/versions — list snapshots (owner only).
 const handleListStoryVersions: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const authErr = await requireReadEditor(request, env);
+  if (authErr) return readDeliveryResponse(authErr);
   const rows = await env.DB.prepare(
     `SELECT id, label, created_at FROM story_content_versions
      WHERE account_id = ? AND story_slug = ? ORDER BY created_at DESC LIMIT 20`
   ).bind(BALI_ACCOUNT_ID, params.slug).all();
-  return json(rows.results);
+  return readDeliveryResponse(json(rows.results));
 };
 
 // POST /api/story-content/:slug/restore/:versionId — roll a snapshot into draft.
 const handleRestoreStoryVersion: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const authErr = await requireReadEditor(request, env);
+  if (authErr) return readDeliveryResponse(authErr);
   const v = await env.DB.prepare(
     `SELECT content FROM story_content_versions WHERE id = ? AND account_id = ? AND story_slug = ?`
   ).bind(params.versionId, BALI_ACCOUNT_ID, params.slug).first() as { content?: string } | null;
@@ -11516,7 +11543,7 @@ const handleRestoreStoryVersion: Handler = async (request, env, params) => {
      ON CONFLICT(account_id, story_slug, state) DO UPDATE SET
        content = excluded.content, updated_at = datetime('now')`
   ).bind(crypto.randomUUID(), BALI_ACCOUNT_ID, params.slug, v.content).run();
-  return json({ ok: true, content: JSON.parse(v.content) });
+  return readDeliveryResponse(json({ ok: true, content: JSON.parse(v.content) }));
 };
 
 // ── POST /api/products/:id/enhance-image ──
@@ -12313,7 +12340,7 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
   const attendee = await env.DB.prepare(
     `SELECT ea.*, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
             e.location_name, e.address_text, e.map_link, e.guidelines_text, e.venue_guide,
-            e.timezone, e.status as event_status, e.session_flow, e.playlist_url, e.slug,
+            e.timezone, e.status as event_status, e.lifecycle_status, e.session_flow, e.playlist_url, e.slug,
             e.briefing_cards, e.area_hint, e.mood_hints,
             v.photos AS venue_photos
      FROM event_attendees ea
@@ -12389,6 +12416,7 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
       first_visit_briefed: attendee.first_visit_briefed,
     },
     event: {
+      id: attendee.event_id,
       slug: attendee.slug,
       title: attendee.title,
       subtitle: attendee.subtitle,
@@ -12406,6 +12434,7 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
       venue_photos: isConfirmed ? venuePhotos : [],
       timezone: attendee.timezone,
       status: attendee.event_status,
+      lifecycle_status: attendee.lifecycle_status,
       session_flow: sessionFlow,
       playlist_url: attendee.playlist_url,
       briefing_cards: briefingCards,
@@ -14251,13 +14280,18 @@ const handleClaimInquiry:Handler=async(request,env,params)=>{
  }finally{await releaseInvoiceLinkLease(env,inquiry.account_id,inquiry.converted_invoice_id,lease.claimToken);}
 };
 
+// A visitor can only ask for a tea the public catalogue would show them. A
+// Draft, held or sold-out tea answers exactly as an unknown id does. Only the
+// unauthenticated request path reads this; staff doors price any tea they own.
+const PUBLIC_REQUEST_PRODUCT = "p.is_public = 1 AND p.shown_in_shop = 1 AND p.status = 'Active'";
+
 async function pricedRequestLines(env: Env, accountId: string, items: Array<Record<string, any>>) {
   const productIds = catalogProductIds(items);
   const [productRows, rateRows] = await Promise.all([
     productIds.length ? env.DB.prepare(
       `SELECT p.*, COALESCE(tp.form, p.form) AS form
          FROM products p LEFT JOIN tea_profiles tp ON tp.id='prof_' || p.id
-        WHERE p.account_id=? AND p.id IN (${productIds.map(() => '?').join(',')})`
+        WHERE p.account_id=? AND ${PUBLIC_REQUEST_PRODUCT} AND p.id IN (${productIds.map(() => '?').join(',')})`
     ).bind(accountId, ...productIds).all() : Promise.resolve({ results: [] }),
     env.DB.prepare('SELECT currency,rate_to_usd FROM exchange_rates').all(),
   ]);
@@ -14552,7 +14586,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
     if (productIds.length > 0) {
       const placeholders = productIds.map(() => '?').join(', ');
       const availableProducts = await env.DB.prepare(
-        `SELECT id FROM products WHERE account_id = ? AND id IN (${placeholders})`
+        `SELECT p.id FROM products p WHERE p.account_id = ? AND ${PUBLIC_REQUEST_PRODUCT} AND p.id IN (${placeholders})`
       ).bind(accountId, ...productIds).all();
       if (availableProducts.results.length !== productIds.length) {
         return json({ error: 'Store or items not found' }, 404);
@@ -15849,6 +15883,32 @@ function decodeCompassWrite(body: Record<string, unknown>, rejectUnknown: boolea
   } catch (error) { return { error: json({ error: (error as Error).message }, 400) }; }
 }
 
+// draft_product_id is the server's link from a Curate tea to its holding, and
+// the given-name triggers rename whatever product it names. Browsers still send
+// it on every sync (often null, often stale), so it is not refused: a client
+// write keeps the stored link unless it sends that same link, or a product of
+// this account that was made from this entry. Server doors set it directly.
+//
+// One more case is allowed: someone who may already edit the catalogue gives a
+// tea that has no link yet its first one, to a product of this account that no
+// Curate tea was made into. That is "Develop in Curate" from Stock, which
+// starts a Curate record for a tea already on the shelf. It grants nothing new,
+// because that person can rename the product anyway, and it cannot replace a
+// stored link, so a stale browser still changes nothing.
+async function keepServerDraftProductLink(env: Env, accountId: string, entryId: string, values: Partial<Record<CompassColumn, unknown>>, existing: Record<string, unknown> | null | undefined, mayEditCatalog: boolean) {
+  if (values.draft_product_id === undefined) return;
+  const stored = (existing?.draft_product_id as string | null | undefined) ?? null;
+  const incoming = values.draft_product_id;
+  if (incoming === stored) return;
+  if (typeof incoming === 'string' && incoming) {
+    const product = await env.DB.prepare('SELECT source_compass_entry_id FROM products WHERE id = ? AND account_id = ?')
+      .bind(incoming, accountId).first<{ source_compass_entry_id: string | null }>();
+    if (product && product.source_compass_entry_id === entryId) return;
+    if (product && mayEditCatalog && stored === null && product.source_compass_entry_id == null) return;
+  }
+  values.draft_product_id = stored;
+}
+
 async function validateCompassContext(env: Env, accountId: string, values: Partial<Record<CompassColumn, unknown>>, existing?: Record<string, unknown> | null): Promise<Response | null> {
   try { await validateCompassQuoteLink(env.DB, accountId, { ...existing, ...values }); }
   catch (error) { return json({ error: (error as Error).message }, 400); }
@@ -15919,6 +15979,7 @@ const handleCreateCompassEntry: Handler = async (request, env) => {
   if (contextError) return contextError;
   const id = typeof body.id === 'string' && body.id ? body.id : crypto.randomUUID();
   if (await env.DB.prepare('SELECT id FROM tea_compass_entries WHERE id = ?').bind(id).first()) return json({ error: 'Compass entry id already exists; use update or sync' }, 409);
+  await keepServerDraftProductLink(env, accountId, id, decoded.values, null, ctx.bundles.includes('catalog'));
   const entry = { ...(manager ? { price_amount: null, price_currency: null, price_per_unit_grams: null } : {}), ...decoded.values, id, user_id: userId, account_id: accountId };
   try {
     if (manager) {
@@ -15949,6 +16010,7 @@ const handleUpdateCompassEntry: Handler = async (request, env, params, execCtx) 
   if (!existingContext) return json({ error: 'Compass entry not found' }, 404);
   const contextError = await validateCompassContext(env, accountId, decoded.values, existingContext);
   if (contextError) return contextError;
+  await keepServerDraftProductLink(env, accountId, params.id, decoded.values, existingContext, ctx.bundles.includes('catalog'));
   const cols = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
@@ -15999,8 +16061,11 @@ const handleDeleteCompassEntry: Handler = async (request, env, params) => {
 // Idempotent: if the entry already has draft_product_id set, returns the existing product.
 
 
+// Promotion creates a product, so it carries the product-create gate (catalog),
+// as do the receipt proposal's own edit and reject routes below. The entry
+// list/create/update/delete stay open to members: private notes are theirs.
 const handlePromoteCompassEntry: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
 
@@ -16041,8 +16106,14 @@ function purposeConflict(product: Record<string, any> | null, intendedPurpose: s
 }
 
 const handleCreateReceiptProposal: Handler = async (request, env, params) => {
+  // Proposing an arrival belongs to whoever places the shop's orders (stock) or
+  // keeps its catalogue (catalog). Placing a purchase order already needs
+  // stock, and it proposes one arrival per tea, so stock alone must be enough.
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
+  if (!ctx.bundles.includes('stock') && !ctx.bundles.includes('catalog')) {
+    return restError(403, 'Proposing an arrival needs the stock or catalog permission', 'insufficient_bundle', { required_bundle: 'stock' });
+  }
   const manager = await canManageCurate(env, ctx.accountId, ctx.userId);
   const entry = await env.DB.prepare(
     'SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ? AND (user_id = ? OR ? = 1) AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL'
@@ -16167,6 +16238,9 @@ async function acceptCurateReceipt(env: Env, ctx: { accountId: string; userId: s
     return json({ proposal, product_id: proposal.product_id, ledger_id: proposal.ledger_id, alreadyAccepted: true });
   }
   if (proposal.status !== 'pending') return json({ error: 'Rejected receipt cannot be accepted' }, 409);
+  // The tea whose product receives this: the arrival's own, or, once that tea
+  // was merged away and its product moved, the survivor (curateMergeLink.ts).
+  const holdingTeaId = proposal.compass_entry_id ? await receiptHoldingTeaId(env.DB, ctx.accountId, String(proposal.compass_entry_id)) : null;
   let decoded;
   try { decoded = decodeReceiptProposal(proposal); }
   catch (error) { return json({ error: (error as Error).message }, 400); }
@@ -16175,7 +16249,7 @@ async function acceptCurateReceipt(env: Env, ctx: { accountId: string; userId: s
   if (linkedOrderId) {
     const order = await env.DB.prepare('SELECT receipt_id FROM purchase_orders WHERE id=? AND account_id=?').bind(linkedOrderId,ctx.accountId).first() as any;
     if(order?.receipt_id){
-      const matches = await env.DB.prepare(`SELECT l.* FROM inventory_receipt_lines l JOIN products p ON p.id=l.product_id AND p.account_id=l.account_id WHERE l.receipt_id=? AND l.account_id=? AND (l.product_id=? OR p.source_compass_entry_id=?)`).bind(order.receipt_id,ctx.accountId,proposal.product_id??'',proposal.compass_entry_id??'').all<any>();
+      const matches = await env.DB.prepare(`SELECT l.* FROM inventory_receipt_lines l JOIN products p ON p.id=l.product_id AND p.account_id=l.account_id WHERE l.receipt_id=? AND l.account_id=? AND (l.product_id=? OR p.source_compass_entry_id=?)`).bind(order.receipt_id,ctx.accountId,proposal.product_id??'',holdingTeaId??'').all<any>();
       if(matches.results.length!==1)return json({error:'Match the legacy arrival to its purchase item before receiving'},409);
       const target=matches.results[0];
       if(Number(target.expected_quantity)!==decoded.quantity||target.unit!==decoded.unit)return json({error:'Purchase quantities changed. Record explicit arrival quantities on the delivery.'},409);
@@ -16199,7 +16273,14 @@ async function acceptCurateReceipt(env: Env, ctx: { accountId: string; userId: s
     const retail=await capturedRetailUsd(env,capture);if(retail!=null)receiptDetails.fixed_retail_price_usd=retail;
   }
   if(['free_sample','gift'].includes(decoded.acquisition_kind))Object.assign(receiptDetails,{cost_amount:0,cost_currency:null,quantity_purchased:decoded.quantity});
-  const existingProduct = proposal.product_id ? await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(proposal.product_id, ctx.accountId).first() as Record<string, any> | null : null;
+  // With no product named, the Curate tea's own holding (unique per account by
+  // source_compass_entry_id) is the product, so it is received into rather
+  // than duplicated, and every guard below runs against it.
+  const existingProduct = proposal.product_id
+    ? await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(proposal.product_id, ctx.accountId).first() as Record<string, any> | null
+    : holdingTeaId
+      ? await env.DB.prepare('SELECT * FROM products WHERE account_id = ? AND source_compass_entry_id = ?').bind(ctx.accountId, holdingTeaId).first() as Record<string, any> | null
+      : null;
   if (proposal.product_id && !existingProduct) return json({ error: 'Linked product not found' }, 404);
   if(existingProduct&&decoded.unit!==(existingProduct.type==='Teaware'?'unit':'g'))return json({error:'Receipt unit does not match the holding'},400);
   const conflict = purposeConflict(existingProduct, decoded.purpose);
@@ -16211,11 +16292,11 @@ async function acceptCurateReceipt(env: Env, ctx: { accountId: string; userId: s
   if (existingProduct) {
     // Promotion may have created an empty, unpriced draft before the order.
     // Its first receipt can supply a batch cost; never reprice stocked holdings.
-    if (receiptDetails.cost_amount != null && proposal.compass_entry_id && decoded.unit === 'g') {
+    if (receiptDetails.cost_amount != null && holdingTeaId && decoded.unit === 'g') {
       statements.push(env.DB.prepare(`UPDATE products SET cost_amount = ?, cost_currency = ?, cost_currency_source = ?, quantity_purchased = ?
         WHERE id = ? AND account_id = ? AND source_compass_entry_id = ?
           AND cost_amount IS NULL AND quantity_purchased IS NULL AND COALESCE(stock_grams, 0) = 0`)
-        .bind(receiptDetails.cost_amount, receiptDetails.cost_currency, receiptDetails.cost_currency_source ?? null, receiptDetails.quantity_purchased, productId, ctx.accountId, proposal.compass_entry_id));
+        .bind(receiptDetails.cost_amount, receiptDetails.cost_currency, receiptDetails.cost_currency_source ?? null, receiptDetails.quantity_purchased, productId, ctx.accountId, holdingTeaId));
       // The listing COPIES the product row's mark rather than re-deriving it.
       statements.push(env.DB.prepare(`UPDATE product_listings SET
         cost_amount = (SELECT cost_amount FROM products WHERE id = ? AND account_id = ?),
@@ -16241,7 +16322,7 @@ async function acceptCurateReceipt(env: Env, ctx: { accountId: string; userId: s
       status: 'Draft', stock_grams: inventory.stock_grams ?? 0, quantity_units: inventory.quantity_units,
       inventory_purpose: inventory.inventory_purpose, is_sample: inventory.is_sample, is_personal: inventory.is_personal,
       stock_known_at: now, is_public: 0, shown_in_shop: 0,
-      source_compass_entry_id: proposal.compass_entry_id ?? null, owner_user_id: ctx.userId,
+      source_compass_entry_id: holdingTeaId, owner_user_id: ctx.userId,
       ...receiptDetails,
     });
     const columnNames = Object.keys(columns);
@@ -16257,7 +16338,7 @@ async function acceptCurateReceipt(env: Env, ctx: { accountId: string; userId: s
     (id, product_id, delta, balance_after, movement_unit, reason, user_email, note, batch_id, account_id, receipt_proposal_id)
     VALUES (?, ?, ?, ${balanceExpression}, ?, 'PURCHASE_RECEIPT', ?, ?, ?, ?, ?)`)
     .bind(ledgerId, productId, decoded.quantity, ...(existingProduct ? [productId, ctx.accountId] : [decoded.quantity]), movementUnit, ctx.email ?? null, `Curate ${decoded.acquisition_kind}`, proposal.batch_id ?? null, ctx.accountId, proposal.id));
-  if (proposal.compass_entry_id) statements.push(env.DB.prepare("UPDATE tea_compass_entries SET draft_product_id = ?, status = 'in_stock', updated_at = datetime('now') WHERE id = ? AND account_id = ?").bind(productId, proposal.compass_entry_id, ctx.accountId));
+  if (holdingTeaId) statements.push(env.DB.prepare("UPDATE tea_compass_entries SET draft_product_id = ?, status = 'in_stock', updated_at = datetime('now') WHERE id = ? AND account_id = ?").bind(productId, holdingTeaId, ctx.accountId));
   if (proposal.compass_entry_id) statements.push(env.DB.prepare("UPDATE tea_samples SET product_id = ?, updated_at = datetime('now') WHERE compass_entry_id = ? AND account_id = ?")
     .bind(productId, proposal.compass_entry_id, ctx.accountId));
   statements.push(env.DB.prepare(`UPDATE curate_receipt_proposals SET status = 'accepted', product_id = ?, ledger_id = ?, reviewed_by_user_id = ?, reviewed_at = ?, updated_at = ? WHERE id = ? AND account_id = ? AND status = 'pending'`)
@@ -16722,15 +16803,21 @@ const handleSyncCompassEntries: Handler = async (request, env, _params, execCtx)
   const { accountId, userId } = ctx;
 
   const manager = await canManageCurate(env, accountId, userId);
-  const body = await request.json() as { entries: Record<string, any>[] };
+  const body = await request.json() as { entries: Record<string, any>[]; changes?: unknown };
   if (!Array.isArray(body.entries)) {
     return json({ error: 'entries array required' }, 400);
   }
+  // Which fields each device changed (compassFieldPatch.ts). Absent from older
+  // bundles, which keep today's whole-record write.
+  const hints = readCompassFieldHints(body.changes);
+  if ('error' in hints) return json({ error: hints.error }, 400);
 
   const stmts: D1PreparedStatement[] = [];
   const entryStatementIndexes: number[] = [];
   const seen = new Set<string>();
   const priorEntries=new Map<string,Record<string,any>|null>();
+  const writtenValues = new Map<string, Partial<Record<CompassColumn, unknown>>>();
+  const keptServer: Record<string, string[]> = {};
   for (const entry of body.entries) {
     if (typeof entry.id !== 'string' || !entry.id || seen.has(entry.id)) return json({ error: 'Unique Compass entry ids required' }, 400);
     seen.add(entry.id);
@@ -16741,8 +16828,18 @@ const handleSyncCompassEntries: Handler = async (request, env, _params, execCtx)
     if (owner && (owner.account_id !== accountId || (!manager && owner.user_id !== userId) || owner.deleted_at || owner.archived_at || owner.merged_into_id)) {
       entryStatementIndexes[entryStatementIndexes.length - 1] = -1; continue;
     }
+    const hint = owner ? hints.get(entry.id) : undefined;
+    if (hint) {
+      const patch = compassFieldPatch(decoded.values, hint, owner!, new Date().toISOString());
+      decoded.values = patch.values;
+      if (patch.keptServer.length) keptServer[entry.id] = patch.keptServer;
+      // Nothing of this device's is left to write: acknowledged, unchanged.
+      if (Object.keys(decoded.values).length === 0) { entryStatementIndexes[entryStatementIndexes.length - 1] = -2; continue; }
+    }
+    writtenValues.set(String(entry.id), decoded.values);
     const contextError = await validateCompassContext(env, accountId, decoded.values, owner);
     if (contextError) return contextError;
+    await keepServerDraftProductLink(env, accountId, entry.id, decoded.values, owner, ctx.bundles.includes('catalog'));
     priorEntries.set(String(entry.id),owner);
     const entryOwner = owner?.user_id ?? userId;
     const now = new Date().toISOString();
@@ -16766,22 +16863,25 @@ const handleSyncCompassEntries: Handler = async (request, env, _params, execCtx)
   const results = stmts.length > 0 ? await env.DB.batch(stmts) : [];
   const syncedIds: string[] = [];
   const conflicts: string[] = [];
+  const written: string[] = [];
   entryStatementIndexes.forEach((statementIndex, index) => {
     const result = results[statementIndex];
     const id = String(body.entries[index].id);
-    if (Number(result?.meta?.changes ?? 0) > 0) syncedIds.push(id);
+    if (statementIndex === -2) syncedIds.push(id);
+    else if (Number(result?.meta?.changes ?? 0) > 0) { syncedIds.push(id); written.push(id); }
     else conflicts.push(id);
   });
 
   // A tea that arrived with photos gets them copied to the shop's Drive, after
   // the response: Drive is slow and is never allowed to fail a save.
-  const withPhotos = body.entries
-    .filter((entry) => syncedIds.includes(String(entry.id)) && entry.photos != null && String(typeof entry.photos === 'string' ? entry.photos : JSON.stringify(entry.photos)) !== '[]')
-    .map((entry) => String(entry.id));
+  const withPhotos = written.filter((id) => {
+    const photos = writtenValues.get(id)?.photos;
+    return photos != null && String(photos) !== '[]';
+  });
   if (withPhotos.length && execCtx) execCtx.waitUntil(savePhotosToDriveQuietly(env, driveSeal(env), accountId, withPhotos));
 
-  for(const id of syncedIds){const raw=body.entries.find(entry=>entry.id===id)!;const decoded=decodeCompassWrite(raw,manager);if(!('error' in decoded))await propagateCapturedTasting(env,accountId,String(priorEntries.get(id)?.user_id??userId),id,priorEntries.get(id)??null,decoded.values);}
-  return json({ synced: syncedIds.length, syncedIds, conflicts });
+  for(const id of written)await propagateCapturedTasting(env,accountId,String(priorEntries.get(id)?.user_id??userId),id,priorEntries.get(id)??null,writtenValues.get(id)??{});
+  return json({ synced: syncedIds.length, syncedIds, conflicts, ...(Object.keys(keptServer).length ? { kept_server: keptServer } : {}) });
 };
 
 // ── Event System V2 Handlers ──
@@ -18056,48 +18156,63 @@ const handleAddSampleTasting: Handler = async (request, env, params) => {
 
   const body = await request.json() as Record<string, any>;
   const requestedId = typeof body.id === 'string' && body.id ? body.id : null;
-  if (requestedId) {
-    const existing = await env.DB.prepare(
-      'SELECT sample_id FROM tea_sample_tastings WHERE id = ?'
-    ).bind(requestedId).first() as { sample_id?: string } | null;
-    if (existing?.sample_id && existing.sample_id !== params.id) {
-      return json({ error: 'Tasting id belongs to another sample' }, 409);
-    }
-    if (existing?.sample_id === params.id) {
-      const prior = await env.DB.prepare('SELECT * FROM tea_sample_tastings WHERE id = ?').bind(requestedId).first();
-      return json(parseTastingRow(prior as Record<string, any>), 200);
-    }
-  }
   const id = requestedId || crypto.randomUUID();
 
   let tasterId = 'guest_' + crypto.randomUUID().slice(0, 8);
   let tasterName = body.tasterName || 'Guest';
+  let requesterEmail: string | null = null;
   const token = isAuthed(request);
   if (token) {
     const valid = await verifyToken(token, env.JWT_SECRET);
     if (valid) {
       const claims = parseToken(token);
-      if (claims?.email) tasterId = claims.email;
+      if (claims?.email) tasterId = requesterEmail = claims.email;
       if (claims?.name) tasterName = claims.name;
     }
   }
 
-  const lifecycle = await prepareSampleLifecycleSync(env.DB, accountId, { sampleId: params.id, status: 'tasted', hasTasting: true });
-  await env.DB.batch([env.DB.prepare(
-    `INSERT OR IGNORE INTO tea_sample_tastings (id, account_id, sample_id, taster_id, taster_name, tasting, rating, verdict, would_buy, personal_note)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(
-    id,
-    accountId,
-    params.id,
-    tasterId,
-    tasterName,
-    JSON.stringify(body.tasting || {}),
-    body.rating ?? null,
-    body.verdict || 'neutral',
-    body.wouldBuy ? 1 : 0,
-    body.personalNote || null,
-  ), ...lifecycle]);
+  const write = {
+    tasting: JSON.stringify(body.tasting || {}),
+    rating: body.rating ?? null,
+    verdict: body.verdict || 'neutral',
+    would_buy: body.wouldBuy ? 1 : 0,
+    personal_note: body.personalNote || null,
+  };
+  // The same id again is a second Save in one opening: update it, never add a second tasting.
+  const prior = requestedId
+    ? await env.DB.prepare('SELECT * FROM tea_sample_tastings WHERE id = ?').bind(requestedId).first() as StoredSampleTasting | null
+    : null;
+  let repeated = false;
+  if (prior) {
+    const repeat = await decideSampleTastingRepeat(prior, {
+      sampleId: params.id, accountId, requesterEmail, editKey: body.edit_key, secret: env.JWT_SECRET, write,
+    });
+    if (repeat.kind === 'refuse') return json({ error: repeat.error }, 409);
+    if (repeat.kind === 'unchanged') return json(parseTastingRow(prior as unknown as Record<string, any>), 200);
+    repeated = true;
+    tasterId = prior.taster_id;
+    await env.DB.prepare(
+      `UPDATE tea_sample_tastings SET tasting = ?, rating = ?, verdict = ?, would_buy = ?, personal_note = ?
+       WHERE id = ? AND sample_id = ? AND taster_id = ?`
+    ).bind(write.tasting, write.rating, write.verdict, write.would_buy, write.personal_note, id, params.id, prior.taster_id).run();
+  } else {
+    const lifecycle = await prepareSampleLifecycleSync(env.DB, accountId, { sampleId: params.id, status: 'tasted', hasTasting: true });
+    await env.DB.batch([env.DB.prepare(
+      `INSERT OR IGNORE INTO tea_sample_tastings (id, account_id, sample_id, taster_id, taster_name, tasting, rating, verdict, would_buy, personal_note)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      id,
+      accountId,
+      params.id,
+      tasterId,
+      tasterName,
+      write.tasting,
+      write.rating,
+      write.verdict,
+      write.would_buy,
+      write.personal_note,
+    ), ...lifecycle]);
+  }
 
   // ── Feature 3: Auto-tag customer from sample verdict ─────────────────────
   const verdict = body.verdict || 'neutral';
@@ -18164,7 +18279,9 @@ const handleAddSampleTasting: Handler = async (request, env, params) => {
   // ── End Feature 3 ──────────────────────────────────────────────────────────
 
   const created = await env.DB.prepare('SELECT * FROM tea_sample_tastings WHERE id = ?').bind(id).first();
-  return json(parseTastingRow(created as Record<string, any>), 201);
+  // The key goes only to the author of the row just written, never with someone else's row.
+  const editKey = (created as Record<string, any> | null)?.taster_id === tasterId ? await sampleTastingEditKey(env.JWT_SECRET, id) : undefined;
+  return json({ ...parseTastingRow(created as Record<string, any>), edit_key: editKey }, repeated ? 200 : 201);
 };
 
 // ── Compass Sharing ─────────────────────────────────────────────────────────
@@ -18906,6 +19023,10 @@ const handleAddTastingEntry: Handler = async (request, env) => {
   }
 
   const id = body.id || crypto.randomUUID();
+  const joined = mergePushedJournal((await storedJournalsFor(env.DB, email, [String(body.product_id)])).get(String(body.product_id)), {
+    note: typeof body.note === 'string' ? body.note : JSON.stringify(body.note || {}),
+    tastings: typeof body.tastings === 'string' ? body.tastings : JSON.stringify(body.tastings || []),
+  });
 
   await env.DB.prepare(`
     INSERT INTO customer_tasting_journal
@@ -18927,8 +19048,8 @@ const handleAddTastingEntry: Handler = async (request, env) => {
     body.product_name || null,
     body.product_type || null,
     body.product_image || null,
-    typeof body.note === 'string' ? body.note : JSON.stringify(body.note || {}),
-    typeof body.tastings === 'string' ? body.tastings : JSON.stringify(body.tastings || []),
+    joined.note,
+    joined.tastings,
     body.compass_entry_id || null,
     body.archived ? 1 : 0,
     body.created_at || new Date().toISOString()
@@ -18963,9 +19084,16 @@ const handleSyncTastingJournal: Handler = async (request, env) => {
   if (!Array.isArray(entries)) return json({ error: 'entries must be an array' }, 400);
 
   const valid = entries.filter((e: any) => e.product_id && e.product_id !== 'quick-note');
+  // Join each pushed copy with the stored one rather than replacing it.
+  const storedJournals = await storedJournalsFor(env.DB, email, valid.map((e: any) => String(e.product_id)));
 
-  const stmts = valid.map((e: any) =>
-    env.DB.prepare(`
+  const stmts = valid.map((e: any) => {
+    const joined = mergePushedJournal(storedJournals.get(String(e.product_id)), {
+      note: typeof e.note === 'string' ? e.note : JSON.stringify(e.note || {}),
+      tastings: typeof e.tastings === 'string' ? e.tastings : JSON.stringify(e.tastings || []),
+    });
+    storedJournals.set(String(e.product_id), joined);
+    return env.DB.prepare(`
       INSERT INTO customer_tasting_journal
         (id, account_id, user_id, product_id, product_name, product_type, product_image, note, tastings, compass_entry_id, archived, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -18985,13 +19113,13 @@ const handleSyncTastingJournal: Handler = async (request, env) => {
       e.product_name || null,
       e.product_type || null,
       e.product_image || null,
-      typeof e.note === 'string' ? e.note : JSON.stringify(e.note || {}),
-      typeof e.tastings === 'string' ? e.tastings : JSON.stringify(e.tastings || []),
+      joined.note,
+      joined.tastings,
       e.compass_entry_id || null,
       e.archived ? 1 : 0,
       e.created_at || new Date().toISOString()
-    )
-  );
+    );
+  });
 
   if (stmts.length > 0) await env.DB.batch(stmts);
   return json({ synced: stmts.length });
@@ -20598,17 +20726,21 @@ async function sendOrderRequestEmails(env: Env, input: {
   // A consult with nothing in it is a conversation, not an order.
   if (input.source === 'consult' && lines.length === 0) return false;
 
+  const currencyKey = canonicalCurrency(input.currency);
+  const currency = currencyKey ? isoCurrencyCode(currencyKey) : 'USD';
   const [account, rateRow] = await Promise.all([
     env.DB.prepare('SELECT name, contact_email FROM accounts WHERE id = ?')
       .bind(input.accountId).first() as Promise<{ name?: string | null; contact_email?: string | null } | null>,
     env.DB.prepare('SELECT rate_to_usd FROM exchange_rates WHERE currency = ?')
-      .bind(input.currency).first() as Promise<{ rate_to_usd?: number | null } | null>,
+      .bind(currencyKey).first() as Promise<{ rate_to_usd?: number | null } | null>,
   ]);
 
   const storeName = account?.name || 'Teajia';
-  const currency = input.currency || 'USD';
-  // Stored amounts are USD; exchange_rates holds units per USD.
-  const rate = currency === 'USD' ? 1 : Number(rateRow?.rate_to_usd || 0) || 1;
+  // Stored amounts are USD; exchange_rates holds units per USD. A missing or
+  // unusable conversion leaves the original dollars labelled as dollars.
+  const recordedRate = Number(rateRow?.rate_to_usd);
+  const rate = currency !== 'USD' && isSupportedPaymentCurrency(currency)
+    && Number.isFinite(recordedRate) && recordedRate > 0 ? recordedRate : 1;
   const displayCurrency = currency === 'USD' || rate !== 1 ? currency : 'USD';
   const origin = appOrigin(env);
   const contactIsEmail = input.contact.includes('@');
@@ -22132,6 +22264,8 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
 
   const body = await request.json() as Record<string, any>;
   if (!body.vendor_name?.trim()) return json({ error: 'vendor_name is required' }, 400);
+  const place = (id: string) => canManageCurate(env, accountId, ctx.userId)
+    .then(manager => placePurchaseReceipt(env, ctx, id, body.status, manager));
 
   const requestKey = (body.idempotency_key ?? body.request_id) == null ? null : String(body.idempotency_key ?? body.request_id);
   if (requestKey === '') return restError(400, 'Invalid purchase request key', 'invalid_idempotency_key');
@@ -22156,9 +22290,9 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
     ).bind(accountId, requestKey).first<{ id: string; status: string; receipt_id: string | null; create_request_fingerprint: string | null }>();
     if (prior) {
       if (prior.create_request_fingerprint !== fingerprint) return restError(409, 'Purchase request key was used for different details', 'purchase_request_conflict');
-      if (['ordered','confirmed','sent','shipped'].includes(body.status)) {
-        const prepared = await preparePurchaseReceipt(env, ctx, prior.id);
-        return json({ id:prior.id, idempotent:true, ...prepared.value }, prepared.status);
+      if (PLACED_PURCHASE_STATUSES.has(body.status)) {
+        const prepared = await place(prior.id);
+        return json({ id:prior.id, idempotent:true, ...prepared.value });
       }
       return json({ id: prior.id, idempotent: true, ...(body.status==='received'&&prior.status==='pending'&&!prior.receipt_id?{receipt_review_required:true,status:'pending'}:{}) });
     }
@@ -22191,9 +22325,14 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
       const raced = await env.DB.prepare(
         'SELECT id, status, receipt_id, create_request_fingerprint FROM purchase_orders WHERE account_id = ? AND create_request_key = ?'
       ).bind(accountId, requestKey).first<{ id: string; status: string; receipt_id: string | null; create_request_fingerprint: string | null }>();
-      if (raced) return raced.create_request_fingerprint === fingerprint
-        ? json({ id: raced.id, idempotent: true, ...(body.status==='received'&&raced.status==='pending'&&!raced.receipt_id?{receipt_review_required:true,status:'pending'}:{}) })
-        : restError(409, 'Purchase request key was used for different details', 'purchase_request_conflict');
+      if (raced) {
+        if (raced.create_request_fingerprint !== fingerprint) return restError(409, 'Purchase request key was used for different details', 'purchase_request_conflict');
+        if (PLACED_PURCHASE_STATUSES.has(body.status)) {
+          const prepared = await place(raced.id);
+          return json({id: raced.id, idempotent: true, ...prepared.value});
+        }
+        return json({ id: raced.id, idempotent: true, ...(body.status==='received'&&raced.status==='pending'&&!raced.receipt_id?{receipt_review_required:true,status:'pending'}:{}) });
+      }
     }
     throw error;
   }
@@ -22204,9 +22343,9 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
     const current=await env.DB.prepare('SELECT state FROM inventory_receipts WHERE id=? AND account_id=?').bind(prepared.value.receipt_id,accountId).first() as any;
     if(current?.state!=='received')return json({error:'Receive the matched lines before marking this purchase received',id,receipt_id:prepared.value.receipt_id},409);
   }
-  if(['ordered','confirmed','sent','shipped'].includes(body.status)){
-    const prepared=await preparePurchaseReceipt(env,ctx,id);
-    return json({id,...prepared.value},201);
+  if (PLACED_PURCHASE_STATUSES.has(body.status)) {
+    const prepared = await place(id);
+    return json({ id, ...prepared.value }, 201);
   }
   return json({ id }, 201);
 };
@@ -22259,6 +22398,24 @@ const handleUpdatePurchaseOrder: Handler = async (request, env, params) => {
     return exists ? json({ success: true }) : json({ error: 'Purchase order not found' }, 404);
   }
 
+  if (body.status && PLACED_PURCHASE_STATUSES.has(body.status)) {
+    const prior = await env.DB.prepare('SELECT status, receipt_id FROM purchase_orders WHERE id = ? AND account_id = ?')
+      .bind(params.id, accountId).first<{status: string; receipt_id: string | null}>();
+    if (!prior) return json({error: 'Purchase order not found'}, 404);
+    if (!prior.receipt_id && !PLACED_PURCHASE_STATUSES.has(prior.status)) {
+      const prepared = await placePurchaseReceipt(
+        env, ctx, params.id, body.status, await canManageCurate(env, accountId, ctx.userId),
+      );
+      if (prepared.status >= 400) return json(prepared.value, prepared.status);
+      // Older orders with an arrival proposal can still record that the
+      // supplier shipped them. Their original arrival remains the receiving path.
+      const hasLegacyArrival = (body.status === 'sent' || body.status === 'shipped') &&
+        prepared.value.existing_arrival_only;
+      if (!prepared.value.receipt_id && !hasLegacyArrival) return json({
+        ...prepared.value, error: 'Match the order lines before placing this purchase',
+      }, 409);
+    }
+  }
   const sets = cols.map(c => `${c} = ?`).join(', ');
   const result = await env.DB.prepare(
     `UPDATE purchase_orders SET ${sets}, updated_at = ? WHERE id = ? AND account_id = ?`
@@ -24715,7 +24872,8 @@ async function resolveLocalPaymentAmount(
   amountUsd: string | null,
   displayCurrency: string | null,
 ): Promise<PaymentLocalAmount | null> {
-  const currency = String(displayCurrency || '').trim().toUpperCase();
+  const currencyKey = canonicalCurrency(displayCurrency);
+  const currency = currencyKey ? isoCurrencyCode(currencyKey) : '';
   if (!currency || currency === 'USD') return null;
   if (!isSupportedPaymentCurrency(currency)) return null;
   const usd = Number(amountUsd);
@@ -24723,7 +24881,7 @@ async function resolveLocalPaymentAmount(
 
   const row = await env.DB.prepare(
     'SELECT rate_to_usd, last_updated FROM exchange_rates WHERE currency = ?'
-  ).bind(currency).first() as { rate_to_usd?: number | null; last_updated?: string | null } | null;
+  ).bind(currencyKey).first() as { rate_to_usd?: number | null; last_updated?: string | null } | null;
   const rate = Number(row?.rate_to_usd);
   // exchange_rates holds units of the currency per one USD, refreshed daily by
   // the existing cron. A rate of 1 on a non-USD currency is a placeholder row,
@@ -29090,6 +29248,74 @@ async function readPublishStates(env: Env) {
   return publishStatesFromRows((results ?? []) as { path: unknown; state: unknown }[]);
 }
 
+// These answers must never enter a shared cache, including a refusal or a
+// public story that can be taken down on the next press of Unpublish.
+function readDeliveryResponse(response: Response, cookie?: string): Response {
+  const headers = new Headers(response.headers);
+  headers.set('Cache-Control', 'private, no-store');
+  headers.set('Vary', 'Cookie, Authorization');
+  if (cookie) headers.set('Set-Cookie', cookie);
+  return new Response(response.body, { status: response.status, headers });
+}
+
+async function requireReadEditor(request: Request, env: Env, token = isAuthed(request)): Promise<Response | null> {
+  if (!token) return restError(401, 'Sign in to read drafts', 'auth_no_token');
+  const sessionError = await validateSessionToken(token, env);
+  if (sessionError) return sessionError;
+  const claims = parseToken(token);
+  if (!claims) return restError(401, 'Unauthorized', 'auth_invalid');
+  const platformRole = await resolveDbPlatformRole(env, claims.sub);
+  if (platformRole === 'db_error') return restError(503, 'Authentication dependency unavailable', 'auth_dependency_unavailable');
+  try {
+    const memberships = await loadMemberships(env, claims.sub, true);
+    return mayEditReadMagazine({ platformRole, memberships })
+      ? null : restError(404, 'Not found', 'read_not_found');
+  } catch {
+    return restError(503, 'Authentication dependency unavailable', 'auth_dependency_unavailable');
+  }
+}
+
+function readAssetToken(request: Request): string | null {
+  // The cookie is a credential only for compiled Read module delivery. It is
+  // never accepted by generic auth or any editorial/administrative write.
+  if (request.headers.has('Authorization')) return isAuthed(request);
+  const matches = (request.headers.get('Cookie') || '').split(';')
+    .map(part => part.trim()).filter(part => part.startsWith('__Host-teajia-read='));
+  return matches.length === 1 ? matches[0].slice('__Host-teajia-read='.length) || null : null;
+}
+
+async function readDeliveryRefusal(request: Request, env: Env, path: string, token = isAuthed(request)): Promise<Response | null> {
+  if (!isCuratedReadPath(path)) return restError(404, 'Not found', 'read_not_found');
+  try {
+    if (isReadPathPublic(path, await readPublishStates(env))) return null;
+  } catch {
+    return restError(503, 'Read publish state unavailable', 'read_publish_unavailable');
+  }
+  if (!token) return restError(404, 'Not found', 'read_not_found');
+  return requireReadEditor(request, env, token);
+}
+
+// Pages asks this on every compiled article-module request. There is no map
+// fallback on failure: yesterday's publication answer can expose today's draft.
+const handleReadAccess: Handler = async (request, env) => {
+  const path = new URL(request.url).searchParams.get('path') || '';
+  const refusal = await readDeliveryRefusal(request, env, path, readAssetToken(request));
+  return readDeliveryResponse(refusal || new Response(null, { status: 204 }));
+};
+
+// Establish same-origin module credentials without putting a token in an
+// import URL. Every module read still checks its signature, expiry, current
+// session version and current DB membership; the cookie grants no write access.
+const handleReadSession: Handler = async (request, env) => {
+  const token = isAuthed(request);
+  const attributes = '; Secure; HttpOnly; SameSite=Strict; Path=/';
+  if (!token) return readDeliveryResponse(json({ editor: false }), `__Host-teajia-read=; Max-Age=0${attributes}`);
+  const refusal = await requireReadEditor(request, env, token);
+  if (refusal) return readDeliveryResponse(refusal, `__Host-teajia-read=; Max-Age=0${attributes}`);
+  const remaining = Math.max(1, Math.floor((parseToken(token!)!.exp || 0) - Date.now() / 1000));
+  return readDeliveryResponse(json({ editor: true }), `__Host-teajia-read=${token}; Max-Age=${remaining}${attributes}`);
+};
+
 // GET /api/public/read/publish-state
 // Every visitor's browser and the edge's crawler meta read this. Short-lived
 // cache, so a press reaches a stranger within seconds rather than at the next
@@ -30070,6 +30296,8 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/public/people/:slug/pay-access', handleGetPayAccess],
   ['POST', '/api/public/people/:slug/pay-access/request', handleRequestPayAccess],
   ['GET', '/api/public/read/publish-state', handleGetReadPublishState],
+  ['GET', '/api/read/access', handleReadAccess],
+  ['POST', '/api/read/session', handleReadSession],
   ['POST', '/api/read/publish-state', handleSetReadPublishState],
   ['GET', '/api/me/pay-access', handleListMyPayAccess],
   ['POST', '/api/me/pay-access/share-link', handleMintMyPayShareLink],

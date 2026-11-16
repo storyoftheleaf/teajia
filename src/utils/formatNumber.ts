@@ -89,7 +89,8 @@ export function fmtRecordPricePerGram(amount: number, decimals = 2): string {
  * Format a plain number with consistent grouping and decimals.
  * "1250" becomes "1,250.00", "3.5" becomes "3.50".
  */
-export function fmtNum(value: number, decimals = 2): string {
+export function fmtNum(value: number | null, decimals = 2): string {
+  if (value === null || !Number.isFinite(value)) return '—';
   return value.toLocaleString('en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
@@ -113,6 +114,6 @@ export function fmtPct(value: number, decimals = 1): string {
 }
 
 /** Record-currency dollar total without cents: "$12,500". Books and KPIs only. */
-export function fmtRecordDollars(amount: number): string {
-  return '$' + fmtNum(amount, 0);
+export function fmtRecordDollars(amount: number | null): string {
+  return amount === null ? '—' : '$' + fmtNum(amount, 0);
 }

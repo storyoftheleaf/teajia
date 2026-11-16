@@ -22,10 +22,10 @@ describe('OrderPayLink', () => {
         }}
       />,
     );
-    expect(html).toContain('Invoice TJ-0001, three teas, $84.00 owed. Whoever opens it sees every method Adrian has published');
-    expect(html).not.toContain('Payment link</h4>');
-    expect(html).toContain('Copy pay link');
-    expect(html).toContain('https://teajia.com/people/adrian/pay?amount=84.00');
+    expect(html).toContain('Pay to Adrian · $84.00 due');
+    expect(html).toContain('Share payment link</h4>');
+    expect(html).toContain('Copy link');
+    expect(html).toContain(encodeURIComponent('https://teajia.com/people/adrian/pay?amount=84.00'));
   });
 
   it('explains the missing link instead of rendering a button', () => {
@@ -44,9 +44,8 @@ describe('OrderPayLink', () => {
         }}
       />,
     );
-    expect(html).toContain('Mei has not published transfer details');
-    expect(html).toContain('their own profile page, under Payment methods');
-    expect(html).not.toContain('Copy pay link');
+    expect(html).toContain('Add payment methods on Mei’s profile to share a link.');
+    expect(html).not.toContain('Copy link');
     expect(html).not.toContain('<button');
   });
 

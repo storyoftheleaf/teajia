@@ -79,7 +79,7 @@ export const OrderShipping: React.FC<{
           <label htmlFor="shipping-quote" className={`${T.label} block text-tea-text-sec mb-1`}>Shipping quote (USD)</label>
           <input id="shipping-quote" type="number" min="0" step="0.01" inputMode="decimal" value={quote} onChange={event => { setQuote(event.target.value); setNotice(''); }} disabled={quoteLocked || saving} className="checkout-input" aria-describedby="shipping-help" />
           <p id="shipping-help" className="text-ui-12 text-tea-text-dim mt-1">
-            {closed ? 'This order is cancelled.' : quoteLocked ? 'The shipping charge is locked after shipment. Tracking can still be corrected.' : order.status === 'Draft' ? 'Confirm delivery before accepting this request. Use 0 only for pickup or free delivery.' : 'Saving updates the order total and payment balance. Use 0 for pickup or free delivery.'}
+            {quoteLocked ? 'Shipping cost is fixed after shipment.' : 'Use 0 for pickup or free delivery.'}
           </p>
         </div>
         <div>

@@ -29,7 +29,7 @@ const positive = (value: unknown): value is number => nonnegative(value) && valu
 export function formPricingPreview(
   product: FormPricingProduct,
   rates: readonly ExchangeRate[],
-  shopFreightPerKgUsd: number,
+  shopFreightPerKgUsd: number | null,
 ): FormPricingPreview {
   const hasFixedRetail = nonnegative(product.fixedRetailPriceUSD);
   const empty: FormPricingPreview = {

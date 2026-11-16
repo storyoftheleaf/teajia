@@ -2,21 +2,24 @@ import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { LoaderCircle, MoreHorizontal, Camera } from 'lucide-react';
 import { useToast } from '../../admin/components/Toast';
-import { getStockTypeFinish } from '../../admin/themeUtils';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { syncCompassEntries } from '../../lib/teaCompassSync';
 import { TEA_TYPES } from '../../wisdom';
 import { BottomSheet } from '../shared/BottomSheet';
 import { TeaCupIcon } from '../shared/TeaCupIcon';
+import { TeaCard, TeaCardMetric } from '../tea/TeaCard';
 import { PhotoCapture } from './PhotoCapture';
+import { layoutFromAddress } from '../curate/captureFormLayout';
+import { mediaUrl } from '../../lib/mediaUrl';
 import { LibraryQuoteWeight } from './LibraryQuoteWeight';
 import { LibraryGivenName } from './LibraryGivenName';
 import { LibraryInlineValue } from './LibraryInlineValue';
 import { libraryCardAmounts, libraryChosen, libraryIdentity, libraryInlinePatch, type LibraryInlineField } from './libraryCardWorkflow';
 import { TastingSession } from '../tasting/TastingSession';
+import { saveCurateTasting } from '../../lib/curateTastingSave';
 import type { TastingData } from '../../types';
-import type { CompassVerdict, TeaCompassEntry } from './types';
+import type { TeaCompassEntry } from './types';
 import { entryHasBeenTasted } from './types';
 import { DEFAULT_LIBRARY_PRICE, type LibraryPricePreference } from './libraryPriceDisplay';
 import type { RateRow } from '../../lib/currency';
@@ -73,13 +76,15 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
   const [typeBusy, setTypeBusy] = useState(false);
   const [typeError, setTypeError] = useState('');
   const [photosOpen, setPhotosOpen] = useState(false);
+  // 'flow': a tea with a photo opens the photo viewer (with Add) instead of the sheet.
+  const [viewerOpen, setViewerOpen] = useState(false);
   const [tastingOpen, setTastingOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [actionError, setActionError] = useState('');
   const [actionBusy, setActionBusy] = useState(false);
   const validPhotos = (entry.photos || []).filter(Boolean);
-  const finish = getStockTypeFinish(entry.type || '');
+  const showPhotoThumb = validPhotos.length > 0 && layoutFromAddress() === 'flow';
   const identity = libraryIdentity(entry);
   const title = identity.name || entry.chineseName || 'Name this tea';
   const openDetail = () => (onOpenDetail || onSelect || onEdit)(entry.id);
@@ -133,45 +138,48 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
 
   return (
     <>
-      <article data-testid={`library-entry-${entry.id}`} className={`library-tea-card ${isSelected ? 'library-tea-card-selected' : ''}`}
-        style={{ '--library-accent': finish.text, '--library-metal-hue': finish.tint, '--library-metal-l': finish.lightness } as React.CSSProperties}>
-        <div className="library-tea-identity">
-          <div className="library-card-title-row">
-            <LibraryInlineValue multiline className={`${TYPOGRAPHY_CLASSES.h3} library-card-name text-tea-text`} value={identity.name} display={title} label={`Edit tea name: ${title}`} readOnly={readOnly} onSave={saveField('name')} />
-            <button type="button" className="tap-target library-more-action" aria-label={`Edit details for ${title}`} title={description || 'Edit tea details'} onClick={openDetail}><MoreHorizontal size={18} /></button>
-          </div>
-          <div className="library-card-subrow">
-            <LibraryGivenName entry={entry} readOnly={readOnly} onSave={value => savePatch({ givenName: value.trim() || null })} />
-            {entry.category !== 'teaware' && (readOnly ? <span className="library-card-type">{entry.type || 'Type not set'}</span> : <button type="button" className="tap-target library-card-type" aria-label={`Choose tea type for ${title}`} aria-haspopup="dialog" onClick={() => { setTypeError(''); setTypeOpen(true); }}>{entry.type || 'Choose type'}</button>)}
-            {rating != null && Number.isFinite(rating) && <span className="text-ui-11 text-tea-text-dim whitespace-nowrap" aria-label={`Rating ${rating} out of 10`}>{rating}/10</span>}
-            <LibraryInlineValue className="library-card-year text-ui-13 text-tea-text-sec" value={identity.year} display={identity.year || 'Add year'} label={`Edit year for ${title}`} readOnly={readOnly} onSave={saveField('year')} />
-          </div>
-        </div>
-        <div className="library-workbar">
+      <TeaCard
+        testId={`library-entry-${entry.id}`}
+        className={isSelected ? 'library-tea-card-selected' : undefined}
+        teaType={entry.type}
+        title={<LibraryInlineValue multiline className={`${TYPOGRAPHY_CLASSES.h3} library-card-name text-tea-text`} value={identity.name} display={title} label={`Edit tea name: ${title}`} readOnly={readOnly} onSave={saveField('name')} />}
+        trailing={<button type="button" className="tap-target library-more-action" aria-label={`Edit details for ${title}`} title={description || 'Edit tea details'} onClick={openDetail}><MoreHorizontal size={18} /></button>}
+        meta={<>
+          <LibraryGivenName entry={entry} readOnly={readOnly} onSave={value => savePatch({ givenName: value.trim() || null })} />
+          {entry.category !== 'teaware' && (readOnly ? <span className="library-card-type">{entry.type || 'Type not set'}</span> : <button type="button" className="tap-target library-card-type" aria-label={`Choose tea type for ${title}`} aria-haspopup="dialog" onClick={() => { setTypeError(''); setTypeOpen(true); }}>{entry.type || 'Choose type'}</button>)}
+          {rating != null && Number.isFinite(rating) && <span className="text-ui-11 text-tea-text-dim whitespace-nowrap" aria-label={`Rating ${rating} out of 10`}>{rating}/10</span>}
+          <LibraryInlineValue className="library-card-year text-ui-13 text-tea-text-sec" value={identity.year} display={identity.year || 'Add year'} label={`Edit year for ${title}`} readOnly={readOnly} onSave={saveField('year')} />
+        </>}
+        metricsLeading={
           <div className="library-quick-actions">
-            <button type="button" className="tap-target" aria-label={`Photos for ${title}`} title="Take photo or open photo library" onClick={() => setPhotosOpen(true)}><Camera size={17} /></button>
-          {entry.category !== 'teaware' && <button type="button" onClick={() => readOnly ? openDetail() : onOpenTasting ? onOpenTasting(entry.id) : setTastingOpen(true)} className={`tap-target library-tea-primary text-ui-12 ${tasted ? 'is-tasted' : ''}`} aria-label={`Taste ${title}`} title={readOnly ? 'View tasting status (read-only)' : tasted ? 'Edit tasting' : 'Begin tasting'}><TeaCupIcon /><span className="sr-only">Taste</span></button>}
+            <button type="button" className="tap-target" aria-label={`Photos for ${title}`} title={showPhotoThumb && !readOnly ? 'View photos or add another' : 'Take photo or open photo library'} onClick={() => (showPhotoThumb && !readOnly ? setViewerOpen(true) : setPhotosOpen(true))}>
+              {/* The tea's own photo stands where the camera is (not with
+                  `?form=classic`): same footprint, the count inside it past one. */}
+              {showPhotoThumb ? (
+                <span className="relative block h-8 w-8" data-testid="library-photo-thumb">
+                  <img src={mediaUrl(validPhotos[0])} alt="" className="h-8 w-8 rounded-md border border-tea-border object-cover" />
+                  {validPhotos.length > 1 && (
+                    <span className="absolute bottom-0.5 right-0.5 rounded-md bg-tea-bg px-1 text-ui-10 tabular-nums leading-tight text-tea-text">{validPhotos.length}</span>
+                  )}
+                </span>
+              ) : <Camera size={17} />}
+            </button>
+          {entry.category !== 'teaware' && <button type="button" onClick={() => onOpenTasting ? onOpenTasting(entry.id) : readOnly ? openDetail() : setTastingOpen(true)} className={`tap-target library-tea-primary text-ui-12 ${tasted ? 'is-tasted' : ''}`} aria-label={`Taste ${title}`} title={readOnly && !onOpenTasting ? 'View tasting status (read-only)' : tasted ? 'Edit tasting' : 'Begin tasting'}><TeaCupIcon /><span className="sr-only">Taste</span></button>}
           </div>
-        <div className="library-ribbon-prices" aria-label={`Prices in ${amounts.currency}`}>
-          <div className="library-ribbon-metric" title={`Calculated in ${amounts.currency}`}>
-            <span className="text-ui-10 text-tea-text-dim">{entry.category === 'teaware' ? 'Price / piece' : 'Per gram'}</span>
+        }
+        metricsLabel={`Prices in ${amounts.currency}`}
+        metrics={<>
+          <TeaCardMetric label={entry.category === 'teaware' ? 'Price / piece' : 'Per gram'}>
             <strong className="text-ui-16 text-tea-text" aria-label={entry.category === 'tea' && !knownWeight ? 'Per gram unknown, add weight' : undefined}>{entry.category === 'tea' && !knownWeight ? '0.0' : amounts.perGram}</strong>
-          </div>
-          <div className="library-ribbon-metric">
-            <span className="text-ui-10 text-tea-text-dim">Quote{pricePreference.currency === 'source' ? ` · ${amounts.currency}` : ''}</span>
+          </TeaCardMetric>
+          <TeaCardMetric label={pricePreference.currency === 'source' ? `Quote · ${amounts.currency}` : 'Quote'}>
             <LibraryInlineValue className="text-ui-16 font-semibold text-tea-text" value={entry.priceAmount == null ? '' : String(entry.priceAmount)} display={amounts.quote} label={`Edit quote in ${amounts.sourceCurrency} for ${title}`} hint={`Original ${amounts.sourceCurrency}`} numeric readOnly={readOnly} onSave={saveField('priceAmount')} />
-          </div>
-          <div className="library-ribbon-metric">
-            <span className="text-ui-10 text-tea-text-dim">{entry.category === 'teaware' ? 'Quoted quantity' : 'Weight (g)'}</span>
-            {entry.category === 'teaware' ? <strong className="text-ui-16 text-tea-text">1 piece</strong> : <LibraryQuoteWeight title={title} weight={entry.pricePerUnitGrams} packWeight={entry.packSizeGrams} form={entry.form} readOnly={readOnly} onSave={(value, form) => savePatch({ ...libraryInlinePatch(entry, 'pricePerUnitGrams', value), ...(form ? { form } : {}) })} />}
-          </div>
-        </div>
-        </div>
-        {sampleBatch && entry.sampleSetId && onOpenSampleBatch && <button type="button" className="tap-target library-sample-batch text-ui-11 text-tea-text-sec" title="Open batch in Samples" onClick={() => onOpenSampleBatch(entry.sampleSetId!)}>
-          Batch · <span className="text-tea-text">{sampleBatch}</span>
-        </button>}
-        {purchaseStatusUnknown && <p role="status" className="text-ui-11 text-tea-text-dim py-1">{purchaseStatusUnknown}</p>}
-        <div className="library-tea-actions">
+          </TeaCardMetric>
+          <TeaCardMetric label={entry.category === 'teaware' ? 'Quoted quantity' : 'Weight (g)'}>
+            {entry.category === 'teaware' ? '1 piece' : <LibraryQuoteWeight title={title} weight={entry.pricePerUnitGrams} packWeight={entry.packSizeGrams} form={entry.form} readOnly={readOnly} onSave={(value, form) => savePatch({ ...libraryInlinePatch(entry, 'pricePerUnitGrams', value), ...(form ? { form } : {}) })} />}
+          </TeaCardMetric>
+        </>}
+        actions={<>
           {readOnly || rejected ? <span className="library-ribbon-sample text-ui-11 text-tea-text-sec" title={sampleStatus || undefined}>
             {rejected ? 'Rejected' : chosen ? 'Chosen' : sampleStatus || 'Considering'}
           </span> : <button type="button" className={`tap-target library-choose library-ribbon-sample inline-flex items-center gap-1.5 text-ui-12 transition-colors ${chosen ? 'text-tea-text font-semibold' : 'text-tea-text-sec'}`} disabled={actionBusy} aria-pressed={chosen} aria-busy={actionBusy}
@@ -182,10 +190,14 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
           </button>}
           {!readOnly && <button type="button" disabled={actionBusy} className="tap-target library-tea-reject text-ui-12 text-tea-text-sec" onClick={() => rejected ? void runAction({ decision: 'considering', ...(entry.status === 'pass' ? { status: 'noted' as const } : {}) }, 'Restored') : setRejectOpen(true)}>{rejected ? 'Restore' : 'Reject'}</button>}
           <button type="button" className="tap-target library-add-information text-ui-12 text-tea-text-sec" onClick={openDetail}>Add information</button>
-
-        </div>
+        </>}
+      >
+        {sampleBatch && entry.sampleSetId && onOpenSampleBatch && <button type="button" className="tap-target library-sample-batch text-ui-11 text-tea-text-sec" title="Open batch in Samples" onClick={() => onOpenSampleBatch(entry.sampleSetId!)}>
+          Batch · <span className="text-tea-text">{sampleBatch}</span>
+        </button>}
+        {purchaseStatusUnknown && <p role="status" className="text-ui-11 text-tea-text-dim py-1">{purchaseStatusUnknown}</p>}
         {actionError && <p role="alert" className="text-ui-11 text-tea-text-sec">{actionError}</p>}
-      </article>
+      </TeaCard>
       <BottomSheet open={typeOpen} onOpenChange={open => { if (!typeBusy) setTypeOpen(open); }} title="Tea type" description={title}>
         <div className="library-type-options" aria-busy={typeBusy}>
           {TEA_TYPES.map(type => <button type="button" key={type} disabled={typeBusy} aria-pressed={entry.type === type} onClick={async () => {
@@ -198,6 +210,10 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
         {typeBusy && <p role="status" className="text-ui-12 text-tea-text-sec">Saving…</p>}
         {typeError && <p role="alert" className="text-ui-12 text-tea-text-sec">{typeError}</p>}
       </BottomSheet>
+      {viewerOpen && <PhotoCapture variant="viewer" photos={validPhotos} onViewerClose={() => setViewerOpen(false)}
+        onPhotoTaken={url => { const current = useTeaCompassStore.getState().getEntry(entry.id) || entry; void savePatch({ photos: [...current.photos, url] }).catch(error => showToast(String(error.message), 'error')); }}
+        onPhotoReplaced={(oldUrl, newUrl) => { const current = useTeaCompassStore.getState().getEntry(entry.id) || entry; void savePatch({ photos: current.photos.map(url => url === oldUrl ? newUrl : url) }).catch(error => showToast(String(error.message), 'error')); }}
+        onExtracted={data => { const current = useTeaCompassStore.getState().getEntry(entry.id) || entry; void savePatch({ ...(!current.originRegion && data.region ? { originRegion: data.region } : {}), ...(!current.year && data.year ? { year: data.year } : {}) }).catch(error => showToast(String(error.message), 'error')); }} />}
       <BottomSheet open={photosOpen} onOpenChange={setPhotosOpen} title="Tea photos" description={title}>
         {readOnly ? <p className="text-ui-12 text-tea-text-sec">Open the tea details to view source material.</p> : <PhotoCapture photos={validPhotos}
           onPhotoTaken={url => { const current = useTeaCompassStore.getState().getEntry(entry.id) || entry; void savePatch({ photos: [...current.photos, url] }).catch(error => showToast(String(error.message), 'error')); }}
@@ -228,13 +244,8 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
             }}
             initialData={entry.tasting ?? entry.tastingHistory?.at(-1)?.data}
             onClose={() => setTastingOpen(false)}
-            onAfterSave={(data: TastingData, sessionVerdict?: CompassVerdict) => {
-              updateEntry(entry.id, {
-                tasting: data,
-                // Only overwrite verdict if the session captured one, otherwise
-                // leave it for later triage in the batch review.
-                ...(sessionVerdict ? { verdict: sessionVerdict } : {}),
-              });
+            onAfterSave={(data: TastingData, sessionVerdict, _wouldBuy, record) => {
+              saveCurateTasting(entry.id, data, sessionVerdict, { record });
             }}
           />
         )}

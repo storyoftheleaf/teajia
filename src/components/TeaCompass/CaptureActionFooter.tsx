@@ -10,6 +10,8 @@ interface CaptureActionFooterProps {
   purchasePickerId: string;
   doneTestId?: string;
   className?: string;
+  /** Put Done, the primary, at the right end (the 'flow' form). */
+  primaryLast?: boolean;
 }
 
 export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
@@ -21,6 +23,7 @@ export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
   purchasePickerId,
   doneTestId,
   className = '',
+  primaryLast = false,
 }) => {
   const neutral: CurateActionSpec[] = [
     {
@@ -41,7 +44,7 @@ export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
       testId="capture-action-footer"
       className={className}
       neutral={neutral}
-      primaryIndex={1}
+      primaryIndex={primaryLast ? undefined : 1}
       withBandChrome={false}
       primary={{
         label: 'Done',

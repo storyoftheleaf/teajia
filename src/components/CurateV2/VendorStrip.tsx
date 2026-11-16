@@ -479,7 +479,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
             >
               <span className="curate-v2-label shrink-0">Supplier</span>
               <a
-                href={`/admin/people?customer=${linkedCustomerId}`}
+                href={`/admin/people/${linkedCustomerId}`}
                 className="tap-target flex min-h-11 flex-1 items-center truncate hover:text-tea-text"
                 target="_blank"
                 rel="noopener noreferrer"

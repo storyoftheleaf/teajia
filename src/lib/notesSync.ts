@@ -4,10 +4,14 @@
  */
 
 import { useNotesStore } from './notesStore';
-import { api, hasToken } from './api';
+import { api, hasToken, isTokenScopedToAccount } from './api';
 import type { Note, NoteSession } from './notesStore';
+import { useAppStore } from './store';
+import { notesPersonKey } from './notesStore';
 
-const BACKGROUND_REQUEST = { background: true } as const;
+const scopedRequest = (accountId: string, userId: string) => ({
+  background: true as const, expectedAuth: { accountId, userId },
+});
 
 function noteToPayload(n: Note) {
   return {
@@ -41,27 +45,41 @@ function sessionToPayload(s: NoteSession) {
 
 export async function syncNotes(): Promise<void> {
   if (!hasToken()) return;
-
   const store = useNotesStore.getState();
+  const { activeAccountId, activeUserId } = useAppStore.getState();
+  const key = notesPersonKey(activeAccountId, activeUserId);
+  const revision = store.scopeRevision;
+  if (!key || store.personScopeKey !== key || !isTokenScopedToAccount(activeAccountId, activeUserId)) return;
+  const stillCurrent = () => {
+    const current = useNotesStore.getState();
+    return current.personScopeKey === key && current.scopeRevision === revision &&
+      isTokenScopedToAccount(activeAccountId, activeUserId);
+  };
 
   // Sync sessions first (notes may reference them)
-  const unsyncedSessions = store.sessions.filter(s => !s.synced);
+  const unsyncedSessions = store.sessions.filter(s => !s.synced && s.accountId === activeAccountId);
   if (unsyncedSessions.length > 0) {
     try {
-      await api.notes.syncSessions(unsyncedSessions.map(sessionToPayload), BACKGROUND_REQUEST);
-      store.markSessionSynced(unsyncedSessions.map(s => s.id));
+      if (!stillCurrent()) return;
+      await api.notes.syncSessions(unsyncedSessions.map(sessionToPayload), scopedRequest(activeAccountId!, activeUserId!));
+      if (stillCurrent()) useNotesStore.getState().markSessionSynced(unsyncedSessions.map(s => s.id));
     } catch {
       // Silent, retry next time
     }
   }
 
   // Sync notes (includes soft-deletes)
-  const unsyncedNotes = store.notes.filter(n => !n.synced);
+  // An old voice note may carry an account id in authorId. It has no
+  // trustworthy person provenance, so leave it local for restricted recovery.
+  const unsyncedNotes = useNotesStore.getState().notes.filter(n =>
+    !n.synced && n.accountId === activeAccountId && n.authorId === activeUserId
+  );
   if (unsyncedNotes.length === 0) return;
 
   try {
-    await api.notes.sync(unsyncedNotes.map(noteToPayload), BACKGROUND_REQUEST);
-    store.markSynced(unsyncedNotes.map(n => n.id));
+    if (!stillCurrent()) return;
+    await api.notes.sync(unsyncedNotes.map(noteToPayload), scopedRequest(activeAccountId!, activeUserId!));
+    if (stillCurrent()) useNotesStore.getState().markSynced(unsyncedNotes.map(n => n.id));
   } catch {
     // Silent, stays unsynced for retry
   }
@@ -70,10 +88,16 @@ export async function syncNotes(): Promise<void> {
 /** Hydrate notes from server on app start, merging with local unsynced notes */
 export async function hydrateNotes(): Promise<void> {
   if (!hasToken()) return;
+  const { activeAccountId, activeUserId } = useAppStore.getState();
+  const key = notesPersonKey(activeAccountId, activeUserId);
+  const initial = useNotesStore.getState();
+  const revision = initial.scopeRevision;
+  if (!key || initial.personScopeKey !== key || !isTokenScopedToAccount(activeAccountId, activeUserId)) return;
 
   try {
-    const remote = await api.notes.getAll(BACKGROUND_REQUEST);
+    const remote = await api.notes.getAll(scopedRequest(activeAccountId!, activeUserId!));
     const store = useNotesStore.getState();
+    if (store.personScopeKey !== key || store.scopeRevision !== revision || !isTokenScopedToAccount(activeAccountId, activeUserId)) return;
     const localUnsynced = new Set(store.notes.filter(n => !n.synced).map(n => n.id));
 
     // Merge: remote notes that aren't locally unsynced get added/updated
@@ -100,7 +124,8 @@ export async function hydrateNotes(): Promise<void> {
       ...remoteNotes.filter((r: any) => !localUnsynced.has(r.id)), // add remote
     ];
 
-    useNotesStore.setState({ notes: merged });
+    useNotesStore.setState(state => state.personScopeKey === key && state.scopeRevision === revision
+      ? { notes: merged } : state);
   } catch {
     // Offline or error, local state stands
   }

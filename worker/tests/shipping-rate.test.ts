@@ -59,13 +59,13 @@ describe('the shop has one freight rate', () => {
     expect(shop.perKgUsd).toBe(0);
   });
 
-  it('never reads a yuan rate as dollars when its currency is unknown', () => {
+  it('declines a quote currency whose own conversion is unavailable', () => {
     // Falling back to a rate of 1 would price 85 yuan as 85 dollars: seven
     // times the freight, and the markup would triple the error.
     const shop = resolveShopFreightDefault(
       { default_shipping_rate_per_kg: 85, default_shipping_rate_currency: 'Martian' },
       c => (c === FALLBACK_SHIPPING_RATE_CURRENCY ? 7.1 : undefined));
-    expect(shop.perKgUsd).toBeCloseTo(85 / 7.1, 10);
+    expect(shop.perKgUsd).toBeNull();
   });
 });
 

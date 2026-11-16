@@ -31,6 +31,6 @@ export type InventoryProductGroup = {
   label: string;
   items: import('../../types').Product[];
   totalStock: number;
-  totalRetail: number;
+  totalRetail: number | null;
   lifecycle: boolean;
 };

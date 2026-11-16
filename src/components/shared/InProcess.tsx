@@ -9,6 +9,7 @@ import { OrderMessageSheet } from '../CurateV2/OrderMessageSheet';
 import { AGENT_KEYS } from '../CurateV2/AgentInbox';
 import { money } from './BuyingBasket';
 import { Icons } from '../Icons';
+import { IN_PROCESS_STATUSES, stepOf } from './inProcessStatus';
 
 // In process (canvas Flow 4, plan samples-to-orders.md build 4): every placed
 // purchase order, by supplier and route, through Placed, Sent to supplier,
@@ -19,9 +20,8 @@ import { Icons } from '../Icons';
 // the parcel Shipped. Receive accepts each tea's waiting receipt, which puts it
 // on the shelf with what it cost, exactly as Curate's Arrived does.
 
-export const IN_PROCESS_STATUSES = ['confirmed', 'sent', 'shipped'];
+export { IN_PROCESS_STATUSES };
 const STEPS = ['Placed', 'Sent to supplier', 'Shipped', 'Received'];
-const stepOf = (status: string) => Math.max(0, ['confirmed', 'sent', 'shipped', 'received'].indexOf(status));
 
 function amountWords(item: LedgerLineItem): string {
   if (!item.priceIsPerGram && item.quantityUnits) {

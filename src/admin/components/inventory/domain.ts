@@ -1,3 +1,5 @@
+import { publicationRequirements } from '../../../lib/productPublication';
+import { retailValueFor } from '../../lib/inventoryMetrics';
 import type { InventoryPurpose, Product } from '../../types';
 
 export type TeaReadinessMissing =
@@ -36,7 +38,7 @@ export function legacyPurposeConflict(product: PurposeFields): boolean {
 
 function hasPositiveRetail(product: Pick<Product, 'fixedRetailPriceUSD' | 'pricePerGramUSD'>): boolean {
   const effectiveRetail = product.fixedRetailPriceUSD ?? product.pricePerGramUSD;
-  return Number.isFinite(effectiveRetail) && effectiveRetail > 0;
+  return effectiveRetail !== null && Number.isFinite(effectiveRetail) && effectiveRetail > 0;
 }
 
 export function getTeaReadiness(product: Product): TeaReadiness {
@@ -53,6 +55,17 @@ export function getTeaReadiness(product: Product): TeaReadiness {
   return missing.length > 0
     ? { state: 'not_ready', missing }
     : { state: 'ready', missing };
+}
+
+export function inventoryPublicationRequirements(product: Product) {
+  return publicationRequirements({
+    givenName: product.givenName,
+    supplierName: product.productName,
+    type: product.type,
+    retailPrice: product.fixedRetailPriceUSD ?? product.pricePerGramUSD,
+    onHand: product.type === 'Teaware' ? product.quantityUnits : product.stockGrams,
+    stockKnownAt: product.stockKnownAt,
+  });
 }
 
 export type EffectivePublication = {
@@ -120,6 +133,21 @@ export function inventorySummaryStatusMessage(status: InventorySummaryStatus): s
   if (status === 'stale') return 'Showing the last available tasting and writing status. Refresh to try again.';
   if (status === 'error') return 'Tasting and writing status is unavailable. Inventory values are still shown.';
   return null;
+}
+
+/**
+ * Status to show when a summaries fetch starts. Only a fetch with nothing
+ * usable cached (first load, or a different account) reads as 'loading'; a
+ * refetch behind a good cache keeps the status it had, so a save does not block
+ * publishing or flash the banner.
+ */
+export function summaryStatusOnRefetch(
+  current: InventorySummaryStatus,
+  hasCachedRows: boolean,
+  accountChanged: boolean,
+): InventorySummaryStatus {
+  if (accountChanged || !hasCachedRows) return 'loading';
+  return current === 'loading' ? 'ready' : current;
 }
 
 export function shouldApplyInventoryFacetFilter(filter: InventoryFacetFilter, status: InventorySummaryStatus): boolean {
@@ -215,10 +243,15 @@ function legacyIncomingSummary(product: Product): IncomingInventorySummary {
   };
 }
 
-function onHandQuantity(product: Product): number {
+export function onHandQuantity(product: Product): number {
   return product.type === 'Teaware'
     ? Number(product.quantityUnits) || 0
     : Number(product.stockGrams) || 0;
+}
+
+/** Nothing on the shelf: units for teaware, grams for tea. */
+export function isOutOfStock(product: Product): boolean {
+  return onHandQuantity(product) <= 0;
 }
 
 /**
@@ -335,7 +368,7 @@ export type InventoryLifecycleGroup = {
   label: string;
   items: Product[];
   totalStock: number;
-  totalRetail: number;
+  totalRetail: number | null;
 };
 
 export function groupInventoryByLifecycle(
@@ -354,9 +387,9 @@ export function groupInventoryByLifecycle(
       label: INVENTORY_STAGE_LABELS[stage],
       items,
       totalStock: Math.round(items.reduce((sum, product) => sum + onHandQuantity(product), 0)),
-      totalRetail: items.reduce((sum, product) => {
-        const retail = Number(product.fixedRetailPriceUSD ?? product.pricePerGramUSD) || 0;
-        return sum + retail * onHandQuantity(product);
+      totalRetail: items.reduce<number | null>((sum, product) => {
+        const value = retailValueFor(product);
+        return sum === null || value === null ? null : sum + value;
       }, 0),
     };
   });

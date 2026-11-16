@@ -80,7 +80,7 @@ export function normalizeProduct(p: any): PublicProduct {
     year,
     originCountry: p.origin_country || '',
     originRegion: p.origin_region || '',
-    pricePerGramUSD: Number(p.retail_price_per_gram_usd) || 0,
+    pricePerGramUSD: p.retail_price_per_gram_usd == null ? null : Number(p.retail_price_per_gram_usd),
     fixedRetailPriceUSD: p.fixed_retail_price_usd != null ? Number(p.fixed_retail_price_usd) : null,
     stockGrams: Number(p.stock_grams) || 0,
     description: p.description || '',

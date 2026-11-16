@@ -1,12 +1,12 @@
 
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import { Pencil, Sparkles } from 'lucide-react';
 import { Icons } from '../Icons';
 import { useAppStore } from '../../lib/store';
 import { entryEvent } from '../../lib/tastingAccessors';
-import { TastingSession, type TastingItem } from '../tasting/TastingSession';
-import type { CustomerTasting } from '../../types';
+import { JournalTastingEditor } from '../tasting/JournalTastingEditor';
+import type { CustomerTasting, TastingRecord } from '../../types';
 import { ListShell } from './primitives';
 
 interface TastingJournalViewProps {
@@ -94,11 +94,15 @@ const EntryDetail: React.FC<{
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(entry.note.personalNote ?? '');
   const [savedFlash, setSavedFlash] = useState(false);
-  const [tastingItem, setTastingItem] = useState<TastingItem | null>(null);
+  const [tastingEditor, setTastingEditor] = useState<{ record?: TastingRecord } | null>(null);
   const blurSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const rating = entry.note.rating ?? entry.note.tasting.rating ?? 0;
+
+  function openTasting(record = entry.tastings.at(-1)) {
+    setTastingEditor({ record });
+  }
 
   const commit = useCallback(() => {
     const trimmed = draft.trim();
@@ -225,16 +229,23 @@ const EntryDetail: React.FC<{
           </div>
           <div className="space-y-3 pl-3 border-l border-tea-border">
             {[...entry.tastings].reverse().map(t => (
-              <div key={t.id} className="text-ui-12 leading-snug">
-                <div className="flex items-baseline gap-2 text-tea-text-sec">
-                  <span className="text-ui-11 text-tea-text-sec">{formatDate(t.createdAt)}</span>
-                  {t.eventTitle && <span className="text-ui-11 italic text-tea-text-sec">at {t.eventTitle}</span>}
-                </div>
-                {t.reason && (
-                  <div className="font-body italic text-tea-text mt-0.5">
-                    "{t.reason}"
+              <div key={t.id} className="flex flex-wrap items-center justify-between gap-x-2 border-b border-tea-border text-ui-12 leading-snug last:border-b-0">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-baseline gap-x-2 text-tea-text-sec">
+                    <span>{formatDate(t.createdAt)}</span>
+                    {t.eventTitle && <span className="italic">at {t.eventTitle}</span>}
                   </div>
-                )}
+                  {t.reason && <p className="mt-0.5 font-body italic text-tea-text">{t.reason}</p>}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => openTasting(t)}
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-tea-text-sec hover:text-tea-text"
+                  title="Edit tasting"
+                  aria-label={`Edit tasting from ${new Date(t.createdAt).toLocaleString()}`}
+                >
+                  <Pencil size={16} aria-hidden="true" />
+                </button>
               </div>
             ))}
           </div>
@@ -244,12 +255,7 @@ const EntryDetail: React.FC<{
       {/* Actions footer */}
       <div className="mt-8 pt-4 border-t border-tea-border flex items-center gap-5 text-ui-13">
         <button
-          onClick={() => setTastingItem({
-            id: entry.productId,
-            name: entry.productName,
-            type: entry.productType,
-            image: entry.productImage,
-          })}
+          onClick={() => openTasting()}
           className="text-tea-text-sec hover:text-tea-text transition-colors"
         >
           Open tasting
@@ -272,11 +278,8 @@ const EntryDetail: React.FC<{
 
       {/* Tasting Session: re-open tasting from inside the entry detail */}
       <AnimatePresence>
-        {tastingItem && (
-          <TastingSession
-            item={tastingItem}
-            onClose={() => setTastingItem(null)}
-          />
+        {tastingEditor && (
+          <JournalTastingEditor entry={entry} record={tastingEditor.record} onClose={() => setTastingEditor(null)} />
         )}
       </AnimatePresence>
     </motion.div>

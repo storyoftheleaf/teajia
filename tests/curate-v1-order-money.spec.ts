@@ -52,7 +52,7 @@ async function buyThroughCaptureCard(page: Page, teas: Array<Record<string, unkn
 
 async function openLedger(page: Page) {
   await page.goto('/admin/compass?tab=buying', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('tablist', { name: 'Screen' }).getByRole('tab', { name: 'Ledger', exact: true })).toHaveAttribute('aria-selected', 'true', { timeout: 15_000 });
+  await expect(page.getByRole('tablist', { name: 'Screen' }).getByRole('tab', { name: 'Orders', exact: true })).toHaveAttribute('aria-selected', 'true', { timeout: 15_000 });
 }
 
 test.describe('Curate v1 purchase orders: the money they send', () => {
@@ -97,7 +97,7 @@ test.describe('Curate v1 purchase orders: the money they send', () => {
 
     // Mark as Sent names the order by an id the shop gave it, not a slice of the local id.
     await page.getByRole('button', { name: 'Mark as Sent' }).first().click();
-    await expect(page.getByRole('button', { name: 'Sent' }).first()).toBeVisible();
+    await expect(page.getByRole('tabpanel').getByText(/^Sent · 1 item$/)).toBeVisible();
     const put = sent.find((s) => s.method === 'PUT')!;
     expect(put.path).toMatch(/^\/api\/purchase-orders\/po-created(-\d+)?$/);
     expect(put.body).toEqual({ status: 'sent' });

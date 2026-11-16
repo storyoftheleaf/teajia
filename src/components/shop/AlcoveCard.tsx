@@ -155,7 +155,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     }
   };
 
-  const pricePerGram = parseFloat(item.price_per_gram || '0');
+  const pricePerGram = parseFloat(item.price_per_gram ?? '');
 
   const favorited = favoriteTeas.includes(item.id);
   const tastingCount = useTastingCount(item.id);
@@ -246,7 +246,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     ? `${formatPrice(pricePerGram, 1)}/g`
     : shopPrice.perGram(quoteGrams(pricePerGram, grams, { wholePieceGrams }).perGramUsd);
 
-  const stockStatus = getStockStatus(purchase ? item.stock_g : 0);
+  const stockStatus = { ...getStockStatus(purchase ? item.stock_g : 0), ...(!Number.isFinite(pricePerGram) ? { label: 'Unavailable' } : {}) };
   const isSoldOut = !purchase;
 
   const presets = [25, 50, 100, 250].filter(p => p <= sliderMax);

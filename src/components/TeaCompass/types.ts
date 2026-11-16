@@ -94,6 +94,10 @@ export interface TeaCompassEntry {
 
   /** Client-only record of fields explicitly entered or confirmed by the operator. */
   touchedFields?: string[];
+  /** Client-only: fields changed since the server last acknowledged a save
+   * (`src/lib/compassFieldEdits.ts`). Undefined on an unsent entry means the
+   * whole record is sent, as before. */
+  unsyncedEdits?: import('../../lib/compassFieldEdits').UnsyncedEdits;
   /** Client-only scope for resumable, uncommitted capture drafts. */
   draftAccountId?: string;
 
@@ -199,7 +203,7 @@ export interface TeaCompassEntry {
   tasteOrder?: number;
 
   // Retaste timeline, each tasting session appended; current tasting is also in .tasting
-  tastingHistory?: Array<{ data: TastingData; date: string; note?: string }>;
+  tastingHistory?: Array<{ id?: string; data: TastingData; date: string; note?: string }>;
 
   // Pipeline, internal, set automatically when ledger purchase is confirmed
   draftProductId?: string;

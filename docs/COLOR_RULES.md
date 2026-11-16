@@ -72,7 +72,7 @@ className="bg-[rgba(0,0,0,0.2)]"
 ```tsx
 // ✅ Use Tailwind token classes
 className="bg-tea-surface border border-tea-border"
-className="bg-tea-accent-sub border border-tea-gold/20"
+className="bg-tea-accent-sub border border-tea-border"
 
 // ✅ If you MUST use inline styles, reference CSS variables
 style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}
@@ -98,8 +98,8 @@ className="border border-black/10"
 // ✅ Always use the border token
 className="border border-tea-border"
 
-// ✅ For stronger borders, use gold with opacity
-className="border border-tea-gold/20"
+// ✅ Reserve gold for focus, hover, and active states
+className="border border-tea-border hover:border-tea-gold focus-visible:border-tea-gold"
 ```
 
 ---

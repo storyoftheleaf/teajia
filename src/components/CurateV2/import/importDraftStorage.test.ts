@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { useAppStore } from '../../../lib/store';
 import {
   clearImportDraft,
   importDraftStorageKey,
@@ -20,7 +21,9 @@ class MemoryStorage implements Storage {
 describe('Curate import draft storage', () => {
   let storage: Storage;
 
-  beforeEach(() => { storage = new MemoryStorage(); });
+  const activate = (accountId: string, userId = 'user-a') => useAppStore.setState({ activeAccountId: accountId, activeUserId: userId });
+
+  beforeEach(() => { storage = new MemoryStorage(); activate('account-a'); });
 
   it('recovers paste, Journey, and attachment descriptors only for the same account', () => {
     const snapshot: ImportDraftSnapshot = {
@@ -32,26 +35,45 @@ describe('Curate import draft storage', () => {
     saveImportDraft('account-a', snapshot, storage);
 
     expect(loadImportDraft('account-a', storage)).toEqual(snapshot);
+    activate('account-b');
     expect(loadImportDraft('account-b', storage)).toBeNull();
     expect(storage.getItem(importDraftStorageKey('account-a'))).not.toContain('fileBody');
   });
 
   it('clears only the selected account draft', () => {
     saveImportDraft('account-a', { text: 'A', journeyId: null, attachments: [] }, storage);
+    activate('account-b');
     saveImportDraft('account-b', { text: 'B', journeyId: null, attachments: [] }, storage);
 
+    activate('account-a');
     clearImportDraft('account-a', storage);
 
     expect(loadImportDraft('account-a', storage)).toBeNull();
+    activate('account-b');
     expect(loadImportDraft('account-b', storage)?.text).toBe('B');
   });
 
   it('rejects malformed and legacy draft payloads without leaking them across accounts', () => {
     storage.setItem(importDraftStorageKey('account-a'), JSON.stringify({ version: 99, text: 'old' }));
+    activate('account-b');
     storage.setItem(importDraftStorageKey('account-b'), '{bad json');
 
+    activate('account-a');
     expect(loadImportDraft('account-a', storage)).toBeNull();
+    activate('account-b');
     expect(loadImportDraft('account-b', storage)).toBeNull();
+  });
+
+  it('keeps same-account people separate and leaves the old account-only key untouched', () => {
+    const old = JSON.stringify({ version: 1, text: 'Unknown owner', journeyId: null, attachments: [] });
+    storage.setItem('teajia-curate-import-draft:account-a', old);
+    saveImportDraft('account-a', { text: 'A private paste', journeyId: null, attachments: [] }, storage);
+    activate('account-a', 'user-b');
+    expect(loadImportDraft('account-a', storage)).toBeNull();
+    saveImportDraft('account-a', { text: 'B private paste', journeyId: null, attachments: [] }, storage);
+    activate('account-a', 'user-a');
+    expect(loadImportDraft('account-a', storage)?.text).toBe('A private paste');
+    expect(storage.getItem('teajia-curate-import-draft:account-a')).toBe(old);
   });
 
   it('does not break capture when storage rejects quota or privacy writes', () => {

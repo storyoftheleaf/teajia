@@ -11,6 +11,8 @@ import { describe, expect, it } from 'vitest';
  * rename that would collide with a product already on the shelf).
  */
 
+// Match the ledger's INTEGER affinity: numeric years read as numbers, eras such
+// as '1980s' remain text. The rename must preserve both stored forms.
 const schema = readFileSync(new URL('../schema.sql', import.meta.url), 'utf8');
 const migration = readFileSync(new URL('../migrations/0023_a_teas_year_lives_in_its_box.sql', import.meta.url), 'utf8');
 
@@ -29,7 +31,7 @@ function run(rows: Seed[]) {
     insert.run(r.id, r.account ?? BALI, r.type ?? 'Shou Puer', r.ware ?? null, r.given, r.product, r.year ?? null, `slug-${r.id}`);
   }
   db.exec(migration);
-  const out = new Map<string, { given: string | null; product: string; year: string | null; slug: string }>();
+  const out = new Map<string, { given: string | null; product: string; year: number | string | null; slug: string }>();
   for (const row of db.prepare('SELECT id, given_name, product_name, year, slug FROM products').all() as any[]) {
     out.set(row.id, { given: row.given_name, product: row.product_name, year: row.year, slug: row.slug });
   }
@@ -46,12 +48,12 @@ describe('0023: a tea’s year lives in its box', () => {
       { id: 'tuo', given: '1998 Small Tuo', product: '1998 Small Tuo', year: '1998' },
       { id: 'y562', type: 'Shou', given: '1993 Y562', product: '1993 Y562 (Jixing) Black Box', year: '1993' },
     ]);
-    expect(after.get('bamboo')).toMatchObject({ given: 'Bamboo Leaf Old Tea', product: 'Bamboo Leaf Old Tea', year: '1990', slug: 'slug-bamboo' });
+    expect(after.get('bamboo')).toMatchObject({ given: 'Bamboo Leaf Old Tea', product: 'Bamboo Leaf Old Tea', year: 1990, slug: 'slug-bamboo' });
     expect(after.get('yiwu')).toMatchObject({ given: 'Yiwu Raw Puerh', product: 'Yiwu Raw Puerh' });
     expect(after.get('brick')).toMatchObject({ given: 'Ripe Puerh Brick', product: 'Ripe Puerh Brick' });
     expect(after.get('ginseng')).toMatchObject({ given: 'Ginseng Puer', product: 'Ginseng Puer', year: '1980s' });
     expect(after.get('tuo')).toMatchObject({ given: 'Small Tuo', product: 'Small Tuo' });
-    expect(after.get('y562')).toMatchObject({ given: 'Y562', product: 'Y562 (Jixing) Black Box', year: '1993' });
+    expect(after.get('y562')).toMatchObject({ given: 'Y562', product: 'Y562 (Jixing) Black Box', year: 1993 });
   });
 
   it('leaves another shop, teaware, look-alikes and a colliding rename alone', () => {
@@ -69,7 +71,7 @@ describe('0023: a tea’s year lives in its box', () => {
     expect(after.get('plain')).toMatchObject({ given: 'Naka Gushu' });
     // Renaming would make two teas called "Yiwu Raw Puerh"; the 2004 stays as it was.
     expect(after.get('yiwu-2004')).toMatchObject({ given: '2004 Yiwu Raw Puerh', product: '2004 Yiwu Raw Puerh' });
-    expect(after.get('already-yiwu')).toMatchObject({ given: 'Yiwu Raw Puerh', year: '2010' });
+    expect(after.get('already-yiwu')).toMatchObject({ given: 'Yiwu Raw Puerh', year: 2010 });
   });
 
   it('is safe to run twice', () => {

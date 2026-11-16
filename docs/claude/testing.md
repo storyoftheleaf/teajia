@@ -50,7 +50,8 @@ Mobile Chrome projects, the two `tests/inventory-scroll.spec.ts` names
 explicitly, sharded six ways (`--shard=N/6`, `fail-fast: false`) because the
 unsharded suite measured 35 minutes of playwright time alone on faster
 hardware than this private repo's 2 vCPU runner tier gets, past the 30-minute
-cap the job used to carry; each shard still applies `KNOWN_FAILING_E2E`.
+cap the job used to carry. Pull-request changed-spec runs use the same six-shard
+selection and keep `e2e-changed` as their blocking combined result.
 `china-scan`, `platform-hardening` and `recovery` wire in the three suites
 (`test:china-scan`, `test:platform-hardening`, `test:recovery`) that
 previously had no CI lane at all; `recovery` runs `npm run build` once before
@@ -62,12 +63,9 @@ and `tea-reference-revision-workflow.spec.ts` stay out of CI:
 started under `--mode tea-reference-preview` and a private
 `TEA_REFERENCE_HANDOFF_PATH` file that does not exist in the CI environment.
 
-Some tests fail on main independent of this gate; `e2e` excludes the titles in `KNOWN_FAILING_E2E` via
-the workflow-level `KNOWN_FAILING_E2E` regex so they cannot block a merge, and
-the separate `known-failing` job runs those with `continue-on-error`
-so they stay visible instead of going quiet. A title is removed from that
-regex in the same commit that fixes the test or the page it exercises, never
-on its own.
+The final quarantined browser scenario, tasting-note promotion, now checks the
+product page's actual figure caption and runs in the blocking browser lanes.
+There are no remaining `KNOWN_FAILING_E2E` exclusions or advisory quarantine job.
 
 The browsers are NOT installed by `npm install` on this machine: npm blocks the
 install scripts that would fetch them, so a fresh checkout fails every test in a
