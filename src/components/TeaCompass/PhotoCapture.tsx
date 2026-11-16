@@ -710,6 +710,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           role="dialog"
           aria-modal="true"
           aria-label="Photo viewer"
+          data-photo-viewer
         >
           <button
             ref={lightboxCloseRef}

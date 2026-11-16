@@ -1834,8 +1834,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   </button>
                 );
   });
-  // 'flow': the quality scale as one slim row in the capture card, under
-  // Photo and Taste (and the photos). Shown, and written, as in 'classic'.
+  // 'flow': the quality scale starts the tasting summary below the decision.
   const qualityRow = hasTasting && entry.tasting ? (
     <div className="curate-flow-quality" data-testid="curate-quality-row">
       <span className="curate-support shrink-0 whitespace-nowrap text-tea-text-sec">
@@ -2137,7 +2136,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         backToLibrary={backToLibrary} supplierHeader={supplierHeader} vendorStrip={vendorStripBlock} nameInput={teaNameInput}
         band={<>{originField}{typeButton}{yearField}</>}
         purchase={teaPurchaseInner} sheets={typeSheet} afterIdentity={<>{duplicateNudge}{extractionConfirmation}</>}
-        photo={photoCapture} taste={tasteButton(true)} quality={qualityRow && <>{qualityRow}{tastingLine}</>} composer={noteThread('composer')} list={noteThread('list')} intent={intentBar}
+        photo={photoCapture} taste={tasteButton(true)} tastingSummary={qualityRow && <>{qualityRow}{tastingLine}</>} composer={noteThread('composer')} list={noteThread('list')} intent={intentBar}
         details={<>{teaDetailsWith(<div className="flex">{chineseNameField}</div>, true)}{storageSection}</>}
         recordTools={recordTools} decision={decisionControl} actions={teaActionFooter(true)} buyPanel={teaBuySection} share={<CaptureShareButton onShare={onShare} />}
         outside={<>{teaReceiptError}{tastingOverlay}</>}

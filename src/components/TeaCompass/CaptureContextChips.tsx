@@ -107,12 +107,13 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
         type="button"
         onClick={onToggleVendor}
         aria-expanded={vendorOpen}
+        title={asHeading ? vendorName : undefined}
         className={asHeading ? 'library-supplier-heading w-full' : `curate-support pill-quiet min-w-0 ${vendorOpen ? 'pill-quiet-on' : ''}`}
         data-curate-action
       >
         {asHeading ? (
-          <span className="flex min-w-0 items-center gap-2">
-            <span className={`library-supplier-name !flex-initial truncate ${vendorName ? '' : 'text-tea-text-sec'}`}>{vendorName || 'Vendor'}</span>
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span className={`library-supplier-name !flex-initial line-clamp-2 ${vendorName ? '' : 'text-tea-text-sec'}`}>{vendorName || 'Vendor'}</span>
             <ChevronDown
               size={14}
               className={`shrink-0 text-tea-text-dim transition-transform ${vendorOpen ? 'rotate-180' : ''}`}
@@ -230,14 +231,11 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
   );
 
   if (variant === 'supplier') {
-    // The same controls, laid out like a Library supplier header: the vendor
-    // is the heading, Run and the second line sit quieter beneath it.
+    // Let the vendor wrap within the row so the other controls stay beside it.
     return (
       <div className="library-supplier-header curate-flow-where" data-testid="curate-supplier-header">
         {vendorButton(true)}
-        <span className="curate-flow-where-dot" aria-hidden>·</span>
         {runChip}
-        <span className="curate-flow-where-dot" aria-hidden>·</span>
         <div className="curate-flow-where-visit">{secondLine}</div>
         {newEntryButton}
         {syncIndicator}

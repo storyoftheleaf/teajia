@@ -4147,6 +4147,9 @@ body:has(.commerce-dock) [data-testid='bottom-tab-bar'] {
   padding-top: 0.25rem;
 }
 
+/* The photo viewer already makes the underlying app inert. Keep the nav out of the image. */
+body:has([data-photo-viewer]) .bottom-nav-bar { visibility: hidden; }
+
 /* Let the actual site bar fold above the takeover, then remove it from
    visibility and hit testing while the tasting navigation unfolds. */
 body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
@@ -7004,11 +7007,16 @@ body.cart-panel-open .commerce-dock {
 [data-form-layout='flow'] .curate-flow-name input { padding-left: 0; border-bottom-color: transparent; }
 [data-form-layout='flow'] .curate-flow-name input:focus { border-bottom-color: var(--tea-gold); }
 
-/* The band and the row of fields under it: cells on the card, thin vertical hairlines between. */
-[data-form-layout='flow'] .curate-flow-card .curate-flow-band { min-height: 44px; padding: 0 10px; gap: 0; align-items: stretch; }
+/* Keep the type tint on the Source band and give the three fields room to breathe. */
+[data-form-layout='flow'] .curate-flow-card .curate-flow-band {
+  min-height: 44px; padding: 0 10px; gap: 0; align-items: stretch;
+  background: color-mix(in srgb, var(--library-accent) 10%, var(--tea-surface));
+  border-top-color: var(--tea-border);
+}
 [data-form-layout='flow'] :is(.curate-flow-band, .curate-flow-cells) { display: flex; min-width: 0; }
 [data-form-layout='flow'] :is(.curate-flow-band, .curate-flow-cells) > * { min-height: 44px; }
-[data-form-layout='flow'] :is(.curate-flow-band, .curate-flow-cells) > * + * { padding-left: 10px; border-left: 1px solid var(--tea-border); }
+[data-form-layout='flow'] :is(.curate-flow-band, .curate-flow-cells) > * + * { padding-left: 10px; }
+[data-form-layout='flow'] .curate-flow-cells > * + * { border-left: 1px solid var(--tea-border); }
 [data-form-layout='flow'] :is(.curate-flow-band, .curate-flow-cells) > :not(:last-child) { padding-right: 10px; }
 [data-form-layout='flow'] .curate-flow-cell { color: var(--tea-text); font-family: var(--font-sans); font-size: 16px; line-height: 1.45; background: transparent; }
 [data-form-layout='flow'] .curate-flow-value { font-size: 16px; }
@@ -7036,7 +7044,6 @@ body.cart-panel-open .commerce-dock {
 [data-form-layout='flow'] .curate-flow-cost > :last-child { margin-left: auto; text-align: right; }
 
 /* Rows of buttons: quiet outlines on the card's own surface. */
-[data-form-layout='flow'] .curate-flow-buttons { padding-block: 2px; }
 [data-form-layout='flow'] .curate-flow-card .curate-compact-chrome { height: 34px; min-height: 34px; max-height: 34px; border-radius: 6px; }
 [data-form-layout='flow'] .curate-flow-card .curate-compact-chrome:not(.cta-solid) { border: 1px solid var(--tea-border); background: transparent; }
 @media (hover: hover) {
@@ -7084,8 +7091,9 @@ body.cart-panel-open .commerce-dock {
 [data-form-layout='flow'] .curate-flow-notes { padding-right: 0; }
 [data-form-layout='flow'] .curate-flow-notes .tasting-voice-btn { color: var(--tea-text-sec); }
 
-/* The growing card: saved notes, then the tasting words and brewing line. */
+/* The growing card: tasting summary followed by saved notes. */
 [data-form-layout='flow'] .curate-flow-record { display: grid; gap: 8px; padding: 8px 10px; }
+[data-form-layout='flow'] .curate-flow-record:has(> .curate-flow-tasting-summary:only-child) { padding-block: 0 4px; }
 [data-form-layout='flow'] .curate-flow-details { display: flex; align-items: flex-start; padding-inline: 11px 0; }
 
 [data-form-layout='flow'] .curate-section-title,
@@ -7096,13 +7104,19 @@ body.cart-panel-open .commerce-dock {
 [data-form-layout='flow'] .library-supplier-header { padding: 0 2px 2px 11px; }
 [data-form-layout='flow'] .library-supplier-heading { min-height: 44px; padding-block: 0; }
 /* The where header, one line: the vendor holds Run and Journey / visit, the plus at the end. */
-[data-form-layout='flow'] .curate-flow-where { gap: 6px; min-width: 0; padding-bottom: 0; }
-[data-form-layout='flow'] .curate-flow-where > .library-supplier-heading { display: flex; flex: 0 1 auto; width: auto; min-width: 0; }
-[data-form-layout='flow'] .curate-flow-where-dot { flex: none; color: var(--tea-text-sec); }
+[data-form-layout='flow'] .curate-flow-where { gap: 4px; min-width: 0; padding-bottom: 0; }
+[data-form-layout='flow'] .curate-flow-where > .library-supplier-heading { display: flex; flex: 1 1 auto; width: auto; min-width: 0; }
+[data-form-layout='flow'] .curate-flow-where .library-supplier-name { font: 500 0.875rem/1.15 var(--font-sans); }
 [data-form-layout='flow'] .curate-flow-where > .pill-quiet { flex: none; padding-inline: 2px; }
-/* The vendor is the heading, so the visit gives way first when the row is tight. */
-[data-form-layout='flow'] .curate-flow-where-visit { flex: 0 4 auto; max-width: 42%; min-width: 64px; }
+[data-form-layout='flow'] .curate-flow-where-visit { flex: 0 1 88px; min-width: 64px; }
+[data-form-layout='flow'] .curate-flow-where-visit button { gap: 4px; }
+[data-form-layout='flow'] .curate-flow-where-visit button > span {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; line-height: 1.2;
+}
 [data-form-layout='flow'] .curate-flow-where-visit button > svg:last-child { display: none; }
+@media (max-width: 479px) {
+  [data-form-layout='flow'] .curate-flow-where > .library-supplier-heading svg { display: none; }
+}
 [data-form-layout='flow'] .curate-flow-record:empty { display: none; }
 /* Teaware's piece counter keeps its hairline but drops its darker fill. */
 [data-form-layout='flow'] .curate-flow-purchase [aria-label^='Quantity:'] { background: transparent; }

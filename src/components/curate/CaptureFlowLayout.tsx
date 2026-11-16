@@ -12,11 +12,9 @@ import { mediaUrl } from '../../lib/mediaUrl';
  *
  *   tea card      name (first photo at its left, Scan at its right);
  *                 the band; the price
- *   capture card  Photo and Taste, the photos, the quality and the tasting
- *                 words (once tasted),
- *                 the note box
+ *   capture card  Photo and Taste, the photos, the note box
  *   decide card   status, then Buy, Sample, Done; the Buy panel under it
- *   growing card  the saved notes: everything that grows
+ *   growing card  quality, tasting words and saved notes: everything that grows
  *                 sits below the decision, so it never pushes it down
  *   details       Tea details & sourcing, then Storage
  *
@@ -48,13 +46,12 @@ export interface CaptureFlowLayoutProps {
   afterIdentity?: React.ReactNode;
   photo: React.ReactNode;
   taste?: React.ReactNode;
-  /** The 1 to 10 quality row and the tasting words, once a tasting exists. */
-  quality?: React.ReactNode;
+  /** The 1 to 10 quality row and tasting words, below the decision. */
+  tastingSummary?: React.ReactNode;
   /** The note box with its microphone, and the saved notes. */
   composer: React.ReactNode;
   list: React.ReactNode;
   intent: React.ReactNode;
-  tasting?: React.ReactNode;
   details?: React.ReactNode;
   /** Share: at the right end of the details row, or of the name row when there is none. */
   share?: React.ReactNode;
@@ -116,7 +113,6 @@ export function CaptureFlowLayout(props: CaptureFlowLayoutProps) {
               {props.taste}
             </div>
             <div ref={props.setStripSlot} className={`${ROW} curate-flow-strip empty:hidden`} />
-            {props.quality && <div className={ROW}>{props.quality}</div>}
             <div className={`${ROW} curate-flow-notes`} data-testid="curate-notes-band" data-zone="notes">
               {props.composer}
               <div className="curate-intent-inline empty:hidden">
@@ -134,10 +130,10 @@ export function CaptureFlowLayout(props: CaptureFlowLayoutProps) {
 
           {props.buyPanel}
 
-          {/* Everything that grows: the saved notes. */}
+          {/* Keep tasting and saved notes below the decision. */}
           <article className={`${CARD} curate-flow-record empty:hidden`} style={cardStyle} data-testid="curate-cluster-record" data-zone="record">
+            {props.tastingSummary && <div className="curate-flow-tasting-summary">{props.tastingSummary}</div>}
             {props.list}
-            {props.tasting}
           </article>
 
           {props.details && (

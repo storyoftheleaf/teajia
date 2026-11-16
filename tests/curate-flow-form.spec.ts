@@ -54,6 +54,26 @@ test.describe('Curate Source form, default layout', () => {
     expect(await x(button(page, 'Sample'))).toBeLessThan(await x(done));
   });
 
+  test('saving a tasting keeps the decision in place and the rating editable', async ({ page }) => {
+    await fill(page);
+    const decision = page.getByTestId('curate-cluster-decide').filter({ visible: true });
+    const before = (await decision.boundingBox())!.y;
+
+    await page.getByTestId('curate-taste-button').filter({ visible: true }).click();
+    await page.getByRole('button', { name: 'Open your impression', exact: true }).click();
+    await page.getByRole('button', { name: 'Love', exact: true }).click();
+    await page.getByRole('button', { name: /^(Leave tasting|Close)$/ }).click();
+    await page.getByRole('button', { name: 'Save and close', exact: true }).click();
+
+    const rating = page.getByRole('radiogroup', { name: 'Quality rating' });
+    await expect(rating).toBeVisible();
+    expect((await decision.boundingBox())!.y).toBeCloseTo(before, 0);
+    expect((await rating.boundingBox())!.y).toBeGreaterThan((await decision.boundingBox())!.y);
+    const nine = rating.getByRole('radio', { name: '9', exact: true });
+    await nine.click();
+    await expect(nine).toHaveAttribute('aria-checked', 'true');
+  });
+
   test('Buy answers where it was tapped', async ({ page }) => {
     await fill(page);
     await button(page, 'Buy').click();
@@ -105,6 +125,10 @@ test.describe('Curate Source form, default layout', () => {
     await expect(viewer).toBeVisible();
     await expect(viewer.getByRole('button', { name: 'Add another photo' })).toBeVisible();
     await expect(viewer.getByRole('button', { name: 'Next photo' })).toBeVisible();
+    const nav = page.getByTestId('bottom-tab-bar');
+    await expect(nav).toBeHidden();
+    await viewer.getByRole('button', { name: 'Close photo viewer' }).click();
+    if ((page.viewportSize()?.width ?? 0) < 1024) await expect(nav).toBeVisible();
   });
 
   test('the earlier form is still there at its own address', async ({ page }) => {
