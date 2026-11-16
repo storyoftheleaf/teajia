@@ -1,3 +1,5 @@
+import { incidentRouteSlug, incidentRouteTemplate } from './incidentRoute';
+
 export type ClientIncidentCategory = 'network' | 'configuration' | 'server' | 'auth' | 'authorization' | 'workflow' | 'client';
 
 export interface ClassifiedIncident {
@@ -15,10 +17,6 @@ export interface ClassifiedIncident {
 
 function normalizedRoute(route: string): string {
   return route.split('?')[0] || '/unknown';
-}
-
-function routeSlug(route: string): string {
-  return normalizedRoute(route).replace(/^\/+/, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'root';
 }
 
 function errorStatus(error: unknown): number | null {
@@ -58,7 +56,7 @@ export function classifyIncident(error: unknown, context: { route: string; metho
   }
 
   return {
-    signature: `${category}:${method.toLowerCase()}:${routeSlug(route)}:${status ?? 'none'}:${errorCode}`,
+    signature: `${category}:${method.toLowerCase()}:${incidentRouteSlug(incidentRouteTemplate(route))}:${status ?? 'none'}:${errorCode}`,
     category, severity, route, method, http_status: status, error_code: errorCode,
     safe_message: message.slice(0, 300), userMessage,
     sample: { browser_online: typeof navigator === 'undefined' ? null : navigator.onLine },

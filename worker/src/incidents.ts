@@ -1,3 +1,5 @@
+import { incidentRouteSlug, incidentRouteTemplate } from '../../src/lib/incidentRoute';
+
 export const INCIDENT_CATEGORIES = ['network', 'configuration', 'server', 'auth', 'authorization', 'workflow', 'client'] as const;
 export const INCIDENT_SEVERITIES = ['critical', 'high', 'medium', 'low'] as const;
 export const INCIDENT_STATUSES = ['open', 'acknowledged', 'repairing', 'observing', 'resolved'] as const;
@@ -38,10 +40,26 @@ const ALLOWED_SAMPLE_KEYS = new Set([
 ]);
 const MAX_PAYLOAD_BYTES = 8 * 1024;
 const MAX_STRING_LENGTH = 500;
+/** `incident_ledger.signature` is bounded at 240; a signature may use all of it. */
+const MAX_SIGNATURE_LENGTH = 240;
 
 function slug(value: string, fallback: string): string {
   const normalized = value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
   return normalized.slice(0, 80) || fallback;
+}
+
+/**
+ * A signature is cut at the column's bound, not at eighty characters.
+ *
+ * Eighty is right for an error code and wrong for a signature, because the
+ * status and the error code are its LAST two fields: a route long enough to
+ * reach the cap loses both, and every status on that route then shares one row.
+ * The 2026-10-29 archive-request row is the evidence — its stored signature ends
+ * `..._d55de2fea535_50`, with `4_http_504` cut clean off the end.
+ */
+function signatureSlug(value: string, fallback: string): string {
+  const normalized = value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  return normalized.slice(0, MAX_SIGNATURE_LENGTH) || fallback;
 }
 
 function routeSlug(route: string | null): string {
@@ -80,15 +98,25 @@ export function normalizeIncidentInput(input: IncidentInput): NormalizedIncident
 
   const category = input.category as IncidentCategory;
   const severity = input.severity as IncidentSeverity;
-  const route = typeof input.route === 'string' ? input.route.split('?')[0].slice(0, 240) : null;
+  const reportedRoute = typeof input.route === 'string' ? input.route.split('?')[0] : null;
+  const route = reportedRoute?.slice(0, 240) ?? null;
   const method = typeof input.method === 'string' ? input.method.toUpperCase().slice(0, 10) : null;
   const httpStatus = Number.isInteger(input.http_status) ? Number(input.http_status) : null;
   const errorCode = slug(input.error_code || 'unknown', 'unknown');
-  const generated = `${category}:${(method || 'unknown').toLowerCase()}:${routeSlug(route)}:${httpStatus ?? 'none'}:${errorCode}`;
-  const signature = input.signature ? slug(input.signature, generated) : generated;
+  const sign = (routePart: string) => `${category}:${(method || 'unknown').toLowerCase()}:${routePart}:${httpStatus ?? 'none'}:${errorCode}`;
+  const templatedRoute = reportedRoute ? incidentRouteTemplate(reportedRoute) : route;
+  const generated = sign(routeSlug(templatedRoute));
+  const supplied = input.signature ? signatureSlug(input.signature, generated) : null;
+  // Both cached raw-path reports and templated browser reports use the same
+  // server-generated key for dynamic routes. Keep custom and static keys stable.
+  const isDynamicReport = reportedRoute && templatedRoute && reportedRoute !== templatedRoute;
+  const matchesBrowser = (path: string) => supplied === signatureSlug(sign(incidentRouteSlug(path)), generated);
+  const signature = isDynamicReport && (matchesBrowser(reportedRoute) || matchesBrowser(templatedRoute))
+    ? generated
+    : supplied ?? generated;
 
   return {
-    signature: signature.slice(0, 240), category, severity, route, method, httpStatus, errorCode,
+    signature: signature.slice(0, MAX_SIGNATURE_LENGTH), category, severity, route, method, httpStatus, errorCode,
     // Narrative supplied by a client is untrusted and must never enter an AI
     // repair queue. Persist a server-owned classification sentence only.
     safeMessage: category === 'configuration' ? 'Service configuration failure.'
@@ -214,7 +242,8 @@ export async function recordHealthProblem(db: D1Database, input: HealthProblemIn
  * anything to clear. Returns whether a row actually changed.
  */
 export async function clearHealthProblem(db: D1Database, signature: string, ref: string): Promise<boolean> {
-  const key = `__global__:${slug(signature, signature)}`.slice(0, 240);
+  // The same slug `normalizeIncidentInput` stored it under, or the clear misses.
+  const key = `__global__:${signatureSlug(signature, signature)}`.slice(0, MAX_SIGNATURE_LENGTH);
   const result = await db.prepare(`
     UPDATE incident_ledger
        SET status = 'resolved', resolved_at = datetime('now'), resolution_ref = ?

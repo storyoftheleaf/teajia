@@ -31,10 +31,10 @@ describe('what a confirmed order tells the shop about each tea', () => {
     expect(arrivalFields(unweighed)).toEqual({ compass_entry_id: 'e1' });
   });
 
-  it('the purchase order line names the tea; it gains grams and a total only when the shop can use them', () => {
-    expect(arrivalFields(line({}))).toEqual({ compass_entry_id: 'e1', unitWeightGrams: 357, quantity_grams: 357, line_total: 450 });
+  it('records known purchase weight and cost with or without a linked Curate tea', () => {
+    expect(arrivalFields(line({}))).toEqual({ compass_entry_id: 'e1', unitWeightGrams: 357, quantity: 357, unit: 'g', quantity_grams: 357, line_total: 450 });
     expect(arrivalFields(line({ unitWeightGrams: undefined }))).toEqual({ compass_entry_id: 'e1' });
-    expect(arrivalFields(line({ compassEntryId: undefined }))).toEqual({ unitWeightGrams: 357 });
+    expect(arrivalFields(line({ compassEntryId: undefined }))).toEqual({ unitWeightGrams: 357, quantity: 357, unit: 'g', quantity_grams: 357, line_total: 450 });
     expect(lineGrams(line({ quantityUnits: 0 }))).toBeNull();
   });
 

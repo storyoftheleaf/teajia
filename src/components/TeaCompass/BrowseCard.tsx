@@ -1,3 +1,4 @@
+import { Button } from '../shared/Button';
 import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { LoaderCircle, MoreHorizontal, Camera } from 'lucide-react';
@@ -143,10 +144,10 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
         className={isSelected ? 'library-tea-card-selected' : undefined}
         teaType={entry.type}
         title={<LibraryInlineValue multiline className={`${TYPOGRAPHY_CLASSES.h3} library-card-name text-tea-text`} value={identity.name} display={title} label={`Edit tea name: ${title}`} readOnly={readOnly} onSave={saveField('name')} />}
-        trailing={<button type="button" className="tap-target library-more-action" aria-label={`Edit details for ${title}`} title={description || 'Edit tea details'} onClick={openDetail}><MoreHorizontal size={18} /></button>}
+        trailing={<Button variant="plain" type="button" className="tap-target library-more-action" aria-label={`Edit details for ${title}`} title={description || 'Edit tea details'} onClick={openDetail}><MoreHorizontal size={18} /></Button>}
         meta={<>
           <LibraryGivenName entry={entry} readOnly={readOnly} onSave={value => savePatch({ givenName: value.trim() || null })} />
-          {entry.category !== 'teaware' && (readOnly ? <span className="library-card-type">{entry.type || 'Type not set'}</span> : <button type="button" className="tap-target library-card-type" aria-label={`Choose tea type for ${title}`} aria-haspopup="dialog" onClick={() => { setTypeError(''); setTypeOpen(true); }}>{entry.type || 'Choose type'}</button>)}
+          {entry.category !== 'teaware' && (readOnly ? <span className="library-card-type">{entry.type || 'Type not set'}</span> : <Button variant="plain" type="button" className="tap-target library-card-type" aria-label={`Choose tea type for ${title}`} aria-haspopup="dialog" onClick={() => { setTypeError(''); setTypeOpen(true); }}>{entry.type || 'Choose type'}</Button>)}
           {rating != null && Number.isFinite(rating) && <span className="text-ui-11 text-tea-text-dim whitespace-nowrap" aria-label={`Rating ${rating} out of 10`}>{rating}/10</span>}
           <LibraryInlineValue className="library-card-year text-ui-13 text-tea-text-sec" value={identity.year} display={identity.year || 'Add year'} label={`Edit year for ${title}`} readOnly={readOnly} onSave={saveField('year')} />
         </>}
@@ -164,7 +165,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
                 </span>
               ) : <Camera size={17} />}
             </button>
-          {entry.category !== 'teaware' && <button type="button" onClick={() => onOpenTasting ? onOpenTasting(entry.id) : readOnly ? openDetail() : setTastingOpen(true)} className={`tap-target library-tea-primary text-ui-12 ${tasted ? 'is-tasted' : ''}`} aria-label={`Taste ${title}`} title={readOnly && !onOpenTasting ? 'View tasting status (read-only)' : tasted ? 'Edit tasting' : 'Begin tasting'}><TeaCupIcon /><span className="sr-only">Taste</span></button>}
+          {entry.category !== 'teaware' && <Button variant="plain" type="button" onClick={() => onOpenTasting ? onOpenTasting(entry.id) : readOnly ? openDetail() : setTastingOpen(true)} className={`tap-target library-tea-primary text-ui-12 ${tasted ? 'is-tasted' : ''}`} aria-label={`Taste ${title}`} title={readOnly && !onOpenTasting ? 'View tasting status (read-only)' : tasted ? 'Edit tasting' : 'Begin tasting'}><TeaCupIcon /><span className="sr-only">Taste</span></Button>}
           </div>
         }
         metricsLabel={`Prices in ${amounts.currency}`}
@@ -192,9 +193,9 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
           <button type="button" className="tap-target library-add-information text-ui-12 text-tea-text-sec" onClick={openDetail}>Add information</button>
         </>}
       >
-        {sampleBatch && entry.sampleSetId && onOpenSampleBatch && <button type="button" className="tap-target library-sample-batch text-ui-11 text-tea-text-sec" title="Open batch in Samples" onClick={() => onOpenSampleBatch(entry.sampleSetId!)}>
+        {sampleBatch && entry.sampleSetId && onOpenSampleBatch && <Button variant="plain" type="button" className="tap-target library-sample-batch text-ui-11 text-tea-text-sec" title="Open batch in Samples" onClick={() => onOpenSampleBatch(entry.sampleSetId!)}>
           Batch · <span className="text-tea-text">{sampleBatch}</span>
-        </button>}
+        </Button>}
         {purchaseStatusUnknown && <p role="status" className="text-ui-11 text-tea-text-dim py-1">{purchaseStatusUnknown}</p>}
         {actionError && <p role="alert" className="text-ui-11 text-tea-text-sec">{actionError}</p>}
       </TeaCard>

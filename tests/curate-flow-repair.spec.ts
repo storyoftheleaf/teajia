@@ -81,12 +81,13 @@ test.describe('Curate acquisition repair', () => {
       const id = ledger.getOrCreatePurchaseTransaction('Repair vendor', 'Yuan');
       ledger.addLineItem(id, { name: 'Quoted tea', pricePerUnit: 1, priceIsPerGram: true, quantityGrams: 250, currency: 'Yuan' });
     });
-    await (await revealCurateTab(page, 'Ledger')).click();
+    await (await revealCurateTab(page, 'Orders')).click();
     await page.getByRole('button', { name: 'Purchase', exact: true }).click();
     await expect(page.getByText('Shop could not confirm. Draft kept.', { exact: true }).filter({ visible: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Retry confirmation', exact: true }).filter({ visible: true })).toBeVisible();
     await page.getByRole('button', { name: 'Retry confirmation', exact: true }).filter({ visible: true }).click();
-    await expect(page.getByText('Confirmed', { exact: true }).filter({ visible: true })).toBeVisible();
+    await expect(page.getByText('Confirmed · 1 item', { exact: true }).filter({ visible: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'View purchase' })).toHaveAttribute('href', '/admin/purchase-orders?purchaseId=confirmed-po');
     expect(requests).toHaveLength(2);
     expect(requests[0].request_id || requests[0].idempotency_key).toBe(requests[1].request_id || requests[1].idempotency_key);
     expect(requests[0].request_id || requests[0].idempotency_key).toBeTruthy();

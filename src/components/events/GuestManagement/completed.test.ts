@@ -1,11 +1,15 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { isGuestEventCompleted } from './helpers';
 
-describe('guest page: closed is not completed', () => {
-  it("does not treat status 'closed' (registration closed) as the session being over", () => {
-    const source = readFileSync(new URL('./index.tsx', import.meta.url), 'utf8');
-    const line = source.split('\n').find((l) => l.includes('const isCompleted')) ?? '';
-    expect(line).not.toContain("'closed'");
-    expect(line).toContain('eventPast');
+describe('guest post-session recap', () => {
+  it('keeps registration closure separate from a completed session', () => {
+    expect(isGuestEventCompleted({ lifecycleStatus: 'published', status: 'closed' })).toBe(false);
+    expect(isGuestEventCompleted({ status: 'closed' })).toBe(false);
+  });
+
+  it('opens when the host completes or archives the session', () => {
+    expect(isGuestEventCompleted({ lifecycleStatus: 'completed', status: 'closed' })).toBe(true);
+    expect(isGuestEventCompleted({ lifecycleStatus: 'archived' })).toBe(true);
+    expect(isGuestEventCompleted({ status: 'completed' })).toBe(true);
   });
 });

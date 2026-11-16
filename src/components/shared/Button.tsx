@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { LoadingSpinner } from './LoadingSpinner';
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'icon' | 'danger';
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'icon' | 'danger' | 'plain';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -25,6 +25,14 @@ export const Button: React.FC<ButtonProps> = ({
   className = '',
   ...props
 }) => {
+  if (variant === 'plain') {
+    return (
+      <motion.button className={className} disabled={disabled || loading} {...(props as any)}>
+        {children}
+      </motion.button>
+    );
+  }
+
   const baseClasses = 'inline-flex items-center justify-center gap-2 font-sans font-medium tracking-wide transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg';
 
   // `primary` carries no colour of its own. `.cta-solid` (card-utilities.css) is

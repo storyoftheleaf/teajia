@@ -2,7 +2,7 @@ import { ArTranscriptHandoff } from './ArTranscriptHandoff';
 import { ArCreatePairing } from './ArTeaSources';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Check, ChevronDown, ChevronUp, FlaskConical, Loader2, Mic, Plus, Search, Square, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -27,6 +27,7 @@ import { LibraryCurrencyPicker } from './LibraryCurrencyPicker';
 import { readLibraryPricePreference } from './libraryPriceDisplay';
 import { BrowseView } from './BrowseView';
 import { LedgerView } from './LedgerView';
+import { useLibraryRecordSelection } from './useLibraryRecordSelection';
 import { useVoiceRecorder } from '../../hooks/useVoiceRecorder';
 import { usePlatformPrivilege } from '../../lib/permissions';
 import { CompassShareModal } from './CompassShareModal';
@@ -118,7 +119,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const samplesList = useSampleStore((s) => s.samples);
 
   const navigate = useNavigate();
-  const [, setRecordParams] = useSearchParams();
   const queryClient = useQueryClient();
 
 
@@ -672,21 +672,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // Per-share preview expand state
   const [expandedShareIds, setExpandedShareIds] = useState<Set<string>>(new Set());
 
-  // Desktop tasting: which entry is shown in the right detail panel
-  const [tastingSelectedEntryId, setTastingSelectedEntryId] = useState<string | null>(null);
-  const selectLibraryRecord = useCallback((id: string | null) => {
-    setTastingSelectedEntryId(id);
-    setRecordParams(current => {
-      const params = new URLSearchParams(current);
-      if (id) {
-        params.set('tab', 'library');
-        params.set('entry', id);
-      } else {
-        params.delete('entry');
-      }
-      return params;
-    }, { replace: !id });
-  }, [setRecordParams]);
+  const { tastingSelectedEntryId, setTastingSelectedEntryId, selectLibraryRecord } = useLibraryRecordSelection();
   const [pendingLibraryAcquisitionId, setPendingLibraryAcquisitionId] = useState<string | null>(null);
   const initialRecordRequest = useRef('');
   useEffect(() => {

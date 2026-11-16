@@ -23,7 +23,7 @@ test.describe('Curate responsive preservation', () => {
       screenTabs.getByRole('button', { name: 'Back', exact: true }),
       screenTabs.getByRole('tab', { name: 'Source', exact: true }),
       screenTabs.getByRole('tab', { name: 'Library', exact: true }),
-      screenTabs.getByRole('tab', { name: 'Ledger', exact: true }),
+      screenTabs.getByRole('tab', { name: 'Orders', exact: true }),
       screenTabs.getByRole('button', { name: 'Sample list (0)' }),
       newEntry,
     ];
@@ -57,7 +57,7 @@ test.describe('Curate responsive preservation', () => {
       page.getByRole('button', { name: 'Back', exact: true }),
       page.getByRole('tablist', { name: 'Screen' }).getByRole('tab', { name: 'Source', exact: true }),
       page.getByRole('tablist', { name: 'Screen' }).getByRole('tab', { name: 'Library', exact: true }),
-      page.getByRole('tablist', { name: 'Screen' }).getByRole('tab', { name: 'Ledger', exact: true }),
+      page.getByRole('tablist', { name: 'Screen' }).getByRole('tab', { name: 'Orders', exact: true }),
       methods.getByRole('tab', { name: 'Tea', exact: true }),
       methods.getByRole('tab', { name: 'Teaware', exact: true }),
       methods.getByRole('tab', { name: 'Import', exact: true }),
