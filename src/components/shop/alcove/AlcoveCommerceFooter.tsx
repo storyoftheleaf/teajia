@@ -17,6 +17,7 @@ interface AlcoveCommerceFooterProps {
   alcoveBg: string;
   stockStatus: StockStatus;
   isSoldOut: boolean;
+  availabilityContact?: { href: string; opensNewTab: boolean };
   grams: number;
   setGrams: (g: number) => void;
   customMode: boolean;
@@ -112,6 +113,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   alcoveBg,
   stockStatus,
   isSoldOut,
+  availabilityContact,
   grams,
   setGrams,
   customMode,
@@ -146,6 +148,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   const isTea = item.category === 'tea';
   const isRail = variant === 'rail';
   const isDocked = variant === 'docked';
+  const dockedSoldOut = isDocked && !!onChooseAmount && isSoldOut && item.stock_g <= 0;
   /* A whole cake / brick / tuo earns a cell of its own, but only when the tea
      itself says how heavy one is and one is worth buying whole. A 5 g tuo is
      how the tea is packed, not an amount: nobody orders one, they order 25 g
@@ -313,7 +316,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
     >
       {/* Stock line, only when it carries a warning. "In stock" is implied by
           an enabled order button, and the pinned bar pays for every row. */}
-      {stockStatus.level !== 'ok' && (
+      {stockStatus.level !== 'ok' && !dockedSoldOut && (
         <div className="mb-2.5 flex items-center justify-center gap-[7px]">
           <span aria-hidden="true" style={{ ...STOCK_DOT, background: stockStatus.color }} />
           <span
@@ -372,7 +375,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
           choosing in the list above already added it and there is nothing
           left to confirm. */}
       {isDocked && onChooseAmount ? (
-        <div className="alcove-dock-strip">
+        <div className="alcove-dock-strip" data-sold-out={dockedSoldOut || undefined}>
           <div className="flex shrink-0 items-center">
             <button
               type="button"
@@ -387,8 +390,23 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
             <button type="button" className="alcove-dock-icon tap-target" onClick={handleShare} aria-label="Share">
               <Share size={17} strokeWidth={1.4} />
             </button>
-            <span aria-hidden="true" className="alcove-dock-divider" />
+            {!dockedSoldOut && <span aria-hidden="true" className="alcove-dock-divider" />}
           </div>
+          {dockedSoldOut && (
+            <div className="ml-auto flex shrink-0 items-center gap-3 pr-2.5 sm:pr-4">
+              <span className="whitespace-nowrap text-ui-12 text-tea-text-sec">Sold out</span>
+              {availabilityContact && (
+                <a href={availabilityContact.href}
+                  target={availabilityContact.opensNewTab ? '_blank' : undefined}
+                  rel={availabilityContact.opensNewTab ? 'noopener noreferrer' : undefined}
+                  aria-label="Notify me when it’s back in stock"
+                  className="inline-flex min-h-11 min-w-11 items-center whitespace-nowrap rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-tea-gold">
+                  <span className="inline-flex h-7 items-center rounded border border-tea-border px-2.5 text-ui-11 text-tea-text-sec transition-colors hover:border-tea-gold hover:text-tea-text">Notify me</span>
+                </a>
+              )}
+            </div>
+          )}
+          {!dockedSoldOut && <>
           {activeCell ? (
             /* The amount is a control and has to look like one. Bare type in
                the middle of a bar is something to read, not something to press,
@@ -445,6 +463,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
           >
             {justAdded ? 'Added' : 'Add'}
           </button>
+          </>}
           {orderTotalUsd > 0 && (
             <button
               type="button"

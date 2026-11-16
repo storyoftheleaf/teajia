@@ -55,6 +55,7 @@ interface AlcoveCardProps {
   onEditProductTasting?: (item: InventoryItem) => void;
   /** Canonical public route, including store context on standalone pages. */
   publicHref?: string;
+  availabilityContact?: { href: string; opensNewTab: boolean };
   /** Product-page-only control kept beside ordering reassurance. */
   orderAccess?: React.ReactNode;
   /** Opens the order. The page bar's tan block is the only caller. */
@@ -72,7 +73,7 @@ interface AlcoveCardProps {
 /** Returns stock status info for display */
 function getStockStatus(stockG: number, status?: string) {
   if (status === 'Sold Out' || stockG <= 0) {
-    return { label: 'Sold Out', color: '#a65d4e', level: 'out' as const };
+    return { label: 'Sold out', color: '#a65d4e', level: 'out' as const };
   }
   if (stockG < 100) {
     return { label: 'Low Stock', color: '#c09a51', level: 'low' as const };
@@ -94,7 +95,7 @@ function hexToRgbString(hex: string): string | undefined {
   return `${(int >> 16) & 255} ${(int >> 8) & 255} ${int & 255}`;
 }
 
-export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, publicHref, orderAccess, onOpenOrder, layout = 'card' }) => {
+export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, publicHref, availabilityContact, orderAccess, onOpenOrder, layout = 'card' }) => {
   const navigate = useNavigate();
   const { favoriteTeas, toggleFavoriteTea, activeAccountId } = useAppStore();
 
@@ -246,7 +247,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     ? `${formatPrice(pricePerGram, 1)}/g`
     : shopPrice.perGram(quoteGrams(pricePerGram, grams, { wholePieceGrams }).perGramUsd);
 
-  const stockStatus = { ...getStockStatus(purchase ? item.stock_g : 0), ...(!Number.isFinite(pricePerGram) ? { label: 'Unavailable' } : {}) };
+  const stockStatus = { ...getStockStatus(purchase ? item.stock_g : 0), ...(item.stock_g > 0 && !Number.isFinite(pricePerGram) ? { label: 'Unavailable' } : {}) };
   const isSoldOut = !purchase;
 
   const presets = [25, 50, 100, 250].filter(p => p <= sliderMax);
@@ -348,6 +349,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       alcoveBg={alcoveBg}
       stockStatus={stockStatus}
       isSoldOut={isSoldOut}
+      availabilityContact={availabilityContact}
       grams={grams}
       setGrams={setGrams}
       customMode={customMode}

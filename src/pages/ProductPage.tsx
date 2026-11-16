@@ -16,7 +16,9 @@ import { EmblemLoader } from '../components/shared/EmblemLoader';
 import type { InventoryItem } from '../types';
 import type { Product } from '../admin/types';
 import { useAppStore } from '../lib/store';
-import { buildPublicProductHref, findProductByRouteParam } from '../lib/publicProductNavigation';
+import { buildPublicProductHref, findProductByRouteParam, resolveInventoryStoreSlug } from '../lib/publicProductNavigation';
+import { fetchStore, fetchStoreProduct } from '../lib/storefrontApi';
+import { resolveContactChannels } from '../lib/contact';
 import { LABEL, NUMERAL } from '../components/shared/typeRoles';
 import { quoteGrams, sellUnitOf, wholePieceOf } from '../lib/teaPricing';
 import { useProducts } from '../admin/hooks/useAdminData';
@@ -93,7 +95,21 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   const { inventory, isLoading, isError: inventoryError, refetch: refetchInventory } = useInventory();
   const { isAdmin, isAuthenticated } = useAuth();
 
-  const item = useMemo(() => findProductByRouteParam(inventory, routeKey), [inventory, routeKey]);
+  const browseItem = useMemo(() => findProductByRouteParam(inventory, routeKey), [inventory, routeKey]);
+  const activeStore = resolveInventoryStoreSlug(searchParams, persistedStoreSlug);
+  const linkedProduct = useQuery({
+    queryKey: ['storefront', 'product', activeStore, routeKey],
+    queryFn: () => fetchStoreProduct(activeStore, routeKey!),
+    enabled: !!routeKey && !isLoading && !browseItem,
+    retry: false,
+  });
+  const item = browseItem ?? linkedProduct.data;
+  const soldOutStore = useQuery({
+    queryKey: ['storefront', 'store', activeStore],
+    queryFn: () => fetchStore(activeStore),
+    enabled: !!item && item.stock_g <= 0,
+    retry: false,
+  });
 
   /*
    * Recently viewed is recorded here because here is where a tea is opened.
@@ -192,7 +208,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   }, [adminTastingItem, adminRecord]);
 
   // Inventory still loading on a cold load: hold the frame, don't 404 early.
-  if (!item && isLoading) {
+  if (!item && (isLoading || linkedProduct.isLoading)) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <EmblemLoader />
@@ -200,14 +216,14 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
     );
   }
 
-  if (!item && inventoryError) {
+  if (!item && (linkedProduct.isError || inventoryError)) {
     return (
       <div role="alert" className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
         <h1 className="h2 mb-3">Product unavailable</h1>
         <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec mb-6 max-w-md`}>
           We could not load this product right now. Please try again.
         </p>
-        <button type="button" onClick={() => refetchInventory()} className="cta-solid tap-target rounded-xl px-6 py-3 text-ui-12 uppercase tracking-caps">
+        <button type="button" onClick={() => { void refetchInventory(); if (routeKey) void linkedProduct.refetch(); }} className="cta-solid tap-target rounded-xl px-6 py-3 text-ui-12 uppercase tracking-caps">
           Try again
         </button>
       </div>
@@ -259,6 +275,16 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   const cultivarUrl = lineageCultivar ? `${siteOrigin}${cultivarPath(lineageCultivar.id)}` : null;
   const productHref = buildPublicProductHref({ id: item.id, slug: item.slug }, storeSlug);
   const productUrl = `${siteOrigin}${productHref}`;
+  const soldOutStoreProfile = soldOutStore.data?.slug === activeStore ? soldOutStore.data : undefined;
+  const contact = isSoldOut && soldOutStoreProfile ? resolveContactChannels({
+    whatsappNumber: soldOutStoreProfile.whatsapp_number,
+    email: soldOutStoreProfile.contact_email,
+    subject: `Restock alert for ${item.name}`,
+    message: `Hello ${soldOutStoreProfile.name}, please let me know when ${item.name} is back in stock.\n${siteOrigin}${buildPublicProductHref(item, activeStore)}`,
+  }) : undefined;
+  const availabilityContact = contact?.whatsapp
+    ? { href: contact.whatsapp.href, opensNewTab: true }
+    : contact?.email && { href: contact.email.href, opensNewTab: false };
 
   // The crumb between the shop and this tea, resolved through the same
   // vocabulary the rest of the shop reads, so a record saved as "Red" and one
@@ -489,6 +515,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
         onTermClick={handleTermClick}
         onTaste={handleTaste}
         publicHref={productHref}
+        availabilityContact={availabilityContact || undefined}
         orderAccess={
           onCartClick && cartItemCount > 0
             ? <ProductOrderAccess onCartClick={onCartClick} cartItemCount={cartItemCount} />
