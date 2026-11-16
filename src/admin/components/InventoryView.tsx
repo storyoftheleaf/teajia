@@ -93,7 +93,7 @@ import { StockMovementPanel } from './inventory/StockMovementPanel';
 import { InventorySourcePanel } from './inventory/InventorySourcePanel';
 import { SupplierSheet } from '../../components/shared/SupplierSheet';
 import { TastingSession } from '../../components/tasting/TastingSession';
-import { adaptInventorySummaryRows, inventoryMatchesFacetFilter, buildPersonalJournalHref, getPersonalTastingAction, inventorySummaryStatusMessage, isInventoryPublicationGateChangeAllowed, isInventorySelectionPublishable } from './inventory/domain';
+import { adaptInventorySummaryRows, inventoryMatchesFacetFilter, buildPersonalJournalHref, getPersonalTastingAction, inventorySummaryStatusMessage, inventoryPublicationRequirements, isInventoryPublicationGateChangeAllowed, isInventorySelectionPublishable } from './inventory/domain';
 import type { IncomingInventorySummary, InventorySummaryRow, InventorySummaryStatus, InventoryWritingSummary, PersonalTastingSummary } from './inventory/domain';
 
 interface InventoryViewProps {
@@ -113,6 +113,7 @@ interface InventoryViewProps {
   onSearchQueryChange?: (query: string) => void;
   onCategoryChange?: (category: 'tea' | 'teaware') => void;
   activeAccountName?: string;
+  canReviewDrafts?: boolean;
   /** Options menu controlled from parent top bar */
   externalShowOptions?: boolean;
   onOptionsToggle?: (open: boolean) => void;
@@ -160,7 +161,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   products, isLoading, isError, error, onImportClick, onAddClick, onRefresh, onProductsChanged, onProductDeleted,
   externalCategory = 'tea', externalSearchQuery = '',
   externalShowOptions, onOptionsToggle, onSearchQueryChange, onCategoryChange,
-  activeAccountName = '',
+  activeAccountName = '', canReviewDrafts = false,
   inventorySummary,
 }) => {
   const { showToast } = useToast();
@@ -219,6 +220,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const tastingFilter: InventoryFacetFilter | '' = ['Untasted', 'Tasted', 'HasProductTasting', 'NeedsProductTasting'].includes(tastingValue) ? tastingValue as InventoryFacetFilter : '';
   const batchFilter = searchParams.get('batch') || '';
   const panelParam = searchParams.get('panel') || '';
+  const draftMode = canReviewDrafts && searchParams.get('view') === 'drafts';
+  const requestedTriage = searchParams.get('triage');
+  const draftTriage = draftMode && (requestedTriage === 'ready' || requestedTriage === 'review') ? requestedTriage : '';
   // A wisdom entry as a filter, in the same shape as vendor and batch: the
   // address names it, the list narrows to it, one chip clears it. Wisdom's
   // blast radius writes this link so "sixty products resolve through this
@@ -263,8 +267,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   }, [searchQuery, vendorSuggestions]);
   // The remembered view decides the filter on arrival. Starting at 'All' while
   // the menu kept saying "Samples" showed every tea under a Samples heading.
-  const [filterType, setFilterType] = useState<string>(() =>
+  const [selectedFilterType, setFilterType] = useState<string>(() =>
     [...savedViews, ...DEFAULT_TEA_VIEWS, ...DEFAULT_TEAWARE_VIEWS].find(view => view.id === activeViewId)?.filterType ?? 'All');
+  const filterType = draftMode ? 'Drafts' : selectedFilterType;
   const [showOptionsInternal, setShowOptionsInternal] = useState(false);
   const showOptions = externalShowOptions ?? showOptionsInternal;
   const setShowOptions = (v: boolean) => { setShowOptionsInternal(v); onOptionsToggle?.(v); };
@@ -791,6 +796,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     inventoryCategory,
     searchQuery,
     filterType,
+    draftTriage,
     teaTypeFilter: inventoryCategory === 'tea' ? teaTypeFilter : '',
     tastingFilter: inventoryCategory === 'tea' ? tastingFilter : '',
     inventorySortConfig,
@@ -2225,9 +2231,21 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Big, thumb-reachable action row for the mobile bottom sheets.
   const actionRow = 'w-full flex items-center gap-3 px-3 py-3.5 rounded-xl text-left text-base transition-colors disabled:opacity-50';
 
-  const stockViews = (savedViews.length > 0 ? savedViews : activeDefaultViews).filter(view => inventoryCategory === 'teaware' ? view.id.includes('teaware') : !view.id.includes('teaware'));
+  const categoryViews = (savedViews.length > 0 ? savedViews : activeDefaultViews).filter(view => inventoryCategory === 'teaware' ? view.id.includes('teaware') : !view.id.includes('teaware'));
+  const draftsView = { ...activeDefaultViews[0], id: 'stock-drafts', name: 'Drafts', filterType: 'Drafts' };
+  const stockViews = canReviewDrafts ? [categoryViews[0] ?? activeDefaultViews[0], draftsView, ...categoryViews.slice(1)] : categoryViews;
+  const selectedStockViewId = draftMode ? draftsView.id : activeViewId;
+  const categoryDrafts = draftMode ? localProducts.filter(product => product.status === 'Draft' && (product.type === 'Teaware') === (inventoryCategory === 'teaware')) : [];
+  const readyDraftCount = categoryDrafts.filter(product => inventoryPublicationRequirements(product).length === 0).length;
   const stockViewLabel = (view: typeof stockViews[number]) => view.filterType === 'All' ? (inventoryCategory === 'tea' ? 'All teas' : 'All teaware') : view.filterType === 'Working' ? 'Shop stock' : view.name || VIEW_FILTER_LABELS[view.filterType] || view.filterType;
-  const selectStockView = (view: typeof stockViews[number]) => { setGlossaryMode(false); setActiveView(view.id); setFilterType(view.filterType); };
+  const selectStockView = (view: typeof stockViews[number]) => {
+    setGlossaryMode(false);
+    setSearchParams(current => withParam(withParam(current, 'view', view.id === draftsView.id ? 'drafts' : null), 'triage', null));
+    if (view.id !== draftsView.id) {
+      setActiveView(view.id);
+      setFilterType(view.filterType);
+    }
+  };
   const customStockView = stockViews.find(view => view.id === activeViewId
     && ![...DEFAULT_TEA_VIEWS, ...DEFAULT_TEAWARE_VIEWS].some(defaultView => defaultView.id === view.id));
   const removeCustomStockView = () => {
@@ -2431,14 +2449,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             {(() => {
               const allViews = stockViews;
               const selectView = selectStockView;
-              const current = allViews.find(view => view.id === activeViewId);
+              const current = allViews.find(view => view.id === selectedStockViewId);
               const viewLabel = stockViewLabel;
               const groupLabel = phoneList ? PHONE_GROUP_LABELS[phoneGroupBy] : GROUPBY_OPTIONS.find(option => option.value === (inventoryGroupBy || ''))?.label;
               const sortLabel = SORT_OPTIONS.find(([key]) => key === currentSort.key)?.[1] || 'Name';
               const headingStudy = import.meta.env.DEV ? Number(searchParams.get('headingStudy')) : 0;
               if (headingStudy >= 1 && headingStudy <= 5) return <><StockHeadingStudy
                 variant={headingStudy} views={allViews.map(view => ({ value: view.id, label: viewLabel(view) }))}
-                view={activeViewId || ''} onView={id => { const view = allViews.find(v => v.id === id); if (view) { setActiveView(view.id); setFilterType(view.filterType); } }}
+                view={selectedStockViewId || ''} onView={id => { const view = allViews.find(v => v.id === id); if (view) selectView(view); }}
                 groups={GROUPBY_OPTIONS} group={inventoryGroupBy || ''} onGroup={value => setInventoryGroupBy(value || null)}
                 orders={SORT_OPTIONS} order={currentSort.key} direction={currentSort.direction}
                 onOrder={key => setInventorySortConfig([{ key: key as keyof Product, direction: currentSort.direction }])}
@@ -2570,6 +2588,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         {unifiedHeaderRows}
       </div>
 
+      {draftMode && (
+        <div role="group" aria-label="Draft review" className="flex shrink-0 flex-wrap items-center gap-x-3 border-b border-tea-border px-4">
+          {([
+            ['', 'All drafts', categoryDrafts.length],
+            ['review', 'To review', categoryDrafts.length - readyDraftCount],
+            ['ready', 'Ready', readyDraftCount],
+          ] as const).map(([value, label, count]) => (
+            <button type="button" key={label} aria-pressed={draftTriage === value}
+              onClick={() => setSearchParams(current => withParam(current, 'triage', value || null), { replace: true })}
+              className={`min-h-11 text-ui-12 ${draftTriage === value ? 'font-semibold text-tea-text' : 'text-tea-text-sec hover:text-tea-text'}`}
+            >{label} <span className="text-tea-text-dim">{count}</span></button>
+          ))}
+        </div>
+      )}
       {inventorySummaryStatus !== 'ready' && (
         <div data-testid="inventory-summary-status" role={inventorySummaryStatus === 'error' ? 'alert' : 'status'} className="shrink-0 border-b border-tea-border bg-tea-surface px-4 py-2 text-ui-11 text-tea-text-sec">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2">
@@ -3116,7 +3148,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         const globalIdx = idx;
                         return (
                           <React.Fragment key={product.id}>
-                            <InventoryRow priceMode={priceMode} onSavePricing={handleFormPricingUpdate} onQuickTaste={() => setPersonalTastingProduct(product)} onQuickJournal={() => navigate(`/account/journal?tea=${encodeURIComponent(product.id)}`)}
+                            <InventoryRow priceMode={priceMode} draftIdentity={draftMode} canEditDraftName={canReviewDrafts} onSavePricing={handleFormPricingUpdate} onQuickTaste={() => setPersonalTastingProduct(product)} onQuickJournal={() => navigate(`/account/journal?tea=${encodeURIComponent(product.id)}`)}
                               product={product}
                               globalIdx={globalIdx}
                               isSelected={selectedIds.has(product.id)}

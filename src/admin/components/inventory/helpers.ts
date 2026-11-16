@@ -1,3 +1,4 @@
+import { hasProductName } from '../../../lib/productPublication';
 import type { Product } from '../../types';
 
 /**
@@ -79,7 +80,7 @@ export function stripMatchingYear(name: string, year: number | string | null | u
 /** A copied source name is not a distinct chosen name. This only changes display. */
 export function distinctGivenName(sourceName: string, givenName: string | null | undefined, year: number | string | null | undefined): string {
   const given = givenName?.trim() || '';
-  if (!given || given.toLowerCase() === 'unnamed') return '';
+  if (!hasProductName(given)) return '';
   const vintage = String(year ?? '').trim();
   const normalize = (value: string) => {
     let name = value.trim().toLowerCase().replace(/\s+/g, ' ');
@@ -89,4 +90,14 @@ export function distinctGivenName(sourceName: string, givenName: string | null |
     return name;
   };
   return normalize(given) === normalize(sourceName) ? '' : given;
+}
+
+export const DRAFT_NAME_ACTION = 'Name this tea';
+
+export function draftDisplayNames(supplierName: string, givenName?: string | null, year?: number | string | null) {
+  const supplier = stripMatchingYear(supplierName, year).trim();
+  return {
+    primary: hasProductName(supplier) ? supplier : 'Tea draft',
+    chosen: distinctGivenName(supplierName, givenName, year),
+  };
 }

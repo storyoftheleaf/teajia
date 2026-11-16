@@ -1,3 +1,4 @@
+import { publicationRequirements } from '../../../lib/productPublication';
 import { retailValueFor } from '../../lib/inventoryMetrics';
 import type { InventoryPurpose, Product } from '../../types';
 
@@ -54,6 +55,17 @@ export function getTeaReadiness(product: Product): TeaReadiness {
   return missing.length > 0
     ? { state: 'not_ready', missing }
     : { state: 'ready', missing };
+}
+
+export function inventoryPublicationRequirements(product: Product) {
+  return publicationRequirements({
+    givenName: product.givenName,
+    supplierName: product.productName,
+    type: product.type,
+    retailPrice: product.fixedRetailPriceUSD ?? product.pricePerGramUSD,
+    onHand: product.type === 'Teaware' ? product.quantityUnits : product.stockGrams,
+    stockKnownAt: product.stockKnownAt,
+  });
 }
 
 export type EffectivePublication = {

@@ -1,7 +1,8 @@
 import React, { useState, useSyncExternalStore } from 'react';
-import { Camera, MoreHorizontal } from 'lucide-react';
+import { Camera, MapPin, MoreHorizontal } from 'lucide-react';
 import { TYPOGRAPHY_CLASSES as T } from '../../../../designTokens';
 import { useAppStore } from '../../../../lib/store';
+import { DRAFT_NAME_ACTION, draftDisplayNames } from '../helpers';
 import { getStockTypeFinish } from '../../../themeUtils';
 import { fmtNum } from '../../../../utils/formatNumber';
 import { GhostInput } from '../../../../admin/components/ProductEditPanel';
@@ -16,8 +17,9 @@ const phone=window.matchMedia('(max-width:767px)');
 const subscribe=(notify:()=>void)=>{phone.addEventListener('change',notify);return()=>phone.removeEventListener('change',notify)};
 export function useStockPhone(){return useSyncExternalStore(subscribe,()=>phone.matches)}
 type Panel='form'|'freight'|'photos'|'more'|MiniField|null;
-export function StockMobileRecord({product,name,lowStock,fields,editing,index,onEdit,onUpdate,onSaveChange,onTaste,onJournal,onHistory,freightUsd,onSavePricing,onStockChange,onDelete}:{
+export function StockMobileRecord({product,name,lowStock,fields,editing,draftIdentity,canEditDraftName,index,onEdit,onUpdate,onSaveChange,onTaste,onJournal,onHistory,freightUsd,onSavePricing,onStockChange,onDelete}:{
  product:Product;name:string;lowStock:boolean;fields:StockField[];editing:boolean;index:number;onEdit:()=>void;onUpdate:(value:string)=>void;
+ draftIdentity:boolean;canEditDraftName:boolean;
  onDelete:()=>void;onStockChange:(trigger:HTMLElement)=>void;onSavePricing:SaveFormPricing;onSaveChange:SaveField;onTaste:()=>void;onJournal:()=>void;onHistory:()=>void;freightUsd:number|null;
 }){
  const studyParams = import.meta.env.DEV ? new URLSearchParams(window.location.search) : undefined;
@@ -36,23 +38,38 @@ export function StockMobileRecord({product,name,lowStock,fields,editing,index,on
  const metrics=[stock,corePrice].filter(Boolean) as StockField[];
  const details=fields.filter(f=>!(groupBy==='vendor'&&f.key==='vendor')&&!['productName','type','year','shippingRatePerKg',...metrics.map(m=>m.key)].includes(f.key));
  const sourceLabel=product.vendor?.trim() || [product.originRegion,product.originCountry].filter(Boolean).join(' · ') || 'Source not set';
- const houseName=product.givenName?.trim();
- const distinctName=houseName&&houseName!=='Unnamed'&&houseName!==product.productName?.trim();
+ const draftNames = draftIdentity ? draftDisplayNames(name, product.givenName, product.year) : null;
+ const cardTitle = draftNames?.primary ?? name;
+ const draftNameLabel = draftNames?.chosen || (draftNames && canEditDraftName ? DRAFT_NAME_ACTION : '');
+ const houseName = product.givenName?.trim();
+ const distinctName = houseName && houseName !== 'Unnamed' && houseName !== product.productName?.trim();
  const field=(f:StockField)=><span key={f.key} id={f.id} data-field={f.key} className={`stock-field ${f.className}`}>{f.content}</span>;
  const open=(next:Panel)=>(e:React.MouseEvent)=>{e.stopPropagation();setPanel(next)};
  const leave=(action:()=>void)=>()=>{setPanel(null);action()};
  const metricLabel=(f:StockField)=>f.key==='stockGrams'?'Stock · g':f.key==='quantityUnits'?'Units':f.key==='pricePerGramUSD'?(product.type==='Teaware'?'Retail / unit':'Retail / g'):f.key==='costPerGramUSD'?'Cost / g':f.label;
  const reference=(value:React.ReactNode,label:string)=><><span className="stock-number">{value}</span><span className="stock-caption" aria-hidden="true">{label}</span></>;
 
- return <article onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} className="stock-record stock-mini-workspace" aria-label={name} data-card-study={studyVariant} data-card-polish={polishVariant} style={finish ? { '--stock-tea-hue': finish.tint, '--stock-tea-label': finish.text, '--stock-strip-l': finish.lightness } as React.CSSProperties : undefined}>
+ return <article onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} className="stock-record stock-mini-workspace" aria-label={cardTitle} data-card-study={studyVariant} data-card-polish={polishVariant} style={finish ? { '--stock-tea-hue': finish.tint, '--stock-tea-label': finish.text, '--stock-strip-l': finish.lightness } as React.CSSProperties : undefined}>
   <header className="stock-identity">
    <div className="stock-title-line">
-    <div className="stock-title" id={`cell-${index}-0`}>{editing?<GhostInput id={`ghost-${index}-0`} ariaLabel="Product name" value={name} onSave={onUpdate} className={T.h3}/>:<button type="button" className={`tap-target ${T.h3}`} title={name} aria-label={`Edit name for ${name}`} onClick={open('productName')}>{name}</button>}</div>
-    <button type="button" className="tap-target stock-inline-edit stock-given-name" title={houseName||'Add given name'} aria-label={`Edit given name for ${name}`} onClick={open('givenName')}>{distinctName?houseName:'Name'}</button>
+    <div className="stock-title" id={`cell-${index}-0`}>
+      {editing ? <GhostInput id={`ghost-${index}-0`} ariaLabel="Product name" value={name} onSave={onUpdate} className={T.h3}/>
+        : draftIdentity && !canEditDraftName ? <span className={`${T.h3} block truncate`} title={cardTitle}>{cardTitle}</span>
+        : <button type="button" className={`tap-target ${T.h3}`} title={cardTitle}
+          aria-label={`Edit name for ${cardTitle}`}
+          onClick={open('productName')}>{cardTitle}</button>}
+    </div>
+    {!draftIdentity && <button type="button" className="tap-target stock-inline-edit stock-given-name" title={houseName || 'Add given name'} aria-label={`Edit given name for ${name}`} onClick={open('givenName')}>{distinctName ? houseName : 'Name'}</button>}
     <button type="button" className="tap-target stock-more-action" aria-label={`More details for ${name}`} onClick={open('more')}><MoreHorizontal size={15}/></button>
    </div>
    <div className="stock-subtitle">
-    <button type="button" className="tap-target stock-inline-edit stock-source-label" aria-label={`Source for ${name}: ${sourceLabel}`} title={sourceLabel} onClick={open('more')}><span>{sourceLabel}</span></button>
+    {!editing && draftNameLabel ? (
+      <div className="stock-source-label flex min-w-0 items-center">
+        {!canEditDraftName ? <span className="min-w-0 flex-1 truncate text-left" title={draftNameLabel}>{draftNameLabel}</span>
+          : <button type="button" className={`tap-target min-h-11 min-w-0 flex-1 justify-start text-left ${!draftNames?.chosen ? 'italic' : ''}`} aria-label={`${draftNames?.chosen ? 'Edit chosen name' : DRAFT_NAME_ACTION} (${cardTitle})`} title={draftNameLabel} onClick={open('givenName')}><span className="min-w-0 truncate">{draftNameLabel}</span></button>}
+        <button type="button" className="tap-target flex h-11 w-11 shrink-0 items-center justify-center" aria-label={`Source for ${name}: ${sourceLabel}`} title={sourceLabel} onClick={open('more')}><MapPin size={13} aria-hidden="true" /></button>
+      </div>
+    ) : <button type="button" className="tap-target stock-inline-edit stock-source-label" aria-label={`Source for ${name}: ${sourceLabel}`} title={sourceLabel} onClick={open('more')}><span>{sourceLabel}</span></button>}
     <button type="button" data-field="type" className="tap-target stock-inline-edit" aria-label={`Edit type for ${name}`} onClick={open('form')}><span>{product.type||'Choose type'}</span></button>
     <button type="button" className="tap-target stock-inline-edit stock-form-edit" aria-label={`Edit form and pricing for ${name}`} onClick={open('form')}>{String(product.form||'').startsWith('Loose')?'Loose leaf':product.form||'Choose form'}{product.pieceWeightG ? ` · ${product.pieceWeightG} g` : ''}</button>
    </div>

@@ -8,7 +8,7 @@ import { fmtNum } from '../../../utils/formatNumber';
 import { getThemeTextColor } from '../../themeUtils';
 import { TYPE_OPTIONS } from './config';
 import type { ColDef } from './types';
-import { distinctGivenName, stripMatchingYear } from './helpers';
+import { DRAFT_NAME_ACTION, distinctGivenName, draftDisplayNames, stripMatchingYear } from './helpers';
 import { isOutOfStock } from './domain';
 import { shippingRateUsdFor } from '../../../lib/shippingRate';
 import { isSampleRow, joinItemCode, linkedEntryId, sampleQuote, splitItemCode } from './sampleRows';
@@ -64,6 +64,8 @@ export interface InventoryRowProps {
   onOpenSource: (product: Product) => void;
   /** A sample row whose sampling is folded out beneath it. */
   sampleOpen?: boolean;
+  draftIdentity?: boolean;
+  canEditDraftName?: boolean;
 }
 
 // Canonical inventory row, see DesignSystemShowcase § Inventory list (INV_ROWS).
@@ -123,6 +125,8 @@ function InventoryRowBase(props: InventoryRowProps) {
   // name and kept when the name is edited, never as the start of the name.
   const coded = splitItemCode(product.productName);
   const displayName = stripMatchingYear(coded.name, product.year);
+  const { draftIdentity = false, canEditDraftName = false } = props;
+  const draftNames = draftIdentity ? draftDisplayNames(coded.name, product.givenName, product.year) : null;
   const yearHasColumn = (splitView ? splitViewCols : visibleCols).some(column => column.key === 'year');
   /** A typed number, or null when the field was emptied: never zero for "nobody said". */
   const typed = (text: string): number | null => (text.trim() === '' ? null : Number(text.trim()));
@@ -170,10 +174,16 @@ function InventoryRowBase(props: InventoryRowProps) {
           : '';
         // Subtitle slot is always rendered (with &nbsp; fallback) so every row
         // has the same height regardless of whether a givenName/form is present.
-        // The house name is typed right here; a tea without one says "Unnamed"
-        // in a thin italic, so it is plain where to tap (Adrian, 2026-10-11;
-        // the word changed from "name this" on 2026-10-27).
-        const subtitle = legacyMobileLayout
+        const subtitle = draftNames ? (
+          <span className="flex min-w-0 items-baseline gap-1.5">
+            {!yearHasColumn && product.year && <span data-stock-inline-year className="num opacity-80">{product.year}</span>}
+            {canEditDraftName ? <HouseNameField value={draftNames.chosen} emptyLabel={DRAFT_NAME_ACTION}
+              aria={`${draftNames.chosen ? 'Edit chosen name' : DRAFT_NAME_ACTION} (${draftNames.primary})`}
+              onSave={value => onProductUpdate(product.id, 'givenName', value)} className="text-ui-11" />
+              : draftNames.chosen && <span className="truncate" title={draftNames.chosen}>{draftNames.chosen}</span>}
+            <ItemCode code={coded.code} />
+          </span>
+        ) : legacyMobileLayout
           ? product.givenName
             ? <>{product.givenName}{product.form && <span className="ml-1 opacity-70">· {product.form}</span>}</>
             : product.form || ' '
@@ -221,7 +231,7 @@ function InventoryRowBase(props: InventoryRowProps) {
                   aria-label={`Open ${displayName} editor`}
                   className={`${nameWeightCls} ${nameTone} self-start w-fit max-w-full text-left hover:text-tea-gold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded transition-colors`}
                 >
-                  {displayName}
+                  {draftNames?.primary ?? displayName}
                 </button>
               )}
               <span className="font-sans text-ui-11 text-tea-text-dim mt-0 leading-tight truncate block" style={{ letterSpacing: '0.02em' }}>
@@ -498,7 +508,7 @@ function InventoryRowBase(props: InventoryRowProps) {
     >
       {/* Phone cards keep direct actions; spreadsheet rows use the shared rail. */}
       {stockPhone ? <td className="stock-mobile-cell" colSpan={(splitView ? splitViewCols : visibleCols).length}>
-        <StockMobileRecord lowStock={isLow} onDelete={() => onDeleteRequest(product)} onStockChange={trigger => onStockMovement(product, trigger)} product={product} name={displayName} index={globalIdx} editing={isEditMode}
+        <StockMobileRecord lowStock={isLow} onDelete={() => onDeleteRequest(product)} onStockChange={trigger => onStockMovement(product, trigger)} product={product} name={displayName} index={globalIdx} editing={isEditMode} draftIdentity={draftIdentity} canEditDraftName={canEditDraftName}
           onEdit={() => onOpenPanel(product)}
           onSavePricing={changes => props.onSavePricing(product.id, changes)}
           onSaveChange={async (field, value) => { await (props.onSaveField ? props.onSaveField(product.id, field, value) : onProductUpdate(product.id, field, value)); }}
@@ -518,6 +528,8 @@ function InventoryRowBase(props: InventoryRowProps) {
 export const InventoryRow = React.memo(InventoryRowBase, (prev, next) =>
   prev.product === next.product &&
   prev.priceMode === next.priceMode &&
+  prev.draftIdentity === next.draftIdentity &&
+  prev.canEditDraftName === next.canEditDraftName &&
   prev.globalIdx === next.globalIdx &&
   prev.isSelected === next.isSelected &&
   prev.focusedCol === next.focusedCol &&

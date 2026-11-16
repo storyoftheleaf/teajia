@@ -582,9 +582,10 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               {/* Management: admin, owner. Canonical route is /admin/stock;
                   /admin/inventory redirects to it (query string preserved for ?panel= deep links). */}
               <Route path="stock" element={
-                <ProtectedRoute hasAccess={canManageInventory} isLoggingIn={!isLoggedIn}>
+                <ProtectedRoute hasAccess={new URLSearchParams(location.search).get('view') === 'drafts' ? hasCatalogBundle : canManageInventory} isLoggingIn={!isLoggedIn}>
                   <PageTransition>
                     <InventoryView
+                      canReviewDrafts={hasCatalogBundle}
                       products={products}
                       isLoading={loading}
                       isError={productsError}

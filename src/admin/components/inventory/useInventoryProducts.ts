@@ -9,7 +9,7 @@ import {
   TEA_COLUMN_DEFS,
   TEAWARE_COLUMN_DEFS,
 } from './config';
-import { effectivePurpose, getTeaReadiness, groupInventoryByLifecycle, inventoryMatchesFacetFilter, shouldApplyInventoryFacetFilter } from './domain';
+import { effectivePurpose, getTeaReadiness, inventoryPublicationRequirements, groupInventoryByLifecycle, inventoryMatchesFacetFilter, shouldApplyInventoryFacetFilter } from './domain';
 import type { IncomingInventorySummary, InventoryFacetFilter, InventorySummaryStatus, InventoryWritingSummary, PersonalTastingSummary } from './domain';
 import type { InventoryCategory, InventoryProductGroup, InventorySortDirection } from './types';
 
@@ -18,6 +18,7 @@ type UseInventoryProductsArgs = {
   inventoryCategory: InventoryCategory;
   searchQuery: string;
   filterType: string;
+  draftTriage?: 'ready' | 'review' | '';
   teaTypeFilter?: string;
   tastingFilter?: InventoryFacetFilter | '';
   inventorySortConfig: { key: string; direction: InventorySortDirection }[];
@@ -46,6 +47,7 @@ export function useInventoryProducts({
   inventoryCategory,
   searchQuery,
   filterType,
+  draftTriage = '',
   teaTypeFilter = '',
   tastingFilter = '',
   inventorySortConfig,
@@ -130,7 +132,8 @@ export function useInventoryProducts({
     } else if (filterType === 'MissingLocation') {
       result = result.filter(p => !p.inventoryLocation?.trim());
     } else if (filterType === 'Drafts') {
-      result = result.filter(p => p.status === 'Draft');
+      result = result.filter(p => p.status === 'Draft' && (!draftTriage
+        || (inventoryPublicationRequirements(p).length === 0) === (draftTriage === 'ready')));
     } else if (filterType === 'Pending') {
       result = result.filter(p => p.lore && !p.showWisdom);
     } else if (filterType === 'Unverified') {
@@ -207,7 +210,7 @@ export function useInventoryProducts({
     }
 
     return sorted;
-  }, [localProducts, searchQuery, filterType, teaTypeFilter, tastingFilter, inventorySortConfig, inventoryCategory, isEditMode, personalTastingByProductId, writingSummaryByProductId, summaryStatus]);
+  }, [localProducts, searchQuery, filterType, draftTriage, teaTypeFilter, tastingFilter, inventorySortConfig, inventoryCategory, isEditMode, personalTastingByProductId, writingSummaryByProductId, summaryStatus]);
 
   const visibleCols = useMemo(() => activeColumnDefs.filter(col => {
     const isCostCol = col.key === 'costAmount' || col.key === 'costPerGramUSD';
@@ -223,6 +226,7 @@ export function useInventoryProducts({
   );
 
   const groupedProducts = useMemo(() => {
+    if (filterType === 'Drafts') return null;
     if (!inventoryGroupBy) {
       return groupInventoryByLifecycle(processedProducts, incomingByProductId)
         .map<InventoryProductGroup>(group => ({
@@ -251,7 +255,7 @@ export function useInventoryProducts({
     }
     for (const g of Object.values(groups)) g.totalStock = Math.round(g.totalStock);
     return Object.values(groups);
-  }, [processedProducts, inventoryGroupBy, incomingByProductId]);
+  }, [processedProducts, inventoryGroupBy, incomingByProductId, filterType]);
 
   const pendingCount = useMemo(
     () => localProducts.filter(p => p.lore && !p.showWisdom).length,
