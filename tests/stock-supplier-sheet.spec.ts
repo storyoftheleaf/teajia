@@ -264,7 +264,9 @@ test('Stock shortcuts, smaller view menu and missing suppliers remain connected'
     useAppStore.getState().setInventoryGroupBy('vendor');
   });
   await expect(page.locator('[data-stock-group="Unknown"]')).toBeVisible();
-  await expect(page.getByRole('combobox', { name: 'Show teas', exact: true }).locator('option')).toHaveCount(18);
+  const views = page.getByRole('combobox', { name: 'Show teas', exact: true });
+  await expect(views.getByRole('option', { name: 'Drafts', exact: true })).toHaveCount(1);
+  await expect(views.locator('option')).toHaveCount(19);
   await page.getByRole('combobox', { name: 'Tea type', exact: true }).selectOption(shelf[0].type);
   await expect(page.locator('tr[data-product-id]')).toHaveCount(1);
   await page.getByRole('combobox', { name: 'Supplier', exact: true }).selectOption('Master Bo');
