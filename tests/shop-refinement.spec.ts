@@ -57,11 +57,12 @@ const PRODUCTS = [
   },
 ];
 
-async function mockPublicShop(page: Page) {
+async function mockPublicShop(page: Page, products = PRODUCTS) {
   await page.route('**/api/**', async route => {
     const url = route.request().url();
+    if (url.includes('/api/media/')) return route.fallback();
     if (url.includes('/api/products/public')) {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(PRODUCTS) });
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(products) });
       return;
     }
     if (url.includes('/api/auth/')) {
@@ -74,6 +75,33 @@ async function mockPublicShop(page: Page) {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
   });
 }
+
+test('loads stored product photos in the gallery and enlarged viewer', async ({ page }) => {
+  const galleryImages: Record<string, { image_url: string; additional_images?: string[] }> = {
+    'tea-1': {
+      image_url: 'https://media.teajia.co/gallery/moonlight.jpg',
+      additional_images: ['https://media.teajia.co/gallery/moonlight-side.jpg?v=2'],
+    },
+    'ware-1': { image_url: 'https://media.teajia.co/gallery/gaiwan.jpg' },
+  };
+  await mockPublicShop(page, PRODUCTS.map(product => ({ ...product, ...galleryImages[product.id] })));
+  await page.route('https://media.teajia.co/gallery/**', route => route.fulfill({ status: 404 }));
+
+  const photos = [
+    { id: 'tea-1', name: 'Moonlight White', label: 'View Moonlight White image 2 larger', path: '/api/media/gallery/moonlight-side.jpg?v=2' },
+    { id: 'ware-1', name: 'Field Gaiwan', label: 'View Field Gaiwan larger', path: '/api/media/gallery/gaiwan.jpg' },
+  ];
+  for (const photo of photos) {
+    await page.goto(`/shop/product/${photo.id}`);
+    const thumbnail = page.getByRole('button', { name: photo.label });
+    const source = new URL(photo.path, page.url()).href;
+    await expect(thumbnail.getByRole('img')).toHaveJSProperty('src', source);
+    await thumbnail.click();
+    const enlarged = page.getByRole('dialog', { name: `Image of ${photo.name}` }).getByRole('img');
+    await expect(enlarged).toHaveJSProperty('src', source);
+    await expect.poll(() => enlarged.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  }
+});
 
 test.describe('refined public shop', () => {
   test.beforeEach(async ({ page }) => {
