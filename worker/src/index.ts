@@ -2790,7 +2790,7 @@ const handleProductSitemap: Handler = async (_request, env) => {
   const appOrigin = (env.APP_URL || 'https://www.teajia.com').replace(/\/$/, '');
   const { results } = await env.DB.prepare(
     `SELECT COALESCE(slug, id) AS id, updated_at FROM products
-     WHERE is_public = 1 AND shown_in_shop = 1 AND status = 'Active' AND account_id = ?
+     WHERE is_public = 1 AND shown_in_shop = 1 AND status IN ('Active', 'Sold Out') AND account_id = ?
      ORDER BY created_at DESC`
   ).bind(BALI_ACCOUNT_ID).all();
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -22001,6 +22001,11 @@ async function fetchPublicProductsForAccount(
   // Accepts either the readable slug or the legacy UUID, so every link ever
   // shared keeps resolving. Callers pass whatever was in the URL.
   const productFilter = productId ? ' AND (p.id = ?2 OR p.slug = ?2)' : '';
+  // Sold-out records still resolve by address. The browse endpoint returns only
+  // active products with stock, including pieces rather than grams for ware.
+  const visibilityFilter = productId
+    ? "p.status IN ('Active', 'Sold Out')"
+    : "p.status = 'Active' AND CASE WHEN p.type = 'Teaware' THEN COALESCE(p.quantity_units, p.stock_grams, 0) ELSE COALESCE(p.stock_grams, 0) END > 0";
   const [ratesResult, result] = await env.DB.batch([
     env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates'),
     env.DB.prepare(
@@ -22039,7 +22044,7 @@ async function fetchPublicProductsForAccount(
                   AND cp.unpublished_at IS NULL) AS featured_position
        FROM products p
        LEFT JOIN tea_profiles tp ON tp.id = 'prof_' || p.id
-       WHERE p.is_public = 1 AND p.shown_in_shop = 1 AND p.status = 'Active' AND p.account_id = ?1${productFilter}
+       WHERE p.is_public = 1 AND p.shown_in_shop = 1 AND ${visibilityFilter} AND p.account_id = ?1${productFilter}
        ORDER BY p.created_at DESC`
     ).bind(...(productId ? [accountId, productId] : [accountId])),
   ]);
@@ -22079,6 +22084,14 @@ const handleGetPublicAccountProducts: Handler = async (request, env, params) => 
   return edgeCached(request, 10, async () => {
     return cachedJson(await fetchPublicProductsForAccount(env, accountId), 10);
   });
+};
+
+const handleGetPublicAccountProduct: Handler = async (_request, env, params) => {
+  const accountId = await getPublicAccountIdBySlug(env, params.slug);
+  if (!accountId) return json({ error: 'Store not found' }, 404);
+  const [product] = await fetchPublicProductsForAccount(env, accountId, params.id);
+  if (!product) return json({ error: 'Product not found' }, 404);
+  return cachedJson(product, 10);
 };
 
 // GET /api/s/:slug/events — PUBLIC active events for a store
@@ -29680,6 +29693,7 @@ const routes: [string, string, Handler][] = [
 
   ['GET', '/api/s/:slug', handleGetPublicAccount],
   ['GET', '/api/s/:slug/products', handleGetPublicAccountProducts],
+  ['GET', '/api/s/:slug/products/:id', handleGetPublicAccountProduct],
   ['GET', '/api/s/:slug/events', handleGetPublicAccountEvents],
 
   // Public xref (Magazine / Learn / Consult colophons)

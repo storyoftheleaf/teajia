@@ -15,6 +15,12 @@ import { fetchWithTimeout, getApiOrigin } from './api';
 
 const API_URL = getApiOrigin();
 
+class StorefrontRequestError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+  }
+}
+
 async function fetchJson<T>(path: string): Promise<T> {
   try {
     const res = await fetchWithTimeout(`${API_URL}${path}`, {
@@ -24,13 +30,13 @@ async function fetchJson<T>(path: string): Promise<T> {
     try {
       data = await res.json();
     } catch {
-      throw new Error(`Request failed (${res.status})`);
+      throw new StorefrontRequestError(`Request failed (${res.status})`, res.status);
     }
     if (!res.ok) {
       const message = typeof data?.error === 'string' && data.error.length < 200
         ? data.error
         : `Request failed (${res.status})`;
-      throw new Error(message);
+      throw new StorefrontRequestError(message, res.status);
     }
     return data as T;
   } catch (err: any) {
@@ -139,6 +145,22 @@ export async function fetchStoreProducts(slug: string): Promise<InventoryItem[]>
   const data = await fetchJson<any[] | { products?: any[] }>(`/api/s/${encodeURIComponent(slug)}/products`);
   const raw: any[] = Array.isArray(data) ? data : data?.products ?? [];
   return raw.map(normalizeProduct).map(publicProductToInventoryItem);
+}
+
+/** Product links also resolve previously published records with no stock. */
+export async function fetchStoreProduct(slug: string, address: string): Promise<InventoryItem | null> {
+  const product = encodeURIComponent(address);
+  const endpoint = slug === 'teajia-bali'
+    ? `/api/products/public/${product}`
+    : `/api/s/${encodeURIComponent(slug)}/products/${product}`;
+  try {
+    const raw = await fetchJson<{ id?: unknown } | null>(endpoint);
+    if (!raw || typeof raw.id !== 'string' || !raw.id) return null;
+    return publicProductToInventoryItem(normalizeProduct(raw));
+  } catch (error) {
+    if (error instanceof StorefrontRequestError && error.status === 404) return null;
+    throw error;
+  }
 }
 
 /** Active events for a specific store. */

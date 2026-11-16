@@ -3689,6 +3689,11 @@ input[type="number"]::-webkit-outer-spin-button {
   height: 52px;
   padding-left: 10px;
 }
+.alcove-dock-strip[data-sold-out=true] {
+  flex-wrap: wrap;
+  height: auto;
+  min-height: 52px;
+}
 @media (min-width: 640px) {
   .alcove-dock-strip { gap: 10px; padding-left: 12px; }
 }
