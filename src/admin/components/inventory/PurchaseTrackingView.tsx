@@ -1,3 +1,4 @@
+import { Button } from '../../../components/shared/Button';
 import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -224,18 +225,18 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
         <TeaCard
           title={<TeaCardTitle as="h2">{title}</TeaCardTitle>}
           trailing={expanded ? purchase && (
-            <button type="button" className="tap-target library-more-action" aria-label="Edit purchase" onClick={() => setDetailTask('edit')}>
+            <Button variant="plain" type="button" className="tap-target library-more-action" aria-label="Edit purchase" onClick={() => setDetailTask('edit')}>
               <MoreHorizontal size={18} aria-hidden="true" />
-            </button>
+            </Button>
           ) : (
-            <button type="button" className="tap-target library-more-action" aria-label={`Open purchase from ${title}`} onClick={() => setOpen(purchase?.id || receipt?.id || row.id)}>
+            <Button variant="plain" type="button" className="tap-target library-more-action" aria-label={`Open purchase from ${title}`} onClick={() => setOpen(purchase?.id || receipt?.id || row.id)}>
               <MoreHorizontal size={18} aria-hidden="true" />
-            </button>
+            </Button>
           )}
           meta={<TeaCardMeta primary={status} trailing={reference} />}
           metricsLeading={expanded && (
             <div className="library-quick-actions">
-              <button type="button" className="tap-target" aria-label="Arrival history" onClick={() => setDetailTask('history')}><History size={17} aria-hidden="true" /></button>
+              <Button variant="plain" type="button" className="tap-target" aria-label="Arrival history" onClick={() => setDetailTask('history')}><History size={17} aria-hidden="true" /></Button>
               {row.source_document && <PurchaseInvoiceEvidence key={`${accountId}:${row.source_document.import_id}`} importId={row.source_document.import_id} title={row.source_document.title} />}
             </div>
           )}
@@ -250,15 +251,15 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
           actions={(attention.length > 0 || (expanded && (canReceive || canMatch))) && <>
             {row.invoice_draft && attention.length > 0 && <Link className="tap-target inline-flex min-h-11 items-center px-2 text-tea-text-sec" to={`/admin/intake?importId=${encodeURIComponent(row.invoice_draft.id)}`}>Review invoice</Link>}
             {expanded && canReceive && (
-              <button type="button" className="tap-target library-tea-primary" aria-label="Record arrival / manage delivery" onClick={() => setManualReceipt(receipt.id)}>{stage === 'coming' ? 'Record arrival' : 'Manage delivery'}</button>
+              <Button variant="plain" type="button" className="tap-target library-tea-primary" aria-label="Record arrival / manage delivery" onClick={() => setManualReceipt(receipt.id)}>{stage === 'coming' ? 'Record arrival' : 'Manage delivery'}</Button>
             )}
             {canMatch && (expanded || attention.length > 0) && (
-              <button type="button" disabled={busy} className="tap-target px-2 text-tea-text-sec" onClick={() => void matchPurchase(purchase)}>
+              <Button variant="plain" type="button" disabled={busy} className="tap-target px-2 text-tea-text-sec" onClick={() => void matchPurchase(purchase)}>
                 {expanded ? legacy ? 'Link original stock entry' : 'Match purchase items' : legacy ? 'Check existing stock' : 'Identify items'}
-              </button>
+              </Button>
             )}
             {expanded && canPlace && (
-              <button type="button" disabled={busy} className="tap-target library-tea-primary" onClick={() => void mutatePurchase(purchase.id, () => api.purchaseOrders.updateStatus(purchase.id, 'ordered'))}>Place order</button>
+              <Button variant="plain" type="button" disabled={busy} className="tap-target library-tea-primary" onClick={() => void mutatePurchase(purchase.id, () => api.purchaseOrders.updateStatus(purchase.id, 'ordered'))}>Place order</Button>
             )}
           </>}
         >

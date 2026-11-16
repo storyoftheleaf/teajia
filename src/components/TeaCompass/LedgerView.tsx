@@ -1,3 +1,4 @@
+import { Button } from '../shared/Button';
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { isoCurrencyCode } from '../../lib/currency';
 import { mediaUrl } from '../../lib/mediaUrl';
@@ -146,7 +147,7 @@ const LineItemRow: React.FC<{
     const stockHref = item.productId ? `/admin/stock?panel=${encodeURIComponent(item.productId)}` : undefined;
     const openTea = libraryId && onOpenEntry ? () => onOpenEntry(libraryId) : undefined;
     const entryLinks = readOnly && (openTea || stockHref) && <div className="library-quick-actions tea-order-record-links">
-      {openTea && <button type="button" className="tap-target" aria-label={`Open ${name} in Library`} onClick={openTea}><BookOpen size={16} aria-hidden="true" /></button>}
+      {openTea && <Button variant="plain" type="button" className="tap-target" aria-label={`Open ${name} in Library`} onClick={openTea}><BookOpen size={16} aria-hidden="true" /></Button>}
       {stockHref && <Link className="tap-target" aria-label={`Open ${name} in Stock`} to={stockHref}><Package size={16} aria-hidden="true" /></Link>}
     </div>;
     const purchaseQty = incomingLine?.expected_quantity ?? (isUnitBased ? item.quantityUnits : item.quantityGrams);
@@ -174,7 +175,7 @@ const LineItemRow: React.FC<{
             {readOnly
               ? purchaseQty == null ? 'Unknown' : `${purchaseQty.toLocaleString()} ${unitLabel}`
               : <div className="flex min-h-11 min-w-0 items-center justify-center gap-1">
-                <button type="button" aria-label={`Decrease quantity for ${name}`} className="tap-target flex size-7 shrink-0 items-center justify-center text-tea-text-sec" onClick={() => handleQtyChange(currentQty - (isUnitBased ? 1 : 25))}><Minus size={12} /></button>
+                <Button variant="plain" type="button" aria-label={`Decrease quantity for ${name}`} className="tap-target flex size-7 shrink-0 items-center justify-center text-tea-text-sec" onClick={() => handleQtyChange(currentQty - (isUnitBased ? 1 : 25))}><Minus size={12} /></Button>
                 <input
                   type="number"
                   inputMode="numeric"
@@ -186,7 +187,7 @@ const LineItemRow: React.FC<{
                   style={{ MozAppearance: 'textfield' }}
                 />
                 <span className="text-ui-11 text-tea-text-sec">{unitLabel}</span>
-                <button type="button" aria-label={`Increase quantity for ${name}`} className="tap-target flex size-7 shrink-0 items-center justify-center text-tea-text-sec" onClick={() => handleQtyChange(currentQty + (isUnitBased ? 1 : 25))}><Plus size={12} /></button>
+                <Button variant="plain" type="button" aria-label={`Increase quantity for ${name}`} className="tap-target flex size-7 shrink-0 items-center justify-center text-tea-text-sec" onClick={() => handleQtyChange(currentQty + (isUnitBased ? 1 : 25))}><Plus size={12} /></Button>
               </div>}
           </TeaCardMetric>
           {readOnly && incomingLine && <TeaCardMetric label="Received">{`${incomingLine.received_quantity.toLocaleString()} ${unitLabel}`}</TeaCardMetric>}
@@ -660,9 +661,9 @@ const TransactionCard: React.FC<{
               {(tx.confirmationPending || tx.confirmationError) && <p role="status" className="mt-3 text-ui-12 text-tea-text-sec">{tx.confirmationError || 'Recording this order. The draft is kept on this device.'}</p>}
               {/* Actions */}
               <div className={isPurchase ? 'tea-order-tools' : 'flex flex-wrap items-center gap-2 mt-3'}>
-                {isPurchase && <button type="button" onClick={() => setShowPurchaseActions(true)} className={purchaseAction} aria-haspopup="dialog" aria-label="More order actions">
+                {isPurchase && <Button variant="plain" type="button" onClick={() => setShowPurchaseActions(true)} className={purchaseAction} aria-haspopup="dialog" aria-label="More order actions">
                   <MoreHorizontal size={17} aria-hidden="true" /> More
-                </button>}
+                </Button>}
                 {isDraft && tx.items.length > 0 && (
                   <AnimatePresence mode="wait">
                     {justConfirmed ? (

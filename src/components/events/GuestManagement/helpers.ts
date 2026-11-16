@@ -36,3 +36,8 @@ export function getClaimTimeRemaining(deadline: string): string {
 export function isPast(dateStr: string): boolean {
   return new Date(dateStr).getTime() < Date.now();
 }
+
+export function isGuestEventCompleted(event?: { lifecycleStatus?: string | null; status?: string | null }): boolean {
+  const lifecycle = event?.lifecycleStatus ?? event?.status;
+  return lifecycle === 'completed' || lifecycle === 'archived';
+}

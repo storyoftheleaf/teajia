@@ -12,7 +12,7 @@ import {
 } from '../../../hooks/useEventPolling';
 import { api } from '../../../lib/api';
 import StoryCardsBriefing from '../StoryCardsBriefing';
-import { formatDay } from './helpers';
+import { formatDay, isGuestEventCompleted } from './helpers';
 import RequestedView from './RequestedView';
 import DeniedView from './DeniedView';
 import WaitlistView from './WaitlistView';
@@ -36,8 +36,7 @@ const GuestManagement: React.FC = () => {
   const updateNotes = useUpdateRSVPNotes(magicToken || '');
   const updateGuests = useUpdateApprovedGuests(magicToken || '');
   const updateGuestListVisibility = useUpdateGuestListVisibility(magicToken || '');
-  const lifecycle = data?.event.lifecycleStatus ?? data?.event.status;
-  const isCompleted = lifecycle === 'completed' || lifecycle === 'archived';
+  const isCompleted = isGuestEventCompleted(data?.event);
 
   // Post-session archive data (gallery, session notes, aggregated tasting
   // impressions). Fetched lazily for the post-event recap view. Returns
