@@ -27,9 +27,9 @@ export const Button: React.FC<ButtonProps> = ({
 }) => {
   if (variant === 'plain') {
     return (
-      <motion.button className={className} disabled={disabled || loading} {...(props as any)}>
+      <button className={className} disabled={disabled || loading} {...props}>
         {children}
-      </motion.button>
+      </button>
     );
   }
 

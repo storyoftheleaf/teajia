@@ -198,7 +198,7 @@ const LineItemRow: React.FC<{
             <p>{!readOnly ? 'Draft' : !incomingLine && receiptText ? receiptText : quantityToReceive > 0 ? 'Awaiting arrival' : incomingLine && incomingLine.received_quantity > 0 ? 'Received' : 'Ordered'}</p>
             {arrivalTiming && <p className="mt-0.5 text-tea-text-dim">{arrivalTiming}</p>}
           </div>
-          {!readOnly && <button type="button" onClick={onRemove} className="tap-target" aria-label={`Remove ${name}`}>Remove item</button>}
+          {!readOnly && <Button variant="plain" type="button" onClick={onRemove} className="tap-target" aria-label={`Remove ${name}`}>Remove item</Button>}
           {readOnly && quantityToReceive > 0 && <button type="button" disabled={receiving} onClick={() => void receive()} className="tap-target text-tea-text font-medium disabled:opacity-50">{receiving ? 'Recording arrival…' : `Receive ${quantityToReceive.toLocaleString()}${unitToReceive === 'g' ? 'g' : ' pieces'}`}</button>}
         </>}
       >

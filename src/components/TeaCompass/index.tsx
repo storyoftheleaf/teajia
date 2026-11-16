@@ -27,7 +27,7 @@ import { LibraryCurrencyPicker } from './LibraryCurrencyPicker';
 import { readLibraryPricePreference } from './libraryPriceDisplay';
 import { BrowseView } from './BrowseView';
 import { LedgerView } from './LedgerView';
-import { useLibraryRecordSelection } from './useLibraryRecordSelection';
+import { useLibraryRecordSelection } from '../curate/useLibraryRecordSelection';
 import { useVoiceRecorder } from '../../hooks/useVoiceRecorder';
 import { usePlatformPrivilege } from '../../lib/permissions';
 import { CompassShareModal } from './CompassShareModal';
