@@ -14,6 +14,10 @@ last_reviewed: 2026-11-03
 > **The pillar:** [docs/PILLAR.md](docs/PILLAR.md) is what this site is and how it works in one read; keep it true in the same commit that changes the shape of the site.
 > **Documentation hub:** start at [docs/INDEX.md](docs/INDEX.md). Architecture in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Current state in [docs/STATE_OF_THE_SITE.md](docs/STATE_OF_THE_SITE.md). What's next in [docs/CONSOLIDATED_DIRECTION.md](docs/CONSOLIDATED_DIRECTION.md) (the single directional list; per-track build queues in [docs/tracks/](docs/tracks/)). What shipped in [docs/CHANGELOG.md](docs/CHANGELOG.md).
 
+## Handoffs (standing rule, global)
+
+**Never give Adrian a zip file for a handoff.** A handoff is plain files saved on GitHub, given to him as links he can open. No archive as the handoff, and none as a "second copy" either. (Adrian, 2026-11-16.)
+
 ## What this is
 Professional tea infrastructure — sourcing, inventory, education, events, and multi-store management. This is NOT a wellness app, social network, or franchise. Adrian's curation is the engine. WhatsApp checkout is intentional — every order is a personal conversation. The app works before/after tea sessions, never during (no phone-at-the-table features).
 
