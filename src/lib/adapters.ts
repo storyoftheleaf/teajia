@@ -21,7 +21,7 @@ export function publicProductToInventoryItem(p: PublicProduct): InventoryItem {
     origin: [p.originRegion, p.originCountry].filter(Boolean).join(', '),
     variant: p.productName,
     // Teaware keeps its stock in whole pieces (quantity_units), not grams.
-    stock_g: p.type === 'Teaware' ? (p.quantityUnits ?? p.stockGrams) : p.stockGrams,
+    stock_g: p.status === 'Sold Out' ? 0 : p.type === 'Teaware' ? (p.quantityUnits ?? p.stockGrams) : p.stockGrams,
     cost_price: '0',
     price_per_gram: isTea ? price : undefined,
     price_50g: !isTea ? price : undefined,
