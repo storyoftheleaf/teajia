@@ -6,6 +6,7 @@ import type { TeaDiscoveryProfile } from '../components/TeaDiscovery/types';
 import { canAddToStoreCart } from './publicCartDomain';
 import { minimumOrderGrams, quoteGrams } from './teaPricing';
 import { capTastingJournal } from './tastingJournalCap';
+import { matchesEventTastingEntry } from './tastingAccessors';
 import { listenForOtherTabJournal } from './tastingJournalTabs';
 
 /**
@@ -193,8 +194,8 @@ interface AppState {
   updateTasting: (id: string, updates: Partial<CustomerTasting>) => void;
   /**
    * Save a tasting for a product. If an entry exists for (productId), edit it
-   * in place (overwrites the most recent record). If `record.reason` is set,
-   * appends as a new TastingRecord instead. Returns the entry id.
+   * in place when the record id matches. Curate openings, new sessions, and
+   * explicitly fresh tastings can append multiple records. Returns the entry id.
    */
   upsertTastingByProductId: (
     productId: string,
@@ -564,32 +565,28 @@ const createdAppStore = create<AppState>()(
         const now = new Date().toISOString();
         let entryId = '';
         set((state) => {
-          const existing = state.tastingJournal.find(
-            (e) => e.productId === productId && !e.archived
-          );
+          const matchingEntries = state.tastingJournal.filter(e => record.sourceType === 'event'
+            ? matchesEventTastingEntry(e, productId, accountId)
+            : e.productId === productId && !e.archived);
+          const existing = record.sourceType === 'event'
+            ? matchingEntries.find(entry => entry.tastings.some(tasting => tasting.id === record.id)) ?? matchingEntries[0]
+            : matchingEntries[0];
           if (existing) {
             entryId = existing.id;
-            const isFreshTasting = !!record.reason;
-            const isSessionRecord = record.sourceType === 'session';
-            // Sessions: append a new TastingRecord (so an existing journal entry
-            // gains a session-stamped record rather than overwriting the user's
-            // last solo note). Re-saves of the same eventId within the session
-            // are deduped server-side by the journal bridge.
-            let updatedTastings;
-            if (isFreshTasting) {
-              updatedTastings = [...existing.tastings, record];
-            } else if (isSessionRecord) {
-              const idx = existing.tastings.findIndex(
-                (t) => t.eventId && record.eventId && t.eventId === record.eventId
-              );
-              updatedTastings = idx >= 0
-                ? existing.tastings.map((t, i) => i === idx ? { ...t, ...record, id: t.id } : t)
-                : [...existing.tastings, record];
-            } else if (existing.tastings.length > 0) {
-              updatedTastings = [...existing.tastings.slice(0, -1), { ...existing.tastings[existing.tastings.length - 1], ...record, id: existing.tastings[existing.tastings.length - 1].id }];
-            } else {
-              updatedTastings = [record];
+            const prior = existing.tastings;
+            let index = prior.findIndex(tasting => tasting.id === record.id);
+            if (index < 0 && record.sourceType === 'session' && record.eventId) {
+              index = prior.findIndex(tasting => tasting.sourceType === 'session' && tasting.eventId === record.eventId);
             }
+            if (index < 0 && !record.reason && record.sourceType !== 'session' && record.sourceType !== 'event' && record.sourceType !== 'compass') {
+              // Keep group session history when opening a solo tasting.
+              const latestSource = prior.at(-1)?.sourceType;
+              if (latestSource !== 'session' && latestSource !== 'event') index = prior.length - 1;
+            }
+            const updatedTastings = index < 0
+              ? [...prior, record]
+              : prior.map((tasting, i) => i === index ? { ...tasting, ...record, id: tasting.id, createdAt: tasting.createdAt } : tasting);
+            const savingLatest = index < 0 || index === prior.length - 1;
             return {
               tastingJournal: state.tastingJournal.map((t) =>
                 t.id === existing.id
@@ -598,13 +595,14 @@ const createdAppStore = create<AppState>()(
                       productName,
                       productType,
                       productImage: productImage ?? t.productImage,
+                      accountId: t.accountId ?? (record.sourceType === 'event' ? accountId : undefined),
                       tastings: updatedTastings,
-                      note: {
+                      note: savingLatest ? {
                         ...t.note,
                         tasting: record.tasting,
                         ...noteUpdates,
                         updatedAt: now,
-                      },
+                      } : t.note,
                       synced: false,
                     }
                   : t

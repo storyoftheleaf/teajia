@@ -695,9 +695,9 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             }}
             initialData={tastingToOpenWith(entry)}
             onClose={() => { setTastingOpen(false); void useSampleUse.getState().finish(entry.id); }}
-            onAfterSave={(data: TastingData, sessionVerdict?: CompassVerdict) => {
+            onAfterSave={(data: TastingData, sessionVerdict, _wouldBuy, record) => {
               useSampleUse.getState().markAnswered(entry.id);
-              saveCurateTasting(entry.id, data, sessionVerdict, { history: 'same-day' });
+              saveCurateTasting(entry.id, data, sessionVerdict, { record });
             }}
           />
         )}

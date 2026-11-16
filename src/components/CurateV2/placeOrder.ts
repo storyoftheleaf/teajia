@@ -7,9 +7,9 @@
  *   confirmPurchase   the draft becomes a confirmed order here, and its teas
  *                     wait under "On the way" (status incoming).
  *   recordPurchase    the shop's books: one purchase order (in dollars, only
- *                     when every line has a price) and one receipt waiting per
- *                     tea, so accepting it on arrival shelves the tea with its
- *                     cost. Safe to call again: it reuses the order it made.
+ *                     when every line has a price) and its expected delivery
+ *                     against private or already-linked Stock holdings. Safe to
+ *                     call again: it reuses the order and linked receipt.
  */
 import type { QueryClient } from '@tanstack/react-query';
 import type { ExchangeRate } from '../../admin/types';
@@ -22,6 +22,7 @@ import { arrivalFields, arrivalKey, lineGrams, orderArrivalLines } from './order
 import { AGENT_KEYS } from './AgentInbox';
 import { NO_VENDOR_YET } from './orderBuy';
 import { useAppStore } from '../../lib/store';
+import { refreshCommerceQueries } from '../../lib/refreshCommerce';
 
 /**
  * One order per supplier per route: a parcel and its tracking number belong to
@@ -82,6 +83,7 @@ export async function recordPurchase(tx: LedgerTransaction, rates: readonly Exch
   const totalAmount = complete ? purchaseSpendInUsd([tx], rates ?? []).priced[0]?.usd : undefined;
   // Recorded once: a retry after a failed receipt picks the same order up.
   let purchaseOrderId = tx.purchaseOrderId;
+  let receiptId = tx.purchaseOrderReceiptId;
   if (!purchaseOrderId) {
     const created = await api.purchaseOrders.create({
       po_number: `PO-${tx.id.slice(0, 8).toUpperCase()}`,
@@ -89,7 +91,9 @@ export async function recordPurchase(tx: LedgerTransaction, rates: readonly Exch
       vendor_name: tx.counterpartyName || 'Unknown',
       vendor_id: tx.counterpartyId || undefined,
       items_json: JSON.stringify(tx.items.map(item => ({
+        client_line_id: item.id,
         name: item.name,
+        product_name: item.name,
         chineseName: item.chineseName,
         type: item.type,
         form: item.form,
@@ -112,14 +116,31 @@ export async function recordPurchase(tx: LedgerTransaction, rates: readonly Exch
     assertScope();
     purchaseOrderId = created?.id;
     // Kept so "Mark as sent" can name the order the shop recorded.
-    if (purchaseOrderId) ledger.updateTransaction(tx.id, { purchaseOrderId });
+    if (purchaseOrderId) {
+      receiptId = created.receipt_id ?? undefined;
+      ledger.updateTransaction(tx.id, { purchaseOrderId, purchaseOrderReceiptId: receiptId });
+      if (receiptId) {
+        for (const line of created.lines ?? []) {
+          const item = tx.items.find(item => item.id === line.client_line_id ||
+            (line.compass_entry_id != null && item.compassEntryId === line.compass_entry_id));
+          if (!item || !line.product_id) continue;
+          useLedgerStore.getState().updateLineItem(tx.id, item.id, { productId: line.product_id, purchaseReceiptLineId: line.receipt_line_id ?? undefined });
+          if (item.compassEntryId) {
+            useTeaCompassStore.getState().updateEntry(item.compassEntryId, { draftProductId: line.product_id });
+          }
+        }
+        void refreshCommerceQueries(queryClient, accountId, { changedProductIds: created.lines?.map(line => line.product_id) });
+        void queryClient.invalidateQueries({ queryKey: ['library-purchase-receipts'] });
+      }
+    }
     // The shop's list of orders was read before this one existed.
     void queryClient.invalidateQueries({ queryKey: SHOP_ORDERS_KEY });
   }
+  // Compatibility for an unlinked order recorded before the shared receipt path.
   // One receipt waiting per tea: accepting it on arrival puts the tea on the
   // shelf's books with what it cost and what came. The same key answers with
   // the same receipt, so trying again adds nothing.
-  if (purchaseOrderId) {
+  if (purchaseOrderId && !receiptId) {
     try {
       for (const line of orderArrivalLines(tx)) {
         assertScope();

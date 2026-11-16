@@ -82,7 +82,7 @@ Read and Craft contents have no numbered left column; titles use the available w
 
 ## The boundaries, so nobody rebuilds them
 
-No streaks, gamification, engagement notifications, algorithmic recommendations, social feeds, likes, followers, auto-replenish. No live tasting mode. No card checkout. Curation is by hand. Journal, Favourites, Cellar, Curate stay separate. Nav labels and routes change only with explicit confirmation.
+No streaks, gamification, engagement notifications, algorithmic recommendations, social feeds, likes, followers, auto-replenish. Ordinary tea sessions offer notes after the event. Hosts can opt into a structured tasting under Sessions and Tastings, where guests rate each tea and the host sees live results for that tasting. No card checkout. Curation is by hand. Journal, Favourites, Cellar, Curate stay separate. Nav labels and routes change only with explicit confirmation.
 
 ## Where the detail lives
 

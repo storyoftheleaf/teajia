@@ -6,82 +6,67 @@ import { useTeaCompassStore } from './teaCompassStore';
 
 const now = new Date(2026, 10, 11, 15, 0, 0);
 const earlierToday = new Date(2026, 10, 11, 9, 0, 0).toISOString();
-const yesterday = new Date(2026, 10, 10, 9, 0, 0).toISOString();
+const opening = { id: 'opening-1', createdAt: now.toISOString() };
+const secondOpening = { id: 'opening-2', createdAt: earlierToday };
 
 const before: TastingData = { quality: 5 };
 const saved: TastingData = { quality: 8, flavor: ['citrus-peel'] };
 
 const tea = (history?: TeaCompassEntry['tastingHistory']) => ({ tastingHistory: history });
 
-describe('a saved tasting from a Curate v2 card or capture form (same-day history)', () => {
-  it('starts the history with the saved tasting on a tea never tasted', () => {
-    const update = curateTastingUpdate(tea(), saved, undefined, { history: 'same-day', now });
-    expect(update.tasting).toBe(saved);
-    expect(update.tastingHistory).toEqual([{ data: saved, date: now.toISOString() }]);
-  });
+describe('one history record for each saved Curate tasting opening', () => {
+  it('keeps different openings on the same day alongside their id-less history', () => {
+    const legacy = { data: before, date: earlierToday };
+    const first = curateTastingUpdate(tea([legacy]), before, undefined, { record: opening });
+    const second = curateTastingUpdate(tea(first.tastingHistory), saved, undefined, { record: secondOpening });
 
-  it('replaces the last history record when it was written today', () => {
-    const update = curateTastingUpdate(
-      tea([{ data: before, date: yesterday }, { data: before, date: earlierToday }]),
-      saved, undefined, { history: 'same-day', now },
-    );
-    expect(update.tastingHistory).toEqual([
-      { data: before, date: yesterday },
-      { data: saved, date: now.toISOString() },
+    expect(second.tasting).toBe(saved);
+    expect(second.tastingHistory).toEqual([
+      legacy,
+      { id: opening.id, data: before, date: opening.createdAt },
+      { id: secondOpening.id, data: saved, date: secondOpening.createdAt },
     ]);
   });
 
-  it('appends when the last history record is from an earlier day', () => {
-    const update = curateTastingUpdate(tea([{ data: before, date: yesterday }]), saved, undefined, { history: 'same-day', now });
-    expect(update.tastingHistory).toEqual([
-      { data: before, date: yesterday },
-      { data: saved, date: now.toISOString() },
-    ]);
+  it('updates the same opening without adding a record or changing its date', () => {
+    const first = curateTastingUpdate(tea(), before, undefined, { record: opening });
+    const second = curateTastingUpdate(tea(first.tastingHistory), saved, undefined, { record: opening });
+    expect(second.tasting).toBe(saved);
+    expect(second.tastingHistory).toEqual([{ id: opening.id, data: saved, date: opening.createdAt }]);
   });
-});
 
-describe('a saved tasting from the Curate v2 detail panel (append history)', () => {
-  it('appends even when the last record is from today', () => {
-    const update = curateTastingUpdate(tea([{ data: before, date: earlierToday }]), saved, undefined, { history: 'append', now });
-    expect(update.tastingHistory).toEqual([
-      { data: before, date: earlierToday },
-      { data: saved, date: now.toISOString() },
-    ]);
-  });
-});
-
-describe('a saved tasting from old Curate (no history)', () => {
-  it('writes the tasting and leaves the history out of the update', () => {
-    const update = curateTastingUpdate(tea([{ data: before, date: yesterday }]), saved, 'like', { history: 'none', now });
-    expect(update).toEqual({ tasting: saved, verdict: 'like' });
-    expect('tastingHistory' in update).toBe(false);
+  it('keeps the current tasting and verdict when editing an earlier journal record', () => {
+    const first = { id: opening.id, data: before, date: opening.createdAt };
+    const latest = { id: secondOpening.id, data: saved, date: secondOpening.createdAt };
+    const update = curateTastingUpdate(tea([first, latest]), { quality: 6 }, 'pass', { record: opening, editing: 'past' });
+    expect(update).toEqual({ tastingHistory: [{ ...first, data: { quality: 6 } }, latest] });
   });
 });
 
 describe('the verdict a saved tasting writes', () => {
   it('is the chosen impression', () => {
-    expect(curateTastingUpdate(tea(), saved, 'love', { history: 'none', now }).verdict).toBe('love');
+    expect(curateTastingUpdate(tea(), saved, 'love', { record: opening }).verdict).toBe('love');
   });
 
   it('is left alone when no impression was chosen', () => {
-    expect('verdict' in curateTastingUpdate(tea(), saved, undefined, { history: 'none', now })).toBe(false);
+    expect('verdict' in curateTastingUpdate(tea(), saved, undefined, { record: opening })).toBe(false);
   });
 
   it('is left alone for a tasting read back from storage, which has no impression key', () => {
     const stored = JSON.parse(JSON.stringify({ ...saved, impression: undefined })) as TastingData;
-    expect('verdict' in curateTastingUpdate(tea(), stored, undefined, { history: 'none', now })).toBe(false);
+    expect('verdict' in curateTastingUpdate(tea(), stored, undefined, { record: opening })).toBe(false);
   });
 
   it('is cleared when the chosen impression was tapped again to take it back', () => {
     const unchosen: TastingData = { ...saved, impression: undefined };
-    const update = curateTastingUpdate(tea(), unchosen, undefined, { history: 'same-day', now });
+    const update = curateTastingUpdate(tea(), unchosen, undefined, { record: opening });
     expect('verdict' in update).toBe(true);
     expect(update.verdict).toBeUndefined();
   });
 
   it('drops the empty impression key from the stored tasting once the verdict is cleared', () => {
     const unchosen: TastingData = { ...saved, impression: undefined };
-    const update = curateTastingUpdate(tea(), unchosen, undefined, { history: 'same-day', now });
+    const update = curateTastingUpdate(tea(), unchosen, undefined, { record: opening });
     expect('impression' in update.tasting!).toBe(false);
     expect('impression' in update.tastingHistory![0].data).toBe(false);
     expect(update.tasting).toEqual(saved);
@@ -89,7 +74,7 @@ describe('the verdict a saved tasting writes', () => {
 
   it('follows the impression chosen again after taking one back', () => {
     const rechosen: TastingData = { ...saved, impression: 'neutral' };
-    expect(curateTastingUpdate(tea(), rechosen, 'neutral', { history: 'none', now }).verdict).toBe('neutral');
+    expect(curateTastingUpdate(tea(), rechosen, 'neutral', { record: opening }).verdict).toBe('neutral');
   });
 });
 
@@ -102,10 +87,10 @@ describe('an impression chosen in the tea form tasting (capture cards)', () => {
     const entry = { ...createEmptyEntry('tea'), id: 'tea-form', synced: true, unsyncedEdits: {} } as TeaCompassEntry;
     useTeaCompassStore.setState({ entries: [entry] });
 
-    saveCurateTasting('tea-form', { ...saved, impression: 'love' }, 'love', { history: 'same-day' });
+    saveCurateTasting('tea-form', { ...saved, impression: 'love' }, 'love', { record: opening });
     expect(useTeaCompassStore.getState().getEntry('tea-form')!.verdict).toBe('love');
 
-    saveCurateTasting('tea-form', { ...saved, impression: undefined }, undefined, { history: 'same-day' });
+    saveCurateTasting('tea-form', { ...saved, impression: undefined }, undefined, { record: opening });
     const after = useTeaCompassStore.getState().getEntry('tea-form')!;
     expect(after.verdict).toBeUndefined();
     expect(Object.keys(after.unsyncedEdits ?? {})).toContain('verdict');
@@ -114,7 +99,7 @@ describe('an impression chosen in the tea form tasting (capture cards)', () => {
   it('keeps a verdict given in triage when a later tasting never chose an impression', () => {
     const entry = { ...createEmptyEntry('tea'), id: 'triaged', verdict: 'pass', synced: true, unsyncedEdits: {} } as TeaCompassEntry;
     useTeaCompassStore.setState({ entries: [entry] });
-    saveCurateTasting('triaged', saved, undefined, { history: 'none' });
+    saveCurateTasting('triaged', saved, undefined, { record: opening });
     expect(useTeaCompassStore.getState().getEntry('triaged')!.verdict).toBe('pass');
   });
 });
@@ -128,18 +113,18 @@ describe('saving a tasting to a Curate tea in the store', () => {
     const entry = { ...createEmptyEntry('tea'), id: 'tea-1', synced: true, unsyncedEdits: {} } as TeaCompassEntry;
     useTeaCompassStore.setState({ entries: [entry] });
 
-    saveCurateTasting('tea-1', before, 'like', { history: 'append' });
-    saveCurateTasting('tea-1', saved, undefined, { history: 'append' });
+    saveCurateTasting('tea-1', before, 'like', { record: opening });
+    saveCurateTasting('tea-1', saved, undefined, { record: opening });
 
     const after = useTeaCompassStore.getState().getEntry('tea-1')!;
     expect(after.tasting).toBe(saved);
-    expect(after.tastingHistory?.map(h => h.data)).toEqual([before, saved]);
+    expect(after.tastingHistory?.map(h => h.data)).toEqual([saved]);
     expect(after.verdict).toBe('like');
     expect(Object.keys(after.unsyncedEdits ?? {})).toEqual(expect.arrayContaining(['tasting', 'tastingHistory', 'verdict']));
   });
 
   it('does nothing for a tea this device does not hold', () => {
-    saveCurateTasting('missing', saved, 'love', { history: 'append' });
+    saveCurateTasting('missing', saved, 'love', { record: opening });
     expect(useTeaCompassStore.getState().entries).toEqual([]);
   });
 });
@@ -165,7 +150,7 @@ describe('a journal entry reopened from the account panel', () => {
 
     const teaId = journalEntryCurateTeaIdHere({ productId: 'journal-tea' });
     expect(teaId).toBe('journal-tea');
-    saveCurateTasting(teaId!, { ...saved, impression: 'like' }, 'like', { history: 'none' });
+    saveCurateTasting(teaId!, { ...saved, impression: 'like' }, 'like', { record: opening, editing: 'latest' });
 
     const after = useTeaCompassStore.getState().getEntry('journal-tea')!;
     expect(after.tasting).toEqual({ ...saved, impression: 'like' });

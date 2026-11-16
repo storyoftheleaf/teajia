@@ -122,6 +122,40 @@ describe('a save from a device changes only the fields that device changed', () 
     expect(tea(later)).toMatchObject({ notes: 'phone note typed after the laptop saved', name: 'New name', price_amount: 120 });
   });
 
+  it('keeps stable tasting records from both devices and preserves intentional removals', async () => {
+    const db = seed();
+    const legacy = { date: YESTERDAY, data: { quality: 4 } };
+    const laptop = { id: 'laptop', date: LAPTOP_SAVED, data: { quality: 6 } };
+    const phoneDate = '2026-11-11T08:30:00.000Z';
+    const phone = { id: 'phone', date: phoneDate, data: { quality: 7 } };
+    db.sqlite.prepare('UPDATE tea_compass_entries SET tasting_history = ? WHERE id = ?')
+      .run(JSON.stringify([legacy, laptop]), 'tea');
+    const saveHistory = (base: unknown[], entries: unknown[], at: string) => sync(db, 'owner', {
+      entries: [{ ...phoneCopy, tasting_history: entries }],
+      changes: { tea: hint({ tasting_history: { base, at } }) },
+    });
+
+    // The phone writes its own earlier tasting from a copy missing the laptop's.
+    expect((await saveHistory([legacy], [legacy, phone], phoneDate)).body.syncedIds).toEqual(['tea']);
+    expect(JSON.parse(tea(db).tasting_history)).toEqual([legacy, phone, laptop]);
+
+    // A further save from the same opening replaces only that opening's record.
+    const updatedPhone = { ...phone, data: { quality: 8 } };
+    await saveHistory([legacy, phone], [legacy, updatedPhone], phoneDate);
+    expect(JSON.parse(tea(db).tasting_history)).toEqual([legacy, updatedPhone, laptop]);
+
+    // A stale explicit removal of a known record keeps the unknown tasting.
+    await saveHistory([legacy, updatedPhone], [legacy], phoneDate);
+    expect(JSON.parse(tea(db).tasting_history)).toEqual([legacy, laptop]);
+
+    // An explicit full clear keeps the existing all-or-nothing field policy.
+    await saveHistory([legacy], [], '2099-11-11T09:00:00.000Z');
+    expect(JSON.parse(tea(db).tasting_history)).toEqual([]);
+
+    await saveHistory([legacy, laptop], [legacy, laptop, phone], phoneDate);
+    expect(JSON.parse(tea(db).tasting_history)).toEqual([]);
+  });
+
   it('an old-style whole-record save still behaves as today', async () => {
     const db = seed();
     const result = await sync(db, 'owner', { entries: [{ ...phoneCopy, season: 'Spring' }] });

@@ -5,6 +5,7 @@ import { ChevronLeft, Check, Send } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { api, getTokenClaims } from '../lib/api';
 import { TastingSession } from '../components/tasting/TastingSession';
+import { tastingNoteText } from '../components/tasting/tastingNoteText';
 import { buildTastingPicksMessage, buildWhatsAppUrl } from '../lib/whatsapp';
 import type { TastingData } from '../types';
 
@@ -35,7 +36,7 @@ interface MyVerdict {
   session_tea_id: string;
   verdict?: string;
   notes?: string;
-  tasting_data?: Record<string, unknown> | null;
+  tasting_data?: string | (TastingData & { wouldBuy?: boolean }) | null;
 }
 
 interface SessionData {
@@ -52,6 +53,23 @@ interface SessionData {
 }
 
 const HOST_WHATSAPP = (import.meta.env.VITE_WHATSAPP_NUMBER as string | undefined) ?? '';
+
+function sessionTasting(row: MyVerdict | undefined): (TastingData & { wouldBuy?: boolean }) | undefined {
+  if (!row) return undefined;
+  let value = row.tasting_data;
+  if (typeof value === 'string') {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      value = null;
+    }
+  }
+  const data = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  const impression = row.verdict === 'love' || row.verdict === 'like' || row.verdict === 'neutral' || row.verdict === 'pass'
+    ? row.verdict
+    : data.impression;
+  return { ...data, impression, wantToPurchase: data.wantToPurchase ?? data.wouldBuy };
+}
 
 function teaPhoto(t: SessionTea): string | null {
   return t.tea_metadata?.photo ?? null;
@@ -135,8 +153,7 @@ export default function SessionPage() {
     const picks = sortedTeas.flatMap(t => {
       const v = verdictByTea.get(t.id);
       if (!v) return [];
-      const td = (v.tasting_data ?? {}) as Record<string, unknown>;
-      const wouldBuy = (td as any)?.wouldBuy === true;
+      const wouldBuy = sessionTasting(v)?.wantToPurchase === true;
       return [{ teaName: teaDisplayName(t), verdict: v.verdict ?? undefined, wouldBuy }];
     });
     if (picks.length === 0) return;
@@ -262,25 +279,17 @@ export default function SessionPage() {
             eventId: session.id,
             eventTitle: session.title ?? undefined,
           }}
+          initialData={sessionTasting(verdictByTea.get(activeTea.id))}
           showVerdict
           onClose={() => setActiveTeaId(null)}
-          onAfterSave={(td: TastingData, verdict, wouldBuy) => {
-            const firstNote = td?.notes?.[0];
-            const notesText = typeof firstNote === 'string'
-              ? firstNote
-              : firstNote?.text;
-            // wouldBuy is a separate kwarg on TastingSession, not part of TastingData.
-            // Stash it into tasting_data so the host live matrix can read it back
-            // alongside `quality` from the same field.
-            void api.sessions.submitVerdict(session.id, activeTea.id, {
+          onAfterSave={async (td, verdict, wouldBuy) => {
+            await api.sessions.submitVerdict(session.id, activeTea.id, {
               verdict: verdict ?? undefined,
               would_buy: wouldBuy ?? undefined,
               tasting_data: { ...td, wouldBuy: wouldBuy ?? false },
-              notes: notesText,
-            }).catch(() => {
-              /* journal bridge is the safety net */
+              notes: tastingNoteText(td) || undefined,
             });
-            queryClient.invalidateQueries({ queryKey: ['session', session.id] });
+            await queryClient.invalidateQueries({ queryKey: ['session', session.id] });
           }}
         />
       )}

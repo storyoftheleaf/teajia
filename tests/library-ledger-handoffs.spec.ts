@@ -2,8 +2,6 @@ import { revealCurateTab } from './helpers/curateHeader';
 import { test, expect, type Page } from './fixtures';
 import { installCompassHarness, openCompass, expectNoUnhandledCompassApi, compassCreatedProducts } from './helpers/compassHarness';
 
-const revealCurateHeader = (page: Page) => revealCurateTab(page, 'Ledger');
-
 const entryId = 'ledger-source-tea';
 const productId = 'linked-inventory-tea';
 const entry = { id: entryId, name: 'Ledger Mountain Tea', category: 'tea', type: 'Sheng', form: 'Loose', year: 2024, vendor_name: 'Chen Family', vendor_id: 'vendor-chen', status: 'noted', draft_product_id: productId, price_amount: 70, price_currency: 'Yuan', price_per_unit_grams: 100, notes: 'One source identity.', photos: '[]', audio_clips: '[]', created_at: '2026-10-01T00:00:00Z', updated_at: '2026-10-01T00:00:00Z' };
@@ -81,9 +79,9 @@ test('phone Source draft, confirmation and explicit receipt preserve one tea ide
   expect(shop.holding.stock_grams).toBe(0);
   expect(shop.proposals).toHaveLength(0);
   // Curate's header folds away while the form is scrolled down and returns on a
-  // scroll up, as it would under a thumb; bring it back before choosing Ledger.
-  await revealCurateHeader(page);
-  await page.getByRole('tab', { name: 'Ledger', exact: true }).click();
+  // scroll up, as it would under a thumb; bring it back before choosing Orders.
+  await revealCurateTab(page, 'Orders');
+  await page.getByRole('tab', { name: 'Orders', exact: true }).click();
   await page.getByRole('button', { name: 'Purchase', exact: true }).filter({ visible: true }).click();
   await expect.poll(() => shop.orders.length).toBe(1);
   expect(JSON.parse(shop.orders[0].items_json)[0]).toMatchObject({ compass_entry_id: entryId, product_id: productId, quantity_grams: 250 });
@@ -114,7 +112,7 @@ test('phone Inventory reorder opens a draft linked to the existing product and s
   await expect(reorder).toBeVisible({ timeout: 15_000 });
   await reorder.click();
   await expect(page).toHaveURL(/\/admin\/compass\?tab=ledger/);
-  await expect(page.getByRole('tab', { name: 'Ledger', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('tab', { name: 'Orders', exact: true })).toHaveAttribute('aria-selected', 'true');
   await expect.poll(async () => (await ledgerState(page)).transactions.length).toBe(1);
   const draft = (await ledgerState(page)).transactions[0];
   expect(draft.status).toBe('draft');

@@ -735,7 +735,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         item={{ id: activeTasting.id, name: activeTasting.name, type: activeTasting.type, image: activeTasting.photos?.[0], sourceType: 'compass', compassEntryId: activeTasting.id }}
         initialData={activeTasting.tasting ?? activeTasting.tastingHistory?.at(-1)?.data}
         onClose={() => setActiveTastingId(null)}
-        onAfterSave={(data, verdict) => saveCurateTasting(activeTasting.id, data, verdict, { history: 'none' })}
+        onAfterSave={(data, verdict, _wouldBuy, record) => saveCurateTasting(activeTasting.id, data, verdict, { record })}
       />}
       {/* Batch tasting review, full-screen triage of untriaged tastings */}
       {reviewOpen && (

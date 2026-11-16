@@ -9,6 +9,8 @@ import { useToast } from '../components/Toast';
 import { IncomingReceiptsPanel } from '../components/inventory/IncomingReceiptsPanel';
 import { PurchaseTrackingView } from '../components/inventory/PurchaseTrackingView';
 import { refreshCommerceQueries } from '../../lib/refreshCommerce';
+import { TeaCard, TeaCardControlRow, TeaCardTitle } from '../../components/tea/TeaCard';
+import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 
 const PO_STATUSES = ['pending', 'ordered', 'received', 'cancelled'] as const;
 type PoStatus = typeof PO_STATUSES[number];
@@ -27,10 +29,13 @@ const STATUS_STYLES: Record<string, string> = {
   cancelled: 'bg-tea-elevated text-tea-text-dim',
 };
 
+const NEW_STOCK_ITEM = 'new-stock-draft';
+const NEW_STOCK_ITEM_HELP = 'supplier-order-new-stock-help';
+
 interface NewPoItem {
   product_id: string;
   product_name: string;
-  quantity: number;
+  quantity: string;
   unit: 'g' | 'unit';
 }
 
@@ -48,7 +53,7 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
 
   const [vendorId, setVendorId] = useState('');
   const [vendorName, setVendorName] = useState('');
-  const [items, setItems] = useState<NewPoItem[]>([{ product_id: '', product_name: '', quantity: 0, unit:'g' }]);
+  const [items, setItems] = useState<NewPoItem[]>([{ product_id: '', product_name: '', quantity: '', unit: 'g' }]);
   const [notes, setNotes] = useState('');
 
   const handleVendorChange = (id: string) => {
@@ -57,31 +62,38 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
     setVendorName(vendor?.name || '');
   };
 
-  const addItem = () => setItems(prev => [...prev, { product_id: '', product_name: '', quantity: 0, unit:'g' }]);
+  const addItem = () => setItems(prev => [...prev, { product_id: '', product_name: '', quantity: '', unit: 'g' }]);
   const removeItem = (idx: number) => setItems(prev => prev.filter((_, i) => i !== idx));
 
-  const updateItem = (idx: number, field: keyof NewPoItem, value: string | number) => {
-    setItems(prev => prev.map((item, i) => {
-      if (i !== idx) return item;
-      if (field === 'product_id') {
-        const p = products.find((pr: any) => pr.id === value);
-        return { ...item, product_id: value as string, product_name: p ? (p.givenName || p.productName || '') : '', unit:p?.type==='Teaware'?'unit':'g' };
-      }
-      return { ...item, [field]: value };
-    }));
+  const updateItem = (idx: number, patch: Partial<NewPoItem>) => {
+    setItems(prev => prev.map((item, i) => i === idx ? { ...item, ...patch } : item));
   };
+
+  const selectStockItem = (idx: number, productId: string) => {
+    const product = products.find(p => p.id === productId);
+    updateItem(idx, {
+      product_id: productId,
+      product_name: product ? product.givenName || product.productName || '' : '',
+      unit: product?.type === 'Teaware' ? 'unit' : 'g',
+    });
+  };
+
+  const readyItems = items.filter(item => {
+    const quantity = Number(item.quantity);
+    return item.product_id && item.product_name.trim() && Number.isFinite(quantity)
+      && quantity > 0 && (item.unit !== 'unit' || Number.isInteger(quantity));
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!vendorName.trim()) return;
-    const validItems = items.filter(i => i.product_id && i.quantity > 0 && (i.unit !== 'unit' || Number.isInteger(i.quantity)));
+    if (!vendorName.trim() || readyItems.length !== items.length) return;
     await onSubmit({
       vendor_name: vendorName.trim(),
       vendor_id: vendorId || undefined,
-      items_json: JSON.stringify(validItems.map(i => ({
-        product_id: i.product_id,
-        product_name: i.product_name,
-        quantity: i.quantity,
+      items_json: JSON.stringify(readyItems.map(i => ({
+        ...(i.product_id !== NEW_STOCK_ITEM ? { product_id: i.product_id } : {}),
+        product_name: i.product_name.trim(),
+        quantity: Number(i.quantity),
         unit: i.unit,
       }))),
       notes: notes.trim() || undefined,
@@ -89,14 +101,9 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
     });
   };
 
-  const inputCls = 'w-full bg-tea-gold/[0.06] text-tea-text text-sm rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none transition-colors placeholder:text-tea-text-dim';
-  const sectionLabel = (label: string) => (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 h-px bg-tea-border" />
-      <span className="text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim shrink-0">{label}</span>
-      <div className="flex-1 h-px bg-tea-border" />
-    </div>
-  );
+  const inputCls = 'min-h-11 w-full min-w-0 rounded-md border border-tea-border bg-tea-bg px-2.5 py-2 text-ui-13 text-tea-text outline-none focus-visible:border-tea-gold placeholder:text-tea-text-dim';
+  const stockControl = 'tea-card-control min-w-0 rounded-md border border-tea-border bg-tea-bg px-2.5 text-ui-13 text-tea-text outline-none focus-visible:border-tea-gold';
+  const itemAction = 'tap-target inline-flex min-h-11 items-center gap-1.5 px-2 text-ui-12 text-tea-text-sec hover:text-tea-text';
 
   return (
     <motion.div
@@ -104,7 +111,7 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-modal flex items-end sm:items-center justify-center bg-tea-bg/80 backdrop-blur-md"
+      className="fixed inset-0 z-modal flex items-end lg:items-center justify-center bg-tea-bg/80 backdrop-blur-md"
       onClick={onClose}
     >
       <motion.div
@@ -112,95 +119,151 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
         transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-        className="bg-tea-surface rounded-t-xl sm:rounded-xl w-full max-w-lg max-h-[90dvh] flex flex-col overflow-hidden shadow-2xl"
+        data-supplier-order-sheet
+        className="bg-tea-surface rounded-t-xl lg:rounded-xl w-full max-w-lg max-h-[100dvh] lg:max-h-[90dvh] flex flex-col overflow-hidden shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-tea-border flex-shrink-0">
-          <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">New Purchase Order</span>
-          <button onClick={onClose} className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-md" aria-label="Close">
+          <h2 className={T.h2} id="supplier-order-heading">Place a supplier order</h2>
+          <button onClick={onClose} className="tap-target p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-md" aria-label="Close">
             <X size={15} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 px-5 py-4 space-y-3">
-          {sectionLabel('Vendor')}
-          <div>
-            {vendors.length > 0 ? (
-              <select value={vendorId} onChange={e => handleVendorChange(e.target.value)} className={inputCls}>
-                <option value="">Select vendor…</option>
-                {vendors.map(v => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
-                ))}
-              </select>
-            ) : (
-              <input type="text" value={vendorName} onChange={e => setVendorName(e.target.value)} placeholder="Vendor name" className={inputCls} required />
-            )}
-            {vendorId && !vendorName && (
-              <input type="text" value={vendorName} onChange={e => setVendorName(e.target.value)} placeholder="Vendor name override" className={`${inputCls} mt-2`} />
-            )}
-          </div>
-
-          {sectionLabel('Line Items')}
-          <div className="space-y-2">
-            {items.map((item, idx) => (
-              <div key={idx} className="flex items-center gap-2">
-                <select
-                  value={item.product_id}
-                  onChange={e => updateItem(idx, 'product_id', e.target.value)}
-                  className="flex-1 bg-tea-gold/[0.06] border border-tea-border rounded-xl px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-gold/40 transition-colors"
-                >
-                  <option value="">Select product…</option>
-                  {products
-
-                    .map((p: any) => (
-                      <option key={p.id} value={p.id}>{p.givenName || p.productName}</option>
-                    ))}
+        <form onSubmit={handleSubmit} aria-labelledby="supplier-order-heading" className="flex min-h-0 flex-1 flex-col">
+          <div className="overflow-y-auto min-h-0 flex-1 px-4 py-4 space-y-3">
+            <div>
+              <label className={`${T.label} mb-1 block text-tea-text-sec`} htmlFor="order-supplier">Supplier</label>
+              {vendors.length > 0 ? (
+                <select id="order-supplier" value={vendorId} onChange={e => handleVendorChange(e.target.value)} className={inputCls}>
+                  <option value="">Select supplier…</option>
+                  {vendors.map(v => (
+                    <option key={v.id} value={v.id}>{v.name}</option>
+                  ))}
                 </select>
-                <div className="flex items-center gap-1 bg-tea-gold/[0.06] border border-tea-border rounded-xl px-3 py-2 shrink-0">
-                  <input
-                    type="number"
-                    value={item.quantity || ''}
-                    onChange={e => updateItem(idx, 'quantity', Number(e.target.value))}
-                    placeholder="0"
-                    inputMode="decimal"
-                    min="0" step={item.unit === 'unit' ? 1 : 'any'}
-                    className="w-12 bg-transparent text-sm text-right text-tea-text outline-none tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                    style={{ MozAppearance: 'textfield' } as React.CSSProperties}
-                  />
-                  <span className="text-ui-11 text-tea-text-dim">{item.unit === 'unit' ? 'units' : 'g'}</span>
-                </div>
-                {items.length > 1 && (
-                  <button type="button" onClick={() => removeItem(idx)} className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors shrink-0">
-                    <Trash2 size={13} />
-                  </button>
-                )}
-              </div>
-            ))}
-            <button type="button" onClick={addItem} className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-gold transition-colors mt-1">
-              <Plus size={12} /> Add line item
-            </button>
+              ) : (
+                <input id="order-supplier" type="text" value={vendorName} onChange={e => setVendorName(e.target.value)} placeholder="Supplier name" className={inputCls} required />
+              )}
+              {vendorId && !vendorName && (
+                <input type="text" value={vendorName} onChange={e => setVendorName(e.target.value)} placeholder="Supplier name override" className={`${inputCls} mt-2`} />
+              )}
+            </div>
+
+            <fieldset className="min-w-0 space-y-2">
+              <legend className="sr-only">Order items</legend>
+              {items.map((item, idx) => {
+                const isNewDraft = item.product_id === NEW_STOCK_ITEM;
+                const product = products.find(p => p.id === item.product_id);
+                const finalItem = idx === items.length - 1;
+                const quantityId = `purchase-quantity-${idx}`;
+                const pieceError = item.unit === 'unit' && item.quantity !== '' && !Number.isInteger(Number(item.quantity));
+                return (
+                  <TeaCard
+                    key={idx}
+                    teaType={product?.type}
+                    title={isNewDraft ? (
+                      <div className={`${T.h3} library-card-name`}>
+                        <input
+                          aria-label={`New Stock item name for line ${idx + 1}`}
+                          value={item.product_name}
+                          onChange={e => updateItem(idx, { product_name: e.target.value })}
+                          placeholder="Item name"
+                          className="min-h-11 w-full bg-transparent text-tea-text outline-none placeholder:text-tea-text-dim"
+                          required
+                        />
+                      </div>
+                    ) : <TeaCardTitle>{item.product_name || 'Order item'}</TeaCardTitle>}
+                    meta={
+                      <div className="w-full text-ui-11 text-tea-text-sec">
+                        <TeaCardControlRow>
+                          <label htmlFor={`purchase-stock-${idx}`} className="px-2.5">Stock item</label>
+                          <label htmlFor={quantityId} className="px-2.5 text-center">Quantity</label>
+                        </TeaCardControlRow>
+                      </div>
+                    }
+                    actions={(finalItem || items.length > 1) && (
+                      <>
+                        {finalItem && <button type="button" onClick={addItem} className={itemAction}>
+                          <Plus size={14} aria-hidden="true" /> Add line item
+                        </button>}
+                        {items.length > 1 && <button type="button" onClick={() => removeItem(idx)} className={itemAction} aria-label={`Remove line item ${idx + 1}`}>
+                          <Trash2 size={13} aria-hidden="true" /> Remove item
+                        </button>}
+                      </>
+                    )}
+                  >
+                    <div className="library-ribbon-prices !block px-2.5 py-2">
+                      <TeaCardControlRow>
+                        <select
+                          id={`purchase-stock-${idx}`}
+                          aria-label={`Stock item for line ${idx + 1}`}
+                          value={item.product_id}
+                          onChange={e => selectStockItem(idx, e.target.value)}
+                          aria-describedby={isNewDraft ? NEW_STOCK_ITEM_HELP : undefined}
+                          className={stockControl}
+                        >
+                          <option value="">Select Stock item…</option>
+                          <option value={NEW_STOCK_ITEM}>New item for Stock</option>
+                          {products.map(p => <option key={p.id} value={p.id}>{p.givenName || p.productName}</option>)}
+                        </select>
+                        <div className="tea-card-control flex items-center overflow-hidden rounded-md border border-tea-border bg-tea-bg focus-within:border-tea-gold">
+                          <input
+                            type="number"
+                            id={quantityId}
+                            aria-label={`Ordered quantity for line ${idx + 1}`}
+                            aria-invalid={pieceError || undefined}
+                            aria-describedby={pieceError ? `${quantityId}-error` : undefined}
+                            value={item.quantity}
+                            onChange={e => updateItem(idx, { quantity: e.target.value })}
+                            placeholder="Enter"
+                            inputMode={item.unit === 'unit' ? 'numeric' : 'decimal'}
+                            min={item.unit === 'unit' ? 1 : 0}
+                            step={item.unit === 'unit' ? 1 : 'any'}
+                            className="h-full w-full min-w-0 cursor-text bg-tea-surface px-1 text-center text-ui-16 tabular-nums text-tea-text outline-none placeholder:text-ui-11 placeholder:text-tea-text-sec [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            style={{ MozAppearance: 'textfield' }}
+                          />
+                          {isNewDraft ? (
+                            <select
+                              aria-label={`Unit for line ${idx + 1}`}
+                              value={item.unit}
+                              onChange={e => updateItem(idx, { unit: e.target.value === 'unit' ? 'unit' : 'g' })}
+                              className="h-full w-11 shrink-0 border-l border-tea-border bg-transparent pl-1.5 text-ui-12 text-tea-text-sec"
+                            >
+                              <option value="g">g</option>
+                              <option value="unit">pcs</option>
+                            </select>
+                          ) : <span className="flex h-full w-7 shrink-0 items-center justify-center border-l border-tea-border text-ui-12 text-tea-text-sec">{item.unit === 'unit' ? 'pcs' : 'g'}</span>}
+                        </div>
+                      </TeaCardControlRow>
+                      {pieceError && <p id={`${quantityId}-error`} className="pt-1 text-ui-12 text-tea-text-sec">Enter a whole number of pieces.</p>}
+                    </div>
+                  </TeaCard>
+                );
+              })}
+            </fieldset>
+            {items.some(item => item.product_id === NEW_STOCK_ITEM) && (
+              <p id={NEW_STOCK_ITEM_HELP} className="text-ui-12 text-tea-text-sec">
+                Placing the order creates a private item in Stock. Quantities count toward available stock after you confirm receipt.
+              </p>
+            )}
+
+            <label className="block">
+              <span className={`${T.label} mb-1 block text-tea-text-sec`}>Notes</span>
+              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Optional notes…" className={inputCls} />
+            </label>
           </div>
 
-          {sectionLabel('Notes')}
-          <textarea
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            rows={2}
-            placeholder="Optional notes…"
-            className="w-full bg-tea-gold/[0.06] border border-tea-border rounded-xl px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-gold/40 resize-none placeholder:text-tea-text-sec transition-colors"
-          />
-
-          <div className="flex justify-between items-center gap-3 pt-1">
-            <button type="button" onClick={onClose} className="px-2 py-2 text-xs text-tea-text-sec hover:text-tea-text transition-colors uppercase tracking-[0.15em]">
+          <div className="shrink-0 border-t border-tea-border bg-tea-surface px-4 pt-3 pb-nav-gap flex flex-wrap justify-between items-center gap-3">
+            <button type="button" onClick={onClose} className="tap-target min-h-11 px-2 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors">
               Cancel
             </button>
             <button
               type="submit"
-              disabled={submitting || !vendorName.trim()}
-              className="flex items-center gap-2 px-5 py-2.5 cta-solid text-xs font-semibold uppercase tracking-[0.12em] rounded-xl transition-colors disabled:opacity-50"
+              disabled={submitting || !vendorName.trim() || readyItems.length !== items.length}
+              className="flex min-h-11 items-center gap-2 px-4 cta-solid text-ui-13 font-semibold rounded-md transition-colors disabled:opacity-50"
             >
               {submitting ? <Loader2 size={13} className="animate-spin" /> : <ShoppingBag size={13} />}
-              Create PO
+              Save purchase draft
             </button>
           </div>
         </form>

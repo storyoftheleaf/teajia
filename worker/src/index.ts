@@ -15,7 +15,7 @@ import { promoteCompassEntry, CompassPromotionError } from './curatePromotion';
 import { applySupplierRename, cleanSupplierName, listSupplierFreight, previewSupplierRename, SupplierRenameRefusal } from './supplierRename';
 import { capturedHoldingFields, recordedImageKey, capturedRetailUsd } from './capturedHolding';
 import { invoiceRefundTotals } from './refundDomain';
-import { preparePurchaseReceipt, updatePurchaseReceiptStatus } from './purchaseContinuity';
+import { PLACED_PURCHASE_STATUSES, placePurchaseReceipt, preparePurchaseReceipt, updatePurchaseReceiptStatus } from './purchaseContinuity';
 import { authPagePath } from '../../src/lib/authNavigation';
 import {
   mcpFetch, publicMcpFetch, mcpAdminMintToken, mcpAdminListTokens, mcpAdminRevokeToken,
@@ -12340,7 +12340,7 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
   const attendee = await env.DB.prepare(
     `SELECT ea.*, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
             e.location_name, e.address_text, e.map_link, e.guidelines_text, e.venue_guide,
-            e.timezone, e.status as event_status, e.session_flow, e.playlist_url, e.slug,
+            e.timezone, e.status as event_status, e.lifecycle_status, e.session_flow, e.playlist_url, e.slug,
             e.briefing_cards, e.area_hint, e.mood_hints,
             v.photos AS venue_photos
      FROM event_attendees ea
@@ -12416,6 +12416,7 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
       first_visit_briefed: attendee.first_visit_briefed,
     },
     event: {
+      id: attendee.event_id,
       slug: attendee.slug,
       title: attendee.title,
       subtitle: attendee.subtitle,
@@ -12433,6 +12434,7 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
       venue_photos: isConfirmed ? venuePhotos : [],
       timezone: attendee.timezone,
       status: attendee.event_status,
+      lifecycle_status: attendee.lifecycle_status,
       session_flow: sessionFlow,
       playlist_url: attendee.playlist_url,
       briefing_cards: briefingCards,
@@ -22262,6 +22264,8 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
 
   const body = await request.json() as Record<string, any>;
   if (!body.vendor_name?.trim()) return json({ error: 'vendor_name is required' }, 400);
+  const place = (id: string) => canManageCurate(env, accountId, ctx.userId)
+    .then(manager => placePurchaseReceipt(env, ctx, id, body.status, manager));
 
   const requestKey = (body.idempotency_key ?? body.request_id) == null ? null : String(body.idempotency_key ?? body.request_id);
   if (requestKey === '') return restError(400, 'Invalid purchase request key', 'invalid_idempotency_key');
@@ -22286,9 +22290,9 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
     ).bind(accountId, requestKey).first<{ id: string; status: string; receipt_id: string | null; create_request_fingerprint: string | null }>();
     if (prior) {
       if (prior.create_request_fingerprint !== fingerprint) return restError(409, 'Purchase request key was used for different details', 'purchase_request_conflict');
-      if (['ordered','confirmed','sent','shipped'].includes(body.status)) {
-        const prepared = await preparePurchaseReceipt(env, ctx, prior.id);
-        return json({ id:prior.id, idempotent:true, ...prepared.value }, prepared.status);
+      if (PLACED_PURCHASE_STATUSES.has(body.status)) {
+        const prepared = await place(prior.id);
+        return json({ id:prior.id, idempotent:true, ...prepared.value });
       }
       return json({ id: prior.id, idempotent: true, ...(body.status==='received'&&prior.status==='pending'&&!prior.receipt_id?{receipt_review_required:true,status:'pending'}:{}) });
     }
@@ -22321,9 +22325,14 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
       const raced = await env.DB.prepare(
         'SELECT id, status, receipt_id, create_request_fingerprint FROM purchase_orders WHERE account_id = ? AND create_request_key = ?'
       ).bind(accountId, requestKey).first<{ id: string; status: string; receipt_id: string | null; create_request_fingerprint: string | null }>();
-      if (raced) return raced.create_request_fingerprint === fingerprint
-        ? json({ id: raced.id, idempotent: true, ...(body.status==='received'&&raced.status==='pending'&&!raced.receipt_id?{receipt_review_required:true,status:'pending'}:{}) })
-        : restError(409, 'Purchase request key was used for different details', 'purchase_request_conflict');
+      if (raced) {
+        if (raced.create_request_fingerprint !== fingerprint) return restError(409, 'Purchase request key was used for different details', 'purchase_request_conflict');
+        if (PLACED_PURCHASE_STATUSES.has(body.status)) {
+          const prepared = await place(raced.id);
+          return json({id: raced.id, idempotent: true, ...prepared.value});
+        }
+        return json({ id: raced.id, idempotent: true, ...(body.status==='received'&&raced.status==='pending'&&!raced.receipt_id?{receipt_review_required:true,status:'pending'}:{}) });
+      }
     }
     throw error;
   }
@@ -22334,9 +22343,9 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
     const current=await env.DB.prepare('SELECT state FROM inventory_receipts WHERE id=? AND account_id=?').bind(prepared.value.receipt_id,accountId).first() as any;
     if(current?.state!=='received')return json({error:'Receive the matched lines before marking this purchase received',id,receipt_id:prepared.value.receipt_id},409);
   }
-  if(['ordered','confirmed','sent','shipped'].includes(body.status)){
-    const prepared=await preparePurchaseReceipt(env,ctx,id);
-    return json({id,...prepared.value},201);
+  if (PLACED_PURCHASE_STATUSES.has(body.status)) {
+    const prepared = await place(id);
+    return json({ id, ...prepared.value }, 201);
   }
   return json({ id }, 201);
 };
@@ -22389,6 +22398,24 @@ const handleUpdatePurchaseOrder: Handler = async (request, env, params) => {
     return exists ? json({ success: true }) : json({ error: 'Purchase order not found' }, 404);
   }
 
+  if (body.status && PLACED_PURCHASE_STATUSES.has(body.status)) {
+    const prior = await env.DB.prepare('SELECT status, receipt_id FROM purchase_orders WHERE id = ? AND account_id = ?')
+      .bind(params.id, accountId).first<{status: string; receipt_id: string | null}>();
+    if (!prior) return json({error: 'Purchase order not found'}, 404);
+    if (!prior.receipt_id && !PLACED_PURCHASE_STATUSES.has(prior.status)) {
+      const prepared = await placePurchaseReceipt(
+        env, ctx, params.id, body.status, await canManageCurate(env, accountId, ctx.userId),
+      );
+      if (prepared.status >= 400) return json(prepared.value, prepared.status);
+      // Older orders with an arrival proposal can still record that the
+      // supplier shipped them. Their original arrival remains the receiving path.
+      const hasLegacyArrival = (body.status === 'sent' || body.status === 'shipped') &&
+        prepared.value.existing_arrival_only;
+      if (!prepared.value.receipt_id && !hasLegacyArrival) return json({
+        ...prepared.value, error: 'Match the order lines before placing this purchase',
+      }, 409);
+    }
+  }
   const sets = cols.map(c => `${c} = ?`).join(', ');
   const result = await env.DB.prepare(
     `UPDATE purchase_orders SET ${sets}, updated_at = ? WHERE id = ? AND account_id = ?`

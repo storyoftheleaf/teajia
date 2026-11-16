@@ -1,5 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import type { GuestManagementData } from '../../../types/events';
+import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
 import { formatEventDate } from './helpers';
 
 const TastingNotesForm = lazy(() => import('../TastingNotesForm'));
@@ -24,17 +25,20 @@ const PostEventView: React.FC<PostEventViewProps> = ({
   onHideTasting,
 }) => {
   const { attendee, event } = data;
+  const didAttend = attendee.attended === true;
+  const canLeaveNotes = didAttend && attendee.status === 'confirmed' &&
+    (event.lifecycleStatus ?? event.status) === 'completed' && data.teaMenu.length > 0;
 
   // Full-screen tasting form - shown first before the post-event summary
-  if (showTasting && data.teaMenu && data.teaMenu.length > 0) {
+  if (showTasting && canLeaveNotes) {
     return (
       <div className="fixed inset-0 sidebar-inset z-50 bg-tea-bg overflow-y-auto animate-[fadeIn_0.4s_ease-out]">
-        <div className="max-w-xl mx-auto px-6 py-10 pb-nav-gap-lg">
-          <div className="text-center mb-8">
-            <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-2">
+        <div className="max-w-xl mx-auto px-4 pt-5 pb-nav-gap-lg">
+          <div className="mb-4">
+            <p className={`mb-1 ${TYPOGRAPHY_CLASSES.accountMeta}`}>
               {formatEventDate(event.eventDate)}
             </p>
-            <h1 className="font-serif text-2xl text-tea-text">{event.title}</h1>
+            <h1 className={TYPOGRAPHY_CLASSES.h2}>{event.title}</h1>
           </div>
           <Suspense fallback={null}>
             <TastingNotesForm
@@ -46,19 +50,10 @@ const PostEventView: React.FC<PostEventViewProps> = ({
               onClose={onHideTasting}
             />
           </Suspense>
-          <button
-            onClick={onHideTasting}
-            className="tap-target w-full mt-4 py-3 text-xs font-semibold text-tea-text-sec hover:text-tea-text transition-colors"
-          >
-            Skip
-          </button>
         </div>
       </div>
     );
   }
-
-  // Determine if the current attendee attended this session
-  const didAttend = attendee.attended === true;
 
   // Count tasting notes collected across all attendees
   const tastingNotesCount = Array.isArray(postSession?.tasting_notes)
@@ -114,7 +109,7 @@ const PostEventView: React.FC<PostEventViewProps> = ({
                 )}
               </>
             ) : (
-              <div className="p-5 bg-tea-surface border border-tea-border rounded-md text-center mb-8">
+              <div className="p-5 bg-tea-surface border border-tea-border rounded-md mb-4">
                 <p className="text-sm text-tea-text-sec italic leading-relaxed">
                   Your session recap will appear here after the host publishes it.
                 </p>
@@ -140,14 +135,14 @@ const PostEventView: React.FC<PostEventViewProps> = ({
           />
         </Suspense>
 
-        {data.teaMenu && data.teaMenu.length > 0 && (
+        {canLeaveNotes && (
           <Suspense fallback={null}>
             <div className="border-t border-tea-border pt-10">
               <button
                 onClick={onShowTasting}
                 className="tap-target text-xs font-semibold text-tea-text-sec hover:text-tea-text transition-colors"
               >
-                Rate the session
+                Add tasting notes
               </button>
             </div>
           </Suspense>

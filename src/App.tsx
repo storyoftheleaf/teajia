@@ -1463,6 +1463,7 @@ const AppContent = () => {
       {!isFocusedShareRoute && !isCartOpen && (
         <div
           aria-hidden="true"
+          data-bottom-nav-fade
           className="lg:hidden fixed inset-x-0 bottom-0 pointer-events-none"
           style={{
             height: 'calc(env(safe-area-inset-bottom, 0px) + 96px)',

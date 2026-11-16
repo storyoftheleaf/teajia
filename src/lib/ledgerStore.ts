@@ -35,6 +35,7 @@ export interface LedgerLineItem {
   productId?: string;        // If added from inventory (for sales)
 
   receiptProposal?: CurateReceiptProposal;
+  purchaseReceiptLineId?: string;
   addedAt: string;
 }
 
@@ -60,6 +61,7 @@ export interface LedgerTransaction {
   currency: Currency;
   /** The purchase order the shop recorded when this was confirmed. */
   purchaseOrderId?: string;
+  purchaseOrderReceiptId?: string;
   /** Confirmed here but the shop did not take the purchase order (or invoice): Curate says so and offers it again. */
   recordFailed?: boolean;
   /** The vendor has been messaged: the shop's purchase order is marked sent. */
@@ -88,7 +90,7 @@ interface LedgerState {
   addLineItem: (transactionId: string, item: Omit<LedgerLineItem, 'id' | 'addedAt'>) => string;
   updateLineItem: (transactionId: string, itemId: string, updates: Partial<LedgerLineItem>) => void;
   removeLineItem: (transactionId: string, itemId: string) => void;
-  updateTransaction: (transactionId: string, updates: Partial<Pick<LedgerTransaction, 'counterpartyName' | 'counterpartyId' | 'currency' | 'status' | 'purchaseOrderId' | 'recordFailed' | 'purchaseOrderSent' | 'shipMode' | 'confirmationPending' | 'confirmationError' | 'remoteOrderId'>>) => void;
+  updateTransaction: (transactionId: string, updates: Partial<Pick<LedgerTransaction, 'counterpartyName' | 'counterpartyId' | 'currency' | 'status' | 'purchaseOrderId' | 'purchaseOrderReceiptId' | 'recordFailed' | 'purchaseOrderSent' | 'shipMode' | 'confirmationPending' | 'confirmationError' | 'remoteOrderId'>>) => void;
   addPhoto: (transactionId: string, url: string) => void;
   removePhoto: (transactionId: string, index: number) => void;
   removeTransaction: (transactionId: string) => void;

@@ -58,13 +58,18 @@ export function orderArrivalLines(tx: Pick<LedgerTransaction, 'items'>): Arrival
 }
 
 /** The purchase order's line for a tea: what the shop reads back when the tea arrives. */
-export function arrivalFields(item: LedgerLineItem): { compass_entry_id?: string; quantity_grams?: number; line_total?: number; product_id?: string; unitWeightGrams?: number } {
-  const line = item.compassEntryId ? orderArrivalLines({ items: [item] })[0] : undefined;
+export function arrivalFields(item: LedgerLineItem): { compass_entry_id?: string; quantity?: number; unit?: 'g' | 'unit'; quantity_grams?: number; line_total?: number; product_id?: string; unitWeightGrams?: number } {
+  const isTeaware = item.type === 'Teaware';
+  const quantity = isTeaware ? item.quantityUnits : lineGrams(item);
+  const valid = quantity != null && Number.isFinite(quantity) && quantity > 0 && (!isTeaware || Number.isInteger(quantity));
+  const cost = item.unpriced || !item.currency ? null : ledgerItemAmount(item);
   return {
     ...(item.compassEntryId ? { compass_entry_id: item.compassEntryId } : {}),
     ...(item.productId ? { product_id: item.productId } : {}),
     ...(item.unitWeightGrams != null ? { unitWeightGrams: item.unitWeightGrams } : {}),
-    ...(line ? { quantity_grams: line.grams, line_total: line.total } : {}),
+    ...(valid ? { quantity, unit: isTeaware ? 'unit' as const : 'g' as const } : {}),
+    ...(valid && !isTeaware ? { quantity_grams: quantity } : {}),
+    ...(valid && cost != null && Number.isFinite(cost) && cost >= 0 ? { line_total: Math.round(cost * 100) / 100 } : {}),
   };
 }
 

@@ -18,7 +18,6 @@ import { TastingSession } from '../tasting/TastingSession';
 import { tastingToOpenWith } from '../tasting/tastingOpenData';
 import { saveCurateTasting } from '../../lib/curateTastingSave';
 import type { TastingData } from '../../types';
-import type { CompassVerdict } from './types';
 
 interface CompassEntryDetailPanelProps {
   entryId: string;
@@ -344,7 +343,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
           item={{ id: entry.id, name: entry.name, type: entry.type, image: validPhotos[0], sourceType: 'compass', compassEntryId: entry.id }}
           initialData={tastingToOpenWith(entry)}
           onClose={() => { setTastingOpen(false); void useSampleUse.getState().finish(entry.id); }}
-          onAfterSave={(data: TastingData, verdict?: CompassVerdict) => { useSampleUse.getState().markAnswered(entry.id); saveCurateTasting(entry.id, data, verdict, { history: 'append' }); }}
+          onAfterSave={(data: TastingData, verdict, _wouldBuy, record) => { useSampleUse.getState().markAnswered(entry.id); saveCurateTasting(entry.id, data, verdict, { record }); }}
         />
       )}
 

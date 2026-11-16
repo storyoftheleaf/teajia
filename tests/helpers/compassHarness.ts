@@ -405,6 +405,7 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       // A photo read for a label: nothing on it to fill in.
       'POST /api/extract-from-image': {},
       // Confirming an order records the purchase order.
+      'GET /api/logistics': { orders: [], shipments: [], services: [], addresses: [] },
       'GET /api/products/public': [], 'GET /api/user/favorites': { favorites: [] },
       'PUT /api/user/favorites': { ok: true },
       'GET /api/tasting-journal': { entries: [] }, 'GET /api/tea-discovery': { profile: null },

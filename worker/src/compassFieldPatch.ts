@@ -119,6 +119,62 @@ function decodedBase(column: CompassColumn, hint: CompassFieldHint): unknown {
   } catch { return MISSING; }
 }
 
+type TastingHistoryRow = Record<string, unknown>;
+
+function tastingHistory(value: unknown): TastingHistoryRow[] | undefined {
+  if (value == null) return [];
+  if (typeof value === 'string') {
+    try { value = JSON.parse(value); } catch { return undefined; }
+  }
+  if (!Array.isArray(value) || value.some(row => !row || typeof row !== 'object' || Array.isArray(row))) return undefined;
+  return value as TastingHistoryRow[];
+}
+
+function tastingHistoryId(row: TastingHistoryRow): string | undefined {
+  return typeof row.id === 'string' && row.id ? row.id : undefined;
+}
+
+function tastingHistoryById(history: TastingHistoryRow[]): Map<string, TastingHistoryRow> {
+  return new Map(history.flatMap(row => {
+    const id = tastingHistoryId(row);
+    return id ? [[id, row] as const] : [];
+  }));
+}
+
+/** Carry individual readings over a competing save. Id-less history remains
+ * in its original order. A full clear and legacy-only edits follow field rules. */
+function blendTastingHistory(baseValue: unknown, deviceValue: unknown, serverValue: unknown, deviceLater: boolean): string | undefined {
+  const base = tastingHistory(baseValue);
+  const device = tastingHistory(deviceValue);
+  const server = tastingHistory(serverValue);
+  if (!base || !device?.length || !server) return undefined;
+  if (!server.length && base.length && !deviceLater) return undefined;
+
+  const legacy = (history: TastingHistoryRow[]) => history.filter(row => !tastingHistoryId(row));
+  if (stableJson(legacy(device)) !== stableJson(legacy(base))) return undefined;
+
+  const baseById = tastingHistoryById(base);
+  const deviceById = tastingHistoryById(device);
+  const serverById = tastingHistoryById(server);
+  const merged = server.flatMap(row => {
+    const id = tastingHistoryId(row);
+    if (!id) return [row];
+    const before = baseById.get(id);
+    const local = deviceById.get(id);
+    if (stableJson(local) === stableJson(before)) return [row];
+    if (stableJson(row) !== stableJson(before) && !deviceLater) return [row];
+    return local ? [local] : [];
+  });
+  for (const [id, row] of deviceById) {
+    if (baseById.has(id) || serverById.has(id)) continue;
+    const date = typeof row.date === 'string' ? Date.parse(row.date) : NaN;
+    const following = merged.findIndex(item => typeof item.date === 'string' && Date.parse(item.date) > date);
+    if (following < 0) merged.push(row);
+    else merged.splice(following, 0, row);
+  }
+  return JSON.stringify(merged);
+}
+
 const AMOUNTS = ['price_amount', 'buy_total'] as const;
 const CURRENCY = 'price_currency';
 
@@ -146,7 +202,15 @@ export function compassFieldPatch(
     if (values[column] === undefined) continue;
     const base = decodedBase(column, hint);
     const serverChanged = base !== MISSING && !sameStoredCompassValue(column, base, existing[column]);
-    if (serverChanged && !deviceLater(hint.editedAt[column])) { keptServer.push(column); continue; }
+    const later = deviceLater(hint.editedAt[column]);
+    if (column === 'tasting_history' && serverChanged) {
+      const blended = blendTastingHistory(base, values[column], existing[column], later);
+      if (blended !== undefined) {
+        if (!sameStoredCompassValue(column, blended, existing[column])) out[column] = blended;
+        continue;
+      }
+    }
+    if (serverChanged && !later) { keptServer.push(column); continue; }
     out[column] = values[column];
   }
 

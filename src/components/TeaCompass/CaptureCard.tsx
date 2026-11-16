@@ -881,9 +881,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             }}
             initialData={entry.tasting ?? entry.tastingHistory?.at(-1)?.data}
             onClose={() => setTastingOverlayOpen(false)}
-            onAfterSave={(data: TastingData, verdict) => {
+            onAfterSave={(data: TastingData, verdict, _wouldBuy, record) => {
               setLocalTasting(data);
-              saveCurateTasting(entryId, data, verdict, { history: 'none' });
+              saveCurateTasting(entryId, data, verdict, { record });
             }}
           />
         )}
@@ -2119,9 +2119,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             }}
             initialData={entry.tasting ?? entry.tastingHistory?.at(-1)?.data}
             onClose={closeTastingOverlay}
-            onAfterSave={(data: TastingData, verdict) => {
+            onAfterSave={(data: TastingData, verdict, _wouldBuy, record) => {
               setLocalTasting(data);
-              saveCurateTasting(entryId, data, verdict, { history: 'none' });
+              saveCurateTasting(entryId, data, verdict, { record });
             }}
           />
         )}

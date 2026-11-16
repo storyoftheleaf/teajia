@@ -2,7 +2,7 @@ import { ArTranscriptHandoff } from './ArTranscriptHandoff';
 import { ArCreatePairing } from './ArTeaSources';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Check, ChevronDown, ChevronUp, FlaskConical, Loader2, Mic, Plus, Search, Square, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -118,6 +118,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const samplesList = useSampleStore((s) => s.samples);
 
   const navigate = useNavigate();
+  const [, setRecordParams] = useSearchParams();
   const queryClient = useQueryClient();
 
 
@@ -673,6 +674,19 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   // Desktop tasting: which entry is shown in the right detail panel
   const [tastingSelectedEntryId, setTastingSelectedEntryId] = useState<string | null>(null);
+  const selectLibraryRecord = useCallback((id: string | null) => {
+    setTastingSelectedEntryId(id);
+    setRecordParams(current => {
+      const params = new URLSearchParams(current);
+      if (id) {
+        params.set('tab', 'library');
+        params.set('entry', id);
+      } else {
+        params.delete('entry');
+      }
+      return params;
+    }, { replace: !id });
+  }, [setRecordParams]);
   const [pendingLibraryAcquisitionId, setPendingLibraryAcquisitionId] = useState<string | null>(null);
   const initialRecordRequest = useRef('');
   useEffect(() => {
@@ -685,17 +699,19 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   }, [activeAccountId, getEntry, initialEntryExists, initialEntryId, initialMode, setActiveEntry]);
   // Mode changes clear the old selection first; apply route selection afterwards.
   useEffect(() => {
-    if (mode === 'library' && initialMode === 'library' && initialEntryId && initialEntryExists) setTastingSelectedEntryId(initialEntryId);
+    if (mode !== 'library') return;
+    if (initialMode === 'library' && initialEntryId && initialEntryExists) setTastingSelectedEntryId(initialEntryId);
+    else if (!initialEntryId) setTastingSelectedEntryId(null);
   }, [initialEntryExists, initialEntryId, initialMode, mode]);
 
 
   const openLibraryAcquisition = useCallback((id: string) => {
     setActiveEntry(id);
     setFromLibrary(true);
-    setTastingSelectedEntryId(null);
+    selectLibraryRecord(null);
     setPendingLibraryAcquisitionId(id);
     setMode('sourcing');
-  }, [setActiveEntry, setFromLibrary]);
+  }, [selectLibraryRecord, setActiveEntry, setFromLibrary]);
 
   useEffect(() => {
     if (mode !== 'sourcing') setPendingLibraryAcquisitionId(null);
@@ -716,7 +732,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const tabs: { id: CompassMode; label: string; badge?: number }[] = [
     { id: 'sourcing', label: 'Source' },
     { id: 'library', label: 'Library', badge: pendingIncomingCount > 0 ? pendingIncomingCount : undefined },
-    { id: 'buying', label: 'Ledger' },
+    { id: 'buying', label: 'Orders' },
   ];
   const currentTab = tabs.find((t) => t.id === mode);
 
@@ -1249,7 +1265,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     onNewCapture={handleNewCapture}
                     externalSearchQuery={tabSearchQuery}
                     onAcquireEntry={openLibraryAcquisition}
-                    onOpenDetail={setTastingSelectedEntryId}
+                    onOpenDetail={selectLibraryRecord}
                   />
                 </motion.div>
               ) : (
@@ -1314,7 +1330,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               expands to fill the whole pane as a grid (libraryGrid). ── */}
           <div
             className={`flex flex-col overflow-hidden ${
-              libraryGrid
+              libraryGrid || mode === 'buying'
                 ? 'flex-1 min-w-0'
                 : 'w-[264px] shrink-0 border-r border-tea-border'
             }`}
@@ -1612,11 +1628,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       onEditEntry={handleEditEntry}
                       onNewCapture={handleNewCapture}
                       externalSearchQuery={tabSearchQuery}
-                      onSelectEntry={(id) => setTastingSelectedEntryId(id)}
+                      onSelectEntry={selectLibraryRecord}
                       selectedEntryId={tastingSelectedEntryId}
                       gridMode={libraryGrid}
                       onAcquireEntry={openLibraryAcquisition}
-                      onOpenDetail={setTastingSelectedEntryId}
+                      onOpenDetail={selectLibraryRecord}
                     />
                   </motion.div>
                 )}
@@ -1663,7 +1679,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
           {/* ── RIGHT COLUMN (flex-1), hidden in Library grid mode, where the
               left column owns the full width until an entry is selected. ── */}
-          <div className={`flex-col flex-1 min-w-0 overflow-hidden ${libraryGrid ? 'hidden' : 'flex'}`}>
+          <div className={`flex-col min-w-0 overflow-hidden ${libraryGrid ? 'hidden' : 'flex'} ${mode === 'buying' ? 'w-[min(34%,360px)] shrink-0 border-l border-tea-border' : 'flex-1'}`}>
 
             {/* Right column scrollable content */}
             <div
@@ -1791,8 +1807,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       <ArCreatePairing />
       <ArTranscriptHandoff />
 
-      <BottomSheet open={mode === 'library' && !!tastingSelectedEntryId} onOpenChange={open => { if (!open) setTastingSelectedEntryId(null); }} title="Tea details" large className="library-details-sheet">
-        {tastingSelectedEntryId && <CompassEntryDetailPanel embedded entryId={tastingSelectedEntryId} onClose={() => setTastingSelectedEntryId(null)} onAcquire={openLibraryAcquisition}
+      <BottomSheet open={mode === 'library' && !!tastingSelectedEntryId} onOpenChange={open => { if (!open) selectLibraryRecord(null); }} title="Tea details" large className="library-details-sheet">
+        {tastingSelectedEntryId && <CompassEntryDetailPanel embedded entryId={tastingSelectedEntryId} onClose={() => selectLibraryRecord(null)} onAcquire={openLibraryAcquisition}
           onOpenInventory={(productId) => navigate(`/admin/stock?panel=${encodeURIComponent(productId)}`)}
           onShare={hasToken() ? (id) => { setActiveEntry(id); setShareModalOpen(true); } : undefined} />}
       </BottomSheet>

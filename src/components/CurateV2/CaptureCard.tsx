@@ -1779,10 +1779,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             }}
             initialData={tastingToOpenWith(entry)}
             onClose={closeTastingOverlay}
-            onAfterSave={(data: TastingData, verdict) => {
+            onAfterSave={(data: TastingData, verdict, _wouldBuy, record) => {
               useSampleUse.getState().markAnswered(entry.id);
               setLocalTasting(data);
-              saveCurateTasting(entryId, data, verdict, { history: 'same-day' });
+              saveCurateTasting(entryId, data, verdict, { record });
             }}
           />
         )}

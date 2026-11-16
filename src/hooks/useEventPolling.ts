@@ -36,6 +36,7 @@ function mapEvent(e: any): TeaEvent {
     claimWindowMinutes: Number(e.claim_window_minutes) || 30,
     timezone: e.timezone || 'Asia/Taipei',
     status: e.status || 'draft',
+    lifecycleStatus: e.lifecycle_status || undefined,
     sessionFlow: e.session_flow
       ? typeof e.session_flow === 'string'
         ? JSON.parse(e.session_flow)

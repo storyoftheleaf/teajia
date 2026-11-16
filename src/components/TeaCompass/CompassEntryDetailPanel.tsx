@@ -1,3 +1,6 @@
+import { TeaCardMetric, TeaCardMetrics } from '../tea/TeaCard';
+import { TeaPanelSummary } from '../tea/TeaPanelSummary';
+import { getThemeColor } from '../../admin/themeUtils';
 import { useProducts } from '../../admin/hooks/useAdminData';
 import { sharedStockRecordId, sharedStockRecordHref } from '../../lib/sharedTeaRecord';
 import { CurateRecordTools } from '../curate/CurateRecordTools';
@@ -28,10 +31,11 @@ import { LibraryReceiptActions } from './LibraryReceiptActions';
 import { TastingSession } from '../tasting/TastingSession';
 import { curateTastingUpdate } from '../../lib/curateTastingSave';
 import type { TastingData } from '../../types';
-import type { CompassVerdict } from './types';
+import type { TeaCompassEntry } from './types';
 
 interface CompassEntryDetailPanelProps {
   entryId: string;
+  previewEntry?: TeaCompassEntry;
   embedded?: boolean;
   onEdit?: (id: string) => void;
   onOpenInventory?: (productId: string) => void;
@@ -44,9 +48,10 @@ function RecordGroup({ title, children, active }: { title: string; children: Rea
   if (!active) return null;
   return <section className="space-y-3 py-3" aria-label={title}>{children}</section>;
 }
-export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = ({ entryId, embedded = false, onEdit, onOpenInventory, onClose, onShare, onAcquire }) => {
+export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = ({ entryId, previewEntry, embedded = false, onEdit, onOpenInventory, onClose, onShare, onAcquire }) => {
   const navigate = useNavigate();
-  const entry = useTeaCompassStore(s => s.pendingEntries.find(e => e.id === entryId) ?? s.entries.find(e => e.id === entryId));
+  const storedEntry = useTeaCompassStore(s => s.pendingEntries.find(e => e.id === entryId) ?? s.entries.find(e => e.id === entryId));
+  const entry = previewEntry ?? storedEntry;
   const syncError = useTeaCompassStore(s => s.syncError);
   const accountScopeId = useTeaCompassStore(s => s.accountScopeId);
   const accountScopeRevision = useTeaCompassStore(s => s.accountScopeRevision);
@@ -62,7 +67,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   const ledgerAccountId = useLedgerStore(s => s.accountScopeId);
   const transactions = ledgerAccountId === accountScopeId ? ledgerTransactions : [];
   const purchases = useLibraryPurchases();
-  const stockProducts = useProducts();
+  const stockProducts = useProducts({ enabled: !previewEntry });
   const [tastingOpen, setTastingOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [activeSection, setActiveSection] = useState('tea');
@@ -104,29 +109,39 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
     if (current.accountScopeId !== accountScopeId || current.accountScopeRevision !== accountScopeRevision || !current.getEntry(entry.id)?.synced) throw new Error('Saved on this device; sync is pending. Retry.');
   };
   const saveField = (field: LibraryInlineField) => (value: string) => savePatch(libraryInlinePatch(entry, field, value));
+  const chosenName = entry.givenName?.trim();
+  const hasChosenName = !!chosenName && chosenName !== entry.name.trim();
+  const editChosenName = <LibraryGivenName entry={entry} emptyLabel="Add name" className={hasChosenName ? 'text-ui-17 font-medium text-tea-text' : undefined} onSave={value => savePatch({ givenName: value.trim() || null })} />;
+  const editSourceName = <LibraryInlineValue multiline value={identity.name} display={identity.name || 'Name this tea'} label="Tea name" onSave={saveField('name')} />;
   return <div className="tea-record-panel flex h-full min-w-0 flex-col" data-testid="library-entry-detail">
     {!embedded && <header className="shrink-0 flex min-h-14 items-center gap-2 border-b border-tea-border px-3 py-1" data-testid="tea-record-header">
       <button type="button" onClick={onClose} aria-label="Close detail panel" className="tap-target min-h-11 min-w-11 flex items-center justify-center text-tea-text-sec"><X size={18} /></button>
       <h2 className={`${T.h3} min-w-0 flex-1 truncate text-tea-text`}>Tea record</h2>
       <span role="status" className="shrink-0 text-ui-11 text-tea-text-dim">{syncError ? 'Saved locally' : entry.synced ? 'Saved' : 'Saving…'}</span>
     </header>}
-    <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-nav-gap" data-testid="tea-record-scroll">
-      <div className="library-tea-card my-2">
-        <div className="library-tea-identity">
-          <div className="library-card-title-row">
-            <LibraryInlineValue multiline value={identity.name} display={identity.name || 'Name this tea'} label="Tea name" onSave={saveField('name')} className={`${T.h3} library-card-name`} />
-          </div>
-          <div className="library-card-subrow">
-          <LibraryGivenName entry={entry} onSave={value => savePatch({ givenName: value.trim() || null })} />
-            <LibraryInlineValue value={identity.year} display={identity.year || 'Add year'} label="Year" onSave={saveField('year')} className="library-card-year text-ui-13" />
-          </div>
-          <div className="flex items-center justify-between gap-2 text-ui-12 text-tea-text-sec"><span>{entry.vendorName || 'Supplier not recorded'}</span><LibrarySupplierActions supplierId={entry.vendorId} supplierName={entry.vendorName || 'Supplier'} onRenamed={() => { if (accountScopeId) void hydrateCompassEntries(accountScopeId); }} /></div>
-        </div>
-        <div className="library-ribbon-prices" aria-label={`Original quote in ${amounts.currency}`}>
-          <div className="library-ribbon-metric"><span className="text-ui-10 text-tea-text-dim">{entry.category === 'tea' ? 'Price / g' : 'Price / piece'}</span><strong className="text-ui-16">{amounts.perGram}</strong></div>
-          <div className="library-ribbon-metric"><span className="text-ui-10 text-tea-text-dim">Quote · {amounts.currency}</span><LibraryInlineValue numeric value={String(entry.priceAmount ?? '')} display={amounts.quote} label="Quote" onSave={saveField('priceAmount')} className="text-ui-16 font-semibold" /></div>
-          <div className="library-ribbon-metric"><span className="text-ui-10 text-tea-text-dim">{entry.category === 'tea' ? 'Quoted grams' : 'Quantity'}</span>{entry.category === 'tea' ? <LibraryInlineValue numeric value={String(entry.pricePerUnitGrams ?? '')} display={entry.pricePerUnitGrams ? `${entry.pricePerUnitGrams}g` : 'Set grams'} label="Quoted grams" onSave={saveField('pricePerUnitGrams')} className="text-ui-16 font-semibold" /> : <strong>1 piece</strong>}</div>
-        </div>
+    <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-nav-gap" data-testid="tea-record-scroll">
+      <div className="py-3">
+        <TeaPanelSummary
+          accent={getThemeColor(entry.type || '')}
+          title={hasChosenName ? editChosenName : editSourceName}
+          subtitle={hasChosenName ? editSourceName : undefined}
+          metadata={<>
+            <span className="break-words">{entry.vendorName || 'Supplier not recorded'}</span>
+            {entry.type && <span>· {entry.type}</span>}
+            <LibraryInlineValue value={identity.year} display={identity.year ? `· ${identity.year}` : 'Add year'} label="Year" onSave={saveField('year')} />
+            {!hasChosenName && editChosenName}
+          </>}
+          trailing={<LibrarySupplierActions supplierId={entry.vendorId} supplierName={entry.vendorName || 'Supplier'} onRenamed={() => { if (accountScopeId) void hydrateCompassEntries(accountScopeId); }} />}
+        />
+      </div>
+      <div className="tea-panel-metrics">
+        <TeaCardMetrics label={`Original quote in ${amounts.currency}`}>
+          <TeaCardMetric label={entry.category === 'tea' ? 'Price / g' : 'Price / piece'}>{amounts.perGram}</TeaCardMetric>
+          <TeaCardMetric label={`Quote · ${amounts.currency}`}><LibraryInlineValue numeric value={String(entry.priceAmount ?? '')} display={amounts.quote} label="Quote" onSave={saveField('priceAmount')} className="text-ui-16 font-semibold" /></TeaCardMetric>
+          <TeaCardMetric label={entry.category === 'tea' ? 'Quoted grams' : 'Quantity'}>
+            {entry.category === 'tea' ? <LibraryInlineValue numeric value={String(entry.pricePerUnitGrams ?? '')} display={entry.pricePerUnitGrams ? `${entry.pricePerUnitGrams}g` : 'Set grams'} label="Quoted grams" onSave={saveField('pricePerUnitGrams')} className="text-ui-16 font-semibold" /> : '1 piece'}
+          </TeaCardMetric>
+        </TeaCardMetrics>
       </div>
       <div className="tea-record-decision"><DecisionControl value={entry.decision} onChange={decision => updateEntry(entry.id, { decision })} compact /></div>
       <div className="flex items-center justify-between gap-2 py-1">
@@ -254,6 +269,6 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
       </section>
     </div>
     <BottomSheet open={moreFieldsOpen} onOpenChange={setMoreFieldsOpen} title="Tea details & sourcing"><StructuredTeaFields flat entry={entry} onChange={patch => updateEntry(entry.id, patch)} /></BottomSheet>
-    {tastingOpen && <TastingSession initialData={entry.tasting ?? entry.tastingHistory?.at(-1)?.data} item={{ id: entry.id, name: entry.name, type: entry.type, image: validPhotos[0], sourceType: 'compass', compassEntryId: entry.id }} onClose={() => setTastingOpen(false)} onAfterSave={(data: TastingData, verdict?: CompassVerdict) => updateEntry(entry.id, curateTastingUpdate(useTeaCompassStore.getState().getEntry(entry.id) ?? entry, data, verdict, { history: 'none' }))} />}
+    {tastingOpen && <TastingSession initialData={entry.tasting ?? entry.tastingHistory?.at(-1)?.data} item={{ id: entry.id, name: entry.name, type: entry.type, image: validPhotos[0], sourceType: 'compass', compassEntryId: entry.id }} onClose={() => setTastingOpen(false)} onAfterSave={(data: TastingData, verdict, _wouldBuy, record) => updateEntry(entry.id, curateTastingUpdate(useTeaCompassStore.getState().getEntry(entry.id) ?? entry, data, verdict, { record }))} />}
   </div>;
 };

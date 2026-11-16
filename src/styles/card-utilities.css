@@ -3958,6 +3958,15 @@ body:has(.commerce-dock) .bottom-nav-bar {
   box-shadow: 0 14px 26px -10px rgb(0 0 0 / 0.5);
 }
 
+/* The supplier sheet supplies its own surface behind the floating navigation. */
+body:has([data-supplier-order-sheet]) [data-bottom-nav-fade] {
+  visibility: hidden;
+}
+
+body:has([data-supplier-order-sheet]) .bottom-nav-bar {
+  box-shadow: none;
+}
+
 body:has(.commerce-dock) [data-testid='bottom-tab-bar'] {
   /* The bottom stays exactly the pill it always was. 9999px only reads as a
      pill because all four corners compete for the same 52px and the browser
@@ -5184,13 +5193,13 @@ body.cart-panel-open .commerce-dock {
    only here: the overlay and the sheet are portalled to the body, so Curate
    hands each its own `curate-v2` class (TastingSession and BottomSheet take a
    `className`). Nothing below applies without that class. Choices are thin
-   frames that turn gold when chosen; a section is a large word over a gold
+   frames that turn gold when chosen; a section is a large word over a
    hairline; small labels are Lora capitals; no tinted tiles, no pills, no icons.
    `!important` is on exactly the properties the zones set inline. */
 .curate-v2[data-tasting-session-overlay] > .bg-tea-bg { border-radius: 3px !important; }
 .curate-v2 .tasting-scroll p.italic { font-size: 13px; color: var(--tea-text-sec); }
 .curate-v2 .tasting-scroll .divider-warm { display: none; }
-/* A section: the word large, a gold hairline under it. */
+/* A section: the word large, a regular hairline under it. */
 .curate-v2 .tasting-scroll .uppercase.text-ui-12,
 .curate-v2 .tasting-scroll :not(button *)[style*='font-display'].text-ui-13,
 .curate-v2 .tasting-scroll :not(button *)[style*='font-display'].border-b {
@@ -5203,7 +5212,7 @@ body.cart-panel-open .commerce-dock {
   color: var(--tea-text);
   padding: 22px 0 8px;
   margin-bottom: 8px;
-  border-bottom: 1px solid rgb(var(--tea-gold-rgb) / 0.2);
+  border-bottom: 1px solid var(--tea-border);
 }
 .curate-v2 .tasting-scroll .uppercase.text-ui-12 { padding-top: 14px; margin-bottom: 4px; }
 /* A heading that shares a line with its figure (Quality 8/10, Liquor color): the
@@ -5213,7 +5222,7 @@ body.cart-panel-open .commerce-dock {
   align-items: baseline;
   padding: 22px 0 8px;
   margin-bottom: 8px;
-  border-bottom: 1px solid rgb(var(--tea-gold-rgb) / 0.2);
+  border-bottom: 1px solid var(--tea-border);
 }
 .curate-v2 .tasting-scroll button[aria-label^='Clear'] { min-height: 44px; min-width: 44px; justify-content: center; color: var(--tea-text-sec); }
 /* A small label: Lora capitals. */
@@ -5661,7 +5670,7 @@ body.cart-panel-open .commerce-dock {
 .library-card-grid { gap:8px; }
 .library-tea-card {
   padding:0; border-radius:4px; box-shadow:none;
-  border-color:color-mix(in srgb,var(--library-accent) 30%,var(--tea-border));
+  border-color:color-mix(in srgb,var(--library-accent, var(--tea-gold)) 30%,var(--tea-border));
   background:linear-gradient(180deg,var(--tea-bg),color-mix(in srgb,var(--tea-elevated) 8%,var(--tea-bg)));
 }
 .library-tea-card .library-card-title-row { padding:0 10px; }
@@ -5673,7 +5682,7 @@ body.cart-panel-open .commerce-dock {
     oklch(from var(--library-metal-hue) calc(var(--library-metal-l) + .025) calc(c * .35) h),
     oklch(from var(--library-metal-hue) calc(var(--library-metal-l) + .003) calc(c * .35) h) 20%,
     oklch(from var(--library-metal-hue) calc(var(--library-metal-l) - .02) calc(c * .35) h));
-  border-top:1px solid color-mix(in srgb,var(--library-accent) 42%,var(--tea-bg));
+  border-top:1px solid color-mix(in srgb,var(--library-accent, var(--tea-gold)) 42%,var(--tea-bg));
   border-bottom:1px solid var(--tea-border);
 }
 .library-tea-card .library-given-name > button, .library-tea-card .library-card-year > button { align-items:center; font-size:12px; height:34px; min-height:34px; }
@@ -5808,7 +5817,6 @@ body.cart-panel-open .commerce-dock {
 .tasting-impression-notes textarea { display: block; width: 100%; min-height: 116px; resize: vertical; padding: 12px; border: 1px solid var(--tea-border); border-radius: 4px; background: var(--tea-surface); color: var(--tea-text); }
 .tasting-impression-notes textarea::placeholder { color: var(--tea-text-dim); }
 .tasting-impression-history { margin-top: 12px; color: var(--tea-text-sec); }
-.tasting-impression-history summary { cursor: pointer; min-height: 44px; display: list-item; align-content: center; }
 .tasting-impression-history p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0; }
 .tasting-impression-recap { margin-top: 12px; border-top: 1px solid var(--tea-border); padding-top: 8px; }
 .tasting-impression-recap > h3 { margin: 0 0 4px; color: var(--tea-text-dim); }
@@ -6335,7 +6343,7 @@ body.cart-panel-open .commerce-dock {
 }
 /* Tasting has a visible save action and a distinct impression entry. */
 .tasting-header-controls { display:flex; align-items:center; gap:4px; }
-.tasting-heading-trigger { flex:1; min-width:0; width:auto; min-height:48px; padding:0 10px; border:1px solid var(--tea-text-dim); border-radius:10px; background:var(--tea-elevated); box-shadow:none; flex-direction:row; gap:7px; text-align:left; align-items:center; justify-content:center; }
+.tasting-heading-trigger { flex:1; min-width:0; width:auto; min-height:48px; padding:0 10px; border:1px solid var(--tea-border); border-radius:10px; background:var(--tea-elevated); box-shadow:none; flex-direction:row; gap:7px; text-align:left; align-items:center; justify-content:center; }
 .tasting-heading-trigger:hover { border-color:var(--tea-gold); }
 .tasting-heading-summary { display:flex; flex-shrink:0; align-items:center; gap:5px; max-width:100%; font-size:11px; white-space:nowrap; }
 .tasting-heading-summary svg { flex-shrink:0; color:var(--tea-text-sec); }
@@ -6977,7 +6985,8 @@ body.cart-panel-open .commerce-dock {
   .tasting-save-control[data-pending=true] { animation: none; box-shadow: 0 0 0 2px var(--tea-accent-sub); }
 }
 
-.tasting-impression-control { display:flex; align-items:center; flex:1; min-width:0; min-height:48px; border:1px solid var(--tea-text-dim); border-radius:10px; background:var(--tea-elevated); }
+.tasting-impression-control { display:flex; align-items:center; flex:1; min-width:0; min-height:48px; border:1px solid var(--tea-border); border-radius:10px; background:var(--tea-elevated); }
+.tasting-impression-control:has(.tasting-heading-trigger:is(:hover, :focus-visible)) { border-color:var(--tea-gold); }
 .tasting-impression-control .tasting-heading-trigger { border:0; background:transparent; min-height:46px; padding:0 7px; gap:5px; }
 .tasting-header-controls .tasting-impression-control .tasting-heading-mic { margin:0; border-left:1px solid var(--tea-border); border-radius:0 9px 9px 0; }
 .tasting-impression-control .tasting-heading-mic[aria-pressed=true] { background:var(--tea-accent-sub); color:var(--tea-text); }
@@ -7185,3 +7194,140 @@ body.cart-panel-open .commerce-dock {
 [data-form-layout='flow'] .curate-flow-taste-line .text-tea-text-dim,
 [data-form-layout='flow'] .curate-flow-taste-line .text-tea-border { color: var(--tea-text-sec); }
 [data-form-layout='flow'] .curate-flow-taste-line > .curate-support { padding-bottom: 10px; }
+
+/* The Library tea card also carries purchase data and controls. */
+.library-card-title-row > .tea-card-title {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding-block: 5px;
+  overflow-wrap: anywhere;
+}
+.library-tea-card .library-card-subrow:has(.library-card-meta-primary) {
+  min-height: 34px;
+}
+.library-ribbon-prices.tea-card-metrics {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 64px), 1fr));
+}
+.library-workbar .tea-card-metrics {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+.tea-card-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin: 0 4px;
+  border-top: 1px solid var(--tea-border);
+}
+.tea-card-action-row > :is(a, button) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.tea-panel-metrics {
+  border-block: 1px solid var(--tea-border);
+}
+.tea-panel-metrics .tea-card-metrics {
+  margin-inline: 0;
+  border: 0;
+  background: transparent;
+}
+
+.tasting-impression.tasting-session-quick { padding:0; }
+.tasting-session-quick > h2 { margin:0 0 10px; font-size:21px; }
+.tasting-session-quick .tasting-impression-rating { padding:8px 0; }
+.tasting-session-quick .tasting-impression-numbers { margin-top:4px; }
+.tasting-session-quick .tasting-impression-notes { margin-top:4px; }
+.tasting-session-quick .tasting-impression-notes label { margin-bottom:5px; }
+.tasting-session-quick .tasting-impression-notes textarea { min-height:74px; }
+.tasting-quick-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:12px; }
+.tasting-quick-actions button { min-height:44px; padding:6px; border:1px solid var(--tea-border); border-radius:8px; font-size:13px; }
+.tasting-quick-actions button:disabled { opacity:.45; }
+.tea-card-control-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) min(32%, 6.5rem);
+  align-items: center;
+  gap: 8px;
+}
+.tea-card-control-row > * {
+  min-width: 0;
+}
+.tea-card-control {
+  box-sizing: border-box;
+  width: 100%;
+  height: 44px;
+  min-width: 0;
+}
+
+/* Curate orders use a Library supplier group around its tea cards. */
+.library-supplier-group.tea-order-group {
+  min-width: 0;
+  padding: 6px;
+}
+.tea-order-header {
+  padding-inline: 4px;
+  margin-bottom: 6px;
+}
+.tea-order-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding-block: 0 8px;
+}
+.tea-order-line .library-tea-actions,
+.tea-order-line .tea-card-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 8px;
+  min-height: 44px;
+  padding: 0 10px;
+  margin: 0;
+}
+.tea-order-line .library-tea-actions > span {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  white-space: normal;
+}
+.tea-order-line .library-tea-actions > button {
+  min-height: 44px;
+  margin-left: auto;
+}
+.tea-order-line .tea-card-action-row > button {
+  margin-left: auto;
+  font-size: 12px;
+}
+.tea-order-record-links {
+  min-width: 0;
+  justify-content: center;
+}
+.tea-order-record-links > :is(a,button) {
+  min-width: 36px;
+  width: 38px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tea-order-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  border-top: 1px solid var(--tea-border);
+}
+
+
+.tasting-session-tools { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 8px; }
+.tasting-session-tools button { flex:1; min-height:44px; padding:4px 8px; border:1px solid var(--tea-border); border-radius:8px; background:var(--tea-surface); color:var(--tea-text); font-size:13px; }
+.tasting-session-tools button[aria-pressed="true"] { background:var(--tea-elevated); font-weight:600; }
+.tasting-session-tools button:disabled { opacity:.45; }

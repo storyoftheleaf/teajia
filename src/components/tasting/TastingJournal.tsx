@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Archive, RotateCcw, BookOpen, Calendar, Filter, Search, X, Mic, Share2 } from 'lucide-react';
+import { Archive, RotateCcw, BookOpen, Calendar, Filter, Search, X, Mic, Pencil, Share2 } from 'lucide-react';
 import { TastingCardModal } from './TastingCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import Fuse from 'fuse.js';
@@ -9,7 +9,8 @@ import { getTeaColor, getTeaVividColor } from '../../designTokens';
 import { TastingProfileStrip } from './TastingProfileStrip';
 import { usePlatformPrivilege } from '../../lib/permissions';
 import { formatRelativeDate, getDateGroup } from '../TeaCompass/BrowseCard';
-import type { CustomerTasting } from '../../types';
+import type { CustomerTasting, TastingRecord } from '../../types';
+import { JournalTastingEditor } from './JournalTastingEditor';
 import { entryEvent, latestTasting } from '../../lib/tastingAccessors';
 import { flattenTastingNotes, resolveTermLabel, resolveTermIcon, LIQUOR_COLORS } from '../../data/tastingTaxonomy';
 import { JournalSectionVoiceNote } from './JournalSectionVoiceNote';
@@ -46,6 +47,8 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
   const [expandedId, setExpandedId] = useState<string | null>(initialEntryId ?? null);
   const [showArchived, setShowArchived] = useState(false);
   const [shareCardEntry, setShareCardEntry] = useState<CustomerTasting | null>(null);
+  const [tastingEditor, setTastingEditor] = useState<{ entryId: string; record: TastingRecord } | null>(null);
+  const editingEntry = tastingJournal.find(entry => entry.id === tastingEditor?.entryId);
   const [eventFilter, setEventFilter] = useState<EventFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('recent');
@@ -554,15 +557,24 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                                     Past tastings
                                   </div>
                                   {[...entry.tastings].reverse().map(t => (
-                                    <div key={t.id} className="px-1 py-1 text-ui-11 leading-snug">
-                                      <div className="flex items-baseline gap-2 text-tea-text-sec">
-                                        <span className="text-ui-10 text-tea-text-dim">{formatRelativeDate(t.createdAt)}</span>
-                                        {t.eventTitle && <span className="text-ui-10 italic text-tea-text-dim">at {t.eventTitle}</span>}
-                                      </div>
-                                      {t.reason && (
-                                        <div className="italic text-tea-text-sec mt-0.5">
-                                          "{t.reason}"
+                                    <div key={t.id} className="flex flex-wrap items-center justify-between gap-x-2 px-1 text-ui-11 leading-snug">
+                                      <div className="min-w-0">
+                                        <div className="flex flex-wrap items-baseline gap-x-2 text-tea-text-sec">
+                                          <span className="text-tea-text-dim">{formatRelativeDate(t.createdAt)}</span>
+                                          {t.eventTitle && <span className="italic text-tea-text-dim">at {t.eventTitle}</span>}
                                         </div>
+                                        {t.reason && <p className="mt-0.5 italic text-tea-text-sec">{t.reason}</p>}
+                                      </div>
+                                      {!entry.archived && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setTastingEditor({ entryId: entry.id, record: t })}
+                                          className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-tea-text-sec hover:text-tea-text"
+                                          title="Edit tasting"
+                                          aria-label={`Edit tasting from ${new Date(t.createdAt).toLocaleString()}`}
+                                        >
+                                          <Pencil size={16} aria-hidden="true" />
+                                        </button>
                                       )}
                                     </div>
                                   ))}
@@ -626,6 +638,9 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
         )}
       </div>
     </div>
+      {tastingEditor && editingEntry && (
+        <JournalTastingEditor entry={editingEntry} record={tastingEditor.record} onClose={() => setTastingEditor(null)} />
+      )}
     </>
   );
 };

@@ -148,7 +148,7 @@ const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const developName = params.get('developName');
   const developType = params.get('developType');
   const initialMode: CompassMode | undefined =
-    tab === 'buying' ? 'buying' : tab === 'ledger' ? 'buying' :
+    tab === 'buying' || tab === 'ledger' || tab === 'orders' ? 'buying' :
     tab === 'sourcing' ? 'sourcing' : tab === 'capture' ? 'sourcing' :
     tab === 'samples' ? 'sourcing' :
     // 'tasting' kept as a back-compat alias for the old query param.

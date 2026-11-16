@@ -1,0 +1,22 @@
+body {
+  margin: 0;
+  background: var(--tea-bg);
+  color: var(--tea-text);
+}
+.tea-ui-reference {
+  display: grid;
+  gap: 20px;
+  width: min(100%, 64rem);
+  margin-inline: auto;
+  padding: 16px;
+}
+.tea-ui-reference > header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.tea-ui-reference h2 {
+  margin-bottom: 6px;
+}

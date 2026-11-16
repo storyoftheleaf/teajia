@@ -12,7 +12,7 @@ import {
 } from '../../../hooks/useEventPolling';
 import { api } from '../../../lib/api';
 import StoryCardsBriefing from '../StoryCardsBriefing';
-import { formatDay, isPast } from './helpers';
+import { formatDay } from './helpers';
 import RequestedView from './RequestedView';
 import DeniedView from './DeniedView';
 import WaitlistView from './WaitlistView';
@@ -36,6 +36,8 @@ const GuestManagement: React.FC = () => {
   const updateNotes = useUpdateRSVPNotes(magicToken || '');
   const updateGuests = useUpdateApprovedGuests(magicToken || '');
   const updateGuestListVisibility = useUpdateGuestListVisibility(magicToken || '');
+  const lifecycle = data?.event.lifecycleStatus ?? data?.event.status;
+  const isCompleted = lifecycle === 'completed' || lifecycle === 'archived';
 
   // Post-session archive data (gallery, session notes, aggregated tasting
   // impressions). Fetched lazily for the post-event recap view. Returns
@@ -50,7 +52,7 @@ const GuestManagement: React.FC = () => {
         return null;
       }
     },
-    enabled: !!magicToken && !!data && new Date(data.event.eventDate).getTime() < Date.now(),
+    enabled: !!magicToken && isCompleted,
     staleTime: 60_000,
   });
 
@@ -129,8 +131,6 @@ const GuestManagement: React.FC = () => {
   }
 
   const { attendee, event, briefingCards } = data;
-  const eventPast = isPast(event.eventDate);
-  const isCompleted = eventPast;
   const status = attendee.status;
 
   // Initialize local notes/guest state from attendee data on first load

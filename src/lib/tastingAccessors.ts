@@ -27,3 +27,9 @@ export function entrySourceType(entry: CustomerTasting): TastingRecord['sourceTy
 export function displayTastingData(entry: CustomerTasting): TastingData {
   return entry.note.tasting;
 }
+
+/** Ordinary event tastings may adopt a local guest entry or reuse one in the active shop. */
+export function matchesEventTastingEntry(entry: CustomerTasting, productId: string, accountId?: string | null): boolean {
+  return !entry.archived && entry.productId === productId &&
+    (entry.accountId == null || entry.accountId === accountId);
+}

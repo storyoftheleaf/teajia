@@ -203,7 +203,7 @@ export interface TeaCompassEntry {
   tasteOrder?: number;
 
   // Retaste timeline, each tasting session appended; current tasting is also in .tasting
-  tastingHistory?: Array<{ data: TastingData; date: string; note?: string }>;
+  tastingHistory?: Array<{ id?: string; data: TastingData; date: string; note?: string }>;
 
   // Pipeline, internal, set automatically when ledger purchase is confirmed
   draftProductId?: string;

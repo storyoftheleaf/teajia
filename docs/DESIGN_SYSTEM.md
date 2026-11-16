@@ -33,6 +33,23 @@ These hold whether the page is a settings form, a data table, a reader, or a hub
 
 ---
 
+## Tea cards, detail panels, and tasting
+
+Run `npm run dev:test` and open `/preview/tea-ui/` on the local server. The reference opens the actual Curate Library cards, their tea detail sheet, and the full tasting screen with sample data. The preview offers both themes and keeps tasting saves in memory.
+
+| Use | Import | Examples in the app |
+|---|---|---|
+| Tea on a list or order | [`TeaCard`, `TeaCardTitle`, `TeaCardMetric`](../src/components/tea/TeaCard.tsx) | [Library](../src/components/TeaCompass/BrowseCard.tsx), [Purchase Tracking](../src/admin/components/inventory/PurchaseTrackingView.tsx) |
+| Tea identity at the top of a detail panel | [`TeaPanelSummary`](../src/components/tea/TeaPanelSummary.tsx) | [Stock](../src/admin/components/ProductEditPanel.tsx), [Library](../src/components/TeaCompass/CompassEntryDetailPanel.tsx) |
+| Main selection beside a compact quantity | [`TeaCardControlRow`](../src/components/tea/TeaCard.tsx) with `tea-card-control` on both controls | Supplier order |
+| A tasting or a more detailed continuation | [`TastingSession`](../src/components/tasting/TastingSession.tsx) and the [shared impression fields](../src/components/tasting/YourImpression.tsx) | Curate, the personal journal, and tea sessions |
+
+Start with the shared component and supply the fields and actions needed by the screen. Keep the name prominent, facts grouped together, and actions aligned. A detail panel puts the name, supplier or alternate name, and relevant context together before the editable sections. Form controls that sit on the same row share a height. Give a long selector the flexible column and a short quantity the compact one.
+
+Check the actual screen at 390 × 844 and desktop in both themes. Try long tea names, missing data, and disabled actions. The Playwright test [`tea-ui-reference.spec.ts`](../tests/tea-ui-reference.spec.ts) checks that the reference opens the actual card, detail sheet, and full tasting.
+
+---
+
 ## 2. Color tokens
 
 All colors are stored as CSS variables that switch with mode. Components reference the semantic name, not the hex.

@@ -25,6 +25,18 @@ describe('the local journal never drops an entry the shop does not hold', () => 
     expect(useAppStore.getState().tastingJournal).toHaveLength(102);
   });
 
+  it('a session tasting uses the active shop entry or adopts local guest history', () => {
+    const otherShop = { ...entry(1, true), accountId: 'other', note: { tasting: { quality: 4 }, updatedAt: '2026-11-01' } };
+    const guest = { ...entry(1, false), id: 'guest-entry' };
+    useAppStore.setState({ tastingJournal: [otherShop, guest] });
+    useAppStore.getState().upsertTastingByProductId('tea-1', 'Tea 1', 'Oolong', undefined, {
+      ...record, sourceType: 'event', eventId: 'event-1', tasting: { quality: 8 },
+    }, { rating: 8 }, 'local');
+    const journal = useAppStore.getState().tastingJournal;
+    expect(journal[0]).toEqual(otherShop);
+    expect(journal[1]).toMatchObject({ id: 'guest-entry', accountId: 'local', note: { rating: 8 } });
+  });
+
   it('an unsynced entry outlives synced ones, and synced ones still stop at the cap', () => {
     // Oldest at the end: one unsynced entry behind 99 synced ones.
     useAppStore.setState({ tastingJournal: [...Array.from({ length: 99 }, (_, i) => entry(100 - i, true)), entry(1, false)] });

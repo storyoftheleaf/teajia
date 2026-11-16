@@ -1,27 +1,13 @@
-import type { TastingData } from '../types';
+import type { TastingData, TastingRecord } from '../types';
 import type { CompassVerdict, TeaCompassEntry } from '../components/TeaCompass/types';
 import { useTeaCompassStore } from './teaCompassStore';
 
-/**
- * What a saved tasting does to its Curate tea, whichever door opened it.
- *
- * Every Curate door (the cards, the detail panels, the capture forms, the
- * account panel's journal) hands the saved tasting here, so a tasting always
- * changes the tea the same way: its current `tasting`, its history, and its
- * verdict.
- *
- * History rule. The doors disagreed when this was written: two Curate v2 doors
- * replace the last history record when it was written today, the Curate v2
- * detail panel always appends, and old Curate wrote no history at all. Neither
- * of the first two keeps everything the other keeps, so the rule is still named
- * by each door until one is chosen.
- *   - 'same-day': replace the last record when it is from today, else append.
- *   - 'append': always append.
- *   - 'none': leave the history as it is.
- */
-export type CurateHistoryRule = 'same-day' | 'append' | 'none';
-
 type HistoryRecord = NonNullable<TeaCompassEntry['tastingHistory']>[number];
+type CurateTastingSaveOptions = {
+  record: Pick<TastingRecord, 'id' | 'createdAt'>;
+  /** Journal edits reuse the original record and may refer to older id-less history. */
+  editing?: 'latest' | 'past';
+};
 
 /**
  * True when the impression was taken back in the tasting. The tasting writes the
@@ -38,44 +24,30 @@ function withoutImpressionKey(data: TastingData): TastingData {
   return rest;
 }
 
-function historyAfterSave(
-  existing: ReadonlyArray<HistoryRecord>,
-  data: TastingData,
-  rule: CurateHistoryRule,
-  now: Date,
-): HistoryRecord[] {
-  const record: HistoryRecord = { data, date: now.toISOString() };
-  if (rule === 'append') return [...existing, record];
-  const last = existing[existing.length - 1];
-  const lastWasToday = !!last && new Date(last.date).toDateString() === now.toDateString();
-  return lastWasToday ? [...existing.slice(0, -1), record] : [...existing, record];
-}
-
-/**
- * The update a saved tasting makes to its Curate tea.
- * - `tasting` is always the saved tasting.
- * - `tastingHistory` follows the door's history rule.
- * - `verdict` is the chosen impression when there is one. It is cleared only when
- *   the impression was explicitly taken back in this tasting; otherwise it is
- *   left alone, so a verdict given in triage is not wiped by a tasting that
- *   never chose one.
- */
+/** Each opening owns one stable record. Editing an older journal note leaves the current tasting alone. */
 export function curateTastingUpdate(
   entry: Pick<TeaCompassEntry, 'tastingHistory'>,
   data: TastingData,
   verdict: CompassVerdict | undefined,
-  options: { history: CurateHistoryRule; now?: Date },
+  { record, editing }: CurateTastingSaveOptions,
 ): Partial<TeaCompassEntry> {
-  const now = options.now ?? new Date();
+  const existing = entry.tastingHistory ?? [];
+  const index = existing.findIndex(item => item.id === record.id);
   const unchosen = !verdict && impressionWasUnchosen(data);
-  // The empty impression key has done its job once the verdict is cleared. Kept on
-  // the tea, a later reopening in this page would read it as a second take-back
-  // and clear a verdict given since. Stored JSON is the same either way.
   const tasting = unchosen ? withoutImpressionKey(data) : data;
-  const update: Partial<TeaCompassEntry> = { tasting };
-  if (options.history !== 'none') {
-    update.tastingHistory = historyAfterSave(entry.tastingHistory ?? [], tasting, options.history, now);
+  const update: Partial<TeaCompassEntry> = {};
+
+  if (index >= 0) {
+    update.tastingHistory = existing.map((item, i) => i === index ? { ...item, data: tasting } : item);
+    if (index < existing.length - 1) return update;
+  } else if (!editing) {
+    const historyRecord: HistoryRecord = { id: record.id, data: tasting, date: record.createdAt };
+    update.tastingHistory = [...existing, historyRecord];
+  } else if (editing === 'past' || existing.some(item => item.id && item.date > record.createdAt)) {
+    return update;
   }
+
+  update.tasting = tasting;
   if (verdict) update.verdict = verdict;
   else if (unchosen) update.verdict = undefined;
   return update;
@@ -91,12 +63,13 @@ export function saveCurateTasting(
   entryId: string,
   data: TastingData,
   verdict: CompassVerdict | undefined,
-  options: { history: CurateHistoryRule },
+  options: CurateTastingSaveOptions,
 ): void {
   const store = useTeaCompassStore.getState();
   const entry = store.getEntry(entryId);
   if (!entry) return;
-  store.updateEntry(entryId, curateTastingUpdate(entry, data, verdict, options));
+  const update = curateTastingUpdate(entry, data, verdict, options);
+  if (Object.keys(update).length) store.updateEntry(entryId, update);
 }
 
 /**

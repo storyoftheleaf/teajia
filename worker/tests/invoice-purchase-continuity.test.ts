@@ -1,7 +1,7 @@
 import {afterEach,describe,it,expect} from 'vitest';
 import {SqliteD1,seedIdentity} from './helpers/sqliteD1';
 import {finalizeCurateImportRequest} from '../src/curateImports';
-import {linkImportReceiptPurchase,preparePurchaseReceipt} from '../src/purchaseContinuity';
+import {linkImportReceiptPurchase,placePurchaseReceipt,preparePurchaseReceipt} from '../src/purchaseContinuity';
 import {curateIntakeTools} from '../src/mcpTools/curateIntake';
 import {curateSupplyTools} from '../src/mcpTools/curateSupply';
 
@@ -72,6 +72,39 @@ describe('agent purchase creates its receipt without arrival stock',()=>{
   expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM curate_receipt_proposals').get()).toEqual({n:0});
   expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM stock_ledger').get()).toEqual({n:0});
   const replay=await preparePurchaseReceipt({DB:db as any},ctx,result.purchase_order_id);expect(replay.value).toMatchObject({already_prepared:true,receipt_id:result.receipt_id});
+ });
+});
+
+describe('browser purchase placement creates or links private Stock drafts', () => {
+ it('keeps the exact quantity and confirmed cost on the delivery until verified receipt', async () => {
+  const db = dbFor();
+  db.sqlite.exec(`INSERT INTO tea_compass_entries(id,account_id,user_id,name,given_name,category,type)
+    VALUES('browser-tea','shop','owner','Supplier tea','My tea','tea','Red');
+    INSERT INTO products(id,account_id,product_name,type,status,stock_grams)
+    VALUES('existing','shop','Already linked tea','Red','Active',250);`);
+  const items = [
+    {compass_entry_id:'browser-tea', client_line_id:'local-tea', quantity:750, unit:'g', line_total:90, currency:'CNY'},
+    {product_id:'existing', quantity:350, unit:'g'},
+    {product_name:'New teapot', type:'Teaware', quantity:4, unit:'unit', line_total:48, currency:'USD'},
+  ];
+  db.sqlite.prepare("INSERT INTO purchase_orders(id,account_id,vendor_name,items_json,status,ship_mode,created_at,updated_at) VALUES('browser','shop','Supplier',?,'pending','air',datetime('now'),datetime('now'))").run(JSON.stringify(items));
+
+  const result = await placePurchaseReceipt({DB:db as any}, ctx, 'browser', 'ordered', false);
+  expect(result.value).toMatchObject({receipt_id:'po_browser', unresolved_items:[], lines:[
+   {product_id:'holding_shop_browser-tea', client_line_id:'local-tea'}, {product_id:'existing'}, {product_id:'po_holding_browser_2'},
+  ]});
+  expect(db.sqlite.prepare("SELECT status,stock_grams,is_public,shown_in_shop,cost_amount,quantity_purchased,given_name FROM products WHERE id='holding_shop_browser-tea'").get())
+   .toEqual({status:'Draft',stock_grams:0,is_public:0,shown_in_shop:0,cost_amount:null,quantity_purchased:null,given_name:'My tea'});
+  expect(db.sqlite.prepare("SELECT stock_grams,status FROM products WHERE id='existing'").get()).toEqual({stock_grams:250,status:'Active'});
+  expect(db.sqlite.prepare("SELECT quantity_units,is_public FROM products WHERE id='po_holding_browser_2'").get()).toEqual({quantity_units:0,is_public:0});
+  expect(db.sqlite.prepare('SELECT product_id,expected_quantity,received_quantity,original_cost_currency,original_unit_cost FROM inventory_receipt_lines ORDER BY id').all()).toEqual([
+   {product_id:'holding_shop_browser-tea',expected_quantity:750,received_quantity:0,original_cost_currency:'Yuan',original_unit_cost:0.12},
+   {product_id:'existing',expected_quantity:350,received_quantity:0,original_cost_currency:null,original_unit_cost:null},
+   {product_id:'po_holding_browser_2',expected_quantity:4,received_quantity:0,original_cost_currency:'USD',original_unit_cost:12},
+  ]);
+  expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM stock_ledger').get()).toEqual({n:0});
+  expect((await placePurchaseReceipt({DB:db as any}, ctx, 'browser', 'ordered', false)).value).toMatchObject({receipt_id:'po_browser', already_prepared:true});
+  expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM products').get()).toEqual({n:3});
  });
 });
 

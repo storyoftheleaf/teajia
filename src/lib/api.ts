@@ -2425,7 +2425,7 @@ export const api = {
       request_id?: string;
       idempotency_key?: string;
       ship_mode?: 'air' | 'sea';
-    }): Promise<{ id: string; status?: string; receipt_review_required?: boolean; unresolved_items?: Array<{ index: number; reason: string; item?: unknown }> }> => {
+    }): Promise<{ id: string; status?: string; receipt_id?: string | null; lines?: Array<{ product_id: string; compass_entry_id: string | null; client_line_id: string | null; receipt_line_id: string | null }>; receipt_review_required?: boolean; unresolved_items?: Array<{ index: number; reason: string; item?: unknown }> }> => {
       return authedFetch(`${API_URL}/api/purchase-orders`, {
         method: 'POST',
         body: JSON.stringify({ ...data, request_id: data.request_id || data.idempotency_key || crypto.randomUUID() }),
