@@ -1591,7 +1591,8 @@ CREATE TABLE IF NOT EXISTS customer_tasting_journal (
   tastings TEXT,
   archived INTEGER DEFAULT 0,
   session_id TEXT,
-  session_title TEXT
+  session_title TEXT,
+  compass_entry_id TEXT -- migration 0012: optional source link, no foreign key or default
 );
 CREATE INDEX IF NOT EXISTS idx_customer_tasting_journal_user ON customer_tasting_journal(user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_customer_tasting_journal_user_product ON customer_tasting_journal(user_id, product_id);
