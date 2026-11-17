@@ -20,8 +20,15 @@ describe('purchase-order confirmation boundary', () => {
     expect(acquisition).toContain('addLineItem');
     expect(acquisition).toContain('api.compass.proposeReceipt');
     expect(acquisition).not.toContain("update({ status: 'in_stock' })");
-    expect(source).toContain("reviewReceipt('reject')");
-    expect(source).toContain("reviewReceipt('accept')");
-    expect(source).toContain('Accept into Inventory');
+    const result = readFileSync(new URL('../../src/components/curate/CapturePurchaseResult.tsx', import.meta.url), 'utf8');
+    expect(source).toContain('<CapturePurchaseResult');
+    expect(source).toContain('onReview={reviewReceipt}');
+    expect(result).toContain("onReview('reject')");
+    expect(result).toContain("onReview('accept')");
+    expect(result).toContain('Accept into Inventory');
+    const review = source.slice(source.indexOf('const reviewReceipt'), source.indexOf('const purchaseResult'));
+    expect(review).toContain("action === 'accept'");
+    expect(review).toContain('api.compass.acceptReceiptProposal(receiptProposal.id)');
+    expect(review).toContain('api.compass.rejectReceiptProposal(receiptProposal.id)');
   });
 });
