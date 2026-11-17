@@ -7,6 +7,13 @@ import { TeaWeighControl } from './TeaWeighControl';
 import { useTheme } from '../../context/ThemeContext';
 import type { InventoryItem } from '../../types';
 
+const SHOP_RECOMMENDATIONS = new Set([
+  '186380ba-6839-448f-baaf-2b84ef7e5556', // Mahei Gushu Red
+  '2ec4bcf5-1773-453c-b710-5b859203cb4e', // Aged Liu Bao Tea
+  'dddd11d2-7357-4d91-86e8-52a99bb47c51', // Naka Gushu
+  'e949b585-5f07-411b-82fb-7da7355edc77', // Yiwu Raw Puerh
+]);
+
 export interface TeaLedgerGroup {
   type: string;
   items: InventoryItem[];
@@ -20,6 +27,7 @@ interface TeaLedgerProps {
   priceWeight: number;
   formatPrice: (price: number) => string;
   favoriteIds: ReadonlySet<string>;
+  showShopRecommendations?: boolean;
   onToggleFavorite: (itemId: string, event: MouseEvent) => void;
   onOpenProduct: (item: InventoryItem) => void;
   onChooseAmount?: (item: InventoryItem) => void;
@@ -89,6 +97,7 @@ export function TeaLedger({
   priceWeight,
   formatPrice,
   favoriteIds,
+  showShopRecommendations,
   onToggleFavorite,
   onOpenProduct,
   onChooseAmount,
@@ -138,6 +147,7 @@ export function TeaLedger({
                   onToggleSave={event => onToggleFavorite(item.id, event)}
                   onOpen={() => onOpenProduct(item)}
                   tastingCount={tastingCount}
+                  recommended={showShopRecommendations && !!purchase && SHOP_RECOMMENDATIONS.has(item.id)}
                   trailing={purchase ? (
                     <TeaWeighControl item={item} preferredGrams={priceWeight} formatPrice={formatPrice}
                       onAddToCart={onAddToCart} onChooseAmount={onChooseAmount} />
@@ -165,6 +175,7 @@ interface TeaLedgerRowProps {
   onToggleSave: (event: MouseEvent<HTMLButtonElement>) => void;
   onOpen: () => void;
   tastingCount?: number;
+  recommended?: boolean;
   trailing?: ReactNode;
   selected?: boolean;
   expanded?: boolean;
@@ -176,7 +187,7 @@ interface TeaLedgerRowProps {
 }
 
 /** The shop's tea row, shared verbatim with Library; actions belong to the caller. */
-export function TeaLedgerRow({ item, showType, saved, onToggleSave, onOpen, tastingCount = 0, trailing, selected, expanded, openLabel, label, mark }: TeaLedgerRowProps) {
+export function TeaLedgerRow({ item, showType, saved, onToggleSave, onOpen, tastingCount = 0, recommended, trailing, selected, expanded, openLabel, label, mark }: TeaLedgerRowProps) {
   const { theme } = useTheme();
   const rowTones = getTeaLedgerTones(item.type, theme);
   const origin = splitOrigin(item.origin || '');
@@ -188,6 +199,7 @@ export function TeaLedgerRow({ item, showType, saved, onToggleSave, onOpen, tast
       role="button"
       tabIndex={0}
       aria-label={openLabel ?? `View ${item.name}`}
+      aria-description={recommended ? 'Adrian’s pick' : undefined}
       aria-expanded={expanded}
       aria-current={selected ? true : undefined}
       style={{
@@ -235,6 +247,12 @@ export function TeaLedgerRow({ item, showType, saved, onToggleSave, onOpen, tast
             )}
           </div>
           <div className="flex min-w-0 items-center font-sans text-ui-12 tracking-[0.02em] text-tea-text-sec">
+            {recommended && (
+              <span className="shrink-0 font-medium text-tea-text">
+                Adrian’s pick
+                {(leading || origin.near) && <span className="px-1.5 text-tea-text-dim" aria-hidden="true">&middot;</span>}
+              </span>
+            )}
             <span className="min-w-0 truncate">
             {leading && (
               <>

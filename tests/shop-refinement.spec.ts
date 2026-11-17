@@ -134,11 +134,13 @@ test.describe('refined public shop', () => {
   test.beforeEach(async ({ page }) => {
     await mockPublicShop(page);
     await page.goto('/shop', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('button', { name: 'All teas' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Search teas' })).toBeVisible();
   });
 
-  test('keeps both navigation levels visible without horizontal overflow', async ({ page }) => {
-    for (const name of ['Tea', 'Teaware', 'Sets', 'Liked', 'All teas', 'My selection', 'Find a tea']) {
+  test('keeps one tab row and a compact search trigger without horizontal overflow', async ({ page }) => {
+    await expect(page.getByRole('group', { name: 'Tea shop views' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Find a tea', exact: true })).toHaveCount(0);
+    for (const name of ['Tea', 'Liked', 'Search teas']) {
       const control = page.getByRole('button', { name, exact: true });
       await expect(control).toBeVisible();
       const box = await control.boundingBox();
@@ -146,23 +148,32 @@ test.describe('refined public shop', () => {
       expect(box!.x).toBeGreaterThanOrEqual(0);
       expect(box!.x + box!.width).toBeLessThanOrEqual(await page.evaluate(() => innerWidth));
     }
+    await expect(page.getByRole('searchbox', { name: 'Search teas' })).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
   });
 
-  test('moves through Finder using one persistent result status', async ({ page }) => {
-    await expect(page.getByRole('button', { name: 'All teas' })).toHaveAttribute('aria-pressed', 'true');
+  test('expands the search prompt before focusing and filters the existing menu', async ({ page }) => {
     const status = page.locator('p[role="status"][aria-live="polite"]');
     await status.evaluate(element => element.setAttribute('data-regression-probe', 'same-node'));
+    await page.getByRole('button', { name: 'Search teas', exact: true }).click();
+    const field = page.getByTestId('tea-shop-search');
+    const prompt = field.getByText('Search teas', { exact: true });
+    const input = field.getByRole('searchbox', { name: 'Search teas' });
+    await expect(prompt).toBeVisible();
+    await expect(input).not.toBeFocused();
 
-    await page.getByRole('button', { name: 'Find a tea' }).click();
-    await expect(status).toHaveText('Choose a direction to find a tea.');
-    await page.getByRole('button', { name: 'Light and fragrant' }).click();
-
-    await expect(page.getByRole('button', { name: 'All teas' })).toHaveAttribute('aria-pressed', 'true');
-    await expect(status).toHaveAttribute('data-regression-probe', 'same-node');
-    await expect(status).toContainText('tea shown');
-    await expect(page).toHaveURL(/(?:\?|&)flavor=floral(?:&|$)/);
+    await input.click();
+    await expect(input).toBeFocused();
+    await expect(prompt).toBeHidden();
+    await input.fill('Moonlight');
+    await expect(page.getByRole('button', { name: 'View Grounded Shou' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'View Moonlight White' })).toBeVisible();
+    await expect(status).toHaveAttribute('data-regression-probe', 'same-node');
+    await expect(status).toHaveText('1 tea shown');
+
+    await field.getByRole('button', { name: 'Close tea search' }).click();
+    await expect(page.getByRole('button', { name: 'Search teas', exact: true })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'View Grounded Shou' })).toBeVisible();
   });
 
   test('opens a tea into the product page, with one rendering per address', async ({ page }) => {

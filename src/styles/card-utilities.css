@@ -7378,3 +7378,44 @@ body.cart-panel-open .commerce-dock {
 .tasting-session-tools button { flex:1; min-height:44px; padding:4px 8px; border:1px solid var(--tea-border); border-radius:8px; background:var(--tea-surface); color:var(--tea-text); font-size:13px; }
 .tasting-session-tools button[aria-pressed="true"] { background:var(--tea-elevated); font-weight:600; }
 .tasting-session-tools button:disabled { opacity:.45; }
+
+
+/* Tea shop search expands from the search icon. The surface is shorter than the tap targets. */
+.tea-shop-search {
+  --shop-search-duration: 200ms;
+  width: 2.75rem;
+  transition: width var(--shop-search-duration) cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.tea-shop-search[data-open='true'] { width: 100%; }
+
+.tea-shop-search[data-open='true']::before {
+  content: '';
+  position: absolute;
+  inset: 6px 0;
+  border-radius: 6px;
+  background: var(--tea-surface);
+  pointer-events: none;
+}
+
+.tea-shop-search[data-open='true']:focus-within::before {
+  box-shadow: inset 0 0 0 1px var(--tea-border);
+}
+
+.tea-shop-search-entry:focus-within .tea-shop-search-prompt,
+.tea-shop-search-entry input:not(:placeholder-shown) + .tea-shop-search-prompt {
+  visibility: hidden;
+}
+
+.tea-shop-search-close {
+  animation: tea-shop-search-close var(--shop-search-duration) step-end both;
+}
+
+@keyframes tea-shop-search-close {
+  from { visibility: hidden; }
+  to { visibility: visible; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tea-shop-search { --shop-search-duration: 0ms; }
+}

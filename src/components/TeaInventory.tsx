@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { useLocation, useSearchParams, type Location } from 'react-router-dom';
 import { Icons } from './Icons';
 import { X } from 'lucide-react';
@@ -7,6 +8,7 @@ import { AddToSampleButton } from './samples/AddToSampleButton';
 import { resolveTermLabel, resolveTermIcon, TASTING_TAXONOMY, TERM_MAP, type TastingCategoryId } from '../data/tastingTaxonomy';
 import { getCommonTastingForType } from '../data/commonTastingByStyle';
 import { PageHeader } from './shared/PageHeader';
+import { Button } from './shared/Button';
 import { PageHeaderTabs } from './shared/PageHeaderTabs';
 import { useShopPrice } from './shop/shopPrice';
 import { InventoryItem } from '../types';
@@ -42,6 +44,8 @@ interface TeaInventoryProps {
   onAccountClick?: () => void;
   cartItemCount?: number;
   hideHeader?: boolean;
+  showViewTabs?: boolean;
+  showShopRecommendations?: boolean;
   isAdmin?: boolean;
   adminProductMap?: Map<string, Product>;
   onAdminEdit?: (itemId: string) => void;
@@ -124,7 +128,7 @@ function resolvedIncludes(item: TeaItem, categoryId: TastingCategoryId, termId: 
   return Boolean(common?.[categoryId]?.includes(termId));
 }
 
-export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCart, onCartClick, onAccountClick, cartItemCount = 0, hideHeader = false, isAdmin = false, adminProductMap, onAdminEdit, modalLocation }) => {
+export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCart, onCartClick, onAccountClick, cartItemCount = 0, hideHeader = false, showViewTabs = true, showShopRecommendations = false, isAdmin = false, adminProductMap, onAdminEdit, modalLocation }) => {
   /**
    * The grid price, in the currency the reader chose.
    *
@@ -148,6 +152,16 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   const [specialFilter, setSpecialFilter] = useState<'None' | 'Curated' | 'Sale' | 'Liked' | 'Tasted'>('None');
   const [openFilter, setOpenFilter] = useState<'type' | 'place' | 'feeling' | 'sort' | null>(null);
   const [searchText, setSearchText] = useState<string>('');
+  const [shopSearchOpen, setShopSearchOpen] = useState(false);
+  const shopSearchButton = useRef<HTMLButtonElement>(null);
+
+  const closeShopSearch = () => {
+    flushSync(() => {
+      setSearchText('');
+      setShopSearchOpen(false);
+    });
+    shopSearchButton.current?.focus({ preventScroll: true });
+  };
   const [teaView, setTeaView] = useState<TeaShopView>('all');
   const [showPast, setShowPast] = useState(false);
   // Profile-level mood/flavor tag filters (URL params: ?mood=id,id2 and ?flavorTag=id,id2)
@@ -516,13 +530,14 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       {/* --- Inline Filter Bar + Content (full width) --- */}
       {/* No gutter of its own on a phone: the page already gives 16px, and a
           second 12px inside it left the tea names 28px from each edge. */}
-      <div className="max-w-full mx-auto pt-4 md:px-4">
+      <div className={`max-w-full mx-auto md:px-4 ${showViewTabs ? 'pt-4' : ''}`}>
 
-         <TeaShopViewTabs active={teaView} onChange={handleTeaViewChange} />
+         {showViewTabs && <TeaShopViewTabs active={teaView} onChange={handleTeaViewChange} />}
          <TeaShopViewRegion active={teaView} count={filteredInventory.length} showPast={showPast}>
 
          {teaView === 'find' ? (
            <div className="pt-6">
+             {!showViewTabs && <h2 className="mb-3 font-display text-ui-26 text-tea-text">Find a tea</h2>}
              <TeaFinder onChoose={handleFinderChoose} />
            </div>
          ) : (
@@ -622,23 +637,76 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                </button>
              </div>
 
-             <div className="flex w-full min-w-0 items-center gap-4 pb-0.5 sm:w-auto sm:flex-1 sm:justify-end sm:pb-0">
-               <label className="flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-md bg-tea-surface px-3 py-1.5 sm:max-w-[250px]">
-                 <Icons.Search className="w-3.5 h-3.5 shrink-0 text-tea-text-dim" aria-hidden="true" />
-                 <input
-                   type="search"
-                   value={searchText}
-                   onChange={e => setSearchText(e.target.value)}
-                   placeholder="Search teas"
-                   aria-label="Search teas"
-                   className="w-full min-w-0 bg-transparent text-tea-text text-sm placeholder:text-tea-text-dim outline-none"
-                   style={{ fontFamily: 'var(--font-body)' }}
-                 />
-               </label>
+             <div className={`flex w-full min-w-0 items-center pb-0.5 sm:w-auto sm:flex-1 sm:justify-end sm:pb-0 ${showViewTabs ? 'gap-4' : 'justify-between gap-2 sm:gap-4'}`}>
+               <div className={`flex min-w-0 flex-1 items-center ${showViewTabs ? 'sm:justify-end' : ''}`}>
+                 <div
+                   className={showViewTabs
+                     ? 'flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-md bg-tea-surface px-2 py-1.5 sm:max-w-[250px] sm:px-3'
+                     : 'tea-shop-search relative flex h-11 min-w-0 shrink-0 items-center overflow-clip rounded-md sm:max-w-[250px]'}
+                   data-testid={showViewTabs ? undefined : 'tea-shop-search'}
+                   data-open={showViewTabs ? undefined : shopSearchOpen}
+                 >
+                   {showViewTabs ? (
+                     <Icons.Search className="h-3.5 w-3.5 shrink-0 text-tea-text-dim" aria-hidden="true" />
+                   ) : !shopSearchOpen && (
+                     <Button
+                       variant="plain"
+                       ref={shopSearchButton}
+                       type="button"
+                       aria-label="Search teas"
+                       aria-expanded={shopSearchOpen}
+                       onClick={() => setShopSearchOpen(true)}
+                       className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-tea-text-sec hover:text-tea-text"
+                     >
+                       <Icons.Search className="h-4 w-4" aria-hidden="true" />
+                     </Button>
+                   )}
+                   {(showViewTabs || shopSearchOpen) && (
+                     <label className={showViewTabs ? 'contents' : 'tea-shop-search-entry relative flex h-full min-w-0 flex-1 items-center'}>
+                       <input
+                         type="search"
+                         value={searchText}
+                         onChange={e => setSearchText(e.target.value)}
+                         onKeyDown={e => {
+                           if (!showViewTabs && e.key === 'Escape') {
+                             e.preventDefault();
+                             closeShopSearch();
+                           }
+                         }}
+                         placeholder={showViewTabs ? 'Search teas' : ' '}
+                         aria-label="Search teas"
+                         className={`w-full min-w-0 flex-1 bg-transparent text-tea-text placeholder:text-tea-text-dim outline-none ${showViewTabs ? 'text-sm' : 'appearance-none !border-0 pl-3.5 text-ui-16 focus:!shadow-none focus:!outline-none [&::-webkit-search-cancel-button]:appearance-none'}`}
+                         style={{ fontFamily: 'var(--font-body)' }}
+                       />
+                       {!showViewTabs && (
+                         <span
+                           aria-hidden="true"
+                           className="tea-shop-search-prompt pointer-events-none absolute inset-y-0 left-3.5 flex items-center gap-2 whitespace-nowrap text-ui-16 text-tea-text-dim"
+                           style={{ fontFamily: 'var(--font-body)' }}
+                         >
+                           <Icons.Search className="h-4 w-4 shrink-0" />
+                           Search teas
+                         </span>
+                       )}
+                     </label>
+                   )}
+                   {!showViewTabs && shopSearchOpen && (
+                     <Button
+                       variant="plain"
+                       type="button"
+                       aria-label="Close tea search"
+                       onClick={closeShopSearch}
+                       className="tea-shop-search-close relative flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-tea-text-sec hover:text-tea-text"
+                     >
+                       <X className="h-3.5 w-3.5" aria-hidden="true" />
+                     </Button>
+                   )}
+                 </div>
+               </div>
 
                <div className="flex items-center gap-1.5 shrink-0">
-                 <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Price</span>
-                 <div className="flex items-center gap-0.5 border border-tea-border rounded-md overflow-hidden">
+                 <span className={`text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec ${showViewTabs ? '' : 'hidden min-[375px]:inline'}`}>Price</span>
+                 <div role="group" aria-label="Price weight" className="flex items-center gap-0.5 border border-tea-border rounded-md overflow-hidden">
                    {([50, 100] as const).map(g => (
                      <button
                        key={g}
@@ -925,13 +993,13 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                  >
                    Clear all filters
                  </button>
-                 <button
+                 {showViewTabs && <button
                    type="button"
                    onClick={() => handleTeaViewChange('find')}
                    className={`${LINK} tap-target text-ui-12 text-tea-text-sec`}
                  >
                    Find a tea
-                 </button>
+                 </button>}
                </div>
              </div>
            ) : (
@@ -943,6 +1011,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                priceWeight={shopPriceWeight}
                formatPrice={shopPrice.symbolTotal}
                favoriteIds={userFavorites}
+               showShopRecommendations={showShopRecommendations}
                onToggleFavorite={handleFavoriteToggle}
                onOpenProduct={openProduct}
                onChooseAmount={onAddToCart ? item => setAmountItemId(item.id) : undefined}

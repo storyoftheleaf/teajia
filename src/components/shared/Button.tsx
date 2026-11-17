@@ -5,7 +5,7 @@ import { LoadingSpinner } from './LoadingSpinner';
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'icon' | 'danger' | 'plain';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps extends React.ComponentPropsWithRef<'button'> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;

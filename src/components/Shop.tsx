@@ -491,6 +491,8 @@ export const Shop: React.FC<ShopProps> = ({
             inventory={threadedTea}
             onAddToCart={onAddToCart}
             hideHeader
+            showViewTabs={false}
+            showShopRecommendations
             isAdmin={isAdmin}
             adminProductMap={productMap}
             onAdminEdit={handleAdminEdit}
