@@ -276,7 +276,7 @@ export function buildInvoiceReservationStatements(env: { DB: D1Database }, input
   accountId: string;
   invoiceId: string;
   lines: AuthorizedInvoiceLine[];
-  expiresAt: string;
+  expiresAt: string | null;
   guard?: {
     invoiceId: string;
     claimToken: string;
@@ -300,6 +300,9 @@ export function buildInvoiceReservationStatements(env: { DB: D1Database }, input
     env.DB.prepare(`DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?${guardSql}`)
       .bind(input.invoiceId, input.accountId, ...guardValues),
   ];
+  // An edit can occur after the reservation lapsed, or cross the deadline
+  // between reading it and applying the batch. Leave those lines unreserved.
+  if (!input.expiresAt) return statements;
   for (const [productId, quantity] of quantities) {
     statements.push(env.DB.prepare(
       `INSERT INTO stock_holds (id, account_id, invoice_id, product_id, held_grams, expires_at)
@@ -310,11 +313,11 @@ export function buildInvoiceReservationStatements(env: { DB: D1Database }, input
              AND (h.expires_at IS NULL OR julianday(h.expires_at) > julianday('now'))
          ), 0) >= ? THEN ? ELSE -1 END,
          ?
-       FROM products p WHERE p.id = ? AND p.account_id = ?${guardSql}`
+       FROM products p WHERE p.id = ? AND p.account_id = ? AND julianday(?) > julianday('now')${guardSql}`
     ).bind(
       crypto.randomUUID(), input.accountId, input.invoiceId, productId,
       input.accountId, productId, input.invoiceId, quantity, quantity, input.expiresAt,
-      productId, input.accountId, ...guardValues,
+      productId, input.accountId, input.expiresAt, ...guardValues,
     ));
   }
   return statements;

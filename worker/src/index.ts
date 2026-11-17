@@ -4252,6 +4252,14 @@ async function loadCheckoutPaymentHolds(env: Env, invoiceIds: string[]) {
   return holds;
 }
 
+// The review transition sets a website order's deadline. Editing the same
+// invoice can change which stock it holds, but cannot restart that clock.
+async function invoiceEditHoldDeadline(env: Env, invoiceId: string, isWebsiteOrder: boolean): Promise<string | null> {
+  if (!isWebsiteOrder) return new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+  const holds = await loadCheckoutPaymentHolds(env, [invoiceId]);
+  return holds.get(invoiceId)?.payment_deadline ?? null;
+}
+
 export interface PayableInvoice {
   id: string;
   account_id: string | null;
@@ -6980,6 +6988,7 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
 
   if (hasReplacementLines) {
     let authorized: AuthorizedInvoiceLine[];
+    let expiresAt: string | null = null;
     try {
       const seller = invoice.sold_by_user_id
         ? await invoiceSellerAuthorizationContext(env, accountId, invoice)
@@ -6987,6 +6996,9 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
       authorized = await authorizeInvoiceLines(env, {
         accountId, ...seller, lines: input.lineItems,
       });
+      if (invoice.status === 'Pending') {
+        expiresAt = await invoiceEditHoldDeadline(env, params.id, Boolean(invoice.source_inquiry_id));
+      }
     } catch (error) {
       await releaseInvoiceEditLease(env, accountId, params.id, editClaim);
       return salesError(error);
@@ -7009,8 +7021,7 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
         item.owner_share_type, item.owner_share_value,item.quantity_unit??'g', params.id, accountId, invoice.status, editClaim));
     }
     if (invoice.status === 'Pending') stmts.push(...buildInvoiceReservationStatements(env, {
-      accountId, invoiceId: params.id, lines: authorized,
-      expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(), guard: leaseGuard,
+      accountId, invoiceId: params.id, lines: authorized, expiresAt, guard: leaseGuard,
     }));
   }
 
@@ -7150,18 +7161,19 @@ const handleLinkLineItem: Handler = async (request, env) => {
 
   if (invoice.status === 'Pending') {
     let allAuthorized: AuthorizedInvoiceLine[];
+    let expiresAt: string | null;
     try {
       const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice);
       allAuthorized = await authorizeInvoiceLines(env, {
         accountId, ...seller, lines: proposed,
       });
+      expiresAt = await invoiceEditHoldDeadline(env, invoice_id, Boolean(invoice.source_inquiry_id));
     } catch (error) {
       await releaseInvoiceLinkLease(env, accountId, invoice_id, linkClaim);
       return salesError(error);
     }
     stmts.push(...buildInvoiceReservationStatements(env, {
-      accountId, invoiceId: invoice_id, lines: allAuthorized,
-      expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+      accountId, invoiceId: invoice_id, lines: allAuthorized, expiresAt,
       guard: { invoiceId: invoice_id, claimToken: linkClaim, status: 'Pending', inventoryDeducted: 0 },
     }));
   }
@@ -19839,8 +19851,8 @@ const handleReserveStock: Handler = async (request, env) => {
 
   // Verify the invoice is in our account.
   const invoice = await env.DB.prepare(
-    'SELECT id FROM invoices WHERE id = ? AND account_id = ?'
-  ).bind(invoice_id, accountId).first();
+    'SELECT id, source_inquiry_id FROM invoices WHERE id = ? AND account_id = ?'
+  ).bind(invoice_id, accountId).first<{ id: string; source_inquiry_id: string | null }>();
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
 
   const { results: items } = await env.DB.prepare(
@@ -19848,6 +19860,14 @@ const handleReserveStock: Handler = async (request, env) => {
   ).bind(invoice_id, accountId).all();
 
   if (!items.length) return json({ error: 'No line items found' }, 400);
+
+  if (invoice.source_inquiry_id) {
+    const hold = (await loadCheckoutPaymentHolds(env, [invoice.id])).get(invoice.id);
+    const refusal = checkoutPaymentRefusal(hold);
+    if (refusal) return json(refusal, 409);
+    if (hold?.payment_deadline) return json({ held: items.length });
+    return restError(409, 'This order is no longer waiting for a stock hold', 'invoice_not_reservable');
+  }
 
   await env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?')
     .bind(invoice_id, accountId).run();

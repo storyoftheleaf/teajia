@@ -418,6 +418,60 @@ describe('website order lifecycle', () => {
     expect(stock(db, 'shop-b')).toBe(1000);
   });
 
+  it.each(['replace items', 'link stock', 'legacy reserve'])(
+    'keeps the approved deadline when operators %s and cannot renew an expired hold',
+    async action => {
+      const db = seed('migrations');
+      seedIdentity(db, { userId: 'owner-a', accountId: 'shop-a', bundles: ['sell', 'stock'] });
+      db.sqlite.exec(`
+        INSERT INTO products(id, account_id, type, product_name, form, cost_amount, cost_currency, quantity_purchased, stock_grams)
+        VALUES ('replacement-tea','shop-a','Red','Replacement tea','Loose',20,'USD',300,1000)
+      `);
+      const id = (await create(db)).result.invoice_id as string;
+      const reserve = () => admin(db, 'shop-a', '/api/rpc/reserve-stock', { invoice_id: id });
+      const accept = () => admin(db, 'shop-a', `/api/invoices/${id}`, { status: 'Pending' }, 'PUT');
+      const hold = () => db.sqlite.prepare('SELECT product_id, held_grams, expires_at FROM stock_holds WHERE invoice_id=?').all(id);
+      const edit = async (productId: string) => {
+        if (action === 'legacy reserve') return reserve();
+        if (action === 'replace items') {
+          return admin(db, 'shop-a', `/api/invoices/${id}/items`, {
+            lineItems: [{ product_id: productId, quantity: 50, price_at_sale: 0.28 }],
+          }, 'PUT');
+        }
+        const lineId = db.sqlite.prepare('SELECT id FROM invoice_line_items WHERE invoice_id=?').get(id)!.id;
+        return admin(db, 'shop-a', '/api/rpc/link-line-item', {
+          invoice_id: id, line_item_id: lineId, product_id: productId,
+        });
+      };
+      if (action === 'legacy reserve') {
+        expect((await reserve()).status).toBe(409);
+        expect(hold()).toEqual([]);
+      }
+      expect((await accept()).status).toBe(200);
+      const expiry = hold()[0].expires_at;
+      const result = await edit('replacement-tea');
+      expect(result.status, JSON.stringify(await result.clone().json())).toBe(200);
+      expect(hold()).toEqual([{ product_id: action === 'legacy reserve' ? 'tea-a' : 'replacement-tea',
+        held_grams: 50, expires_at: expiry }]);
+
+      db.sqlite.prepare("UPDATE stock_holds SET expires_at=strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 second') WHERE invoice_id=?").run(id);
+      const expiredResult = await edit('tea-a');
+      if (action === 'legacy reserve') {
+        expect(expiredResult.status).toBe(409);
+        expect(await expiredResult.json()).toMatchObject({ code: 'invoice_hold_expired' });
+      } else {
+        expect(expiredResult.status).toBe(200);
+        expect(db.sqlite.prepare('SELECT product_id FROM invoice_line_items WHERE invoice_id=?').get(id)).toMatchObject({ product_id: 'tea-a' });
+      }
+      expect(db.sqlite.prepare("SELECT COUNT(*) AS count FROM stock_holds WHERE invoice_id=? AND julianday(expires_at)>julianday('now')").get(id))
+        .toEqual({ count: 0 });
+      db.sqlite.prepare('DELETE FROM stock_holds WHERE invoice_id=?').run(id);
+      expect((await edit('replacement-tea')).status).toBe(action === 'legacy reserve' ? 409 : 200);
+      expect(hold()).toEqual([]);
+      expect(stockMovements(db, id)).toEqual([]);
+    },
+  );
+
   it('releases expired stock on the same UTC date and keeps late payments from taking another order’s stock', async () => {
     const db = seed('migrations');
     db.sqlite.prepare("UPDATE products SET stock_grams=100 WHERE id='tea-a'").run();
