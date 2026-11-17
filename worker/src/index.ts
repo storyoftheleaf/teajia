@@ -11009,8 +11009,11 @@ const handleTranscribe: Handler = async (request, env) => {
   if (preReadError) return preReadError;
 
   const formData = await request.formData();
-  const file = formData.get('file') as File | null;
-  if (!file) return restError(400, 'No audio file provided', 'validation_failed', { field: 'file' });
+  const recording = formData.get('file');
+  if (!(recording instanceof File)) return restError(400, 'No audio file provided', 'validation_failed', { field: 'file' });
+  // MediaRecorder may include a codec parameter. Validate and store the base media type.
+  const mimeType = recording.type.split(';', 1)[0].trim();
+  const file = mimeType === recording.type ? recording : new File([recording], recording.name, { type: mimeType });
   const fileError = await validateUpload(file, 'audio', MAX_AUDIO_BYTES);
   if (fileError) return fileError;
 

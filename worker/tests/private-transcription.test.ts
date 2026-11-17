@@ -106,12 +106,13 @@ describe('private transcription persistence', () => {
     expect(db.stored).toEqual([body.raw_text]);
   });
 
-  it('adds nothing to the response when there was nothing to fix', async () => {
+  it.each(['audio/webm', 'audio/webm;codecs=opus'])('returns the unchanged transcript for %s', async (mimeType) => {
     const db = new Db(); const bucket = new Bucket();
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({ text: 'Nothing odd here.' })));
     const form = new FormData();
-    form.set('file', new File([new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 1, 2])], 'recording.webm', { type: 'audio/webm' }));
+    form.set('file', new File([new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 1, 2])], 'recording.webm', { type: mimeType }));
     const response = await worker.fetch(await request('/api/transcribe', 'POST', form), { DB: db, MEDIA_BUCKET: bucket, JWT_SECRET: SECRET, GROQ_API_KEY: 'groq', PROVIDER_LIMITER: { limit: async () => ({ success: true }) } } as any);
+    expect(response.status).toBe(200);
     const body = await response.json() as any;
     expect(body).toEqual({ text: 'Nothing odd here.', recording_id: expect.any(String) });
     expect(db.stored).toEqual(['Nothing odd here.']);
