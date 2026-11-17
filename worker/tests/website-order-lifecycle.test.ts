@@ -40,10 +40,10 @@ function orderPayload(account = 'shop-a', contact = 'guest@example.com', overrid
   };
 }
 
-function publicOrder(db: SqliteD1, body: Record<string, unknown>, pickupAccountId?: string) {
+function publicOrder(db: SqliteD1, body: Record<string, unknown>, pickupAccountId?: string, shippingConfig = {}) {
   return worker.fetch(new Request('https://app.test/api/inquiries', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-  }), { DB: db, JWT_SECRET: SECRET, SHOP_PICKUP_ACCOUNT_ID: pickupAccountId, INQUIRY_LIMITER: { limit: async () => ({ success: true }) } } as never, {} as never);
+  }), { DB: db, JWT_SECRET: SECRET, SHOP_PICKUP_ACCOUNT_ID: pickupAccountId, ...shippingConfig, INQUIRY_LIMITER: { limit: async () => ({ success: true }) } } as never, {} as never);
 }
 
 async function admin(db: SqliteD1, accountId: string, path: string, body?: unknown, method = 'POST') {
@@ -200,6 +200,63 @@ describe('website order lifecycle', () => {
     expect(stock(db)).toBe(25);
     expect(stockMovements(db, id)).toEqual([
       { delta: -50, balance_after: 25, account_id: 'shop-a', movement_unit: 'gram' },
+    ]);
+  });
+
+  it('quotes configured US shipping from server-priced tea grams and preserves the invoice on retry', async () => {
+    const db = seed('migrations');
+    db.sqlite.exec(`
+      UPDATE accounts SET owner_user_id='owner-a' WHERE id='shop-a';
+      UPDATE products SET stock_known_at=datetime('now') WHERE id='tea-a';
+      INSERT INTO contributors(id,account_id,user_id,display_name,is_published)
+      VALUES ('bali-seller','shop-a','owner-a','Bali seller',1);
+      INSERT INTO payment_methods(id,contributor_id,method_type,label,recipient_name,account_identifier,is_published)
+      VALUES ('bali-bank','bali-seller','bank_transfer','Bank transfer','Bali seller','Synthetic bank reference',1);
+    `);
+    const config = {
+      SHOP_US_SHIPPING_ACCOUNT_ID: 'shop-a',
+      SHOP_US_SHIPPING_USD_PER_KG: '40.00',
+      SHOP_US_SHIPPING_PACKAGING_GRAMS: '100',
+      SHOP_US_SHIPPING_MAX_PACKED_GRAMS: '500',
+    };
+    const address = {
+      customer_location: 'Los Angeles, CA 90012, United States',
+      delivery_address: '12 Test Lane',
+      us_shipping_postcode: '90012',
+      shipping_cost_usd: 0.01,
+      packed_grams: 1,
+    };
+    const body = orderPayload('shop-a', 'guest@example.test', address);
+    const response = await publicOrder(db, body, undefined, config);
+    expect(response.status).toBe(201);
+    const result = await response.json() as { invoice_id: string; shipping_checkout: unknown };
+    expect(result.shipping_checkout).toMatchObject({ shipping_usd: 6, packed_grams: 150, payment_deadline: expect.any(String) });
+    expect(invoice(db, result.invoice_id)).toMatchObject({
+      status: 'Pending', shipping_cost_usd: 6, checkout_shipping_grams: 150, delivery_address: address.delivery_address,
+    });
+    const tracking = await buyerRequest(db, `/api/inquiries/${body.tracking_token}`);
+    const view = await tracking.json();
+    expect(view).toMatchObject({ payment: { total_usd: 20, pay_url: expect.stringContaining('t=') } });
+    expect(JSON.stringify(view)).not.toContain(address.delivery_address);
+    const replay = await publicOrder(db, body, undefined, { ...config, SHOP_US_SHIPPING_USD_PER_KG: '70' });
+    expect(replay.status).toBe(200);
+    expect(await replay.json()).toMatchObject({ invoice_id: result.invoice_id, shipping_checkout: result.shipping_checkout, idempotent: true });
+    const review = await publicOrder(db, orderPayload('shop-a', 'review@example.test', address));
+    expect(review.status).toBe(201);
+    const fallback = await review.json() as { invoice_id: string };
+    expect(fallback).not.toHaveProperty('shipping_checkout');
+    expect(invoice(db, fallback.invoice_id)).toMatchObject({ status: 'Draft', checkout_shipping_grams: null });
+
+    const payments = `/api/invoices/${result.invoice_id}/payments`;
+    const partial = await admin(db, 'shop-a', payments, { amount_usd: 14, method_label: 'Bank transfer' });
+    expect(partial.status).toBe(201);
+    expect(await partial.json()).toMatchObject({ payment_status: 'partial', outstanding_usd: 6 });
+    expect(stockMovements(db, result.invoice_id)).toEqual([]);
+    const full = await admin(db, 'shop-a', payments, { amount_usd: 6, method_label: 'Bank transfer' });
+    expect(full.status).toBe(201);
+    expect(await full.json()).toMatchObject({ payment_status: 'paid', outstanding_usd: 0 });
+    expect(stockMovements(db, result.invoice_id)).toEqual([
+      { delta: -50, balance_after: 950, account_id: 'shop-a', movement_unit: 'gram' },
     ]);
   });
 

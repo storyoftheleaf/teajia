@@ -33,6 +33,10 @@ export function readCheckoutDetails(isBaliStore: boolean): CheckoutDetails {
   return result;
 }
 
+export function isUsDelivery(details: CheckoutDetails): boolean {
+  return details.delivery === 'international' && /^(us|usa|united states(?: of america)?)$/i.test(details.country.trim());
+}
+
 export function checkoutLocation(details: CheckoutDetails): string {
   const area = details.location.trim();
   if (details.delivery === 'bali-pickup') return 'Pickup requested in Bali, Indonesia';

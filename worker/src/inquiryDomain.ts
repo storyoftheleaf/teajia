@@ -146,6 +146,7 @@ export async function inquiryRequestFingerprint(input: {
   location: string;
   deliveryAddress?: string;
   pickupRequested?: boolean;
+  usShippingPostcode?: string;
   notes: string;
   itemsJson: string;
   totalUsd: number;
@@ -158,6 +159,7 @@ export async function inquiryRequestFingerprint(input: {
     name: input.name.trim(),
     contact: input.contact.trim(),
     location: input.location.trim(),
+    ...(input.usShippingPostcode ? { usShippingPostcode: input.usShippingPostcode } : {}),
     ...(input.pickupRequested ? { pickupRequested: true } : {}),
     ...(input.deliveryAddress ? { deliveryAddress: input.deliveryAddress } : {}),
     notes: input.notes.trim(),

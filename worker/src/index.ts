@@ -1,4 +1,5 @@
 import { recordingAudioUrl, linkedRecordingSql, readOwnedRecording, preservePrivateRecordingClips, mergeRecordingClipsSql } from './privateRecordingMedia';
+import { quoteUsCheckoutShipping } from './usCheckoutShipping';
 import { hasPublicStatus } from '../../src/lib/productPublication';
 import { guardFetch } from './allowanceGuard.mjs';
 import { isCuratedReadPath, isReadPathPublic } from '../../src/pages/read/articleLive';
@@ -179,6 +180,10 @@ import { approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowe
 interface Env extends WorkerReleaseEnv {
   DB: D1Database;
   SHOP_PICKUP_ACCOUNT_ID?: string;
+  SHOP_US_SHIPPING_ACCOUNT_ID?: string;
+  SHOP_US_SHIPPING_USD_PER_KG?: string;
+  SHOP_US_SHIPPING_PACKAGING_GRAMS?: string;
+  SHOP_US_SHIPPING_MAX_PACKED_GRAMS?: string;
   WHATSAPP_ORDER_ACCOUNT_ID?: string;
   WHATSAPP_ACCESS_TOKEN?: string;
   WHATSAPP_PHONE_NUMBER_ID?: string;
@@ -14294,18 +14299,31 @@ async function currentInvoiceItems(env:Env,accountId:string,invoiceId:string){
 const PICKUP_DESTINATION = 'In-person pickup in Bali, Indonesia';
 
 async function savedInvoiceContents(env: Env, accountId: string, invoiceId: string) {
-  const [invoice_items, pickup] = await Promise.all([
+  const [invoice_items, checkout] = await Promise.all([
     currentInvoiceItems(env, accountId, invoiceId),
-    env.DB.prepare(`SELECT MIN(h.expires_at) AS deadline
+    env.DB.prepare(`SELECT i.shipping_cost_usd, i.checkout_shipping_grams,
+        MIN(h.expires_at) AS deadline
       FROM invoices i JOIN stock_holds h ON h.invoice_id=i.id AND h.account_id=i.account_id
       WHERE i.id=? AND i.account_id=? AND i.status='Pending' AND i.inventory_deducted=0
-        AND i.shipping_destination=? AND julianday(h.expires_at)>julianday('now')`
-    ).bind(invoiceId, accountId, PICKUP_DESTINATION).first<{ deadline: string | null }>(),
+        AND (i.shipping_destination=? OR i.checkout_shipping_grams IS NOT NULL)
+        AND julianday(h.expires_at)>julianday('now')
+      GROUP BY i.id, i.shipping_cost_usd, i.checkout_shipping_grams`
+    ).bind(invoiceId, accountId, PICKUP_DESTINATION).first<{
+      deadline: string;
+      checkout_shipping_grams: number | null;
+      shipping_cost_usd: number;
+    }>(),
   ]);
   return {
     invoice_items,
     total_estimate_usd: roundUsd(invoice_items.reduce((sum, line) => sum + Number(line.line_total_usd), 0)),
-    ...(pickup?.deadline ? { pickup_payment_deadline: pickup.deadline } : {}),
+    ...(checkout?.checkout_shipping_grams != null ? {
+      shipping_checkout: {
+        packed_grams: checkout.checkout_shipping_grams,
+        shipping_usd: checkout.shipping_cost_usd,
+        payment_deadline: checkout.deadline,
+      },
+    } : checkout?.deadline ? { pickup_payment_deadline: checkout.deadline } : {}),
   };
 }
 
@@ -14479,6 +14497,12 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
     if (locationError) return json({ error: locationError }, 400);
     if (source === 'website' && !location) return json({ error: 'Approximate delivery location is required' }, 400);
     const pickupRequested = source === 'website' && body.pickup === true;
+    const usShippingPostcode = source === 'website' && typeof body.us_shipping_postcode === 'string'
+      ? body.us_shipping_postcode.trim()
+      : '';
+    if (usShippingPostcode && (pickupRequested || !/^\d{5}(-\d{4})?$/.test(usShippingPostcode))) {
+      return json({ error: 'Enter a valid US ZIP code for US shipping.' }, 400);
+    }
     const deliveryAddress = source === 'website' && typeof body.delivery_address === 'string'
       ? body.delivery_address.trim()
       : '';
@@ -14499,6 +14523,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
       location,
       deliveryAddress,
       pickupRequested,
+      usShippingPostcode,
       notes,
       itemsJson: normalized.value.itemsJson,
       totalUsd: normalized.value.totalUsd,
@@ -14542,11 +14567,15 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
         return json({ error: error instanceof Error ? error.message : 'Could not price this request' }, 400);
       }
       const serverSubtotalUsd = roundUsd(lines.reduce((sum, line) => sum + line.quantity * line.price_at_sale, 0));
-      let pickup: { ownerId: string; lines: Awaited<ReturnType<typeof authorizeInvoiceLines>> } | null = null;
-      // Only the opted-in store can offer pickup at checkout. Any unpriced or
-      // mixed-owner basket goes through the existing review flow.
-      if (pickupRequested && accountId === env.SHOP_PICKUP_ACCOUNT_ID && !whatsappHandoff &&
-          !deliveryAddress && lines.length > 0 && lines.every(line => line.product_id && line.price_at_sale > 0)) {
+      const shipping = usShippingPostcode && deliveryAddress && accountId === env.SHOP_US_SHIPPING_ACCOUNT_ID
+        ? quoteUsCheckoutShipping(lines, env.SHOP_US_SHIPPING_USD_PER_KG, env.SHOP_US_SHIPPING_PACKAGING_GRAMS,
+          env.SHOP_US_SHIPPING_MAX_PACKED_GRAMS)
+        : null;
+      const pickup = pickupRequested && accountId === env.SHOP_PICKUP_ACCOUNT_ID && !deliveryAddress;
+      let checkout: { ownerId: string; lines: Awaited<ReturnType<typeof authorizeInvoiceLines>> } | null = null;
+      // Unpriced, unknown-stock and mixed-owner baskets go through review.
+      if ((pickup || shipping) && !whatsappHandoff &&
+          lines.length > 0 && lines.every(line => line.product_id && line.price_at_sale > 0)) {
         const owner = await env.DB.prepare(`SELECT a.owner_user_id FROM accounts a
           JOIN account_members m ON m.account_id=a.id AND m.user_id=a.owner_user_id
           WHERE a.id=? AND m.role='owner' AND m.status='active'`).bind(accountId).first<{ owner_user_id: string }>();
@@ -14562,11 +14591,11 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
           });
           if (authorized.every(line => !line.stock_owner_user_id || line.stock_owner_user_id === owner.owner_user_id)) {
             const methods = await resolveInvoicePayments(env, [{
-              id: 'pickup-method-check', account_id: accountId, status: 'Pending',
+              id: 'checkout-method-check', account_id: accountId, status: 'Pending',
               sold_by_user_id: owner.owner_user_id, total_usd: serverSubtotalUsd,
             }], true);
-            if (methods.get('pickup-method-check')?.has_methods) {
-              pickup = { ownerId: owner.owner_user_id, lines: authorized };
+            if (methods.get('checkout-method-check')?.has_methods) {
+              checkout = { ownerId: owner.owner_user_id, lines: authorized };
             }
           }
         }
@@ -14585,7 +14614,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
       let committed = false;
       let lastError: unknown;
       for (let attempt = 0; attempt < 3 && !committed; attempt++) {
-        const pickupDeadline = pickup ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null;
+        const paymentDeadline = checkout ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null;
         const seq = await env.DB.prepare(
           'UPDATE accounts SET invoice_seq=invoice_seq+1 WHERE id=? RETURNING invoice_seq,invoice_prefix'
         ).bind(accountId).first() as { invoice_seq: number; invoice_prefix: string | null } | null;
@@ -14596,20 +14625,21 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
           env.DB.prepare(
             `INSERT INTO invoices
              (id,account_id,invoice_number,customer_name,customer_whatsapp,display_currency,customer_id,customer_library_account_id,
-              shipping_cost_usd,shipping_destination,delivery_address,source_inquiry_id,status,inventory_deducted,notes,payment_status,
+              shipping_cost_usd,shipping_destination,delivery_address,checkout_shipping_grams,source_inquiry_id,status,inventory_deducted,notes,payment_status,
               sold_by_user_id,payment_recipient_user_id)
-             VALUES (?,?,?,?,?,?,?,?,0,?,?,?,?,0,?,'unpaid',?,?)`
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,'unpaid',?,?)`
           ).bind(invoiceId, accountId, invoiceNumber, name, customerPhone, normalized.value.currency,buyerId,buyerLibrary,
-            pickup ? PICKUP_DESTINATION : location || null, deliveryAddress || null, requestId, pickup ? 'Pending' : 'Draft', `From order request ${normalized.value.refNumber}. ${whatsappHandoff ? handoffNote : `Reply to: ${contact}.`} ${notes ? `Customer note: ${notes}. ` : ''}${pickup ? 'In-person pickup. Awaiting bank transfer.' : 'Review prices and shipping before sending.'}`,
-            pickup?.ownerId ?? null, pickup?.ownerId ?? null),
+            checkout && shipping ? shipping.usd : 0, checkout && pickup ? PICKUP_DESTINATION : location || null,
+            deliveryAddress || null, checkout ? shipping?.packedGrams ?? null : null, requestId, checkout ? 'Pending' : 'Draft', `From order request ${normalized.value.refNumber}. ${whatsappHandoff ? handoffNote : `Reply to: ${contact}.`} ${notes ? `Customer note: ${notes}. ` : ''}${checkout ? 'Awaiting bank transfer.' : 'Review prices and shipping before sending.'}`,
+            checkout?.ownerId ?? null, checkout?.ownerId ?? null),
           ...lines.map(line => env.DB.prepare(
             `INSERT INTO invoice_line_items
              (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,quantity_unit,stock_owner_user_id)
              VALUES (?,?,?,?,?,?,?,?,?)`
           ).bind(crypto.randomUUID(), accountId, invoiceId, line.product_id, line.custom_name, line.quantity, line.price_at_sale,
-            line.quantity_unit, pickup?.lines.find(authorized => authorized.product_id === line.product_id)?.stock_owner_user_id ?? null)),
-          ...(pickup && pickupDeadline ? buildInvoiceReservationStatements(env, {
-            accountId, invoiceId, lines: pickup.lines, expiresAt: pickupDeadline,
+            line.quantity_unit, checkout?.lines.find(authorized => authorized.product_id === line.product_id)?.stock_owner_user_id ?? null)),
+          ...(checkout && paymentDeadline ? buildInvoiceReservationStatements(env, {
+            accountId, invoiceId, lines: checkout.lines, expiresAt: paymentDeadline,
           }) : []),
           env.DB.prepare(
             `INSERT INTO inquiries
@@ -14619,7 +14649,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
           ).bind(requestId, accountId, name, contact, customerPhone, normalized.value.itemsJson,
             serverSubtotalUsd, normalized.value.currency, requestMessage,
             normalized.value.refNumber, tokenHash, requestFingerprint, invoiceId),
-          ...(whatsappRecipient && !pickup ? [buildCustomerOrderNotificationInsert(env.DB, {
+          ...(whatsappRecipient && !checkout ? [buildCustomerOrderNotificationInsert(env.DB, {
             accountId, invoiceId, orderRef: normalized.value.refNumber, customerName: name,
             customerContact: contact, deliveryLocation: location || null,
             orderSummary: `${lines.map(line => `${line.custom_name}, ${line.quantity} g`).join('; ')} · tea subtotal USD ${serverSubtotalUsd.toFixed(2)} (shipping pending)`,
@@ -14645,8 +14675,8 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
               tracking_token: normalized.value.trackingToken, invoice_id: raced.converted_invoice_id,
               invoice_number: raced.invoice_number, source, success: true, idempotent: true }, 200);
           }
-          if (pickup && /insufficient available stock/i.test(String((error as Error)?.message || error))) {
-            pickup = null;
+          if (checkout && /insufficient available stock/i.test(String((error as Error)?.message || error))) {
+            checkout = null;
             continue;
           }
           if (!/UNIQUE|constraint/i.test(String((error as Error)?.message || error))) break;
@@ -14656,14 +14686,14 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
         console.error('Website order batch failed:', lastError);
         return json({ error: 'Could not save the order. Please retry.' }, 500);
       }
-      if (whatsappRecipient && !pickup) {
+      if (whatsappRecipient && !checkout) {
         const notification = processPendingCustomerOrderNotifications(env.DB, env, {
           accountId, invoiceId, limit: 1,
         }).catch(error => console.error('Customer order confirmation failed', error));
         if (ctx?.waitUntil) ctx.waitUntil(notification);
         else await notification;
       }
-      const emailSent = !pickup && await sendOrderRequestEmails(env, {
+      const emailSent = !checkout && await sendOrderRequestEmails(env, {
           accountId, source, customerName: name, contact, phone: customerPhone,
           location: location || null, itemsJson: normalized.value.itemsJson,
           totalUsd: serverSubtotalUsd, currency: normalized.value.currency,
