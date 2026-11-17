@@ -248,6 +248,13 @@ test('Stock shortcuts, smaller view menu and missing suppliers remain connected'
   const shelf = MOCK_PRODUCTS.slice(0, 3).map((product, index) => ({ ...product, vendor: index < 2 ? (index ? '  ' : '') : 'Master Bo', vendor_id: index < 2 ? null : 'bo' }));
   const writes: Array<{ id: string; vendor: string }> = [];
   await page.route('**/api/products', route => route.fulfill({ json: shelf }));
+  await page.route('**/api/products/*', route => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    const id = decodeURIComponent(new URL(route.request().url()).pathname.split('/').at(-1)!);
+    const product = shelf.find(row => row.id === id);
+    if (!product) return route.fallback();
+    return route.fulfill({ json: product });
+  });
   await page.route('**/api/customers', route => route.fulfill({ json: [{ id: 'bo', name: 'Master Bo', tags: ['vendor'] }] }));
   await page.route('**/api/products/*/commercial', route => {
     const id = new URL(route.request().url()).pathname.split('/')[3];
@@ -280,6 +287,7 @@ test('Stock shortcuts, smaller view menu and missing suppliers remain connected'
   await page.getByRole('button', { name: 'Collapse all', exact: true }).click();
   await expect(page.locator('tr[data-product-id]')).toHaveCount(0);
   await page.reload();
+  await expect(views).toBeVisible({ timeout: 30_000 });
   await expect(page.locator('[data-stock-group="Unknown"][data-collapsed="true"]')).toBeVisible();
   await page.getByRole('button', { name: 'Expand all', exact: true }).click();
   await expect(page.locator('tr[data-product-id]')).toHaveCount(3);
