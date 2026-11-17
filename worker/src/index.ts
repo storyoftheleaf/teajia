@@ -23448,8 +23448,11 @@ const handleCompleteSession: Handler = async (request, env, params) => {
   if (session.created_by_user_id !== userId) return json({ error: 'Only the session host can complete it' }, 403);
 
   await env.DB.prepare(
-    "UPDATE tasting_sessions SET status = 'completed', completed_at = ? WHERE id = ?"
-  ).bind(new Date().toISOString(), params.id).run();
+    `UPDATE tasting_sessions
+     SET status = 'completed', completed_at = COALESCE(completed_at, ?)
+     WHERE id = ? AND account_id = ? AND created_by_user_id = ?
+       AND (status <> 'completed' OR completed_at IS NULL)`
+  ).bind(new Date().toISOString(), params.id, accountId, userId).run();
 
   return json({ success: true });
 };
