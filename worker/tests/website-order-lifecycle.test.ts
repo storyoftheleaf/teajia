@@ -76,6 +76,48 @@ function ledger(db: SqliteD1, id: string) {
   return db.sqlite.prepare('SELECT status, amount_usd FROM invoice_payments WHERE invoice_id = ?').all(id) as Array<Record<string, any>>;
 }
 
+async function buyerRequest(db: SqliteD1, path: string, user?: string, method = 'GET') {
+  const headers = new Headers();
+  if (user) {
+    const account = user === 'buyer' ? 'buyer-home' : 'other-home';
+    const token = await signedToken(SECRET, { sub: user, email: `${user}@test.dev`, active_account_id: account });
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  return worker.fetch(new Request(`https://app.test${path}`, { headers, method }),
+    { DB: db, JWT_SECRET: SECRET } as never, {} as never);
+}
+
+async function seedPaidOrder() {
+  const db = seed();
+  seedIdentity(db, { userId: 'buyer', accountId: 'buyer-home' });
+  seedIdentity(db, { userId: 'other-buyer', accountId: 'other-home' });
+  const { body, result } = await create(db);
+  const id = result.invoice_id;
+  const trackingPath = `/api/inquiries/${body.tracking_token}`;
+  expect((await buyerRequest(db, `${trackingPath}/claim`, 'buyer', 'POST')).status).toBe(200);
+  db.sqlite.prepare(`
+    UPDATE invoices SET status='Pending', payment_status='paid', inventory_deducted=1
+    WHERE id=? AND account_id='shop-a'
+  `).run(id);
+  db.sqlite.prepare("UPDATE products SET stock_grams=950 WHERE id='tea-a' AND account_id='shop-a'").run();
+  db.sqlite.prepare(`
+    INSERT INTO invoice_payments (id,invoice_id,account_id,amount_usd,status,claimed_by,confirmed_at)
+    VALUES ('fixture-payment',?,'shop-a',14,'confirmed','operator','2026-11-17T01:00:00Z')
+  `).run(id);
+  db.sqlite.prepare(`
+    INSERT INTO stock_ledger (id,product_id,delta,balance_after,movement_unit,reason,source_invoice_id,account_id)
+    VALUES ('fixture-sale','tea-a',-50,950,'gram','PAYMENT_CONFIRMED',?,'shop-a')
+  `).run(id);
+  return { db, id, trackingPath, orderPath: `/api/me/orders/${id}` };
+}
+
+function stockMovements(db: SqliteD1, invoiceId: string) {
+  return db.sqlite.prepare(`
+    SELECT delta, balance_after, account_id, movement_unit FROM stock_ledger
+    WHERE source_invoice_id=? ORDER BY delta
+  `).all(invoiceId);
+}
+
 describe('website order lifecycle', () => {
   it('atomically creates one server-priced Draft, request, and customer outbox without a payment method', async () => {
     const db = seed();
@@ -145,19 +187,9 @@ describe('website order lifecycle', () => {
     expect(stock(db)).toBe(100);
     expect(stock(db, 'shop-b')).toBe(1000);
 
-    const request = async (path: string, user?: string, method = 'GET') => {
-      const headers = new Headers();
-      if (user) {
-        const account = user === 'buyer' ? 'buyer-home' : 'other-home';
-        const token = await signedToken(SECRET, { sub: user, email: `${user}@test.dev`, active_account_id: account });
-        headers.set('Authorization', `Bearer ${token}`);
-      }
-      return worker.fetch(new Request(`https://app.test${path}`, { headers, method }),
-        { DB: db, JWT_SECRET: SECRET } as never, {} as never);
-    };
     const trackingPath = `/api/inquiries/${first.body.tracking_token}`;
     const orderPath = `/api/me/orders/${firstId}`;
-    const guest = await request(trackingPath);
+    const guest = await buyerRequest(db, trackingPath);
     expect(guest.status).toBe(200);
     const guestView = await guest.json();
     expect(guestView).toMatchObject({
@@ -165,28 +197,28 @@ describe('website order lifecycle', () => {
       contact: { email: 'sales-a@example.test' },
     });
     expect(JSON.stringify(guestView)).not.toContain('guest-a@example.test');
-    expect((await request(`/api/inquiries/${first.body.ref_number}`)).status).toBe(404);
-    expect((await request('/api/inquiries/unknownwebsiteordertoken00000000000001')).status).toBe(404);
-    expect((await request(orderPath)).status).toBe(401);
-    expect((await request(orderPath, 'buyer')).status).toBe(404);
+    expect((await buyerRequest(db, `/api/inquiries/${first.body.ref_number}`)).status).toBe(404);
+    expect((await buyerRequest(db, '/api/inquiries/unknownwebsiteordertoken00000000000001')).status).toBe(404);
+    expect((await buyerRequest(db, orderPath)).status).toBe(401);
+    expect((await buyerRequest(db, orderPath, 'buyer')).status).toBe(404);
 
     const claimPath = `${trackingPath}/claim`;
-    expect((await request(claimPath, undefined, 'POST')).status).toBe(401);
+    expect((await buyerRequest(db, claimPath, undefined, 'POST')).status).toBe(401);
     for (let attempt = 0; attempt < 2; attempt++) {
-      const claim = await request(claimPath, 'buyer', 'POST');
+      const claim = await buyerRequest(db, claimPath, 'buyer', 'POST');
       expect(claim.status).toBe(200);
       expect(await claim.json()).toMatchObject({ invoice_id: firstId, account_id: 'shop-a' });
     }
-    expect((await request(claimPath, 'other-buyer', 'POST')).status).toBe(409);
+    expect((await buyerRequest(db, claimPath, 'other-buyer', 'POST')).status).toBe(409);
     expect(db.sqlite.prepare("SELECT count(*) AS n FROM customers WHERE account_id = 'shop-a' AND user_id = 'buyer'").get()).toEqual({ n: 1 });
-    const buyer = await request(orderPath, 'buyer');
+    const buyer = await buyerRequest(db, orderPath, 'buyer');
     expect(buyer.status).toBe(200);
     expect(await buyer.json()).toMatchObject({
       id: firstId, account_id: 'shop-a', status: 'Draft', total_amount_usd: expect.closeTo(21),
       items: [{ quantity: 75, quantity_unit: 'g' }],
     });
-    expect((await request(orderPath, 'other-buyer')).status).toBe(404);
-    expect((await request(`/api/me/orders/${secondId}`, 'buyer')).status).toBe(404);
+    expect((await buyerRequest(db, orderPath, 'other-buyer')).status).toBe(404);
+    expect((await buyerRequest(db, `/api/me/orders/${secondId}`, 'buyer')).status).toBe(404);
   });
 
   it('rolls back the invoice and request if the notification row cannot be queued', async () => {
@@ -246,6 +278,95 @@ describe('website order lifecycle', () => {
     expect(stock(db)).toBe(950);
     expect((await admin(db, 'shop-a', '/api/rpc/ship-invoice', { invoice_id: id })).status).toBe(200);
     expect(db.sqlite.prepare("SELECT COUNT(*) AS n FROM stock_ledger WHERE source_invoice_id = ? AND reason = 'PAYMENT_CONFIRMED'").get(id)).toEqual({ n: 1 });
+  });
+
+  it('shows a seeded paid dispatch to its buyer and preserves tracking and stock on replay', async () => {
+    const { db, id, trackingPath, orderPath } = await seedPaidOrder();
+    const dispatchPath = '/api/rpc/ship-invoice';
+    const details = { invoice_id: id, tracking_number: 'TRACK-FIXTURE-001' };
+    expect((await admin(db, 'shop-b', dispatchPath, details)).status).toBe(404);
+
+    const shipped = await admin(db, 'shop-a', dispatchPath, details);
+    expect(shipped.status).toBe(200);
+    const shipment = await shipped.json() as { shipped_at: string };
+    expect(shipment).toMatchObject({ success: true, tracking_number: details.tracking_number });
+    const replay = await admin(db, 'shop-a', dispatchPath, details);
+    expect(replay.status).toBe(200);
+    expect(await replay.json()).toMatchObject({ idempotent: true, shipped_at: shipment.shipped_at });
+    const owner = await admin(db, 'shop-a', '/api/invoices', undefined, 'GET');
+    expect(owner.status).toBe(200);
+    expect(await owner.json()).toMatchObject([{
+      id, status: 'Filled', tracking_number: details.tracking_number, fulfilled_at: shipment.shipped_at,
+    }]);
+
+    const buyer = await buyerRequest(db, orderPath, 'buyer');
+    expect(buyer.status).toBe(200);
+    expect(await buyer.json()).toMatchObject({
+      id, account_id: 'shop-a', status: 'Filled', tracking_number: details.tracking_number,
+    });
+    expect((await buyerRequest(db, orderPath, 'other-buyer')).status).toBe(404);
+    const tracking = await buyerRequest(db, trackingPath);
+    expect(tracking.status).toBe(200);
+    expect(await tracking.json()).toMatchObject({
+      invoice_id: id, order: { status: 'Filled', tracking_number: details.tracking_number },
+    });
+    expect(stock(db)).toBe(950);
+    expect(stock(db, 'shop-b')).toBe(1000);
+    expect(stockMovements(db, id)).toEqual([
+      { delta: -50, balance_after: 950, account_id: 'shop-a', movement_unit: 'gram' },
+    ]);
+  });
+
+  it('restores stock once and records partial and full refunds for a seeded paid cancellation', async () => {
+    const { db, id, orderPath } = await seedPaidOrder();
+    const cancel = () => admin(db, 'shop-a', '/api/rpc/cancel-invoice', { invoice_id: id });
+    const refundPath = `/api/invoices/${id}/refunds`;
+    const firstRefund = { amount_usd: 5, request_id: 'fixture-refund-1' };
+    const finalRefund = { amount_usd: 9, request_id: 'fixture-refund-2' };
+    expect((await admin(db, 'shop-a', refundPath, firstRefund)).status).toBe(409);
+    const cancelled = await cancel();
+    expect(cancelled.status).toBe(200);
+    expect(await cancelled.json()).toMatchObject({ refund_required: true });
+    const cancelledReplay = await cancel();
+    expect(cancelledReplay.status).toBe(200);
+    expect(await cancelledReplay.json()).toMatchObject({ idempotent: true, refund_required: true });
+    expect((await admin(db, 'shop-a', '/api/rpc/ship-invoice', { invoice_id: id })).status).toBe(409);
+    expect((await admin(db, 'shop-b', refundPath, firstRefund)).status).toBe(409);
+
+    const partial = await admin(db, 'shop-a', refundPath, firstRefund);
+    expect(partial.status).toBe(201);
+    expect(await partial.json()).toMatchObject({ refunded_usd: 5, refund_due_usd: 9, refund_required: true });
+    const buyerPartial = await buyerRequest(db, orderPath, 'buyer');
+    expect(buyerPartial.status).toBe(200);
+    expect(await buyerPartial.json()).toMatchObject({
+      status: 'Void', refunded_usd: 5, refund_due_usd: 9, refund_required: true,
+    });
+    expect((await admin(db, 'shop-a', refundPath, { ...finalRefund, amount_usd: 9.01 })).status).toBe(409);
+    const complete = await admin(db, 'shop-a', refundPath, finalRefund);
+    expect(complete.status).toBe(201);
+    const completed = await complete.json() as { id: string };
+    expect(completed).toMatchObject({ refunded_usd: 14, refund_due_usd: 0, refund_required: false });
+    const replay = await admin(db, 'shop-a', refundPath, finalRefund);
+    expect(replay.status).toBe(200);
+    expect(await replay.json()).toMatchObject({ id: completed.id, idempotent: true, refunded_usd: 14, refund_due_usd: 0 });
+    expect((await admin(db, 'shop-a', refundPath, { ...finalRefund, amount_usd: 8 })).status).toBe(409);
+    const closedRefund = { id, status: 'Void', refunded_usd: 14, refund_due_usd: 0 };
+    const owner = await admin(db, 'shop-a', '/api/invoices', undefined, 'GET');
+    expect(owner.status).toBe(200);
+    expect(await owner.json()).toMatchObject([{ ...closedRefund, refund_required: 0 }]);
+    const buyerComplete = await buyerRequest(db, orderPath, 'buyer');
+    expect(buyerComplete.status).toBe(200);
+    expect(await buyerComplete.json()).toMatchObject({ ...closedRefund, refund_required: false });
+    expect((await buyerRequest(db, orderPath, 'other-buyer')).status).toBe(404);
+    expect(db.sqlite.prepare('SELECT amount_usd, account_id FROM invoice_refunds WHERE invoice_id=? ORDER BY amount_usd').all(id))
+      .toEqual([{ amount_usd: 5, account_id: 'shop-a' }, { amount_usd: 9, account_id: 'shop-a' }]);
+    expect(ledger(db, id)).toEqual([{ status: 'confirmed', amount_usd: 14 }]);
+    expect(stock(db)).toBe(1000);
+    expect(stock(db, 'shop-b')).toBe(1000);
+    expect(stockMovements(db, id)).toEqual([
+      { delta: -50, balance_after: 950, account_id: 'shop-a', movement_unit: 'gram' },
+      { delta: 50, balance_after: 1000, account_id: 'shop-a', movement_unit: 'gram' },
+    ]);
   });
 
   it('unpaid cancellation releases holds, while paid cancellation preserves money and marks a refund', async () => {
