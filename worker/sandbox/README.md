@@ -158,6 +158,26 @@ otherwise, and the rebuild now runs that comparison for you.
 
 ## Starting it without Infisical
 
+`npm run sandbox:offline:fixtures` starts a fresh fixture shop at
+`http://127.0.0.1:7777/admin` with the local Worker on port 8787. Use Node 22
+and the `sqlite3` CLI. On a clean checkout, install the root and Worker
+dependencies with `npm ci` and `npm --prefix worker ci`. Sign in with the
+sandbox operator above.
+
+The first start replays the migration files into SQLite using the same helper
+as the Worker tests, including its handling of the historical duplicate
+column. It imports the resulting schema through Wrangler's local D1 interface
+and adds two fabricated accounts, exchange rates, and the sandbox operator.
+Start with an empty catalogue and add the tea or order needed for your check.
+Local R2 supports photo uploads. AI providers and Cloudflare account access are
+disabled.
+
+State persists in `worker/.wrangler/offline-fixtures`. Restarting keeps fixture
+edits. After migrations change, start a new fixture database by setting
+`TEAJIA_OFFLINE_FIXTURES_STATE` to an absolute path for a new directory.
+
+### Using an existing catalogue snapshot offline
+
 `npm run sandbox` regenerates `worker/.dev.vars` from Infisical on every boot.
 When Infisical has no session in the shell that starts it (an agent's preview
 runner, a machine that is offline), that step hangs on a login prompt and the

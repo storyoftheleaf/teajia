@@ -9,36 +9,10 @@
  *
  * Run via: npm run sandbox:seed  (from worker/)
  */
-import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
+import { sandboxAccountIds, sandboxOperatorStatements, sandboxPassword, sandboxUsername } from './operator-fixture.mjs';
 
-const EMAIL = 'sandbox@localhost';
-const USERNAME = 'sandbox';
-const PASSWORD = 'sandbox';
-const USER_ID = 'sandbox-operator';
-/** Legacy SHA-256 hex, the shape verifyPasswordHash() accepts for old rows. */
-const HASH = createHash('sha256').update(PASSWORD).digest('hex');
-
-const ACCOUNTS = ['acc_teajia_bali', 'acc_teajia_australia'];
-
-const statements = [
-  `DELETE FROM account_members WHERE user_id = '${USER_ID}'`,
-  `DELETE FROM users WHERE id = '${USER_ID}'`,
-  // email_verified_at must be set: sign-in refuses an unverified address, and
-  // there is no inbox on a local sandbox to click a link in.
-  `INSERT INTO users (id, email, name, password_hash, role, username, platform_role,
-     admin_request_status, can_create_collections, shelf_enabled, session_version,
-     email_verified_at, created_at)
-   VALUES ('${USER_ID}', '${EMAIL}', 'Sandbox Operator', '${HASH}', 'owner', '${USERNAME}',
-     'platform_owner', 'approved', 1, 1, 0,
-     datetime('now'), datetime('now'))`,
-  ...ACCOUNTS.map(accountId =>
-    `INSERT INTO account_members (id, account_id, user_id, role, joined_at, status)
-     VALUES (lower(hex(randomblob(16))), '${accountId}', '${USER_ID}', 'owner', datetime('now'), 'active')`
-  ),
-];
-
-for (const sql of statements) {
+for (const sql of sandboxOperatorStatements) {
   execFileSync(
     'npx',
     ['wrangler', 'd1', 'execute', 'teajia-db', '--local', '--command', sql.replace(/\s+/g, ' ')],
@@ -46,5 +20,5 @@ for (const sql of statements) {
   );
 }
 
-console.log(`Sandbox operator ready: sign in as "${USERNAME}" / "${PASSWORD}" at http://localhost:7777/admin`);
-console.log(`Owner on: ${ACCOUNTS.join(', ')}`);
+console.log(`Sandbox operator ready: sign in as "${sandboxUsername}" / "${sandboxPassword}" at http://localhost:7777/admin`);
+console.log(`Owner on: ${sandboxAccountIds.join(', ')}`);

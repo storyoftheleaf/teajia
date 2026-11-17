@@ -13,6 +13,10 @@ its own database plus the site on 7777 pointed at it. Sign in as `sandbox` /
 product catalogue and **no users, customers, invoices or orders**, so clicking
 anything is free. Refresh the copy with `npm run sandbox:refresh`.
 
+On a fresh worktree, `npm run sandbox:offline:fixtures` boots a separate shop
+from fabricated data and the checked-in migration files. It needs Node 22 and
+the `sqlite3` CLI. It uses the same sandbox sign-in and ports.
+
 Full notes, including the browser snippet that drops a session into storage
 without touching the sign-in form: [worker/sandbox/README.md](../../worker/sandbox/README.md).
 

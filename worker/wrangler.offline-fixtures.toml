@@ -1,0 +1,25 @@
+name = "teajia-offline-fixtures"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+workers_dev = false
+
+[dev]
+ip = "127.0.0.1"
+port = 8787
+
+[vars]
+SHARED_ALLOWANCE_REQUIRED = "false"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "teajia-offline-fixtures"
+database_id = "57699612-eacc-438d-a18e-63afb6821497"
+
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "teajia-offline-fixtures-media"
+
+[[ratelimits]]
+name = "PROVIDER_LIMITER"
+namespace_id = "1005"
+simple = { limit = 30, period = 60 }
