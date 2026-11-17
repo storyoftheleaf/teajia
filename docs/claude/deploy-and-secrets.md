@@ -70,7 +70,7 @@ the SQL would have shown it.
 
 ### "Ship" command — mandatory
 
-When Adrian says **"ship"**, immediately publish the completed task-scoped changes to `origin/main` and verify the pushed commit is present on the remote. For Teajia, "ship" does not mean create a PR, stop after local verification, or merely prepare a commit. If the shared checkout contains unrelated work, isolate the task in a clean worktree and push its commit directly to `main`; never include unrelated changes. Do not report work as shipped until the push succeeds.
+When Adrian says **"ship"**, push the reviewed task revision directly to `origin/main` to trigger the existing deployment. Isolate the task in a clean worktree if the shared checkout contains unrelated work. Confirm that the runner started for the exact revision and record its status and resumption link. Report **publishing in background** while it runs. Report **shipped** with the build identifier only after the deployed revision and affected live surface have been independently verified.
 
 ## Secrets — Infisical is the source of truth (set up 2026-05-24)
 Worker secrets live in Infisical (project: Teajia, env: dev). The repo no longer carries a tracked `.env.local` or `worker/.dev.vars`; both are generated on demand or ignored.
