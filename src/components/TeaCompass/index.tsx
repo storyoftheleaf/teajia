@@ -643,6 +643,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     retryPending: retryPendingVoice,
     discardPending: discardPendingVoice,
   } = useVoiceRecorder(handleVoiceTranscript, voiceContextKey, voiceUserId);
+  const sourceVoiceRecorder = {
+    state: voiceState,
+    handlePress: handleVoicePress,
+    hasPendingRecording: Boolean(pendingVoiceRecording),
+  };
   const isPlatformPrivileged = usePlatformPrivilege();
 
   const pendingIncomingCount = visibleShares.length;
@@ -1070,6 +1075,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
                       {activeEntryId && (!initialDevelopmentProduct || developmentStarted) && <CaptureCard
                         entryId={activeEntryId}
+                        voiceRecorder={sourceVoiceRecorder}
                         onSwitchToLedger={() => handleSwitchMode('buying')}
                         onCommit={handleCommitEntry}
                         onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('library'); } : undefined}
@@ -1703,6 +1709,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         {batchMode && <BatchCaptureRow />}
                         <CaptureCard
                           entryId={activeEntryId}
+                          voiceRecorder={sourceVoiceRecorder}
                           onSwitchToLedger={() => handleSwitchMode('buying')}
                           onCommit={handleCommitEntry}
                           onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('library'); } : undefined}

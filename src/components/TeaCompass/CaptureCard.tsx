@@ -29,7 +29,7 @@ import { AutocompleteInput } from './AutocompleteInput';
 import { api } from '../../lib/api';
 import { VendorStrip } from './VendorStrip';
 import { PricingRow } from './PricingRow';
-import { NoteThread } from '../shared/NoteThread';
+import { NoteThread, type NoteThreadVoiceRecorder } from '../shared/NoteThread';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
 import { TastingSession } from '../tasting/TastingSession';
@@ -69,6 +69,7 @@ export interface CaptureCardActions {
 
 interface CaptureCardProps {
   entryId: string;
+  voiceRecorder?: NoteThreadVoiceRecorder;
   /** Called when user adds an item to the ledger, to switch to ledger tab */
   onSwitchToLedger?: () => void;
   /** Called when user commits/finalizes an entry */
@@ -187,7 +188,7 @@ const FieldLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </span>
 );
 
-export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef, onShare, purchasePickerId = `capture-purchase-picker-${entryId}`, openPurchasePicker = false, onBuyExpandedChange, batchMode, onToggleBatchMode, layout }) => {
+export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef, onShare, purchasePickerId = `capture-purchase-picker-${entryId}`, openPurchasePicker = false, onBuyExpandedChange, batchMode, onToggleBatchMode, layout }) => {
   const entry = useTeaCompassStore((s) => s.getEntry(entryId));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const commitEntry = useTeaCompassStore((s) => s.commitEntry);
@@ -1266,6 +1267,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           hideTastingArtifacts
           sans
           part={part}
+          voiceRecorder={part === 'composer' ? voiceRecorder : undefined}
         />
   );
   const notesThread = (

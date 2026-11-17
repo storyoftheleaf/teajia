@@ -21,6 +21,7 @@ import { syncNotes } from '../../lib/notesSync';
 import { useAppStore } from '../../lib/store';
 import type { Note, NoteVisibility } from '../../lib/notesStore';
 import type { TastingData, CustomerTasting } from '../../types';
+import type { RecorderState } from '../../hooks/useVoiceRecorder';
 
 // ── Audio recording helpers ──────────────────────────────────────────────────
 
@@ -273,6 +274,12 @@ const NoteCard: React.FC<{
 
 // ── Main component ────────────────────────────────────────────────────────────
 
+export interface NoteThreadVoiceRecorder {
+  state: RecorderState;
+  handlePress: () => void;
+  hasPendingRecording: boolean;
+}
+
 interface NoteThreadProps {
   /** Anchor, pass one */
   teaKey?: string;
@@ -283,6 +290,8 @@ interface NoteThreadProps {
   compact?: boolean;
   /** Hide the mic button, when recording is handled externally (e.g. bottom bar) */
   hideMic?: boolean;
+  /** The parent owns capture and recovery when this recorder is supplied. */
+  voiceRecorder?: NoteThreadVoiceRecorder;
   /** Suppress tasting artifact cards, use when TastingProfileStrip already shows the same data */
   hideTastingArtifacts?: boolean;
   /** Bigger textarea + mic, used in teaware capture where the notes field
@@ -308,6 +317,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
   defaultVisibility = 'private',
   compact = false,
   hideMic = false,
+  voiceRecorder,
   hideTastingArtifacts = false,
   larger = false,
   sans = false,
@@ -326,7 +336,8 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
   const [scopedDraft, setScopedDraft] = useState({ scopeKey, text: '' });
   const draft = scopedDraft.scopeKey === scopeKey ? scopedDraft.text : '';
   const setDraft = (text: string) => setScopedDraft({ scopeKey, text });
-  const [recState, setRecState] = useState<RecState>('idle');
+  const [standaloneState, setRecState] = useState<RecState>('idle');
+  const recState = voiceRecorder?.state ?? standaloneState;
   const [error, setError] = useState<string | null>(null);
   const [showTyping, setShowTyping] = useState(false);
   const draftTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -462,9 +473,9 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
   }, []);
 
   const handleMicPress = useCallback(() => {
-    if (recState === 'recording') stopRecording();
-    else if (recState === 'idle') startRecording();
-  }, [recState, startRecording, stopRecording]);
+    if (standaloneState === 'recording') stopRecording();
+    else if (standaloneState === 'idle') startRecording();
+  }, [standaloneState, startRecording, stopRecording]);
 
   if (!teaKey && !compassEntryId) return null;
   if (part === 'list' && notes.length === 0) return null;
@@ -492,7 +503,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
       {/* ── Input row, textarea always visible, mic on the right ── */}
       {part !== 'list' && <>
       <div className="tasting-voice-field">
-        {recState === 'idle' || recState === 'transcribing' ? (
+        {recState !== 'recording' ? (
           <textarea
             ref={draftTextareaRef}
             aria-label="Notes"
@@ -530,8 +541,8 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
         ) : !hideMic ? (
           <button
             type="button"
-            onClick={handleMicPress}
-            disabled={recState === 'transcribing'}
+            onClick={voiceRecorder?.handlePress ?? handleMicPress}
+            disabled={recState === 'transcribing' || voiceRecorder?.hasPendingRecording}
             className={`tasting-voice-btn ${micBtnExtra} ${recState === 'recording' ? 'tasting-voice-btn-recording' : ''}`}
             aria-label={recState === 'recording' ? 'Stop recording' : 'Tap to record a note'}
           >

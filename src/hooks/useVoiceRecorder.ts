@@ -146,6 +146,7 @@ export function useVoiceRecorder(
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const mountedRef = useRef(true);
+  const startingRef = useRef(false);
   const onTranscriptRef = useRef(onTranscript);
   const contextKeyRef = useRef(contextKey);
   const userIdRef = useRef(userId);
@@ -247,9 +248,15 @@ export function useVoiceRecorder(
   }, [showNextPending]);
 
   const startRecording = useCallback(async () => {
+    if (startingRef.current || mediaRecorderRef.current?.state === 'recording') return;
+    startingRef.current = true;
     setErrorMessage(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!mountedRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       streamRef.current = stream;
       const mimeType = getSupportedMimeType();
       const recorder = new MediaRecorder(stream, { mimeType });
@@ -315,6 +322,8 @@ export function useVoiceRecorder(
         setErrorMessage(msg || 'Could not start recording.');
       }
       setState('error');
+    } finally {
+      startingRef.current = false;
     }
   }, [applyResult, contextKey, userId]);
 
@@ -326,8 +335,8 @@ export function useVoiceRecorder(
 
   const handlePress = useCallback(() => {
     if (state === 'recording') stopRecording();
-    else if (state === 'idle') startRecording();
-  }, [state, startRecording, stopRecording]);
+    else if (state === 'idle' || (state === 'error' && !pendingRecording)) startRecording();
+  }, [state, pendingRecording, startRecording, stopRecording]);
 
   const retryPending = useCallback(async () => {
     if (!pendingRecording) return;

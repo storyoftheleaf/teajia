@@ -71,22 +71,40 @@ async function request(path: string, method = 'POST', body?: BodyInit, account =
 afterEach(() => vi.restoreAllMocks());
 
 describe('private transcription persistence', () => {
-  it('persists private audio before a provider failure and retries it successfully', async () => {
+  it.each(['audio/webm', 'audio/webm;codecs=opus'])('persists %s before a provider failure and retries it successfully', async (mimeType) => {
     const db = new Db(); const bucket = new Bucket();
     vi.stubGlobal('fetch', vi.fn(async () => new Response('upstream detail', { status: 503 })));
     const form = new FormData();
-    form.set('file', new File([new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 1, 2])], 'recording.webm', { type: 'audio/webm' }));
+    form.set('file', new File([new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 1, 2])], 'recording.webm', { type: mimeType }));
     const failed = await worker.fetch(await request('/api/transcribe', 'POST', form), { DB: db, MEDIA_BUCKET: bucket, JWT_SECRET: SECRET, GROQ_API_KEY: 'groq', PROVIDER_LIMITER: { limit: async () => ({ success: true }) } } as any);
     expect(failed.status).toBe(502);
     const failure = await failed.json() as any;
     expect(failure).toMatchObject({ code: 'provider_error', recording_id: expect.any(String), retryable: true });
-    expect(db.recording.object_key).toMatch(/^private-recordings\/account-1\/user-1\//);
-    expect(bucket.objects.has(db.recording.object_key)).toBe(true);
+    expect(db.recording.object_key).toMatch(/^private-recordings\/account-1\/user-1\/[^/]+\.webm$/);
+    expect(db.recording.mime_type).toBe('audio/webm');
+    expect(bucket.objects.get(db.recording.object_key)).toMatchObject({ type: 'audio/webm' });
 
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({ text: 'Recovered transcript' })));
     const retried = await worker.fetch(await request(`/api/transcriptions/${failure.recording_id}/retry`), { DB: db, MEDIA_BUCKET: bucket, JWT_SECRET: SECRET, GROQ_API_KEY: 'groq', PROVIDER_LIMITER: { limit: async () => ({ success: true }) } } as any);
     expect(await retried.json()).toMatchObject({ text: 'Recovered transcript', recording_id: failure.recording_id });
     expect(bucket.objects.size).toBe(0);
+  });
+
+  it('rejects a codec-qualified upload whose bytes are not WebM', async () => {
+    const db = new Db();
+    const bucket = new Bucket();
+    const run = vi.fn();
+    const form = new FormData();
+    form.set('file', new File(['not WebM'], 'recording.webm', { type: 'audio/webm;codecs=opus' }));
+    const response = await worker.fetch(await request('/api/transcribe', 'POST', form), {
+      DB: db, MEDIA_BUCKET: bucket, JWT_SECRET: SECRET, AI: { run },
+      PROVIDER_LIMITER: { limit: async () => ({ success: true }) },
+    } as any);
+
+    expect(response.status).toBe(415);
+    expect(await response.json()).toMatchObject({ code: 'invalid_media_signature' });
+    expect(bucket.objects.size).toBe(0);
+    expect(run).not.toHaveBeenCalled();
   });
 
   it('primes the speech model with the shared word library and fixes known mishearings, keeping the raw words on the recording', async () => {
