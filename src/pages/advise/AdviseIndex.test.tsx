@@ -13,6 +13,7 @@
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import AdviseIndex, { ADVISE_ROW_KEYS } from './AdviseIndex';
@@ -65,11 +66,13 @@ function signOut() {
 
 function render(): string {
   return renderToStaticMarkup(
-    <HelmetProvider>
-      <MemoryRouter>
-        <AdviseIndex />
-      </MemoryRouter>
-    </HelmetProvider>,
+    <QueryClientProvider client={new QueryClient()}>
+      <HelmetProvider>
+        <MemoryRouter>
+          <AdviseIndex />
+        </MemoryRouter>
+      </HelmetProvider>
+    </QueryClientProvider>,
   );
 }
 

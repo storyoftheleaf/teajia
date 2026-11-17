@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronRight } from 'lucide-react';
-import { api } from '../lib/api';
+import { publicEventsQuery } from '../lib/publicEventsQuery';
 import type { TeaEvent } from '../types/events';
 import { PageHeader } from '../components/shared/PageHeader';
 
@@ -154,10 +154,8 @@ const FilterTabs: React.FC<FilterTabsProps> = ({ active, onChange, counts }) => 
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 const EventsPage: React.FC = () => {
-  const { data: rawEvents = [], isLoading } = useQuery<(TeaEvent & { seats_remaining?: number; confirmed_count?: number })[]>({
-    queryKey: ['events-public-list'],
-    queryFn: () => api.events.listPublic(),
-    staleTime: 5 * 60_000,
+  const { data: rawEvents = [], isLoading } = useQuery({
+    ...publicEventsQuery,
     placeholderData: (prev) => prev,
   });
 

@@ -36,6 +36,7 @@
  * label, until a real photograph is dropped in.
  */
 import React, { useCallback, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import {
@@ -49,6 +50,7 @@ import StoryEditorBar from '../read/StoryEditorBar';
 import { InquiryForm } from '../../components/advise/InquiryForm';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { adviseTestimonials } from '../../data/adviseTestimonials';
+import { publicEventsQuery } from '../../lib/publicEventsQuery';
 import { ADVISE_STATE, type AdviseState } from './adviseLive';
 
 // ── Data ──────────────────────────────────────────────────────────────────
@@ -195,11 +197,12 @@ const AdviseSubRow: React.FC<{
 // the block's own preselect), the dek, then the sub-ledger. ────────────────
 const AdviseServiceBlock: React.FC<{
   service: AdviseService;
+  rowStates: Record<string, AdviseState>;
   isOwner: boolean;
   onAsk: (preselect: string) => void;
-}> = ({ service, isOwner, onAsk }) => {
+}> = ({ service, rowStates, isOwner, onAsk }) => {
   const visibleRows = service.rows.filter((r) => {
-    const state = ADVISE_STATE[r.key] ?? 'draft';
+    const state = rowStates[r.key] ?? 'draft';
     return isOwner || state !== 'draft';
   });
   if (visibleRows.length === 0) return null;
@@ -239,7 +242,7 @@ const AdviseServiceBlock: React.FC<{
       </div>
       <div className="tj-advise-subs">
         {visibleRows.map((row) => (
-          <AdviseSubRow key={row.key} row={row} state={ADVISE_STATE[row.key] ?? 'draft'} isOwner={isOwner} onAsk={onAsk} />
+          <AdviseSubRow key={row.key} row={row} state={rowStates[row.key] ?? 'draft'} isOwner={isOwner} onAsk={onAsk} />
         ))}
       </div>
     </div>
@@ -505,6 +508,10 @@ const AdviseIndex: React.FC = () => {
 
   const isOwner = useIsReadOwner();
   const services = useMemo(() => buildAdviseServices(), []);
+  const publicEvents = useQuery(publicEventsQuery);
+  const rowStates: Record<string, AdviseState> = publicEvents.isSuccess && publicEvents.data.length > 0
+    ? { ...ADVISE_STATE, sessions: 'live' }
+    : ADVISE_STATE;
 
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [inquiryPreselect, setInquiryPreselect] = useState('');
@@ -590,7 +597,7 @@ const AdviseIndex: React.FC = () => {
             </div>
 
             {services.map((service) => (
-              <AdviseServiceBlock key={service.title} service={service} isOwner={isOwner} onAsk={openInquiry} />
+              <AdviseServiceBlock key={service.title} service={service} rowStates={rowStates} isOwner={isOwner} onAsk={openInquiry} />
             ))}
 
             <div style={{ marginTop: 38, maxWidth: 520 }}>

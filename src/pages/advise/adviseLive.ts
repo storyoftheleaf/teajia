@@ -35,5 +35,5 @@ export const ADVISE_STATE: Record<string, AdviseState> = {
   'practice-setup': 'live',
   'group-ceremonial': 'live',
   'private-events': 'live',
-  sessions: 'soon',
+  sessions: 'soon', // AdviseIndex opens this row when the public events list has a session.
 };
