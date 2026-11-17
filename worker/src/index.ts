@@ -4216,16 +4216,9 @@ function checkoutPaymentRefusal(hold: CheckoutPaymentHold | undefined) {
   return null;
 }
 
-async function loadCheckoutPaymentHolds(env: Env, invoiceIds: string[]) {
-  const holds = new Map<string, CheckoutPaymentHold>();
-  for (let start = 0; start < invoiceIds.length; start += 90) {
-    const ids = invoiceIds.slice(start, start + 90);
-    // Current stock availability does not extend the deadline. All stocked
-    // lines must still be covered by this invoice's own, unexpired reservation.
-    // A missing hold (including after cleanup) is not a new chance to pay.
-    const rows = await env.DB.prepare(
-      `SELECT i.id, i.status,
-          CASE WHEN NOT EXISTS (
+// Callers supply the invoice as i. Even after old holds are cleaned up, every
+// stocked line must still be covered before this checkout can take payment.
+const CHECKOUT_HOLD_DEADLINE_SQL = `CASE WHEN NOT EXISTS (
             SELECT 1 FROM invoice_line_items li
             WHERE li.invoice_id = i.id AND li.account_id = i.account_id AND li.product_id IS NOT NULL
             GROUP BY li.product_id
@@ -4239,7 +4232,18 @@ async function loadCheckoutPaymentHolds(env: Env, invoiceIds: string[]) {
             WHERE h.invoice_id = i.id AND h.account_id = i.account_id
               AND julianday(h.expires_at) > julianday('now')
             ORDER BY julianday(h.expires_at) LIMIT 1
-          ) END AS payment_deadline
+          ) END`;
+
+async function loadCheckoutPaymentHolds(env: Env, invoiceIds: string[]) {
+  const holds = new Map<string, CheckoutPaymentHold>();
+  for (let start = 0; start < invoiceIds.length; start += 90) {
+    const ids = invoiceIds.slice(start, start + 90);
+    // Current stock availability does not extend the deadline. All stocked
+    // lines must still be covered by this invoice's own, unexpired reservation.
+    // A missing hold (including after cleanup) is not a new chance to pay.
+    const rows = await env.DB.prepare(
+      `SELECT i.id, i.status,
+          ${CHECKOUT_HOLD_DEADLINE_SQL} AS payment_deadline
         FROM invoices i
         WHERE i.id IN (${ids.map(() => '?').join(', ')})
           AND i.source_inquiry_id IS NOT NULL AND i.status IN ('Draft', 'Pending')
@@ -6796,33 +6800,65 @@ const handleSplitInvoice: Handler = async (request, env) => {
 
   const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
     .bind(invoice_id, accountId).first() as Record<string, any> | null;
-  if (!invoice) return json({ error: 'Invoice not found' }, 404);
+  if (!invoice || invoice.deleted_at) return json({ error: 'Invoice not found' }, 404);
   if (invoice.status !== 'Pending') return json({ error: 'Only Pending invoices can be split' }, 400);
 
-  const allItems = await env.DB.prepare(
-    'SELECT * FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
-  ).bind(invoice_id, accountId).all();
-  if (!Array.isArray(line_item_ids) || line_item_ids.length === 0 || new Set(line_item_ids).size !== line_item_ids.length
-    || line_item_ids.length >= allItems.results.length) {
+  if (!Array.isArray(line_item_ids) || line_item_ids.length === 0 || new Set(line_item_ids).size !== line_item_ids.length) {
     return json({ error: 'Must select a proper subset of items to split' }, 400);
   }
-  const invoiceLineIds = new Set((allItems.results as any[]).map(item => item.id));
-  if (line_item_ids.some(itemId => !invoiceLineIds.has(itemId))) {
-    return json({ error: 'Every selected line item must belong to the invoice' }, 400);
-  }
 
-  try {
-    const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice);
-    await validateInvoiceLineSnapshots(env, {
-      accountId, sellerUserId: seller.actorUserId, sellerRole: seller.actorRole,
-      lines: allItems.results as AuthorizedInvoiceLine[],
-    });
-  } catch (error) { return salesError(error); }
+  const websiteOrder = Boolean(invoice.source_inquiry_id);
+  const holdExpired = () => restError(409, HOLD_EXPIRED_MESSAGE, 'invoice_hold_expired');
+  const paymentChanged = () => restError(409, 'Payment changed before the split could be applied', 'payment_changed');
+  if (websiteOrder) {
+    if (invoice.payment_status === 'paid' || invoice.inventory_deducted) return paymentChanged();
+    if (!await invoiceEditHoldDeadline(env, invoice_id, true)) return holdExpired();
+  }
 
   const splitClaim = await claimInvoiceEditLease(env, accountId, invoice_id);
   if (!splitClaim) return restError(409, 'Invoice is no longer available for editing', 'invoice_edit_conflict');
+  const release = () => releaseInvoiceEditLease(env, accountId, invoice_id, splitClaim);
+  let snapshotItems: AuthorizedInvoiceLine[];
+  let deadline: string | null = null;
+  let paidUsd = 0;
+  try {
+    // The lease protects the snapshot. A repeat that waited for the first
+    // split must see that the selected items now belong to another invoice.
+    const allItems = await env.DB.prepare(
+      'SELECT * FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
+    ).bind(invoice_id, accountId).all<AuthorizedInvoiceLine>();
+    snapshotItems = allItems.results;
+    if (line_item_ids.length >= snapshotItems.length) {
+      await release();
+      return json({ error: 'Must select a proper subset of items to split' }, 400);
+    }
+    const invoiceLineIds = new Set(snapshotItems.map(item => item.id));
+    if (line_item_ids.some(itemId => !invoiceLineIds.has(itemId))) {
+      await release();
+      return json({ error: 'Every selected line item must belong to the invoice' }, 400);
+    }
+    const seller = await invoiceSellerAuthorizationContext(env, accountId, invoice);
+    await validateInvoiceLineSnapshots(env, {
+      accountId, sellerUserId: seller.actorUserId, sellerRole: seller.actorRole, lines: snapshotItems,
+    });
+    if (websiteOrder) {
+      const [currentDeadline, ledger] = await Promise.all([
+        invoiceEditHoldDeadline(env, invoice_id, true),
+        loadInvoiceLedgerTotals(env, [invoice_id]),
+      ]);
+      deadline = currentDeadline;
+      paidUsd = ledger.get(invoice_id)?.paid_usd ?? 0;
+      if (!deadline) {
+        await release();
+        return holdExpired();
+      }
+    }
+  } catch (error) {
+    await release();
+    return salesError(error);
+  }
+
   const leaseGuard = { invoiceId: invoice_id, claimToken: splitClaim, status: 'Pending', inventoryDeducted: 0 };
-  const snapshotItems = allItems.results as AuthorizedInvoiceLine[];
   const movedIds = new Set(line_item_ids);
   const movedItems = snapshotItems.filter(item => item.id && movedIds.has(item.id));
   const remainingItems = snapshotItems.filter(item => !item.id || !movedIds.has(item.id));
@@ -6831,29 +6867,54 @@ const handleSplitInvoice: Handler = async (request, env) => {
 
   const newId = crypto.randomUUID();
 
-  // Allocate the split's invoice number, retrying on the active-invoice-number
-  // unique index collision. Each retry re-bumps the seq and rebuilds the batch.
   let newNumber = '';
   let committed = false;
-  let lastErr: any = null;
+  let lastErr: unknown;
+  let skippedNumbers = 0;
   for (let attempt = 0; attempt < 3 && !committed; attempt++) {
-    const splitSeqRow = await env.DB.prepare(
-      'UPDATE accounts SET invoice_seq = invoice_seq + 1 WHERE id = ? RETURNING invoice_seq, invoice_prefix'
-    ).bind(accountId).first() as { invoice_seq: number; invoice_prefix: string | null } | null;
-    const splitSeq = splitSeqRow?.invoice_seq ?? 1;
-    newNumber = formatInvoiceNumber(splitSeqRow?.invoice_prefix || null, splitSeq);
+    const splitSeqRow = await env.DB.prepare(websiteOrder
+      ? 'SELECT invoice_seq, invoice_prefix FROM accounts WHERE id = ?'
+      : 'UPDATE accounts SET invoice_seq = invoice_seq + 1 WHERE id = ? RETURNING invoice_seq, invoice_prefix'
+    ).bind(accountId).first<{ invoice_seq: number; invoice_prefix: string | null }>();
+    if (!splitSeqRow) {
+      await release();
+      return restError(404, 'Store not found', 'store_not_found');
+    }
+    const seq = splitSeqRow.invoice_seq + (websiteOrder ? 1 + skippedNumbers : 0);
+    newNumber = formatInvoiceNumber(splitSeqRow.invoice_prefix, seq);
 
     const stmts: D1PreparedStatement[] = [];
+    if (websiteOrder) {
+      // Compare the proposed number with the current sequence inside the
+      // transaction. The NOT NULL check aborts the batch if another writer
+      // advanced it or the account prefix changed since the read.
+      stmts.push(env.DB.prepare(
+        `UPDATE accounts SET invoice_seq = CASE WHEN invoice_seq = ? AND invoice_prefix IS ? THEN ? ELSE NULL END
+         WHERE id = ?`
+      ).bind(splitSeqRow.invoice_seq, splitSeqRow.invoice_prefix, seq, accountId));
+    }
 
+    const sourceGuard = `SELECT 1 FROM invoices i WHERE i.id = ? AND i.account_id = ? AND i.status = 'Pending'
+      AND i.inventory_deducted = 0 AND i.fulfillment_claim_token = ?`;
+    // For a website split, fail the invoice-number constraint if the stock
+    // has lapsed or payment changed. This rolls back the sequence and every
+    // other batch write. A plain WHERE would only skip the child insert.
+    const newNumberSql = websiteOrder ? `CASE WHEN EXISTS (${sourceGuard}
+      AND i.deleted_at IS NULL
+      AND COALESCE(i.payment_status, 'unpaid') != 'paid'
+      AND (SELECT ROUND(COALESCE(SUM(p.amount_usd), 0), 2) FROM invoice_payments p
+        WHERE p.account_id = i.account_id AND p.invoice_id = i.id AND p.status = 'confirmed') = ?
+      AND julianday((${CHECKOUT_HOLD_DEADLINE_SQL})) = julianday(?)
+    ) THEN ? ELSE NULL END` : '?';
+    const numberBindings = websiteOrder ? [invoice_id, accountId, splitClaim, paidUsd, deadline, newNumber] : [newNumber];
     stmts.push(env.DB.prepare(
       `INSERT INTO invoices
        (id,account_id,invoice_number,customer_name,customer_whatsapp,customer_id,display_currency,shipping_cost_usd,status,inventory_deducted,notes,sold_by_user_id,payment_recipient_user_id)
-       SELECT ?, ?, ?, ?, ?, ?, ?, 0, 'Pending', 0, ?, ?, ?
-       WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND status = 'Pending'
-         AND inventory_deducted = 0 AND fulfillment_claim_token = ?)`
-    ).bind(newId, accountId, newNumber, invoice.customer_name, invoice.customer_whatsapp, invoice.customer_id,
+       SELECT ?, ?, ${newNumberSql}, ?, ?, ?, ?, 0, 'Pending', 0, ?, ?, ?
+       ${websiteOrder ? '' : `WHERE EXISTS (${sourceGuard})`}`
+    ).bind(newId, accountId, ...numberBindings, invoice.customer_name, invoice.customer_whatsapp, invoice.customer_id,
       invoice.display_currency, invoice.notes, invoice.sold_by_user_id, movedPaymentRecipient,
-      invoice_id, accountId, splitClaim));
+      ...(websiteOrder ? [] : [invoice_id, accountId, splitClaim])));
 
     stmts.push(env.DB.prepare(
       `UPDATE invoices SET payment_recipient_user_id=? WHERE id=? AND account_id=? AND status='Pending'
@@ -6870,7 +6931,7 @@ const handleSplitInvoice: Handler = async (request, env) => {
       );
     }
 
-    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+    const expiresAt = deadline ?? new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
     stmts.push(...buildInvoiceReservationStatements(env, {
       accountId, invoiceId: invoice_id, lines: remainingItems, expiresAt, guard: leaseGuard,
     }));
@@ -6886,10 +6947,15 @@ const handleSplitInvoice: Handler = async (request, env) => {
       userEmail, 'invoice', newId, accountId));
 
     const releaseIndex = stmts.length;
+    // Recheck the clock at the end, too, so crossing the deadline while the
+    // holds are rebuilt cannot commit an unreserved split.
+    const releaseDeadlineCheck = websiteOrder
+      ? "invoice_number = CASE WHEN julianday(?) > julianday('now') THEN invoice_number ELSE NULL END,"
+      : '';
     stmts.push(env.DB.prepare(
-      `UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL
+      `UPDATE invoices SET ${releaseDeadlineCheck} fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL
        WHERE id = ? AND account_id = ? AND status = 'Pending' AND inventory_deducted = 0 AND fulfillment_claim_token = ?`
-    ).bind(invoice_id, accountId, splitClaim));
+    ).bind(...(websiteOrder ? [deadline] : []), invoice_id, accountId, splitClaim));
 
     try {
       const results = await env.DB.batch(stmts);
@@ -6905,7 +6971,18 @@ const handleSplitInvoice: Handler = async (request, env) => {
         await releaseInvoiceEditLease(env, accountId, invoice_id, splitClaim);
         return restError(409, 'Insufficient available stock', 'insufficient_available_stock');
       }
-      if (/UNIQUE|constraint/i.test(msg)) continue; // collision — bump seq and retry
+      if (websiteOrder && /NOT NULL constraint failed: invoices\.invoice_number/i.test(msg)) {
+        await release();
+        const ledger = await loadInvoiceLedgerTotals(env, [invoice_id]);
+        if ((ledger.get(invoice_id)?.paid_usd ?? 0) !== paidUsd) return paymentChanged();
+        if (!await invoiceEditHoldDeadline(env, invoice_id, true)) return holdExpired();
+        return restError(409, 'Invoice changed before the split could be applied', 'invoice_edit_conflict');
+      }
+      if (websiteOrder && /NOT NULL constraint failed: accounts\.invoice_seq/i.test(msg)) continue;
+      if (/UNIQUE|constraint/i.test(msg)) {
+        skippedNumbers++;
+        continue;
+      }
       console.error('handleSplitInvoice batch failed:', err);
       await releaseInvoiceEditLease(env, accountId, invoice_id, splitClaim);
       return json({ error: 'Split failed — no changes were committed' }, 500);

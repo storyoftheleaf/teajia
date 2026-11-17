@@ -111,6 +111,31 @@ async function seedPaidOrder() {
   return { db, id, trackingPath, orderPath: `/api/me/orders/${id}` };
 }
 
+async function reviewedOrderForSplit() {
+  const db = seed('migrations');
+  db.sqlite.exec(`
+    INSERT INTO products(id, account_id, type, product_name, form, cost_amount, cost_currency, quantity_purchased, stock_grams)
+    VALUES ('tea-second','shop-a','Red','Second tea','Loose',20,'USD',300,1000),
+           ('tea-third','shop-a','Red','Third tea','Loose',20,'USD',300,1000)
+  `);
+  const body = orderPayload();
+  body.items.push({ ...body.items[0], id: 'tea-second' }, { ...body.items[0], id: 'tea-third' });
+  const id = (await create(db, body)).result.invoice_id as string;
+  const acceptedAt = Date.now();
+  expect((await admin(db, 'shop-a', `/api/invoices/${id}`, { status: 'Pending' }, 'PUT')).status).toBe(200);
+  const lines = db.sqlite.prepare('SELECT id, product_id FROM invoice_line_items WHERE invoice_id=? ORDER BY product_id').all(id);
+  const hold = () => db.sqlite.prepare('SELECT id, invoice_id, product_id, held_grams, expires_at FROM stock_holds ORDER BY product_id').all();
+  const seq = () => db.sqlite.prepare("SELECT invoice_seq FROM accounts WHERE id='shop-a'").get()!;
+  const snapshot = () => ({
+    invoices: db.sqlite.prepare('SELECT * FROM invoices ORDER BY id').all(),
+    lines: db.sqlite.prepare('SELECT id, invoice_id FROM invoice_line_items ORDER BY id').all(),
+    holds: hold(), seq: seq(),
+  });
+  const split = (lineIds: unknown[] = [lines[0].id], account = 'shop-a') =>
+    admin(db, account, '/api/rpc/split-invoice', { invoice_id: id, line_item_ids: lineIds });
+  return { db, body, id, lines, split, hold, seq, snapshot, acceptedAt };
+}
+
 function stockMovements(db: SqliteD1, invoiceId: string) {
   return db.sqlite.prepare(`
     SELECT delta, balance_after, account_id, movement_unit FROM stock_ledger
@@ -471,6 +496,106 @@ describe('website order lifecycle', () => {
       expect(stockMovements(db, id)).toEqual([]);
     },
   );
+
+  it('splits both portions under the approved deadline and attaches the original report and tracking to the original invoice', async () => {
+    const { db, body, id, lines, split, hold, seq, snapshot, acceptedAt } = await reviewedOrderForSplit();
+    const deadline = hold()[0].expires_at as string;
+    expect(Math.abs(Date.parse(deadline) - acceptedAt - 24 * 60 * 60 * 1000)).toBeLessThan(2000);
+    expect((await buyerRequest(db, `/api/orders/${body.tracking_token}/payment-claim`, undefined, 'POST')).status).toBe(201);
+    const partial = await admin(db, 'shop-a', `/api/invoices/${id}/payments`, { amount_usd: 5, method_label: 'Cash' });
+    expect(partial.status).toBe(201);
+    expect(await partial.json()).toMatchObject({ payment_status: 'partial' });
+    const startSeq = Number(seq().invoice_seq);
+
+    // Make both requests reach the lease, then let the second acquire it only
+    // after the first commits. It must validate the moved line again.
+    let atLease = 0;
+    let secondArrived!: () => void;
+    let firstFinished!: () => void;
+    const bothArrived = new Promise<void>(resolve => { secondArrived = resolve; });
+    const committed = new Promise<void>(resolve => { firstFinished = resolve; });
+    const prepare = db.prepare.bind(db);
+    const pauseLease = vi.spyOn(db, 'prepare').mockImplementation(sql => {
+      const statement = prepare(sql);
+      if (sql.includes('SET fulfillment_claim_token = ?, fulfillment_claimed_at') && sql.includes('RETURNING id')) {
+        const all = statement.all.bind(statement);
+        vi.spyOn(statement, 'all').mockImplementation((async () => {
+          if (++atLease === 1) {
+            await bothArrived;
+          } else {
+            secondArrived();
+            await committed;
+          }
+          return all();
+        }) as unknown as typeof statement.all);
+      }
+      return statement;
+    });
+    const requests = [split(), split()];
+    void Promise.race(requests).then(firstFinished);
+    const attempts = await Promise.all(requests);
+    pauseLease.mockRestore();
+    expect(atLease).toBe(2);
+    const accepted = attempts.filter(response => response.status === 201);
+    expect(accepted).toHaveLength(1);
+    const { new_id: child } = await accepted[0].json();
+    expect(hold().map(({ id: _, ...row }) => row)).toEqual(lines.map((line, index) => ({
+      invoice_id: index === 0 ? child : id, product_id: line.product_id, held_grams: 50, expires_at: deadline,
+    })));
+    expect(seq().invoice_seq).toBe(startSeq + 1);
+    expect(invoice(db, child).source_inquiry_id).toBeNull();
+    expect(ledger(db, id)).toEqual(expect.arrayContaining([
+      { status: 'claimed', amount_usd: 42 }, { status: 'confirmed', amount_usd: 5 },
+    ]));
+    expect(ledger(db, child)).toEqual([]);
+    const tracking = await buyerRequest(db, `/api/inquiries/${body.tracking_token}`);
+    expect((await tracking.json()).invoice_id).toBe(id);
+    const after = snapshot();
+    expect([400, 409]).toContain((await split()).status);
+    expect(snapshot()).toEqual(after);
+  });
+
+  it.each(['expired', 'incomplete', 'expired during batch', 'paid'] as const)(
+    'refuses a %s reviewed split without changing invoices, holds, or number sequence',
+    async state => {
+      const { db, id, lines, split, snapshot } = await reviewedOrderForSplit();
+      const expire = () => db.sqlite.prepare("UPDATE stock_holds SET expires_at=strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 second') WHERE invoice_id=?").run(id);
+      if (state === 'expired') expire();
+      if (state === 'incomplete') db.sqlite.prepare('DELETE FROM stock_holds WHERE invoice_id=? AND product_id=?').run(id, lines[0].product_id);
+      if (state === 'paid') {
+        const paid = await admin(db, 'shop-a', `/api/invoices/${id}/payments`, { amount_usd: 42, method_label: 'Cash' });
+        expect(paid.status).toBe(201);
+        expect(await paid.json()).toMatchObject({ payment_status: 'paid' });
+      }
+      const before = snapshot();
+      if (state === 'expired during batch') {
+        const batch = db.batch.bind(db);
+        vi.spyOn(db, 'batch').mockImplementationOnce(statements => {
+          expire();
+          return batch(statements);
+        });
+      }
+      const response = await split();
+      expect(response.status).toBe(409);
+      if (state === 'expired during batch') {
+        const after = snapshot();
+        expect({ ...after, holds: before.holds }).toEqual(before);
+        expect(after.holds.map(({ expires_at: _, ...row }) => row)).toEqual(before.holds.map(({ expires_at: _, ...row }) => row));
+      } else {
+        expect(snapshot()).toEqual(before);
+      }
+    },
+  );
+
+  it('denies a foreign account and invalid subsets before a reviewed split can write', async () => {
+    const { lines, split, snapshot } = await reviewedOrderForSplit();
+    const before = snapshot();
+    expect((await split([lines[0].id], 'shop-b')).status).toBe(404);
+    expect((await split([lines[0].id, lines[0].id])).status).toBe(400);
+    expect((await split(lines.map(line => line.id))).status).toBe(400);
+    expect((await split(['foreign-line'])).status).toBe(400);
+    expect(snapshot()).toEqual(before);
+  });
 
   it('releases expired stock on the same UTC date and keeps late payments from taking another order’s stock', async () => {
     const db = seed('migrations');
