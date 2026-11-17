@@ -288,6 +288,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     display_currency TEXT,
     shipping_cost_usd REAL DEFAULT 0,
     shipping_destination TEXT,
+    delivery_address TEXT,
     tracking_number TEXT,
     stock_exception TEXT,
     source_inquiry_id TEXT,

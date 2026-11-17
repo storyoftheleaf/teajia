@@ -147,6 +147,23 @@ describe('website order lifecycle', () => {
     expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM invoices').get()).toEqual({ n: 1 });
   });
 
+  it('keeps the submitted street address in the selling store invoice only', async () => {
+    const db = seed('migrations');
+    const address = '12 Test Lane, Apartment 4';
+    const { body, result } = await create(db, orderPayload('shop-a', 'guest@example.test', { delivery_address: address }));
+    expect(result).not.toHaveProperty('delivery_address');
+    expect((await publicOrder(db, body)).status).toBe(200);
+    expect((await publicOrder(db, { ...body, delivery_address: '15 Test Lane' })).status).toBe(409);
+    expect((await publicOrder(db, orderPayload('shop-a', 'guest@example.test', { delivery_address: 'a'.repeat(501) }))).status).toBe(400);
+    const tracking = await buyerRequest(db, `/api/inquiries/${body.tracking_token}`);
+    expect(tracking.status).toBe(200);
+    expect(await tracking.text()).not.toContain(address);
+    const owner = await admin(db, 'shop-a', '/api/invoices', undefined, 'GET');
+    expect(await owner.json()).toMatchObject([{ id: result.invoice_id, delivery_address: address }]);
+    const otherStore = await admin(db, 'shop-b', '/api/invoices', undefined, 'GET');
+    expect(await otherStore.json()).toEqual([]);
+  });
+
   it('keeps overlapping Shop requests in separate drafts and scopes tracking and buyer access', async () => {
     const db = seed();
     db.sqlite.exec(`

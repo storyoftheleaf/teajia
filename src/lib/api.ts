@@ -3374,6 +3374,7 @@ export const api = {
       whatsapp_confirmation_consent?: boolean;
       whatsapp_handoff?: boolean;
       customer_location?: string;
+      delivery_address?: string;
       notes?: string;
       items_json: string;
       total_estimate_usd: number;

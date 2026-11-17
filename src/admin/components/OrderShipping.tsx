@@ -8,6 +8,7 @@ interface ShippingOrder {
   status: string;
   shipping_cost_usd?: number;
   shipping_destination?: string | null;
+  delivery_address?: string | null;
   tracking_number?: string | null;
 }
 
@@ -67,6 +68,7 @@ export const OrderShipping: React.FC<{
 
   if (closed) return <section aria-label="Shipping" className="min-w-0 text-ui-13 text-tea-text-sec">
     <h4 className={`${T.h3} text-tea-text mb-2`}>Shipping cancelled</h4>
+    {order.delivery_address && <p className="break-words whitespace-pre-line">{order.delivery_address}</p>}
     {order.shipping_destination && <p className="break-words">{order.shipping_destination}</p>}
     {order.tracking_number && <p className="break-words">Tracking: {order.tracking_number}</p>}
   </section>;
@@ -74,6 +76,7 @@ export const OrderShipping: React.FC<{
   return (
     <section aria-label="Shipping" className="min-w-0">
       <h4 className={`${T.h3} text-tea-text mb-3`}>Shipping</h4>
+      {order.delivery_address && <p className="mb-3 break-words whitespace-pre-line text-ui-13 text-tea-text-sec">{order.delivery_address}</p>}
       <form onSubmit={save} noValidate className="space-y-3">
         <div>
           <label htmlFor="shipping-quote" className={`${T.label} block text-tea-text-sec mb-1`}>Shipping quote (USD)</label>

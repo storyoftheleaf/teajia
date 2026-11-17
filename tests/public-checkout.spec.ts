@@ -137,13 +137,15 @@ test.describe('guest public checkout', () => {
     const requests = await prepare(page);
     await beginOrder(page);
     await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
+    await page.getByLabel('Street address (optional)', { exact: true }).fill('12 Test Lane');
+    expect(await page.evaluate(() => localStorage.getItem('teajia_cartDetails'))).not.toContain('12 Test Lane');
     await page.screenshot({ path: testInfo.outputPath('checkout-form.png'), fullPage: true });
     await page.getByRole('button', { name: 'Place order request', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
     await expect(page.getByText('Your request is saved with Teajia Bali.', { exact: true })).toBeInViewport({ ratio: 1 });
     await page.screenshot({ path: testInfo.outputPath('checkout-receipt.png'), fullPage: true });
     expect(requests).toHaveLength(1);
-    expect(requests[0]).toMatchObject({ source: 'website', customer_location: 'Ubud, Bali, Indonesia', customer_contact: 'guest@example.com' });
+    expect(requests[0]).toMatchObject({ source: 'website', customer_location: 'Ubud, Bali, Indonesia', customer_contact: 'guest@example.com', delivery_address: '12 Test Lane' });
     expect(JSON.parse(requests[0].items_json)[0]).toMatchObject({ packGrams: 25, packs: 2 });
     expect(await page.evaluate(() => (window as any).__checkoutPopupCalls)).toBe(0);
     await expect(page.getByRole('link', { name: /View order status/ })).toHaveAttribute('href', `/order/${requests[0].tracking_token}`);
@@ -158,6 +160,7 @@ test.describe('guest public checkout', () => {
     await expect(page.getByRole('radio', { name: 'Email', exact: true })).toBeChecked();
     await page.getByRole('radio', { name: 'Pickup in Bali', exact: true }).check();
     await expect(page.getByLabel('Your area in Bali', { exact: true })).toHaveCount(0);
+    await expect(page.getByLabel('Street address (optional)', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('radio', { name: 'WhatsApp', exact: true })).toHaveCount(0);
     await page.screenshot({ path: testInfo.outputPath('checkout-light-form.png'), fullPage: true });
     await page.getByRole('button', { name: 'Place order request', exact: true }).click();

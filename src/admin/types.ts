@@ -215,6 +215,7 @@ export interface Invoice {
   display_currency: string;
   shipping_cost_usd?: number;
   shipping_destination?: string | null;
+  delivery_address?: string | null;
   tracking_number?: string | null;
   source_inquiry_id?: string | null;
   notification_status?: string | null;

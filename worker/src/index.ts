@@ -14456,6 +14456,11 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
     const locationError = inquiryFieldTooLong('Location', location, INQUIRY_MAX_LOCATION);
     if (locationError) return json({ error: locationError }, 400);
     if (source === 'website' && !location) return json({ error: 'Approximate delivery location is required' }, 400);
+    const deliveryAddress = source === 'website' && typeof body.delivery_address === 'string'
+      ? body.delivery_address.trim()
+      : '';
+    const addressError = inquiryFieldTooLong('Delivery address', deliveryAddress, 500);
+    if (addressError) return json({ error: addressError }, 400);
     const phoneCandidate = typeof body.phone === 'string' ? body.phone.trim() : '';
     const phoneError = inquiryFieldTooLong('Phone', phoneCandidate, INQUIRY_MAX_PHONE);
     if (phoneError) return json({ error: phoneError }, 400);
@@ -14469,6 +14474,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
       name,
       contact,
       location,
+      deliveryAddress,
       notes,
       itemsJson: normalized.value.itemsJson,
       totalUsd: normalized.value.totalUsd,
@@ -14536,10 +14542,10 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
           env.DB.prepare(
             `INSERT INTO invoices
              (id,account_id,invoice_number,customer_name,customer_whatsapp,display_currency,customer_id,customer_library_account_id,
-              shipping_cost_usd,shipping_destination,source_inquiry_id,status,inventory_deducted,notes,payment_status)
-             VALUES (?,?,?,?,?,?,?,?,0,?,?,'Draft',0,?,'unpaid')`
+              shipping_cost_usd,shipping_destination,delivery_address,source_inquiry_id,status,inventory_deducted,notes,payment_status)
+             VALUES (?,?,?,?,?,?,?,?,0,?,?,?,'Draft',0,?,'unpaid')`
           ).bind(invoiceId, accountId, invoiceNumber, name, customerPhone, normalized.value.currency,buyerId,buyerLibrary,
-            location || null, requestId, `From order request ${normalized.value.refNumber}. ${whatsappHandoff ? handoffNote : `Reply to: ${contact}.`} ${notes ? `Customer note: ${notes}. ` : ''}Review prices and shipping before sending.`),
+            location || null, deliveryAddress || null, requestId, `From order request ${normalized.value.refNumber}. ${whatsappHandoff ? handoffNote : `Reply to: ${contact}.`} ${notes ? `Customer note: ${notes}. ` : ''}Review prices and shipping before sending.`),
           ...lines.map(line => env.DB.prepare(
             `INSERT INTO invoice_line_items
              (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,quantity_unit)

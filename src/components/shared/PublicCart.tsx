@@ -118,8 +118,9 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
   }, [isOpen, storeSlug]);
 
   useEffect(() => {
+    const { address: _privateAddress, ...savedDetails } = details;
     try {
-      if (Object.entries(details).some(([key, value]) => key !== 'delivery' && value.trim())) localStorage.setItem('teajia_cartDetails', JSON.stringify(details));
+      if (Object.entries(savedDetails).some(([key, value]) => key !== 'delivery' && value.trim())) localStorage.setItem('teajia_cartDetails', JSON.stringify(savedDetails));
       else localStorage.removeItem('teajia_cartDetails');
     } catch { /* Storage is optional: it must never block an order. */ }
   }, [details]);
@@ -169,15 +170,20 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
 
     const location = checkoutLocation(details);
     const contact = channel === 'whatsapp-chat' ? '' : details.contact.trim();
-    const payloadKey = createInquiryPayloadKey({ storeSlug, name: details.name, contact, location, notes: details.notes, cart, totalUsd: subtotal, currency: orderCurrency });
-    const identity = pendingIdentity.current?.payloadKey === payloadKey ? pendingIdentity.current : requestIdentity(payloadKey);
-    pendingIdentity.current = identity;
+    const deliveryAddress = details.delivery === 'bali-pickup' ? '' : details.address.trim();
+    const cartKey = createInquiryPayloadKey({ storeSlug, name: details.name, contact, location, notes: details.notes, cart, totalUsd: subtotal, currency: orderCurrency });
     saving.current = true;
     setIsPersisting(true);
     setCheckoutError(null);
-    try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(identity)); } catch { /* Keep the identity in memory for retry. */ }
     try {
-      const result = await api.inquiries.create({ tracking_token: identity.trackingToken, ref_number: identity.ref, store_slug: storeSlug, customer_name: details.name.trim(), customer_contact: contact, whatsapp_handoff: channel === 'whatsapp-chat', whatsapp_confirmation_consent: requestWhatsApp, customer_location: location, notes: details.notes.trim() || undefined, items_json: JSON.stringify(cart), total_estimate_usd: subtotal, currency: orderCurrency, source: 'website' });
+      const addressDigest = deliveryAddress
+        ? new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(deliveryAddress))).join(',')
+        : '';
+      const payloadKey = addressDigest ? JSON.stringify([cartKey, addressDigest]) : cartKey;
+      const identity = pendingIdentity.current?.payloadKey === payloadKey ? pendingIdentity.current : requestIdentity(payloadKey);
+      pendingIdentity.current = identity;
+      try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(identity)); } catch { /* Keep the identity in memory for retry. */ }
+      const result = await api.inquiries.create({ tracking_token: identity.trackingToken, ref_number: identity.ref, store_slug: storeSlug, customer_name: details.name.trim(), customer_contact: contact, whatsapp_handoff: channel === 'whatsapp-chat', whatsapp_confirmation_consent: requestWhatsApp, customer_location: location, delivery_address: deliveryAddress || undefined, notes: details.notes.trim() || undefined, items_json: JSON.stringify(cart), total_estimate_usd: subtotal, currency: orderCurrency, source: 'website' });
       const trackingUrl = `${window.location.origin}/order/${result.tracking_token}`;
       const savedItems: PublicCartItem[] = result.invoice_items ? result.invoice_items.map(line => {
         const original = cart.find(item => item.id === line.product_id && item.quantityGrams === line.quantity);
@@ -213,7 +219,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
     catch { setCopyStatus('Could not copy. Open your order-status page and bookmark it instead.'); }
   };
 
-  const field = (key: 'name' | 'contact' | 'location' | 'country' | 'postcode', label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
+  const field = (key: 'name' | 'contact' | 'location' | 'country' | 'postcode' | 'address', label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
     <div className="space-y-1">
       <label className="block font-body text-ui-13 text-tea-text-sec" htmlFor={`checkout-${key}`}>{label}</label>
       <input id={`checkout-${key}`} name={key} value={details[key]} onChange={event => updateDetail(key, event.target.value)} aria-invalid={!!errors[key]} aria-describedby={errors[key] ? `checkout-${key}-error` : undefined} className="checkout-input" {...props} />
@@ -299,7 +305,8 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
               {details.delivery !== 'bali-pickup' && field('location', details.delivery === 'bali-delivery' ? 'Your area in Bali' : details.delivery === 'indonesia' ? 'City and province' : 'Town or city', { autoComplete: 'address-level2', placeholder: details.delivery === 'bali-delivery' ? 'e.g. Ubud or Canggu' : details.delivery === 'indonesia' ? 'e.g. Jakarta, DKI Jakarta' : undefined })}
               {details.delivery === 'international' && field('country', 'Country', { autoComplete: 'country-name' })}
               {(details.delivery === 'indonesia' || details.delivery === 'international') && field('postcode', 'Postcode (optional)', { autoComplete: 'postal-code' })}
-              <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{details.delivery === 'bali-pickup' ? 'We’ll confirm whether pickup is available and arrange the place and time.' : details.delivery === 'international' ? 'We’ll confirm shipping availability and cost with you. No full address needed yet.' : 'We’ll confirm delivery cost and timing, then ask for your address or map pin.'}</p>
+              {details.delivery !== 'bali-pickup' && field('address', 'Street address (optional)', { autoComplete: 'street-address', maxLength: 500 })}
+              <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{details.delivery === 'bali-pickup' ? 'We’ll confirm whether pickup is available and arrange the place and time.' : 'We’ll confirm delivery availability and cost with you.'}</p>
             </fieldset>
             <fieldset className="space-y-3 min-w-0">
               <legend className={`${T.h3} text-tea-text mb-3`}>How we reply</legend>

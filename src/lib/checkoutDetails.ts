@@ -4,6 +4,7 @@ export type ReplyChannel = 'whatsapp' | 'website' | 'whatsapp-chat';
 export interface CheckoutDetails {
   name: string;
   contact: string;
+  address: string;
   location: string;
   country: string;
   postcode: string;
@@ -12,7 +13,7 @@ export interface CheckoutDetails {
 }
 
 export function emptyCheckoutDetails(isBaliStore: boolean): CheckoutDetails {
-  return { name: '', contact: '', location: '', country: '', postcode: '', notes: '', delivery: isBaliStore ? 'bali-delivery' : 'international' };
+  return { name: '', contact: '', address: '', location: '', country: '', postcode: '', notes: '', delivery: isBaliStore ? 'bali-delivery' : 'international' };
 }
 
 /** Old saved forms and corrupt browser storage must not break guest checkout. */
