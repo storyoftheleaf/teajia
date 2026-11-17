@@ -635,18 +635,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   const voiceUserId = activeUserId ?? 'guest';
   const voiceContextKey = `curate:${voiceUserId}:${activeAccountId ?? 'guest'}:${activeEntryId ?? 'unassigned'}`;
-  const {
-    state: voiceState,
-    errorMessage: voiceError,
-    pendingRecording: pendingVoiceRecording,
-    handlePress: handleVoicePress,
-    retryPending: retryPendingVoice,
-    discardPending: discardPendingVoice,
-  } = useVoiceRecorder(handleVoiceTranscript, voiceContextKey, voiceUserId);
+  const voiceRecorder = useVoiceRecorder(handleVoiceTranscript, voiceContextKey, voiceUserId);
+  const voiceState = voiceRecorder.state;
   const sourceVoiceRecorder = {
     state: voiceState,
-    handlePress: handleVoicePress,
-    hasPendingRecording: Boolean(pendingVoiceRecording),
+    handlePress: voiceRecorder.handlePress,
+    hasPendingRecording: Boolean(voiceRecorder.pendingRecording),
   };
   const isPlatformPrivileged = usePlatformPrivilege();
 
@@ -899,7 +893,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             {showInlineMic && (
               <button
                 type="button"
-                onClick={handleVoicePress}
+                onClick={voiceRecorder.handlePress}
                 disabled={voiceState === 'transcribing'}
                 aria-label={
                   voiceState === 'recording' ? 'Stop recording'
@@ -1286,7 +1280,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               The mobile action bar moved into CaptureCard's footer (along
               with the Done button), so we no longer stack two fixed bars. */}
           <AnimatePresence>
-            {mode === 'sourcing' && voiceError && (
+            {mode === 'sourcing' && voiceRecorder.errorMessage && (
               <motion.div
                 key="voice-error"
                 role="status"
@@ -1297,11 +1291,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 exit={{ opacity: 0, y: 4 }}
                 className="lg:hidden fixed left-0 right-0 z-20 bottom-nav flex flex-wrap items-center justify-center gap-2 text-ui-11 text-tea-error text-center px-4 py-1.5 border-t border-tea-border bg-tea-bg"
               >
-                <span>{voiceError}</span>
-                {pendingVoiceRecording && (
+                <span>{voiceRecorder.errorMessage}</span>
+                {voiceRecorder.pendingRecording && (
                   <span className="inline-flex items-center gap-2">
-                    <button type="button" onClick={() => void retryPendingVoice()} className="tap-target text-tea-text-sec hover:text-tea-text">Retry</button>
-                    <button type="button" onClick={() => void discardPendingVoice()} className="tap-target text-tea-text-sec hover:text-tea-text">Discard</button>
+                    <button type="button" onClick={() => void voiceRecorder.retryPending()} className="tap-target text-tea-text-sec hover:text-tea-text">Retry</button>
+                    <button type="button" onClick={() => void voiceRecorder.discardPending()} className="tap-target text-tea-text-sec hover:text-tea-text">Discard</button>
                   </span>
                 )}
               </motion.div>
@@ -1764,7 +1758,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             {mode === 'sourcing' && (
               <div className="shrink-0 border-t border-tea-border">
                 <AnimatePresence>
-                  {voiceError && (
+                  {voiceRecorder.errorMessage && (
                     <motion.div
                       role="status"
                       aria-live="polite"
@@ -1774,11 +1768,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       exit={{ opacity: 0, y: 4 }}
                       className="flex flex-wrap items-center justify-center gap-2 text-ui-11 text-tea-error text-center px-4 py-1.5 border-b border-tea-border bg-tea-bg"
                     >
-                      <span>{voiceError}</span>
-                      {pendingVoiceRecording && (
+                      <span>{voiceRecorder.errorMessage}</span>
+                      {voiceRecorder.pendingRecording && (
                         <span className="inline-flex items-center gap-2">
-                          <button type="button" onClick={() => void retryPendingVoice()} className="tap-target text-tea-text-sec hover:text-tea-text">Retry</button>
-                          <button type="button" onClick={() => void discardPendingVoice()} className="tap-target text-tea-text-sec hover:text-tea-text">Discard</button>
+                          <button type="button" onClick={() => void voiceRecorder.retryPending()} className="tap-target text-tea-text-sec hover:text-tea-text">Retry</button>
+                          <button type="button" onClick={() => void voiceRecorder.discardPending()} className="tap-target text-tea-text-sec hover:text-tea-text">Discard</button>
                         </span>
                       )}
                     </motion.div>
