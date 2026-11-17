@@ -43,6 +43,7 @@ type SavedOrder = {
   message: string;
   remembered: boolean;
   invoiceNumber?: string;
+  pickupPaymentDeadline?: string;
   handoff: boolean;
   /** The customer chose WhatsApp (with or without a number), not email. */
   viaWhatsApp: boolean;
@@ -183,7 +184,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       const identity = pendingIdentity.current?.payloadKey === payloadKey ? pendingIdentity.current : requestIdentity(payloadKey);
       pendingIdentity.current = identity;
       try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(identity)); } catch { /* Keep the identity in memory for retry. */ }
-      const result = await api.inquiries.create({ tracking_token: identity.trackingToken, ref_number: identity.ref, store_slug: storeSlug, customer_name: details.name.trim(), customer_contact: contact, whatsapp_handoff: channel === 'whatsapp-chat', whatsapp_confirmation_consent: requestWhatsApp, customer_location: location, delivery_address: deliveryAddress || undefined, notes: details.notes.trim() || undefined, items_json: JSON.stringify(cart), total_estimate_usd: subtotal, currency: orderCurrency, source: 'website' });
+      const result = await api.inquiries.create({ tracking_token: identity.trackingToken, ref_number: identity.ref, store_slug: storeSlug, customer_name: details.name.trim(), customer_contact: contact, whatsapp_handoff: channel === 'whatsapp-chat', whatsapp_confirmation_consent: requestWhatsApp, customer_location: location, delivery_address: deliveryAddress || undefined, pickup: details.delivery === 'bali-pickup' || undefined, notes: details.notes.trim() || undefined, items_json: JSON.stringify(cart), total_estimate_usd: subtotal, currency: orderCurrency, source: 'website' });
       const trackingUrl = `${window.location.origin}/order/${result.tracking_token}`;
       const savedItems: PublicCartItem[] = result.invoice_items ? result.invoice_items.map(line => {
         const original = cart.find(item => item.id === line.product_id && item.quantityGrams === line.quantity);
@@ -200,7 +201,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       const request: RecentOrderRequest = { trackingToken: result.tracking_token, reference: result.ref_number, storeSlug, createdAt: new Date().toISOString() };
       const remembered = rememberRecentOrderRequest(request);
       setWhatsappConsent(false);
-      setPlacedOrder({ request, items: savedItems, total: shopPrice.total(savedSubtotal), message, remembered, invoiceNumber: result.invoice_number, handoff: channel === 'whatsapp-chat', viaWhatsApp: channel !== 'website' });
+      setPlacedOrder({ request, items: savedItems, total: shopPrice.total(savedSubtotal), message, remembered, invoiceNumber: result.invoice_number, pickupPaymentDeadline: result.pickup_payment_deadline, handoff: channel === 'whatsapp-chat', viaWhatsApp: channel !== 'website' });
       setRecentRequests(readRecentOrderRequests(storeSlug));
       setUndoItem(null);
       clearPublicCart();
@@ -246,8 +247,8 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
             paragraphs and bordered rows, so the moment the order was sent it
             stopped looking like the thing the reader had just built. */}
         <div role="status" className="space-y-2">
-          <p className="font-display text-ui-26 leading-tight text-tea-text">Your request is saved with {storeName}.</p>
-          <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">Your order request and draft invoice are saved. We’ll arrange stock, payment and shipping with you personally.</p>
+          <p className="font-display text-ui-26 leading-tight text-tea-text">{placedOrder.pickupPaymentDeadline ? 'Your pickup order is reserved.' : `Your request is saved with ${storeName}.`}</p>
+          <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{placedOrder.pickupPaymentDeadline ? 'Open your order to see bank details and report your transfer.' : 'Your order request and draft invoice are saved. We’ll arrange stock, payment and shipping with you personally.'}</p>
           {placedOrder.invoiceNumber && <p className="num text-ui-13 text-tea-text-sec">{`Invoice ${placedOrder.invoiceNumber}`}</p>}
         </div>
         <div className="space-y-4">
@@ -259,12 +260,14 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
             <span className="num text-ui-17 text-tea-text shrink-0">{shopPrice.total(item.totalPrice)}</span>
           </div>)}
           <div className="flex items-baseline justify-between gap-3 pt-3 border-t border-tea-border">
-            <span className="font-body text-ui-13 text-tea-text-sec">{placedOrder.items.every(item => item.category === 'tea') ? 'Tea subtotal estimate' : 'Tea & teaware subtotal estimate'}</span>
+            <span className="font-body text-ui-13 text-tea-text-sec">{placedOrder.pickupPaymentDeadline ? 'Total · free pickup' : placedOrder.items.every(item => item.category === 'tea') ? 'Tea subtotal estimate' : 'Tea & teaware subtotal estimate'}</span>
             <span className="num text-ui-20 text-tea-text">{placedOrder.total}</span>
           </div>
-          <p className="font-body text-ui-13 text-tea-text-sec">Shipping is arranged personally. No payment has been taken.</p>
+          <p className="font-body text-ui-13 text-tea-text-sec">{placedOrder.pickupPaymentDeadline
+            ? `Transfer by ${new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Makassar' }).format(new Date(placedOrder.pickupPaymentDeadline))} Bali time. We’ll confirm your deposit.`
+            : 'Shipping is arranged personally. No payment has been taken.'}</p>
         </div>
-        {channels.whatsapp && placedOrder.viaWhatsApp && <section className="space-y-2" aria-label="Discuss your saved order">
+        {channels.whatsapp && placedOrder.viaWhatsApp && !placedOrder.pickupPaymentDeadline && <section className="space-y-2" aria-label="Discuss your saved order">
           <h3 className={`${T.h3} text-tea-text`}>{placedOrder.handoff ? 'One more step' : 'On WhatsApp'}</h3>
           <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{placedOrder.handoff ? 'Open WhatsApp with the button below and tap Send, so we can reply to you.' : 'We’ll write to your number. To start sooner, open WhatsApp with the button below and tap Send.'} The message carries your order and its link; nothing is sent until you tap Send.</p>
           <details><summary className="checkout-text-action text-ui-13 cursor-pointer">Using a computer? Scan with your phone</summary>
@@ -306,7 +309,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
               {details.delivery === 'international' && field('country', 'Country', { autoComplete: 'country-name' })}
               {(details.delivery === 'indonesia' || details.delivery === 'international') && field('postcode', 'Postcode (optional)', { autoComplete: 'postal-code' })}
               {details.delivery !== 'bali-pickup' && field('address', 'Street address (optional)', { autoComplete: 'street-address', maxLength: 500 })}
-              <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{details.delivery === 'bali-pickup' ? 'We’ll confirm whether pickup is available and arrange the place and time.' : 'We’ll confirm delivery availability and cost with you.'}</p>
+              <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{details.delivery === 'bali-pickup' ? 'Pickup is free. If we can confirm your order now, you can pay by bank transfer right away.' : 'We’ll confirm delivery availability and cost with you.'}</p>
             </fieldset>
             <fieldset className="space-y-3 min-w-0">
               <legend className={`${T.h3} text-tea-text mb-3`}>How we reply</legend>
@@ -338,7 +341,8 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
           print at the top of the scrolling list, which is off screen by the
           time a reader reaches the button, so pressing it looked like nothing. */}
       {checkoutError && <p role="alert" className="font-body text-ui-13 leading-snug text-tea-text bg-tea-elevated px-3 py-2">{checkoutError}</p>}
-      {placedOrder ? channels.whatsapp && placedOrder.viaWhatsApp
+      {placedOrder?.pickupPaymentDeadline ? <a href={recentOrderRequestPath(placedOrder.request)} onClick={onClose} className="inline-flex w-full items-center justify-center min-h-[44px] px-5 py-2.5 rounded-xl cta-solid font-sans font-medium tracking-wide text-base">View bank transfer instructions</a>
+        : placedOrder ? channels.whatsapp && placedOrder.viaWhatsApp && !placedOrder.pickupPaymentDeadline
         ? <a className="inline-flex w-full items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-xl cta-solid font-sans font-medium tracking-wide text-base whitespace-nowrap" href={buildWhatsAppUrl(whatsappNumber!, placedOrder.message)} target="_blank" rel="noopener noreferrer">Discuss this order on WhatsApp</a>
         : <Button fullWidth onClick={onClose}>Continue browsing</Button> : cart.length > 0 ? <>
         <div className="flex items-center gap-4">

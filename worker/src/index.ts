@@ -178,6 +178,7 @@ import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasti
 import { approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowed, capturePhotoPath, capturePhotoResponse, loadCapturePhotoReview, prepareCaptureApproval, privateCapturePhoto, shopPhotoApprovalId, shopPhotoUrl, storeCapturePhoto, validCaptureEntryId, validCapturePhotoId } from './capturePhotos';
 interface Env extends WorkerReleaseEnv {
   DB: D1Database;
+  SHOP_PICKUP_ACCOUNT_ID?: string;
   WHATSAPP_ORDER_ACCOUNT_ID?: string;
   WHATSAPP_ACCESS_TOKEN?: string;
   WHATSAPP_PHONE_NUMBER_ID?: string;
@@ -4274,6 +4275,7 @@ function buildPayUrl(
 async function resolveInvoicePayments(
   env: Env,
   invoices: PayableInvoice[],
+  checkBankOnly = false,
 ): Promise<Map<string, InvoicePaymentInfo>> {
   const resolved = new Map<string, InvoicePaymentInfo>();
   const rows = invoices.filter(invoice => invoice.id && invoice.account_id);
@@ -4448,10 +4450,13 @@ async function resolveInvoicePayments(
     // back to their personal default methods, exactly as that page does.
     const linked = storeLinks.has(`${contributorId}::${accountId}`);
     const account = accounts.get(accountId);
-    const methods = resolvePublishedPaymentMethods(
+    const publishedMethods = resolvePublishedPaymentMethods(
       methodsByContributor.get(contributorId) ?? [],
       linked ? accountId : null,
     );
+    const methods = checkBankOnly
+      ? publishedMethods.filter(method => method.method_type === 'bank_transfer' && method.account_identifier?.trim())
+      : publishedMethods;
     const amounts = {
       ...(money.get(invoice.id) ?? { total_usd: 0, paid_usd: 0, outstanding_usd: 0, claims_pending: 0 }),
       tea_line_count: teaLines.get(invoice.id) ?? 0,
@@ -4473,7 +4478,7 @@ async function resolveInvoicePayments(
     // its link, and that link now asks for the balance rather than the total.
     // This is the only place the decision is made, so every surface inherits it.
     const settled = amounts.outstanding_usd <= 0 || String(invoice.status || '') === 'Void';
-    if (settled) {
+    if (settled || checkBankOnly) {
       resolved.set(invoice.id, {
         ...amounts,
         recipient_slug: contributorId,
@@ -14284,9 +14289,26 @@ const handleGetNewsletterSubscribers: Handler = async (request, env) => {
 // ── Cart Inquiries ──────────────────────────────────────────────────────────
 
 async function currentInvoiceItems(env:Env,accountId:string,invoiceId:string){
- const rows=await env.DB.prepare(`SELECT l.id,l.product_id,COALESCE(l.custom_name,p.given_name,p.product_name,'Item') AS name,l.quantity,COALESCE(l.quantity_unit,CASE WHEN p.type='Teaware' THEN 'unit' ELSE 'g' END) AS quantity_unit,l.price_at_sale AS unit_price_usd,ROUND(l.quantity*l.price_at_sale,2) AS line_total_usd FROM invoice_line_items l LEFT JOIN products p ON p.id=l.product_id AND p.account_id=l.account_id WHERE l.invoice_id=? AND l.account_id=?`).bind(invoiceId,accountId).all();return rows.results;
+ const rows=await env.DB.prepare(`SELECT l.id,l.product_id,COALESCE(l.custom_name,p.given_name,p.product_name,'Item') AS name,l.quantity,COALESCE(l.quantity_unit,CASE WHEN p.type='Teaware' THEN 'unit' ELSE 'g' END) AS quantity_unit,l.price_at_sale AS unit_price_usd,ROUND(l.quantity*l.price_at_sale,2) AS line_total_usd FROM invoice_line_items l LEFT JOIN products p ON p.id=l.product_id AND p.account_id=l.account_id WHERE l.invoice_id=? AND l.account_id=?`).bind(invoiceId,accountId).all<{ line_total_usd: number }>();return rows.results;
 }
-async function savedInvoiceContents(env:Env,accountId:string,invoiceId:string){const invoice_items=await currentInvoiceItems(env,accountId,invoiceId);return {invoice_items,total_estimate_usd:roundUsd((invoice_items as any[]).reduce((sum,line)=>sum+Number(line.line_total_usd),0))};}
+const PICKUP_DESTINATION = 'In-person pickup in Bali, Indonesia';
+
+async function savedInvoiceContents(env: Env, accountId: string, invoiceId: string) {
+  const [invoice_items, pickup] = await Promise.all([
+    currentInvoiceItems(env, accountId, invoiceId),
+    env.DB.prepare(`SELECT MIN(h.expires_at) AS deadline
+      FROM invoices i JOIN stock_holds h ON h.invoice_id=i.id AND h.account_id=i.account_id
+      WHERE i.id=? AND i.account_id=? AND i.status='Pending' AND i.inventory_deducted=0
+        AND i.shipping_destination=? AND julianday(h.expires_at)>julianday('now')`
+    ).bind(invoiceId, accountId, PICKUP_DESTINATION).first<{ deadline: string | null }>(),
+  ]);
+  return {
+    invoice_items,
+    total_estimate_usd: roundUsd(invoice_items.reduce((sum, line) => sum + Number(line.line_total_usd), 0)),
+    ...(pickup?.deadline ? { pickup_payment_deadline: pickup.deadline } : {}),
+  };
+}
+
 const handleClaimInquiry:Handler=async(request,env,params)=>{
  const user=await optionalAuthenticatedUser(request,env);if(!user)return json({error:'Sign in to keep this order'},401);
  if(!isValidTrackingToken(params.ref))return json({error:'Order not found'},404);
@@ -14343,7 +14365,7 @@ async function pricedRequestLines(env: Env, accountId: string, items: Array<Reco
       product_id: product ? String(product.id) : null,
       custom_name: `${name} (${inquiryPackingLabel({ ...item, category: product?.type === 'Teaware' ? 'ware' : item.category })})`,
       quantity,
-      quantity_unit:product?.type==='Teaware'?'unit':'g',
+      quantity_unit: product?.type === 'Teaware' ? 'unit' as const : 'g' as const,
       price_at_sale: product ? quoteInquiryLine(item, product) / quantity : 0,
     };
   });
@@ -14456,6 +14478,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
     const locationError = inquiryFieldTooLong('Location', location, INQUIRY_MAX_LOCATION);
     if (locationError) return json({ error: locationError }, 400);
     if (source === 'website' && !location) return json({ error: 'Approximate delivery location is required' }, 400);
+    const pickupRequested = source === 'website' && body.pickup === true;
     const deliveryAddress = source === 'website' && typeof body.delivery_address === 'string'
       ? body.delivery_address.trim()
       : '';
@@ -14475,6 +14498,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
       contact,
       location,
       deliveryAddress,
+      pickupRequested,
       notes,
       itemsJson: normalized.value.itemsJson,
       totalUsd: normalized.value.totalUsd,
@@ -14518,6 +14542,35 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
         return json({ error: error instanceof Error ? error.message : 'Could not price this request' }, 400);
       }
       const serverSubtotalUsd = roundUsd(lines.reduce((sum, line) => sum + line.quantity * line.price_at_sale, 0));
+      let pickup: { ownerId: string; lines: Awaited<ReturnType<typeof authorizeInvoiceLines>> } | null = null;
+      // Only the opted-in store can offer pickup at checkout. Any unpriced or
+      // mixed-owner basket goes through the existing review flow.
+      if (pickupRequested && accountId === env.SHOP_PICKUP_ACCOUNT_ID && !whatsappHandoff &&
+          !deliveryAddress && lines.length > 0 && lines.every(line => line.product_id && line.price_at_sale > 0)) {
+        const owner = await env.DB.prepare(`SELECT a.owner_user_id FROM accounts a
+          JOIN account_members m ON m.account_id=a.id AND m.user_id=a.owner_user_id
+          WHERE a.id=? AND m.role='owner' AND m.status='active'`).bind(accountId).first<{ owner_user_id: string }>();
+        const productIds = [...new Set(lines.map(line => line.product_id))];
+        const knownStock = await env.DB.prepare(`SELECT COUNT(*) AS total FROM products
+          WHERE account_id=? AND id IN (${productIds.map(() => '?').join(',')})
+            AND stock_known_at IS NOT NULL
+            AND CASE WHEN type='Teaware' THEN quantity_units ELSE stock_grams END > 0`
+        ).bind(accountId, ...productIds).first<{ total: number }>();
+        if (owner && knownStock?.total === productIds.length) {
+          const authorized = await authorizeInvoiceLines(env, {
+            accountId, actorUserId: owner.owner_user_id, actorRole: 'owner', lines,
+          });
+          if (authorized.every(line => !line.stock_owner_user_id || line.stock_owner_user_id === owner.owner_user_id)) {
+            const methods = await resolveInvoicePayments(env, [{
+              id: 'pickup-method-check', account_id: accountId, status: 'Pending',
+              sold_by_user_id: owner.owner_user_id, total_usd: serverSubtotalUsd,
+            }], true);
+            if (methods.get('pickup-method-check')?.has_methods) {
+              pickup = { ownerId: owner.owner_user_id, lines: authorized };
+            }
+          }
+        }
+      }
       const buyer=await optionalAuthenticatedUser(request,env);
       const buyerMembership=buyer?await getActiveAccount(request,env):null;
       const buyerLibrary=buyerMembership&&!('error' in buyerMembership)?buyerMembership.accountId:null;
@@ -14532,6 +14585,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
       let committed = false;
       let lastError: unknown;
       for (let attempt = 0; attempt < 3 && !committed; attempt++) {
+        const pickupDeadline = pickup ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null;
         const seq = await env.DB.prepare(
           'UPDATE accounts SET invoice_seq=invoice_seq+1 WHERE id=? RETURNING invoice_seq,invoice_prefix'
         ).bind(accountId).first() as { invoice_seq: number; invoice_prefix: string | null } | null;
@@ -14542,15 +14596,21 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
           env.DB.prepare(
             `INSERT INTO invoices
              (id,account_id,invoice_number,customer_name,customer_whatsapp,display_currency,customer_id,customer_library_account_id,
-              shipping_cost_usd,shipping_destination,delivery_address,source_inquiry_id,status,inventory_deducted,notes,payment_status)
-             VALUES (?,?,?,?,?,?,?,?,0,?,?,?,'Draft',0,?,'unpaid')`
+              shipping_cost_usd,shipping_destination,delivery_address,source_inquiry_id,status,inventory_deducted,notes,payment_status,
+              sold_by_user_id,payment_recipient_user_id)
+             VALUES (?,?,?,?,?,?,?,?,0,?,?,?,?,0,?,'unpaid',?,?)`
           ).bind(invoiceId, accountId, invoiceNumber, name, customerPhone, normalized.value.currency,buyerId,buyerLibrary,
-            location || null, deliveryAddress || null, requestId, `From order request ${normalized.value.refNumber}. ${whatsappHandoff ? handoffNote : `Reply to: ${contact}.`} ${notes ? `Customer note: ${notes}. ` : ''}Review prices and shipping before sending.`),
+            pickup ? PICKUP_DESTINATION : location || null, deliveryAddress || null, requestId, pickup ? 'Pending' : 'Draft', `From order request ${normalized.value.refNumber}. ${whatsappHandoff ? handoffNote : `Reply to: ${contact}.`} ${notes ? `Customer note: ${notes}. ` : ''}${pickup ? 'In-person pickup. Awaiting bank transfer.' : 'Review prices and shipping before sending.'}`,
+            pickup?.ownerId ?? null, pickup?.ownerId ?? null),
           ...lines.map(line => env.DB.prepare(
             `INSERT INTO invoice_line_items
-             (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,quantity_unit)
-             VALUES (?,?,?,?,?,?,?,?)`
-          ).bind(crypto.randomUUID(), accountId, invoiceId, line.product_id, line.custom_name, line.quantity, line.price_at_sale,line.quantity_unit)),
+             (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,quantity_unit,stock_owner_user_id)
+             VALUES (?,?,?,?,?,?,?,?,?)`
+          ).bind(crypto.randomUUID(), accountId, invoiceId, line.product_id, line.custom_name, line.quantity, line.price_at_sale,
+            line.quantity_unit, pickup?.lines.find(authorized => authorized.product_id === line.product_id)?.stock_owner_user_id ?? null)),
+          ...(pickup && pickupDeadline ? buildInvoiceReservationStatements(env, {
+            accountId, invoiceId, lines: pickup.lines, expiresAt: pickupDeadline,
+          }) : []),
           env.DB.prepare(
             `INSERT INTO inquiries
              (id,account_id,name,email,phone,items,total_usd,currency,message,source,ref_number,
@@ -14559,7 +14619,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
           ).bind(requestId, accountId, name, contact, customerPhone, normalized.value.itemsJson,
             serverSubtotalUsd, normalized.value.currency, requestMessage,
             normalized.value.refNumber, tokenHash, requestFingerprint, invoiceId),
-          ...(whatsappRecipient ? [buildCustomerOrderNotificationInsert(env.DB, {
+          ...(whatsappRecipient && !pickup ? [buildCustomerOrderNotificationInsert(env.DB, {
             accountId, invoiceId, orderRef: normalized.value.refNumber, customerName: name,
             customerContact: contact, deliveryLocation: location || null,
             orderSummary: `${lines.map(line => `${line.custom_name}, ${line.quantity} g`).join('; ')} · tea subtotal USD ${serverSubtotalUsd.toFixed(2)} (shipping pending)`,
@@ -14585,6 +14645,10 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
               tracking_token: normalized.value.trackingToken, invoice_id: raced.converted_invoice_id,
               invoice_number: raced.invoice_number, source, success: true, idempotent: true }, 200);
           }
+          if (pickup && /insufficient available stock/i.test(String((error as Error)?.message || error))) {
+            pickup = null;
+            continue;
+          }
           if (!/UNIQUE|constraint/i.test(String((error as Error)?.message || error))) break;
         }
       }
@@ -14592,14 +14656,14 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
         console.error('Website order batch failed:', lastError);
         return json({ error: 'Could not save the order. Please retry.' }, 500);
       }
-      if (whatsappRecipient) {
+      if (whatsappRecipient && !pickup) {
         const notification = processPendingCustomerOrderNotifications(env.DB, env, {
           accountId, invoiceId, limit: 1,
         }).catch(error => console.error('Customer order confirmation failed', error));
         if (ctx?.waitUntil) ctx.waitUntil(notification);
         else await notification;
       }
-      const emailSent = await sendOrderRequestEmails(env, {
+      const emailSent = !pickup && await sendOrderRequestEmails(env, {
           accountId, source, customerName: name, contact, phone: customerPhone,
           location: location || null, itemsJson: normalized.value.itemsJson,
           totalUsd: serverSubtotalUsd, currency: normalized.value.currency,

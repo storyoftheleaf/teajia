@@ -13,13 +13,13 @@ const PRODUCT = {
 type SubmittedRequest = {
   tracking_token: string; ref_number: string; source: string; customer_location: string;
   customer_contact: string; items_json: string; whatsapp_confirmation_consent?: boolean; whatsapp_handoff?: boolean;
-  total_estimate_usd: number; currency: string;
+  total_estimate_usd: number; currency: string; pickup?: boolean;
 };
 async function json(route: Route, body: unknown, status = 200) {
   await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 }
 
-async function prepare(page: Page, options: { canBePaid?: boolean; whatsapp?: boolean; failFirst?: boolean; allowPopup?: boolean; light?: boolean; emptyCart?: boolean; product?: Record<string, unknown>; canonicalPrice?: number; emptyCatalogue?: boolean } = {}) {
+async function prepare(page: Page, options: { canBePaid?: boolean; whatsapp?: boolean; failFirst?: boolean; allowPopup?: boolean; light?: boolean; emptyCart?: boolean; product?: Record<string, unknown>; canonicalPrice?: number; pickupDeadline?: string; emptyCatalogue?: boolean } = {}) {
   const requests: SubmittedRequest[] = [];
   await page.addInitScript(({ item, allowPopup, light, emptyCart }) => {
     // Seed once per test context; a reload must exercise the app's saved state.
@@ -40,7 +40,7 @@ async function prepare(page: Page, options: { canBePaid?: boolean; whatsapp?: bo
       const body = route.request().postDataJSON() as SubmittedRequest;
       requests.push(body);
       if (options.failFirst && requests.length === 1) return json(route, { error: 'Could not save your request. Please retry.' }, 503);
-      return json(route, { success: true, id: 'request-1', invoice_id: 'invoice-1', invoice_number: 'TJB-0001', tracking_token: body.tracking_token, ref_number: body.ref_number, source: body.source, email_sent: false, ...(options.canonicalPrice === undefined ? {} : { total_estimate_usd: options.canonicalPrice, invoice_items: [{ id: 'saved-line', product_id: CART_ITEM.id, name: CART_ITEM.name, quantity: 50, quantity_unit: 'g', unit_price_usd: options.canonicalPrice / 50, line_total_usd: options.canonicalPrice }] }) });
+      return json(route, { success: true, id: 'request-1', invoice_id: 'invoice-1', invoice_number: 'TJB-0001', tracking_token: body.tracking_token, ref_number: body.ref_number, source: body.source, email_sent: false, pickup_payment_deadline: body.pickup ? options.pickupDeadline : undefined, ...(options.canonicalPrice === undefined ? {} : { total_estimate_usd: options.canonicalPrice, invoice_items: [{ id: 'saved-line', product_id: CART_ITEM.id, name: CART_ITEM.name, quantity: 50, quantity_unit: 'g', unit_price_usd: options.canonicalPrice / 50, line_total_usd: options.canonicalPrice }] }) });
     }
     if (pathname === '/api/s/teajia-bali') return json(route, {
       id: 'bali-account', slug: 'teajia-bali', name: 'Teajia Bali', public_enabled: true,
@@ -166,6 +166,20 @@ test.describe('guest public checkout', () => {
     await page.getByRole('button', { name: 'Place order request', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
     expect(requests[0].customer_location).toBe('Pickup requested in Bali, Indonesia');
+  });
+
+  test('offers bank transfer immediately for confirmed pickup', async ({ page }) => {
+    const requests = await prepare(page, { whatsapp: false, pickupDeadline: '2026-11-18T08:00:00Z' });
+    await beginOrder(page, false);
+    await page.getByRole('radio', { name: 'Pickup in Bali', exact: true }).check();
+    await page.getByRole('button', { name: 'Place order request', exact: true }).click();
+    await expect(page.getByText('Your pickup order is reserved.')).toBeVisible();
+    await expect(page.getByText('Total · free pickup')).toBeVisible();
+    await expect(page.getByText(/Transfer by .*Bali time/)).toBeVisible();
+    await expect(page.getByRole('link', { name: 'View bank transfer instructions' }))
+      .toHaveAttribute('href', `/order/${requests[0].tracking_token}`);
+    expect(requests[0]).toMatchObject({ pickup: true, customer_location: 'Pickup requested in Bali, Indonesia' });
+    expect(requests[0]).not.toHaveProperty('delivery_address');
   });
 
   test('catalogue and product page share the same quantity prices, and dismissal adds nothing', async ({ page }) => {

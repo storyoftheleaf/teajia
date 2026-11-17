@@ -31,6 +31,8 @@ custom_domain = true
 SHARED_ALLOWANCE_REQUIRED = "true"
 OAUTH_REDIRECT_ORIGIN = "https://teajia-api.lightcodes.workers.dev"
 WORDFORGE_ACCOUNT_ID = "acc_teajia_bali"
+# Pickup checkout also requires the store owner’s published bank transfer method.
+SHOP_PICKUP_ACCOUNT_ID = "acc_teajia_bali"
 
 # Runtime version identity used by /api/release and exact-revision CI proof.
 [version_metadata]

@@ -145,6 +145,7 @@ export async function inquiryRequestFingerprint(input: {
   contact: string;
   location: string;
   deliveryAddress?: string;
+  pickupRequested?: boolean;
   notes: string;
   itemsJson: string;
   totalUsd: number;
@@ -157,6 +158,7 @@ export async function inquiryRequestFingerprint(input: {
     name: input.name.trim(),
     contact: input.contact.trim(),
     location: input.location.trim(),
+    ...(input.pickupRequested ? { pickupRequested: true } : {}),
     ...(input.deliveryAddress ? { deliveryAddress: input.deliveryAddress } : {}),
     notes: input.notes.trim(),
     items: JSON.parse(input.itemsJson),

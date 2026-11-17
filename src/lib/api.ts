@@ -3375,12 +3375,13 @@ export const api = {
       whatsapp_handoff?: boolean;
       customer_location?: string;
       delivery_address?: string;
+      pickup?: boolean;
       notes?: string;
       items_json: string;
       total_estimate_usd: number;
       currency: string;
       source: 'whatsapp' | 'email' | 'copy' | 'website';
-    }): Promise<{ id: string; ref_number: string; tracking_token: string; source: string; success: true; invoice_id?: string; invoice_number?: string; idempotent?: true; email_sent?: boolean; invoice_items?: import('./orderTrackingDomain').AgreedOrderItem[]; total_estimate_usd?: number }> => {
+    }): Promise<{ id: string; ref_number: string; tracking_token: string; source: string; success: true; invoice_id?: string; invoice_number?: string; idempotent?: true; email_sent?: boolean; pickup_payment_deadline?: string; invoice_items?: import('./orderTrackingDomain').AgreedOrderItem[]; total_estimate_usd?: number }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/inquiries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}) },

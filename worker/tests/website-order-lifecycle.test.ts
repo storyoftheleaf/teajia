@@ -40,10 +40,10 @@ function orderPayload(account = 'shop-a', contact = 'guest@example.com', overrid
   };
 }
 
-function publicOrder(db: SqliteD1, body: Record<string, unknown>) {
+function publicOrder(db: SqliteD1, body: Record<string, unknown>, pickupAccountId?: string) {
   return worker.fetch(new Request('https://app.test/api/inquiries', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-  }), { DB: db, JWT_SECRET: SECRET, INQUIRY_LIMITER: { limit: async () => ({ success: true }) } } as never, {} as never);
+  }), { DB: db, JWT_SECRET: SECRET, SHOP_PICKUP_ACCOUNT_ID: pickupAccountId, INQUIRY_LIMITER: { limit: async () => ({ success: true }) } } as never, {} as never);
 }
 
 async function admin(db: SqliteD1, accountId: string, path: string, body?: unknown, method = 'POST') {
@@ -145,6 +145,76 @@ describe('website order lifecycle', () => {
     expect((await publicOrder(db, malformed)).status).toBe(400);
     expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM inquiries').get()).toEqual({ n: 1 });
     expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM invoices').get()).toEqual({ n: 1 });
+  });
+
+  it('opens private bank transfer for eligible pickup and deducts only after deposit confirmation', async () => {
+    const db = seed('migrations');
+    db.sqlite.exec(`
+      UPDATE accounts SET owner_user_id='owner-a' WHERE id='shop-a';
+      UPDATE products SET stock_grams=75,stock_known_at=datetime('now') WHERE id='tea-a';
+      INSERT INTO contributors(id,account_id,user_id,display_name,is_published)
+      VALUES ('bali-seller','shop-a','owner-a','Bali seller',1);
+      INSERT INTO payment_methods(id,contributor_id,method_type,label,recipient_name,account_identifier,is_published)
+      VALUES ('bali-bank','bali-seller','bank_transfer','Bank transfer','Bali seller','Synthetic bank reference',1);
+    `);
+    const body = orderPayload('shop-a', 'guest@example.test', {
+      pickup: true, customer_location: 'Pickup requested in Bali, Indonesia',
+    });
+    const created = await publicOrder(db, body, 'shop-a');
+    expect(created.status).toBe(201);
+    const order = await created.json() as { invoice_id: string; pickup_payment_deadline: string };
+    const id = order.invoice_id;
+    expect(order.pickup_payment_deadline).toEqual(expect.any(String));
+    expect(invoice(db, id)).toMatchObject({ status: 'Pending', shipping_cost_usd: 0, inventory_deducted: 0 });
+    expect(stock(db)).toBe(75);
+    expect(stockMovements(db, id)).toEqual([]);
+
+    const replay = await publicOrder(db, body, 'shop-a');
+    expect(replay.status).toBe(200);
+    expect(await replay.json()).toMatchObject({ invoice_id: id, pickup_payment_deadline: order.pickup_payment_deadline, idempotent: true });
+    expect((await publicOrder(db, { ...body, pickup: false }, 'shop-a')).status).toBe(409);
+    const second = await publicOrder(db, orderPayload('shop-a', 'other@example.test', {
+      pickup: true, customer_location: body.customer_location,
+    }), 'shop-a');
+    expect(second.status).toBe(201);
+    const fallback = await second.json() as { invoice_id: string };
+    expect(fallback).not.toHaveProperty('pickup_payment_deadline');
+    expect(invoice(db, fallback.invoice_id).status).toBe('Draft');
+
+    const tracking = await buyerRequest(db, `/api/inquiries/${body.tracking_token}`);
+    const view = await tracking.json();
+    expect(view).toMatchObject({
+      order: { status: 'Pending', shipping_destination: 'In-person pickup in Bali, Indonesia' },
+      payment: { total_usd: 14, pay_url: expect.stringContaining('t=') },
+    });
+    expect(JSON.stringify(view)).not.toContain('Synthetic bank reference');
+    const claim = await worker.fetch(new Request(`https://app.test/api/orders/${body.tracking_token}/payment-claim`, {
+      method: 'POST', body: JSON.stringify({ amount_usd: 14, reference: 'TEST-TRANSFER' }),
+    }), { DB: db, JWT_SECRET: SECRET } as never, {} as never);
+    expect(claim.status).toBe(201);
+    expect(invoice(db, id).inventory_deducted).toBe(0);
+    expect(stock(db)).toBe(75);
+    const { claim_id } = await claim.json() as { claim_id: string };
+    const confirmation = await admin(db, 'shop-a', `/api/invoice-payments/${claim_id}/confirm`, {});
+    expect(confirmation.status).toBe(200);
+    expect(stock(db)).toBe(25);
+    expect(stockMovements(db, id)).toEqual([
+      { delta: -50, balance_after: 25, account_id: 'shop-a', movement_unit: 'gram' },
+    ]);
+  });
+
+  it('keeps pickup in review when a bank transfer method is unavailable', async () => {
+    const db = seed();
+    db.sqlite.exec(`
+      UPDATE accounts SET owner_user_id='owner-a' WHERE id='shop-a';
+      UPDATE products SET stock_known_at=datetime('now') WHERE id='tea-a';
+    `);
+    const response = await publicOrder(db, orderPayload('shop-a', 'guest@example.test', { pickup: true }), 'shop-a');
+    expect(response.status).toBe(201);
+    const result = await response.json() as { invoice_id: string };
+    expect(result).not.toHaveProperty('pickup_payment_deadline');
+    expect(invoice(db, result.invoice_id).status).toBe('Draft');
+    expect(db.sqlite.prepare('SELECT count(*) AS n FROM stock_holds').get()).toEqual({ n: 0 });
   });
 
   it('keeps the submitted street address in the selling store invoice only', async () => {
