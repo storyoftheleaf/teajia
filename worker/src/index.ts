@@ -4090,7 +4090,7 @@ const handleGetEligibleSalesProducts: Handler = async (request, env) => {
       `SELECT p.id AS product_id,COALESCE(p.given_name,p.product_name) AS product_name,
         p.owner_user_id AS owner_id,u.name AS owner_name,CASE WHEN p.type='Teaware' THEN COALESCE(p.quantity_units,0) ELSE p.stock_grams END AS physical_quantity,CASE WHEN p.type='Teaware' THEN 'unit' ELSE 'g' END AS quantity_unit,
         COALESCE((SELECT SUM(h.held_grams) FROM stock_holds h WHERE h.account_id=p.account_id AND h.product_id=p.id
-          AND (h.expires_at IS NULL OR h.expires_at>datetime('now'))),0) AS held_quantity,
+          AND (h.expires_at IS NULL OR julianday(h.expires_at) > julianday('now'))),0) AS held_quantity,
         sg.id AS grant_id,sg.price_floor
        FROM products p LEFT JOIN users u ON u.id=p.owner_user_id
        LEFT JOIN sales_grants sg ON sg.id=(
@@ -5873,7 +5873,7 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
       ).bind(line.stock_owner_user_id, line.sales_grant_id, line.owner_share_type, line.owner_share_value,line.quantity_unit??'g', line.id, accountId));
       statements.push(...buildInvoiceReservationStatements(env, {
         accountId, invoiceId: params.id, lines: authorized,
-        expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+        expiresAt: new Date(Date.now() + (invoice.source_inquiry_id ? 24 : 48) * 60 * 60 * 1000).toISOString(),
         guard: { invoiceId: params.id, claimToken: editClaim, status: 'Draft', inventoryDeducted: 0 },
       }));
       statements.push(env.DB.prepare(
@@ -5969,7 +5969,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     const product = products.get(productId);
     const otherHolds = await env.DB.prepare(
       `SELECT COALESCE(SUM(held_grams),0) AS held FROM stock_holds
-       WHERE account_id=? AND product_id=? AND invoice_id!=? AND (expires_at IS NULL OR expires_at>datetime('now'))`
+       WHERE account_id=? AND product_id=? AND invoice_id!=? AND (expires_at IS NULL OR julianday(expires_at) > julianday('now'))`
     ).bind(accountId, productId, invoice_id).first() as any;
     const available = (product ? Number(product.stock_grams) || 0 : 0) - (Number(otherHolds?.held) || 0);
     if (qty > available) {
@@ -6043,7 +6043,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
       `UPDATE products SET stock_grams = CASE
          WHEN stock_grams - COALESCE((SELECT SUM(held_grams) FROM stock_holds
            WHERE account_id=? AND product_id=? AND invoice_id!=?
-             AND (expires_at IS NULL OR expires_at>datetime('now'))),0) >= ?
+             AND (expires_at IS NULL OR julianday(expires_at) > julianday('now'))),0) >= ?
          THEN stock_grams - ? ELSE -1 END
        WHERE id = ? AND account_id = ?
          AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`
@@ -19699,7 +19699,7 @@ const handleReleaseStock: Handler = async (request, env) => {
   await env.DB.batch([
     env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?')
       .bind(invoice_id, accountId),
-    env.DB.prepare("DELETE FROM stock_holds WHERE account_id = ? AND expires_at IS NOT NULL AND expires_at <= datetime('now')")
+    env.DB.prepare("DELETE FROM stock_holds WHERE account_id = ? AND expires_at IS NOT NULL AND julianday(expires_at) <= julianday('now')")
       .bind(accountId),
   ]);
 
@@ -19723,7 +19723,7 @@ const handleGetAvailableStock: Handler = async (request, env) => {
   if (!product) return json({ error: 'Product not found' }, 404);
 
   const held = await env.DB.prepare(
-    "SELECT COALESCE(SUM(held_grams), 0) as total_held FROM stock_holds WHERE product_id = ? AND account_id = ? AND (expires_at IS NULL OR expires_at > datetime('now'))"
+    "SELECT COALESCE(SUM(held_grams), 0) as total_held FROM stock_holds WHERE product_id = ? AND account_id = ? AND (expires_at IS NULL OR julianday(expires_at) > julianday('now'))"
   ).bind(productId, accountId).first() as any;
 
   const totalStock = Number(product.stock_grams) || 0;

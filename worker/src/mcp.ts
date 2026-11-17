@@ -160,11 +160,11 @@ async function activeHeldGrams(
     ? await env.DB.prepare(
       `SELECT COALESCE(SUM(held_grams),0) AS held FROM stock_holds
        WHERE account_id=? AND product_id=? AND invoice_id != ?
-         AND (expires_at IS NULL OR expires_at>datetime('now'))`
+         AND (expires_at IS NULL OR julianday(expires_at) > julianday('now'))`
     ).bind(accountId, productId, excludeInvoiceId).first() as any
     : await env.DB.prepare(
       `SELECT COALESCE(SUM(held_grams),0) AS held FROM stock_holds
-       WHERE account_id=? AND product_id=? AND (expires_at IS NULL OR expires_at>datetime('now'))`
+       WHERE account_id=? AND product_id=? AND (expires_at IS NULL OR julianday(expires_at) > julianday('now'))`
     ).bind(accountId, productId).first() as any;
   return Number(row?.held) || 0;
 }
@@ -1995,7 +1995,7 @@ async function commitRecordSale(
     stmts.push(env.DB.prepare(
       `UPDATE products SET stock_grams = CASE
          WHEN stock_grams - COALESCE((SELECT SUM(held_grams) FROM stock_holds
-           WHERE account_id=? AND product_id=? AND (expires_at IS NULL OR expires_at>datetime('now'))),0) >= ?
+           WHERE account_id=? AND product_id=? AND (expires_at IS NULL OR julianday(expires_at) > julianday('now'))),0) >= ?
          THEN stock_grams - ? ELSE -1 END
        WHERE id=? AND account_id=?`
     ).bind(m.accountId, productId, grams, grams, productId, m.accountId));
@@ -4067,7 +4067,7 @@ async function commitFulfillInvoice(
       env.DB.prepare(`UPDATE products SET stock_grams = CASE
           WHEN stock_grams - COALESCE((SELECT SUM(held_grams) FROM stock_holds
             WHERE account_id=? AND product_id=? AND invoice_id!=?
-              AND (expires_at IS NULL OR expires_at>datetime('now'))),0) >= ?
+              AND (expires_at IS NULL OR julianday(expires_at) > julianday('now'))),0) >= ?
           THEN stock_grams - ? ELSE -1 END
         WHERE id = ? AND account_id = ?
           AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`)

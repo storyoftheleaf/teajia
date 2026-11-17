@@ -11,8 +11,8 @@ afterEach(() => {
   databases.splice(0).forEach(db => db.close());
 });
 
-function seed() {
-  const db = new SqliteD1();
+function seed(schema: 'schema' | 'migrations' = 'schema') {
+  const db = new SqliteD1(schema);
   databases.push(db);
   seedIdentity(db, { userId: 'owner-a', accountId: 'shop-a', bundles: ['sell'] });
   seedIdentity(db, { userId: 'owner-b', accountId: 'shop-b', bundles: ['sell'] });
@@ -219,6 +219,87 @@ describe('website order lifecycle', () => {
     });
     expect((await buyerRequest(db, orderPath, 'other-buyer')).status).toBe(404);
     expect((await buyerRequest(db, `/api/me/orders/${secondId}`, 'buyer')).status).toBe(404);
+  });
+
+  it('holds one accepted 75 g request for 24 hours, keeps the other in Draft and deducts only at full payment', async () => {
+    const db = seed('migrations');
+    db.sqlite.prepare("UPDATE products SET stock_grams=100 WHERE id='tea-a'").run();
+    const create75 = async (contact: string) => {
+      const body = orderPayload('shop-a', contact);
+      body.items[0] = { ...body.items[0], quantityGrams: 75, packs: 3 };
+      return (await create(db, body)).result.invoice_id as string;
+    };
+    const ids = await Promise.all([create75('first@example.test'), create75('second@example.test')]);
+    const available = async () => (await admin(db, 'shop-a', '/api/stock/available?product_id=tea-a', undefined, 'GET')).json();
+    const accept = (id: string) => admin(db, 'shop-a', `/api/invoices/${id}`, { status: 'Pending' }, 'PUT');
+    const holds = () => db.sqlite.prepare('SELECT id, invoice_id, held_grams, expires_at FROM stock_holds ORDER BY id').all();
+    expect(await available()).toEqual({ stock_grams: 100, held_grams: 0, available_grams: 100 });
+
+    const acceptedAt = Date.now();
+    const competing = await Promise.all(ids.map(accept));
+    expect(competing.map(response => response.status).sort()).toEqual([200, 409]);
+    const winner = ids[competing.findIndex(response => response.ok)];
+    const loser = ids.find(id => id !== winner)!;
+    expect(await competing.find(response => !response.ok)!.json()).toMatchObject({ code: 'insufficient_available_stock' });
+    expect(invoice(db, winner).status).toBe('Pending');
+    expect(invoice(db, loser).status).toBe('Draft');
+    const reservation = holds();
+    expect(reservation).toEqual([{ invoice_id: winner, id: expect.any(String), held_grams: 75, expires_at: expect.any(String) }]);
+    expect(Math.abs(Date.parse(String(reservation[0].expires_at)) - acceptedAt - 24 * 60 * 60 * 1000)).toBeLessThan(2000);
+    expect((await accept(winner)).status).toBe(200);
+    expect(holds()).toEqual(reservation);
+    expect(await available()).toEqual({ stock_grams: 100, held_grams: 75, available_grams: 25 });
+
+    const payment = (amount: number, requestId: string) => admin(db, 'shop-a', `/api/invoices/${winner}/payments`,
+      { amount_usd: amount, method_label: 'Cash', request_id: requestId });
+    const partial = await payment(5, 'overlap-payment-partial');
+    expect(partial.status).toBe(201);
+    expect(await partial.json()).toMatchObject({ payment_status: 'partial' });
+    expect(stockMovements(db, winner)).toEqual([]);
+    expect(holds()).toEqual(reservation);
+    const total = db.sqlite.prepare("SELECT SUM(quantity * price_at_sale) AS total FROM invoice_line_items WHERE invoice_id=?").get(winner);
+    const balance = Math.round((Number(total!.total) - 5) * 100) / 100;
+    const paid = await payment(balance, 'overlap-payment-balance');
+    expect(paid.status).toBe(201);
+    expect(await paid.json()).toMatchObject({ payment_status: 'paid', stock: { state: 'deducted' } });
+    const replay = await payment(balance, 'overlap-payment-balance');
+    expect(replay.status).toBe(200);
+    expect(await replay.json()).toMatchObject({ idempotent: true, stock: { state: 'already_deducted' } });
+    expect(holds()).toEqual([]);
+    const ship = () => admin(db, 'shop-a', '/api/rpc/ship-invoice', { invoice_id: winner, tracking_number: 'TRACK-OVERLAP' });
+    expect((await ship()).status).toBe(200);
+    expect((await ship()).status).toBe(200);
+    expect(stockMovements(db, winner)).toEqual([{ delta: -75, balance_after: 25, account_id: 'shop-a', movement_unit: 'gram' }]);
+    expect(stockMovements(db, loser)).toEqual([]);
+    expect(stock(db, 'shop-b')).toBe(1000);
+  });
+
+  it('releases expired stock on the same UTC date and keeps late payments from taking another order’s stock', async () => {
+    const db = seed('migrations');
+    db.sqlite.prepare("UPDATE products SET stock_grams=100 WHERE id='tea-a'").run();
+    const first = orderPayload('shop-a', 'held@example.test');
+    const second = orderPayload('shop-a', 'next@example.test');
+    for (const body of [first, second]) body.items[0] = { ...body.items[0], quantityGrams: 75, packs: 3 };
+    const firstId = (await create(db, first)).result.invoice_id;
+    const secondId = (await create(db, second)).result.invoice_id;
+    const accept = (id: string) => admin(db, 'shop-a', `/api/invoices/${id}`, { status: 'Pending' }, 'PUT');
+    const available = async () => (await admin(db, 'shop-a', '/api/stock/available?product_id=tea-a', undefined, 'GET')).json();
+    expect((await accept(firstId)).status).toBe(200);
+    expect((await accept(secondId)).status).toBe(409);
+    db.sqlite.prepare("UPDATE stock_holds SET expires_at=strftime('%Y-%m-%dT00:00:00.000Z','now') WHERE invoice_id=?").run(firstId);
+    expect(await available()).toEqual({ stock_grams: 100, held_grams: 0, available_grams: 100 });
+    expect((await accept(secondId)).status).toBe(200);
+    expect(await available()).toEqual({ stock_grams: 100, held_grams: 75, available_grams: 25 });
+    const payment = await admin(db, 'shop-a', `/api/invoices/${firstId}/payments`,
+      { amount_usd: 21, method_label: 'Cash', request_id: 'late-overlap-payment' });
+    expect(payment.status).toBe(201);
+    expect(await payment.json()).toMatchObject({ payment_status: 'paid', stock: { state: 'blocked' } });
+    expect(ledger(db, firstId)).toEqual([{ status: 'confirmed', amount_usd: 21 }]);
+    expect(stockMovements(db, firstId)).toEqual([]);
+    expect(stockMovements(db, secondId)).toEqual([]);
+    expect((await admin(db, 'shop-a', '/api/rpc/cancel-invoice', { invoice_id: secondId })).status).toBe(200);
+    expect(await available()).toEqual({ stock_grams: 100, held_grams: 0, available_grams: 100 });
+    expect(stockMovements(db, secondId)).toEqual([]);
   });
 
   it('rolls back the invoice and request if the notification row cannot be queued', async () => {

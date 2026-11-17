@@ -307,7 +307,7 @@ export function buildInvoiceReservationStatements(env: { DB: D1Database }, input
          CASE WHEN (CASE WHEN p.type='Teaware' THEN COALESCE(p.quantity_units,0) ELSE COALESCE(p.stock_grams,0) END) - COALESCE((
            SELECT SUM(h.held_grams) FROM stock_holds h
            WHERE h.account_id = ? AND h.product_id = ? AND h.invoice_id != ?
-             AND (h.expires_at IS NULL OR h.expires_at > datetime('now'))
+             AND (h.expires_at IS NULL OR julianday(h.expires_at) > julianday('now'))
          ), 0) >= ? THEN ? ELSE -1 END,
          ?
        FROM products p WHERE p.id = ? AND p.account_id = ?${guardSql}`

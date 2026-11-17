@@ -86,7 +86,7 @@ export async function deductStockForPaidInvoice(
       const otherHolds = await env.DB.prepare(
         `SELECT COALESCE(SUM(held_grams),0) AS held FROM stock_holds
          WHERE account_id=? AND product_id=? AND invoice_id!=?
-           AND (expires_at IS NULL OR expires_at>datetime('now'))`
+           AND (expires_at IS NULL OR julianday(expires_at) > julianday('now'))`
       ).bind(accountId, productId, invoiceId).first() as { held: number } | null;
       if (!product || quantity > Number((product.type === 'Teaware' ? product.quantity_units : product.stock_grams) || 0) - Number(otherHolds?.held || 0)) {
         await release();
@@ -106,7 +106,7 @@ export async function deductStockForPaidInvoice(
       stmts.push(env.DB.prepare(
         `UPDATE products SET ${column}=CASE WHEN COALESCE(${column},0) - COALESCE((SELECT SUM(held_grams)
           FROM stock_holds WHERE account_id=? AND product_id=? AND invoice_id!=?
-          AND (expires_at IS NULL OR expires_at>datetime('now'))),0) >= ?
+          AND (expires_at IS NULL OR julianday(expires_at) > julianday('now'))),0) >= ?
           THEN COALESCE(${column},0)-? ELSE -1 END
          WHERE id=? AND account_id=? AND EXISTS (SELECT 1 FROM invoices WHERE id=? AND account_id=? AND fulfillment_claim_token=?)`
       ).bind(accountId, productId, invoiceId, quantity, quantity, productId, accountId, invoiceId, accountId, token));
