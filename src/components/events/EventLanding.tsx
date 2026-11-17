@@ -578,15 +578,6 @@ const EventLanding: React.FC = () => {
                     Confirmed instantly · subject to capacity
                   </p>
                 )}
-                <p className="text-center text-ui-12 text-tea-text-sec py-2">
-                  Already registered?{' '}
-                  <button
-                    onClick={() => setShowFindRSVP(true)}
-                    className="tap-target text-tea-readgold hover:text-tea-gold-lt transition-colors font-semibold"
-                  >
-                    Find my RSVP
-                  </button>
-                </p>
               </div>
             )
           )}
@@ -610,6 +601,18 @@ const EventLanding: React.FC = () => {
                 </Suspense>
               </div>
             </div>
+          )}
+
+          {!myAttendee && (canRSVP || showWaitlist) && (
+            <p className="text-center text-ui-12 text-tea-text-sec py-2">
+              Already registered?{' '}
+              <button
+                onClick={() => setShowFindRSVP(true)}
+                className="tap-target text-tea-readgold hover:text-tea-gold-lt transition-colors font-semibold"
+              >
+                Find my RSVP
+              </button>
+            </p>
           )}
 
           {/* Closed / archived, recap link + interest capture */}
