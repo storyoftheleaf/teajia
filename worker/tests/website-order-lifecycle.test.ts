@@ -105,6 +105,90 @@ describe('website order lifecycle', () => {
     expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM invoices').get()).toEqual({ n: 1 });
   });
 
+  it('keeps overlapping Shop requests in separate drafts and scopes tracking and buyer access', async () => {
+    const db = seed();
+    db.sqlite.exec(`
+      UPDATE products SET stock_grams = 100 WHERE account_id = 'shop-a';
+      UPDATE accounts SET contact_email = 'sales-a@example.test' WHERE id = 'shop-a';
+    `);
+    seedIdentity(db, { userId: 'buyer', accountId: 'buyer-home' });
+    seedIdentity(db, { userId: 'other-buyer', accountId: 'other-home' });
+
+    const request75 = (contact: string) => {
+      const body = orderPayload('shop-a', contact);
+      body.items[0] = { ...body.items[0], quantityGrams: 75, packs: 3 };
+      return body;
+    };
+    const first = await create(db, request75('guest-a@example.test'));
+    const second = await create(db, request75('guest-b@example.test'));
+    const firstId = first.result.invoice_id;
+    const secondId = second.result.invoice_id;
+    expect(firstId).not.toBe(secondId);
+    expect(db.sqlite.prepare(`
+      SELECT i.account_id, i.status, i.inventory_deducted, l.quantity, l.quantity_unit, l.price_at_sale
+      FROM invoices i JOIN invoice_line_items l ON l.invoice_id = i.id AND l.account_id = i.account_id
+      WHERE i.id IN (?, ?)
+    `).all(firstId, secondId)).toEqual(Array.from({ length: 2 }, () => ({
+      account_id: 'shop-a', status: 'Draft', inventory_deducted: 0, quantity: 75, quantity_unit: 'g',
+      price_at_sale: expect.closeTo(0.28),
+    })));
+    const replay = await publicOrder(db, first.body);
+    expect(replay.status).toBe(200);
+    expect(await replay.json()).toMatchObject({ idempotent: true, invoice_id: firstId });
+    expect((await publicOrder(db, { ...first.body, customer_location: 'Different destination' })).status).toBe(409);
+    const foreignReplay = { ...orderPayload('shop-b'), tracking_token: first.body.tracking_token };
+    expect((await publicOrder(db, foreignReplay)).status).toBe(409);
+    expect(db.sqlite.prepare('SELECT count(*) AS n FROM invoices').get()).toEqual({ n: 2 });
+    expect(db.sqlite.prepare('SELECT count(*) AS n FROM inquiries WHERE converted_invoice_id IN (?, ?)').get(firstId, secondId)).toEqual({ n: 2 });
+    expect(db.sqlite.prepare('SELECT count(*) AS n FROM stock_holds').get()).toEqual({ n: 0 });
+    expect(db.sqlite.prepare('SELECT count(*) AS n FROM stock_ledger').get()).toEqual({ n: 0 });
+    expect(stock(db)).toBe(100);
+    expect(stock(db, 'shop-b')).toBe(1000);
+
+    const request = async (path: string, user?: string, method = 'GET') => {
+      const headers = new Headers();
+      if (user) {
+        const account = user === 'buyer' ? 'buyer-home' : 'other-home';
+        const token = await signedToken(SECRET, { sub: user, email: `${user}@test.dev`, active_account_id: account });
+        headers.set('Authorization', `Bearer ${token}`);
+      }
+      return worker.fetch(new Request(`https://app.test${path}`, { headers, method }),
+        { DB: db, JWT_SECRET: SECRET } as never, {} as never);
+    };
+    const trackingPath = `/api/inquiries/${first.body.tracking_token}`;
+    const orderPath = `/api/me/orders/${firstId}`;
+    const guest = await request(trackingPath);
+    expect(guest.status).toBe(200);
+    const guestView = await guest.json();
+    expect(guestView).toMatchObject({
+      invoice_id: firstId, journey: { stage: 'received' },
+      contact: { email: 'sales-a@example.test' },
+    });
+    expect(JSON.stringify(guestView)).not.toContain('guest-a@example.test');
+    expect((await request(`/api/inquiries/${first.body.ref_number}`)).status).toBe(404);
+    expect((await request('/api/inquiries/unknownwebsiteordertoken00000000000001')).status).toBe(404);
+    expect((await request(orderPath)).status).toBe(401);
+    expect((await request(orderPath, 'buyer')).status).toBe(404);
+
+    const claimPath = `${trackingPath}/claim`;
+    expect((await request(claimPath, undefined, 'POST')).status).toBe(401);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const claim = await request(claimPath, 'buyer', 'POST');
+      expect(claim.status).toBe(200);
+      expect(await claim.json()).toMatchObject({ invoice_id: firstId, account_id: 'shop-a' });
+    }
+    expect((await request(claimPath, 'other-buyer', 'POST')).status).toBe(409);
+    expect(db.sqlite.prepare("SELECT count(*) AS n FROM customers WHERE account_id = 'shop-a' AND user_id = 'buyer'").get()).toEqual({ n: 1 });
+    const buyer = await request(orderPath, 'buyer');
+    expect(buyer.status).toBe(200);
+    expect(await buyer.json()).toMatchObject({
+      id: firstId, account_id: 'shop-a', status: 'Draft', total_amount_usd: expect.closeTo(21),
+      items: [{ quantity: 75, quantity_unit: 'g' }],
+    });
+    expect((await request(orderPath, 'other-buyer')).status).toBe(404);
+    expect((await request(`/api/me/orders/${secondId}`, 'buyer')).status).toBe(404);
+  });
+
   it('rolls back the invoice and request if the notification row cannot be queued', async () => {
     const db = seed();
     db.sqlite.exec(`CREATE TRIGGER reject_order_outbox BEFORE INSERT ON order_whatsapp_outbox
@@ -377,6 +461,12 @@ describe('website order lifecycle', () => {
     const { result } = await create(db, orderPayload('shop-b', '+628123456789', { whatsapp_confirmation_consent: true }));
     const id = result.invoice_id;
     expect(invoice(db, id).account_id).toBe('shop-b');
+    const ownItems = await admin(db, 'shop-b', `/api/invoices/${id}/items`, undefined, 'GET');
+    expect(ownItems.status).toBe(200);
+    expect(await ownItems.json()).toMatchObject([{ product_id: 'tea-b', quantity: 50, quantity_unit: 'g' }]);
+    const foreignItems = await admin(db, 'shop-a', `/api/invoices/${id}/items`, undefined, 'GET');
+    expect(foreignItems.status).toBe(404);
+    expect((await admin(db, 'shop-b', '/api/rpc/ship-invoice', { invoice_id: id })).status).toBe(409);
     expect((await admin(db, 'shop-a', `/api/invoices/${id}`, { shipping_cost_usd: 99 }, 'PUT')).status).toBe(404);
     expect((await admin(db, 'shop-a', '/api/rpc/ship-invoice', { invoice_id: id })).status).toBe(404);
     expect((await admin(db, 'shop-a', '/api/rpc/cancel-invoice', { invoice_id: id })).status).toBe(404);
