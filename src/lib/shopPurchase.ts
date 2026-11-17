@@ -1,5 +1,5 @@
 import type { InventoryItem } from '../types';
-import { minimumOrderGrams, quoteGrams, sellUnitOf, snapToUnit, wholePieceOf } from './teaPricing';
+import { minimumOrderGrams, quoteGrams, sellUnitOf, snapToUnit, TEA_PRICING, wholePieceOf } from './teaPricing';
 
 /** One complete pack quote, shared by the catalogue and product page. */
 export function teaPurchaseQuote(item: InventoryItem, preferredGrams = 50) {
@@ -14,8 +14,11 @@ export function teaPurchaseQuote(item: InventoryItem, preferredGrams = 50) {
     : Math.min(stock, Math.max(minimum, requested));
   const wholePiece = sellUnit ?? wholePieceOf(item.form, item.pieceWeightG);
   const quote = quoteGrams(pricePerGram, grams, { wholePieceGrams: wholePiece?.grams });
+  const handlingUsd = quote.whole ? 0 : TEA_PRICING.handlingUsd;
   return {
     grams,
+    leafUsd: quote.totalUsd - handlingUsd,
+    handlingUsd,
     totalUsd: Math.ceil(quote.totalUsd),
     unitGrams: sellUnit?.grams,
     wholePieceGrams: wholePiece?.grams,

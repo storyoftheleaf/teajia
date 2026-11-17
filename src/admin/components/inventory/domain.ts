@@ -1,4 +1,4 @@
-import { publicationRequirements } from '../../../lib/productPublication';
+import { isIncomingOnly, needsPublicationReview, publicationRefusal } from '../../../lib/productPublication';
 import { retailValueFor } from '../../lib/inventoryMetrics';
 import type { InventoryPurpose, Product } from '../../types';
 
@@ -57,15 +57,15 @@ export function getTeaReadiness(product: Product): TeaReadiness {
     : { state: 'ready', missing };
 }
 
-export function inventoryPublicationRequirements(product: Product) {
-  return publicationRequirements({
+function inventoryPublicationFacts(product: Product) {
+  return {
     givenName: product.givenName,
     supplierName: product.productName,
     type: product.type,
     retailPrice: product.fixedRetailPriceUSD ?? product.pricePerGramUSD,
     onHand: product.type === 'Teaware' ? product.quantityUnits : product.stockGrams,
     stockKnownAt: product.stockKnownAt,
-  });
+  };
 }
 
 export type EffectivePublication = {
@@ -238,9 +238,17 @@ export type InventoryFacets = {
 function legacyIncomingSummary(product: Product): IncomingInventorySummary {
   const remainingQuantity = Number(product.inTransitGrams) || 0;
   return {
-    hasOpenIncoming: product.inTransit === true && (remainingQuantity > 0 || product.inTransitGrams == null),
-    remainingQuantity: remainingQuantity > 0 ? remainingQuantity : product.inTransit ? 1 : 0,
+    hasOpenIncoming: product.inTransit === true,
+    remainingQuantity: product.inTransit ? Math.max(1, remainingQuantity) : 0,
   };
+}
+
+function inventoryPublicationRefusal(product: Product, incoming = legacyIncomingSummary(product)) {
+  return publicationRefusal(inventoryPublicationFacts(product), incoming.hasOpenIncoming ? incoming.remainingQuantity : 0);
+}
+
+export function isInventoryDraftReady(product: Product, incoming?: IncomingInventorySummary): boolean {
+  return !inventoryPublicationRefusal(product, incoming);
 }
 
 export function onHandQuantity(product: Product): number {
@@ -265,10 +273,10 @@ export function deriveInventoryStage(
 ): InventoryStage {
   if (product.status === 'Archived' || product.status === 'Sold Out') return 'archived';
   if (getEffectivePublication(product).state === 'published') return 'published';
-  if (onHandQuantity(product) <= 0 && incomingSummary.hasOpenIncoming && incomingSummary.remainingQuantity > 0) {
+  if (isIncomingOnly(onHandQuantity(product), incomingSummary.hasOpenIncoming ? incomingSummary.remainingQuantity : 0)) {
     return 'incoming';
   }
-  if (getTeaReadiness(product).state !== 'not_ready') return 'ready_private';
+  if (isInventoryDraftReady(product, incomingSummary)) return 'ready_private';
   return 'needs_preparation';
 }
 
@@ -277,15 +285,25 @@ export function isInventorySelectionPublishable(
   incomingByProductId: Readonly<Record<string, IncomingInventorySummary>>,
   summaryStatus: InventorySummaryStatus,
 ): boolean {
-  if (summaryStatus !== 'ready' || products.length === 0) return false;
-  return products.every(product => deriveInventoryStage(product, incomingByProductId[product.id]) !== 'incoming');
+  return products.some(product => !inventoryPublicationProblem(
+    product, 'isPublic', true, incomingByProductId, summaryStatus,
+  ));
 }
 
-/**
- * Publication gates may always be switched off. Switching either gate on must
- * pass the same arrival-state check, regardless of which inventory surface
- * initiated the update.
- */
+export function inventoryPublicationProblem(
+  product: Product,
+  field: keyof Product,
+  nextValue: unknown,
+  incomingByProductId: Readonly<Record<string, IncomingInventorySummary>>,
+  summaryStatus: InventorySummaryStatus,
+): string | null {
+  if (field !== 'isPublic' && field !== 'shownInShop' && field !== 'status') return null;
+  const patch = field === 'status' ? { status: nextValue } : { [field]: nextValue === true };
+  if (!needsPublicationReview(product, patch)) return null;
+  if (summaryStatus !== 'ready') return 'Arrival status must be ready before publication';
+  return inventoryPublicationRefusal(product, incomingByProductId[product.id])?.error ?? null;
+}
+
 export function isInventoryPublicationGateChangeAllowed(
   product: Product,
   field: keyof Product,
@@ -293,12 +311,7 @@ export function isInventoryPublicationGateChangeAllowed(
   incomingByProductId: Readonly<Record<string, IncomingInventorySummary>>,
   summaryStatus: InventorySummaryStatus,
 ): boolean {
-  const turnsPublicationGateOn = (field === 'isPublic' || field === 'shownInShop') && nextValue === true;
-  return !turnsPublicationGateOn || isInventorySelectionPublishable(
-    [product],
-    incomingByProductId,
-    summaryStatus,
-  );
+  return !inventoryPublicationProblem(product, field, nextValue, incomingByProductId, summaryStatus);
 }
 
 export function deriveInventoryFacets(

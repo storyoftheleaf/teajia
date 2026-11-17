@@ -1,5 +1,7 @@
+import { useAppStore } from '../../lib/store';
+import { CapturePhotoApproval } from '../curate/CapturePhotoApproval';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { mediaUrl } from '../../lib/mediaUrl';
+import { CapturePhotoImage, useCapturePhotoUpload, useCapturePhotoUrl } from '../curate/CapturePhotoImage';
 import { createPortal } from 'react-dom';
 import { Camera, Check, ChevronLeft, ChevronRight, Edit3, ImagePlus, Maximize2, Plus, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -23,6 +25,8 @@ export interface ExtractedTeaData {
 }
 
 interface PhotoCaptureProps {
+  entryId: string;
+  allowShopReview?: boolean;
   onExtracted: (data: ExtractedTeaData) => void;
   onPhotoTaken: (url: string) => void;
   onPhotoReplaced?: (oldUrl: string, newUrl: string) => void;
@@ -112,6 +116,8 @@ function parseExtractResult(r: Record<string, any>): ExtractedTeaData {
 }
 
 export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
+  entryId,
+  allowShopReview = false,
   onExtracted,
   onPhotoTaken,
   onPhotoReplaced,
@@ -128,6 +134,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   // form can remove one) in the 'flow' form and in the Library's viewer.
   const viewerOnly = variant === 'viewer';
   const viewerTools = split || viewerOnly;
+  const uploadPhoto = useCapturePhotoUpload(entryId);
   const isLg = size === 'lg';
   // Uniform tiles so thumbnails and the scan / camera actions read as one tidy
   // horizontal row (44×44 meets the WCAG 2.5.5 tap floor without extra padding).
@@ -137,11 +144,15 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   const btnGap = 'gap-1.5';
   const stripGap = 'gap-2';
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const scanFileInputRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const videoElRef = useRef<HTMLVideoElement | null>(null);
 
+  const [chooseScanSource, setChooseScanSource] = useState(false);
   const [pendingPreviews, setPendingPreviews] = useState<PendingPreview[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [reviewPhoto, setReviewPhoto] = useState<string | null>(null);
+  const photoScope = useAppStore(state => `${state.activeAccountId}:${state.activeUserId}`);
   const lightboxRef = useRef<HTMLDivElement>(null);
   const lightboxCloseRef = useRef<HTMLButtonElement>(null);
   const lightboxTriggerRef = useRef<HTMLButtonElement>(null);
@@ -149,7 +160,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   // Mutually exclusive across photos so only one menu shows at a time.
   const [menuPhotoIndex, setMenuPhotoIndex] = useState<number | null>(null);
   // URL of the photo currently open in the SquareCropModal, when set, the
-  // editor swaps the user's crop back via api.uploadImage + onPhotoReplaced.
+  // editor swaps the user's crop back via the private upload + onPhotoReplaced.
   const [editingPhotoUrl, setEditingPhotoUrl] = useState<string | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [justExtracted, setJustExtracted] = useState(false);
@@ -240,6 +251,9 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     ...validPhotos,
     ...pendingPreviews.filter((p) => !p.failed).map((p) => p.localUrl),
   ];
+  const selectedPhoto = lightboxIndex === null ? undefined : allPhotos[lightboxIndex];
+  const selectedPhotoUrl = useCapturePhotoUrl(selectedPhoto);
+  const editingPhotoSource = useCapturePhotoUrl(editingPhotoUrl);
   // 'viewer': open on the first photo; a photo added from the viewer is shown at once.
   useEffect(() => { if (viewerOnly) setLightboxIndex(0); }, [viewerOnly]);
   const photoTotal = allPhotos.length;
@@ -344,7 +358,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
       setLastScanFile(file);
 
       const [imageUrl, extract] = await Promise.all([
-        api.uploadImage(file).catch(() => null),
+        uploadPhoto(file).catch(() => null),
         // uploadImage already stores the photo, so skip the extract
         // endpoint's own R2 write; each scan stores one object, not two.
         runExtract(file),
@@ -376,7 +390,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
       try {
         const blob = await (await fetch(dataUrl)).blob();
         const file = new File([blob], 'capture.jpg', { type: 'image/jpeg' });
-        const url = await api.uploadImage(file);
+        const url = await uploadPhoto(file);
         if (url) onPhotoTaken(url);
       } catch { /* connection still down, fields are applied, photo lost this round */ }
     })();
@@ -404,7 +418,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     closeScanner();
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, scanLabel = !split) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
@@ -419,7 +433,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
       // back at 800px square, but we want the unedited source generous.
       const compressed = await compressImage(file, 1600, 0.7);
       const compressedFile = new File([compressed], 'photo.jpg', { type: 'image/jpeg' });
-      const imageUrl = await api.uploadImage(compressedFile).catch(() => null);
+      const imageUrl = await uploadPhoto(compressedFile).catch(() => null);
 
       if (imageUrl) {
         onPhotoTaken(imageUrl);
@@ -427,14 +441,13 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         setPendingPreviews((prev) => prev.filter((p) => p.localUrl !== localUrl));
         URL.revokeObjectURL(localUrl);
 
-        // Gallery-added photos get the same label read as the scanner.
-        // Fire-and-forget: the form fills only empty fields the user hasn't
-        // touched (handleExtracted's contract), so a wrong read costs
-        // nothing. The photo is already saved either way; a failure only
-        // sets the quiet scan-error line, never blocks the capture.
+        // In the Source flow only an explicit Scan label request reads a label.
+        if (!scanLabel) return;
         setScanError(null);
         setLastScanFile(compressedFile);
+        setRetryingScan(true);
         void runExtract(compressedFile).then(({ data, error }) => {
+          setRetryingScan(false);
           setScanError(error);
           if (!error && data && Object.keys(data).length > 0) {
             onExtracted(data);
@@ -753,11 +766,12 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.15 }}
-            src={mediaUrl(allPhotos[lightboxIndex])}
+            src={selectedPhotoUrl}
             alt={`Photo ${lightboxIndex + 1}`}
-            className="max-w-[92vw] max-h-[88vh] rounded-xl object-contain shadow-2xl"
+            className={reviewPhoto === selectedPhoto ? 'hidden' : "max-w-[92vw] max-h-[88vh] rounded-xl object-contain shadow-2xl"}
             onClick={(e) => e.stopPropagation()}
           />
+          {allowShopReview && selectedPhoto && <CapturePhotoApproval key={`${photoScope}:${selectedPhoto}`} src={selectedPhoto} imageUrl={selectedPhotoUrl} onReviewPhoto={setReviewPhoto} />}
           {lightboxIndex < allPhotos.length - 1 && (
             <button
               type="button"
@@ -769,7 +783,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             </button>
           )}
           {allPhotos.length > 1 && (
-            <div className={`absolute ${viewerTools ? 'bottom-nav-gap' : 'bottom-4'} flex max-w-[90vw] flex-wrap justify-center`}>
+            <div className={`absolute ${allowShopReview ? 'top-16' : viewerTools ? 'bottom-nav-gap' : 'bottom-4'} flex max-w-[90vw] flex-wrap justify-center`}>
               {allPhotos.map((_, i) => (
                 <button
                   key={i}
@@ -793,17 +807,18 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   // Rendered under the photo area in both variants. Three distinct states:
   // scanner unavailable (no provider), scanner unreachable (provider error),
   // and unreadable label (with Retry). An empty read stays silent.
-  const scanErrorLine = scanError ? (
+  const scanFeedback = retryingScan ? (
+    <span role="status" className="text-ui-12 text-tea-text-sec">Reading label…</span>
+  ) : scanError ? (
     <div className="flex items-center gap-2 pt-1.5" role="status">
-      <span className="text-ui-12 text-tea-text-dim italic">{SCAN_ERROR_COPY[scanError]}</span>
+      <span className="text-ui-12 text-tea-text-dim italic">{split && scanError !== 'extract_failed' ? 'Label scan unavailable' : SCAN_ERROR_COPY[scanError]}</span>
       {scanError === 'extract_failed' && lastScanFile && (
         <button
           type="button"
           onClick={handleRetryScan}
-          disabled={retryingScan}
-          className="tap-target min-h-11 text-ui-12 text-tea-text-sec underline decoration-dashed underline-offset-2 transition-colors hover:text-tea-text disabled:opacity-50"
+          className="tap-target min-h-11 text-ui-12 text-tea-text-sec underline decoration-dashed underline-offset-2 transition-colors hover:text-tea-text"
         >
-          {retryingScan ? 'Retrying' : 'Retry'}
+          Retry
         </button>
       )}
     </div>
@@ -838,8 +853,8 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                 aria-label={split ? `View photo ${i + 1}` : 'Photo actions'}
                 title={split ? 'View, add, edit or delete' : 'Tap for options'}
               >
-                <img
-                  src={mediaUrl(url)}
+                <CapturePhotoImage
+                  src={url}
                   alt={`Photo ${i + 1}`}
                   className="w-full h-full object-cover pointer-events-none"
                 />
@@ -915,8 +930,8 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             aria-label="Photo actions"
             title="Tap for options"
           >
-            <img
-              src={mediaUrl(heroValidUrl)}
+            <CapturePhotoImage
+              src={heroValidUrl}
               alt="Capture photo"
               className="pointer-events-none h-full w-full object-cover"
             />
@@ -924,7 +939,8 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         ) : (
           <button
             type="button"
-            onClick={openScanner}
+            onClick={split ? () => setChooseScanSource(true) : openScanner}
+            disabled={retryingScan}
             className="flex h-full w-full flex-col items-center justify-center gap-2 text-tea-text-sec transition-colors hover:text-tea-text focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60"
             aria-label="Open camera"
           >
@@ -973,7 +989,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         </div>
       )}
 
-      {scanErrorLine}
+      {scanFeedback}
     </div>
   );
 
@@ -982,7 +998,8 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   const scanButton = (
           <button
             type="button"
-            onClick={openScanner}
+            onClick={split ? () => setChooseScanSource(true) : openScanner}
+            disabled={retryingScan}
             className={`${btnCls} curate-action shrink-0`}
             aria-label="Scan label"
             title="Scan label"
@@ -1021,7 +1038,6 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                 <span className="curate-compact-chrome w-full border border-tea-border bg-tea-surface text-tea-text-sec hover:text-tea-text" data-curate-compact-chrome>
                   <Camera size={btnIcon} strokeWidth={1.5} />
                   <span>Photo</span>
-                  {photoCount > 0 && <span className="tabular-nums text-tea-text">{photoCount}</span>}
                 </span>
               ) : (
                 <>
@@ -1049,7 +1065,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               aria-label="Photo actions"
               title="Photo actions"
             >
-              <img src={mediaUrl(validPhotos[0])} alt="Photo 1" className="pointer-events-none h-full w-full object-cover" />
+              <CapturePhotoImage src={validPhotos[0]} alt="Photo 1" className="pointer-events-none h-full w-full object-cover" />
               {validPhotos.length > 1 && (
                 <span className="absolute bottom-0.5 right-0.5 rounded-md bg-tea-bg px-1 text-ui-12 tabular-nums text-tea-text">+{validPhotos.length - 1}</span>
               )}
@@ -1094,11 +1110,17 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   // ── Inline row ─────────────────────────────────────────────────────────────
   const stripRow = split ? (
     <>
-      {scanTarget ? createPortal(scanButton, scanTarget) : null}
+      {scanTarget ? createPortal(<>{scanFeedback}{scanButton}</>, scanTarget) : null}
       {photoButton}
-      {scanErrorLine}
       {stripTarget && (validPhotos.length > 0 || pendingPreviews.length > 0)
-        ? createPortal(<div className="flex flex-wrap gap-2" data-testid="curate-photo-strip">{renderThumbs(null, null)}</div>, stripTarget)
+        ? createPortal(<div className="flex flex-wrap items-center gap-2" data-testid="curate-photo-strip">
+          {renderThumbs(null, null)}
+          <span role="status" className="text-ui-12 text-tea-text-sec">
+            {pendingPreviews.some(photo => photo.uploading) ? 'Saving photo…'
+              : pendingPreviews.some(photo => photo.failed) ? 'Photo upload failed'
+              : `${validPhotos.length} ${validPhotos.length === 1 ? 'photo' : 'photos'} saved`}
+          </span>
+        </div>, stripTarget)
         : null}
     </>
   ) : (
@@ -1109,7 +1131,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         </div>
         {photoSlot}
       </div>
-      {scanErrorLine}
+      {scanFeedback}
     </>
   );
 
@@ -1122,6 +1144,17 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         onChange={handleFileChange}
         className="hidden"
       />
+
+      {split && <>
+        <input ref={scanFileInputRef} type="file" accept="image/*" className="hidden"
+          onChange={event => { void handleFileChange(event, true); }} />
+        <BottomSheet open={chooseScanSource} onOpenChange={setChooseScanSource} title="Scan label">
+          <SheetOption label="Choose label photo" leading={<ImagePlus size={16} />}
+            onSelect={() => { setChooseScanSource(false); scanFileInputRef.current?.click(); }} />
+          <SheetOption label="Use camera" leading={<Camera size={16} />}
+            onSelect={() => { setChooseScanSource(false); openScanner(); }} />
+        </BottomSheet>
+      </>}
 
       {viewerOnly ? null : variant === 'hero' ? heroArea : stripRow}
 
@@ -1178,11 +1211,11 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
       {lightbox}
 
       {/* In-app photo editor, wraps react-easy-crop via SquareCropModal.
-          Output goes back through api.uploadImage and replaces the original
+          Output goes back through the private upload and replaces the original
           via onPhotoReplaced so callers don't need to know the new URL. */}
       <SquareCropModal
-        isOpen={!!editingPhotoUrl}
-        source={editingPhotoUrl}
+        isOpen={!!editingPhotoSource}
+        source={editingPhotoSource ?? null}
         title="Edit photo"
         confirmLabel={savingEdit ? 'Saving…' : 'Save'}
         outputSize={800}
@@ -1193,7 +1226,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           setSavingEdit(true);
           try {
             const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
-            const newUrl = await api.uploadImage(file).catch(() => null);
+            const newUrl = await uploadPhoto(file).catch(() => null);
             if (newUrl) {
               onPhotoReplaced?.(editingPhotoUrl, newUrl);
             }

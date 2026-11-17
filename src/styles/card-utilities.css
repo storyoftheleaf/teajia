@@ -2766,6 +2766,16 @@ input[type="number"]::-webkit-outer-spin-button {
   display: block;
   will-change: transform;
 }
+/* The saved photo review uses the same aspect ratio as the signed-out page.
+   Container width may differ, but the part of the original that fits does not. */
+.alcove-thumb-btn-single[data-shop-frame="page"] {
+  height: auto;
+  aspect-ratio: 2 / 1;
+}
+@media (min-width: 1024px) {
+  .alcove-thumb-btn-single[data-shop-frame="page"] { aspect-ratio: 4 / 1; }
+}
+
 .alcove-thumb-btn-single:hover img { opacity: 1; }
 
 .alcove-thumb-img {
@@ -7050,7 +7060,7 @@ body.cart-panel-open .commerce-dock {
    is its placeholder. The band is the one tinted row (the tea type's colour).
    Buttons are quiet outlines on the card's surface: 34px of visible chrome,
    6px corners, one hairline, inside a 44px touch area (curate-compact-target).
-   Done keeps cta-solid, the one gold control. Gold borders only on focus and
+   Save tea keeps cta-solid, the one gold control. Gold borders only on focus and
    hover. Scoped to [data-form-layout='flow'] so the classic form is untouched.
    ============================================ */
 [data-form-layout='flow'] .curate-flow-card { border-color: var(--tea-border); }
@@ -7060,7 +7070,7 @@ body.cart-panel-open .commerce-dock {
 
 /* The name row: the name straight on the card, gold underline only while typing. */
 [data-form-layout='flow'] .curate-flow-name { min-height: 44px; }
-[data-form-layout='flow'] .curate-flow-name input { padding-left: 0; border-bottom-color: transparent; }
+[data-form-layout='flow'] .curate-flow-name input { padding-left: 0; border-bottom-color: transparent; font-family: var(--font-display); font-size: 20px; }
 [data-form-layout='flow'] .curate-flow-name input:focus { border-bottom-color: var(--tea-gold); }
 
 /* Keep the type tint on the Source band and give the three fields room to breathe. */
@@ -7150,6 +7160,9 @@ body.cart-panel-open .commerce-dock {
 /* The growing card: tasting summary followed by saved notes. */
 [data-form-layout='flow'] .curate-flow-record { display: grid; gap: 8px; padding: 8px 10px; }
 [data-form-layout='flow'] .curate-flow-record:has(> .curate-flow-tasting-summary:only-child) { padding-block: 0 4px; }
+@media (min-width: 1024px) {
+  [data-form-layout='flow'] .curate-flow-record:has(> .curate-flow-tasting-summary:only-child) { display: none; }
+}
 [data-form-layout='flow'] .curate-flow-details { display: flex; align-items: flex-start; padding-inline: 11px 0; }
 
 [data-form-layout='flow'] .curate-section-title,
@@ -7418,4 +7431,40 @@ body.cart-panel-open .commerce-dock {
 
 @media (prefers-reduced-motion: reduce) {
   .tea-shop-search { --shop-search-duration: 0ms; }
+}
+
+/* The purchase decision reads as one row. Secondary controls move as a unit
+   to the next row if the order total or the local currency needs more room. */
+.alcove-dock-decision {
+  display: flex;
+  flex: 1 1 215px;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  gap: 0.5rem;
+}
+.alcove-dock-decision .alcove-dock-add:last-child { margin-right: 0; }
+.commerce-dock[data-page-order] .alcove-dock-strip {
+  flex-wrap: wrap;
+  min-height: 52px;
+  height: auto;
+  row-gap: 0;
+  padding-right: 0.5rem;
+}
+@media (max-width: 639px) {
+  .alcove-dock-decision .alcove-dock-add { padding-inline: 0.65rem; letter-spacing: 0.05em; }
+  .alcove-dock-decision .alcove-dock-amount { padding-inline: 0.375rem; }
+}
+@media (min-width: 1024px) {
+  .commerce-dock[data-page-order] {
+    position: relative;
+    inset: auto;
+    width: auto;
+    margin: 0.75rem;
+    border-radius: 0.5rem;
+  }
+  .commerce-dock[data-page-order] .alcove-dock-strip { border-radius: 0.5rem; }
+  body:has(.commerce-dock[data-page-order]) .site-footer {
+    padding-bottom: clamp(28px, 4vw, 40px) !important;
+  }
 }

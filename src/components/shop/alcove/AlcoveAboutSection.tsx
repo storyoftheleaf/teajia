@@ -8,7 +8,7 @@ interface AlcoveAboutSectionProps {
   magazineUrl?: string;
   /** Historical / cultural lore (item.lore). */
   mainStory: string;
-  /** Personal / tasting notes (item.description). Rendered only when present. */
+  /** The saved Shop introduction (item.description). */
   introduction: string;
   /** Experience prose (item.experience). Rendered only when present. */
   feelingDescription: string;
@@ -30,9 +30,8 @@ interface AlcoveAboutSectionProps {
 /**
  * "About this tea": each populated field renders as its own labeled block
  * (TERROIR / PROCESSING / MOOD / EXPERIENCE), not concatenated into one blob.
- * so no section repeats and each reads clearly. `description` is treated as
- * personal / tasting notes and only renders when it actually has content, so
- * an empty or AI-authored-experience never clutters the page.
+ * so no section repeats and each reads clearly. The saved introduction is
+ * separate from tasting and experience prose.
  */
 export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
   item,
@@ -133,6 +132,7 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
             {teaser}
           </p>
         )}
+        {labeledSection('Introduction', introduction)}
         {/* Order: Lore (when present), then Terroir, Processing, Mood, Experience. */}
         {mainStory.trim() && (
           <div className={onPage ? '[&:not(:first-child)]:mt-9 first:mt-0 lg:[&:not(:first-child)]:mt-11' : '[&:not(:first-child)]:mt-5 first:mt-0'}>
@@ -145,14 +145,6 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
         {labeledSection('Mood', mood)}
         {labeledSection('Experience', feelingDescription)}
       </div>
-
-      {/* DESCRIPTION. Adrian's personal / tasting notes. Only shown when present. */}
-      {introduction.trim() && (
-        <div className={onPage ? 'mx-5 mt-9 lg:mt-11' : 'mx-5 mt-5 border-t border-tea-border pt-4'}>
-          {sectionLabel('Teajia\u2019s notes')}
-          <div className={onPage ? '' : 'mt-1.5'}>{renderMarkdown(introduction)}</div>
-        </div>
-      )}
 
       {hasBrewing && (
         <div className="mx-5 mt-3.5 grid grid-cols-[92px_1fr] items-start py-2.5">

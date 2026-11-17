@@ -1,7 +1,9 @@
+import { TeaCupIcon } from '../shared/TeaCupIcon';
 import { CurateRecordTools } from '../curate/CurateRecordTools';
 import { TeawareSheets } from '../curate/TeawareSheets';
 import { CaptureFlowLayout } from '../curate/CaptureFlowLayout';
-import { BUY_GRAM_CHIPS, samplePreset } from '../curate/samplePreset';
+import { BUY_GRAM_CHIPS } from '../curate/samplePreset';
+import { CapturePurchaseResult } from '../curate/CapturePurchaseResult';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { StructuredTeaFields } from './StructuredTeaFields';
 import { useQueryClient } from '@tanstack/react-query';
@@ -199,6 +201,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
   const lastVendorId = useTeaCompassStore((s) => s.lastVendorId);
   const lastVendorName = useTeaCompassStore((s) => s.lastVendorName);
 
+  const purchaseQueryClient = useQueryClient();
   const getOrCreatePurchaseTransaction = useLedgerStore((s) => s.getOrCreatePurchaseTransaction);
   const addLineItem = useLedgerStore((s) => s.addLineItem);
   const transactions = useLedgerStore((s) => s.transactions);
@@ -235,23 +238,25 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
   const [receiptPurpose, setReceiptPurpose] = useState<InventoryPurposeValue>('working');
   const [receiptAcquisition, setReceiptAcquisition] = useState<ReceiptAcquisitionKind>('purchase');
   const [receiptProposal, setReceiptProposal] = useState<CurateReceiptProposal | null>(null);
+  const [receiptReviewId, setReceiptReviewId] = useState<string>();
+  const [recordedSample, setRecordedSample] = useState<CurateReceiptProposal | null>(null);
   const [receiptError, setReceiptError] = useState('');
   const flowLayout = (layout ?? layoutFromAddress()) === 'flow';
+  const focusSample = flowLayout && receiptProposal?.purpose === 'sample' && receiptProposal.acquisition_kind === 'free_sample';
   // 'flow' only: a field or picker in a band sits straight on the card, with
   // its own word as the placeholder (no caption above it). See the 'flow'
   // rules in card-utilities.css.
   const flowCell = 'curate-flow-cell relative flex min-w-0 items-center gap-1 text-left';
   // 'flow': the Buy / Sample panel is one more card, its word inline in its first row.
   const flowBuyCard = 'library-tea-card curate-flow-card curate-flow-buy !overflow-visible';
-  const flowBuyWord = () => flowLayout ? <span className="curate-flow-buy-word curate-support">{buyMode === 'sample' ? 'Sample' : 'Buy'}</span> : null;
+  const flowBuyWord = () => flowLayout ? <span className="curate-flow-buy-word curate-support">Supplier order</span> : null;
   const flowValue = (set: boolean) => `curate-flow-value min-w-0 truncate ${set ? 'text-tea-text' : 'text-tea-text-dim'}`;
   // In 'flow' the Scan button sits at the end of the name row: this is the
   // element it is drawn into (PhotoCapture keeps owning the scanner).
   const [scanSlot, setScanSlot] = useState<HTMLElement | null>(null);
   // ...and the element the photo thumbnails are drawn into, under Photo / Taste.
   const [stripSlot, setStripSlot] = useState<HTMLElement | null>(null);
-  // 'flow' only: the Buy panel opened by Buy or by Sample (Sample presets the
-  // purpose and the smallest quantity, and the panel is headed "Sample").
+  // The received-sample action asks for measured quantity without order controls.
   const [buyMode, setBuyMode] = useState<'buy' | 'sample'>('buy');
   const [receiptBusy, setReceiptBusy] = useState(false);
   useEffect(() => {
@@ -260,6 +265,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
     setReceiptAcquisition(entryIsSample(entry) ? 'free_sample' : 'purchase');
     const saved = transactions.flatMap(tx => tx.items).find(item => item.compassEntryId === entry.id && item.receiptProposal?.status === 'pending')?.receiptProposal;
     setReceiptProposal(saved ?? null);
+    setReceiptReviewId(undefined);
+    setRecordedSample(null);
+    setBuyMode('buy');
     setJustAddedToLedger(Boolean(saved));
     setReceiptError('');
     let current = true;
@@ -290,16 +298,21 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
     }
     if (consumedPurchaseHandoffRef.current === entry.id) return;
     consumedPurchaseHandoffRef.current = entry.id;
+    if (receiptProposal?.status !== 'pending') {
+      setBuyMode('buy');
+      setReceiptPurpose(entry.category === 'teaware' ? 'personal' : 'working');
+      setReceiptAcquisition('purchase');
+    }
     const unitBased = acquisitionUsesUnits(entry);
     setBuyingQty(unitBased ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100));
     setShowBuyPicker(true);
   }, [entry, openPurchasePicker]);
 
   useEffect(() => {
-    if (!receiptProposal && !receiptError) return;
+    if (focusSample || (!receiptProposal && !receiptError)) return;
     const frame = requestAnimationFrame(() => document.getElementById(purchasePickerId)?.scrollIntoView({ block: 'center', behavior: 'smooth' }));
     return () => cancelAnimationFrame(frame);
-  }, [receiptProposal?.id, receiptError, purchasePickerId]);
+  }, [focusSample, receiptProposal?.id, receiptError, purchasePickerId]);
 
   // Sync price changes back to any matching draft ledger line items
   useEffect(() => {
@@ -776,10 +789,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
   };
 
   const toggleBuyPicker = () => {
-    if (flowLayout && buyMode === 'sample') {
-      // The panel was opened by Sample: Buy turns it into a purchase panel.
+    setRecordedSample(null);
+    if (flowLayout && buyMode === 'sample' && receiptProposal?.status !== 'pending') {
       setBuyMode('buy');
       setReceiptPurpose('working');
+      setReceiptAcquisition('purchase');
       if (showBuyPicker) {
         const unitBasedNow = acquisitionUsesUnits(entry);
         setBuyingQty(unitBasedNow ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100));
@@ -801,15 +815,16 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
     }
   };
 
-  // 'flow' only: Sample opens the same panel as Buy, as a sample: purpose
-  // Sample, the smallest quantity, headed "Sample". Pressing it again closes it.
   const openSamplePicker = () => {
     if (showBuyPicker && buyMode === 'sample') { setShowBuyPicker(false); return; }
-    const preset = samplePreset(acquisitionUsesUnits(entry));
-    setBuyMode('sample');
-    setReceiptPurpose(preset.purpose);
-    setBuyingQty(preset.quantity);
-    if (receiptProposal?.status === 'pending') setJustAddedToLedger(false);
+    setRecordedSample(null);
+    if (!receiptProposal) {
+      setBuyMode('sample');
+      setReceiptPurpose('sample');
+      setReceiptAcquisition('free_sample');
+      setBuyingQty(0);
+    }
+    setJustAddedToLedger(false);
     setShowBuyPicker(true);
     window.requestAnimationFrame(() => {
       document.getElementById(purchasePickerId)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -1014,6 +1029,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
   // Shared acquisition behavior must be available to both category branches.
   // Teaware is unit-based; compressed tea forms are unit-based as well.
   const unitBased = acquisitionUsesUnits(entry);
+  const measureSampleInGrams = buyMode === 'sample' && entry.category === 'tea';
   const isInLedger = transactions.some(
     (tx) => tx.status === 'draft' && tx.items.some((item) => item.compassEntryId === entry.id)
   );
@@ -1024,18 +1040,18 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
   const buyStep = unitBased ? 1 : 25;
 
   const handleAddToLedger = async () => {
-    if (receiptBusy) return;
+    if (receiptBusy || (buyMode === 'sample' && !(buyingQty > 0))) return;
     setReceiptBusy(true); setReceiptError('');
     const accountId = activeAccountId;
     try {
-      const line = acquisitionDraftLine(entry, buyingQty, receiptAcquisition);
+      const line = acquisitionDraftLine(measureSampleInGrams ? { ...entry, form: undefined } : entry, buyingQty, receiptAcquisition);
       const vendorName = entry.vendorName || 'Unknown Vendor';
       const txId = getOrCreatePurchaseTransaction(vendorName, entry.priceCurrency, entry.vendorId);
-      const lineId = addLineItem(txId, line);
+      const lineId = addLineItem(txId, { ...line, acquisitionKind: receiptAcquisition });
       setJustAddedToLedger(true);
       await ensureCompassEncounterSaved(entry.id);
       const changes = {
-        purpose: receiptPurpose, quantity: entry.category !== 'teaware' && unitBased ? buyingQty * Number(line.unitWeightGrams) : buyingQty,
+        purpose: receiptPurpose, quantity: !measureSampleInGrams && entry.category !== 'teaware' && unitBased ? buyingQty * Number(line.unitWeightGrams) : buyingQty,
         unit: entry.category === 'teaware' ? 'unit' as const : 'g' as const,
         acquisition_kind: receiptAcquisition, product_name: entry.name || 'Unnamed',
         product_type: entry.category === 'teaware' ? 'Teaware' : entry.type,
@@ -1043,18 +1059,17 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
       if (!(changes.quantity > 0) || !Number.isFinite(changes.quantity)) throw new Error('Record the weight of each piece before receiving this tea.');
       const proposal = receiptAcquisition === 'purchase' ? null : receiptProposal?.status === 'pending'
         ? await api.compass.updateReceiptProposal(receiptProposal.id, changes)
-        : await api.compass.proposeReceipt(entry.id, { ...changes, idempotency_key: `ledger:${txId}:${entry.id}` });
+        : await api.compass.proposeReceipt(entry.id, { ...changes, idempotency_key: `ledger-receipt:${txId}:${lineId}` });
       if (useAppStore.getState().activeAccountId !== accountId) return;
       useLedgerStore.getState().updateLineItem(txId, lineId, { receiptProposal: proposal ?? undefined });
-      setReceiptProposal(proposal); setShowBuyPicker(false);
+      setReceiptProposal(proposal); setReceiptReviewId(proposal?.id); setShowBuyPicker(false);
     } catch (error) {
       if (useAppStore.getState().activeAccountId === accountId) setReceiptError(error instanceof Error ? error.message : 'Could not save the receipt proposal. Your purchase draft is kept on this device.');
     } finally { setReceiptBusy(false); }
   };
 
-  const purchaseQueryClient = useQueryClient();
   const reviewReceipt = async (action: 'accept' | 'reject') => {
-    if (!receiptProposal) return;
+    if (!receiptProposal || receiptBusy) return;
     setReceiptBusy(true);
     setReceiptError('');
     const accountId = activeAccountId;
@@ -1062,19 +1077,27 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
       if (action === 'accept') {
         const result = await api.compass.acceptReceiptProposal(receiptProposal.id);
         if (useAppStore.getState().activeAccountId !== accountId) return;
-        if (result.product_id) updateEntry(entry.id, { draftProductId: result.product_id });
+        if (result.product_id && (receiptProposal.purpose !== 'sample' || !entry.draftProductId)) {
+          updateEntry(entry.id, { draftProductId: result.product_id });
+        }
       } else await api.compass.rejectReceiptProposal(receiptProposal.id);
       if (useAppStore.getState().activeAccountId !== accountId) return;
       void purchaseQueryClient.invalidateQueries({ queryKey: ['library-purchase-history'] });
       void purchaseQueryClient.invalidateQueries({ queryKey: ['library-purchase-receipts'] });
       for (const tx of useLedgerStore.getState().transactions) {
         for (const item of tx.items.filter(item => item.receiptProposal?.id === receiptProposal.id)) {
-          useLedgerStore.getState().updateLineItem(tx.id, item.id, { receiptProposal: undefined });
+          const ledger = useLedgerStore.getState();
+          if ((action !== 'accept' && receiptProposal.acquisition_kind !== 'free_sample') || tx.status !== 'draft') ledger.updateLineItem(tx.id, item.id, { receiptProposal: undefined });
+          else if (ledger.getTransaction(tx.id)?.items.length === 1 && !tx.photos.length) ledger.removeTransaction(tx.id);
+          else ledger.removeLineItem(tx.id, item.id);
         }
       }
       setReceiptProposal(null);
+      setReceiptReviewId(undefined);
       setJustAddedToLedger(false);
-      onSwitchToLedger?.();
+      if (receiptProposal.purpose === 'sample') {
+        setRecordedSample(action === 'accept' ? receiptProposal : null);
+      } else onSwitchToLedger?.();
     } catch (error) {
       setReceiptError(error instanceof Error ? error.message : `Could not ${action} this receipt.`);
     } finally {
@@ -1082,13 +1105,24 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
     }
   };
 
+  const purchaseResult = (justAddedToLedger || recordedSample) && (
+    <div className={flowLayout ? 'curate-flow-buy-done curate-support' : 'curate-support rounded-md bg-tea-accent-sub p-3'}>
+      <CapturePurchaseResult entryId={entry.id} teaName={entry.name} teaType={entry.type} supplierName={entry.vendorName} photos={entry.photos} focusSample={focusSample}
+        receipt={receiptProposal} sampleReviewOpen={receiptReviewId === receiptProposal?.id} onOpenSampleReview={setReceiptReviewId} recordedSample={recordedSample}
+        purchaseDraft={receiptAcquisition === 'purchase'} busy={receiptBusy} error={receiptError}
+        onReview={reviewReceipt} onRetry={handleAddToLedger} onReviewOrder={onSwitchToLedger} />
+    </div>
+  );
+  const saveAcquisitionLabel = receiptBusy ? 'Saving…' : receiptProposal ? 'Update receipt'
+    : receiptAcquisition === 'purchase' ? 'Add to order draft' : buyMode === 'sample' ? 'Review sample receipt' : 'Review receipt';
+
   const renderTeawarePurchaseSection = () => (
     <section
       id={purchasePickerId}
-      className={flowLayout ? (showBuyPicker || justAddedToLedger || isInLedger ? flowBuyCard : 'hidden') : `${showBuyPicker || justAddedToLedger || isInLedger ? 'curate-section' : 'hidden'} space-y-2`}
+      className={flowLayout ? (showBuyPicker || justAddedToLedger || recordedSample || isInLedger ? flowBuyCard : 'hidden') : `${showBuyPicker || justAddedToLedger || recordedSample || isInLedger ? 'curate-section' : 'hidden'} space-y-2`}
     >
       {!flowLayout && <QuietEyebrow label="Buy" />}
-      {isInLedger && (
+      {isInLedger && !justAddedToLedger && (
         <div className="flex justify-end">
           <button
             type="button"
@@ -1096,7 +1130,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
             className="curate-support tap-target flex min-h-11 items-center gap-1.5 text-tea-text-sec transition-colors hover:text-tea-text"
           >
             <BookOpen size={11} />
-            View purchases in ledger
+            View order draft
           </button>
         </div>
       )}
@@ -1177,36 +1211,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
             disabled={receiptBusy}
             className="curate-action w-full rounded-md cta-solid px-3 font-semibold active:opacity-80"
           >
-            {receiptBusy ? 'Saving…' : receiptProposal?.status === 'pending' ? 'Update receipt' : 'Add to Ledger'}
+            {saveAcquisitionLabel}
           </button>
         </div>
       )}
 
-      {justAddedToLedger && (
-        <div className={flowLayout ? 'curate-flow-buy-done curate-support' : 'curate-support rounded-md bg-tea-accent-sub p-3'}>
-          <div className="flex items-center gap-2 font-medium text-tea-gold">
-            <Check size={16} />
-            Added to Ledger
-          </div>
-          {!receiptProposal && receiptAcquisition === 'purchase' && <p className="mt-2 text-ui-12 text-tea-text-sec">Confirm this draft in Ledger. Inventory changes only after you accept its receipt.</p>}
-          {receiptProposal && (
-            <div className="mt-2 space-y-2 text-ui-12 text-tea-text-sec">
-              <p>Review receipt: {receiptProposal.quantity} {receiptProposal.quantity === 1 ? 'unit' : 'units'} · {receiptProposal.purpose} · {receiptProposal.acquisition_kind.replace('_', ' ')}</p>
-              <p>Inventory changes only after you accept this receipt.</p>
-              <div className="flex justify-between gap-3 border-t border-tea-border pt-2">
-                <button type="button" disabled={receiptBusy} onClick={() => reviewReceipt('reject')} className="tap-target min-h-11 text-tea-text-sec hover:text-tea-text">Reject</button>
-                <button type="button" disabled={receiptBusy} onClick={() => reviewReceipt('accept')} className="tap-target min-h-11 rounded-md cta-solid px-4 font-semibold">Accept into Inventory</button>
-              </div>
-            </div>
-          )}
-          {receiptError && (
-            <div role="alert" className="mt-2 flex items-center justify-between gap-3 text-ui-12 text-tea-text-sec">
-              <span>{receiptError}</span>
-              {!receiptProposal && <button type="button" disabled={receiptBusy} onClick={handleAddToLedger} className="tap-target min-h-11 text-tea-gold hover:text-tea-gold-lt">Retry receipt</button>}
-            </div>
-          )}
-        </div>
-      )}
+      {purchaseResult}
     </section>
   );
 
@@ -1249,7 +1259,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
               <EncounterContext journeyId={entry.journeyId} visitId={entry.visitId} onChange={(journeyId, visitId) => useTeaCompassStore.getState().setEncounterContext(entryId, journeyId, visitId)} />
   );
   const photoCapture = (
-            <PhotoCapture
+            <PhotoCapture entryId={entryId}
               onExtracted={handleExtracted}
               onPhotoTaken={handlePhotoTaken}
               onPhotoReplaced={handlePhotoReplaced}
@@ -1474,6 +1484,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
     const teawareActionFooter = (primaryLast: boolean) => (
         <CaptureActionFooter
           primaryLast={primaryLast}
+          saveLabel="Save piece"
           className={primaryLast ? '' : 'curate-buy-actions curate-action-band border-t border-tea-border pt-1.5'}
           onBuy={toggleBuyPicker}
           onDone={handleCommit}
@@ -1492,7 +1503,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
       return (
         <CaptureFlowLayout
           contextTestId="curate-teaware-context-band" bandTestId="curate-teaware-classification-row"
-          typeName="" firstPhoto={(entry.photos || []).filter(Boolean)[0]} setScanSlot={setScanSlot} setStripSlot={setStripSlot}
+          typeName="" setScanSlot={setScanSlot} setStripSlot={setStripSlot}
           supplierHeader={supplierHeader} vendorStrip={vendorStripBlock} nameInput={teawareNameInput} share={<CaptureShareButton onShare={onShare} />}
           band={<>{teawareCategoryButton}{teawareMaterialButton}{teawareEraButton}</>}
           subBand={<>{teawareOriginField}{teawareCapacityField}</>} subBandTestId="curate-teaware-provenance-row"
@@ -1722,6 +1733,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
         {!flowLayout && <QuietEyebrow label="Purchase" className="!mb-1 lg:!mb-1.5" />}
         <div className="space-y-1 lg:space-y-2">
           <PricingRow
+            showQuoteLabels={flowLayout}
             priceAmount={entry.priceAmount}
             priceCurrency={entry.priceCurrency}
             onPriceChange={(priceAmount) => update({ priceAmount })}
@@ -1792,16 +1804,17 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
         )}
       </AnimatePresence>
   );
+  const tastingSummaryText = entry.tasting?.quality != null ? `Tasting · ${entry.tasting.quality}/10` : 'Tasting recorded';
   const tasteButton = (flow: boolean) => (
             <button
               type="button"
               onClick={openTastingOverlay}
-              {...(flow ? { 'aria-label': hasTasting ? 'Edit tasting profile' : 'Taste: add tasting profile', 'data-testid': 'curate-taste-button' } : {})}
+              {...(flow ? { 'aria-label': hasTasting ? `${tastingSummaryText}, edit tasting profile` : 'Taste: add tasting profile', 'data-testid': 'curate-taste-button' } : {})}
               className={flow ? 'curate-action curate-compact-target w-full min-w-0' : 'curate-profile-entry curate-compact-target min-w-0 flex-1 justify-center border-b border-tea-border text-center text-tea-text transition-colors hover:text-tea-gold lg:w-full'}
               data-curate-action
             >
               {flow
-                ? <span className="curate-compact-chrome w-full border border-tea-border bg-tea-surface text-tea-text-sec hover:text-tea-text" data-curate-compact-chrome>{hasTasting ? 'Edit tasting' : 'Taste'}</span>
+                ? <span className="curate-compact-chrome w-full border border-tea-border bg-tea-surface text-tea-text-sec hover:text-tea-text" data-curate-compact-chrome><TeaCupIcon />{hasTasting ? <><span className="lg:hidden">Edit tasting</span><span className="hidden lg:inline">{tastingSummaryText}</span></> : 'Taste'}</span>
                 : <span className="curate-support">{hasTasting ? 'Edit tasting profile' : 'Add tasting profile'}</span>}
             </button>
   );
@@ -1932,18 +1945,18 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
     </>
   );
   const teaBuySection = (
-      <section id={purchasePickerId} className={flowLayout ? (showBuyPicker || justAddedToLedger || isInLedger ? flowBuyCard : 'hidden') : `${showBuyPicker || justAddedToLedger || isInLedger ? 'curate-section' : 'hidden'} space-y-2`}>
+      <section id={purchasePickerId} className={flowLayout ? (showBuyPicker || justAddedToLedger || recordedSample || isInLedger ? flowBuyCard : 'hidden') : `${showBuyPicker || justAddedToLedger || recordedSample || isInLedger ? 'curate-section' : 'hidden'} space-y-2`}>
         {!flowLayout && <QuietEyebrow label="Buy" />}
         <div className="flex flex-wrap items-center justify-end gap-2">
         {/* Ledger link */}
-        {isInLedger && (
+        {isInLedger && !justAddedToLedger && (
           <button
             type="button"
             onClick={onSwitchToLedger}
             className="curate-support tap-target flex min-h-11 items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
           >
             <BookOpen size={11} />
-            View purchases in ledger
+            View order draft
           </button>
         )}
         </div>
@@ -1959,6 +1972,15 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
               className="overflow-hidden"
             >
               <div className={flowLayout ? 'curate-flow-buy-body' : 'rounded-xl bg-tea-gold/[0.07] px-3 py-2.5 space-y-2'}>
+                {buyMode === 'sample' ? (
+                  <label className="curate-support flex flex-wrap items-center gap-2 text-tea-text-sec">
+                    <span>Received quantity</span>
+                    <input type="number" aria-label="Received quantity" min="0" step={measureSampleInGrams ? 'any' : 1} value={Number.isFinite(buyingQty) && buyingQty > 0 ? buyingQty : ''}
+                      onChange={event => setBuyingQty(event.currentTarget.valueAsNumber)}
+                      className="curate-field min-h-11 w-24 px-2" />
+                    <span>{measureSampleInGrams ? 'g' : 'pieces'}</span>
+                  </label>
+                ) : <>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {flowBuyWord()}
@@ -2054,50 +2076,22 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
                   </label>
                 </div>
 
+                </>}
+
                 <button
                   type="button"
                   onClick={handleAddToLedger}
-                  disabled={receiptBusy}
+                  disabled={receiptBusy || (buyMode === 'sample' && !(buyingQty > 0))}
                   className="curate-action w-full rounded-md cta-solid px-3 font-semibold active:opacity-80"
                   data-curate-action
                 >
-                  {receiptBusy ? 'Saving…' : receiptProposal?.status === 'pending' ? 'Update receipt' : 'Add to Ledger'}
+                  {saveAcquisitionLabel}
                 </button>
               </div>
             </motion.div>
           )}
 
-          {justAddedToLedger && (
-            <motion.div
-              key="added"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              className={flowLayout ? 'curate-flow-buy-done curate-support' : 'curate-support rounded-md bg-tea-gold/15 p-3'}
-            >
-              <div className="flex items-center gap-2 text-tea-gold font-medium">
-                <Check size={16} />
-                Added to Ledger
-              </div>
-              {!receiptProposal && receiptAcquisition === 'purchase' && <p className="mt-2 text-ui-12 text-tea-text-sec">Confirm this draft in Ledger. Inventory changes only after you accept its receipt.</p>}
-          {receiptProposal && (
-                <div className="mt-2 space-y-2 text-ui-12 text-tea-text-sec">
-                  <p>Review receipt: {receiptProposal.quantity}{receiptProposal.unit === 'g' ? 'g' : ` ${receiptProposal.quantity === 1 ? 'unit' : 'units'}`} · {receiptProposal.purpose} · {receiptProposal.acquisition_kind.replace('_', ' ')}</p>
-                  <p className="text-tea-text-sec">Inventory changes only after you accept this receipt.</p>
-                  <div className="flex justify-between gap-3 border-t border-tea-border pt-2">
-                    <button type="button" disabled={receiptBusy} onClick={() => reviewReceipt('reject')} className="tap-target min-h-11 text-tea-text-sec hover:text-tea-text">Reject</button>
-                    <button type="button" disabled={receiptBusy} onClick={() => reviewReceipt('accept')} className="tap-target min-h-11 rounded-md cta-solid px-4 font-semibold">Accept into Inventory</button>
-                  </div>
-                </div>
-              )}
-              {receiptError && (
-                <div role="alert" className="mt-2 flex items-center justify-between gap-3 text-ui-12 text-tea-text-sec">
-                  <span>{receiptError}</span>
-                  {!receiptProposal && <button type="button" disabled={receiptBusy} onClick={handleAddToLedger} className="tap-target min-h-11 text-tea-gold hover:text-tea-gold-lt">Retry receipt</button>}
-                </div>
-              )}
-            </motion.div>
-          )}
+          {purchaseResult}
         </AnimatePresence>
       </section>
   );
@@ -2134,7 +2128,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
     return (
       <CaptureFlowLayout
         contextTestId="curate-context-band" bandTestId="curate-origin-type-year-row"
-        typeName={entry.type || ''} firstPhoto={(entry.photos || []).filter(Boolean)[0]} setScanSlot={setScanSlot} setStripSlot={setStripSlot}
+        typeName={entry.type || ''} setScanSlot={setScanSlot} setStripSlot={setStripSlot}
         backToLibrary={backToLibrary} supplierHeader={supplierHeader} vendorStrip={vendorStripBlock} nameInput={teaNameInput}
         band={<>{originField}{typeButton}{yearField}</>}
         purchase={teaPurchaseInner} sheets={typeSheet} afterIdentity={<>{duplicateNudge}{extractionConfirmation}</>}

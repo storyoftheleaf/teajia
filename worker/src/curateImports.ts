@@ -1,3 +1,4 @@
+import { compassHolding, COMPASS_SAMPLE_HOLDING } from './compassHoldings';
 import { compassValuesFromImport } from './compassCodec';
 import { analysisProviderFailure, AnalysisProviderError, buildAnalysisProviderBody, CURATE_IMPORT_ANALYSIS_DEFAULT_MODEL, sanitizedProviderDetail } from './curateAnalysisProvider';
 import { FALLBACK_SHIPPING_RATE_PER_KG } from './shippingRate';
@@ -782,7 +783,7 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
       env.DB.prepare('SELECT proposed_vendor_name, resolved_vendor_customer_id FROM curate_import_vendor_groups WHERE account_id = ? AND resolved_vendor_customer_id IS NOT NULL').bind(ctx.accountId).all<Record<string, unknown>>(),
       env.DB.prepare('SELECT id, name FROM curate_journeys WHERE account_id = ? ORDER BY created_at DESC').bind(ctx.accountId).all<Record<string, unknown>>(),
       env.DB.prepare('SELECT id, name, chinese_name, category, draft_product_id, year, origin_country, origin_region, type, form, classification, vendor_name FROM tea_compass_entries WHERE account_id = ? AND user_id = ? ORDER BY updated_at DESC LIMIT 200').bind(ctx.accountId, ctx.userId).all<Record<string, unknown>>(),
-      env.DB.prepare('SELECT id, source_compass_entry_id, product_name, given_name, chinese_name, type, form, classification, year, origin_country, origin_region, vendor, inventory_purpose FROM products WHERE account_id = ?').bind(ctx.accountId).all<Record<string, unknown>>(),
+      env.DB.prepare(`SELECT id, source_compass_entry_id, product_name, given_name, chinese_name, type, form, classification, year, origin_country, origin_region, vendor, inventory_purpose FROM products WHERE account_id = ? ORDER BY ${COMPASS_SAMPLE_HOLDING} DESC`).bind(ctx.accountId).all<Record<string, unknown>>(),
       env.DB.prepare('SELECT * FROM curate_import_vendor_groups WHERE batch_id = ? AND account_id = ? ORDER BY position').bind(params.id, ctx.accountId).all<Record<string, unknown>>(),
       env.DB.prepare('SELECT * FROM curate_import_items WHERE batch_id = ? AND account_id = ? ORDER BY position').bind(params.id, ctx.accountId).all<Record<string, unknown>>(),
     ]);
@@ -1242,7 +1243,7 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
             const holding = await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(item.productId, ctx.accountId).first<Record<string, unknown>>();
             if (!holding || !holdingMatchesImportIdentity(holding, item, item.compassEntryId, ctx.accountId)) throw new CurateImportFinalizeError('validation_failed', 'Selected holding is missing or incompatible', [{ field: 'product', itemId: item.id, message: 'Choose a holding linked to this identity, category, and purpose' }]);
           } else if (item.compassEntryId) {
-            const canonical = await env.DB.prepare('SELECT * FROM products WHERE account_id = ? AND source_compass_entry_id = ?').bind(ctx.accountId, item.compassEntryId).first<Record<string, unknown>>();
+            const canonical = await compassHolding(env.DB, ctx.accountId, item.compassEntryId, item.purpose === 'sample');
             if (canonical && !holdingMatchesImportIdentity(canonical, item, item.compassEntryId, ctx.accountId)) throw new CurateImportFinalizeError('validation_failed', 'Existing identity holding is incompatible with this import', [{ field: inventoryPurposeConflict(canonical, item.purpose!) ? 'purpose' : 'product', itemId: item.id, message: 'Review the existing Inventory holding' }]);
           }
         }
@@ -1300,7 +1301,7 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
           const owned = await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(entry.draft_product_id, ctx.accountId).first<Record<string, unknown>>();
           if (owned && holdingMatchesImportIdentity(owned, item, compassEntryId, ctx.accountId)) return { id: entry.draft_product_id, disposition: identityDisposition === 'created' ? 'created' : 'reused' };
         }
-        const identity = await env.DB.prepare('SELECT * FROM products WHERE account_id = ? AND source_compass_entry_id = ?').bind(ctx.accountId, compassEntryId).first<Record<string, unknown>>();
+        const identity = await compassHolding(env.DB, ctx.accountId, compassEntryId, item.purpose === 'sample');
         if (identity) {
           const categoryMatches = (identity.type === 'Teaware') === (item.category === 'teaware');
           const conflict = inventoryPurposeConflict(identity, item.purpose!);
@@ -1340,10 +1341,10 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
         await env.DB.batch([
           env.DB.prepare(`INSERT OR IGNORE INTO products (id, account_id, ${productColumns.join(', ')}) VALUES (?, ?, ${productColumns.map(() => '?').join(', ')})`)
             .bind(productId, ctx.accountId, ...productColumns.map(column => productValues[column])),
-          env.DB.prepare("UPDATE tea_compass_entries SET draft_product_id = (SELECT id FROM products WHERE account_id = ? AND source_compass_entry_id = ?), updated_at = datetime('now') WHERE id = ? AND account_id = ? AND user_id = ?")
+          env.DB.prepare(`UPDATE tea_compass_entries SET draft_product_id = (SELECT id FROM products WHERE account_id = ? AND source_compass_entry_id = ? ORDER BY ${COMPASS_SAMPLE_HOLDING} LIMIT 1), updated_at = datetime('now') WHERE id = ? AND account_id = ? AND user_id = ?`)
             .bind(ctx.accountId, compassEntryId, compassEntryId, ctx.accountId, ctx.userId),
         ]);
-        const storedHolding = await env.DB.prepare('SELECT id FROM products WHERE account_id = ? AND source_compass_entry_id = ?').bind(ctx.accountId, compassEntryId).first<Record<string, unknown>>();
+        const storedHolding = await compassHolding(env.DB, ctx.accountId, compassEntryId, item.purpose === 'sample');
         if (!storedHolding) throw new Error('Inventory holding could not be resolved');
         return { id: String(storedHolding.id), disposition: 'created' };
       },
@@ -1374,7 +1375,7 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
           if (!input) throw new Error('Inventory receipt line source could not be resolved');
           return {
             id: String(row.id), receiptId, itemId: String(row.source_ref), productId: String(row.product_id),
-            disposition: input.disposition, compassEntryId: input.compassEntryId,
+            disposition: input.disposition, compassEntryId: input.compassEntryId, transportMode: input.transportMode,
             quantity: Number(row.expected_quantity), unit: row.unit as 'g' | 'unit',
             purpose: row.intended_purpose as 'working' | 'sample' | 'personal', originalCostAmount: row.original_cost_amount == null ? null : Number(row.original_cost_amount), originalCostCurrency: String(row.original_cost_currency),
             originalUnitCost: row.original_unit_cost == null ? null : Number(row.original_unit_cost), packCount: Number(row.pack_count), originalCostAmountExact: String(row.original_cost_amount_exact ?? row.original_cost_amount), originalUnitCostExact: String(row.original_unit_cost_exact ?? row.original_unit_cost),

@@ -112,15 +112,16 @@ describe('what freight adds to a gram', () => {
 
 describe('nothing else in the shop decides the rate', () => {
   const worker = read('../src/index.ts');
+  const pricing = read('../src/productPricing.ts');
 
   it('prices through the shared helper', () => {
-    expect(worker).toContain('shippingPerGramUsd({');
+    expect(pricing).toContain('shippingPerGramUsd({');
   });
 
   it('never reads a missing rate as free freight again', () => {
     // The original bug, in one expression: `|| 0` turned "nobody entered one"
     // into "this tea ships for nothing".
-    expect(worker).not.toMatch(/shipping_rate_per_kg\s*(\|\||\?\?)\s*0\b/);
+    expect(worker + pricing).not.toMatch(/shipping_rate_per_kg\s*(\|\||\?\?)\s*0\b/);
   });
 
   it('stores an unentered rate as NULL, so the two states stay distinct', () => {
@@ -186,7 +187,7 @@ describe('nothing else in the shop decides the rate', () => {
     // starts at the name, so the keyword sits just outside it, and a check for
     // it in the matched text never fires. That is what failed CI on the first
     // run of this file, which is the guard working, on itself.
-    const found = [...worker.matchAll(/(function\s+)?addPricingFields\(([^)]*)\)/g)];
+    const found = [...[worker, pricing, read('../src/productPublication.ts')].join('\n').matchAll(/(function\s+)?addPricingFields\(([^)]*)\)/g)];
     const calls = found.filter(m => !m[1]).map(m => m[0]);
     expect(found.some(m => m[1]), 'addPricingFields moved or was renamed').toBe(true);
     expect(calls.length, 'nothing calls addPricingFields any more').toBeGreaterThan(0);

@@ -26,6 +26,7 @@ type CurateActionButtonProps = Omit<
 
 export interface CurateActionSpec {
   label: string;
+  icon?: React.ReactNode;
   onClick: () => void;
   disabled?: boolean;
   busyLabel?: string;
@@ -190,6 +191,7 @@ const ActionButton: React.FC<{ action: CurateActionSpec; primary?: boolean }> = 
       data-curate-compact-target
     >
       <span className={`curate-compact-chrome w-full border ${chromeClass}`} data-curate-compact-chrome>
+        {action.icon}
         {visibleLabel}
       </span>
     </button>

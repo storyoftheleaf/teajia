@@ -56,8 +56,6 @@ interface AlcoveCardProps {
   /** Canonical public route, including store context on standalone pages. */
   publicHref?: string;
   availabilityContact?: { href: string; opensNewTab: boolean };
-  /** Product-page-only control kept beside ordering reassurance. */
-  orderAccess?: React.ReactNode;
   /** Opens the order. The page bar's tan block is the only caller. */
   onOpenOrder?: () => void;
   /**
@@ -95,7 +93,7 @@ function hexToRgbString(hex: string): string | undefined {
   return `${(int >> 16) & 255} ${(int >> 8) & 255} ${int & 255}`;
 }
 
-export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, publicHref, availabilityContact, orderAccess, onOpenOrder, layout = 'card' }) => {
+export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, publicHref, availabilityContact, onOpenOrder, layout = 'card' }) => {
   const navigate = useNavigate();
   const { favoriteTeas, toggleFavoriteTea, activeAccountId } = useAppStore();
 
@@ -467,7 +465,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             ? `One whole ${(wholePiece?.label ?? '').toLowerCase()} · ${wholePieceGrams}g`
             : undefined
         }
-        standfirst={layout === 'page' ? introduction : undefined}
         productName={productName}
         givenName={givenName}
         teaType={teaType}
@@ -540,6 +537,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     <AlcoveGallery
       allImages={allImages}
       itemName={item.name}
+      layout={layout}
       onExpandImage={(url) => { setExpandedImageUrl(url); setImageExpanded(true); }}
     />
   );
@@ -673,19 +671,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     />
   );
 
-  /**
-   * The order-access strip on the page layout. It used to carry a promise
-   * about WhatsApp turnaround; nothing in the system guarantees that, so the
-   * claim is gone and the strip renders only when there is a control to hold.
-   */
-  /* The order bar's right-hand block IS the way to the order, and it carries
-     the total. A second row under it repeating "View order" was 45px of the
-     screen spent saying the same thing twice, and it only appeared once there
-     was an order, which is exactly when the block above it was already
-     shouting. The crumb bar at the top of the page carries the same link for
-     anyone who has scrolled away from the bar. */
-  const commerceReassurance = null; 
-
   // ── Page layout: the "quiet page" at /shop/product/:id on cold loads ─────
   if (layout === 'page') {
     return (
@@ -712,9 +697,12 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           <div className="lg:min-w-0 lg:px-7 lg:pt-2">
             {originLine}
             {gallery}
+            <div data-page-order className="commerce-dock commerce-price-surface paper-surface dark z-nav">
+              {commerceFooter('docked')}
+            </div>
             {characterBand}
-            {tastingRow}
             <div className="mt-10 lg:mt-12">{aboutSection}</div>
+            {tastingRow}
             {referenceSection}
             {tableSection}
             {threadSection}
@@ -722,20 +710,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
         </div>
 
-        {/* One order bar at every width. Below lg it docks onto the top edge of
-            the bottom navigation so the two read as one object; on lg it rests
-            at the foot of the reading instead, since there is no navigation
-            there to join. commerce-dock owns both geometries, and squares the
-            nav's top corners while it is sitting on it. */}
-        <div className="commerce-dock commerce-price-surface paper-surface dark z-nav">
-          {commerceFooter('docked')}
-          {commerceReassurance}
-        </div>
-        {/* Clearance for the fixed bar's own height, at both widths: on the
-            phone the app shell's pb-nav-gap-lg covers the navigation and this
-            covers the bar above it, and on the desk there is no navigation but
-            the bar is still fixed, so the reading needs to end above it. */}
-        <div aria-hidden="true" className="h-40 lg:h-28" />
+        <div aria-hidden="true" className="h-40 lg:h-8" />
 
         {modals}
       </article>

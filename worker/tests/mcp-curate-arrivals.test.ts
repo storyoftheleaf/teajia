@@ -52,7 +52,7 @@ describe('Curate arrivals read and confirmed stock service', () => {
     expect(result.error).toBe('arrival_changed_since_preview');
     expect(accept).not.toHaveBeenCalled();
   });
-  it('rejects separately edited order costs and linked photo metadata', async () => {
+  it('rejects separately edited order costs while private photo changes leave receiving unchanged', async () => {
     const { env, db, accept } = setup();
     db.sqlite.prepare("UPDATE curate_receipt_proposals SET idempotency_key='order:po:tea' WHERE id='arrival'").run();
     const items = [{ compass_entry_id: 'tea', quantity_grams: 100, line_total: 80, currency: 'CNY' }];
@@ -64,8 +64,9 @@ describe('Curate arrivals read and confirmed stock service', () => {
     expect((await invoke(env, 'curate_approve_arrival', { arrival_id: 'arrival', confirm: preview.confirmation_token })).error).toBe('arrival_changed_since_preview');
     const again = await invoke(env, 'curate_approve_arrival', { arrival_id: 'arrival' });
     db.sqlite.prepare("UPDATE tea_compass_entries SET photos='[\"https://media.teajia.co/new.jpg\"]' WHERE id='tea'").run();
-    expect((await invoke(env, 'curate_approve_arrival', { arrival_id: 'arrival', confirm: again.confirmation_token })).error).toBe('arrival_changed_since_preview');
     expect(accept).not.toHaveBeenCalled();
+    expect(await invoke(env, 'curate_approve_arrival', { arrival_id: 'arrival', confirm: again.confirmation_token })).toMatchObject({ committed: true });
+    expect(accept).toHaveBeenCalledTimes(1);
   });
   it('binds confirmations to originating account, token and user', async () => {
     const { env, accept } = setup();

@@ -305,8 +305,9 @@ export function normalizeCanonicalImportRecord(value: Record<string, unknown>): 
   };
 }
 
-function present<T extends Record<string, unknown>>(values: T): T {
-  return Object.fromEntries(Object.entries(values).filter(([, value]) => value != null)) as T;
+type PresentValues<T> = { [Key in keyof T]?: NonNullable<T[Key]> };
+function present<T extends Record<string, unknown>>(values: T): PresentValues<T> {
+  return Object.fromEntries(Object.entries(values).filter(([, value]) => value != null)) as PresentValues<T>;
 }
 
 function resolvedVendor(record: CanonicalImportRecord): { id: string | null; name: string | null } {

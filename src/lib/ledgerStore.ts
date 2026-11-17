@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Currency } from '../admin/types';
-import type { CurateReceiptProposal } from '../types';
+import type { CurateReceiptProposal, ReceiptAcquisitionKind } from '../types';
 import { canonicalCurrency } from './currency';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -34,6 +34,7 @@ export interface LedgerLineItem {
   compassEntryId?: string;   // If added from Tea Compass
   productId?: string;        // If added from inventory (for sales)
 
+  acquisitionKind?: ReceiptAcquisitionKind;
   receiptProposal?: CurateReceiptProposal;
   purchaseReceiptLineId?: string;
   addedAt: string;

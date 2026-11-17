@@ -1,4 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useCustomers } from '../../admin/hooks/useAdminData';
+import { useAppStore } from '../../lib/store';
+import { Button } from '../shared/Button';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -52,7 +56,6 @@ export function parseLatLng(raw: string): { lat: number; lng: number } | null {
 interface Vendor {
   id: string;
   name: string;
-  tags?: string;
 }
 
 interface VendorStripProps {
@@ -91,8 +94,12 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [contactMenuOpen, setContactMenuOpen] = useState(false);
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [loadingVendors, setLoadingVendors] = useState(false);
+  const accountId = useAppStore(state => state.activeAccountId);
+  const userId = useAppStore(state => state.activeUserId);
+  const queryClient = useQueryClient();
+  const customers = useCustomers({ enabled: !!accountId && !!userId && hasToken() });
+  const vendors = useMemo(() => (customers.data ?? []).filter(customer =>
+    customer.tags?.some(tag => tag.toLowerCase() === 'vendor')), [customers.data]);
   const [creatingNew, setCreatingNew] = useState(false);
   const [newName, setNewName] = useState('');
   const [geoState, setGeoState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
@@ -152,23 +159,6 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
     return Array.from(seen, ([name, id]) => ({ name, id }));
   }, [entries]);
 
-  // Fetch vendor list from API (customers with tag containing 'vendor')
-  useEffect(() => {
-    if (vendors.length > 0) return;
-    if (!hasToken()) return;
-
-    setLoadingVendors(true);
-    api.customers.list()
-      .then((res: any) => {
-        const list: Vendor[] = (res.customers || res || [])
-          .filter((c: any) => c.tags?.includes('vendor') || c.tags?.includes('Vendor'))
-          .map((c: any) => ({ id: c.id, name: c.name, tags: c.tags }));
-        setVendors(list);
-      })
-      .catch(() => {})
-      .finally(() => setLoadingVendors(false));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   // Auto-focus new name input
   useEffect(() => {
     if (creatingNew) {
@@ -220,8 +210,8 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
     try {
       const { id } = await api.customers.create({ name: trimmed, tags: 'vendor', source: 'compass' });
       if (id) {
-        setVendors((prev) => [{ id, name: trimmed, tags: 'vendor' }, ...prev]);
-        onVendorSelect(id, trimmed);
+        void queryClient.invalidateQueries({ queryKey: ['customers', accountId, userId] });
+        if (useAppStore.getState().activeAccountId === accountId && useAppStore.getState().activeUserId === userId) onVendorSelect(id, trimmed);
       }
     } catch {
       // Offline, vendor stays name-only. Details are preserved on the entry
@@ -536,7 +526,9 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               onFocus={() => setSearchOpen(true)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && searchQuery.trim()) {
-                  handleSelectVendor(undefined, searchQuery.trim());
+                  const name = searchQuery.trim();
+                  const match = vendors.find(vendor => vendor.name.toLowerCase() === name.toLowerCase());
+                  void handleSelectVendor(match?.id, name);
                   setSearchQuery('');
                   setSearchOpen(false);
                 }
@@ -556,26 +548,6 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                   className="absolute top-full left-0 right-0 z-30 mt-1 bg-tea-surface rounded-xl shadow-lg border border-tea-border overflow-hidden"
                   style={{ minWidth: '200px' }}
                 >
-                  {/* New vendor, always first */}
-                  <button
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      if (searchQuery.trim()) {
-                        handleSelectVendor(undefined, searchQuery.trim());
-                        setSearchQuery('');
-                      } else {
-                        setCreatingNew(true);
-                        setPickerOpen(true);
-                      }
-                      setSearchOpen(false);
-                    }}
-                    className="tap-target flex min-h-11 items-center gap-2 w-full px-3 py-2 text-left text-ui-12 text-tea-gold hover:bg-tea-gold/[0.08] transition-colors"
-                  >
-                    <Plus size={12} strokeWidth={2.5} />
-                    {searchQuery.trim() ? `New vendor "${searchQuery.trim()}"` : 'New vendor…'}
-                  </button>
-
                   {/* Filtered vendor list */}
                   {(() => {
                     const q = searchQuery.toLowerCase();
@@ -602,9 +574,8 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                           <button
                             key={v.id ?? v.name}
                             type="button"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              handleSelectVendor(v.id, v.name);
+                            onClick={() => {
+                              void handleSelectVendor(v.id, v.name);
                               setSearchQuery('');
                               setSearchOpen(false);
                             }}
@@ -617,6 +588,29 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                       </div>
                     );
                   })()}
+                  {customers.isFetching && !customers.data
+                    ? <p role="status" className="px-3 py-2 text-ui-12 text-tea-text-sec">Looking up suppliers…</p>
+                    : null}
+                  {customers.isError && <Button type="button" variant="plain" className="tap-target min-h-11 px-3 text-left text-ui-12 text-tea-text-sec underline" onClick={() => void customers.refetch()}>
+                    Retry supplier lookup
+                  </Button>}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (searchQuery.trim()) {
+                        handleSelectVendor(undefined, searchQuery.trim());
+                        setSearchQuery('');
+                      } else {
+                        setCreatingNew(true);
+                        setPickerOpen(true);
+                      }
+                      setSearchOpen(false);
+                    }}
+                    className="tap-target flex min-h-11 items-center gap-2 w-full px-3 py-2 text-left text-ui-12 text-tea-gold hover:bg-tea-gold/[0.08] transition-colors"
+                  >
+                    <Plus size={12} strokeWidth={2.5} />
+                    {searchQuery.trim() ? `New vendor "${searchQuery.trim()}"` : 'New vendor…'}
+                  </button>
                 </motion.div>
               )}
             </AnimatePresence>

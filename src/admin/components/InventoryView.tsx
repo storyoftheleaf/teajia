@@ -12,7 +12,7 @@ import { CurateSamplesView } from './CurateSamplesView';
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { COMMERCE_CHANGED_EVENT, refreshCommerceQueries, type CommerceChange } from '../../lib/refreshCommerce';
-import { mediaUrl } from '../../lib/mediaUrl';
+import { CapturePhotoImage } from '../../components/curate/CapturePhotoImage';
 import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 import { BottomSheet } from '../../components/shared/BottomSheet';
 import { useSearchParams, useNavigate, Link, Navigate } from 'react-router-dom';
@@ -93,7 +93,7 @@ import { StockMovementPanel } from './inventory/StockMovementPanel';
 import { InventorySourcePanel } from './inventory/InventorySourcePanel';
 import { SupplierSheet } from '../../components/shared/SupplierSheet';
 import { TastingSession } from '../../components/tasting/TastingSession';
-import { adaptInventorySummaryRows, inventoryMatchesFacetFilter, buildPersonalJournalHref, getPersonalTastingAction, inventorySummaryStatusMessage, inventoryPublicationRequirements, isInventoryPublicationGateChangeAllowed, isInventorySelectionPublishable } from './inventory/domain';
+import { adaptInventorySummaryRows, inventoryMatchesFacetFilter, buildPersonalJournalHref, getPersonalTastingAction, inventorySummaryStatusMessage, isInventoryDraftReady, inventoryPublicationProblem, isInventorySelectionPublishable } from './inventory/domain';
 import type { IncomingInventorySummary, InventorySummaryRow, InventorySummaryStatus, InventoryWritingSummary, PersonalTastingSummary } from './inventory/domain';
 
 interface InventoryViewProps {
@@ -328,6 +328,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   useEffect(() => {
     const refresh = (event: Event) => {
       const changed = (event as CustomEvent<CommerceChange>).detail;
+      if (changed?.kind === 'tracking') return;
       if (!changed?.accountId || changed.accountId === tastingAccountId) setInventorySummaryRefreshKey(key => key + 1);
     };
     window.addEventListener(COMMERCE_CHANGED_EVENT, refresh);
@@ -860,11 +861,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const setPhoneGroupBy = (by: PhoneGroupBy) => { setPhoneGroupByState(by); writePhoneGroupBy(by); };
 
   const splitViewCols = useMemo(() => {
+    const narrow = winWidth < 1280;
     const essential = inventoryCategory === 'teaware'
-      ? new Set(['productName', 'quantityUnits', 'pricePerGramUSD', 'costAmount'])
-      : new Set(['productName', 'stockGrams', 'pricePerGramUSD', 'costPerGramUSD', 'costAmount']);
+      ? new Set(narrow ? ['productName', 'quantityUnits', 'pricePerGramUSD'] : ['productName', 'quantityUnits', 'pricePerGramUSD', 'costAmount'])
+      : new Set(narrow ? ['productName', 'stockGrams', 'pricePerGramUSD'] : ['productName', 'stockGrams', 'pricePerGramUSD', 'costPerGramUSD', 'costAmount']);
     return visibleCols.filter(col => essential.has(col.key));
-  }, [visibleCols, inventoryCategory]);
+  }, [visibleCols, inventoryCategory, winWidth]);
 
   // The inventory table now reads the SAME on phone and desktop: same column
   // order, same left-alignment, same tight spacing, same font size, same
@@ -937,10 +939,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     }
     return visibleCols;
   }, [isMobile, splitView, splitViewCols, visibleCols, unifiedLayout, inventoryCategory, filterType]);
-  const renderSplitCols = useMemo(
-    () => splitViewCols,
-    [splitViewCols],
-  );
+  const renderSplitCols = useMemo(() => filterType === 'Samples'
+    ? splitViewCols.map(col => col.key === 'stockGrams' ? { ...col, label: 'Quote' }
+      : col.key === 'pricePerGramUSD' ? { ...col, label: 'Cost/g' } : col)
+    : splitViewCols, [filterType, splitViewCols]);
 
   // Total width the swipeable table needs so it overflows the viewport. Driving
   // both the table's minWidth and the colgroup off the same map keeps the three
@@ -1264,20 +1266,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       return;
     }
     const currentProduct = localProducts.find(product => product.id === id);
-    const turnsPublicationGateOn = (field === 'isPublic' || field === 'shownInShop') && value === true;
-    if (turnsPublicationGateOn && (
-      !currentProduct
-      || !isInventoryPublicationGateChangeAllowed(
-          currentProduct,
-          field,
-          value,
-          effectiveIncomingByProductId,
-          effectiveInventorySummaryStatus,
-        )
-    )) {
-      const error = new Error('Arrival status must be ready before publication');
-      showToast(error.message, 'error');
-      if (options?.throwOnError) throw error;
+    const enablingVisibility = (field === 'isPublic' || field === 'shownInShop') && value === true;
+    const publicationProblem = currentProduct
+      ? inventoryPublicationProblem(currentProduct, field, value, effectiveIncomingByProductId, effectiveInventorySummaryStatus)
+      : enablingVisibility ? 'Product not found' : null;
+    if (publicationProblem) {
+      if (options?.throwOnError) throw new Error(publicationProblem);
+      showToast(publicationProblem, 'error');
       return;
     }
 
@@ -1968,10 +1963,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     if (selectedIds.size === 0 || !bulkField) return;
     const fieldDef = BULK_EDIT_FIELDS.find(f => f.key === bulkField);
     const parsedValue = fieldDef?.type === 'boolean' ? bulkValue === 'true' : bulkValue;
-    if (bulkField === 'isPublic' && parsedValue === true && !railCanPublish) {
-      showToast('Publishing is unavailable until inventory arrival status is ready.', 'error');
-      return;
-    }
     setIsBulkApplying(true);
     try {
       const results = await Promise.allSettled(
@@ -1989,22 +1980,21 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   };
 
   const handleBulkVisibility = async (makePublic: boolean) => {
-    if (makePublic && !railCanPublish) {
-      showToast('Publishing is unavailable until inventory arrival status is ready.', 'error');
-      return;
-    }
     setIsBulkApplying(true);
     try {
       const results = await Promise.allSettled(
         [...selectedIds].map(id => handleProductUpdate(id, 'isPublic', makePublic, { throwOnError: true }))
       );
-      const succeeded = results.filter(r => r.status === 'fulfilled').length;
-      const failed = results.length - succeeded;
+      const failedIds = [...selectedIds].filter((_, index) => results[index].status === 'rejected');
+      const succeeded = results.length - failedIds.length;
+      const firstFailure = results.find(result => result.status === 'rejected');
+      const reason = firstFailure?.reason instanceof Error ? ` ${firstFailure.reason.message}` : '';
+      const action = makePublic ? 'Public listing enabled' : 'Public listing disabled';
       showToast(
-        failed > 0 ? `${makePublic ? 'Published' : 'Unpublished'} ${succeeded}, failed ${failed}` : `${makePublic ? 'Published' : 'Unpublished'} ${succeeded} items`,
-        failed > 0 ? 'error' : 'success'
+        failedIds.length > 0 ? `${action} for ${succeeded}. Failed ${failedIds.length}.${reason}` : `${action} for ${succeeded} items.`,
+        failedIds.length > 0 ? 'error' : 'success'
       );
-      setSelectedIds(new Set());
+      setSelectedIds(new Set(failedIds));
       lastSelectedIdxRef.current = null;
     } catch (err: any) {
       showToast(`Bulk update failed: ${err.message}`, 'error');
@@ -2236,7 +2226,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const stockViews = canReviewDrafts ? [categoryViews[0] ?? activeDefaultViews[0], draftsView, ...categoryViews.slice(1)] : categoryViews;
   const selectedStockViewId = draftMode ? draftsView.id : activeViewId;
   const categoryDrafts = draftMode ? localProducts.filter(product => product.status === 'Draft' && (product.type === 'Teaware') === (inventoryCategory === 'teaware')) : [];
-  const readyDraftCount = categoryDrafts.filter(product => inventoryPublicationRequirements(product).length === 0).length;
+  const readyDraftCount = categoryDrafts.filter(product => isInventoryDraftReady(product, effectiveIncomingByProductId[product.id])).length;
   const stockViewLabel = (view: typeof stockViews[number]) => view.filterType === 'All' ? (inventoryCategory === 'tea' ? 'All teas' : 'All teaware') : view.filterType === 'Working' ? 'Shop stock' : view.name || VIEW_FILTER_LABELS[view.filterType] || view.filterType;
   const selectStockView = (view: typeof stockViews[number]) => {
     setGlossaryMode(false);
@@ -2851,7 +2841,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   >
                     {product.imageUrl ? (
                       <div className="aspect-square overflow-hidden">
-                        <img src={mediaUrl(product.imageUrl)} alt={product.productName} className="w-full h-full object-cover transition-transform duration-300" loading="lazy" />
+                        <CapturePhotoImage src={product.imageUrl} stockPreview alt={product.productName} className="w-full h-full object-cover transition-transform duration-300" loading="lazy" />
                       </div>
                     ) : (
                       <div className="aspect-square flex items-center justify-center" style={{ backgroundColor: `${dotColor}15` }}>
@@ -3006,11 +2996,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               <div className="sticky top-0 z-20 bg-tea-surface md:bg-tea-bg shadow-[inset_0_-1px_0_var(--tea-border)]">
               <table className="w-full table-fixed border-collapse inv-tight" style={mobileTableStyle}>
                 <colgroup>
-                  {renderCols.map(renderColEl)}
+                  {splitView ? renderSplitCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />) : renderCols.map(renderColEl)}
                 </colgroup>
                 <thead data-testid="inventory-column-row" data-inventory-header-row className="bg-tea-surface md:bg-tea-bg">
                   <tr>
-                    {renderCols.map((col, i) => (
+                    {(splitView ? renderSplitCols : renderCols).map((col, i) => (
                       <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} sticky={mobileHScroll && i === 0} forceLeft={isMobile && unifiedLayout} resizable={mobileHScroll} />
                     ))}
                   </tr>
@@ -3332,9 +3322,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           return c?.hasOpenIncoming && c.remainingQuantity > 0 ? { quantity: c.remainingQuantity, eta: livePanelProduct?.inTransitEta ?? null } : null;
         })()}
         onCorrectSupplierName={(p) => { setSupplierSheetMode('rename'); setSupplierSheetProduct(p); }}
-        onShowStorePreview={(p) => setDetailsProduct(p)}
         onOpenStockMovement={stableStockMovement}
         canPublish={livePanelProduct ? canPublishInventoryProduct(livePanelProduct) : false}
+        publicationProblem={livePanelProduct ? inventoryPublicationProblem(
+          livePanelProduct, 'isPublic', true, effectiveIncomingByProductId, effectiveInventorySummaryStatus,
+        ) : null}
         rightOffset={panelRightOffset}
       />
 

@@ -1,6 +1,5 @@
 import React from 'react';
 import { getStockTypeFinish } from '../../admin/themeUtils';
-import { mediaUrl } from '../../lib/mediaUrl';
 
 /**
  * The 'flow' order of the Source form, the default (`?form=classic` shows the
@@ -10,10 +9,10 @@ import { mediaUrl } from '../../lib/mediaUrl';
  * type the way the Library tints them (getStockTypeFinish; neutral grey before
  * a type is chosen):
  *
- *   tea card      name (first photo at its left, Scan at its right);
+ *   tea card      name with Scan at its right;
  *                 the band; the price
  *   capture card  Photo and Taste, the photos, the note box
- *   decide card   status, then Buy, Sample, Done; the Buy panel under it
+ *   decide card   status, then order draft, received sample and save tea; the order panel under it
  *   growing card  quality, tasting words and saved notes: everything that grows
  *                 sits below the decision, so it never pushes it down
  *   details       Tea details & sourcing, then Storage
@@ -30,7 +29,6 @@ export interface CaptureFlowLayoutProps {
   contextTestId: string;
   bandTestId: string;
   typeName: string;
-  firstPhoto?: string;
   setScanSlot: (el: HTMLElement | null) => void;
   setStripSlot: (el: HTMLElement | null) => void;
   backToLibrary?: React.ReactNode;
@@ -46,7 +44,7 @@ export interface CaptureFlowLayoutProps {
   afterIdentity?: React.ReactNode;
   photo: React.ReactNode;
   taste?: React.ReactNode;
-  /** The 1 to 10 quality row and tasting words, below the decision. */
+  /** The mobile quality row and tasting words, below the decision. */
   tastingSummary?: React.ReactNode;
   /** The note box with its microphone, and the saved notes. */
   composer: React.ReactNode;
@@ -84,11 +82,8 @@ export function CaptureFlowLayout(props: CaptureFlowLayoutProps) {
         <div data-testid="curate-primary-workflow" className="grid gap-1.5">
           <article className={CARD} style={cardStyle} data-testid="curate-cluster-identity" data-zone="identity">
             <div className="library-card-title-row curate-flow-name">
-              {props.firstPhoto && (
-                <img src={mediaUrl(props.firstPhoto)} alt="" className="h-9 w-9 shrink-0 rounded-md border border-tea-border object-cover" data-testid="curate-name-photo" />
-              )}
               <div className="min-w-0 flex-1">{props.nameInput}</div>
-              <div ref={props.setScanSlot} className="-mr-1.5 flex shrink-0 items-center" data-testid="curate-scan-slot" />
+              <div ref={props.setScanSlot} className="-mr-1.5 flex min-w-0 shrink-0 items-center" data-testid="curate-scan-slot" />
               {!props.details && props.share}
             </div>
             <div className="library-card-subrow curate-flow-band" data-testid={props.bandTestId}>
@@ -132,7 +127,7 @@ export function CaptureFlowLayout(props: CaptureFlowLayoutProps) {
 
           {/* Keep tasting and saved notes below the decision. */}
           <article className={`${CARD} curate-flow-record empty:hidden`} style={cardStyle} data-testid="curate-cluster-record" data-zone="record">
-            {props.tastingSummary && <div className="curate-flow-tasting-summary">{props.tastingSummary}</div>}
+            {props.tastingSummary && <div className="curate-flow-tasting-summary lg:hidden">{props.tastingSummary}</div>}
             {props.list}
           </article>
 

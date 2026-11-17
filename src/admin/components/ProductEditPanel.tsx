@@ -1,18 +1,20 @@
+import { CapturePhotoImage, getStockCapturePhotoId, useCapturePhotoUrl } from '../../components/curate/CapturePhotoImage';
+import { capturePhotoApi } from '../../lib/capturePhotoApi';
 import { enteredYear } from '../enteredYear';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { PhoneTeaHeader, type TeaAction } from './inventory/phone/PhoneTeaHeader';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
-  X as XIcon, ChevronLeft, ChevronRight, ChevronDown, QrCode, Eye, EyeOff, Star, Sparkles,
+  X as XIcon, ChevronLeft, ChevronRight, ChevronDown, QrCode, Star, Sparkles,
   FlaskConical, RefreshCw, Pencil, Plus, Loader2, Check, Globe, Receipt, BookOpen,
-  Camera, Upload, Crop, Download, MoreHorizontal, Trash2, Wand2, Mic, Square, Store, Package,
+  Camera, Upload, Crop, Download, MoreHorizontal, Trash2, Wand2, Mic, Square, Package,
 } from 'lucide-react';
 import { refreshCommerceQueries } from '../../lib/refreshCommerce';
 import { api } from '../../lib/api';
 import { SquareCropModal } from '../../components/shared/SquareCropModal';
 import { useAppStore } from '../store';
-import { selectIsOwnerTier } from '../../lib/store';
+import { selectHasBundle, selectIsOwnerTier } from '../../lib/store';
 import type { Product, ExchangeRate, Currency } from '../types';
 import { calculatePricing } from '../utils';
 import { useCustomers } from '../hooks/useAdminData';
@@ -35,7 +37,8 @@ import { isoCurrencyCode, rateToUsd } from '../../lib/currency';
 import { useShopFreightDefault } from '../hooks/useAdminData';
 import { getThemeColor } from '../themeUtils';
 import { INVENTORY_TEA_TYPES } from '../../wisdom';
-import { effectivePurpose, getEffectivePublication, getTeaReadiness } from './inventory/domain';
+import { effectivePurpose, getTeaReadiness } from './inventory/domain';
+import { StockListingReview } from './inventory/StockListingReview';
 import {
   flattenTastingNotes,
   resolveTermLabel,
@@ -667,6 +670,7 @@ export const ImageManager = ({ product, onUpdate }: {
   const [justUploadedSlot, setJustUploadedSlot] = useState<number | null>(null);
   const [enhancingSlot, setEnhancingSlot] = useState<number | null>(null);
   const [cropper, setCropper] = useState<{ source: File | string; slotIndex: number } | null>(null);
+  const cropPhotoUrl = useCapturePhotoUrl(typeof cropper?.source === 'string' ? cropper.source : undefined, true);
   const [openMenu, setOpenMenu] = useState<number | null>(null);
   const { showToast } = useToast();
   const account = useAppStore((s) => s.activeAccount);
@@ -735,9 +739,17 @@ export const ImageManager = ({ product, onUpdate }: {
     const url = images[slotIndex];
     if (!url) return;
     try {
-      const res = await fetch(url, { mode: 'cors', cache: 'no-cache' });
-      if (!res.ok) throw new Error(`Failed to download (${res.status})`);
-      const blob = await res.blob();
+      const approvalId = getStockCapturePhotoId(url);
+      let blob: Blob;
+      if (approvalId) {
+        const { activeAccountId: accountId, activeUserId: userId } = useAppStore.getState();
+        if (!accountId || !userId) throw new Error('Sign in to download this photo.');
+        blob = await capturePhotoApi.stockBlob(approvalId, { accountId, userId });
+      } else {
+        const res = await fetch(url, { mode: 'cors', cache: 'no-cache' });
+        if (!res.ok) throw new Error(`Failed to download (${res.status})`);
+        blob = await res.blob();
+      }
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       const safeName = (product.productName || 'product').replace(/[^a-zA-Z0-9-_]+/g, '-').toLowerCase();
@@ -791,7 +803,7 @@ export const ImageManager = ({ product, onUpdate }: {
           <div key={i} className="flex-1 aspect-square relative group">
             {img ? (
               <>
-                <img src={img} alt={slotLabels[i]} className="w-full h-full object-cover rounded-md" loading="lazy" />
+                <CapturePhotoImage src={img} stockPreview alt={slotLabels[i]} className="w-full h-full object-cover rounded-md" loading="lazy" />
                 {i === BAG_SLOT ? (
                   <span aria-hidden="true" className="absolute top-1 left-1 px-1.5 h-4 rounded-full bg-tea-bg/80 text-tea-text-dim text-ui-9 font-serif uppercase tracking-[0.08em] flex items-center justify-center">Bag</span>
                 ) : (
@@ -876,7 +888,7 @@ export const ImageManager = ({ product, onUpdate }: {
 
       <SquareCropModal
         isOpen={cropper !== null}
-        source={cropper?.source ?? null}
+        source={typeof cropper?.source === 'string' ? cropPhotoUrl ?? null : cropper?.source ?? null}
         title={cropper ? `Crop ${slotLabels[cropper.slotIndex].toLowerCase()} photo` : 'Crop photo'}
         onClose={() => setCropper(null)}
         onConfirm={async (blob) => {
@@ -960,7 +972,6 @@ export interface ProductEditPanelProps {
   /** Open the store preview (the Alcove / shop-card view) for this product.
    *  Surfaced high in the panel so full edit shows how it looks in the shop. */
   onCorrectSupplierName?: (product: Product) => void;
-  onShowStorePreview?: (product: Product) => void;
   /** Opens movement-first stock entry instead of directly overwriting stock. */
   onOpenStockMovement?: (product: Product, trigger: HTMLElement) => void;
   /** Phone tea page: Count it opens the movement panel on Recount. */
@@ -971,6 +982,7 @@ export interface ProductEditPanelProps {
   incoming?: { quantity: number; eta?: string | null } | null;
   /** False when this holding is not yet eligible for public shop visibility. */
   canPublish?: boolean;
+  publicationProblem?: string | null;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -990,13 +1002,13 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   onNavigate,
   filterLabel,
   rightOffset = 0,
-  onShowStorePreview,
   onCorrectSupplierName,
   onOpenStockMovement,
   onRecount,
   onTeaAction,
   incoming,
   canPublish = true,
+  publicationProblem,
 }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -1008,13 +1020,13 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
 
   // Stock spine step 2: only the location owner curates what shows in the shop.
   const isOwnerTier = useAppStore(selectIsOwnerTier);
+  const canList = useAppStore(state => selectIsOwnerTier(state) || selectHasBundle(state, 'publish'));
   const activeUserId = useAppStore((state) => state.activeUserId);
   const activeAccountId = useAppStore((state) => state.activeAccountId);
   const compassEntries = useTeaCompassStore((s) => s.entries);
   const compassAccountId = useTeaCompassStore(s => s.accountScopeId);
   const sharedRecordId = product ? sharedTeaRecordId(product, compassAccountId === activeAccountId ? compassEntries : []) : undefined;
   const readiness = product ? getTeaReadiness(product) : null;
-  const publication = product ? getEffectivePublication(product) : null;
   const readinessLabels: Record<string, string> = {
     description: 'description', retail_price: 'retail price', classification: 'classification', stock_amount: 'stock amount',
   };
@@ -1105,18 +1117,6 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
     await refreshCommerceQueries(panelQueryClient, undefined, { changedProductIds: [id] });
   }, [onSaveField,onUpdate,panelQueryClient]);
 
-  // Stock spine step 2: flip the owner curation gate (shown_in_shop). Routes
-  // through the parent's optimistic handler when present (InventoryView), else
-  // hits the owner-tier endpoint directly. Separate from handleUpdate because
-  // it must never fall through to the per-domain product update.
-  const handleToggleShown = useCallback(async (id: string, next: boolean) => {
-    if (onUpdate) { await onUpdate(id, 'shownInShop' as keyof Product, next); return; }
-    try {
-      await api.products.updateShown(id, next);
-      await refreshCommerceQueries(panelQueryClient, undefined, { changedProductIds: [id] });
-    } catch (err: any) { showToast(`Update failed: ${err.message}`, 'error'); }
-  }, [onUpdate, showToast, panelQueryClient]);
-
   // Fetch events / tasting aggregate when product changes
   useEffect(() => {
     if (!product) {
@@ -1173,7 +1173,8 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   useEffect(() => {
     if (!product) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.isComposing || (e.target instanceof HTMLElement && (e.target.isContentEditable || e.target.closest('input,textarea,select,[contenteditable="true"]')))) return;
+      if (e.defaultPrevented || e.isComposing || (e.target instanceof HTMLElement &&
+        (e.target.isContentEditable || e.target.closest('input,textarea,select,[contenteditable="true"],[data-vaul-drawer]')))) return;
       if (e.key === 'Escape') { onClose(); e.preventDefault(); }
       else if (e.key === 'ArrowLeft' && prevProduct && onNavigate) {
         onNavigate(prevProduct); e.preventDefault();
@@ -1358,7 +1359,9 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 />
                 <div className="min-w-0 flex-1">
                   <h3 id={titleId} className="font-sans text-ui-17 font-medium text-admin-text leading-[1.25] tracking-[-0.005em]" title={product.productName}>{product.productName}</h3>
-                  {product.givenName && <div className="text-ui-13 text-admin-text-sec leading-tight mt-1">{product.givenName}</div>}
+                  {product.givenName && product.givenName.trim().toLocaleLowerCase() !== product.productName?.trim().toLocaleLowerCase() && (
+                    <div className="text-ui-13 text-admin-text-sec leading-tight mt-1">{product.givenName}</div>
+                  )}
                   <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 mt-1.5">
                     <span className="text-ui-12 text-admin-text-sec">{product.type}</span>
                     {product.year && <span className="text-ui-12 text-admin-text-dim font-mono tabular-nums">· {product.year}</span>}
@@ -1380,11 +1383,6 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                     <ChevronDown size={11} className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-admin-text-dim" aria-hidden="true" />
                   </div>
                   <div className="flex items-center gap-2">
-                    {onShowStorePreview && (
-                      <button onClick={() => onShowStorePreview(product)} aria-label="Preview in shop" title="Preview how this looks in the shop" className="inline-flex items-center gap-1 text-ui-11 text-admin-text-sec hover:text-admin-text transition-colors rounded px-1 py-0.5">
-                        <Eye size={12} aria-hidden="true" /> Shop
-                      </button>
-                    )}
                     <button onClick={() => setQrProduct(product)} aria-label="Generate QR code" title="Generate QR Code" className="inline-flex items-center gap-1 text-ui-11 text-admin-text-sec hover:text-admin-text transition-colors rounded px-1 py-0.5">
                       <QrCode size={12} aria-hidden="true" /> QR
                     </button>
@@ -1408,14 +1406,9 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   </button>
                 ))}
               </div>
-              {readiness?.state !== 'not_applicable' && (
+              {readiness?.state === 'not_ready' && (
                 <div className="text-ui-12 text-admin-text-sec">
-                  Readiness: {readiness?.state === 'ready' ? 'Ready' : `Missing ${missingSentence}`}
-                </div>
-              )}
-              {publication && (
-                <div className="text-ui-12 text-admin-text-sec">
-                  Publication: {publication.state === 'published' ? 'Published' : `Hidden, ${publication.operatorGate ? 'listing on' : 'listing off'}; ${publication.locationGate ? 'location shown' : 'location held'}`}
+                  Details needed: {missingSentence}
                 </div>
               )}
               {sharedRecordId && <button type="button" data-testid="inventory-open-tea-record" data-compass-entry-id={sharedRecordId}
@@ -1441,47 +1434,18 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
 
             <PhoneTeaHeader product={product} incoming={incoming} onChangeStock={onOpenStockMovement} onRecount={onRecount} onAction={onTeaAction} />
 
-            {/* Visibility / promotion / classification toggles.
-                  Lives directly under the identity card: these get toggled
-                  daily and shouldn't be hidden in a collapsible. Single flex-wrap
-                  row, no per-row caps labels (Visible / Promote / Classify), since the
-                  pill icons + names speak for themselves. Ordered by frequency
-                  of use: visibility → promotion → classification. */}
+            {effectivePurpose(product) === 'working' && <StockListingReview key={`${activeAccountId}:${product.id}`}
+              product={product} entryId={sharedRecordId}
+              canList={canList} canPublish={canPublish} isOwner={isOwnerTier} problem={publicationProblem}
+              applyWording={text => persistField(product.id, 'description', text)}
+              markReady={() => persistField(product.id, 'status', 'Active')}
+              save={async (gate, value) => {
+                if (gate !== 'shownInShop' || onSaveField || onUpdate) return persistField(product.id, gate, value);
+                await api.products.updateShown(product.id, value);
+                await refreshCommerceQueries(panelQueryClient, undefined, { changedProductIds: [product.id] });
+              }}
+            />}
             <div className="px-3 pb-3 flex flex-wrap gap-1.5">
-              <button
-                onClick={() => { if (product.isPublic || canPublish) handleUpdate(product.id, 'isPublic', !product.isPublic); }}
-                disabled={!product.isPublic && !canPublish}
-                className={`admin-pill ${product.isPublic ? 'admin-pill-on' : ''} ${!product.isPublic && !canPublish ? 'cursor-not-allowed opacity-50' : ''}`}
-                title={product.isPublic
-                  ? 'Visible in shop, click to hide'
-                  : canPublish
-                    ? 'Hidden, click to show in shop'
-                    : 'Arrival status must be ready before publication'}
-              >
-                {product.isPublic ? <Eye size={10} /> : <EyeOff size={10} />} In Shop
-              </button>
-              {/* Stock spine step 2: the LOCATION OWNER's curation gate, a sibling
-                  of "In Shop" (the operator's list-at-all flag). Only owner-tier
-                  may flip it; a staff seller sees the held/shown state of their
-                  own tea but cannot self-approve it into the shop. */}
-              <button
-                onClick={() => {
-                  if (isOwnerTier && (product.shownInShop || canPublish)) {
-                    handleToggleShown(product.id, !product.shownInShop);
-                  }
-                }}
-                disabled={!isOwnerTier || (!product.shownInShop && !canPublish)}
-                className={`admin-pill ${product.shownInShop ? 'admin-pill-on' : ''} ${!isOwnerTier || (!product.shownInShop && !canPublish) ? 'opacity-60 cursor-not-allowed' : ''}`}
-                title={!isOwnerTier
-                  ? (product.shownInShop ? 'Shown in this shop by the owner' : 'Held, only the location owner can show this')
-                  : product.shownInShop
-                    ? 'Shown by the owner, click to hold'
-                    : canPublish
-                      ? 'Held, click to show in this shop'
-                      : 'Arrival status must be ready before publication'}
-              >
-                <Store size={10} /> {product.shownInShop ? 'Shown' : 'Held'}
-              </button>
               <button onClick={() => handleUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`admin-pill ${product.isFeatured ? 'admin-pill-on' : ''}`} title="Starred, promoted on collection pages">
                 <Star size={10} className={product.isFeatured ? 'fill-current' : ''} /> Starred
               </button>

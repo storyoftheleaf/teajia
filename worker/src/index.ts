@@ -1,5 +1,7 @@
+import { hasPublicStatus } from '../../src/lib/productPublication';
 import { guardFetch } from './allowanceGuard.mjs';
 import { isCuratedReadPath, isReadPathPublic } from '../../src/pages/read/articleLive';
+import { attachStudioReferrals, hasOpenStudioReferral, referStudioLine, resolveStudioReferral, StudioReferralError, STUDIO_REFERRAL_MESSAGE, STUDIO_REFERRAL_OPEN } from './studioReceiptReferrals';
 import { LogisticsTrackingError, recordLogisticsTrackingUpdate } from './logisticsTracking';
 import { readLogistics, mutateLogistics, LogisticsError, type LogisticsAction } from './logistics';
 import { readPurchaseTracking } from './purchaseTracking';
@@ -35,13 +37,15 @@ import { receiptProductDetails } from './curateReceiptProduct';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { compassFieldPatch, readCompassFieldHints } from './compassFieldPatch';
 import { receiptHoldingTeaId } from './curateMergeLink';
-import { shippingPerGramUsd, resolveShopFreightDefault } from './shippingRate';
+import { resolveShopFreightDefault } from './shippingRate';
+import { addPricingFields, lookupRateToUsd, shopFreightPerKgUsd } from './productPricing';
+import { checkNewProductPublication, checkProductPublication, openingStockKnownAt, publicationPatchFromColumns, writeProductPublication } from './productPublication';
 import { deductStockForPaidInvoice } from './orderLifecycle';
 import { internationalWhatsAppNumber } from '../../src/lib/whatsappContact';
 import { buildCustomerOrderNotificationInsert, processPendingCustomerOrderNotifications } from './whatsappOrderNotifications';
 import { FX_FEED_CURRENCY_MAP, refreshedCurrencyName } from './exchangeRateFeed';
 import { fetchLiveRates, staleRateRows, staleRatesMessage, type RateRefreshResult, type RateRow } from './exchangeRateSources';
-import { SHOP_MARKUP_MULTIPLIER, CURATOR_FALLBACK_MARKUP } from './markup'; import { mentionNeedles } from './peopleMentions';
+import { CURATOR_FALLBACK_MARKUP } from './markup'; import { mentionNeedles } from './peopleMentions';
 import { costNeedsCurrency, createMissingCost, currencyStated, stampCostCurrencySource, canonicalizeCostCurrency, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
 import { nameProductColumns } from './productDefaults';
 import { validateCurateContextPair } from './curateContextValidation';
@@ -49,6 +53,7 @@ import { addTodo, markTodoDone, openTodos, pickSuggestions, waitingSuggestions }
 import { decryptSecret, encryptSecret } from './secretSeal';
 import { fileSaid } from './curateSaidFiling';
 import { driveConsentUrl, driveSeal, driveStatus, forgetDrive, saveDriveConsent, savePhotosToDrive, savePhotosToDriveQuietly } from './curateDrive';
+import { compassHolding, COMPASS_SAMPLE_HOLDING } from './compassHoldings';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import {
   deriveConfirmedInvoiceLine,
@@ -149,7 +154,6 @@ import {
   resolveTeaReferenceIssues,
 } from './teaReferenceIssues';
 import { isTeaType, TEA_TYPES } from '../../src/wisdom/vocabulary';
-import { isUnrecordedCurrency } from '../../src/lib/currency';
 import {
   inquiryEmail, inquiryPhone, inquiryPacking, inquiryPackingLabel, quoteInquiryLine,
   catalogProductIds, INQUIRY_MAX_CONTACT, INQUIRY_MAX_INTEREST_LABEL, INQUIRY_MAX_INTERESTS,
@@ -170,6 +174,7 @@ import { withD1ReadBudget, resolveD1Budget, settleD1Budget } from './d1Budget';
 import { budgetRefusal } from './d1BudgetResponse';
 import { mergePushedJournal, storedJournalsFor } from './tastingJournalPush';
 import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasting } from './sampleTastingRepeat';
+import { approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowed, capturePhotoPath, capturePhotoResponse, loadCapturePhotoReview, prepareCaptureApproval, privateCapturePhoto, shopPhotoApprovalId, shopPhotoUrl, storeCapturePhoto, validCaptureEntryId, validCapturePhotoId } from './capturePhotos';
 interface Env extends WorkerReleaseEnv {
   DB: D1Database;
   WHATSAPP_ORDER_ACCOUNT_ID?: string;
@@ -1629,99 +1634,6 @@ function matchRoute(method: string, path: string, routes: [string, string, Handl
 }
 
 // ── Product pricing calculation (mirrors the Postgres view) ──
-/**
- * Case-insensitive rate lookup with alias normalization, so 'CNY' resolves to
- * the 'Yuan' row. Exact key first, then case-insensitive, then alias map.
- *
- * Shared by product pricing and by the shop's freight default, because a rate
- * that resolves for one and silently falls back to 1 for the other would price
- * a yuan figure as dollars.
- */
-function lookupRateToUsd(rates: Map<string, number>, rawCurrency: string | null | undefined): number | undefined {
-  const currency = canonicalCurrency(rawCurrency);
-  if (!currency) return undefined;
-  const exact = rates.get(currency);
-  if (exact !== undefined) return exact;
-  const lc = currency.toLowerCase();
-  for (const [k, v] of rates) {
-    if (k.toLowerCase() === lc) return v;
-  }
-  return undefined;
-}
-
-/**
- * The shop's own freight rate, converted to USD at today's rate.
- *
- * Read per request rather than cached: it is one indexed row, and a rate that
- * kept serving the old number after Adrian changed it in Store Settings would
- * be the same class of bug this whole area exists to stop.
- */
-async function shopFreightPerKgUsd(env: Env, accountId: string, rates: Map<string, number>): Promise<number | null> {
-  const account = await env.DB.prepare(
-    'SELECT default_shipping_rate_per_kg, default_shipping_rate_currency FROM accounts WHERE id = ?'
-  ).bind(accountId).first() as { default_shipping_rate_per_kg?: number | null; default_shipping_rate_currency?: string | null } | null;
-  return resolveShopFreightDefault(account, c => lookupRateToUsd(rates, c)).perKgUsd;
-}
-
-function addPricingFields(product: any, rates: Map<string, number>, shopDefaultPerKgUsd: number | null): any {
-  /* A named cost currency with no rate is not a rate of 1. Reading a 380 yuan
-     cost as 380 dollars is a seven-fold error that the x3 then triples, and it
-     arrives looking like an expensive tea rather than like a fault. Nothing to
-     convert with means no price: the surfaces print a dash, which is what not
-     knowing should look like.
-
-     A cost with no currency recorded at all is the separate, older case. It
-     means nobody wrote one down, which by this shop's convention is USD, and
-     'UNK' is the sentinel the admin uses for it. That still converts at 1,
-     because that is what it has always meant, not because a rate is missing. */
-  const declared = product.cost_currency as string | null | undefined;
-  // The reading of "nobody said" lives beside the alias map, because the admin
-  // dashboard has to take the same one or the shelf and the dashboard disagree
-  // about the same teas. It was written out here in full, which is how a rule
-  // gets two homes.
-  const rate = isUnrecordedCurrency(declared) ? 1 : lookupRateToUsd(rates, declared);
-  const isTeaware = product.type === 'Teaware';
-  const freight = shippingPerGramUsd({
-    storedRatePerKg: product.shipping_rate_per_kg,
-    rateToUsd: rate,
-    isTeaware,
-    shopDefaultPerKgUsd,
-  });
-  if (!rate || !Number.isFinite(rate) || rate <= 0 || freight === null || product.cost_amount == null || !(Number(product.quantity_purchased) > 0)) {
-    return {
-      ...product,
-      stock_grams: Math.round(product.stock_grams || 0),
-      cost_per_gram_usd: null,
-      retail_price_per_gram_usd: product.fixed_retail_price_usd ?? null,
-    };
-  }
-
-  // The purchase denominator is acquisition evidence, never current availability.
-  const qty = Number(product.quantity_purchased) || 0;
-
-  let costPerUnitUSD = 0;
-  let retailPricePerUnitUSD = 0;
-
-  if (qty > 0) {
-    const costPerUnit = product.cost_amount / qty;
-    /* Freight belongs in the basis the markup multiplies, and the rate itself
-       is decided in one place. See worker/src/shippingRate.ts for both, and
-       for why a NULL rate is not the same as a rate of zero. */
-    costPerUnitUSD = costPerUnit / rate + freight;
-  }
-
-  if (qty > 0) {
-    retailPricePerUnitUSD = costPerUnitUSD * SHOP_MARKUP_MULTIPLIER;
-  }
-
-  return {
-    ...product,
-    stock_grams: Math.round(product.stock_grams || 0),
-    cost_per_gram_usd: Math.round(costPerUnitUSD * 100) / 100,
-    retail_price_per_gram_usd: product.fixed_retail_price_usd ?? Math.round(retailPricePerUnitUSD * 100) / 100,
-  };
-}
-
 // ── Route Handlers ──
 
 const handleLogin: Handler = async (request, env) => {
@@ -2732,6 +2644,8 @@ const handleGetProducts: Handler = async (request, env, params) => {
     if (typeof p.tasting === 'string') {
       try { p.tasting = JSON.parse(p.tasting); } catch { p.tasting = {}; }
     }
+    // Keep a missing balance from looking like a recorded zero after price projection.
+    if ((p.type === 'Teaware' ? p.quantity_units : p.stock_grams) == null) p.stock_known_at = null;
     return addPricingFields(p, rates, shopDefaultPerKgUsd);
   });
   return params?.id ? (products[0] ? json(products[0]) : restError(404, 'Product not found', 'product_not_found')) : json(products);
@@ -2921,9 +2835,7 @@ const handleCreateProduct: Handler = async (request, env) => {
   try { purposeWrite = decodeInventoryPurposeWrite(body); }
   catch (error) { return json({ error: (error as Error).message }, 400); }
   Object.assign(body, purposeWrite);
-  if (body.stock_known_at === undefined && (body.stock_grams !== undefined || body.quantity_units !== undefined)) {
-    body.stock_known_at = new Date().toISOString();
-  }
+  body.stock_known_at = openingStockKnownAt(body);
 
   // Basic validation
   const { product_name, year } = body;
@@ -2961,36 +2873,28 @@ const handleCreateProduct: Handler = async (request, env) => {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
   }
 
-  // Auto-resolve vendor → vendor_id (scoped to the active account)
+  body.account_id = accountId;
+  if (body.owner_user_id === undefined) body.owner_user_id = ctx.role === 'owner' ? ctx.userId : null;
+
+  const explicitlyPublishes = body.is_public === 1 || body.shown_in_shop === 1;
+  body.is_public ??= 1;
+  body.shown_in_shop ??= body.is_public && ctx.role === 'owner' ? 1 : 0;
+  if (!hasPublicStatus(body.status === undefined ? 'Active' : body.status)) {
+    body.is_public = 0;
+    body.shown_in_shop = 0;
+  } else if (body.is_public || body.shown_in_shop) {
+    const refusal = await checkNewProductPublication(env, accountId, body);
+    if (refusal && explicitlyPublishes) return restError(409, refusal.error, refusal.code, refusal.details);
+    if (refusal) {
+      body.is_public = 0;
+      body.shown_in_shop = 0;
+    }
+  }
+
+  // Resolve the vendor after the listing is validated, before writing the product and mirrors.
   if (body.vendor && !body.vendor_id) {
     body.vendor_id = await resolveVendorId(env, body.vendor, body.origin_country, accountId);
   }
-
-  body.account_id = accountId;
-  // Stock spine step 1: stamp the creating user as the stock owner unless the
-  // caller already specified one. NULL stays "owned by the location"; here a
-  // real authenticated creator is cleanly on ctx.userId, so record it.
-  if (body.owner_user_id === undefined) body.owner_user_id = ctx.role === 'owner' ? ctx.userId : null;
-  // Stock spine step 2: the location owner curates what shows. Owner-tier
-  // creators (role 'owner', which platform owner/admin act as) put their tea
-  // straight in the shop; a staff seller's tea starts HELD (0) until the owner
-  // shows it. This is the literal meaning of "the owner curates what shows."
-  const isIncomingOnlyCreate = Number(body.stock_grams || 0) <= 0 && Boolean(body.in_transit);
-  if (isIncomingOnlyCreate) {
-    // Intake is easy by default, but publication remains explicit and blocked
-    // until receipt. This avoids a hidden database default making first-arrival
-    // stock public while preserving a clear 409 for callers that ask to publish.
-    if (body.is_public === undefined) body.is_public = 0;
-    if (body.shown_in_shop === undefined) body.shown_in_shop = 0;
-  }
-  if (body.shown_in_shop === undefined) body.shown_in_shop = ctx.role === 'owner' ? 1 : 0;
-  const incomingCreateError = incomingOnlyCandidateError({
-    stockGrams: Number(body.stock_grams || 0),
-    incomingQuantity: body.in_transit ? Math.max(Number(body.in_transit_grams || 0), 1) : 0,
-    isPublic: body.is_public === undefined ? true : Boolean(body.is_public),
-    shownInShop: Boolean(body.shown_in_shop),
-  });
-  if (incomingCreateError) return incomingCreateError;
   const id = crypto.randomUUID();
   body.slug = await mintProductSlug(env, body, id);
   /* Freight, markup and cost are named even when the caller said nothing about
@@ -3005,22 +2909,15 @@ const handleCreateProduct: Handler = async (request, env) => {
 
   // Mirror: create the profile + listing pair alongside the legacy product row
   // so partner catalog browse reflects the new tea immediately.
-  const mirrorInserts = buildProductMirrorInserts(env, id, accountId, body, !canPublish);
-
-  if (mirrorInserts.length > 0) {
-    await env.DB.batch([insertProduct, ...mirrorInserts]);
-  } else {
-    await insertProduct.run();
-  }
-
-  // Write PURCHASE_RECEIPT ledger entry if product has initial stock
+  const statements = [insertProduct, ...buildProductMirrorInserts(env, id, accountId, body, !canPublish)];
   const initialStock = Number(body.stock_grams) || 0;
   if (initialStock > 0) {
-    await buildStockLedgerEntry(
+    statements.push(buildStockLedgerEntry(
       env, id, initialStock, initialStock, 'PURCHASE_RECEIPT',
       null, null, null, 'Initial stock from Tea Compass purchase', accountId
-    ).run();
+    ));
   }
+  await writeProductPublication(env, statements);
 
   await auditPlatformActingWrite(env, ctx, 'product.created', 'product', id, {
     product_name: body.product_name, year: body.year ?? null,
@@ -3136,9 +3033,9 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
       else results.push({ client_row_id: clientRowId, status: 'replayed',product_id:id,ledger_id:null });
       continue;
     }
-    if (body.stock_known_at === undefined && (body.stock_grams !== undefined || body.quantity_units !== undefined)) {
-      body.stock_known_at = new Date().toISOString();
-    }
+    const stockKnownAt = openingStockKnownAt(body);
+    if (stockKnownAt) body.stock_known_at = stockKnownAt;
+    else delete body.stock_known_at;
 
     // Check for duplicate by type + product_name or given_name
     const name = ((body.product_name || body.given_name || '') as string).toLowerCase().trim();
@@ -3511,6 +3408,18 @@ async function applyProductUpdate(
     .bind(params.id, accountId).first();
   if (!ownedProduct) return json({ error: 'Product not found' }, 404);
 
+  const publication = allowedColumns === PRODUCT_PUBLICATION_UPDATE_COLUMNS || allowedColumns === PRODUCT_VISIBILITY_UPDATE_COLUMNS
+    ? await checkProductPublication(env, accountId, params.id, publicationPatchFromColumns(body))
+    : null;
+  if (publication?.refusal) {
+    const { error, code, details } = publication.refusal;
+    return restError(409, error, code, details);
+  }
+  if (publication?.clearDraftVisibility) {
+    body.is_public = 0;
+    body.shown_in_shop = 0;
+  }
+
   // Stock change logging — scoped lookup
   const extraStmts: D1PreparedStatement[] = [];
 
@@ -3612,10 +3521,9 @@ async function applyProductUpdate(
 
   /* `cost_currency_source` is in no caller-facing column set on purpose, so it
      is writable only because this function set it two hundred lines up. */
-  const writableColumns = body.cost_currency_source !== undefined
-    ? new Set([...allowedColumns, 'cost_currency_source'])
-    : allowedColumns;
-  const cols = Object.keys(body).filter(k => writableColumns.has(k));
+  const cols = Object.keys(body).filter(key => allowedColumns.has(key)
+    || (key === 'cost_currency_source' && body.cost_currency_source !== undefined)
+    || (key === 'shown_in_shop' && publication?.clearDraftVisibility));
   if (cols.length === 0) return json({ success: true });
   const sets = cols.map(c => `${c} = ?`).join(', ');
 
@@ -3626,12 +3534,8 @@ async function applyProductUpdate(
 
   const updateStmt = env.DB.prepare(`UPDATE products SET ${sets} WHERE id = ? AND account_id = ?`)
     .bind(...cols.map(c => body[c] ?? null), params.id, accountId);
-  const allStmts = [updateStmt, ...extraStmts, ...mirrorStmts];
-  if (allStmts.length > 1) {
-    await env.DB.batch(allStmts);
-  } else {
-    await updateStmt.run();
-  }
+  const writeConflict = await writeProductPublication(env, [updateStmt, ...extraStmts, ...mirrorStmts], publication?.assertion);
+  if (writeConflict) return restError(409, writeConflict.error, writeConflict.code);
 
   await auditPlatformActingWrite(env, ctx, auditAction, 'product', params.id, {
     fields: Object.keys(body).slice(0, 20),
@@ -3656,51 +3560,9 @@ const handleUpdateProductCatalog = makeProductCommandUpdateHandler('catalog', PR
 const handleUpdateProductStock = makeProductCommandUpdateHandler('stock', PRODUCT_STOCK_UPDATE_COLUMNS, 'product.stock_updated');
 const handleUpdateProductCommercial = makeProductCommandUpdateHandler('sell', PRODUCT_COMMERCIAL_UPDATE_COLUMNS, 'product.commercial_updated');
 
-function incomingOnlyCandidateError(candidate: {
-  stockGrams: number;
-  incomingQuantity: number;
-  isPublic: boolean;
-  shownInShop: boolean;
-}): Response | null {
-  if (candidate.stockGrams <= 0 && candidate.incomingQuantity > 0 && (candidate.isPublic || candidate.shownInShop)) {
-    return restError(409, 'Incoming tea cannot be published until stock is received', 'incoming_stock_not_publishable', {
-      incoming_quantity: candidate.incomingQuantity,
-    });
-  }
-  return null;
-}
-
-async function incomingOnlyPublicationError(request: Request, env: Env, productId: string, accountId: string, field: 'is_public' | 'shown_in_shop') {
-  let body: Record<string, unknown>;
-  try { body = await request.clone().json() as Record<string, unknown>; } catch { return null; }
-  if (!body[field]) return null;
-  const row = await env.DB.prepare(
-    `SELECT p.stock_grams, p.in_transit, p.in_transit_grams,
-            COALESCE(SUM(CASE WHEN r.state IN ('planned','ordered','in_transit','partially_received')
-              THEN MAX(irl.expected_quantity - irl.received_quantity - irl.cancelled_quantity, 0) ELSE 0 END), 0) AS incoming_quantity
-       FROM products p
-       LEFT JOIN inventory_receipt_lines irl ON irl.product_id = p.id AND irl.account_id = p.account_id
-       LEFT JOIN inventory_receipts r ON r.id = irl.receipt_id AND r.account_id = irl.account_id
-      WHERE p.id = ? AND p.account_id = ? GROUP BY p.id`
-  ).bind(productId, accountId).first<Record<string, any>>();
-  const incomingQuantity = row
-    ? Number(row.incoming_quantity || 0) > 0
-      ? Number(row.incoming_quantity)
-      : row.in_transit ? Math.max(Number(row.in_transit_grams || 0), 1) : 0
-    : 0;
-  return row ? incomingOnlyCandidateError({
-    stockGrams: Number(row.stock_grams || 0),
-    incomingQuantity,
-    isPublic: field === 'is_public',
-    shownInShop: field === 'shown_in_shop',
-  }) : null;
-}
-
 const handleUpdateProductPublication: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
-  const guard = await incomingOnlyPublicationError(request, env, params.id, ctx.accountId, 'is_public');
-  if (guard) return guard;
   return applyProductUpdate(request, env, params, ctx, PRODUCT_PUBLICATION_UPDATE_COLUMNS, true, 'product.publication_updated');
 };
 
@@ -3711,8 +3573,6 @@ const handleUpdateProductPublication: Handler = async (request, env, params) => 
 const handleUpdateProductVisibility: Handler = async (request, env, params) => {
   const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
-  const guard = await incomingOnlyPublicationError(request, env, params.id, ctx.accountId, 'shown_in_shop');
-  if (guard) return guard;
   return applyProductUpdate(request, env, params, ctx, PRODUCT_VISIBILITY_UPDATE_COLUMNS, true, 'product.visibility_updated');
 };
 
@@ -11305,6 +11165,86 @@ const handleGetActivityLogs: Handler = async (request, env) => {
 //     working unchanged.
 // The returned URL carries a `?v={ms}` cache buster so the CDN serves the
 // fresh bytes after an in-place overwrite.
+const handleUploadCapturePhoto: Handler = async (request, env, params) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { id, photoId } = params;
+  if (!validCaptureEntryId(id) || !validCapturePhotoId(photoId)) return json({ error: 'Invalid photo identity' }, 400);
+  if (!env.ATLAS_BUCKET) return json({ error: 'Private photo storage is unavailable' }, 503);
+  const entry = await captureEntry(env.DB, id);
+  if (entry && !captureEntryAllowed(entry, ctx, await canManageCurate(env, ctx.accountId, ctx.userId))) {
+    return json({ error: 'Tea not found' }, 404);
+  }
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${ctx.accountId}:${ctx.userId}:capture-image`);
+  if (limited) return limited;
+  if (!(request.headers.get('Content-Type') || '').includes('multipart/form-data')) return json({ error: 'Expected multipart/form-data' }, 400);
+  const preReadError = validateContentLength(request, MAX_IMAGE_BYTES);
+  if (preReadError) return preReadError;
+  const file: unknown = (await request.formData()).get('file');
+  if (!(file instanceof File) || !file.size) return json({ error: 'No image provided' }, 400);
+  const fileError = await validateUpload(file, 'image', MAX_IMAGE_BYTES);
+  if (fileError) return fileError;
+  const status = await storeCapturePhoto(env, ctx, id, photoId, file);
+  return status === 409
+    ? json({ error: 'This photo ID already holds different bytes' }, 409)
+    : json({ url: capturePhotoPath(id, photoId) }, status);
+};
+
+const handleReadCapturePhoto: Handler = async (request, env, params) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { id, photoId } = params;
+  if (!validCaptureEntryId(id) || !validCapturePhotoId(photoId)) return capturePhotoResponse(null);
+  const manager = await canManageCurate(env, ctx.accountId, ctx.userId);
+  return capturePhotoResponse(await privateCapturePhoto(env, ctx, id, photoId, manager), request.method === 'HEAD');
+};
+
+const handleReviewCaptureShopPhoto: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  if (!ctx.bundles.includes('publish')) return json({ error: 'Approving a Shop photo requires publish permission' }, 403);
+  const { id, photoId } = params;
+  if (!validCaptureEntryId(id) || !validCapturePhotoId(photoId)) return json({ error: 'Photo not found' }, 404);
+  const manager = await canManageCurate(env, ctx.accountId, ctx.userId);
+  if (request.method === 'GET') {
+    const review = await loadCapturePhotoReview(env, ctx, id, photoId, manager);
+    return review
+      ? Response.json(review, { headers: { 'Cache-Control': 'private, no-store' } })
+      : json({ error: 'Save this photo on a tea linked to Stock first' }, 404);
+  }
+  const body = await request.json().catch(() => null) as { approval_id?: string; product_id?: string; snapshot?: Record<string, unknown> } | null;
+  if (!body?.approval_id || !validCapturePhotoId(body.approval_id) || typeof body.product_id !== 'string' || !body.snapshot) {
+    return json({ error: 'Review the photo before approving it' }, 400);
+  }
+  const priorApproval = await captureApproval(env, body.approval_id);
+  if (priorApproval) {
+    if (priorApproval.account_id !== ctx.accountId || priorApproval.approved_by_user_id !== ctx.userId
+      || priorApproval.entry_id !== id || priorApproval.photo_id !== photoId || priorApproval.product_id !== body.product_id) {
+      return json({ error: 'This approval belongs to a different review' }, 409);
+    }
+    // A retry returns the original receipt and never reselects an older photo.
+    return json({ url: shopPhotoUrl(priorApproval.id), product_id: priorApproval.product_id, already_approved: true });
+  }
+  const review = await loadCapturePhotoReview(env, ctx, id, photoId, manager);
+  if (!review || review.product_id !== body.product_id || Object.entries(review.snapshot).some(([field, value]) => body.snapshot?.[field] !== value)) {
+    return json({ error: 'The photo or Stock record changed. Review it again.' }, 409);
+  }
+  await env.DB.batch(prepareCaptureApproval(env, ctx, id, photoId, body.approval_id, review, manager));
+  const saved = await captureApproval(env, body.approval_id);
+  if (!saved || saved.account_id !== ctx.accountId || saved.approved_by_user_id !== ctx.userId || saved.entry_id !== id
+    || saved.photo_id !== photoId || saved.product_id !== body.product_id) {
+    return json({ error: 'The photo or Stock record changed. Review it again.' }, 409);
+  }
+  return json({ url: shopPhotoUrl(saved.id), product_id: saved.product_id });
+};
+
+const handleReadCaptureShopPreview: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  if (!validCapturePhotoId(params.approvalId)) return capturePhotoResponse(null);
+  return capturePhotoResponse(await approvedCapturePhoto(env, params.approvalId, ctx.accountId), request.method === 'HEAD');
+};
+
 const handleUploadImage: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
@@ -11599,8 +11539,11 @@ const handleEnhanceProductImage: Handler = async (request, env, params) => {
     return json({ error: 'Could not decrypt OpenAI key (rotated KEY_ENCRYPTION_SECRET?)' }, 500);
   }
 
-  const currentKey=recordedImageKey(product,slot,accountId);
-  const source=currentKey?await env.MEDIA_BUCKET.get(currentKey):null;
+  const currentKey = recordedImageKey(product, slot, accountId);
+  const approvalId = slot === 'main' ? shopPhotoApprovalId(product.image_url) : null;
+  const source = approvalId
+    ? await approvedCapturePhoto(env, approvalId, accountId)
+    : currentKey ? await env.MEDIA_BUCKET.get(currentKey) : null;
   if(!source)return json({error:'The recorded photo is unavailable. Upload the current photo before enhancing it.'},404);
   const sourceBytes=await source.arrayBuffer();const sourceMime=source.httpMetadata?.contentType||'image/jpeg';
   const sourceKey=`accounts/${accountId}/products/${productId}/enhanced-${crypto.randomUUID()}.png`;
@@ -16145,7 +16088,8 @@ const handleCreateReceiptProposal: Handler = async (request, env, params) => {
   }
   const key = typeof body.idempotency_key === 'string' ? body.idempotency_key.trim() : '';
   if (!key) return json({ error: 'idempotency_key is required' }, 400);
-  const requestedProductId = body.product_id ?? entry.draft_product_id ?? null;
+  const sampleReceipt = decoded.purpose === 'sample' && decoded.acquisition_kind === 'free_sample' && body.product_id == null;
+  const requestedProductId = body.product_id ?? (sampleReceipt ? null : entry.draft_product_id) ?? null;
   const requestedName = body.product_name ?? entry.name ?? null;
   const requestedType = body.product_type ?? (entry.category === 'teaware' ? 'Teaware' : entry.type) ?? null;
   if (requestedProductId) {
@@ -16155,7 +16099,8 @@ const handleCreateReceiptProposal: Handler = async (request, env, params) => {
   }
   const matchesRequest = (candidate: any) => candidate.compass_entry_id === params.id
     && (candidate.import_id ?? null) === importId && (candidate.import_item_id ?? null) === importItemId
-    && (candidate.product_id ?? null) === requestedProductId && (candidate.batch_id ?? null) === (body.batch_id ?? null)
+    && ((candidate.product_id ?? null) === requestedProductId || (sampleReceipt && candidate.status === 'accepted'))
+    && (candidate.batch_id ?? null) === (body.batch_id ?? null)
     && (candidate.product_name ?? null) === requestedName && (candidate.product_type ?? null) === requestedType
     && candidate.purpose === decoded.purpose && Number(candidate.quantity) === decoded.quantity
     && candidate.unit === decoded.unit && candidate.acquisition_kind === decoded.acquisition_kind;
@@ -16276,14 +16221,12 @@ async function acceptCurateReceipt(env: Env, ctx: { accountId: string; userId: s
     const retail=await capturedRetailUsd(env,capture);if(retail!=null)receiptDetails.fixed_retail_price_usd=retail;
   }
   if(['free_sample','gift'].includes(decoded.acquisition_kind))Object.assign(receiptDetails,{cost_amount:0,cost_currency:null,quantity_purchased:decoded.quantity});
-  // With no product named, the Curate tea's own holding (unique per account by
-  // source_compass_entry_id) is the product, so it is received into rather
-  // than duplicated, and every guard below runs against it.
+  const freeSample = decoded.purpose === 'sample' && decoded.acquisition_kind === 'free_sample';
+  const source = !proposal.product_id && holdingTeaId
+    ? await compassHolding(env.DB, ctx.accountId, holdingTeaId, freeSample) : null;
   const existingProduct = proposal.product_id
-    ? await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(proposal.product_id, ctx.accountId).first() as Record<string, any> | null
-    : holdingTeaId
-      ? await env.DB.prepare('SELECT * FROM products WHERE account_id = ? AND source_compass_entry_id = ?').bind(ctx.accountId, holdingTeaId).first() as Record<string, any> | null
-      : null;
+    ? await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(proposal.product_id, ctx.accountId).first<Record<string, any>>()
+    : freeSample && source && inventoryPurposeConflict(source, 'sample') === 'working' ? null : source;
   if (proposal.product_id && !existingProduct) return json({ error: 'Linked product not found' }, 404);
   if(existingProduct&&decoded.unit!==(existingProduct.type==='Teaware'?'unit':'g'))return json({error:'Receipt unit does not match the holding'},400);
   const conflict = purposeConflict(existingProduct, decoded.purpose);
@@ -16341,9 +16284,14 @@ async function acceptCurateReceipt(env: Env, ctx: { accountId: string; userId: s
     (id, product_id, delta, balance_after, movement_unit, reason, user_email, note, batch_id, account_id, receipt_proposal_id)
     VALUES (?, ?, ?, ${balanceExpression}, ?, 'PURCHASE_RECEIPT', ?, ?, ?, ?, ?)`)
     .bind(ledgerId, productId, decoded.quantity, ...(existingProduct ? [productId, ctx.accountId] : [decoded.quantity]), movementUnit, ctx.email ?? null, `Curate ${decoded.acquisition_kind}`, proposal.batch_id ?? null, ctx.accountId, proposal.id));
-  if (holdingTeaId) statements.push(env.DB.prepare("UPDATE tea_compass_entries SET draft_product_id = ?, status = 'in_stock', updated_at = datetime('now') WHERE id = ? AND account_id = ?").bind(productId, holdingTeaId, ctx.accountId));
-  if (proposal.compass_entry_id) statements.push(env.DB.prepare("UPDATE tea_samples SET product_id = ?, updated_at = datetime('now') WHERE compass_entry_id = ? AND account_id = ?")
-    .bind(productId, proposal.compass_entry_id, ctx.accountId));
+  if (holdingTeaId) statements.push(env.DB.prepare(`UPDATE tea_compass_entries
+    SET draft_product_id = ${decoded.purpose === 'sample' ? 'COALESCE(draft_product_id, ?)' : '?'}, status = 'in_stock', updated_at = datetime('now')
+    WHERE id = ? AND account_id = ?`).bind(productId, holdingTeaId, ctx.accountId));
+  if (proposal.compass_entry_id) statements.push(env.DB.prepare(`UPDATE tea_samples SET product_id = ?, updated_at = datetime('now')
+    WHERE compass_entry_id = ? AND account_id = ?
+      AND (? = 'sample' OR NOT EXISTS (SELECT 1 FROM products WHERE id = tea_samples.product_id
+        AND account_id = tea_samples.account_id AND ${COMPASS_SAMPLE_HOLDING}))`)
+    .bind(productId, proposal.compass_entry_id, ctx.accountId, decoded.purpose));
   statements.push(env.DB.prepare(`UPDATE curate_receipt_proposals SET status = 'accepted', product_id = ?, ledger_id = ?, reviewed_by_user_id = ?, reviewed_at = ?, updated_at = ? WHERE id = ? AND account_id = ? AND status = 'pending'`)
     .bind(productId, ledgerId, ctx.userId, now, now, proposal.id, ctx.accountId));
   try {
@@ -16632,7 +16580,13 @@ export async function receiveInventoryLine(env: Env, ctx: MovementContext, lineI
     const receivedQuantity = Number(persistedLine?.received_quantity ?? (alreadyReceived ? line.received_quantity : newReceived));
     const remainingQuantity = persistedLine ? remainingReceiptQuantity(Number(persistedLine.expected_quantity), receivedQuantity, Number(persistedLine.cancelled_quantity)) : (alreadyReceived ? remaining : remaining - quantity);
     return json({ received_quantity:receivedQuantity, remaining_quantity:remainingQuantity,state:persistedReceipt?.state || state,ledger_id:(result.value as any).id,batch_id:persistedLine?.intake_batch_id || batchId,already_received:alreadyReceived });
-  } catch (error) { console.error('Receipt stock movement failed',error); return json({ error:'Receipt failed' },500); }
+  } catch (error) {
+    if (logisticsLine && (String(error).includes('studio receipt referral is open') || await hasOpenStudioReferral(env, ctx.accountId, logisticsLine.id))) {
+      return json({ error: STUDIO_REFERRAL_MESSAGE, code: STUDIO_REFERRAL_OPEN }, 409);
+    }
+    console.error('Receipt stock movement failed',error);
+    return json({ error:'Receipt failed' },500);
+  }
 };
 
 const handleReceiveInventoryLine: Handler = async (request, env, params) => {
@@ -16795,7 +16749,6 @@ async function propagateCapturedTasting(env:Env,accountId:string,userId:string,e
  const mapping:Record<string,string>={name:'given_name',chinese_name:'chinese_name',origin_country:'origin_country',origin_region:'origin_region',form:'form',year:'year',description:'description'};
  for(const [source,target] of Object.entries(mapping))if(values[source]!==undefined&&(product[target]==null||String(product[target])===String(previous?.[source]??'')))patch[target]=entry[source]??null;
  if(values.name!==undefined&&(product.product_name==null||product.product_name===previous?.name))patch.product_name=entry.name;
- if(values.photos!==undefined){let before:string[]=[],after:string[]=[];try{before=JSON.parse(previous?.photos||'[]');}catch{}try{after=JSON.parse(entry.photos||'[]');}catch{}if(!product.image_url||product.image_url===before[0]){patch.image_url=after[0]??null;patch.additional_images=JSON.stringify(after.slice(1));}}
  if(!Object.keys(patch).length)return;
  const keys=Object.keys(patch);await env.DB.batch([env.DB.prepare(`UPDATE products SET ${keys.map(key=>`${key}=?`).join(',')},updated_at=datetime('now') WHERE id=? AND account_id=?`).bind(...keys.map(key=>patch[key]),product.id,accountId),...buildProductMirrorStmts(env,product.id,patch)]);
 }
@@ -18324,7 +18277,7 @@ const handleCompassShare: Handler = async (request, env) => {
     originRegion: entry.origin_region,
     category: entry.category,
     teaKey,
-    photo: entry.photos ? JSON.parse(entry.photos)?.[0] : null,
+    photo: null,
     teawareCategory: entry.teaware_category,
     material: entry.material,
     capacityMl: entry.capacity_ml,
@@ -22240,8 +22193,29 @@ const handleCompleteIntakeCommit: Handler = async (request, env, params) => {
 const logisticsHandler = (action?: LogisticsAction): Handler => async (request,env,params) => {
   const scope=await requireBundle(request,env,'stock');if('error' in scope)return scope.error;
   const service={DB:env.DB,inventoryReceipts:{receive:(ctx:any,lineId:string,body:any)=>receiveInventoryLine(env,ctx,lineId,body),receiveLogistics:(ctx:any,lineId:string,body:any,shipmentLineId:string)=>receiveInventoryLine(env,ctx,lineId,body,shipmentLineId),cancel:(ctx:any,lineId:string)=>cancelInventoryLine(env,ctx,lineId),receiveImport:(ctx:any,line:any,key:string)=>receiveFinalizedImportLine(env,ctx,line,key)}};
-  try { return json(action?await mutateLogistics(service,scope,action,params.id??'',await request.json().catch(()=>({})) as any):await readLogistics(service,scope.accountId)); }
-  catch(error){if(error instanceof LogisticsError)return json({error:error.message},error.status);throw error;}
+  try {
+    if (action) return json(await mutateLogistics(service, scope, action, params.id ?? '', await request.json().catch(() => ({})) as any));
+    const logistics = await readLogistics(service, scope.accountId);
+    return json({ ...logistics, shipments: await attachStudioReferrals(env, scope.accountId, logistics.shipments) });
+  } catch (error) {
+    if (error instanceof LogisticsError) return json({ error: error.message, ...(error.code ? { code: error.code } : {}) }, error.status);
+    throw error;
+  }
+};
+
+const studioReferralHandler = (resolve: boolean): Handler => async (request, env, params) => {
+  const scope = resolve ? await requireOwnerTier(request, env) : await requireBundle(request, env, 'stock');
+  if ('error' in scope) return scope.error;
+  const input = await request.json().catch(() => null);
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return json({ error: 'Provide a referral form' }, 400);
+  try {
+    return json(resolve
+      ? await resolveStudioReferral(env, scope, params.id, input as Record<string, unknown>)
+      : await referStudioLine(env, scope, params.id, params.lineId, input as Record<string, unknown>));
+  } catch (error) {
+    if (error instanceof StudioReferralError) return json({ error: error.message }, error.status);
+    throw error;
+  }
 };
 
 const logisticsTrackingUpdateHandler: Handler = async (request, env) => {
@@ -23109,7 +23083,7 @@ const handleCreateSession: Handler = async (request, env) => {
     const metadata = JSON.stringify({
       name: entry.name, type: entry.type, form: entry.form,
       year: entry.year, originRegion: entry.origin_region,
-      photo: entry.photos ? JSON.parse(entry.photos)?.[0] : null,
+      photo: null,
     });
 
     await env.DB.prepare(
@@ -23869,7 +23843,7 @@ const handleGetTableCard: Handler = async (request, env, params) => {
       year: entry.year,
       season: entry.season,
       originRegion: entry.origin_region,
-      photo: entry.photos ? JSON.parse(entry.photos)?.[0] : null,
+      photo: null,
       teaKey: entry.tea_key,
     },
     verdictCounts,
@@ -23955,7 +23929,7 @@ const handleGiftSample: Handler = async (request, env) => {
       newId, body.customer_user_id, targetAccountId,
       entry.name, entry.chinese_name, entry.type, entry.form,
       entry.year, entry.season, entry.origin_region, entry.category || 'tea',
-      entry.photos || '[]', entry.tea_key,
+      '[]', entry.tea_key,
       body.note || `Gifted sample from Teajia`, entry.id,
       entry.sample_grams || null, now, now
     ).run();
@@ -29902,6 +29876,8 @@ const routes: [string, string, Handler][] = [
   ['POST','/api/logistics/shipments/:id/dispatch',logisticsHandler('dispatch')],
   ['POST','/api/logistics/shipments/:id/cancel',logisticsHandler('cancel')],
   ['POST','/api/logistics/shipments/:id/receive',logisticsHandler('receive')],
+  ['POST','/api/logistics/shipments/:id/lines/:lineId/referrals',studioReferralHandler(false)],
+  ['POST','/api/logistics/studio-referrals/:id/resolve',studioReferralHandler(true)],
   ['POST', '/api/purchase-orders', handleCreatePurchaseOrder],
   ['PUT','/api/curate/imports/:id/intake-state',handleSaveIntakeState],
   ['POST','/api/purchase-orders/:id/prepare-receipt',handlePreparePurchaseReceipt],
@@ -29927,6 +29903,12 @@ const routes: [string, string, Handler][] = [
 
   // Image Upload
   ['POST', '/api/upload-image', handleUploadImage],
+  ['POST', '/api/curate/capture/:id/photos/:photoId', handleUploadCapturePhoto],
+  ['GET', '/api/curate/capture/:id/photos/:photoId', handleReadCapturePhoto],
+  ['HEAD', '/api/curate/capture/:id/photos/:photoId', handleReadCapturePhoto],
+  ['GET', '/api/curate/capture/:id/photos/:photoId/shop-review', handleReviewCaptureShopPhoto],
+  ['POST', '/api/curate/capture/:id/photos/:photoId/shop-review', handleReviewCaptureShopPhoto],
+  ['GET', '/api/curate/shop-photos/:approvalId', handleReadCaptureShopPreview],
   ['POST', '/api/me/public-profile/image', handleUploadMyProfileImage],
 
   // Story photos (hand-built Read pages: drag-drop + crop per frame)
@@ -30572,15 +30554,20 @@ const requestHandler = {
       if (request.method !== 'GET' && request.method !== 'HEAD') {
         return cors(new Response('Method not allowed', { status: 405 }), corsOrigin);
       }
-      if (!env.MEDIA_BUCKET) {
-        return cors(new Response('Media bucket not configured', { status: 503 }), corsOrigin);
-      }
       let key = url.pathname.slice('/api/media/'.length);
       try { key = decodeURIComponent(key); } catch { /* use raw key */ }
       if (!key) return cors(new Response('Not found', { status: 404 }), corsOrigin);
+      if (key.startsWith('curate-approved/')) {
+        const approvalId = key.slice('curate-approved/'.length);
+        const photo = validCapturePhotoId(approvalId) ? await approvedCapturePhoto(env, approvalId) : null;
+        return cors(capturePhotoResponse(photo, request.method === 'HEAD'), corsOrigin);
+      }
       // Curate evidence can contain private invoices and vendor conversations.
       // It must never pass through the public product-media endpoint.
       if (key.startsWith('curate/') || key.startsWith('private-recordings/')) return cors(new Response('Not found', { status: 404 }), corsOrigin);
+      if (!env.MEDIA_BUCKET) {
+        return cors(new Response('Media bucket not configured', { status: 503 }), corsOrigin);
+      }
       const obj = await env.MEDIA_BUCKET.get(key);
       if (!obj) return cors(new Response('Not found', { status: 404 }), corsOrigin);
       const headers = new Headers();

@@ -1,3 +1,4 @@
+import { compassHolding, isCompassSample } from '../compassHoldings';
 import { requireCurateManager } from '../curateMutations';
 import { capturedHoldingFields } from '../capturedHolding';
 import { nameProductColumns } from '../productDefaults';
@@ -329,13 +330,19 @@ async function commitOrder(env: ToolEnv, auth: ToolAuth, t: OrderTicket) {
     if (!entry) throw new Error('Order item is no longer available');
     let product = entry.draft_product_id
       ? await env.DB.prepare('SELECT * FROM products WHERE id=? AND account_id=?').bind(entry.draft_product_id,auth.accountId).first<Record<string, any>>()
-      : await env.DB.prepare('SELECT * FROM products WHERE source_compass_entry_id=? AND account_id=?').bind(l.entryId,auth.accountId).first<Record<string, any>>();
+      : await compassHolding(env.DB, auth.accountId, l.entryId);
     if (entry.draft_product_id && !product) throw new Error('Linked holding is not in this account');
+    const sample = isCompassSample(product, l.entryId) ? product : null;
+    if (sample) {
+      product = await compassHolding(env.DB, auth.accountId, l.entryId);
+      if (isCompassSample(product, l.entryId)) product = null;
+    }
     if (product && ((product.source_compass_entry_id && product.source_compass_entry_id!==l.entryId)
       || (product.type==='Teaware'?'unit':'g')!==l.unit || inventoryPurposeConflict(product,'working'))) {
       throw new Error('Order item does not match its holding category, purpose or identity');
     }
-    const productId = product?.id ?? `holding_${auth.accountId}_${l.entryId}`;
+    const workingId = `holding_${auth.accountId}_${l.entryId}`;
+    const productId = product?.id ?? (sample?.id === workingId ? `${workingId}_working` : workingId);
     if (!product) {
       const values: Record<string, any> = nameProductColumns({
         ...capturedHoldingFields(entry,l.quantity), id:productId,account_id:auth.accountId,

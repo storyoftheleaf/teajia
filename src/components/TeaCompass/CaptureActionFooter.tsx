@@ -1,4 +1,5 @@
 import React from 'react';
+import { ClipboardList, FlaskConical } from 'lucide-react';
 import { CurateActionBand, type CurateActionSpec } from './CuratePrimitives';
 
 interface CaptureActionFooterProps {
@@ -9,8 +10,9 @@ interface CaptureActionFooterProps {
   buyExpanded: boolean;
   purchasePickerId: string;
   doneTestId?: string;
+  saveLabel?: string;
   className?: string;
-  /** Put Done, the primary, at the right end (the 'flow' form). */
+  /** Put the save action at the right end (the 'flow' form). */
   primaryLast?: boolean;
 }
 
@@ -22,14 +24,15 @@ export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
   buyExpanded,
   purchasePickerId,
   doneTestId,
+  saveLabel = 'Save tea',
   className = '',
   primaryLast = false,
 }) => {
   const neutral: CurateActionSpec[] = [
     {
-      label: 'Buy',
+      label: primaryLast ? 'Draft supplier order' : 'Buy',
+      icon: primaryLast && <ClipboardList size={14} className="hidden shrink-0 lg:block" aria-hidden />,
       onClick: onBuy,
-      ariaLabel: 'Buy',
       buttonProps: {
         'aria-expanded': buyExpanded,
         'aria-controls': purchasePickerId,
@@ -37,7 +40,9 @@ export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
     },
   ];
 
-  if (onSample) neutral.push({ label: 'Sample', onClick: onSample, ariaLabel: 'Sample' });
+  if (onSample) neutral.push(primaryLast
+    ? { label: 'Record received sample', icon: <FlaskConical size={14} className="hidden shrink-0 lg:block" aria-hidden />, onClick: onSample }
+    : { label: 'Sample', onClick: onSample, ariaLabel: 'Sample' });
 
   return (
     <CurateActionBand
@@ -47,10 +52,10 @@ export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
       primaryIndex={primaryLast ? undefined : 1}
       withBandChrome={false}
       primary={{
-        label: 'Done',
+        label: primaryLast ? saveLabel : 'Done',
         onClick: onDone,
         disabled: !doneEnabled,
-        ariaLabel: 'Done, commit this entry',
+        ariaLabel: primaryLast ? saveLabel : 'Done, commit this entry',
         buttonProps: {
           'data-testid': doneTestId,
           'data-visual-state': doneEnabled ? 'primary' : 'disabled-neutral',

@@ -342,7 +342,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
           Standing them open put the whole price list permanently on screen,
           which reads as a rate card rather than a shop. Resting, this is one
           line: what is currently chosen, and the way to change it. */}
-      {!isSoldOut && cells.length > 0 && (
+      {!isSoldOut && (cells.length > 0 || isDocked && isTea) && (
         <div className={isDocked ? '' : 'mb-1.5'}>
           {isRail || (isDocked && onChooseAmount) ? null : amountToggle}
 
@@ -367,31 +367,9 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
         </div>
       )}
 
-      {/* The docked strip has exactly two states and never both at once.
-          Before an amount is chosen it says what the tea starts at and offers
-          the one way in, a filled block flush to the right edge. Once an
-          amount is chosen that block is gone: the amount and its total take
-          the space, and the whole line is the way back to change it, because
-          choosing in the list above already added it and there is nothing
-          left to confirm. */}
+      {/* The selected quantity, its total and the add action stay together. */}
       {isDocked && onChooseAmount ? (
         <div className="alcove-dock-strip" data-sold-out={dockedSoldOut || undefined}>
-          <div className="flex shrink-0 items-center">
-            <button
-              type="button"
-              className="alcove-dock-icon tap-target"
-              data-active={favorited}
-              onClick={() => toggleFavoriteTea(item.id)}
-              aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
-              aria-pressed={favorited}
-            >
-              <Heart size={17} color="currentColor" fill={favorited ? 'currentColor' : 'none'} strokeWidth={1.4} />
-            </button>
-            <button type="button" className="alcove-dock-icon tap-target" onClick={handleShare} aria-label="Share">
-              <Share size={17} strokeWidth={1.4} />
-            </button>
-            {!dockedSoldOut && <span aria-hidden="true" className="alcove-dock-divider" />}
-          </div>
           {dockedSoldOut && (
             <div className="ml-auto flex shrink-0 items-center gap-3 pr-2.5 sm:pr-4">
               <span className="whitespace-nowrap text-ui-12 text-tea-text-sec">Sold out</span>
@@ -406,72 +384,61 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               )}
             </div>
           )}
-          {!dockedSoldOut && <>
-          {activeCell ? (
-            /* The amount is a control and has to look like one. Bare type in
-               the middle of a bar is something to read, not something to press,
-               and nothing said this was where you change how much you are
-               buying. A keyline, a fill, the caret and the word for what
-               pressing it does, which together say it without a tour. */
+          {!dockedSoldOut && <div className="alcove-dock-decision" role="group" aria-label="Choose and add a tea amount">
             <button
               type="button"
               onClick={() => setAmountsOpen(open => !open)}
               aria-expanded={amountsOpen}
               aria-controls={amountsId}
-              aria-label={`Change amount, currently ${activeCell.label}`}
+              aria-label={`Change amount, currently ${activeCell?.label ?? `${grams} g`}`}
               className="alcove-dock-amount tap-target"
             >
-              <span className="shrink-0 font-display text-ui-17 tabular-nums text-tea-text">{activeCell.label}</span>
+              <span className="min-w-0 truncate font-display text-ui-17 tabular-nums text-tea-text">{activeCell?.label ?? `${grams} g`}</span>
               <span aria-hidden="true" className="ml-auto shrink-0 font-sans text-ui-9 text-tea-text-dim">
-                {amountsOpen ? '\u25B4' : '\u25BE'}
+                {amountsOpen ? '▴' : '▾'}
               </span>
             </button>
-          ) : (
-            /* Nothing chosen yet, so the bar says what the tea starts at
-               rather than sitting empty until someone opens the list. */
-            <span className="flex min-w-0 flex-1 items-baseline gap-[7px] whitespace-nowrap">
-              <span className="font-sans text-ui-11 uppercase tracking-[0.16em] text-tea-text-dim">from</span>
-              <span className="font-display text-ui-20 tabular-nums text-tea-text">
-                {cells.length > 0 ? cells[0].subFull : ''}
-              </span>
+            <span className="alcove-dock-cta-total shrink-0 tabular-nums" data-testid="buyer-selected-total">
+              <span className="sr-only">Total </span>{resolvedTotal(addTotalUsd)}
             </span>
-          )}
-          {/* Two controls, not one. The block used to be a single thing that
-              meant whatever the state made it mean, and because choosing an
-              amount also added it, there was nothing left for it to do except
-              open the order. Adding is its own act now: Add commits the amount
-              showing to its left, and the order sits beyond it as the way to
-              what has already been committed. The order only appears once
-              there is one, which is what keeps a 343px bar from carrying four
-              controls at the same time. */}
-          {activeCell && (
-            <span className="alcove-dock-cta-total shrink-0 tabular-nums" aria-hidden="true">
-              {resolvedTotal(addTotalUsd)}
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={() => {
-              if (navigator.vibrate) navigator.vibrate(8);
-              setJustAdded(true);
-              window.setTimeout(() => setJustAdded(false), 1600);
-              onAdd?.(grams, addTotalUsd);
-            }}
-            disabled={isSoldOut}
-            className="alcove-dock-add tap-target inline-flex items-center"
-            data-state={justAdded ? 'added' : 'default'}
-          >
-            {justAdded ? 'Added' : 'Add'}
-          </button>
-          </>}
-          {orderTotalUsd > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                if (navigator.vibrate) navigator.vibrate(8);
+                setJustAdded(true);
+                window.setTimeout(() => setJustAdded(false), 1600);
+                onAdd?.(grams, addTotalUsd);
+              }}
+              disabled={isSoldOut}
+              className="alcove-dock-add tap-target inline-flex items-center"
+              data-state={justAdded ? 'added' : 'default'}
+            >
+              {justAdded ? 'Added' : 'Add to order'}
+            </button>
+          </div>}
+          <div className="flex shrink-0 items-center">
+            <button
+              type="button"
+              className="alcove-dock-icon tap-target"
+              data-active={favorited}
+              onClick={() => toggleFavoriteTea(item.id)}
+              aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
+              aria-pressed={favorited}
+            >
+              <Heart size={17} color="currentColor" fill={favorited ? 'currentColor' : 'none'} strokeWidth={1.4} />
+            </button>
+            <button type="button" className="alcove-dock-icon tap-target" onClick={handleShare} aria-label="Share">
+              <Share size={17} strokeWidth={1.4} />
+            </button>
+          </div>
+          {publicCart.length > 0 && (
             <button
               type="button"
               onClick={onOpenOrder}
               className="alcove-dock-cta tap-target"
-              aria-label={`Open cart, ${resolvedTotal(orderTotalUsd)}`}
+              aria-label={`Open order, ${resolvedTotal(orderTotalUsd)}`}
             >
-              <span className="alcove-dock-cta-verb">Cart</span>
+              <span className="alcove-dock-cta-verb">Order</span>
               <span className="alcove-dock-cta-total tabular-nums">{resolvedTotal(orderTotalUsd)}</span>
             </button>
           )}

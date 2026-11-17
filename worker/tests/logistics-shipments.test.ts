@@ -5,11 +5,11 @@ import {SqliteD1,seedIdentity,signedToken} from './helpers/sqliteD1';
 
 const databases:SqliteD1[]=[];
 afterEach(()=>databases.splice(0).forEach(db=>db.close()));
-function fixture(){
- const db=new SqliteD1();databases.push(db);
+function fixture(migrated = false){
+ const db=new SqliteD1(migrated ? 'migrations' : 'schema');databases.push(db);
  seedIdentity(db,{userId:'owner',accountId:'shop'});seedIdentity(db,{userId:'other',accountId:'other'});seedIdentity(db,{userId:'staff',accountId:'shop',role:'staff',bundles:['catalog']});
- let failProduct:string|null=null;let beforeBatch:(()=>Promise<unknown>)|null=null;
- const DB={prepare(sql:string){const stmt=db.prepare(sql);const wrapped:any={_stmt:stmt,_sql:sql,_values:[] as any[],bind(...v:any[]){wrapped._values=v;stmt.bind(...v);return wrapped},async first(){return stmt.first()},async all(){return stmt.all()},async run(){return stmt.run()}};return wrapped},async batch(stmts:any[]){if(beforeBatch&&stmts.some(s=>s._sql.includes('INSERT INTO logistics_shipments'))){const run=beforeBatch;beforeBatch=null;await run()}if(failProduct&&stmts.some(s=>s._sql.includes('INSERT INTO stock_ledger')&&s._values.includes(failProduct))){failProduct=null;throw new Error('Simulated interruption')}return db.batch(stmts.map(s=>s._stmt))}};
+ let failProduct:string|null=null;let beforeBatch:(()=>Promise<unknown>)|null=null;let beforeReceipt:(()=>Promise<unknown>)|null=null;
+ const DB={prepare(sql:string){const stmt=db.prepare(sql);const wrapped:any={_stmt:stmt,_sql:sql,_values:[] as any[],bind(...v:any[]){wrapped._values=v;stmt.bind(...v);return wrapped},async first(){return stmt.first()},async all(){return stmt.all()},async run(){return stmt.run()}};return wrapped},async batch(stmts:any[]){if(beforeBatch&&stmts.some(s=>s._sql.includes('INSERT INTO logistics_shipments'))){const run=beforeBatch;beforeBatch=null;await run()}if(beforeReceipt&&stmts.some(s=>s._sql.includes('INSERT INTO logistics_studio_receipts'))){const run=beforeReceipt;beforeReceipt=null;await run()}if(failProduct&&stmts.some(s=>s._sql.includes('INSERT INTO stock_ledger')&&s._values.includes(failProduct))){failProduct=null;throw new Error('Simulated interruption')}return db.batch(stmts.map(s=>s._stmt))}};
  for(const [id,account,user,scopes] of [['write','shop','owner',['inventory:read','stock:write']],['read','shop','owner',['inventory:read']],['other','other','other',['inventory:read','stock:write']]] as const){db.sqlite.prepare('INSERT INTO mcp_tokens(id,account_id,user_id,user_email,label,token_hash,token_prefix,scopes,creator_tier,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?)').run(id,account,user,user+'@test.dev',id,createHash('sha256').update('tjmcp_'+id).digest('hex'),'tjmcp_',JSON.stringify(scopes),'account_owner',Math.floor(Date.now()/1000)+3600)}
  db.sqlite.exec(`INSERT INTO products(id,account_id,type,product_name,stock_grams,quantity_units,cost_amount,quantity_purchased,image_url) VALUES('tea','shop','Red','Tea',0,0,NULL,NULL,'https://images.test/tea.jpg'),('ware','shop','Teaware','Cup',0,0,NULL,NULL,NULL);
  INSERT INTO inventory_receipts(id,account_id,state,source_kind,created_by_user_id,idempotency_key,request_fingerprint) VALUES('receipt','shop','in_transit','purchase_order','owner','invoice','{}');
@@ -19,12 +19,12 @@ function fixture(){
  async function rpc(method:string,params:any={},token='write'){const response=await worker.fetch(new Request('https://app.test/mcp',{method:'POST',headers:{Authorization:'Bearer tjmcp_'+token,'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})}),env as never,{} as never);const body:any=await response.json();expect(response.status,JSON.stringify(body)).toBe(200);return body}
  async function call(name:string,args:any={},token='write'){const body=await rpc('tools/call',{name,arguments:args},token);expect(body.error,JSON.stringify(body)).toBeUndefined();return JSON.parse(body.result.content[0].text)}
  async function confirm(name:string,args:any={}){const preview=await call(name,args);expect(preview.confirmation_token,JSON.stringify(preview)).toBeTruthy();return call(name,{confirm:preview.confirmation_token})}
- async function rest(method:string,path:string,body?:any,user='owner',account='shop') {const token=await signedToken('secret',{sub:user,active_account_id:account});const response=await worker.fetch(new Request('https://app.test/api/'+path,{method,headers:{Authorization:'Bearer '+token,'X-Teajia-Account':account,'Content-Type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})}),env as never,{} as never);return {status:response.status,body:await response.json() as any}}
+ async function rest(method:string,path:string,body?:any,user='owner',account='shop') {const token=await signedToken('secret',{sub:user,email:`${user}@test.dev`,name:user,active_account_id:account});const response=await worker.fetch(new Request('https://app.test/api/'+path,{method,headers:{Authorization:'Bearer '+token,'X-Teajia-Account':account,'Content-Type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})}),env as never,{} as never);return {status:response.status,body:await response.json() as any}}
  const assignment={logistics_company_id:null,logistics_company_name:'Forwarder',inbound_courier:'Domestic',inbound_tracking_number:'INBOUND-1'};
  async function hub(){expect((await rest('PUT','logistics/orders/purchase',assignment)).status).toBe(200);expect((await confirm('mark_logistics_arrival',{purchase_id:'purchase'})).committed).toBe(true)}
  const createInput=(key='shipment',quantity=1000)=>({idempotency_key:key,logistics_company_id:null,logistics_company_name:'Forwarder',mode:'sea',lines:[{receipt_line_id:'tea-line',quantity,weight_kg:quantity/1000,weight_estimated:true,volume_m3:.008,volume_estimated:true},{receipt_line_id:'ware-line',quantity:4,weight_kg:1,weight_estimated:true,volume_m3:.004,volume_estimated:true}]});
  async function shipment(){await hub();const created=await confirm('create_logistics_shipment',createInput());return created.shipment}
- return {db,call,confirm,rpc,rest,hub,shipment,createInput,assignment,failNext:(product:string)=>{failProduct=product},race:(run:()=>Promise<unknown>)=>{beforeBatch=run}};
+ return {db,call,confirm,rpc,rest,hub,shipment,createInput,assignment,failNext:(product:string)=>{failProduct=product},race:(run:()=>Promise<unknown>)=>{beforeBatch=run},raceReceipt:(run:()=>Promise<unknown>)=>{beforeReceipt=run}};
 }
 describe('supplier → logistics → studio through actual worker REST and MCP',()=>{
  it('preserves courier and tracking when the agent assigns only an address',async()=>{
@@ -102,6 +102,96 @@ describe('supplier → logistics → studio through actual worker REST and MCP',
   const names=(await f.rpc('tools/list',{},'read')).result.tools.map((x:any)=>x.name);expect(names).toContain('list_logistics');expect(names).not.toContain('receive_logistics_shipment');
   const denied=await f.rpc('tools/call',{name:'receive_logistics_shipment',arguments:{shipment_id:s.id}},'read');expect(denied.result?.isError||denied.error).toBeTruthy();
   expect((await f.rest('PUT','logistics/orders/purchase',{...f.assignment,logistics_company_id:'private-contact'})).status).toBe(404);
+ });
+ it('refers one studio line from a Stock counter, retains audit, and receives the certain 100 of 250 g exactly once', async () => {
+  const f = fixture(true);
+  seedIdentity(f.db, { userId: 'Counter', accountId: 'shop', role: 'staff', bundles: ['stock'] });
+  await f.hub();
+  const { body: { shipment } } = await f.rest('POST', 'logistics/shipments', f.createInput('studio-packet', 250));
+  expect(shipment.lines).toHaveLength(2);
+  const tea = shipment.lines.find((line: any) => line.receipt_line_id === 'tea-line');
+  const cup = shipment.lines.find((line: any) => line.receipt_line_id === 'ware-line');
+  const path = `logistics/shipments/${shipment.id}/lines/${cup.id}/referrals`;
+  const receivePath = `logistics/shipments/${shipment.id}/receive`;
+  const report = { idempotency_key: 'label-report', reason: 'Uncertain match', source_reference: 'Photo label STUDIO-4', observed_quantity: 0 };
+  const count = { idempotency_key: 'studio-count', lines: [{ line_id: tea.id, quantity: 100 }] };
+  const receiveCup = { idempotency_key: 'studio-cup', lines: [{ line_id: cup.id, quantity: 1 }] };
+
+  expect((await f.rest('POST', path, report, 'Counter')).status).toBe(409);
+  expect((await f.rest('POST', `logistics/shipments/${shipment.id}/dispatch`, {})).status).toBe(200);
+  expect((await f.rest('POST', path, report, 'staff')).status).toBe(403);
+  expect((await f.rest('POST', receivePath, count, 'staff')).status).toBe(403);
+  expect((await f.rest('POST', path, report, 'other', 'other')).status).toBe(404);
+  expect((await f.rest('POST', `logistics/shipments/wrong/lines/${cup.id}/referrals`, report, 'Counter')).status).toBe(404);
+  expect((await f.rest('POST', path, { ...report, observed_quantity: 0.5 }, 'Counter')).status).toBe(400);
+
+  // The first response is treated as lost. Replay the same request while
+  // a second browser tries a different request for the same line.
+  const first = await f.rest('POST', path, report, 'Counter');
+  expect(first.status).toBe(200);
+  const [replayed, competing] = await Promise.all([
+    f.rest('POST', path, report, 'Counter'),
+    f.rest('POST', path, { ...report, idempotency_key: 'second-key' }, 'Counter'),
+  ]);
+  expect(replayed.body).toEqual({ referral: first.body.referral, replayed: true });
+  expect(competing.status).toBe(409);
+  expect((await f.rest('POST', path, { ...report, observed_quantity: 1 }, 'Counter')).status).toBe(409);
+  expect((await f.rest('POST', path, report, 'owner')).status).toBe(409);
+  const referralId = replayed.body.referral.id;
+  const resolve = `logistics/studio-referrals/${referralId}/resolve`;
+  const resolution = { resolution: 'Matched against the packing list' };
+  expect((await f.rest('POST', resolve, resolution, 'Counter')).status).toBe(403);
+  expect((await f.rest('POST', resolve, resolution, 'other', 'other')).status).toBe(404);
+  expect((await f.rest('GET', 'logistics', undefined, 'other', 'other')).body.shipments).toEqual([]);
+  expect((await f.rest('GET', 'logistics')).body.shipments[0].studio_referrals).toEqual([
+    expect.objectContaining({ id: referralId, line_id: cup.id, shipment_id: shipment.id, reason: report.reason,
+      source_reference: report.source_reference, observed_quantity: 0, recorded_by: 'Counter', recorded_by_name: 'Counter',
+      recorded_at: expect.any(String), resolved_at: null }),
+  ]);
+  expect((await f.rest('POST', receivePath, receiveCup, 'Counter')).body).toMatchObject({ code: 'studio_referral_open' });
+  expect((await f.call('receive_logistics_shipment', { shipment_id: shipment.id, ...receiveCup })).error).toContain('referral');
+  expect(f.db.sqlite.prepare('SELECT COUNT(*) AS n FROM stock_ledger').get()).toEqual({ n: 0 });
+
+  expect((await f.rest('POST', receivePath, count, 'Counter')).body.committed).toBe(true);
+  expect((await f.rest('POST', receivePath, count, 'Counter')).body.recorded).toEqual([
+    expect.objectContaining({ line_id: tea.id, already_received: true }),
+  ]);
+  const current = (await f.rest('GET', 'logistics')).body.shipments[0];
+  expect(current).toMatchObject({ state: 'partially_received', lines: expect.arrayContaining([
+    expect.objectContaining({ id: tea.id, quantity: 250, received_quantity: 100 }),
+    expect.objectContaining({ id: cup.id, quantity: 4, received_quantity: 0 }),
+  ]) });
+  expect(f.db.sqlite.prepare('SELECT product_id, delta, user_email FROM stock_ledger').all()).toEqual([
+    { product_id: 'tea', delta: 100, user_email: 'Counter@test.dev' },
+  ]);
+  const closed = await f.rest('POST', resolve, resolution);
+  expect(closed.body.referral).toMatchObject({ id: referralId, resolved_by: 'owner', resolved_at: expect.any(String), ...resolution });
+  expect((await f.rest('POST', resolve, resolution)).body.replayed).toBe(true);
+  expect((await f.rest('POST', resolve, { resolution: 'Changed' })).status).toBe(409);
+  expect((await f.rest('POST', path, report, 'Counter')).body.referral.id).toBe(referralId);
+  expect(f.db.sqlite.prepare('SELECT quantity_units FROM products WHERE id=?').get('ware')).toEqual({ quantity_units: 0 });
+  expect(f.db.sqlite.prepare('SELECT COUNT(*) AS n FROM stock_ledger').get()).toEqual({ n: 1 });
+  expect((await f.rest('POST', receivePath, receiveCup, 'Counter')).body.committed).toBe(true);
+  expect(f.db.sqlite.prepare('SELECT quantity_units FROM products WHERE id=?').get('ware')).toEqual({ quantity_units: 1 });
+ });
+
+ it('rolls back stock if the referral is saved after the receipt preflight', async () => {
+  const f = fixture(true);
+  const shipment = await f.shipment();
+  await f.rest('POST', `logistics/shipments/${shipment.id}/dispatch`, {});
+  const line = shipment.lines.find((line: any) => line.receipt_line_id === 'tea-line');
+  const path = `logistics/shipments/${shipment.id}`;
+  f.raceReceipt(async () => {
+    expect((await f.rest('POST', `${path}/lines/${line.id}/referrals`, {
+      idempotency_key: 'race-report', reason: 'Label mismatch', source_reference: 'Studio log #1',
+    })).status).toBe(200);
+  });
+  const receive = await f.rest('POST', `${path}/receive`, { idempotency_key: 'race-receipt', lines: [{ line_id: line.id, quantity: 1 }] });
+  expect(receive.body).toMatchObject({ committed: false, failed: { line_id: line.id, code: 'studio_referral_open' } });
+  expect(f.db.sqlite.prepare('SELECT stock_grams FROM products WHERE id=?').get('tea')).toEqual({ stock_grams: 0 });
+  expect(f.db.sqlite.prepare('SELECT COUNT(*) AS n FROM stock_ledger').get()).toEqual({ n: 0 });
+  expect(f.db.sqlite.prepare('SELECT COUNT(*) AS n FROM logistics_studio_receipts').get()).toEqual({ n: 0 });
+  expect(f.db.sqlite.prepare('SELECT received_quantity FROM logistics_shipment_lines WHERE id=?').get(line.id)).toEqual({ received_quantity: 0 });
  });
  it('keeps unknown freight distinct, allocates estimates transparently, and preserves per-line paid costs and references',async()=>{
   const f=fixture();await f.hub();const input=f.createInput('split',500);input.lines=input.lines.filter(l=>l.receipt_line_id==='tea-line');

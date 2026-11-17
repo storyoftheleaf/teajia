@@ -59,17 +59,11 @@ export async function receiptProductDetails(db: D1Database, accountId: string, p
       vendorId = order.vendor_id;
     }
   }
-  let photos: string[] = [];
-  try {
-    const value = typeof entry?.photos === 'string' ? JSON.parse(entry.photos) : entry?.photos;
-    if (Array.isArray(value)) photos = value.filter((photo): photo is string => typeof photo === 'string' && /^https:\/\//i.test(photo));
-  } catch { /* Invalid legacy media is not propagated. */ }
   const tasting = tastingForShop(entry?.tasting);
   const details: Row = {
     chinese_name: entry?.chinese_name ?? null, form: entry?.form ?? null,
     year: entry?.year == null ? null : String(entry.year), origin_region: entry?.origin_region ?? null,
     vendor: entry?.vendor_name ?? null, vendor_id: vendorId,
-    image_url: photos[0] ?? null, bag_photo_url: photos[0] ?? null, additional_images: JSON.stringify(photos.slice(1)),
     tasting: JSON.stringify(tasting), tasting_source: tastingHasTerms(tasting) ? 'owner' : null,
     tea_key: entry?.tea_key ?? null, material: entry?.material ?? null,
     capacity_ml: entry?.capacity_ml ?? null, teaware_category: entry?.teaware_category ?? null,

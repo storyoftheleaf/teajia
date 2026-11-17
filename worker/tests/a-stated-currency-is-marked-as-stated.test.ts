@@ -318,7 +318,7 @@ describe('the guard against the next door', () => {
     const rest = stripComments(readFileSync(here('../src/index.ts'), 'utf8'));
     expect(rest).toMatch(/body\.cost_currency_source \?\? null/);
     const mcp = stripComments(readFileSync(here('../src/mcp.ts'), 'utf8'));
-    expect(mcp).toMatch(/buildCreateTeaMirrorInserts\(env, id, m, costCurrencySource\)/);
+    expect(mcp).toMatch(/buildCreateTeaMirrorInserts\(env, id, m, costCurrencySource(?:\s*,|\s*\))/);
   });
 
   it('the stamp is decided in one place, so no door can reach a different answer', () => {

@@ -2,7 +2,7 @@ import { CurateRecordTools } from '../curate/CurateRecordTools';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { StructuredTeaFields } from '../TeaCompass/StructuredTeaFields';
 import React, { useCallback, useState } from 'react';
-import { mediaUrl } from '../../lib/mediaUrl';
+import { CapturePhotoImage } from '../curate/CapturePhotoImage';
 import { useNavigate } from 'react-router-dom';
 import { BookmarkCheck, BookmarkPlus, Check, Droplets, Share2, ShoppingBag, Star, Store, Trash2, X } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
@@ -185,9 +185,9 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
             <p className={SECTION_LABEL}>Photos</p>
             <div className="grid grid-cols-2 gap-2">
               {validPhotos.map((url, i) => (
-                <img
+                <CapturePhotoImage
                   key={i}
-                  src={mediaUrl(url)}
+                  src={url}
                   alt={`Photo ${i + 1}`}
                   className="w-full aspect-[4/3] object-cover rounded-xl"
                   loading="lazy"

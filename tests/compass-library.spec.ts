@@ -508,15 +508,14 @@ test.describe('Curate Library decisions and retrieval', () => {
       const proposed = route.request().postDataJSON();
       await route.fulfill({ json: { id: 'library-proposal', account_id: 'acct-bali', compass_entry_id: 'selected', status: 'pending', created_at: '', updated_at: '', proposed_by_user_id: 'test', ...proposed } });
     });
-    // Ordering starts from the tea record's Orders tab since the 2026-10-25 redesign.
+    // The next action is available on the tea record before opening any tab.
     await page.getByRole('button', { name: 'Edit details for River Stone', exact: true }).filter({ visible: true }).click();
-    const orders = await openRecordSection(page, 'Purchasing');
-    await orders.getByRole('button', { name: 'Order', exact: true }).click();
+    await page.getByRole('group', { name: 'Next step for this tea' }).getByRole('button', { name: 'Order shop stock', exact: true }).click();
     await expect(page.getByRole('tab', { name: 'Source', exact: true })).toHaveAttribute('aria-selected', 'true');
     const purpose = page.getByLabel('Inventory purpose').filter({ visible: true });
     await expect(purpose).toHaveValue('working');
     await expect(page.getByLabel('Acquisition').filter({ visible: true })).toHaveValue('purchase');
-    const sourceBuy = page.getByTestId('capture-action-footer').filter({ visible: true }).getByRole('button', { name: 'Buy', exact: true });
+    const sourceBuy = page.getByTestId('capture-action-footer').filter({ visible: true }).getByRole('button', { name: 'Draft supplier order', exact: true });
     await expect(sourceBuy).toHaveAttribute('aria-expanded', 'true');
     await sourceBuy.click();
     await expect(purpose).toBeHidden();
@@ -530,8 +529,8 @@ test.describe('Curate Library decisions and retrieval', () => {
     await expect(purpose).toBeVisible();
     // Found by what the controls are called, not by the panel's wrapper, so a restyle cannot hide them from this check.
     await page.getByLabel('Purchase quantity').filter({ visible: true }).fill('25');
-    await page.getByRole('button', { name: 'Add to Ledger' }).filter({ visible: true }).evaluate((button: HTMLButtonElement) => { button.click(); button.click(); });
-    await expect(page.getByText('Added to Ledger', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Add to order draft' }).filter({ visible: true }).evaluate((button: HTMLButtonElement) => { button.click(); button.click(); });
+    await expect(page.getByText('Added to supplier order draft', { exact: true })).toBeVisible();
     expect(proposals).toBe(0);
     expect(compassRequestCount(page, 'POST /api/products')).toBe(0);
     expect(compassRequestCount(page, 'POST /api/inventory/receipts')).toBe(0);
@@ -581,10 +580,12 @@ test.describe('Curate Library decisions and retrieval', () => {
     const selectedRail = page.getByTestId('library-entry-selected').filter({ visible: true });
     await selectedRail.getByRole('button', { name: 'Edit details for River Stone', exact: true }).click();
     const detail = page.getByTestId('library-entry-detail').filter({ visible: true });
-    // Taste sits in the record's header; Order is on the Orders tab; the rest on Files.
+    // Taste and the next action are above the tabs; the other actions are in Files.
     await expect(detail.getByRole('button', { name: 'Taste', exact: true })).toBeVisible();
-    const orders = await openRecordSection(page, 'Purchasing');
-    await expect(orders.getByRole('button', { name: 'Order', exact: true })).toBeVisible();
+    const nextStep = detail.getByRole('group', { name: 'Next step for this tea' });
+    await expect(nextStep.getByRole('button', { name: 'Order shop stock', exact: true })).toBeVisible();
+    await openRecordSection(page, 'Purchasing');
+    await expect(nextStep.getByRole('button', { name: 'Order shop stock', exact: true })).toBeVisible();
     const files = await openRecordSection(page, 'Files & history');
     for (const name of ['Queue', 'Share', 'Delete entry']) await expect(files.getByRole('button', { name, exact: true })).toBeVisible();
     await expect(files.getByRole('button', { name: /Add to Sample list/i })).toBeVisible();

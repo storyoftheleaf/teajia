@@ -85,7 +85,6 @@ export async function prepareCompassSampleWrite(
     purpose:'sourcing',notes:null,shared_with:'[]',account_id:accountId,panel_account_ids:null,archived:0,created_at:now,updated_at:now,user_id:userId,
   });
   if(vendorId && setAfter.source_id==null) Object.assign(setAfter,{source_id:vendorId,source_name:entry.vendor_name??null,updated_at:now});
-  const photos=typeof entry.photos==='string'?entry.photos:JSON.stringify(entry.photos??[]);
   const sampleAfter:Record<string,any>=sampleBefore ? {...sampleBefore} : await newSnapshot(db,'tea_samples',{
     id:sampleId,name:'',chinese_name:null,type:null,form:null,year:null,origin_region:null,source_id:null,source_name:null,source_contact:null,
     product_id:null,compass_entry_id:input.entryId,set_id:setId,status:state,grams:input.grams??10,grams_known:input.grams===undefined?0:1,notes:null,photos:'[]',account_id:accountId,
@@ -93,7 +92,7 @@ export async function prepareCompassSampleWrite(
   });
   const currentStatus=sampleAfter.status;
   Object.assign(sampleAfter,{name:entry.name??'',chinese_name:entry.chinese_name??null,type:entry.type??null,form:entry.form??null,year:entry.year??null,
-    origin_region:entry.origin_region??null,source_id:vendorId,source_name:entry.vendor_name??null,product_id:productId,photos,set_id:setId,
+    origin_region:entry.origin_region??null,source_id:vendorId,source_name:entry.vendor_name??null,product_id:productId,set_id:setId,
     status:['favorite','ordering','ordered','passed','tasted'].includes(currentStatus)?currentStatus:state==='tasted'?'tasted':state==='received'?'received':currentStatus,
     grams:input.grams??sampleAfter.grams,grams_known:input.grams===undefined?sampleAfter.grams_known:1,updated_at:now});
   const finalTea={...stored,...entry,id:input.entryId,account_id:accountId,user_id:userId,sample_set_id:setId,sample_state:compassStateForSample(sampleAfter.status),updated_at:now};
@@ -113,7 +112,7 @@ export async function prepareCompassSampleWrite(
   if(!setBefore) statements.push(insert('tea_sample_sets',setAfter));
   else if(setAfter.updated_at!==setBefore.updated_at) statements.push(db.prepare('UPDATE tea_sample_sets SET source_id = ?, source_name = ?, updated_at = ? WHERE id = ? AND account_id = ? AND source_id IS NULL').bind(vendorId,entry.vendor_name??null,now,setId,accountId));
   if(!sampleBefore) statements.push(insert('tea_samples',sampleAfter));
-  const copied=['name','chinese_name','type','form','year','origin_region','source_id','source_name','product_id','photos','set_id','status','grams','grams_known','updated_at'];
+  const copied=['name','chinese_name','type','form','year','origin_region','source_id','source_name','product_id','set_id','status','grams','grams_known','updated_at'];
   statements.push(db.prepare(`UPDATE tea_samples SET ${copied.map(k=>`${k} = ?`).join(',')} WHERE id = ? AND account_id = ? AND compass_entry_id = ? AND archived_at IS NULL`).bind(...copied.map(k=>sampleAfter[k]),sampleId,accountId,input.entryId));
   statements.push(db.prepare('UPDATE tea_compass_entries SET sample_set_id = ?, sample_state = ?, updated_at = ? WHERE id = ? AND account_id = ? AND user_id = ?').bind(setId,teaAfter.sample_state,now,input.entryId,accountId,userId));
   const guards=await captureCurateSampleGuards(db,accountId,sampleId,productId);

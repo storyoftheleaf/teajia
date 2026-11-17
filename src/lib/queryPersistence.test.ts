@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { shouldPersistQueryKey } from './queryPersistence';
 
 describe('query disk persistence', () => {
-  it('excludes customer, invoice, event admin, and attendee records', () => {
+  it('excludes private records and protected capture photos', () => {
     for (const key of [
       ['invoices-pending-summary', 'store-a', 'operator', 1],
       ['invoices-all', 'store-a', 'operator', 1],
@@ -12,6 +12,7 @@ describe('query disk persistence', () => {
       ['vendor-products', 'vendor-a', 'store-a', 'operator', 1],
       ['customers', 'store-a', 'operator'],
       ['products', 'store-a', 'operator'],
+      ['capture-photo-bytes', 'store-a', 'operator', '/api/curate/capture/entry/photos/photo', false],
     ]) expect(shouldPersistQueryKey(key)).toBe(false);
     expect(shouldPersistQueryKey(['products', 'public'])).toBe(true);
     expect(shouldPersistQueryKey(['events', 'public', 'search'])).toBe(true);

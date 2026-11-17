@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { InventoryReceipt } from '../admin/types';
 import { usePrivateQueryScope } from '../admin/hooks/usePrivateQueryScope';
@@ -152,6 +152,36 @@ export function purchaseStateLabel(state: LibraryPurchaseState): string {
 }
 
 export const LIBRARY_RECEIPTS_KEY = ['library-purchase-receipts'] as const;
+function usePurchaseProposals(scope: ReturnType<typeof usePrivateQueryScope>) {
+  return useQuery({
+    queryKey: ['library-purchase-history', ...scope.key], enabled: scope.ready,
+    queryFn: async () => (await api.compass.receiptHistory()).pending, staleTime: 30_000,
+  });
+}
+
+/** Close already received sample drafts left behind by older clients. */
+export function useReconcileReceivedSampleDrafts() {
+  const scope = usePrivateQueryScope();
+  const transactions = useLedgerStore(s => s.transactions);
+  const ledgerAccount = useLedgerStore(s => s.accountScopeId);
+  const proposals = usePurchaseProposals(scope);
+  useEffect(() => {
+    if (!scope.ready || ledgerAccount !== scope.key[0] || !proposals.data) return;
+    const settled = proposals.data.filter(receipt => receipt.status === 'accepted'
+      && receipt.purpose === 'sample' && receipt.acquisition_kind === 'free_sample');
+    if (!settled.length) return;
+    const ledger = useLedgerStore.getState();
+    for (const tx of transactions) {
+      if (tx.status !== 'draft' || tx.direction !== 'purchase' || tx.purchaseOrderId) continue;
+      const covered = tx.items.filter(item => item.compassEntryId && item.acquisitionKind !== 'purchase'
+        && settled.some(receipt => receipt.id === item.receiptProposal?.id
+          || (!item.acquisitionKind && receipt.idempotency_key === `ledger:${tx.id}:${item.compassEntryId}`)));
+      if (covered.length && covered.length === tx.items.length && !tx.photos.length) ledger.removeTransaction(tx.id);
+      else for (const item of covered) ledger.removeLineItem(tx.id, item.id);
+    }
+  }, [scope.ready, scope.key[0], ledgerAccount, transactions, proposals.data]);
+}
+
 export function useLibraryPurchases() {
   const scope = usePrivateQueryScope();
   const transactions = useLedgerStore(s => s.transactions);
@@ -161,10 +191,7 @@ export function useLibraryPurchases() {
     queryKey: [...LIBRARY_RECEIPTS_KEY, ...scope.key], enabled: scope.ready,
     queryFn: () => api.inventoryReceipts.list(true), staleTime: 30_000,
   });
-  const proposals = useQuery({
-    queryKey: ['library-purchase-history', ...scope.key], enabled: scope.ready,
-    queryFn: async () => (await api.compass.receiptHistory()).pending, staleTime: 30_000,
-  });
+  const proposals = usePurchaseProposals(scope);
   const stateFor = useCallback((identity: LibraryPurchaseIdentity) => libraryPurchaseStateOf(
     identity,
     scope.ready && ledgerAccount === scope.key[0] ? transactions : [],
@@ -172,5 +199,5 @@ export function useLibraryPurchases() {
     scope.ready ? receipts.data ?? [] : [],
     scope.ready ? proposals.data ?? [] : [],
   ), [scope.ready, scope.key[0], ledgerAccount, transactions, shop.orders, receipts.data, proposals.data]);
-  return { stateFor, receipts: scope.ready ? receipts.data ?? [] : [], receiptProposals: scope.ready ? proposals.data ?? [] : [], isLoading: scope.ready && (receipts.isLoading || proposals.isLoading || shop.loading), isError: receipts.isError || proposals.isError || shop.failed };
+  return { stateFor, orders: scope.ready ? shop.orders : [], receipts: scope.ready ? receipts.data ?? [] : [], receiptProposals: scope.ready ? proposals.data ?? [] : [], isLoading: scope.ready && (receipts.isLoading || proposals.isLoading || shop.loading), isError: receipts.isError || proposals.isError || shop.failed };
 }

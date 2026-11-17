@@ -4,18 +4,32 @@ import { refreshCommerceQueries, registerShelfReconciler } from './refreshCommer
 import { singleProductWrite } from './api';
 
 describe('a saved commerce change reaches every dependent view', () => {
-  it('invalidates Stock, both storefronts, receiving, freight and customer orders without touching editorial queries', async () => {
+  it('invalidates Stock, both storefronts, receiving and customer orders without rereading pricing settings', async () => {
     const client = new QueryClient();
     const dependent = [
       ['products', 'account', 'user'], ['products', 'public'],
-      ['storefront', 'products', 'partner'], ['shop-freight-default', 'account', 'user'],
+      ['storefront', 'products', 'partner'],
       ['stock_ledger', 'account', 'user'], ['orders', 'account'],
       ['me', 'orders', 'invoice'], ['customers', 'account'], ['attention', 'account'], ['purchase_orders'], ['my-orders', 'user'], ['inventory-summary', 'account'],
     ];
-    for (const key of [...dependent, ['article', 'tea']]) client.setQueryData(key, { saved: true });
+    const untouched = [['article', 'tea'], ['shop-freight-default', 'account', 'user'], ['rates', 'account', 'user']];
+    for (const key of [...dependent, ...untouched]) client.setQueryData(key, { saved: true });
     await refreshCommerceQueries(client, 'account');
     for (const key of dependent) expect(client.getQueryState(key)?.isInvalidated, key.join('/')).toBe(true);
-    expect(client.getQueryState(['article', 'tea'])?.isInvalidated).toBe(false);
+    for (const key of untouched) expect(client.getQueryState(key)?.isInvalidated).toBe(false);
+    await refreshCommerceQueries(client, 'account', { kind: 'pricing' });
+    for (const key of untouched.slice(1)) expect(client.getQueryState(key)?.isInvalidated).toBe(true);
+    client.clear();
+  });
+
+  it('updates tracking after a route or carrier write without refetching catalogues', async () => {
+    const client = new QueryClient();
+    const tracking = [['purchase-logistics', 'account'], ['purchase-tracking', 'account'], ['purchase_orders']];
+    const untouched = [['products', 'public'], ['products', 'account', 'user'], ['rates', 'account', 'user'], ['customers', 'account']];
+    for (const key of [...tracking, ...untouched]) client.setQueryData(key, {});
+    await refreshCommerceQueries(client, 'account', { kind: 'tracking' });
+    for (const key of tracking) expect(client.getQueryState(key)?.isInvalidated).toBe(true);
+    for (const key of untouched) expect(client.getQueryState(key)?.isInvalidated).toBe(false);
     client.clear();
   });
 

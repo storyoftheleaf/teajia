@@ -66,11 +66,11 @@ test('phone Source draft, confirmation and explicit receipt preserve one tea ide
     useTeaCompassStore.getState().setActiveEntry(id);
   }, entryId);
   await expect(page.getByRole('textbox', { name: 'Tea name', exact: true })).toHaveValue(entry.name);
-  await page.getByTestId('capture-action-footer').filter({ visible: true }).getByRole('button', { name: 'Buy', exact: true }).click();
+  await page.getByTestId('capture-action-footer').filter({ visible: true }).getByRole('button', { name: 'Draft supplier order', exact: true }).click();
   const quantity = page.getByRole('spinbutton', { name: 'Purchase quantity', exact: true }).filter({ visible: true });
   await expect(quantity).toBeVisible();
   await quantity.fill('250');
-  await page.getByRole('button', { name: 'Add to Ledger', exact: true }).filter({ visible: true }).click();
+  await page.getByRole('button', { name: 'Add to order draft', exact: true }).filter({ visible: true }).click();
   await expect.poll(async () => (await ledgerState(page)).transactions.length).toBe(1);
   const draft = (await ledgerState(page)).transactions[0];
   expect(draft.items).toHaveLength(1);
@@ -82,7 +82,7 @@ test('phone Source draft, confirmation and explicit receipt preserve one tea ide
   // scroll up, as it would under a thumb; bring it back before choosing Orders.
   await revealCurateTab(page, 'Orders');
   await page.getByRole('tab', { name: 'Orders', exact: true }).click();
-  await page.getByRole('button', { name: 'Purchase', exact: true }).filter({ visible: true }).click();
+  await page.getByRole('button', { name: 'Save supplier order', exact: true }).filter({ visible: true }).click();
   await expect.poll(() => shop.orders.length).toBe(1);
   expect(JSON.parse(shop.orders[0].items_json)[0]).toMatchObject({ compass_entry_id: entryId, product_id: productId, quantity_grams: 250 });
   await expect.poll(() => shop.proposals.length).toBe(1);

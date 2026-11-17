@@ -1,4 +1,5 @@
 import { effectiveInventoryPurpose, inventoryPurposeConflict } from './inventoryDomain';
+import { compassHolding, isCompassSample } from './compassHoldings';
 import { capturedHoldingFields } from './capturedHolding';
 import { nameProductColumns } from './productDefaults';
 import { canonicalizeCostCurrency, stampCostCurrencySource } from './costCurrency';
@@ -27,16 +28,19 @@ async function planHolding(
   const found = linked ? await db.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?')
     .bind(linked, ctx.accountId).first<Row>() : null;
   if (linked && !found) return {reason: 'The linked Stock item was not found in this shop'};
-  const sourceProduct = entry ? await db.prepare('SELECT * FROM products WHERE source_compass_entry_id = ? AND account_id = ?')
-    .bind(entry.id, ctx.accountId).first<Row>() : null;
-  const existing = found ?? sourceProduct;
+  const source = entry ? await compassHolding(db, ctx.accountId, entry.id) : null;
+  const sampleOnly = entry && isCompassSample(source, entry.id);
+  const foundSample = entry && isCompassSample(found, entry.id);
+  const sourceProduct = sampleOnly ? null : source;
+  const selected = foundSample ? null : found;
+  const existing = selected ?? sourceProduct;
   const otherEntry = entry && existing ? await db.prepare(
     'SELECT id FROM tea_compass_entries WHERE account_id = ? AND draft_product_id = ? AND id <> ? AND deleted_at IS NULL AND merged_into_id IS NULL',
   ).bind(ctx.accountId, existing.id, entry.id).first() : null;
-  if (entry && (otherEntry || (found && sourceProduct && found.id !== sourceProduct.id)
-      || (entry.draft_product_id && found?.id !== entry.draft_product_id)
-      || (found?.source_compass_entry_id && found.source_compass_entry_id !== entry.id)
-      || (existing && inventoryPurposeConflict(existing, 'working')))) {
+  if ((entry && (otherEntry || (selected && sourceProduct && selected.id !== sourceProduct.id)
+      || (entry.draft_product_id && !foundSample && found?.id !== entry.draft_product_id)
+      || (selected?.source_compass_entry_id && selected.source_compass_entry_id !== entry.id)))
+      || inventoryPurposeConflict(existing, 'working')) {
     return {reason: 'This order line conflicts with the tea’s linked Stock item'};
   }
   const isTeaware = existing ? existing.type === 'Teaware'
@@ -50,7 +54,9 @@ async function planHolding(
 
   const accountVendorId = typeof order.vendor_id === 'string' && await db.prepare('SELECT id FROM customers WHERE id = ? AND account_id = ?')
     .bind(order.vendor_id, ctx.accountId).first() ? order.vendor_id : null;
-  const productId = existing?.id ?? (entry ? `holding_${ctx.accountId}_${entry.id}` : `po_holding_${order.id}_${index}`);
+  const workingId = entry ? `holding_${ctx.accountId}_${entry.id}` : `po_holding_${order.id}_${index}`;
+  // A previously converted holding may already occupy the original deterministic ID.
+  const productId = existing?.id ?? (sampleOnly && source?.id === workingId ? `${workingId}_working` : workingId);
   const statements: D1PreparedStatement[] = [];
   const values: Row = existing ?? nameProductColumns({
     ...(entry ? capturedHoldingFields(entry) : {}),
@@ -120,7 +126,8 @@ export async function preparePurchaseReceipt(env: Environment, ctx: Context, id:
       if (usedEntryIds.has(item.compass_entry_id)) { unresolved.push({index, item, reason:'Combine repeated order lines for the same Curate tea'}); continue; }
       usedEntryIds.add(item.compass_entry_id);
     }
-    if (proposal?.status === 'accepted') {
+    const receivedSample = proposal?.purpose === 'sample' && proposal.acquisition_kind === 'free_sample';
+    if (proposal?.status === 'accepted' && !receivedSample) {
       if (item.product_id && item.product_id !== proposal.product_id) { unresolved.push({index,item,reason:'The original arrival belongs to a different holding'}); continue; }
       item.product_id = proposal.product_id;
       item.source_movement_id = proposal.ledger_id;

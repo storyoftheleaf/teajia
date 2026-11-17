@@ -10,6 +10,7 @@ import { TYPE_OPTIONS } from './config';
 import type { ColDef } from './types';
 import { DRAFT_NAME_ACTION, distinctGivenName, draftDisplayNames, stripMatchingYear } from './helpers';
 import { isOutOfStock } from './domain';
+import { sampleAcquisitionLabel, stockHoldingLabel } from './stockHoldingLabel';
 import { shippingRateUsdFor } from '../../../lib/shippingRate';
 import { isSampleRow, joinItemCode, linkedEntryId, sampleQuote, splitItemCode } from './sampleRows';
 import { useTeaCompassStore } from '../../../lib/teaCompassStore';
@@ -125,6 +126,7 @@ function InventoryRowBase(props: InventoryRowProps) {
   // name and kept when the name is edited, never as the start of the name.
   const coded = splitItemCode(product.productName);
   const displayName = stripMatchingYear(coded.name, product.year);
+  const holdingLabel = stockHoldingLabel(product);
   const { draftIdentity = false, canEditDraftName = false } = props;
   const draftNames = draftIdentity ? draftDisplayNames(coded.name, product.givenName, product.year) : null;
   const yearHasColumn = (splitView ? splitViewCols : visibleCols).some(column => column.key === 'year');
@@ -137,7 +139,8 @@ function InventoryRowBase(props: InventoryRowProps) {
   const numCellAlign = alignLeft ? 'text-left' : 'text-right';
   const numInputAlign: 'left' | 'right' = alignLeft ? 'left' : 'right';
 
-  const renderCell = (colKey: string, colIndex: number) => {
+  const renderCell = (colKey: string, colIndex: number, columnLabel?: string) => {
+    const sampleQuotes = sampling && (columnLabel === 'Quote' || columnLabel === 'Cost/g');
     const fr = focusedCol === colIndex ? 'ring-1 ring-tea-gold/50 rounded' : '';
     switch (colKey) {
       case 'productName': {
@@ -237,6 +240,7 @@ function InventoryRowBase(props: InventoryRowProps) {
               <span className="font-sans text-ui-11 text-tea-text-dim mt-0 leading-tight truncate block" style={{ letterSpacing: '0.02em' }}>
                 {subtitle}
               </span>
+              {holdingLabel && <span className="text-ui-11 text-tea-text-sec leading-tight">{[holdingLabel, sampleAcquisitionLabel(product)].filter(Boolean).join(' · ')}</span>}
             </div>
           </td>
         );
@@ -277,7 +281,7 @@ function InventoryRowBase(props: InventoryRowProps) {
         </td>
       );
       case 'stockGrams': {
-        if (sampling) {
+        if (sampleQuotes) {
           // A sample's stock does not matter; its quote does: how much, for how
           // many grams, in the money it was quoted in. Both figures are typed here.
           const q = sampleQuote(product);
@@ -369,8 +373,8 @@ function InventoryRowBase(props: InventoryRowProps) {
       case 'pricePerGramUSD': {
         // A sample has no shelf price yet; what matters is what a gram costs.
         if (sampling) return (
-          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} text-tea-gold-lt`}>
-            <span>{product.costPerGramUSD !== null ? fmtNum(product.costPerGramUSD) : '—'}</span>
+          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} text-tea-text-sec`}>
+            {sampleQuotes && product.costPerGramUSD != null ? fmtNum(product.costPerGramUSD) : <span aria-label="Private sample, no retail price">—</span>}
           </td>
         );
         const sellingPrice = product.fixedRetailPriceUSD ?? product.pricePerGramUSD;
@@ -520,7 +524,7 @@ function InventoryRowBase(props: InventoryRowProps) {
             const cell = renderCell(key, colIdx) as React.ReactElement<any>;
             return { key, label: key, content: cell.props.children, className: cell.props.className };
           })} />
-      </td> : (splitView ? splitViewCols : visibleCols).map((col, colIdx) => React.cloneElement(renderCell(col.key, colIdx), { 'data-stock-column': col.key }))}
+      </td> : (splitView ? splitViewCols : visibleCols).map((col, colIdx) => React.cloneElement(renderCell(col.key, colIdx, col.label), { 'data-stock-column': col.key }))}
     </tr>
   );
 }

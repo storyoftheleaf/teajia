@@ -9,7 +9,7 @@ import {
   TEA_COLUMN_DEFS,
   TEAWARE_COLUMN_DEFS,
 } from './config';
-import { effectivePurpose, getTeaReadiness, inventoryPublicationRequirements, groupInventoryByLifecycle, inventoryMatchesFacetFilter, shouldApplyInventoryFacetFilter } from './domain';
+import { effectivePurpose, getTeaReadiness, isInventoryDraftReady, groupInventoryByLifecycle, inventoryMatchesFacetFilter, shouldApplyInventoryFacetFilter } from './domain';
 import type { IncomingInventorySummary, InventoryFacetFilter, InventorySummaryStatus, InventoryWritingSummary, PersonalTastingSummary } from './domain';
 import type { InventoryCategory, InventoryProductGroup, InventorySortDirection } from './types';
 
@@ -133,7 +133,7 @@ export function useInventoryProducts({
       result = result.filter(p => !p.inventoryLocation?.trim());
     } else if (filterType === 'Drafts') {
       result = result.filter(p => p.status === 'Draft' && (!draftTriage
-        || (inventoryPublicationRequirements(p).length === 0) === (draftTriage === 'ready')));
+        || isInventoryDraftReady(p, incomingByProductId[p.id]) === (draftTriage === 'ready')));
     } else if (filterType === 'Pending') {
       result = result.filter(p => p.lore && !p.showWisdom);
     } else if (filterType === 'Unverified') {
@@ -210,7 +210,7 @@ export function useInventoryProducts({
     }
 
     return sorted;
-  }, [localProducts, searchQuery, filterType, draftTriage, teaTypeFilter, tastingFilter, inventorySortConfig, inventoryCategory, isEditMode, personalTastingByProductId, writingSummaryByProductId, summaryStatus]);
+  }, [localProducts, searchQuery, filterType, draftTriage, teaTypeFilter, tastingFilter, inventorySortConfig, inventoryCategory, isEditMode, personalTastingByProductId, writingSummaryByProductId, incomingByProductId, summaryStatus]);
 
   const visibleCols = useMemo(() => activeColumnDefs.filter(col => {
     const isCostCol = col.key === 'costAmount' || col.key === 'costPerGramUSD';

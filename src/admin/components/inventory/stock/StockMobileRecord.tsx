@@ -5,6 +5,8 @@ import { useAppStore } from '../../../../lib/store';
 import { DRAFT_NAME_ACTION, draftDisplayNames } from '../helpers';
 import { getStockTypeFinish } from '../../../themeUtils';
 import { fmtNum } from '../../../../utils/formatNumber';
+import { sampleAcquisitionLabel, stockHoldingLabel } from '../stockHoldingLabel';
+import { isSampleRow } from '../sampleRows';
 import { GhostInput } from '../../../../admin/components/ProductEditPanel';
 import type { Product } from '../../../../admin/types';
 import { FormPricingSheet, type SaveFormPricing } from './FormPricingSheet';
@@ -33,13 +35,14 @@ export function StockMobileRecord({product,name,lowStock,fields,editing,draftIde
  const place=useAppStore(s=>s.memberships.find(m=>m.account_id===s.activeAccountId)?.account_name||s.activeAccount?.name||'Current shop');
  const journal=useAppStore(s=>s.tastingJournal.find(e=>!e.archived&&e.productId===product.id&&e.accountId===s.activeAccountId));
  const [panel,setPanel]=useState<Panel>(null);
- const corePrice=fields.find(f=>f.key==='pricePerGramUSD')||fields.find(f=>f.key==='costPerGramUSD')||fields.find(f=>f.key==='costAmount');
+ const corePrice=isSampleRow(product) ? undefined : fields.find(f=>f.key==='pricePerGramUSD')||fields.find(f=>f.key==='costPerGramUSD')||fields.find(f=>f.key==='costAmount');
  const stock=fields.find(f=>f.key==='stockGrams'||f.key==='quantityUnits');
  const metrics=[stock,corePrice].filter(Boolean) as StockField[];
  const details=fields.filter(f=>!(groupBy==='vendor'&&f.key==='vendor')&&!['productName','type','year','shippingRatePerKg',...metrics.map(m=>m.key)].includes(f.key));
  const sourceLabel=product.vendor?.trim() || [product.originRegion,product.originCountry].filter(Boolean).join(' · ') || 'Source not set';
  const draftNames = draftIdentity ? draftDisplayNames(name, product.givenName, product.year) : null;
  const cardTitle = draftNames?.primary ?? name;
+ const holding = stockHoldingLabel(product);
  const draftNameLabel = draftNames?.chosen || (draftNames && canEditDraftName ? DRAFT_NAME_ACTION : '');
  const houseName = product.givenName?.trim();
  const distinctName = houseName && houseName !== 'Unnamed' && houseName !== product.productName?.trim();
@@ -62,6 +65,7 @@ export function StockMobileRecord({product,name,lowStock,fields,editing,draftIde
     {!draftIdentity && <button type="button" className="tap-target stock-inline-edit stock-given-name" title={houseName || 'Add given name'} aria-label={`Edit given name for ${name}`} onClick={open('givenName')}>{distinctName ? houseName : 'Name'}</button>}
     <button type="button" className="tap-target stock-more-action" aria-label={`More details for ${name}`} onClick={open('more')}><MoreHorizontal size={15}/></button>
    </div>
+   {holding && <p className="text-ui-12 text-tea-text-sec">{[holding, sampleAcquisitionLabel(product)].filter(Boolean).join(' · ')}</p>}
    <div className="stock-subtitle">
     {!editing && draftNameLabel ? (
       <div className="stock-source-label flex min-w-0 items-center">

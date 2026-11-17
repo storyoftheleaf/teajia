@@ -7,6 +7,7 @@ export interface CommerceChange {
   queriesInvalidated?: boolean;
   /** The write changed exactly these teas and no others (see authedFetch). */
   productIds?: readonly string[];
+  kind?: 'tracking' | 'pricing';
 }
 
 /** Private queries remain scoped by their existing keys. Invalidating a key
@@ -21,10 +22,10 @@ export function isCommerceQuery(key: QueryKey): boolean {
     || (family === 'me' && key[1] === 'orders');
 }
 
-export function notifyCommerceChanged(accountId?: string | null, queriesInvalidated = false, productIds?: readonly string[]): void {
+export function notifyCommerceChanged(accountId?: string | null, queriesInvalidated = false, productIds?: readonly string[], kind?: CommerceChange['kind']): void {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent<CommerceChange>(COMMERCE_CHANGED_EVENT, {
-      detail: { accountId, queriesInvalidated, ...(productIds?.length ? { productIds } : {}) },
+      detail: { accountId, queriesInvalidated, ...(productIds?.length ? { productIds } : {}), ...(kind ? { kind } : {}) },
     }));
   }
 }
@@ -35,6 +36,7 @@ export function isAdminProductList(key: QueryKey): boolean {
 }
 
 export interface RefreshCommerceOptions {
+  kind?: CommerceChange['kind'];
   /**
    * The caller has already put the changed rows into the shelf (the product
    * reconciler reads just those teas), so refetching the whole shelf again
@@ -70,7 +72,7 @@ export function registerShelfReconciler(queryKey: QueryKey, reconcile: ShelfReco
 export async function refreshCommerceQueries(client: QueryClient, accountId?: string | null, options: RefreshCommerceOptions = {}): Promise<void> {
   // Local readiness summaries also subscribe; the bootstrap listener ignores
   // this acknowledged event so a refresh cannot recursively trigger itself.
-  notifyCommerceChanged(accountId, true, options.changedProductIds);
+  notifyCommerceChanged(accountId, true, options.changedProductIds, options.kind);
   const ids = options.changedProductIds?.length ? [...new Set(options.changedProductIds)] : [];
   const reconciled: Array<{ shelf: string; reconcile: ShelfReconciler }> = [];
   const rowsOnly = (key: QueryKey) => {
@@ -82,9 +84,14 @@ export async function refreshCommerceQueries(client: QueryClient, accountId?: st
     return true;
   };
   await client.invalidateQueries({
-    predicate: query => isCommerceQuery(query.queryKey)
-      && !(options.shelfRowsReconciled && isAdminProductList(query.queryKey))
-      && !rowsOnly(query.queryKey),
+    predicate: ({ queryKey }) => {
+      const family = String(queryKey[0] ?? '');
+      if (options.kind === 'tracking') return /^purchase[-_]/.test(family) || family === 'attention';
+      if (family === 'rates' || family === 'shop-freight-default') return options.kind === 'pricing';
+      return isCommerceQuery(queryKey)
+        && !(options.shelfRowsReconciled && isAdminProductList(queryKey))
+        && !rowsOnly(queryKey);
+    },
   });
   await Promise.all(reconciled.map(({ shelf, reconcile }) => readRows(shelf, reconcile, ids)));
 }

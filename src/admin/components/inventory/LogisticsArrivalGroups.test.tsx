@@ -57,11 +57,11 @@ describe('direct grouped logistics actions', () => {
   });
   it('marks a grouped shipment ready without implying dispatch or stock receipt', () => {
     const html = renderToStaticMarkup(<LogisticsCreateShipment data={{ orders: [{ ...order, logistics_arrived_at: '2026-10-28' }], shipments: [], services: [] }} busy={false} mutate={async action => { await action(); }}/>);
-    expect(html).toContain('Ready to send');
+    expect(html).toContain('Prepare shipment');
     expect(html).toContain('Select all');
     expect(html).toContain('Ready purchase from Mountain tea, SF100');
-    expect(html).toContain('Mark selected ready');
-    expect(html).toContain('Dispatch and verified studio arrival are recorded separately.');
+    expect(html).toContain('Save draft');
+    expect(html).toContain('Dispatch when the shipment leaves the warehouse.');
     expect(html).toContain('type="number"');
   });
 });

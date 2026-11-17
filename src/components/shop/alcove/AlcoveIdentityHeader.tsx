@@ -26,12 +26,6 @@ interface AlcoveIdentityHeaderProps {
    * type uses the plate ink classes rather than the page's text tokens.
    */
   variant?: 'plain' | 'plate';
-  /**
-   * The shop's own sentence about this tea, set in italic under the rule.
-   * Only on the plate, and only when the record carries one: an empty
-   * standfirst is better than an invented one.
-   */
-  standfirst?: string;
   /** How the tea is sold, at the foot of the plate. */
   footNote?: string;
 }
@@ -131,7 +125,6 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
   isAdmin,
   onNavigateSource,
   variant = 'plain',
-  standfirst,
   footNote,
 }) => {
   const onPlate = variant === 'plate';
@@ -196,14 +189,6 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
           />
           <span>{subLine}</span>
         </p>
-      )}
-      {onPlate && standfirst && (
-        <div className="hidden lg:block">
-          <div aria-hidden="true" className="plate-rule mx-auto mt-[38px] h-px w-[34px]" />
-          <p className="plate-ink-body mx-auto mt-8 max-w-[340px] font-body text-ui-17 italic leading-[1.65]">
-            {standfirst}
-          </p>
-        </div>
       )}
       {onPlate && footNote && (
         <p className="plate-ink-sec absolute inset-x-0 bottom-[58px] m-0 hidden font-sans text-ui-10 uppercase tracking-[0.22em] tabular-nums lg:block">

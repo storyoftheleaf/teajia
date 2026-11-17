@@ -9,6 +9,7 @@ export function normalizeAdminProductTastingSource(value: unknown): Product['tas
 }
 
 export function mapAdminProduct(p: any): Product {
+  const countedBalance = p.type === 'Teaware' ? p.quantity_units : p.stock_grams;
   return ({
         id: p.id,
         type: inventoryTeaType(p.type),
@@ -61,9 +62,10 @@ export function mapAdminProduct(p: any): Product {
         isFeatured: !!p.is_featured,
         isSample: !!p.is_sample,
         inventoryPurpose: p.inventory_purpose || null,
-        stockKnownAt: p.stock_known_at || null,
+        stockKnownAt: countedBalance != null && Number.isFinite(Number(countedBalance)) ? p.stock_known_at || null : null,
         inventoryLocation: p.storage_location || p.inventory_location || null,
         inTransit: !!p.in_transit,
+        inTransitGrams: p.in_transit_grams == null ? undefined : Number(p.in_transit_grams),
         lore: p.lore || '',
         isCustomWisdom: !!p.is_custom_wisdom,
         showWisdom: p.show_wisdom == null ? true : !!p.show_wisdom,

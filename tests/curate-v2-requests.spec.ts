@@ -881,7 +881,7 @@ test.describe('Curate v2 requests (phone)', () => {
       customers: VENDORS, rates: RATES,
       compassEntries: [entry({ id: 'ph-1', name: 'Photo Tea', form: 'Cake', price_amount: 450, price_currency: 'Yuan', price_per_unit_grams: 357, tasting: tasted })],
     });
-    delayCompassRequests(page, 'POST /api/upload-image', 800);
+    delayCompassRequests(page, 'POST /api/curate/capture-photo', 800);
     const sent = record(page);
     await openCurateV2(page, 'teas');
     await page.getByRole('button', { name: /^Photo Tea/ }).first().click();
@@ -896,7 +896,7 @@ test.describe('Curate v2 requests (phone)', () => {
     expect(synced(sent).get('ph-1')).toMatchObject({ price_amount: 450, price_currency: 'Yuan', price_per_unit_grams: 357, form: 'Cake' });
 
     // A third that the shop does not take: said in a sentence (the first two stay), and tried again from the same picture.
-    failCompassRequests(page, 'POST /api/upload-image', 1);
+    failCompassRequests(page, 'POST /api/curate/capture-photo', 1);
     await input.setInputFiles({ name: 'three.png', mimeType: 'image/png', buffer: png });
     const failed = overlay(page).getByTestId('photo-upload-failed');
     await expect(failed).toBeVisible({ timeout: 15_000 });

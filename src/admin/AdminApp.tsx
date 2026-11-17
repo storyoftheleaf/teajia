@@ -268,9 +268,9 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   const privateScope = usePrivateQueryScope();
   const [scopeAccount, scopeUser, scopeRevision] = privateScope.key;
   useEffect(() => {
-    if (!isMember || !privateScope.ready) return;
+    if (!isMember || !hasGatherBundle || !privateScope.ready) return;
     queryClient.prefetchQuery(eventsListQueryOptions([scopeAccount, scopeUser, scopeRevision]));
-  }, [isMember, privateScope.ready, scopeAccount, scopeUser, scopeRevision, queryClient]);
+  }, [isMember, hasGatherBundle, privateScope.ready, scopeAccount, scopeUser, scopeRevision, queryClient]);
 
   // Listen for session expiry (401 responses clear the token in api.ts)
   useEffect(() => {

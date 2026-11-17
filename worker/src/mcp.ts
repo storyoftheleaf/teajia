@@ -1,3 +1,5 @@
+import { hasPublicStatus } from '../../src/lib/productPublication';
+import { checkNewProductPublication, checkProductPublication, openingStockKnownAt, writeProductPublication } from './productPublication';
 import { logisticsTrackingTools } from './mcpTools/logisticsTracking';
 import { logisticsTools } from './mcpTools/logistics';
 // MCP server for Teajia — voice/agent control of this account's inventory.
@@ -735,8 +737,10 @@ type NewTeaInput = {
   originRegion: string | null;
   vendor: string | null;
   stockGrams: number;
+  stockKnownAt?: string | null;
+  publish?: boolean;
   costAmount: number;
-  costCurrency: string;
+  costCurrency: string | null;
   /* NULL means Adrian did not say, so the tea follows the shop rate (85 Yuan/kg
      as of 2026-09) and keeps following it when he renegotiates. A number pins
      this tea, in its OWN cost currency, which is the same rule the column has
@@ -792,7 +796,9 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
 
   const productName = String(args?.product_name ?? args?.name ?? '').trim();
   if (!productName) throw new Error('product_name is required');
-  const stockGrams = Math.max(0, Math.round(Number(args?.stock_grams ?? args?.grams ?? 0) || 0));
+  const enteredStock = args?.stock_grams ?? args?.grams;
+  const stockKnownAt = openingStockKnownAt({ stock_grams: enteredStock });
+  const stockGrams = stockKnownAt ? Math.round(Number(enteredStock)) : 0;
 
   /* Resolved through the same vocabulary `authorizeInvoiceLines` reads, not
      asked whether it merely looks like a string. An omitted type used to
@@ -830,9 +836,10 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
   if (shippingRatePerKg !== null && !Number.isFinite(shippingRatePerKg)) {
     throw new Error('shipping_rate_per_kg must be a number, or left out to follow the shop rate');
   }
-  const fixedRetailPriceUsd = args?.fixed_retail_price_usd == null
-    ? null
-    : Math.max(0, Number(args.fixed_retail_price_usd) || 0);
+  const fixedRetailPriceUsd = args?.fixed_retail_price_usd ?? null;
+  if (fixedRetailPriceUsd !== null && (
+    typeof fixedRetailPriceUsd !== 'number' || !Number.isFinite(fixedRetailPriceUsd) || fixedRetailPriceUsd < 0
+  )) throw new Error('fixed_retail_price_usd must be a number >= 0');
   const lowStockThreshold = Math.max(0, Math.round(Number(args?.low_stock_threshold ?? 100) || 0));
   /* Belt and braces: the rule above already refuses an unstated currency on
      create, and this is the same shared rule the update path uses. Keeping the
@@ -853,6 +860,7 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
     originRegion: args?.origin_region ? String(args.origin_region).trim() : null,
     vendor: args?.vendor ? String(args.vendor).trim() : null,
     stockGrams,
+    stockKnownAt,
     costAmount,
     /* No `|| 'USD'`. A tea created with a cost and no currency used to be
        stored as dollars on the agent's say-so, which is the one door where
@@ -872,13 +880,24 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
     status: args?.status ? String(args.status).trim() : 'Active',
   };
 
+  const refusal = await checkNewProductPublication(env, auth.accountId, newTeaPublicationColumns(product));
+  product.publish = !refusal && hasPublicStatus(product.status);
   const token = await issueConfirmationToken(env, {
     kind: 'create_tea', accountId: auth.accountId, userEmail: auth.userEmail, product,
   }, auth.tokenId);
   return {
-    preview: { action: 'create_tea', product },
+    preview: { action: 'create_tea', product, ...(refusal ? { publication_refusal: refusal } : {}) },
     confirmation_token: token,
     expires_in_seconds: PENDING_TTL_MS / 1000,
+  };
+}
+
+function newTeaPublicationColumns(product: NewTeaInput) {
+  return {
+    type: product.type, given_name: product.givenName, product_name: product.productName,
+    stock_grams: product.stockGrams, stock_known_at: product.stockKnownAt,
+    fixed_retail_price_usd: product.fixedRetailPriceUsd, quantity_purchased: product.stockGrams,
+    cost_amount: product.costAmount, cost_currency: product.costCurrency, shipping_rate_per_kg: product.shippingRatePerKg,
   };
 }
 
@@ -888,7 +907,7 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
 // supplies. Teaware is never created through this tool, so no teaware branch.
 function buildCreateTeaMirrorInserts(
   env: Env, productId: string, m: Extract<PendingMutation, { kind: 'create_tea' }>,
-  costCurrencySource: string | null,
+  costCurrencySource: string | null, publicFlag: number,
 ): D1PreparedStatement[] {
   const p = m.product;
   const baseSlug = String(p.productName + (p.year ? `-${p.year}` : '') || productId)
@@ -898,7 +917,7 @@ function buildCreateTeaMirrorInserts(
   const profileStatus = p.status === 'Archived' ? 'archived'
     : p.status === 'Draft' ? 'draft'
     : 'published';
-  const listingStatus = p.status === 'Archived' ? 'archived' : 'active';
+  const listingStatus = p.status === 'Archived' ? 'archived' : p.status === 'Draft' ? 'draft' : 'active';
 
   return [
     env.DB.prepare(`
@@ -914,7 +933,7 @@ function buildCreateTeaMirrorInserts(
       p.productName, p.chineseName, p.type, p.form,
       p.originCountry, p.originRegion, p.year,
       p.notes, '[]', '[]',
-      1, profileStatus,
+      publicFlag, profileStatus,
     ),
     env.DB.prepare(`
       INSERT INTO product_listings (
@@ -924,9 +943,9 @@ function buildCreateTeaMirrorInserts(
         vendor, cost_amount, cost_currency, cost_currency_source,
         shipping_rate_per_kg,
         quantity_purchased,
-        is_public, status,
+        is_public, shown_in_shop, stock_known_at, status,
         tasting, legacy_product_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       `list_${productId}`, m.accountId, `prof_${productId}`,
       p.stockGrams, p.lowStockThreshold,
@@ -950,13 +969,18 @@ function buildCreateTeaMirrorInserts(
          omits it, and 0 is Adrian saying this one ships for nothing. */
       p.shippingRatePerKg,
       p.stockGrams,
-      1, listingStatus,
+      publicFlag, publicFlag, p.stockKnownAt ?? null, listingStatus,
       '{}', productId,
     ),
   ];
 }
 
 async function commitCreateTea(env: Env, m: Extract<PendingMutation, { kind: 'create_tea' }>) {
+  if (m.product.publish) {
+    const refusal = await checkNewProductPublication(env, m.accountId, newTeaPublicationColumns(m.product));
+    if (refusal) return refusal;
+  }
+  const publicFlag = m.product.publish ? 1 : 0;
   const id = crypto.randomUUID();
   const cols: Record<string, any> = {
     id,
@@ -973,6 +997,9 @@ async function commitCreateTea(env: Env, m: Extract<PendingMutation, { kind: 'cr
     status: m.product.status,
     vendor: m.product.vendor,
     stock_grams: m.product.stockGrams,
+    stock_known_at: m.product.stockKnownAt ?? null,
+    is_public: publicFlag,
+    shown_in_shop: publicFlag,
     cost_amount: m.product.costAmount,
     cost_currency: m.product.costCurrency,
     quantity_purchased: m.product.stockGrams,
@@ -1009,7 +1036,7 @@ async function commitCreateTea(env: Env, m: Extract<PendingMutation, { kind: 'cr
     env.DB.prepare(
       `INSERT INTO products (${names.join(', ')}) VALUES (${names.map(() => '?').join(', ')})`
     ).bind(...names.map(name => cols[name])),
-    ...buildCreateTeaMirrorInserts(env, id, m, costCurrencySource),
+    ...buildCreateTeaMirrorInserts(env, id, m, costCurrencySource, publicFlag),
   ];
 
   if (m.product.stockGrams > 0) {
@@ -1044,6 +1071,7 @@ async function commitCreateTea(env: Env, m: Extract<PendingMutation, { kind: 'cr
   return {
     committed: true,
     action: 'create_tea',
+    is_public: Boolean(publicFlag),
     product: row ? productSummary(row) : { id, product_name: m.product.productName },
   };
 }
@@ -3674,6 +3702,8 @@ async function toolSetArchiveStatus(env: Env, auth: McpAuth, args: any) {
   const newStatus = archived ? 'Archived' : 'Active';
 
   if (!confirm) {
+    const { refusal } = await checkProductPublication(env, auth.accountId, productId, { status: newStatus });
+    if (refusal) return refusal;
     const token = await issueConfirmationToken(env, {
       kind: 'set_archive_status', accountId: auth.accountId, userEmail: auth.userEmail,
       productId, archived, reason,
@@ -3709,14 +3739,22 @@ async function commitSetArchiveStatus(
 ) {
   const newStatus = m.archived ? 'Archived' : 'Active';
   const newListingStatus = m.archived ? 'archived' : 'active';
+  const { refusal, assertion, clearDraftVisibility } = await checkProductPublication(env, m.accountId, m.productId, { status: newStatus });
+  if (refusal) return refusal;
 
-  await env.DB.batch([
+  const conflict = await writeProductPublication(env, [
     env.DB.prepare(
-      "UPDATE products SET status = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?"
-    ).bind(newStatus, m.productId, m.accountId),
+      `UPDATE products SET status = ?,
+        is_public = CASE WHEN ? THEN 0 ELSE is_public END,
+        shown_in_shop = CASE WHEN ? THEN 0 ELSE shown_in_shop END,
+        updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+    ).bind(newStatus, clearDraftVisibility ? 1 : 0, clearDraftVisibility ? 1 : 0, m.productId, m.accountId),
     env.DB.prepare(
-      "UPDATE product_listings SET status = ?, updated_at = datetime('now') WHERE id = ?"
-    ).bind(newListingStatus, `list_${m.productId}`),
+      `UPDATE product_listings SET status = ?,
+        is_public = CASE WHEN ? THEN 0 ELSE is_public END,
+        shown_in_shop = CASE WHEN ? THEN 0 ELSE shown_in_shop END,
+        updated_at = datetime('now') WHERE account_id = ? AND (legacy_product_id = ? OR id = ?)`
+    ).bind(newListingStatus, clearDraftVisibility ? 1 : 0, clearDraftVisibility ? 1 : 0, m.accountId, m.productId, `list_${m.productId}`),
     env.DB.prepare(
       `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
        VALUES (?, 'ARCHIVE_STATUS_SET_MCP', ?, ?, 'product', ?, ?)`
@@ -3725,7 +3763,8 @@ async function commitSetArchiveStatus(
       `Product "${productName}" ${m.archived ? 'archived' : 'unarchived'} via MCP${m.reason ? ': ' + m.reason : ''}`,
       m.userEmail, m.productId, m.accountId,
     ),
-  ]);
+  ], assertion);
+  if (conflict) return conflict;
   return {
     committed: true,
     action: 'set_archive_status',
@@ -3749,23 +3788,32 @@ async function toolSetTeaVisibility(env: Env, auth: McpAuth, args: any) {
 
   if (!productId) throw new Error('product_id is required');
 
-  const product = await env.DB.prepare(
-    'SELECT id, given_name, product_name, status, shown_in_shop FROM products WHERE account_id = ? AND (id = ? OR id LIKE ?)'
-  ).bind(auth.accountId, productId, `${productId}-%`).first() as
-    { id: string; given_name: string | null; product_name: string; status: string | null; shown_in_shop: number | null } | null;
+  const { results } = await env.DB.prepare(
+    `SELECT id, given_name, product_name, status, shown_in_shop FROM products
+      WHERE account_id = ? AND (id = ? OR substr(id, 1, length(?) + 1) = ? || '-')
+      ORDER BY (id = ?) DESC LIMIT 2`
+  ).bind(auth.accountId, productId, productId, productId, productId).all<{
+    id: string; given_name: string | null; product_name: string; status: string | null; shown_in_shop: number | null;
+  }>();
+  const product = results[0];
   if (!product) return { error: 'not_found' };
+  if (product.id !== productId && results.length > 1) return { error: 'ambiguous_product_id' };
 
   const alreadyInTarget = product.shown_in_shop === (shownInShop ? 1 : 0);
 
   if (!confirm) {
+    const { refusal } = await checkProductPublication(env, auth.accountId, product.id, {
+      shownInShop, ...(isPublic === true || personal ? { isPublic: isPublic === true } : {}),
+    });
+    if (refusal) return refusal;
     const token = await issueConfirmationToken(env, {
       kind: 'set_tea_visibility', accountId: auth.accountId, userEmail: auth.userEmail,
-      productId, shownInShop, personal, isPublic,
+      productId: product.id, shownInShop, personal, isPublic,
     }, auth.tokenId);
     return {
       preview: {
         action: 'set_tea_visibility',
-        product: { id: productId, name: product.given_name || product.product_name },
+        product: { id: product.id, name: product.given_name || product.product_name },
         current_shown_in_shop: product.shown_in_shop === 1,
         requested_shown_in_shop: shownInShop,
         marks_personal_collection: personal,
@@ -3779,7 +3827,7 @@ async function toolSetTeaVisibility(env: Env, auth: McpAuth, args: any) {
   }
 
   const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
-  if (!pending || pending.kind !== 'set_tea_visibility' || pending.productId !== productId) {
+  if (!pending || pending.kind !== 'set_tea_visibility' || pending.productId !== product.id) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
   return commitSetTeaVisibility(env, pending, product.given_name || product.product_name);
@@ -3793,32 +3841,33 @@ async function commitSetTeaVisibility(
   const shown = m.shownInShop ? 1 : 0;
   const personal = m.personal ? 1 : 0;
   const publicFlag = m.isPublic === true ? 1 : 0;
-  const idOrPrefix = m.productId;
-  const idLike = `${idOrPrefix}-%`;
+  const { refusal, assertion } = await checkProductPublication(env, m.accountId, m.productId, {
+    shownInShop: m.shownInShop, ...(m.isPublic === true || m.personal ? { isPublic: m.isPublic === true } : {}),
+  });
+  if (refusal) return refusal;
   // When marking personal collection, the tea is also pulled off the public
   // shop (is_public=0) and tagged inventory_purpose='personal', is_personal=1.
   // Passing is_public=true instead raises the public-listing flag (is_public=1)
   // so intake-created Draft items (which finalize sets to is_public=0) can be
   // published by the operator without owner-tier REST auth. Order matters:
   // public=1 wins, otherwise personal=1 zeroes is_public, otherwise unchanged.
-  const inventoryPurpose = m.personal ? 'personal' : null;
-  await env.DB.batch([
+  const conflict = await writeProductPublication(env, [
     env.DB.prepare(
       `UPDATE products SET shown_in_shop = ?,
         is_personal = CASE WHEN ? = 1 THEN 1 ELSE is_personal END,
         is_public = CASE WHEN ? = 1 THEN 1 WHEN ? = 1 THEN 0 ELSE is_public END,
         inventory_purpose = CASE WHEN ? = 1 THEN 'personal' ELSE inventory_purpose END,
         updated_at = datetime('now')
-      WHERE account_id = ? AND (id = ? OR id LIKE ?)`
-    ).bind(shown, personal, publicFlag, personal, personal, m.accountId, idOrPrefix, idLike),
+      WHERE account_id = ? AND id = ?`
+    ).bind(shown, personal, publicFlag, personal, personal, m.accountId, m.productId),
     env.DB.prepare(
       `UPDATE product_listings SET shown_in_shop = ?,
         is_personal = CASE WHEN ? = 1 THEN 1 ELSE is_personal END,
         is_public = CASE WHEN ? = 1 THEN 1 WHEN ? = 1 THEN 0 ELSE is_public END,
         inventory_purpose = CASE WHEN ? = 1 THEN 'personal' ELSE inventory_purpose END,
         updated_at = datetime('now')
-      WHERE id IN (SELECT 'list_' || id FROM products WHERE account_id = ? AND (id = ? OR id LIKE ?))`
-    ).bind(shown, personal, publicFlag, personal, personal, m.accountId, idOrPrefix, idLike),
+      WHERE account_id = ? AND (legacy_product_id = ? OR id = ?)`
+    ).bind(shown, personal, publicFlag, personal, personal, m.accountId, m.productId, `list_${m.productId}`),
     env.DB.prepare(
       `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
        VALUES (?, 'SHOP_VISIBILITY_SET_MCP', ?, ?, 'product', ?, ?)`
@@ -3827,7 +3876,8 @@ async function commitSetTeaVisibility(
       `Product "${productName}" ${m.shownInShop ? 'shown in' : 'hidden from'} shop via MCP${m.personal ? ' and marked personal collection' : ''}${m.isPublic === true ? ' and set public listing' : ''} (status unchanged)`,
       m.userEmail, m.productId, m.accountId,
     ),
-  ]);
+  ], assertion);
+  if (conflict) return conflict;
   return {
     committed: true,
     action: 'set_tea_visibility',
@@ -8015,7 +8065,8 @@ function publicProductSummary(p: ProductRow & { description?: string | null; tas
     year: p.year,
     origin: [p.origin_region, p.origin_country].filter(Boolean).join(', ') || null,
     price_per_gram_usd: p.fixed_retail_price_usd ?? null,
-    in_stock: Number(p.stock_grams || 0) > 0,
+    in_stock: p.status === 'Active'
+      && Number(p.type === 'Teaware' ? (p.quantity_units ?? p.stock_grams) : p.stock_grams) > 0,
     shop_url: `${PUBLIC_SITE_ORIGIN}/shop/product/${p.slug || p.id}`,
   };
 }
@@ -8024,6 +8075,7 @@ const PUBLIC_PRODUCT_COLS =
   `id, slug, given_name, product_name, chinese_name, type, form, year,
    origin_country, origin_region, vendor, stock_grams, quantity_units,
    low_stock_threshold, fixed_retail_price_usd, status`;
+const PUBLIC_SHOP_FLAGS = 'is_public = 1 AND shown_in_shop = 1';
 
 async function publicSearchTea(env: Env, accountId: string, args: any) {
   const query = String(args?.query || '').trim();
@@ -8034,7 +8086,7 @@ async function publicSearchTea(env: Env, accountId: string, args: any) {
   // so an unbounded catalog would let one unauthenticated request full-scan
   // the whole products table (DoS / cost amplification).
   const { results } = await env.DB.prepare(
-    `SELECT ${PUBLIC_PRODUCT_COLS} FROM products WHERE account_id = ? AND status = 'Active' LIMIT 200`
+    `SELECT ${PUBLIC_PRODUCT_COLS} FROM products WHERE account_id = ? AND status = 'Active' AND ${PUBLIC_SHOP_FLAGS} LIMIT 200`
   ).bind(accountId).all();
 
   const scored = (results as unknown as ProductRow[])
@@ -8051,7 +8103,7 @@ async function publicGetTea(env: Env, accountId: string, args: any) {
   if (!id) throw new Error('id is required');
   const p = await env.DB.prepare(
     `SELECT ${PUBLIC_PRODUCT_COLS}, description, tasting_notes
-       FROM products WHERE id = ? AND account_id = ? AND status = 'Active'`
+       FROM products WHERE id = ? AND account_id = ? AND status IN ('Active', 'Sold Out') AND ${PUBLIC_SHOP_FLAGS}`
   ).bind(id, accountId).first() as (ProductRow & { description?: string; tasting_notes?: string }) | null;
   if (!p) return { error: 'not_found' };
 
@@ -8063,7 +8115,7 @@ async function publicGetTea(env: Env, accountId: string, args: any) {
 
 async function publicBrowseCatalog(env: Env, accountId: string, args: any) {
   const limit = Math.min(Math.max(Number(args?.limit) || 30, 1), 100);
-  const wheres = ['account_id = ?', "status = 'Active'"];
+  const wheres = ['account_id = ?', "status = 'Active'", PUBLIC_SHOP_FLAGS];
   const binds: any[] = [accountId];
   if (args?.type) { wheres.push('type = ?'); binds.push(String(args.type)); }
   if (args?.in_stock_only) { wheres.push('stock_grams > 0'); }
@@ -8125,7 +8177,7 @@ async function publicPrepareOrder(env: Env, account: PublicAccount, args: any) {
   // code below, so an unbounded catalog would let one unauthenticated request
   // full-scan the whole products table (DoS / cost amplification).
   const { results: catalog } = await env.DB.prepare(
-    `SELECT ${PUBLIC_PRODUCT_COLS} FROM products WHERE account_id = ? AND status = 'Active' LIMIT 200`
+    `SELECT ${PUBLIC_PRODUCT_COLS} FROM products WHERE account_id = ? AND status = 'Active' AND ${PUBLIC_SHOP_FLAGS} LIMIT 200`
   ).bind(account.id).all();
   const products = catalog as unknown as ProductRow[];
 

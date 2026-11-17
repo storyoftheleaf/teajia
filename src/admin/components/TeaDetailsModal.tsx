@@ -102,7 +102,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
             onClose={onClose}
             isAdmin={isAdmin}
             onEdit={isAdmin && onEdit ? () => handleEdit() : undefined}
-            formatPrice={adminFormatPrice}
+            formatPrice={mappedItem.category === 'tea' ? undefined : adminFormatPrice}
             onTaste={handleTaste}
           />
           {/* Close button */}

@@ -19,6 +19,10 @@ database_id = "57699612-eacc-438d-a18e-63afb6821497"
 binding = "MEDIA_BUCKET"
 bucket_name = "teajia-offline-fixtures-media"
 
+[[r2_buckets]]
+binding = "ATLAS_BUCKET"
+bucket_name = "teajia-offline-fixtures-private"
+
 [[ratelimits]]
 name = "PROVIDER_LIMITER"
 namespace_id = "1005"

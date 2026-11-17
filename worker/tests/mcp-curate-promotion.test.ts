@@ -27,7 +27,7 @@ describe('agent Curate promotion shares the app inventory boundary',()=>{
     expect(one(db,'products')).toBeUndefined(); expect(one(db,'tea_compass_entries')).toEqual(tea);
     const result=await call(db,{confirm:preview.confirmation_token});
     expect(result).toMatchObject({committed:true,alreadyPromoted:false});
-    expect(one(db,'products')).toMatchObject({id:result.id,status:'Draft',is_public:0,shown_in_shop:0,stock_grams:0,cost_amount:null,cost_currency:null,quantity_purchased:null,shipping_rate_per_kg:null,markup_multiplier:null,vendor_id:'vendor',source_compass_entry_id:'tea',chinese_name:'老茶',tea_key:'identity',bag_photo_url:'https://example.com/bag.jpg'});
+    expect(one(db,'products')).toMatchObject({id:result.id,status:'Draft',is_public:0,shown_in_shop:0,stock_grams:0,cost_amount:null,cost_currency:null,quantity_purchased:null,shipping_rate_per_kg:null,markup_multiplier:null,vendor_id:'vendor',source_compass_entry_id:'tea',chinese_name:'老茶',tea_key:'identity',image_url:null,bag_photo_url:null,additional_images:'[]'});
     expect(one(db,'tea_samples')).toEqual(sample);
     expect(one(db,'stock_ledger')).toBeUndefined();
     expect(one(db,'tea_compass_entries').draft_product_id).toBe(result.id);

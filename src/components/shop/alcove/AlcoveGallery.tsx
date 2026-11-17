@@ -5,12 +5,14 @@ interface AlcoveGalleryProps {
   allImages: string[];
   onExpandImage: (url: string) => void;
   itemName?: string;
+  layout?: 'card' | 'page';
 }
 
 export const AlcoveGallery: React.FC<AlcoveGalleryProps> = ({
   allImages,
   onExpandImage,
   itemName = '',
+  layout = 'card',
 }) => {
   if (allImages.length === 0) return null;
 
@@ -31,6 +33,7 @@ export const AlcoveGallery: React.FC<AlcoveGalleryProps> = ({
           onClick={() => onExpandImage(imageUrls[0])}
           aria-label={itemName ? `View ${itemName} larger` : 'View image larger'}
           className="alcove-thumb-btn-single"
+          data-shop-frame={layout === 'page' ? 'page' : undefined}
         >
           <img
             src={imageUrls[0]}

@@ -71,6 +71,12 @@ test('Purchases retries a partial arrival against the same Stock holding before 
   const purchase = page.getByRole('dialog', { name: 'Purchase', exact: true });
   await expect(purchase.getByRole('heading', { name: 'Cloud Oolong' })).toBeVisible();
   await expect(purchase.getByLabel('Logistics company', { exact: true })).toHaveCount(0);
+  await purchase.getByRole('button', { name: 'Assign inbound route', exact: true }).click();
+  const inbound = page.getByRole('dialog', { name: 'Assign inbound route', exact: true });
+  await expect(inbound.getByLabel('Inbound courier', { exact: true })).toBeVisible();
+  await expect(inbound.getByLabel('Inbound tracking', { exact: true })).toBeVisible();
+  await inbound.getByRole('button', { name: 'Done', exact: true }).click();
+  await expect(purchase).toBeVisible();
   await purchase.getByRole('button', { name: 'Edit purchase', exact: true }).click();
   const editor = page.getByRole('dialog', { name: 'Edit purchase', exact: true });
   await expect(editor.getByLabel('Logistics company', { exact: true })).toBeVisible();

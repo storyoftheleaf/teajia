@@ -111,17 +111,17 @@ describe('getTeaReadiness', () => {
 });
 
 describe('publication', () => {
-  it('blocks publishing a selection that contains an incoming-only first arrival', () => {
+  it('allows the eligible part of a mixed selection while blocking the incoming-only arrival', () => {
     const incoming = product({ id: 'incoming', stockGrams: 0, isPublic: false, shownInShop: false });
     const ready = product({ id: 'ready', stockGrams: 100, isPublic: false, shownInShop: false });
 
     expect(isInventorySelectionPublishable([incoming, ready], {
       incoming: { hasOpenIncoming: true, remainingQuantity: 500 },
       ready: { hasOpenIncoming: false, remainingQuantity: 0 },
-    }, 'ready')).toBe(false);
-    expect(isInventorySelectionPublishable([ready], {
-      ready: { hasOpenIncoming: false, remainingQuantity: 0 },
     }, 'ready')).toBe(true);
+    expect(isInventorySelectionPublishable([incoming], {
+      incoming: { hasOpenIncoming: true, remainingQuantity: 500 },
+    }, 'ready')).toBe(false);
   });
 
   it.each(['loading', 'stale', 'error'] as const)(
@@ -207,7 +207,8 @@ describe('inventory lifecycle', () => {
     expect(deriveInventoryStage(product({ stockGrams: 0, isPublic: true, shownInShop: true }), incoming)).toBe('published');
     expect(deriveInventoryStage(product({ stockGrams: 0 }), incoming)).toBe('incoming');
     expect(deriveInventoryStage(product({ stockGrams: 200 }), incoming)).toBe('ready_private');
-    expect(deriveInventoryStage(product({ stockGrams: 200, description: '' }), incoming)).toBe('needs_preparation');
+    expect(deriveInventoryStage(product({ stockGrams: 200, description: '' }), incoming)).toBe('ready_private');
+    expect(deriveInventoryStage(product({ stockGrams: 200, stockKnownAt: null }), incoming)).toBe('needs_preparation');
   });
 
   it('keeps replenishment in its operational stage instead of moving it to incoming', () => {

@@ -42,6 +42,8 @@ export interface LogisticsOrder {
   warehouse_address_id?: string | null;
   warehouse_address?: LogisticsAddress | null;
   purchase_id: string;
+  /** The direct inventory receipt is disabled once a route has been recorded. */
+  managed?: boolean;
   receipt_id: string | null;
   vendor_name: string | null;
   logistics_company_id: string | null;
@@ -72,6 +74,24 @@ export interface LogisticsShipmentLine {
   original_cost_currency: string | null;
   allocated_freight: number | null;
 }
+export interface StudioReceiptReferralInput {
+  idempotency_key: string;
+  reason: string;
+  source_reference: string;
+  observed_quantity: number | null;
+}
+export interface StudioReceiptReferral extends Omit<StudioReceiptReferralInput, 'idempotency_key'> {
+  id: string;
+  shipment_id: string;
+  line_id: string;
+  recorded_by: string;
+  recorded_by_name: string;
+  recorded_at: string;
+  resolved_by: string | null;
+  resolved_by_name: string | null;
+  resolved_at: string | null;
+  resolution: string | null;
+}
 export interface LogisticsShipment {
   tracking_update?: LogisticsTrackingSnapshot | null;
   delivery_address_id?: string | null;
@@ -92,6 +112,7 @@ export interface LogisticsShipment {
   freight_total: number | null;
   freight_estimated: boolean;
   freight_issue: string | null;
+  studio_referrals?: StudioReceiptReferral[];
   studio_receipts?: Array<{id:string;line_id:string;ledger_id:string;quantity:number;received_at:string;recorded_by:string|null}>;
   lines: LogisticsShipmentLine[];
 }

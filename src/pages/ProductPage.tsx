@@ -19,7 +19,7 @@ import { useAppStore } from '../lib/store';
 import { buildPublicProductHref, findProductByRouteParam, resolveInventoryStoreSlug } from '../lib/publicProductNavigation';
 import { fetchStore, fetchStoreProduct } from '../lib/storefrontApi';
 import { resolveContactChannels } from '../lib/contact';
-import { LABEL, NUMERAL } from '../components/shared/typeRoles';
+import { ProductOrderAccess } from '../components/shop/ProductOrderAccess';
 import { quoteGrams, sellUnitOf, wholePieceOf } from '../lib/teaPricing';
 import { useProducts } from '../admin/hooks/useAdminData';
 import { api } from '../lib/api';
@@ -31,29 +31,6 @@ interface ProductPageProps {
   onAddToCart?: (item: InventoryItem, qty: number, total: number) => void;
   onCartClick?: () => void;
   cartItemCount?: number;
-}
-
-interface ProductOrderAccessProps {
-  onCartClick?: () => void;
-  cartItemCount: number;
-}
-
-export function ProductOrderAccess({ onCartClick, cartItemCount }: ProductOrderAccessProps) {
-  if (!onCartClick || cartItemCount <= 0) return null;
-
-  const itemLabel = cartItemCount === 1 ? 'item' : 'items';
-  return (
-    <button
-      type="button"
-      onClick={onCartClick}
-      aria-label={`Open order with ${cartItemCount} ${itemLabel}`}
-      className={`${LABEL} tap-target inline-flex shrink-0 items-center gap-2 text-tea-text-sec transition-colors hover:text-tea-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50`}
-    >
-      <Icons.Bag className="h-4 w-4" aria-hidden="true" />
-      <span>View order</span>
-      <span className={`normal-case text-tea-gold ${NUMERAL}`}>{cartItemCount}</span>
-    </button>
-  );
 }
 
 /**
@@ -479,32 +456,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
             </>
           )}
         </Link>
-        {/* The way to the order. As plain caps at the far corner it read as a
-            crumb rather than a control and was routinely missed, so it carries
-            a tint, the bag, and a filled count that is the only solid shape in
-            the bar. */}
-        {onCartClick && (
-          <button
-            type="button"
-            onClick={onCartClick}
-            aria-label={
-              cartItemCount > 0
-                ? `Open order with ${cartItemCount} ${cartItemCount === 1 ? 'item' : 'items'}`
-                : 'Open order'
-            }
-            className="tap-target inline-flex shrink-0 items-center gap-[9px] bg-tea-gold/10 py-2 pl-3 pr-2.5 font-sans text-ui-11 font-medium uppercase tracking-[0.14em] text-tea-text transition-colors hover:bg-tea-gold/[0.17]"
-          >
-            <Icons.Bag className="h-[15px] w-[15px] shrink-0 text-tea-gold-lt" aria-hidden="true" />
-            <span>View order</span>
-            {cartItemCount > 0 && (
-              <span
-                className={`cta-solid inline-flex h-[19px] min-w-[19px] items-center justify-center px-1 text-ui-11 font-semibold ${NUMERAL}`}
-              >
-                {cartItemCount}
-              </span>
-            )}
-          </button>
-        )}
+        <ProductOrderAccess onCartClick={onCartClick} cartItemCount={cartItemCount} />
       </div>
 
       {/* The quiet page: same blocks and behaviors as the modal card */}
@@ -516,11 +468,6 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
         onTaste={handleTaste}
         publicHref={productHref}
         availabilityContact={availabilityContact || undefined}
-        orderAccess={
-          onCartClick && cartItemCount > 0
-            ? <ProductOrderAccess onCartClick={onCartClick} cartItemCount={cartItemCount} />
-            : undefined
-        }
         onOpenOrder={onCartClick}
         isAdmin={isAdmin}
         onEditProductTasting={isAdmin ? (editItem) => setAdminTastingItem(editItem) : undefined}

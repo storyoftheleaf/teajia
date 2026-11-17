@@ -87,7 +87,8 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname;
     const accountId = route.request().headers()['x-teajia-account'] ?? 'acct-bali';
-    const requestKey = `${route.request().method()} ${path}`;
+    const capturePhoto = /^\/api\/curate\/capture\/[^/]+\/photos\/[^/]+$/.test(path);
+    const requestKey = `${route.request().method()} ${capturePhoto ? '/api/curate/capture-photo' : path}`;
     const counts = requestCounts.get(page)!;
     counts.set(requestKey, (counts.get(requestKey) ?? 0) + 1);
     // The fake Compass login is not a verified Read editor session. Match the
@@ -277,7 +278,7 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     }
     if (/^\/api\/curate\/todos\/[^/]+\/done$/.test(path) && route.request().method() === 'POST') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ done: true }) });
     if (requestKey === 'POST /api/curate/said/file') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ parts: options?.saidParts ?? [] }) });
-    if (requestKey === 'POST /api/upload-image') { uploads += 1; return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ url: `https://img.test/upload-${uploads}.jpg` }) }); }
+    if (requestKey === 'POST /api/curate/capture-photo' || requestKey === 'POST /api/upload-image') { uploads += 1; return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ url: `https://img.test/upload-${uploads}.jpg` }) }); }
     if (requestKey === 'POST /api/curate/drive/save') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ copied: 2, teas: 1 }) });
     if (requestKey === 'POST /api/purchase-orders') {
       const input = route.request().postDataJSON() as Record<string, any>;

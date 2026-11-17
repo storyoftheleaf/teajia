@@ -18,9 +18,9 @@ async function bridge(db: SqliteD1, e = entry(), input: Record<string, any> = {}
   db.batch(out.statements as any); return out;
 }
 describe('Curate sample bridge on stored SQL', () => {
-  it.each(['schema','migrations'] as const)('creates linked portions on %s with vendor, photos and explicit zero grams', async shape => {
+  it.each(['schema','migrations'] as const)('creates linked portions on %s with vendor and explicit zero grams while source photos stay private', async shape => {
     const db = setup(shape); insert(db); await bridge(db, entry(), { state: 'received', grams: 0 });
-    expect(readSample(db)).toMatchObject({ compass_entry_id: 'tea', source_id: 'vendor', status: 'received', grams: 0, photos: entry().photos });
+    expect(readSample(db)).toMatchObject({ compass_entry_id: 'tea', source_id: 'vendor', status: 'received', grams: 0, photos: '[]' });
     expect(db.sqlite.prepare("SELECT sample_state,sample_set_id FROM tea_compass_entries WHERE id='tea'").get()).toMatchObject({ sample_state: 'received', sample_set_id: readSample(db).set_id });
   });
   it('simultaneously prepared writes and retries create one sample and vendor batch', async () => {
@@ -116,8 +116,11 @@ describe('agent inputs stay previewed and confirmed', () => {
     const db=setup(); const preview=await confirm(db,'curate_add_tea',{name:'tea',sample_state:'received',vendor_id:'vendor',photos:['https://media.teajia.co/one.jpg']});
     expect(JSON.stringify(preview)).toContain('not measured'); const tea=db.sqlite.prepare('SELECT id FROM tea_compass_entries').get() as any;
     await confirm(db,'curate_update_tea',{tea_id:tea.id,photos:['https://media.teajia.co/two.jpg'],sample_grams:0});
-    expect(JSON.parse(readSample(db).photos)).toHaveLength(2); expect(readSample(db).grams).toBe(0);
-    await confirm(db,'curate_update_tea',{tea_id:tea.id,photos:[],photos_mode:'replace'}); expect(readSample(db).photos).toBe('[]');
+    const source = () => db.sqlite.prepare('SELECT photos FROM tea_compass_entries WHERE id=?').get(tea.id) as { photos: string };
+    expect(JSON.parse(source().photos)).toHaveLength(2);
+    expect(readSample(db)).toMatchObject({ grams: 0, photos: '[]' });
+    await confirm(db,'curate_update_tea',{tea_id:tea.id,photos:[],photos_mode:'replace'});
+    expect(source().photos).toBe('[]');
   });
   it('refuses non-hosted photos before issuing a mutation', async () => {
     const db=setup(); await expect(curateIntakeTools.handlers.curate_add_tea({DB:db} as any,auth,{name:'tea',photos:['data:image/png;base64,x']})).rejects.toThrow(/HTTPS/);

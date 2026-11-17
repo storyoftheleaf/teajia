@@ -1,5 +1,5 @@
+import { CapturePhotoImage } from '../curate/CapturePhotoImage';
 import React, { useMemo, useState } from 'react';
-import { mediaUrl } from '../../lib/mediaUrl';
 import { Search, X, Trash2, ListChecks, SlidersHorizontal, ArrowDownWideNarrow, ChevronDown } from 'lucide-react';
 import { SessionReview } from './SessionReview';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
@@ -90,7 +90,7 @@ const PhotoTile: React.FC<{
     <div className={`rounded-xl bg-tea-surface/60 overflow-hidden ${isSelected ? 'ring-1 ring-tea-gold/40' : ''}`}>
       <button type="button" onClick={() => onOpen(entry.id)} className="relative block w-full aspect-square">
         {photo ? (
-          <img src={mediaUrl(photo)} alt={title} loading="lazy" className="w-full h-full object-cover" />
+          <CapturePhotoImage src={photo} alt={title} loading="lazy" className="w-full h-full object-cover" />
         ) : (
           <span className="w-full h-full flex items-center justify-center bg-tea-elevated px-3">
             <span className="font-serif text-ui-16 text-tea-text-sec text-center leading-snug">{title}</span>

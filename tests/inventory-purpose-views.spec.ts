@@ -65,6 +65,7 @@ async function install(page: Page) {
   await page.route('**/api/accounts/acct', r => r.fulfill({ json: { id: 'acct', name: 'Test', slug: 'test' } }));
   await page.route('**/api/batches**', r => r.fulfill({ json: [] }));
   await page.route('**/api/inventory/receipts**', r => r.fulfill({ json: [] }));
+  await page.route('**/api/inventory/summaries', r => r.fulfill({ json: { summaries: [] } }));
   for (const endpoint of ['admin/events', 'compass/incoming', 'user/favorites', 'tea-discovery', 'tasting-journal', 'notes', 'customers']) {
     await page.route(`**/api/${endpoint}**`, r => r.fulfill({ json: [] }));
   }
@@ -150,12 +151,39 @@ test('readiness names omissions and publication remains an independent dual gate
   await selectView(page, 'Needs development');
   await page.locator('tr[data-product-id="needs"]').dispatchEvent('click');
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit', exact: true }).click();
-  await expect(page.getByText('Missing description, retail price, classification, and stock amount')).toBeVisible();
+  await expect(page.getByText('Details needed: description, retail price, classification, and stock amount')).toBeVisible();
+
   // A tea already linked to its Curate record opens that shared record rather than
   // starting a new development (Develop in Curate is for unlinked teas only).
   await expect(page.getByTestId('inventory-open-tea-record')).toHaveAttribute('data-compass-entry-id', 'entry-needs');
-  await expect(page.getByText('Publication: Hidden, listing off; location held')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Shop publication' }).getByText('Private · listing off', { exact: true })).toBeVisible();
   await expect(page.getByText(/\d+%/)).toHaveCount(0);
+  await page.getByRole('button', { name: 'Review listing', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Review listing' }).getByText('Complete before publishing: type, counted stock.')).toBeVisible();
+});
+
+test('listing review quotes the buyer total including handling and groups it with available stock', async ({ page }) => {
+  await selectView(page, 'Working');
+  await page.locator('tr[data-product-id="ready-hidden"]').dispatchEvent('click');
+  await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit', exact: true }).click();
+  await page.getByRole('button', { name: 'Review listing', exact: true }).click();
+  const review = page.getByRole('dialog', { name: 'Review listing' });
+  await expect(review.getByRole('group', { name: 'Buyer price' })).toContainText('80 g');
+  await expect(review.getByRole('combobox', { name: 'Preview amount' })).toHaveValue('50');
+  await expect(review.getByTestId('listing-buyer-total')).toHaveText('$22');
+  await expect(review.getByText('Tea $20.00 · Handling $2.00', { exact: true })).toBeVisible();
+  await review.getByRole('combobox', { name: 'Preview amount' }).selectOption('25');
+  await expect(review.getByTestId('listing-buyer-total')).toHaveText('$12');
+});
+
+test('publishes the eligible part of a mixed Stock selection', async ({ page }) => {
+  await selectView(page, 'Working');
+  await page.locator('tr[data-product-id="ready-hidden"]').dispatchEvent('click');
+  await page.locator('tr[data-product-id="needs"]').dispatchEvent('click', { ctrlKey: true });
+  await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Publish selection' }).click();
+  await expect(page.getByText('Public listing enabled for 1. Failed 1. Complete before publishing: type, counted stock.')).toBeVisible();
+  expect(updateRequests.filter(request => request.url.endsWith('/publication')))
+    .toEqual([{ url: expect.stringContaining('/ready-hidden/publication'), body: { is_public: true } }]);
 });
 
 test('purpose control replaces holding classification while sample-size offering stays separate', async ({ page }) => {
@@ -165,8 +193,8 @@ test('purpose control replaces holding classification while sample-size offering
   await expect(page.getByRole('button', { name: 'Working purpose' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'Sample-size offering' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Mine' })).toHaveCount(0);
-  await expect(page.getByText('Readiness: Ready')).toBeVisible();
-  await expect(page.getByText('Publication: Hidden, listing off; location held')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Review listing', exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Shop publication' }).getByText('Private · listing off', { exact: true })).toBeVisible();
 });
 
 test('action views include tasting, reorder, and missing location', async ({ page }) => {

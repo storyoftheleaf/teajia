@@ -1,3 +1,4 @@
+import { TeaCupIcon } from '../shared/TeaCupIcon';
 import { TeaCardMetric, TeaCardMetrics } from '../tea/TeaCard';
 import { TeaPanelSummary } from '../tea/TeaPanelSummary';
 import { getThemeColor } from '../../admin/themeUtils';
@@ -17,9 +18,9 @@ import { TeaRecordAssistant } from './TeaRecordAssistant';
 import { PhotoCapture } from './PhotoCapture';
 import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 import { useNavigate } from 'react-router-dom';
-import { Droplets, Share2, Star, Trash2, X } from 'lucide-react';
+import { Pencil, Share2, Star, Trash2, X } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
-import { useAppStore } from '../../lib/store';
+import { selectHasBundle, selectIsOwnerTier, useAppStore } from '../../lib/store';
 import { useNotesStore } from '../../lib/notesStore';
 import { syncNotes } from '../../lib/notesSync';
 import { AddToSampleButton } from '../samples/AddToSampleButton';
@@ -56,6 +57,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   const accountScopeId = useTeaCompassStore(s => s.accountScopeId);
   const accountScopeRevision = useTeaCompassStore(s => s.accountScopeRevision);
   const userId = useAppStore(s => s.activeUserId);
+  const canTrackOrder = useAppStore(s => selectIsOwnerTier(s) || selectHasBundle(s, 'stock'));
   const updateEntry = (id: string, patch: Parameters<ReturnType<typeof useTeaCompassStore.getState>['updateEntry']>[1]) => {
     const store = useTeaCompassStore.getState();
     if (store.accountScopeId !== accountScopeId || store.accountScopeRevision !== accountScopeRevision) return;
@@ -63,29 +65,60 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   };
   const removeEntry = useTeaCompassStore(s => s.removeEntry);
   const allNotes = useNotesStore(s => s.notes);
-  const ledgerTransactions = useLedgerStore(s => s.transactions);
-  const ledgerAccountId = useLedgerStore(s => s.accountScopeId);
-  const transactions = ledgerAccountId === accountScopeId ? ledgerTransactions : [];
   const purchases = useLibraryPurchases();
   const stockProducts = useProducts({ enabled: !previewEntry });
   const [tastingOpen, setTastingOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [activeSection, setActiveSection] = useState('tea');
   const [moreFieldsOpen, setMoreFieldsOpen] = useState(false);
+  const [quoteOpen, setQuoteOpen] = useState(false);
   const materialRef = useRef<HTMLElement>(null);
   const [newNote, setNewNote] = useState('');
   const [noteMessage, setNoteMessage] = useState('');
-  useEffect(() => { setConfirmDelete(false); setNewNote(''); setNoteMessage(''); setActiveSection('tea'); setMoreFieldsOpen(false); }, [entryId, accountScopeRevision]);
+  useEffect(() => { setConfirmDelete(false); setNewNote(''); setNoteMessage(''); setActiveSection('tea'); setMoreFieldsOpen(false); setQuoteOpen(false); }, [entryId, accountScopeRevision]);
   if (!entry) return null;
   const stockProductId = sharedStockRecordId(entry, stockProducts.data || []);
+  const stockProduct = stockProducts.data?.find(product => product.id === stockProductId);
+  const workingStock = stockProduct && (stockProduct.inventoryPurpose != null
+    ? stockProduct.inventoryPurpose === 'working' : !stockProduct.isSample && !stockProduct.isPersonal);
+  const countedWorkingStock = workingStock && (stockProduct.stockKnownAt != null
+    || stockProduct.isPublic || stockProduct.shownInShop);
   const validPhotos = (entry.photos || []).filter(Boolean);
   const notes = allNotes.filter(note => !note.deleted && note.accountId === accountScopeId && (note.compassEntryId === entry.id || (!!entry.teaKey && note.teaKey === entry.teaKey)));
-  const purchase = purchases.stateFor({ entryId: entry.id, productId: entry.draftProductId, chosen: entry.decision === 'selected' });
-  const purchaseLabel = purchaseStateLabel(purchase);
+  const purchase = purchases.stateFor({ entryId: entry.id, productId: stockProductId ?? entry.draftProductId, chosen: entry.decision === 'selected' });
+  const purchaseLabel = purchase.status === 'chosen' ? '' : purchaseStateLabel(purchase);
+  const matchingOrders = purchases.orders.filter(order => !['cancelled', 'received', 'draft'].includes(order.status)
+    && order.items.some(item => item.compassEntryId === entry.id || (!!stockProductId && item.productId === stockProductId)));
+  const trackOrder = canTrackOrder ? matchingOrders.reduce<typeof matchingOrders[number] | undefined>(
+    (latest, order) => !latest || order.updatedAt > latest.updatedAt ? order : latest, undefined) : undefined;
+  const purchaseHref = trackOrder ? `/admin/purchase-orders?purchaseId=${encodeURIComponent(trackOrder.id)}` : undefined;
+  const sampleReceipts = (purchases.receiptProposals ?? []).filter(receipt => receipt.compass_entry_id === entry.id
+    && receipt.purpose === 'sample' && receipt.status === 'accepted');
   const openLedger = () => {
     if (purchase.draftTransactionId) useLedgerStore.getState().setActiveTransaction(purchase.draftTransactionId);
-    navigate('/admin/compass?tab=ledger');
+    navigate('/admin/compass?tab=ledger', { state: { reviewDraftId: purchase.draftTransactionId } });
   };
+  const openStock = () => {
+    if (stockProductId) {
+      if (onOpenInventory) onOpenInventory(stockProductId);
+      else navigate(sharedStockRecordHref(stockProductId));
+    }
+  };
+  const orderLabel = entry.category === 'teaware' ? 'Order this piece' : 'Order shop stock';
+  const nextAction = previewEntry ? null : purchase.draftTransactionId ? { label: 'Review supplier order', run: openLedger }
+    : countedWorkingStock && stockProduct?.status !== 'Archived'
+      ? { label: stockProduct?.isPublic && stockProduct?.shownInShop ? 'View in Stock' : 'Review Shop listing', run: openStock }
+      : purchaseHref ? { label: 'Open supplier order', run: () => navigate(purchaseHref) }
+        : onAcquire && !purchases.isLoading && !purchases.isError ? { label: orderLabel, run: () => onAcquire(entry.id) } : null;
+  const orderCheck = purchases.isError ? 'Couldn’t check orders' : purchases.isLoading ? 'Checking orders…' : '';
+  const showPurchaseSummary = sampleReceipts.length > 0 || !!purchaseLabel || !previewEntry;
+  const purchaseSummary = showPurchaseSummary && <div className="flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-1" aria-label="Next step for this tea" role="group">
+    <div className="space-y-1 text-ui-12 text-tea-text-sec">
+      {sampleReceipts.map(receipt => <div key={receipt.id}>Private sample received · {receipt.quantity.toLocaleString()} {receipt.unit === 'g' ? 'g' : 'pcs'}</div>)}
+      {purchaseLabel ? <div>{purchaseLabel}</div> : !sampleReceipts.length && <div>{orderCheck || 'No supplier order yet'}</div>}
+    </div>
+    {nextAction ? <button type="button" onClick={nextAction.run} className="tap-target min-h-11 rounded-md cta-solid px-3 text-ui-12 font-semibold">{nextAction.label}</button> : sampleReceipts.length > 0 && orderCheck && <span className="text-ui-12 text-tea-text-sec" role="status">{orderCheck}</span>}
+  </div>;
   const addNote = () => {
     const text = newNote.trim();
     if (!text || !accountScopeId || !userId || (useAppStore.getState().activeAccountId !== accountScopeId || useAppStore.getState().activeUserId !== userId)) return;
@@ -134,20 +167,22 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
           trailing={<LibrarySupplierActions supplierId={entry.vendorId} supplierName={entry.vendorName || 'Supplier'} onRenamed={() => { if (accountScopeId) void hydrateCompassEntries(accountScopeId); }} />}
         />
       </div>
-      <div className="tea-panel-metrics">
-        <TeaCardMetrics label={`Original quote in ${amounts.currency}`}>
-          <TeaCardMetric label={entry.category === 'tea' ? 'Price / g' : 'Price / piece'}>{amounts.perGram}</TeaCardMetric>
-          <TeaCardMetric label={`Quote · ${amounts.currency}`}><LibraryInlineValue numeric value={String(entry.priceAmount ?? '')} display={amounts.quote} label="Quote" onSave={saveField('priceAmount')} className="text-ui-16 font-semibold" /></TeaCardMetric>
-          <TeaCardMetric label={entry.category === 'tea' ? 'Quoted grams' : 'Quantity'}>
-            {entry.category === 'tea' ? <LibraryInlineValue numeric value={String(entry.pricePerUnitGrams ?? '')} display={entry.pricePerUnitGrams ? `${entry.pricePerUnitGrams}g` : 'Set grams'} label="Quoted grams" onSave={saveField('pricePerUnitGrams')} className="text-ui-16 font-semibold" /> : '1 piece'}
-          </TeaCardMetric>
-        </TeaCardMetrics>
+      <div className="tea-panel-metrics flex flex-wrap items-center gap-x-2">
+        <div className="min-w-0 flex-1">
+          <TeaCardMetrics label="Supplier quote figures">
+            <TeaCardMetric label="Supplier quote">{entry.priceAmount != null ? `${amounts.currency} ${amounts.quote}${entry.category === 'teaware' ? ' / piece' : ''}` : 'Not recorded'}</TeaCardMetric>
+            {entry.category === 'tea' && entry.pricePerUnitGrams != null && <TeaCardMetric label="Quoted weight">{`${entry.pricePerUnitGrams.toLocaleString()} g`}</TeaCardMetric>}
+            {entry.category === 'tea' && amounts.perGram !== '—' && <TeaCardMetric label={`${amounts.currency}/g`}>{amounts.perGram}</TeaCardMetric>}
+          </TeaCardMetrics>
+        </div>
+        <button type="button" onClick={() => setQuoteOpen(true)} aria-label="Edit supplier quote" title="Edit supplier quote" className={`${actionClass} flex min-w-11 items-center justify-center`}><Pencil size={14} aria-hidden /></button>
       </div>
       <div className="tea-record-decision"><DecisionControl value={entry.decision} onChange={decision => updateEntry(entry.id, { decision })} compact /></div>
       <div className="flex items-center justify-between gap-2 py-1">
         <span className="text-ui-12 text-tea-text-dim">{entry.tasting ? 'Tasting recorded' : 'No tasting yet'}</span>
-        <button type="button" onClick={() => setTastingOpen(true)} className="tea-record-taste tap-target inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 text-ui-13 font-medium" aria-label="Taste"><Droplets size={14} />Taste</button>
+        <button type="button" onClick={() => setTastingOpen(true)} className="tea-record-taste tap-target inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 text-ui-13 font-medium" aria-label="Taste"><TeaCupIcon />Taste</button>
       </div>
+      {purchaseSummary}
       <div role="tablist" aria-label="Tea workspace" className="tea-record-tabs">
         {([['tea', 'Tea'], ['notes', 'Notes'], ['orders', 'Orders'], ['files', 'Files']] as const).map(([key, label]) => <button key={key} role="tab" type="button" aria-selected={activeSection === key} aria-controls={`record-panel-${entry.id}`} className="tap-target min-h-11 text-ui-13" onClick={() => setActiveSection(key)}>{label}</button>)}
       </div>
@@ -177,7 +212,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
       {activeSection === 'notes' && <section ref={materialRef} aria-label="Source material" className="py-2">
         <h3 className="text-ui-14 font-medium mb-2">Source material · {validPhotos.length} photos</h3>
         <div className="space-y-4 pb-4 pt-1">
-          <section aria-label="Tea photos"><PhotoCapture photos={validPhotos}
+          <section aria-label="Tea photos"><PhotoCapture entryId={entry.id} allowShopReview={!!stockProductId && !previewEntry} photos={validPhotos}
             onPhotoTaken={url => { const current = useTeaCompassStore.getState().getEntry(entry.id); if (current) updateEntry(entry.id, { photos: [...current.photos, url] }); }}
             onPhotoReplaced={(oldUrl, newUrl) => { const current = useTeaCompassStore.getState().getEntry(entry.id); if (current) updateEntry(entry.id, { photos: current.photos.map(url => url === oldUrl ? newUrl : url) }); }}
             onRemovePhoto={index => updateEntry(entry.id, { photos: validPhotos.filter((_, i) => i !== index) })}
@@ -193,16 +228,13 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         </div>
       </section>}
       <RecordGroup title="Purchasing" active={activeSection === 'orders'}>
-        {purchaseLabel && <p className="text-ui-13 text-tea-text-sec">{purchaseLabel}</p>}
         <section aria-label="Purchase facts" className="space-y-2 text-ui-12 text-tea-text-sec">
           {purchases.isError && <p>Purchase history could not refresh. Try again shortly.</p>}
           {purchase.quantities.map(q => <div key={q.unit} className="library-order-metrics">{([['Ordered', q.ordered], ['Received', q.received], ['Incoming', q.due]] as const).map(([label, value]) => <div key={label}><span className="text-ui-12 text-tea-text-dim">{label}</span><strong className="text-ui-16 text-tea-text">{value == null ? 'Unknown' : `${value.toLocaleString()} ${q.unit}`}</strong></div>)}</div>)}
-          {!purchases.isError && !purchase.quantities.length && <p>No order quantities recorded.</p>}
-          <LibraryReceiptActions key={`${entry.id}:${accountScopeRevision}`} productId={entry.draftProductId} receipts={purchases.receipts ?? []} />
-          <button type="button" onClick={() => purchase.draftTransactionId ? openLedger() : onAcquire?.(entry.id)} disabled={!purchase.draftTransactionId && !onAcquire} className={actionClass}>{purchase.draftTransactionId ? 'Edit draft in Ledger' : purchase.quantities.some(q => q.ordered > 0) ? 'Reorder' : 'Order'}</button>
-          {transactions.some(tx => tx.items.some(item => item.compassEntryId === entry.id)) && <button type="button" onClick={openLedger} className={actionClass}>Open in Ledger</button>}
+          {purchaseHref && nextAction?.label !== 'Open supplier order' && <button type="button" className={actionClass} onClick={() => navigate(purchaseHref)}>Open supplier order</button>}
+          <LibraryReceiptActions key={`${entry.id}:${accountScopeRevision}`} productId={stockProductId ?? entry.draftProductId} receipts={purchases.receipts ?? []} />
+          {onAcquire && !previewEntry && !purchases.isLoading && !purchases.isError && !purchase.draftTransactionId && nextAction?.label !== orderLabel && <button type="button" onClick={() => onAcquire(entry.id)} className={actionClass}>Reorder {entry.category === 'teaware' ? 'this piece' : 'shop stock'}</button>}
         </section>
-        <TeaRecordFields key={`${entry.id}:quote`} entry={entry} section="quote" flat onChange={patch => updateEntry(entry.id, patch)} />
       </RecordGroup>
       <RecordGroup title="Files & history" active={activeSection === 'files'}>
         <div className="flex flex-wrap items-center gap-x-1 border-t border-tea-border pt-3" aria-label="Record actions">
@@ -263,11 +295,14 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         <CurateRecordTools flat entityType="tea" entityId={entry.id} onChanged={() => { const account = useTeaCompassStore.getState().accountScopeId; if (account) void hydrateCompassEntries(account); }} />
       </RecordGroup>
       </div>
-      <section aria-label="Inventory handoff" className="border-t border-tea-border py-2 flex flex-wrap items-center justify-between gap-2">
+      {nextAction?.run !== openStock && <section aria-label="Inventory handoff" className="border-t border-tea-border py-2 flex flex-wrap items-center justify-between gap-2">
         <span className="text-ui-12 text-tea-text-sec">{entry.draftProductId ? 'Stock & listing' : 'Create a private inventory listing'}</span>
-        <>{stockProductId ? <button type="button" className="tap-target min-h-11 text-ui-12 text-tea-text" onClick={() => navigate(sharedStockRecordHref(stockProductId))}>View in Stock</button> : <CreateInventoryRecordAction entryId={entry.id} compact productId={entry.draftProductId} onOpenInventory={onOpenInventory ?? (productId => navigate(sharedStockRecordHref(productId)))} />}</>
-      </section>
+        <>{stockProductId ? <button type="button" className="tap-target min-h-11 text-ui-12 text-tea-text" onClick={openStock}>View in Stock</button> : <CreateInventoryRecordAction entryId={entry.id} compact productId={entry.draftProductId} onOpenInventory={onOpenInventory ?? (productId => navigate(sharedStockRecordHref(productId)))} />}</>
+      </section>}
     </div>
+    <BottomSheet open={quoteOpen} onOpenChange={setQuoteOpen} title="Supplier quote">
+      <div className="px-3"><TeaRecordFields key={`${entry.id}:quote`} entry={entry} section="quote" flat onChange={patch => updateEntry(entry.id, patch)} /></div>
+    </BottomSheet>
     <BottomSheet open={moreFieldsOpen} onOpenChange={setMoreFieldsOpen} title="Tea details & sourcing"><StructuredTeaFields flat entry={entry} onChange={patch => updateEntry(entry.id, patch)} /></BottomSheet>
     {tastingOpen && <TastingSession initialData={entry.tasting ?? entry.tastingHistory?.at(-1)?.data} item={{ id: entry.id, name: entry.name, type: entry.type, image: validPhotos[0], sourceType: 'compass', compassEntryId: entry.id }} onClose={() => setTastingOpen(false)} onAfterSave={(data: TastingData, verdict, _wouldBuy, record) => updateEntry(entry.id, curateTastingUpdate(useTeaCompassStore.getState().getEntry(entry.id) ?? entry, data, verdict, { record }))} />}
   </div>;

@@ -34,3 +34,10 @@ describe('Library opens only the same verified Stock record', () => {
     expect(sharedStockRecordHref('stock/1')).toBe('/admin/stock?panel=stock%2F1');
   });
 });
+
+it('opens working Stock from Library even when the sample was linked first', () => {
+  expect(sharedStockRecordId({ id: 'tea', draftProductId: 'sample' }, [
+    { id: 'sample', source_compass_entry_id: 'tea', inventory_purpose: 'sample' },
+    { id: 'working', source_compass_entry_id: 'tea', inventory_purpose: 'working' },
+  ])).toBe('working');
+});

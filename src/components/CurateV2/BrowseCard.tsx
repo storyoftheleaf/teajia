@@ -1,5 +1,5 @@
+import { CapturePhotoImage, useCapturePhotoUpload, useCapturePhotoUrl } from '../curate/CapturePhotoImage';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { mediaUrl } from '../../lib/mediaUrl';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
@@ -122,7 +122,9 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
   // back to the type swatch instead of the browser's broken-image glyph.
   const [thumbFailed, setThumbFailed] = useState(false);
 
+  const uploadPhoto = useCapturePhotoUpload(entry.id);
   const validPhotos = (entry.photos || []).filter(Boolean);
+  const lightboxPhoto = useCapturePhotoUrl(lightboxIndex === null ? undefined : validPhotos[lightboxIndex]);
   const showThumb = validPhotos.length > 0 && !thumbFailed;
   const openLightbox = useCallback((index: number) => {
     lightboxReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -196,7 +198,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
     try {
       const compressed = await compressImage(file);
       const compressedFile = new File([compressed], 'photo.jpg', { type: 'image/jpeg' });
-      const imageUrl = await api.uploadImage(compressedFile);
+      const imageUrl = await uploadPhoto(compressedFile);
       if (!imageUrl) throw new Error('no url');
       // Added to the photos the tea has NOW, not the ones it had when this one
       // was picked: another photo may have landed while this one uploaded.
@@ -251,7 +253,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             {showThumb ? (
               onSelect ? (
                 <div className="relative mt-0.5 shrink-0" aria-hidden="true">
-                  <img src={mediaUrl(validPhotos[0])} alt="" onError={() => setThumbFailed(true)} className="h-14 w-14 rounded-md object-cover" />
+                  <CapturePhotoImage src={validPhotos[0]} alt="" onError={() => setThumbFailed(true)} className="h-14 w-14 rounded-md object-cover" />
                 </div>
               ) : (
                 <button
@@ -260,8 +262,8 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                   className="tap-target relative shrink-0 mt-0.5 group"
                   aria-label="View photos"
                 >
-                <img
-                  src={mediaUrl(validPhotos[0])}
+                <CapturePhotoImage
+                  src={validPhotos[0]}
                   alt=""
                   onError={() => setThumbFailed(true)}
                   className="w-14 h-14 rounded-md object-cover"
@@ -406,7 +408,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                       className="shrink-0"
                       aria-label={`View photo ${i + 1}`}
                     >
-                      <img src={mediaUrl(url)} alt="" className="w-24 h-24 rounded-md object-cover" loading="lazy" />
+                      <CapturePhotoImage src={url} alt="" className="w-24 h-24 rounded-md object-cover" loading="lazy" />
                     </button>
                   ))}
                   <button
@@ -743,7 +745,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.15 }}
-            src={mediaUrl(validPhotos[lightboxIndex])}
+            src={lightboxPhoto}
             alt={`Photo ${lightboxIndex + 1}`}
             className="max-w-[92vw] max-h-[88vh] rounded-xl object-contain shadow-2xl"
             onClick={(e) => e.stopPropagation()}

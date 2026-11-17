@@ -1,7 +1,7 @@
 import { canonicalCurrency, currencyInText } from '../../lib/currency';
 import { CURRENCY_LABELS } from './PricingRow';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { mediaUrl } from '../../lib/mediaUrl';
+import { CapturePhotoImage, useCapturePhotoUpload, useCapturePhotoUrl } from '../curate/CapturePhotoImage';
 import { createPortal } from 'react-dom';
 import { Camera, Check, ChevronLeft, ChevronRight, Edit3, ImagePlus, Maximize2, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -26,6 +26,7 @@ export interface ExtractedTeaData {
 }
 
 interface PhotoCaptureProps {
+  entryId: string;
   onExtracted: (data: ExtractedTeaData) => void;
   onPhotoTaken: (url: string) => void;
   onPhotoReplaced?: (oldUrl: string, newUrl: string) => void;
@@ -112,6 +113,7 @@ export function parseExtractResult(r: Record<string, any>): ExtractedTeaData {
 }
 
 export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
+  entryId,
   onExtracted,
   onPhotoTaken,
   onPhotoReplaced,
@@ -120,6 +122,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   size = 'default',
   variant = 'strip',
 }) => {
+  const uploadPhoto = useCapturePhotoUpload(entryId);
   const isLg = size === 'lg';
   // Uniform tiles so thumbnails and the scan / camera actions read as one tidy
   // horizontal row (44×44 meets the WCAG 2.5.5 tap floor without extra padding).
@@ -141,7 +144,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   // Mutually exclusive across photos so only one menu shows at a time.
   const [menuPhotoIndex, setMenuPhotoIndex] = useState<number | null>(null);
   // URL of the photo currently open in the SquareCropModal, when set, the
-  // editor swaps the user's crop back via api.uploadImage + onPhotoReplaced.
+  // editor swaps the user's crop back via the private upload + onPhotoReplaced.
   const [editingPhotoUrl, setEditingPhotoUrl] = useState<string | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [justExtracted, setJustExtracted] = useState(false);
@@ -222,6 +225,9 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     ...validPhotos,
     ...pendingPreviews.filter((p) => !p.failed).map((p) => p.localUrl),
   ];
+  const selectedPhoto = lightboxIndex === null ? undefined : allPhotos[lightboxIndex];
+  const selectedPhotoUrl = useCapturePhotoUrl(selectedPhoto);
+  const editingPhotoSource = useCapturePhotoUrl(editingPhotoUrl);
 
   const stopStream = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -311,7 +317,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
       setLastScanFile(file);
 
       const [imageUrl, extract] = await Promise.all([
-        api.uploadImage(file).catch(() => null),
+        uploadPhoto(file).catch(() => null),
         // uploadImage already stores the photo, so skip the extract
         // endpoint's own R2 write; each scan stores one object, not two.
         runExtract(file),
@@ -343,7 +349,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
       try {
         const blob = await (await fetch(dataUrl)).blob();
         const file = new File([blob], 'capture.jpg', { type: 'image/jpeg' });
-        const url = await api.uploadImage(file);
+        const url = await uploadPhoto(file);
         if (url) onPhotoTaken(url);
       } catch { /* connection still down, fields are applied, photo lost this round */ }
     })();
@@ -386,7 +392,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
       // back at 800px square, but we want the unedited source generous.
       const compressed = await compressImage(file, 1600, 0.7);
       const compressedFile = new File([compressed], 'photo.jpg', { type: 'image/jpeg' });
-      const imageUrl = await api.uploadImage(compressedFile).catch(() => null);
+      const imageUrl = await uploadPhoto(compressedFile).catch(() => null);
 
       if (imageUrl) {
         onPhotoTaken(imageUrl);
@@ -433,7 +439,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     try {
       const blob = await (await fetch(localUrl)).blob();
       const compressed = await compressImage(new File([blob], 'photo.jpg', { type: blob.type || 'image/jpeg' }), 1600, 0.7);
-      const imageUrl = await api.uploadImage(new File([compressed], 'photo.jpg', { type: 'image/jpeg' })).catch(() => null);
+      const imageUrl = await uploadPhoto(new File([compressed], 'photo.jpg', { type: 'image/jpeg' })).catch(() => null);
       if (!imageUrl) { markPreviewFailed(localUrl); return; }
       onPhotoTaken(imageUrl);
       setPendingPreviews((prev) => prev.filter((p) => p.localUrl !== localUrl));
@@ -737,7 +743,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.15 }}
-            src={mediaUrl(allPhotos[lightboxIndex])}
+            src={selectedPhotoUrl}
             alt={`Photo ${lightboxIndex + 1}`}
             className="max-w-[92vw] max-h-[88vh] rounded-xl object-contain shadow-2xl"
             onClick={(e) => e.stopPropagation()}
@@ -841,8 +847,8 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             aria-label="Photo actions"
             title="Tap for options"
           >
-            <img
-              src={mediaUrl(heroValidUrl)}
+            <CapturePhotoImage
+              src={heroValidUrl}
               alt="Capture photo"
               className="pointer-events-none h-full w-full object-cover"
             />
@@ -912,8 +918,8 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                 aria-label="Photo actions"
                 title="Tap for options"
               >
-                <img
-                  src={mediaUrl(url)}
+                <CapturePhotoImage
+                  src={url}
                   alt={`Photo ${i + 1}`}
                   className="w-full h-full object-cover pointer-events-none"
                 />
@@ -991,7 +997,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               aria-label="Photo actions"
               title="Photo actions"
             >
-              <img src={mediaUrl(validPhotos[0])} alt="Photo 1" className="pointer-events-none h-full w-full object-cover" />
+              <CapturePhotoImage src={validPhotos[0]} alt="Photo 1" className="pointer-events-none h-full w-full object-cover" />
               {validPhotos.length > 1 && (
                 <span className="absolute bottom-0.5 right-0.5 rounded-[3px] bg-tea-bg px-1 font-mono text-ui-12 tabular-nums text-tea-text">+{validPhotos.length - 1}</span>
               )}
@@ -1111,11 +1117,11 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
       {lightbox}
 
       {/* In-app photo editor, wraps react-easy-crop via SquareCropModal.
-          Output goes back through api.uploadImage and replaces the original
+          Output goes back through the private upload and replaces the original
           via onPhotoReplaced so callers don't need to know the new URL. */}
       <SquareCropModal
-        isOpen={!!editingPhotoUrl}
-        source={editingPhotoUrl}
+        isOpen={!!editingPhotoSource}
+        source={editingPhotoSource ?? null}
         title="Edit photo"
         confirmLabel={savingEdit ? 'Saving…' : 'Save'}
         outputSize={800}
@@ -1126,7 +1132,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           setSavingEdit(true);
           try {
             const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
-            const newUrl = await api.uploadImage(file).catch(() => null);
+            const newUrl = await uploadPhoto(file).catch(() => null);
             if (newUrl) {
               onPhotoReplaced?.(editingPhotoUrl, newUrl);
             }

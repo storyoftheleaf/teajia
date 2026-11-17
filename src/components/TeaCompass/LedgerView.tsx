@@ -2,7 +2,7 @@ import { Button } from '../shared/Button';
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { isoCurrencyCode } from '../../lib/currency';
 import { mediaUrl } from '../../lib/mediaUrl';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { confirmPurchase, recordPurchase } from '../CurateV2/placeOrder';
 import { useLibraryPurchases } from '../../lib/libraryPurchaseState';
@@ -36,8 +36,8 @@ import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { useRates } from '../../admin/hooks/useAdminData';
 import { usePurchaseLogistics } from '../../admin/hooks/usePurchaseLogistics';
-import type { LogisticsShipment } from '../../lib/logisticsTypes';
-import { purchaseArrivalTiming } from '../../lib/purchaseArrivalTiming';
+import type { LogisticsTracking } from '../../lib/logisticsTypes';
+import { purchaseArrivalAction, purchaseArrivalTiming } from '../../lib/purchaseArrivalTiming';
 import { orderMoney } from './curatePricing';
 import { TeaCard, TeaCardMeta, TeaCardMetric, TeaCardTitle } from '../tea/TeaCard';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
@@ -70,8 +70,10 @@ const LineItemRow: React.FC<{
   onOpenEntry?: (entryId: string) => void;
   readOnly?: boolean;
   purchase?: boolean;
-  shipments?: readonly LogisticsShipment[];
-}> = ({ item, txId, onRemove, onOpenEntry, readOnly, purchase, shipments = [] }) => {
+  logistics?: LogisticsTracking;
+  logisticsPending?: boolean;
+  canReceive?: boolean;
+}> = ({ item, txId, onRemove, onOpenEntry, readOnly, purchase, logistics, logisticsPending, canReceive }) => {
   const navigate = useNavigate();
   const updateLineItem = useLedgerStore((s) => s.updateLineItem);
   const total = lineTotal(item);
@@ -94,8 +96,14 @@ const LineItemRow: React.FC<{
   const incomingQuantity = incomingLine ? Math.max(0, incomingLine.expected_quantity - incomingLine.received_quantity - incomingLine.cancelled_quantity) : 0;
   const quantityToReceive = pendingReceipt?.quantity ?? incomingQuantity;
   const unitToReceive = pendingReceipt?.unit ?? incomingLine?.unit;
+  const orderId = tx?.purchaseOrderId;
+  const checkingRoute = Boolean(incomingLine && orderId && !logistics && logisticsPending);
+  const routeUnavailable = Boolean(incomingLine && orderId && !logistics && !logisticsPending);
+  const routedArrival = orderId && logistics && (!pendingReceipt || incomingLine)
+    ? purchaseArrivalAction(logistics, orderId, incomingLine?.id ?? item.purchaseReceiptLineId) : undefined;
+  const canReceiveDirectly = canReceive && !routedArrival && !checkingRoute && !routeUnavailable;
   const receive = async () => {
-    if (!quantityToReceive || (!pendingReceipt && !incomingLine) || receivingRef.current) return;
+    if (!canReceiveDirectly || !quantityToReceive || (!pendingReceipt && !incomingLine) || receivingRef.current) return;
     receivingRef.current = true;
     setReceiving(true);
     setReceiveError('');
@@ -152,12 +160,15 @@ const LineItemRow: React.FC<{
     </div>;
     const purchaseQty = incomingLine?.expected_quantity ?? (isUnitBased ? item.quantityUnits : item.quantityGrams);
     const unitLabel = incomingLine?.unit === 'g' || (!incomingLine && !isUnitBased) ? 'g' : 'pcs';
-    const arrivalTiming = readOnly && quantityToReceive > 0 ? purchaseArrivalTiming(shipments, {
+    const arrivalTiming = readOnly && quantityToReceive > 0 ? purchaseArrivalTiming(logistics?.shipments ?? [], {
       orderId: tx?.purchaseOrderId,
       receiptLineId: incomingLine?.id ?? item.purchaseReceiptLineId,
       remaining: quantityToReceive,
       receiptEta: linkedReceipt?.eta,
     }) : undefined;
+    const progress = !readOnly ? 'Draft'
+      : quantityToReceive > 0 ? (incomingLine?.received_quantity ? 'Part received' : 'Awaiting arrival')
+      : incomingLine?.received_quantity ? 'Received' : 'Ordered';
     return (
       <TeaCard
         testId={`curate-order-line-${item.id}`}
@@ -167,7 +178,7 @@ const LineItemRow: React.FC<{
           {!readOnly && openTea ? <button type="button" className="tap-target min-h-11 text-left hover:text-tea-gold" onClick={openTea}>{name}</button>
             : !readOnly && stockHref ? <Link className="tap-target min-h-11 hover:text-tea-gold" to={stockHref}>{name}</Link> : name}
         </TeaCardTitle>}
-        meta={(item.form || item.type || item.year) && <TeaCardMeta primary={item.form} type={item.type} trailing={item.year} />}
+        meta={<TeaCardMeta primary={[tx?.counterpartyName, item.form].filter(Boolean).join(' · ')} type={item.type} trailing={progress} />}
         metricsLeading={entryLinks}
         metricsLabel={`Order details for ${name}`}
         metrics={<>
@@ -190,16 +201,24 @@ const LineItemRow: React.FC<{
                 <Button variant="plain" type="button" aria-label={`Increase quantity for ${name}`} className="tap-target flex size-7 shrink-0 items-center justify-center text-tea-text-sec" onClick={() => handleQtyChange(currentQty + (isUnitBased ? 1 : 25))}><Plus size={12} /></Button>
               </div>}
           </TeaCardMetric>
-          {readOnly && incomingLine && <TeaCardMetric label="Received">{`${incomingLine.received_quantity.toLocaleString()} ${unitLabel}`}</TeaCardMetric>}
+          {readOnly && incomingLine && <>
+            <TeaCardMetric label="Received">{`${incomingLine.received_quantity.toLocaleString()} ${unitLabel}`}</TeaCardMetric>
+            <TeaCardMetric label="Due">{`${incomingQuantity.toLocaleString()} ${unitLabel}`}</TeaCardMetric>
+          </>}
           <TeaCardMetric label={`Total · ${isoCurrencyCode(item.currency)}`}>{item.unpriced ? '—' : fmtPrice(total, item.currency, false)}</TeaCardMetric>
         </>}
         actions={<>
           <div className="min-w-0 flex-1 py-1.5 text-ui-11 text-tea-text-sec">
-            <p>{!readOnly ? 'Draft' : !incomingLine && receiptText ? receiptText : quantityToReceive > 0 ? 'Awaiting arrival' : incomingLine && incomingLine.received_quantity > 0 ? 'Received' : 'Ordered'}</p>
+            {readOnly && !incomingLine && receiptText && <p>{receiptText}</p>}
             {arrivalTiming && <p className="mt-0.5 text-tea-text-dim">{arrivalTiming}</p>}
+            {quantityToReceive > 0 && checkingRoute && <p role="status">Checking receipt route…</p>}
+            {quantityToReceive > 0 && routeUnavailable && canReceive && <p>Open the supplier order to check its receipt route.</p>}
           </div>
           {!readOnly && <Button variant="plain" type="button" onClick={onRemove} className="tap-target" aria-label={`Remove ${name}`}>Remove item</Button>}
-          {readOnly && quantityToReceive > 0 && <button type="button" disabled={receiving} onClick={() => void receive()} className="tap-target text-tea-text font-medium disabled:opacity-50">{receiving ? 'Recording arrival…' : `Receive ${quantityToReceive.toLocaleString()}${unitToReceive === 'g' ? 'g' : ' pieces'}`}</button>}
+          {readOnly && canReceive && quantityToReceive > 0 && routedArrival && (
+            <Link className="tap-target inline-flex min-h-11 items-center cta-solid px-3 text-ui-12 font-semibold" to={routedArrival.href}>{routedArrival.label}</Link>
+          )}
+          {readOnly && canReceiveDirectly && quantityToReceive > 0 && <button type="button" disabled={receiving} onClick={() => void receive()} className="tap-target text-tea-text font-medium disabled:opacity-50">{receiving ? 'Recording arrival…' : `Receive ${quantityToReceive.toLocaleString()}${unitToReceive === 'g' ? 'g' : ' pieces'}`}</button>}
         </>}
       >
         {receiveError && <p role="alert" className="py-1 text-ui-12 text-tea-text-sec">{receiveError}</p>}
@@ -232,7 +251,7 @@ const LineItemRow: React.FC<{
             </p>
           )}
           {readOnly && receiptText && <p className="mt-1 text-ui-11 text-tea-text-sec">{receiptText}</p>}
-          {quantityToReceive > 0 && <button type="button" disabled={receiving} onClick={() => void receive()} className="mt-1 min-h-11 text-left text-ui-12 text-tea-gold disabled:opacity-50">{receiving ? 'Recording arrival…' : `Receive ${quantityToReceive.toLocaleString()}${unitToReceive === 'g' ? 'g' : ' pieces'}`}</button>}
+          {canReceiveDirectly && quantityToReceive > 0 && <button type="button" disabled={receiving} onClick={() => void receive()} className="mt-1 min-h-11 text-left text-ui-12 text-tea-gold disabled:opacity-50">{receiving ? 'Recording arrival…' : `Receive ${quantityToReceive.toLocaleString()}${unitToReceive === 'g' ? 'g' : ' pieces'}`}</button>}
           {receiveError && <p role="alert" className="mt-1 text-ui-12 text-tea-text-sec">{receiveError}</p>}
           {(item.type || item.form || item.year) && (
             <p className="text-tea-text-dim text-ui-10 num mt-0.5">
@@ -455,8 +474,10 @@ const TransactionCard: React.FC<{
   isExpanded: boolean;
   onToggle: () => void;
   onOpenEntry?: (entryId: string) => void;
-  shipments?: readonly LogisticsShipment[];
-}> = ({ tx, isExpanded, onToggle, onOpenEntry, shipments }) => {
+  logistics?: LogisticsTracking;
+  logisticsPending?: boolean;
+  canReceive?: boolean;
+}> = ({ tx, isExpanded, onToggle, onOpenEntry, logistics, logisticsPending, canReceive }) => {
   const removeLineItem = useLedgerStore((s) => s.removeLineItem);
   const confirmTransaction = useLedgerStore((s) => s.confirmTransaction);
   const updateTransaction = useLedgerStore((s) => s.updateTransaction);
@@ -507,6 +528,7 @@ const TransactionCard: React.FC<{
 
   // Only the vendor having been told counts as sent, not the order being recorded.
   const [markedSent, setMarkedSent] = useState(false);
+  const [markingSent, setMarkingSent] = useState(false);
   const purchaseSent = markedSent || tx.purchaseOrderSent;
 
   const queryClient = useQueryClient();
@@ -573,11 +595,11 @@ const TransactionCard: React.FC<{
         <div className="min-w-0 flex flex-wrap items-center justify-between gap-x-2">
           <h2 className="library-supplier-name min-w-0 break-words">{tx.counterpartyName || 'Unnamed supplier'}</h2>
           {!isDraft && tx.purchaseOrderId
-            ? <Link className="tap-target shrink-0 min-h-11 gap-1 text-ui-12 text-tea-text-sec hover:text-tea-text" to={`/admin/purchase-orders?purchaseId=${encodeURIComponent(tx.purchaseOrderId)}`}>View purchase <ArrowUpRight size={12} aria-hidden="true" /></Link>
+            ? <Link className="tap-target inline-flex min-h-11 items-center gap-1 px-2 text-ui-12 font-medium text-tea-text hover:text-tea-gold" to={`/admin/purchase-orders?purchaseId=${encodeURIComponent(tx.purchaseOrderId)}`}>Open supplier order <ArrowUpRight size={12} aria-hidden="true" /></Link>
             : <span className="text-ui-12 text-tea-text-sec">{isDraft ? 'Draft' : 'Confirmed'}</span>}
         </div>
         <div className="tea-order-summary text-ui-12 text-tea-text-sec">
-          <span>{!isDraft && tx.purchaseOrderId ? (purchaseSent ? 'Sent' : 'Confirmed') + ' · ' : ''}{tx.items.length} {tx.items.length === 1 ? 'item' : 'items'}</span>
+          <span>{!isDraft && tx.purchaseOrderId ? (purchaseSent ? 'Sent' : 'Saved') + ' · ' : ''}{tx.items.length} {tx.items.length === 1 ? 'item' : 'items'}</span>
           {tx.items.length > 0 && <span className="text-tea-text font-medium tabular-nums" aria-label="Grand total">{totalText}</span>}
         </div>
       </header> : <button
@@ -638,7 +660,9 @@ const TransactionCard: React.FC<{
                     txId={tx.id}
                     readOnly={!isDraft}
                     purchase={isPurchase}
-                    shipments={shipments}
+                    logistics={logistics}
+                    logisticsPending={logisticsPending}
+                    canReceive={canReceive}
                     onRemove={() => removeLineItem(tx.id, item.id)}
                     onOpenEntry={onOpenEntry}
                   />
@@ -685,7 +709,7 @@ const TransactionCard: React.FC<{
                         whileTap={{ scale: 0.98 }}
                         className="py-1.5 px-3 rounded-md cta-solid font-semibold text-xs uppercase tracking-[0.08em] transition-all"
                       >
-                        {recordBusy ? 'Recording…' : tx.confirmationPending ? 'Retry confirmation' : isPurchase ? 'Purchase' : 'Sale'}
+                        {recordBusy ? 'Recording…' : tx.confirmationPending ? 'Retry saving order' : isPurchase ? 'Save supplier order' : 'Sale'}
                       </motion.button>
                     )}
                   </AnimatePresence>
@@ -708,19 +732,27 @@ const TransactionCard: React.FC<{
                     "Sent" changed nothing anywhere.) */}
                 {isPurchase && !isDraft && tx.purchaseOrderId && !purchaseSent && (
                   <button
+                    title="Use after you have sent this order to the supplier"
                     type="button"
+                    disabled={markingSent}
                     onClick={async () => {
+                      setMarkingSent(true);
+                      const accountId = useLedgerStore.getState().accountScopeId;
                       try {
                         await api.purchaseOrders.updateStatus(tx.purchaseOrderId!, 'sent');
+                        if (useLedgerStore.getState().accountScopeId !== accountId) return;
                         setMarkedSent(true);
                         updateTransaction(tx.id, { purchaseOrderSent: true, confirmationError: undefined });
+                        void queryClient.invalidateQueries({ queryKey: ['curate', 'purchase-orders'] });
+                        void queryClient.invalidateQueries({ queryKey: ['purchase-tracking'] });
+                        void queryClient.invalidateQueries({ queryKey: ['library-purchase-receipts'] });
                       } catch (error) {
-                        updateTransaction(tx.id, { confirmationError: error instanceof Error ? error.message : 'Could not mark the order as sent.' });
-                      }
+                        if (useLedgerStore.getState().accountScopeId === accountId) updateTransaction(tx.id, { confirmationError: error instanceof Error ? error.message : 'Could not record this order as sent.' });
+                      } finally { setMarkingSent(false); }
                     }}
                     className={`${purchaseAction} ml-auto font-medium text-tea-text`}
                   >
-                    <Check size={14} aria-hidden="true" /> Mark as Sent
+                    <Check size={14} aria-hidden="true" /> {markingSent ? 'Recording send…' : 'Record as sent'}
                   </button>
                 )}
               </div>
@@ -774,6 +806,10 @@ interface LedgerViewProps {
 
 export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, searchQuery = '' }) => {
   const transactions = useLedgerStore((s) => s.transactions);
+  const location = useLocation();
+  const activeOrderId = useLedgerStore(s => s.activeTransactionId);
+  const reviewDraftId = (location.state as { reviewDraftId?: string } | null)?.reviewDraftId ?? activeOrderId;
+  const reviewingDraft = transactions.find(tx => tx.id === reviewDraftId && tx.status === 'draft');
   const createTransaction = useLedgerStore((s) => s.createTransaction);
   const openPurchaseOrder = useAppStore((s) => s.openPurchaseOrder);
   // All transactions expanded by default
@@ -806,7 +842,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
   }, [transactions, filter, searchQuery]);
 
   const canReadStock = useAppStore(state => selectHasBundle(state, 'stock'));
-  const { data: logistics } = usePurchaseLogistics(canReadStock && filtered.some(
+  const { data: logistics, isPending: logisticsPending } = usePurchaseLogistics(canReadStock && filtered.some(
     transaction => transaction.direction === 'purchase' && transaction.status === 'confirmed' && !!transaction.purchaseOrderId,
   ));
 
@@ -876,10 +912,12 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
       {/* Transaction list */}
       <div className="space-y-2">
         <AnimatePresence initial={false}>
-          {filtered.map((tx) => (
+          {(reviewingDraft && filtered.includes(reviewingDraft)
+            ? [reviewingDraft, ...filtered.filter(tx => tx.id !== reviewingDraft.id)]
+            : filtered).map((tx) => (
             <motion.div
               key={tx.id}
-              initial={{ opacity: 0, y: 8 }}
+              initial={tx.id === reviewDraftId ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
@@ -893,7 +931,9 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
                   return next;
                 })}
                 onOpenEntry={onOpenEntry}
-                shipments={logistics?.shipments}
+                logistics={logistics}
+                logisticsPending={canReadStock && logisticsPending}
+                canReceive={canReadStock}
               />
             </motion.div>
           ))}

@@ -4,19 +4,21 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Archive, History, Loader2, MoreHorizontal, Plus, RefreshCw } from 'lucide-react';
 import { api, type PurchaseOrder, type PurchaseTrackingRow } from '../../../lib/api';
-import { useAppStore } from '../../../lib/store';
+import { selectIsOwnerTier, useAppStore } from '../../../lib/store';
 import { usePurchaseLogistics } from '../../hooks/usePurchaseLogistics';
 import { refreshCommerceQueries } from '../../../lib/refreshCommerce';
 import { TYPOGRAPHY_CLASSES as T } from '../../../designTokens';
+import { TeaPanelSummary } from '../../../components/tea/TeaPanelSummary';
 import { TeaCard, TeaCardMeta, TeaCardMetric, TeaCardTitle } from '../../../components/tea/TeaCard';
 import { IncomingReceiptsPanel } from './IncomingReceiptsPanel';
 import { PurchaseInvoiceEvidence } from './PurchaseInvoiceEvidence';
-import type { LogisticsOrder, LogisticsTracking } from '../../../lib/logisticsTypes';
+import type { LogisticsOrder, LogisticsShipment, LogisticsTracking } from '../../../lib/logisticsTypes';
 import { LogisticsCreateShipment, LogisticsOrderFields, ManifestButtons, companyManifest, type LogisticsMutation } from './LogisticsControls';
 import { LogisticsArrivalGroups } from './LogisticsArrivalGroups';
 import { LogisticsAddresses } from './LogisticsAddresses';
 import { LogisticsServices } from './LogisticsServices';
 import { LogisticsShipmentCard } from './LogisticsShipmentCard';
+import { StudioReferralReview } from './StudioReceiptReferral';
 import { purchaseJourneyGroups } from './purchaseJourneyGroups';
 import { logisticsPlaces } from './logisticsPlaces';
 import { TrackingTask } from './TrackingTask';
@@ -102,9 +104,27 @@ type NewFormProps = { onClose: () => void; onSubmit: (data: Parameters<typeof ap
 type MatchFormProps = { po: PurchaseOrder; onClose: () => void; onPrepared: (id: string) => void };
 export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewForm: React.ComponentType<NewFormProps>; MatchForm: React.ComponentType<MatchFormProps>; initialOpen?: string | null }) {
   const accountId = useAppStore(state => state.activeAccountId);
+  const canResolveReferral = useAppStore(selectIsOwnerTier);
+  const [reviewingReferral, setReviewingReferral] = useState<{ accountId: string | null; id: string } | null>(null);
+  const [routeTarget, setRouteTarget] = useState<{ accountId: string | null; purchaseId: string } | null>(null);
+  const [receiptTarget, setReceiptTarget] = useState<{ accountId: string | null; shipmentId: string; lineId: string } | null>(null);
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
   const reviewId = params.get('purchaseId');
+  const requestedShipmentId = params.get('shipmentId');
+  const requestedLineId = params.get('receiptLineId');
+  const shipmentsForPurchaseId = params.get('shipmentsForPurchaseId');
+  const clearPurchaseShipmentFilter = () => setParams(current => {
+    const next = new URLSearchParams(current);
+    next.delete('shipmentsForPurchaseId');
+    next.delete('view');
+    return next;
+  }, { replace: true });
+  const closeRequestedReceipt = () => setParams(current => {
+    const next = new URLSearchParams(current);
+    next.delete('receiptLineId');
+    return next;
+  }, { replace: true });
   const view = params.get('view');
   const initialFilter: PurchaseTrackingFilter = view === 'to_logistics' || view === 'at_logistics' || view === 'to_studio' || view === 'coming' || view === 'attention' || view === 'received' || view === 'cancelled' ? view : 'all';
   const [filter, setFilter] = useState<PurchaseTrackingFilter>(initialFilter);
@@ -134,6 +154,21 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
   });
   const logisticsQuery = usePurchaseLogistics(true, 60_000);
   const logistics = logisticsQuery.data;
+  const requestedShipment = logistics?.shipments.find(shipment => shipment.id === requestedShipmentId);
+  const requestedLine = requestedShipment?.lines.find(line => line.id === requestedLineId);
+  const requestedReceipt = requestedShipment && requestedLine
+    && (requestedShipment.state === 'in_transit' || requestedShipment.state === 'partially_received')
+    && requestedLine.quantity > requestedLine.received_quantity
+    ? requestedLine.id : undefined;
+  useEffect(() => {
+    if (!requestedShipment?.id || requestedReceipt) return;
+    const frame = requestAnimationFrame(() => {
+      const card = document.getElementById(`shipment-card-${requestedShipment.id}`);
+      card?.scrollIntoView({ block: 'nearest' });
+      card?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [requestedShipment?.id, requestedReceipt]);
   const orderFor = (row: PurchaseTrackingRow) => logistics?.orders.find(order => order.purchase_id === row.purchase?.id);
   const companies = [...new Set([...(logistics?.orders.map(order => order.logistics_company_name) || []), ...(logistics?.shipments.map(shipment => shipment.logistics_company_name) || [])].filter((value): value is string => Boolean(value)))].sort();
   useEffect(() => {
@@ -143,6 +178,10 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
     setMatch(null);
     setPurchaseError(null);
   }, [accountId, initialOpen, reviewId]);
+  useEffect(() => {
+    setRouteTarget(null);
+    setReceiptTarget(null);
+  }, [accountId]);
   useEffect(() => {
     setVendor('all');
     setCompany('all');
@@ -157,8 +196,24 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
   const hasFilters = vendor !== 'all' || company !== 'all' || filter !== 'all';
   const clearFilters = () => { setVendor('all'); setCompany('all'); setFilter('all'); };
   const visible = scoped.filter(row => matchesPurchaseTracking(row, filter, orderFor(row), logistics));
-  const visibleShipments = (logistics?.shipments || []).filter(shipment => shipment.state !== 'cancelled' && (company === 'all' || shipment.logistics_company_name === company) && (vendor === 'all' || shipment.lines.some(line => logistics?.orders.some(order => order.purchase_id === line.purchase_id && order.vendor_name === vendor))) && (filter === 'all' || filter === 'coming' && shipment.state !== 'received' || filter === 'at_logistics' && shipment.state === 'draft' || filter === 'to_studio' && (shipment.state === 'in_transit' || shipment.state === 'partially_received') || filter === 'received' && shipment.state === 'received' || filter === 'attention' && Boolean(shipment.freight_issue)));
-  const refresh = async () => { await Promise.all([refreshCommerceQueries(queryClient, accountId), queryClient.invalidateQueries({ queryKey: ['purchase-logistics', accountId] })]); };
+  const visibleShipments = (logistics?.shipments || []).filter(shipment => (!shipmentsForPurchaseId || shipment.lines.some(line => line.purchase_id === shipmentsForPurchaseId)) && shipment.state !== 'cancelled' && (company === 'all' || shipment.logistics_company_name === company) && (vendor === 'all' || shipment.lines.some(line => logistics?.orders.some(order => order.purchase_id === line.purchase_id && order.vendor_name === vendor))) && (filter === 'all' || filter === 'coming' && shipment.state !== 'received' || filter === 'at_logistics' && shipment.state === 'draft' || filter === 'to_studio' && (shipment.state === 'in_transit' || shipment.state === 'partially_received') || filter === 'received' && shipment.state === 'received' || filter === 'attention' && Boolean(shipment.freight_issue)));
+  const refresh = async () => {
+    await Promise.all([
+      refetch({ cancelRefetch: false }),
+      queryClient.invalidateQueries({ queryKey: logisticsQuery.queryKey }, { cancelRefetch: false }),
+    ]);
+  };
+  const refreshStock = () => refreshCommerceQueries(queryClient, accountId);
+  const replaceShipment = (updated: LogisticsShipment) => {
+    queryClient.setQueryData<LogisticsTracking>(logisticsQuery.queryKey, current => current && ({
+      ...current,
+      shipments: current.shipments.map(shipment => shipment.id === updated.id ? {
+        ...shipment,
+        ...updated,
+        tracking_update: updated.tracking_update ?? (shipment.tracking_number === updated.tracking_number ? shipment.tracking_update : null),
+      } : shipment),
+    }));
+  };
   const mutate: LogisticsMutation = async (action, onError) => {
     if (busy) return;
     setBusy(true); setError('');
@@ -181,8 +236,27 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
       else setMatch(purchase);
     });
   };
-  const attentionRows = visible.filter(row => purchaseAttention(row).length > 0);
-  const journeys = purchaseJourneyGroups(visible.filter(row => !purchaseAttention(row).length), visibleShipments, scopedOrders);
+  const attentionRows = shipmentsForPurchaseId ? [] : visible.filter(row => purchaseAttention(row).length > 0);
+  const studioReferrals = (logistics?.shipments ?? []).flatMap(shipment =>
+    (shipment.studio_referrals ?? []).flatMap(referral => {
+      const line = shipment.lines.find(line => line.id === referral.line_id);
+      return line ? [{ shipment, line, referral }] : [];
+    }));
+  const openReferrals = studioReferrals.filter(({ referral }) => !referral.resolved_at);
+  const queuedReferrals = openReferrals.filter(({ shipment }) =>
+    (!shipmentsForPurchaseId || shipment.lines.some(line => line.purchase_id === shipmentsForPurchaseId)) && (
+    !visibleShipments.some(visible => visible.id === shipment.id)
+    || filter === 'received' || filter === 'cancelled'));
+  const referralReview = reviewingReferral?.accountId === accountId
+    ? studioReferrals.find(({ referral }) => referral.id === reviewingReferral?.id)
+    : undefined;
+  const displayedPurchases = shipmentsForPurchaseId ? [] : visible.filter(row => !purchaseAttention(row).length);
+  const journeyShipments = requestedShipment && !visibleShipments.some(shipment => shipment.id === requestedShipment.id)
+    ? [...visibleShipments, requestedShipment] : visibleShipments;
+  const journeys = purchaseJourneyGroups(displayedPurchases, journeyShipments, shipmentsForPurchaseId ? [] : scopedOrders);
+  const hasActiveShipment = (group: typeof journeys.groups[number]) =>
+    group.shipments.some(shipment => shipment.state !== 'received' && shipment.state !== 'cancelled');
+  const journeyGroups = [...journeys.groups].sort((a, b) => Number(hasActiveShipment(b)) - Number(hasActiveShipment(a)));
   const otherSections = [
     { title: 'Other deliveries', rows: journeys.other.filter(row => !purchaseAttention(row).length && !['received', 'cancelled'].includes(purchaseTrackingStage(row))) },
     { title: 'Received', rows: journeys.other.filter(row => !purchaseAttention(row).length && purchaseTrackingStage(row) === 'received') },
@@ -192,6 +266,9 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
   const selectedPurchase = rows.find(row => row.id === open || row.purchase?.id === open || row.receipt?.id === open);
   const selectedOrder = selectedPurchase?.purchase;
   const selectedLogisticsOrder = selectedPurchase && orderFor(selectedPurchase);
+  const routePurchase = routeTarget?.accountId === accountId
+    ? rows.find(row => row.purchase?.id === routeTarget?.purchaseId)
+    : undefined;
   const renderPurchase = (row: PurchaseTrackingRow, expanded = false) => {
       const attention = purchaseAttention(row);
       const receipt = row.receipt;
@@ -218,7 +295,10 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
       const unmatched = row.arrival_proposal
         ? [{ name: row.arrival_proposal.product_name || 'Arrival item', quantity: row.arrival_proposal.quantity ?? null, unit: row.arrival_proposal.unit || 'g' }]
         : purchaseItems(purchase);
-      const canReceive = receipt && !logisticsOrder?.logistics_company_name;
+      const managedLogistics = logisticsOrder?.managed === true || !!logisticsOrder?.logistics_company_name;
+      const canReceive = receipt && logistics && !managedLogistics;
+      const canAssignRoute = logistics && receipt && stage === 'coming' && purchase
+        && !managedLogistics;
       const canMatch = purchase && !receipt && purchase.status !== 'cancelled';
       const canPlace = canMatch && purchase.status === 'pending' && !legacy;
       return <div className="min-w-0 space-y-2" key={row.id} data-purchase-id={purchase?.id} data-receipt-id={receipt?.id}>
@@ -248,7 +328,9 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
             {stage === 'received' && row.history.length > 0 && <TeaCardMetric label="Received">{date(row.history[0].recorded_at)}</TeaCardMetric>}
             {routeSummary?.locations.map(location => <TeaCardMetric key={location.label} label={location.label}>{location.quantity}</TeaCardMetric>)}
           </>}
-          actions={(attention.length > 0 || (expanded && (canReceive || canMatch))) && <>
+          actions={(canAssignRoute || attention.length > 0 || (expanded && (canReceive || canMatch))) && <>
+            {canAssignRoute && <Button variant="plain" type="button" className="tap-target library-tea-primary"
+              disabled={busy} onClick={() => setRouteTarget({ accountId, purchaseId: purchase.id })}>Assign inbound route</Button>}
             {row.invoice_draft && attention.length > 0 && <Link className="tap-target inline-flex min-h-11 items-center px-2 text-tea-text-sec" to={`/admin/intake?importId=${encodeURIComponent(row.invoice_draft.id)}`}>Review invoice</Link>}
             {expanded && canReceive && (
               <Button variant="plain" type="button" className="tap-target library-tea-primary" aria-label="Record arrival / manage delivery" onClick={() => setManualReceipt(receipt.id)}>{stage === 'coming' ? 'Record arrival' : 'Manage delivery'}</Button>
@@ -306,7 +388,7 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
         </>}
       </div>;
   };
-  if (manualReceipt) return <IncomingReceiptsPanel receiptId={manualReceipt} backLabel="Back to purchases" onClose={() => { setManualReceipt(null); void refresh(); }} />;
+  if (manualReceipt) return <IncomingReceiptsPanel receiptId={manualReceipt} backLabel="Back to purchases" onClose={() => { setManualReceipt(null); void refreshStock(); }} />;
 
   return <section className="purchase-tracking font-sans text-ui-12 text-tea-text bg-tea-bg pb-nav-gap" aria-label="Purchases and deliveries">
     <header className="purchase-tracking-header">
@@ -320,22 +402,59 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
       <label className="purchase-tracking-supplier"><span className="sr-only">Supplier</span><select aria-label="Filter supplier" value={vendor} onChange={event => setVendor(event.target.value)}><option value="all">All suppliers</option>{vendors.map(value => <option key={value} value={value}>{value}</option>)}</select></label>
       {companies.length > 0 && <label className="purchase-tracking-supplier"><select aria-label="Filter logistics company" value={company} onChange={event => setCompany(event.target.value)}><option value="all">All logistics companies</option>{companies.map(value => <option key={value}>{value}</option>)}</select></label>}
     </div>
+    {shipmentsForPurchaseId && <div className="purchase-tracking-notice flex flex-wrap items-center justify-between gap-2">
+      <p>{logisticsQuery.isPending ? 'Opening shipments…' : visibleShipments.length ? 'Shipments for this supplier order' : 'No active shipment for this supplier order'}</p>
+      <Button variant="plain" type="button" className="tap-target purchase-tracking-button" onClick={clearPurchaseShipmentFilter}>Show all purchases</Button>
+    </div>}
     {logisticsQuery.isError && <p role="alert" className="purchase-tracking-notice">Logistics tracking could not be refreshed.<button type="button" className="tap-target purchase-tracking-button" onClick={() => void logisticsQuery.refetch()}>Refresh logistics</button></p>}
     {error && <p role="alert" className="purchase-tracking-notice">{error}<button type="button" className="tap-target purchase-tracking-button" onClick={() => setError('')}>Dismiss</button></p>}
     {isError && <p role="alert" className="purchase-tracking-notice">Purchases could not be refreshed.<button type="button" className="tap-target purchase-tracking-button" onClick={() => void refetch()}>Refresh purchases</button></p>}
-    {isPending && <p role="status" className="purchase-tracking-notice"><Loader2 size={16} className="animate-spin"/>Loading purchases…</p>}
+    {isPending && <p role="status" className="purchase-tracking-notice"><Loader2 size={16} className="animate-spin"/>{reviewId ? 'Opening supplier order…' : 'Loading purchases…'}</p>}
     {!isPending && !isError && reviewId && !selectedPurchase && <p role="status" className="purchase-tracking-notice">Purchase unavailable in this shop.<button type="button" className="tap-target purchase-tracking-button" onClick={() => setOpen(null)}>Back to purchases</button></p>}
     {!isPending && !isError && !visible.length && !visibleShipments.length && <p className="purchase-tracking-notice">{hasFilters ? 'No purchases match these filters.' : 'No purchases recorded yet.'}{hasFilters && <button type="button" className="tap-target purchase-tracking-button" onClick={clearFilters}>Clear filters</button>}</p>}
-    {attentionRows.length > 0 && <section className="purchase-review-queue"><header><h2 className={T.label}>Needs attention <span>{attentionRows.length}</span></h2></header><div>{attentionRows.map(row => renderPurchase(row))}</div></section>}
-    <div className="purchase-tracking-journeys">{journeys.groups.map(group => {
+    {(attentionRows.length > 0 || queuedReferrals.length > 0) && <section className="purchase-review-queue">
+      <header><h2 className={T.label}>Needs attention <span>{attentionRows.length + queuedReferrals.length}</span></h2></header>
+      <div>{queuedReferrals.map(({ referral, shipment, line }) => <Button variant="plain" key={referral.id} type="button"
+        className="tap-target purchase-tracking-button flex flex-wrap justify-between w-full gap-x-3 text-left"
+        aria-haspopup="dialog" onClick={() => setReviewingReferral({ id: referral.id, accountId })}>
+        <strong>{line.product_name}</strong><span>Studio referral · {shipment.tracking_number || shipment.logistics_company_name}</span>
+      </Button>)}{attentionRows.map(row => renderPurchase(row))}</div>
+    </section>}
+    {referralReview && <TrackingTask open onClose={() => setReviewingReferral(null)} title="Studio receipt referral">
+      <StudioReferralReview key={referralReview.referral.id} {...referralReview} canResolve={canResolveReferral} busy={busy} save={mutate}
+        onReturnToReceipt={() => {
+          clearFilters();
+          setReviewingReferral(null);
+          setReceiptTarget({ accountId, shipmentId: referralReview.shipment.id, lineId: referralReview.line.id });
+        }}/>
+    </TrackingTask>}
+    <div className="purchase-tracking-journeys">{journeyGroups.map(group => {
       const places = logisticsPlaces(group.orders.filter(order => group.purchases.some(row => row.purchase?.id === order.purchase_id)), group.shipments);
       const completedPurchases = group.purchases.filter(row => ['received', 'cancelled'].includes(purchaseTrackingStage(row)));
-      const shipmentCard = (shipment: typeof group.shipments[number]) => <LogisticsShipmentCard key={shipment.id} grouped shipment={shipment} addresses={logistics?.addresses || []} orders={logistics?.orders || []} busy={busy} mutate={mutate} accountId={accountId} openPurchase={openLinkedPurchase}/>;
+      const shipmentCard = (shipment: typeof group.shipments[number]) => <LogisticsShipmentCard key={shipment.id} grouped
+        shipment={shipment} addresses={logistics?.addresses || []} orders={logistics?.orders || []} busy={busy}
+        mutate={mutate} accountId={accountId} openPurchase={openLinkedPurchase}
+        receiptLineId={receiptTarget?.accountId === accountId && receiptTarget?.shipmentId === shipment.id
+          ? receiptTarget.lineId : requestedShipmentId === shipment.id ? requestedReceipt : undefined}
+        onShipmentChanged={replaceShipment}
+        autoOpenReceiptRetry={!requestedShipmentId || requestedShipmentId === shipment.id}
+        onReviewReferral={id => setReviewingReferral({ id, accountId })}
+        canResolveReferral={canResolveReferral}
+        onCloseReceipt={() => {
+          setReceiptTarget(null);
+          if (requestedShipmentId === shipment.id && requestedLineId) closeRequestedReceipt();
+        }}/>;
       return <section className="purchase-journey purchase-places" key={group.id} aria-label={`${group.name} purchases and shipments`}>
         <header className="purchase-journey-heading"><div className="company-route-heading"><h2 className={T.h3}>{group.name}</h2><span className="text-tea-text-dim">Collection warehouse</span></div><ManifestButtons manifest={companyManifest(group.name, group.orders, logistics?.shipments || [])}/></header>
         <div className="company-rates" aria-label={`Rates for ${group.name}`}>{(logistics?.services || []).filter(service => service.active && (group.orders.some(order => order.logistics_company_id === service.logistics_company_id) || group.shipments.some(shipment => shipment.logistics_company_id === service.logistics_company_id))).map(service => <span key={service.id}><strong>{service.mode === 'sea' ? 'Boat' : 'Air'}</strong> {number(service.rate)} {service.currency}{service.basis === 'm3' ? '/m³' : service.basis === 'kg' ? '/kg' : ' fixed'} <small>{service.name}</small></span>)}</div>
-        {filter !== 'received' && filter !== 'cancelled' && <div className="purchase-places-grid">
-          <section className="purchase-place" aria-label={`Coming to ${group.name}`}>
+        {filter !== 'received' && filter !== 'cancelled' && <div className="space-y-3">
+          {(places.travelling.length > 0 || places.ready.length > 0) &&
+            <section className="purchase-place purchase-outbound" aria-label={`Shipments to studio from ${group.name}`}>
+              <header><h3 className={T.label}>Shipments to studio</h3></header>
+              <div className="purchase-place-body">{[...places.travelling, ...places.ready].map(shipmentCard)}</div>
+            </section>}
+          <div className="flex flex-wrap gap-3">
+          {places.incoming.length > 0 && <section className="purchase-place min-w-0 flex-1" aria-label={`Coming to ${group.name}`}>
             <header><h3 className={T.label}>Supplier → {group.name}</h3><span>{places.incoming.length} {places.incoming.length === 1 ? 'parcel' : 'parcels'}</span></header>
             <div className="purchase-place-body">{places.incoming.map(order => <div className="purchase-parcel" key={order.purchase_id}>
               <div className="purchase-parcel-heading"><button type="button" className="tap-target purchase-place-link" onClick={() => setOpen(order.purchase_id)}>{order.vendor_name || 'Supplier'}</button><button type="button" className="tap-target purchase-tracking-button" disabled={busy} aria-label={`Arrived at ${group.name}: ${order.vendor_name}`} onClick={() => void mutatePurchase(order.purchase_id, () => api.logistics.markAtLogistics(order.purchase_id))}>Arrived</button></div>
@@ -344,27 +463,25 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
               {order.warehouse_address && <p className="purchase-parcel-reference"><span>To {order.warehouse_address.label}</span><span>{[order.warehouse_address.address_lines, order.warehouse_address.city].filter(Boolean).join(', ')}</span></p>}
               <p className="purchase-parcel-reference"><span>{order.inbound_courier || 'Courier not recorded'}</span><strong>{order.inbound_tracking_number || 'Tracking not recorded'}</strong></p>
               {purchaseError?.id === order.purchase_id && <p role="alert">{purchaseError.message} Use Arrived again to retry.</p>}
-            </div>)}{!places.incoming.length && <p className="purchase-place-empty">No parcels on the way.</p>}</div>
+            </div>)}</div>
             {places.incoming.length > 1 && <div className="purchase-place-footer"><LogisticsArrivalGroups orders={places.incoming} busy={busy} mutate={mutate}/></div>}
-          </section>
-          <section className="purchase-place" aria-label={`At ${group.name}`}>
-            <header><h3 className={T.label}>At {group.name}</h3><span>{places.collected.length + places.ready.reduce((sum, shipment) => sum + shipment.lines.length, 0)} items</span></header>
-            <div className="purchase-place-body">{[...new Map(places.collected.map(({order}) => [order.purchase_id, order])).values()].map(order => <div className="purchase-parcel" key={order.purchase_id}><div className="purchase-parcel-heading"><button className="tap-target purchase-place-link" type="button" onClick={() => setOpen(order.purchase_id)}>{order.vendor_name || 'Supplier'}</button><span className="text-tea-text-dim">Arrived {date(order.logistics_arrived_at)}</span></div><LogisticsTrackingUpdate update={order.tracking_update} emptyLabel={`Arrival recorded ${date(order.logistics_arrived_at)}`}/><ParcelContents order={order} openPurchase={setOpen}/><p className="purchase-parcel-reference">{order.inbound_courier}<strong>{order.inbound_tracking_number || 'Tracking not recorded'}</strong></p></div>)}{!places.collected.length && <p className="purchase-place-empty">{places.ready.length ? 'All goods assigned to the shipments below.' : 'Nothing waiting here.'}</p>}</div>
-            {logistics && places.collected.length > 0 && <div className="purchase-place-footer"><LogisticsCreateShipment key={`prepare:${scopeKey}:${group.id}`} label="Send together" data={{...logistics, orders:group.orders}} busy={busy} mutate={mutate}/></div>}
-          </section>
-          <section className="purchase-place purchase-outbound" aria-label={`Shipments to studio from ${group.name}`}>
-            <header><h3 className={T.label}>{group.name} → Art studio</h3><span>{places.ready.length + places.travelling.length} {places.ready.length + places.travelling.length === 1 ? 'shipment' : 'shipments'}</span></header>
-            <div className="purchase-place-body">{places.ready.map(shipmentCard)}{places.travelling.map(shipmentCard)}{!places.travelling.length && !places.ready.length && <p className="purchase-place-empty">No combined shipment yet.</p>}</div>
-          </section>
+          </section>}
+          {places.collected.length > 0 && <section className="purchase-place min-w-0 flex-1" aria-label={`At ${group.name}`}>
+            <header><h3 className={T.label}>At {group.name}</h3><span>{places.collected.length} items</span></header>
+            <div className="purchase-place-body">{[...new Map(places.collected.map(({order}) => [order.purchase_id, order])).values()].map(order => <div className="purchase-parcel" key={order.purchase_id}><div className="purchase-parcel-heading"><button className="tap-target purchase-place-link" type="button" onClick={() => setOpen(order.purchase_id)}>{order.vendor_name || 'Supplier'}</button><span className="text-tea-text-dim">Arrived {date(order.logistics_arrived_at)}</span></div><LogisticsTrackingUpdate update={order.tracking_update} emptyLabel={`Arrival recorded ${date(order.logistics_arrived_at)}`}/><ParcelContents order={order} openPurchase={setOpen}/><p className="purchase-parcel-reference">{order.inbound_courier}<strong>{order.inbound_tracking_number || 'Tracking not recorded'}</strong></p></div>)}</div>
+            {logistics && places.collected.length > 0 && <div className="purchase-place-footer"><LogisticsCreateShipment key={`prepare:${scopeKey}:${group.id}`} data={{...logistics, orders:group.orders}} busy={busy} mutate={mutate}/></div>}
+          </section>}
+          </div>
         </div>}
         {(filter === 'received' || filter === 'cancelled') && <section className="purchase-place-history">{places.history.map(shipmentCard)}{completedPurchases.map(row => renderPurchase(row))}</section>}
+        {filter !== 'received' && filter !== 'cancelled' && places.history.filter(shipment => shipment.id === requestedShipmentId).map(shipmentCard)}
       </section>;
     })}
     {otherSections.filter(section => section.rows.length > 0 && (section.title === 'Other deliveries' || filter === 'received' || filter === 'cancelled')).map(section => <section key={section.title} className="purchase-tracking-other"><h2 className={T.label}>{section.title}</h2><div className="purchase-tracking-list">{section.rows.map(row => renderPurchase(row))}</div></section>)}
     </div>
     {scoped.some(row => purchaseTrackingStage(row) === 'cancelled') && <button type="button" className="tap-target purchase-tracking-archive" onClick={() => setFilter(filter === 'cancelled' ? 'all' : 'cancelled')}>{filter === 'cancelled' ? 'Show all purchases' : 'Show cancelled purchases'}</button>}
     <TrackingTask
-      open={Boolean(selectedPurchase)}
+      open={Boolean(selectedPurchase) && !routePurchase}
       onClose={() => detailTask ? setDetailTask(null) : setOpen(null)}
       title={detailTask === 'edit' ? 'Edit purchase' : detailTask === 'history' ? 'Arrival history' : 'Purchase'}
     >
@@ -399,7 +516,19 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
       )}
       {selectedPurchase && !detailTask && renderPurchase(selectedPurchase, true)}
     </TrackingTask>
+    {routePurchase?.purchase && logistics && <TrackingTask open onClose={() => setRouteTarget(null)} title="Assign inbound route" compact>
+      <div className="sticky top-0 z-10 bg-tea-surface pb-2">
+        <TeaPanelSummary title={routePurchase.receipt?.lines.map(line => line.product_name).join(', ') || supplier(routePurchase)}
+          subtitle={supplier(routePurchase)} metadata={<><span>{stageLabel(routePurchase)}</span>{comingText(routePurchase) && <span>· {comingText(routePurchase)} due</span>}</>}/>
+      </div>
+      <div className="logistics-form">
+        <LogisticsOrderFields key={routePurchase.purchase.id} order={orderFor(routePurchase)}
+          services={logistics.services || []} addresses={logistics.addresses || []}
+          purchaseId={routePurchase.purchase.id} tracking={routePurchase.purchase.tracking_number}
+          busy={busy} mutate={mutate} onSaved={() => setRouteTarget(null)}/>
+      </div>
+    </TrackingTask>}
     {newForm && <NewForm onClose={() => setNewForm(false)} submitting={busy} onSubmit={async input => { await mutate(async () => { await api.purchaseOrders.create(input); setNewForm(false); }); }}/ >}
-    {match && <MatchForm po={match} onClose={() => setMatch(null)} onPrepared={() => { setOpen(match.id); setMatch(null); void refresh(); }}/ >}
+    {match && <MatchForm po={match} onClose={() => setMatch(null)} onPrepared={() => { setOpen(match.id); setMatch(null); void refreshStock(); }}/ >}
   </section>;
 }

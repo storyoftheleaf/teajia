@@ -1,3 +1,4 @@
+import { useReconcileReceivedSampleDrafts } from '../../lib/libraryPurchaseState';
 import { ArTranscriptHandoff } from './ArTranscriptHandoff';
 import { ArCreatePairing } from './ArTeaSources';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -12,6 +13,7 @@ import { syncNotes } from '../../lib/notesSync';
 import { LegacyLocalRecovery } from './LegacyLocalRecovery';
 import { useNotesStore } from '../../lib/notesStore';
 import { useLedgerStore } from '../../lib/ledgerStore';
+import { syncCompassEntries } from '../../lib/teaCompassSync';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
 import { useAppStore } from '../../lib/store';
 import { useSampleStore } from '../../samples/sampleStore';
@@ -90,6 +92,7 @@ const CompassRightEmptyState: React.FC<{
 // ─── Main Tea Compass ────────────────────────────────────────────────────
 
 export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, initialEntryId, initialDevelopmentProduct, initialCaptureOption, initialSampleOrder, initialSampleSetId, onSampleOrderRouteClose }) => {
+  useReconcileReceivedSampleDrafts();
   const [libraryDisplayPreference, setLibraryDisplayPreference] = useState(readLibraryPricePreference);
   const activeEntryId = useTeaCompassStore((s) => s.activeEntryId);
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
@@ -329,7 +332,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   }, [headerCollapsed]);
 
   // Track just-committed entry for banner
-  const [justCommitted, setJustCommitted] = useState<{ name: string; draftProductId?: string } | null>(null);
+  const [justCommitted, setJustCommitted] = useState<{ id: string; name: string } | null>(null);
+  const committedSynced = useTeaCompassStore(state => state.entries.some(entry => entry.id === justCommitted?.id && entry.synced));
   const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { setDevelopmentStarted(false); }, [initialDevelopmentProduct?.id]);
@@ -510,8 +514,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           createdAt: new Date().toISOString(),
         };
         addSampleTasting(linkedSample.id, tastingRecord);
-        // addTasting in sampleStore auto-advances status from untasted → tasted
-
         // The tasting record advances only the explicit sample lifecycle.
         // Verdict remains tasting evidence; it never infers an operational or
         // sourcing status.
@@ -519,7 +521,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     }
 
     if (committed) {
-      setJustCommitted({ name: committed.name || 'Entry', draftProductId: committed.draftProductId });
+      setJustCommitted({ id: committed.id, name: committed.name || 'Entry' });
+      void syncCompassEntries().catch(() => {});
       if (commitTimerRef.current) clearTimeout(commitTimerRef.current);
       commitTimerRef.current = setTimeout(() => setJustCommitted(null), 5000);
     }
@@ -535,8 +538,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         activeEntryId ? getEntry(activeEntryId)?.category || 'tea' : 'tea'
       );
     }
-    // Burst continuity: the form resets but run + vendor chips stay sticky,
-    // and the scroll returns to the photo hero for the next capture.
     scrollContainerRef.current?.scrollTo({ top: 0 });
   }, [getSessionEntries, activeEntryId, setActiveEntry, startNewCapture, getEntry, samplesList, addSampleTasting, setFromLibrary]);
 
@@ -1010,7 +1011,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             role="tabpanel"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
-            <AnimatePresence mode="wait">
+            <AnimatePresence mode={mode === 'buying' ? 'popLayout' : 'wait'}>
               {mode === 'sourcing' ? (
                 <motion.div
                   key="sourcing"
@@ -1054,13 +1055,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                           >
                             <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-tea-gold/10 text-tea-gold text-xs font-medium">
                               <Check size={14} strokeWidth={2.5} />
-                              <span className="flex-1 truncate">{justCommitted.name} saved</span>
+                              <span className="flex-1 truncate">{justCommitted.name} {committedSynced ? 'saved to the shop' : 'saved on this device'}</span>
                               <button
                                 type="button"
                                 onClick={() => { setJustCommitted(null); setMode('library'); }}
                                 className="flex items-center gap-1 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
                               >
-                                Sessions
+                                Open Library
                               </button>
                             </div>
                           </motion.div>
@@ -1257,7 +1258,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               ) : (
                 <motion.div
                   key="buying"
-                  initial={{ opacity: 0, x: 20 }}
+                  initial={false}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.2 }}
@@ -1369,7 +1370,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-3 pb-4"
               style={{ WebkitOverflowScrolling: 'touch', scrollbarGutter: 'stable' }}
             >
-              <AnimatePresence mode="wait">
+              <AnimatePresence mode={mode === 'buying' ? 'popLayout' : 'wait'}>
 
                 {/* SOURCING LEFT: toggle + SessionStack + banner + new-entry hint */}
                 {mode === 'sourcing' && (
@@ -1420,13 +1421,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         >
                           <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-tea-gold/10 text-tea-gold text-xs font-medium">
                             <Check size={14} strokeWidth={2.5} />
-                            <span className="flex-1 truncate">{justCommitted.name} saved</span>
+                            <span className="flex-1 truncate">{justCommitted.name} {committedSynced ? 'saved to the shop' : 'saved on this device'}</span>
                             <button
                               type="button"
                               onClick={() => { setJustCommitted(null); setMode('library'); }}
                               className="flex items-center gap-1 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
                             >
-                              Sessions
+                              Open Library
                             </button>
                           </div>
                         </motion.div>
@@ -1627,7 +1628,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 {mode === 'buying' && (
                   <motion.div
                     key="left-buying"
-                    initial={{ opacity: 0, x: 20 }}
+                    initial={false}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.2 }}

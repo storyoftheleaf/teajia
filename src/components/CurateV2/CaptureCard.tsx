@@ -811,7 +811,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       <EncounterContext journeyId={entry.journeyId} visitId={entry.visitId} onChange={(journeyId, visitId) => useTeaCompassStore.getState().setEncounterContext(entryId, journeyId, visitId)} />
       <CardLine label="Photo" className="py-2">
         <div className="min-w-0 flex-1">
-          <PhotoCapture
+          <PhotoCapture entryId={entryId}
             onExtracted={handleExtracted}
             onPhotoTaken={handlePhotoTaken}
             onPhotoReplaced={handlePhotoReplaced}

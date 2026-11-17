@@ -1,9 +1,11 @@
 import React, { useCallback, useState } from 'react';
-import { Check, ChevronDown, Minus, Plus } from 'lucide-react';
+import { Check, ChevronDown, Minus, Plus, Ruler } from 'lucide-react';
 import type { Currency } from '../../admin/types';
 import { GRAM_PRESETS, TEA_FORMS, type TeaForm } from './types';
 import { BottomSheet } from '../shared/BottomSheet';
+import { Modal } from '../shared/Modal';
 import { GramSlider } from './GramSlider';
+import { Button } from '../shared/Button';
 
 /**
  * PricingRow, the shared "what does this cost and how much of it"
@@ -54,6 +56,7 @@ export type PricingRowUnit =
     };
 
 interface PricingRowProps {
+  showQuoteLabels?: boolean;
   priceAmount?: number;
   priceCurrency: Currency;
   onPriceChange: (amount: number | undefined) => void;
@@ -62,6 +65,7 @@ interface PricingRowProps {
 }
 
 export const PricingRow: React.FC<PricingRowProps> = ({
+  showQuoteLabels = false,
   priceAmount,
   priceCurrency,
   onPriceChange,
@@ -69,6 +73,8 @@ export const PricingRow: React.FC<PricingRowProps> = ({
   unit,
 }) => {
   const [formSheetOpen, setFormSheetOpen] = useState(false);
+  const [weightPresetsOpen, setWeightPresetsOpen] = useState(false);
+  const gramPresets = unit.mode === 'grams' ? (GRAM_PRESETS[unit.form || 'Loose'] ?? []) : [];
   // Underline shell, matches the identity fields above (CaptureCard's
   // underlineFieldClass): bottom hairline only, no fill, warms to gold on
   // focus. focus-within so the hairline lights up whether the currency
@@ -85,6 +91,13 @@ export const PricingRow: React.FC<PricingRowProps> = ({
 
   return (
     <div className="space-y-1 lg:space-y-2">
+      {showQuoteLabels && unit.mode === 'grams' && (
+        <div aria-hidden className={`hidden gap-4 text-ui-10 text-tea-text-sec lg:grid ${unit.onFormChange ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          <span>Supplier quote</span>
+          <span className="text-right">Quoted weight</span>
+          {unit.onFormChange && <span>Form</span>}
+        </div>
+      )}
       {/* Top row.
           - grams mode: [Currency + Price] [Grams · g] [Form ▾].
             All three flex-1 / equal sizes so the row reads as one
@@ -141,6 +154,11 @@ export const PricingRow: React.FC<PricingRowProps> = ({
               >
                 g
               </span>
+              {showQuoteLabels && gramPresets.length > 0 && <Button type="button" variant="plain" onClick={() => setWeightPresetsOpen(true)}
+                aria-label="Choose preset weight" title="Choose preset weight"
+                className="tap-target hidden h-11 w-11 shrink-0 items-center justify-center text-tea-text-sec hover:text-tea-text lg:flex">
+                <Ruler size={14} aria-hidden />
+              </Button>}
             </div>
 
             {unit.onFormChange && (
@@ -194,23 +212,19 @@ export const PricingRow: React.FC<PricingRowProps> = ({
         )}
       </div>
 
-      {/* Grams-mode only: stepped gram-preset slider below the main row.
-          The Form chip moved up to share the top row, so this row is now
-          JUST the preset shortcut. Skipped entirely for count mode.
-          Fully controlled off unit.pricePerUnitGrams/unit.form, so it
-          reacts automatically when CaptureCard resets grams to the new
-          form's default (see CaptureCard.handleFormSelect). */}
-      {unit.mode === 'grams' && (() => {
-        const presets = unit.form ? (GRAM_PRESETS[unit.form] ?? []) : GRAM_PRESETS.Loose;
-        if (presets.length === 0) return null;
-        return (
-          <GramSlider
-            presets={presets}
-            value={unit.pricePerUnitGrams}
-            onChange={(g) => unit.onGramsChange(g)}
-          />
-        );
-      })()}
+      {unit.mode === 'grams' && gramPresets.length > 0 && (
+        <>
+          <GramSlider presets={gramPresets} value={unit.pricePerUnitGrams} onChange={unit.onGramsChange}
+            className={showQuoteLabels ? 'lg:hidden' : undefined} />
+          {showQuoteLabels && <Modal isOpen={weightPresetsOpen} onClose={() => setWeightPresetsOpen(false)} title="Quoted weight">
+            <div className="grid grid-cols-2 gap-2 px-4 pb-4 sm:grid-cols-3">
+              {gramPresets.map(grams => <Button key={grams} type="button" size="sm"
+                variant={grams === unit.pricePerUnitGrams ? 'secondary' : 'ghost'} aria-pressed={grams === unit.pricePerUnitGrams}
+                onClick={() => { unit.onGramsChange(grams); setWeightPresetsOpen(false); }}>{grams} g</Button>)}
+            </div>
+          </Modal>}
+        </>
+      )}
 
       {/* Form picker, compact 2-column grid, name only. */}
       {unit.mode === 'grams' && unit.onFormChange && (

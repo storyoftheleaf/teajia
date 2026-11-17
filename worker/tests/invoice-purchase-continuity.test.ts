@@ -137,3 +137,28 @@ describe('older Curate purchases keep their original arrival',()=>{
   expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM inventory_receipts').get()).toEqual({n:0});
  });
 });
+
+describe('a working purchase after receiving a sample', () => {
+ it('keeps the original sample and reuses a single working holding for the same Library tea', async () => {
+  const db = dbFor();
+  db.sqlite.exec(`INSERT INTO tea_compass_entries(id,account_id,user_id,name,category,type)
+    VALUES('tasted-tea','shop','owner','Tasted tea','tea','Oolong');
+    INSERT INTO products(id,account_id,product_name,type,source_compass_entry_id,stock_grams,inventory_purpose,is_sample,cost_amount,shown_in_shop,is_public)
+    VALUES('received-sample','shop','Tasted tea','Oolong','tasted-tea',20,'sample',1,0,0,0);
+    UPDATE tea_compass_entries SET draft_product_id='received-sample' WHERE id='tasted-tea';`);
+  const insert = db.sqlite.prepare("INSERT INTO purchase_orders(id,account_id,vendor_name,items_json,status,created_at,updated_at) VALUES(?,'shop','Supplier',?,'pending',datetime('now'),datetime('now'))");
+  const items = JSON.stringify([{compass_entry_id:'tasted-tea',product_id:'received-sample',quantity:250,unit:'g',line_total:100,currency:'Yuan'}]);
+  insert.run('from-sample', items);
+  const placed = await placePurchaseReceipt({DB:db as any}, ctx, 'from-sample', 'ordered', false);
+  expect(placed.value).toMatchObject({receipt_id:'po_from-sample',unresolved_items:[]});
+  expect(db.sqlite.prepare('SELECT id,stock_grams,inventory_purpose,cost_amount,shown_in_shop FROM products WHERE source_compass_entry_id=? ORDER BY inventory_purpose').all('tasted-tea')).toEqual([
+   {id:'received-sample',stock_grams:20,inventory_purpose:'sample',cost_amount:0,shown_in_shop:0},
+   {id:'holding_shop_tasted-tea',stock_grams:0,inventory_purpose:'working',cost_amount:null,shown_in_shop:0},
+  ]);
+  expect((await placePurchaseReceipt({DB:db as any}, ctx, 'from-sample', 'ordered', false)).value).toMatchObject({already_prepared:true});
+  insert.run('reorder-from-stale-sample', items);
+  const reordered = await placePurchaseReceipt({DB:db as any}, ctx, 'reorder-from-stale-sample', 'ordered', false);
+  expect(reordered.value).toMatchObject({lines:[{product_id:'holding_shop_tasted-tea'}],unresolved_items:[]});
+  expect(db.sqlite.prepare("SELECT COUNT(*) AS n FROM products WHERE source_compass_entry_id='tasted-tea'").get()).toEqual({n:2});
+ });
+});

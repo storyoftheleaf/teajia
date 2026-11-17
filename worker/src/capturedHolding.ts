@@ -2,7 +2,6 @@ import { canonicalCurrency } from '../../src/lib/currency';
 
 /** Quote basis and quantity stay paired; receiving scales the quote to the actual receipt. */
 export function capturedHoldingFields(entry:Record<string,any>, received?:number):Record<string,any>{
- let photos:string[]=[];try{photos=Array.isArray(entry.photos)?entry.photos:JSON.parse(entry.photos||'[]');}catch{}
  const ware=entry.category==='teaware'||entry.type==='Teaware';
  const actual=entry.buy_total!=null;
  const amount=actual?Number(entry.buy_total):entry.price_amount==null?null:Number(entry.price_amount);
@@ -11,7 +10,7 @@ export function capturedHoldingFields(entry:Record<string,any>, received?:number
  const stated=amount!=null&&Number.isFinite(amount)&&amount>=0&&(free||(entry.price_currency&&entry.price_currency!=='UNK'));
  const quantity=received??(basis>0?basis:free?1:null);
 
- return {form:entry.form??null,season:entry.season??null,storage:entry.storage??null,producer:entry.producer??null,classification:entry.classification??null,cultivar:entry.cultivar??null,chinese_name:entry.chinese_name??null,year:entry.year!=null?String(entry.year):null,origin_country:entry.origin_country??null,origin_region:entry.origin_region??null,description:entry.description??null,image_url:photos[0]??null,additional_images:JSON.stringify(photos.slice(1)),bag_photo_url:photos[0]??null,vendor:entry.vendor_name??null,vendor_id:entry.vendor_id??null,material:entry.material??null,clay_type:entry.clay_type??null,material_note:entry.material_note??null,capacity_ml:entry.capacity_ml??null,teaware_category:entry.teaware_category??null,tasting:entry.tasting??'{}',tasting_source:entry.tasting&&entry.tasting!=='{}'?'owner':null,tea_key:entry.tea_key??null,cost_amount:stated?(free?0:(basis>0&&received!=null?Number(amount)*(quantity!/basis):amount)):null,cost_currency:stated&&!free?canonicalCurrency(entry.price_currency):free?(canonicalCurrency(entry.price_currency)??null):null,quantity_purchased:stated&&(basis>0||free)?quantity:null};
+ return {form:entry.form??null,season:entry.season??null,storage:entry.storage??null,producer:entry.producer??null,classification:entry.classification??null,cultivar:entry.cultivar??null,chinese_name:entry.chinese_name??null,year:entry.year!=null?String(entry.year):null,origin_country:entry.origin_country??null,origin_region:entry.origin_region??null,description:entry.description??null,vendor:entry.vendor_name??null,vendor_id:entry.vendor_id??null,material:entry.material??null,clay_type:entry.clay_type??null,material_note:entry.material_note??null,capacity_ml:entry.capacity_ml??null,teaware_category:entry.teaware_category??null,tasting:entry.tasting??'{}',tasting_source:entry.tasting&&entry.tasting!=='{}'?'owner':null,tea_key:entry.tea_key??null,cost_amount:stated?(free?0:(basis>0&&received!=null?Number(amount)*(quantity!/basis):amount)):null,cost_currency:stated&&!free?canonicalCurrency(entry.price_currency):free?(canonicalCurrency(entry.price_currency)??null):null,quantity_purchased:stated&&(basis>0||free)?quantity:null};
 }
 export function recordedImageKey(product:Record<string,any>,slot:string,accountId:string):string|null{
  let extras:string[]=[];try{extras=Array.isArray(product.additional_images)?product.additional_images:JSON.parse(product.additional_images||'[]');}catch{}

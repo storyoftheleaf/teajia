@@ -2,6 +2,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { fmtShopPrice, fmtShopPricePerGram } from '../../utils/formatNumber';
+import { ProductOrderAccess } from './ProductOrderAccess';
 import { AlcoveCommerceFooter } from './alcove/AlcoveCommerceFooter';
 
 const item = {
@@ -64,25 +65,9 @@ describe('shop price roles', () => {
 });
 
 describe('cold product page order access', () => {
-  const loadControl = async () => {
-    const storage = {
-      getItem: () => null,
-      setItem: () => {},
-      removeItem: () => {},
-      clear: () => {},
-      key: () => null,
-      length: 0,
-    };
-    vi.stubGlobal('localStorage', storage);
-    vi.stubGlobal('sessionStorage', storage);
-    return (await import('../../pages/ProductPage')).ProductOrderAccess;
-  };
-
-  it('reopens a populated order from the commerce reassurance area', async () => {
-    const ProductOrderAccess = await loadControl();
-    expect(ProductOrderAccess).toBeTypeOf('function');
+  it('reopens a populated order from the commerce reassurance area', () => {
     const onCartClick = vi.fn();
-    const control = ProductOrderAccess!({ cartItemCount: 2, onCartClick });
+    const control = ProductOrderAccess({ cartItemCount: 2, onCartClick });
     const html = renderToStaticMarkup(control);
 
     expect(html).toContain('View order');
@@ -91,8 +76,9 @@ describe('cold product page order access', () => {
     expect(onCartClick).toHaveBeenCalledOnce();
   });
 
-  it('stays absent until an order has an item', async () => {
-    const ProductOrderAccess = await loadControl();
-    expect(ProductOrderAccess!({ cartItemCount: 0, onCartClick: () => {} })).toBeNull();
+  it('shows an empty order without offering to open it', () => {
+    const html = renderToStaticMarkup(<ProductOrderAccess cartItemCount={0} onCartClick={() => {}} />);
+    expect(html).toContain('Order empty');
+    expect(html).not.toContain('button');
   });
 });

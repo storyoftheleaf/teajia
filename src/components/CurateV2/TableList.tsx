@@ -1,3 +1,4 @@
+import { CapturePhotoImage } from '../curate/CapturePhotoImage';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Mic, Square, Loader2 } from 'lucide-react';
 import { selectTableEntries, useTeaCompassStore } from '../../lib/teaCompassStore';
@@ -181,7 +182,7 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
             className={`curate-v2-row ${e.id === activeEntryId ? 'bg-tea-accent-sub' : ''}`}
           >
             <button type="button" onClick={() => onOpen(e.id)} className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left">
-              {e.photos?.[0] && <span className="h-9 w-9 shrink-0 rounded-md bg-cover bg-center" style={{ backgroundImage: `url(${e.photos[0]})` }} aria-hidden="true" />}
+              {e.photos?.[0] && <CapturePhotoImage src={e.photos[0]} className="h-9 w-9 shrink-0 rounded-md object-cover" alt="" />}
               <span className="grid min-w-0 flex-1 gap-0.5">
                 {/* The name wraps to two lines rather than being cut: "Mengku Laobanzhang" must read in full. */}
                 <span className="curate-v2-name !whitespace-normal line-clamp-2">{listName(e.name) || (e.category === 'teaware' ? 'Untitled teaware' : 'Untitled tea')}</span>

@@ -179,14 +179,15 @@ test.describe('refined public shop', () => {
   test('opens a tea into the product page, with one rendering per address', async ({ page }) => {
     // Tapping a tea used to push the same address with a background location,
     // which rendered a swipeable card over the grid; only a cold load got the
-    // real page. One address now has one rendering, so there is no dialog and
-    // no second Add button: choosing an amount in the list IS adding it, and
-    // the order itself is reached from the bar at the top.
+    // real page. One address now has one rendering and one purchase row.
+    // Choosing a weight and adding that weight to the order are separate.
     await page.getByRole('button', { name: 'View Moonlight White' }).click();
     await expect(page).toHaveURL(/\/shop\/product\/tea-1$/);
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.locator('.label-plate')).toBeVisible();
-    await expect(page.getByRole('button', { name: /Add to order/i })).toHaveCount(0);
+    const purchase = page.getByRole('group', { name: 'Choose and add a tea amount' });
+    await expect(purchase.getByRole('button', { name: 'Add to order', exact: true })).toBeVisible();
+    await expect(page.getByText('Order empty', { exact: true })).toBeVisible();
 
     const amount = page.locator('.alcove-dock-strip button[aria-expanded]:not(.alcove-dock-cta)');
     const selectionTotal = page.locator('.alcove-dock-strip .alcove-dock-cta-total').first();
@@ -209,7 +210,7 @@ test.describe('refined public shop', () => {
 
     // Changing the amount must not buy anything. This bought a bag every time.
     await amount.click();
-    await page.locator('[role="group"] button').nth(3).click();
+    await page.locator('[id="alcove-amounts-tea-1"] button').nth(1).click();
     await expect(page.locator('.alcove-dock-cta')).toHaveCount(0);
 
     // Add commits once, and the order then carries exactly what the bar showed.

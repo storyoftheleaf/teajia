@@ -86,7 +86,7 @@ test.describe('Curate responsive preservation', () => {
       source.getByRole('button', { name: /^Category:/ }),
       source.getByRole('button', { name: 'Decrease quantity', exact: true }),
       source.getByRole('button', { name: 'Increase quantity', exact: true }),
-      source.getByRole('button', { name: /Done, commit this entry/ }),
+      source.getByRole('button', { name: 'Save piece', exact: true }),
     ]) {
       const box = await action.boundingBox();
       expect(box?.height).toBeGreaterThanOrEqual(44);

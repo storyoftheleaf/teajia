@@ -1,4 +1,5 @@
 import { attachLogisticsTracking } from './logisticsTracking';
+import { hasOpenStudioReferral, STUDIO_REFERRAL_MESSAGE, STUDIO_REFERRAL_OPEN } from './studioReceiptReferrals';
 import { calculateShipmentFreight } from '../../src/lib/logisticsFreight';
 import type { LogisticsAddress, LogisticsFreight, LogisticsOrder, LogisticsShipment, LogisticsShipmentLine, LogisticsService, LogisticsTracking } from '../../src/lib/logisticsTypes';
 import type { InventoryReceiptService } from './mcpTools/registry';
@@ -7,7 +8,7 @@ type Env = { DB:D1Database; inventoryReceipts?:InventoryReceiptService };
 type Scope = {accountId:string;userId:string;email?:string|null};
 type Row = Record<string,any>;
 export type LogisticsAction = 'order'|'arrive'|'create'|'update'|'dispatch'|'receive'|'cancel'|'service_create'|'service_update'|'service_archive'|'address_create'|'address_update'|'address_archive';
-export class LogisticsError extends Error { constructor(message:string,public status=400){super(message);} }
+export class LogisticsError extends Error { constructor(message:string,public status=400, public code?:string){super(message);} }
 function fail(message:string,status=400):never {throw new LogisticsError(message,status);}
 const parse=(value:any,fallback:any=null)=>{try{return JSON.parse(value)}catch{return fallback}};
 const nullable=(value:any)=>value==null?null:Number(value);
@@ -54,7 +55,7 @@ function checkAddressPreview(body:Row,address:LogisticsAddress|null){
  * keep their currency; shipment shares are proportional to allocated quantity. */
 export async function readLogistics(env:Env,accountId:string):Promise<LogisticsTracking> {
  const [purchases,receiptLines,shipments,shipmentLines,studioReceipts,services,addresses]=await Promise.all([
-  env.DB.prepare(`SELECT p.*,h.logistics_company_id,h.logistics_company_name,h.inbound_courier,h.inbound_tracking_number,h.logistics_arrived_at,h.warehouse_address_id,h.warehouse_address_json FROM purchase_orders p LEFT JOIN purchase_logistics h ON h.purchase_id=p.id AND h.account_id=p.account_id WHERE p.account_id=? ORDER BY p.created_at DESC`).bind(accountId).all<Row>(),
+  env.DB.prepare(`SELECT p.*,h.purchase_id managed_purchase_id,h.logistics_company_id,h.logistics_company_name,h.inbound_courier,h.inbound_tracking_number,h.logistics_arrived_at,h.warehouse_address_id,h.warehouse_address_json FROM purchase_orders p LEFT JOIN purchase_logistics h ON h.purchase_id=p.id AND h.account_id=p.account_id WHERE p.account_id=? ORDER BY p.created_at DESC`).bind(accountId).all<Row>(),
   env.DB.prepare(`SELECT r.*,COALESCE(p.given_name,p.product_name) product_name,p.image_url,p.source_compass_entry_id FROM inventory_receipt_lines r JOIN products p ON p.id=r.product_id AND p.account_id=r.account_id WHERE r.account_id=?`).bind(accountId).all<Row>(),
   env.DB.prepare('SELECT * FROM logistics_shipments WHERE account_id=? ORDER BY created_at DESC,id').bind(accountId).all<Row>(),
   env.DB.prepare('SELECT * FROM logistics_shipment_lines WHERE account_id=? ORDER BY id').bind(accountId).all<Row>(),
@@ -65,7 +66,7 @@ export async function readLogistics(env:Env,accountId:string):Promise<LogisticsT
  const lines=receiptLines.results??[],allocated=shipmentLines.results??[];
  const active=new Set((shipments.results??[]).filter(s=>s.state!=='cancelled').map(s=>s.id));
  const itemFor=(purchase:Row,line:Row)=>{const items=parse(purchase.items_json,[]);return Array.isArray(items)?items.find((i:Row)=>i.product_id===line.product_id||(line.source_compass_entry_id&&i.compass_entry_id===line.source_compass_entry_id)):null};
- const orders:LogisticsOrder[]=(purchases.results??[]).map(p=>({purchase_id:p.id,warehouse_address_id:p.warehouse_address_id??null,warehouse_address:parse(p.warehouse_address_json),receipt_id:p.receipt_id??null,vendor_name:p.vendor_name??null,logistics_company_id:p.logistics_company_id??null,logistics_company_name:p.logistics_company_name??null,inbound_courier:p.inbound_courier??null,inbound_tracking_number:p.logistics_company_name!=null?p.inbound_tracking_number??null:p.tracking_number??null,logistics_arrived_at:p.logistics_arrived_at??null,lines:lines.filter(l=>l.receipt_id===p.receipt_id).map(l=>{
+ const orders:LogisticsOrder[]=(purchases.results??[]).map(p=>({purchase_id:p.id,managed:p.managed_purchase_id!=null,warehouse_address_id:p.warehouse_address_id??null,warehouse_address:parse(p.warehouse_address_json),receipt_id:p.receipt_id??null,vendor_name:p.vendor_name??null,logistics_company_id:p.logistics_company_id??null,logistics_company_name:p.logistics_company_name??null,inbound_courier:p.inbound_courier??null,inbound_tracking_number:p.logistics_company_name!=null?p.inbound_tracking_number??null:p.tracking_number??null,logistics_arrived_at:p.logistics_arrived_at??null,lines:lines.filter(l=>l.receipt_id===p.receipt_id).map(l=>{
   const item=itemFor(p,l);
   return {id:l.id,product_id:l.product_id,product_name:l.product_name,unit:l.unit,expected_quantity:Number(l.expected_quantity),received_quantity:Number(l.received_quantity),cancelled_quantity:Number(l.cancelled_quantity),available_quantity:Math.max(0,Number(l.expected_quantity)-Number(l.received_quantity)-Number(l.cancelled_quantity)-allocated.filter(a=>a.receipt_line_id===l.id&&active.has(a.shipment_id)).reduce((sum,a)=>sum+Number(a.quantity)-Number(a.received_quantity),0)),original_cost_amount:l.original_cost_amount!=null?Number(l.original_cost_amount):l.original_unit_cost!=null?Number(l.original_unit_cost)*Number(l.expected_quantity):null,original_cost_currency:l.original_cost_currency??null,image_url:l.image_url??item?.image_url??null,source_url:item?.source_url??item?.url??null};
  })}));
@@ -239,7 +240,10 @@ export async function mutateLogistics(env:Env,scope:Scope,action:LogisticsAction
    if(movementKey.length>200)fail('Receipt request key is too long');
    const prior=await env.DB.prepare('SELECT * FROM logistics_studio_receipts WHERE account_id=? AND idempotency_key=?').bind(account,movementKey).first<Row>();
    if(prior){if(prior.shipment_line_id!==line.id||Number(prior.quantity)!==quantity)fail('Receipt key already used with different quantities',409);}
-   else if(!['in_transit','partially_received'].includes(shipment.state)||quantity>Number(line.quantity)-Number(line.received_quantity))fail('Dispatch first, then receive only outstanding shipment quantities',409);
+   else {
+    if(await hasOpenStudioReferral(env, account, line.id)) throw new LogisticsError(STUDIO_REFERRAL_MESSAGE, 409, STUDIO_REFERRAL_OPEN);
+    if(!['in_transit','partially_received'].includes(shipment.state)||quantity>Number(line.quantity)-Number(line.received_quantity))fail('Dispatch first, then receive only outstanding shipment quantities',409);
+   }
    lines.push({...line,quantity,movementKey});
   }
   if(preview)return {action,shipment_id:id,lines:lines.map(l=>({line_id:l.id,quantity:l.quantity,unit:l.unit})),note:'These explicit quantities will be added to studio stock.'};

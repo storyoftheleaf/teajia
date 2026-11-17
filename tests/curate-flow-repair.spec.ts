@@ -28,10 +28,10 @@ test.describe('Curate acquisition repair', () => {
     await page.getByLabel('Currency', { exact: true }).filter({ visible: true }).selectOption('Yuan');
     await page.getByLabel('Price', { exact: true }).filter({ visible: true }).fill('100');
     await page.getByRole('spinbutton', { name: 'Grams', exact: true }).filter({ visible: true }).fill('100');
-    await page.getByRole('button', { name: 'Buy', exact: true }).filter({ visible: true }).first().click();
+    await page.getByRole('button', { name: 'Draft supplier order', exact: true }).filter({ visible: true }).first().click();
     await page.getByLabel('Purchase quantity').filter({ visible: true }).fill('250');
     await page.getByLabel('Acquisition', { exact: true }).filter({ visible: true }).selectOption('transfer');
-    await page.getByRole('button', { name: 'Add to Ledger', exact: true }).filter({ visible: true }).click();
+    await page.getByRole('button', { name: 'Review receipt', exact: true }).filter({ visible: true }).click();
     await expect(page.getByText('Temporary receipt error. Retry your saved purchase.').filter({ visible: true })).toBeVisible();
     await expect(page.getByPlaceholder('Tea name').filter({ visible: true })).toHaveValue('Receipt retry tea');
     await page.getByRole('button', { name: 'Retry receipt', exact: true }).filter({ visible: true }).click();
@@ -59,8 +59,8 @@ test.describe('Curate acquisition repair', () => {
       // @ts-expect-error Vite source import used by the browser harness.
       const { useLedgerStore } = await import('/src/lib/ledgerStore.ts');
       return { product: useTeaCompassStore.getState().entries.find((entry: { name: string }) => entry.name === 'Receipt retry tea').draftProductId,
-        pending: useLedgerStore.getState().transactions.flatMap((tx: { items: unknown[] }) => tx.items).filter((item: { receiptProposal?: unknown }) => item.receiptProposal).length };
-    })).toEqual({ product: expect.stringMatching(/^product-/), pending: 0 });
+        draftLines: useLedgerStore.getState().getDraftTransactions().flatMap((tx: { items: unknown[] }) => tx.items).length };
+    })).toEqual({ product: expect.stringMatching(/^product-/), draftLines: 0 });
   });
 
   test('retains a failed purchase confirmation and retries the same dollar-denominated order', async ({ page }) => {
@@ -82,12 +82,12 @@ test.describe('Curate acquisition repair', () => {
       ledger.addLineItem(id, { name: 'Quoted tea', pricePerUnit: 1, priceIsPerGram: true, quantityGrams: 250, currency: 'Yuan' });
     });
     await (await revealCurateTab(page, 'Orders')).click();
-    await page.getByRole('button', { name: 'Purchase', exact: true }).click();
+    await page.getByRole('button', { name: 'Save supplier order', exact: true }).click();
     await expect(page.getByText('Shop could not confirm. Draft kept.', { exact: true }).filter({ visible: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Retry confirmation', exact: true }).filter({ visible: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Retry confirmation', exact: true }).filter({ visible: true }).click();
-    await expect(page.getByText('Confirmed · 1 item', { exact: true }).filter({ visible: true })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'View purchase' })).toHaveAttribute('href', '/admin/purchase-orders?purchaseId=confirmed-po');
+    await expect(page.getByRole('button', { name: 'Retry saving order', exact: true }).filter({ visible: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Retry saving order', exact: true }).filter({ visible: true }).click();
+    await expect(page.getByText('Saved · 1 item', { exact: true }).filter({ visible: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Open supplier order' })).toHaveAttribute('href', '/admin/purchase-orders?purchaseId=confirmed-po');
     expect(requests).toHaveLength(2);
     expect(requests[0].request_id || requests[0].idempotency_key).toBe(requests[1].request_id || requests[1].idempotency_key);
     expect(requests[0].request_id || requests[0].idempotency_key).toBeTruthy();

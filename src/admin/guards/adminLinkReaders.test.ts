@@ -188,10 +188,6 @@ const UNREAD_TODAY: Record<string, string> = {
   // search box), so everyone else lands on the whole catalog.
   '/admin/catalog?search':
     'src/admin/components/SoldItemsView.tsx:303 and :579; lands on the unfiltered catalog for a non-platform account',
-  // "Add to Curate" from a sample page. Nothing in either Curate reads
-  // fromSample, so the tap opens Sourcing without the sample attached.
-  '/admin/compass?fromSample':
-    'src/pages/SamplePage.tsx:574; opens Sourcing with nothing carried over',
 };
 
 describe('every admin link with a query has a reader', () => {

@@ -69,7 +69,7 @@ for (const size of [{ width: 390, height: 844 }, { width: 1360, height: 900 }]) 
     await expect(otherTea.getByRole('button', { name: 'Receive 250g' })).toBeVisible();
     await expect(otherTea.getByText('Awaiting arrival')).toBeVisible();
     await expect(otherTea.getByText(/Shipped|Est\./)).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Mark as Sent' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Record as sent' })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(size.width);
     if (out) await page.screenshot({ path: `${out}/curate-order-${size.width}.png`, scale: 'css', animations: 'disabled' });
     await expect(page.getByRole('button', { name: 'Add photo', exact: true })).toHaveCount(0);

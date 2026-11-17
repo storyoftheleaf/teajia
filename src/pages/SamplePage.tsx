@@ -34,6 +34,12 @@ const VERDICT_ICONS: Record<TastingVerdict, React.ComponentType<{ size?: number 
 /* ─── Status flow for admin ─── */
 const STATUS_FLOW: SampleStatus[] = ['untasted', 'tasted', 'favorite', 'ordering', 'ordered', 'passed'];
 
+export function sampleCurateHref(sample: Pick<TeaSample, 'compassEntryId'>): string {
+  return sample.compassEntryId
+    ? `/admin/compass?tab=sourcing&entry=${encodeURIComponent(sample.compassEntryId)}`
+    : '/admin/compass?tab=sourcing';
+}
+
 const SamplePage: React.FC = () => {
   const { sampleId } = useParams<{ sampleId: string }>();
   const navigate = useNavigate();
@@ -590,7 +596,7 @@ const SamplePage: React.FC = () => {
             className="mt-8"
           >
             <button
-              onClick={() => navigate(`/admin/compass?tab=sourcing&fromSample=${sample.id}`)}
+              onClick={() => navigate(sampleCurateHref(sample))}
               className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-3 rounded-md cta-solid text-xs font-semibold transition-colors"
             >
               <ExternalLink size={14} />

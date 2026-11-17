@@ -44,7 +44,8 @@ describe('actual HTTP sample bridge and durable tenancy', () => {
     expect(created.sample_set_id).toBe(first.set_id);
     expect(db.sqlite.prepare('SELECT source_id FROM tea_sample_sets WHERE id=?').get(first.set_id)).toMatchObject({ source_id: 'vendor' });
     await checked(await call(db, '/api/compass/entries/tea', 'PUT', { sample_state: 'received', photos: ['https://media.teajia.co/new.jpg'] }));
-    expect(sample(db)).toMatchObject({ id: first.id, status: 'received', photos: '["https://media.teajia.co/new.jpg"]' });
+    expect(sample(db)).toMatchObject({ id: first.id, status: 'received', photos: '[]' });
+    expect(tea(db)).toMatchObject({ photos: '["https://media.teajia.co/new.jpg"]' });
     await checked(await call(db, '/api/compass/sync', 'POST', { entries: [{ id: 'tea', sample_state: 'tasted', shop_name: 'Shop', transport_mode: 'air' }] }));
     expect(sample(db)).toMatchObject({ id: first.id, status: 'tasted' });
     expect(tea(db)).toMatchObject({ shop_name: 'Shop', transport_mode: 'air' });
@@ -130,7 +131,7 @@ describe('reviewed arrivals preserve actual order cost and private metadata', ()
     const p = await proposal(db);
     const first = await checked(await call(db, `/api/curate/receipt-proposals/${p.id}/accept`, 'POST'));
     const product = db.sqlite.prepare('SELECT * FROM products WHERE id=?').get(first.product_id) as any;
-    expect(product).toMatchObject({ cost_amount: 80, cost_currency: 'Yuan', quantity_purchased: 100, vendor_id: 'vendor', chinese_name: '茶', year: 2019, origin_region: 'Yiwu', form: 'Cake', image_url: 'https://media.teajia.co/tea.jpg', stock_grams: 100, is_public: 0, shown_in_shop: 0, shipping_rate_per_kg: null, markup_multiplier: null });
+    expect(product).toMatchObject({ cost_amount: 80, cost_currency: 'Yuan', quantity_purchased: 100, vendor_id: 'vendor', chinese_name: '茶', year: 2019, origin_region: 'Yiwu', form: 'Cake', image_url: null, bag_photo_url: null, additional_images: '[]', stock_grams: 100, is_public: 0, shown_in_shop: 0, shipping_rate_per_kg: null, markup_multiplier: null });
     expect(JSON.parse(product.tasting)).toMatchObject({ body: ['full'] });
     expect(sample(db).product_id).toBe(first.product_id);
     expect(tea(db).status).toBe('in_stock');

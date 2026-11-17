@@ -1,0 +1,73 @@
+import { useEffect, useState, type ImgHTMLAttributes } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { capturePhotoApi } from '../../lib/capturePhotoApi';
+import { isTokenScopedToAccount } from '../../lib/api';
+import { mediaUrl } from '../../lib/mediaUrl';
+import { useAppStore } from '../../lib/store';
+
+const PRIVATE_PHOTO = /^\/api\/curate\/capture\/([A-Za-z0-9_-]{1,120})\/photos\/([a-f0-9-]{36})$/;
+const SHOP_PHOTO = /^https:\/\/media\.teajia\.co\/curate-approved\/([a-f0-9-]{36})$/;
+
+export function capturePhotoIdentity(src?: string | null) {
+  const match = src?.match(PRIVATE_PHOTO);
+  return match ? { entryId: match[1], photoId: match[2] } : null;
+}
+
+export const getStockCapturePhotoId = (src?: string | null) => src?.match(SHOP_PHOTO)?.[1];
+
+export function useCapturePhotoUpload(entryId: string) {
+  const accountId = useAppStore(state => state.activeAccountId);
+  const userId = useAppStore(state => state.activeUserId);
+  return async (file: File | Blob) => {
+    if (!accountId || !userId) throw new Error('Sign in to save a private photo.');
+    return capturePhotoApi.upload(entryId, file, { accountId, userId });
+  };
+}
+
+export function useCapturePhotoUrl(src?: string | null, stockPreview = false) {
+  const accountId = useAppStore(state => state.activeAccountId);
+  const userId = useAppStore(state => state.activeUserId);
+  const [loaded, setLoaded] = useState<{ key: string; url: string }>();
+  const identity = capturePhotoIdentity(src);
+  const projectedPhotoId = stockPreview ? getStockCapturePhotoId(src) : undefined;
+  const needsAuth = Boolean(identity || projectedPhotoId);
+  const canRead = !!accountId && !!userId && isTokenScopedToAccount(accountId, userId);
+  const key = JSON.stringify([src, accountId, userId, stockPreview]);
+  // Reuse private bytes across the thumbnail, its sheet and the full-size
+  // viewer. The query is memory-only, and the app clears it on token changes.
+  const { data: blob } = useQuery({
+    queryKey: ['capture-photo-bytes', accountId, userId, src, stockPreview],
+    enabled: needsAuth && canRead,
+    staleTime: 30_000,
+    gcTime: 30_000,
+    retry: false,
+    queryFn: () => {
+      const scope = { accountId: accountId!, userId: userId! };
+      return identity
+        ? capturePhotoApi.blob(identity.entryId, identity.photoId, scope)
+        : capturePhotoApi.stockBlob(projectedPhotoId!, scope);
+    },
+  });
+  useEffect(() => {
+    if (!blob || !canRead) return;
+    const url = URL.createObjectURL(blob);
+    setLoaded({ key, url });
+    return () => URL.revokeObjectURL(url);
+  }, [blob, canRead, key]);
+  if (needsAuth) return canRead && blob && loaded?.key === key ? loaded.url : undefined;
+  return mediaUrl(src);
+}
+
+type CapturePhotoImageProps = ImgHTMLAttributes<HTMLImageElement> & { stockPreview?: boolean };
+
+function AuthenticatedCapturePhoto({ src, stockPreview, ...props }: CapturePhotoImageProps) {
+  const url = useCapturePhotoUrl(src, stockPreview);
+  return <img {...props} src={url} />;
+}
+
+export function CapturePhotoImage({ src, stockPreview = false, ...props }: CapturePhotoImageProps) {
+  if (capturePhotoIdentity(src) || (stockPreview && getStockCapturePhotoId(src))) {
+    return <AuthenticatedCapturePhoto {...props} src={src} stockPreview={stockPreview} />;
+  }
+  return <img {...props} src={mediaUrl(src)} />;
+}

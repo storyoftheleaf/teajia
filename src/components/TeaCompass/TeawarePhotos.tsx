@@ -1,16 +1,17 @@
+import { CapturePhotoImage, useCapturePhotoUpload } from '../curate/CapturePhotoImage';
 import React, { useRef, useState } from 'react';
-import { mediaUrl } from '../../lib/mediaUrl';
 import { Camera, Plus, X } from 'lucide-react';
-import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 
 interface TeawarePhotosProps {
+  entryId: string;
   photos: string[];
   onPhotosChange: (photos: string[]) => void;
 }
 
-export const TeawarePhotos: React.FC<TeawarePhotosProps> = ({ photos, onPhotosChange }) => {
+export const TeawarePhotos: React.FC<TeawarePhotosProps> = ({ entryId, photos, onPhotosChange }) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const uploadPhoto = useCapturePhotoUpload(entryId);
   const [uploading, setUploading] = useState(false);
   const [viewingIndex, setViewingIndex] = useState<number | null>(null);
 
@@ -28,7 +29,7 @@ export const TeawarePhotos: React.FC<TeawarePhotosProps> = ({ photos, onPhotosCh
     try {
       const compressed = await compressImage(file);
       const compressedFile = new File([compressed], 'photo.jpg', { type: 'image/jpeg' });
-      const url = await api.uploadImage(compressedFile);
+      const url = await uploadPhoto(compressedFile);
       if (url) {
         onPhotosChange([...photos, url]);
       }
@@ -59,8 +60,8 @@ export const TeawarePhotos: React.FC<TeawarePhotosProps> = ({ photos, onPhotosCh
         <div className="flex gap-2 overflow-x-auto pb-1">
           {photos.map((url, i) => (
             <div key={i} className="relative shrink-0 group">
-              <img
-                src={mediaUrl(url)}
+              <CapturePhotoImage
+                src={url}
                 alt={`Photo ${i + 1}`}
                 className="w-20 h-20 rounded-xl object-cover cursor-pointer"
                 onClick={() => setViewingIndex(viewingIndex === i ? null : i)}
@@ -113,8 +114,8 @@ export const TeawarePhotos: React.FC<TeawarePhotosProps> = ({ photos, onPhotosCh
           className="w-full rounded-xl overflow-hidden cursor-pointer"
           onClick={() => setViewingIndex(null)}
         >
-          <img
-            src={mediaUrl(photos[viewingIndex])}
+          <CapturePhotoImage
+            src={photos[viewingIndex]}
             alt={`Preview ${viewingIndex + 1}`}
             className="w-full h-auto max-h-64 object-contain bg-tea-bg rounded-xl"
           />

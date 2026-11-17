@@ -5,8 +5,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import type { PurchaseTrackingRow } from '../../../lib/api';
 import { matchesPurchaseTracking, PurchaseTrackingView, scopeLogisticsOrders } from './PurchaseTrackingView';
+vi.mock('../../hooks/usePrivateQueryScope', () => ({ usePrivateQueryScope: () => ({ key: ['shop', 'counter', 0], ready: true }) }));
 vi.mock('./TrackingTask', () => ({ TrackingTask: ({ open, children }: {open:boolean;children:React.ReactNode}) => open ? <div>{children}</div> : null }));
-vi.mock('../../../lib/store', () => ({ useAppStore: (select: (s: unknown) => unknown) => select({ activeAccountId: 'shop' }) }));
+vi.mock('../../../lib/store', async importOriginal => ({
+  ...await importOriginal<typeof import('../../../lib/store')>(),
+  useAppStore: (select: (s: unknown) => unknown) => select({ activeAccountId: 'shop', memberships: [] }),
+}));
 const row: PurchaseTrackingRow = {
  id:'purchase', purchase:null, attention:[], source_document:{import_id:'invoice / one',title:'Supplier invoice'},
  receipt:{id:'receipt',state:'partially_received',vendor_name:'Tea workshop',source_kind:'curate_import',lines:[{id:'line',product_id:'tea one',product_name:'Golden Tips',expected_quantity:2000,received_quantity:500,cancelled_quantity:0,current_on_hand:760,unit:'g',intended_purpose:'working'}]},
@@ -67,6 +71,7 @@ describe('purchase tracking workflow',()=>{
  it('renders shared receipt figures and evidence links while keeping receiving secondary',()=>{
   const client=new QueryClient({defaultOptions:{queries:{retry:false,staleTime:Infinity}}});
   client.setQueryData(['purchase-tracking','shop'],{rows:[row]});
+  client.setQueryData(['purchase-logistics','shop','counter',0],{orders:[],shipments:[],services:[]});
   const Form=()=>null;
   const html=renderToStaticMarkup(<MemoryRouter><QueryClientProvider client={client}><PurchaseTrackingView NewForm={Form} MatchForm={Form} initialOpen="purchase"/></QueryClientProvider></MemoryRouter>);
   expect(html).toContain('Golden Tips');
@@ -83,4 +88,40 @@ describe('purchase tracking workflow',()=>{
   expect(html).not.toContain('Set up delivery');
   expect(html).not.toContain('Received by agent');
  });
+});
+
+it('keeps a studio discrepancy on its shipment and in Needs attention when that shipment is filtered out', () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+  client.setQueryData(['purchase-tracking', 'shop'], { rows: [] });
+  client.setQueryData(['purchase-logistics', 'shop', 'counter', 0], {
+    orders: [], services: [], shipments: [{
+      id: 'shipment', mode: 'sea', logistics_company_name: 'Fixture Freight', state: 'partially_received',
+      tracking_number: 'STUDIO-1', lines: [
+        { id: 'open-line', product_name: 'Unmatched Oolong', quantity: 50, unit: 'g', received_quantity: 0 },
+        { id: 'resolved-line', product_name: 'Reviewed Oolong', quantity: 50, unit: 'g', received_quantity: 0 },
+      ],
+      studio_referrals: [
+        { id: 'open', line_id: 'open-line', reason: 'Parcel label differs', source_reference: 'Label photo', observed_quantity: 20, resolved_at: null },
+        { id: 'closed', line_id: 'resolved-line', resolved_at: '2026-11-17T12:00:00Z' },
+      ],
+    }],
+  });
+  const Form = () => null;
+  const render = (entry: string) => renderToStaticMarkup(<MemoryRouter initialEntries={[entry]}><QueryClientProvider client={client}>
+    <PurchaseTrackingView NewForm={Form} MatchForm={Form}/>
+  </QueryClientProvider></MemoryRouter>);
+  const active = render('/');
+  expect(active).not.toContain('purchase-review-queue');
+  expect(active).toContain('Unmatched Oolong · Studio referral');
+  expect(active).toContain('Parcel label differs');
+  expect(active).toContain('Label photo');
+  expect(active).toContain('20 g');
+  expect(active).not.toContain('Reviewed Oolong · Studio referral');
+
+  const history = render('/?view=received');
+  const queue = history.match(/<section class="purchase-review-queue">.*?<\/section>/)?.[0];
+  expect(queue).toContain('Needs attention <span>1</span>');
+  expect(queue).toContain('Unmatched Oolong');
+  expect(queue).toContain('Studio referral · STUDIO-1');
+  expect(queue).not.toContain('Reviewed Oolong');
 });

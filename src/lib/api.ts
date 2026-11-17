@@ -1,4 +1,4 @@
-import type { LogisticsAddress, LogisticsAddressInput, LogisticsTracking, LogisticsService, LogisticsServiceInput, LogisticsOrder, LogisticsOrderInput, LogisticsShipment, LogisticsShipmentInput, LogisticsShipmentUpdate, LogisticsReceiveInput } from './logisticsTypes';
+import type { LogisticsAddress, LogisticsAddressInput, LogisticsTracking, LogisticsService, LogisticsServiceInput, LogisticsOrder, LogisticsOrderInput, LogisticsShipment, LogisticsShipmentInput, LogisticsShipmentUpdate, LogisticsReceiveInput, StudioReceiptReferral, StudioReceiptReferralInput } from './logisticsTypes';
 import type { InventoryReceipt } from '../admin/types';
 import { createServiceAvailabilityGuard, shouldReportServiceIncident } from './serviceAvailability';
 import type { ShippingRoute } from '../components/shared/routeFreight';
@@ -1423,15 +1423,19 @@ async function authenticatedResponse(url: string, init: ApiRequestInit = {}): Pr
   return res;
 }
 
-async function authedFetch(url: string, init: ApiRequestInit = {}): Promise<any> {
+export async function authedFetch(url: string, init: ApiRequestInit = {}): Promise<any> {
   const accountId = useAppStore.getState().activeAccountId;
   const requestToken = getToken();
   const result = await handleResponse(await authenticatedResponse(url, init), requestToken);
   if (!init.callerRefreshesCommerce && init.method && !['GET', 'HEAD'].includes(init.method.toUpperCase()) &&
       (/\/api\/(products|invoices|invoice-payments|inquiries|accounts|rates|stock|inventory|purchase-orders|logistics|listings|network|collections|rpc|curate\/receipt-proposals)(\/|$)/.test(url)
+        || /\/api\/platform\/exchange-rates(?:\/|$)/.test(url)
         || /\/api\/compass\/(sync|entries\/[^/]+(?:\/promote)?)(?:\?|$)/.test(url)
         || /\/api\/curate\/imports\/[^/]+\/finalize(?:\?|$)/.test(url))) {
-    notifyCommerceChanged(accountId, false, singleProductWrite(url, init.method));
+    const path = url.split('?')[0];
+    const trackingOnly = /\/api\/logistics\//.test(path) && !path.endsWith('/receive');
+    const pricingChanged = /\/api\/(?:accounts|rates|platform\/exchange-rates)(?:\/|$)/.test(path);
+    notifyCommerceChanged(accountId, false, singleProductWrite(url, init.method), trackingOnly ? 'tracking' : pricingChanged ? 'pricing' : undefined);
   }
   return result;
 }
@@ -1499,8 +1503,8 @@ export async function atlasAdminResponse(path: string, init: ApiRequestInit = {}
   return authenticatedResponse(`${API_URL}/api/atlas-admin/${path}`, { timeoutMs: 60_000, ...init });
 }
 
-async function authedBlobFetch(url: string): Promise<Blob> {
-  const response = await authenticatedResponse(url);
+export async function authedBlobFetch(url: string, init?: ApiRequestInit): Promise<Blob> {
+  const response = await authenticatedResponse(url, init);
   if (!response.ok) {
     let message = `Request failed (${response.status})`;
     try { const body = await response.json(); if (typeof body?.error === 'string') message = body.error; } catch { /* use status */ }
@@ -2397,9 +2401,14 @@ export const api = {
       authedFetch(`${API_URL}/api/logistics/shipments/${encodeURIComponent(id)}/cancel`, { method: 'POST', body: '{}' }),
     dispatchShipment: (id: string): Promise<{ shipment: LogisticsShipment }> =>
       authedFetch(`${API_URL}/api/logistics/shipments/${encodeURIComponent(id)}/dispatch`, { method: 'POST', body: '{}' }),
+    referStudioLine: (shipmentId: string, lineId: string, input: StudioReceiptReferralInput): Promise<{ referral: StudioReceiptReferral }> =>
+      authedFetch(`${API_URL}/api/logistics/shipments/${encodeURIComponent(shipmentId)}/lines/${encodeURIComponent(lineId)}/referrals`, { method: 'POST', body: JSON.stringify(input), retryTimeouts: true }),
+    resolveStudioReferral: (id: string, resolution: string): Promise<{ referral: StudioReceiptReferral }> =>
+      authedFetch(`${API_URL}/api/logistics/studio-referrals/${encodeURIComponent(id)}/resolve`, { method: 'POST', body: JSON.stringify({ resolution }), retryTimeouts: true }),
     receiveShipment: async (id: string, input: LogisticsReceiveInput): Promise<{ committed: true; recorded: Array<{ line_id: string; [key: string]: unknown }>; shipment: LogisticsShipment }> => {
       const result = await authedFetch(`${API_URL}/api/logistics/shipments/${encodeURIComponent(id)}/receive`, { method: 'POST', body: JSON.stringify(input), retryTimeouts: true });
       // HTTP success may contain a partial stock write. Keep the original intent until every line is confirmed.
+      if (result?.failed?.code === 'studio_referral_open') throw new ApiError(result.failed.error, 409, result.failed);
       if (result?.committed !== true) throw new Error('The arrival is not fully confirmed. Retry the same verified quantities to finish recording it.');
       return result;
     },

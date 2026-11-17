@@ -1,3 +1,4 @@
+import { compassHolding, COMPASS_SAMPLE_HOLDING } from './compassHoldings';
 import { capturedHoldingFields, capturedRetailUsd } from './capturedHolding';
 import { tastingForShop, tastingHasTerms } from './curateImportTasting';
 import { compassVendorId } from './curateReceiptProduct';
@@ -54,9 +55,7 @@ export async function promoteCompassEntry(db:D1Database, accountId:string, entry
 
   // Compatibility repair and concurrency fast-path: an older/parallel write
   // may have created the product before the Compass link became visible.
-  const identityProduct = await db.prepare(
-    'SELECT * FROM products WHERE account_id = ? AND source_compass_entry_id = ?'
-  ).bind(accountId, entry.id).first() as Record<string, any> | null;
+  const identityProduct = await compassHolding(db, accountId, entry.id);
   if (!approval && identityProduct) {
     await db.prepare(
       "UPDATE tea_compass_entries SET draft_product_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?"
@@ -66,7 +65,7 @@ export async function promoteCompassEntry(db:D1Database, accountId:string, entry
 
   const isTeaware = entry.category === 'teaware';
 
-  const {name,photos}=promotionCapture(entry);
+  const {name}=promotionCapture(entry);
   // Only words the shop can print reach the product, and the page drops its
   // "potential profile" note only when there are such words: a score or a note
   // alone is not the shop's tasting.
@@ -95,11 +94,6 @@ export async function promoteCompassEntry(db:D1Database, accountId:string, entry
     year: entry.year != null ? String(entry.year) : null,
     origin_region: entry.origin_region ?? null,
     description: typeof entry.description === 'string' && entry.description.trim() ? entry.description.trim() : null,
-    image_url: photos[0] ?? null,
-    additional_images: JSON.stringify(photos.slice(1)),
-    // The bag shot from capture keeps its own slot so later product photo
-    // edits never lose it. Replaceable deliberately, never displaced.
-    bag_photo_url: photos[0] ?? null,
     status: 'Draft',
     // Inventory creation and storefront publication are independent choices.
     // Schema defaults predate that boundary, so private must be explicit.
@@ -169,13 +163,11 @@ export async function promoteCompassEntry(db:D1Database, accountId:string, entry
   }
   await db.batch([
     db.prepare(`INSERT OR IGNORE INTO products (${colNames.join(', ')}) VALUES (${placeholders})`).bind(...colNames.map(c=>cols[c])),
-    db.prepare(`UPDATE tea_compass_entries SET draft_product_id = (SELECT id FROM products WHERE account_id = ? AND source_compass_entry_id = ?), updated_at = datetime('now') WHERE id = ? AND user_id = ? AND account_id = ?`)
+    db.prepare(`UPDATE tea_compass_entries SET draft_product_id = (SELECT id FROM products WHERE account_id = ? AND source_compass_entry_id = ? ORDER BY ${COMPASS_SAMPLE_HOLDING} LIMIT 1), updated_at = datetime('now') WHERE id = ? AND user_id = ? AND account_id = ?`)
       .bind(accountId,entry.id,entry.id,entry.user_id,accountId),
   ]);
 
-  const canonical = await db.prepare(
-    'SELECT * FROM products WHERE account_id = ? AND source_compass_entry_id = ?'
-  ).bind(accountId, entry.id).first() as Record<string, any> | null;
+  const canonical = await compassHolding(db, accountId, entry.id);
   if (!canonical) throw new CompassPromotionError('Inventory record could not be created', 500);
 
   const created = await db.prepare(

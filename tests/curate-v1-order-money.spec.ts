@@ -1,7 +1,7 @@
 /**
  * Curate v1 (/admin/compass): what a purchase order SENDS. The same money rules
  * Curate v2 is held to in curate-v2-requests.spec.ts: total_usd is dollars or
- * absent, never the order's own money; one order is one money; "Mark as Sent"
+ * absent, never the order's own money; one order is one money; "Record as sent"
  * names the order the shop recorded.
  */
 import { test, expect, type Page } from './fixtures';
@@ -30,7 +30,7 @@ const RATES = [
 
 /**
  * Add each tea to the Ledger through its own Buy panel, one fresh page per tea
- * (the card keeps its "Added to Ledger" note when it switches tea). The ledger
+ * (the card keeps its "Added to supplier order draft" note when it switches tea). The ledger
  * is kept in localStorage, so the drafts carry across the reloads.
  */
 async function buyThroughCaptureCard(page: Page, teas: Array<Record<string, unknown>>, amount = '2') {
@@ -42,11 +42,11 @@ async function buyThroughCaptureCard(page: Page, teas: Array<Record<string, unkn
       const entries = list.map((t) => ({ ...createEmptyEntry('tea'), status: 'noted', vendorName: 'Wang Laoshi', vendorId: 'vendor-wang', form: 'Cake', ...t }));
       useTeaCompassStore.setState({ entries, pendingEntries: [], activeEntryId: id });
     }, { list: teas, id: tea.id as string });
-    await page.getByRole('button', { name: /Buy/ }).last().click();
+    await page.getByRole('button', { name: 'Draft supplier order', exact: true }).last().click();
     await page.getByRole('spinbutton').last().fill(amount);
-    await page.getByRole('button', { name: 'Add to Ledger' }).click();
-    // A purchase draft now says where it goes next: Confirm this draft in Ledger.
-    await expect(page.getByText(/Inventory changes only after you accept (this|its) receipt\./).filter({ visible: true }).first()).toBeVisible();
+    await page.getByRole('button', { name: 'Add to order draft' }).click();
+    // The draft gives a direct action to review this supplier order.
+    await expect(page.getByRole('button', { name: 'Review supplier order' }).filter({ visible: true }).first()).toBeVisible();
   }
 }
 
@@ -59,7 +59,7 @@ test.describe('Curate v1 purchase orders: the money they send', () => {
   test.beforeEach(async ({}, testInfo) => { test.skip(testInfo.project.name !== 'Mobile Chrome', 'phone only'); });
   test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));
 
-  test('a vendor sold in two moneys gets one order in each, recorded in dollars, and Mark as Sent names the shop\'s order', async ({ page }) => {
+  test('a vendor sold in two moneys gets one order in each, recorded in dollars, and Record as sent names the shop\'s order', async ({ page }) => {
     await installCompassHarness(page, { rates: RATES, customers: [{ id: 'vendor-wang', name: 'Wang Laoshi', tags: ['vendor'] }] });
     const sent = record(page);
     await openCompass(page);
@@ -77,11 +77,11 @@ test.describe('Curate v1 purchase orders: the money they send', () => {
     for (const d of drafts) expect(d.lines.every((c) => c === d.currency)).toBe(true);
 
     await openLedger(page);
-    const confirmButtons = page.getByRole('button', { name: 'Purchase', exact: true });
+    const confirmButtons = page.getByRole('button', { name: 'Save supplier order', exact: true });
     await expect(confirmButtons).toHaveCount(2);
     await confirmButtons.first().click();
     await expect.poll(() => posted(sent).length).toBe(1);
-    await page.getByRole('button', { name: 'Purchase', exact: true }).first().click();
+    await page.getByRole('button', { name: 'Save supplier order', exact: true }).first().click();
     await expect.poll(() => posted(sent).length).toBe(2);
 
     const orders = posted(sent);
@@ -95,8 +95,8 @@ test.describe('Curate v1 purchase orders: the money they send', () => {
       for (const item of JSON.parse(po.items_json)) expect(item.currency).toBe(po.display_currency);
     }
 
-    // Mark as Sent names the order by an id the shop gave it, not a slice of the local id.
-    await page.getByRole('button', { name: 'Mark as Sent' }).first().click();
+    // Record as sent names the order by an id the shop gave it, not a slice of the local id.
+    await page.getByRole('button', { name: 'Record as sent' }).first().click();
     await expect(page.getByRole('tabpanel').getByText(/^Sent · 1 item$/)).toBeVisible();
     const put = sent.find((s) => s.method === 'PUT')!;
     expect(put.path).toMatch(/^\/api\/purchase-orders\/po-created(-\d+)?$/);
@@ -112,7 +112,7 @@ test.describe('Curate v1 purchase orders: the money they send', () => {
       { id: 'p-blank', name: 'Priceless Cake', priceAmount: undefined, priceCurrency: 'Yuan' },
     ]);
     await openLedger(page);
-    await page.getByRole('button', { name: 'Purchase', exact: true }).click();
+    await page.getByRole('button', { name: 'Save supplier order', exact: true }).click();
     await expect.poll(() => posted(sent).length).toBe(1);
     const po = posted(sent)[0];
     expect(po.total_usd).toBeUndefined();
@@ -129,7 +129,7 @@ test.describe('Curate v1 purchase orders: the money they send', () => {
     await openLedger(page);
     // It was CN¥90,000.00: the per-100 g price multiplied by every gram.
     await expect(page.getByRole('tabpanel').getByLabel('Grand total')).toContainText('CN¥900.00');
-    await page.getByRole('button', { name: 'Purchase', exact: true }).click();
+    await page.getByRole('button', { name: 'Save supplier order', exact: true }).click();
     await expect.poll(() => posted(sent).length).toBe(1);
     const po = posted(sent)[0];
     expect(po.total_usd).toBeCloseTo(900 / 7.1, 2);
@@ -142,7 +142,7 @@ test.describe('Curate v1 purchase orders: the money they send', () => {
     await openCompass(page);
     await buyThroughCaptureCard(page, [{ id: 'r-1', name: 'Mengku Laobanzhang', priceAmount: 450, priceCurrency: 'Yuan' }]);
     await openLedger(page);
-    await page.getByRole('button', { name: 'Purchase', exact: true }).click();
+    await page.getByRole('button', { name: 'Save supplier order', exact: true }).click();
     await expect.poll(() => posted(sent).length).toBe(1);
     expect(posted(sent)[0].total_usd).toBeUndefined();
   });

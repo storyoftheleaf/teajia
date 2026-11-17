@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTeaCompassStore } from '../lib/teaCompassStore';
 import { hydrateCompassEntries, syncCompassEntries, compassHasPendingWork } from '../lib/teaCompassSync';
 import { AUTH_TOKEN_CHANGED_EVENT, hasToken, isTokenScopedToAccount } from '../lib/api';
-import { useAppStore } from '../lib/store';
+import { selectHasBundle, useAppStore } from '../lib/store';
 import { selectSampleSyncPending, useSampleStore } from '../samples/sampleStore';
 import { useLedgerStore } from '../lib/ledgerStore';
 import { useSampleCartStore } from '../samples/sampleCartStore';
@@ -29,6 +29,7 @@ const MIN_AUTO_SYNC_GAP_MS = 15_000;
 export function useCompassSync(isAuthenticated: boolean) {
   const activeAccountId = useAppStore((s) => s.activeAccountId);
   const activeUserId = useAppStore((s) => s.activeUserId);
+  const canSyncSamples = useAppStore(s => selectHasBundle(s, 'gather') || selectHasBundle(s, 'catalog'));
   const entries = useTeaCompassStore((s) => s.entries);
   // Watch the local-edit counter, never a derived "is anything pending" flag:
   // a finished sync rewrites the store, and any flicker in a derived flag
@@ -38,6 +39,7 @@ export function useCompassSync(isAuthenticated: boolean) {
     state.accountScopeId === activeAccountId ? state.outboxRevision : 0
   ));
   const hasFetchedRef = useRef(false);
+  const sampleBootScope = useRef<string | null>(null);
   const prevAuthRef = useRef(isAuthenticated);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sampleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -75,10 +77,22 @@ export function useCompassSync(isAuthenticated: boolean) {
       hydrateCompassEntries(activeAccountId)
         .then(() => syncCompassEntries(activeAccountId))
         .catch(() => {});
-      sampleRepository.boot(activeAccountId)
-        .catch(() => {});
     }
   }, [activeAccountId, activeUserId, isAuthenticated, tokenRevision]);
+
+  useEffect(() => {
+    if (!canSyncSamples || !isAuthenticated || !activeAccountId || !activeUserId
+      || !isTokenScopedToAccount(activeAccountId, activeUserId)) {
+      sampleBootScope.current = null;
+      return;
+    }
+    const scope = JSON.stringify([activeAccountId, activeUserId]);
+    if (sampleBootScope.current === scope) return;
+    sampleBootScope.current = scope;
+    void sampleRepository.boot(activeAccountId).catch(() => {
+      if (sampleBootScope.current === scope) sampleBootScope.current = null;
+    });
+  }, [activeAccountId, activeUserId, isAuthenticated, canSyncSamples, tokenRevision]);
 
   // Debounced push of unsynced entries after entries change
   useEffect(() => {
@@ -99,7 +113,7 @@ export function useCompassSync(isAuthenticated: boolean) {
   // observes those unchanged actions and persists them after the same quiet
   // period as Compass entries.
   useEffect(() => {
-    if (!isAuthenticated || !activeAccountId || !hasToken() || !isTokenScopedToAccount(activeAccountId)) return;
+    if (!canSyncSamples || !isAuthenticated || !activeAccountId || !hasToken() || !isTokenScopedToAccount(activeAccountId)) return;
     if (!hasFetchedRef.current) return;
     if (!outboxRevision) return;
     if (sampleDebounceRef.current) clearTimeout(sampleDebounceRef.current);
@@ -116,7 +130,7 @@ export function useCompassSync(isAuthenticated: boolean) {
     return () => {
       if (sampleDebounceRef.current) clearTimeout(sampleDebounceRef.current);
     };
-  }, [activeAccountId, activeUserId, isAuthenticated, outboxRevision]);
+  }, [activeAccountId, activeUserId, isAuthenticated, canSyncSamples, outboxRevision]);
 
   // Retry sync when the browser transitions back online
   useEffect(() => {
@@ -125,12 +139,12 @@ export function useCompassSync(isAuthenticated: boolean) {
     const handleOnline = () => {
       if (hasToken()) {
         syncCompassEntries(activeAccountId).catch(() => {});
-        sampleRepository.sync(activeAccountId).catch(() => {});
+        if (canSyncSamples) sampleRepository.sync(activeAccountId).catch(() => {});
       }
     };
     window.addEventListener('online', handleOnline);
     return () => window.removeEventListener('online', handleOnline);
-  }, [activeAccountId, activeUserId, isAuthenticated]);
+  }, [activeAccountId, activeUserId, isAuthenticated, canSyncSamples]);
 
   // Retry heartbeat, the 'online' event never fires on a GFW-style connection
   // that stays "up" but times out, so a failed save/delete used to sit pending
@@ -148,7 +162,7 @@ export function useCompassSync(isAuthenticated: boolean) {
       const sampleState = useSampleStore.getState();
       const hasPendingSamples = sampleState.accountScopeId === activeAccountId
         && selectSampleSyncPending(sampleState);
-      if (hasToken() && hasPendingSamples && Date.now() - lastSampleSyncAtRef.current >= MIN_AUTO_SYNC_GAP_MS) {
+      if (canSyncSamples && hasToken() && hasPendingSamples && Date.now() - lastSampleSyncAtRef.current >= MIN_AUTO_SYNC_GAP_MS) {
         lastSampleSyncAtRef.current = Date.now();
         sampleRepository.sync(activeAccountId).catch(() => {});
       }
@@ -162,5 +176,5 @@ export function useCompassSync(isAuthenticated: boolean) {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisible);
     };
-  }, [activeAccountId, activeUserId, isAuthenticated]);
+  }, [activeAccountId, activeUserId, isAuthenticated, canSyncSamples]);
 }

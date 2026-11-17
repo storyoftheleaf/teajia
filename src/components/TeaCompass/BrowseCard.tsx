@@ -1,3 +1,4 @@
+import { CapturePhotoImage } from '../curate/CapturePhotoImage';
 import { Button } from '../shared/Button';
 import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
@@ -12,7 +13,6 @@ import { TeaCupIcon } from '../shared/TeaCupIcon';
 import { TeaCard, TeaCardMetric } from '../tea/TeaCard';
 import { PhotoCapture } from './PhotoCapture';
 import { layoutFromAddress } from '../curate/captureFormLayout';
-import { mediaUrl } from '../../lib/mediaUrl';
 import { LibraryQuoteWeight } from './LibraryQuoteWeight';
 import { LibraryGivenName } from './LibraryGivenName';
 import { LibraryInlineValue } from './LibraryInlineValue';
@@ -158,7 +158,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
                   `?form=classic`): same footprint, the count inside it past one. */}
               {showPhotoThumb ? (
                 <span className="relative block h-8 w-8" data-testid="library-photo-thumb">
-                  <img src={mediaUrl(validPhotos[0])} alt="" className="h-8 w-8 rounded-md border border-tea-border object-cover" />
+                  <CapturePhotoImage src={validPhotos[0]} alt="" className="h-8 w-8 rounded-md border border-tea-border object-cover" />
                   {validPhotos.length > 1 && (
                     <span className="absolute bottom-0.5 right-0.5 rounded-md bg-tea-bg px-1 text-ui-10 tabular-nums leading-tight text-tea-text">{validPhotos.length}</span>
                   )}
@@ -211,12 +211,12 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
         {typeBusy && <p role="status" className="text-ui-12 text-tea-text-sec">Saving…</p>}
         {typeError && <p role="alert" className="text-ui-12 text-tea-text-sec">{typeError}</p>}
       </BottomSheet>
-      {viewerOpen && <PhotoCapture variant="viewer" photos={validPhotos} onViewerClose={() => setViewerOpen(false)}
+      {viewerOpen && <PhotoCapture entryId={entry.id} allowShopReview={!!stockProductId && !readOnly} variant="viewer" photos={validPhotos} onViewerClose={() => setViewerOpen(false)}
         onPhotoTaken={url => { const current = useTeaCompassStore.getState().getEntry(entry.id) || entry; void savePatch({ photos: [...current.photos, url] }).catch(error => showToast(String(error.message), 'error')); }}
         onPhotoReplaced={(oldUrl, newUrl) => { const current = useTeaCompassStore.getState().getEntry(entry.id) || entry; void savePatch({ photos: current.photos.map(url => url === oldUrl ? newUrl : url) }).catch(error => showToast(String(error.message), 'error')); }}
         onExtracted={data => { const current = useTeaCompassStore.getState().getEntry(entry.id) || entry; void savePatch({ ...(!current.originRegion && data.region ? { originRegion: data.region } : {}), ...(!current.year && data.year ? { year: data.year } : {}) }).catch(error => showToast(String(error.message), 'error')); }} />}
       <BottomSheet open={photosOpen} onOpenChange={setPhotosOpen} title="Tea photos" description={title}>
-        {readOnly ? <p className="text-ui-12 text-tea-text-sec">Open the tea details to view source material.</p> : <PhotoCapture photos={validPhotos}
+        {readOnly ? <p className="text-ui-12 text-tea-text-sec">Open the tea details to view source material.</p> : <PhotoCapture entryId={entry.id} allowShopReview={!!stockProductId} photos={validPhotos}
           onPhotoTaken={url => { const current = useTeaCompassStore.getState().getEntry(entry.id) || entry; void savePatch({ photos: [...current.photos, url] }).catch(error => showToast(String(error.message), 'error')); }}
           onPhotoReplaced={(oldUrl, newUrl) => { const current = useTeaCompassStore.getState().getEntry(entry.id) || entry; void savePatch({ photos: current.photos.map(url => url === oldUrl ? newUrl : url) }).catch(error => showToast(String(error.message), 'error')); }}
           onExtracted={data => { const current = useTeaCompassStore.getState().getEntry(entry.id) || entry; void savePatch({ ...(!current.originRegion && data.region ? { originRegion: data.region } : {}), ...(!current.year && data.year ? { year: data.year } : {}) }).catch(error => showToast(String(error.message), 'error')); }} />}

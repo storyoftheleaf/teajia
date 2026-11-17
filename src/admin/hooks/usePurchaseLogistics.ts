@@ -4,13 +4,14 @@ import { usePrivateQueryScope } from './usePrivateQueryScope';
 
 export function usePurchaseLogistics(enabled = true, refetchInterval?: number) {
   const scope = usePrivateQueryScope();
+  const queryKey = ['purchase-logistics', ...scope.key] as const;
   const query = useQuery({
-    queryKey: ['purchase-logistics', ...scope.key],
+    queryKey,
     queryFn: () => api.logistics.tracking(),
     enabled: enabled && scope.ready,
     staleTime: 15_000,
     refetchOnWindowFocus: true,
     refetchInterval,
   });
-  return { ...query, data: enabled && scope.ready ? query.data : undefined };
+  return { ...query, queryKey, data: enabled && scope.ready ? query.data : undefined };
 }

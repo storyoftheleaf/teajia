@@ -180,7 +180,7 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
     return parts.length > 0 ? parts.join(' · ') : null;
   };
 
-  const showSearchDropdown = focused && isSearching;
+  const showSearchDropdown = focused && filtered.length > 0;
   const showHints = focused && !isSearching && hintSuggestions && hintSuggestions.length > 0;
 
   return (
@@ -207,40 +207,36 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
       {/* Search results dropdown */}
       {showSearchDropdown && (
         <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-tea-surface border border-tea-border rounded-xl shadow-lg max-h-52 overflow-y-auto">
-          {filtered.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-tea-text-dim italic">No matches, add as new</div>
-          ) : (
-            filtered.map((suggestion, idx) => {
-              const data = itemData?.[suggestion];
-              const subtitle = data ? buildSubtitle(data) : null;
+          {filtered.map((suggestion, idx) => {
+            const data = itemData?.[suggestion];
+            const subtitle = data ? buildSubtitle(data) : null;
 
-              return (
-                <div
-                  key={suggestion}
-                  className={`flex items-center justify-between group px-3 py-2 cursor-pointer transition-colors ${
-                    idx === highlightedIndex ? 'bg-tea-gold/10' : 'hover:bg-tea-gold/10'
-                  }`}
-                  onMouseDown={(e) => { e.preventDefault(); handleSelect(suggestion); }}
-                  onMouseEnter={() => setHighlightedIndex(idx)}
-                >
-                  <div>
-                    <div className="text-sm text-tea-text">{renderHighlighted(suggestion)}</div>
-                    {subtitle && (
-                      <div className="text-ui-11 text-tea-text-dim">{subtitle}</div>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onMouseDown={(e) => handleDismiss(suggestion, e)}
-                    className="text-tea-text-dim/0 group-hover:text-tea-text-dim hover:!text-tea-text transition-colors ml-2 shrink-0"
-                    aria-label="Remove suggestion"
-                  >
-                    <X size={10} />
-                  </button>
+            return (
+              <div
+                key={suggestion}
+                className={`flex items-center justify-between group px-3 py-2 cursor-pointer transition-colors ${
+                  idx === highlightedIndex ? 'bg-tea-gold/10' : 'hover:bg-tea-gold/10'
+                }`}
+                onMouseDown={(e) => { e.preventDefault(); handleSelect(suggestion); }}
+                onMouseEnter={() => setHighlightedIndex(idx)}
+              >
+                <div>
+                  <div className="text-sm text-tea-text">{renderHighlighted(suggestion)}</div>
+                  {subtitle && (
+                    <div className="text-ui-11 text-tea-text-dim">{subtitle}</div>
+                  )}
                 </div>
-              );
-            })
-          )}
+                <button
+                  type="button"
+                  onMouseDown={(e) => handleDismiss(suggestion, e)}
+                  className="text-tea-text-dim/0 group-hover:text-tea-text-dim hover:!text-tea-text transition-colors ml-2 shrink-0"
+                  aria-label="Remove suggestion"
+                >
+                  <X size={10} />
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
 
