@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useEvent, useAttendees, useTastingNotes } from '../hooks/useEventData';
 import { Modal } from '../../components/shared/Modal';
+import { Button } from '../../components/shared/Button';
 import { useToast } from './Toast';
 import { EventForm } from './EventForm';
 import { AttendeeTable } from './AttendeeTable';
@@ -281,6 +282,60 @@ function formatEventDate(dateStr: string): string {
   } catch {
     return dateStr;
   }
+}
+
+function FinishSessionAction({ eventId, refreshEvent }: {
+  eventId: string;
+  refreshEvent: () => Promise<unknown>;
+}) {
+  const { showToast } = useToast();
+  const [confirming, setConfirming] = useState(false);
+  const [finishing, setFinishing] = useState(false);
+  const close = () => { if (!finishing) setConfirming(false); };
+
+  const finish = async () => {
+    setFinishing(true);
+    try {
+      await api.events.update(eventId, { lifecycle_status: 'completed' });
+      await refreshEvent();
+      setConfirming(false);
+      showToast('Session finished', 'success');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not finish session', 'error');
+    } finally {
+      setFinishing(false);
+    }
+  };
+
+  return (
+    <>
+      <Button variant="plain"
+        type="button"
+        onClick={() => setConfirming(true)}
+        className="tap-target flex items-center gap-1.5 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors"
+      >
+        <Check size={11} aria-hidden="true" />
+        Finish session
+      </Button>
+      <Modal isOpen={confirming} onClose={close} title="Finish session?" initialFocus="container">
+        <p className="px-6 pt-4 text-ui-13 text-tea-text-sec">Mark this session as completed.</p>
+        <div className="flex flex-wrap items-center justify-between gap-2 px-6 py-4">
+          <Button variant="plain" type="button" onClick={close} disabled={finishing} className="tap-target px-2 text-ui-13 text-tea-text-sec">
+            Cancel
+          </Button>
+          <Button variant="plain"
+            type="button"
+            onClick={finish}
+            disabled={finishing}
+            className="tap-target inline-flex items-center gap-1.5 rounded-md cta-solid px-3 text-ui-13 font-semibold disabled:opacity-40"
+          >
+            {finishing && <Loader2 size={13} className="animate-spin" aria-hidden="true" />}
+            Finish session
+          </Button>
+        </div>
+      </Modal>
+    </>
+  );
 }
 
 export const EventDetail: React.FC = () => {
@@ -630,6 +685,11 @@ export const EventDetail: React.FC = () => {
               {closingRsvp ? <Loader2 size={11} className="animate-spin" /> : <Lock size={11} />}
               Close RSVP
             </button>
+          </div>
+        )}
+        {event.lifecycleStatus === 'registration_closed' && (
+          <div className="flex flex-wrap gap-4 pt-1">
+            <FinishSessionAction key={event.id} eventId={event.id} refreshEvent={refetchEvent} />
           </div>
         )}
       </div>
