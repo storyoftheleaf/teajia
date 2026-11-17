@@ -12,8 +12,7 @@ import { referenceFromPayUrl } from './paymentClaimDomain';
  * one the customer is already on, because the worker builds the link against
  * its own APP_URL and the handoff below is per origin. Path and query are
  * untouched.
- * It is null whenever `has_methods` is false, which is the only signal a
- * customer surface needs: no link, no control.
+ * An active reservation also gives the customer an exact deadline.
  *
  * The type is the API's own, not a second copy of it: one shape, one name.
  */
@@ -58,6 +57,9 @@ export const PayOrderAction: React.FC<PayOrderActionProps> = ({ payment, referen
 
   const recipient = payment?.recipient_name?.trim();
   const label = recipient ? `Pay ${recipient}` : 'Pay for this order';
+  const deadline = payment?.payment_deadline;
+  const deadlineMs = deadline ? Date.parse(deadline) : NaN;
+  if (deadline && Number.isFinite(deadlineMs) && deadlineMs <= Date.now()) return null;
   // Keyed on the reference the payment page will read out of its own address,
   // not on the one displayed here: those are the invoice number and the order
   // number, and they are different strings. Keying on the wrong one would hand
@@ -82,6 +84,13 @@ export const PayOrderAction: React.FC<PayOrderActionProps> = ({ payment, referen
           Quote{' '}
           <span className="font-mono text-tea-text break-all">{reference}</span>{' '}
           with your transfer so it can be matched to this order.
+        </p>
+      )}
+      {deadline && Number.isFinite(deadlineMs) && (
+        <p className="text-ui-12 text-tea-text-sec">
+          Pay by <time dateTime={deadline}>{new Intl.DateTimeFormat(undefined, {
+            month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
+          }).format(deadlineMs)}</time>.
         </p>
       )}
     </div>

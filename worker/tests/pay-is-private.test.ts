@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index';
 import { decidePayAccess, isShareTokenShaped, mintShareToken, whatsappShareUrl, withShareToken } from '../src/payAccessDomain';
 import { SqliteD1, seedIdentity, signedToken } from './helpers/sqliteD1';
@@ -278,7 +278,28 @@ describe('an invoice pay link is a share link', () => {
   it('the admin share endpoint returns the tokened url with the balance owed and the customer number, and the same url twice', async () => {
     const db = database();
     seedKenji(db); seedInvoice(db);
-    const first = await as(db, 'kenji-user', '/api/invoices/inv-1/pay-link', { body: {}, accountId: 'acc-one' });
+    const share = () => as(db, 'kenji-user', '/api/invoices/inv-1/pay-link', { body: {}, accountId: 'acc-one' });
+    // Both reads observe the same empty snapshot before either can mint.
+    const prepare = db.prepare.bind(db);
+    let arrivals = 0;
+    let release!: () => void;
+    const bothRead = new Promise<void>(resolve => { release = resolve; });
+    const syncFirstReads = vi.spyOn(db, 'prepare').mockImplementation(sql => {
+      const statement = prepare(sql);
+      if (sql.includes('SELECT invoice_id, token FROM payment_share_links')) {
+        const all = statement.all.bind(statement);
+        vi.spyOn(statement, 'all').mockImplementation((async () => {
+          const snapshot = all();
+          if (++arrivals === 2) release();
+          await bothRead;
+          return snapshot;
+        }) as unknown as typeof statement.all);
+      }
+      return statement;
+    });
+    const [first, concurrent] = await Promise.all([share(), share()]);
+    syncFirstReads.mockRestore();
+    expect([first.status, concurrent.status]).toEqual([200, 200]);
     expect(first.status).toBe(200);
     const body = await first.json() as any;
     const url = new URL(body.url);
@@ -289,6 +310,7 @@ describe('an invoice pay link is a share link', () => {
 
     const second = await (await as(db, 'kenji-user', '/api/invoices/inv-1/pay-link', { body: {}, accountId: 'acc-one' })).json() as any;
     expect(new URL(second.url).searchParams.get('t')).toBe(url.searchParams.get('t'));
+    expect((await concurrent.json() as { url: string }).url).toBe(body.url);
     expect(db.sqlite.prepare(`SELECT COUNT(*) AS n FROM payment_share_links WHERE invoice_id = 'inv-1'`).get()).toEqual({ n: 1 });
 
     // The link opens the sheet for whoever holds it, and pay-access names the invoice.

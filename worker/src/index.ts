@@ -4194,6 +4194,62 @@ export interface InvoicePaymentInfo {
    * says "three teas" from this rather than fetching the lines for one word.
    */
   tea_line_count: number;
+  /** The checkout reservation ends at this instant. */
+  payment_deadline?: string;
+  hold_expired?: boolean;
+}
+
+type CheckoutPaymentHold = {
+  status: 'Draft' | 'Pending';
+  payment_deadline: string | null;
+};
+
+const HOLD_EXPIRED_MESSAGE = 'The stock hold has expired. Contact the store before sending payment.';
+
+function checkoutPaymentRefusal(hold: CheckoutPaymentHold | undefined) {
+  if (hold?.status === 'Draft') {
+    return { error: 'The store has not confirmed this order yet.', code: 'invoice_not_ready' };
+  }
+  if (hold?.status === 'Pending' && !hold.payment_deadline) {
+    return { error: HOLD_EXPIRED_MESSAGE, code: 'invoice_hold_expired' };
+  }
+  return null;
+}
+
+async function loadCheckoutPaymentHolds(env: Env, invoiceIds: string[]) {
+  const holds = new Map<string, CheckoutPaymentHold>();
+  for (let start = 0; start < invoiceIds.length; start += 90) {
+    const ids = invoiceIds.slice(start, start + 90);
+    // Current stock availability does not extend the deadline. All stocked
+    // lines must still be covered by this invoice's own, unexpired reservation.
+    // A missing hold (including after cleanup) is not a new chance to pay.
+    const rows = await env.DB.prepare(
+      `SELECT i.id, i.status,
+          CASE WHEN NOT EXISTS (
+            SELECT 1 FROM invoice_line_items li
+            WHERE li.invoice_id = i.id AND li.account_id = i.account_id AND li.product_id IS NOT NULL
+            GROUP BY li.product_id
+            HAVING SUM(li.quantity) > COALESCE((
+              SELECT SUM(h.held_grams) FROM stock_holds h
+              WHERE h.invoice_id = i.id AND h.account_id = i.account_id AND h.product_id = li.product_id
+                AND julianday(h.expires_at) > julianday('now')
+            ), 0)
+          ) THEN (
+            SELECT h.expires_at FROM stock_holds h
+            WHERE h.invoice_id = i.id AND h.account_id = i.account_id
+              AND julianday(h.expires_at) > julianday('now')
+            ORDER BY julianday(h.expires_at) LIMIT 1
+          ) END AS payment_deadline
+        FROM invoices i
+        WHERE i.id IN (${ids.map(() => '?').join(', ')})
+          AND i.source_inquiry_id IS NOT NULL AND i.status IN ('Draft', 'Pending')
+          AND i.inventory_deducted = 0 AND i.deleted_at IS NULL`
+    ).bind(...ids).all<CheckoutPaymentHold & { id: string }>();
+    for (const { id, status, payment_deadline } of rows.results ?? []) {
+      holds.set(id, { status, payment_deadline: toIsoTime(payment_deadline) });
+    }
+  }
+  return holds;
 }
 
 export interface PayableInvoice {
@@ -4324,8 +4380,12 @@ async function resolveInvoicePayments(
   //     The money is a fact about the invoice, not about who gets paid, so it
   //     is seeded onto every entry now. Every early return below still carries
   //     the three numbers even when no recipient or no transfer details resolve.
-  const ledger = await loadInvoiceLedgerTotals(env, rows.map(invoice => invoice.id));
+  const [ledger, checkoutHolds] = await Promise.all([
+    loadInvoiceLedgerTotals(env, rows.map(invoice => invoice.id)),
+    checkBankOnly ? new Map<string, CheckoutPaymentHold>() : loadCheckoutPaymentHolds(env, rows.map(invoice => invoice.id)),
+  ]);
   const money = new Map<string, InvoiceMoney>();
+  const holdInfo = new Map<string, Pick<InvoicePaymentInfo, 'payment_deadline' | 'hold_expired'>>();
   for (const invoice of rows) {
     const lineTotal = invoice.total_usd != null
       ? Number(invoice.total_usd)
@@ -4335,7 +4395,14 @@ async function resolveInvoicePayments(
       invoice.payment_status,
       ledger.get(invoice.id),
     ));
-    resolved.set(invoice.id, { ...NO_PAYMENT, ...money.get(invoice.id)!, tea_line_count: teaLines.get(invoice.id) ?? 0 });
+    const checkoutHold = checkoutHolds.get(invoice.id);
+    if (checkoutHold?.status === 'Pending' && money.get(invoice.id)!.outstanding_usd > 0) {
+      holdInfo.set(invoice.id, checkoutHold.payment_deadline
+        ? { payment_deadline: checkoutHold.payment_deadline } : { hold_expired: true });
+    }
+    resolved.set(invoice.id, {
+      ...NO_PAYMENT, ...money.get(invoice.id)!, ...holdInfo.get(invoice.id), tea_line_count: teaLines.get(invoice.id) ?? 0,
+    });
   }
 
   // 2. The invoices' accounts (slug for the ?account= param, owner as the last
@@ -4426,11 +4493,19 @@ async function resolveInvoicePayments(
   const shareTokenFor = async (invoice: PayableInvoice, contributorId: string): Promise<string> => {
     const known = existingLinks.get(invoice.id);
     if (known) return known;
-    const token = mintShareToken();
-    await env.DB.prepare(
+    const inserted = await env.DB.prepare(
       `INSERT INTO payment_share_links (id, account_id, contributor_id, invoice_id, token, created_by_user_id)
-       VALUES (?, ?, ?, ?, ?, NULL)`
-    ).bind(newId('psl'), invoice.account_id, contributorId, invoice.id, token).run();
+       VALUES (?, ?, ?, ?, ?, NULL)
+       ON CONFLICT(invoice_id) WHERE invoice_id IS NOT NULL DO NOTHING
+       RETURNING token`
+    ).bind(newId('psl'), invoice.account_id, contributorId, invoice.id, mintShareToken()).first<{ token: string }>();
+    // A concurrent first read may have won the insert. Always return the
+    // stored token; a second randomly generated token would open nothing.
+    const stored = inserted ?? await env.DB.prepare(
+      'SELECT token FROM payment_share_links WHERE invoice_id = ?'
+    ).bind(invoice.id).first<{ token: string }>();
+    if (!stored) throw new Error('Invoice payment link was not saved');
+    const token = stored.token;
     existingLinks.set(invoice.id, token);
     return token;
   };
@@ -4465,6 +4540,7 @@ async function resolveInvoicePayments(
     const amounts = {
       ...(money.get(invoice.id) ?? { total_usd: 0, paid_usd: 0, outstanding_usd: 0, claims_pending: 0 }),
       tea_line_count: teaLines.get(invoice.id) ?? 0,
+      ...holdInfo.get(invoice.id),
     };
     if (methods.length === 0) {
       resolved.set(invoice.id, {
@@ -4483,7 +4559,7 @@ async function resolveInvoicePayments(
     // its link, and that link now asks for the balance rather than the total.
     // This is the only place the decision is made, so every surface inherits it.
     const settled = amounts.outstanding_usd <= 0 || String(invoice.status || '') === 'Void';
-    if (settled || checkBankOnly) {
+    if (settled || checkBankOnly || checkoutPaymentRefusal(checkoutHolds.get(invoice.id))) {
       resolved.set(invoice.id, {
         ...amounts,
         recipient_slug: contributorId,
@@ -4575,6 +4651,7 @@ export interface JourneyMoney {
   paid_usd: number;
   outstanding_usd: number;
   claims_pending: number;
+  hold_expired?: boolean;
 }
 
 export interface JourneyInvoice {
@@ -4710,7 +4787,10 @@ export function deriveOrderJourney(input: JourneyInput): OrderJourney {
   // system knows it; it can never say an order is earlier than the facts.
   if (manual && JOURNEY_RANK[manual] > JOURNEY_RANK[stage]) stage = manual;
 
-  const copy = journeyCopy(stage, input);
+  const holdExpired = input.invoice?.money.hold_expired && (stage === 'awaiting_payment' || stage === 'part_paid');
+  const copy = holdExpired
+    ? { label: 'Stock hold expired', detail: 'Contact the store before sending payment.' }
+    : journeyCopy(stage, input);
   let detail = copy.detail;
   // The exact moment the review was about: they transferred the money, said so,
   // and the page still says the balance is due. Say why.
@@ -25095,6 +25175,7 @@ const handleGetPublicPaymentMethods: Handler = async (request, env, params) => {
   // method. This is the one check that makes "never public" true, so it sits
   // on the read itself rather than on the page that renders it.
   const access = await resolvePayAccess(env, contributor, await optionalAuthenticatedUser(request, env), url.searchParams.get(PAY_LINK_PARAM));
+  if (access.refusal) return json(access.refusal, 409);
   if (access.decision.access === 'gate') {
     return json({
       error: 'Payment details are shared privately',
@@ -25184,6 +25265,7 @@ async function resolvePayAccess(
   decision: ReturnType<typeof decidePayAccess>;
   link: PayShareLinkRow | null;
   grant: { id: string; status: 'pending' | 'approved' } | null;
+  refusal: ReturnType<typeof checkoutPaymentRefusal>;
 }> {
   let link: PayShareLinkRow | null = null;
   if (isShareTokenShaped(rawToken)) {
@@ -25203,7 +25285,10 @@ async function resolvePayAccess(
     hasApprovedGrant: grant?.status === 'approved',
     hasValidLink: Boolean(link),
   });
-  return { decision, link, grant };
+  const refusal = link?.invoice_id
+    ? checkoutPaymentRefusal((await loadCheckoutPaymentHolds(env, [link.invoice_id])).get(link.invoice_id))
+    : null;
+  return { decision, link, grant, refusal };
 }
 
 async function loadPayContributor(env: Env, slug: string): Promise<PayContributorRow | null> {
@@ -25223,7 +25308,8 @@ const handleGetPayAccess: Handler = async (request, env, params) => {
   if (!contributor) return json({ error: 'Contributor not found' }, 404);
   const url = new URL(request.url);
   const viewer = await optionalAuthenticatedUser(request, env);
-  const { decision, link, grant } = await resolvePayAccess(env, contributor, viewer, url.searchParams.get(PAY_LINK_PARAM));
+  const { decision, link, grant, refusal } = await resolvePayAccess(env, contributor, viewer, url.searchParams.get(PAY_LINK_PARAM));
+  if (refusal) return json(refusal, 409);
 
   let invoice: { invoice_number: string | null; outstanding_usd: number } | null = null;
   if (link) {
@@ -25395,7 +25481,7 @@ const handleMintInvoicePayLink: Handler = async (request, env, params) => {
   if ('error' in ctx) return ctx.error;
   const row = await env.DB.prepare(
     `SELECT id, account_id, invoice_number, status, payment_status, display_currency,
-            payment_recipient_user_id, sold_by_user_id, shipping_cost_usd, customer_name, customer_whatsapp
+            payment_recipient_user_id, sold_by_user_id, shipping_cost_usd, customer_name, customer_whatsapp, source_inquiry_id
        FROM invoices WHERE id = ? AND account_id = ? AND deleted_at IS NULL`
   ).bind(params.id, ctx.accountId).first<Record<string, any>>();
   if (!row) return restError(404, 'Invoice not found', 'invoice_not_found');
@@ -25411,6 +25497,10 @@ const handleMintInvoicePayLink: Handler = async (request, env, params) => {
     shipping_cost_usd: Number(row.shipping_cost_usd || 0),
   });
   if (!payment.pay_url) {
+    if (payment.hold_expired) return json({ error: HOLD_EXPIRED_MESSAGE, code: 'invoice_hold_expired', payment }, 409);
+    if (row.status === 'Draft' && payment.outstanding_usd > 0 && row.source_inquiry_id) {
+      return json({ ...checkoutPaymentRefusal({ status: 'Draft', payment_deadline: null }), payment }, 409);
+    }
     const reason = payment.has_methods ? 'Nothing is outstanding on this order' : 'The recipient has not published transfer details';
     return json({ error: reason, code: payment.has_methods ? 'invoice_settled' : 'no_methods', payment }, 409);
   }

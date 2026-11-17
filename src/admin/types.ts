@@ -164,6 +164,9 @@ export interface InvoicePayment {
   claims_pending: number;
   /** Distinct teas on the invoice, teaware excluded. Older responses may lack it. */
   tea_line_count?: number;
+  /** The current checkout stock reservation, when applicable. */
+  payment_deadline?: string;
+  hold_expired?: boolean;
 }
 
 /**

@@ -71,9 +71,11 @@ export const OrderPayRecipientLine: React.FC<{
   return (
     <span className={`block truncate text-tea-text-sec ${className}`}>
       Pay to {recipient || 'this store'}
-      {!payment.pay_url && (
+      {payment.hold_expired ? (
+        <span className="text-tea-text-sec"> · Stock hold expired</span>
+      ) : !payment.pay_url && !payment.has_methods ? (
         <span className="text-tea-text-dim">, no transfer details</span>
-      )}
+      ) : null}
     </span>
   );
 };
@@ -181,7 +183,9 @@ export const OrderPayLink: React.FC<OrderPayLinkProps> = ({
         </>
       ) : (
         <p className="mt-1 text-ui-13 text-tea-text-sec">
-          Add payment methods on {recipient ? `${recipient}’s profile` : 'the recipient’s profile'} to share a link.
+          {payment.hold_expired ? 'The stock hold expired. Confirm availability before asking for payment.'
+            : !payment.has_methods ? `Add payment methods on ${recipient ? `${recipient}’s profile` : 'the recipient’s profile'} to share a link.`
+            : 'No payment link is available for this order.'}
         </p>
       )}
     </section>

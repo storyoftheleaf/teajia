@@ -446,6 +446,67 @@ describe('website order lifecycle', () => {
     expect(stockMovements(db, secondId)).toEqual([]);
   });
 
+  it('offers payment only during the reviewed stock hold and still accepts an already-sent report', async () => {
+    const db = seed('migrations');
+    seedIdentity(db, { userId: 'buyer', accountId: 'buyer-home' });
+    db.sqlite.exec(`
+      INSERT INTO contributors(id,account_id,user_id,display_name,is_published)
+      VALUES ('review-seller','shop-a','owner-a','Review seller',1);
+      INSERT INTO payment_methods(id,contributor_id,method_type,label,recipient_name,account_identifier,is_published)
+      VALUES ('review-bank','review-seller','bank_transfer','Bank transfer','Review seller','Synthetic bank reference',1);
+    `);
+    const { body, result } = await create(db);
+    const id = result.invoice_id;
+    const trackingPath = `/api/inquiries/${body.tracking_token}`;
+    const readTracking = () => buyerRequest(db, trackingPath).then(r => r.json());
+    const orderPath = `/api/me/orders/${id}`;
+    expect((await buyerRequest(db, `${trackingPath}/claim`, 'buyer', 'POST')).status).toBe(200);
+    const share = () => admin(db, 'shop-a', `/api/invoices/${id}/pay-link`, {});
+    expect((await share()).status).toBe(409);
+    expect((await admin(db, 'shop-a', `/api/invoices/${id}`, { status: 'Pending', shipping_cost_usd: 6 }, 'PUT')).status).toBe(200);
+    const hold = db.sqlite.prepare('SELECT expires_at FROM stock_holds WHERE invoice_id=?');
+    const { expires_at: expiresAt } = hold.get(id)!;
+    const [tracking, owned] = await Promise.all([buyerRequest(db, trackingPath), buyerRequest(db, orderPath, 'buyer')]);
+    expect([tracking.status, owned.status]).toEqual([200, 200]);
+    const live = await tracking.json();
+    expect(live.payment).toMatchObject({ pay_url: expect.any(String), outstanding_usd: 20 });
+    expect((await owned.json()).payment.pay_url).toBe(live.payment.pay_url);
+    const token = new URL(live.payment.pay_url).searchParams.get('t');
+    const profilePath = '/api/public/people/review-seller';
+    expect((await buyerRequest(db, `${profilePath}/pay-access?t=${token}`, 'buyer')).status).toBe(200);
+
+    db.sqlite.prepare("UPDATE stock_holds SET expires_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE invoice_id=?").run(id);
+    const expired = await readTracking();
+    expect(expired.payment).toMatchObject({ pay_url: null, hold_expired: true, outstanding_usd: 20 });
+    expect(expired.journey).toMatchObject({ label: 'Stock hold expired', detail: 'Contact the store before sending payment.' });
+    expect((await buyerRequest(db, orderPath, 'buyer').then(r => r.json())).payment).toMatchObject({ pay_url: null, hold_expired: true });
+    expect(await (await share()).json()).toMatchObject({ code: 'invoice_hold_expired' });
+    for (const path of ['pay-access', 'payment-methods']) {
+      for (const user of [undefined, 'buyer']) {
+        const stale = await buyerRequest(db, `${profilePath}/${path}?t=${token}`, user);
+        expect(stale.status).toBe(409);
+        expect(await stale.json()).toMatchObject({ code: 'invoice_hold_expired' });
+      }
+    }
+    expect((await buyerRequest(db, `${profilePath}/payment-methods`, 'buyer')).status).toBe(200);
+    expect((await buyerRequest(db, `${profilePath}/payment-methods`)).status).toBe(403);
+
+    const late = await buyerRequest(db, `/api/orders/${body.tracking_token}/payment-claim`, undefined, 'POST');
+    expect(late.status).toBe(201);
+    const reported = await readTracking();
+    expect(reported.payment).toMatchObject({ pay_url: null, paid_usd: 0, claims_pending: 1 });
+    expect(reported.journey.detail).toContain('We will confirm it once it reaches the account.');
+    expect(ledger(db, id)).toEqual([{ status: 'claimed', amount_usd: 20 }]);
+    expect(stock(db)).toBe(1000);
+    expect(stockMovements(db, id)).toEqual([]);
+
+    expect(live.payment.payment_deadline).toBe(expiresAt);
+
+    // Released/cleaned rows must not bring the pay link back.
+    db.sqlite.prepare('DELETE FROM stock_holds WHERE invoice_id=?').run(id);
+    expect((await readTracking()).payment).toMatchObject({ pay_url: null, hold_expired: true });
+  });
+
   it('rolls back the invoice and request if the notification row cannot be queued', async () => {
     const db = seed();
     db.sqlite.exec(`CREATE TRIGGER reject_order_outbox BEFORE INSERT ON order_whatsapp_outbox
