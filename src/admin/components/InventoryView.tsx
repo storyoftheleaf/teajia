@@ -4,7 +4,7 @@ import type { InventoryFacetFilter } from './inventory/domain';
 import { renderedRowIds, shiftRangeIds } from './inventory/selectionRange';
 import { summaryStatusOnRefetch } from './inventory/domain';
 import { StockBrowseBar } from './inventory/stock/StockBrowseBar';
-import { StockTeaCard } from './inventory/stock/StockTeaCard';
+import { StockCardSections, useStockLayout, useStockGroupFolds } from './inventory/stock/StockCardSections';
 import { StockViewOptions } from './inventory/stock/StockViewOptions';
 import { UnknownSupplierSheet } from './inventory/stock/UnknownSupplierSheet';
 import { formPricingPreview } from './inventory/stock/formPricingModel';
@@ -94,8 +94,8 @@ import { StockMovementPanel } from './inventory/StockMovementPanel';
 import { InventorySourcePanel } from './inventory/InventorySourcePanel';
 import { SupplierSheet } from '../../components/shared/SupplierSheet';
 import { TastingSession } from '../../components/tasting/TastingSession';
-import { adaptInventorySummaryRows, inventoryMatchesFacetFilter, buildPersonalJournalHref, getPersonalTastingAction, inventorySummaryStatusMessage, isInventoryDraftReady, inventoryPublicationProblem, isInventorySelectionPublishable, deriveInventoryStage, effectivePurpose } from './inventory/domain';
-import type { IncomingInventorySummary, InventoryStage, InventorySummaryRow, InventorySummaryStatus, InventoryWritingSummary, PersonalTastingSummary } from './inventory/domain';
+import { adaptInventorySummaryRows, inventoryMatchesFacetFilter, buildPersonalJournalHref, getPersonalTastingAction, inventorySummaryStatusMessage, isInventoryDraftReady, inventoryPublicationProblem, isInventorySelectionPublishable } from './inventory/domain';
+import type { IncomingInventorySummary, InventorySummaryRow, InventorySummaryStatus, InventoryWritingSummary, PersonalTastingSummary } from './inventory/domain';
 
 interface InventoryViewProps {
   products: Product[];
@@ -277,12 +277,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   useEffect(() => { if (externalShowOptions !== undefined) setShowOptionsInternal(externalShowOptions); }, [externalShowOptions]);
   const [showAdjust, setShowAdjust] = useState(false);
   const [glossaryMode, setGlossaryMode] = useState(false);
-  const [stockLayout, setStockLayout] = useState<'cards' | 'table'>(() => localStorage.getItem('teajia-stock-layout') === 'table' ? 'table' : 'cards');
+  const [stockLayout, chooseStockLayout] = useStockLayout();
   const [listingReviewProductId, setListingReviewProductId] = useState<string | null>(null);
-  const chooseStockLayout = (layout: 'cards' | 'table') => {
-    localStorage.setItem('teajia-stock-layout', layout);
-    setStockLayout(layout);
-  };
   const [mobileSearchExpanded, setMobileSearchExpanded] = useState(false);
   const mobileSearchInputRef = useRef<HTMLInputElement>(null);
   const mobileSearchTriggerRef = useRef<HTMLButtonElement>(null);
@@ -474,12 +470,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   // Feature 3: Row Grouping collapsed state. Lifecycle folds belong to the
   // inventory address so reload, back, and shared working views retain shape.
-  const collapsedGroups = useMemo(() => readInventoryFold(searchParams), [searchParams]);
-  const toggleCollapsedGroup = useCallback((groupKey: string) => {
-    const next = new Set(collapsedGroups);
-    if (next.has(groupKey)) next.delete(groupKey); else next.add(groupKey);
-    setSearchParams(params => withInventoryFold(params, next), { replace: true });
-  }, [collapsedGroups, setSearchParams]);
+  const [collapsedGroups, toggleCollapsedGroup] = useStockGroupFolds(searchParams, setSearchParams);
 
   // Feature 4: Saved Views, initialize defaults + sync names/icons/sortConfig from defaults
   useEffect(() => {
@@ -1140,21 +1131,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     setPanelProduct(product);
   }, [setPanelProduct]);
 
-  const openStockCardAction = (product: Product, stage: InventoryStage) => {
-    if (effectivePurpose(product) !== 'working') { stableOpenPanel(product); return; }
-    if (stage === 'published' || stage === 'ready_private') {
-      setListingReviewProductId(product.id);
-      stableOpenPanel(product);
-      return;
-    }
-    if (stage === 'needs_preparation') {
-      navigate(product.sourceCompassEntryId
-        ? `/admin/compass?tab=sourcing&entry=${encodeURIComponent(product.sourceCompassEntryId)}`
-        : `/admin/compass?tab=sourcing&developProduct=${encodeURIComponent(product.id)}&developName=${encodeURIComponent(product.givenName || product.productName)}&developType=${encodeURIComponent(product.type)}`);
-      return;
-    }
-    stableOpenPanel(product);
-  };
 
   const stableOpenSource = useCallback((product: Product) => {
     setPanelProduct(null);
@@ -2919,23 +2895,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           </div>
         )}
 
-        {cardLayout && groupedProducts && (
-          <div className="stock-card-sections" data-testid="stock-card-sections">
-            {groupedProducts.filter(group => group.items.length > 0).map(group => (
-              <section key={group.key} data-stock-group={group.label} data-testid={group.lifecycle ? `inventory-stage-${group.key}` : undefined} aria-label={`${group.label}, ${group.items.length} ${inventoryCategory === 'tea' ? 'teas' : 'items'}`}>
-                <div className="stock-card-section-heading">
-                  <h2>{group.label}</h2>
-                  <span>{group.items.length} {inventoryCategory === 'tea' ? group.items.length === 1 ? 'tea' : 'teas' : 'items'} · {fmtNum(group.totalStock, 0)} {inventoryCategory === 'tea' ? 'g' : 'units'}</span>
-                </div>
-                <div className="stock-card-grid">
-                  {group.items.map(product => <StockTeaCard key={product.id} product={product}
-                    stage={group.lifecycle ? group.key as InventoryStage : deriveInventoryStage(product, effectiveIncomingByProductId[product.id])}
-                    incoming={effectiveIncomingByProductId[product.id]} onOpen={stableOpenPanel} onAction={openStockCardAction} />)}
-                </div>
-              </section>
-            ))}
-          </div>
-        )}
+        {cardLayout && groupedProducts && <StockCardSections groups={groupedProducts}
+          category={inventoryCategory} incomingByProductId={effectiveIncomingByProductId}
+          onOpen={stableOpenPanel} onListingReview={setListingReviewProductId} />}
 
         {/* INVENTORY TABLE, canonical §20 inventory table from /design/system:
             bordered card containing top strip → headers → rows → bottom strip.
