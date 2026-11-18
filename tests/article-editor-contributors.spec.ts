@@ -21,6 +21,7 @@ test('article editor selects account contributors while preserving the current l
   await page.goto('/admin/magazine');
   await page.getByRole('button', { name: /Legacy Article/ }).click();
   const mobileMetadata = page.getByText('Article Metadata', { exact: true });
+  await mobileMetadata.waitFor({ state: 'attached' });
   if (await mobileMetadata.isVisible()) await mobileMetadata.click();
   const author = page.locator('select[aria-label="Author"]:visible');
   await expect(author).toHaveValue('legacy-writer');

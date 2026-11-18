@@ -75,7 +75,8 @@ test('Purchases retries a partial arrival against the same Stock holding before 
   const inbound = page.getByRole('dialog', { name: 'Assign inbound route', exact: true });
   await expect(inbound.getByLabel('Inbound courier', { exact: true })).toBeVisible();
   await expect(inbound.getByLabel('Inbound tracking', { exact: true })).toBeVisible();
-  await inbound.getByRole('button', { name: 'Done', exact: true }).click();
+  await inbound.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(inbound).toBeHidden();
   await expect(purchase).toBeVisible();
   await purchase.getByRole('button', { name: 'Edit purchase', exact: true }).click();
   const editor = page.getByRole('dialog', { name: 'Edit purchase', exact: true });
