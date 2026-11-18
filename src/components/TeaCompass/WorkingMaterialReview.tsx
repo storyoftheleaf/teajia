@@ -38,7 +38,7 @@ export function WorkingMaterialReview({ result, busy, stale, selected, onToggle,
   return <section aria-label="Working material" aria-busy={busy} className="min-w-0 text-tea-text">
     <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
       <h3 className={T.h3}>From your transcripts</h3>
-      <button type="button" onClick={onAnalyze} disabled={busy || !canAnalyze} className="tap-target min-h-11 rounded-md px-2 text-ui-12 text-tea-text-sec underline decoration-tea-border underline-offset-4 hover:text-tea-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold disabled:opacity-50">
+      <button type="button" onClick={onAnalyze} disabled={busy || !canAnalyze} className="tap-target min-h-tap rounded-md px-2 text-ui-12 text-tea-text-sec underline decoration-tea-border underline-offset-4 hover:text-tea-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold disabled:opacity-50">
         {busy ? 'Reviewing transcripts…' : result ? 'Refresh working material' : 'Review full transcripts'}
       </button>
     </div>
@@ -55,7 +55,7 @@ export function WorkingMaterialReview({ result, busy, stale, selected, onToggle,
       {!result.notes.length && <p className="py-3 text-ui-13 text-tea-text-sec">No supported notes about this tea were found in these transcripts.</p>}
       <ul className="min-w-0 divide-y divide-tea-border">
         {result.notes.map(note => <li key={note.id} className="min-w-0 py-3">
-          <label className="flex min-h-11 cursor-pointer items-start gap-3">
+          <label className="flex min-h-tap cursor-pointer items-start gap-3">
             <input type="checkbox" checked={selected.includes(note.id)} disabled={busy || stale || !complete} onChange={() => onToggle(note.id)} aria-label={`Use ${note.text}`} className="mt-1 h-5 w-5 shrink-0 accent-tea-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold disabled:opacity-50" />
             <span className="min-w-0 flex-1">
               <span className={`${T.bodyLight} block break-words`}>{note.text}</span>
@@ -64,7 +64,7 @@ export function WorkingMaterialReview({ result, busy, stale, selected, onToggle,
           </label>
           {note.relevance === 'uncertain' && <p className="mb-1 pl-8 text-ui-12 text-tea-text-sec">Confirm which tea this refers to before using it.</p>}
           <details className="min-w-0 pl-8">
-            <summary className="tap-target flex min-h-11 cursor-pointer items-center break-words text-ui-12 text-tea-text-sec underline decoration-tea-border underline-offset-4 hover:text-tea-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold">Source passage · {note.title}</summary>
+            <summary className="tap-target flex min-h-tap cursor-pointer items-center break-words text-ui-12 text-tea-text-sec underline decoration-tea-border underline-offset-4 hover:text-tea-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold">Source passage · {note.title}</summary>
             <blockquote className={`${T.bodyLight} whitespace-pre-wrap break-words border-t border-tea-border pt-2 text-tea-text-sec`}>{note.quote}</blockquote>
           </details>
         </li>)}

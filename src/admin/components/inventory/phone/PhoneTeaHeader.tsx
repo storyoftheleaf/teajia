@@ -94,7 +94,7 @@ export const PhoneTeaHeader: React.FC<PhoneTeaHeaderProps> = ({ product, incomin
           </div>
         </dl>
         <div className="grid grid-cols-[1.4fr_1fr] gap-2 mt-2">
-          <button ref={changeRef} type="button" onClick={() => changeRef.current && onChangeStock?.(product, changeRef.current)} className="cta-solid h-11 rounded-md text-ui-14 font-semibold">Change stock</button>
+          <button ref={changeRef} type="button" onClick={() => changeRef.current && onChangeStock?.(product, changeRef.current)} className="btn-primary btn-primary-lg">Change stock</button>
           <button ref={countRef} type="button" onClick={() => countRef.current && onRecount?.(product, countRef.current)} className="h-11 rounded-md border border-admin-border text-ui-13 text-admin-text">Count it</button>
         </div>
       </section>

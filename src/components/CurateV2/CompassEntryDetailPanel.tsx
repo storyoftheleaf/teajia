@@ -116,7 +116,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
           <button
             type="button"
             onClick={onClose}
-            className="tap-target flex min-h-11 min-w-11 shrink-0 items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors"
+            className="tap-target flex min-h-tap min-w-tap shrink-0 items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors"
             aria-label="Close detail panel"
           >
             <X size={16} />
@@ -256,14 +256,14 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         <button
           type="button"
           onClick={() => onEdit(entryId)}
-          className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
+          className="tap-target min-h-tap rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
           aria-label="Edit entry"
         >
           Edit
         </button>
 
         <button type="button" onClick={() => updateEntry(entryId, { status: isWishlisted ? 'noted' : 'want' })}
-          className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
+          className="tap-target min-h-tap rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
           aria-label={isWishlisted ? 'Remove Want' : 'Want'}>
           {isWishlisted ? <BookmarkCheck size={14} className="inline mr-1.5 text-tea-gold" /> : <BookmarkPlus size={14} className="inline mr-1.5" />}Want
         </button>
@@ -272,14 +272,14 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
           type="button"
           onClick={() => isBought ? handleUnbuy() : onAcquire?.(entry.id)}
           disabled={acquisitionPending || (!isBought && !onAcquire)}
-          className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text disabled:text-tea-text-dim"
+          className="tap-target min-h-tap rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text disabled:text-tea-text-dim"
           aria-label={isBought ? 'Remove acquisition' : entry.status === 'depleted' ? 'Reorder' : acquisitionPending ? (isIncoming ? 'Incoming' : 'In ledger') : 'Buy'}>
           {isBought ? <Check size={14} className="inline mr-1.5" /> : <ShoppingBag size={14} className="inline mr-1.5" />}
           {isBought ? 'In stock' : entry.status === 'depleted' ? 'Reorder' : isIncoming ? 'Incoming' : isInLedger ? 'In ledger' : 'Buy'}
         </button>
 
         <button type="button" onClick={() => { useSampleUse.getState().begin(entry.id); setTastingOpen(true); }}
-          className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
+          className="tap-target min-h-tap rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
           aria-label="Taste">
           <Droplets size={14} className="inline mr-1.5" />Taste
         </button>
@@ -287,7 +287,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         <button
           type="button"
           onClick={() => updateEntry(entry.id, { tasteOrder: entry.tasteOrder ? undefined : Date.now() })}
-          className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
+          className="tap-target min-h-tap rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
           aria-label={entry.tasteOrder ? 'Remove from queue' : 'Queue'}
         >
           <Star size={14} className="inline mr-1.5" fill={entry.tasteOrder ? 'currentColor' : 'none'} />{entry.tasteOrder ? 'Queued' : 'Queue'}
@@ -304,7 +304,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
               compassEntryId: entry.id,
             }}
             variant="labeled"
-            className="tap-target min-h-11 rounded-md bg-transparent px-3 text-ui-12 text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
+            className="tap-target min-h-tap rounded-md bg-transparent px-3 text-ui-12 text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
           />
         )}
 
@@ -314,12 +314,12 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
           onOpenInventory={(productId) => navigate(`/admin/stock?panel=${encodeURIComponent(productId)}`)}
         />
 
-        {onShare && <button type="button" onClick={() => onShare(entryId)} className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text" aria-label="Share"><Share2 size={14} className="inline mr-1.5" />Share</button>}
+        {onShare && <button type="button" onClick={() => onShare(entryId)} className="tap-target min-h-tap rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text" aria-label="Share"><Share2 size={14} className="inline mr-1.5" />Share</button>}
         {confirmDelete ? (
           <button
             type="button"
             onClick={() => { removeEntry(entry.id); onClose(); }}
-            className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-error hover:bg-tea-accent-sub"
+            className="tap-target min-h-tap rounded-md px-3 text-ui-12 font-medium text-tea-error hover:bg-tea-accent-sub"
             aria-label="Confirm delete entry"
           >
             <Trash2 size={14} className="inline mr-1.5" />Confirm delete
@@ -328,7 +328,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
           <button
             type="button"
             onClick={() => setConfirmDelete(true)}
-            className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-error"
+            className="tap-target min-h-tap rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-error"
             aria-label="Delete entry"
           >
             <Trash2 size={14} className="inline mr-1.5" />Delete

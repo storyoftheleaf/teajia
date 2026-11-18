@@ -418,7 +418,7 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
           <span className="shrink-0 font-sans text-ui-14 text-tea-text-dim">teajia.com/people/</span>
           <input
             id="f-page-address"
-            className="min-h-11 min-w-0 flex-1 border-0 bg-transparent px-0 py-2 font-sans text-ui-15 text-tea-text placeholder:text-tea-text-dim/60 focus:outline-none focus:ring-0"
+            className="min-h-tap min-w-0 flex-1 border-0 bg-transparent px-0 py-2 font-sans text-ui-15 text-tea-text placeholder:text-tea-text-dim/60 focus:outline-none focus:ring-0"
             value={form.id ?? ''}
             placeholder="mei-lin"
             autoCapitalize="none"
@@ -513,7 +513,7 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
                         </div>
                         <div className="mt-2 grid gap-x-8 gap-y-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
                           <Line id={`f-role-${association.account_id}`} label="Public role" disabled={!editable} value={association.public_role ?? ''} onChange={event => updateAssociation(association.account_id, { public_role: event.target.value || null })} placeholder="Tea master, guest, writer" />
-                          <label className="tap-target flex min-h-11 cursor-pointer items-center gap-3 font-sans text-ui-13 text-tea-text-sec"><input type="checkbox" disabled={!editable} checked={association.is_host} onChange={event => updateAssociation(association.account_id, { is_host: event.target.checked })} className="h-4 w-4 accent-tea-gold" /> Host profile</label>
+                          <label className="tap-target flex min-h-tap cursor-pointer items-center gap-3 font-sans text-ui-13 text-tea-text-sec"><input type="checkbox" disabled={!editable} checked={association.is_host} onChange={event => updateAssociation(association.account_id, { is_host: event.target.checked })} className="h-4 w-4 accent-tea-gold" /> Host profile</label>
                         </div>
                         {!editable && <p className="mt-2 font-sans text-ui-12 text-tea-text-dim">Switch to this shop to change it.</p>}
                       </li>
@@ -564,8 +564,8 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
                         Delete {persistedContributor.display_name} for good? The page, its photos, links and drafts go with it, and it cannot be brought back.
                       </p>
                       <div className="mt-3 flex items-center justify-between gap-4">
-                        <button type="button" onClick={() => setConfirmingDelete(false)} disabled={saving} className="tap-target min-h-11 font-sans text-ui-14 text-tea-text-sec hover:text-tea-text">Keep it</button>
-                        <button type="button" onClick={deleteForGood} disabled={saving} className="tap-target inline-flex min-h-11 items-center border-b border-tea-error font-display text-ui-17 text-tea-error disabled:opacity-50">{saving ? 'Deleting…' : 'Delete for good'}</button>
+                        <button type="button" onClick={() => setConfirmingDelete(false)} disabled={saving} className="tap-target min-h-tap font-sans text-ui-14 text-tea-text-sec hover:text-tea-text">Keep it</button>
+                        <button type="button" onClick={deleteForGood} disabled={saving} className="tap-target inline-flex min-h-tap items-center border-b border-tea-error font-display text-ui-17 text-tea-error disabled:opacity-50">{saving ? 'Deleting…' : 'Delete for good'}</button>
                       </div>
                     </div>
                   ) : (
@@ -579,21 +579,21 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
 
         {error && <p role="alert" className="shrink-0 border-t border-tea-error/40 bg-tea-bg px-5 py-3 font-body text-ui-15 leading-relaxed text-tea-text sm:px-8">{error}</p>}
         <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-tea-border bg-tea-bg px-5 pt-2 pb-nav-gap sm:px-8 lg:pb-2">
-          <button type="button" onClick={onClose} disabled={saving} className="tap-target min-h-11 px-2 font-sans text-ui-14 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Cancel</button>
+          <button type="button" onClick={onClose} disabled={saving} className="tap-target min-h-tap px-2 font-sans text-ui-14 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Cancel</button>
           <div className="flex min-w-0 items-center justify-end gap-x-5">
             {uploading && <span className="hidden font-sans text-ui-12 text-tea-text-dim sm:inline" role="status">A photo is arriving</span>}
             {pending && <button type="button" onClick={() => setRequestingChanges(current => !current)} disabled={saving} className={QUIET}>Request changes</button>}
             {!pending && (isNew || !published) && <button type="button" onClick={() => persist(true)} disabled={saving || uploading} className={ACTION} aria-label="Publish contributor"><span className="sm:hidden">Publish</span><span className="hidden sm:inline">Publish contributor</span></button>}
-            {pending && <button type="button" aria-label="Approve submitted changes" onClick={() => persist(true)} disabled={saving} className="tap-target min-h-11 rounded-md cta-solid px-5 font-sans text-ui-14 disabled:opacity-50">{saving ? 'Approving…' : <><span className="sm:hidden">Approve</span><span className="hidden sm:inline">Approve submitted changes</span></>}</button>}
-            {!pending && <button type="button" aria-label={isNew ? 'Save draft' : 'Save changes'} onClick={() => persist(false)} disabled={saving || uploading} className="tap-target min-h-11 rounded-md cta-solid px-5 font-sans text-ui-14 disabled:opacity-50">{saving ? 'Saving…' : isNew ? 'Save draft' : <><span className="sm:hidden">Save</span><span className="hidden sm:inline">Save changes</span></>}</button>}
+            {pending && <button type="button" aria-label="Approve submitted changes" onClick={() => persist(true)} disabled={saving} className="btn-primary btn-primary-lg tap-target">{saving ? 'Approving…' : <><span className="sm:hidden">Approve</span><span className="hidden sm:inline">Approve submitted changes</span></>}</button>}
+            {!pending && <button type="button" aria-label={isNew ? 'Save draft' : 'Save changes'} onClick={() => persist(false)} disabled={saving || uploading} className="btn-primary btn-primary-lg tap-target">{saving ? 'Saving…' : isNew ? 'Save draft' : <><span className="sm:hidden">Save</span><span className="hidden sm:inline">Save changes</span></>}</button>}
           </div>
         </footer>
         {requestingChanges && pending && (
           <div className="absolute inset-x-0 bottom-0 z-modal border-t border-tea-border bg-tea-elevated px-6 pt-5 pb-nav-gap sm:px-8 lg:pb-5">
             <Prose label="What should they change?" labelClassName={QUESTION} id="f-revise" autoFocus minRows={3} maxLength={800} value={reviewerNote} onChange={event => setReviewerNote(event.target.value)} />
             <div className="mt-3 flex justify-between gap-3">
-              <button type="button" onClick={() => { setRequestingChanges(false); setReviewerNote(''); }} className="tap-target min-h-11 font-sans text-ui-14 text-tea-text-sec hover:text-tea-text">Cancel</button>
-              <button type="button" onClick={requestChanges} disabled={saving || !reviewerNote.trim()} className="tap-target min-h-11 rounded-md cta-solid px-5 font-sans text-ui-14 disabled:opacity-50">Send it back</button>
+              <button type="button" onClick={() => { setRequestingChanges(false); setReviewerNote(''); }} className="tap-target min-h-tap font-sans text-ui-14 text-tea-text-sec hover:text-tea-text">Cancel</button>
+              <button type="button" onClick={requestChanges} disabled={saving || !reviewerNote.trim()} className="btn-primary btn-primary-lg tap-target">Send it back</button>
             </div>
           </div>
         )}

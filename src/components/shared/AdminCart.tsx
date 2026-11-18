@@ -504,7 +504,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               {isPurchase && lastInvoice._purchaseMessage && (
                 <button
                   onClick={() => { navigator.clipboard.writeText(lastInvoice._purchaseMessage); showToast('Copied.', 'success'); }}
-                  className="flex w-full py-3 rounded-xl font-medium items-center justify-center gap-2 text-sm cta-solid transition-colors"
+                  className="btn-primary btn-primary-lg flex w-full"
                 >
                   <Share2 size={16} /> Copy Order Text
                 </button>
@@ -534,7 +534,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               </button>
               <div className="h-px bg-tea-border my-4" />
               <button onClick={() => { handleStartNewSale(); if (isPurchase) setCartDirection('sale'); }}
-                className="w-full cta-solid py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2 text-sm">
+                className="btn-primary btn-primary-lg w-full flex">
                 <RefreshCcw size={16} /> {isPurchase ? 'Done' : 'Start New Sale'}
               </button>
               {!isPurchase && (

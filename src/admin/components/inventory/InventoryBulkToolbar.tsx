@@ -74,7 +74,7 @@ export function InventoryBulkToolbar({
             onClick={onApply}
             disabled={!bulkValue || isBulkApplying || !canApply}
             title={!canApply ? 'Arrival status must be ready before publication' : undefined}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 cta-solid text-ui-11 uppercase tracking-caps font-sans rounded-md transition-colors disabled:opacity-40"
+            className="btn-primary"
           >
             {isBulkApplying ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />} Apply
           </button>

@@ -9,7 +9,7 @@ import type { TeaCompassEntry } from './types';
 import { TEA_TYPES, TEA_FORMS } from '../../wisdom';
 import type { Currency } from '../../admin/types';
 
-const inputClass = 'input-field w-full min-w-0 min-h-11 px-3 py-2 text-ui-16';
+const inputClass = 'input-field w-full min-w-0 min-h-tap px-3 py-2 text-ui-16';
 
 /** Local drafts avoid a server write on every keystroke. Blur commits to the
  * existing Compass sync, so both entry points edit the same durable record. */
@@ -55,13 +55,13 @@ export function RecordVoice({ entryId, compact = false }: { entryId: string; com
   }, context, userId);
   return <div className={compact ? 'contents' : 'space-y-2'}>
     <div className="flex flex-wrap items-center gap-3">
-      <button type="button" className="tap-target min-h-11 inline-flex items-center gap-2 text-ui-12 text-tea-text-sec"
+      <button type="button" className="tap-target min-h-tap inline-flex items-center gap-2 text-ui-12 text-tea-text-sec"
         aria-label="Record a note" aria-pressed={voice.state === 'recording'} disabled={voice.state === 'transcribing' || voice.state === 'error'} onClick={voice.handlePress}>
         <Mic size={14} />{voice.state === 'recording' ? 'Stop recording' : voice.state === 'transcribing' ? 'Transcribing…' : compact ? 'Record' : 'Record a note'}
       </button>
-      {voice.state === 'error' && !voice.pendingRecording && <button type="button" className="tap-target min-h-11 text-ui-12 text-tea-gold" onClick={() => void voice.discardPending()}>Try recording again</button>}
-      {voice.pendingRecording && <button type="button" className="tap-target min-h-11 text-ui-12 text-tea-gold" disabled={voice.state === 'transcribing'} onClick={() => void voice.retryPending()}>Retry transcript</button>}
-      {voice.pendingRecording && <button type="button" className="tap-target min-h-11 text-ui-12 text-tea-text-sec" disabled={voice.state === 'transcribing'} onClick={() => void voice.discardPending()}>Discard recording</button>}
+      {voice.state === 'error' && !voice.pendingRecording && <button type="button" className="tap-target min-h-tap text-ui-12 text-tea-gold" onClick={() => void voice.discardPending()}>Try recording again</button>}
+      {voice.pendingRecording && <button type="button" className="tap-target min-h-tap text-ui-12 text-tea-gold" disabled={voice.state === 'transcribing'} onClick={() => void voice.retryPending()}>Retry transcript</button>}
+      {voice.pendingRecording && <button type="button" className="tap-target min-h-tap text-ui-12 text-tea-text-sec" disabled={voice.state === 'transcribing'} onClick={() => void voice.discardPending()}>Discard recording</button>}
     </div>
     {voice.errorMessage && <p role="alert" className="text-ui-12 text-tea-text-sec">{voice.errorMessage}</p>}
     {!compact && <p className="text-ui-11 text-tea-text-dim">Recordings join the same source material used in Source and Library.</p>}
@@ -95,7 +95,7 @@ export function TeaRecordFields({ entry, onChange, section = 'all', flat = false
     {show('description') && <TextField label="Description" value={entry.description ?? ''} multiline onCommit={description => onChange({ description })} />}
     {show('notes') && <TextField label="Notes" value={entry.notes} multiline onCommit={notes => onChange({ notes })} />}
     {show('quote') && <Group className="border-t border-tea-border pt-3">
-      <Heading className={`${T.label} ${flat ? 'mb-2' : 'cursor-pointer min-h-11'}`}>Quoted price</Heading>
+      <Heading className={`${T.label} ${flat ? 'mb-2' : 'cursor-pointer min-h-tap'}`}>Quoted price</Heading>
       <div className="grid grid-cols-2 gap-3 pb-3">
         <NumberField label="Quoted amount" value={entry.priceAmount} onCommit={priceAmount => onChange({ priceAmount })} />
         <label className="block min-w-0 space-y-1"><span className={`${T.label} text-tea-text-sec`}>Currency</span><select className={inputClass} value={entry.priceCurrency} onChange={event => onChange({ priceCurrency: event.target.value as Currency })}>
@@ -106,7 +106,7 @@ export function TeaRecordFields({ entry, onChange, section = 'all', flat = false
     </Group>}
     {section === 'all' && <RecordVoice key={entry.id} entryId={entry.id} />}
     {show('provenance') && entry.audioClips.length > 0 && <Group className="border-t border-tea-border pt-3">
-      <Heading className={`${T.label} ${flat ? 'mb-2' : 'min-h-11 cursor-pointer'}`}>Voice recordings ({entry.audioClips.length})</Heading>
+      <Heading className={`${T.label} ${flat ? 'mb-2' : 'min-h-tap cursor-pointer'}`}>Voice recordings ({entry.audioClips.length})</Heading>
       <div className="space-y-3">{entry.audioClips.map((clip, index) => <div key={`${clip.timestamp}:${index}`} className="space-y-2 min-w-0">
         <p className="text-ui-11 text-tea-text-dim">{new Date(clip.timestamp).toLocaleString()}</p>
         <RecordingAudio controls preload="none" src={clip.url} className="w-full max-w-full" aria-label={`Voice recording ${index + 1}`} />
@@ -114,7 +114,7 @@ export function TeaRecordFields({ entry, onChange, section = 'all', flat = false
       </div>)}</div>
     </Group>}
     {show('provenance') && (entry.vendorDetails || entry.sourceEntryId || entry.linkedCustomerId) && <Group className="border-t border-tea-border pt-3">
-      <Heading className={`${T.label} ${flat ? 'mb-2' : 'min-h-11 cursor-pointer'}`}>Source attribution</Heading>
+      <Heading className={`${T.label} ${flat ? 'mb-2' : 'min-h-tap cursor-pointer'}`}>Source attribution</Heading>
       {entry.vendorName && <p className="text-ui-12 text-tea-text-sec">{entry.vendorName}</p>}
       {entry.vendorDetails && <dl className="text-ui-12 text-tea-text-sec space-y-1">{Object.entries(entry.vendorDetails).filter(([, value]) => value != null && value !== '').map(([key, value]) => <div key={key} className="break-words"><dt className="inline text-tea-text-dim">{key}: </dt><dd className="inline">{String(value)}</dd></div>)}</dl>}
       {entry.sourceEntryId && <p className="text-ui-12 text-tea-text-dim break-all">Shared from record {entry.sourceEntryId}</p>}

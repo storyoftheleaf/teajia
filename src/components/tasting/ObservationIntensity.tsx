@@ -52,7 +52,7 @@ export function ObservationIntensity({ label, intensity, onChange }: {
     };
   }, [open]);
   return <div ref={host} className="observation-intensity">
-    <button ref={trigger} type="button" className={`${TYPOGRAPHY_CLASSES.accountMeta} observation-intensity-trigger tap-target flex min-h-11 items-center justify-center rounded-md px-2 text-tea-text-sec focus-visible:ring-2 focus-visible:ring-tea-gold`} aria-label={`Intensity for ${label}${intensity ? `: ${intensityLabel(intensity)}` : ''}`} aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}>
+    <button ref={trigger} type="button" className={`${TYPOGRAPHY_CLASSES.accountMeta} observation-intensity-trigger tap-target flex min-h-tap items-center justify-center rounded-md px-2 text-tea-text-sec focus-visible:ring-2 focus-visible:ring-tea-gold`} aria-label={`Intensity for ${label}${intensity ? `: ${intensityLabel(intensity)}` : ''}`} aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}>
       {intensity ? <span>{intensityLabel(intensity)}</span> : <SlidersHorizontal size={13} aria-hidden="true" />}
     </button>
     {open && <div id={id} className="observation-intensity-panel" role="group" aria-label={`${label} intensity`}>

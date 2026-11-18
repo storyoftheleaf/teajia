@@ -196,7 +196,7 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
               aria-label={term.label}
               whileTap={{ scale: 0.9 }}
               onClick={() => flow.selectExclusive('liquor-color', term.id)}
-              className="flex flex-col items-center gap-1.5 p-1 cursor-pointer min-h-[44px] min-w-[44px]"
+              className="flex flex-col items-center gap-1.5 p-1 cursor-pointer min-h-tap min-w-tap"
             >
               <motion.div
                 animate={{

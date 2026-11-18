@@ -12,13 +12,13 @@ export const QUESTION = 'block font-display text-ui-20 font-normal leading-snug 
 
 /** A hairline field. The line brightens to bronze while the field is in use. */
 const LINE = 'w-full rounded-none border-0 border-b border-tea-border bg-transparent px-0 text-tea-text placeholder:text-tea-text-dim/60 transition-colors focus:border-tea-gold focus:outline-none focus:ring-0 disabled:opacity-60';
-export const LINE_SANS = `${LINE} min-h-11 py-2 font-sans text-ui-15`;
-export const LINE_SERIF = `${LINE} min-h-11 py-2 font-body text-ui-16`;
+export const LINE_SANS = `${LINE} min-h-tap py-2 font-sans text-ui-15`;
+export const LINE_SERIF = `${LINE} min-h-tap py-2 font-body text-ui-16`;
 
 /** A word that does something: Cormorant, reading bronze, a hairline under it. */
-export const ACTION = 'tap-target inline-flex min-h-11 items-center border-b border-tea-border bg-transparent font-display text-ui-17 leading-none text-tea-readgold transition-colors hover:border-tea-gold hover:text-tea-gold-lt disabled:cursor-default disabled:border-transparent disabled:opacity-40';
+export const ACTION = 'tap-target inline-flex min-h-tap items-center border-b border-tea-border bg-transparent font-display text-ui-17 leading-none text-tea-readgold transition-colors hover:border-tea-gold hover:text-tea-gold-lt disabled:cursor-default disabled:border-transparent disabled:opacity-40';
 /** The quiet version, for removing and reordering: secondary text, no line until hover. */
-export const QUIET = 'tap-target inline-flex min-h-11 items-center border-b border-transparent bg-transparent font-sans text-ui-13 text-tea-text-sec transition-colors hover:border-tea-border hover:text-tea-text disabled:cursor-default disabled:opacity-40';
+export const QUIET = 'tap-target inline-flex min-h-tap items-center border-b border-transparent bg-transparent font-sans text-ui-13 text-tea-text-sec transition-colors hover:border-tea-border hover:text-tea-text disabled:cursor-default disabled:opacity-40';
 
 export function Section({ id, title, note, children, testId }: { id: string; title: string; note?: React.ReactNode; children: React.ReactNode; testId?: string }) {
   return (

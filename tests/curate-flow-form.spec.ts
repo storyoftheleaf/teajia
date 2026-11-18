@@ -1,7 +1,7 @@
 /** The default Source form ('flow'): what the owner asked of it, held on a phone.
  *  He captures a tea standing in a shop, so the decision must be on the first
  *  screen once a price is typed, and order and receipt actions open in context. */
-import { test, expect } from './fixtures';
+import { test, expect, tapFloor } from './fixtures';
 import { expectNoUnhandledCompassApi, installCompassHarness, openCompass } from './helpers/compassHarness';
 
 test.describe('Curate Source form, default layout', () => {
@@ -154,7 +154,7 @@ test.describe('Curate Source form, default layout', () => {
     const middles: number[] = [];
     for (const part of parts) {
       const box = (await part.first().boundingBox())!;
-      expect(box.height).toBeGreaterThanOrEqual(44);
+      expect(box.height).toBeGreaterThanOrEqual(tapFloor());
       middles.push(box.y + box.height / 2);
     }
     expect(Math.max(...middles) - Math.min(...middles)).toBeLessThanOrEqual(4);

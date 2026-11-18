@@ -344,7 +344,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                 type="button"
                 onClick={() => setDetailsOpen(prev => !prev)}
                 aria-expanded={detailsOpen}
-                className="flex min-h-[44px] items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors"
+                className="flex min-h-tap items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors"
               >
                 <ChevronDown
                   size={14}
@@ -576,7 +576,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
         <button
           type="submit"
           disabled={saving || uploading}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed tap-target"
+          className="btn-primary tap-target"
         >
           {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           Create Event

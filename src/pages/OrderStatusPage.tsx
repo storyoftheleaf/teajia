@@ -170,7 +170,7 @@ const OrderStatusPage: React.FC = () => {
           />
           <button
             type="submit"
-            className="tap-target inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors whitespace-nowrap"
+            className="btn-primary tap-target whitespace-nowrap"
           >
             <Search size={14} />
             Look up
@@ -190,7 +190,7 @@ const OrderStatusPage: React.FC = () => {
           <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text-sec mt-2`}>
             We could not load your order. Keep this link and try again. You do not need to send another request.
           </p>
-          <button type="button" onClick={() => setReloadKey(key => key + 1)} className="tap-target mt-4 inline-flex px-4 py-2 rounded-md cta-solid text-ui-13">
+          <button type="button" onClick={() => setReloadKey(key => key + 1)} className="btn-primary tap-target mt-4">
             Try again
           </button>
         </div>

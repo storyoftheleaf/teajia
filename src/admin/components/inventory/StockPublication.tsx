@@ -46,7 +46,7 @@ export function StockPublication({ product, isOwner, canList, canPublish, proble
 
   const action = (label: string, gate: Gate, value: boolean, primary = false) => (
     <button type="button"
-      className={`tap-target min-h-11 rounded px-3 text-ui-13 disabled:cursor-not-allowed disabled:opacity-50 ${primary ? 'cta-solid' : 'text-tea-text-sec hover:text-tea-text'}`}
+      className={`tap-target min-h-tap rounded px-3 text-ui-13 disabled:cursor-not-allowed disabled:opacity-50 ${primary ? 'cta-solid' : 'text-tea-text-sec hover:text-tea-text'}`}
       disabled={pending || (value && (!canPublish || !available))}
       onClick={() => void update(() => save(gate, value))}>
       {label}
@@ -65,7 +65,7 @@ export function StockPublication({ product, isOwner, canList, canPublish, proble
       )}
       <div className="flex flex-wrap items-center justify-end gap-x-2">
         {status === 'Draft' && canList && (
-          <button type="button" className="tap-target min-h-11 rounded px-3 text-ui-13 cta-solid disabled:opacity-50"
+          <button type="button" className="btn-primary tap-target"
             disabled={pending || !canPublish} onClick={() => void update(markReady)}>
             {isPublic && shownInShop ? 'Activate Shop listing' : 'Mark ready'}
           </button>

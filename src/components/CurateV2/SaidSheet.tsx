@@ -111,13 +111,13 @@ export const SaidSheet: React.FC<{ entryId: string | null; onClose: () => void }
                 <div className="mt-2 border-t border-tea-border">
                   {f.parts.length === 0 && <p className="px-4 py-3 text-ui-13 text-tea-text-sec">Nothing in it to file.</p>}
                   {f.parts.map((p, i) => (
-                    <div key={i} className="flex min-h-11 items-center gap-3 border-b border-tea-border px-4">
+                    <div key={i} className="flex min-h-tap items-center gap-3 border-b border-tea-border px-4">
                       <span className="curate-v2-label w-16 shrink-0 !text-tea-gold">{SAID_LABEL[p.kind]}</span>
                       <span className="min-w-0 flex-1 truncate font-mono text-ui-14 text-tea-text">{p.text}</span>
                       {!f.applied ? (
                         <span className="flex shrink-0 items-center gap-1">
-                          <button type="button" aria-label={`Keep: ${p.text}`} aria-pressed={f.keep[i]} onClick={() => save(r.key, { ...f, keep: f.keep.map((k, j) => (j === i ? true : k)) })} className={`curate-v2-frame is-slim h-9 !min-w-[44px] shrink-0 ${f.keep[i] ? 'is-on' : ''}`}>keep</button>
-                          <button type="button" aria-label={`Leave out: ${p.text}`} aria-pressed={!f.keep[i]} onClick={() => save(r.key, { ...f, keep: f.keep.map((k, j) => (j === i ? false : k)) })} className={`curate-v2-frame is-slim h-9 !min-w-[44px] shrink-0 ${!f.keep[i] ? 'is-on' : ''}`}>skip</button>
+                          <button type="button" aria-label={`Keep: ${p.text}`} aria-pressed={f.keep[i]} onClick={() => save(r.key, { ...f, keep: f.keep.map((k, j) => (j === i ? true : k)) })} className={`curate-v2-frame is-slim h-9 !min-w-tap shrink-0 ${f.keep[i] ? 'is-on' : ''}`}>keep</button>
+                          <button type="button" aria-label={`Leave out: ${p.text}`} aria-pressed={!f.keep[i]} onClick={() => save(r.key, { ...f, keep: f.keep.map((k, j) => (j === i ? false : k)) })} className={`curate-v2-frame is-slim h-9 !min-w-tap shrink-0 ${!f.keep[i] ? 'is-on' : ''}`}>skip</button>
                         </span>
                       ) : (
                         <span className={`shrink-0 text-ui-12 ${f.keep[i] ? 'text-tea-gold' : 'text-tea-text-sec'}`}>{f.keep[i] ? (p.kind === 'story' || p.kind === 'vendor' ? 'source kept' : 'filed') : 'left out'}</span>

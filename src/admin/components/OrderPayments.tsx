@@ -251,7 +251,7 @@ const RecordPaymentForm: React.FC<RecordFormProps> = ({
         <button
           type="submit"
           disabled={busy}
-          className="tap-target min-h-[44px] cta-solid px-4 rounded-xl text-ui-12 font-medium disabled:cursor-not-allowed disabled:opacity-60"
+          className="btn-primary tap-target"
         >
           {busy ? 'Recording' : 'Record payment'}
         </button>
@@ -362,7 +362,7 @@ export const OrderPaymentsPanelView: React.FC<OrderPaymentsPanelViewProps> = ({
                       type="button"
                       disabled={busy || readOnly}
                       onClick={() => onReject(row)}
-                      className="tap-target min-h-[44px] text-ui-12 text-tea-text-sec hover:text-tea-text disabled:cursor-not-allowed disabled:opacity-60"
+                      className="tap-target min-h-tap text-ui-12 text-tea-text-sec hover:text-tea-text disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       Reject
                     </button>
@@ -370,7 +370,7 @@ export const OrderPaymentsPanelView: React.FC<OrderPaymentsPanelViewProps> = ({
                       type="button"
                       disabled={busy || readOnly}
                       onClick={() => onRequestConfirm(row)}
-                      className="tap-target min-h-[44px] cta-solid px-4 rounded-xl text-ui-12 font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                      className="btn-primary tap-target"
                     >
                       {busy ? 'Working' : 'Confirm payment'}
                     </button>

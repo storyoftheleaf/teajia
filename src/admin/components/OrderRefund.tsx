@@ -48,11 +48,11 @@ export function OrderRefund({ invoiceId, due, refunded, onChanged }: {
     {saved ? <p role="status" className="text-ui-13 text-tea-text mt-3">Refund recorded. Refreshing the order…</p> : (due > 0 || pending) && <form onSubmit={submit} className="mt-3 space-y-3">
       <p className="text-ui-13 text-tea-text-sec">Record money you have already returned to the customer.</p>
       <div className="flex flex-wrap gap-3">
-        <label className="flex-1 min-w-0 text-ui-13 text-tea-text-sec">Returned USD<input aria-label="Refund amount USD" type="number" min="0.01" step="0.01" value={amount} disabled={busy || !!pending} onChange={event => setAmount(event.target.value)} className="w-full min-h-11 bg-tea-bg border border-tea-border rounded-md px-3 mt-1" /></label>
-        <label className="flex-1 min-w-0 text-ui-13 text-tea-text-sec">Reference<input value={reference} disabled={busy || !!pending} onChange={event => setReference(event.target.value)} className="w-full min-h-11 bg-tea-bg border border-tea-border rounded-md px-3 mt-1" /></label>
+        <label className="flex-1 min-w-0 text-ui-13 text-tea-text-sec">Returned USD<input aria-label="Refund amount USD" type="number" min="0.01" step="0.01" value={amount} disabled={busy || !!pending} onChange={event => setAmount(event.target.value)} className="w-full min-h-tap bg-tea-bg border border-tea-border rounded-md px-3 mt-1" /></label>
+        <label className="flex-1 min-w-0 text-ui-13 text-tea-text-sec">Reference<input value={reference} disabled={busy || !!pending} onChange={event => setReference(event.target.value)} className="w-full min-h-tap bg-tea-bg border border-tea-border rounded-md px-3 mt-1" /></label>
       </div>
       {error && <p role="alert" className="text-ui-13 text-tea-text">{error}</p>}
-      <button disabled={busy} className="min-h-11 px-4 rounded-md cta-solid text-ui-13 disabled:opacity-50">{busy ? 'Recording…' : pending ? 'Retry refund record' : 'Record refund sent'}</button>
+      <button disabled={busy} className="btn-primary">{busy ? 'Recording…' : pending ? 'Retry refund record' : 'Record refund sent'}</button>
     </form>}
   </section>;
 }

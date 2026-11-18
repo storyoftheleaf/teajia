@@ -68,7 +68,7 @@ export const WalkthroughDock: React.FC = () => {
 
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {step.to && (
-              <button onClick={() => navigate(step.to!)} className="inline-flex items-center gap-1.5 font-sans text-ui-13 font-medium cta-solid rounded-full px-3.5 py-1.5 tap-target">
+              <button onClick={() => navigate(step.to!)} className="btn-primary tap-target">
                 {step.goLabel || 'Go there'} <ArrowRight className="w-3.5 h-3.5" weight="bold" />
               </button>
             )}

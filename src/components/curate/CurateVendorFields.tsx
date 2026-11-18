@@ -4,8 +4,8 @@ import { useAppStore } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { CONTACT_CHANNELS, readVendorStructuredPatch, type VendorAddress, type VendorContactEndpoint, type VendorContactPerson, type VendorStructuredFields } from '../../lib/curateStructuredFields';
 
-const inputClass = 'input-field min-h-11 min-w-0 px-3 py-2 text-ui-16';
-const buttonClass = 'tap-target min-h-11 px-3 py-2 text-ui-12 text-tea-text-sec hover:text-tea-text';
+const inputClass = 'input-field min-h-tap min-w-0 px-3 py-2 text-ui-16';
+const buttonClass = 'tap-target min-h-tap px-3 py-2 text-ui-12 text-tea-text-sec hover:text-tea-text';
 type Draft = { vendor_code: string; contact_people: VendorContactPerson[]; addresses: VendorAddress[]; contacts: VendorContactEndpoint[] };
 const field = (label: string, value: string, set: (value: string) => void) => <label className="block min-w-0 space-y-1">
   <span className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec`}>{label}</span>
@@ -60,7 +60,7 @@ export function CurateVendorFields({ vendorId }: { vendorId: string }) {
     } finally { savingRef.current = false; if (generation === request.current) setSaving(false); }
   };
   return <details className="border-t border-tea-border pt-3" data-testid="curate-vendor-fields">
-    <summary className={`${TYPOGRAPHY_CLASSES.label} cursor-pointer min-h-11 text-tea-text-sec`}>Vendor people &amp; addresses</summary>
+    <summary className={`${TYPOGRAPHY_CLASSES.label} cursor-pointer min-h-tap text-tea-text-sec`}>Vendor people &amp; addresses</summary>
     {error && <p role="alert" className="text-ui-12 text-tea-text-sec">{error}</p>}
     {!draft && error && <button type="button" className={buttonClass} onClick={() => setRetry(value => value + 1)}>Retry vendor details</button>}
     {!draft ? <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text-sec`}>Loading vendor details</p> : <div className="space-y-5 pb-3">

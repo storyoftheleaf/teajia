@@ -45,6 +45,25 @@ nav[aria-label="Admin navigation"] * {
   touch-action: manipulation;
 }
 
+/* Control sizing: the one place that decides how tall a button, chip, tab or
+   input is. Every former 44px floor reads --tap-min.
+
+   A finger needs 44px (WCAG 2.5.5); a mouse does not. On a phone or tablet the
+   floor stays 44px. With a precise pointer (mouse, trackpad) it drops to 28px,
+   so desktop controls sit at their own padding, 28-34px, instead of being
+   inflated to a finger target nobody is using (Adrian's density rule,
+   UI audit 2026-11-18). */
+:root {
+  --tap-min: 44px;
+  --control-h-sm: 28px;
+  --control-h: 32px;
+  --control-h-lg: 36px;
+  --radius-control: 4px;
+}
+@media (hover: hover) and (pointer: fine) {
+  :root { --tap-min: 28px; }
+}
+
 :root {
   color-scheme: dark;
 

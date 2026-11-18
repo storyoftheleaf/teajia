@@ -627,6 +627,7 @@ export const BORDER_RADIUS = {
   '2xl': '0.875rem',  // 14px, cards
   '3xl': '1.125rem',  // 18px, large panels, modals
   full: '9999px',     // pills, tags, avatars
+  control: 'var(--radius-control)', // buttons, inputs, tabs (4px), see tailwind.css
 } as const;
 
 

@@ -125,7 +125,7 @@ const NodeRow: React.FC<NodeRowProps> = ({ node, tone, rail, children }) => {
   const title = held ? (
     <Link
       to={`/wisdom/cultivar/${node.id}`}
-      className="group inline-flex items-baseline gap-3 flex-wrap min-w-0 min-h-[44px]"
+      className="group inline-flex items-baseline gap-3 flex-wrap min-w-0 min-h-tap"
     >
       <span className={`${NAME_CLASS} text-tea-text group-hover:text-tea-gold-lt transition-colors break-words`}>
         {node.name}

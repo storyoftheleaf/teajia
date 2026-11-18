@@ -4,8 +4,8 @@ import { readRouteQuotes, type RouteQuote } from '../../lib/curateStructuredFiel
 import type { TeaCompassEntry } from './types';
 
 type StructuredTeaEntry = Pick<TeaCompassEntry, 'id' | 'type' | 'ageQuoted' | 'grade' | 'packSizeGrams' | 'packSizeLabel' | 'vendorItemNumber' | 'discountPercent' | 'shopName' | 'transportMode' | 'routeQuotes'>;
-const inputClass = 'input-field min-h-11 min-w-0 px-3 py-2 text-ui-16';
-const buttonClass = 'tap-target min-h-11 px-3 py-2 text-ui-12 text-tea-text-sec hover:text-tea-text';
+const inputClass = 'input-field min-h-tap min-w-0 px-3 py-2 text-ui-16';
+const buttonClass = 'tap-target min-h-tap px-3 py-2 text-ui-12 text-tea-text-sec hover:text-tea-text';
 
 function Field({ label, value, number, minimum, maximum, onCommit }: {
   label: string; value?: string | number | null; number?: boolean; minimum?: number; maximum?: number;
@@ -87,7 +87,7 @@ export function StructuredTeaFields({ entry, onChange, routeOnly = false, flat =
     </select>
   </label>;
   return <Group className={bare ? '' : `border-t border-tea-border ${tightTop ? 'lg:pt-3' : 'pt-3'}`} data-testid="structured-tea-fields">
-    <Heading className={`${TYPOGRAPHY_CLASSES.label} ${flat ? 'mb-2' : 'cursor-pointer min-h-11'} ${bare ? 'pt-3.5' : tightTop ? 'pt-3.5 lg:pt-0' : ''} text-tea-text-sec`}>{routeOnly ? 'Route price quotes' : 'Tea details & sourcing'}</Heading>
+    <Heading className={`${TYPOGRAPHY_CLASSES.label} ${flat ? 'mb-2' : 'cursor-pointer min-h-tap'} ${bare ? 'pt-3.5' : tightTop ? 'pt-3.5 lg:pt-0' : ''} text-tea-text-sec`}>{routeOnly ? 'Route price quotes' : 'Tea details & sourcing'}</Heading>
     <div className="space-y-4 pb-3">
       {leading}
       {!routeOnly && <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

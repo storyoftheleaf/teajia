@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures';
+import { expect, test, tapFloor } from './fixtures';
 import { injectAuth, mockInventoryApi, MOCK_PRODUCTS } from './helpers/inventoryMocks';
 
 test('five finishes preserve Stock structure, tighten reference spacing and fit narrow phones', async ({ page }) => {
@@ -38,7 +38,7 @@ test('five finishes preserve Stock structure, tighten reference spacing and fit 
       expect(gap).toBeGreaterThanOrEqual(0);
       expect(gap).toBeLessThan(6);
       const button=await card.getByRole('button',{name:/Edit year in figures/}).boundingBox();
-      expect(button!.height).toBeGreaterThanOrEqual(44);
+      expect(button!.height).toBeGreaterThanOrEqual(tapFloor());
       if(variant===2) {
         const more=await card.getByRole('button',{name:/More details for/}).boundingBox();
         const strip=await card.locator('.stock-subtitle').boundingBox();

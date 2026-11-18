@@ -93,7 +93,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
                   <button
                     key={preset.value}
                     onClick={() => setQuantity(preset.value.toString())}
-                    className="min-h-[44px] px-3 py-2 rounded-md border border-tea-border text-tea-text-sec text-ui-12 hover:text-tea-text hover:bg-tea-accent-sub transition-colors num"
+                    className="min-h-tap px-3 py-2 rounded-md border border-tea-border text-tea-text-sec text-ui-12 hover:text-tea-text hover:bg-tea-accent-sub transition-colors num"
                   >
                     {preset.label}
                   </button>

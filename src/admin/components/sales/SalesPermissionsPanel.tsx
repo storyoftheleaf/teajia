@@ -131,7 +131,7 @@ export const SalesPermissionsPanelView: React.FC<ViewProps> = ({
       {error && <p role="alert" className="text-ui-12 text-tea-error">{error}</p>}
       <div className="flex justify-between gap-3 pt-1">
         <button type="button" onClick={onCancel} className="tap-target text-ui-12 text-tea-text-sec hover:text-tea-text">Cancel</button>
-        <button type="submit" disabled={busy || !values.seller_user_id} className="cta-solid min-h-[44px] rounded-md px-4 text-ui-12 font-medium disabled:opacity-50">{busy ? 'Saving…' : mode === 'edit' ? 'Save terms' : 'Authorize sales'}</button>
+        <button type="submit" disabled={busy || !values.seller_user_id} className="btn-primary">{busy ? 'Saving…' : mode === 'edit' ? 'Save terms' : 'Authorize sales'}</button>
       </div>
     </form>
   );

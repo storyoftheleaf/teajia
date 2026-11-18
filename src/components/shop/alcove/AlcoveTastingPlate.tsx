@@ -129,7 +129,7 @@ export const AlcoveTastingPlate: React.FC<AlcoveTastingPlateProps> = ({ entry, o
               e.stopPropagation();
               onTaste('edit');
             }}
-            className="alcove-note-row inline-flex min-h-[44px] items-center gap-2.5 px-[18px] transition-colors"
+            className="alcove-note-row inline-flex min-h-tap items-center gap-2.5 px-[18px] transition-colors"
           >
             <LeafMark />
             <span className="font-display text-ui-17 font-medium leading-none text-tea-text">

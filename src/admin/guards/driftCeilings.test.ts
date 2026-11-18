@@ -45,7 +45,9 @@ describe('raw <button> elements', () => {
     expectAtMost(countMatches(inFolder('src/admin/'), /<button\b/g), 1216, 'raw <button in src/admin', instead);
   });
   it('in src/components do not rise', () => {
-    expectAtMost(countMatches(inFolder('src/components/'), /<button\b/g), 1377, 'raw <button in src/components', instead);
+    // 1378 includes the shared Button itself, which renders a plain <button>
+    // since it stopped wrapping framer-motion for a hover lift (2026-11-18).
+    expectAtMost(countMatches(inFolder('src/components/'), /<button\b/g), 1378, 'raw <button in src/components', instead);
   });
 });
 

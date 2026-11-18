@@ -103,7 +103,7 @@ const PhotoTile: React.FC<{
         )}
       </button>
       <div className="px-2.5 pt-2 pb-2.5 space-y-1">
-        <button type="button" onClick={() => onOpen(entry.id)} className="tap-target flex min-h-11 w-full items-center text-left">
+        <button type="button" onClick={() => onOpen(entry.id)} className="tap-target flex min-h-tap w-full items-center text-left">
           <span className="block text-ui-16 text-tea-text font-medium truncate">{title}</span>
         </button>
         <span className="block text-ui-12 text-tea-text-dim truncate">
@@ -116,7 +116,7 @@ const PhotoTile: React.FC<{
           onBlur={() => { if (note !== entry.notes) updateEntry(entry.id, { notes: note }); }}
           placeholder="Add a note"
           aria-label={`Note for ${title}`}
-          className="min-h-11 w-full bg-transparent text-ui-16 text-tea-text-sec placeholder:text-tea-text-dim outline-none
+          className="min-h-tap w-full bg-transparent text-ui-16 text-tea-text-sec placeholder:text-tea-text-dim outline-none
                      focus:text-tea-text border-b border-transparent focus:border-tea-border pb-0.5 transition-colors"
         />
       </div>
@@ -488,7 +488,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
       <div role="alert" className="flex flex-col items-center justify-center py-16 text-center">
         <h3 className="text-ui-16 font-serif text-tea-text">Library could not refresh</h3>
         <p className="mt-2 max-w-[32rem] text-ui-12 text-tea-text-sec">Your local Library is empty. Check the connection and try again before assuming there are no saved encounters.</p>
-        <button type="button" onClick={() => void hydrateCompassEntries(activeAccountId ?? undefined)} className="tap-target mt-4 min-h-11 text-ui-12 text-tea-gold hover:text-tea-gold-lt" aria-label="Retry Library sync">Retry</button>
+        <button type="button" onClick={() => void hydrateCompassEntries(activeAccountId ?? undefined)} className="tap-target mt-4 min-h-tap text-ui-12 text-tea-gold hover:text-tea-gold-lt" aria-label="Retry Library sync">Retry</button>
       </div>
     );
   }
@@ -505,7 +505,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         </p>
         <button
           onClick={onNewCapture}
-          className="tap-target min-h-11 px-8 py-3 cta-solid text-ui-12 font-semibold transition-colors rounded-md"
+          className="btn-primary btn-primary-lg tap-target"
         >
           Begin
         </button>
@@ -527,7 +527,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             value={internalSearchQuery}
             onChange={(e) => setInternalSearchQuery(e.target.value)}
             placeholder="Search by name, region, vendor…"
-            className="w-full min-h-11 bg-tea-surface text-tea-text text-ui-16 rounded-md border border-tea-border pl-9 pr-10 py-2
+            className="w-full min-h-tap bg-tea-surface text-tea-text text-ui-16 rounded-md border border-tea-border pl-9 pr-10 py-2
                        outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40"
           />
           {internalSearchQuery && (
@@ -557,7 +557,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             type="button"
             onClick={() => { setShowRejected(false); setBrowseFilter(opt.value); }}
             aria-pressed={!showRejected && browseFilter === opt.value}
-            className={`tap-target inline-flex min-h-11 items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
+            className={`tap-target inline-flex min-h-tap items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
               !showRejected && browseFilter === opt.value
                 ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
                 : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
@@ -569,7 +569,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         ))}
 
         <button type="button" onClick={() => setShowRejected(!showRejected)} aria-pressed={showRejected}
-          className={`tap-target inline-flex min-h-11 items-center gap-2 rounded-md border px-3 py-2 text-ui-12 ${showRejected ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-tea-border bg-tea-bg text-tea-text-sec'}`}>
+          className={`tap-target inline-flex min-h-tap items-center gap-2 rounded-md border px-3 py-2 text-ui-12 ${showRejected ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-tea-border bg-tea-bg text-tea-text-sec'}`}>
           <span>Rejected</span><span className="tabular-nums">{rejectedEntries.length}</span>
         </button>
 
@@ -578,7 +578,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         <button
           type="button"
           onClick={() => setFilterSheetOpen(true)}
-          className={`tap-target inline-flex min-h-11 items-center rounded-md border px-3 text-ui-12 transition-colors ${activeLibraryFilterCount(libraryFilters) ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub'}`}
+          className={`tap-target inline-flex min-h-tap items-center rounded-md border px-3 text-ui-12 transition-colors ${activeLibraryFilterCount(libraryFilters) ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub'}`}
           aria-label={activeLibraryFilterCount(libraryFilters) ? `${activeLibraryFilterCount(libraryFilters)} filters` : 'Filters'}
         >
           <SlidersHorizontal size={14} aria-hidden="true" />
@@ -591,7 +591,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         <button
           type="button"
           onClick={() => setSortSheetOpen(true)}
-          className={`tap-target inline-flex min-h-11 items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
+          className={`tap-target inline-flex min-h-tap items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
             browseSort !== 'recent'
               ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
               : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
@@ -618,11 +618,11 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         }}
       />
       {hydrationStatus === 'error' && (
-        <div role="alert" className="flex min-h-11 flex-wrap items-center justify-between gap-3 border-y border-tea-border py-2 text-ui-12 text-tea-text-sec">
+        <div role="alert" className="flex min-h-tap flex-wrap items-center justify-between gap-3 border-y border-tea-border py-2 text-ui-12 text-tea-text-sec">
           <span>{entries.length ? 'Showing local Library data. The server copy could not refresh.' : 'Library could not refresh. No server entries are available.'}</span>
           <button
             type="button"
-            className="tap-target min-h-11 text-tea-gold hover:text-tea-gold-lt"
+            className="tap-target min-h-tap text-tea-gold hover:text-tea-gold-lt"
             aria-label="Retry Library sync"
             onClick={() => void hydrateCompassEntries(activeAccountId ?? undefined)}
           >
@@ -631,19 +631,19 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         </div>
       )}
       {(contextErrors.journeys || contextErrors.visits) && (
-        <div role="status" className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-tea-border bg-tea-surface px-3 text-ui-12 text-tea-text-sec">
+        <div role="status" className="flex min-h-tap items-center justify-between gap-3 rounded-md border border-tea-border bg-tea-surface px-3 text-ui-12 text-tea-text-sec">
           <span>{[contextErrors.journeys && 'journeys', contextErrors.visits && 'visits'].filter(Boolean).join(' and ')} unavailable</span>
-          <button type="button" className="tap-target min-h-11 text-tea-gold hover:text-tea-gold-lt" onClick={() => setContextRetry((value) => value + 1)}>Retry</button>
+          <button type="button" className="tap-target min-h-tap text-tea-gold hover:text-tea-gold-lt" onClick={() => setContextRetry((value) => value + 1)}>Retry</button>
         </div>
       )}
       {possessionError && libraryFilters.possession && (
-        <div role="alert" className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-tea-border bg-tea-surface px-3 text-ui-12 text-tea-text-sec">
+        <div role="alert" className="flex min-h-tap items-center justify-between gap-3 rounded-md border border-tea-border bg-tea-surface px-3 text-ui-12 text-tea-text-sec">
           <span>Inventory unavailable. Possession results are hidden to avoid misclassifying entries.</span>
-          <button type="button" className="tap-target min-h-11 text-tea-gold hover:text-tea-gold-lt" onClick={() => setPossessionRetry((value) => value + 1)}>Retry</button>
+          <button type="button" className="tap-target min-h-tap text-tea-gold hover:text-tea-gold-lt" onClick={() => setPossessionRetry((value) => value + 1)}>Retry</button>
         </div>
       )}
       {possessionLoading && libraryFilters.possession && (
-        <div role="status" className="min-h-11 rounded-md border border-tea-border bg-tea-surface px-3 py-3 text-ui-12 text-tea-text-sec">Loading Inventory possession…</div>
+        <div role="status" className="min-h-tap rounded-md border border-tea-border bg-tea-surface px-3 py-3 text-ui-12 text-tea-text-sec">Loading Inventory possession…</div>
       )}
 
       {/* Cleanup banner, shown when empty test entries exist */}
@@ -664,14 +664,14 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
               <button
                 type="button"
                 onClick={handleCleanup}
-                className="tap-target min-h-11 text-tea-error hover:text-tea-error font-medium transition-colors shrink-0"
+                className="tap-target min-h-tap text-tea-error hover:text-tea-error font-medium transition-colors shrink-0"
               >
                 Clean up
               </button>
               <button
                 type="button"
                 onClick={() => setCleanupDismissed(true)}
-                className="tap-target flex min-h-11 min-w-11 shrink-0 items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors ml-1"
+                className="tap-target flex min-h-tap min-w-tap shrink-0 items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors ml-1"
                 aria-label="Dismiss cleanup"
               >
                 <X size={12} />

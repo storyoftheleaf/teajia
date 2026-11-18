@@ -76,7 +76,7 @@ export function EditorSheet({ id, title, note, open, onClose, children, mode = '
           {children}
           {mode === 'page' && (
             <div className="mt-10 flex justify-end pb-nav-gap lg:pb-0">
-              <button type="button" onClick={onClose} className="tap-target min-h-11 rounded-md cta-solid px-6 font-sans text-ui-14">Done</button>
+              <button type="button" onClick={onClose} className="btn-primary btn-primary-lg tap-target">Done</button>
             </div>
           )}
         </div>

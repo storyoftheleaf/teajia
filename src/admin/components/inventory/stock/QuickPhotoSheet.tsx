@@ -66,7 +66,7 @@ export function QuickPhotoSheet({ product, onSave, onClose }: QuickPhotoSheetPro
     <div className="stock-mini-sheet space-y-3 px-2 pb-3 text-tea-text">
       {replaceSlot && <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-tea-border bg-tea-accent-sub px-3">
         <p className={`${T.link} text-tea-text-sec`}>Replacing {slotLabel(replaceSlot).toLowerCase()}</p>
-        <button type="button" disabled={busy || Boolean(pending)} onClick={() => setReplaceSlot(null)} className={`${T.link} min-h-11 px-2 text-tea-gold disabled:opacity-50`}>Cancel replacement</button>
+        <button type="button" disabled={busy || Boolean(pending)} onClick={() => setReplaceSlot(null)} className={`${T.link} min-h-tap px-2 text-tea-gold disabled:opacity-50`}>Cancel replacement</button>
       </div>}
       <input ref={camera} type="file" accept="image/*" capture="environment" className="hidden" aria-label="Take product photo" onChange={event => choose(event.target.files?.[0])} />
       <input ref={library} type="file" accept="image/*" className="hidden" aria-label="Choose product photo" onChange={event => choose(event.target.files?.[0])} />
@@ -79,13 +79,13 @@ export function QuickPhotoSheet({ product, onSave, onClose }: QuickPhotoSheetPro
       {error && <p role="alert" className={`${T.link} text-tea-text-sec`}>{error}</p>}
       {pending && !busy && <div className="space-y-2 rounded-xl border border-tea-border bg-tea-surface p-3">
         <p className={`${T.link} break-words text-tea-text-sec`}>{pending.file.name} is ready to retry.</p>
-        <div className="flex flex-wrap gap-2"><button type="button" onClick={() => void persist(pending)} className={`${T.nav} min-h-11 rounded-md cta-solid px-4 py-2`}>Retry saving photo</button><button type="button" onClick={discardPending} className={`${T.link} min-h-11 rounded-md border border-tea-border px-4 py-2`}>Choose another</button></div>
+        <div className="flex flex-wrap gap-2"><button type="button" onClick={() => void persist(pending)} className={`${T.nav} min-h-tap rounded-md cta-solid px-4 py-2`}>Retry saving photo</button><button type="button" onClick={discardPending} className={`${T.link} min-h-tap rounded-md border border-tea-border px-4 py-2`}>Choose another</button></div>
       </div>}
       {existing.length > 0 && <div className="space-y-2">
         {existing.map(([slot, url]) => <div key={slot} className="flex min-w-0 items-center gap-3 rounded-xl border border-tea-border bg-tea-surface p-2">
           <img src={mediaUrl(url!)} alt={slotLabel(slot)} className="h-16 w-16 shrink-0 rounded-md object-cover" />
           <span className={`${T.link} min-w-0 flex-1 text-tea-text-sec`}>{slotLabel(slot)}</span>
-          <button type="button" disabled={busy || Boolean(pending)} aria-label={`Replace ${slotLabel(slot).toLowerCase()}`} aria-pressed={replaceSlot === slot} onClick={() => { setReplaceSlot(slot); setError(null); }} className={`${T.link} min-h-11 shrink-0 rounded-md border border-tea-border px-3 text-tea-gold disabled:opacity-50`}>Replace</button>
+          <button type="button" disabled={busy || Boolean(pending)} aria-label={`Replace ${slotLabel(slot).toLowerCase()}`} aria-pressed={replaceSlot === slot} onClick={() => { setReplaceSlot(slot); setError(null); }} className={`${T.link} min-h-tap shrink-0 rounded-md border border-tea-border px-3 text-tea-gold disabled:opacity-50`}>Replace</button>
         </div>)}
       </div>}
     </div>

@@ -65,11 +65,11 @@ export const ImportVendorGroup: React.FC<Props> = ({ group, vendorLookup, identi
         <div className="space-y-3 border-y border-tea-border py-4">
           <ImportMatchPicker label={`Vendor for ${vendorName}`} lookup={vendorLookup} selectedId={group.resolved_vendor_customer_id || ''} proposedName={group.proposed_vendor_name} disabled={Boolean(busyId)} onRetry={onRetryVendors} onSelect={vendorId => { void onChangeVendor(group.id, vendorId).then(ok => { if (ok) setChanging(false); }); }} />
           <label className="block text-ui-11 text-tea-text-sec">Create new vendor
-            <input disabled={Boolean(busyId) || !['ready', 'empty'].includes(vendorLookup.status)} value={newVendorName} onChange={event => setNewVendorName(event.target.value)} placeholder={vendorLookup.status === 'error' ? 'Retry existing vendors first' : group.proposed_vendor_name || 'Vendor name'} className="mt-1 min-h-11 w-full rounded-md border border-tea-border bg-tea-elevated px-3 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold disabled:opacity-50 lg:text-ui-13" />
+            <input disabled={Boolean(busyId) || !['ready', 'empty'].includes(vendorLookup.status)} value={newVendorName} onChange={event => setNewVendorName(event.target.value)} placeholder={vendorLookup.status === 'error' ? 'Retry existing vendors first' : group.proposed_vendor_name || 'Vendor name'} className="mt-1 min-h-tap w-full rounded-md border border-tea-border bg-tea-elevated px-3 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold disabled:opacity-50 lg:text-ui-13" />
           </label>
           <div className="flex justify-between gap-3">
-            <button type="button" disabled={Boolean(busyId)} onClick={() => setChanging(false)} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Cancel</button>
-            <button type="button" disabled={Boolean(busyId) || !['ready', 'empty'].includes(vendorLookup.status) || !newVendorName.trim()} onClick={() => void onCreateVendor(group.id, newVendorName.trim()).then(ok => { if (ok) { setNewVendorName(''); setChanging(false); } })} className="tap-target min-h-11 rounded-md cta-solid px-4 text-ui-12 font-medium disabled:opacity-50">Create vendor</button>
+            <button type="button" disabled={Boolean(busyId)} onClick={() => setChanging(false)} className="tap-target min-h-tap text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Cancel</button>
+            <button type="button" disabled={Boolean(busyId) || !['ready', 'empty'].includes(vendorLookup.status) || !newVendorName.trim()} onClick={() => void onCreateVendor(group.id, newVendorName.trim()).then(ok => { if (ok) { setNewVendorName(''); setChanging(false); } })} className="btn-primary tap-target">Create vendor</button>
           </div>
         </div>
       )}

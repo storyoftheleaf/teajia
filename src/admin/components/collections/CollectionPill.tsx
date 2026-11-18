@@ -206,7 +206,7 @@ export const CollectionPill: React.FC<CollectionPillProps> = ({ productId }) => 
                       type="button"
                       onClick={createAndAdd}
                       disabled={!newTitle.trim() || busy}
-                      className="shrink-0 px-2 py-1 cta-solid rounded text-ui-10 font-medium transition-colors disabled:opacity-40"
+                      className="btn-primary shrink-0"
                     >
                       {busy ? <Loader2 size={10} className="animate-spin" /> : 'Add'}
                     </button>

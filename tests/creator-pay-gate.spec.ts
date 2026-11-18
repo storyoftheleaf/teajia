@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures';
+import { expect, test, tapFloor } from './fixtures';
 import { KENJI_BANK_DETAIL, KENJI_SHARE_TOKEN, collectErrors, meaningfulErrors, mockCreatorApi, noHorizontalOverflow, signInAs } from './helpers/creatorFixtures';
 
 // Pay is private, and approval is permanent. Three viewers, three answers:
@@ -111,7 +111,7 @@ test.describe('the pay gate', () => {
     const open = sheet.getByRole('link', { name: /Open Pay online/ });
     const openStyle = await open.evaluate(element => { const c = getComputedStyle(element); return { bottom: c.borderBottomWidth, top: c.borderTopWidth, caps: c.textTransform, height: element.getBoundingClientRect().height }; });
     expect(openStyle).toMatchObject({ bottom: '1px', top: '0px', caps: 'none' });
-    expect(openStyle.height).toBeGreaterThanOrEqual(44);
+    expect(openStyle.height).toBeGreaterThanOrEqual(tapFloor());
     const sheetText = await sheet.innerText();
     for (const label of ['Recipient', 'Account', 'Choose a transfer method', 'External transfer', 'Share this payment page', 'Pay · ']) expect(sheetText).not.toContain(label);
     await expect(page.getByTestId('pay-gate')).toHaveCount(0);

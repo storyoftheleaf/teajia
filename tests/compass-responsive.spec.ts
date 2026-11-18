@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures';
+import { test, expect, tapFloor } from './fixtures';
 import { expectNoUnhandledCompassApi, installCompassHarness, openCompass } from './helpers/compassHarness';
 
 test.describe('Curate responsive preservation', () => {
@@ -29,7 +29,7 @@ test.describe('Curate responsive preservation', () => {
     ];
     for (const action of actions) {
       const box = await action.boundingBox();
-      expect(box?.height).toBeGreaterThanOrEqual(44);
+      expect(box?.height).toBeGreaterThanOrEqual(tapFloor());
       expect(box!.x).toBeGreaterThanOrEqual(0);
       expect(box!.x + box!.width).toBeLessThanOrEqual(viewportWidth);
     }
@@ -68,7 +68,7 @@ test.describe('Curate responsive preservation', () => {
     for (const action of headerActions) {
       await expect(action).toBeVisible();
       const box = await action.boundingBox();
-      expect(box?.height).toBeGreaterThanOrEqual(44);
+      expect(box?.height).toBeGreaterThanOrEqual(tapFloor());
       expect(box!.x).toBeGreaterThanOrEqual(0);
       expect(box!.x + box!.width).toBeLessThanOrEqual(viewportWidth);
     }
@@ -89,7 +89,7 @@ test.describe('Curate responsive preservation', () => {
       source.getByRole('button', { name: 'Save piece', exact: true }),
     ]) {
       const box = await action.boundingBox();
-      expect(box?.height).toBeGreaterThanOrEqual(44);
+      expect(box?.height).toBeGreaterThanOrEqual(tapFloor());
     }
   });
 
@@ -105,14 +105,14 @@ test.describe('Curate responsive preservation', () => {
 
     const material = page.getByTestId('curate-teaware-classification-row').getByRole('button').nth(1);
     await expect(material).toHaveAccessibleName('Material: Yixing · Zhuni');
-    await expect.poll(async () => (await material.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    await expect.poll(async () => (await material.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(tapFloor());
     expect(parseFloat(await material.evaluate((element) => getComputedStyle(element).fontSize))).toBe(16);
     await expect(page.locator('[data-curate-source] button button')).toHaveCount(0);
     await material.click();
     await page.getByRole('button', { name: 'Yixing', exact: true }).filter({ visible: true }).click();
     const clear = page.getByRole('button', { name: 'Clear clay subtype' }).first();
     await clear.scrollIntoViewIfNeeded();
-    await expect.poll(async () => (await clear.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    await expect.poll(async () => (await clear.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(tapFloor());
     await clear.click();
     await expect(clear).toBeHidden();
     await expect(material).toHaveAccessibleName('Material: Yixing');
@@ -120,7 +120,7 @@ test.describe('Curate responsive preservation', () => {
     await page.getByRole('button', { name: /^Era:/ }).filter({ visible: true }).first().click();
     await page.getByRole('button', { name: 'Add new era', exact: true }).click();
     const customEra = page.getByPlaceholder('e.g. Song Dynasty');
-    await expect.poll(async () => (await customEra.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    await expect.poll(async () => (await customEra.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(tapFloor());
     expect(parseFloat(await customEra.evaluate((element) => getComputedStyle(element).fontSize))).toBe(16);
   });
 
@@ -145,7 +145,7 @@ test.describe('Curate responsive preservation', () => {
     const firstRow = page.locator('[data-testid^="library-entry-"]').first();
     for (const action of await firstRow.locator('[data-library-action]').all()) {
       const box = await action.boundingBox();
-      expect(box?.height).toBeGreaterThanOrEqual(44);
+      expect(box?.height).toBeGreaterThanOrEqual(tapFloor());
     }
     const dimensions = await page.evaluate(() => ({ width: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth }));
     expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.width);

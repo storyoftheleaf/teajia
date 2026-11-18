@@ -3,7 +3,7 @@ import { Icons } from '../Icons';
 import { CardContainer } from '../shared/CardContainer';
 import { COMMUNITY_WISDOM, WISDOM_TYPE_LABELS, type WisdomType, type CommunityWisdomEntry } from '../../data/communityWisdom';
 
-const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-text/5 px-2 -ml-2';
+const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-tap rounded-md hover:bg-tea-text/5 px-2 -ml-2';
 
 const WISDOM_TYPE_COLORS: Record<string, string> = {
   reflection: 'bg-tea-elevated/10 dark:bg-tea-elevated/20 text-tea-text-sec dark:text-tea-text-sec border border-tea-border',

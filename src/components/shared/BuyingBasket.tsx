@@ -180,7 +180,7 @@ export const BuyingBasket: React.FC<{ onClose: () => void }> = ({ onClose }) => 
 
   return <>
     <div className="flex items-center gap-2 pl-2 pr-4 min-h-[52px] shrink-0">
-      <button type="button" onClick={onClose} aria-label="Close buying" className="min-w-[44px] min-h-[44px] flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors">
+      <button type="button" onClick={onClose} aria-label="Close buying" className="min-w-tap min-h-tap flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors">
         <Icons.Close className="w-5 h-5" />
       </button>
       <h2 className="flex-1 min-w-0 font-display text-[22px] leading-none text-tea-text">{placed ? 'Ordered' : 'Buying'}</h2>

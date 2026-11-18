@@ -123,7 +123,7 @@ export const FlagReferenceIssueForm: React.FC<FlagReferenceIssueFormProps> = ({
         <label className="block space-y-2">
           <span className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec`}>Issue category</span>
           <select
-            className="input-field min-h-11 w-full"
+            className="input-field min-h-tap w-full"
             value={state.category}
             onChange={event => onCategory(event.target.value as TeaReferenceIssueCategory)}
             disabled={isPending}
@@ -137,7 +137,7 @@ export const FlagReferenceIssueForm: React.FC<FlagReferenceIssueFormProps> = ({
         <label className="block space-y-2">
           <span className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec`}>Affected section</span>
           <select
-            className="input-field min-h-11 w-full"
+            className="input-field min-h-tap w-full"
             value={state.sectionKey}
             onChange={event => onSection(event.target.value)}
             disabled={isPending}
@@ -164,7 +164,7 @@ export const FlagReferenceIssueForm: React.FC<FlagReferenceIssueFormProps> = ({
         <textarea
           required
           rows={4}
-          className="input-field min-h-11 w-full resize-y"
+          className="input-field min-h-tap w-full resize-y"
           value={state.note}
           onChange={event => onNote(event.target.value)}
           disabled={isPending}
@@ -184,14 +184,14 @@ export const FlagReferenceIssueForm: React.FC<FlagReferenceIssueFormProps> = ({
           type="button"
           onClick={onCancel}
           disabled={isPending}
-          className={`${TYPOGRAPHY_CLASSES.link} min-h-11 px-2 text-tea-text-sec transition-colors hover:text-tea-text disabled:opacity-50`}
+          className={`${TYPOGRAPHY_CLASSES.link} min-h-tap px-2 text-tea-text-sec transition-colors hover:text-tea-text disabled:opacity-50`}
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isPending || Boolean(state.outcome)}
-          className="cta-solid min-h-11 px-5 disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn-primary"
         >
           {isPending ? 'Flagging…' : 'Flag for revision'}
         </button>

@@ -5,7 +5,7 @@ import type { TeaCompassEntry } from './types';
 type StructuredTeaEntry = Pick<TeaCompassEntry, 'id' | 'type' | 'ageQuoted' | 'grade' | 'packSizeGrams' | 'packSizeLabel' | 'vendorItemNumber' | 'discountPercent' | 'shopName' | 'transportMode' | 'routeQuotes'>;
 const inputClass = 'curate-v2-field';
 const selectClass = 'curate-v2-select min-w-0 flex-1';
-const buttonClass = 'curate-v2-word tap-target min-h-11 px-1 text-tea-text-sec hover:text-tea-text';
+const buttonClass = 'curate-v2-word tap-target min-h-tap px-1 text-tea-text-sec hover:text-tea-text';
 
 function Field({ label, value, number, minimum, maximum, onCommit }: {
   label: string; value?: string | number | null; number?: boolean; minimum?: number; maximum?: number;

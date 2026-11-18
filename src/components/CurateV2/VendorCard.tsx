@@ -132,7 +132,7 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
   };
 
   const line = (f: Field, label: string, hint?: string, zh?: boolean) => editing === f ? (
-    <form key={f} className="flex min-h-11 items-center gap-2 border-b border-tea-border px-4 py-1" onSubmit={(e) => { e.preventDefault(); void save(); }}>
+    <form key={f} className="flex min-h-tap items-center gap-2 border-b border-tea-border px-4 py-1" onSubmit={(e) => { e.preventDefault(); void save(); }}>
       <span className="curate-v2-label w-20 shrink-0">{label}</span>
       <input
         autoFocus
@@ -145,7 +145,7 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
       <button type="submit" disabled={saving} className="curate-v2-word tap-target">{saving ? 'Saving' : 'Save'}</button>
     </form>
   ) : (
-    <button key={f} type="button" onClick={() => start(f)} className="flex min-h-11 w-full items-center gap-3 border-b border-tea-border px-4 text-left">
+    <button key={f} type="button" onClick={() => start(f)} className="flex min-h-tap w-full items-center gap-3 border-b border-tea-border px-4 text-left">
       <span className="curate-v2-label w-20 shrink-0">{label}</span>
       <span className={`min-w-0 flex-1 truncate text-right font-mono text-ui-14 text-tea-text ${zh ? 'curate-v2-hanzi' : ''}`}>
         {value[f] || <span className="font-mono text-ui-13 text-tea-text-sec">{hint ?? 'add'}</span>}
@@ -154,7 +154,7 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
   );
 
   const fact = (label: string, children: React.ReactNode) => (
-    <div key={label} className="flex min-h-11 items-center gap-3 border-b border-tea-border px-4">
+    <div key={label} className="flex min-h-tap items-center gap-3 border-b border-tea-border px-4">
       <span className="curate-v2-label w-20 shrink-0">{label}</span>
       <span className="min-w-0 flex-1 truncate text-right font-mono text-ui-14 text-tea-text tabular-nums">{children}</span>
     </div>
@@ -189,7 +189,7 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
       </div>
       {error && <p className="px-4 pt-2 font-mono text-ui-12 text-tea-error">{error}</p>}
 
-      <button type="button" onClick={() => setMoreOpen((v) => !v)} aria-expanded={moreOpen} className="flex min-h-11 w-full items-center gap-2 border-b border-tea-border px-4 text-left">
+      <button type="button" onClick={() => setMoreOpen((v) => !v)} aria-expanded={moreOpen} className="flex min-h-tap w-full items-center gap-2 border-b border-tea-border px-4 text-left">
         <span className="curate-v2-label flex-1">Card, storefront and map</span>
         <span className="font-mono text-ui-15 text-tea-text-sec" aria-hidden>{moreOpen ? '−' : '+'}</span>
       </button>

@@ -145,7 +145,7 @@ export const VendorPicker: React.FC<VendorPickerProps> = ({ onPick, onCancel, au
           placeholder={adding ? 'Vendor name' : placeholder}
           aria-label={adding ? 'New vendor name' : 'Search or add a vendor'}
           enterKeyHint={adding ? 'done' : 'search'}
-          className="min-h-11 min-w-0 flex-1 rounded-[3px] border border-tea-border bg-transparent px-3 py-2 font-mono text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold"
+          className="min-h-tap min-w-0 flex-1 rounded-[3px] border border-tea-border bg-transparent px-3 py-2 font-mono text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold"
         />
         {adding && (
           <button
@@ -158,7 +158,7 @@ export const VendorPicker: React.FC<VendorPickerProps> = ({ onPick, onCancel, au
           </button>
         )}
         {onCancel && (
-          <button type="button" onClick={onCancel} aria-label="Close vendor list" className="curate-v2-word tap-target flex min-h-11 items-center justify-center text-tea-text-sec hover:text-tea-text">
+          <button type="button" onClick={onCancel} aria-label="Close vendor list" className="curate-v2-word tap-target flex min-h-tap items-center justify-center text-tea-text-sec hover:text-tea-text">
             close
           </button>
         )}

@@ -195,7 +195,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
           ) : loadError ? (
             <div role="alert" className="py-8 text-center text-tea-text-sec">
               <p>Could not load this order’s items. No changes can be saved until they load.</p>
-              <button type="button" onClick={() => setLoadAttempt(attempt => attempt + 1)} className="mt-3 min-h-11 px-4 text-tea-gold hover:text-tea-gold-lt">Retry loading items</button>
+              <button type="button" onClick={() => setLoadAttempt(attempt => attempt + 1)} className="mt-3 min-h-tap px-4 text-tea-gold hover:text-tea-gold-lt">Retry loading items</button>
             </div>
           ) : (
             <div className="space-y-6">
@@ -356,7 +356,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
           <button
             onClick={handleSave}
             disabled={loading || fetching || loadError || loadedInvoiceId !== invoice?.id || items.length === 0}
-            className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
+            className="btn-primary"
           >
             {loading ? <Loader2 size={13} className="animate-spin" /> : <Pencil size={13} />} Save Changes
           </button>

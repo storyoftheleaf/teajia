@@ -430,7 +430,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40"
+              className="btn-primary"
             >
               {saving ? <Loader2 className="animate-spin" size={13} /> : <Save size={13} />}
               Save Changes
@@ -846,7 +846,7 @@ const IntegrationsSection: React.FC<{
           <button
             type="button"
             onClick={() => { setEditing(true); setKeyInput(''); setErr(null); }}
-            className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+            className="btn-primary"
           >
             Add Key
           </button>
@@ -1011,7 +1011,7 @@ const TransferOwnershipSection: React.FC<{
                   type="button"
                   disabled={!selectedMemberId}
                   onClick={() => { setConfirmName(''); setStep('confirm-name'); }}
-                  className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40"
+                  className="btn-primary"
                 >
                   Next <ArrowRight size={11} />
                 </button>
@@ -1060,7 +1060,7 @@ const TransferOwnershipSection: React.FC<{
               type="button"
               disabled={!nameMatches}
               onClick={() => { setPasswordInput(''); setTransferError(null); setStep('verify-password'); }}
-              className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40"
+              className="btn-primary"
             >
               Next <ArrowRight size={11} />
             </button>

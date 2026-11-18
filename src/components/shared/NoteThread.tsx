@@ -512,7 +512,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
             onKeyDown={handleKeyDown}
             placeholder={notes.length > 0 ? 'Add another note…' : 'Impressions or vendor story…'}
             rows={textareaRows}
-            className={`min-h-11 flex-1 overflow-y-hidden ${inputPad} bg-transparent ${inputText} text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none resize-none`}
+            className={`min-h-tap flex-1 overflow-y-hidden ${inputPad} bg-transparent ${inputText} text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none resize-none`}
             style={{ fontFamily: noteFont }}
           />
         ) : (

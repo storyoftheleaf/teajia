@@ -3,7 +3,7 @@ import { Icons } from '../Icons';
 import { CardContainer } from '../shared/CardContainer';
 import { TEA_SPACES, SPACE_TYPE_LABELS } from '../../data/teaSpaces';
 
-const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-text/5 px-2 -ml-2';
+const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-tap rounded-md hover:bg-tea-text/5 px-2 -ml-2';
 
 interface TeaSpacesViewProps {
   onBack: () => void;

@@ -197,7 +197,7 @@ export const ForYourSpacePage: React.FC = () => {
       <div className="pt-6 pb-2">
         <button
           onClick={() => navigate('/advise')}
-          className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors duration-200 min-h-[44px]"
+          className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors duration-200 min-h-tap"
           style={{ fontFamily: 'var(--font-sans)' }}
         >
           <Icons.ChevronLeft className="w-4 h-4" />
@@ -326,7 +326,7 @@ export const ForYourSpacePage: React.FC = () => {
           </p>
           <Link
             to="/store-launch-playbook"
-            className="inline-flex min-h-[44px] items-center gap-2 border border-tea-border px-4 py-2 text-ui-12 uppercase tracking-[0.12em] text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text transition-colors"
+            className="inline-flex min-h-tap items-center gap-2 border border-tea-border px-4 py-2 text-ui-12 uppercase tracking-[0.12em] text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text transition-colors"
             style={{ fontFamily: 'var(--font-sans)' }}
           >
             Open store launch playbook
@@ -369,7 +369,7 @@ export const ForYourSpacePage: React.FC = () => {
               </p>
               <button
                 onClick={() => setSubmitted(false)}
-                className="text-ui-11 uppercase tracking-[0.1em] text-tea-text-sec hover:text-tea-text transition-colors duration-200 min-h-[44px]"
+                className="text-ui-11 uppercase tracking-[0.1em] text-tea-text-sec hover:text-tea-text transition-colors duration-200 min-h-tap"
                 style={{ fontFamily: 'var(--font-sans)' }}
               >
                 Edit inquiry
@@ -461,7 +461,7 @@ export const ForYourSpacePage: React.FC = () => {
                           set('contactMethod')(method);
                           set('contactValue')('');
                         }}
-                        className={`flex-1 py-2.5 px-4 text-ui-11 uppercase tracking-[0.1em] border transition-all duration-200 min-h-[44px]
+                        className={`flex-1 py-2.5 px-4 text-ui-11 uppercase tracking-[0.1em] border transition-all duration-200 min-h-tap
                           ${form.contactMethod === method
                             ? 'border-tea-gold bg-tea-gold/8 text-tea-gold'
                             : 'border-tea-border text-tea-text-sec hover:border-tea-gold/40'
@@ -486,10 +486,7 @@ export const ForYourSpacePage: React.FC = () => {
                 <div className="mt-8">
                   <button
                     type="submit"
-                    className="w-full cta-solid text-ui-11 uppercase tracking-[0.15em] font-medium
-                               py-3 px-6 hover:bg-tea-gold/90 transition-colors duration-300
-                               active:scale-[0.98] min-h-[44px]
-                               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
+                    className="btn-primary btn-primary-lg w-full active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
                     style={{ fontFamily: 'var(--font-sans)' }}
                   >
                     Send via WhatsApp <span className="ml-1">&rarr;</span>

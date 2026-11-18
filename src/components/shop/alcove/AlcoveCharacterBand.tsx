@@ -333,7 +333,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
                 {'. '}
                 <a
                   href={wisdomEntryPath(potentialResearch)}
-                  className="inline-flex min-h-[44px] items-center rounded-md underline decoration-tea-text-dim underline-offset-4 transition-colors hover:text-tea-gold hover:decoration-tea-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
+                  className="inline-flex min-h-tap items-center rounded-md underline decoration-tea-text-dim underline-offset-4 transition-colors hover:text-tea-gold hover:decoration-tea-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
                 >
                   Research context
                 </a>
@@ -429,7 +429,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
             {'. '}
             <a
               href={wisdomEntryPath(potentialResearch)}
-              className="inline-flex min-h-[44px] items-center rounded-md underline decoration-tea-text-dim underline-offset-4 transition-colors hover:text-tea-gold hover:decoration-tea-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
+              className="inline-flex min-h-tap items-center rounded-md underline decoration-tea-text-dim underline-offset-4 transition-colors hover:text-tea-gold hover:decoration-tea-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
             >
               Research context
             </a>

@@ -73,7 +73,7 @@ export const FastTastingSheet: React.FC<FastTastingSheetProps> = ({ entryId, onO
                       type="button"
                       aria-pressed={on}
                       onClick={() => tap(question.q, option.id)}
-                      className={`min-h-11 whitespace-nowrap rounded-[3px] border px-0 font-mono text-ui-13 transition-colors ${
+                      className={`min-h-tap whitespace-nowrap rounded-[3px] border px-0 font-mono text-ui-13 transition-colors ${
                         on ? 'border-tea-gold text-tea-gold' : 'border-tea-border text-tea-text-sec hover:text-tea-text'
                       }`}
                     >
@@ -82,7 +82,7 @@ export const FastTastingSheet: React.FC<FastTastingSheetProps> = ({ entryId, onO
                   );
                 })}
                 {question.q === 'flavour' && entryId && (
-                  <button type="button" onClick={() => goFull(entryId)} className="min-h-11 whitespace-nowrap rounded-[3px] border border-tea-border font-mono text-ui-13 text-tea-gold hover:border-tea-gold">
+                  <button type="button" onClick={() => goFull(entryId)} className="min-h-tap whitespace-nowrap rounded-[3px] border border-tea-border font-mono text-ui-13 text-tea-gold hover:border-tea-gold">
                     More ›
                   </button>
                 )}

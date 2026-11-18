@@ -695,7 +695,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
           type="button"
           onClick={onSubmitNew}
           disabled={!canSubmitNew || submitting}
-          className="flex items-center gap-2 px-4 py-2 cta-solid rounded-xl text-xs font-semibold tracking-wide transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="btn-primary flex"
         >
           {submitting
             ? <><Loader2 size={12} className="animate-spin" /> Publishing…</>
@@ -707,7 +707,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
           type="button"
           onClick={onSubmitExisting}
           disabled={!canSubmitExisting || submitting}
-          className="flex items-center gap-2 px-4 py-2 cta-solid rounded-xl text-xs font-semibold tracking-wide transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="btn-primary flex"
         >
           {submitting
             ? <><Loader2 size={12} className="animate-spin" /> Adding…</>
@@ -719,7 +719,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
           type="button"
           onClick={onSubmitTeaHouse}
           disabled={!canSubmitTeaHouse || submitting}
-          className="flex items-center gap-2 px-4 py-2 cta-solid rounded-xl text-xs font-semibold tracking-wide transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="btn-primary flex"
         >
           {submitting
             ? <><Loader2 size={12} className="animate-spin" /> Sending…</>
@@ -811,7 +811,7 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
           <button
             type="button"
             onClick={onDone}
-            className="px-4 py-2 cta-solid rounded-xl text-xs font-semibold tracking-wide transition-colors"
+            className="btn-primary"
           >
             Done
           </button>
@@ -944,7 +944,7 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
         <button
           type="button"
           onClick={onDone}
-          className="px-4 py-2 cta-solid rounded-xl text-xs font-semibold tracking-wide transition-colors"
+          className="btn-primary"
         >
           Done
         </button>

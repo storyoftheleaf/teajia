@@ -152,7 +152,7 @@ export const EventsManager: React.FC = () => {
           </button>
           <button
             onClick={() => setIsFormOpen(true)}
-            className="tap-target inline-flex items-center gap-1.5 px-3 rounded-md cta-solid text-xs font-semibold transition-colors"
+            className="btn-primary tap-target"
           >
             <Plus size={13} />
             <span>New session</span>
@@ -233,7 +233,7 @@ export const EventsManager: React.FC = () => {
           <p className="font-serif italic text-sm text-tea-text-sec mb-6">No gatherings yet.</p>
           <button
             onClick={() => setIsFormOpen(true)}
-            className="tap-target inline-flex items-center gap-1.5 px-3 rounded-md cta-solid text-xs font-semibold transition-colors"
+            className="btn-primary tap-target"
           >
             <Plus size={13} />
             Create first session
@@ -376,7 +376,7 @@ export const EventsManager: React.FC = () => {
             </div>
             <div className="flex justify-between gap-2 px-6 py-4 border-t border-tea-border">
               <button type="button" onClick={() => setDuplicateDialog(null)} className="tap-target px-2 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
-              <button type="button" onClick={handleConfirmDuplicate} disabled={!duplicateDialog.slug.trim() || !duplicateDialog.eventDate} className="tap-target inline-flex items-center gap-1.5 px-3 rounded-md cta-solid text-ui-12 font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Duplicate</button>
+              <button type="button" onClick={handleConfirmDuplicate} disabled={!duplicateDialog.slug.trim() || !duplicateDialog.eventDate} className="btn-primary tap-target">Duplicate</button>
             </div>
           </>
         )}

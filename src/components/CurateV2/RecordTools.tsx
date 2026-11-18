@@ -99,7 +99,7 @@ function RecordToolsInner({ entityType, entityId, onChanged }: Props) {
     </div>}
     {error && <p role="alert" className="px-4 pt-3 text-ui-14 text-tea-text">{error}</p>}
     <details className="mt-3 border-t border-tea-border px-4 pt-1">
-      <summary className="curate-v2-label flex min-h-11 cursor-pointer items-center">Change history ({history.length})</summary>
+      <summary className="curate-v2-label flex min-h-tap cursor-pointer items-center">Change history ({history.length})</summary>
       <p className="mb-3 font-body text-ui-14 italic text-tea-text-sec">Choose a recorded change to review its undo. Later edits to the affected records are protected.</p>
       <button type="button" className="curate-v2-frame is-tall mb-4" disabled={busy||!!pending} onClick={()=>void previewUndo()}>Preview undo of last shop change</button>
       <div className="space-y-4 pb-3">{history.map(h=><article key={h.id} className="space-y-2"><div className="flex flex-wrap items-center justify-between gap-2"><p className="curate-v2-label">{h.agent_name||h.actor_user_id} · {new Date(h.confirmed_at).toLocaleString()}</p>{h.undone_by ? <span className="curate-v2-label">Undone</span> : !h.undo_of && !String(h.command_type).endsWith(':with_side_effects') && <button type="button" className="curate-v2-word tap-target" disabled={busy||!!pending} onClick={()=>void previewUndo(h.id)}>Preview undo</button>}</div><ChangePreview changes={(h.records||[]).map((r:any)=>({entity_type:r.entity_type,entity_id:r.entity_id,before:JSON.parse(r.before_json),after:JSON.parse(r.after_json)}))} /></article>)}</div>

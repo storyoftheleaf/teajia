@@ -72,7 +72,7 @@ export const DraftsView: React.FC<DraftsViewProps> = ({
       {/* ── Slim shelf: just the triage segments + Compass handoff ──────── */}
       <div className="flex items-center gap-3 px-4 md:px-6 h-9 bg-tea-bg flex-shrink-0 relative z-10">
         {draftProducts.length > 0 && (
-          <div className="inline-flex items-center gap-0.5">
+          <div className="inline-flex items-center gap-3">
             <SegmentChip
               active={filter === 'all'}
               onClick={() => setFilter('all')}
@@ -80,14 +80,14 @@ export const DraftsView: React.FC<DraftsViewProps> = ({
               count={draftProducts.length}
               showZero
             />
-            <span className="w-px h-3 bg-tea-border" aria-hidden="true" />
+
             <SegmentChip
               active={filter === 'review'}
               onClick={() => setFilter('review')}
               label="Review"
               count={toReview.length}
             />
-            <span className="w-px h-3 bg-tea-border" aria-hidden="true" />
+
             <SegmentChip
               active={filter === 'ready'}
               onClick={() => setFilter('ready')}
@@ -177,8 +177,8 @@ const SegmentChip: React.FC<{
   <button
     type="button"
     onClick={onClick}
-    className={`tap-target inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-ui-11 uppercase tracking-[0.1em] whitespace-nowrap transition-colors ${
-      active ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40' : 'text-tea-text-sec hover:text-tea-text'
+    className={`tap-target inline-flex items-center gap-1.5 px-0.5 border-b text-ui-11 uppercase tracking-[0.1em] whitespace-nowrap transition-colors ${
+      active ? 'border-tea-gold text-tea-text' : 'border-transparent text-tea-text-sec hover:text-tea-text'
     }`}
   >
     {label}

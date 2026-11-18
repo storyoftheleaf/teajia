@@ -106,7 +106,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
         </p>
         <Link
           to="/find-a-table"
-          className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+          className="btn-primary"
         >
           Browse the network
         </Link>
@@ -273,7 +273,7 @@ const StorefrontPeopleSection: React.FC<{ people: PublicPerson[] }> = ({ people 
           ariaLabel={`${person.display_name}, at this table`}
         />
       ))}
-      <Link to="/people" className="tap-target mt-1.5 inline-flex min-h-[44px] items-center font-sans text-[9.5px] uppercase tracking-[0.26em] text-tea-readgold hover:text-tea-gold-lt">All people</Link>
+      <Link to="/people" className="tap-target mt-1.5 inline-flex min-h-tap items-center font-sans text-[9.5px] uppercase tracking-[0.26em] text-tea-readgold hover:text-tea-gold-lt">All people</Link>
     </section>
   );
 };
@@ -316,7 +316,7 @@ const StorefrontShopSection: React.FC<StorefrontShopSectionProps> = ({
       <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6" role="alert">
         <h2 className="h3">Products could not be loaded</h2>
         <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec mt-2`}>Please try again in a moment.</p>
-        <button type="button" onClick={onRetry} className="cta-solid tap-target rounded-xl px-6 py-3 mt-6 text-ui-12 uppercase tracking-caps">
+        <button type="button" onClick={onRetry} className="btn-primary btn-primary-lg tap-target mt-6">
           Try again
         </button>
       </div>

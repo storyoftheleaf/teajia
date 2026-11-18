@@ -575,7 +575,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                <button
                  type="button"
                  onClick={() => setOpenFilter(prev => prev === 'type' ? null : 'type')}
-                 className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] min-h-[44px] shrink-0 transition-colors ${
+                 className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] min-h-tap shrink-0 transition-colors ${
                    activeType !== 'All' ? 'text-tea-gold' : openFilter === 'type' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
                  }`}
                >
@@ -587,7 +587,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                  <button
                    type="button"
                    onClick={() => setOpenFilter(prev => prev === 'place' ? null : 'place')}
-                   className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] min-h-[44px] shrink-0 transition-colors ${
+                   className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] min-h-tap shrink-0 transition-colors ${
                      activeRegion ? 'text-tea-gold' : openFilter === 'place' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
                    }`}
                  >
@@ -600,7 +600,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                  <button
                    type="button"
                    onClick={() => setOpenFilter(prev => prev === 'feeling' ? null : 'feeling')}
-                   className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] min-h-[44px] shrink-0 transition-colors ${
+                   className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] min-h-tap shrink-0 transition-colors ${
                      activeFeeling ? 'text-tea-gold' : openFilter === 'feeling' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
                    }`}
                  >
@@ -612,7 +612,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                <button
                  type="button"
                  onClick={() => setOpenFilter(prev => prev === 'sort' ? null : 'sort')}
-                 className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] min-h-[44px] shrink-0 transition-colors ${
+                 className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] min-h-tap shrink-0 transition-colors ${
                    shopSort !== 'featured' ? 'text-tea-gold' : openFilter === 'sort' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
                  }`}
                >
@@ -629,7 +629,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                  onClick={() => setShopSavedOnly(!shopSavedOnly)}
                  aria-pressed={shopSavedOnly}
                  title={shopSavedOnly ? 'Showing saved teas only. Show all teas' : 'Show saved teas only'}
-                 className={`ml-auto flex min-h-[44px] shrink-0 items-center text-ui-10 uppercase tracking-[0.15em] transition-colors sm:ml-1 ${
+                 className={`ml-auto flex min-h-tap shrink-0 items-center text-ui-10 uppercase tracking-[0.15em] transition-colors sm:ml-1 ${
                    shopSavedOnly ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
                  }`}
                >
@@ -832,7 +832,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                <button
                  type="button"
                  onClick={() => setMoodFlavorOpen(p => !p)}
-                 className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] min-h-[44px] transition-colors w-fit ${
+                 className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] min-h-tap transition-colors w-fit ${
                    (activeMoodTags.length > 0 || activeFlavorTags.length > 0)
                      ? 'text-tea-gold'
                      : moodFlavorOpen
@@ -1034,7 +1034,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-sticky animate-[fadeIn_0.3s_ease-out]">
           <button
             onClick={() => setShowCompare(true)}
-            className="flex items-center gap-2 px-5 py-2.5 cta-solid text-xs uppercase tracking-[0.1em] font-medium rounded-md shadow-lg transition-all active:scale-95"
+            className="btn-primary flex shadow-lg active:scale-95"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="7" height="18" rx="1" />

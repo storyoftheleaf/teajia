@@ -109,7 +109,7 @@ export const TeaTagSheet: React.FC<TeaTagSheetProps> = ({ transaction, entries, 
             <button
               type="button"
               onClick={() => window.print()}
-              className="flex items-center gap-2 px-4 py-2 cta-solid text-sm font-medium rounded-xl transition-colors"
+              className="btn-primary btn-primary-lg flex"
             >
               <Printer size={14} />
               Print

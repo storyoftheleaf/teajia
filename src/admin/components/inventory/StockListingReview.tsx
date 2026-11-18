@@ -75,7 +75,7 @@ function ListingContents({ product, entryId, applyWording, publication }: {
         <TeaCardMetric label="Available">{isWare ? `${fmtNum(units, 0)} units` : available == null ? 'Count needed' : `${fmtNum(available, 0)} g`}</TeaCardMetric>
         {quote && <TeaCardMetric label="Preview amount">
           <select aria-label="Preview amount" value={quote.grams} onChange={event => setAmount(Number(event.target.value))}
-            className="tap-target min-h-11 min-w-0 max-w-full bg-tea-surface text-ui-13 text-tea-text">
+            className="tap-target min-h-tap min-w-0 max-w-full bg-tea-surface text-ui-13 text-tea-text">
             {weights.map(grams => <option key={grams} value={grams}>{fmtNum(grams, 0)} g</option>)}
           </select>
         </TeaCardMetric>}
@@ -99,7 +99,7 @@ function ListingContents({ product, entryId, applyWording, publication }: {
           {!comparing && <section aria-label="Shop photo" className="min-w-0 space-y-1.5">
             <div className="flex flex-wrap items-center justify-between gap-x-2">
               <h3 className="text-ui-13 font-medium text-tea-text">Shop photo</h3>
-              {entryId && <Link to={sharedTeaRecordHref(entryId)} className="tap-target inline-flex min-h-11 items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text">
+              {entryId && <Link to={sharedTeaRecordHref(entryId)} className="tap-target inline-flex min-h-tap items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text">
                 <Camera size={14} aria-hidden="true" />Review photos in Library
               </Link>}
             </div>

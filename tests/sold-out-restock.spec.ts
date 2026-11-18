@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures';
+import { expect, test, tapFloor } from './fixtures';
 
 const route = '/shop/product/winter-frost?store=cloud-garden';
 const item = {
@@ -42,7 +42,7 @@ test('the restock request fits the dock and drafts the selected tea', async ({ p
     await page.setViewportSize({ width, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
     const [bar, control, label] = await Promise.all([dock.boundingBox(), link.boundingBox(), status.boundingBox()]);
-    expect(control!.height).toBeGreaterThanOrEqual(44);
+    expect(control!.height).toBeGreaterThanOrEqual(tapFloor());
     expect(control!.x + control!.width).toBeLessThanOrEqual(bar!.x + bar!.width);
     expect(label!.x + label!.width).toBeLessThan(control!.x);
   }

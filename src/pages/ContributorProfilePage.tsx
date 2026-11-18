@@ -390,7 +390,7 @@ export default function ContributorProfilePage() {
                 </div>
               )}
               {moreTeas > 0 && (
-                <a href={teasHref} className="tap-target mt-1.5 inline-flex min-h-[44px] items-center font-sans text-[9.5px] uppercase tracking-[0.26em] text-tea-readgold hover:text-tea-gold-lt">
+                <a href={teasHref} className="tap-target mt-1.5 inline-flex min-h-tap items-center font-sans text-[9.5px] uppercase tracking-[0.26em] text-tea-readgold hover:text-tea-gold-lt">
                   And {countWord(moreTeas)} more, in the {collection ? 'collection' : 'selection'}
                 </a>
               )}
@@ -411,7 +411,7 @@ export default function ContributorProfilePage() {
         {/* ── Closing ────────────────────────────────────────────────────── */}
         <footer data-reveal className={`${SIDE} pb-16 pt-14 text-center`}>
           {data.closing && <Dek className="text-ui-16">{data.closing}</Dek>}
-          <a href="/people" className={`tap-target inline-flex min-h-[44px] items-center font-sans text-[9.5px] uppercase tracking-[0.22em] text-tea-text-dim hover:text-tea-text ${data.closing ? 'mt-5' : ''}`}>All people</a>
+          <a href="/people" className={`tap-target inline-flex min-h-tap items-center font-sans text-[9.5px] uppercase tracking-[0.22em] text-tea-text-dim hover:text-tea-text ${data.closing ? 'mt-5' : ''}`}>All people</a>
         </footer>
       </article>
     </PeopleRoot>

@@ -166,7 +166,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                       onClick={() => {
                         document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }));
                       }}
-                      className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-tea-text/5 text-tea-text-sec"
+                      className="min-w-tap min-h-tap flex items-center justify-center rounded-xl hover:bg-tea-text/5 text-tea-text-sec"
                       aria-label="Search"
                     >
                       <Icons.Search className="w-5 h-5" />
@@ -175,7 +175,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                   {onCartClick && (
                     <button
                       onClick={onCartClick}
-                      className="p-2.5 relative min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-tea-text/5 transition-colors"
+                      className="p-2.5 relative min-w-tap min-h-tap flex items-center justify-center rounded-md hover:bg-tea-text/5 transition-colors"
                       aria-label="Open shopping cart"
                     >
                       <Icons.Bag className="w-5 h-5 text-tea-text/60" />
@@ -189,7 +189,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                   {onAccountClick && (
                     <button
                       onClick={onAccountClick}
-                      className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-tea-text/5 transition-colors"
+                      className="p-2.5 min-w-tap min-h-tap flex items-center justify-center rounded-md hover:bg-tea-text/5 transition-colors"
                       aria-label="Open account settings"
                     >
                       <Icons.User className="w-5 h-5 text-tea-text/60" />

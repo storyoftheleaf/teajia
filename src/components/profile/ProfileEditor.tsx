@@ -242,7 +242,7 @@ export function ProfileEditor({ profile, onSave, onSaveGallery, onUnpublish, onU
           {error && <p role="alert" className="border-l-2 border-tea-error pl-4 font-body text-ui-15 leading-relaxed text-tea-text">{error}</p>}
           <div className="flex items-center justify-between gap-4 border-t border-tea-border pt-5">
             <span className="font-body text-ui-14 italic leading-snug text-tea-text-sec" role="status">{saveStateCopy}</span>
-            <button type="submit" disabled={saving || uploading} className="cta-solid tap-target shrink-0 rounded-md px-5 py-2.5 font-sans text-ui-14 disabled:opacity-50">
+            <button type="submit" disabled={saving || uploading} className="btn-primary btn-primary-lg tap-target shrink-0">
               {saving ? 'Saving…' : saveLabel}
             </button>
           </div>

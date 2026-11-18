@@ -146,12 +146,12 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
         {rows.length} {rows.length === 1 ? 'tea' : 'teas'}
       </span>
       {/* The table's money: a price typed without a sign is in this. */}
-      <label className="relative ml-2 flex min-h-11 shrink-0 items-center border-l border-tea-border pl-3">
+      <label className="relative ml-2 flex min-h-tap shrink-0 items-center border-l border-tea-border pl-3">
         <span className="sr-only">Prices at this table are in</span>
         <select
           value={lastCurrency}
           onChange={(e) => setLastCurrency(e.target.value as Currency)}
-          className="min-h-11 min-w-11 appearance-none bg-transparent pr-1 font-mono text-ui-14 text-tea-gold outline-none"
+          className="min-h-tap min-w-tap appearance-none bg-transparent pr-1 font-mono text-ui-14 text-tea-gold outline-none"
           aria-label="Currency at this table"
         >
           {(['Yuan', 'NT', 'HKD', 'USD', 'JPY', 'IDR', 'MYR', 'AUD'] as Currency[]).map((c) => (
@@ -181,7 +181,7 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
             key={e.id}
             className={`curate-v2-row ${e.id === activeEntryId ? 'bg-tea-accent-sub' : ''}`}
           >
-            <button type="button" onClick={() => onOpen(e.id)} className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left">
+            <button type="button" onClick={() => onOpen(e.id)} className="flex min-h-tap min-w-0 flex-1 items-center gap-2 text-left">
               {e.photos?.[0] && <CapturePhotoImage src={e.photos[0]} className="h-9 w-9 shrink-0 rounded-md object-cover" alt="" />}
               <span className="grid min-w-0 flex-1 gap-0.5">
                 {/* The name wraps to two lines rather than being cut: "Mengku Laobanzhang" must read in full. */}
@@ -243,7 +243,7 @@ export const TableList: React.FC<TableListProps> = ({ activeEntryId, onOpen, onT
           enterKeyHint="next"
           placeholder="Name the next tea, and its price if you have it…"
           aria-label="Name the next tea"
-          className="min-h-11 min-w-0 flex-1 border-0 border-b border-tea-border bg-transparent py-2 font-display text-ui-17 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold"
+          className="min-h-tap min-w-0 flex-1 border-0 border-b border-tea-border bg-transparent py-2 font-display text-ui-17 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold"
         />
         {name.trim() && (
           <button type="button" onClick={add} className="curate-v2-word tap-target">Add</button>

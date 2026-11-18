@@ -169,7 +169,7 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
     }
   };
 
-  const inputCls = "min-h-11 w-full rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold";
+  const inputCls = "min-h-tap w-full rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold";
 
   return (
     <motion.div
@@ -313,7 +313,7 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
                   if (!isNaN(v) && v > 0) setGrams(v);
                 }}
                 placeholder="custom"
-                className="min-h-11 w-24 bg-tea-surface text-tea-text rounded-md px-2 py-1 text-ui-16 num
+                className="min-h-tap w-24 bg-tea-surface text-tea-text rounded-md px-2 py-1 text-ui-16 num
                            border border-tea-border focus:border-tea-gold outline-none
                            placeholder:text-tea-text-dim"
               />
@@ -326,7 +326,7 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
           <button
             onClick={handleAdd}
             disabled={!name.trim()}
-            className="tap-target min-h-11 w-full rounded-md bg-tea-accent-sub text-tea-gold flex items-center justify-center gap-1.5 text-ui-12 font-semibold disabled:opacity-30 disabled:cursor-default"
+            className="tap-target min-h-tap w-full rounded-md bg-tea-accent-sub text-tea-gold flex items-center justify-center gap-1.5 text-ui-12 font-semibold disabled:opacity-30 disabled:cursor-default"
           >
             <Plus size={14} />
             Add Sample
@@ -412,7 +412,7 @@ function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGradu
           const next = order[(idx + 1) % order.length];
           onStatusChange(sample.id, next);
         }}
-        className={`tap-target min-h-11 badge-status text-ui-12 shrink-0 cursor-pointer hover:opacity-80 transition-opacity ${statusCfg.color}`}
+        className={`tap-target min-h-tap badge-status text-ui-12 shrink-0 cursor-pointer hover:opacity-80 transition-opacity ${statusCfg.color}`}
         title="Click to change status"
       >
         {statusCfg.label}
@@ -449,7 +449,7 @@ function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGradu
         <button
           type="button"
           onClick={() => navigate(`/admin/stock?panel=${encodeURIComponent(sample.productId!)}`)}
-          className="tap-target min-h-11 shrink-0 px-1 text-ui-12 text-tea-gold hover:text-tea-gold-lt"
+          className="tap-target min-h-tap shrink-0 px-1 text-ui-12 text-tea-gold hover:text-tea-gold-lt"
           aria-label="Open inventory product"
         >
           In stock
@@ -503,7 +503,7 @@ function BatchCard({ sampleSet, tastedCount, totalCount, favoriteCount, graduate
   return (
     <button
       onClick={onClick}
-      className={`tap-target min-h-11 w-full text-left rounded-md border border-tea-border px-4 py-3 hover:bg-tea-elevated transition-colors ${isActive ? 'bg-tea-elevated ring-1 ring-inset ring-tea-gold/25' : 'bg-tea-surface'}`}
+      className={`tap-target min-h-tap w-full text-left rounded-md border border-tea-border px-4 py-3 hover:bg-tea-elevated transition-colors ${isActive ? 'bg-tea-elevated ring-1 ring-inset ring-tea-gold/25' : 'bg-tea-surface'}`}
     >
       <div className="flex items-start justify-between gap-2 mb-1">
         <div className="flex-1 min-w-0">
@@ -624,7 +624,7 @@ function CompassImportModal({ setId, onClose, defaultVendorId, defaultVendorName
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="search"
-          className="min-h-11 w-full bg-tea-bg text-tea-text rounded-md px-3 py-1.5 text-ui-16 mb-3
+          className="min-h-tap w-full bg-tea-bg text-tea-text rounded-md px-3 py-1.5 text-ui-16 mb-3
                      placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
         />
         <div className="overflow-y-auto mb-3" style={{ maxHeight: '40vh' }}>
@@ -632,7 +632,7 @@ function CompassImportModal({ setId, onClose, defaultVendorId, defaultVendorName
             <p className="text-ui-16 text-tea-text-dim text-center py-4">No Library entries to import</p>
           ) : (
             filtered.map((e) => (
-              <label key={e.id} className="flex min-h-11 items-center gap-3 px-2 py-2 rounded cursor-pointer hover:bg-tea-bg transition-colors">
+              <label key={e.id} className="flex min-h-tap items-center gap-3 px-2 py-2 rounded cursor-pointer hover:bg-tea-bg transition-colors">
                 <input
                   type="checkbox"
                   checked={selected.has(e.id)}
@@ -977,13 +977,13 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
           {!embeddedMode && (
             <button
               onClick={() => { setView('all'); setStatusFilter('all'); setSearchQuery(''); }}
-              className="tap-target min-h-11 text-ui-12 text-tea-gold hover:text-tea-gold-lt ml-0.5"
+              className="tap-target min-h-tap text-ui-12 text-tea-gold hover:text-tea-gold-lt ml-0.5"
             >
               · All →
             </button>
           )}
         </div>
-        <button onClick={() => setCreatingBatch(true)} className="tap-target min-h-11 rounded-md bg-tea-accent-sub px-3 text-ui-12 text-tea-gold hover:bg-tea-gold/10 inline-flex items-center gap-1">
+        <button onClick={() => setCreatingBatch(true)} className="tap-target min-h-tap rounded-md bg-tea-accent-sub px-3 text-ui-12 text-tea-gold hover:bg-tea-gold/10 inline-flex items-center gap-1">
           <Plus size={12} />
           New batch
         </button>
@@ -1002,10 +1002,10 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
               value={newBatchName}
               onChange={(event) => setNewBatchName(event.target.value)}
               placeholder="e.g. July Wuyi samples"
-              className="min-h-11 min-w-0 flex-1 rounded-md border border-tea-border bg-tea-surface px-3 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold"
+              className="min-h-tap min-w-0 flex-1 rounded-md border border-tea-border bg-tea-surface px-3 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold"
             />
-            <button type="button" onClick={() => { setCreatingBatch(false); setNewBatchName(''); }} className="tap-target min-h-11 px-3 text-ui-12 text-tea-text-sec hover:text-tea-text">Cancel</button>
-            <button type="submit" disabled={!newBatchName.trim()} className="tap-target min-h-11 rounded-md bg-tea-accent-sub px-3 text-ui-12 text-tea-gold hover:bg-tea-gold/10 disabled:opacity-40">Create batch</button>
+            <button type="button" onClick={() => { setCreatingBatch(false); setNewBatchName(''); }} className="tap-target min-h-tap px-3 text-ui-12 text-tea-text-sec hover:text-tea-text">Cancel</button>
+            <button type="submit" disabled={!newBatchName.trim()} className="tap-target min-h-tap rounded-md bg-tea-accent-sub px-3 text-ui-12 text-tea-gold hover:bg-tea-gold/10 disabled:opacity-40">Create batch</button>
           </div>
         </form>
       )}
@@ -1105,7 +1105,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
             onChange={(e) => updateSampleSet(activeSet.id, { name: e.target.value })}
             placeholder="Batch name..."
             aria-label="Batch name"
-            className="min-h-11 flex-1 basis-40 min-w-0 bg-transparent text-tea-text text-ui-16 font-medium
+            className="min-h-tap flex-1 basis-40 min-w-0 bg-transparent text-tea-text text-ui-16 font-medium
                        placeholder:text-tea-text-dim focus:outline-none"
           />
 
@@ -1176,7 +1176,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
         <div style={{ borderBottom: '1px solid var(--tea-accent-sub)' }}>
           <button
             onClick={() => setBatchDetailsOpen(!batchDetailsOpen)}
-            className="tap-target min-h-11 w-full flex items-center justify-between px-4 py-2 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
+            className="tap-target min-h-tap w-full flex items-center justify-between px-4 py-2 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
           >
             <span>Batch details</span>
             {batchDetailsOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -1222,7 +1222,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
                           onFocus={() => setCustomerSearchOpen(true)}
                           onBlur={() => setTimeout(() => setCustomerSearchOpen(false), 150)}
                           placeholder="Select customer..."
-                          className="min-h-11 w-full bg-tea-surface text-tea-text rounded-md px-2 py-1.5 text-ui-16
+                          className="min-h-tap w-full bg-tea-surface text-tea-text rounded-md px-2 py-1.5 text-ui-16
                                      placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
                         />
                         {activeSet.customerId && (
@@ -1238,7 +1238,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
                               .map(c => (
                                 <button
                                   key={c.id}
-                                  className="tap-target min-h-11 w-full text-left px-3 py-2 text-ui-16 text-tea-text hover:bg-tea-surface transition-colors"
+                                  className="tap-target min-h-tap w-full text-left px-3 py-2 text-ui-16 text-tea-text hover:bg-tea-surface transition-colors"
                                   onMouseDown={(e) => {
                                     e.preventDefault();
                                     updateSampleSet(activeSet.id, { customerName: c.name, customerId: c.id });
@@ -1282,7 +1282,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
                           if (embeddedMode) { setStoreActiveSet(next?.id ?? null); } else { setView('batches'); }
                         }
                       }}
-                      className="tap-target min-h-11 flex items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
+                      className="tap-target min-h-tap flex items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
                     >
                       <Archive size={12} />
                       Archive batch
@@ -1294,7 +1294,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
                           if (!embeddedMode) setView('batches');
                         }
                       }}
-                      className="tap-target min-h-11 flex items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
+                      className="tap-target min-h-tap flex items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
                     >
                       <Trash2 size={12} />
                       Delete batch
@@ -1344,7 +1344,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="search samples"
-              className="min-h-11 w-full bg-tea-surface text-tea-text rounded-md px-3 py-1.5 text-ui-16
+              className="min-h-tap w-full bg-tea-surface text-tea-text rounded-md px-3 py-1.5 text-ui-16
                          placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
             />
           </div>
@@ -1422,7 +1422,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="search samples"
             aria-label="Search all samples"
-            className="min-h-11 w-full bg-tea-surface text-tea-text rounded-md px-3 py-1.5 text-ui-16
+            className="min-h-tap w-full bg-tea-surface text-tea-text rounded-md px-3 py-1.5 text-ui-16
                        placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
           />
         </div>
@@ -1548,7 +1548,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
           <div className="flex-shrink-0 bg-tea-bg/95 backdrop-blur-sm px-4 py-3 flex items-center gap-3 border-b border-tea-border">
             <button
               onClick={closeLabels}
-              className="tap-target min-h-11 flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
+              className="tap-target min-h-tap flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
               aria-label="Back to sample set"
             >
               <ArrowLeft size={18} />
@@ -1591,7 +1591,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
                   value={costPrompt.currency}
                   onChange={(event) => setCostPrompt(current => current && { ...current, currency: event.target.value })}
                   aria-label="Currency"
-                  className="min-h-11 shrink-0 cursor-pointer rounded-md border border-tea-border bg-tea-surface px-2 text-ui-16 text-tea-text outline-none focus:border-tea-gold"
+                  className="min-h-tap shrink-0 cursor-pointer rounded-md border border-tea-border bg-tea-surface px-2 text-ui-16 text-tea-text outline-none focus:border-tea-gold"
                 >
                   {Object.entries(CURRENCY_LABELS).filter(([code]) => code !== 'UNK').map(([code, label]) => (
                     <option key={code} value={code}>{label}</option>
@@ -1610,7 +1610,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
                   placeholder="Price paid"
                   aria-label="Price paid"
                   aria-invalid={costPromptError}
-                  className={`min-h-11 w-full min-w-0 rounded-md border bg-tea-surface px-3 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold ${costPromptError ? 'border-tea-gold' : 'border-tea-border'}`}
+                  className={`min-h-tap w-full min-w-0 rounded-md border bg-tea-surface px-3 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold ${costPromptError ? 'border-tea-gold' : 'border-tea-border'}`}
                 />
               </div>
               {costPromptError && (
@@ -1624,7 +1624,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
                   type="button"
                   disabled={costPromptSaving}
                   onClick={() => setCostPrompt(null)}
-                  className="tap-target min-h-11 px-1 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-40"
+                  className="tap-target min-h-tap px-1 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-40"
                 >
                   Cancel
                 </button>
@@ -1632,7 +1632,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
                   type="button"
                   disabled={costPromptSaving}
                   onClick={submitCostPrompt}
-                  className="tap-target min-h-11 rounded-md bg-tea-accent-sub px-3 text-ui-12 text-tea-gold hover:bg-tea-gold/10 disabled:opacity-40"
+                  className="tap-target min-h-tap rounded-md bg-tea-accent-sub px-3 text-ui-12 text-tea-gold hover:bg-tea-gold/10 disabled:opacity-40"
                 >
                   {costPromptSaving ? 'Adding' : 'Add to inventory'}
                 </button>
@@ -1834,7 +1834,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
               itemData={editVarietyNameMap}
               hintSuggestions={editHintSuggestions}
               onSelect={handleEditVarietySelect}
-              className="min-h-11 w-full bg-tea-bg text-tea-text rounded-md px-2 py-1.5 text-ui-16
+              className="min-h-tap w-full bg-tea-bg text-tea-text rounded-md px-2 py-1.5 text-ui-16
                          focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
             />
           </div>
@@ -1845,7 +1845,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
               type="text"
               value={sample.chineseName || ''}
               onChange={(e) => updateSample(sampleId, { chineseName: e.target.value || undefined })}
-              className="min-h-11 w-full bg-tea-bg text-tea-text rounded-md px-2 py-1.5 text-ui-16
+              className="min-h-tap w-full bg-tea-bg text-tea-text rounded-md px-2 py-1.5 text-ui-16
                          focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
             />
           </div>
@@ -1872,7 +1872,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
                 type="number"
                 value={sample.year || ''}
                 onChange={(e) => updateSample(sampleId, { year: e.target.value ? parseInt(e.target.value, 10) : undefined })}
-                className="min-h-11 w-full bg-tea-bg text-tea-text rounded-md px-2 py-1.5 text-ui-16 num
+                className="min-h-tap w-full bg-tea-bg text-tea-text rounded-md px-2 py-1.5 text-ui-16 num
                            focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
               />
             </div>
@@ -1898,7 +1898,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
                     if (!isNaN(v) && v > 0) updateSample(sampleId, { grams: v });
                   }}
                   placeholder="custom g"
-                  className="min-h-11 w-24 bg-tea-bg text-tea-text rounded-md px-2 py-1 text-ui-16 num
+                  className="min-h-tap w-24 bg-tea-bg text-tea-text rounded-md px-2 py-1 text-ui-16 num
                              placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
                 />
               </div>
@@ -1911,7 +1911,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
               type="text"
               value={sample.originRegion || ''}
               onChange={(e) => updateSample(sampleId, { originRegion: e.target.value || undefined })}
-              className="min-h-11 w-full bg-tea-bg text-tea-text rounded-md px-2 py-1.5 text-ui-16
+              className="min-h-tap w-full bg-tea-bg text-tea-text rounded-md px-2 py-1.5 text-ui-16
                          focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
             />
           </div>
@@ -1961,7 +1961,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
                 id={`sample-holding-${sampleId}`}
                 value={holdingProductId}
                 onChange={(event) => { setHoldingProductId(event.target.value); setHoldingMessage(''); }}
-                className="min-h-11 min-w-0 flex-1 bg-tea-bg text-tea-text rounded px-2 py-2 text-ui-16 border border-tea-border focus:border-tea-gold outline-none"
+                className="min-h-tap min-w-0 flex-1 bg-tea-bg text-tea-text rounded px-2 py-2 text-ui-16 border border-tea-border focus:border-tea-gold outline-none"
               >
                 <option value="">No physical holding</option>
                 {products.map((product) => (

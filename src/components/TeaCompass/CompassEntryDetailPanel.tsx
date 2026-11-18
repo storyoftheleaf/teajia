@@ -44,7 +44,7 @@ interface CompassEntryDetailPanelProps {
   onShare?: (id: string) => void;
   onAcquire?: (id: string) => void;
 }
-const actionClass = 'tap-target min-h-11 px-2 text-ui-12 text-tea-text-sec hover:text-tea-text';
+const actionClass = 'tap-target min-h-tap px-2 text-ui-12 text-tea-text-sec hover:text-tea-text';
 function RecordGroup({ title, children, active }: { title: string; children: React.ReactNode; active: boolean }) {
   if (!active) return null;
   return <section className="space-y-3 py-3" aria-label={title}>{children}</section>;
@@ -112,12 +112,12 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         : onAcquire && !purchases.isLoading && !purchases.isError ? { label: orderLabel, run: () => onAcquire(entry.id) } : null;
   const orderCheck = purchases.isError ? 'Couldn’t check orders' : purchases.isLoading ? 'Checking orders…' : '';
   const showPurchaseSummary = sampleReceipts.length > 0 || !!purchaseLabel || !previewEntry;
-  const purchaseSummary = showPurchaseSummary && <div className="flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-1" aria-label="Next step for this tea" role="group">
+  const purchaseSummary = showPurchaseSummary && <div className="flex min-h-tap flex-wrap items-center justify-between gap-x-3 gap-y-1" aria-label="Next step for this tea" role="group">
     <div className="space-y-1 text-ui-12 text-tea-text-sec">
       {sampleReceipts.map(receipt => <div key={receipt.id}>Private sample received · {receipt.quantity.toLocaleString()} {receipt.unit === 'g' ? 'g' : 'pcs'}</div>)}
       {purchaseLabel ? <div>{purchaseLabel}</div> : !sampleReceipts.length && <div>{orderCheck || 'No supplier order yet'}</div>}
     </div>
-    {nextAction ? <button type="button" onClick={nextAction.run} className="tap-target min-h-11 rounded-md cta-solid px-3 text-ui-12 font-semibold">{nextAction.label}</button> : sampleReceipts.length > 0 && orderCheck && <span className="text-ui-12 text-tea-text-sec" role="status">{orderCheck}</span>}
+    {nextAction ? <button type="button" onClick={nextAction.run} className="btn-primary tap-target">{nextAction.label}</button> : sampleReceipts.length > 0 && orderCheck && <span className="text-ui-12 text-tea-text-sec" role="status">{orderCheck}</span>}
   </div>;
   const addNote = () => {
     const text = newNote.trim();
@@ -148,7 +148,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   const editSourceName = <LibraryInlineValue multiline value={identity.name} display={identity.name || 'Name this tea'} label="Tea name" onSave={saveField('name')} />;
   return <div className="tea-record-panel flex h-full min-w-0 flex-col" data-testid="library-entry-detail">
     {!embedded && <header className="shrink-0 flex min-h-14 items-center gap-2 border-b border-tea-border px-3 py-1" data-testid="tea-record-header">
-      <button type="button" onClick={onClose} aria-label="Close detail panel" className="tap-target min-h-11 min-w-11 flex items-center justify-center text-tea-text-sec"><X size={18} /></button>
+      <button type="button" onClick={onClose} aria-label="Close detail panel" className="tap-target min-h-tap min-w-tap flex items-center justify-center text-tea-text-sec"><X size={18} /></button>
       <h2 className={`${T.h3} min-w-0 flex-1 truncate text-tea-text`}>Tea record</h2>
       <span role="status" className="shrink-0 text-ui-11 text-tea-text-dim">{syncError ? 'Saved locally' : entry.synced ? 'Saved' : 'Saving…'}</span>
     </header>}
@@ -175,16 +175,16 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
             {entry.category === 'tea' && amounts.perGram !== '—' && <TeaCardMetric label={`${amounts.currency}/g`}>{amounts.perGram}</TeaCardMetric>}
           </TeaCardMetrics>
         </div>
-        <button type="button" onClick={() => setQuoteOpen(true)} aria-label="Edit supplier quote" title="Edit supplier quote" className={`${actionClass} flex min-w-11 items-center justify-center`}><Pencil size={14} aria-hidden /></button>
+        <button type="button" onClick={() => setQuoteOpen(true)} aria-label="Edit supplier quote" title="Edit supplier quote" className={`${actionClass} flex min-w-tap items-center justify-center`}><Pencil size={14} aria-hidden /></button>
       </div>
       <div className="tea-record-decision"><DecisionControl value={entry.decision} onChange={decision => updateEntry(entry.id, { decision })} compact /></div>
       <div className="flex items-center justify-between gap-2 py-1">
         <span className="text-ui-12 text-tea-text-dim">{entry.tasting ? 'Tasting recorded' : 'No tasting yet'}</span>
-        <button type="button" onClick={() => setTastingOpen(true)} className="tea-record-taste tap-target inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 text-ui-13 font-medium" aria-label="Taste"><TeaCupIcon />Taste</button>
+        <button type="button" onClick={() => setTastingOpen(true)} className="tea-record-taste tap-target inline-flex min-h-tap items-center gap-1.5 rounded-md px-3 text-ui-13 font-medium" aria-label="Taste"><TeaCupIcon />Taste</button>
       </div>
       {purchaseSummary}
       <div role="tablist" aria-label="Tea workspace" className="tea-record-tabs">
-        {([['tea', 'Tea'], ['notes', 'Notes'], ['orders', 'Orders'], ['files', 'Files']] as const).map(([key, label]) => <button key={key} role="tab" type="button" aria-selected={activeSection === key} aria-controls={`record-panel-${entry.id}`} className="tap-target min-h-11 text-ui-13" onClick={() => setActiveSection(key)}>{label}</button>)}
+        {([['tea', 'Tea'], ['notes', 'Notes'], ['orders', 'Orders'], ['files', 'Files']] as const).map(([key, label]) => <button key={key} role="tab" type="button" aria-selected={activeSection === key} aria-controls={`record-panel-${entry.id}`} className="tap-target min-h-tap text-ui-13" onClick={() => setActiveSection(key)}>{label}</button>)}
       </div>
       <div role="tabpanel" id={`record-panel-${entry.id}`} aria-label={activeSection}>
       {activeSection === 'notes' && <>
@@ -241,7 +241,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         {onEdit && <button
           type="button"
           onClick={() => onEdit(entryId)}
-          className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
+          className="tap-target min-h-tap rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
           aria-label="Edit entry"
         >
           Full capture editor
@@ -250,7 +250,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         <button
           type="button"
           onClick={() => updateEntry(entry.id, { tasteOrder: entry.tasteOrder ? undefined : Date.now() })}
-          className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
+          className="tap-target min-h-tap rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
           aria-label={entry.tasteOrder ? 'Remove from queue' : 'Queue'}
         >
           <Star size={14} className="inline mr-1.5" fill={entry.tasteOrder ? 'currentColor' : 'none'} />{entry.tasteOrder ? 'Queued' : 'Queue'}
@@ -267,16 +267,16 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
               compassEntryId: entry.id,
             }}
             variant="labeled"
-            className="tap-target min-h-11 rounded-md bg-transparent px-3 text-ui-12 text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
+            className="tap-target min-h-tap rounded-md bg-transparent px-3 text-ui-12 text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
           />
         )}
 
-        {onShare && <button type="button" onClick={() => onShare(entryId)} className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text" aria-label="Share"><Share2 size={14} className="inline mr-1.5" />Share</button>}
+        {onShare && <button type="button" onClick={() => onShare(entryId)} className="tap-target min-h-tap rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text" aria-label="Share"><Share2 size={14} className="inline mr-1.5" />Share</button>}
         {confirmDelete ? (
           <button
             type="button"
             onClick={() => { removeEntry(entry.id); onClose(); }}
-            className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-error hover:bg-tea-accent-sub"
+            className="tap-target min-h-tap rounded-md px-3 text-ui-12 font-medium text-tea-error hover:bg-tea-accent-sub"
             aria-label="Confirm delete entry"
           >
             <Trash2 size={14} className="inline mr-1.5" />Confirm delete
@@ -285,7 +285,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
           <button
             type="button"
             onClick={() => setConfirmDelete(true)}
-            className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-error"
+            className="tap-target min-h-tap rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-error"
             aria-label="Delete entry"
           >
             <Trash2 size={14} className="inline mr-1.5" />Delete
@@ -297,7 +297,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
       </div>
       {nextAction?.run !== openStock && <section aria-label="Inventory handoff" className="border-t border-tea-border py-2 flex flex-wrap items-center justify-between gap-2">
         <span className="text-ui-12 text-tea-text-sec">{entry.draftProductId ? 'Stock & listing' : 'Create a private inventory listing'}</span>
-        <>{stockProductId ? <button type="button" className="tap-target min-h-11 text-ui-12 text-tea-text" onClick={openStock}>View in Stock</button> : <CreateInventoryRecordAction entryId={entry.id} compact productId={entry.draftProductId} onOpenInventory={onOpenInventory ?? (productId => navigate(sharedStockRecordHref(productId)))} />}</>
+        <>{stockProductId ? <button type="button" className="tap-target min-h-tap text-ui-12 text-tea-text" onClick={openStock}>View in Stock</button> : <CreateInventoryRecordAction entryId={entry.id} compact productId={entry.draftProductId} onOpenInventory={onOpenInventory ?? (productId => navigate(sharedStockRecordHref(productId)))} />}</>
       </section>}
     </div>
     <BottomSheet open={quoteOpen} onOpenChange={setQuoteOpen} title="Supplier quote">

@@ -67,7 +67,7 @@ const Row: React.FC<{ label: string; children: React.ReactNode; onClick?: () => 
       <span className="flex min-w-0 flex-1 items-baseline justify-end gap-1.5 truncate text-right font-mono text-ui-14 text-tea-text">{children}</span>
     </>
   );
-  const cls = 'flex min-h-11 w-full items-center gap-3 border-b border-tea-border px-4 text-left';
+  const cls = 'flex min-h-tap w-full items-center gap-3 border-b border-tea-border px-4 text-left';
   return onClick
     ? <button type="button" onClick={onClick} data-testid={testId} className={cls}>{body}</button>
     : <div data-testid={testId} className={cls}>{body}</div>;
@@ -350,7 +350,7 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
             role="radio"
             aria-checked={choice === c}
             onClick={() => choose(c)}
-            className={`min-h-11 font-mono text-ui-11 uppercase tracking-[0.16em] ${i ? 'border-l border-tea-border' : ''} ${
+            className={`min-h-tap font-mono text-ui-11 uppercase tracking-[0.16em] ${i ? 'border-l border-tea-border' : ''} ${
               choice === c ? 'bg-tea-gold/15 text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
             }`}
           >
@@ -365,7 +365,7 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
           onClick={() => (onOpenSaid ? onOpenSaid(entry.id) : setSaidOpen((v) => !v))}
           disabled={!said.length}
           aria-expanded={saidOpen}
-          className="flex min-h-11 w-full items-center gap-2 px-4 text-left"
+          className="flex min-h-tap w-full items-center gap-2 px-4 text-left"
           data-testid="tea-face-said"
         >
           <span className="flex flex-1 items-baseline gap-2">
@@ -385,13 +385,13 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
 
       <div className="flex items-center justify-between gap-3 px-4 pt-1">
         {!isTeaware ? (
-          <button type="button" onClick={() => onFullTasting(entry.id)} className="min-h-11 font-mono text-ui-12 text-tea-text-sec hover:text-tea-text">Full tasting</button>
+          <button type="button" onClick={() => onFullTasting(entry.id)} className="min-h-tap font-mono text-ui-12 text-tea-text-sec hover:text-tea-text">Full tasting</button>
         ) : <span />}
-        <button type="button" onClick={onEdit} className="min-h-11 font-mono text-ui-12 text-tea-text-sec hover:text-tea-text" data-testid="tea-face-edit">Edit all fields</button>
+        <button type="button" onClick={onEdit} className="min-h-tap font-mono text-ui-12 text-tea-text-sec hover:text-tea-text" data-testid="tea-face-edit">Edit all fields</button>
       </div>
       {onDone && (
         <div className="flex justify-end px-4 pt-1">
-          <button type="button" onClick={onDone} className="curate-v2-word tap-target min-h-11 px-1 text-ui-14" data-testid="tea-face-done">Done</button>
+          <button type="button" onClick={onDone} className="curate-v2-word tap-target min-h-tap px-1 text-ui-14" data-testid="tea-face-done">Done</button>
         </div>
       )}
       {/* Delete asks on its own line, never in a browser popup. The shop marks
@@ -400,11 +400,11 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
         {confirmingDelete ? (
           <>
             <span className="text-tea-text-sec">Delete this tea?</span>
-            <button type="button" onClick={() => { removeEntry(entry.id); onBack?.(); }} className="tap-target min-h-11 text-tea-error">Delete</button>
-            <button type="button" onClick={() => setConfirmingDelete(false)} className="tap-target min-h-11 text-tea-text-sec hover:text-tea-text">Keep</button>
+            <button type="button" onClick={() => { removeEntry(entry.id); onBack?.(); }} className="tap-target min-h-tap text-tea-error">Delete</button>
+            <button type="button" onClick={() => setConfirmingDelete(false)} className="tap-target min-h-tap text-tea-text-sec hover:text-tea-text">Keep</button>
           </>
         ) : (
-          <button type="button" onClick={() => setConfirmingDelete(true)} className="tap-target min-h-11 text-tea-text-sec hover:text-tea-text" aria-label={`Delete ${entry.name || 'this tea'}`}>Delete this tea</button>
+          <button type="button" onClick={() => setConfirmingDelete(true)} className="tap-target min-h-tap text-tea-text-sec hover:text-tea-text" aria-label={`Delete ${entry.name || 'this tea'}`}>Delete this tea</button>
         )}
       </div>
       <BottomSheet open={storyOpen} onOpenChange={setStoryOpen} title="Story" description="Your words, apart from the supplier's." large>

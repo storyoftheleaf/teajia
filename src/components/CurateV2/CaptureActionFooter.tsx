@@ -46,7 +46,7 @@ export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
             aria-label={cell.label}
             data-curate-action
             {...(cell.extra ?? {})}
-            className={`min-h-11 font-mono text-ui-11 uppercase tracking-[0.16em] transition-colors ${i ? 'border-l border-tea-border' : ''} ${
+            className={`min-h-tap font-mono text-ui-11 uppercase tracking-[0.16em] transition-colors ${i ? 'border-l border-tea-border' : ''} ${
               cell.on ? 'bg-tea-gold/15 text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
             }`}
           >
@@ -62,7 +62,7 @@ export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
           aria-label="Done, commit this entry"
           data-testid={doneTestId}
           data-visual-state={doneEnabled ? 'primary' : 'disabled-neutral'}
-          className="curate-v2-word tap-target min-h-11 px-1 text-ui-14"
+          className="curate-v2-word tap-target min-h-tap px-1 text-ui-14"
         >
           Done
         </button>
