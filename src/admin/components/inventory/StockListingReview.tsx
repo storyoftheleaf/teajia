@@ -1,4 +1,4 @@
-import { useState, type ComponentProps } from 'react';
+import { useEffect, useState, type ComponentProps } from 'react';
 import { Link } from 'react-router-dom';
 import { Camera } from 'lucide-react';
 import { CapturePhotoImage } from '../../../components/curate/CapturePhotoImage';
@@ -17,12 +17,20 @@ import { StockPublication, stockPublicationState } from './StockPublication';
 
 type PublicationProps = Omit<ComponentProps<typeof StockPublication>, 'product'>;
 
-export function StockListingReview({ product, entryId, applyWording, ...publication }: PublicationProps & {
+export function StockListingReview({ product, entryId, applyWording, openRequested = false, onOpenHandled, ...publication }: PublicationProps & {
   product: Product;
   entryId?: string;
   applyWording: (text: string) => Promise<void>;
+  openRequested?: boolean;
+  onOpenHandled?: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (openRequested) {
+      setOpen(true);
+      onOpenHandled?.();
+    }
+  }, [openRequested, onOpenHandled]);
   const status = stockPublicationState(product, publication.canPublish);
   return <section aria-label="Shop publication" className="mx-3 mb-3">
     <TeaCard teaType={product.type}

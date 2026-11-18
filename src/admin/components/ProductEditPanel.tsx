@@ -983,6 +983,9 @@ export interface ProductEditPanelProps {
   /** False when this holding is not yet eligible for public shop visibility. */
   canPublish?: boolean;
   publicationProblem?: string | null;
+  /** Open the focused Shop listing review when arriving from a Stock card. */
+  openListingReview?: boolean;
+  onListingReviewOpened?: () => void;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -1009,6 +1012,8 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   incoming,
   canPublish = true,
   publicationProblem,
+  openListingReview = false,
+  onListingReviewOpened,
 }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -1436,6 +1441,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
 
             {effectivePurpose(product) === 'working' && <StockListingReview key={`${activeAccountId}:${product.id}`}
               product={product} entryId={sharedRecordId}
+              openRequested={openListingReview} onOpenHandled={onListingReviewOpened}
               canList={canList} canPublish={canPublish} isOwner={isOwnerTier} problem={publicationProblem}
               applyWording={text => persistField(product.id, 'description', text)}
               markReady={() => persistField(product.id, 'status', 'Active')}

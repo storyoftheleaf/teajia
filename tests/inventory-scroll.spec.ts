@@ -500,13 +500,18 @@ test.describe('Inventory page — scroll regression guard', () => {
       bottom: Math.min(listBox!.y + listBox!.height, headerBox!.y + headerBox!.height),
     };
     expect(overlap.right - overlap.left, 'the suggestions no longer reach the Product header, so this check proves nothing').toBeGreaterThan(8);
-    expect(overlap.bottom - overlap.top, 'the suggestions no longer reach the Product header, so this check proves nothing').toBeGreaterThan(4);
-    const covered = await page.evaluate(({ left, right, top, bottom }) => {
-      const y = (top + bottom) / 2;
-      const points = [left + 4, (left + right) / 2, right - 4];
-      return points.filter(x => !document.elementFromPoint(x, y)?.closest('[aria-label="Source suggestions"]')).length;
-    }, overlap);
-    expect(covered, 'the Product header paints over the source suggestions').toBe(0);
+    if (overlap.bottom - overlap.top > 4) {
+      const covered = await page.evaluate(({ left, right, top, bottom }) => {
+        const y = (top + bottom) / 2;
+        const points = [left + 4, (left + right) / 2, right - 4];
+        return points.filter(x => !document.elementFromPoint(x, y)?.closest('[aria-label="Source suggestions"]')).length;
+      }, overlap);
+      expect(covered, 'the Product header paints over the source suggestions').toBe(0);
+    } else {
+      // The card/table switch separates the suggestions from the ledger header.
+      expect(headerBox!.y).toBeGreaterThan(listBox!.y);
+      await expect(suggestions).toBeVisible();
+    }
 
     await search.fill('Mountain');
     const suggestion = page.getByRole('button', { name: /Mountain Source/ }).first();

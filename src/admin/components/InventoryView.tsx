@@ -4,6 +4,7 @@ import type { InventoryFacetFilter } from './inventory/domain';
 import { renderedRowIds, shiftRangeIds } from './inventory/selectionRange';
 import { summaryStatusOnRefetch } from './inventory/domain';
 import { StockBrowseBar } from './inventory/stock/StockBrowseBar';
+import { StockTeaCard } from './inventory/stock/StockTeaCard';
 import { StockViewOptions } from './inventory/stock/StockViewOptions';
 import { UnknownSupplierSheet } from './inventory/stock/UnknownSupplierSheet';
 import { formPricingPreview } from './inventory/stock/formPricingModel';
@@ -93,8 +94,8 @@ import { StockMovementPanel } from './inventory/StockMovementPanel';
 import { InventorySourcePanel } from './inventory/InventorySourcePanel';
 import { SupplierSheet } from '../../components/shared/SupplierSheet';
 import { TastingSession } from '../../components/tasting/TastingSession';
-import { adaptInventorySummaryRows, inventoryMatchesFacetFilter, buildPersonalJournalHref, getPersonalTastingAction, inventorySummaryStatusMessage, isInventoryDraftReady, inventoryPublicationProblem, isInventorySelectionPublishable } from './inventory/domain';
-import type { IncomingInventorySummary, InventorySummaryRow, InventorySummaryStatus, InventoryWritingSummary, PersonalTastingSummary } from './inventory/domain';
+import { adaptInventorySummaryRows, inventoryMatchesFacetFilter, buildPersonalJournalHref, getPersonalTastingAction, inventorySummaryStatusMessage, isInventoryDraftReady, inventoryPublicationProblem, isInventorySelectionPublishable, deriveInventoryStage, effectivePurpose } from './inventory/domain';
+import type { IncomingInventorySummary, InventoryStage, InventorySummaryRow, InventorySummaryStatus, InventoryWritingSummary, PersonalTastingSummary } from './inventory/domain';
 
 interface InventoryViewProps {
   products: Product[];
@@ -276,6 +277,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   useEffect(() => { if (externalShowOptions !== undefined) setShowOptionsInternal(externalShowOptions); }, [externalShowOptions]);
   const [showAdjust, setShowAdjust] = useState(false);
   const [glossaryMode, setGlossaryMode] = useState(false);
+  const [stockLayout, setStockLayout] = useState<'cards' | 'table'>(() => localStorage.getItem('teajia-stock-layout') === 'table' ? 'table' : 'cards');
+  const [listingReviewProductId, setListingReviewProductId] = useState<string | null>(null);
+  const chooseStockLayout = (layout: 'cards' | 'table') => {
+    localStorage.setItem('teajia-stock-layout', layout);
+    setStockLayout(layout);
+  };
   const [mobileSearchExpanded, setMobileSearchExpanded] = useState(false);
   const mobileSearchInputRef = useRef<HTMLInputElement>(null);
   const mobileSearchTriggerRef = useRef<HTMLButtonElement>(null);
@@ -855,6 +862,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // The phone's stock list (todo/plans/stock-phone-by-supplier.md). Edit mode,
   // the glossary cards and the Pending AI feed keep their own layouts.
   const phoneList = isMobile && !isEditMode && !glossaryMode && filterType === 'Samples';
+  const cardLayout = stockLayout === 'cards' && !isEditMode && !draftMode && filterType !== 'Samples' && filterType !== 'Pending' && !glossaryMode;
   const [phoneGroupBy, setPhoneGroupByState] = useState<PhoneGroupBy>(readPhoneGroupBy);
   // Curate samples shown in the Samples view, so its count includes them.
   const [curateSampleCount, setCurateSampleCount] = useState(0);
@@ -1131,6 +1139,22 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     setSourcePanelProduct(null);
     setPanelProduct(product);
   }, [setPanelProduct]);
+
+  const openStockCardAction = (product: Product, stage: InventoryStage) => {
+    if (effectivePurpose(product) !== 'working') { stableOpenPanel(product); return; }
+    if (stage === 'published' || stage === 'ready_private') {
+      setListingReviewProductId(product.id);
+      stableOpenPanel(product);
+      return;
+    }
+    if (stage === 'needs_preparation') {
+      navigate(product.sourceCompassEntryId
+        ? `/admin/compass?tab=sourcing&entry=${encodeURIComponent(product.sourceCompassEntryId)}`
+        : `/admin/compass?tab=sourcing&developProduct=${encodeURIComponent(product.id)}&developName=${encodeURIComponent(product.givenName || product.productName)}&developType=${encodeURIComponent(product.type)}`);
+      return;
+    }
+    stableOpenPanel(product);
+  };
 
   const stableOpenSource = useCallback((product: Product) => {
     setPanelProduct(null);
@@ -2423,7 +2447,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <button type="button" onClick={onAddClick} aria-label="Add new tea" className="tap-target !hidden md:!inline-flex items-center gap-1 text-tea-gold hover:text-tea-gold-lt"><Plus size={18} /><span className="font-mono text-ui-11 uppercase tracking-[0.08em]">Add</span></button>
 
                     <button type="button" onClick={() => setShowAdjust(true)} aria-label="View options" title="Arrange Stock" aria-haspopup="dialog" aria-expanded={showAdjust} className="tap-target text-tea-text-sec hover:text-tea-text"><SlidersHorizontal size={18} aria-hidden="true" /></button>
-                    {groupedProducts && groupedProducts.length > 0 && <button type="button" className="tap-target text-tea-text-sec hover:text-tea-text" aria-label={groupedProducts.every(group => collapsedGroups.has(group.key)) ? 'Expand all' : 'Collapse all'} title={groupedProducts.every(group => collapsedGroups.has(group.key)) ? 'Expand all' : 'Collapse all'} onClick={() => setSearchParams(params => withInventoryFold(params, groupedProducts.every(group => collapsedGroups.has(group.key)) ? new Set() : new Set([...collapsedGroups, ...groupedProducts.map(group => group.key)])), { replace: true })}>{groupedProducts.every(group => collapsedGroups.has(group.key)) ? <ChevronsDown size={18} aria-hidden="true" /> : <ChevronsUp size={18} aria-hidden="true" />}</button>}
+                    {!cardLayout && groupedProducts && groupedProducts.length > 0 && <button type="button" className="tap-target text-tea-text-sec hover:text-tea-text" aria-label={groupedProducts.every(group => collapsedGroups.has(group.key)) ? 'Expand all' : 'Collapse all'} title={groupedProducts.every(group => collapsedGroups.has(group.key)) ? 'Expand all' : 'Collapse all'} onClick={() => setSearchParams(params => withInventoryFold(params, groupedProducts.every(group => collapsedGroups.has(group.key)) ? new Set() : new Set([...collapsedGroups, ...groupedProducts.map(group => group.key)])), { replace: true })}>{groupedProducts.every(group => collapsedGroups.has(group.key)) ? <ChevronsDown size={18} aria-hidden="true" /> : <ChevronsUp size={18} aria-hidden="true" />}</button>}
                     {/* overflow */}
                     <button type="button" onClick={() => setShowOptions(!showOptions)} aria-label="Open inventory actions" aria-expanded={showOptions} className="tap-target text-tea-text-sec hover:text-tea-text"><MoreHorizontal size={18} /></button>
 
@@ -2599,6 +2623,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             {(inventorySummaryStatus === 'error' || inventorySummaryStatus === 'stale') && (
               <button type="button" onClick={() => setInventorySummaryRefreshKey(value => value + 1)} className="tap-target text-tea-gold hover:text-tea-gold-lt">Try again</button>
             )}
+          </div>
+        </div>
+      )}
+      {filterType !== 'Pending' && !glossaryMode && filterType !== 'Samples' && !draftMode && (
+        <div className="stock-layout-switch shrink-0" role="group" aria-label="Stock layout">
+          <span className="text-ui-12 text-tea-text-sec">{processedProducts.length} {inventoryCategory === 'tea' ? 'teas' : 'items'}</span>
+          <div className="stock-layout-actions">
+            <button type="button" aria-pressed={cardLayout} onClick={() => chooseStockLayout('cards')}>Cards</button>
+            <button type="button" aria-pressed={!cardLayout} onClick={() => chooseStockLayout('table')}>Table</button>
           </div>
         </div>
       )}
@@ -2886,6 +2919,24 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           </div>
         )}
 
+        {cardLayout && groupedProducts && (
+          <div className="stock-card-sections" data-testid="stock-card-sections">
+            {groupedProducts.filter(group => group.items.length > 0).map(group => (
+              <section key={group.key} data-stock-group={group.label} data-testid={group.lifecycle ? `inventory-stage-${group.key}` : undefined} aria-label={`${group.label}, ${group.items.length} ${inventoryCategory === 'tea' ? 'teas' : 'items'}`}>
+                <div className="stock-card-section-heading">
+                  <h2>{group.label}</h2>
+                  <span>{group.items.length} {inventoryCategory === 'tea' ? group.items.length === 1 ? 'tea' : 'teas' : 'items'} · {fmtNum(group.totalStock, 0)} {inventoryCategory === 'tea' ? 'g' : 'units'}</span>
+                </div>
+                <div className="stock-card-grid">
+                  {group.items.map(product => <StockTeaCard key={product.id} product={product}
+                    stage={group.lifecycle ? group.key as InventoryStage : deriveInventoryStage(product, effectiveIncomingByProductId[product.id])}
+                    incoming={effectiveIncomingByProductId[product.id]} onOpen={stableOpenPanel} onAction={openStockCardAction} />)}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
+
         {/* INVENTORY TABLE, canonical §20 inventory table from /design/system:
             bordered card containing top strip → headers → rows → bottom strip.
             Renders at all widths now; on mobile, long-press a row to select and open
@@ -2948,7 +2999,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           {/* Horizontal movement belongs to inventory-scroll (see the note on
               it). This wrapper is only the ledger's box. */}
           <div>
-          {filterType !== 'Pending' && !glossaryMode && <>
+        {filterType !== 'Pending' && !glossaryMode && !cardLayout && <>
           {/* Top strip, the orienting line: which view + how many (left), with
               stock-history demoted to a quiet trailing link (right) rather than a
               loud leading verb. It lives INSIDE the scroll box (above the table)
@@ -3309,11 +3360,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       <ProductEditPanel
         product={livePanelProduct}
         rates={rates}
-        onClose={() => setPanelProduct(null)}
+        onClose={() => { setPanelProduct(null); setListingReviewProductId(null); }}
         onUpdate={handleProductUpdate}
         onSaveField={(id,field,value)=>handleProductUpdate(id,field,value,{throwOnError:true})}
         products={panelGroup ? panelGroup.products : processedProducts}
-        onNavigate={(p) => setPanelProduct(p)}
+        onNavigate={(p) => { setPanelProduct(p); setListingReviewProductId(null); }}
+        openListingReview={listingReviewProductId === livePanelProduct?.id}
+        onListingReviewOpened={() => setListingReviewProductId(null)}
         filterLabel={panelGroup ? `from ${panelGroup.label}` : filterType !== 'All' ? (VIEW_FILTER_LABELS[filterType] || filterType) : undefined}
         onRecount={stableStockRecount}
         onTeaAction={phoneList ? handleTeaAction : undefined}

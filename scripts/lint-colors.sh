@@ -302,7 +302,7 @@ fi
 if [ -n "$INLINE_STYLE_REST" ]; then
   echo ""
   echo "NOTICE: $(printf '%s\n' "$INLINE_STYLE_REST" | wc -l | tr -d ' ') hardcoded color(s) inside inline styles outside the enforced paths (non-blocking). Top offenders:"
-  printf '%s\n' "$INLINE_STYLE_REST" | cut -d: -f1 | sort | uniq -c | sort -rn | head -8
+  printf '%s\n' "$INLINE_STYLE_REST" | cut -d: -f1 | sort | uniq -c | sort -rn | head -8 || true
   NOTICES=$((NOTICES + 1))
 fi
 
@@ -363,7 +363,7 @@ fi
 if [ -n "$CTA_PAIR_REST" ]; then
   echo ""
   echo "NOTICE: $(printf '%s\n' "$CTA_PAIR_REST" | wc -l | tr -d ' ') hand-written solid-CTA pairing(s) outside the enforced paths (non-blocking). Top offenders:"
-  printf '%s\n' "$CTA_PAIR_REST" | cut -d: -f1 | sort | uniq -c | sort -rn | head -8
+  printf '%s\n' "$CTA_PAIR_REST" | cut -d: -f1 | sort | uniq -c | sort -rn | head -8 || true
   NOTICES=$((NOTICES + 1))
 fi
 
@@ -437,7 +437,7 @@ EMDASH_REST=$(printf '%s\n' "$EMDASH_ALL" | grep -vE "$EMDASH_ENFORCED_PATHS" | 
 if [ -n "$EMDASH_REST" ]; then
   echo ""
   echo "NOTICE: $(printf '%s\n' "$EMDASH_REST" | wc -l | tr -d ' ') em-dash(es) outside the enforced paths (non-blocking). Top offenders:"
-  printf '%s\n' "$EMDASH_REST" | cut -d: -f1 | sort | uniq -c | sort -rn | head -8
+  printf '%s\n' "$EMDASH_REST" | cut -d: -f1 | sort | uniq -c | sort -rn | head -8 || true
   NOTICES=$((NOTICES + 1))
 fi
 

@@ -39,6 +39,7 @@ async function install(page: Page) {
     localStorage.clear();
     localStorage.setItem('saved-view-test-seeded', '1');
     localStorage.setItem('teajia_token', value);
+    localStorage.setItem('teajia-stock-layout', 'table');
     localStorage.setItem('teajia-storage', JSON.stringify({ version: 2, state: {
       savedViews: [
         { id: 'custom-legacy-selling', name: 'My selling list', columns: ['productName', 'stockGrams'], sortConfig: [{ key: 'productName', direction: 'asc' }], filterType: 'ForSale', groupBy: null },

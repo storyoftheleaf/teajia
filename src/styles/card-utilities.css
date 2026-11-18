@@ -7468,3 +7468,22 @@ body.cart-panel-open .commerce-dock {
     padding-bottom: clamp(28px, 4vw, 40px) !important;
   }
 }
+/* Stock browse shares Curate's tea card, with stage as a section rather than a fold. */
+.stock-layout-switch { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 12px; border-bottom:1px solid var(--tea-border); }
+.stock-layout-actions { display:flex; align-items:center; gap:2px; padding:2px; border:1px solid var(--tea-border); border-radius:5px; background:var(--tea-surface); }
+.stock-layout-actions button { min-height:44px; padding:0 12px; border-radius:3px; color:var(--tea-text-sec); font-size:12px; }
+.stock-layout-actions button[aria-pressed='true'] { background:var(--tea-elevated); color:var(--tea-text); box-shadow:inset 0 -2px var(--tea-gold); }
+.stock-layout-actions button:focus-visible, .stock-tea-open:focus-visible { outline:1px solid var(--tea-gold); outline-offset:2px; }
+.stock-card-sections { display:grid; gap:16px; padding:8px 12px 28px; }
+.stock-card-section-heading { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:4px 12px; padding:3px 2px 6px; border-bottom:1px solid var(--tea-border); }
+.stock-card-section-heading h2 { margin:0; color:var(--tea-text); font-family:var(--font-display),serif; font-size:21px; font-weight:400; }
+.stock-card-section-heading span { color:var(--tea-text-sec); font-size:11px; font-variant-numeric:tabular-nums; }
+.stock-card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr)); gap:8px; padding-top:7px; }
+.stock-tea-card .library-card-name { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; font-size:18px; }
+.stock-tea-card .library-card-title-row { min-height:44px; }
+.stock-card-year { flex:none; padding-left:6px; color:var(--tea-text-sec); font-size:12px; font-variant-numeric:tabular-nums; }
+.stock-tea-card .library-card-subrow { min-width:0; }
+.stock-tea-card .library-card-meta-primary { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.stock-tea-card .tea-card-action-row { justify-content:flex-end; padding:0 6px; }
+.stock-tea-open { display:inline-flex; align-items:center; justify-content:center; gap:5px; min-height:44px; padding:0 6px; color:var(--tea-text-sec); font-size:12px; }
+.stock-tea-open:hover { color:var(--tea-gold-lt); }

@@ -46,6 +46,7 @@ async function install(page: Page) {
   await page.addInitScript(value => {
     localStorage.clear();
     localStorage.setItem('teajia_token', value);
+    localStorage.setItem('teajia-stock-layout', 'table');
     localStorage.setItem('teajia-storage', JSON.stringify({ version: 2, state: { activeAccountId: 'acct', activeUserId: 'admin', memberships: [{ account_id: 'acct', account_name: 'Test', role: 'owner' }] } }));
   }, jwt);
   await page.route('**/api/auth/me', r => r.fulfill({ json: { id: 'admin', email: 'operator@test', role: 'owner' } }));

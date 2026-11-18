@@ -1,6 +1,34 @@
 import { expect, test } from './fixtures';
 import { injectAuth, mockInventoryApi, MOCK_PRODUCTS } from './helpers/inventoryMocks';
 
+test('Stock uses shared cards and directs listing and development work', async ({ page }) => {
+  await page.route('**/api/**', route => route.fulfill({ json: [] }));
+  await injectAuth(page, 'cards');
+  await mockInventoryApi(page);
+  await page.route('**/api/products', route => route.fulfill({ json: MOCK_PRODUCTS.slice(0, 8) }));
+  await page.goto('/admin/stock');
+
+  const cards = page.getByTestId('stock-card-sections');
+  await expect(cards).toBeVisible();
+  await expect(cards.locator('[data-testid^="stock-card-"]')).toHaveCount(8);
+  await expect(page.getByTestId('inventory-column-row')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Cards', exact: true })).toHaveAttribute('aria-pressed', 'true');
+
+  const first = page.getByTestId('stock-card-test-product-2');
+  await expect(first).toContainText('Buyer');
+  await first.getByRole('button', { name: 'Review listing', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Review listing' })).toBeVisible();
+  await page.getByRole('dialog', { name: 'Review listing' }).getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('button', { name: 'Close product panel' }).click();
+  await page.getByTestId('stock-card-test-product-4').getByRole('button', { name: 'Develop tea' }).click();
+  await expect(page).toHaveURL(/\/admin\/compass\?/);
+  await page.goto('/admin/stock');
+  await page.getByRole('button', { name: 'Table', exact: true }).click();
+  await expect(page.getByTestId('inventory-column-row')).toBeVisible();
+  await page.reload();
+  await expect(page.getByTestId('inventory-column-row')).toBeVisible();
+});
+
 test('Stock cards use two columns only when two readable cards fit, then become a spreadsheet', async ({ page }) => {
   await page.route('**/api/**', route => route.fulfill({ json: [] }));
   await injectAuth(page);
@@ -8,6 +36,7 @@ test('Stock cards use two columns only when two readable cards fit, then become 
   await page.route('**/api/products', route => route.fulfill({ json: MOCK_PRODUCTS.slice(0, 3).map(product => ({ ...product, vendor: 'Master Bo' })) }));
   await page.addInitScript(() => {
     for (const key of ['stock-preview-auth', 'stock-preview-columns-v1', 'stock-preview-source-group-v3']) sessionStorage.setItem(key, '1');
+    localStorage.setItem('teajia-stock-layout', 'table');
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/admin/stock');

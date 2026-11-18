@@ -20,6 +20,7 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await page.addInitScript(jwt => {
     for (const key of ['stock-preview-auth', 'stock-preview-columns-v1', 'stock-preview-source-group-v3']) sessionStorage.setItem(key, '1');
     localStorage.setItem('teajia_token', jwt);
+    localStorage.setItem('teajia-stock-layout', 'table');
     if (!sessionStorage.getItem('stock-reference-seeded')) {
       localStorage.setItem('teajia-storage', JSON.stringify({ version: 2, state: {
         activeAccountId: 'acct', activeUserId: 'admin', memberships: [{ account_id: 'acct', account_name: 'Test shop', role: 'owner' }],

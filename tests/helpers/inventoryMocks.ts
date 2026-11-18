@@ -64,10 +64,11 @@ export const MOCK_PRODUCTS = Array.from({ length: 96 }, (_, i) => {
   };
 });
 
-export async function injectAuth(page: Page) {
-  await page.addInitScript((token) => {
+export async function injectAuth(page: Page, stockLayout: 'cards' | 'table' = 'table') {
+  await page.addInitScript(({ token, stockLayout }) => {
     localStorage.setItem('teajia_token', token);
-  }, FAKE_TOKEN);
+    if (!localStorage.getItem('teajia-stock-layout')) localStorage.setItem('teajia-stock-layout', stockLayout);
+  }, { token: FAKE_TOKEN, stockLayout });
 }
 
 export async function mockInventoryApi(page: Page) {
