@@ -24,9 +24,14 @@ test('Stock uses shared cards and directs listing and development work', async (
   await expect(page).toHaveURL(/\/admin\/compass\?/);
   await page.goto('/admin/stock');
   await page.getByRole('button', { name: 'Table', exact: true }).click();
-  await expect(page.getByTestId('inventory-column-row')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Table', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  const header = page.getByTestId('inventory-column-row');
+  if (page.viewportSize()!.width >= 768) await expect(header).toBeVisible();
+  else await expect(page.locator('.stock-record').first()).toBeVisible();
   await page.reload();
-  await expect(page.getByTestId('inventory-column-row')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Table', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  if (page.viewportSize()!.width >= 768) await expect(header).toBeVisible();
+  else await expect(page.locator('.stock-record').first()).toBeVisible();
 });
 
 test('Stock cards use two columns only when two readable cards fit, then become a spreadsheet', async ({ page }) => {
