@@ -64,3 +64,38 @@ describe('handing over interrupted recordings', () => {
     expect([...store.rows.keys()]).toEqual(['mine']);
   });
 });
+
+describe('acknowledging a durable transcript', () => {
+  it('waits for attachment before clearing the original pending recording', async () => {
+    const { acknowledgeVoiceTranscript } = await import('./useVoiceRecorder');
+    let finish!: () => void;
+    const attached = new Promise<void>(resolve => { finish = resolve; });
+    const save = vi.fn(() => attached);
+    const acknowledge = vi.fn(async () => {});
+    const applying = acknowledgeVoiceTranscript(done('a'), 'u1', save, () => true, acknowledge);
+    expect(acknowledge).not.toHaveBeenCalled();
+    finish();
+    await expect(applying).resolves.toBe('accepted');
+    expect(acknowledge).toHaveBeenCalledExactlyOnceWith('a', 'u1');
+  });
+
+  it('keeps the original pending recording if the person changes during attachment', async () => {
+    const { acknowledgeVoiceTranscript } = await import('./useVoiceRecorder');
+    let finish!: () => void;
+    let activeUser = 'u1';
+    const save = () => new Promise<void>(resolve => { finish = resolve; });
+    const acknowledge = vi.fn(async () => {});
+    const applying = acknowledgeVoiceTranscript(done('a'), 'u1', save, () => activeUser === 'u1', acknowledge);
+    activeUser = 'u2';
+    finish();
+    await expect(applying).resolves.toBe('superseded');
+    expect(acknowledge).not.toHaveBeenCalled();
+  });
+
+  it('preserves pending audio when the durable attachment fails', async () => {
+    const { acknowledgeVoiceTranscript } = await import('./useVoiceRecorder');
+    const acknowledge = vi.fn(async () => {});
+    await expect(acknowledgeVoiceTranscript(done('a'), 'u1', async () => { throw new Error('offline'); }, () => true, acknowledge)).rejects.toThrow('offline');
+    expect(acknowledge).not.toHaveBeenCalled();
+  });
+});

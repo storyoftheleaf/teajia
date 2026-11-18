@@ -1,3 +1,4 @@
+import { recordingAudioUrl, linkedRecordingSql, readOwnedRecording, preservePrivateRecordingClips, mergeRecordingClipsSql } from './privateRecordingMedia';
 import { hasPublicStatus } from '../../src/lib/productPublication';
 import { guardFetch } from './allowanceGuard.mjs';
 import { isCuratedReadPath, isReadPathPublic } from '../../src/pages/read/articleLive';
@@ -10899,12 +10900,7 @@ const handleTranscribe: Handler = async (request, env) => {
   }
   await env.DB.prepare("UPDATE private_recordings SET status = 'completed', transcript = ?, updated_at = datetime('now') WHERE id = ?")
     .bind(transcribed.raw ?? transcribed.text, recordingId).run();
-  try {
-    await env.MEDIA_BUCKET.delete(recordingKey);
-  } catch {
-    console.error('Completed private recording cleanup failed');
-  }
-  return json({ text: transcribed.text, recording_id: recordingId, ...(transcribed.raw ? { raw_text: transcribed.raw, word_fixes: transcribed.fixes } : {}) });
+  return json({ text: transcribed.text, recording_id: recordingId, audio_url: recordingAudioUrl(recordingId), ...(transcribed.raw ? { raw_text: transcribed.raw, word_fixes: transcribed.fixes } : {}) });
 };
 
 /** `raw` is what the speech model returned (kept on the recording row); `text` is the same with known mishearings of the
@@ -10928,11 +10924,14 @@ const handleRetryTranscription: Handler = async (request, env, params) => {
   if (limited) return limited;
   if (!hasTeaVoiceProvider(env)) return restError(503, 'Transcription provider unavailable', 'provider_unavailable');
   const row = await env.DB.prepare(
-    'SELECT id, object_key, mime_type FROM private_recordings WHERE id = ? AND account_id = ? AND user_id = ?'
+    'SELECT id, object_key, mime_type, status, transcript FROM private_recordings WHERE id = ? AND account_id = ? AND user_id = ?'
   ).bind(params.id, ctx.accountId, ctx.userId).first();
   if (!row) return restError(404, 'Recording not found', 'recording_not_found');
   const object = await env.MEDIA_BUCKET.get(row.object_key as string);
   if (!object) return restError(410, 'Recording audio is no longer available', 'recording_expired');
+  if (row.status === 'completed' && typeof row.transcript === 'string') {
+    return json({ text: fixTeaVoiceText(row.transcript).text, recording_id: params.id, audio_url: recordingAudioUrl(params.id) });
+  }
   const bytes = await object.arrayBuffer();
   const file = new File([bytes], `recording.${safeUploadExtension(row.mime_type as string)}`, { type: row.mime_type as string });
   const result = await transcribePrivateRecording(env, file);
@@ -10943,12 +10942,85 @@ const handleRetryTranscription: Handler = async (request, env, params) => {
   }
   await env.DB.prepare("UPDATE private_recordings SET status = 'completed', transcript = ?, last_error_code = NULL, updated_at = datetime('now') WHERE id = ?")
     .bind(result.raw ?? result.text, params.id).run();
-  try {
-    await env.MEDIA_BUCKET.delete(row.object_key as string);
-  } catch {
-    console.error('Completed private recording cleanup failed');
+  return json({ text: result.text, recording_id: params.id, audio_url: recordingAudioUrl(params.id), ...(result.raw ? { raw_text: result.raw, word_fixes: result.fixes } : {}) });
+};
+
+const handleGetPrivateRecordingAudio: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const row = await readOwnedRecording(env.DB, params.id, ctx.accountId, ctx.userId);
+  if (!row) return restError(404, 'Recording not found', 'recording_not_found');
+  const object = await env.MEDIA_BUCKET?.get(row.object_key);
+  if (!object) return restError(410, 'Recording audio is no longer available', 'recording_expired');
+  return new Response(await object.arrayBuffer(), { headers: {
+    'Content-Type': row.mime_type,
+    'Cache-Control': 'private, no-store',
+    'X-Content-Type-Options': 'nosniff',
+  } });
+};
+
+const handleAttachPrivateRecording: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const row = await readOwnedRecording(env.DB, params.id, ctx.accountId, ctx.userId);
+  if (!row) return restError(404, 'Recording not found', 'recording_not_found');
+  if (row.status !== 'completed' || !row.transcript) {
+    return restError(409, 'Transcribe this recording before saving it to the tea', 'recording_not_completed');
   }
-  return json({ text: result.text, recording_id: params.id, ...(result.raw ? { raw_text: result.raw, word_fixes: result.fixes } : {}) });
+  const body = await request.json() as { compass_entry_id?: string };
+  if (typeof body.compass_entry_id !== 'string' || !body.compass_entry_id) {
+    return restError(400, 'Choose the tea this recording belongs to', 'entry_required');
+  }
+  const entryId = body.compass_entry_id;
+  const entry = await env.DB.prepare(
+    'SELECT * FROM tea_compass_entries WHERE id=? AND account_id=? AND user_id=? AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL'
+  ).bind(entryId, ctx.accountId, ctx.userId).first<Record<string, unknown>>();
+  if (!entry) return restError(404, 'Tea record not found', 'entry_not_found');
+  if (!await env.MEDIA_BUCKET?.head(row.object_key)) {
+    return restError(410, 'Recording audio is no longer available', 'recording_expired');
+  }
+  const audioUrl = recordingAudioUrl(row.id);
+  const clip = { url: audioUrl, transcript: fixTeaVoiceText(row.transcript).text, timestamp: toIsoTime(row.created_at), recordingId: row.id };
+  const noteId = 'recording-' + row.id;
+  // Both the clip and its private voice note land together. The recording's
+  // deterministic note ID makes reload/retry and repeated attachment idempotent.
+  const prior = await env.DB.prepare('SELECT compass_entry_id FROM notes WHERE id=? AND account_id=? AND author_id=?')
+    .bind(noteId, ctx.accountId, ctx.userId).first<{ compass_entry_id: string }>();
+  if (prior && prior.compass_entry_id !== entryId) {
+    return restError(409, 'This recording already belongs to another tea', 'recording_already_attached');
+  }
+  const now = new Date().toISOString();
+  try {
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO notes(id,account_id,compass_entry_id,text,source_type,author_id,author_name,visibility,created_at)
+         SELECT ?,?,?,?,'voice',?,?,'private',? FROM private_recordings
+         WHERE id=? AND account_id=? AND user_id=? AND status='completed'
+         ON CONFLICT(id) DO NOTHING`
+      ).bind(noteId, ctx.accountId, entryId, clip.transcript, ctx.userId, ctx.name || 'You', now, row.id, ctx.accountId, ctx.userId),
+      env.DB.prepare(
+        `UPDATE tea_compass_entries SET
+          audio_clips=json_insert(CASE WHEN json_valid(audio_clips) THEN audio_clips ELSE '[]' END,'$[#]',json(?)),
+          updated_at=?
+         WHERE id=? AND account_id=? AND user_id=?
+           AND NOT EXISTS(SELECT 1 FROM json_each(CASE WHEN json_valid(audio_clips) THEN audio_clips ELSE '[]' END)
+             WHERE json_extract(value,'$.url')=?)
+           AND EXISTS(SELECT 1 FROM notes WHERE id=? AND compass_entry_id=?)`
+      ).bind(JSON.stringify(clip), now, entryId, ctx.accountId, ctx.userId, audioUrl, noteId, entryId),
+    ]);
+  } catch {
+    return restError(409, 'Recording could not be attached. Try again.', 'recording_attach_conflict');
+  }
+  const savedNote = await env.DB.prepare('SELECT * FROM notes WHERE id=? AND account_id=? AND author_id=?')
+    .bind(noteId, ctx.accountId, ctx.userId).first<Record<string, unknown>>();
+  if (savedNote?.compass_entry_id !== entryId) {
+    return restError(409, 'This recording already belongs to another tea', 'recording_already_attached');
+  }
+  return json({
+    recording_id: row.id, audio_url: audioUrl, clip,
+    entry: await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id=? AND account_id=?').bind(entryId, ctx.accountId).first(),
+    note: savedNote,
+  });
 };
 
 const handleDiscardTranscription: Handler = async (request, env, params) => {
@@ -10959,8 +11031,16 @@ const handleDiscardTranscription: Handler = async (request, env, params) => {
   ).bind(params.id, ctx.accountId, ctx.userId).first();
   if (!row) return restError(404, 'Recording not found', 'recording_not_found');
   await env.MEDIA_BUCKET.delete(row.object_key as string);
-  await env.DB.prepare('DELETE FROM private_recordings WHERE id = ? AND account_id = ? AND user_id = ?')
-    .bind(params.id, ctx.accountId, ctx.userId).run();
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE tea_compass_entries SET audio_clips=(
+      SELECT COALESCE(json_group_array(json(value)), '[]')
+      FROM json_each(CASE WHEN json_valid(audio_clips) THEN audio_clips ELSE '[]' END)
+      WHERE json_extract(value,'$.url') IS NOT ?
+    ),updated_at=datetime('now') WHERE account_id=? AND user_id=?`)
+      .bind(recordingAudioUrl(params.id), ctx.accountId, ctx.userId),
+    env.DB.prepare('DELETE FROM private_recordings WHERE id = ? AND account_id = ? AND user_id = ?')
+      .bind(params.id, ctx.accountId, ctx.userId),
+  ]);
   return json({ ok: true });
 };
 
@@ -15921,6 +16001,9 @@ const handleCreateCompassEntry: Handler = async (request, env) => {
   const body = await request.json() as Record<string, unknown>;
   const decoded = decodeCompassWrite(body, manager);
   if ('error' in decoded) return decoded.error;
+  if (decoded.values.audio_clips !== undefined) {
+    decoded.values.audio_clips = preservePrivateRecordingClips(decoded.values.audio_clips, []);
+  }
   const contextError = await validateCompassContext(env, accountId, decoded.values);
   if (contextError) return contextError;
   const id = typeof body.id === 'string' && body.id ? body.id : crypto.randomUUID();
@@ -15954,6 +16037,9 @@ const handleUpdateCompassEntry: Handler = async (request, env, params, execCtx) 
   if ('error' in decoded) return decoded.error;
   const existingContext = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ? AND (user_id = ? OR ? = 1) AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL').bind(params.id, accountId, userId, manager ? 1 : 0).first() as Record<string, unknown> | null;
   if (!existingContext) return json({ error: 'Compass entry not found' }, 404);
+  if (decoded.values.audio_clips !== undefined) {
+    decoded.values.audio_clips = preservePrivateRecordingClips(decoded.values.audio_clips, existingContext.audio_clips);
+  }
   const contextError = await validateCompassContext(env, accountId, decoded.values, existingContext);
   if (contextError) return contextError;
   await keepServerDraftProductLink(env, accountId, params.id, decoded.values, existingContext, ctx.bundles.includes('catalog'));
@@ -15967,7 +16053,7 @@ const handleUpdateCompassEntry: Handler = async (request, env, params, execCtx) 
       await env.DB.batch([...write.statements, write.assertion]);
     } else {
       const sample = await compassSampleStatements(env, accountId, String(existingContext.user_id), after, decoded.values.tasting !== undefined);
-      await env.DB.batch([env.DB.prepare(`UPDATE tea_compass_entries SET ${cols.map(column => `${column} = ?`).join(', ')}, updated_at = datetime('now') WHERE id = ? AND user_id = ? AND account_id = ?`)
+      await env.DB.batch([env.DB.prepare(`UPDATE tea_compass_entries SET ${cols.map(column => column === 'audio_clips' ? `audio_clips = ${mergeRecordingClipsSql('?', 'audio_clips')}` : `${column} = ?`).join(', ')}, updated_at = datetime('now') WHERE id = ? AND user_id = ? AND account_id = ?`)
         .bind(...cols.map(column => decoded.values[column]), params.id, userId, accountId), ...sample]);
     }
   } catch (error) { return json({ error: (error as Error).message }, 400); }
@@ -16792,6 +16878,9 @@ const handleSyncCompassEntries: Handler = async (request, env, _params, execCtx)
       // Nothing of this device's is left to write: acknowledged, unchanged.
       if (Object.keys(decoded.values).length === 0) { entryStatementIndexes[entryStatementIndexes.length - 1] = -2; continue; }
     }
+    if (decoded.values.audio_clips !== undefined) {
+      decoded.values.audio_clips = preservePrivateRecordingClips(decoded.values.audio_clips, owner?.audio_clips);
+    }
     writtenValues.set(String(entry.id), decoded.values);
     const contextError = await validateCompassContext(env, accountId, decoded.values, owner);
     if (contextError) return contextError;
@@ -16808,7 +16897,7 @@ const handleSyncCompassEntries: Handler = async (request, env, _params, execCtx)
       } else {
         const present = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
         const columns = ['id','user_id','account_id',...present];
-        const updates = present.filter(column => column !== 'created_at').map(column => `${column} = excluded.${column}`);
+        const updates = present.filter(column => column !== 'created_at').map(column => column === 'audio_clips' ? `audio_clips = ${mergeRecordingClipsSql('excluded.audio_clips', 'tea_compass_entries.audio_clips')}` : `${column} = excluded.${column}`);
         stmts.push(env.DB.prepare(`INSERT INTO tea_compass_entries (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')}) ON CONFLICT(id) DO UPDATE SET ${(updates.length ? updates : ['id = excluded.id']).join(', ')} WHERE tea_compass_entries.user_id = excluded.user_id AND tea_compass_entries.account_id = excluded.account_id`)
           .bind(entry.id, entryOwner, accountId, ...present.map(column => decoded.values[column])));
         stmts.push(...await compassSampleStatements(env, accountId, entryOwner, after, decoded.values.tasting !== undefined));
@@ -29928,6 +30017,8 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/generate-wisdom', handleGenerateWisdom],
   ['POST', '/api/generate-chinese-name', handleGenerateChineseName],
   ['POST', '/api/transcribe', handleTranscribe],
+  ['POST', '/api/transcriptions/:id/attach', handleAttachPrivateRecording],
+  ['GET', '/api/transcriptions/:id/audio', handleGetPrivateRecordingAudio],
   ['POST', '/api/transcriptions/:id/retry', handleRetryTranscription],
   ['DELETE', '/api/transcriptions/:id', handleDiscardTranscription],
   ['POST', '/api/admin/migrate-tasting', handleMigrateTasting],
@@ -30760,20 +30851,28 @@ const requestHandler = {
           const expired = cursorExpiry === null
             ? await env.DB.prepare(
               `SELECT id, object_key, expires_at FROM private_recordings
-               WHERE expires_at <= datetime('now')
+               WHERE julianday(expires_at) <= julianday('now') AND NOT ${linkedRecordingSql()}
                ORDER BY expires_at ASC, id ASC LIMIT 100`
             ).all()
             : await env.DB.prepare(
               `SELECT id, object_key, expires_at FROM private_recordings
-               WHERE expires_at <= datetime('now')
+               WHERE julianday(expires_at) <= julianday('now') AND NOT ${linkedRecordingSql()}
                  AND (expires_at > ? OR (expires_at = ? AND id > ?))
                ORDER BY expires_at ASC, id ASC LIMIT 100`
             ).bind(cursorExpiry, cursorExpiry, cursorId).all();
           examined += expired.results.length;
           for (const row of expired.results) {
             try {
-              await env.MEDIA_BUCKET.delete(row.object_key as string);
-              await env.DB.prepare('DELETE FROM private_recordings WHERE id = ?').bind(row.id).run();
+              // Claim only still-unlinked audio. Attachment's transaction reads
+              // this same status, so cleanup cannot remove an attached object.
+              const claimed = await env.DB.prepare(
+                `UPDATE private_recordings SET status='expiring' WHERE id=?
+                  AND julianday(expires_at)<=julianday('now') AND NOT ${linkedRecordingSql()}
+                  RETURNING object_key`
+              ).bind(row.id).first<{ object_key: string }>();
+              if (!claimed) continue;
+              await env.MEDIA_BUCKET.delete(claimed.object_key);
+              await env.DB.prepare("DELETE FROM private_recordings WHERE id = ? AND status='expiring'").bind(row.id).run();
               deleted += 1;
             } catch {
               failures += 1;

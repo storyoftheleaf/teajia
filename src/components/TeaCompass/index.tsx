@@ -9,9 +9,9 @@ import { ArrowLeft, Check, ChevronDown, ChevronUp, FlaskConical, Loader2, Mic, P
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompassStore';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
-import { syncNotes } from '../../lib/notesSync';
+import { saveRecordedTeaNote } from '../../lib/recordedTeaNote';
+import type { VoiceRecording } from '../../lib/pendingTranscriptions';
 import { LegacyLocalRecovery } from './LegacyLocalRecovery';
-import { useNotesStore } from '../../lib/notesStore';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import { syncCompassEntries } from '../../lib/teaCompassSync';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
@@ -116,7 +116,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   });
 
   const { activeUserId, activeAccountId, activeAccount } = useAppStore();
-  const { addNote } = useNotesStore();
 
   const addSampleTasting = useSampleStore((s) => s.addTasting);
   const samplesList = useSampleStore((s) => s.samples);
@@ -612,26 +611,14 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // mounted, so compass + notes data stays fresh across navigation.
 
   const handleVoiceTranscript = useCallback(
-    (text: string, recordingContextKey: string) => {
+    async (_text: string, recordingContextKey: string, recording?: VoiceRecording) => {
       const contextPrefix = `curate:${activeUserId ?? 'guest'}:${activeAccountId ?? 'guest'}:`;
       if (!recordingContextKey.startsWith(contextPrefix)) return false;
       const recordedEntryId = recordingContextKey.slice(contextPrefix.length);
       if (!recordedEntryId || recordedEntryId === 'unassigned') return false;
-      const entry = getEntry(recordedEntryId);
-      addNote({
-        accountId: activeAccountId ?? 'guest',
-        compassEntryId: recordedEntryId,
-        teaKey: entry?.teaKey,
-        text,
-        sourceType: 'voice',
-        authorId: activeUserId ?? 'guest',
-        authorName: activeAccount?.name ?? 'You',
-        visibility: 'private',
-      });
-      syncNotes().catch(() => {});
-      return true;
+      return saveRecordedTeaNote(recordedEntryId, recording);
     },
-    [getEntry, addNote, activeUserId, activeAccountId, activeAccount]
+    [activeUserId, activeAccountId]
   );
 
   const voiceUserId = activeUserId ?? 'guest';

@@ -28,6 +28,7 @@ class Db {
   recording: any = null;
   failCompletionUpdate = false;
   stored: string[] = [];
+  async batch(statements: any[]) { return Promise.all(statements.map(statement => statement.run())); }
   prepare(sql: string) {
     const normalized = sql.replace(/\s+/g, ' ').trim().toLowerCase(); let values: any[] = [];
     const statement = {
@@ -37,6 +38,7 @@ class Db {
         if (normalized.includes('select session_version from users')) return { session_version: 0 };
         if (normalized.includes('from account_members am')) return { role: 'staff', permissions: '{"bundles":["catalog"]}', kind: 'location' };
         if (normalized.includes('select status from accounts')) return { status: 'active' };
+        if (normalized.startsWith("update private_recordings set status='expiring'")) return this.recording;
         if (normalized.includes('from private_recordings')) {
           return this.recording && this.recording.id === values[0] && this.recording.account_id === values[1] && this.recording.user_id === values[2] ? this.recording : null;
         }
@@ -52,7 +54,7 @@ class Db {
         return { success: true, meta: { changes: 1 } };
       },
       all: async () => {
-        if (normalized.includes('from private_recordings') && normalized.includes('expires_at <=')) {
+        if (normalized.includes('from private_recordings') && normalized.includes('julianday(expires_at) <=')) {
           return { results: this.recording ? [{ id: this.recording.id, object_key: this.recording.object_key }] : [] };
         }
         const row = await statement.first();
@@ -87,7 +89,7 @@ describe('private transcription persistence', () => {
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({ text: 'Recovered transcript' })));
     const retried = await worker.fetch(await request(`/api/transcriptions/${failure.recording_id}/retry`), { DB: db, MEDIA_BUCKET: bucket, JWT_SECRET: SECRET, GROQ_API_KEY: 'groq', PROVIDER_LIMITER: { limit: async () => ({ success: true }) } } as any);
     expect(await retried.json()).toMatchObject({ text: 'Recovered transcript', recording_id: failure.recording_id });
-    expect(bucket.objects.size).toBe(0);
+    expect(bucket.objects.size).toBe(1);
   });
 
   it('rejects a codec-qualified upload whose bytes are not WebM', async () => {
@@ -132,7 +134,7 @@ describe('private transcription persistence', () => {
     const response = await worker.fetch(await request('/api/transcribe', 'POST', form), { DB: db, MEDIA_BUCKET: bucket, JWT_SECRET: SECRET, GROQ_API_KEY: 'groq', PROVIDER_LIMITER: { limit: async () => ({ success: true }) } } as any);
     expect(response.status).toBe(200);
     const body = await response.json() as any;
-    expect(body).toEqual({ text: 'Nothing odd here.', recording_id: expect.any(String) });
+    expect(body).toEqual({ text: 'Nothing odd here.', recording_id: expect.any(String), audio_url: expect.stringMatching(/^\/api\/transcriptions\/.+\/audio$/) });
     expect(db.stored).toEqual(['Nothing odd here.']);
   });
 

@@ -253,3 +253,22 @@ describe('pending transcription service', () => {
     expect(firstPendingTranscription(rows)?.id).toBe('old');
   });
 });
+
+describe('retained recording attachment', () => {
+  it('replays completed recording identity without another transcription and acknowledges only on device', async () => {
+    const repository = memoryRepository();
+    const transcribe = vi.fn().mockResolvedValue({ text: 'Same spoken words', recording_id: 'server-1', audio_url: '/api/transcriptions/server-1/audio' });
+    const retryTranscription = vi.fn();
+    const discardTranscription = vi.fn();
+    const service = createPendingTranscriptionService({ repository, transcribe, retryTranscription, discardTranscription, createId: () => 'local-1', now: () => 1000 });
+    const first = await service.capture(new Blob(['audio']), 'curate:u:a:tea', 'u');
+    expect(first).toMatchObject({ recording: { recordingId: 'server-1', audioUrl: '/api/transcriptions/server-1/audio', timestamp: new Date(1000).toISOString() } });
+    const recoveredService = createPendingTranscriptionService({ repository, transcribe, retryTranscription, discardTranscription, now: () => 1001 });
+    await expect(recoveredService.retry('local-1', 'u')).resolves.toEqual(first);
+    expect(transcribe).toHaveBeenCalledOnce();
+    expect(retryTranscription).not.toHaveBeenCalled();
+    await recoveredService.acknowledge('local-1', 'u');
+    expect(await repository.get('local-1')).toBeNull();
+    expect(discardTranscription).not.toHaveBeenCalled();
+  });
+});

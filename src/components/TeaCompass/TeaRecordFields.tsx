@@ -2,11 +2,9 @@ import { useEffect, useId, useState } from 'react';
 import { Mic } from 'lucide-react';
 import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 import { useAppStore } from '../../lib/store';
-import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useVoiceRecorder } from '../../hooks/useVoiceRecorder';
-import { useNotesStore } from '../../lib/notesStore';
-import { syncNotes } from '../../lib/notesSync';
-import { mediaUrl } from '../../lib/mediaUrl';
+import { saveRecordedTeaNote } from '../../lib/recordedTeaNote';
+import { RecordingAudio } from '../curate/RecordingAudio';
 import type { TeaCompassEntry } from './types';
 import { TEA_TYPES, TEA_FORMS } from '../../wisdom';
 import type { Currency } from '../../admin/types';
@@ -51,17 +49,9 @@ export function RecordVoice({ entryId, compact = false }: { entryId: string; com
   const userId = useAppStore(s => s.activeUserId) ?? 'guest';
   const accountId = useAppStore(s => s.activeAccountId) ?? 'guest';
   const context = `curate:${userId}:${accountId}:${entryId}`;
-  const voice = useVoiceRecorder((text, capturedContext) => {
+  const voice = useVoiceRecorder(async (_text, capturedContext, recording) => {
     if (capturedContext !== context || useAppStore.getState().activeAccountId !== accountId || (useAppStore.getState().activeUserId ?? 'guest') !== userId) return false;
-    const store = useTeaCompassStore.getState();
-    const entry = store.getEntry(entryId);
-    if (!entry || store.accountScopeId !== accountId) return false;
-    const notes = useNotesStore.getState();
-    if (!notes.notes.some(note => !note.deleted && note.accountId === accountId && (note.compassEntryId === entryId || (!!entry.teaKey && note.teaKey === entry.teaKey)) && note.sourceType === 'voice' && note.text === text.trim())) {
-      notes.addNote({ accountId, compassEntryId: entryId, teaKey: entry.teaKey, text: text.trim(), sourceType: 'voice', authorId: userId, authorName: 'You', visibility: 'private' });
-      void syncNotes().catch(() => {});
-    }
-    return true;
+    return saveRecordedTeaNote(entryId, recording);
   }, context, userId);
   return <div className={compact ? 'contents' : 'space-y-2'}>
     <div className="flex flex-wrap items-center gap-3">
@@ -119,7 +109,7 @@ export function TeaRecordFields({ entry, onChange, section = 'all', flat = false
       <Heading className={`${T.label} ${flat ? 'mb-2' : 'min-h-11 cursor-pointer'}`}>Voice recordings ({entry.audioClips.length})</Heading>
       <div className="space-y-3">{entry.audioClips.map((clip, index) => <div key={`${clip.timestamp}:${index}`} className="space-y-2 min-w-0">
         <p className="text-ui-11 text-tea-text-dim">{new Date(clip.timestamp).toLocaleString()}</p>
-        <audio controls preload="none" src={mediaUrl(clip.url)} className="w-full max-w-full" aria-label={`Voice recording ${index + 1}`} />
+        <RecordingAudio controls preload="none" src={clip.url} className="w-full max-w-full" aria-label={`Voice recording ${index + 1}`} />
         {clip.transcript && <p className="text-ui-12 text-tea-text-sec whitespace-pre-wrap">{clip.transcript}</p>}
       </div>)}</div>
     </Group>}

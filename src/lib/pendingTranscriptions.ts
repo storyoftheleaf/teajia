@@ -13,6 +13,7 @@ export interface PendingTranscription {
   error?: string;
   transcript?: string;
   serverRecordingId?: string;
+  audioUrl?: string;
 }
 
 export interface PendingTranscriptionRepository {
@@ -25,15 +26,21 @@ export interface PendingTranscriptionRepository {
   deleteForUser(userId: string): Promise<void>;
 }
 
+export interface VoiceRecording {
+  recordingId: string;
+  audioUrl: string;
+  timestamp: string;
+}
+
 export type PendingTranscriptionResult =
-  | { id: string; contextKey: string; status: 'complete'; text: string }
+  | { id: string; contextKey: string; status: 'complete'; text: string; recording?: VoiceRecording }
   | { id: string; contextKey: string; status: 'failed'; error: string }
   | { id: string; contextKey: string; status: 'superseded' };
 
 interface PendingTranscriptionServiceOptions {
   repository: PendingTranscriptionRepository;
-  transcribe: (blob: Blob) => Promise<{ text: string; recording_id?: string }>;
-  retryTranscription?: (recordingId: string) => Promise<{ text: string; recording_id?: string }>;
+  transcribe: (blob: Blob) => Promise<{ text: string; recording_id?: string; audio_url?: string }>;
+  retryTranscription?: (recordingId: string) => Promise<{ text: string; recording_id?: string; audio_url?: string }>;
   discardTranscription?: (recordingId: string) => Promise<unknown>;
   createId?: () => string;
   now?: () => number;
@@ -123,15 +130,20 @@ export function createPendingTranscriptionService({
       }
 
       const text = response.text.trim();
+      const serverRecordingId = response.recording_id ?? transcribing.serverRecordingId;
+      const audioUrl = response.audio_url ?? transcribing.audioUrl;
       if (!text) throw new Error('empty transcript');
       await repository.put({
         ...transcribing,
         status: 'complete',
         transcript: text,
-        serverRecordingId: response.recording_id ?? transcribing.serverRecordingId,
+        serverRecordingId,
+        audioUrl,
         updatedAt: now(),
       });
-      return { id: transcribing.id, contextKey: transcribing.contextKey, status: 'complete', text };
+      return { id: transcribing.id, contextKey: transcribing.contextKey, status: 'complete', text,
+        ...(serverRecordingId && audioUrl ? { recording: { recordingId: serverRecordingId, audioUrl, timestamp: new Date(transcribing.createdAt).toISOString() } } : {}),
+      };
     } catch (error: unknown) {
       if (
         latestAttemptByContext.get(transcribing.contextKey) !== attemptNumber
@@ -178,6 +190,10 @@ export function createPendingTranscriptionService({
       if (!recording || recording.userId !== userId) {
         return { id, contextKey: 'unknown', status: 'failed', error: 'Saved recording not found.' };
       }
+      if (recording.status === 'complete' && recording.transcript && recording.serverRecordingId && recording.audioUrl) return {
+        id: recording.id, contextKey: recording.contextKey, status: 'complete', text: recording.transcript,
+        ...(recording.serverRecordingId && recording.audioUrl ? { recording: { recordingId: recording.serverRecordingId, audioUrl: recording.audioUrl, timestamp: new Date(recording.createdAt).toISOString() } } : {}),
+      };
       return attempt(recording);
     },
 
@@ -193,9 +209,6 @@ export function createPendingTranscriptionService({
     async acknowledge(id, userId) {
       const recording = await repository.get(id);
       if (recording?.userId !== userId) return;
-      if (recording.serverRecordingId && discardTranscription) {
-        await discardTranscription(recording.serverRecordingId);
-      }
       await repository.delete(id);
     },
 
@@ -206,8 +219,7 @@ export function createPendingTranscriptionService({
 
     async purgeUser(userId) {
       userGeneration.set(userId, (userGeneration.get(userId) ?? 0) + 1);
-      const recordings = await repository.listForUser(userId);
-      await Promise.all(recordings.map((recording) => discardServerCopy(recording.serverRecordingId)));
+      // Signing out clears device drafts. Server retention owns unlinked audio cleanup.
       await repository.deleteForUser(userId);
     },
   };

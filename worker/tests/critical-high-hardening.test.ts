@@ -119,7 +119,17 @@ describe('critical and high hardening contracts', () => {
         let values: unknown[] = [];
         return {
           bind(...next: unknown[]) { values = next; return this; },
+          async first() {
+            if (sql.includes("UPDATE private_recordings SET status='expiring'")) {
+              return recordings.find(row => row.id === values[0]) ?? null;
+            }
+            return null;
+          },
           async all() {
+            if (sql.includes("UPDATE private_recordings SET status='expiring'")) {
+              const row = recordings.find(row => row.id === values[0]);
+              return { results: row ? [row] : [] };
+            }
             if (sql.includes('FROM private_recordings')) {
               const cursorId = values[2] as string | undefined;
               return { results: recordings.filter(row => !cursorId || row.id > cursorId).slice(0, 100) };

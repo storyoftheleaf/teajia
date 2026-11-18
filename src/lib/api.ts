@@ -2541,7 +2541,7 @@ export const api = {
     });
   },
 
-  transcribeAudio: async (audioBlob: Blob): Promise<{ text: string; recording_id: string }> => {
+  transcribeAudio: async (audioBlob: Blob): Promise<{ text: string; recording_id: string; audio_url?: string }> => {
     const formData = new FormData();
     const ext = audioBlob.type.includes('mp4') ? 'mp4' : audioBlob.type.includes('wav') ? 'wav' : 'webm';
     formData.append('file', audioBlob, `recording.${ext}`);
@@ -2551,8 +2551,21 @@ export const api = {
     });
   },
 
-  retryTranscription: async (recordingId: string): Promise<{ text: string; recording_id: string }> =>
+  retryTranscription: async (recordingId: string): Promise<{ text: string; recording_id: string; audio_url?: string }> =>
     authedFetch(`${API_URL}/api/transcriptions/${encodeURIComponent(recordingId)}/retry`, { method: 'POST' }),
+
+  attachTranscription: async (recordingId: string, entryId: string, expectedAuth: NonNullable<ApiRequestInit['expectedAuth']>): Promise<{
+    recording_id: string;
+    audio_url: string;
+    clip: { url: string; transcript?: string; timestamp: string; recordingId?: string };
+    note: Record<string, any>;
+    entry: Record<string, any>;
+  }> => authedFetch(`${API_URL}/api/transcriptions/${encodeURIComponent(recordingId)}/attach`, {
+    method: 'POST', body: JSON.stringify({ compass_entry_id: entryId }), expectedAuth, retryTimeouts: true,
+  }),
+
+  transcriptionAudio: (recordingId: string, expectedAuth: NonNullable<ApiRequestInit['expectedAuth']>) =>
+    authedBlobFetch(`${API_URL}/api/transcriptions/${encodeURIComponent(recordingId)}/audio`, { expectedAuth, cache: 'no-store', reportIncident: false }),
 
   discardTranscription: async (recordingId: string): Promise<{ ok: true }> =>
     authedFetch(`${API_URL}/api/transcriptions/${encodeURIComponent(recordingId)}`, { method: 'DELETE' }),

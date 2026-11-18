@@ -8,6 +8,7 @@ import {
   firstPendingTranscription,
   type PendingTranscription,
   type PendingTranscriptionResult,
+  type VoiceRecording,
 } from '../lib/pendingTranscriptions';
 import { chooseRecorderMimeType } from '../../shared/voice/microphone';
 import { createAudioDraftStore, type AudioDraft, type AudioDraftStore } from '../../shared/voice/audio-drafts';
@@ -134,8 +135,26 @@ useAppStore.subscribe((store) => {
   previousUserId = nextUserId;
 });
 
+type TranscriptCallback = (text: string, contextKey: string, recording?: VoiceRecording) => boolean | void | Promise<boolean | void>;
+
+/** A completed callback may wait on the network while the person or tea changes. */
+export async function acknowledgeVoiceTranscript(
+  result: Extract<PendingTranscriptionResult, { status: 'complete' }>,
+  userId: string,
+  onTranscript: TranscriptCallback,
+  isCurrent: () => boolean,
+  acknowledge: (id: string, userId: string) => Promise<void>,
+): Promise<'accepted' | 'deferred' | 'superseded'> {
+  if (!isCurrent()) return 'superseded';
+  const accepted = await onTranscript(result.text, result.contextKey, result.recording);
+  if (!isCurrent()) return 'superseded';
+  if (accepted === false) return 'deferred';
+  await acknowledge(result.id, userId);
+  return 'accepted';
+}
+
 export function useVoiceRecorder(
-  onTranscript: (text: string, contextKey: string) => boolean | void,
+  onTranscript: TranscriptCallback,
   contextKey = 'curate:guest:guest:unassigned',
   userId = 'guest',
 ) {
@@ -182,14 +201,19 @@ export function useVoiceRecorder(
         }
 
         if (recording.status === 'complete' && recording.transcript) {
-          const accepted = onTranscriptRef.current(recording.transcript, recording.contextKey);
-          if (accepted === false) {
+          const accepted = await acknowledgeVoiceTranscript({
+            id: recording.id, contextKey: recording.contextKey, status: 'complete', text: recording.transcript,
+            recording: recording.serverRecordingId && recording.audioUrl ? { recordingId: recording.serverRecordingId, audioUrl: recording.audioUrl, timestamp: new Date(recording.createdAt).toISOString() } : undefined,
+          }, targetUserId, onTranscriptRef.current,
+          () => mountedRef.current && contextKeyRef.current === targetContextKey && userIdRef.current === targetUserId,
+          pendingService.acknowledge);
+          if (accepted === 'superseded') return;
+          if (accepted === 'deferred') {
             setPendingRecording(recording);
             setErrorMessage('Recording saved. Open its original entry to add the transcript.');
             setState('error');
             return;
           }
-          await pendingService.acknowledge(recording.id, targetUserId);
           continue;
         }
 
@@ -200,6 +224,9 @@ export function useVoiceRecorder(
       }
     } catch (error: unknown) {
       if (!mountedRef.current) return;
+      const rows = await pendingService.list(targetContextKey, targetUserId).catch(() => []);
+      if (!mountedRef.current || contextKeyRef.current !== targetContextKey || userIdRef.current !== targetUserId) return;
+      setPendingRecording(firstPendingTranscription(rows) ?? null);
       const message = error instanceof Error ? error.message : 'Recording storage unavailable.';
       setErrorMessage(message);
       setState('error');
@@ -226,18 +253,21 @@ export function useVoiceRecorder(
     if (!mountedRef.current) return;
     if (result.contextKey !== contextKeyRef.current) return;
     if (result.status === 'complete') {
-      const accepted = onTranscriptRef.current(result.text, result.contextKey);
-      if (accepted === false) {
-        const recordings = await pendingService.list(result.contextKey, userIdRef.current);
-        if (!mountedRef.current || contextKeyRef.current !== result.contextKey) return;
+      const originalUserId = userIdRef.current;
+      const accepted = await acknowledgeVoiceTranscript(result, originalUserId, onTranscriptRef.current,
+        () => mountedRef.current && contextKeyRef.current === result.contextKey && userIdRef.current === originalUserId,
+        pendingService.acknowledge);
+      if (accepted === 'superseded') return;
+      if (accepted === 'deferred') {
+        const recordings = await pendingService.list(result.contextKey, originalUserId);
+        if (!mountedRef.current || contextKeyRef.current !== result.contextKey || userIdRef.current !== originalUserId) return;
         setPendingRecording(recordings.find((recording) => recording.id === result.id) ?? null);
         setErrorMessage('Recording saved. Open its original entry to add the transcript.');
         setState('error');
         return;
       }
-      await pendingService.acknowledge(result.id, userIdRef.current);
-      if (!mountedRef.current) return;
-      await showNextPending(result.contextKey, userIdRef.current);
+      if (!mountedRef.current || userIdRef.current !== originalUserId || contextKeyRef.current !== result.contextKey) return;
+      await showNextPending(result.contextKey, originalUserId);
       return;
     }
     if (result.status === 'superseded') {
@@ -298,13 +328,13 @@ export function useVoiceRecorder(
         if (blob.size < MIN_RECORDING_BYTES) { discardDraft(); setState('idle'); return; }
         setState('transcribing');
         try {
-          const result = await pendingService.capture(blob, contextKey, userId);
+          await pendingService.capture(blob, contextKey, userId);
           discardDraft();
-          await applyResult(result);
+          await showNextPending(contextKey, userId);
         } catch (err: unknown) {
           /* The device copy stays: the next visit to this entry hands it over. */
           void draftWrites.finally(releaseDraft);
-          if (mountedRef.current) {
+          if (mountedRef.current && contextKeyRef.current === contextKey && userIdRef.current === userId) {
             const msg = err instanceof Error ? err.message : 'Recording storage unavailable.';
             setErrorMessage(`${msg} Keep this page open and try again.`);
             setState('error');
@@ -325,7 +355,7 @@ export function useVoiceRecorder(
     } finally {
       startingRef.current = false;
     }
-  }, [applyResult, contextKey, userId]);
+  }, [contextKey, showNextPending, userId]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current?.state !== 'inactive') {
@@ -345,11 +375,11 @@ export function useVoiceRecorder(
     try {
       await applyResult(await pendingService.retry(pendingRecording.id, userId));
     } catch (error: unknown) {
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || contextKeyRef.current !== contextKey || userIdRef.current !== userId) return;
       setErrorMessage(error instanceof Error ? error.message : 'Could not retry transcription.');
       setState('error');
     }
-  }, [applyResult, pendingRecording, userId]);
+  }, [applyResult, contextKey, pendingRecording, userId]);
 
   const discardPending = useCallback(async () => {
     try {
