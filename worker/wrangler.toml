@@ -31,8 +31,8 @@ custom_domain = true
 SHARED_ALLOWANCE_REQUIRED = "true"
 OAUTH_REDIRECT_ORIGIN = "https://teajia-api.lightcodes.workers.dev"
 WORDFORGE_ACCOUNT_ID = "acc_teajia_bali"
-# Pickup checkout also requires the store owner’s published bank transfer method.
-SHOP_PICKUP_ACCOUNT_ID = "acc_teajia_bali"
+# Immediate pickup requires explicit store activation and its published bank transfer method.
+# SHOP_PICKUP_ACCOUNT_ID stays unset until the receiving method is approved for checkout.
 # US checkout stays on operator review until a measured parcel profile is approved.
 # Set SHOP_US_SHIPPING_ACCOUNT_ID, SHOP_US_SHIPPING_USD_PER_KG,
 # SHOP_US_SHIPPING_PACKAGING_GRAMS and SHOP_US_SHIPPING_MAX_PACKED_GRAMS together.
